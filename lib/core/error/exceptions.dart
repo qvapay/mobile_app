@@ -1,20 +1,22 @@
-///This file contains exceptions. Add Exceptions in here. 
-///Some basic exceptions example were provided.
+//This file contains exceptions. Add Exceptions in here.
+//Some basic exceptions example were provided.
 
 class ServerException implements Exception {
-  const ServerException(this.message);
-
-  final String message;
+  const ServerException();
 }
 
 class AuthenticationException implements Exception {
-  const AuthenticationException(this.message);
-
-  final String message;
+  const AuthenticationException();
 }
 
 class CacheException implements Exception {
-  const CacheException(this.message);
+  const CacheException();
+}
 
-  final String message;
+class MaxRetryAtteptsReached implements Exception {
+  const MaxRetryAtteptsReached();
+}
+
+class ClientException implements Exception {
+  const ClientException();
 }
