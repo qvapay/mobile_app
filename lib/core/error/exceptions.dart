@@ -1,6 +1,10 @@
 //This file contains exceptions. Add Exceptions in here.
 //Some basic exceptions example were provided.
 
+class UnexpectedException implements Exception {
+  const UnexpectedException();
+}
+
 class ServerException implements Exception {
   const ServerException();
 }
@@ -13,8 +17,8 @@ class CacheException implements Exception {
   const CacheException();
 }
 
-class MaxRetryAtteptsReached implements Exception {
-  const MaxRetryAtteptsReached();
+class MaxRetryAtteptsReachedException implements Exception {
+  const MaxRetryAtteptsReachedException();
 }
 
 class ClientException implements Exception {

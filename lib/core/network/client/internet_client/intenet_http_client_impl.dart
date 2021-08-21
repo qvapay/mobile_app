@@ -74,14 +74,14 @@ class HttpClientImpl implements IClient {
             headers: headers,
             maxRetryAttempts: maxRetryAttempts - 1,
           );
-        } on MaxRetryAtteptsReached {
+        } on MaxRetryAtteptsReachedException {
           log('Reached maxRetryAttepts.');
         }
       }
 
       return _responseParsed;
     } else {
-      throw const MaxRetryAtteptsReached();
+      throw const MaxRetryAtteptsReachedException();
     }
   }
 
@@ -120,14 +120,14 @@ class HttpClientImpl implements IClient {
             encoding: encoding,
             maxRetryAttempts: maxRetryAttempts - 1,
           );
-        } on MaxRetryAtteptsReached {
+        } on MaxRetryAtteptsReachedException {
           log('Reached maxRetryAttepts.');
         }
       }
 
       return _responseParsed;
     } else {
-      throw const MaxRetryAtteptsReached();
+      throw const MaxRetryAtteptsReachedException();
     }
   }
 

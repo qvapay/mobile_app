@@ -14,56 +14,58 @@ abstract class Failure with EquatableMixin {
 }
 
 class ServerFailure extends Failure {
-  const ServerFailure({this.message});
-  final String? message;
+  const ServerFailure({this.message = 'Server Failure'});
+  final String message;
 
   @override
-  String toString() => message ?? 'Server Failure';
+  String toString() => message;
 }
 
 class NoInternetConnectionFailure extends Failure {
-  NoInternetConnectionFailure({this.message});
+  const NoInternetConnectionFailure({
+    this.message = 'No Intertet connection Failure.',
+  });
 
-  final String? message;
+  final String message;
 
   @override
-  String toString() => message ?? 'No Intertet connection Failure.';
+  String toString() => message;
 }
 
 class AuthenticationFailure extends Failure {
-  AuthenticationFailure({this.message});
+  AuthenticationFailure({this.message = 'Authentication Failure'});
 
-  final String? message;
+  final String message;
 
   @override
-  String toString() => message ?? 'Authentication Failure';
+  String toString() => message;
 }
 
 class InvalidCredentialsFailure extends Failure {
-  InvalidCredentialsFailure({this.message});
+  InvalidCredentialsFailure({this.message = 'Invalid Credentials Failure'});
 
-  final String? message;
+  final String message;
 
   @override
-  String toString() => message ?? 'Invalid Credentials Failure';
+  String toString() => message;
 }
 
 class EmailAlreadyTakenFailure extends Failure {
-  EmailAlreadyTakenFailure({this.message});
+  EmailAlreadyTakenFailure({this.message = 'Email already taken Failure'});
 
-  final String? message;
+  final String message;
 
   @override
-  String toString() => message ?? 'Email already taken Failure';
+  String toString() => message;
 }
 
 class EmailNotRegisteredFailure extends Failure {
-  EmailNotRegisteredFailure({this.message});
+  EmailNotRegisteredFailure({this.message = 'Email not registered Failure'});
 
-  final String? message;
+  final String message;
 
   @override
-  String toString() => message ?? 'Email not registered Failure';
+  String toString() => message;
 }
 
 class CacheFailure extends Failure {
@@ -74,3 +76,5 @@ class CacheFailure extends Failure {
   @override
   String toString() => message ?? 'Cache Failure';
 }
+
+class UnexcpetedFailure extends Failure {}
