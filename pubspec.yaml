@@ -14,6 +14,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.17.0
+  grouped_list: ^4.0.0
+  pin_code_fields: ^7.3.0
 
 dev_dependencies:
   bloc_test: ^8.1.0
@@ -25,3 +27,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/icons/
+    - assets/avatars/
+    - assets/images/
+    - assets/pay_icons/
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
