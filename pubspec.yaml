@@ -7,25 +7,21 @@ environment:
   sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
-  bloc: ^7.0.0
-  # Functional programming thingies
+  bloc: ^7.2.1
   dartz: ^0.10.0-nullsafety.1
-  # Service locator
-  get_it: ^7.2.0
-  # Override value Equality
-  equatable: ^2.0.3
-  # Connection checker
   data_connection_checker: ^0.3.4
-  # HTTP client
-  http: ^0.13.3
-
+  equatable: ^2.0.3
   flutter:
     sdk: flutter
   flutter_bloc: ^7.1.0
   flutter_localizations:
     sdk: flutter
+  get_it: ^7.2.0
+  hive: ^2.0.4
+  http: ^0.13.3
   intl: ^0.17.0
-  
+  qvapay_api_client:
+    git: https://github.com/qvapay/qvapay_api_client.git
 
 dev_dependencies:
   bloc_test: ^8.1.0
