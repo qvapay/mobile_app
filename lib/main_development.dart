@@ -13,6 +13,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:mobile_app/app/app.dart';
 import 'package:mobile_app/app/app_bloc_observer.dart';
+import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
 
 void main() {
   Bloc.observer = AppBlocObserver();
@@ -21,7 +22,10 @@ void main() {
   };
 
   runZonedGuarded(
-    () => runApp(const App()),
+    () async {
+      await setUp();
+      runApp(const App());
+    },
     (error, stackTrace) => log(error.toString(), stackTrace: stackTrace),
   );
 }
