@@ -50,7 +50,7 @@ void main() {
     );
 
     blocTest<PreferencesBloc, PreferencesState>(
-      'emits [PreferencesVeryResentStart] when it starts and the session '
+      'emits [PreferencesVeryRecentStart] when it starts and the session '
       'expiration time is less than [kExpireSession].',
       setUp: () {
         when(mockPreferencesRepository.getIsFristTime).thenAnswer(
@@ -64,12 +64,12 @@ void main() {
       build: () =>
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
       act: (bloc) => bloc.add(GetPreferences()),
-      expect: () => <PreferencesState>[PreferencesVeryResentStart()],
+      expect: () => <PreferencesState>[PreferencesVeryRecentStart()],
       verify: (bloc) => bloc.add(GetPreferences()),
     );
 
     blocTest<PreferencesBloc, PreferencesState>(
-      'emits [PreferencesResentStart] when it starts and the session '
+      'emits [PreferencesRecentStart] when it starts and the session '
       'expiration time is greater than [kExpireSession].',
       setUp: () {
         when(mockPreferencesRepository.getIsFristTime).thenAnswer(
@@ -83,9 +83,26 @@ void main() {
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
       act: (bloc) => bloc.add(GetPreferences()),
       expect: () => <PreferencesState>[
-        PreferencesResentStart(lastLogIn: tGreatLastLogInModel)
+        PreferencesRecentStart(lastLogIn: tGreatLastLogInModel)
       ],
       verify: (bloc) => bloc.add(GetPreferences()),
+    );
+    blocTest<PreferencesBloc, PreferencesState>(
+      'emits [PreferencesNotRecentStart] when the return of the `getLastLogIn` '
+      'method is `null`.',
+      setUp: () {
+        when(mockPreferencesRepository.getIsFristTime).thenAnswer(
+          (_) => Future.value(false),
+        );
+        when(mockPreferencesRepository.getLastLogIn).thenAnswer(
+          (_) async => null,
+        );
+      },
+      build: () =>
+          PreferencesBloc(preferencesRepository: mockPreferencesRepository),
+      act: (bloc) => bloc.add(GetPreferences()),
+      verify: (bloc) => bloc.add(GetPreferences()),
+      expect: () => <PreferencesState>[PreferencesNotRecentStart()],
     );
   });
 }

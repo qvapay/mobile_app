@@ -25,14 +25,15 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
       return emit(PreferencesFristTime());
     } else {
       final lastLogIn = await _preferencesRepository.getLastLogIn();
-      if (lastLogIn != null) {
-        final lastDateDiffWithNow = lastLogIn.date.difference(DateTime.now());
 
-        if (lastDateDiffWithNow.inMinutes > kExpireSession) {
-          return emit(PreferencesResentStart(lastLogIn: lastLogIn));
-        } else {
-          return emit(PreferencesVeryResentStart());
-        }
+      if (lastLogIn == null) return emit(PreferencesNotRecentStart());
+
+      final lastDateDiffWithNow = lastLogIn.date.difference(DateTime.now());
+
+      if (lastDateDiffWithNow.inMinutes > kExpireSession) {
+        return emit(PreferencesRecentStart(lastLogIn: lastLogIn));
+      } else {
+        return emit(PreferencesVeryRecentStart());
       }
     }
   }

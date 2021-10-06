@@ -11,13 +11,15 @@ class PreferencesInitial extends PreferencesState {}
 
 class PreferencesFristTime extends PreferencesState {}
 
-class PreferencesVeryResentStart extends PreferencesState {}
+class PreferencesVeryRecentStart extends PreferencesState {}
 
-class PreferencesResentStart extends PreferencesState {
-  const PreferencesResentStart({required this.lastLogIn});
+class PreferencesRecentStart extends PreferencesState {
+  const PreferencesRecentStart({required this.lastLogIn});
 
   final LastLogIn lastLogIn;
 
   @override
   List<Object> get props => [lastLogIn];
 }
+
+class PreferencesNotRecentStart extends PreferencesState {}
