@@ -7,12 +7,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mobile_app/authentication/bloc/authentication_bloc.dart';
 import 'package:mobile_app/authentication/repository/authentication_repository.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
-import 'package:mobile_app/counter/counter.dart';
-import 'package:mobile_app/l10n/l10n.dart';
 import 'package:mobile_app/preferences/bloc/preferences_bloc.dart';
 import 'package:mobile_app/preferences/repository/preferences_repository.dart';
 
@@ -56,11 +53,6 @@ class AppView extends StatelessWidget {
           accentColor: const Color(0xFF13B9FF),
         ),
       ),
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
       home: MultiBlocListener(
         listeners: [
           BlocListener<PreferencesBloc, PreferencesState>(
@@ -70,7 +62,6 @@ class AppView extends StatelessWidget {
             listener: (context, state) {},
           ),
         ],
-        child: const CounterPage(),
       ),
     );
   }
