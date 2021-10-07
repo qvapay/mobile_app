@@ -24,6 +24,8 @@ dependencies:
   path_provider: ^2.0.5
   qvapay_api_client:
     git: https://github.com/qvapay/qvapay_api_client.git
+  grouped_list: ^4.0.0
+  pin_code_fields: ^7.3.0
 
 dev_dependencies:
   bloc_test: ^8.1.0
@@ -35,3 +37,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/icons/
+    - assets/avatars/
+    - assets/images/
+    - assets/pay_icons/
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
