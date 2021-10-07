@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:dartz/dartz.dart';
-import 'package:mobile_app/authentication/models/authentication_models.dart';
+import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
