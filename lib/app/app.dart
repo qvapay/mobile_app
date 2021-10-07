@@ -10,8 +10,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/authentication/bloc/authentication_bloc.dart';
 import 'package:mobile_app/authentication/repository/authentication_repository.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/features/home/home.dart';
+import 'package:mobile_app/features/login/login.dart';
+import 'package:mobile_app/features/start/start.dart';
 import 'package:mobile_app/preferences/bloc/preferences_bloc.dart';
 import 'package:mobile_app/preferences/repository/preferences_repository.dart';
+import 'package:qvapay_api_client/qvapay_api_client.dart';
 
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
@@ -24,7 +28,7 @@ class App extends StatelessWidget {
           lazy: false,
           create: (BuildContext context) => PreferencesBloc(
             preferencesRepository: getIt<PreferencesRepository>(),
-          ),
+          )..add(GetPreferences()),
         ),
         BlocProvider<AuthenticationBloc>(
           create: (BuildContext context) => AuthenticationBloc(
@@ -32,13 +36,19 @@ class App extends StatelessWidget {
           ),
         ),
       ],
-      child: AppView(),
+      child: const AppView(),
     );
   }
 }
 
-class AppView extends StatelessWidget {
-  AppView({Key? key}) : super(key: key);
+class AppView extends StatefulWidget {
+  const AppView({Key? key}) : super(key: key);
+
+  @override
+  State<AppView> createState() => _AppViewState();
+}
+
+class _AppViewState extends State<AppView> {
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   NavigatorState get _navigator => _navigatorKey.currentState!;
@@ -56,13 +66,51 @@ class AppView extends StatelessWidget {
       home: MultiBlocListener(
         listeners: [
           BlocListener<PreferencesBloc, PreferencesState>(
-            listener: (context, state) {},
+            listener: (context, state) {
+              if (state is PreferencesFristTime) {
+                _navigator.pushAndRemoveUntil<void>(
+                  StartPage.go(),
+                  (route) => false,
+                );
+              } else if (state is PreferencesRecentStart) {
+                _navigator.pushAndRemoveUntil<void>(
+                  RecentLoginPage.go(),
+                  (route) => false,
+                );
+              } else if (state is PreferencesVeryRecentStart) {
+                _navigator.pushAndRemoveUntil<void>(
+                  HomePage.go(),
+                  (route) => false,
+                );
+              } else if (state is PreferencesNotRecentStart) {
+                _navigator.pushAndRemoveUntil<void>(
+                  LoginPage.go(),
+                  (route) => false,
+                );
+              }
+            },
           ),
           BlocListener<AuthenticationBloc, AuthenticationState>(
-            listener: (context, state) {},
-          ),
+              listener: (context, state) {
+            switch (state.status) {
+              case OAuthStatus.authenticated:
+                _navigator.pushAndRemoveUntil<void>(
+                  HomePage.go(),
+                  (route) => false,
+                );
+                break;
+              case OAuthStatus.unauthenticated:
+                _navigator.pushAndRemoveUntil<void>(
+                  LoginPage.go(),
+                  (route) => false,
+                );
+                break;
+            }
+          }),
         ],
+        child: const StartPage(),
       ),
+      onGenerateRoute: (_) => StartPage.go(),
     );
   }
 }
