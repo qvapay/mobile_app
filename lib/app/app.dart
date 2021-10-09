@@ -63,53 +63,57 @@ class _AppViewState extends State<AppView> {
           accentColor: const Color(0xFF13B9FF),
         ),
       ),
-      home: MultiBlocListener(
-        listeners: [
-          BlocListener<PreferencesBloc, PreferencesState>(
-            listener: (context, state) {
-              if (state is PreferencesFristTime) {
-                _navigator.pushAndRemoveUntil<void>(
-                  StartPage.go(),
-                  (route) => false,
-                );
-              } else if (state is PreferencesRecentStart) {
-                _navigator.pushAndRemoveUntil<void>(
-                  RecentLoginPage.go(),
-                  (route) => false,
-                );
-              } else if (state is PreferencesVeryRecentStart) {
-                _navigator.pushAndRemoveUntil<void>(
-                  HomePage.go(),
-                  (route) => false,
-                );
-              } else if (state is PreferencesNotRecentStart) {
-                _navigator.pushAndRemoveUntil<void>(
-                  LoginPage.go(),
-                  (route) => false,
-                );
-              }
-            },
-          ),
-          BlocListener<AuthenticationBloc, AuthenticationState>(
+      builder: (context, child) {
+        return MultiBlocListener(
+          listeners: [
+            BlocListener<PreferencesBloc, PreferencesState>(
               listener: (context, state) {
-            switch (state.status) {
-              case OAuthStatus.authenticated:
-                _navigator.pushAndRemoveUntil<void>(
-                  HomePage.go(),
-                  (route) => false,
-                );
-                break;
-              case OAuthStatus.unauthenticated:
-                _navigator.pushAndRemoveUntil<void>(
-                  LoginPage.go(),
-                  (route) => false,
-                );
-                break;
-            }
-          }),
-        ],
-        child: const StartPage(),
-      ),
+                if (state is PreferencesFristTime) {
+                  _navigator.pushAndRemoveUntil<void>(
+                    StartPage.go(),
+                    (route) => false,
+                  );
+                } else if (state is PreferencesRecentStart) {
+                  _navigator.pushAndRemoveUntil<void>(
+                    RecentLoginPage.go(),
+                    (route) => false,
+                  );
+                } else if (state is PreferencesVeryRecentStart) {
+                  _navigator.pushAndRemoveUntil<void>(
+                    HomePage.go(),
+                    (route) => false,
+                  );
+                } else if (state is PreferencesNotRecentStart) {
+                  _navigator.pushAndRemoveUntil<void>(
+                    LoginPage.go(),
+                    (route) => false,
+                  );
+                }
+              },
+            ),
+            BlocListener<AuthenticationBloc, AuthenticationState>(
+                listener: (context, state) {
+              switch (state.status) {
+                case OAuthStatus.authenticated:
+                  _navigator.pushAndRemoveUntil<void>(
+                    HomePage.go(),
+                    (route) => false,
+                  );
+                  break;
+                case OAuthStatus.unauthenticated:
+                  _navigator.pushAndRemoveUntil<void>(
+                    LoginPage.go(),
+                    (route) => false,
+                  );
+                  break;
+                default:
+                  break;
+              }
+            }),
+          ],
+          child: child!,
+        );
+      },
       onGenerateRoute: (_) => StartPage.go(),
     );
   }
