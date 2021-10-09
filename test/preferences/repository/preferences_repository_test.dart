@@ -4,18 +4,17 @@ import 'package:mobile_app/preferences/models/last_login.dart';
 import 'package:mobile_app/preferences/repository/preferences_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockBox extends Mock implements Box<Map<String, dynamic>> {}
+class MockBox extends Mock implements Box<Map> {}
 
 void main() {
   late PreferencesRepository preferencesRepository;
   late MockBox mockBox;
 
-  const mockIsFristTimeCero = <String, int>{keyIsFristTime: 0};
-  const mockIsFristTimeOne = <String, int>{keyIsFristTime: 1};
+  const mockIsFristTimeFalse = <dynamic, dynamic>{keyIsFristTime: false};
   const mockEmptyMap = <String, dynamic>{};
 
-  final mockLastLogIn = <String, Map<String, String>>{
-    keyLastLogIn: <String, String>{
+  final mockLastLogIn = <dynamic, dynamic>{
+    keyLastLogIn: <dynamic, dynamic>{
       'name': 'QvaPay App',
       'email': 'test@qvapay.com',
       'photoUrl': 'https://qvapay.com/icon.png',
@@ -23,34 +22,47 @@ void main() {
     },
   };
 
+  final tCastLastLogIn = (mockLastLogIn.cast<String, Map>())[keyLastLogIn]!
+      .cast<String, dynamic>();
+
   setUp(() {
     mockBox = MockBox();
     preferencesRepository = HivePreferencesRepository(preferencesBox: mockBox);
   });
 
   group('getIsFristTime', () {
-    test('return `true` if is a first time.', () async {
-      when(() => mockBox.get(keyIsFristTime, defaultValue: mockIsFristTimeCero))
-          .thenReturn(mockIsFristTimeCero);
+    test('return `true` if it is the first time.', () async {
+      when(() => mockBox.containsKey(keyIsFristTime)).thenReturn(false);
 
       final isFristTime = await preferencesRepository.getIsFristTime();
 
       expect(isFristTime, isTrue);
     });
 
-    test('return `false` if is not a first time.', () async {
-      when(() => mockBox.get(keyIsFristTime, defaultValue: mockIsFristTimeCero))
-          .thenReturn(mockIsFristTimeOne);
+    test('return `false` if is not the first time.', () async {
+      when(() => mockBox.containsKey(keyIsFristTime)).thenReturn(true);
+      when(() => mockBox.get(keyIsFristTime, defaultValue: defValIsFristTime))
+          .thenReturn(mockIsFristTimeFalse);
 
       final isFristTime = await preferencesRepository.getIsFristTime();
 
       expect(isFristTime, isFalse);
     });
+
+    test('return the `defaultValue`.', () async {
+      when(() => mockBox.containsKey(keyIsFristTime)).thenReturn(true);
+      when(() => mockBox.get(keyIsFristTime, defaultValue: defValIsFristTime))
+          .thenReturn(null);
+
+      final isFristTime = await preferencesRepository.getIsFristTime();
+
+      expect(isFristTime, isTrue);
+    });
   });
 
   group('setIsFristTime', () {
-    test('change to 1 the value save in the `Box`.', () {
-      when(() => mockBox.put(keyIsFristTime, mockIsFristTimeOne))
+    test('change to `false` the value save in the `Box`.', () {
+      when(() => mockBox.put(keyIsFristTime, mockIsFristTimeFalse))
           .thenAnswer((_) async => Future.value());
 
       expect(preferencesRepository.setIsFristTime(), completes);
@@ -73,8 +85,7 @@ void main() {
 
       final lastLogIn = await preferencesRepository.getLastLogIn();
 
-      expect(
-          lastLogIn, equals(LastLogIn.fromJson(mockLastLogIn[keyLastLogIn]!)));
+      expect(lastLogIn, equals(LastLogIn.fromJson(tCastLastLogIn)));
     });
   });
 
@@ -84,8 +95,7 @@ void main() {
           .thenAnswer((_) async => Future.value());
 
       expect(
-        preferencesRepository
-            .setLastLogIn(LastLogIn.fromJson(mockLastLogIn[keyLastLogIn]!)),
+        preferencesRepository.setLastLogIn(LastLogIn.fromJson(tCastLastLogIn)),
         completes,
       );
     });

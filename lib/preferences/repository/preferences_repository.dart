@@ -20,13 +20,17 @@ abstract class PreferencesRepository {
 }
 
 const keyIsFristTime = 'isFristTime';
+
+/// Default value to `getIsFristTime` method.
+const defValIsFristTime = <String, bool>{keyIsFristTime: true};
+
 const keyLastLogIn = 'lastLogIn';
 
 class HivePreferencesRepository extends PreferencesRepository {
-  HivePreferencesRepository({required Box<Map<String, dynamic>> preferencesBox})
+  HivePreferencesRepository({required Box<Map> preferencesBox})
       : _box = preferencesBox;
 
-  final Box<Map<String, dynamic>> _box;
+  final Box<Map> _box;
 
   @override
   Future<void> clear() async {
@@ -34,38 +38,40 @@ class HivePreferencesRepository extends PreferencesRepository {
   }
 
   @override
-  Future<bool> getIsFristTime() {
-    final firstTime = _box.get(
-          keyIsFristTime,
-          defaultValue: <String, dynamic>{
-            keyIsFristTime: 0,
-          },
-        )![keyIsFristTime] ==
-        0;
+  Future<bool> getIsFristTime() async {
+    if (_box.containsKey(keyIsFristTime)) {
+      final value = _box.get(
+        keyIsFristTime,
+        defaultValue: defValIsFristTime,
+      );
+      if (value == null) return true;
+      return value.cast<String, bool>()[keyIsFristTime] ?? true;
+    }
 
-    return Future.value(firstTime);
+    return true;
   }
 
   @override
-  Future<LastLogIn?> getLastLogIn() {
+  Future<LastLogIn?> getLastLogIn() async {
     final json = _box.get(
       keyLastLogIn,
       defaultValue: <String, dynamic>{},
     );
 
     if (json == null || json.isEmpty) {
-      return Future.value(null);
+      return null;
     }
-    return Future.value(
-        LastLogIn.fromJson(json[keyLastLogIn] as Map<String, dynamic>));
+    return LastLogIn.fromJson(
+      json.cast<String, Map>()[keyLastLogIn]!.cast<String, dynamic>(),
+    );
   }
 
   @override
   Future<void> setIsFristTime() async {
     await _box.put(
       keyIsFristTime,
-      <String, dynamic>{
-        keyIsFristTime: 1,
+      <String, bool>{
+        keyIsFristTime: false,
       },
     );
   }
