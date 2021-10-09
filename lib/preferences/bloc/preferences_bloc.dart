@@ -28,7 +28,7 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
 
       if (lastLogIn == null) return emit(PreferencesNotRecentStart());
 
-      final lastDateDiffWithNow = lastLogIn.date.difference(DateTime.now());
+      final lastDateDiffWithNow = DateTime.now().difference(lastLogIn.date);
 
       if (lastDateDiffWithNow.inMinutes > kExpireSession) {
         return emit(PreferencesRecentStart(lastLogIn: lastLogIn));

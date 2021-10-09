@@ -20,10 +20,10 @@ void main() {
       LastLogIn.fromJson(tLastLogInJson).copyWith(date: DateTime.now());
 
   final tGreaterThanThirtyMinutes = DateTime.fromMillisecondsSinceEpoch(
-      DateTime.now().millisecondsSinceEpoch +
+      DateTime.now().millisecondsSinceEpoch -
           const Duration(minutes: 50).inMilliseconds);
   final tLessThanThirtyMinutes = DateTime.fromMillisecondsSinceEpoch(
-      DateTime.now().millisecondsSinceEpoch +
+      DateTime.now().millisecondsSinceEpoch -
           const Duration(minutes: 20).inMilliseconds);
 
   final tGreatLastLogInModel =
@@ -39,7 +39,7 @@ void main() {
       'the app starts.',
       setUp: () {
         when(mockPreferencesRepository.getIsFristTime).thenAnswer(
-          (_) => Future.value(true),
+          (_) async => true,
         );
       },
       build: () =>
@@ -54,11 +54,10 @@ void main() {
       'expiration time is less than [kExpireSession].',
       setUp: () {
         when(mockPreferencesRepository.getIsFristTime).thenAnswer(
-          (_) => Future.value(false),
+          (_) async => false,
         );
         when(mockPreferencesRepository.getLastLogIn).thenAnswer(
-          (_) => Future.value(
-              tLastLogInModel.copyWith(date: tLessThanThirtyMinutes)),
+          (_) async => tLastLogInModel.copyWith(date: tLessThanThirtyMinutes),
         );
       },
       build: () =>
@@ -73,10 +72,10 @@ void main() {
       'expiration time is greater than [kExpireSession].',
       setUp: () {
         when(mockPreferencesRepository.getIsFristTime).thenAnswer(
-          (_) => Future.value(false),
+          (_) async => false,
         );
         when(mockPreferencesRepository.getLastLogIn).thenAnswer(
-          (_) => Future.value(tGreatLastLogInModel),
+          (_) async => tGreatLastLogInModel,
         );
       },
       build: () =>
@@ -92,7 +91,7 @@ void main() {
       'method is `null`.',
       setUp: () {
         when(mockPreferencesRepository.getIsFristTime).thenAnswer(
-          (_) => Future.value(false),
+          (_) async => false,
         );
         when(mockPreferencesRepository.getLastLogIn).thenAnswer(
           (_) async => null,

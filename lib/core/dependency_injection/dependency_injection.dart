@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mobile_app/authentication/repository/authentication_repository.dart';
 import 'package:mobile_app/core/dependency_injection/oauth_secure_storage.dart';
+import 'package:mobile_app/features/home/home.dart';
 import 'package:mobile_app/preferences/repository/preferences_repository.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
@@ -12,8 +13,7 @@ final getIt = GetIt.instance;
 Future<void> setUp() async {
   /// Local Storage
   await Hive.initFlutter();
-  final preferencesBox =
-      await Hive.openBox<Map<String, dynamic>>('preferences');
+  final preferencesBox = await Hive.openBox<Map>('preferences');
 
   getIt
 
@@ -28,5 +28,8 @@ Future<void> setUp() async {
     )
     ..registerLazySingleton<IAuthenticationRepository>(
       () => AuthenticationRepository(qvaPayApi: getIt<QvaPayApi>()),
+    )
+    ..registerLazySingleton<IHomeRepository>(
+      () => HomeRepository(qvaPayApi: getIt<QvaPayApi>()),
     );
 }
