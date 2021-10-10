@@ -16,7 +16,9 @@ dependencies:
     sdk: flutter
   flutter_bloc: ^7.1.0
   flutter_secure_storage: ^4.2.1
+  formz: ^0.4.0
   get_it: ^7.2.0
+  grouped_list: ^4.0.0
   hive: ^2.0.4
   hive_flutter: ^1.1.0
   http: ^0.13.3
@@ -24,7 +26,6 @@ dependencies:
   path_provider: ^2.0.5
   qvapay_api_client:
     git: https://github.com/qvapay/qvapay_api_client.git
-  grouped_list: ^4.0.0
   pin_code_fields: ^7.3.0
 
 dev_dependencies:

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/constants/constants.dart';
+import 'package:mobile_app/core/constants/widgets_constants.dart';
 
 class ButtonLarge extends StatelessWidget {
   const ButtonLarge(

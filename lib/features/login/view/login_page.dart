@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_app/authentication/authentication.dart';
+import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/features/login/login.dart';
+import 'package:mobile_app/features/login/view/login_form.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -11,15 +17,21 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Login Page'),
-            ElevatedButton(onPressed: () {}, child: const Text('Login Page'))
-          ],
+        appBar: AppBar(
+          title: const Center(
+            child: Text(
+              'Log in',
+              style: kTitleScaffold,
+            ),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
         ),
-      ),
-    );
+        body: BlocProvider(
+          create: (context) => LoginBloc(
+            authenticationRepository: getIt<IAuthenticationRepository>(),
+          ),
+          child: const LoginForm(),
+        ));
   }
 }
