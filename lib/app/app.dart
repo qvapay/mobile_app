@@ -7,14 +7,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_app/authentication/bloc/authentication_bloc.dart';
-import 'package:mobile_app/authentication/repository/authentication_repository.dart';
+import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
 import 'package:mobile_app/features/home/home.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/start/start.dart';
-import 'package:mobile_app/preferences/bloc/preferences_bloc.dart';
-import 'package:mobile_app/preferences/repository/preferences_repository.dart';
+import 'package:mobile_app/preferences/preferences.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
 class App extends StatelessWidget {

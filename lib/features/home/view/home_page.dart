@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
 import 'package:mobile_app/features/home/home.dart';
 import 'package:mobile_app/features/home/view/home_view.dart';
-import 'package:mobile_app/preferences/repository/preferences_repository.dart';
+import 'package:mobile_app/preferences/preferences.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);

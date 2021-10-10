@@ -1,9 +1,7 @@
 import 'dart:convert';
 
 import 'package:bloc_test/bloc_test.dart';
-import 'package:mobile_app/preferences/bloc/preferences_bloc.dart';
-import 'package:mobile_app/preferences/models/last_login.dart';
-import 'package:mobile_app/preferences/repository/preferences_repository.dart';
+import 'package:mobile_app/preferences/preferences.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 

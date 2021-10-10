@@ -4,9 +4,8 @@ import 'dart:developer';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:mobile_app/core/error/failures.dart';
-import 'package:mobile_app/features/home/repository/home_repository.dart';
-import 'package:mobile_app/preferences/models/last_login.dart';
-import 'package:mobile_app/preferences/repository/preferences_repository.dart';
+import 'package:mobile_app/features/home/home.dart';
+import 'package:mobile_app/preferences/preferences.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
 part 'home_event.dart';

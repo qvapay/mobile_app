@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:mobile_app/preferences/models/last_login.dart';
-import 'package:mobile_app/preferences/repository/preferences_repository.dart';
+import 'package:mobile_app/preferences/preferences.dart';
 
 part 'preferences_event.dart';
 part 'preferences_state.dart';
