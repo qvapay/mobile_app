@@ -17,21 +17,22 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Center(
-            child: Text(
-              'Log in',
-              style: kTitleScaffold,
-            ),
+      appBar: AppBar(
+        title: const Center(
+          child: Text(
+            'Log in',
+            style: kTitleScaffold,
           ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
         ),
-        body: BlocProvider(
-          create: (context) => LoginBloc(
-            authenticationRepository: getIt<IAuthenticationRepository>(),
-          ),
-          child: const LoginForm(),
-        ));
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: BlocProvider(
+        create: (context) => LoginBloc(
+          authenticationRepository: getIt<IAuthenticationRepository>(),
+        ),
+        child: const LoginForm(),
+      ),
+    );
   }
 }

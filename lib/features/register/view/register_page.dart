@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/features/login/login.dart';
+import 'package:mobile_app/core/constants/widgets_constants.dart';
+import 'package:mobile_app/features/register/view/register_form.dart';
 
 class RegisterPage extends StatelessWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -12,23 +13,17 @@ class RegisterPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Register Page'),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil<void>(
-                  LoginPage.go(),
-                  (_) => false,
-                );
-              },
-              child: const Text('Go to Login'),
-            )
-          ],
+      appBar: AppBar(
+        title: const Center(
+          child: Text(
+            'Registro',
+            style: kTitleScaffold,
+          ),
         ),
+        elevation: 0,
+        backgroundColor: const Color(0xFFFFFFFF),
       ),
+      body: const RegisterForm(),
     );
   }
 }
