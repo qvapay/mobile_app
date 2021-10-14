@@ -4,6 +4,7 @@ import 'package:mobile_app/authentication/authentication.dart';
 
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/login/widgets/widgets.dart';
 
@@ -38,6 +39,7 @@ class RecentLoginView extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
@@ -45,9 +47,32 @@ class RecentLoginView extends StatelessWidget {
                 const SizedBox(
                   height: 50,
                 ),
-                const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: PasswordTextFielWidget(),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: BlocBuilder<LoginBloc, LoginState>(
+                    buildWhen: (previous, current) =>
+                        previous.password != current.password,
+                    builder: (context, state) {
+                      return PasswordTextFielWidget(
+                        password: state.password,
+                        onPasswordChanged: (String password) => context
+                            .read<LoginBloc>()
+                            .add(LoginPasswordChanged(password)),
+                        suffix: TextButton(
+                          onPressed: () {
+                            /*Navigator.of(context).push<void>(
+                              PasswordRecovery.go()
+                              ),
+                            )*/
+                          },
+                          child: const Text(
+                            'La Olvidaste?',
+                            style: kInputDecorationSuffix,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(
                   height: 20,

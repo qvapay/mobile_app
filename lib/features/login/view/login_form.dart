@@ -3,9 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:formz/formz.dart';
 
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/core/formz/formz.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/login/widgets/widgets.dart';
+import 'package:mobile_app/features/recover_password/recover_password.dart';
 import 'package:mobile_app/features/register/register.dart';
 
 class LoginForm extends StatefulWidget {
@@ -32,6 +33,7 @@ class _LoginFormState extends State<LoginForm> {
         children: <Widget>[
           Expanded(
               child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             physics: const BouncingScrollPhysics(),
             child: Padding(
               padding: const EdgeInsets.all(15),
@@ -57,23 +59,37 @@ class _LoginFormState extends State<LoginForm> {
                     buildWhen: (previous, current) =>
                         previous.email != current.email,
                     builder: (context, state) {
-                      final errorText = _getErrorText(state.email);
-                      return TextField(
-                        onChanged: (email) => context
+                      return EmailTextFieldWidget(
+                        email: state.email,
+                        onEmailChanged: (String email) => context
                             .read<LoginBloc>()
                             .add(LoginEmailChanged(email)),
-                        decoration: InputDecoration(
-                          labelText: 'Correo electrónico',
-                          labelStyle: kInputDecoration,
-                          errorText: errorText,
-                        ),
                       );
                     },
                   ),
                   const SizedBox(
                     height: 16,
                   ),
-                  const PasswordTextFielWidget(),
+                  BlocBuilder<LoginBloc, LoginState>(
+                    buildWhen: (previous, current) =>
+                        previous.password != current.password,
+                    builder: (context, state) {
+                      return PasswordTextFielWidget(
+                        password: state.password,
+                        onPasswordChanged: (String password) => context
+                            .read<LoginBloc>()
+                            .add(LoginPasswordChanged(password)),
+                        suffix: TextButton(
+                          onPressed: () => Navigator.of(context)
+                              .push<void>(RecoverPasswordPage.go()),
+                          child: const Text(
+                            'La Olvidaste?',
+                            style: kInputDecorationSuffix,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(
                     height: 16,
                   ),
@@ -106,16 +122,5 @@ class _LoginFormState extends State<LoginForm> {
         ],
       ),
     );
-  }
-
-  String? _getErrorText(EmailFormz email) {
-    if (email.invalid) {
-      if (email.error == EmailValidationError.invalid) {
-        return 'Correo inválido';
-      } else {
-        return 'Este campo no puede estar vacío';
-      }
-    }
-    return null;
   }
 }
