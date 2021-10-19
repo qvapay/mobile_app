@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/core/constants/widgets_constants.dart';
-import 'package:mobile_app/features/register/view/register_form.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:mobile_app/authentication/authentication.dart';
+import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/features/register/bloc/register_bloc.dart';
+import 'package:mobile_app/features/register/view/register_view.dart';
 
 class RegisterPage extends StatelessWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -12,18 +16,11 @@ class RegisterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Center(
-          child: Text(
-            'Registro',
-            style: kTitleScaffold,
-          ),
-        ),
-        elevation: 0,
-        backgroundColor: const Color(0xFFFFFFFF),
+    return BlocProvider(
+      create: (context) => RegisterBloc(
+        authenticationRepository: getIt<IAuthenticationRepository>(),
       ),
-      body: const RegisterForm(),
+      child: const RegisterView(),
     );
   }
 }
