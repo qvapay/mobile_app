@@ -18,7 +18,7 @@ class LoginButtomSubmitted extends StatelessWidget {
         return state.status.isSubmissionInProgress
             ? const CircularProgressIndicator()
             : ButtonLarge(
-                onClicked: () =>
+                onPressed: () =>
                     context.read<LoginBloc>().add(const LoginSubmitted()),
                 title: 'Iniciar Sesión',
                 styleGradient:

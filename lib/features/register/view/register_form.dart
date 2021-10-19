@@ -135,7 +135,7 @@ class RegisterForm extends StatelessWidget {
                       styleGradient:
                           isValid ? kLinearGradientBlue : kLinearGradientGrey,
                       active: isValid,
-                      onClicked: () {
+                      onPressed: () {
                         context.read<RegisterBloc>().add(
                               const RegisterSubmitted(),
                             );

@@ -59,7 +59,7 @@ class RegisterSuccessView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(8),
           child: ButtonLarge(
-            onClicked: () => Navigator.of(context).pushAndRemoveUntil<void>(
+            onPressed: () => Navigator.of(context).pushAndRemoveUntil<void>(
               LoginPage.go(),
               (route) => false,
             ),

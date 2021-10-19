@@ -59,7 +59,7 @@ class RegisterLast extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(8),
           child: ButtonLarge(
-            onClicked: () {
+            onPressed: () {
               //   return Navigator.of(context).pushAndRemoveUntil<void>(
               //   LoginPage.go(),
               //   (route) => false,

@@ -7,25 +7,28 @@ class ButtonLarge extends StatelessWidget {
       required this.title,
       required this.styleGradient,
       required this.active,
-      required this.onClicked})
+      required this.onPressed})
       : super(key: key);
 
   final String title;
   final LinearGradient styleGradient;
   final bool active;
-  final VoidCallback onClicked;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-        onPressed: onClicked,
-        child: Container(
-          width: 328,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: styleGradient,
-            borderRadius: BorderRadius.circular(14),
-          ),
+    return Container(
+        width: 328,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: styleGradient,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: RawMaterialButton(
+          onPressed: onPressed,
+          splashColor: active ? Colors.white38 : kActiveText.withOpacity(0.4),
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14))),
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: Center(
