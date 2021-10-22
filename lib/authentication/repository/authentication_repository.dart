@@ -65,6 +65,7 @@ class AuthenticationRepository extends IAuthenticationRepository {
         name: userRegister.name,
         email: userRegister.email,
         password: userRegister.password,
+        invite: userRegister.referralCode,
       );
       return const Right(unit);
     } catch (e) {

@@ -5,15 +5,15 @@ class UserRegister extends UserLogin {
     required this.name,
     required String email,
     required String password,
-    required this.referralCode,
+    this.referralCode,
   }) : super(
           email: email,
           password: password,
         );
 
   final String name;
-  final String referralCode;
+  final String? referralCode;
 
   @override
-  List<Object> get props => [name, referralCode];
+  List<Object?> get props => [name, referralCode];
 }

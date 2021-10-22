@@ -7,5 +7,5 @@ class UserLogin extends Equatable {
   final String password;
 
   @override
-  List<Object> get props => [email, password];
+  List<Object?> get props => [email, password];
 }
