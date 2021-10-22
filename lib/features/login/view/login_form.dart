@@ -5,8 +5,8 @@ import 'package:formz/formz.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/login/login.dart';
+import 'package:mobile_app/features/login/recover_password/recover_password.dart';
 import 'package:mobile_app/features/login/widgets/widgets.dart';
-import 'package:mobile_app/features/recover_password/recover_password.dart';
 import 'package:mobile_app/features/register/register.dart';
 
 class LoginForm extends StatefulWidget {

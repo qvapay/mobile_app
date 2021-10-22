@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/widgets/button_large_widget.dart';
 
-class RecoveryPassword extends StatefulWidget {
-  const RecoveryPassword({Key? key}) : super(key: key);
+class RecoverPasswordPage extends StatelessWidget {
+  const RecoverPasswordPage({Key? key}) : super(key: key);
 
-  @override
-  _RecoveryPasswordState createState() => _RecoveryPasswordState();
-}
-
-class _RecoveryPasswordState extends State<RecoveryPassword> {
-  final _formKey = GlobalKey<FormState>();
-  final phoneController = TextEditingController();
+  /// Returns a [MaterialPageRoute] to navigate to `this` widget.
+  static Route go() {
+    return MaterialPageRoute<void>(builder: (_) => const RecoverPasswordPage());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +27,7 @@ class _RecoveryPasswordState extends State<RecoveryPassword> {
           children: <Widget>[
             Expanded(
               child: Form(
-                key: _formKey,
+                // key: _formKey,
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Padding(
@@ -54,7 +51,7 @@ class _RecoveryPasswordState extends State<RecoveryPassword> {
                           height: 180,
                         ),
                         TextFormField(
-                          controller: phoneController,
+                          // controller: phoneController,
                           decoration: const InputDecoration(
                               labelText: 'Correo electrónico',
                               labelStyle: kInputDecoration),
@@ -101,13 +98,13 @@ class _RecoveryPasswordState extends State<RecoveryPassword> {
   }
 
   void registerUser() {
-    if (_formKey.currentState!.validate()) {
-      print('Is Validate');
-      /*Navigator.of(context).push<MaterialPageRoute>(
+    // if (_formKey.currentState!.validate()) {
+    print('Is Validate');
+    /*Navigator.of(context).push<MaterialPageRoute>(
         MaterialPageRoute(
           builder: (_) => const RecoveryPasswordConfirm(),
         ),
       );*/
-    }
+    // }
   }
 }

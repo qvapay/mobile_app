@@ -1,18 +1,19 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:qvapay_ui_test/constants/constants.dart';
-import 'package:qvapay_ui_test/modules/auth/recoverypass/recovery_successfuly.dart';
-import 'package:qvapay_ui_test/widgets/button_large.dart';
 
-class RecoveryPasswordConfirm extends StatefulWidget {
-  const RecoveryPasswordConfirm({Key? key}) : super(key: key);
+import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
+import 'package:mobile_app/features/login/recover_password/view/satisfactory_recovery.dart';
+
+class ConfirmPasswordRecovery extends StatefulWidget {
+  const ConfirmPasswordRecovery({Key? key}) : super(key: key);
 
   @override
-  _RecoveryPasswordConfirmState createState() =>
-      _RecoveryPasswordConfirmState();
+  _ConfirmPasswordRecoveryState createState() =>
+      _ConfirmPasswordRecoveryState();
 }
 
-class _RecoveryPasswordConfirmState extends State<RecoveryPasswordConfirm> {
+class _ConfirmPasswordRecoveryState extends State<ConfirmPasswordRecovery> {
   final _formKey = GlobalKey<FormState>();
   final oldPassController = TextEditingController();
   final newPassController = TextEditingController();
@@ -136,7 +137,7 @@ class _RecoveryPasswordConfirmState extends State<RecoveryPasswordConfirm> {
                 title: 'Registrarse',
                 styleGradient: kLinearGradientBlue,
                 active: true,
-                onClicked: recoveryPassword,
+                onPressed: recoveryPassword,
               ),
             )
           ],
@@ -148,7 +149,7 @@ class _RecoveryPasswordConfirmState extends State<RecoveryPasswordConfirm> {
       print('Is Validate');
       Navigator.of(context).push<MaterialPageRoute>(
         MaterialPageRoute(
-          builder: (_) => const RecoverySuccess(),
+          builder: (_) => const SatisfactoryRecovery(),
         ),
       );
     }

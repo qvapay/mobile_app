@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:qvapay_ui_test/constants/constants.dart';
-import 'package:qvapay_ui_test/widgets/button_large.dart';
+import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 
-class RecoverySuccess extends StatefulWidget {
-  const RecoverySuccess({Key? key}) : super(key: key);
+class SatisfactoryRecovery extends StatefulWidget {
+  const SatisfactoryRecovery({Key? key}) : super(key: key);
 
   @override
-  _RecoverySuccessState createState() => _RecoverySuccessState();
+  _SatisfactoryRecoveryState createState() => _SatisfactoryRecoveryState();
 }
 
-class _RecoverySuccessState extends State<RecoverySuccess> {
+class _SatisfactoryRecoveryState extends State<SatisfactoryRecovery> {
   //final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passController = TextEditingController();
@@ -83,7 +83,7 @@ class _RecoverySuccessState extends State<RecoverySuccess> {
           Padding(
             padding: const EdgeInsets.all(8),
             child: ButtonLarge(
-              onClicked: () {},
+              onPressed: () {},
               title: 'Iniciar Sesión',
               styleGradient: kLinearGradientBlue,
               active: true,
