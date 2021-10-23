@@ -42,7 +42,7 @@ packages:
       name: bloc_test
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "8.1.0"
+    version: "8.3.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -166,7 +166,7 @@ packages:
       name: flutter_bloc
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "7.3.0"
+    version: "7.3.1"
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -435,11 +435,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "4ac678a773e0dfe46ebb032125c2573a3dd7f5de"
+      ref: "6c1a39df5295ada377a874dcb48db7a271827357"
+      resolved-ref: "6c1a39df5295ada377a874dcb48db7a271827357"
       url: "https://github.com/qvapay/qvapay_api_client.git"
     source: git
-    version: "0.0.2"
+    version: "0.0.4"
   shelf:
     dependency: transitive
     description:
