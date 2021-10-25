@@ -14,7 +14,7 @@ dependencies:
   equatable: ^2.0.3
   flutter:
     sdk: flutter
-  flutter_bloc: ^7.1.0
+  flutter_bloc: ^7.3.1
   flutter_secure_storage: ^4.2.1
   formz: ^0.4.0
   get_it: ^7.2.0
@@ -25,11 +25,13 @@ dependencies:
   intl: ^0.17.0
   path_provider: ^2.0.5
   qvapay_api_client:
-    git: https://github.com/qvapay/qvapay_api_client.git
+    git: 
+      url: https://github.com/qvapay/qvapay_api_client.git
+      ref: 6c1a39df5295ada377a874dcb48db7a271827357
   pin_code_fields: ^7.3.0
 
 dev_dependencies:
-  bloc_test: ^8.1.0
+  bloc_test: ^8.3.0
   flutter_test:
     sdk: flutter
   mocktail: ^0.1.0

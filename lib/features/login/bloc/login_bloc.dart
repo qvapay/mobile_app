@@ -60,7 +60,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       emit(result.fold(
         (faileure) => state.copyWith(
           status: FormzStatus.submissionFailure,
-          messageError: (faileure as InvalidCredentialsFailure).message,
+          messageError: faileure is InvalidCredentialsFailure
+              ? faileure.message
+              : const ServerFailure().message,
         ),
         (_) => state.copyWith(status: FormzStatus.submissionSuccess),
       ));
