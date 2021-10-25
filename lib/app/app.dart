@@ -112,7 +112,7 @@ class _AppViewState extends State<AppView> {
           child: child!,
         );
       },
-      onGenerateRoute: (_) => StartPage.go(),
+      onGenerateRoute: (_) => SplashScreenPage.go(),
     );
   }
 }
