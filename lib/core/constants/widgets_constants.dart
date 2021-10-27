@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 const kGreenInfo = Color(0xFF1FBF2F);
@@ -277,3 +278,31 @@ const kStyleAgregarNotasTrans = TextStyle(
   fontWeight: FontWeight.w500,
   color: Color(0xFF3186e7),
 );
+
+const TextStyle styleNumber = TextStyle(
+    color: CupertinoColors.white,
+    fontFamily: 'Roboto',
+    fontSize: 40,
+    fontWeight: FontWeight.w800);
+
+const TextStyle styleAdmin = TextStyle(
+    color: Colors.white60,
+    fontSize: 18,
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.bold);
+
+const TextStyle styleUser = TextStyle(
+  color: Colors.white,
+  fontSize: 16,
+  fontWeight: FontWeight.bold,
+  fontFamily: 'Roboto',
+);
+
+const TextStyle styleSendRec = TextStyle(
+  color: Colors.white70,
+  fontSize: 16,
+  fontWeight: FontWeight.bold,
+  fontFamily: 'Roboto',
+);
+
+const Color bgColor = Color(0xffEBECEE);
