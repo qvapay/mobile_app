@@ -1,32 +1,31 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+
 import 'package:mobile_app/core/constants/widgets_constants.dart';
-import 'package:mobile_app/core/widgets/header_transactions.dart';
-import 'package:mobile_app/core/widgets/list_tile_card_widget.dart';
+import 'package:mobile_app/core/widgets/transaction_card_widget.dart';
+import 'package:mobile_app/core/widgets/user_service_card_widget.dart';
+import 'package:mobile_app/features/home/widgets/home_header.dart';
+import 'package:mobile_app/features/user_data/user_data.dart';
 
 const Color bgColor = Color(0xffEBECEE);
 
-class SaldoPage extends StatefulWidget {
+class SaldoPage extends StatelessWidget {
   const SaldoPage({Key? key}) : super(key: key);
 
-  @override
-  _SaldoPageState createState() => _SaldoPageState();
-}
-
-class _SaldoPageState extends State<SaldoPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        bottomNavigationBar: const _bottomNav(),
+        bottomNavigationBar: const _BottomSendAndRecive(),
         backgroundColor: bgColor,
         body: Column(
           children: [
             Container(
               color: bgColor,
-              child: const HeaderTransactions(
-                saldo: '29.64',
-              ),
+              child: const HomeHeader(),
             ),
             Expanded(
               child: Container(
@@ -35,7 +34,6 @@ class _SaldoPageState extends State<SaldoPage> {
                 ),
                 child: Container(
                   decoration: const BoxDecoration(
-                      //color: Colors.greenAccent,
                       borderRadius: BorderRadius.only(
                           bottomRight: Radius.circular(30),
                           bottomLeft: Radius.circular(30))),
@@ -47,16 +45,6 @@ class _SaldoPageState extends State<SaldoPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }
 
@@ -78,18 +66,15 @@ class _TabUser extends StatelessWidget {
             preferredSize: const Size.fromHeight(50),
             child: Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: AppBar(
-                backgroundColor: bgColor,
-                elevation: 0,
-                flexibleSpace: Stack(
+              child: Container(
+                color: bgColor,
+                child: Stack(
                   children: [
                     TabBar(
                       isScrollable: true,
-                      // indicatorWeight: 0.01,
                       labelColor: Colors.blueAccent,
                       unselectedLabelColor: Colors.black.withOpacity(.9),
                       indicatorSize: TabBarIndicatorSize.label,
-
                       labelStyle: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 16),
                       unselectedLabelStyle: const TextStyle(
@@ -132,128 +117,124 @@ class _TabUser extends StatelessWidget {
               ),
             ),
           ),
-          body: TabBarView(children: [
-            Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 10),
-                  padding: const EdgeInsets.all(10),
-                  height: 100,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: const <Widget>[
-                      ListTileCard(
-                        name: 'Martin Ekstrom',
-                        avatar: 'assets/avatars/keanu.png',
-                        credit: '',
-                        date: '',
-                        subtexto: '',
-                        user: true,
-                      ),
-                      ListTileCard(
-                        name: 'Martin Ekstrom',
-                        avatar: 'assets/avatars/keanu.png',
-                        credit: '',
-                        date: '',
-                        subtexto: '',
-                        user: true,
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
+          body: Column(
+            children: [
+              SizedBox(
+                height: 115,
+                child: TabBarView(children: [
+                  Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 5),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Ultimas Transacciones',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.black87)),
-                            GestureDetector(
-                              onTap: () {
-                                debugPrint('Ir a todos');
-                              },
-                              child: Row(
-                                children: const [
-                                  Text(
-                                    'Todas',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue),
-                                  ),
-                                  SizedBox(
-                                    width: 5,
-                                  ),
-                                  Icon(Icons.arrow_forward_ios_sharp,
-                                      size: 16, color: Colors.blue)
-                                ],
-                              ),
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        height: 100,
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          scrollDirection: Axis.horizontal,
+                          children: const <Widget>[
+                            UserServiceCardWidget(
+                              name: 'Martin Ekstrom',
+                              avatar: 'assets/avatars/keanu.png',
+                            ),
+                            UserServiceCardWidget(
+                              name: 'Martin Ekstrom',
+                              avatar: 'assets/avatars/keanu.png',
+                            ),
+                            UserServiceCardWidget(
+                              name: 'Martin Ekstrom',
+                              avatar: 'assets/avatars/keanu.png',
                             ),
                           ],
                         ),
                       ),
-                      Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 10),
-                          child: ListView(
-                            // scrollDirection: Axis.vertical,
-                            children: const [
-                              ListTileCard(
-                                name: 'Martin Ekstrom Bothman',
-                                avatar: 'assets/avatars/keanu.png',
-                                credit: '+\$542.33',
-                                date: '05/06/2021',
-                                subtexto: 'Crédito',
-                                user: false,
-                              ),
-                              ListTileCard(
-                                name: 'Randy Shleifer',
-                                avatar: 'assets/avatars/eric.png',
-                                credit: '-\$542.33',
-                                date: '05/06/2021',
-                                subtexto: 'Crédito',
-                                user: false,
-                              ),
-                              ListTileCard(
-                                name: 'Emerson Franci',
-                                avatar: 'assets/avatars/keanu.png',
-                                credit: '-\$542.33',
-                                date: '05/06/2021',
-                                subtexto: 'Crédito',
-                                user: false,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 200,
-              child: Center(
-                child: Text(
-                  'Tab 2',
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  const SizedBox(
+                    height: 200,
+                    child: Center(
+                      child: Text(
+                        'Servicios',
+                        style: TextStyle(fontSize: 22),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Últimas Transacciones',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.black87)),
+                          GestureDetector(
+                            onTap: () {
+                              debugPrint('Ir a todos');
+                            },
+                            child: Row(
+                              children: const [
+                                Text(
+                                  'Todas',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue),
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Icon(Icons.arrow_forward_ios_sharp,
+                                    size: 16, color: Colors.blue)
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Builder(builder: (context) {
+                        final userTransactions = context.select(
+                                (UserDataCubit cubit) =>
+                                    cubit.state.userData?.latestTransactions) ??
+                            [];
+                        return ListView.builder(
+                            itemCount: userTransactions.take(5).length,
+                            itemBuilder: (context, index) {
+                              final credit =
+                                  double.parse(userTransactions[index].amount);
+                              final date = DateFormat.yMd()
+                                  .format(userTransactions[index].createdAt)
+                                  .toString();
+                              return TransactionCardWidget(
+                                name: userTransactions[index].uuid,
+                                avatar: userTransactions[index].logo,
+                                credit: credit.abs(),
+                                date: date,
+                                isCredit: credit > 0,
+                              );
+                            });
+                      }),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _bottomNav extends StatelessWidget {
-  const _bottomNav({
+class _BottomSendAndRecive extends StatelessWidget {
+  const _BottomSendAndRecive({
     Key? key,
   }) : super(key: key);
 
@@ -269,7 +250,7 @@ class _bottomNav extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () {
-              print('Enviar');
+              debugPrint('Enviar');
             },
             child: Row(
               children: const [
@@ -289,7 +270,7 @@ class _bottomNav extends StatelessWidget {
             ),
           ),
           const SizedBox(
-            width: 30,
+            width: 45,
           ),
           GestureDetector(
             onTap: () {
