@@ -1,0 +1,38 @@
+[
+  {
+    "uuid": "bca7b064-adbb-4b62-b3a4-3073b3e75781",
+    "amount": "10.00",
+    "description": "AUTO_RECARGA",
+    "transaction_type": "autoRecharge",
+    "name": "Natasha Tenorio",
+    "date": "2021-08-28T21:41:41.000Z",
+    "image_url": "apps/qvapay.jpg"
+  },
+  {
+    "uuid": "a904924f-1fb7-4f8f-b83f-b6d160d862b6",
+    "amount": "0.05",
+    "description": "REFERAL erichgarciacruz",
+    "transaction_type": "transfer",
+    "name": "Natasha Tenorio",
+    "date": "2021-04-11T02:57:33.000Z",
+    "image_url": "apps/qvapay.jpg"
+  },
+  {
+    "uuid": "a1073148-880e-4dff-91fc-3c10f7dcc4bb",
+    "amount": "1.00",
+    "description": "qwdqwd",
+    "transaction_type": "transfer",
+    "name": "Natasha Tenorio",
+    "date": "2021-03-17T03:48:22.000Z",
+    "image_url": "profiles/zV93I93mbWrZo0fKgwGcpWFWDn41UYfAgj7wNCbf.jpg"
+  },
+  {
+    "uuid": "e26301f9-7516-4ed9-a23e-588aae05c56d",
+    "amount": "1.00",
+    "description": "Prube desde CLI",
+    "transaction_type": "p2p",
+    "date": "2021-10-28T23:15:20.000000Z",
+    "name": "Stage",
+    "image_url": ""
+  }
+]
