@@ -1,7 +1,6 @@
 import 'dart:developer';
 
 import 'package:equatable/equatable.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'package:mobile_app/features/user_data/models/models.dart';

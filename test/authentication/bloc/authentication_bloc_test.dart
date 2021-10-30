@@ -89,7 +89,6 @@ void main() {
       act: (bloc) => bloc.add(
         const AuthenticationStatusChanged(OAuthStatus.unauthenticated),
       ),
-      // TODO: Check this test
       expect: () => const <AuthenticationState>[
         AuthenticationState.unauthenticated(),
       ],
