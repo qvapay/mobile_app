@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/core/error/failures.dart';
+import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
-import 'package:mobile_app/preferences/preferences.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 

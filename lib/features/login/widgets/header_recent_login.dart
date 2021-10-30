@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/features/login/login.dart';
-import 'package:mobile_app/preferences/preferences.dart';
+import 'package:mobile_app/features/preferences/preferences.dart';
 
 class HeaderRecentLogin extends StatelessWidget {
   const HeaderRecentLogin({Key? key}) : super(key: key);

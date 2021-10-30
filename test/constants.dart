@@ -1,4 +1,4 @@
-import 'package:mobile_app/authentication/models/models.dart';
+import 'package:mobile_app/features/authentication/models/models.dart';
 
 const tName = 'Erich Garcia';
 const tEmail = 'erich@qvapay';

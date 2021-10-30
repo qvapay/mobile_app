@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:mobile_app/authentication/repository/authentication_repository.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
 part 'authentication_event.dart';

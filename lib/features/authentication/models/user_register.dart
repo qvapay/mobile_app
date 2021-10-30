@@ -1,4 +1,4 @@
-import 'package:mobile_app/authentication/models/user_login.dart';
+import 'package:mobile_app/features/authentication/models/models.dart';
 
 class UserRegister extends UserLogin {
   const UserRegister({

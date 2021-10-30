@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:formz/formz.dart';
-import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/formz/formz.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 
 part 'register_event.dart';
 part 'register_state.dart';

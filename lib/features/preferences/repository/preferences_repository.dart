@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:mobile_app/preferences/preferences.dart';
+import 'package:mobile_app/features/preferences/models/models.dart';
 
 abstract class PreferencesRepository {
   /// Gets `true` if this is the frist time you have started the app,
