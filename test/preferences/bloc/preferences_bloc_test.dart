@@ -102,4 +102,25 @@ void main() {
       expect: () => <PreferencesState>[PreferencesNotRecentStart()],
     );
   });
+
+  group('CleanPreferences', () {
+    blocTest<PreferencesBloc, PreferencesState>(
+      'emits [PreferencesInitial] when delete data when logging out',
+      setUp: () {
+        when(mockPreferencesRepository.clear).thenAnswer((_) => Future.value());
+        when(mockPreferencesRepository.setIsFristTime).thenAnswer(
+          (_) => Future.value(),
+        );
+      },
+      build: () =>
+          PreferencesBloc(preferencesRepository: mockPreferencesRepository),
+      act: (bloc) => bloc.add(CleanPreferences()),
+      expect: () => <PreferencesState>[],
+      verify: (bloc) {
+        verify(() => mockPreferencesRepository.clear()).called(1);
+        verify(() => mockPreferencesRepository.setIsFristTime()).called(1);
+        bloc.add(CleanPreferences());
+      },
+    );
+  });
 }

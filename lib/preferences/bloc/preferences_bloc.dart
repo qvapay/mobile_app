@@ -12,12 +12,16 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
   PreferencesBloc({required PreferencesRepository preferencesRepository})
       : _preferencesRepository = preferencesRepository,
         super(PreferencesInitial()) {
-    on<GetPreferences>(_gePreferencesEvent);
+    on<GetPreferences>(_getPreferencesEvent);
+    on<CleanPreferences>(_cleanPreferencesEvent);
   }
 
   final PreferencesRepository _preferencesRepository;
 
-  FutureOr<void> _gePreferencesEvent(GetPreferences event, Emitter emit) async {
+  FutureOr<void> _getPreferencesEvent(
+    GetPreferences event,
+    Emitter emit,
+  ) async {
     final isFristTime = await _preferencesRepository.getIsFristTime();
 
     if (isFristTime) {
@@ -35,5 +39,13 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
         return emit(PreferencesVeryRecentStart());
       }
     }
+  }
+
+  FutureOr<void> _cleanPreferencesEvent(
+    CleanPreferences event,
+    Emitter<PreferencesState> emit,
+  ) async {
+    await _preferencesRepository.clear();
+    await _preferencesRepository.setIsFristTime();
   }
 }

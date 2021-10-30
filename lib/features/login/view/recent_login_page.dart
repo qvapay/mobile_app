@@ -7,6 +7,7 @@ import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/login/widgets/widgets.dart';
+import 'package:mobile_app/preferences/preferences.dart';
 
 class RecentLoginPage extends StatelessWidget {
   const RecentLoginPage({Key? key}) : super(key: key);
@@ -79,6 +80,7 @@ class RecentLoginView extends StatelessWidget {
                 ),
                 TextButton(
                     onPressed: () {
+                      context.read<PreferencesBloc>().add(CleanPreferences());
                       Navigator.of(context).pushAndRemoveUntil<void>(
                         LoginPage.go(),
                         (_) => false,

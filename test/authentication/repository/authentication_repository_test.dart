@@ -35,7 +35,7 @@ void main() {
     name: mockCredential['name']!,
     email: mockCredential['email']!,
     password: mockCredential['password']!,
-    referralCode: mockCredential['referralCode']!,
+    referralCode: mockCredential['referralCode'],
   );
 
   group('LogIn', () {
@@ -73,14 +73,6 @@ void main() {
         result,
         Left<InvalidCredentialsFailure, Unit>(InvalidCredentialsFailure()),
       );
-      // expect(
-      //   result,
-      //   isA<Left<InvalidCredentialsFailure, Unit>>().having(
-      //     (e) => e.fold((l) => l.message, (r) => r),
-      //     'password error',
-      //     equals('Password mismatch'),
-      //   ),
-      // );
       expect(
         authenticationRepository.status,
         emitsInOrder(<OAuthStatus>[]),
@@ -173,6 +165,7 @@ void main() {
             name: mockCredential['name']!,
             email: mockCredential['email']!,
             password: mockCredential['password']!,
+            invite: mockCredential['referralCode'],
           )).thenAnswer((_) => Future.value());
 
       final result =
@@ -188,6 +181,7 @@ void main() {
                 name: mockCredential['name']!,
                 email: mockCredential['email']!,
                 password: mockCredential['password']!,
+                invite: mockCredential['referralCode'],
               ))
           .thenThrow(RegisterException(
               error: 'El valor del campo email ya está en uso.'));

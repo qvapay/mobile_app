@@ -8,3 +8,5 @@ abstract class PreferencesEvent extends Equatable {
 }
 
 class GetPreferences extends PreferencesEvent {}
+
+class CleanPreferences extends PreferencesEvent {}
