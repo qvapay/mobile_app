@@ -30,7 +30,7 @@ dependencies:
   qvapay_api_client:
     git:
       url: https://github.com/qvapay/qvapay_api_client.git
-      ref: 6c1a39df5295ada377a874dcb48db7a271827357
+      ref: 0173ab42bc88424c3bb54cec6c3329143dc5f5b6
 
 dev_dependencies:
   bloc_test: ^8.3.0

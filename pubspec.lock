@@ -547,8 +547,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "6c1a39df5295ada377a874dcb48db7a271827357"
-      resolved-ref: "6c1a39df5295ada377a874dcb48db7a271827357"
+      ref: "0173ab42bc88424c3bb54cec6c3329143dc5f5b6"
+      resolved-ref: "0173ab42bc88424c3bb54cec6c3329143dc5f5b6"
       url: "https://github.com/qvapay/qvapay_api_client.git"
     source: git
     version: "0.0.4"
