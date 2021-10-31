@@ -5,7 +5,7 @@ import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-import '../../fixtures/fixture_adapter.dart';
+import '../../../fixtures/fixture_adapter.dart';
 
 class MockPreferencesRepository extends Mock implements PreferencesRepository {}
 
