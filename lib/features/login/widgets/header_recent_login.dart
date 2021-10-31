@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
 
@@ -40,29 +41,14 @@ class HeaderRecentLogin extends StatelessWidget {
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(15),
-                    child: lastLogIn == null
-                        ? CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 60,
-                            child: Image.asset(
-                              'assets/images/no_image.png',
-                              height: 70,
-                            ))
-                        : CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 60,
-                            backgroundImage: NetworkImage(
-                              lastLogIn.photoUrl,
-                            ),
-                          ),
+                    child: ProfileImageNetworkWidget(
+                      imageUrl: lastLogIn?.photoUrl,
+                      radius: 60,
+                      borderImage: Border.all(width: 4, color: Colors.white),
+                    ),
                   ),
                 ),
               ),
-              if (lastLogIn == null)
-                const Text(
-                  'Erich Garcia Cruz',
-                  style: kNameLogin,
-                ),
               if (lastLogIn != null)
                 Text(
                   lastLogIn.name,
@@ -71,13 +57,6 @@ class HeaderRecentLogin extends StatelessWidget {
               const SizedBox(
                 height: 5,
               ),
-              if (lastLogIn == null)
-                const Expanded(
-                    flex: 2,
-                    child: Text(
-                      'ecruz@qvapay.com',
-                      style: kEmailLogin,
-                    )),
               if (lastLogIn != null)
                 Expanded(
                     flex: 2,

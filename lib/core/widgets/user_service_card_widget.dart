@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 
 class UserServiceCardWidget extends StatelessWidget {
   const UserServiceCardWidget({
@@ -30,26 +31,7 @@ class UserServiceCardWidget extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: avatar.contains('https://')
-                        ? CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 25,
-                            backgroundImage: NetworkImage(
-                              avatar,
-                            ),
-                          )
-                        : CircleAvatar(
-                            backgroundColor: Colors.grey[200],
-                            radius: 25,
-                            child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: Image.asset(
-                                    'assets/images/no_image.png',
-                                    height: 70,
-                                  ),
-                                ))),
+                    child: ProfileImageNetworkWidget(imageUrl: avatar),
                   ),
                   Text(name,
                       style: const TextStyle(
@@ -59,7 +41,6 @@ class UserServiceCardWidget extends StatelessWidget {
                       )),
                 ],
               ),
-              // height: 150,
             ),
           ),
         ));

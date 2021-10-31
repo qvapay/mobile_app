@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 
 class TransactionCardWidget extends StatelessWidget {
   const TransactionCardWidget({
@@ -51,26 +52,7 @@ class TransactionCardWidget extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-          leading: avatar.contains('https://')
-              ? CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 25,
-                  backgroundImage: NetworkImage(
-                    avatar,
-                  ),
-                )
-              : CircleAvatar(
-                  backgroundColor: Colors.grey[200],
-                  radius: 25,
-                  child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Image.asset(
-                          'assets/images/no_image.png',
-                          height: 70,
-                        ),
-                      ))),
+          leading: ProfileImageNetworkWidget(imageUrl: avatar),
           trailing: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[

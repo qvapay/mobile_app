@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
@@ -59,7 +60,7 @@ class HomeHeader extends StatelessWidget {
                     Builder(builder: (context) {
                       final name = context.select((UserDataCubit element) =>
                               element.state.userData?.nameAndLastName) ??
-                          'Uknow';
+                          'Unknown';
                       return Text(
                         name,
                         style: styleUser,
@@ -69,25 +70,17 @@ class HomeHeader extends StatelessWidget {
                       width: 10,
                     ),
                     Builder(builder: (context) {
-                      final photoUrl = context.select((UserDataCubit element) =>
-                          element.state.userData?.logo);
-
-                      return photoUrl == null || !photoUrl.contains('https://')
-                          ? CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 25,
-                              child: Image.asset(
-                                'assets/images/no_image.png',
-                                height: 35,
-                              ))
-                          : CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 25,
-                              backgroundImage: NetworkImage(
-                                photoUrl,
-                              ),
-                            );
+                      final photoUrl = context.select(
+                        (UserDataCubit element) => element.state.userData?.logo,
+                      );
+                      return ProfileImageNetworkWidget(
+                        imageUrl: photoUrl,
+                        borderImage: Border.all(width: 4, color: Colors.white),
+                      );
                     }),
+                    const SizedBox(
+                      width: 10,
+                    ),
                   ],
                 ),
               ),
