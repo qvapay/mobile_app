@@ -26,7 +26,7 @@ class App extends StatelessWidget {
           lazy: false,
           create: (BuildContext context) => PreferencesBloc(
             preferencesRepository: getIt<PreferencesRepository>(),
-          )..add(GetPreferences()),
+          )..add(GetPreferences(date: DateTime.now())),
         ),
         BlocProvider<AuthenticationBloc>(
           create: (BuildContext context) => AuthenticationBloc(

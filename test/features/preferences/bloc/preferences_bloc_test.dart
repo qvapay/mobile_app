@@ -12,16 +12,18 @@ class MockPreferencesRepository extends Mock implements PreferencesRepository {}
 void main() {
   late PreferencesRepository mockPreferencesRepository;
 
+  final tDate = DateTime.parse('2021-12-16T00:12:00.000');
+
   final tLastLogInJson =
       json.decode(fixture('last_login.json')) as Map<String, dynamic>;
   final tLastLogInModel =
-      LastLogIn.fromJson(tLastLogInJson).copyWith(date: DateTime.now());
+      LastLogIn.fromJson(tLastLogInJson).copyWith(date: tDate);
 
   final tGreaterThanThirtyMinutes = DateTime.fromMillisecondsSinceEpoch(
-      DateTime.now().millisecondsSinceEpoch -
+      tDate.millisecondsSinceEpoch -
           const Duration(minutes: 50).inMilliseconds);
   final tLessThanThirtyMinutes = DateTime.fromMillisecondsSinceEpoch(
-      DateTime.now().millisecondsSinceEpoch -
+      tDate.millisecondsSinceEpoch -
           const Duration(minutes: 20).inMilliseconds);
 
   final tGreatLastLogInModel =
@@ -42,9 +44,9 @@ void main() {
       },
       build: () =>
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
-      act: (bloc) => bloc.add(GetPreferences()),
+      act: (bloc) => bloc.add(GetPreferences(date: tDate)),
       expect: () => <PreferencesState>[PreferencesFristTime()],
-      verify: (bloc) => bloc.add(GetPreferences()),
+      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
     );
 
     blocTest<PreferencesBloc, PreferencesState>(
@@ -60,9 +62,9 @@ void main() {
       },
       build: () =>
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
-      act: (bloc) => bloc.add(GetPreferences()),
+      act: (bloc) => bloc.add(GetPreferences(date: tDate)),
       expect: () => <PreferencesState>[PreferencesVeryRecentStart()],
-      verify: (bloc) => bloc.add(GetPreferences()),
+      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
     );
 
     blocTest<PreferencesBloc, PreferencesState>(
@@ -78,11 +80,11 @@ void main() {
       },
       build: () =>
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
-      act: (bloc) => bloc.add(GetPreferences()),
+      act: (bloc) => bloc.add(GetPreferences(date: tDate)),
       expect: () => <PreferencesState>[
         PreferencesRecentStart(lastLogIn: tGreatLastLogInModel)
       ],
-      verify: (bloc) => bloc.add(GetPreferences()),
+      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
     );
     blocTest<PreferencesBloc, PreferencesState>(
       'emits [PreferencesNotRecentStart] when the return of the `getLastLogIn` '
@@ -97,8 +99,8 @@ void main() {
       },
       build: () =>
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
-      act: (bloc) => bloc.add(GetPreferences()),
-      verify: (bloc) => bloc.add(GetPreferences()),
+      act: (bloc) => bloc.add(GetPreferences(date: tDate)),
+      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
       expect: () => <PreferencesState>[PreferencesNotRecentStart()],
     );
   });

@@ -7,6 +7,12 @@ abstract class PreferencesEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetPreferences extends PreferencesEvent {}
+class GetPreferences extends PreferencesEvent {
+  const GetPreferences({required this.date});
+  final DateTime date;
+
+  @override
+  List<Object> get props => [date];
+}
 
 class CleanPreferences extends PreferencesEvent {}
