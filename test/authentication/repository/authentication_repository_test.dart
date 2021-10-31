@@ -1,9 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_app/authentication/models/user_login.dart';
-import 'package:mobile_app/authentication/models/user_register.dart';
-import 'package:mobile_app/authentication/repository/authentication_repository.dart';
 import 'package:mobile_app/core/error/failures.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 

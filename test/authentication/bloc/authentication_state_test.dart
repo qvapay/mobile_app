@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_app/authentication/bloc/authentication_bloc.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 
 void main() {
   group('AuthenticationState', () {

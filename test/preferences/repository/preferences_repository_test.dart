@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
-import 'package:mobile_app/preferences/preferences.dart';
+import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockBox extends Mock implements Box<Map> {}

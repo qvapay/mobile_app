@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_app/preferences/preferences.dart';
+import 'package:mobile_app/features/preferences/preferences.dart';
 
 void main() {
   const tLastLogInJson = {
