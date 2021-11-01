@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
 
@@ -6,8 +8,8 @@ void main() {
     group('AuthenticationState.unknown', () {
       test('supports value comparisons', () {
         expect(
-          const AuthenticationState.unknown(),
-          const AuthenticationState.unknown(),
+          AuthenticationState.unknown(),
+          AuthenticationState.unknown(),
         );
       });
     });
@@ -15,8 +17,8 @@ void main() {
     group('AuthenticationState.authenticated', () {
       test('supports value comparisons', () {
         expect(
-          const AuthenticationState.authenticated(),
-          const AuthenticationState.authenticated(),
+          AuthenticationState.authenticated(),
+          AuthenticationState.authenticated(),
         );
       });
     });
@@ -24,8 +26,8 @@ void main() {
     group('AuthenticationState.unauthenticated', () {
       test('supports value comparisons', () {
         expect(
-          const AuthenticationState.unauthenticated(),
-          const AuthenticationState.unauthenticated(),
+          AuthenticationState.unauthenticated(),
+          AuthenticationState.unauthenticated(),
         );
       });
     });

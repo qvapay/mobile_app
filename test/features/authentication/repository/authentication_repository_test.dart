@@ -17,6 +17,10 @@ void main() {
         AuthenticationRepository(qvaPayApi: mockQvaPayApi);
   });
 
+  tearDown(() {
+    authenticationRepository.dispose();
+  });
+
   const mockCredential = {
     'name': 'Erich Cruz',
     'email': 'test@qvapay.com',

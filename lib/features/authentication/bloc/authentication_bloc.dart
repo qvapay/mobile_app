@@ -36,12 +36,10 @@ class AuthenticationBloc
     Emitter<AuthenticationState> emit,
   ) async {
     switch (event.status) {
-      case OAuthStatus.unauthenticated:
-        return emit(const AuthenticationState.unauthenticated());
       case OAuthStatus.authenticated:
         return emit(const AuthenticationState.authenticated());
       default:
-        return emit(const AuthenticationState.unknown());
+        return emit(const AuthenticationState.unauthenticated());
     }
   }
 

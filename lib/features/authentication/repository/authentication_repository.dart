@@ -78,16 +78,10 @@ class AuthenticationRepository extends IAuthenticationRepository {
 
   Left<Failure, Unit> _errorHandler(Object e) {
     if (e is AuthenticateException) {
-      if (e.error != null) {
-        return Left(InvalidCredentialsFailure(message: e.error!));
-      }
-      return Left(InvalidCredentialsFailure());
+      return Left(InvalidCredentialsFailure(message: e.error!));
     }
     if (e is RegisterException) {
-      if (e.error != null) {
-        return Left(EmailAlreadyTakenFailure(message: e.error!));
-      }
-      return Left(EmailAlreadyTakenFailure());
+      return Left(EmailAlreadyTakenFailure(message: e.error!));
     }
     return const Left(ServerFailure());
   }
