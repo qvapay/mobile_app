@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -32,7 +30,6 @@ class UserData extends Equatable {
   });
 
   factory UserData.fromMe(Me me) {
-    log(me.latestTransactions!.length.toString());
     return UserData(
       uuid: me.uuid,
       userName: me.username,
@@ -78,7 +75,15 @@ class UserData extends Equatable {
   @JsonKey(name: 'latestTransactions')
   final List<UserTransaction> latestTransactions;
 
-  String get nameAndLastName => '$name $lastName';
+  String get nameAndLastName {
+    var userName = '';
+    if (lastName.isEmpty) {
+      userName = name;
+    } else {
+      userName = '$name $lastName';
+    }
+    return userName;
+  }
 
   @override
   List<Object?> get props {

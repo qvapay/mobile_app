@@ -55,7 +55,16 @@ void main() {
           equals(UserTransaction.fromTransaction(tTransactionQvaPayList[1])),
         );
       });
+      test('when the [Transaction] is of the `service` type', () {
+        final tUserTransactionModel =
+            UserTransaction.fromJson(tUserTransactionListJson[2]);
 
+        expect(tUserTransactionModel, isA<UserTransaction>());
+        expect(
+          tUserTransactionModel,
+          equals(UserTransaction.fromTransaction(tTransactionQvaPayList[2])),
+        );
+      });
       test('when the [Transaction] is of the `p2p` type', () {
         final tUserTransactionModel =
             UserTransaction.fromJson(tUserTransactionListJson[3]);

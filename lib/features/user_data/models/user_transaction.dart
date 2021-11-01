@@ -68,6 +68,7 @@ class UserTransaction extends Equatable {
     return UserTransaction(
       uuid: transaction.uuid,
       name: name,
+      // email: transaction.owner.email, // TODO: @n3omaster waiting for the `email` field to be included in` owner`
       amount: transaction.amount,
       description: transaction.description,
       imageUrl: transaction.logo ?? '',

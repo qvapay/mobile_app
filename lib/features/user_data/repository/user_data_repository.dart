@@ -43,12 +43,10 @@ class UserDataRepository extends IUserDataRepository {
         date: saveDateLastLogIn,
       ));
 
-      print(userData.latestTransactions.length);
-
       return Right(userData);
     } catch (e) {
       if (e is UnauthorizedException) {
-        return Left(AuthenticationFailure());
+        return const Left(AuthenticationFailure());
       }
       return const Left(ServerFailure());
     }

@@ -135,7 +135,25 @@
         "kyc": 0
       },
       "wallet": null,
-      "servicebuy": null
+      "servicebuy": {
+        "service_id": 14,
+        "user_id": 2,
+        "service_data": "{\"phone\":\"5355149081\",\"confirmationCode\":3541}",
+        "status": "paid",
+        "amount": "20.80",
+        "transaction_id": 3541,
+        "created_at": "2021-08-05T00:32:56.000000Z",
+        "updated_at": "2021-08-05T00:32:56.000000Z",
+        "service": {
+          "uuid": "fc93b94a-196f-4edf-9643-b443d6194a0d",
+          "name": "Tarjeta App Store",
+          "lead": "$ 10",
+          "price": "10.50",
+          "logo": "services/JF7YQRqeCtzX3c3vVkDR8d20kgzEKfSGjmnXoWl9.png",
+          "sublogo": "services/CAtfDQF6vCSfaAclUVh0H4fokf44EO8v3dlammbB.png",
+          "desc": "Para todo lo relacionado con Apple: productos, accesorios, aplicaciones, juegos, música, películas, programas de televisión, iCloud y más."
+        }
+      }
     },
     {
       "uuid": "e26301f9-7516-4ed9-a23e-588aae05c56d",

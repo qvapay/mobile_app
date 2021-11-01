@@ -72,7 +72,7 @@ void main() {
         await userDataRepository.getUserData(
           saveDateLastLogIn: tSaveDateLastLogIn,
         ),
-        Left<Failure, UserData>(AuthenticationFailure()),
+        const Left<Failure, UserData>(AuthenticationFailure()),
       );
       verify(() => preferencesRepository.getIsFristTime()).called(1);
       verifyNoMoreInteractions(preferencesRepository);

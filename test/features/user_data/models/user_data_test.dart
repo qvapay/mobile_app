@@ -19,12 +19,22 @@ void main() {
       );
     });
 
-    test('fromMe', () {
-      final tMeJson = json.decode(fixture('me.json')) as Map<String, dynamic>;
-      expect(
-        tUserDataModel,
-        equals(UserData.fromMe(Me.fromJson(tMeJson))),
-      );
+    group('fromMe', () {
+      test('the `Me` json', () {
+        final tMeJson = json.decode(fixture('me.json')) as Map<String, dynamic>;
+        expect(
+          tUserDataModel,
+          equals(UserData.fromMe(Me.fromJson(tMeJson))),
+        );
+      });
+      test('when `latestTransactions` in `Me` json is null', () {
+        final tMeJson = json.decode(fixture('me_empty_transactions.json'))
+            as Map<String, dynamic>;
+        expect(
+          tUserDataModel.copyWith(latestTransactions: []),
+          equals(UserData.fromMe(Me.fromJson(tMeJson))),
+        );
+      });
     });
 
     test('toJson', () {
@@ -33,19 +43,21 @@ void main() {
     });
 
     test('copyWith', () {
-      expect(
-          tUserDataModel.copyWith(
-            telegramUserName: '@natasha',
-            address: 'Centro Habana',
-            phoneNumber: '+53599999',
-          ),
-          equals(
-            tUserDataModel.copyWith(
-              telegramUserName: '@natasha',
-              address: 'Centro Habana',
-              phoneNumber: '+53599999',
-            ),
-          ));
+      expect(tUserDataModel.copyWith(), equals(tUserDataModel.copyWith()));
+    });
+
+    group('nameAndLastName ', () {
+      test('when `lastName` is empty ', () {
+        expect(tUserDataModel.nameAndLastName, equals('Natasha Tenorio'));
+      });
+
+      test('when `lastName` is not empty ', () {
+        expect(
+            tUserDataModel
+                .copyWith(name: 'Natasha', lastName: 'Tenorio')
+                .nameAndLastName,
+            equals('Natasha Tenorio'));
+      });
     });
   });
 }
