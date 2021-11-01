@@ -8,7 +8,7 @@ void main() {
   group('RegisterEvent', () {
     group('RegisterNameChanged', () {
       test('supports value comparisons', () {
-        expect(RegisterEmailChanged(tName), RegisterEmailChanged(tName));
+        expect(RegisterNameChanged(tName), RegisterNameChanged(tName));
       });
     });
     group('RegisterEmailChanged', () {
