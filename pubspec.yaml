@@ -45,6 +45,7 @@ flutter:
     - assets/avatars/
     - assets/images/
     - assets/pay_icons/
+    - assets/onboarding/
 
   fonts:
     - family: Roboto
