@@ -195,28 +195,41 @@ class _TabUser extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: Builder(builder: (context) {
-                        final userTransactions = context.select(
-                                (UserDataCubit cubit) =>
-                                    cubit.state.userData?.latestTransactions) ??
-                            [];
-                        return ListView.builder(
-                            itemCount: userTransactions.take(5).length,
-                            itemBuilder: (context, index) {
-                              final credit =
-                                  double.parse(userTransactions[index].amount);
-                              final date = DateFormat.yMd()
-                                  .format(userTransactions[index].date)
-                                  .toString();
-                              return TransactionCardWidget(
-                                name: userTransactions[index].name,
-                                avatar: userTransactions[index].imageUrl,
-                                credit: credit.abs(),
-                                date: date,
-                                isCredit: credit > 0,
-                              );
-                            });
-                      }),
+                      child: BlocBuilder<UserDataCubit, UserDataState>(
+                        builder: (context, state) {
+                          if (state is UserDataStateLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (state is UserDataStateLoaded) {
+                            return ListView.builder(
+                                itemCount: state.userData.latestTransactions
+                                    .take(5)
+                                    .length,
+                                itemBuilder: (context, index) {
+                                  final credit = double.parse(state.userData
+                                      .latestTransactions[index].amount);
+                                  final date = DateFormat.yMd()
+                                      .format(state.userData
+                                          .latestTransactions[index].date)
+                                      .toString();
+                                  return TransactionCardWidget(
+                                    name: state.userData
+                                        .latestTransactions[index].name,
+                                    avatar: state.userData
+                                        .latestTransactions[index].imageUrl,
+                                    credit: credit.abs(),
+                                    date: date,
+                                    isCredit: credit > 0,
+                                  );
+                                });
+                          }
+                          return const Center(
+                            child: Text('0 Transacciones'),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/login/login.dart';
@@ -42,7 +43,7 @@ class HeaderRecentLogin extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: ProfileImageNetworkWidget(
-                      imageUrl: lastLogIn?.photoUrl,
+                      imageUrl: lastLogIn?.photoUrl ?? qvapayIconUrl,
                       radius: 60,
                       borderImage: Border.all(width: 4, color: Colors.white),
                     ),

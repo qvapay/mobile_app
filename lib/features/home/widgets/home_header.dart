@@ -28,13 +28,16 @@ class HomeHeader extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Builder(builder: (context) {
-                    final balance = context.select((UserDataCubit element) =>
-                            element.state.userData?.balance) ??
-                        '0.0';
-                    return Text(
-                      '\$ $balance',
-                      style: styleNumber,
+                  BlocBuilder<UserDataCubit, UserDataState>(
+                      builder: (context, state) {
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: state is UserDataStateLoaded
+                          ? Text(
+                              '\$ ${state.userData.balance}',
+                              style: styleNumber,
+                            )
+                          : const Text(r'$ 0.0', style: styleNumber),
                     );
                   }),
                   const SizedBox(
@@ -57,25 +60,39 @@ class HomeHeader extends StatelessWidget {
                 onTap: () {},
                 child: Row(
                   children: [
-                    Builder(builder: (context) {
-                      final name = context.select((UserDataCubit element) =>
-                              element.state.userData?.nameAndLastName) ??
-                          'Unknown';
-                      return Text(
-                        name,
-                        style: styleUser,
-                      );
-                    }),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Builder(builder: (context) {
-                      final photoUrl = context.select(
-                        (UserDataCubit element) => element.state.userData?.logo,
-                      );
-                      return ProfileImageNetworkWidget(
-                        imageUrl: photoUrl,
-                        borderImage: Border.all(width: 4, color: Colors.white),
+                    BlocBuilder<UserDataCubit, UserDataState>(
+                        builder: (context, state) {
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: state is UserDataStateLoaded
+                            ? Row(
+                                children: [
+                                  Text(
+                                    state.userData.nameAndLastName,
+                                    style: styleUser,
+                                  ),
+                                  const SizedBox(
+                                    width: 10,
+                                  ),
+                                  ProfileImageNetworkWidget(
+                                    imageUrl: state.userData.logo,
+                                    borderImage: Border.all(
+                                        width: 4, color: Colors.white),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                children: const [
+                                  Text(
+                                    '',
+                                    style: styleUser,
+                                  ),
+                                  SizedBox(
+                                    width: 10,
+                                  ),
+                                  UnknownCircleAvatarWidget(),
+                                ],
+                              ),
                       );
                     }),
                     const SizedBox(

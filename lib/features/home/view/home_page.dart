@@ -18,7 +18,7 @@ class HomePage extends StatelessWidget {
         body: BlocProvider(
       create: (context) => UserDataCubit(
         userDataRepository: getIt<IUserDataRepository>(),
-      )..getUserData(),
+      )..getUserData(saveDateLastLogIn: DateTime.now()),
       child: const HomeView(),
     ));
   }
