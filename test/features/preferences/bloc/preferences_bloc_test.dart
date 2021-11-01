@@ -5,14 +5,13 @@ import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../../constants.dart';
 import '../../../fixtures/fixture_adapter.dart';
 
 class MockPreferencesRepository extends Mock implements PreferencesRepository {}
 
 void main() {
   late PreferencesRepository mockPreferencesRepository;
-
-  final tDate = DateTime.parse('2021-12-16T00:12:00.000');
 
   final tLastLogInJson =
       json.decode(fixture('last_login.json')) as Map<String, dynamic>;

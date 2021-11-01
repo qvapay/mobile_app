@@ -28,7 +28,6 @@ class LastLogIn extends Equatable {
     String? photoUrl,
     DateTime? date,
   }) {
-    print(date);
     return LastLogIn(
       name: name ?? this.name,
       email: email ?? this.email,

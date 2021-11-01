@@ -33,7 +33,7 @@ class NoInternetConnectionFailure extends Failure {
 }
 
 class AuthenticationFailure extends Failure {
-  AuthenticationFailure({this.message = 'Authentication Failure'});
+  const AuthenticationFailure({this.message = 'Authentication Failure'});
 
   final String message;
 
