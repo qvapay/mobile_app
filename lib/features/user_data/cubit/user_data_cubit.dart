@@ -11,37 +11,45 @@ class UserDataCubit extends HydratedCubit<UserDataState> {
   UserDataCubit({
     required IUserDataRepository userDataRepository,
   })  : _userDataRepository = userDataRepository,
-        super(UserDataStateLoading());
+        super(const UserDataState());
 
   final IUserDataRepository _userDataRepository;
 
   Future<void> getUserData({required DateTime saveDateLastLogIn}) async {
+    emit(state.copyWith(isStateLoading: true, errorMessage: '*'));
     final result = await _userDataRepository.getUserData(
       saveDateLastLogIn: saveDateLastLogIn,
     );
 
     emit(
       result.fold(
-        (failure) => UserDataStateError(
-          message: (failure is ServerFailure)
+        (failure) => state.copyWith(
+          userData: state.userData,
+          isStateLoading: false,
+          errorMessage: (failure is ServerFailure)
               ? failure.message
               : const AuthenticationFailure().message,
         ),
-        (userData) => UserDataStateLoaded(userData: userData),
+        (userData) => state.copyWith(userData: userData, isStateLoading: false),
       ),
     );
   }
 
   @override
   UserDataState? fromJson(Map<String, dynamic> json) {
-    if (json.isEmpty) return UserDataStateError(message: 'Empty Cache');
-    return UserDataStateLoaded(userData: UserData.fromJson(json));
+    if (json.isEmpty) {
+      return UserDataState(
+        errorMessage: 'Empty Cache',
+        userData: state.userData,
+      );
+    }
+    return UserDataState(userData: UserData.fromJson(json));
   }
 
   @override
   Map<String, dynamic>? toJson(UserDataState state) {
-    if (state is UserDataStateLoaded) {
-      return state.userData.toJson();
+    if (state.userData != null) {
+      return state.userData?.toJson();
     }
     return <String, dynamic>{};
   }

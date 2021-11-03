@@ -1,31 +1,28 @@
 part of 'user_data_cubit.dart';
 
-abstract class UserDataState extends Equatable {}
+class UserDataState extends Equatable {
+  const UserDataState({
+    this.userData,
+    this.errorMessage,
+    this.isStateLoading = true,
+  });
 
-class UserDataStateInitial extends UserDataState {
-  @override
-  List<Object?> get props => [];
-}
-
-class UserDataStateLoading extends UserDataState {
-  @override
-  List<Object?> get props => [];
-}
-
-class UserDataStateError extends UserDataState {
-  UserDataStateError({this.message});
-
-  final String? message;
+  final UserData? userData;
+  final String? errorMessage;
+  final bool isStateLoading;
 
   @override
-  List<Object?> get props => [message];
-}
+  List<Object?> get props => [userData, errorMessage, isStateLoading];
 
-class UserDataStateLoaded extends UserDataState {
-  UserDataStateLoaded({required this.userData});
-
-  final UserData userData;
-
-  @override
-  List<Object> get props => [userData];
+  UserDataState copyWith({
+    UserData? userData,
+    String? errorMessage,
+    bool? isStateLoading,
+  }) {
+    return UserDataState(
+      userData: userData ?? this.userData,
+      errorMessage: errorMessage ?? this.errorMessage,
+      isStateLoading: isStateLoading ?? this.isStateLoading,
+    );
+  }
 }

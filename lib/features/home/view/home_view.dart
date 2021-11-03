@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -17,27 +19,38 @@ class HomeView extends StatelessWidget {
       child: Scaffold(
         bottomNavigationBar: const BottomSendAndReciveWidget(),
         backgroundColor: bgColor,
-        body: Column(
-          children: [
-            Container(
-              color: bgColor,
-              child: const HomeHeader(),
-            ),
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: kLinearGradientBlackLight,
-                ),
+        body: BlocListener<UserDataCubit, UserDataState>(
+          listenWhen: (previous, current) =>
+              previous.errorMessage != current.errorMessage,
+          listener: (context, state) {
+            if (state.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Error al comunicarse con el servidor !!'),
+              ));
+            }
+          },
+          child: Column(
+            children: [
+              Container(
+                color: bgColor,
+                child: const HomeHeader(),
+              ),
+              Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                          bottomRight: Radius.circular(30),
-                          bottomLeft: Radius.circular(30))),
-                  child: const _TabUser(),
+                    gradient: kLinearGradientBlackLight,
+                  ),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                            bottomRight: Radius.circular(30),
+                            bottomLeft: Radius.circular(30))),
+                    child: const _TabUser(),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -197,33 +210,38 @@ class _TabUser extends StatelessWidget {
                     Expanded(
                       child: BlocBuilder<UserDataCubit, UserDataState>(
                         builder: (context, state) {
-                          if (state is UserDataStateLoading) {
+                          if (state.isStateLoading) {
                             return const Center(
                               child: CircularProgressIndicator(),
                             );
                           }
-                          if (state is UserDataStateLoaded) {
-                            return ListView.builder(
-                                itemCount: state.userData.latestTransactions
-                                    .take(5)
-                                    .length,
-                                itemBuilder: (context, index) {
-                                  final credit = double.parse(state.userData
-                                      .latestTransactions[index].amount);
-                                  final date = DateFormat.yMd()
-                                      .format(state.userData
-                                          .latestTransactions[index].date)
-                                      .toString();
-                                  return TransactionCardWidget(
-                                    name: state.userData
-                                        .latestTransactions[index].name,
-                                    avatar: state.userData
-                                        .latestTransactions[index].imageUrl,
-                                    credit: credit.abs(),
-                                    date: date,
-                                    isCredit: credit > 0,
-                                  );
-                                });
+                          if (state.userData != null) {
+                            if (state.userData!.latestTransactions.isNotEmpty) {
+                              return ListView.builder(
+                                  itemCount: state.userData!.latestTransactions
+                                      .take(5)
+                                      .length,
+                                  itemBuilder: (context, index) {
+                                    final credit = double.parse(state.userData!
+                                        .latestTransactions[index].amount);
+                                    final date = DateFormat.yMd()
+                                        .format(state.userData!
+                                            .latestTransactions[index].date)
+                                        .toString();
+                                    return TransactionCardWidget(
+                                      name: state.userData!
+                                          .latestTransactions[index].name,
+                                      avatar: state.userData!
+                                          .latestTransactions[index].imageUrl,
+                                      credit: credit.abs(),
+                                      date: date,
+                                      isCredit: credit > 0,
+                                    );
+                                  });
+                            }
+                            return const Center(
+                              child: Text('0 Transacciones'),
+                            );
                           }
                           return const Center(
                             child: Text('0 Transacciones'),

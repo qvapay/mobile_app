@@ -32,9 +32,9 @@ class HomeHeader extends StatelessWidget {
                       builder: (context, state) {
                     return AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
-                      child: state is UserDataStateLoaded
+                      child: state.userData != null
                           ? Text(
-                              '\$ ${state.userData.balance}',
+                              '\$ ${state.userData?.balance ?? '0.0'}',
                               style: styleNumber,
                             )
                           : const Text(r'$ 0.0', style: styleNumber),
@@ -64,18 +64,18 @@ class HomeHeader extends StatelessWidget {
                         builder: (context, state) {
                       return AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-                        child: state is UserDataStateLoaded
+                        child: state.userData != null
                             ? Row(
                                 children: [
                                   Text(
-                                    state.userData.nameAndLastName,
+                                    state.userData!.nameAndLastName,
                                     style: styleUser,
                                   ),
                                   const SizedBox(
                                     width: 10,
                                   ),
                                   ProfileImageNetworkWidget(
-                                    imageUrl: state.userData.logo,
+                                    imageUrl: state.userData!.logo,
                                     borderImage: Border.all(
                                         width: 4, color: Colors.white),
                                   ),

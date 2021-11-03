@@ -27,64 +27,66 @@ void main() {
   final tUserDataJson =
       json.decode(fixture('user_data.json')) as Map<String, dynamic>;
   final tUserDataModel = UserData.fromJson(tUserDataJson);
+
   test('initial state', () {
-    expect(userDataCubit.state, UserDataStateLoading());
+    expect(userDataCubit.state, const UserDataState());
   });
 
   group('fromJson', () {
-    test('shuld return [UserDataStateLoaded]', () {
+    test('shuld return [UserDataState] with UserData', () {
       expect(
         userDataCubit.fromJson(tUserDataJson),
-        equals(UserDataStateLoaded(userData: tUserDataModel)),
+        equals(UserDataState(userData: tUserDataModel)),
       );
     });
 
-    test('should return UserDataStateError when is empty', () {
+    test('should return `errorMessage` when is empty', () {
       expect(
         userDataCubit.fromJson(<String, dynamic>{}),
-        equals(UserDataStateError(message: 'Empty Cache')),
+        equals(const UserDataState(errorMessage: 'Empty Cache')),
       );
     });
   });
 
   group('toJson', () {
-    test('shuld return UserData json when the state is [UserDataStateLoaded]',
-        () {
+    test('shuld return UserData in json', () {
       expect(
-        userDataCubit.toJson(UserDataStateLoaded(userData: tUserDataModel)),
+        userDataCubit.toJson(UserDataState(userData: tUserDataModel)),
         equals(tUserDataJson),
       );
     });
 
-    test('should return empty [Map] when is not [UserDataStateLoaded]', () {
+    test('should return empty [Map] when `userData` is null', () {
       expect(
-        userDataCubit.toJson(UserDataStateLoading()),
+        userDataCubit.toJson(const UserDataState()),
         equals(<String, dynamic>{}),
       );
     });
   });
 
-  group('UserDataStateInitial ', () {
-    test('supports value comparisons', () {
-      expect(UserDataStateInitial(), UserDataStateInitial());
-    });
-  });
-
   group('UserDataState', () {
     blocTest<UserDataCubit, UserDataState>(
-      'emit [UserDataStateLoaded] when `getUserData` is use',
+      'emit [UserData] when `getUserData` is call',
       setUp: () {
         when(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
             .thenAnswer((_) async => Right(tUserDataModel));
       },
       build: () => UserDataCubit(userDataRepository: userDataRepository),
       act: (cubit) => cubit.getUserData(saveDateLastLogIn: tDate),
-      expect: () =>
-          <UserDataState>[UserDataStateLoaded(userData: tUserDataModel)],
+      expect: () {
+        return <UserDataState>[
+          const UserDataState(errorMessage: '*'),
+          UserDataState(
+            userData: tUserDataModel,
+            isStateLoading: false,
+            errorMessage: '*',
+          ),
+        ];
+      },
     );
 
     blocTest<UserDataCubit, UserDataState>(
-      'emit [UserDataStateError] when `getUserData` return [ServerFailure]',
+      'emit [errorMessage] when `getUserData` return [ServerFailure]',
       setUp: () {
         when(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
             .thenAnswer((_) async => const Left(ServerFailure()));
@@ -95,13 +97,19 @@ void main() {
         verify(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
             .called(1);
       },
-      expect: () =>
-          <UserDataState>[UserDataStateError(message: 'Server Failure')],
+      expect: () {
+        return <UserDataState>[
+          const UserDataState(errorMessage: '*'),
+          const UserDataState(
+            errorMessage: 'Server Failure',
+            isStateLoading: false,
+          ),
+        ];
+      },
     );
 
     blocTest<UserDataCubit, UserDataState>(
-      'emit [UserDataStateError] when `getUserData` '
-      'return [AuthenticationFailure]',
+      'emit [errorMessage] when `getUserData` return [AuthenticationFailure]',
       setUp: () {
         when(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
             .thenAnswer((_) async => const Left(AuthenticationFailure()));
@@ -113,7 +121,11 @@ void main() {
             .called(1);
       },
       expect: () => <UserDataState>[
-        UserDataStateError(message: 'Authentication Failure')
+        const UserDataState(errorMessage: '*'),
+        const UserDataState(
+          errorMessage: 'Authentication Failure',
+          isStateLoading: false,
+        )
       ],
     );
   });
