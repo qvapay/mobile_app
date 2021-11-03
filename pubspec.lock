@@ -589,11 +589,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "0173ab42bc88424c3bb54cec6c3329143dc5f5b6"
-      resolved-ref: "0173ab42bc88424c3bb54cec6c3329143dc5f5b6"
+      ref: "5cfd1761042a5c169e67aea71edd6a66aeebdf32"
+      resolved-ref: "5cfd1761042a5c169e67aea71edd6a66aeebdf32"
       url: "https://github.com/qvapay/qvapay_api_client.git"
     source: git
-    version: "0.0.4"
+    version: "0.0.5"
   rxdart:
     dependency: transitive
     description:
