@@ -2,9 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:formz/formz.dart';
-import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/formz/formz.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/register/register.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -174,6 +174,52 @@ void main() {
           ),
         ],
       );
+      blocTest<RegisterBloc, RegisterState>(
+        'emits [RegisterInProgress, RegisterFailure] when '
+        'a server error occurs',
+        build: () {
+          when(
+            () =>
+                authenticationRepository.register(userRegister: tUserRegister),
+          ).thenAnswer(
+            (_) async => const Left(ServerFailure()),
+          );
+          return registerBloc;
+        },
+        act: (bloc) {
+          bloc
+            ..add(const RegisterNameChanged(tName))
+            ..add(const RegisterEmailChanged(tEmail))
+            ..add(const RegisterPasswordChanged(tPassword))
+            ..add(const RegisterReferralCodeChanged(tReferralCode))
+            ..add(const RegisterSubmitted());
+        },
+        expect: () => <RegisterState>[
+          ...tRegisterState,
+          const RegisterState(
+            name: NameFormz.dirty(tName),
+            email: EmailFormz.dirty(tEmail),
+            password: PasswordFormz.dirty(tPassword),
+            referralCode: tReferralCode,
+            status: FormzStatus.valid,
+          ),
+          const RegisterState(
+            name: NameFormz.dirty(tName),
+            email: EmailFormz.dirty(tEmail),
+            password: PasswordFormz.dirty(tPassword),
+            referralCode: tReferralCode,
+            status: FormzStatus.submissionInProgress,
+          ),
+          const RegisterState(
+            name: NameFormz.dirty(tName),
+            email: EmailFormz.dirty(tEmail),
+            password: PasswordFormz.dirty(tPassword),
+            referralCode: tReferralCode,
+            status: FormzStatus.submissionFailure,
+            messageError: 'Server Failure',
+          ),
+        ],
+      );
     });
 
     group('RegisterCompleteChanged', () {
@@ -228,6 +274,24 @@ void main() {
           ),
         ],
       );
+    });
+
+    group('RegisterNameChanged', () {
+      test('supports value comparisons', () {
+        expect(
+          RegisterNameChanged(tName),
+          RegisterNameChanged(tName),
+        );
+      });
+    });
+
+    group('RegisterReferralCodeChanged ', () {
+      test('supports value comparisons', () {
+        expect(
+          RegisterReferralCodeChanged(tReferralCode),
+          RegisterReferralCodeChanged(tReferralCode),
+        );
+      });
     });
   });
 }

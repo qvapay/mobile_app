@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/register/bloc/register_bloc.dart';
 import 'package:mobile_app/features/register/view/register_view.dart';
 

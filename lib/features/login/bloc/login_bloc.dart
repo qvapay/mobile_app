@@ -3,9 +3,9 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:formz/formz.dart';
 
-import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/formz/formz.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 
 part 'login_event.dart';
 part 'login_state.dart';
