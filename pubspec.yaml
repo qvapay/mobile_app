@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   bloc: ^7.2.1
+  cached_network_image: ^3.1.0
   dartz: ^0.10.0-nullsafety.1
   data_connection_checker: ^0.3.4
   dio: ^4.0.0
@@ -22,18 +23,22 @@ dependencies:
   hive: ^2.0.4
   hive_flutter: ^1.1.0
   http: ^0.13.3
+  hydrated_bloc: ^7.1.0
   intl: ^0.17.0
+  json_annotation: ^4.3.0
   path_provider: ^2.0.5
-  qvapay_api_client:
-    git: 
-      url: https://github.com/qvapay/qvapay_api_client.git
-      ref: 6c1a39df5295ada377a874dcb48db7a271827357
   pin_code_fields: ^7.3.0
+  qvapay_api_client:
+    git:
+      url: https://github.com/qvapay/qvapay_api_client.git
+      ref: 5cfd1761042a5c169e67aea71edd6a66aeebdf32
 
 dev_dependencies:
   bloc_test: ^8.3.0
+  build_runner: ^2.1.4
   flutter_test:
     sdk: flutter
+  json_serializable: ^6.0.1
   mocktail: ^0.1.0
   very_good_analysis: ^2.3.0
 

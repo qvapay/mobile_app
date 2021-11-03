@@ -2,9 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:formz/formz.dart';
-import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/formz/formz.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mocktail/mocktail.dart';
 
