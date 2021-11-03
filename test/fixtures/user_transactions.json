@@ -5,8 +5,9 @@
     "description": "AUTO_RECARGA",
     "transaction_type": "autoRecharge",
     "name": "Natasha Tenorio",
+    "email": "",
     "date": "2021-08-28T21:41:41.000Z",
-    "image_url": "apps/qvapay.jpg"
+    "image_url": ""
   },
   {
     "uuid": "a904924f-1fb7-4f8f-b83f-b6d160d862b6",
@@ -14,8 +15,9 @@
     "description": "REFERAL erichgarciacruz",
     "transaction_type": "transfer",
     "name": "Natasha Tenorio",
+    "email": "",
     "date": "2021-04-11T02:57:33.000Z",
-    "image_url": "apps/qvapay.jpg"
+    "image_url": ""
   },
   {
     "uuid": "a1073148-880e-4dff-91fc-3c10f7dcc4bb",
@@ -23,8 +25,9 @@
     "description": "qwdqwd",
     "transaction_type": "service",
     "name": "Natasha Tenorio",
+    "email": "",
     "date": "2021-03-17T03:48:22.000Z",
-    "image_url": "profiles/zV93I93mbWrZo0fKgwGcpWFWDn41UYfAgj7wNCbf.jpg"
+    "image_url": ""
   },
   {
     "uuid": "e26301f9-7516-4ed9-a23e-588aae05c56d",
@@ -33,6 +36,7 @@
     "transaction_type": "p2p",
     "date": "2021-10-28T23:15:20.000000Z",
     "name": "Stage",
+    "email": "",
     "image_url": ""
   }
 ]
