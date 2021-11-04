@@ -7,12 +7,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_app/authentication/authentication.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/home/home.dart';
 import 'package:mobile_app/features/login/login.dart';
+import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mobile_app/features/start/start.dart';
-import 'package:mobile_app/preferences/preferences.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
 class App extends StatelessWidget {
@@ -26,7 +26,7 @@ class App extends StatelessWidget {
           lazy: false,
           create: (BuildContext context) => PreferencesBloc(
             preferencesRepository: getIt<PreferencesRepository>(),
-          )..add(GetPreferences()),
+          )..add(GetPreferences(date: DateTime.now())),
         ),
         BlocProvider<AuthenticationBloc>(
           create: (BuildContext context) => AuthenticationBloc(
