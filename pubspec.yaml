@@ -24,14 +24,20 @@ dependencies:
   hive_flutter: ^1.1.0
   http: ^0.13.3
   hydrated_bloc: ^7.1.0
+  image_gallery_saver: ^1.7.1
   intl: ^0.17.0
   json_annotation: ^4.3.0
   path_provider: ^2.0.5
+  permission_handler: ^8.2.6
   pin_code_fields: ^7.3.0
+  qr_code_scanner: ^0.6.1
+  qr_flutter: ^4.0.0
   qvapay_api_client:
     git:
       url: https://github.com/qvapay/qvapay_api_client.git
       ref: 5cfd1761042a5c169e67aea71edd6a66aeebdf32
+  screenshot: ^1.2.3
+  share_plus: ^3.0.4
 
 dev_dependencies:
   bloc_test: ^8.3.0
