@@ -2,24 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 
 class ButtonLarge extends StatelessWidget {
-  const ButtonLarge(
-      {Key? key,
-      required this.title,
-      required this.styleGradient,
-      required this.active,
-      required this.onPressed})
-      : super(key: key);
+  const ButtonLarge({
+    Key? key,
+    required this.title,
+    required this.styleGradient,
+    required this.active,
+    required this.onPressed,
+    this.padding = const EdgeInsets.all(8),
+  }) : super(key: key);
 
   final String title;
   final LinearGradient styleGradient;
   final bool active;
   final VoidCallback onPressed;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
     return Container(
-        width: 328,
-        height: 56,
+        width: width * 0.9,
+        height: kToolbarHeight + 4,
         decoration: BoxDecoration(
           gradient: styleGradient,
           borderRadius: BorderRadius.circular(14),
@@ -30,7 +33,7 @@ class ButtonLarge extends StatelessWidget {
           shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Radius.circular(14))),
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: padding,
             child: Center(
               child: Text(
                 title,
