@@ -8,14 +8,16 @@ class TransactionDetailView extends StatelessWidget {
   const TransactionDetailView({
     Key? key,
     required this.transaction,
+    required this.isFromPayment,
   }) : super(key: key);
 
   final UserTransaction transaction;
+  final bool isFromPayment;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final contentH = size.height - AppBar().preferredSize.height;
+    final contentH = size.height - kToolbarHeight;
     return SizedBox(
       height: contentH * 0.85,
       child: Column(
@@ -27,12 +29,19 @@ class TransactionDetailView extends StatelessWidget {
                 SizedBox(
                   height: contentH >= 500.0 ? 15 : 0,
                 ),
-                ProfileImageNetworkWidget(
-                  imageUrl: transaction.imageUrl.contains('https://')
-                      ? transaction.imageUrl
-                      : qvapayIconUrl,
-                  radius: 60,
-                  borderImage: Border.all(width: 4, color: Colors.white),
+                Hero(
+                  tag: isFromPayment
+                      ? 'key_payment_${transaction.imageUrl}'
+                          '_${transaction.uuid}'
+                      : 'key_details_${transaction.imageUrl}'
+                          '_${transaction.uuid}',
+                  child: ProfileImageNetworkWidget(
+                    imageUrl: transaction.imageUrl.contains('https://')
+                        ? transaction.imageUrl
+                        : qvapayIconUrl,
+                    radius: 60,
+                    borderImage: Border.all(width: 4, color: Colors.white),
+                  ),
                 ),
                 const SizedBox(
                   height: 10,
@@ -60,23 +69,33 @@ class TransactionDetailView extends StatelessWidget {
             flex: 3,
             child: Column(
               children: [
-                const Text(
-                  'Pago Realizado!',
-                  style: kStyleTextPago,
-                ),
-                const SizedBox(
-                  height: 20,
+                if (isFromPayment)
+                  Column(
+                    children: const [
+                      Text(
+                        'Pago Realizado!',
+                        style: kStyleTextPago,
+                      ),
+                      SizedBox(
+                        height: 20,
+                      ),
+                    ],
+                  ),
+                _RowInfo(
+                  title: 'Tipo de Operación:',
+                  data: transaction.typeToString,
                 ),
                 _RowInfo(
-                    title: 'Tipo de Operación:',
-                    data: transaction.typeToString),
+                  title: 'Monto:',
+                  data: r'$ ' + transaction.amount,
+                ),
                 _RowInfo(
-                  title: 'Transaccion:',
+                  title: 'Transacción:',
                   data: transaction.smallUuid,
                 ),
                 _RowInfo(
                   title: 'Fecha:',
-                  data: transaction.date.format(),
+                  data: transaction.date.toDmY(),
                 ),
               ],
             ),

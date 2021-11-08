@@ -129,7 +129,6 @@ class _ReceivePaymentViewState extends State<ReceivePaymentView> {
                   final transaction =
                       context.read<ReceivePaymentCubit>().state.transaction;
                   context.read<ReceivePaymentCubit>().capture(true);
-                  // Future<void>.delayed(const Duration(milliseconds: 25));
 
                   widget.screenshotController
                       .capture(
@@ -142,7 +141,7 @@ class _ReceivePaymentViewState extends State<ReceivePaymentView> {
                           quality: 60,
                           name: '${transaction.name} '
                               '- ${transaction.amount} SQP '
-                              '- ${transaction.date.format()}');
+                              '- ${transaction.date.toDmY()}');
                     }
                   }).then((_) {
                     context.read<ReceivePaymentCubit>().capture(false);

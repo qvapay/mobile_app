@@ -4,21 +4,30 @@ import 'package:mobile_app/features/transactions/view/transaction_detail_view.da
 import 'package:mobile_app/features/user_data/models/models.dart';
 
 class TransactionDetailPage extends StatelessWidget {
-  const TransactionDetailPage(
-      {Key? key, required this.title, required this.userTransaction})
-      : super(key: key);
+  const TransactionDetailPage({
+    Key? key,
+    required this.title,
+    required this.userTransaction,
+    required this.isFromPayment,
+  }) : super(key: key);
 
   /// Returns a [MaterialPageRoute] to navigate to `this` widget.
-  static Route go(UserTransaction userTransaction, String title) {
+  static Route go({
+    required UserTransaction userTransaction,
+    required String title,
+    required bool isFromPayment,
+  }) {
     return MaterialPageRoute<void>(
         builder: (_) => TransactionDetailPage(
               userTransaction: userTransaction,
               title: title,
+              isFromPayment: isFromPayment,
             ));
   }
 
   final UserTransaction userTransaction;
   final String title;
+  final bool isFromPayment;
 
   @override
   Widget build(BuildContext context) {
@@ -44,24 +53,29 @@ class TransactionDetailPage extends StatelessWidget {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Cancelar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFFBF461F),
-                    fontFamily: 'Roboto',
-                    fontWeight: FontWeight.w700,
-                  ),
-                )),
-          )
-        ],
+        actions: isFromPayment
+            ? [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFFBF461F),
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      )),
+                )
+              ]
+            : null,
       ),
-      body: TransactionDetailView(transaction: userTransaction),
+      body: TransactionDetailView(
+        transaction: userTransaction,
+        isFromPayment: isFromPayment,
+      ),
     );
   }
 }

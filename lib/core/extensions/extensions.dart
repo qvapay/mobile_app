@@ -1,8 +1,8 @@
 import 'package:intl/intl.dart';
 
 extension ToFormat on DateTime {
-  /// Change format to 8/28/22021
-  String format() {
+  /// Change format to `day/month/year`
+  String toDmY() {
     return DateFormat.yMd().format(this).toString();
   }
 }

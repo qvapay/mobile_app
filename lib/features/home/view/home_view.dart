@@ -1,11 +1,7 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
-
 import 'package:mobile_app/features/home/widgets/widgets.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
@@ -222,20 +218,10 @@ class _TabUser extends StatelessWidget {
                                       .take(5)
                                       .length,
                                   itemBuilder: (context, index) {
-                                    final credit = double.parse(state.userData!
-                                        .latestTransactions[index].amount);
-                                    final date = DateFormat.yMd()
-                                        .format(state.userData!
-                                            .latestTransactions[index].date)
-                                        .toString();
+                                    final transaction = state
+                                        .userData!.latestTransactions[index];
                                     return TransactionCardWidget(
-                                      name: state.userData!
-                                          .latestTransactions[index].name,
-                                      avatar: state.userData!
-                                          .latestTransactions[index].imageUrl,
-                                      credit: credit.abs(),
-                                      date: date,
-                                      isCredit: credit > 0,
+                                      transaction: transaction,
                                     );
                                   });
                             }
