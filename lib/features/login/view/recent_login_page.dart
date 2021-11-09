@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:formz/formz.dart';
 
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
@@ -36,69 +37,82 @@ class RecentLoginView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Expanded(
-          child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              children: [
-                const HeaderRecentLogin(),
-                const SizedBox(
-                  height: 50,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: BlocBuilder<LoginBloc, LoginState>(
-                    buildWhen: (previous, current) =>
-                        previous.password != current.password,
-                    builder: (context, state) {
-                      return PasswordTextFielWidget(
-                        password: state.password,
-                        onPasswordChanged: (String password) => context
-                            .read<LoginBloc>()
-                            .add(LoginPasswordChanged(password)),
-                        suffix: TextButton(
-                          onPressed: () {
-                            /*Navigator.of(context).push<void>(
+    return BlocListener<LoginBloc, LoginState>(
+        listener: (context, state) {
+          if (state.status.isSubmissionFailure) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(content: Text(state.messageError)),
+              );
+          }
+        },
+        child: Column(
+          children: <Widget>[
+            Expanded(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    const HeaderRecentLogin(),
+                    const SizedBox(
+                      height: 50,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: BlocBuilder<LoginBloc, LoginState>(
+                        buildWhen: (previous, current) =>
+                            previous.password != current.password,
+                        builder: (context, state) {
+                          return PasswordTextFielWidget(
+                            password: state.password,
+                            onPasswordChanged: (String password) => context
+                                .read<LoginBloc>()
+                                .add(LoginPasswordChanged(password)),
+                            suffix: TextButton(
+                              onPressed: () {
+                                /*Navigator.of(context).push<void>(
                               PasswordRecovery.go()
                               ),
                             )*/
-                          },
-                          child: const Text(
-                            'La Olvidaste?',
-                            style: kInputDecorationSuffix,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                              },
+                              child: const Text(
+                                'La Olvidaste?',
+                                style: kInputDecorationSuffix,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    TextButton(
+                        onPressed: () {
+                          context
+                              .read<PreferencesBloc>()
+                              .add(CleanPreferences());
+                          Navigator.of(context).pushAndRemoveUntil<void>(
+                            LoginPage.go(),
+                            (_) => false,
+                          );
+                        },
+                        child: Text(
+                          'Entrar con otra cuenta',
+                          style: kTitleScaffold.copyWith(fontSize: 14),
+                        ))
+                  ],
                 ),
-                const SizedBox(
-                  height: 20,
-                ),
-                TextButton(
-                    onPressed: () {
-                      context.read<PreferencesBloc>().add(CleanPreferences());
-                      Navigator.of(context).pushAndRemoveUntil<void>(
-                        LoginPage.go(),
-                        (_) => false,
-                      );
-                    },
-                    child: Text(
-                      'Entrar con otra cuenta',
-                      style: kTitleScaffold.copyWith(fontSize: 14),
-                    ))
-              ],
+              ),
             ),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.all(8),
-          child: LoginButtomSubmitted(),
-        )
-      ],
-    );
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: LoginButtomSubmitted(),
+            )
+          ],
+        ));
   }
 }
