@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/home/widgets/widgets.dart';
+import 'package:mobile_app/features/transactions/search/search.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
 const Color bgColor = Color(0xffEBECEE);
@@ -181,7 +182,13 @@ class _TabUser extends StatelessWidget {
                                   color: Colors.black87)),
                           GestureDetector(
                             onTap: () {
-                              debugPrint('Ir a todos');
+                              Navigator.push<void>(context,
+                                  MaterialPageRoute<void>(builder: (_) {
+                                return BlocProvider.value(
+                                  value: SearchTransactionsBloc(),
+                                  child: const SearchTransactionPage(),
+                                );
+                              }));
                             },
                             child: Row(
                               children: const [
