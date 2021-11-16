@@ -189,7 +189,7 @@ class _TabUser extends StatelessWidget {
                                   value: SearchTransactionsBloc(
                                     transactionRepository:
                                         getIt<ITransactionsRepository>(),
-                                  ),
+                                  )..add(const GetAllTransactions()),
                                   child: const SearchTransactionPage(),
                                 );
                               }));

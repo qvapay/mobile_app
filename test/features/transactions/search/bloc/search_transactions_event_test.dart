@@ -23,5 +23,21 @@ void main() {
         expect(GetAllTransactions(), GetAllTransactions());
       });
     });
+
+    group('CleanFilter', () {
+      test('supports value comparisons', () {
+        expect(CleanFilter(), CleanFilter());
+      });
+    });
+
+    group('SearchTermChanged', () {
+      const tSearchTerm = 'searchTerm';
+      test('supports value comparisons', () {
+        expect(
+          SearchTermChanged(searchTerm: tSearchTerm),
+          SearchTermChanged(searchTerm: tSearchTerm),
+        );
+      });
+    });
   });
 }

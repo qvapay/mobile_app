@@ -25,3 +25,19 @@ class ActiveDeactiveFilter extends SearchTransactionsEvent {
   @override
   List<Object?> get props => [];
 }
+
+class SearchTermChanged extends SearchTransactionsEvent {
+  const SearchTermChanged({required this.searchTerm});
+
+  final String searchTerm;
+
+  @override
+  List<Object?> get props => [searchTerm];
+}
+
+class CleanFilter extends SearchTransactionsEvent {
+  const CleanFilter();
+
+  @override
+  List<Object?> get props => [];
+}

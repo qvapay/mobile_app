@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/formz/formz.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/search/search.dart';
-import 'package:mobile_app/features/user_data/models/models.dart';
+import 'package:mobile_app/features/transactions/search/widgets/widgets.dart';
 
 class SearchTransactionView extends StatelessWidget {
   const SearchTransactionView({Key? key}) : super(key: key);
@@ -16,20 +17,14 @@ class SearchTransactionView extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            SizedBox(
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: SizedBox(
                 width: size.width * 0.75,
                 height: kToolbarHeight,
-                child: const TextField(
-                  style: TextStyle(fontSize: 18),
-                  decoration: InputDecoration(
-                      border: InputBorder.none,
-                      prefixIcon: Icon(
-                        Icons.search,
-                        size: 32,
-                      ),
-                      hintText: 'Escriba el nombre o correo',
-                      hintStyle: TextStyle(color: Colors.black38)),
-                )),
+                child: const SearchField(),
+              ),
+            ),
             InkWell(
               onTap: () {
                 context
@@ -137,27 +132,31 @@ class SearchTransactionView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Expanded(
-          // height: context.select(
-          //      (SearchTransactionsBloc cubit) => cubit.state.isFilterActive)
-          //     ? size.height - (kToolbarHeight * 3.7)
-          //     : size.height - (kToolbarHeight * 2.7),
-          // MediaQuery.of(context).viewInsets.bottom,
-          child: ListView.builder(
-              itemCount: 15,
-              itemBuilder: (context, index) {
-                final transaction = UserTransaction(
-                    uuid: 'sjhvj-jhbjjbjb-87h8h7-dasdas-${index}56tv-hgvh76',
-                    amount: '25',
-                    description: 'description',
-                    name: 'name',
-                    date: DateTime.now(),
-                    imageUrl: 'imageUrl',
-                    transactionType: TransactionType.p2p);
-
-                return TransactionCardWidget(
-                  transaction: transaction,
+          child: BlocBuilder<SearchTransactionsBloc, SearchTransactionsState>(
+            builder: (context, state) {
+              if (state.isSearchTransactions) {
+                return const Center(
+                  child: CircularProgressIndicator(),
                 );
-              }),
+              }
+              if (state.transactions.isEmpty) {
+                return const Center(
+                  child: Text(
+                    '0 transacciones',
+                    style: TextStyle(fontSize: 18, color: Colors.black38),
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                  itemCount: state.transactions.length,
+                  itemBuilder: (context, index) {
+                    return TransactionCardWidget(
+                      transaction: state.transactions[index],
+                    );
+                  });
+            },
+          ),
         )
       ],
     );
