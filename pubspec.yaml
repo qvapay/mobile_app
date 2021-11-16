@@ -37,7 +37,8 @@ dependencies:
   qvapay_api_client:
     git:
       url: https://github.com/qvapay/qvapay_api_client.git
-      ref: 5cfd1761042a5c169e67aea71edd6a66aeebdf32
+      ref: cff33f90705d8257ba3277e9e0aa937221d512f7
+  rxdart: ^0.27.2
   screenshot: ^1.2.3
   share_plus: ^3.0.4
 
