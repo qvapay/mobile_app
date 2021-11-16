@@ -6,6 +6,7 @@ import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:mobile_app/core/dependency_injection/oauth_secure_storage.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
+import 'package:mobile_app/features/transactions/repository/transactions_repository.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
@@ -34,6 +35,9 @@ Future<void> setUp() async {
     )
     ..registerLazySingleton<IAuthenticationRepository>(
       () => AuthenticationRepository(qvaPayApi: getIt<QvaPayApi>()),
+    )
+    ..registerLazySingleton<ITransactionsRepository>(
+      () => TransactionsRepository(qvaPayApi: getIt<QvaPayApi>()),
     )
     ..registerLazySingleton<IUserDataRepository>(
       () => UserDataRepository(
