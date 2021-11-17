@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/home/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
@@ -183,16 +182,17 @@ class _TabUser extends StatelessWidget {
                                   color: Colors.black87)),
                           GestureDetector(
                             onTap: () {
-                              Navigator.push<void>(context,
-                                  MaterialPageRoute<void>(builder: (_) {
-                                return BlocProvider.value(
-                                  value: SearchTransactionsBloc(
-                                    transactionRepository:
-                                        getIt<ITransactionsRepository>(),
-                                  )..add(const GetAllTransactions()),
-                                  child: const SearchTransactionPage(),
-                                );
-                              }));
+                              Navigator.push<void>(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (_) => BlocProvider.value(
+                                    value:
+                                        context.read<SearchTransactionsBloc>()
+                                          ..add(const GetAllTransactions()),
+                                    child: const SearchTransactionPage(),
+                                  ),
+                                ),
+                              );
                             },
                             child: Row(
                               children: const [
