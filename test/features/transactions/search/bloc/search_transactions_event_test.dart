@@ -15,7 +15,10 @@ void main() {
     });
     group('ActiveDeactiveFilter', () {
       test('supports value comparisons', () {
-        expect(ActiveDeactiveFilter(), ActiveDeactiveFilter());
+        expect(
+          ActiveDeactiveFilter(changeTo: TransactionFilterOption.none),
+          ActiveDeactiveFilter(changeTo: TransactionFilterOption.none),
+        );
       });
     });
     group('GetAllTransactions', () {

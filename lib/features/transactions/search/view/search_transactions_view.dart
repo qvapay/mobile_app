@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/core/formz/formz.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/search/search.dart';
 import 'package:mobile_app/features/transactions/search/widgets/widgets.dart';
@@ -12,6 +11,7 @@ class SearchTransactionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+
     return Column(
       children: [
         Row(
@@ -27,9 +27,13 @@ class SearchTransactionView extends StatelessWidget {
             ),
             InkWell(
               onTap: () {
-                context
-                    .read<SearchTransactionsBloc>()
-                    .add(const ActiveDeactiveFilter());
+                final isActive =
+                    context.read<SearchTransactionsBloc>().state.isFilterActive;
+                context.read<SearchTransactionsBloc>().add(ActiveDeactiveFilter(
+                      changeTo: isActive
+                          ? TransactionFilterOption.none
+                          : TransactionFilterOption.all,
+                    ));
               },
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
@@ -48,10 +52,8 @@ class SearchTransactionView extends StatelessWidget {
             )
           ],
         ),
-        Builder(
-          builder: (context) {
-            final state = context.watch<SearchTransactionsBloc>().state;
-
+        BlocBuilder<SearchTransactionsBloc, SearchTransactionsState>(
+          builder: (context, state) {
             if (!state.isFilterActive) {
               return const SizedBox.shrink();
             }

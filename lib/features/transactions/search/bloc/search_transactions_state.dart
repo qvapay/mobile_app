@@ -3,8 +3,7 @@ part of 'search_transactions_bloc.dart';
 class SearchTransactionsState extends Equatable {
   const SearchTransactionsState({
     this.filterIndex = 0,
-    this.isFilterActive = false,
-    this.filterOptionSelect = TransactionFilterOption.all,
+    this.filterOptionSelect = TransactionFilterOption.none,
     this.isSearchTransactions = false,
     this.searchTerm = const NameFormz.pure(),
     this.transactions = const <UserTransaction>[],
@@ -12,7 +11,6 @@ class SearchTransactionsState extends Equatable {
   });
 
   final double filterIndex;
-  final bool isFilterActive;
   final TransactionFilterOption filterOptionSelect;
   final bool isSearchTransactions;
   final NameFormz searchTerm;
@@ -23,7 +21,6 @@ class SearchTransactionsState extends Equatable {
   List<Object?> get props {
     return [
       filterIndex,
-      isFilterActive,
       filterOptionSelect,
       isSearchTransactions,
       searchTerm,
@@ -32,9 +29,10 @@ class SearchTransactionsState extends Equatable {
     ];
   }
 
+  bool get isFilterActive => filterOptionSelect != TransactionFilterOption.none;
+
   SearchTransactionsState copyWith({
     double? filterIndex,
-    bool? isFilterActive,
     TransactionFilterOption? filterOptionSelect,
     bool? isSearchTransactions,
     NameFormz? searchTerm,
@@ -43,7 +41,6 @@ class SearchTransactionsState extends Equatable {
   }) {
     return SearchTransactionsState(
       filterIndex: filterIndex ?? this.filterIndex,
-      isFilterActive: isFilterActive ?? this.isFilterActive,
       filterOptionSelect: filterOptionSelect ?? this.filterOptionSelect,
       isSearchTransactions: isSearchTransactions ?? this.isSearchTransactions,
       searchTerm: searchTerm ?? this.searchTerm,

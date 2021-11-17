@@ -20,10 +20,12 @@ class ChangeFilterSelect extends SearchTransactionsEvent {
 }
 
 class ActiveDeactiveFilter extends SearchTransactionsEvent {
-  const ActiveDeactiveFilter();
+  const ActiveDeactiveFilter({required this.changeTo});
+
+  final TransactionFilterOption changeTo;
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [changeTo];
 }
 
 class SearchTermChanged extends SearchTransactionsEvent {

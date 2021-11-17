@@ -14,7 +14,7 @@ import 'package:rxdart/rxdart.dart';
 part 'search_transactions_event.dart';
 part 'search_transactions_state.dart';
 
-enum TransactionFilterOption { all, send, receive }
+enum TransactionFilterOption { none, all, send, receive }
 const widthStatusLabel = 100.0;
 
 class SearchTransactionsBloc
@@ -46,7 +46,6 @@ class SearchTransactionsBloc
     switch (event.select) {
       case TransactionFilterOption.send:
         emit(state.copyWith(
-          isFilterActive: true,
           filterIndex: widthStatusLabel + 8,
           filterOptionSelect: TransactionFilterOption.send,
           transactions: [
@@ -65,7 +64,6 @@ class SearchTransactionsBloc
         break;
       case TransactionFilterOption.receive:
         emit(state.copyWith(
-          isFilterActive: true,
           filterIndex: (widthStatusLabel * 2) + 16,
           filterOptionSelect: TransactionFilterOption.receive,
           transactions: [
@@ -82,11 +80,23 @@ class SearchTransactionsBloc
           ],
         ));
         break;
-      default:
+      case TransactionFilterOption.all:
         emit(state.copyWith(
-          isFilterActive: true,
           filterIndex: 0,
           filterOptionSelect: TransactionFilterOption.all,
+          transactions: [
+            if (_filterSearch.isNotEmpty)
+              for (var x in _filterSearch) x,
+            if (_filterSearch.isEmpty)
+              for (var x in _filterCache) x
+          ],
+        ));
+        break;
+
+      default:
+        emit(state.copyWith(
+          filterIndex: 0,
+          filterOptionSelect: TransactionFilterOption.none,
           transactions: [
             if (_filterSearch.isNotEmpty)
               for (var x in _filterSearch) x,
@@ -98,7 +108,7 @@ class SearchTransactionsBloc
   }
 
   void _onActiveDeactiveFilter(ActiveDeactiveFilter event, Emitter emit) =>
-      emit(state.copyWith(isFilterActive: !state.isFilterActive));
+      emit(state.copyWith(filterOptionSelect: event.changeTo));
 
   FutureOr<void> _onGetAllTransactions(
     GetAllTransactions event,
@@ -143,7 +153,6 @@ class SearchTransactionsBloc
                 isSearchTransactions: false,
               ), (transactions) {
         _filterSearch = transactions;
-        // print(_filterSearch);
         return state.copyWith(
           searchTerm: searchTerm,
           isSearchTransactions: !searchTerm.valid,

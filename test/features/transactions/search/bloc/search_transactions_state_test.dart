@@ -13,5 +13,19 @@ void main() {
         const SearchTransactionsState().copyWith(),
       );
     });
+    group('isFilterActive', () {
+      test('return `true` when is active', () {
+        const stateFilterActive = SearchTransactionsState(
+          filterOptionSelect: TransactionFilterOption.all,
+        );
+
+        expect(stateFilterActive.isFilterActive, isTrue);
+      });
+      test('return `false` when is not active', () {
+        const stateFilterInactive = SearchTransactionsState();
+
+        expect(stateFilterInactive.isFilterActive, isFalse);
+      });
+    });
   });
 }

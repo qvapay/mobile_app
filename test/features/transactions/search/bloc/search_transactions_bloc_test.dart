@@ -52,86 +52,100 @@ void main() {
           ).state);
     });
 
-    group('search filter', () {
-      group('active/deactive', () {
-        blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-          'emit [isFilterActive] as `true`',
-          build: () => SearchTransactionsBloc(
-            transactionRepository: mockTransactionsRepository,
-          ),
-          act: (bloc) => bloc.add(const ActiveDeactiveFilter()),
-          expect: () => <SearchTransactionsState>[
-            const SearchTransactionsState(isFilterActive: true)
-          ],
-        );
-        blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-          'emit [isFilterActive] as `false`',
-          build: () => SearchTransactionsBloc(
-            transactionRepository: mockTransactionsRepository,
-          ),
-          seed: () => const SearchTransactionsState(isFilterActive: true),
-          act: (bloc) => bloc.add(const ActiveDeactiveFilter()),
-          expect: () =>
-              <SearchTransactionsState>[const SearchTransactionsState()],
-        );
-      });
-
-      group('filterOptionSelect', () {
-        blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-          'emit [TransactionFilterOption.all] when is selected',
-          build: () => SearchTransactionsBloc(
-            transactionRepository: mockTransactionsRepository,
-          ),
-          seed: () => const SearchTransactionsState(
-            isFilterActive: true,
-            filterOptionSelect: TransactionFilterOption.receive,
-          ),
-          act: (bloc) => bloc.add(
-              const ChangeFilterSelect(select: TransactionFilterOption.all)),
-          expect: () => <SearchTransactionsState>[
-            const SearchTransactionsState(isFilterActive: true)
-          ],
-        );
-
-        blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-          'emit [TransactionFilterOption.receive] when is selected',
-          build: () => SearchTransactionsBloc(
-            transactionRepository: mockTransactionsRepository,
-          ),
-          seed: () => const SearchTransactionsState(isFilterActive: true),
-          act: (bloc) => bloc.add(const ChangeFilterSelect(
-              select: TransactionFilterOption.receive)),
-          expect: () => <SearchTransactionsState>[
-            const SearchTransactionsState(
-              isFilterActive: true,
-              filterIndex: 216,
-              filterOptionSelect: TransactionFilterOption.receive,
-            )
-          ],
-        );
-
-        blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-          'emit [TransactionFilterOption.send] when is selected',
-          build: () => SearchTransactionsBloc(
-            transactionRepository: mockTransactionsRepository,
-          ),
-          seed: () => const SearchTransactionsState(isFilterActive: true),
-          act: (bloc) => bloc.add(
-              const ChangeFilterSelect(select: TransactionFilterOption.send)),
-          expect: () => <SearchTransactionsState>[
-            const SearchTransactionsState(
-              isFilterActive: true,
-              filterIndex: 108,
-              filterOptionSelect: TransactionFilterOption.send,
-            )
-          ],
-        );
-      });
-    });
-
-    group('search transactions', () {
+    group('filterOptionSelect', () {
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits a list of `UserTransaction` when actived the filter',
+        'emit [filterOptionSelect] as `TransactionFilterOption.all` when '
+        'is active',
+        build: () => SearchTransactionsBloc(
+          transactionRepository: mockTransactionsRepository,
+        ),
+        seed: () => const SearchTransactionsState(),
+        act: (bloc) => bloc.add(const ActiveDeactiveFilter(
+          changeTo: TransactionFilterOption.all,
+        )),
+        expect: () => <SearchTransactionsState>[
+          const SearchTransactionsState(
+            filterOptionSelect: TransactionFilterOption.all,
+          )
+        ],
+      );
+
+      blocTest<SearchTransactionsBloc, SearchTransactionsState>(
+        'emit [filterOptionSelect] as `TransactionFilterOption.none` when '
+        'is not active',
+        build: () => SearchTransactionsBloc(
+          transactionRepository: mockTransactionsRepository,
+        ),
+        seed: () => const SearchTransactionsState(
+          filterOptionSelect: TransactionFilterOption.all,
+        ),
+        act: (bloc) => bloc.add(const ActiveDeactiveFilter(
+          changeTo: TransactionFilterOption.none,
+        )),
+        expect: () =>
+            <SearchTransactionsState>[const SearchTransactionsState()],
+      );
+      blocTest<SearchTransactionsBloc, SearchTransactionsState>(
+        'emit [TransactionFilterOption.all] when is selected',
+        build: () => SearchTransactionsBloc(
+          transactionRepository: mockTransactionsRepository,
+        ),
+        seed: () => const SearchTransactionsState(
+          filterOptionSelect: TransactionFilterOption.receive,
+        ),
+        act: (bloc) => bloc.add(
+          const ChangeFilterSelect(select: TransactionFilterOption.all),
+        ),
+        expect: () => <SearchTransactionsState>[
+          const SearchTransactionsState(
+            filterOptionSelect: TransactionFilterOption.all,
+          )
+        ],
+      );
+
+      blocTest<SearchTransactionsBloc, SearchTransactionsState>(
+        'emit [TransactionFilterOption.receive] when is selected',
+        build: () => SearchTransactionsBloc(
+          transactionRepository: mockTransactionsRepository,
+        ),
+        seed: () => const SearchTransactionsState(
+          filterOptionSelect: TransactionFilterOption.all,
+        ),
+        act: (bloc) => bloc.add(
+          const ChangeFilterSelect(select: TransactionFilterOption.receive),
+        ),
+        expect: () => <SearchTransactionsState>[
+          const SearchTransactionsState(
+            filterIndex: 216,
+            filterOptionSelect: TransactionFilterOption.receive,
+          )
+        ],
+      );
+
+      blocTest<SearchTransactionsBloc, SearchTransactionsState>(
+        'emit [TransactionFilterOption.send] when is selected',
+        build: () => SearchTransactionsBloc(
+          transactionRepository: mockTransactionsRepository,
+        ),
+        seed: () => const SearchTransactionsState(
+          filterOptionSelect: TransactionFilterOption.all,
+        ),
+        act: (bloc) => bloc.add(
+          const ChangeFilterSelect(select: TransactionFilterOption.send),
+        ),
+        expect: () => <SearchTransactionsState>[
+          const SearchTransactionsState(
+            filterIndex: 108,
+            filterOptionSelect: TransactionFilterOption.send,
+          )
+        ],
+      );
+      // });
+      // });
+
+      // group('search transactions', () {
+      blocTest<SearchTransactionsBloc, SearchTransactionsState>(
+        'emit a list of `UserTransaction` when actived the filter',
         setUp: () {
           when(() => mockTransactionsRepository.getLatestTransactions())
               .thenAnswer((_) async => Right(tUserTransactionList));
@@ -140,17 +154,20 @@ void main() {
           transactionRepository: mockTransactionsRepository,
         ),
         seed: () => SearchTransactionsState(transactions: tUserTransactionList),
-        act: (bloc) => bloc..add(const ActiveDeactiveFilter()),
+        act: (bloc) => bloc
+          ..add(
+            const ActiveDeactiveFilter(changeTo: TransactionFilterOption.all),
+          ),
         expect: () => <SearchTransactionsState>[
           SearchTransactionsState(
-            isFilterActive: true,
+            filterOptionSelect: TransactionFilterOption.all,
             transactions: tUserTransactionList,
           ),
         ],
       );
 
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits a list of `UserTransaction` filtered '
+        'emit a list of `UserTransaction` filtered '
         'by [TransactionFilterOption.send]',
         setUp: () {
           when(() => mockTransactionsRepository.getLatestTransactions())
@@ -161,26 +178,26 @@ void main() {
         ),
         act: (bloc) => bloc
           ..add(const GetAllTransactions())
-          ..add(const ActiveDeactiveFilter())
+          ..add(
+              const ActiveDeactiveFilter(changeTo: TransactionFilterOption.all))
           ..add(const ChangeFilterSelect(select: TransactionFilterOption.send)),
         expect: () => <SearchTransactionsState>[
           const SearchTransactionsState(isSearchTransactions: true),
           SearchTransactionsState(transactions: tUserTransactionList),
           SearchTransactionsState(
             transactions: tUserTransactionList,
-            isFilterActive: true,
+            filterOptionSelect: TransactionFilterOption.all,
           ),
           SearchTransactionsState(
-            isFilterActive: true,
-            filterOptionSelect: TransactionFilterOption.send,
-            filterIndex: 108,
             transactions: tFilterSendTransactions,
+            filterIndex: 108,
+            filterOptionSelect: TransactionFilterOption.send,
           ),
         ],
       );
 
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits a list of `UserTransaction` filtered '
+        'emit a list of `UserTransaction` filtered '
         'by [TransactionFilterOption.receive]',
         setUp: () {
           when(() => mockTransactionsRepository.getLatestTransactions())
@@ -191,7 +208,8 @@ void main() {
         ),
         act: (bloc) => bloc
           ..add(const GetAllTransactions())
-          ..add(const ActiveDeactiveFilter())
+          ..add(
+              const ActiveDeactiveFilter(changeTo: TransactionFilterOption.all))
           ..add(const ChangeFilterSelect(
               select: TransactionFilterOption.receive)),
         expect: () => <SearchTransactionsState>[
@@ -199,10 +217,9 @@ void main() {
           SearchTransactionsState(transactions: tUserTransactionList),
           SearchTransactionsState(
             transactions: tUserTransactionList,
-            isFilterActive: true,
+            filterOptionSelect: TransactionFilterOption.all,
           ),
           SearchTransactionsState(
-            isFilterActive: true,
             filterOptionSelect: TransactionFilterOption.receive,
             filterIndex: 216,
             transactions: tFilterReceivedTransactions,
@@ -213,7 +230,7 @@ void main() {
 
     group('GetAllTransactions', () {
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits a list of `UserTransaction` when `GetAllTransactions` is added.',
+        'emit a list of `UserTransaction` when `GetAllTransactions` is added.',
         setUp: () {
           when(() => mockTransactionsRepository.getLatestTransactions())
               .thenAnswer((_) async => Right(tUserTransactionList));
@@ -228,7 +245,7 @@ void main() {
         ],
       );
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits `errorMessage` when `GetAllTransactions` is added '
+        'emit `errorMessage` when `GetAllTransactions` is added '
         'an error occurs',
         setUp: () {
           when(() => mockTransactionsRepository.getLatestTransactions())
@@ -247,7 +264,7 @@ void main() {
 
     group('SearchTermChanged', () {
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits a list of `UserTransaction` when `SearchTermChanged` is added',
+        'emit a list of `UserTransaction` when `SearchTermChanged` is added',
         setUp: () {
           when(() => mockTransactionsRepository.getLatestTransactions(
                 searchTerm: tSearchTerm,
@@ -274,7 +291,7 @@ void main() {
       );
 
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits `errorMessage` when error occurs',
+        'emit `errorMessage` when error occurs',
         setUp: () {
           when(() => mockTransactionsRepository.getLatestTransactions(
                 searchTerm: tSearchTerm,
@@ -302,7 +319,7 @@ void main() {
       );
 
       blocTest<SearchTransactionsBloc, SearchTransactionsState>(
-        'emits state with pure `searchTerm` when [CleanFilter] is added.',
+        'emit state with pure `searchTerm` when [CleanFilter] is added.',
         build: () => SearchTransactionsBloc(
           transactionRepository: mockTransactionsRepository,
         ),
