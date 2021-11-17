@@ -12,11 +12,15 @@ class GetAllTransactions extends SearchTransactionsEvent {
 }
 
 class ChangeFilterSelect extends SearchTransactionsEvent {
-  const ChangeFilterSelect({required this.select});
+  const ChangeFilterSelect({
+    required this.select,
+    required this.widthFilterLabel,
+  });
 
   final TransactionFilterOption select;
+  final double widthFilterLabel;
   @override
-  List<Object?> get props => [select];
+  List<Object?> get props => [select, widthFilterLabel];
 }
 
 class ActiveDeactiveFilter extends SearchTransactionsEvent {

@@ -15,7 +15,6 @@ part 'search_transactions_event.dart';
 part 'search_transactions_state.dart';
 
 enum TransactionFilterOption { none, all, send, receive }
-const widthStatusLabel = 100.0;
 
 class SearchTransactionsBloc
     extends Bloc<SearchTransactionsEvent, SearchTransactionsState> {
@@ -46,7 +45,7 @@ class SearchTransactionsBloc
     switch (event.select) {
       case TransactionFilterOption.send:
         emit(state.copyWith(
-          filterIndex: widthStatusLabel + 8,
+          filterIndex: event.widthFilterLabel,
           filterOptionSelect: TransactionFilterOption.send,
           transactions: [
             if (_filterSearch.isNotEmpty)
@@ -64,7 +63,7 @@ class SearchTransactionsBloc
         break;
       case TransactionFilterOption.receive:
         emit(state.copyWith(
-          filterIndex: (widthStatusLabel * 2) + 16,
+          filterIndex: event.widthFilterLabel * 2,
           filterOptionSelect: TransactionFilterOption.receive,
           transactions: [
             if (_filterSearch.isNotEmpty)
@@ -94,16 +93,7 @@ class SearchTransactionsBloc
         break;
 
       default:
-        emit(state.copyWith(
-          filterIndex: 0,
-          filterOptionSelect: TransactionFilterOption.none,
-          transactions: [
-            if (_filterSearch.isNotEmpty)
-              for (var x in _filterSearch) x,
-            if (_filterSearch.isEmpty)
-              for (var x in _filterCache) x
-          ],
-        ));
+        emit(state);
     }
   }
 

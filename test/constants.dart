@@ -27,3 +27,5 @@ final tUserTransaction = UserTransaction(
 );
 
 const tEmailMessageError = 'El correo ya está en uso';
+
+const widthFilterLabel = 100.0;

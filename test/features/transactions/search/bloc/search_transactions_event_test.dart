@@ -3,13 +3,21 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/features/transactions/search/bloc/search_transactions_bloc.dart';
 
+import '../../../../constants.dart';
+
 void main() {
   group('SearchTransactionsEvent', () {
     group('ChangeFilterSelect', () {
       test('supports value comparisons', () {
         expect(
-          ChangeFilterSelect(select: TransactionFilterOption.receive),
-          ChangeFilterSelect(select: TransactionFilterOption.receive),
+          ChangeFilterSelect(
+            select: TransactionFilterOption.receive,
+            widthFilterLabel: widthFilterLabel,
+          ),
+          ChangeFilterSelect(
+            select: TransactionFilterOption.receive,
+            widthFilterLabel: widthFilterLabel,
+          ),
         );
       });
     });

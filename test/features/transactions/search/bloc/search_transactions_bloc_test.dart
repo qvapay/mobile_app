@@ -9,6 +9,7 @@ import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/models/models.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../../constants.dart';
 import '../../../../fixtures/fixture_adapter.dart';
 
 class MockTransactionsRepository extends Mock
@@ -94,7 +95,10 @@ void main() {
           filterOptionSelect: TransactionFilterOption.receive,
         ),
         act: (bloc) => bloc.add(
-          const ChangeFilterSelect(select: TransactionFilterOption.all),
+          const ChangeFilterSelect(
+            select: TransactionFilterOption.all,
+            widthFilterLabel: widthFilterLabel,
+          ),
         ),
         expect: () => <SearchTransactionsState>[
           const SearchTransactionsState(
@@ -112,11 +116,14 @@ void main() {
           filterOptionSelect: TransactionFilterOption.all,
         ),
         act: (bloc) => bloc.add(
-          const ChangeFilterSelect(select: TransactionFilterOption.receive),
+          const ChangeFilterSelect(
+            select: TransactionFilterOption.receive,
+            widthFilterLabel: widthFilterLabel,
+          ),
         ),
         expect: () => <SearchTransactionsState>[
           const SearchTransactionsState(
-            filterIndex: 216,
+            filterIndex: 200,
             filterOptionSelect: TransactionFilterOption.receive,
           )
         ],
@@ -131,11 +138,14 @@ void main() {
           filterOptionSelect: TransactionFilterOption.all,
         ),
         act: (bloc) => bloc.add(
-          const ChangeFilterSelect(select: TransactionFilterOption.send),
+          const ChangeFilterSelect(
+            select: TransactionFilterOption.send,
+            widthFilterLabel: widthFilterLabel,
+          ),
         ),
         expect: () => <SearchTransactionsState>[
           const SearchTransactionsState(
-            filterIndex: 108,
+            filterIndex: 100,
             filterOptionSelect: TransactionFilterOption.send,
           )
         ],
@@ -180,7 +190,10 @@ void main() {
           ..add(const GetAllTransactions())
           ..add(
               const ActiveDeactiveFilter(changeTo: TransactionFilterOption.all))
-          ..add(const ChangeFilterSelect(select: TransactionFilterOption.send)),
+          ..add(const ChangeFilterSelect(
+            select: TransactionFilterOption.send,
+            widthFilterLabel: widthFilterLabel,
+          )),
         expect: () => <SearchTransactionsState>[
           const SearchTransactionsState(isSearchTransactions: true),
           SearchTransactionsState(transactions: tUserTransactionList),
@@ -190,7 +203,7 @@ void main() {
           ),
           SearchTransactionsState(
             transactions: tFilterSendTransactions,
-            filterIndex: 108,
+            filterIndex: 100,
             filterOptionSelect: TransactionFilterOption.send,
           ),
         ],
@@ -211,7 +224,9 @@ void main() {
           ..add(
               const ActiveDeactiveFilter(changeTo: TransactionFilterOption.all))
           ..add(const ChangeFilterSelect(
-              select: TransactionFilterOption.receive)),
+            select: TransactionFilterOption.receive,
+            widthFilterLabel: widthFilterLabel,
+          )),
         expect: () => <SearchTransactionsState>[
           const SearchTransactionsState(isSearchTransactions: true),
           SearchTransactionsState(transactions: tUserTransactionList),
@@ -221,7 +236,7 @@ void main() {
           ),
           SearchTransactionsState(
             filterOptionSelect: TransactionFilterOption.receive,
-            filterIndex: 216,
+            filterIndex: 200,
             transactions: tFilterReceivedTransactions,
           ),
         ],

@@ -34,8 +34,17 @@ class _SearchFieldState extends State<SearchField> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final widthFilterLabel =
+        (size.width * 0.25).ceilToDouble().clamp(85.0, 110.0);
     return TextField(
       controller: _controller,
+      onTap: () {
+        context.read<SearchTransactionsBloc>().add(ChangeFilterSelect(
+              select: TransactionFilterOption.all,
+              widthFilterLabel: widthFilterLabel,
+            ));
+      },
       style: const TextStyle(fontSize: 18),
       onChanged: (value) => context
           .read<SearchTransactionsBloc>()
