@@ -30,7 +30,8 @@ class UserTransaction extends Equatable {
 
   factory UserTransaction.decode(String transaction) =>
       _$UserTransactionFromJson(
-          json.decode(transaction) as Map<String, dynamic>);
+          json.decode(utf8.decode(base64.decode(transaction)))
+              as Map<String, dynamic>);
 
   factory UserTransaction.fromTransaction(Transaction transaction) {
     var transactionType = TransactionType.unknown;
@@ -94,7 +95,7 @@ class UserTransaction extends Equatable {
 
   Map<String, dynamic> toJson() => _$UserTransactionToJson(this);
 
-  String encode() => json.encode(toJson());
+  String encode() => base64.encode(utf8.encode(json.encode(toJson())));
 
   String get smallUuid => uuid.split('-')[4];
 
