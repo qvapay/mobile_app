@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/features/transactions/receive/receive.dart';
+import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
 class BottomSendAndReciveWidget extends StatelessWidget {
@@ -20,9 +20,14 @@ class BottomSendAndReciveWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: () {
-              debugPrint('Enviar');
-            },
+            onTap: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<UserDataCubit>(),
+                    child: const SendPaymentPage(),
+                  ),
+                )),
             child: Row(
               children: const [
                 Icon(

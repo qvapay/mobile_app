@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/features/transactions/send/view/send_payment_view.dart';
+import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/features/transactions/transactions.dart';
 
 class SendPaymentPage extends StatelessWidget {
   const SendPaymentPage({Key? key}) : super(key: key);
@@ -33,7 +35,12 @@ class SendPaymentPage extends StatelessWidget {
           ),
         ),
       ),
-      body: const SendTransactionView(),
+      body: BlocProvider(
+        create: (_) => SendTransactionCubit(
+          transactionsRepository: getIt<ITransactionsRepository>(),
+        ),
+        child: const SendTransactionView(),
+      ),
     );
   }
 }

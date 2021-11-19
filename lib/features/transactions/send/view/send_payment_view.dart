@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/features/transactions/send/cubit/send_transaction_cubit.dart';
 import 'package:mobile_app/features/transactions/send/view/qr_scan_page.dart';
 import 'package:mobile_app/features/transactions/send/view/send_transaction_page.dart';
 import 'package:mobile_app/features/transactions/widgets/widgets.dart';
+import 'package:mobile_app/features/user_data/user_data.dart';
 
 class SendTransactionView extends StatelessWidget {
   const SendTransactionView({
@@ -141,9 +145,7 @@ class SendTransactionView extends StatelessWidget {
                         color: Colors.white,
                       ),
                       text: 'Contactos',
-                      onPressed: () {
-                        Navigator.push<void>(context, SendTransactionPage.go());
-                      },
+                      onPressed: () {},
                     ),
                   ],
                 ),
@@ -159,8 +161,18 @@ class SendTransactionView extends StatelessWidget {
                         color: Colors.white,
                       ),
                       text: 'Escanear QR',
-                      onPressed: () =>
-                          Navigator.push<void>(context, QrScanPage.go()),
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<SendTransactionCubit>(),
+                            child: BlocProvider.value(
+                              value: context.read<UserDataCubit>(),
+                              child: const QrScanPage(),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                     QButtom(
                       width: qButtomWidth,

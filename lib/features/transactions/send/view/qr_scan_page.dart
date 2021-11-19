@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/features/transactions/widgets/widgets.dart';
+import 'package:mobile_app/features/transactions/transactions.dart';
+import 'package:mobile_app/features/user_data/user_data.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 class QrScanPage extends StatelessWidget {
@@ -63,7 +65,8 @@ class _QrScanViewState extends State<QrScanView> {
         children: [
           QRView(
             key: qrKey,
-            onQRViewCreated: onQRViewCreated,
+            onQRViewCreated: (QRViewController qrViewController) =>
+                onQRViewCreated(qrViewController, context),
             overlay: QrScannerOverlayShape(
               borderWidth: 15,
               borderLength: 20,
@@ -180,10 +183,38 @@ class _QrScanViewState extends State<QrScanView> {
     );
   }
 
-  void onQRViewCreated(QRViewController controller) {
+  void onQRViewCreated(QRViewController controller, BuildContext context) {
     setState(() => this.controller = controller);
 
-    controller.scannedDataStream
-        .listen((barcode) => setState(() => this.barcode = barcode));
+    controller.scannedDataStream.listen((barcode) {
+      if (barcode.code != this.barcode?.code) {
+        setState(() => this.barcode = barcode);
+        pushReplacement(context, barcode.code!);
+      }
+    });
+  }
+
+  void pushReplacement(BuildContext context, String qr) {
+    try {
+      final transaction = UserTransaction.decode(qr);
+      Navigator.pushReplacement<void, void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => BlocProvider.value(
+            value: context.read<SendTransactionCubit>(),
+            child: BlocProvider.value(
+              value: context.read<UserDataCubit>(),
+              child: SendTransactionPage(
+                transaction: transaction,
+              ),
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('QR inválido !!'),
+      ));
+    }
   }
 }

@@ -29,3 +29,6 @@ final tUserTransaction = UserTransaction(
 const tEmailMessageError = 'El correo ya está en uso';
 
 const widthFilterLabel = 100.0;
+
+const imageUrlErich =
+    'https://qvapay.com/storage/profiles/xGnoyrlZMy10Ta5hCQGvEtj6aqJK3Fa1rueU1lPv.jpg';

@@ -77,4 +77,13 @@ class CacheFailure extends Failure {
   String toString() => message ?? 'Cache Failure';
 }
 
+class UserTransactionFailure extends Failure {
+  const UserTransactionFailure({this.message = 'Transaction Failure'});
+
+  final String? message;
+
+  @override
+  String toString() => message ?? 'Transaction Failure';
+}
+
 class UnexcpetedFailure extends Failure {}
