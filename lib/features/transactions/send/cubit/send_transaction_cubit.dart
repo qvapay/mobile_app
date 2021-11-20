@@ -39,7 +39,7 @@ class SendTransactionCubit extends Cubit<SendTransactionState> {
         state.copyWith(
           amountFieldIsVisible: true,
           amount: amount,
-          status: Formz.validate([amount]),
+          createdStatus: Formz.validate([amount]),
         ),
       );
     } else {
@@ -47,7 +47,7 @@ class SendTransactionCubit extends Cubit<SendTransactionState> {
         state.copyWith(
           amountFieldIsVisible: true,
           amount: amount,
-          status: Formz.validate([amount]),
+          createdStatus: Formz.validate([amount]),
         ),
       );
     }
@@ -62,27 +62,49 @@ class SendTransactionCubit extends Cubit<SendTransactionState> {
     );
   }
 
-  Future<void> processTransaction(UserTransaction transaction) async {
-    final tct = transaction.copyWith(
-      amount: state.amount.value,
-      description: transaction.description,
-    );
-    if (state.status.isValid) {
-      emit(state.copyWith(status: FormzStatus.submissionInProgress));
-      final transactionToPay =
-          await _repository.processTransaction(transaction: tct);
+  Future<void> createTransaction(UserTransaction transaction) async {
+    if (state.createdStatus.isValid) {
+      emit(state.copyWith(createdStatus: FormzStatus.submissionInProgress));
+      final transactionCreated =
+          await _repository.createTransaction(transaction: transaction);
 
-      emit(transactionToPay.fold(
+      emit(transactionCreated.fold(
         (failure) => state.copyWith(
-          status: FormzStatus.submissionFailure,
+          createdStatus: FormzStatus.submissionFailure,
           errorMessage: failure is UserTransactionFailure
               ? failure.message
               : const ServerFailure().message,
         ),
         (transaction) {
-          print(transaction.email);
           return state.copyWith(
-            status: FormzStatus.submissionSuccess,
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.valid,
+            userTransactionToPay: transaction,
+          );
+        },
+      ));
+    }
+  }
+
+  Future<void> payTransaction(
+    UserTransaction transaction, {
+    String? pin,
+  }) async {
+    if (state.paidStatus.isValid && state.userTransactionToPay != null) {
+      emit(state.copyWith(paidStatus: FormzStatus.submissionInProgress));
+      final transactionPaid =
+          await _repository.payTransaction(transaction: transaction, pin: pin);
+
+      emit(transactionPaid.fold(
+        (failure) => state.copyWith(
+          paidStatus: FormzStatus.submissionFailure,
+          errorMessage: failure is UserTransactionFailure
+              ? failure.message
+              : const ServerFailure().message,
+        ),
+        (transaction) {
+          return state.copyWith(
+            paidStatus: FormzStatus.submissionSuccess,
             userTransactionPaid: transaction,
           );
         },

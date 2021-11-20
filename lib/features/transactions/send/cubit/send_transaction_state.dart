@@ -6,8 +6,10 @@ class SendTransactionState extends Equatable {
     this.descriptionFieldIsVisible = false,
     this.amount = const AmountFormz.pure(),
     this.description = const NameFormz.pure(),
-    this.status = FormzStatus.pure,
+    this.createdStatus = FormzStatus.pure,
+    this.paidStatus = FormzStatus.pure,
     this.userTransactionPaid,
+    this.userTransactionToPay,
     this.errorMessage,
   });
 
@@ -15,8 +17,10 @@ class SendTransactionState extends Equatable {
   final bool descriptionFieldIsVisible;
   final AmountFormz amount;
   final NameFormz description;
-  final FormzStatus status;
+  final FormzStatus createdStatus;
+  final FormzStatus paidStatus;
   final UserTransaction? userTransactionPaid;
+  final UserTransaction? userTransactionToPay;
   final String? errorMessage;
 
   @override
@@ -26,8 +30,10 @@ class SendTransactionState extends Equatable {
       descriptionFieldIsVisible,
       amount,
       description,
-      status,
+      createdStatus,
+      paidStatus,
       userTransactionPaid,
+      userTransactionToPay,
       errorMessage,
     ];
   }
@@ -37,8 +43,10 @@ class SendTransactionState extends Equatable {
     bool? descriptionFieldIsVisible,
     AmountFormz? amount,
     NameFormz? description,
-    FormzStatus? status,
+    FormzStatus? createdStatus,
+    FormzStatus? paidStatus,
     UserTransaction? userTransactionPaid,
+    UserTransaction? userTransactionToPay,
     String? errorMessage,
   }) {
     return SendTransactionState(
@@ -47,8 +55,10 @@ class SendTransactionState extends Equatable {
           descriptionFieldIsVisible ?? this.descriptionFieldIsVisible,
       amount: amount ?? this.amount,
       description: description ?? this.description,
-      status: status ?? this.status,
+      createdStatus: createdStatus ?? this.createdStatus,
+      paidStatus: paidStatus ?? this.paidStatus,
       userTransactionPaid: userTransactionPaid ?? this.userTransactionPaid,
+      userTransactionToPay: userTransactionToPay ?? this.userTransactionToPay,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
