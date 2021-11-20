@@ -15,27 +15,26 @@ class MockTransactionsRepository extends Mock
     implements ITransactionsRepository {}
 
 void main() {
+  late ITransactionsRepository repository;
+
+  const tAmount = '10.0';
+  const tDescription = 'SQP to the moon !';
+
+  final tUserTransactionModel = UserTransaction(
+    uuid: 'c9667d83-87ed-4baa-b97c-716d233b5277',
+    amount: '1.0',
+    email: 'erich@qvapay.com',
+    description: 'Payment test form app',
+    name: 'Erich Garcia',
+    date: tDate,
+    imageUrl: imageUrlErich,
+    transactionType: TransactionType.p2p,
+  );
+
+  setUp(() {
+    repository = MockTransactionsRepository();
+  });
   group('SendTransactionCubit', () {
-    late ITransactionsRepository repository;
-
-    const tAmount = '10.0';
-    const tDescription = 'SQP to the moon !';
-
-    final tUserTransactionModel = UserTransaction(
-      uuid: 'c9667d83-87ed-4baa-b97c-716d233b5277',
-      amount: '1.0',
-      email: 'erich@qvapay.com',
-      description: 'Payment test form app',
-      name: 'Erich Garcia',
-      date: tDate,
-      imageUrl: imageUrlErich,
-      transactionType: TransactionType.p2p,
-    );
-
-    setUp(() {
-      repository = MockTransactionsRepository();
-    });
-
     test('initial state', () {
       expect(const SendTransactionState(), const SendTransactionState());
     });
@@ -52,7 +51,7 @@ void main() {
         SendTransactionState(
           amountFieldIsVisible: true,
           amount: AmountFormz.dirty(tAmount),
-          status: FormzStatus.valid,
+          createdStatus: FormzStatus.valid,
         )
       ],
     );
@@ -70,31 +69,31 @@ void main() {
         SendTransactionState(
           amountFieldIsVisible: true,
           amount: AmountFormz.dirty(tAmount),
-          status: FormzStatus.valid,
+          createdStatus: FormzStatus.valid,
         ),
         SendTransactionState(
           amountFieldIsVisible: true,
           descriptionFieldIsVisible: true,
           amount: AmountFormz.dirty(tAmount),
-          status: FormzStatus.valid,
+          createdStatus: FormzStatus.valid,
         ),
         SendTransactionState(
           amountFieldIsVisible: true,
           descriptionFieldIsVisible: true,
           description: NameFormz.dirty(tDescription),
           amount: AmountFormz.dirty(tAmount),
-          status: FormzStatus.valid,
+          createdStatus: FormzStatus.valid,
         )
       ],
     );
 
-    group('description', () {
+    group('createTransaction', () {
       blocTest<SendTransactionCubit, SendTransactionState>(
-        'emits [status] as `submissionSuccess` and [userTransactionPaid] '
-        'when is completed the payment.',
+        'emits [createdStatus] as `submissionSuccess` when is create '
+        'the transaction successfuly.',
         setUp: () {
           when(
-            () => repository.processTransaction(
+            () => repository.createTransaction(
               transaction: tUserTransactionModel,
             ),
           ).thenAnswer((_) async =>
@@ -104,33 +103,61 @@ void main() {
         seed: () => const SendTransactionState(
           amountFieldIsVisible: true,
           amount: AmountFormz.dirty(tAmount),
-          status: FormzStatus.valid,
+          createdStatus: FormzStatus.valid,
         ),
         act: (cubit) => cubit
           ..changeVisibilityOfAmount(visibility: true)
           ..changeAmount(tAmount)
-          ..processTransaction(tUserTransactionModel),
+          ..createTransaction(tUserTransactionModel),
         expect: () => <SendTransactionState>[
           const SendTransactionState(
             amountFieldIsVisible: true,
             amount: AmountFormz.dirty(tAmount),
-            status: FormzStatus.submissionInProgress,
+            createdStatus: FormzStatus.submissionInProgress,
           ),
           SendTransactionState(
             amountFieldIsVisible: true,
             amount: const AmountFormz.dirty(tAmount),
-            userTransactionPaid: tUserTransactionModel,
-            status: FormzStatus.submissionSuccess,
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.valid,
+            userTransactionToPay: tUserTransactionModel,
           ),
         ],
       );
 
       blocTest<SendTransactionCubit, SendTransactionState>(
-        'emits [status] as `submissionFailure` when occurs an error in '
-        'the payment.',
+        'emits [createdStatus] as `invalid` when the `amount is invalid.',
         setUp: () {
           when(
-            () => repository.processTransaction(
+            () => repository.createTransaction(
+              transaction: tUserTransactionModel,
+            ),
+          ).thenAnswer((_) async =>
+              Right<Failure, UserTransaction>(tUserTransactionModel));
+        },
+        build: () => SendTransactionCubit(transactionsRepository: repository),
+        seed: () => const SendTransactionState(
+          amountFieldIsVisible: true,
+          amount: AmountFormz.dirty(tAmount),
+        ),
+        act: (cubit) => cubit
+          ..changeVisibilityOfAmount(visibility: true)
+          ..changeAmount('-$tAmount'),
+        expect: () => const <SendTransactionState>[
+          SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: AmountFormz.dirty('-$tAmount'),
+            createdStatus: FormzStatus.invalid,
+          ),
+        ],
+      );
+
+      blocTest<SendTransactionCubit, SendTransactionState>(
+        'emits [createdStatus] as `submissionFailure` when occurs an error '
+        'while creating the transaction.',
+        setUp: () {
+          when(
+            () => repository.createTransaction(
               transaction: tUserTransactionModel,
             ),
           ).thenAnswer((_) async =>
@@ -140,23 +167,203 @@ void main() {
         seed: () => const SendTransactionState(
           amountFieldIsVisible: true,
           amount: AmountFormz.dirty(tAmount),
-          status: FormzStatus.valid,
+          createdStatus: FormzStatus.valid,
         ),
         act: (cubit) => cubit
           ..changeVisibilityOfAmount(visibility: true)
           ..changeAmount(tAmount)
-          ..processTransaction(tUserTransactionModel),
+          ..createTransaction(tUserTransactionModel),
         expect: () => <SendTransactionState>[
           const SendTransactionState(
             amountFieldIsVisible: true,
             amount: AmountFormz.dirty(tAmount),
-            status: FormzStatus.submissionInProgress,
+            createdStatus: FormzStatus.submissionInProgress,
           ),
           const SendTransactionState(
             amountFieldIsVisible: true,
             amount: AmountFormz.dirty(tAmount),
-            status: FormzStatus.submissionFailure,
+            createdStatus: FormzStatus.submissionFailure,
             errorMessage: 'Transaction Failure',
+          ),
+        ],
+      );
+      blocTest<SendTransactionCubit, SendTransactionState>(
+        'emits [createdStatus] as `submissionFailure` when occurs an error '
+        'on the server while creating the transaction.',
+        setUp: () {
+          when(
+            () => repository.createTransaction(
+              transaction: tUserTransactionModel,
+            ),
+          ).thenAnswer((_) async =>
+              const Left<Failure, UserTransaction>(ServerFailure()));
+        },
+        build: () => SendTransactionCubit(transactionsRepository: repository),
+        seed: () => const SendTransactionState(
+          amountFieldIsVisible: true,
+          amount: AmountFormz.dirty(tAmount),
+          createdStatus: FormzStatus.valid,
+        ),
+        act: (cubit) => cubit
+          ..changeVisibilityOfAmount(visibility: true)
+          ..changeAmount(tAmount)
+          ..createTransaction(tUserTransactionModel),
+        expect: () => <SendTransactionState>[
+          const SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionInProgress,
+          ),
+          const SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionFailure,
+            errorMessage: 'Server Failure',
+          ),
+        ],
+      );
+    });
+
+    group('payTransaction', () {
+      blocTest<SendTransactionCubit, SendTransactionState>(
+        'emits [paidStatus] as `submissionSuccess` when is paid '
+        'the transaction successfuly.',
+        setUp: () {
+          when(
+            () => repository.createTransaction(
+              transaction: tUserTransactionModel,
+            ),
+          ).thenAnswer((_) async =>
+              Right<Failure, UserTransaction>(tUserTransactionModel));
+          when(
+            () => repository.payTransaction(
+              transaction: tUserTransactionModel,
+              pin: '1111',
+            ),
+          ).thenAnswer((_) async =>
+              Right<Failure, UserTransaction>(tUserTransactionModel));
+        },
+        build: () => SendTransactionCubit(transactionsRepository: repository),
+        seed: () => SendTransactionState(
+          amountFieldIsVisible: true,
+          amount: const AmountFormz.dirty(tAmount),
+          createdStatus: FormzStatus.submissionSuccess,
+          paidStatus: FormzStatus.valid,
+          userTransactionToPay: tUserTransactionModel,
+        ),
+        act: (cubit) => cubit
+          ..createTransaction(tUserTransactionModel)
+          ..payTransaction(tUserTransactionModel, pin: '1111'),
+        expect: () => <SendTransactionState>[
+          SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: const AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.submissionInProgress,
+            userTransactionToPay: tUserTransactionModel,
+          ),
+          SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: const AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.submissionSuccess,
+            userTransactionToPay: tUserTransactionModel,
+            userTransactionPaid: tUserTransactionModel,
+          ),
+        ],
+      );
+
+      blocTest<SendTransactionCubit, SendTransactionState>(
+        'emits [paidStatus] as `submissionFailure` when occurs an error '
+        'while creating the transaction.',
+        setUp: () {
+          when(
+            () => repository.createTransaction(
+              transaction: tUserTransactionModel,
+            ),
+          ).thenAnswer((_) async =>
+              Right<Failure, UserTransaction>(tUserTransactionModel));
+          when(
+            () => repository.payTransaction(
+              transaction: tUserTransactionModel,
+              pin: '1111',
+            ),
+          ).thenAnswer((_) async =>
+              const Left<Failure, UserTransaction>(UserTransactionFailure()));
+        },
+        build: () => SendTransactionCubit(transactionsRepository: repository),
+        seed: () => SendTransactionState(
+          amountFieldIsVisible: true,
+          amount: const AmountFormz.dirty(tAmount),
+          createdStatus: FormzStatus.submissionSuccess,
+          paidStatus: FormzStatus.valid,
+          userTransactionToPay: tUserTransactionModel,
+        ),
+        act: (cubit) => cubit
+          ..createTransaction(tUserTransactionModel)
+          ..payTransaction(tUserTransactionModel, pin: '1111'),
+        expect: () => <SendTransactionState>[
+          SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: const AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.submissionInProgress,
+            userTransactionToPay: tUserTransactionModel,
+          ),
+          SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: const AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.submissionFailure,
+            userTransactionToPay: tUserTransactionModel,
+            errorMessage: 'Transaction Failure',
+          ),
+        ],
+      );
+      blocTest<SendTransactionCubit, SendTransactionState>(
+        'emits [paidStatus] as `submissionFailure` when occurs an error '
+        'on the server while creating the transaction ',
+        setUp: () {
+          when(
+            () => repository.createTransaction(
+              transaction: tUserTransactionModel,
+            ),
+          ).thenAnswer((_) async =>
+              Right<Failure, UserTransaction>(tUserTransactionModel));
+          when(
+            () => repository.payTransaction(
+              transaction: tUserTransactionModel,
+              pin: '1111',
+            ),
+          ).thenAnswer((_) async =>
+              const Left<Failure, UserTransaction>(ServerFailure()));
+        },
+        build: () => SendTransactionCubit(transactionsRepository: repository),
+        seed: () => SendTransactionState(
+          amountFieldIsVisible: true,
+          amount: const AmountFormz.dirty(tAmount),
+          createdStatus: FormzStatus.submissionSuccess,
+          paidStatus: FormzStatus.valid,
+          userTransactionToPay: tUserTransactionModel,
+        ),
+        act: (cubit) => cubit
+          ..createTransaction(tUserTransactionModel)
+          ..payTransaction(tUserTransactionModel, pin: '1111'),
+        expect: () => <SendTransactionState>[
+          SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: const AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.submissionInProgress,
+            userTransactionToPay: tUserTransactionModel,
+          ),
+          SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: const AmountFormz.dirty(tAmount),
+            createdStatus: FormzStatus.submissionSuccess,
+            paidStatus: FormzStatus.submissionFailure,
+            userTransactionToPay: tUserTransactionModel,
+            errorMessage: 'Server Failure',
           ),
         ],
       );
