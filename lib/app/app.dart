@@ -13,6 +13,8 @@ import 'package:mobile_app/features/home/home.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mobile_app/features/start/start.dart';
+import 'package:mobile_app/features/transactions/transactions.dart';
+import 'package:mobile_app/features/user_data/user_data.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
 class App extends StatelessWidget {
@@ -33,6 +35,16 @@ class App extends StatelessWidget {
             authenticationRepository: getIt<IAuthenticationRepository>(),
           ),
         ),
+        BlocProvider<UserDataCubit>(
+          create: (context) => UserDataCubit(
+            userDataRepository: getIt<IUserDataRepository>(),
+          ),
+        ),
+        BlocProvider(
+          create: (_) => SendTransactionCubit(
+            transactionsRepository: getIt<ITransactionsRepository>(),
+          ),
+        )
       ],
       child: const AppView(),
     );
@@ -77,6 +89,9 @@ class _AppViewState extends State<AppView> {
                     (route) => false,
                   );
                 } else if (state is PreferencesVeryRecentStart) {
+                  context
+                      .read<UserDataCubit>()
+                      .getUserData(saveDateLastLogIn: DateTime.now());
                   _navigator.pushAndRemoveUntil<void>(
                     HomePage.go(),
                     (route) => false,
@@ -93,6 +108,9 @@ class _AppViewState extends State<AppView> {
                 listener: (context, state) {
               switch (state.status) {
                 case OAuthStatus.authenticated:
+                  context
+                      .read<UserDataCubit>()
+                      .getUserData(saveDateLastLogIn: DateTime.now());
                   _navigator.pushAndRemoveUntil<void>(
                     HomePage.go(),
                     (route) => false,

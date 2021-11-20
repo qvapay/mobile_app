@@ -23,10 +23,7 @@ class BottomSendAndReciveWidget extends StatelessWidget {
             onTap: () => Navigator.push<void>(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<UserDataCubit>(),
-                    child: const SendPaymentPage(),
-                  ),
+                  builder: (_) => const SendPaymentPage(),
                 )),
             child: Row(
               children: const [

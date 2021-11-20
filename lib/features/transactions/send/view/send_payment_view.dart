@@ -2,14 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/features/transactions/send/cubit/send_transaction_cubit.dart';
-import 'package:mobile_app/features/transactions/send/view/qr_scan_page.dart';
-import 'package:mobile_app/features/transactions/send/view/send_transaction_page.dart';
-import 'package:mobile_app/features/transactions/widgets/widgets.dart';
+import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
-class SendTransactionView extends StatelessWidget {
-  const SendTransactionView({
+class SendPaymentView extends StatelessWidget {
+  const SendPaymentView({
     Key? key,
   }) : super(key: key);
 
@@ -145,7 +142,23 @@ class SendTransactionView extends StatelessWidget {
                         color: Colors.white,
                       ),
                       text: 'Contactos',
-                      onPressed: () {},
+                      onPressed: () {
+                        final transaction = UserTransaction(
+                          uuid: 'c9667d83-87ed-4baa-b97c-716d233b5277',
+                          amount: '1.0',
+                          email: 'erich@qvapay.com',
+                          description: 'Payment test form app',
+                          name: 'Erich Garcia',
+                          date: DateTime.now(),
+                          imageUrl:
+                              'https://qvapay.com/storage/profiles/xGnoyrlZMy10Ta5hCQGvEtj6aqJK3Fa1rueU1lPv.jpg',
+                          transactionType: TransactionType.p2p,
+                        );
+                        Navigator.push<void>(
+                          context,
+                          SendTransactionPage.go(transaction: transaction),
+                        );
+                      },
                     ),
                   ],
                 ),

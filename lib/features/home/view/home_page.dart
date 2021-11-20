@@ -19,11 +19,6 @@ class HomePage extends StatelessWidget {
         body: MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => UserDataCubit(
-            userDataRepository: getIt<IUserDataRepository>(),
-          )..getUserData(saveDateLastLogIn: DateTime.now()),
-        ),
-        BlocProvider(
           create: (context) => SearchTransactionsBloc(
             transactionRepository: getIt<ITransactionsRepository>(),
           ),

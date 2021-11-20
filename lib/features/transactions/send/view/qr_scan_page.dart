@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
@@ -200,14 +199,8 @@ class _QrScanViewState extends State<QrScanView> {
       Navigator.pushReplacement<void, void>(
         context,
         MaterialPageRoute<void>(
-          builder: (_) => BlocProvider.value(
-            value: context.read<SendTransactionCubit>(),
-            child: BlocProvider.value(
-              value: context.read<UserDataCubit>(),
-              child: SendTransactionPage(
-                transaction: transaction,
-              ),
-            ),
+          builder: (_) => SendTransactionPage(
+            transaction: transaction,
           ),
         ),
       );
