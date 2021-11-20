@@ -121,11 +121,9 @@ void main() {
     });
   });
 
-  group('processTransaction', () {
-    final tUserTransactionCreated = tUserTransactionList[0];
-    final tUserTransactionResponse = tUserTransactionList[3];
+  group('createTransaction', () {
+    final tUserTransactionCreated = tUserTransactionList[1];
     final tTransactionQvaPayCreate = tTransactionsQvaPayList[1];
-    final tTransactionQvaPayPaid = tTransactionsQvaPayList[3];
     test(
         'should return [Right<UserTransaction>] when the transaction is '
         'successfully created and paid', () async {
@@ -134,32 +132,26 @@ void main() {
             amount: tUserTransactionCreated.amount.toDouble(),
             description: tUserTransactionCreated.description,
           )).thenAnswer((_) async => tTransactionQvaPayCreate);
-      when(() => qvaPayApi.payTransaction(
-            uuid: tTransactionQvaPayCreate.uuid,
-          )).thenAnswer((_) async => tTransactionQvaPayPaid);
 
-      final result = await repository.processTransaction(
+      final result = await repository.createTransaction(
         transaction: tUserTransactionCreated,
       );
 
-      expect(result, Right<Failure, UserTransaction>(tUserTransactionResponse));
+      expect(result, Right<Failure, UserTransaction>(tUserTransactionCreated));
     });
 
     test(
-        'should throw [Left<TransactionFailure>] when the account does '
+        'should throw [Left<UserTransactionFailure>] when the account does '
         'not have enough balance.', () async {
       when(() => qvaPayApi.createTransaction(
             uuid: tUserTransactionCreated.uuid,
             amount: tUserTransactionCreated.amount.toDouble(),
             description: tUserTransactionCreated.description,
-          )).thenAnswer((_) async => tTransactionQvaPayCreate);
-      when(() => qvaPayApi.payTransaction(
-            uuid: tTransactionQvaPayCreate.uuid,
           )).thenThrow(
         const TransactionException(message: 'Does not have enough balance.'),
       );
 
-      final result = await repository.processTransaction(
+      final result = await repository.createTransaction(
         transaction: tUserTransactionCreated,
       );
 
@@ -171,20 +163,17 @@ void main() {
       );
     });
 
-    test('should throw [Left<TransactionFailure>] when the pin is wrong.',
+    test('should throw [Left<UserTransactionFailure>] when the pin is wrong.',
         () async {
       when(() => qvaPayApi.createTransaction(
             uuid: tUserTransactionCreated.uuid,
             amount: tUserTransactionCreated.amount.toDouble(),
             description: tUserTransactionCreated.description,
-          )).thenAnswer((_) async => tTransactionQvaPayCreate);
-      when(() => qvaPayApi.payTransaction(
-            uuid: tTransactionQvaPayCreate.uuid,
           )).thenThrow(
         const PaymentException(message: 'Incorrect PIN.'),
       );
 
-      final result = await repository.processTransaction(
+      final result = await repository.createTransaction(
         transaction: tUserTransactionCreated,
       );
 
@@ -205,7 +194,7 @@ void main() {
             description: tUserTransactionCreated.description,
           )).thenThrow(ServerException());
 
-      final result = await repository.processTransaction(
+      final result = await repository.createTransaction(
         transaction: tUserTransactionCreated,
       );
 
@@ -214,20 +203,75 @@ void main() {
         const Left<Failure, UserTransaction>(ServerFailure()),
       );
     });
+  });
+
+  group('payTransaction', () {
+    final tUserTransactionCreated = tUserTransactionList[0];
+    final tUserTransactionResponse = tUserTransactionList[3];
+    final tTransactionQvaPayPaid = tTransactionsQvaPayList[3];
+    test(
+        'should return [Right<UserTransaction>] when the transaction is '
+        'successfully created and paid', () async {
+      when(() => qvaPayApi.payTransaction(
+            uuid: tUserTransactionCreated.uuid,
+          )).thenAnswer((_) async => tTransactionQvaPayPaid);
+
+      final result = await repository.payTransaction(
+        transaction: tUserTransactionCreated,
+      );
+
+      expect(result, Right<Failure, UserTransaction>(tUserTransactionResponse));
+    });
+
+    test(
+        'should throw [Left<UserTransactionFailure>] when the account does '
+        'not have enough balance.', () async {
+      when(() => qvaPayApi.payTransaction(
+            uuid: tUserTransactionCreated.uuid,
+          )).thenThrow(
+        const TransactionException(message: 'Does not have enough balance.'),
+      );
+
+      final result = await repository.payTransaction(
+        transaction: tUserTransactionCreated,
+      );
+
+      expect(
+        result,
+        const Left<Failure, UserTransaction>(
+          UserTransactionFailure(message: 'Does not have enough balance.'),
+        ),
+      );
+    });
+
+    test('should throw [Left<TransactionFailure>] when the pin is wrong.',
+        () async {
+      when(() => qvaPayApi.payTransaction(
+            uuid: tUserTransactionCreated.uuid,
+          )).thenThrow(
+        const PaymentException(message: 'Incorrect PIN.'),
+      );
+
+      final result = await repository.payTransaction(
+        transaction: tUserTransactionCreated,
+      );
+
+      expect(
+        result,
+        const Left<Failure, UserTransaction>(
+          UserTransactionFailure(message: 'Incorrect PIN.'),
+        ),
+      );
+    });
 
     test(
         'should throw [Left<ServerFailure>] when an error occur on the '
         'server in the payment', () async {
-      when(() => qvaPayApi.createTransaction(
-            uuid: tUserTransactionCreated.uuid,
-            amount: tUserTransactionCreated.amount.toDouble(),
-            description: tUserTransactionCreated.description,
-          )).thenAnswer((_) async => tTransactionQvaPayCreate);
       when(() => qvaPayApi.payTransaction(
-            uuid: tTransactionQvaPayCreate.uuid,
+            uuid: tUserTransactionCreated.uuid,
           )).thenThrow(ServerException());
 
-      final result = await repository.processTransaction(
+      final result = await repository.payTransaction(
         transaction: tUserTransactionCreated,
       );
 
