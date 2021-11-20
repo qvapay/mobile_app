@@ -11,9 +11,13 @@ abstract class ITransactionsRepository {
     DateTime? end,
   });
 
-  Future<Either<Failure, UserTransaction>> processTransaction({
+  Future<Either<Failure, UserTransaction>> createTransaction({
     required UserTransaction transaction,
-    String pin = '0000',
+  });
+
+  Future<Either<Failure, UserTransaction>> payTransaction({
+    required UserTransaction transaction,
+    String? pin = '0000',
   });
 }
 
@@ -46,9 +50,8 @@ class TransactionsRepository extends ITransactionsRepository {
   }
 
   @override
-  Future<Either<Failure, UserTransaction>> processTransaction({
+  Future<Either<Failure, UserTransaction>> createTransaction({
     required UserTransaction transaction,
-    String pin = '0000',
   }) async {
     try {
       final transactionToPay = await _qvaPayApi.createTransaction(
@@ -57,8 +60,26 @@ class TransactionsRepository extends ITransactionsRepository {
         description: transaction.description,
       );
 
+      return Right(UserTransaction.fromTransaction(transactionToPay));
+    } catch (e) {
+      if (e is TransactionException) {
+        return Left(UserTransactionFailure(message: e.message));
+      }
+      if (e is PaymentException) {
+        return Left(UserTransactionFailure(message: e.message));
+      }
+      return const Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserTransaction>> payTransaction({
+    required UserTransaction transaction,
+    String? pin = '0000',
+  }) async {
+    try {
       final transactionPaid = await _qvaPayApi.payTransaction(
-        uuid: transactionToPay.uuid,
+        uuid: transaction.uuid,
         pin: pin,
       );
 
