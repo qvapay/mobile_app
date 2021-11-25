@@ -21,4 +21,10 @@ class AppBlocObserver extends BlocObserver {
     log('onError(${bloc.runtimeType}, $error, $stackTrace)');
     super.onError(bloc, error, stackTrace);
   }
+
+  @override
+  void onCreate(BlocBase bloc) {
+    log('onCreate(${bloc.runtimeType})');
+    super.onCreate(bloc);
+  }
 }

@@ -24,14 +24,11 @@ class App extends StatelessWidget {
       providers: [
         BlocProvider<PreferencesBloc>(
           lazy: false,
-          create: (BuildContext context) => PreferencesBloc(
-            preferencesRepository: getIt<PreferencesRepository>(),
-          )..add(GetPreferences(date: DateTime.now())),
+          create: (BuildContext context) => getIt<PreferencesBloc>()
+            ..add(GetPreferences(date: DateTime.now())),
         ),
         BlocProvider<AuthenticationBloc>(
-          create: (BuildContext context) => AuthenticationBloc(
-            authenticationRepository: getIt<IAuthenticationRepository>(),
-          ),
+          create: (BuildContext context) => getIt<AuthenticationBloc>(),
         ),
       ],
       child: const AppView(),

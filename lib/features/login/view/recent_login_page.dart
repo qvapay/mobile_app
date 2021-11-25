@@ -5,7 +5,6 @@ import 'package:formz/formz.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
-import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/login/widgets/widgets.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
@@ -22,9 +21,7 @@ class RecentLoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
         body: BlocProvider(
-      create: (context) => LoginBloc(
-        authenticationRepository: getIt<IAuthenticationRepository>(),
-      ),
+      create: (context) => getIt<LoginBloc>(),
       child: const RecentLoginView(),
     ));
   }
