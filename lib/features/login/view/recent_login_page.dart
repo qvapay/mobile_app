@@ -49,6 +49,7 @@ class RecentLoginView extends StatelessWidget {
         },
         child: Column(
           children: <Widget>[
+            const HeaderRecentLogin(),
             Expanded(
               child: SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -56,7 +57,6 @@ class RecentLoginView extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    const HeaderRecentLogin(),
                     const SizedBox(
                       height: 50,
                     ),

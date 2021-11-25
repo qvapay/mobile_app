@@ -11,6 +11,7 @@ class HeaderRecentLogin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return BlocSelector<PreferencesBloc, PreferencesState, LastLogIn?>(
       selector: (state) {
         if (state is PreferencesRecentStart) {
@@ -22,7 +23,7 @@ class HeaderRecentLogin extends StatelessWidget {
       },
       builder: (context, lastLogIn) {
         return Container(
-          height: 320,
+          height: size.height * 0.38,
           decoration: const BoxDecoration(
               gradient: kLinearGradientBlue,
               borderRadius: BorderRadius.only(
