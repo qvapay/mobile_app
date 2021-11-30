@@ -47,7 +47,7 @@ Future<void> setUp() async {
         preferencesRepository: getIt<PreferencesRepository>(),
       ),
     )
-    ..registerLazySingleton(
+    ..registerFactory(
       () => LoginBloc(
         authenticationRepository: getIt<IAuthenticationRepository>(),
       ),
