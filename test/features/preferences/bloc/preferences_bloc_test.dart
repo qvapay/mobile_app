@@ -45,7 +45,8 @@ void main() {
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
       act: (bloc) => bloc.add(GetPreferences(date: tDate)),
       expect: () => <PreferencesState>[PreferencesFristTime()],
-      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
+      verify: (bloc) =>
+          verify(mockPreferencesRepository.getIsFristTime).called(1),
     );
 
     blocTest<PreferencesBloc, PreferencesState>(
@@ -63,7 +64,10 @@ void main() {
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
       act: (bloc) => bloc.add(GetPreferences(date: tDate)),
       expect: () => <PreferencesState>[PreferencesVeryRecentStart()],
-      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
+      verify: (bloc) {
+        verify(mockPreferencesRepository.getLastLogIn).called(1);
+        verify(mockPreferencesRepository.getIsFristTime).called(1);
+      },
     );
 
     blocTest<PreferencesBloc, PreferencesState>(
@@ -83,7 +87,10 @@ void main() {
       expect: () => <PreferencesState>[
         PreferencesRecentStart(lastLogIn: tGreatLastLogInModel)
       ],
-      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
+      verify: (bloc) {
+        verify(mockPreferencesRepository.getLastLogIn).called(1);
+        verify(mockPreferencesRepository.getIsFristTime).called(1);
+      },
     );
     blocTest<PreferencesBloc, PreferencesState>(
       'emits [PreferencesNotRecentStart] when the return of the `getLastLogIn` '
@@ -99,8 +106,11 @@ void main() {
       build: () =>
           PreferencesBloc(preferencesRepository: mockPreferencesRepository),
       act: (bloc) => bloc.add(GetPreferences(date: tDate)),
-      verify: (bloc) => bloc.add(GetPreferences(date: tDate)),
       expect: () => <PreferencesState>[PreferencesNotRecentStart()],
+      verify: (bloc) {
+        verify(mockPreferencesRepository.getLastLogIn).called(1);
+        verify(mockPreferencesRepository.getIsFristTime).called(1);
+      },
     );
   });
 
@@ -118,9 +128,8 @@ void main() {
       act: (bloc) => bloc.add(CleanPreferences()),
       expect: () => <PreferencesState>[],
       verify: (bloc) {
-        verify(() => mockPreferencesRepository.clear()).called(1);
-        verify(() => mockPreferencesRepository.setIsFristTime()).called(1);
-        bloc.add(CleanPreferences());
+        verify(mockPreferencesRepository.clear).called(1);
+        verify(mockPreferencesRepository.setIsFristTime).called(1);
       },
     );
   });
