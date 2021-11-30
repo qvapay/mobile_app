@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:mobile_app/core/dependency_injection/oauth_secure_storage.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
+import 'package:mobile_app/features/login/bloc/login_bloc.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
 import 'package:mobile_app/features/transactions/repository/transactions_repository.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
@@ -43,6 +44,22 @@ Future<void> setUp() async {
       () => UserDataRepository(
         qvaPayApi: getIt<QvaPayApi>(),
         preferencesRepository: getIt<PreferencesRepository>(),
+      ),
+    )
+    // * Blocs
+    ..registerLazySingleton<AuthenticationBloc>(
+      () => AuthenticationBloc(
+        authenticationRepository: getIt<IAuthenticationRepository>(),
+      ),
+    )
+    ..registerLazySingleton(
+      () => PreferencesBloc(
+        preferencesRepository: getIt<PreferencesRepository>(),
+      ),
+    )
+    ..registerLazySingleton(
+      () => LoginBloc(
+        authenticationRepository: getIt<IAuthenticationRepository>(),
       ),
     );
 }

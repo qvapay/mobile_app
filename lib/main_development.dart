@@ -5,27 +5,16 @@
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
 
-import 'dart:async';
-import 'dart:developer';
-
-import 'package:bloc/bloc.dart';
-import 'package:flutter/widgets.dart';
-
+import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile_app/app/app.dart';
-import 'package:mobile_app/app/app_bloc_observer.dart';
-import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/bootstrap.dart';
 
 void main() {
-  Bloc.observer = AppBlocObserver();
-  FlutterError.onError = (details) {
-    log(details.exceptionAsString(), stackTrace: details.stack);
-  };
-
-  runZonedGuarded(
-    () async {
-      await setUp();
-      runApp(const App());
-    },
-    (error, stackTrace) => log(error.toString(), stackTrace: stackTrace),
+  bootstrap(
+    () => DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => const App(),
+    ),
   );
 }
