@@ -3,25 +3,30 @@ import 'dart:convert';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../constants.dart';
 import '../../../fixtures/fixture_adapter.dart';
-import '../../../helpers/hydrated_bloc.dart';
 
 class MockUserDataRepository extends Mock implements IUserDataRepository {}
 
-void main() {
-  initHydratedBloc();
+class MockStorage extends Mock implements Storage {}
 
+void main() {
   late IUserDataRepository userDataRepository;
+  late Storage storage;
   late UserDataCubit userDataCubit;
 
   setUp(() {
+    storage = MockStorage();
     userDataRepository = MockUserDataRepository();
-    userDataCubit = UserDataCubit(userDataRepository: userDataRepository);
+    userDataCubit = HydratedBlocOverrides.runZoned(
+      () => UserDataCubit(userDataRepository: userDataRepository),
+      storage: storage,
+    );
   });
 
   final tUserDataJson =
@@ -70,8 +75,14 @@ void main() {
       setUp: () {
         when(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
             .thenAnswer((_) async => Right(tUserDataModel));
+        when<dynamic>(() => storage.read(any<String>())).thenReturn(
+          () => <String, dynamic>{},
+        );
+        when<dynamic>(
+          () => storage.write(any<String>(), any<Map<String, dynamic>>()),
+        ).thenAnswer((_) async {});
       },
-      build: () => UserDataCubit(userDataRepository: userDataRepository),
+      build: () => userDataCubit,
       act: (cubit) => cubit.getUserData(saveDateLastLogIn: tDate),
       expect: () {
         return <UserDataState>[
@@ -90,8 +101,14 @@ void main() {
       setUp: () {
         when(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
             .thenAnswer((_) async => const Left(ServerFailure()));
+        when<dynamic>(() => storage.read(any<String>())).thenReturn(
+          () => <String, dynamic>{},
+        );
+        when<dynamic>(
+          () => storage.write(any<String>(), any<Map<String, dynamic>>()),
+        ).thenAnswer((_) async {});
       },
-      build: () => UserDataCubit(userDataRepository: userDataRepository),
+      build: () => userDataCubit,
       act: (cubit) => cubit.getUserData(saveDateLastLogIn: tDate),
       verify: (cubit) {
         verify(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
@@ -113,8 +130,14 @@ void main() {
       setUp: () {
         when(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))
             .thenAnswer((_) async => const Left(AuthenticationFailure()));
+        when<dynamic>(() => storage.read(any<String>())).thenReturn(
+          () => <String, dynamic>{},
+        );
+        when<dynamic>(
+          () => storage.write(any<String>(), any<Map<String, dynamic>>()),
+        ).thenAnswer((_) async {});
       },
-      build: () => UserDataCubit(userDataRepository: userDataRepository),
+      build: () => userDataCubit,
       act: (cubit) => cubit.getUserData(saveDateLastLogIn: tDate),
       verify: (cubit) {
         verify(() => userDataRepository.getUserData(saveDateLastLogIn: tDate))

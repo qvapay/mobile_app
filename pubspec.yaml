@@ -8,8 +8,8 @@ environment:
 
 dependencies:
   animations: ^2.0.2
-  bloc: ^7.2.1
-  bloc_concurrency: ^0.1.0
+  bloc: ^8.0.1
+  bloc_concurrency: ^0.2.0
   cached_network_image: ^3.1.0
   dartz: ^0.10.0-nullsafety.1
   data_connection_checker: ^0.3.4
@@ -18,7 +18,7 @@ dependencies:
   equatable: ^2.0.3
   flutter:
     sdk: flutter
-  flutter_bloc: ^7.3.3
+  flutter_bloc: ^8.0.0
   flutter_secure_storage: ^4.2.1
   formz: ^0.4.0
   get_it: ^7.2.0
@@ -26,7 +26,7 @@ dependencies:
   hive: ^2.0.4
   hive_flutter: ^1.1.0
   http: ^0.13.3
-  hydrated_bloc: ^7.1.0
+  hydrated_bloc: ^8.0.0
   image_gallery_saver: ^1.7.1
   intl: ^0.17.0
   json_annotation: ^4.3.0
@@ -44,7 +44,7 @@ dependencies:
   share_plus: ^3.0.4
 
 dev_dependencies:
-  bloc_test: ^8.5.0
+  bloc_test: ^9.0.1
   build_runner: ^2.1.4
   flutter_test:
     sdk: flutter
