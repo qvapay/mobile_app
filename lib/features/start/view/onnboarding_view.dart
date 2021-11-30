@@ -41,14 +41,11 @@ class _OnboardingViewState extends State<OnboardingView>
   }
 
   void changeView() {
-    if (_controller.index == 3) {
-    } else {
-      setState(() {
-        (_controller.index == _numDots - 1)
-            ? goToLoginPage()
-            : _controller.index++;
-      });
-    }
+    setState(() {
+      (_controller.index == _numDots - 1)
+          ? goToLoginPage()
+          : _controller.index++;
+    });
   }
 
   void goToLoginPage() {
@@ -58,6 +55,7 @@ class _OnboardingViewState extends State<OnboardingView>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Column(
@@ -97,7 +95,7 @@ class _OnboardingViewState extends State<OnboardingView>
                   child: Center(
                     child: Image.asset(
                       bodyWidget[_controller.index + 1]!['image']!,
-                      scale: 1.5,
+                      width: size.width * 0.7,
                     ),
                   ),
                 ),
