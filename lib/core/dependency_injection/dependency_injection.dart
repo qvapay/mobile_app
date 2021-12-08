@@ -6,6 +6,7 @@ import 'package:mobile_app/core/dependency_injection/oauth_secure_storage.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/login/bloc/login_bloc.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
+import 'package:mobile_app/features/setting/theme/cubit/theme_cubit.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart';
 
@@ -46,6 +47,9 @@ Future<void> setUp() async {
       () => PreferencesBloc(
         preferencesRepository: getIt<PreferencesRepository>(),
       ),
+    )
+    ..registerLazySingleton(
+      () => ThemeCubit(),
     )
     ..registerFactory(
       () => LoginBloc(
