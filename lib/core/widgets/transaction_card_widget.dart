@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
+import 'package:mobile_app/core/themes/themes.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 
 class TransactionCardWidget extends StatelessWidget {
@@ -30,24 +31,37 @@ class TransactionCardWidget extends StatelessWidget {
           minVerticalPadding: 15,
           title: Text(
             name,
-            style: kTitleListTitlePay,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.headline1?.color,
+              fontFamily: 'Roboto',
+              fontWeight: FontWeight.w700,
+            ),
             maxLines: 1,
           ),
           subtitle: isCredit
-              ? const Text(
+              ? Text(
                   'Crédito',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black26,
+                    color: Theme.of(context)
+                        .textTheme
+                        .headline1
+                        ?.color!
+                        .withOpacity(0.3),
                     fontFamily: 'Roboto',
                     fontWeight: FontWeight.w700,
                   ),
                 )
-              : const Text(
+              : Text(
                   'Compra',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black26,
+                    color: Theme.of(context)
+                        .textTheme
+                        .headline1
+                        ?.color!
+                        .withOpacity(0.3),
                     fontFamily: 'Roboto',
                     fontWeight: FontWeight.w700,
                   ),
@@ -62,13 +76,13 @@ class TransactionCardWidget extends StatelessWidget {
                   style: isCredit
                       ? const TextStyle(
                           fontSize: 16,
-                          color: Color(0xFF1FBF2F),
+                          color: AppColors.greenInfo,
                           fontFamily: 'Roboto',
                           fontWeight: FontWeight.w700,
                         )
                       : const TextStyle(
                           fontSize: 16,
-                          color: Colors.red,
+                          color: AppColors.redInfo,
                           fontFamily: 'Roboto',
                           fontWeight: FontWeight.w700,
                         ),

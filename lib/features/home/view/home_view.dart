@@ -1,15 +1,11 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
-
 import 'package:mobile_app/features/home/widgets/widgets.dart';
-import 'package:mobile_app/features/user_data/user_data.dart';
 
-const Color bgColor = Color(0xffEBECEE);
+import 'package:mobile_app/features/user_data/user_data.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -18,7 +14,7 @@ class HomeView extends StatelessWidget {
     return SafeArea(
       child: Scaffold(
         bottomNavigationBar: const BottomSendAndReciveWidget(),
-        backgroundColor: bgColor,
+        backgroundColor: Theme.of(context).backgroundColor,
         body: BlocListener<UserDataCubit, UserDataState>(
           listenWhen: (previous, current) =>
               previous.errorMessage != current.errorMessage,
@@ -32,16 +28,17 @@ class HomeView extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                color: bgColor,
+                color: Theme.of(context).backgroundColor,
                 child: const HomeHeader(),
               ),
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    gradient: kLinearGradientBlackLight,
+                    gradient: AppColors.linearGradientBlackLight,
                   ),
                   child: Container(
                     decoration: const BoxDecoration(
+                        color: Colors.red,
                         borderRadius: BorderRadius.only(
                             bottomRight: Radius.circular(30),
                             bottomLeft: Radius.circular(30))),
@@ -70,25 +67,23 @@ class _TabUser extends StatelessWidget {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          backgroundColor: bgColor,
+          backgroundColor: Theme.of(context).backgroundColor,
           appBar: PreferredSize(
             preferredSize: const Size.fromHeight(50),
             child: Padding(
               padding: const EdgeInsets.only(top: 10),
               child: Container(
-                color: bgColor,
+                color: Theme.of(context).backgroundColor,
                 child: Stack(
                   children: [
-                    TabBar(
+                    const TabBar(
                       isScrollable: true,
-                      labelColor: Colors.blueAccent,
-                      unselectedLabelColor: Colors.black.withOpacity(.9),
                       indicatorSize: TabBarIndicatorSize.label,
-                      labelStyle: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
-                      unselectedLabelStyle: const TextStyle(
+                      labelStyle:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      unselectedLabelStyle: TextStyle(
                           color: Colors.black12, fontWeight: FontWeight.w600),
-                      tabs: const [
+                      tabs: [
                         Tab(
                           text: 'Usuarios',
                         ),
@@ -109,14 +104,18 @@ class _TabUser extends StatelessWidget {
                             Text(
                               'Todos',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue),
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textBlue,
+                              ),
                             ),
                             SizedBox(
                               width: 5,
                             ),
-                            Icon(Icons.arrow_forward_ios_sharp,
-                                size: 16, color: Colors.blue)
+                            Icon(
+                              Icons.arrow_forward_ios_sharp,
+                              size: 16,
+                              color: AppColors.textBlue,
+                            )
                           ],
                         ),
                       ),
@@ -158,12 +157,15 @@ class _TabUser extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(
+                  SizedBox(
                     height: 200,
                     child: Center(
                       child: Text(
                         'Servicios',
-                        style: TextStyle(fontSize: 22),
+                        style: TextStyle(
+                          fontSize: 22,
+                          color: Theme.of(context).textTheme.headline1?.color,
+                        ),
                       ),
                     ),
                   ),
@@ -178,11 +180,14 @@ class _TabUser extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Últimas Transacciones',
+                          Text('Últimas Transacciones',
                               style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w900,
-                                  color: Colors.black87)),
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .headline1
+                                      ?.color)),
                           GestureDetector(
                             onTap: () {
                               debugPrint('Ir a todos');
@@ -211,8 +216,10 @@ class _TabUser extends StatelessWidget {
                       child: BlocBuilder<UserDataCubit, UserDataState>(
                         builder: (context, state) {
                           if (state.isStateLoading) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).primaryColor,
+                              ),
                             );
                           }
                           if (state.userData != null) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 
 class BottomSendAndReciveWidget extends StatelessWidget {
   const BottomSendAndReciveWidget({
@@ -11,7 +12,7 @@ class BottomSendAndReciveWidget extends StatelessWidget {
     return Container(
       height: 80,
       decoration: const BoxDecoration(
-        gradient: kLinearGradientBlackLight,
+        gradient: AppColors.linearGradientBlackLight,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
