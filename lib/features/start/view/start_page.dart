@@ -11,8 +11,9 @@ class StartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(child: OnboardingView()),
+    return Scaffold(
+      backgroundColor: Theme.of(context).backgroundColor,
+      body: const SafeArea(child: OnboardingView()),
     );
   }
 }

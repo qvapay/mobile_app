@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/features/login/login.dart';
+import 'package:mobile_app/features/setting/theme/cubit/theme_cubit.dart';
 import 'package:mobile_app/features/start/strings.dart';
 
 class OnboardingView extends StatefulWidget {
@@ -64,7 +67,9 @@ class _OnboardingViewState extends State<OnboardingView>
           Padding(
             padding: const EdgeInsets.only(top: 38, bottom: 32),
             child: Image.asset(
-              'assets/onboarding/logo.png',
+              context.select((ThemeCubit cubit) => cubit.state)
+                  ? 'assets/onboarding/dark_logo.png'
+                  : 'assets/onboarding/logo.png',
               scale: 1.5,
             ),
           ),
@@ -85,9 +90,13 @@ class _OnboardingViewState extends State<OnboardingView>
                 ),
                 Text(
                   bodyWidget[_controller.index + 1]!['subtitle']!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Colors.black38,
+                    color: Theme.of(context)
+                        .textTheme
+                        .headline1
+                        ?.color!
+                        .withOpacity(0.35),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -107,16 +116,24 @@ class _OnboardingViewState extends State<OnboardingView>
             children: [
               TextButton(
                 onPressed: _controller.index == 2 ? null : goToLoginPage,
-                child: const Text(
+                child: Text(
                   'Omitir',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _controller.index == 2
+                        ? AppColors.textBlue.withOpacity(0.35)
+                        : null,
+                  ),
                 ),
               ),
               TabPageSelector(
                 controller: _controller,
                 color: Colors.grey[200],
                 indicatorSize: 16,
-                selectedColor: Colors.grey,
+                selectedColor: context.select((ThemeCubit cubit) => cubit.state)
+                    ? AppColors.textBlue
+                    : Colors.grey,
               ),
               TextButton(
                 onPressed: changeView,
