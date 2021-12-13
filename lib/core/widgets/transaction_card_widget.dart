@@ -36,80 +36,84 @@ class TransactionCardWidget extends StatelessWidget {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           closedElevation: 2,
           closedBuilder: (BuildContext _, VoidCallback openContainer) {
-            return InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: openContainer,
-              child: ListTile(
-                horizontalTitleGap: 7,
-                minVerticalPadding: 15,
-                title: Text(
-                  transaction.name,
-                  style: kTitleListTitlePay,
-                  maxLines: 1,
+            return Card(
+              elevation: 2,
+              margin: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(17),
+                onTap: openContainer,
+                child: ListTile(
+                  horizontalTitleGap: 7,
+                  minVerticalPadding: 15,
+                  title: Text(
+                    transaction.name,
+                    style: kTitleListTitlePay,
+                    maxLines: 1,
+                  ),
+                  subtitle: isTrasactionReceive
+                      ? Text(
+                          'Crédito',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context)
+                                .textTheme
+                                .headline1
+                                ?.color!
+                                .withOpacity(0.3),
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : Text(
+                          'Compra',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context)
+                                .textTheme
+                                .headline1
+                                ?.color!
+                                .withOpacity(0.3),
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                  leading: Hero(
+                      tag: 'key_details_${transaction.imageUrl}'
+                          '_${transaction.uuid}',
+                      child: ProfileImageNetworkWidget(
+                          imageUrl: transaction.imageUrl)),
+                  trailing: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: <Widget>[
+                        const Padding(
+                            padding: EdgeInsets.only(top: 5, right: 16)),
+                        Text(
+                          isTrasactionReceive
+                              ? '+\$$credit'
+                              : '-\$${credit.abs()}',
+                          style: isTrasactionReceive
+                              ? const TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.greenInfo,
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w700,
+                                )
+                              : const TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.redInfo,
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w700,
+                                ),
+                        ),
+                        const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 2)),
+                        Text(
+                          transaction.date.toDmY(),
+                          style: kTitleListSubTitlePay,
+                        ),
+                      ]),
                 ),
-                subtitle: isTrasactionReceive
-                    ? Text(
-                        'Crédito',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context)
-                              .textTheme
-                              .headline1
-                              ?.color!
-                              .withOpacity(0.3),
-                          fontFamily: 'Roboto',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      )
-                    : Text(
-                        'Compra',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context)
-                              .textTheme
-                              .headline1
-                              ?.color!
-                              .withOpacity(0.3),
-                          fontFamily: 'Roboto',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                leading: Hero(
-                    tag: 'key_details_${transaction.imageUrl}'
-                        '_${transaction.uuid}',
-                    child: ProfileImageNetworkWidget(
-                        imageUrl: transaction.imageUrl)),
-                trailing: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: <Widget>[
-                      const Padding(
-                          padding: EdgeInsets.only(top: 5, right: 16)),
-                      Text(
-                        isTrasactionReceive
-                            ? '+\$$credit'
-                            : '-\$${credit.abs()}',
-                        style: isTrasactionReceive
-                            ? const TextStyle(
-                                fontSize: 16,
-                                color: AppColors.greenInfo,
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w700,
-                              )
-                            : const TextStyle(
-                                fontSize: 16,
-                                color: AppColors.redInfo,
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w700,
-                              ),
-                      ),
-                      const Padding(padding: EdgeInsets.symmetric(vertical: 2)),
-                      Text(
-                        transaction.date.toDmY(),
-                        style: kTitleListSubTitlePay,
-                      ),
-                    ]),
               ),
-              // ),
             );
           }),
     );
