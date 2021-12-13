@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
-import 'package:mobile_app/core/constants/widgets_constants.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
+import 'package:mobile_app/features/setting/theme/cubit/theme_cubit.dart';
 
 class HeaderRecentLogin extends StatelessWidget {
   const HeaderRecentLogin({Key? key}) : super(key: key);
@@ -22,19 +23,25 @@ class HeaderRecentLogin extends StatelessWidget {
         }
       },
       builder: (context, lastLogIn) {
+        final isDark = context.select((ThemeCubit cubit) => cubit.state);
         return Container(
           height: size.height * 0.38,
-          decoration: const BoxDecoration(
-              gradient: kLinearGradientBlue,
-              borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(50),
-                  bottomRight: Radius.circular(50)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey,
-                  blurRadius: 10,
-                )
-              ]),
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? AppColors.linearGradientBlackLight
+                : AppColors.linearGradientBlue,
+            borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(50),
+                bottomRight: Radius.circular(50)),
+            boxShadow: isDark
+                ? null
+                : const [
+                    BoxShadow(
+                      color: Colors.grey,
+                      blurRadius: 10,
+                    )
+                  ],
+          ),
           child: Column(
             children: [
               const Spacer(),
