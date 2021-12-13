@@ -11,8 +11,9 @@ class SplashScreenPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Theme.of(context).backgroundColor,
         body: Center(
-      child: Image.asset('assets/images/launch_image.png'),
-    ));
+          child: Image.asset('assets/images/launch_image.png'),
+        ));
   }
 }

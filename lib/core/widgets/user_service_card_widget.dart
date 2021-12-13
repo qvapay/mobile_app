@@ -21,9 +21,10 @@ class UserServiceCardWidget extends StatelessWidget {
           elevation: 4,
           child: Container(
             decoration: ShapeDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             child: SizedBox(
               width: 220,
@@ -33,12 +34,15 @@ class UserServiceCardWidget extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: ProfileImageNetworkWidget(imageUrl: avatar),
                   ),
-                  Text(name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w700,
-                      )),
+                  Text(
+                    name,
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.headline1?.color,
+                      fontSize: 16,
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),

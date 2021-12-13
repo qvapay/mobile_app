@@ -4,7 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
+import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
+import 'package:mobile_app/features/setting/theme/theme.dart';
+import 'package:mobile_app/features/start/start.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -14,14 +17,22 @@ class HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
         width: double.maxFinite,
-        height: 200,
-        decoration: const BoxDecoration(
-          gradient: kLinearGradientBlue,
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(40),
-            bottomRight: Radius.circular(40),
-          ),
-        ),
+        height: MediaQuery.of(context).size.height * 0.25,
+        decoration: context.select((ThemeCubit cubit) => cubit.state)
+            ? BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              )
+            : const BoxDecoration(
+                gradient: kLinearGradientBlue,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              ),
         child: Stack(
           children: [
             Center(

@@ -8,10 +8,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
+import 'package:mobile_app/core/themes/themes.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/home/home.dart';
 import 'package:mobile_app/features/login/login.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
+import 'package:mobile_app/features/setting/theme/theme.dart';
 import 'package:mobile_app/features/start/start.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
@@ -41,7 +43,10 @@ class App extends StatelessWidget {
           create: (_) => SendTransactionCubit(
             transactionsRepository: getIt<ITransactionsRepository>(),
           ),
-        )
+        ),
+        BlocProvider<ThemeCubit>(
+          create: (BuildContext context) => getIt<ThemeCubit>(),
+        ),
       ],
       child: const AppView(),
     );
@@ -64,12 +69,10 @@ class _AppViewState extends State<AppView> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      theme: ThemeData(
-        appBarTheme: const AppBarTheme(color: Color(0xFF13B9FF)),
-        colorScheme: ColorScheme.fromSwatch(
-          accentColor: const Color(0xFF13B9FF),
-        ),
-      ),
+      themeMode: context.select(
+          (ThemeCubit cubit) => cubit.state ? ThemeMode.dark : ThemeMode.light),
+      theme: AppTheme.lightMaterialTheme,
+      darkTheme: AppTheme.darkMaterialTheme,
       builder: (context, child) {
         return MultiBlocListener(
           listeners: [
