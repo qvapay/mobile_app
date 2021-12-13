@@ -37,7 +37,6 @@ class HomeView extends StatelessWidget {
                   ),
                   child: Container(
                     decoration: const BoxDecoration(
-                        color: Colors.red,
                         borderRadius: BorderRadius.only(
                             bottomRight: Radius.circular(30),
                             bottomLeft: Radius.circular(30))),

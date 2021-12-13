@@ -2,9 +2,9 @@ import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/extensions/extensions.dart';
+import 'package:mobile_app/core/themes/themes.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/view/view.dart';
-import 'package:mobile_app/core/themes/themes.dart';
 import 'package:mobile_app/features/user_data/models/models.dart';
 
 class TransactionCardWidget extends StatelessWidget {
@@ -35,6 +35,8 @@ class TransactionCardWidget extends StatelessWidget {
           closedShape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           closedElevation: 2,
+          openColor: Theme.of(context).cardColor,
+          closedColor: Theme.of(context).cardColor,
           closedBuilder: (BuildContext _, VoidCallback openContainer) {
             return Card(
               elevation: 2,
