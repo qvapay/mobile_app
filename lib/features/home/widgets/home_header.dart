@@ -4,6 +4,7 @@ import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
+import 'package:mobile_app/features/setting/setting.dart';
 import 'package:mobile_app/features/setting/theme/theme.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
@@ -82,10 +83,18 @@ class HomeHeader extends StatelessWidget {
                                   const SizedBox(
                                     width: 10,
                                   ),
-                                  ProfileImageNetworkWidget(
-                                    imageUrl: state.userData!.logo,
-                                    borderImage: Border.all(
-                                        width: 4, color: Colors.white),
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push<void>(
+                                        context,
+                                        SettingPage.go(),
+                                      );
+                                    },
+                                    child: ProfileImageNetworkWidget(
+                                      imageUrl: state.userData!.logo,
+                                      borderImage: Border.all(
+                                          width: 4, color: Colors.white),
+                                    ),
                                   ),
                                 ],
                               )
