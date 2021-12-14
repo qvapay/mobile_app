@@ -6,11 +6,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/extensions/extensions.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/receive/cubit/receive_payment_cubit.dart';
-import 'package:mobile_app/features/user_data/models/models.dart';
+import 'package:mobile_app/features/transactions/receive/widgets/widgets.dart';
+import 'package:mobile_app/features/user_data/user_data.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -27,7 +28,7 @@ class ReceivePaymentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kbgPage,
+      backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
         title: const Text('Recibir Pago',
             style: TextStyle(
@@ -37,7 +38,7 @@ class ReceivePaymentPage extends StatelessWidget {
               fontWeight: FontWeight.w900,
             )),
         centerTitle: true,
-        backgroundColor: kbgPage,
+        backgroundColor: Theme.of(context).backgroundColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -79,7 +80,7 @@ class ReceivePaymentPage extends StatelessWidget {
                   'Compartir',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF1FBF2F),
+                    color: AppColors.greenInfo,
                     fontFamily: 'Roboto',
                     fontWeight: FontWeight.w700,
                   ),
@@ -87,7 +88,25 @@ class ReceivePaymentPage extends StatelessWidget {
           )
         ],
       ),
-      body: ReceivePaymentView(screenshotController: screenshotController),
+      body: BlocProvider(
+        create: (context) {
+          final user = context.read<UserDataCubit>().state.userData;
+          final transaction = UserTransaction(
+            uuid: user!.uuid,
+            amount: '',
+            description: '',
+            name: user.nameAndLastName,
+            email: user.email,
+            date: DateTime.now(),
+            imageUrl: user.logo,
+            transactionType: TransactionType.p2p,
+          );
+          return ReceivePaymentCubit(
+            transaction: transaction,
+          );
+        },
+        child: ReceivePaymentView(screenshotController: screenshotController),
+      ),
     );
   }
 }
@@ -109,14 +128,31 @@ class _ReceivePaymentViewState extends State<ReceivePaymentView> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: SingleChildScrollView(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _DataQR(
-                screenshotController: widget.screenshotController,
-              ),
-              ButtonLarge(
+      child: Stack(children: [
+        Positioned.fill(
+          child: SingleChildScrollView(
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShowQrData(
+                    screenshotController: widget.screenshotController,
+                  ),
+                  Container(
+                    height: MediaQuery.of(context).viewInsets.bottom +
+                        kToolbarHeight * 1.3,
+                  )
+                ]),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            color: Theme.of(context).backgroundColor,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ButtonLarge(
                 title: 'Guardar Imagen de QR',
                 styleGradient: kLinearGradientBlue,
                 active: true,
@@ -147,190 +183,19 @@ class _ReceivePaymentViewState extends State<ReceivePaymentView> {
                         content: Text('Imagen guardada en Galería !!'),
                       ),
                     );
-                  });
+                  }).onError((error, stackTrace) =>
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('Ocurrió un error al guardar imagen !!'),
+                            ),
+                          ));
                 },
               ),
-            ]),
-      ),
-    );
-  }
-}
-
-class _DataQR extends StatelessWidget {
-  const _DataQR({
-    Key? key,
-    required this.screenshotController,
-  }) : super(key: key);
-
-  final ScreenshotController screenshotController;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final contentH = size.height - kToolbarHeight;
-    return Screenshot<void>(
-      controller: screenshotController,
-      child: Container(
-        height: contentH >= 500 ? contentH * 0.75 : contentH * 0.65,
-        margin: const EdgeInsets.only(top: 50, left: 20, right: 20, bottom: 30),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Stack(
-          alignment: AlignmentDirectional.center,
-          clipBehavior: Clip.none,
-          fit: StackFit.expand,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(
-                  flex: 2,
-                  child: Builder(
-                    builder: (context) {
-                      final transaction =
-                          context.select<ReceivePaymentCubit, UserTransaction>(
-                              (cubit) => cubit.state.transaction);
-                      return Column(
-                        children: [
-                          SizedBox(
-                            height: contentH >= 500 ? 60 : 45,
-                          ),
-                          Text(
-                            transaction.name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF464646),
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 6,
-                          ),
-                          Text(
-                            transaction.email ?? '',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF3186E7),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                Expanded(
-                  flex: 6,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 20),
-                    child: Builder(
-                      builder: (context) {
-                        final transaction = context
-                            .select<ReceivePaymentCubit, UserTransaction>(
-                                (cubit) => cubit.state.transaction);
-                        return QrImage(
-                          data: transaction.encode(),
-                          size: size.width * 0.7,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                Flexible(
-                    flex: 2,
-                    child:
-                        BlocBuilder<ReceivePaymentCubit, ReceivePaymentState>(
-                      builder: (context, state) {
-                        if (state.isCapture) {
-                          return Text(
-                            '\$ ${state.transaction.amount}',
-                            style: const TextStyle(
-                                fontSize: 38, color: Colors.blue),
-                          );
-                        } else if (state.amountIsVisible && !state.isCapture) {
-                          return Container(
-                            alignment: Alignment.center,
-                            width: size.width * 0.55,
-                            child: Column(
-                              children: [
-                                TextField(
-                                  autofocus: true,
-                                  decoration: InputDecoration(
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.close),
-                                      onPressed: () => context
-                                          .read<ReceivePaymentCubit>()
-                                          .changeVisibilityOfAmount(
-                                            visibility: false,
-                                            capture: false,
-                                          ),
-                                    ),
-                                    prefixText: r'$',
-                                    prefixStyle: const TextStyle(
-                                        fontSize: 38, color: Colors.blue),
-                                    prefixIcon: const SizedBox.shrink(),
-                                    border: InputBorder.none,
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                  style: const TextStyle(
-                                      fontSize: 38, color: Colors.blue),
-                                  onChanged: (value) => context
-                                      .read<ReceivePaymentCubit>()
-                                      .changeAmount(value),
-                                ),
-                                if (state.amount.invalid)
-                                  const Text(
-                                    'Monto invalido',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.red),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }
-                        return TextButton(
-                          onPressed: () => context
-                              .read<ReceivePaymentCubit>()
-                              .changeVisibilityOfAmount(
-                                visibility: true,
-                                capture: false,
-                              ),
-                          child: const Text(
-                            '+ Especificar Valor',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF3186E7),
-                            ),
-                          ),
-                        );
-                      },
-                    )),
-              ],
             ),
-            Positioned.fill(
-              top: -50,
-              child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ProfileImageNetworkWidget(
-                    imageUrl: context
-                        .read<ReceivePaymentCubit>()
-                        .state
-                        .transaction
-                        .imageUrl,
-                    radius: 50,
-                    borderImage: Border.all(color: Colors.white, width: 4),
-                  )),
-            )
-          ],
+          ),
         ),
-      ),
+      ]),
     );
   }
 }

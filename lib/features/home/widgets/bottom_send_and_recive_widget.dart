@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
-import 'package:mobile_app/features/user_data/user_data.dart';
 
 class BottomSendAndReciveWidget extends StatelessWidget {
   const BottomSendAndReciveWidget({
@@ -48,26 +46,10 @@ class BottomSendAndReciveWidget extends StatelessWidget {
           ),
           GestureDetector(
             onTap: () {
-              Navigator.push<void>(context,
-                  MaterialPageRoute<void>(builder: (_) {
-                final user = context.read<UserDataCubit>().state.userData;
-                final transaction = UserTransaction(
-                  uuid: user!.uuid,
-                  amount: '',
-                  description: '',
-                  name: user.nameAndLastName,
-                  email: user.email,
-                  date: DateTime.now(),
-                  imageUrl: user.logo,
-                  transactionType: TransactionType.p2p,
-                );
-                return BlocProvider.value(
-                  value: ReceivePaymentCubit(
-                    transaction: transaction,
-                  ),
-                  child: ReceivePaymentPage(),
-                );
-              }));
+              Navigator.push<void>(
+                context,
+                MaterialPageRoute<void>(builder: (_) => ReceivePaymentPage()),
+              );
             },
             child: Row(
               children: const [

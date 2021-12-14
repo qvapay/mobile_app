@@ -49,7 +49,12 @@ class TransactionCardWidget extends StatelessWidget {
                   minVerticalPadding: 15,
                   title: Text(
                     transaction.name,
-                    style: kTitleListTitlePay,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.headline1?.color,
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w700,
+                    ),
                     maxLines: 1,
                   ),
                   subtitle: isTrasactionReceive

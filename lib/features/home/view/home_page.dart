@@ -15,15 +15,16 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Theme.of(context).backgroundColor,
         body: MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) => SearchTransactionsBloc(
-            transactionRepository: getIt<ITransactionsRepository>(),
-          ),
-        ),
-      ],
-      child: const HomeView(),
-    ));
+          providers: [
+            BlocProvider(
+              create: (context) => SearchTransactionsBloc(
+                transactionRepository: getIt<ITransactionsRepository>(),
+              ),
+            ),
+          ],
+          child: const HomeView(),
+        ));
   }
 }
