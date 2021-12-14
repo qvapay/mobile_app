@@ -1,6 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:grouped_list/grouped_list.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/widgets/list_tile_card_widget.dart';

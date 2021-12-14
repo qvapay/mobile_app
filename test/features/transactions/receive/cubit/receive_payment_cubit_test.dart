@@ -4,7 +4,6 @@ import 'package:formz/formz.dart';
 import 'package:mobile_app/core/formz/amount_formz.dart';
 import 'package:mobile_app/features/transactions/receive/receive.dart';
 import 'package:mobile_app/features/user_data/models/models.dart';
-import 'package:mocktail/mocktail.dart';
 
 import '../../../../constants.dart';
 

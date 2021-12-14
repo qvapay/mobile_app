@@ -1,10 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';

@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/dependency_injection/dependency_injection.dart';
 import 'package:mobile_app/features/home/view/home_view.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
-import 'package:mobile_app/features/user_data/user_data.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
