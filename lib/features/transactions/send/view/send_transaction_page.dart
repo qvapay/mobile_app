@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:formz/formz.dart';
 import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/features/home/home.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
@@ -22,17 +23,18 @@ class SendTransactionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kbgPage,
+      backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
-        title: const Text('Enviar Transacción',
-            style: TextStyle(
-              fontSize: 20,
-              color: Color(0xFF3186E7),
-              fontFamily: 'Roboto',
-              fontWeight: FontWeight.w900,
-            )),
+        title: Text(
+          'Enviar Transacción',
+          style: TextStyle(
+            fontSize: 20,
+            color: Theme.of(context).primaryColor,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         centerTitle: true,
-        backgroundColor: kbgPage,
+        backgroundColor: Theme.of(context).backgroundColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -59,8 +61,7 @@ class SendTransactionPage extends StatelessWidget {
                         'Cancelar',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Color(0xFFBF461F),
-                          fontFamily: 'Roboto',
+                          color: AppColors.redInfo,
                           fontWeight: FontWeight.w700,
                         ),
                       )),

@@ -32,10 +32,9 @@ class SendTransactionView extends StatelessWidget {
                     state.createdStatus.isSubmissionInProgress) {
                   return Text(
                     state.amount.value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
-                      color: Colors.black54,
-                      fontFamily: 'Roboto',
+                      color: Theme.of(context).textTheme.headline1!.color,
                       fontWeight: FontWeight.w900,
                     ),
                   );
@@ -50,10 +49,9 @@ class SendTransactionView extends StatelessWidget {
                     state.createdStatus.isSubmissionInProgress) {
                   return Text(
                     state.description.value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Colors.black45,
-                      fontFamily: 'Roboto',
+                      color: Theme.of(context).textTheme.headline1!.color,
                       fontWeight: FontWeight.w900,
                     ),
                   );

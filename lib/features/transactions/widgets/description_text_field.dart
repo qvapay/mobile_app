@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
@@ -63,8 +64,14 @@ class _DescriptionTextFieldState extends State<DescriptionTextField> {
                     }
                   },
                   decoration: InputDecoration(
+                    enabledBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.greyInfo),
+                    ),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: Icon(
+                        Icons.close,
+                        color: Theme.of(context).textTheme.headline1!.color,
+                      ),
                       onPressed: () {
                         context
                             .read<SendTransactionCubit>()

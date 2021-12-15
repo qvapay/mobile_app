@@ -17,9 +17,8 @@ class TransactionDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final contentH = size.height - kToolbarHeight;
     return SizedBox(
-      height: contentH * 0.85,
+      height: (size.height - kToolbarHeight) * 0.85,
       child: Column(
         children: [
           Flexible(
@@ -27,7 +26,7 @@ class TransactionDetailView extends StatelessWidget {
             child: Column(
               children: [
                 SizedBox(
-                  height: contentH >= 500.0 ? 15 : 0,
+                  height: size.height * 0.02,
                 ),
                 Hero(
                   tag: isFromPayment
@@ -48,18 +47,21 @@ class TransactionDetailView extends StatelessWidget {
                 ),
                 Text(
                   transaction.name,
-                  style: kStyleNameReceived,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.headline1!.color,
+                  ),
                 ),
                 const SizedBox(
                   height: 5,
                 ),
                 Text(
                   transaction.email ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    fontFamily: 'Roboto',
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF3186E7),
+                    color: Theme.of(context).primaryColor,
                   ),
                 ),
               ],
@@ -71,12 +73,16 @@ class TransactionDetailView extends StatelessWidget {
               children: [
                 if (isFromPayment)
                   Column(
-                    children: const [
+                    children: [
                       Text(
                         'Pago Realizado!',
-                        style: kStyleTextPago,
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
                       ),
-                      SizedBox(
+                      const SizedBox(
                         height: 20,
                       ),
                     ],
@@ -109,14 +115,24 @@ class TransactionDetailView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: RichText(
-                    text: const TextSpan(
+                    text: TextSpan(
                       text: '(*) ',
-                      style: kTitleButtonTransaction,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.w700,
+                      ),
                       children: <TextSpan>[
                         TextSpan(
-                            text: 'En QvaPay las transacciones P2P '
-                                'carecen de impuestos.',
-                            style: kStyleTitlePago),
+                          text: 'En QvaPay las transacciones P2P '
+                              'carecen de impuestos.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).textTheme.headline1!.color,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -146,7 +162,11 @@ class _RowInfo extends StatelessWidget {
         children: [
           Text(
             title,
-            style: kStyleTitlePago,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.headline1!.color,
+            ),
           ),
           Text(data, style: kStyleDataPago),
         ],

@@ -32,7 +32,7 @@ class TransactionDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kbgPage,
+      backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
         title: Text(
           title,
@@ -44,7 +44,7 @@ class TransactionDetailPage extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        backgroundColor: kbgPage,
+        backgroundColor: Theme.of(context).backgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(

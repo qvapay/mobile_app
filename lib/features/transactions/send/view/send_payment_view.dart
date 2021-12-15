@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
@@ -17,21 +18,30 @@ class SendPaymentView extends StatelessWidget {
     return Column(
       children: [
         Container(
-          color: kbgPage,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          color: Theme.of(context).backgroundColor,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: TextField(
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Theme.of(context).textTheme.headline1!.color,
+                ),
                 decoration: InputDecoration(
                   border: InputBorder.none,
-                  prefixIcon: Icon(Icons.search, size: 32),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    size: 32,
+                    color: Theme.of(context).textTheme.headline1!.color,
+                  ),
                   hintText: 'Escriba el nombre o correo',
-                  hintStyle: TextStyle(color: Colors.black38),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).textTheme.headline1!.color,
+                  ),
                 )),
           ),
         ),
         Container(
-          color: kbgPage,
+          color: Theme.of(context).backgroundColor,
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -40,30 +50,31 @@ class SendPaymentView extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Contactos sugeridos',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Theme.of(context).textTheme.headline1!.color,
                   ),
                 ),
                 Row(
                   children: [
                     TextButton(
                       onPressed: () {},
-                      child: const Text(
+                      child: Text(
                         'Ver Todos',
                         style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.arrow_forward_ios_sharp,
                       size: 16,
-                      color: Colors.blue,
+                      color: Theme.of(context).primaryColor,
                     )
                   ],
                 )
@@ -72,47 +83,18 @@ class SendPaymentView extends StatelessWidget {
           ),
         ),
         Expanded(
-            child: ListView.builder(
-                itemCount: 10,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 16,
-                    ),
-                    child: ListTile(
-                      tileColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      leading: CircleAvatar(
-                        radius: 25,
-                        backgroundColor: Colors.grey[200],
-                        child: Image.asset(
-                          'assets/images/no_image.png',
-                          width: 30,
-                        ),
-                      ),
-                      title: const Text(
-                        'Jhon Doe',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'jhon@gmail.com',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black45,
-                        ),
-                      ),
-                    ),
-                  );
-                })),
+          child: ListView.builder(
+            itemCount: 10,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            itemBuilder: (context, index) => const UserServiceCardWidget(
+              name: 'Martin Ekstrom',
+              subtitle: 'email@gmail.com',
+              avatar: 'assets/avatars/keanu.png',
+            ),
+          ),
+        ),
         Container(
-            color: kbgPage,
+            color: Theme.of(context).backgroundColor,
             height: size.height * 0.25,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

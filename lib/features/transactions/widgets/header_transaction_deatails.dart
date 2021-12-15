@@ -25,25 +25,30 @@ class HeaderTransactionDeatails extends StatelessWidget {
         ProfileImageNetworkWidget(
           imageUrl: imageUrl.contains('https://') ? imageUrl : qvapayIconUrl,
           radius: 60,
-          borderImage: Border.all(width: 4, color: Colors.white),
+          borderImage: Border.all(width: 4, color: Theme.of(context).cardColor),
         ),
         const SizedBox(
           height: 10,
         ),
         Text(
           name,
-          style: kStyleNameReceived,
+          style: TextStyle(
+            fontSize: 18,
+            fontFamily: 'Roboto',
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.headline1!.color,
+          ),
         ),
         const SizedBox(
           height: 5,
         ),
         Text(
           email,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontFamily: 'Roboto',
             fontWeight: FontWeight.bold,
-            color: Color(0xFF3186E7),
+            color: Theme.of(context).primaryColor,
           ),
         ),
       ],

@@ -13,17 +13,16 @@ class SendPaymentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kbgPage,
+      backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
-        title: const Text('Enviar Pago',
+        title: Text('Enviar Pago',
             style: TextStyle(
               fontSize: 20,
-              color: Color(0xFF3186E7),
-              fontFamily: 'Roboto',
+              color: Theme.of(context).primaryColor,
               fontWeight: FontWeight.w900,
             )),
         centerTitle: true,
-        backgroundColor: kbgPage,
+        backgroundColor: Theme.of(context).backgroundColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),

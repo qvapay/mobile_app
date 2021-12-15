@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
@@ -54,8 +55,14 @@ class AmountTextFieldState extends State<AmountTextField> {
                       controller: _controller,
                       autofocus: true,
                       decoration: InputDecoration(
+                        enabledBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: AppColors.greyInfo),
+                        ),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.close),
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(context).textTheme.headline1!.color,
+                          ),
                           onPressed: () {
                             context
                                 .read<SendTransactionCubit>()
@@ -67,13 +74,16 @@ class AmountTextFieldState extends State<AmountTextField> {
                           },
                         ),
                         prefixText: r'$',
-                        prefixStyle:
-                            const TextStyle(fontSize: 38, color: Colors.blue),
+                        prefixStyle: TextStyle(
+                          fontSize: 38,
+                          color: Theme.of(context).primaryColor,
+                        ),
                         prefixIcon: const SizedBox.shrink(),
                         border: InputBorder.none,
                       ),
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 38, color: Colors.blue),
+                      style: TextStyle(
+                          fontSize: 38, color: Theme.of(context).primaryColor),
                       onChanged: (value) => context
                           .read<SendTransactionCubit>()
                           .changeAmount(value),
@@ -92,13 +102,13 @@ class AmountTextFieldState extends State<AmountTextField> {
                   context.read<SendTransactionCubit>().changeVisibilityOfAmount(
                         visibility: true,
                       ),
-              child: const Text(
+              child: Text(
                 'Entre la cantidad a enviar',
                 style: TextStyle(
                   fontSize: 16,
                   fontFamily: 'Roboto',
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF3186E7),
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             );

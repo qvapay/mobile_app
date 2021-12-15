@@ -126,16 +126,15 @@ class _TabUser extends StatelessWidget {
           body: Column(
             children: [
               SizedBox(
-                height: 115,
+                height: 110,
                 child: TabBarView(children: [
                   Column(
                     children: [
                       Container(
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 6),
-                        height: 100,
+                        height: 95,
                         child: ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           scrollDirection: Axis.horizontal,
                           children: const <Widget>[
                             UserServiceCardWidget(

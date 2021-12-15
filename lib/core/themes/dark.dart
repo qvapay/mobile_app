@@ -6,8 +6,14 @@ final ThemeData darkTheme = ThemeData(
   backgroundColor: AppColors.backgroundDark,
   cardColor: AppColors.cardDark,
   textTheme: const TextTheme(
-    headline1: TextStyle(color: AppColors.textGrey),
-    subtitle1: TextStyle(color: AppColors.textGrey),
+    headline1: TextStyle(
+      color: AppColors.textGrey,
+      fontFamily: 'Roboto',
+    ),
+    subtitle1: TextStyle(
+      color: AppColors.textGrey,
+      fontFamily: 'Roboto',
+    ),
   ),
   tabBarTheme: TabBarTheme(
     labelColor: AppColors.textBlue,
