@@ -17,16 +17,13 @@ class AmountTextField extends StatefulWidget {
 
 class AmountTextFieldState extends State<AmountTextField> {
   final _controller = TextEditingController();
-  bool _haveAmount = false;
 
   @override
   void initState() {
     final amount = widget.transaction.amount;
     if (amount.isNotEmpty && amount != '0.0') {
+      context.read<SendTransactionCubit>().changeAmount(amount);
       _controller.value = TextEditingValue(text: amount);
-      setState(() {
-        _haveAmount = true;
-      });
     }
     super.initState();
   }
@@ -45,7 +42,7 @@ class AmountTextFieldState extends State<AmountTextField> {
       children: [
         BlocBuilder<SendTransactionCubit, SendTransactionState>(
           builder: (context, state) {
-            if (state.amountFieldIsVisible || _haveAmount) {
+            if (state.amountFieldIsVisible) {
               return Container(
                 alignment: Alignment.center,
                 width: size.width * 0.55,
@@ -68,9 +65,6 @@ class AmountTextFieldState extends State<AmountTextField> {
                                 .read<SendTransactionCubit>()
                                 .changeVisibilityOfAmount(visibility: false);
                             _controller.clear();
-                            setState(() {
-                              _haveAmount = false;
-                            });
                           },
                         ),
                         prefixText: r'$',
