@@ -13,6 +13,11 @@ class AmountFormz extends FormzInput<String, AmountValidationError> {
   @override
   AmountValidationError? validator(String value) {
     if (value.isEmpty) return AmountValidationError.empty;
+    try {
+      if (double.parse(value) <= 0) return AmountValidationError.invalid;
+    } catch (_) {
+      return AmountValidationError.invalid;
+    }
     if (!_nameRegExp.hasMatch(value.replaceAll(' ', ''))) {
       return AmountValidationError.invalid;
     }
