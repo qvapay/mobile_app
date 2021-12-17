@@ -13,21 +13,22 @@ class SearchTransactionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios,
-            color: Colors.blue,
+            color: Theme.of(context).primaryColor,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Transacciones',
           style: TextStyle(
-            color: Colors.blue,
+            color: Theme.of(context).primaryColor,
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),

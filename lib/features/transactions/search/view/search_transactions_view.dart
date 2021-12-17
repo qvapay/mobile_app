@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_app/core/constants/constants.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/search/search.dart';
 import 'package:mobile_app/features/transactions/search/widgets/widgets.dart';
@@ -35,35 +35,45 @@ class SearchTransactionView extends StatelessWidget {
                   child: const SearchField(),
                 ),
               ),
-              InkWell(
-                onTap: () {
-                  final isActive = context
-                      .read<SearchTransactionsBloc>()
-                      .state
-                      .isFilterActive;
-                  context
-                      .read<SearchTransactionsBloc>()
-                      .add(ActiveDeactiveFilter(
-                        changeTo: isActive
-                            ? TransactionFilterOption.none
-                            : TransactionFilterOption.all,
-                      ));
-                },
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: // TODO(@yeikel16): Change icon for transparent backgound
-                      context.select((SearchTransactionsBloc cubit) =>
-                              cubit.state.isFilterActive)
-                          ? Image.asset(
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: context.select((SearchTransactionsBloc cubit) =>
+                        cubit.state.isFilterActive)
+                    ? Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        color: Theme.of(context).primaryColor,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => _onTapActiveFilter(context),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Image.asset(
                               'assets/icons/menu_active.png',
                               scale: 2,
-                            )
-                          : Image.asset(
+                            ),
+                          ),
+                        ),
+                      )
+                    : Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        color: Theme.of(context).cardColor,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => _onTapActiveFilter(context),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Image.asset(
                               'assets/icons/menu_inactive.png',
                               scale: 2,
                             ),
-                ),
-              )
+                          ),
+                        ),
+                      ),
+              ),
             ],
           ),
           BlocBuilder<SearchTransactionsBloc, SearchTransactionsState>(
@@ -83,8 +93,9 @@ class SearchTransactionView extends StatelessWidget {
                       child: Container(
                         height: kToolbarHeight - 8,
                         decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: kLinearGradientBlue),
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: AppColors.linearGradientBlue,
+                        ),
                       ),
                     ),
                     Positioned(
@@ -159,10 +170,14 @@ class SearchTransactionView extends StatelessWidget {
                   );
                 }
                 if (state.transactions.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       '0 transacciones',
-                      style: TextStyle(fontSize: 18, color: Colors.black38),
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Theme.of(context).textTheme.headline1!.color,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   );
                 }
@@ -180,6 +195,16 @@ class SearchTransactionView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _onTapActiveFilter(BuildContext context) {
+    final isActive =
+        context.read<SearchTransactionsBloc>().state.isFilterActive;
+    context.read<SearchTransactionsBloc>().add(ActiveDeactiveFilter(
+          changeTo: isActive
+              ? TransactionFilterOption.none
+              : TransactionFilterOption.all,
+        ));
   }
 }
 
@@ -204,9 +229,12 @@ class _TextFilterWidget extends StatelessWidget {
           child: Text(
             name,
             style: TextStyle(
-                color: isActive ? Colors.white : Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.bold),
+              color: isActive
+                  ? Colors.white
+                  : Theme.of(context).textTheme.headline1!.color,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

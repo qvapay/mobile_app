@@ -45,7 +45,10 @@ class _SearchFieldState extends State<SearchField> {
               widthFilterLabel: widthFilterLabel,
             ));
       },
-      style: const TextStyle(fontSize: 18),
+      style: TextStyle(
+        fontSize: 18,
+        color: Theme.of(context).textTheme.headline1!.color,
+      ),
       onChanged: (value) => context
           .read<SearchTransactionsBloc>()
           .add(SearchTermChanged(searchTerm: value)),
@@ -62,11 +65,27 @@ class _SearchFieldState extends State<SearchField> {
                     _controller.clear();
                     FocusScope.of(context).unfocus();
                   },
-                  icon: const Icon(Icons.close),
+                  icon: Icon(
+                    Icons.close,
+                    color: Theme.of(context)
+                        .textTheme
+                        .headline1!
+                        .color!
+                        .withOpacity(0.45),
+                  ),
                 ),
-          prefixIcon: const Icon(Icons.search, size: 32),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 32,
+            color:
+                Theme.of(context).textTheme.headline1!.color!.withOpacity(0.45),
+          ),
           hintText: 'Escriba el nombre o correo',
-          hintStyle: const TextStyle(color: Colors.black38),
+          hintStyle: TextStyle(
+            color:
+                Theme.of(context).textTheme.headline1!.color!.withOpacity(0.45),
+            fontWeight: FontWeight.w600,
+          ),
           errorText: _searchParamsError(context
               .select((SearchTransactionsBloc t) => t.state.searchTerm))),
     );
