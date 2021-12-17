@@ -124,32 +124,83 @@ void main() {
         ],
       );
 
-      blocTest<SendTransactionCubit, SendTransactionState>(
-        'emits [createdStatus] as `invalid` when the `amount is invalid.',
-        setUp: () {
-          when(
-            () => repository.createTransaction(
-              transaction: tUserTransactionModel,
-            ),
-          ).thenAnswer((_) async =>
-              Right<Failure, UserTransaction>(tUserTransactionModel));
-        },
-        build: () => SendTransactionCubit(transactionsRepository: repository),
-        seed: () => const SendTransactionState(
-          amountFieldIsVisible: true,
-          amount: AmountFormz.dirty(tAmount),
-        ),
-        act: (cubit) => cubit
-          ..changeVisibilityOfAmount(visibility: true)
-          ..changeAmount('-$tAmount'),
-        expect: () => const <SendTransactionState>[
-          SendTransactionState(
+      group('emits [createdStatus] as `invalid` when', () {
+        blocTest<SendTransactionCubit, SendTransactionState>(
+          'the `amount is less than 0.',
+          setUp: () {
+            when(
+              () => repository.createTransaction(
+                transaction: tUserTransactionModel,
+              ),
+            ).thenAnswer((_) async =>
+                Right<Failure, UserTransaction>(tUserTransactionModel));
+          },
+          build: () => SendTransactionCubit(transactionsRepository: repository),
+          seed: () => const SendTransactionState(
             amountFieldIsVisible: true,
-            amount: AmountFormz.dirty('-$tAmount'),
-            createdStatus: FormzStatus.invalid,
+            amount: AmountFormz.dirty(tAmount),
           ),
-        ],
-      );
+          act: (cubit) => cubit
+            ..changeVisibilityOfAmount(visibility: true)
+            ..changeAmount('-$tAmount'),
+          expect: () => const <SendTransactionState>[
+            SendTransactionState(
+              amountFieldIsVisible: true,
+              amount: AmountFormz.dirty('-$tAmount'),
+              createdStatus: FormzStatus.invalid,
+            ),
+          ],
+        );
+        blocTest<SendTransactionCubit, SendTransactionState>(
+          'the `amount is equal to 0.',
+          setUp: () {
+            when(
+              () => repository.createTransaction(
+                transaction: tUserTransactionModel,
+              ),
+            ).thenAnswer((_) async =>
+                Right<Failure, UserTransaction>(tUserTransactionModel));
+          },
+          build: () => SendTransactionCubit(transactionsRepository: repository),
+          seed: () => const SendTransactionState(amountFieldIsVisible: true),
+          act: (cubit) => cubit
+            ..changeVisibilityOfAmount(visibility: true)
+            ..changeAmount('0'),
+          expect: () => const <SendTransactionState>[
+            SendTransactionState(
+              amountFieldIsVisible: true,
+              amount: AmountFormz.dirty('0'),
+              createdStatus: FormzStatus.invalid,
+            ),
+          ],
+        );
+        blocTest<SendTransactionCubit, SendTransactionState>(
+          'the format of `amount` is wrong.',
+          setUp: () {
+            when(
+              () => repository.createTransaction(
+                transaction: tUserTransactionModel,
+              ),
+            ).thenAnswer((_) async =>
+                Right<Failure, UserTransaction>(tUserTransactionModel));
+          },
+          build: () => SendTransactionCubit(transactionsRepository: repository),
+          seed: () => const SendTransactionState(
+            amountFieldIsVisible: true,
+            amount: AmountFormz.dirty(tAmount),
+          ),
+          act: (cubit) => cubit
+            ..changeVisibilityOfAmount(visibility: true)
+            ..changeAmount('-$tAmount..'),
+          expect: () => const <SendTransactionState>[
+            SendTransactionState(
+              amountFieldIsVisible: true,
+              amount: AmountFormz.dirty('-$tAmount..'),
+              createdStatus: FormzStatus.invalid,
+            ),
+          ],
+        );
+      });
 
       blocTest<SendTransactionCubit, SendTransactionState>(
         'emits [createdStatus] as `submissionFailure` when occurs an error '
