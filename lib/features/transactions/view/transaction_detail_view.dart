@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/extensions/extensions.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
@@ -95,9 +96,44 @@ class TransactionDetailView extends StatelessWidget {
                   title: 'Monto:',
                   data: r'$ ' + transaction.amount,
                 ),
-                _RowInfo(
-                  title: 'Transacción:',
-                  data: transaction.smallUuid,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Transacción:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.headline1!.color,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(
+                            ClipboardData(text: transaction.uuid),
+                          );
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Copiado al portapapeles !!'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          transaction.smallUuid,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 _RowInfo(
                   title: 'Fecha:',
@@ -168,7 +204,14 @@ class _RowInfo extends StatelessWidget {
               color: Theme.of(context).textTheme.headline1!.color,
             ),
           ),
-          Text(data, style: kStyleDataPago),
+          Text(
+            data,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
         ],
       ),
     );
