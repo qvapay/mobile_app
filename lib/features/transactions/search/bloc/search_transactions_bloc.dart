@@ -3,13 +3,12 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
+import 'package:formz/formz.dart';
 
 import 'package:mobile_app/core/error/failures.dart';
-import 'package:mobile_app/core/extensions/extensions.dart';
 import 'package:mobile_app/core/formz/formz.dart';
 import 'package:mobile_app/features/transactions/repository/transactions_repository.dart';
 import 'package:mobile_app/features/user_data/models/models.dart';
-import 'package:rxdart/rxdart.dart';
 
 part 'search_transactions_event.dart';
 part 'search_transactions_state.dart';
@@ -22,16 +21,27 @@ class SearchTransactionsBloc
     required ITransactionsRepository transactionRepository,
   })  : _transactionRepository = transactionRepository,
         super(const SearchTransactionsState()) {
-    on<GetAllTransactions>(_onGetAllTransactions);
-    on<ChangeFilterSelect>(_onChangeFilterSelect);
-    on<ActiveDeactiveFilter>(_onActiveDeactiveFilter);
-    on<CleanFilter>(_onCleanFilter);
-    on<SearchTermChanged>(
-      _onSearchTermChanged,
-      transformer: debounceRestartable(
-        SearchTransactionsBloc.debounceSearchTermDuration,
-      ),
+    on<SearchTransactionsEvent>(
+      _onSearchTransactions,
+      transformer: sequential(),
     );
+  }
+
+  FutureOr<void> _onSearchTransactions(
+    SearchTransactionsEvent event,
+    Emitter<SearchTransactionsState> emit,
+  ) async {
+    if (event is ActiveDeactiveFilter) {
+      _onActiveDeactiveFilter(event, emit);
+    } else if (event is GetAllTransactions) {
+      await _onGetAllTransactions(event, emit);
+    } else if (event is SearchTermChanged) {
+      await _onSearchTermChanged(event, emit);
+    } else if (event is ChangeFilterSelect) {
+      _onChangeFilterSelect(event, emit);
+    } else if (event is CleanFilter) {
+      _onCleanFilter(event, emit);
+    }
   }
 
   final ITransactionsRepository _transactionRepository;
@@ -48,63 +58,62 @@ class SearchTransactionsBloc
           filterIndex: event.widthFilterLabel,
           filterOptionSelect: TransactionFilterOption.send,
           transactions: [
-            if (_filterSearch.isNotEmpty)
-              for (var x in _filterSearch
-                  .where((transaction) => transaction.amount.toDouble() < 0)
-                  .toList())
-                x,
-            if (_filterSearch.isEmpty)
-              for (var x in _filterCache
-                  .where((transaction) => transaction.amount.toDouble() < 0)
-                  .toList())
-                x
+            if (state.isFilterActive)
+              ..._filterSearch.where((transaction) => transaction.isSend),
+            if (state.isFilterActive && state.searchTerm.pure)
+              ..._filterCache.where((transaction) => transaction.isSend),
           ],
         ));
+
         break;
       case TransactionFilterOption.receive:
         emit(state.copyWith(
-          filterIndex: event.widthFilterLabel * 2,
+          filterIndex: event.widthFilterLabel,
           filterOptionSelect: TransactionFilterOption.receive,
           transactions: [
-            if (_filterSearch.isNotEmpty)
-              for (var x in _filterSearch
-                  .where((transaction) => transaction.amount.toDouble() > 0)
-                  .toList())
-                x,
-            if (_filterSearch.isEmpty)
-              for (var x in _filterCache
-                  .where((transaction) => transaction.amount.toDouble() > 0)
-                  .toList())
-                x
+            if (state.isFilterActive)
+              ..._filterSearch.where((transaction) => transaction.isReceive),
+            if (state.isFilterActive && state.searchTerm.pure)
+              ..._filterCache.where((transaction) => transaction.isReceive),
           ],
         ));
         break;
       case TransactionFilterOption.all:
         emit(state.copyWith(
-          filterIndex: 0,
+          filterIndex: event.widthFilterLabel,
           filterOptionSelect: TransactionFilterOption.all,
           transactions: [
-            if (_filterSearch.isNotEmpty)
-              for (var x in _filterSearch) x,
-            if (_filterSearch.isEmpty)
-              for (var x in _filterCache) x
+            if (state.isFilterActive) ..._filterSearch,
+            if (state.isFilterActive && state.searchTerm.pure) ..._filterCache,
           ],
         ));
         break;
 
-      default:
-        emit(state);
+      case TransactionFilterOption.none:
+        break;
     }
   }
 
-  void _onActiveDeactiveFilter(ActiveDeactiveFilter event, Emitter emit) =>
-      emit(state.copyWith(filterOptionSelect: event.changeTo));
+  void _onActiveDeactiveFilter(ActiveDeactiveFilter event, Emitter emit) {
+    final filter = state.isFilterActive
+        ? TransactionFilterOption.none
+        : TransactionFilterOption.all;
+
+    if (state.searchTerm.pure && state.isFilterActive) {
+      return emit(state.copyWith(
+        filterIndex: 0,
+        filterOptionSelect: filter,
+        transactions: [..._filterCache],
+      ));
+    }
+    emit(state.copyWith(filterOptionSelect: filter));
+  }
 
   FutureOr<void> _onGetAllTransactions(
     GetAllTransactions event,
     Emitter<SearchTransactionsState> emit,
   ) async {
-    emit(state.copyWith(isSearchTransactions: true));
+    emit(state.copyWith(status: FormzStatus.submissionInProgress));
 
     final userTransactions =
         await _transactionRepository.getLatestTransactions();
@@ -112,12 +121,12 @@ class SearchTransactionsBloc
     emit(userTransactions.fold(
         (error) => state.copyWith(
               errorMessage: (error as ServerFailure).message,
-              isSearchTransactions: false,
+              status: FormzStatus.submissionFailure,
             ), (transactions) {
       _filterCache = transactions;
       return state.copyWith(
-        isSearchTransactions: false,
-        transactions: [for (var x in transactions) x],
+        status: FormzStatus.submissionSuccess,
+        transactions: [...transactions],
       );
     }));
   }
@@ -130,25 +139,37 @@ class SearchTransactionsBloc
     emit(
       state.copyWith(
         searchTerm: searchTerm,
-        isSearchTransactions: searchTerm.valid,
+        status: FormzStatus.submissionInProgress,
       ),
     );
     if (searchTerm.valid) {
       final userTransactions = await _transactionRepository
           .getLatestTransactions(searchTerm: event.searchTerm);
 
-      emit(userTransactions.fold(
+      emit(
+        userTransactions.fold(
           (e) => state.copyWith(
-                errorMessage: (e as ServerFailure).message,
-                isSearchTransactions: false,
-              ), (transactions) {
-        _filterSearch = transactions;
-        return state.copyWith(
-          searchTerm: searchTerm,
-          isSearchTransactions: !searchTerm.valid,
-          transactions: [for (var x in transactions) x],
-        );
-      }));
+            errorMessage: (e as ServerFailure).message,
+            status: FormzStatus.submissionFailure,
+          ),
+          (transactions) {
+            _filterSearch = transactions;
+            return state.copyWith(
+              searchTerm: searchTerm,
+              status: FormzStatus.submissionSuccess,
+              transactions: [...transactions],
+            );
+          },
+        ),
+      );
+
+      if (state.isFilterActive &&
+          state.filterOptionSelect != TransactionFilterOption.all) {
+        add(ChangeFilterSelect(
+          select: state.filterOptionSelect,
+          widthFilterLabel: state.filterIndex,
+        ));
+      }
     }
   }
 
@@ -161,13 +182,9 @@ class SearchTransactionsBloc
       state.copyWith(
         searchTerm: const NameFormz.pure(),
         transactions: [for (var x in _filterCache) x],
+        filterOptionSelect: TransactionFilterOption.all,
+        filterIndex: 0,
       ),
     );
-  }
-
-  EventTransformer<SearchTransactionsEvent>
-      debounceRestartable<SearchTransactionsEvent>(Duration duration) {
-    return (events, mapper) => restartable<SearchTransactionsEvent>()
-        .call(events.debounceTime(duration), mapper);
   }
 }

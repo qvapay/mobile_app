@@ -4,7 +4,7 @@ class SearchTransactionsState extends Equatable {
   const SearchTransactionsState({
     this.filterIndex = 0,
     this.filterOptionSelect = TransactionFilterOption.none,
-    this.isSearchTransactions = false,
+    this.status = FormzStatus.pure,
     this.searchTerm = const NameFormz.pure(),
     this.transactions = const <UserTransaction>[],
     this.errorMessage,
@@ -12,7 +12,7 @@ class SearchTransactionsState extends Equatable {
 
   final double filterIndex;
   final TransactionFilterOption filterOptionSelect;
-  final bool isSearchTransactions;
+  final FormzStatus status;
   final NameFormz searchTerm;
   final List<UserTransaction> transactions;
   final String? errorMessage;
@@ -22,7 +22,7 @@ class SearchTransactionsState extends Equatable {
     return [
       filterIndex,
       filterOptionSelect,
-      isSearchTransactions,
+      status,
       searchTerm,
       transactions,
       errorMessage,
@@ -34,7 +34,7 @@ class SearchTransactionsState extends Equatable {
   SearchTransactionsState copyWith({
     double? filterIndex,
     TransactionFilterOption? filterOptionSelect,
-    bool? isSearchTransactions,
+    FormzStatus? status,
     NameFormz? searchTerm,
     List<UserTransaction>? transactions,
     String? errorMessage,
@@ -42,7 +42,7 @@ class SearchTransactionsState extends Equatable {
     return SearchTransactionsState(
       filterIndex: filterIndex ?? this.filterIndex,
       filterOptionSelect: filterOptionSelect ?? this.filterOptionSelect,
-      isSearchTransactions: isSearchTransactions ?? this.isSearchTransactions,
+      status: status ?? this.status,
       searchTerm: searchTerm ?? this.searchTerm,
       transactions: transactions ?? this.transactions,
       errorMessage: errorMessage ?? this.errorMessage,

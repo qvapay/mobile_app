@@ -23,10 +23,7 @@ void main() {
     });
     group('ActiveDeactiveFilter', () {
       test('supports value comparisons', () {
-        expect(
-          ActiveDeactiveFilter(changeTo: TransactionFilterOption.none),
-          ActiveDeactiveFilter(changeTo: TransactionFilterOption.none),
-        );
+        expect(ActiveDeactiveFilter(), ActiveDeactiveFilter());
       });
     });
     group('GetAllTransactions', () {

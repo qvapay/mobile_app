@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:formz/formz.dart';
 import 'package:mobile_app/core/themes/colors.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/transactions/search/search.dart';
@@ -15,8 +16,7 @@ class SearchTransactionView extends StatelessWidget {
         (size.width * 0.25).ceilToDouble().clamp(85.0, 110.0);
 
     return BlocListener<SearchTransactionsBloc, SearchTransactionsState>(
-      listenWhen: (previous, current) =>
-          previous.errorMessage != current.errorMessage,
+      listenWhen: (previous, current) => current.status.isSubmissionFailure,
       listener: (context, state) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Error al comunicarse con el servidor !!'),
@@ -105,9 +105,9 @@ class SearchTransactionView extends StatelessWidget {
                         onTap: () {
                           context
                               .read<SearchTransactionsBloc>()
-                              .add(ChangeFilterSelect(
+                              .add(const ChangeFilterSelect(
                                 select: TransactionFilterOption.all,
-                                widthFilterLabel: widthFilterLabel,
+                                widthFilterLabel: 0,
                               ));
                         },
                         child: _TextFilterWidget(
@@ -145,7 +145,7 @@ class SearchTransactionView extends StatelessWidget {
                               .read<SearchTransactionsBloc>()
                               .add(ChangeFilterSelect(
                                 select: TransactionFilterOption.receive,
-                                widthFilterLabel: widthFilterLabel,
+                                widthFilterLabel: widthFilterLabel * 2,
                               ));
                         },
                         child: _TextFilterWidget(
@@ -164,7 +164,7 @@ class SearchTransactionView extends StatelessWidget {
           Expanded(
             child: BlocBuilder<SearchTransactionsBloc, SearchTransactionsState>(
               builder: (context, state) {
-                if (state.isSearchTransactions) {
+                if (state.status.isSubmissionInProgress) {
                   return const Center(
                     child: CircularProgressIndicator(),
                   );
@@ -197,15 +197,8 @@ class SearchTransactionView extends StatelessWidget {
     );
   }
 
-  void _onTapActiveFilter(BuildContext context) {
-    final isActive =
-        context.read<SearchTransactionsBloc>().state.isFilterActive;
-    context.read<SearchTransactionsBloc>().add(ActiveDeactiveFilter(
-          changeTo: isActive
-              ? TransactionFilterOption.none
-              : TransactionFilterOption.all,
-        ));
-  }
+  void _onTapActiveFilter(BuildContext context) =>
+      context.read<SearchTransactionsBloc>().add(const ActiveDeactiveFilter());
 }
 
 class _TextFilterWidget extends StatelessWidget {
