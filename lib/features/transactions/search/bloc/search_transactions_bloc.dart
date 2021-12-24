@@ -46,7 +46,7 @@ class SearchTransactionsBloc
 
   final ITransactionsRepository _transactionRepository;
 
-  static const debounceSearchTermDuration = Duration(milliseconds: 400);
+  static const debounceSearchTermDuration = Duration(milliseconds: 350);
 
   var _filterCache = <UserTransaction>[];
   var _filterSearch = <UserTransaction>[];
