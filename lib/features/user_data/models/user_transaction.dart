@@ -99,6 +99,22 @@ class UserTransaction extends Equatable {
 
   String get smallUuid => uuid.split('-')[4];
 
+  bool get isSend {
+    try {
+      return double.parse(amount) < 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool get isReceive {
+    try {
+      return double.parse(amount) > 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
   String get typeToString {
     if (transactionType == TransactionType.autoRecharge) {
       return 'Auto Recarga';
