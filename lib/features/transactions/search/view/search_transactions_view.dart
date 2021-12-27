@@ -164,7 +164,8 @@ class SearchTransactionView extends StatelessWidget {
           Expanded(
             child: BlocBuilder<SearchTransactionsBloc, SearchTransactionsState>(
               builder: (context, state) {
-                if (state.status.isSubmissionInProgress) {
+                if (state.status.isSubmissionInProgress &&
+                    state.searchTerm.status != FormzInputStatus.invalid) {
                   return const Center(
                     child: CircularProgressIndicator(),
                   );
