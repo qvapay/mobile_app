@@ -6,7 +6,10 @@ final ThemeData lightTheme = ThemeData(
   backgroundColor: AppColors.backgroundLight,
   cardColor: Colors.white,
   textTheme: const TextTheme(
-    headline1: TextStyle(color: Colors.black87),
+    headline1: TextStyle(
+      color: Colors.black87,
+      fontFamily: 'Roboto',
+    ),
   ),
   tabBarTheme: TabBarTheme(
     labelColor: AppColors.textBlue,

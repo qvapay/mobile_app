@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/themes/colors.dart';
+import 'package:mobile_app/features/transactions/transactions.dart';
 
 class BottomSendAndReciveWidget extends StatelessWidget {
   const BottomSendAndReciveWidget({
@@ -18,9 +19,11 @@ class BottomSendAndReciveWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: () {
-              debugPrint('Enviar');
-            },
+            onTap: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SendPaymentPage(),
+                )),
             child: Row(
               children: const [
                 Icon(
@@ -43,7 +46,10 @@ class BottomSendAndReciveWidget extends StatelessWidget {
           ),
           GestureDetector(
             onTap: () {
-              debugPrint('Recibir');
+              Navigator.push<void>(
+                context,
+                MaterialPageRoute<void>(builder: (_) => ReceivePaymentPage()),
+              );
             },
             child: Row(
               children: const [

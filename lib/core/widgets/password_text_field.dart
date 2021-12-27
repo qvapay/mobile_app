@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/formz/formz.dart';
 import 'package:mobile_app/core/themes/colors.dart';
 

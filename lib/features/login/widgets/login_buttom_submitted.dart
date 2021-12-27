@@ -16,10 +16,16 @@ class LoginButtomSubmitted extends StatelessWidget {
       builder: (context, state) {
         final isValid = state.status.isValid;
         return state.status.isSubmissionInProgress
-            ? const CircularProgressIndicator()
+            ? const Center(
+                child: Padding(
+                padding: EdgeInsets.all(8),
+                child: CircularProgressIndicator(),
+              ))
             : ButtonLarge(
-                onPressed: () =>
-                    context.read<LoginBloc>().add(const LoginSubmitted()),
+                onPressed: () {
+                  context.read<LoginBloc>().add(const LoginSubmitted());
+                  FocusScope.of(context).unfocus();
+                },
                 title: 'Iniciar Sesión',
                 styleGradient:
                     isValid ? kLinearGradientBlue : kLinearGradientGrey,

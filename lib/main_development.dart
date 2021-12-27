@@ -13,6 +13,7 @@ import 'package:mobile_app/bootstrap.dart';
 void main() {
   bootstrap(
     () => DevicePreview(
+      // ignore: avoid_redundant_argument_values
       enabled: !kReleaseMode,
       builder: (context) => const App(),
     ),

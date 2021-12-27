@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
-import 'package:mobile_app/core/themes/colors.dart';
+import 'package:mobile_app/core/themes/themes.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/home/widgets/widgets.dart';
-
+import 'package:mobile_app/features/transactions/transactions.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
 class HomeView extends StatelessWidget {
@@ -38,7 +37,6 @@ class HomeView extends StatelessWidget {
                   ),
                   child: Container(
                     decoration: const BoxDecoration(
-                        color: Colors.red,
                         borderRadius: BorderRadius.only(
                             bottomRight: Radius.circular(30),
                             bottomLeft: Radius.circular(30))),
@@ -128,16 +126,15 @@ class _TabUser extends StatelessWidget {
           body: Column(
             children: [
               SizedBox(
-                height: 115,
+                height: 110,
                 child: TabBarView(children: [
                   Column(
                     children: [
                       Container(
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 6),
-                        height: 100,
+                        height: 95,
                         child: ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           scrollDirection: Axis.horizontal,
                           children: const <Widget>[
                             UserServiceCardWidget(
@@ -190,7 +187,17 @@ class _TabUser extends StatelessWidget {
                                       ?.color)),
                           GestureDetector(
                             onTap: () {
-                              debugPrint('Ir a todos');
+                              Navigator.push<void>(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (_) => BlocProvider.value(
+                                    value:
+                                        context.read<SearchTransactionsBloc>()
+                                          ..add(const GetAllTransactions()),
+                                    child: const SearchTransactionPage(),
+                                  ),
+                                ),
+                              );
                             },
                             child: Row(
                               children: const [
@@ -229,20 +236,10 @@ class _TabUser extends StatelessWidget {
                                       .take(5)
                                       .length,
                                   itemBuilder: (context, index) {
-                                    final credit = double.parse(state.userData!
-                                        .latestTransactions[index].amount);
-                                    final date = DateFormat.yMd()
-                                        .format(state.userData!
-                                            .latestTransactions[index].date)
-                                        .toString();
+                                    final transaction = state
+                                        .userData!.latestTransactions[index];
                                     return TransactionCardWidget(
-                                      name: state.userData!
-                                          .latestTransactions[index].name,
-                                      avatar: state.userData!
-                                          .latestTransactions[index].imageUrl,
-                                      credit: credit.abs(),
-                                      date: date,
-                                      isCredit: credit > 0,
+                                      transaction: transaction,
                                     );
                                   });
                             }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:qvapay_api_client/qvapay_api_client.dart' show Transaction;
@@ -25,6 +27,11 @@ class UserTransaction extends Equatable {
 
   factory UserTransaction.fromJson(Map<String, dynamic> json) =>
       _$UserTransactionFromJson(json);
+
+  factory UserTransaction.decode(String transaction) =>
+      _$UserTransactionFromJson(
+          json.decode(utf8.decode(base64.decode(transaction)))
+              as Map<String, dynamic>);
 
   factory UserTransaction.fromTransaction(Transaction transaction) {
     var transactionType = TransactionType.unknown;
@@ -88,6 +95,40 @@ class UserTransaction extends Equatable {
 
   Map<String, dynamic> toJson() => _$UserTransactionToJson(this);
 
+  String encode() => base64.encode(utf8.encode(json.encode(toJson())));
+
+  String get smallUuid => uuid.split('-')[4];
+
+  bool get isSend {
+    try {
+      return double.parse(amount) < 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool get isReceive {
+    try {
+      return double.parse(amount) > 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String get typeToString {
+    if (transactionType == TransactionType.autoRecharge) {
+      return 'Auto Recarga';
+    } else if (transactionType == TransactionType.p2p) {
+      return 'P2P';
+    } else if (transactionType == TransactionType.service) {
+      return 'Servicio';
+    } else if (transactionType == TransactionType.transfer) {
+      return 'Tranferencia';
+    }
+
+    return 'Unknown';
+  }
+
   @override
   List<Object?> get props {
     return [
@@ -100,5 +141,27 @@ class UserTransaction extends Equatable {
       imageUrl,
       transactionType,
     ];
+  }
+
+  UserTransaction copyWith({
+    String? uuid,
+    String? name,
+    String? email,
+    String? amount,
+    String? description,
+    String? imageUrl,
+    DateTime? date,
+    TransactionType? transactionType,
+  }) {
+    return UserTransaction(
+      uuid: uuid ?? this.uuid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      amount: amount ?? this.amount,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+      date: date ?? this.date,
+      transactionType: transactionType ?? this.transactionType,
+    );
   }
 }
