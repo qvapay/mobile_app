@@ -7,13 +7,14 @@ import 'package:qvapay_api_client/qvapay_api_client.dart';
 import '../../../fixtures/fixture_adapter.dart';
 
 void main() {
+  final tUserTransactionString = fixture('user_transactions.json');
   final tTransactionListJson =
-      json.decode(fixture('user_transactions.json')) as List<dynamic>;
+      json.decode(tUserTransactionString) as List<dynamic>;
   final tUserTransactionListJson =
       tTransactionListJson.cast<Map<String, dynamic>>();
+  final tUserTransactionModel =
+      UserTransaction.fromJson(tUserTransactionListJson[0]);
   group('UserTransaction', () {
-    final tUserTransactionModel =
-        UserTransaction.fromJson(tUserTransactionListJson[0]);
     test('fromJson', () {
       expect(tUserTransactionModel, isA<UserTransaction>());
       expect(
@@ -75,6 +76,66 @@ void main() {
           equals(UserTransaction.fromTransaction(tTransactionQvaPayList[3])),
         );
       });
+    });
+
+    group('typeToString', () {
+      test('when is `autoRecharge` type', () {
+        final tUserTransactionModel =
+            UserTransaction.fromJson(tUserTransactionListJson[0]);
+
+        expect(
+          tUserTransactionModel.typeToString,
+          equals('Auto Recarga'),
+        );
+      });
+
+      test('when is `tranfer` type', () {
+        final tUserTransactionModel =
+            UserTransaction.fromJson(tUserTransactionListJson[1]);
+
+        expect(
+          tUserTransactionModel.typeToString,
+          equals('Tranferencia'),
+        );
+      });
+      test('when is `service` type', () {
+        final tUserTransactionModel =
+            UserTransaction.fromJson(tUserTransactionListJson[2]);
+
+        expect(
+          tUserTransactionModel.typeToString,
+          equals('Servicio'),
+        );
+      });
+      test('when is `p2p` type', () {
+        final tUserTransactionModel =
+            UserTransaction.fromJson(tUserTransactionListJson[3]);
+
+        expect(
+          tUserTransactionModel.typeToString,
+          equals('P2P'),
+        );
+      });
+    });
+
+    test('dencode/encode', () {
+      expect(
+        tUserTransactionModel,
+        equals(UserTransaction.decode(tUserTransactionModel.encode())),
+      );
+    });
+    test('smallUuid', () {
+      expect(
+        '3073b3e75781',
+        equals(tUserTransactionModel.smallUuid),
+      );
+    });
+
+    test('copyWith', () {
+      expect(
+        tUserTransactionModel.copyWith(),
+        tUserTransactionModel.copyWith(),
+      );
     });
   });
 }

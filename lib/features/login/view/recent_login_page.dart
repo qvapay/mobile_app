@@ -20,10 +20,12 @@ class RecentLoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: BlocProvider(
-      create: (context) => getIt<LoginBloc>(),
-      child: const RecentLoginView(),
-    ));
+      backgroundColor: Theme.of(context).backgroundColor,
+      body: BlocProvider(
+        create: (context) => getIt<LoginBloc>(),
+        child: const RecentLoginView(),
+      ),
+    );
   }
 }
 

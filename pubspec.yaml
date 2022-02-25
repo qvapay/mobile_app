@@ -8,39 +8,41 @@ environment:
 
 dependencies:
   animations: ^2.0.2
-  bloc: ^8.0.1
+  bloc: ^8.0.2
   bloc_concurrency: ^0.2.0
-  cached_network_image: ^3.1.0
-  dartz: ^0.10.0-nullsafety.1
+  cached_network_image: ^3.2.0
+  dartz: ^0.10.1
   data_connection_checker: ^0.3.4
   device_preview: ^1.0.0-alpha.15
-  dio: ^4.0.0
+  dio: ^4.0.4
   equatable: ^2.0.3
   flutter:
     sdk: flutter
-  flutter_bloc: ^8.0.0
-  flutter_secure_storage: ^4.2.1
-  formz: ^0.4.0
+  flutter_bloc: ^8.0.1
+  flutter_secure_storage: ^5.0.2
+  formz: ^0.4.1
   get_it: ^7.2.0
   grouped_list: ^4.0.0
-  hive: ^2.0.4
+  hive: ^2.0.6
   hive_flutter: ^1.1.0
-  http: ^0.13.3
   hydrated_bloc: ^8.0.0
+  image_gallery_saver: ^1.7.1
   intl: ^0.17.0
   json_annotation: ^4.3.0
-  path_provider: ^2.0.5
+  path_provider: ^2.0.9
+  permission_handler: ^8.2.6
   pin_code_fields: ^7.3.0
+  qr_code_scanner: ^0.7.0
+  qr_flutter: ^4.0.0
   qvapay_api_client:
     git:
       url: https://github.com/qvapay/qvapay_api_client.git
       ref: cff33f90705d8257ba3277e9e0aa937221d512f7
-  rxdart: ^0.27.2
   screenshot: ^1.2.3
-  share_plus: ^3.0.4
+  share_plus: ^3.1.0
 
 dev_dependencies:
-  bloc_test: ^9.0.1
+  bloc_test: ^9.0.2
   build_runner: ^2.1.4
   flutter_test:
     sdk: flutter
