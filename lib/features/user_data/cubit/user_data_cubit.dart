@@ -1,8 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:mobile_app/core/error/failures.dart';
-import 'package:mobile_app/features/user_data/models/models.dart';
-import 'package:mobile_app/features/user_data/repository/user_data_repository.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
 part 'user_data_state.dart';

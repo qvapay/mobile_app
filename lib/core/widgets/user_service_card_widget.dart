@@ -5,10 +5,12 @@ class UserServiceCardWidget extends StatelessWidget {
   const UserServiceCardWidget({
     Key? key,
     required this.name,
+    this.subtitle,
     required this.avatar,
   }) : super(key: key);
 
   final String name;
+  final String? subtitle;
   final String avatar;
 
   @override
@@ -21,25 +23,56 @@ class UserServiceCardWidget extends StatelessWidget {
           elevation: 4,
           child: Container(
             decoration: ShapeDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             child: SizedBox(
               width: 220,
-              child: Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: ProfileImageNetworkWidget(imageUrl: avatar),
-                  ),
-                  Text(name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w700,
-                      )),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: ProfileImageNetworkWidget(imageUrl: avatar),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.headline1?.color,
+                            fontSize: 16,
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        if (subtitle != null)
+                          Text(
+                            subtitle ?? '',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .headline1
+                                  ?.color!
+                                  .withOpacity(0.35),
+                              fontSize: 14,
+                              fontFamily: 'Roboto',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

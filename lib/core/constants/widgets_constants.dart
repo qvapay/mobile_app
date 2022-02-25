@@ -7,6 +7,7 @@ const kRedInfo = Color(0xFFBF461F);
 const kGreyInfo = Color(0xFFC4C4C4);
 const kInactiveText = Color(0xFF464646);
 const kActiveText = Color(0xFF3186E7);
+const kbgPage = Color(0xffEBECEE);
 
 const kLinearGradientBlue = LinearGradient(
     begin: Alignment.bottomRight,
@@ -306,3 +307,38 @@ const TextStyle styleSendRec = TextStyle(
 );
 
 const Color bgColor = Color(0xffEBECEE);
+
+const kStyleNameReceived = TextStyle(
+  fontSize: 18,
+  fontFamily: 'Roboto',
+  fontWeight: FontWeight.bold,
+  color: Color(0xFF464646),
+);
+
+const kStyleTitleReceived = TextStyle(
+  fontSize: 18,
+  color: Color(0xFF3186E7),
+  fontFamily: 'Roboto',
+  fontWeight: FontWeight.w900,
+);
+
+const kStyleTextPago = TextStyle(
+  fontSize: 30,
+  fontFamily: 'Roboto',
+  fontWeight: FontWeight.bold,
+  color: Color(0xFF3186E7),
+);
+
+const kStyleDataPago = TextStyle(
+  fontSize: 16,
+  fontFamily: 'Roboto',
+  fontWeight: FontWeight.bold,
+  color: Color(0xFF3186E7),
+);
+
+const kStyleTitlePago = TextStyle(
+  fontSize: 16,
+  fontFamily: 'Roboto',
+  fontWeight: FontWeight.bold,
+  color: Color(0xFF464646),
+);

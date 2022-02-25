@@ -1,10 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/constants/widgets_constants.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
 import 'package:mobile_app/features/authentication/authentication.dart';
 import 'package:mobile_app/features/preferences/preferences.dart';
+import 'package:mobile_app/features/setting/setting.dart';
+import 'package:mobile_app/features/setting/theme/theme.dart';
 import 'package:mobile_app/features/user_data/user_data.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -14,14 +15,22 @@ class HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
         width: double.maxFinite,
-        height: 200,
-        decoration: const BoxDecoration(
-          gradient: kLinearGradientBlue,
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(40),
-            bottomRight: Radius.circular(40),
-          ),
-        ),
+        height: MediaQuery.of(context).size.height * 0.25,
+        decoration: context.select((ThemeCubit cubit) => cubit.state)
+            ? BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              )
+            : const BoxDecoration(
+                gradient: kLinearGradientBlue,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              ),
         child: Stack(
           children: [
             Center(
@@ -74,10 +83,18 @@ class HomeHeader extends StatelessWidget {
                                   const SizedBox(
                                     width: 10,
                                   ),
-                                  ProfileImageNetworkWidget(
-                                    imageUrl: state.userData!.logo,
-                                    borderImage: Border.all(
-                                        width: 4, color: Colors.white),
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push<void>(
+                                        context,
+                                        SettingPage.go(),
+                                      );
+                                    },
+                                    child: ProfileImageNetworkWidget(
+                                      imageUrl: state.userData!.logo,
+                                      borderImage: Border.all(
+                                          width: 4, color: Colors.white),
+                                    ),
                                   ),
                                 ],
                               )

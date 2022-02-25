@@ -16,7 +16,7 @@ class NameTextFielWidget extends StatelessWidget {
 
   String? _getPasswordErrorText(NameFormz password) {
     if (password.invalid) {
-      if (password.error == PasswordValidationError.invalid) {
+      if (password.error == NameValidationError.invalid) {
         return 'Debe contener 8 caracteres';
       } else {
         return 'Este campo no puede estar vacío';

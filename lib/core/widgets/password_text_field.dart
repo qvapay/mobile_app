@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/core/constants/constants.dart';
 import 'package:mobile_app/core/formz/formz.dart';
+import 'package:mobile_app/core/themes/colors.dart';
 
 class PasswordTextFielWidget extends StatelessWidget {
   const PasswordTextFielWidget({
@@ -32,9 +32,17 @@ class PasswordTextFielWidget extends StatelessWidget {
       obscureText: true,
       onChanged: onPasswordChanged,
       decoration: InputDecoration(
+        border: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.red, width: 5),
+        ),
         errorText: passwordErrorText,
         suffix: suffix,
-        labelStyle: kInputDecoration,
+        labelStyle: const TextStyle(
+          fontSize: 14,
+          fontFamily: 'Roboto',
+          fontWeight: FontWeight.bold,
+          color: AppColors.textGrey,
+        ),
         labelText: 'Contraseña',
       ),
     );

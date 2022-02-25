@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/widgets/widgets.dart';
+import 'package:mobile_app/features/setting/theme/cubit/theme_cubit.dart';
 
 /// ProfileImageNetworkWidget shows a network image using a caching mechanism.
 ///
@@ -27,6 +29,9 @@ class ProfileImageNetworkWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxRadius = radius * 2;
+    final color = context.select((ThemeCubit cubit) => cubit.state)
+        ? Colors.grey[600]
+        : Colors.grey[200];
     return ClipRRect(
       borderRadius: BorderRadius.circular(maxRadius),
       child: Container(
@@ -34,7 +39,7 @@ class ProfileImageNetworkWidget extends StatelessWidget {
         width: maxRadius,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(maxRadius),
-          color: backgroundColor ?? Colors.grey[200],
+          color: backgroundColor ?? color,
           border: borderImage,
         ),
         child: ClipRRect(

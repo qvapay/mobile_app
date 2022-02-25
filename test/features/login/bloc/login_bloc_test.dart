@@ -111,5 +111,50 @@ void main() {
         ],
       );
     });
+    blocTest<LoginBloc, LoginState>(
+      'emits [LoginInProgress, LoginFailure] when there is an error '
+      'with the server',
+      build: () {
+        when(
+          () => authenticationRepository.logIn(
+            userLogin: const UserLogin(
+              email: 'test@qvapay',
+              password: 'wrong_password',
+            ),
+          ),
+        ).thenAnswer(
+          (_) async => const Left(ServerFailure()),
+        );
+        return loginBloc;
+      },
+      act: (bloc) {
+        bloc
+          ..add(const LoginEmailChanged('test@qvapay'))
+          ..add(const LoginPasswordChanged('wrong_password'))
+          ..add(const LoginSubmitted());
+      },
+      expect: () => const <LoginState>[
+        LoginState(
+          email: EmailFormz.dirty('test@qvapay'),
+          status: FormzStatus.invalid,
+        ),
+        LoginState(
+          email: EmailFormz.dirty('test@qvapay'),
+          password: PasswordFormz.dirty('wrong_password'),
+          status: FormzStatus.valid,
+        ),
+        LoginState(
+          email: EmailFormz.dirty('test@qvapay'),
+          password: PasswordFormz.dirty('wrong_password'),
+          status: FormzStatus.submissionInProgress,
+        ),
+        LoginState(
+          email: EmailFormz.dirty('test@qvapay'),
+          password: PasswordFormz.dirty('wrong_password'),
+          status: FormzStatus.submissionFailure,
+          messageError: 'Server Failure',
+        ),
+      ],
+    );
   });
 }
