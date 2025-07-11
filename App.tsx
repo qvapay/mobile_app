@@ -10,8 +10,8 @@ const Stack = createNativeStackNavigator()
 import { ROUTES } from './components/screens/routes'
 
 // Screens
-import { SplashScreen } from './components/screens/SplashScreen'
-import { WelcomeScreen } from './components/screens/WelcomeScreen'
+import SplashScreen from './components/screens/Splash'
+import WelcomeScreen from './components/screens/Welcome'
 
 function App() {
 
