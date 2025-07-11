@@ -1,6 +1,9 @@
 import React from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 
+// Routes
+import { ROUTES } from './routes'
+
 // Welcome Screen
 const WelcomeScreen = ({ navigation }) => {
 
@@ -8,7 +11,7 @@ const WelcomeScreen = ({ navigation }) => {
         <View style={styles.container}>
             <Text>Welcome Screen</Text>
 
-            <Button title="Go to Splash" onPress={() => navigation.navigate('Splash')} />
+            <Button title="Go to Splash" onPress={() => navigation.navigate(ROUTES.SPLASH_SCREEN)} />
         </View>
     )
 }

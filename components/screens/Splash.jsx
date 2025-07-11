@@ -1,6 +1,9 @@
 import React from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 
+// Routes
+import { ROUTES } from './routes'
+
 const WAIT_TIME = 2500
 
 // Splash Screen
@@ -10,7 +13,7 @@ const SplashScreen = ({ navigation }) => {
         <View style={styles.container}>
             <Text>Splash Screen</Text>
 
-            <Button title="Go to Welcome" onPress={() => navigation.navigate('Welcome')} />
+            <Button title="Go to Welcome" onPress={() => navigation.navigate(ROUTES.WELCOME_SCREEN)} />
         </View>
     )
 }
