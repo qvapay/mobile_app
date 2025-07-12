@@ -17,6 +17,8 @@ export const ROUTES = {
     // Auth Screens
     LOGIN_SCREEN: "Login",
     REGISTER_SCREEN: "Register",
+    RECOVER_PASSWORD_SCREEN: "RecoverPassword",
+    RECOVER_2FA_SCREEN: "Recover2FA",
 
     // Home Screens
     HOME_SCREEN: "Home",

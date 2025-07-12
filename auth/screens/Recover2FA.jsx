@@ -2,18 +2,16 @@ import React from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 
 // Routes
-import { ROUTES } from './routes'
+import { ROUTES } from '../../screens/routes'
 
-const WAIT_TIME = 2500
-
-// Splash Screen
-const SplashScreen = ({ navigation }) => {
+// Login Screen
+const Recover2FAScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Text>Splash Screen</Text>
+            <Text>Recover 2FA Screen</Text>
 
-            <Button title="Go to Welcome" onPress={() => navigation.navigate(ROUTES.WELCOME_SCREEN)} />
+            <Button title="Go to Login" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
         </View>
     )
 }
@@ -23,7 +21,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 10,
         justifyContent: 'center',
-        backgroundColor: 'blue',
+        backgroundColor: 'green',
     },
     imageLogo: {
         width: 200,
@@ -33,4 +31,4 @@ const styles = StyleSheet.create({
     },
 })
 
-export default SplashScreen
+export default Recover2FAScreen

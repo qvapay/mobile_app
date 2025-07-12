@@ -1,36 +1,63 @@
 // React Components
-import { SafeAreaView, Platform, StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native'
+import React from 'react'
+import { StyleSheet } from 'react-native'
+
+// Safe Area Components
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 // Navigation Components
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
 
+// Auth Context
+import { AuthProvider, useAuth } from './auth/authContext'
+
 // Routes
-import { ROUTES } from './components/screens/routes'
+import { ROUTES } from './screens/routes'
 
 // Screens
-import SplashScreen from './components/screens/Splash'
-import WelcomeScreen from './components/screens/Welcome'
+import SplashScreen from './screens/splash/Splash'
+import WelcomeScreen from './screens/welcome/Welcome'
+import LoginScreen from './auth/screens/Login'
+import RegisterScreen from './auth/screens/Register'
+import HomeScreen from './screens/home/Home'
 
-function App() {
+// Main App Navigator Component
+const AppNavigator = () => {
 
-	const isDarkMode = useColorScheme() === 'dark'
+	// Auth Context
+	const { isAuthenticated, isLoading } = useAuth()
+
+	// Show splash screen while loading
+	if (isLoading) { return <SplashScreen /> }
 
 	return (
-		<SafeAreaView style={styles.container}>
-			<StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-
-			<NavigationContainer>
-				<Stack.Navigator
-					initialRouteName={ROUTES.SPLASH_SCREEN}
-				>
-					<Stack.Screen name={ROUTES.SPLASH_SCREEN} component={SplashScreen} />
+		<Stack.Navigator initialRouteName={isAuthenticated ? ROUTES.HOME_SCREEN : ROUTES.WELCOME_SCREEN} screenOptions={{ headerShown: false }}>
+			{isAuthenticated ? (
+				<>
+					<Stack.Screen name={ROUTES.HOME_SCREEN} component={HomeScreen} />
+				</>
+			) : (
+				<>
 					<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
-				</Stack.Navigator>
-			</NavigationContainer>
+					<Stack.Screen name={ROUTES.LOGIN_SCREEN} component={LoginScreen} />
+					<Stack.Screen name={ROUTES.REGISTER_SCREEN} component={RegisterScreen} />
+				</>
+			)}
+		</Stack.Navigator>
+	);
+};
 
-		</SafeAreaView>
+function App() {
+	return (
+		<AuthProvider>
+			<SafeAreaProvider style={styles.container}>
+				<NavigationContainer>
+					<AppNavigator />
+				</NavigationContainer>
+			</SafeAreaProvider>
+		</AuthProvider>
 	)
 }
 

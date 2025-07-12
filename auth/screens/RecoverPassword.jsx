@@ -2,16 +2,16 @@ import React from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 
 // Routes
-import { ROUTES } from './routes'
+import { ROUTES } from '../../screens/routes'
 
-// Welcome Screen
-const WelcomeScreen = ({ navigation }) => {
+// Recover Password Screen
+const RecoverPasswordScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Text>Welcome Screen</Text>
+            <Text>Recover Password Screen</Text>
 
-            <Button title="Go to Splash" onPress={() => navigation.navigate(ROUTES.SPLASH_SCREEN)} />
+            <Button title="Go to Login" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
         </View>
     )
 }
@@ -31,4 +31,4 @@ const styles = StyleSheet.create({
     },
 })
 
-export default WelcomeScreen
+export default RecoverPasswordScreen
