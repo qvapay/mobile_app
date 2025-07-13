@@ -32,7 +32,9 @@ export const authApi = {
                 tokenType: response.data.token_type,
                 me: response.data.me,
             }
+
         } catch (error) {
+
             // Handle specific API errors
             if (error.response?.data) {
                 const errorData = error.response.data
@@ -55,6 +57,7 @@ export const authApi = {
      * @returns {Promise<Object>} Logout response
      */
     logout: async () => {
+
         try {
             const response = await apiClient.get('/auth/logout')
 
@@ -76,16 +79,24 @@ export const authApi = {
      * Get current user profile
      * @returns {Promise<Object>} User profile data
      */
-    getProfile: async () => {
+    getProfile: async (token) => {
+
         try {
-            const response = await apiClient.get('/user/extended')
+
+            const response = await apiClient.get('/user/extended', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
 
             return {
                 success: true,
                 data: response.data,
                 me: response.data,
             }
+
         } catch (error) {
+
             if (error.response?.data) {
                 const errorData = error.response.data
                 return {

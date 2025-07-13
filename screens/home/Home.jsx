@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, StyleSheet, Button, Alert } from 'react-native'
 
 // Auth Context
@@ -7,7 +7,8 @@ import { useAuth } from '../../auth/authContext'
 // Home Screen
 const HomeScreen = ({ navigation }) => {
 
-    const { user, logout, isLoading } = useAuth()
+    const { user, logout } = useAuth()
+    const [isLoading, setIsLoading] = useState(false)
 
     const handleLogout = async () => {
         Alert.alert(
@@ -19,7 +20,9 @@ const HomeScreen = ({ navigation }) => {
                     text: 'Logout',
                     style: 'destructive',
                     onPress: async () => {
+                        setIsLoading(true)
                         const result = await logout()
+                        setIsLoading(false)
                         if (!result.success) { Alert.alert('Error', 'Failed to logout. Please try again.') }
                     }
                 }

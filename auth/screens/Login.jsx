@@ -11,12 +11,14 @@ import { ROUTES } from '../../routes'
 const LoginScreen = ({ navigation }) => {
 
     const { login, error, clearError } = useAuth()
-
     const [isLoading, setIsLoading] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [twoFactorCode, setTwoFactorCode] = useState('1234') // Default for testing
+    const [twoFactorCode, setTwoFactorCode] = useState('')
 
+    // Handle login, we set the loading to true, clear the error and call the login function
+    // If login is successful, we set the loading to false
+    // If login is not successful, we set the loading to false and show an error message
     const handleLogin = async () => {
 
         if (!email || !password) {
@@ -24,15 +26,13 @@ const LoginScreen = ({ navigation }) => {
             return
         }
 
-        setIsLoading(true)
-
         clearError()
+        setIsLoading(true)
         const result = await login({
             email,
             password,
             two_factor_code: twoFactorCode
         })
-
         setIsLoading(false)
 
         if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }

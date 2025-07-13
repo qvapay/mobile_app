@@ -68,6 +68,12 @@ export const AuthProvider = ({ children }) => {
                     console.log('Token is valid')
                     setToken(saved_token)
                     setIsAuthenticated(true)
+
+                    // Get user data from API
+                    const userData = await authApi.getProfile(saved_token)
+                    console.log('User data:', userData)
+                    setUser(userData.me)
+
                 } else {
                     console.log('Token is invalid')
                     setIsAuthenticated(false)
@@ -82,9 +88,7 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('Error initializing auth:', error)
             setError('Failed to initialize authentication')
-        } finally {
-            setIsLoading(false)
-        }
+        } finally { setIsLoading(false) }
     }
 
     // Login function, we ask to the API for authentication
@@ -129,7 +133,6 @@ export const AuthProvider = ({ children }) => {
                 golden_expire: me.golden_expire,
                 p2p_enabled: me.p2p_enabled,
                 complete_name: me.complete_name,
-                name_verified: me.name_verified,
                 cover_photo_url: me.cover_photo_url,
                 profile_photo_url: me.profile_photo_url,
                 average_rating: me.average_rating,
@@ -152,16 +155,13 @@ export const AuthProvider = ({ children }) => {
             console.error('Login error:', error)
             setError('Login failed. Please try again.')
             return { success: false, error: error.message }
-        } finally {
-            setIsLoading(false)
-        }
+        } finally { setIsLoading(false) }
     }
 
-    // Logout function
+    // Logout function, we call the API to logout and clear the storage
     const logout = async () => {
 
         try {
-            setIsLoading(true)
 
             // Call API logout if we have a token
             if (token) {
