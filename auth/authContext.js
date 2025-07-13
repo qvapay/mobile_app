@@ -1,17 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
 // Keychain and Async Storage
-import * as Keychain from 'react-native-keychain'
+// import * as Keychain from 'react-native-keychain'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+
+// API
+import { authApi } from './authApi'
 
 // Create the Auth Context
 const AuthContext = createContext()
 
 // Storage keys
 const STORAGE_KEYS = {
-    USER_TOKEN: 'user_token',
+    TOKEN: 'token',
     USER_DATA: 'user_data',
-    IS_AUTHENTICATED: 'is_authenticated',
+    FIRST_TIME_USER: 'first_time_user'
 }
 
 // Auth Provider Component
@@ -30,28 +33,50 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     // Initialize authentication state from storage
+    // This is the initial function to check if the user is authenticated
+    // If Token is found, check agains API if the token is valid
+    // If token is valid, set isAuthenticated to true
+    // If token is invalid, set isAuthenticated to false
+    // If token is not found, set isAuthenticated to false
+    // If token is found, but user data is not found, set isAuthenticated to false
+    // If token is found, but user data is found, set isAuthenticated to true
+    // If token is found, but user data is found, but user data is invalid, set isAuthenticated to false
+    // If token is found, but user data is found, but user data is valid, set isAuthenticated to true
     const initializeAuth = async () => {
+
         try {
+
+            // Set loading to true and we show a loading screen
             setIsLoading(true)
 
-            // Check if user is authenticated
-            const authStatus = await AsyncStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
-            if (authStatus === 'true') {
+            // Check if user is authenticated, retrieve token from storage
+            const saved_token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN)
+            if (saved_token) {
+
+                // If token found, check if its valid
 
                 // Load user data and tokens
-                const [userData, userToken] = await Promise.all([
-                    AsyncStorage.getItem(STORAGE_KEYS.USER_DATA),
-                    Keychain.getInternetCredentials(STORAGE_KEYS.USER_TOKEN)
-                ])
+                // const [userData, firstTimeUser] = await Promise.all([
+                //     AsyncStorage.getItem(STORAGE_KEYS.USER_DATA),
+                //     AsyncStorage.getItem(STORAGE_KEYS.FIRST_TIME_USER),
+                // ])
 
-                if (userData && userToken) {
-                    setUser(JSON.parse(userData))
-                    setToken(userToken.password)
+                // Check token against API for validity
+                console.log('Checking token against API for validity')
+                const apiResponse = await authApi.checkToken(saved_token)
+                if (apiResponse.success) {
+                    console.log('Token is valid')
+                    setToken(saved_token)
                     setIsAuthenticated(true)
                 } else {
-                    // Clear invalid data
-                    await clearAuthData()
+                    console.log('Token is invalid')
+                    setIsAuthenticated(false)
                 }
+
+            } else {
+                // No auth status found, so set isAuthenticated to false and loading to false
+                // This variable is used to show the splash screen and then, redirect to Welcome Screen
+                setIsAuthenticated(false)
             }
 
         } catch (error) {
@@ -62,40 +87,64 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
-    // Login function
+    // Login function, we ask to the API for authentication
+    // If authentication is successful, we store the token and user data in storage and state
     const login = async (credentials) => {
 
         try {
-            setIsLoading(true)
+
             setError(null)
 
-            // Here you would typically make an API call to authenticate
-            // For now, we'll simulate a successful login
-            const mockUserData = {
-                id: '1',
-                email: credentials.email,
-                name: 'John Doe',
-                avatar: null,
+            // Call QvaPay API for authentication
+            const apiResponse = await authApi.login(credentials)
+
+            console.log('API Response:', apiResponse)
+
+            if (!apiResponse.success) {
+                setError(apiResponse.error || 'Login failed')
+                return { success: false, error: apiResponse.error }
             }
 
-            const mockToken = 'mock_jwt_token_' + Date.now()
-            const mockRefreshToken = 'mock_refresh_token_' + Date.now()
+            // Extract data from API response
+            const { accessToken, me } = apiResponse
 
-            // Store tokens securely in keychain
-            await Promise.all([
-                Keychain.setInternetCredentials(STORAGE_KEYS.USER_TOKEN, credentials.email, mockToken),
-                Keychain.setInternetCredentials(STORAGE_KEYS.REFRESH_TOKEN, credentials.email, mockRefreshToken),
-            ])
+            console.log('API Response Access Token:', accessToken)
+            console.log('API Response Me:', me)
+
+            // Map user data from API response
+            const userData = {
+                id: me.uuid,
+                email: credentials.email,
+                username: me.username,
+                name: me.name,
+                lastname: me.lastname,
+                two_factor_secret: me.two_factor_secret,
+                bio: me.bio,
+                balance: me.balance,
+                satoshis: me.satoshis,
+                phone: me.phone,
+                phone_verified: me.phone_verified,
+                kyc: me.kyc,
+                golden_check: me.golden_check,
+                golden_expire: me.golden_expire,
+                p2p_enabled: me.p2p_enabled,
+                complete_name: me.complete_name,
+                name_verified: me.name_verified,
+                cover_photo_url: me.cover_photo_url,
+                profile_photo_url: me.profile_photo_url,
+                average_rating: me.average_rating,
+            }
 
             // Store user data and auth status
             await Promise.all([
-                AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(mockUserData)),
-                AsyncStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, 'true'),
+                AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
+                AsyncStorage.setItem(STORAGE_KEYS.TOKEN, accessToken),
+                AsyncStorage.setItem(STORAGE_KEYS.FIRST_TIME_USER, 'false'),
             ])
 
             // Update state
-            setUser(mockUserData)
-            setToken(mockToken)
+            setUser(userData)
+            setToken(accessToken)
             setIsAuthenticated(true)
 
             return { success: true }
@@ -110,8 +159,19 @@ export const AuthProvider = ({ children }) => {
 
     // Logout function
     const logout = async () => {
+
         try {
             setIsLoading(true)
+
+            // Call API logout if we have a token
+            if (token) {
+                try {
+                    await authApi.logout()
+                } catch (apiError) {
+                    // Don't fail logout if API call fails
+                    console.warn('API logout failed:', apiError.message)
+                }
+            }
 
             // Clear all stored data
             await clearAuthData()
@@ -123,6 +183,7 @@ export const AuthProvider = ({ children }) => {
             setError(null)
 
             return { success: true }
+
         } catch (error) {
             console.error('Logout error:', error)
             setError('Logout failed. Please try again.')
@@ -130,23 +191,23 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setIsLoading(false)
         }
-    };
+    }
 
     // Clear all authentication data
+    // Remove token, and user data
     const clearAuthData = async () => {
         try {
             await Promise.all([
-                Keychain.resetInternetCredentials(STORAGE_KEYS.USER_TOKEN),
-                Keychain.resetInternetCredentials(STORAGE_KEYS.REFRESH_TOKEN),
                 AsyncStorage.multiRemove([
+                    STORAGE_KEYS.TOKEN,
                     STORAGE_KEYS.USER_DATA,
-                    STORAGE_KEYS.IS_AUTHENTICATED,
                 ]),
             ])
         } catch (error) { console.error('Error clearing auth data:', error) }
     }
 
     // Update user data
+    // Update user data in storage and state and production server
     const updateUser = async (newUserData) => {
         try {
             const updatedUser = { ...user, ...newUserData }
@@ -158,9 +219,9 @@ export const AuthProvider = ({ children }) => {
             setUser(updatedUser)
             return { success: true }
         } catch (error) {
-            console.error('Update user error:', error);
-            setError('Failed to update user data');
-            return { success: false, error: error.message };
+            console.error('Update user error:', error)
+            setError('Failed to update user data')
+            return { success: false, error: error.message }
         }
     }
 

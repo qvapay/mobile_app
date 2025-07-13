@@ -33,8 +33,12 @@ const HomeScreen = ({ navigation }) => {
 
             {user && (
                 <View style={styles.userInfo}>
-                    <Text style={styles.userText}>Hello, {user.name}!</Text>
+                    <Text style={styles.userText}>Hello, {user.name} {user.lastname}!</Text>
+                    <Text style={styles.userText}>Username: @{user.username}</Text>
                     <Text style={styles.userText}>Email: {user.email}</Text>
+                    <Text style={styles.userText}>Balance: ${user.balance}</Text>
+                    <Text style={styles.userText}>Phone: {user.phone}</Text>
+                    {user.bio && <Text style={styles.userText}>Bio: {user.bio}</Text>}
                 </View>
             )}
 

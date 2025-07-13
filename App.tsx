@@ -14,11 +14,12 @@ const Stack = createNativeStackNavigator()
 import { AuthProvider, useAuth } from './auth/authContext'
 
 // Routes
-import { ROUTES } from './screens/routes'
+import { ROUTES } from './routes'
 
 // Screens
 import SplashScreen from './screens/splash/Splash'
 import WelcomeScreen from './screens/welcome/Welcome'
+
 import LoginScreen from './auth/screens/Login'
 import RegisterScreen from './auth/screens/Register'
 import HomeScreen from './screens/home/Home'

@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 
 // Routes
-import { ROUTES } from '../../screens/routes'
+import { ROUTES } from '../../routes'
 
 // Recover Password Screen
 const RecoverPasswordScreen = ({ navigation }) => {

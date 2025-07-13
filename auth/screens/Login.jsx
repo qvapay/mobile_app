@@ -5,23 +5,35 @@ import { View, Text, StyleSheet, Button, TextInput, Alert, ActivityIndicator } f
 import { useAuth } from '../authContext'
 
 // Routes
-import { ROUTES } from '../../screens/routes'
+import { ROUTES } from '../../routes'
 
 // Login Screen
 const LoginScreen = ({ navigation }) => {
 
-    const { login, isLoading, error, clearError } = useAuth()
+    const { login, error, clearError } = useAuth()
+
+    const [isLoading, setIsLoading] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [twoFactorCode, setTwoFactorCode] = useState('1234') // Default for testing
 
     const handleLogin = async () => {
+
         if (!email || !password) {
             Alert.alert('Error', 'Please fill in all fields')
             return
         }
 
+        setIsLoading(true)
+
         clearError()
-        const result = await login({ email, password })
+        const result = await login({
+            email,
+            password,
+            two_factor_code: twoFactorCode
+        })
+
+        setIsLoading(false)
 
         if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }
     }
@@ -45,6 +57,15 @@ const LoginScreen = ({ navigation }) => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+            />
+
+            <TextInput
+                style={styles.input}
+                placeholder="2FA Code (1234 for testing)"
+                value={twoFactorCode}
+                onChangeText={setTwoFactorCode}
+                keyboardType="numeric"
+                maxLength={4}
             />
 
             {error && <Text style={styles.errorText}>{error}</Text>}
