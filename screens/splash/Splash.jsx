@@ -2,7 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 
 // Splash Screen
-const SplashScreen = ({ navigation }) => {
+const SplashScreen = () => {
 
     return (
         <View style={styles.container}>
