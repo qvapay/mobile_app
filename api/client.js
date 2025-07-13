@@ -28,14 +28,9 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
     async (config) => {
-        // Get token from storage
         try {
-            const tokenData = await AsyncStorage.getItem('token')
-            console.log('Token data:', tokenData)
-            if (tokenData) {
-                const token = JSON.parse(tokenData)
-                config.headers.Authorization = `Bearer ${token}`
-            }
+            const token = await AsyncStorage.getItem('token')
+            if (token) { config.headers.Authorization = `Bearer ${token}` }
         } catch (error) { console.warn('Failed to get token from storage:', error) }
         return config
     },

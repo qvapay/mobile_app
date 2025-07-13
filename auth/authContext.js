@@ -32,16 +32,25 @@ export const AuthProvider = ({ children }) => {
         initializeAuth()
     }, [])
 
+    // Effect to check token validity periodically
+    useEffect(() => {
+        if (isAuthenticated && token) {
+            // Check token every 30 seconds
+            const interval = setInterval(async () => {
+                const isValid = await authApi.checkToken(token)
+                if (!isValid.success) {
+                    console.log('🔄 Token expired - closing session')
+                    await logout()
+                }
+            }, 30000) // 30 seconds
+            return () => clearInterval(interval)
+        }
+    }, [isAuthenticated, token])
+
     // Initialize authentication state from storage
     // This is the initial function to check if the user is authenticated
     // If Token is found, check agains API if the token is valid
     // If token is valid, set isAuthenticated to true
-    // If token is invalid, set isAuthenticated to false
-    // If token is not found, set isAuthenticated to false
-    // If token is found, but user data is not found, set isAuthenticated to false
-    // If token is found, but user data is found, set isAuthenticated to true
-    // If token is found, but user data is found, but user data is invalid, set isAuthenticated to false
-    // If token is found, but user data is found, but user data is valid, set isAuthenticated to true
     const initializeAuth = async () => {
 
         try {
@@ -62,7 +71,6 @@ export const AuthProvider = ({ children }) => {
                 // ])
 
                 // Check token against API for validity
-                console.log('Checking token against API for validity')
                 const apiResponse = await authApi.checkToken(saved_token)
                 if (apiResponse.success) {
                     console.log('Token is valid')
@@ -151,6 +159,7 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(true)
 
             return { success: true }
+
         } catch (error) {
             console.error('Login error:', error)
             setError('Login failed. Please try again.')

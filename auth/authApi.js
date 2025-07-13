@@ -14,16 +14,11 @@ export const authApi = {
 
         try {
 
-            console.log('Login API call')
-            console.log('Credentials:', credentials)
-
             const response = await apiClient.post('/auth/login', {
                 email: credentials.email,
                 password: credentials.password,
                 two_factor_code: credentials.two_factor_code || '', // Default for testing
             })
-
-            console.log('Login API response:', response)
 
             return {
                 success: true,
@@ -57,10 +52,8 @@ export const authApi = {
      * @returns {Promise<Object>} Logout response
      */
     logout: async () => {
-
         try {
             const response = await apiClient.get('/auth/logout')
-
             return {
                 success: true,
                 data: response.data,
@@ -79,16 +72,12 @@ export const authApi = {
      * Get current user profile
      * @returns {Promise<Object>} User profile data
      */
-    getProfile: async (token) => {
+    getProfile: async () => {
 
         try {
 
-            const response = await apiClient.get('/user/extended', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-
+            // Get the extended User Profile, we autenticated with the token on the apiClient interceptor
+            const response = await apiClient.get('/user/extended')
             return {
                 success: true,
                 data: response.data,
@@ -119,7 +108,9 @@ export const authApi = {
      * @returns {Promise<Object>} Update response
      */
     updateProfile: async (profileData) => {
+
         try {
+
             const response = await apiClient.put('/user/update', profileData)
 
             return {
@@ -127,7 +118,9 @@ export const authApi = {
                 data: response.data,
                 me: response.data,
             }
+
         } catch (error) {
+
             if (error.response?.data) {
                 const errorData = error.response.data
                 return {
@@ -149,14 +142,12 @@ export const authApi = {
      * @param {string} token - Token to check
      * @returns {Promise<Object>} Check token response
      */
-    checkToken: async (token) => {
+    checkToken: async () => {
+
         try {
+            
             // The production endpoint expects a POST to /auth/check with the Authorization header
-            const response = await apiClient.post('/auth/check', null, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
+            const response = await apiClient.post('/auth/check')
 
             // The production API returns { success: 'Acceso permitido' } on success
             if (response.data && response.data.success === 'Acceso permitido') {
