@@ -4,6 +4,9 @@ import { StyleSheet, Pressable } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 const Tab = createBottomTabNavigator()
 
+// Bottom Bar
+import BottomBar from './BottomBar'
+
 // Routes
 import { ROUTES } from '../routes'
 
@@ -19,6 +22,7 @@ const MainStack = () => {
         <Tab.Navigator
             initialRouteName="Home"
             backBehavior='initialRoute'
+            tabBar={props => <BottomBar {...props} />}
         >
             <Tab.Screen name={ROUTES.HOME_SCREEN} component={Home} />
             <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
