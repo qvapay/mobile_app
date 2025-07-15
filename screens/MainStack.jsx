@@ -8,7 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 const Tab = createBottomTabNavigator()
 
 // Bottom Bar
-import BottomBar from './BottomBar'
+import BottomBar from '../ui/BottomBar'
 
 // Routes
 import { ROUTES } from '../routes'

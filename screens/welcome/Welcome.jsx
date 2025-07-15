@@ -12,13 +12,11 @@ const WelcomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets()
 
     return (
-        <View style={[styles.container, { 
+        <View style={[styles.container, {
             paddingTop: insets.top,
             paddingBottom: insets.bottom,
-            paddingLeft: insets.left,
-            paddingRight: insets.right
         }]}>
-            
+
             <View style={styles.navbar}>
                 <Button title="Help" onPress={() => navigation.navigate(ROUTES.HELP_SCREEN)} />
             </View>
@@ -29,7 +27,7 @@ const WelcomeScreen = ({ navigation }) => {
                 <Text>Last Story has to be a dynamic story from API</Text>
                 <Text>Stories are like a carousel</Text>
             </View>
-            
+
             <View style={styles.buttonContainer}>
                 <View style={{ flex: 1, marginRight: 5 }}>
                     <Button title="Login" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
