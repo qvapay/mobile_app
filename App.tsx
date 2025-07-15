@@ -42,7 +42,6 @@ const AppNavigator = () => {
 			{isAuthenticated ? (
 				<>
 					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} options={{ headerShown: false }} />
-					{/* <Stack.Screen name={ROUTES.HOME_SCREEN} component={HomeScreen} /> */}
 				</>
 			) : (
 				<>
@@ -61,20 +60,18 @@ const AppNavigator = () => {
 function App() {
 	return (
 		<AuthProvider>
-			<SafeAreaProvider style={styles.container}>
-				<NavigationContainer>
-					<AppNavigator />
-				</NavigationContainer>
-			</SafeAreaProvider>
+			<NavigationContainer>
+				<AppNavigator />
+			</NavigationContainer>
 		</AuthProvider>
 	)
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: 'red'
-	}
-})
+// const styles = StyleSheet.create({
+// 	container: {
+// 		flex: 1,
+// 		backgroundColor: 'red',
+// 	}
+// })
 
 export default App
