@@ -1,9 +1,6 @@
 // React Components
 import React from 'react'
-import { StyleSheet } from 'react-native'
-
-// Safe Area Components
-import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { StyleSheet, Appearance } from 'react-native'
 
 // Navigation Components
 import { NavigationContainer } from '@react-navigation/native'
@@ -25,10 +22,16 @@ import RegisterScreen from './auth/screens/Register'
 
 // Screens with auth
 import MainStack from './screens/MainStack'
-// import HomeScreen from './screens/home/Home'
+
+// Theme
+import { theme } from './theme'
 
 // Main App Navigator Component
 const AppNavigator = () => {
+
+	// Get color scheme
+	const colorScheme = Appearance.getColorScheme()
+	console.error(colorScheme)
 
 	// Auth Context
 	const { isAuthenticated, isLoading } = useAuth()
@@ -51,6 +54,7 @@ const AppNavigator = () => {
 				</>
 			)}
 
+			{/* Accesible Screens */}
 			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
 
 		</Stack.Navigator>

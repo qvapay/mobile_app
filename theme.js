@@ -181,4 +181,4 @@ const globalStyles = StyleSheet.create({
     }
 })
 
-export { theme, globalStyles, textStyles, containerStyles }
+export { theme, globalStyles, textStyles, containerStyles, colors }
