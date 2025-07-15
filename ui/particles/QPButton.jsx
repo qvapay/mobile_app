@@ -1,10 +1,10 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-export default function TopBar() {
+export default function QPButton() {
     return (
         <View>
-            <Text>TopBar</Text>
+            <Text>QPButton</Text>
         </View>
     )
 }
