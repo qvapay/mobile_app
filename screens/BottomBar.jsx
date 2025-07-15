@@ -1,6 +1,6 @@
 import React from 'react'
 import { StyleSheet, View, Pressable } from 'react-native'
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Bottom Bar for Main Stack
 export default function BottomBar({ state, descriptors, navigation }) {
@@ -12,7 +12,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
         },
         {
             key: 'Invest',
-            name: 'wallet'
+            name: 'bitcoin-sign'
         },
         {
             key: 'Keypad',
@@ -20,7 +20,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
         },
         {
             key: 'P2P',
-            name: 'wallet'
+            name: 'users'
         },
         {
             key: 'Store',
@@ -65,7 +65,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
                             onLongPress={onLongPress}
                         >
                             <View style={{ flex: 1 }}>
-                                <FontAwesome5 name={navItems[index].name} style={isFocused ? styles.activeTab : styles.fa} />
+                                <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={isFocused ? styles.activeTab : styles.fa} />
                             </View>
                         </Pressable>
                     )
@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
+        backgroundColor: 'red',
         // backgroundColor: theme.darkColors.background,
     },
     pressableArea: {

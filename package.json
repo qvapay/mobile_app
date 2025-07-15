@@ -14,6 +14,7 @@
     "@klarna/react-native-vector-drawable": "^0.5.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-clipboard/clipboard": "^1.16.3",
+    "@react-native-vector-icons/fontawesome6": "^12.1.0",
     "@react-native/new-app-screen": "0.80.1",
     "@react-navigation/bottom-tabs": "^7.4.2",
     "@react-navigation/native": "^7.1.14",
@@ -30,7 +31,6 @@
     "react-native-screens": "^4.11.1",
     "react-native-sound": "^0.11.2",
     "react-native-toast-message": "^2.3.3",
-    "react-native-vector-icons": "^10.2.0",
     "react-native-vector-image": "^0.4.5",
     "react-native-vision-camera": "^4.7.0"
   },
