@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, Button, Alert } from 'react-native'
 import { useAuth } from '../../auth/authContext'
 
 // Home Screen
-const HomeScreen = ({ navigation }) => {
+const Home = ({ navigation }) => {
 
     const { user, logout } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
@@ -32,7 +32,15 @@ const HomeScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Welcome to QvaPay!</Text>
+
+            <Text style={styles.title}>TopBar</Text>
+            
+            <Text style={styles.title}>Hi {user.name}!</Text>
+
+            <Text>balance</Text>
+            <Text>Send Receive Buttons</Text>
+            <Text>Services Promotions</Text>
+            <Text>Latest Transactions</Text>
 
             {user && (
                 <View style={styles.userInfo}>
@@ -50,6 +58,7 @@ const HomeScreen = ({ navigation }) => {
                 onPress={handleLogout}
                 disabled={isLoading}
             />
+
         </View>
     )
 }
@@ -81,4 +90,4 @@ const styles = StyleSheet.create({
     },
 })
 
-export default HomeScreen
+export default Home

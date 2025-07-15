@@ -40,6 +40,12 @@ const LoginScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
+
+            <View style={styles.navbar}>
+                <Button title="Back" onPress={() => navigation.goBack()} />
+                <Button title="Help" onPress={() => navigation.navigate(ROUTES.HELP_SCREEN)} />
+            </View>
+
             <Text style={styles.title}>Login</Text>
 
             <TextInput
@@ -78,10 +84,6 @@ const LoginScreen = ({ navigation }) => {
 
             {isLoading && <ActivityIndicator style={styles.loader} />}
 
-            <Button
-                title="Go to Register"
-                onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)}
-            />
         </View>
     )
 }
@@ -92,6 +94,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         justifyContent: 'center',
         backgroundColor: 'green',
+    },
+    navbar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 30,
     },
     title: {
         fontSize: 24,

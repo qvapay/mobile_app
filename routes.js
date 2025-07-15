@@ -22,6 +22,10 @@ export const ROUTES = {
 
     // Home Screens
     HOME_SCREEN: "Home",
+    INVEST_SCREEN: "Invest",
+    KEYPAD_SCREEN: "Keypad",
+    STORE_SCREEN: "Store",
+    P2P_SCREEN: "P2P",
     ADD_SCREEN: "Add",
     ADD_INSTRUCTIONS_SCREEN: "AddInstructions",
     WITHDRAW_SCREEN: "Withdraw",
@@ -32,9 +36,11 @@ export const ROUTES = {
 
     // In out Screens
     TRANSACTION_SCREEN: "Transaction",
-    P2P_SCREEN: "PeerToPeer",
 
     // Profile & Settings Routes
     SETTINGS_MENU: "SettingsMenu",
     PROFILE_SCREEN: "Profile",
+
+    // Help Screens
+    HELP_SCREEN: "Help"
 }

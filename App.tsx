@@ -16,13 +16,16 @@ import { AuthProvider, useAuth } from './auth/authContext'
 // Routes
 import { ROUTES } from './routes'
 
-// Screens
+// Screens without auth
 import SplashScreen from './screens/splash/Splash'
 import WelcomeScreen from './screens/welcome/Welcome'
-
+import HelpScreen from './screens/help/Help'
 import LoginScreen from './auth/screens/Login'
 import RegisterScreen from './auth/screens/Register'
-import HomeScreen from './screens/home/Home'
+
+// Screens with auth
+import MainStack from './screens/MainStack'
+// import HomeScreen from './screens/home/Home'
 
 // Main App Navigator Component
 const AppNavigator = () => {
@@ -34,10 +37,12 @@ const AppNavigator = () => {
 	if (isLoading) { return <SplashScreen /> }
 
 	return (
-		<Stack.Navigator initialRouteName={isAuthenticated ? ROUTES.HOME_SCREEN : ROUTES.WELCOME_SCREEN} screenOptions={{ headerShown: false }}>
+		<Stack.Navigator initialRouteName={isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN} screenOptions={{ headerShown: false }}>
+
 			{isAuthenticated ? (
 				<>
-					<Stack.Screen name={ROUTES.HOME_SCREEN} component={HomeScreen} />
+					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} options={{ headerShown: false }} />
+					{/* <Stack.Screen name={ROUTES.HOME_SCREEN} component={HomeScreen} /> */}
 				</>
 			) : (
 				<>
@@ -46,6 +51,9 @@ const AppNavigator = () => {
 					<Stack.Screen name={ROUTES.REGISTER_SCREEN} component={RegisterScreen} />
 				</>
 			)}
+
+			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+
 		</Stack.Navigator>
 	);
 };
