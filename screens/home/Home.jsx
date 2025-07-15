@@ -87,6 +87,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 5,
         textAlign: 'center',
+        fontFamily: 'Rubik-Black',
     },
 })
 
