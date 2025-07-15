@@ -2518,65 +2518,6 @@ PODS:
     - RNSound/Core (= 0.11.2)
   - RNSound/Core (0.11.2):
     - React-Core
-  - RNSVG (15.12.0):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - RNSVG/common (= 15.12.0)
-    - SocketRocket
-    - Yoga
-  - RNSVG/common (15.12.0):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
   - RNVectorIcons (10.2.0):
     - boost
     - DoubleConversion
@@ -2697,7 +2638,6 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSound (from `../node_modules/react-native-sound`)
-  - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - SocketRocket (~> 0.7.1)
   - VisionCamera (from `../node_modules/react-native-vision-camera`)
@@ -2869,8 +2809,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-screens"
   RNSound:
     :path: "../node_modules/react-native-sound"
-  RNSVG:
-    :path: "../node_modules/react-native-svg"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
   VisionCamera:
@@ -2959,7 +2897,6 @@ SPEC CHECKSUMS:
   RNReanimated: 2010262133feb53009f16faaa404042eed7da018
   RNScreens: 45a4564413205e2a1695d40bbc0297f6eefc9b74
   RNSound: 6c156f925295bdc83e8e422e7d8b38d33bc71852
-  RNSVG: c73af7848d94ca3e8136a5191d055e3c1d6fedab
   RNVectorIcons: 417c003b0ce7ac7748aa548720fd7127d1d74ded
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   VisionCamera: b3c0cf261b9ad1ac7d60ec292d252cf3368b801e
