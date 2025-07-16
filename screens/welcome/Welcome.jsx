@@ -2,6 +2,10 @@ import React from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+// Theme
+import { useTheme } from '../../theme/ThemeContext'
+import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -11,8 +15,13 @@ const WelcomeScreen = ({ navigation }) => {
     // Safe area insets
     const insets = useSafeAreaInsets()
 
+    // Theme variables, dark and light modes
+    const { theme, isDark, toggleTheme } = useTheme()
+    const textStyles = createTextStyles(theme)
+    const containerStyles = createContainerStyles(theme)
+
     return (
-        <View style={[styles.container, {
+        <View style={[containerStyles.container, {
             paddingTop: insets.top,
             paddingBottom: insets.bottom,
         }]}>
