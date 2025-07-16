@@ -10,6 +10,9 @@ const Stack = createNativeStackNavigator()
 // Auth Context
 import { AuthProvider, useAuth } from './auth/authContext'
 
+// Theme Provider
+import { ThemeProvider } from './theme/ThemeContext'
+
 // Routes
 import { ROUTES } from './routes'
 
@@ -22,9 +25,6 @@ import RegisterScreen from './auth/screens/Register'
 
 // Screens with auth
 import MainStack from './screens/MainStack'
-
-// Theme
-import { theme } from './theme'
 
 // Main App Navigator Component
 const AppNavigator = () => {
@@ -63,11 +63,13 @@ const AppNavigator = () => {
 
 function App() {
 	return (
-		<AuthProvider>
-			<NavigationContainer>
-				<AppNavigator />
-			</NavigationContainer>
-		</AuthProvider>
+		<ThemeProvider>
+			<AuthProvider>
+				<NavigationContainer>
+					<AppNavigator />
+				</NavigationContainer>
+			</AuthProvider>
+		</ThemeProvider>
 	)
 }
 

@@ -1,9 +1,12 @@
 import React from 'react'
 import { StyleSheet, View, Pressable } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { useTheme } from '../theme/ThemeContext'
 
 // Bottom Bar for Main Stack
 export default function BottomBar({ state, descriptors, navigation }) {
+
+    const { theme } = useTheme()
 
     const navItems = [
         {
@@ -29,7 +32,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
     ]
 
     return (
-        <View style={styles.bottomNav}>
+        <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
             {
                 state.routes.map((route, index) => {
 
@@ -65,7 +68,16 @@ export default function BottomBar({ state, descriptors, navigation }) {
                             onLongPress={onLongPress}
                         >
                             <View style={{ flex: 1 }}>
-                                <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={isFocused ? styles.activeTab : styles.fa} />
+                                <FontAwesome6
+                                    name={navItems[index].name}
+                                    iconStyle="solid"
+                                    style={[
+                                        isFocused ? styles.activeTab : styles.fa,
+                                        {
+                                            color: isFocused ? theme.colors.primary : theme.colors.secondaryText
+                                        }
+                                    ]}
+                                />
                             </View>
                         </Pressable>
                     )
@@ -81,8 +93,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: 'red',
-        // backgroundColor: theme.darkColors.background,
     },
     pressableArea: {
         flex: 1,
@@ -90,10 +100,8 @@ const styles = StyleSheet.create({
     },
     fa: {
         fontSize: 20,
-        color: '#505268',
     },
     activeTab: {
         fontSize: 24,
-        color: 'white',
     },
 })
