@@ -180,11 +180,6 @@ export const authApi = {
     }
 }
 
-// Helper function to create auth header
-export const createAuthHeader = (token) => ({
-    'Authorization': `Bearer ${token}`,
-})
-
 // Export the apiClient for other API calls
 export { apiClient }
 
