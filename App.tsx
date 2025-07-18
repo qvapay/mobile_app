@@ -26,6 +26,9 @@ import RegisterScreen from './auth/screens/Register'
 // Screens with auth
 import MainStack from './screens/MainStack'
 
+// Settings Stack
+import SettingsStack from './screens/settings/Settings'
+
 // Main App Navigator Component
 const AppNavigator = () => {
 
@@ -41,6 +44,7 @@ const AppNavigator = () => {
 			{isAuthenticated ? (
 				<>
 					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
+					<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} />
 				</>
 			) : (
 				<>
