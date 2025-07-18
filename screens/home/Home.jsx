@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, Button, Alert, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/authContext'
@@ -10,32 +10,11 @@ import { useTheme } from '../../theme/ThemeContext'
 // Home Screen
 const Home = ({ navigation }) => {
 
+    const { user } = useAuth()
     const { theme } = useTheme()
-    const { user, logout } = useAuth()
-    const [isLoading, setIsLoading] = useState(false)
-
-    const handleLogout = async () => {
-        Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Logout',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setIsLoading(true)
-                        const result = await logout()
-                        setIsLoading(false)
-                        if (!result.success) { Alert.alert('Error', 'Failed to logout. Please try again.') }
-                    }
-                }
-            ]
-        )
-    }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
@@ -60,12 +39,6 @@ const Home = ({ navigation }) => {
                         {user.bio && <Text style={styles.userText}>Bio: {user.bio}</Text>}
                     </View>
                 )}
-
-                <Button
-                    title={isLoading ? "Logging out..." : "Logout"}
-                    onPress={handleLogout}
-                    disabled={isLoading}
-                />
             </ScrollView>
         </View>
     )
@@ -74,7 +47,6 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0E0E1C', // Dark theme background
         paddingHorizontal: 20,
     },
     scrollView: {
