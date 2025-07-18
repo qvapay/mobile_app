@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/authContext'
@@ -15,11 +15,9 @@ const Home = ({ navigation }) => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
+
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
                 <Text style={styles.title}>TopBar</Text>
 
                 <Text style={styles.title}>Hi {user.name}!</Text>

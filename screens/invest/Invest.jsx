@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -11,10 +11,17 @@ const Invest = () => {
     const { theme } = useTheme()
 
     return (
-        <View>
-            <Text>Invest Screen</Text>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            <Text style={styles.title}>Invest Screen</Text>
         </View>
     )
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
+})
 
 export default Invest

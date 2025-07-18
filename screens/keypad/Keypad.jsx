@@ -253,7 +253,7 @@ export default function Keypad({ navigation }) {
         <View style={[containerStyles.container, styles.container, { paddingBottom: insets.bottom }]}>
             {/* Amount Display Section */}
             <View style={styles.amountSection}>
-                
+
                 <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
                     <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText }]}>
                         $
@@ -302,8 +302,8 @@ export default function Keypad({ navigation }) {
                     onPress={handleReceiveAmount}
                     disabled={isProcessing}
                     accessibilityRole="button"
-                    accessibilityLabel="Receive money"
-                    accessibilityHint="Navigate to receive money screen"
+                    accessibilityLabel="Recibir saldo"
+                    accessibilityHint="Navegar a la pantalla de recibir saldo"
                 >
                     <FontAwesome6
                         name="arrow-down"
@@ -313,7 +313,7 @@ export default function Keypad({ navigation }) {
                         iconStyle="solid"
                     />
                     <Text style={[styles.actionButtonText, { color: theme.colors.primaryText }]}>
-                        Receive
+                        Recibir
                     </Text>
                 </Pressable>
 
@@ -329,8 +329,8 @@ export default function Keypad({ navigation }) {
                     onPress={handleSendAmount}
                     disabled={isProcessing}
                     accessibilityRole="button"
-                    accessibilityLabel="Send money"
-                    accessibilityHint="Navigate to send money screen"
+                    accessibilityLabel="Enviar saldo"
+                    accessibilityHint="Navegar a la pantalla de enviar saldo"
                 >
                     <FontAwesome6
                         name="arrow-up"
@@ -340,7 +340,7 @@ export default function Keypad({ navigation }) {
                         iconStyle="solid"
                     />
                     <Text style={[styles.actionButtonText, { color: 'white' }]}>
-                        {isProcessing ? 'Processing...' : 'Send'}
+                        {isProcessing ? 'Procesando...' : 'Enviar'}
                     </Text>
                 </Pressable>
             </View>
@@ -351,7 +351,7 @@ export default function Keypad({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'space-between',
+        paddingHorizontal: 20,
     },
     amountSection: {
         flex: 1,

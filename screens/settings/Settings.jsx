@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, Button } from 'react-native'
+import { View, Text, Button, Alert } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
