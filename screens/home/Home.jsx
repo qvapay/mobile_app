@@ -7,11 +7,16 @@ import { useAuth } from '../../auth/authContext'
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 
+// Import transferApi
+
+
 // Home Screen
 const Home = ({ navigation }) => {
 
     const { user } = useAuth()
     const { theme } = useTheme()
+
+    const latestTransactions = []
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

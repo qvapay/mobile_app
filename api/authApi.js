@@ -1,4 +1,4 @@
-import { apiClient } from '../api/client'
+import { apiClient } from './client'
 
 // Authentication API functions
 export const authApi = {
