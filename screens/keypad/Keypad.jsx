@@ -206,10 +206,7 @@ export default function Keypad({ navigation }) {
         return (
             <Pressable
                 key={index}
-                style={({ pressed }) => [
-                    styles.keyButton,
-                    pressed && styles.keyButtonPressed
-                ]}
+                style={({ pressed }) => [styles.keyButton, pressed && styles.keyButtonPressed]}
                 onPress={() => handleKeyPress(key)}
                 accessibilityRole="button"
                 accessibilityLabel={accessibilityLabel}
