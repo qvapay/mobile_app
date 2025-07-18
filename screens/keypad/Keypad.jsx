@@ -31,7 +31,7 @@ const VIBRATION_DURATION = 50
 
 export default function Keypad({ navigation }) {
 
-    // 
+    // Contexts
     const { user } = useAuth()
     const { theme } = useTheme()
     const insets = useSafeAreaInsets()

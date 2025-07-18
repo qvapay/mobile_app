@@ -26,8 +26,8 @@ import { useTheme } from '../theme/ThemeContext'
 // Main Stack
 const MainStack = () => {
 
-    const insets = useSafeAreaInsets()
     const { theme } = useTheme()
+    const insets = useSafeAreaInsets()
 
     return (
         <SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
@@ -35,6 +35,22 @@ const MainStack = () => {
                 initialRouteName="Home"
                 backBehavior='initialRoute'
                 tabBar={props => <BottomBar {...props} />}
+                screenOptions={{
+                    headerTitle: '',
+                    headerShown: true,
+                    headerBackVisible: true,
+                    headerBackTitleVisible: false,
+                    headerBackButtonMenuEnabled: false,
+                    headerShadowVisible: false,
+                    headerStyle: {
+                        backgroundColor: theme.colors.background,
+                    },
+                    headerTintColor: theme.colors.primaryText,
+                    headerTitleStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                    },
+                }}
             >
                 <Tab.Screen name={ROUTES.HOME_SCREEN} component={Home} />
                 <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
