@@ -1,4 +1,5 @@
 import React from 'react'
+import { StyleSheet, Pressable } from 'react-native'
 
 // Safe Area
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -23,9 +24,17 @@ import Store from './store/Store'
 // Theme
 import { useTheme } from '../theme/ThemeContext'
 
+// Auth
+import { useAuth } from '../auth/authContext'
+
+// UI Components
+import QPAvatar from '../ui/particles/QPAvatar'
+
 // Main Stack
 const MainStack = () => {
 
+    // Contexts
+    const { user } = useAuth()
     const { theme } = useTheme()
     const insets = useSafeAreaInsets()
 
@@ -35,7 +44,7 @@ const MainStack = () => {
                 initialRouteName="Home"
                 backBehavior='initialRoute'
                 tabBar={props => <BottomBar {...props} />}
-                screenOptions={{
+                screenOptions={({ navigation }) => ({
                     headerShown: true,
                     headerBackVisible: true,
                     headerBackTitleVisible: false,
@@ -49,7 +58,18 @@ const MainStack = () => {
                         fontSize: 24,
                         fontFamily: theme.typography.fontFamily.bold,
                     },
-                }}
+                    headerRight: () => (
+                        <Pressable
+                            style={styles.headerRight}
+                            onPress={() => navigation.navigate(ROUTES.SETTINGS_MENU)}>
+                            <QPAvatar
+                                size={32}
+                                vip={user.vip}
+                                source_uri={user.image}
+                            />
+                        </Pressable>
+                    )
+                })}
             >
                 <Tab.Screen name={ROUTES.HOME_SCREEN} component={Home} />
                 <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
@@ -60,5 +80,34 @@ const MainStack = () => {
         </SafeAreaProvider>
     )
 }
+
+const styles = StyleSheet.create({
+    qrIconStyle: {
+        color: 'white',
+        fontSize: 28,
+        marginLeft: 20,
+    },
+    headerRight: {
+        marginRight: 20,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    headerWelcome: {
+        marginRight: 10,
+        alignItems: 'flex-end',
+    },
+    headerRightText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Rubik-Regular'
+    },
+    handleText: {
+        color: 'white',
+        fontSize: 13,
+        fontFamily: 'Rubik-Bold'
+    },
+})
 
 export default MainStack

@@ -1,12 +1,16 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, Button, Alert } from 'react-native'
+import { View, Text, StyleSheet, Button, Alert, ScrollView } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/authContext'
 
+// Theme Context
+import { useTheme } from '../../theme/ThemeContext'
+
 // Home Screen
 const Home = ({ navigation }) => {
 
+    const { theme } = useTheme()
     const { user, logout } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
 
@@ -32,33 +36,37 @@ const Home = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <Text style={styles.title}>TopBar</Text>
 
-            <Text style={styles.title}>TopBar</Text>
-            
-            <Text style={styles.title}>Hi {user.name}!</Text>
+                <Text style={styles.title}>Hi {user.name}!</Text>
 
-            <Text>balance</Text>
-            <Text>Send Receive Buttons</Text>
-            <Text>Services Promotions</Text>
-            <Text>Latest Transactions</Text>
+                <Text style={styles.text}>balance</Text>
+                <Text style={styles.text}>Send Receive Buttons</Text>
+                <Text style={styles.text}>Services Promotions</Text>
+                <Text style={styles.text}>Latest Transactions</Text>
 
-            {user && (
-                <View style={styles.userInfo}>
-                    <Text style={styles.userText}>Hello, {user.name} {user.lastname}!</Text>
-                    <Text style={styles.userText}>Username: @{user.username}</Text>
-                    <Text style={styles.userText}>Email: {user.email}</Text>
-                    <Text style={styles.userText}>Balance: ${user.balance}</Text>
-                    <Text style={styles.userText}>Phone: {user.phone}</Text>
-                    {user.bio && <Text style={styles.userText}>Bio: {user.bio}</Text>}
-                </View>
-            )}
+                {user && (
+                    <View style={styles.userInfo}>
+                        <Text style={styles.userText}>Hello, {user.name} {user.lastname}!</Text>
+                        <Text style={styles.userText}>Username: @{user.username}</Text>
+                        <Text style={styles.userText}>Email: {user.email}</Text>
+                        <Text style={styles.userText}>Balance: ${user.balance}</Text>
+                        <Text style={styles.userText}>Phone: {user.phone}</Text>
+                        {user.bio && <Text style={styles.userText}>Bio: {user.bio}</Text>}
+                    </View>
+                )}
 
-            <Button
-                title={isLoading ? "Logging out..." : "Logout"}
-                onPress={handleLogout}
-                disabled={isLoading}
-            />
-
+                <Button
+                    title={isLoading ? "Logging out..." : "Logout"}
+                    onPress={handleLogout}
+                    disabled={isLoading}
+                />
+            </ScrollView>
         </View>
     )
 }
@@ -66,9 +74,15 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#0E0E1C', // Dark theme background
         paddingHorizontal: 20,
-        justifyContent: 'center',
-        backgroundColor: 'blue',
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingTop: 20,
+        paddingBottom: 20,
     },
     title: {
         fontSize: 24,
@@ -76,6 +90,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 30,
         color: 'white',
+    },
+    text: {
+        color: 'white',
+        fontSize: 16,
+        marginBottom: 10,
     },
     userInfo: {
         backgroundColor: 'rgba(255, 255, 255, 0.9)',

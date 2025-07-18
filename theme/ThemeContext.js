@@ -85,7 +85,7 @@ const createTheme = (isDark) => ({
             xxxl: 30,
             display: 60,
         },
-    },
+    }
 })
 
 // Create context

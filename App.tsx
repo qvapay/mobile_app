@@ -29,10 +29,6 @@ import MainStack from './screens/MainStack'
 // Main App Navigator Component
 const AppNavigator = () => {
 
-	// Get color scheme
-	const colorScheme = Appearance.getColorScheme()
-	console.error(colorScheme)
-
 	// Auth Context
 	const { isAuthenticated, isLoading } = useAuth()
 
