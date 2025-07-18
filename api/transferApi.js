@@ -1,4 +1,4 @@
-import { apiClient } from '../../api/client'
+import { apiClient } from './client'
 
 export const transferApi = {
 
@@ -15,12 +15,37 @@ export const transferApi = {
      * @returns {Promise<Object>} Latest transactions data
      */
     getLatestTransactions: async (filters) => {
+
         try {
-            const response = await apiClient.get('/transaction', { params: filters })
-            return response.data
+
+            // Build query string
+            const queryString = filters
+                ? '?' + Object.entries(filters)
+                    .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                    .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
+                    .join('&')
+                : ''
+
+            // Get latest transactions
+            const response = await apiClient.get(`/transaction${queryString}`)
+
+            // Return success response with data
+            return {
+                success: true,
+                data: response.data,
+                status: response.status
+            }
+
         } catch (error) {
+
             console.error('Error getting latest transactions:', error)
-            throw error
+            
+            // Return error response
+            return {
+                success: false,
+                error: error.response?.data || error.message,
+                status: error.response?.status
+            }
         }
     },
 
@@ -50,10 +75,20 @@ export const transferApi = {
                 to,
                 pin
             })
-            return response.data
+
+            return {
+                success: true,
+                data: response.data,
+                status: response.status
+            }
         } catch (error) {
+
             console.error('Error transferring money:', error)
-            throw error
+            return {
+                success: false,
+                error: error.response?.data || error.message,
+                status: error.response?.status
+            }
         }
     },
 
@@ -65,11 +100,24 @@ export const transferApi = {
      */
     getTransactionDetails: async (uuid) => {
         try {
+
             const response = await apiClient.get(`/transaction/${uuid}`)
-            return response.data
+
+            return {
+                success: true,
+                data: response.data,
+                status: response.status
+            }
+            
         } catch (error) {
+
             console.error('Error getting transaction details:', error)
-            throw error
+
+            return {
+                success: false,
+                error: error.response?.data || error.message,
+                status: error.response?.status
+            }
         }
     },
 
@@ -82,10 +130,18 @@ export const transferApi = {
     getTransactionPDF: async (uuid) => {
         try {
             const response = await apiClient.get(`/transaction/${uuid}/pdf`)
-            return response.data
+            return {
+                success: true,
+                data: response.data,
+                status: response.status
+            }
         } catch (error) {
             console.error('Error getting transaction PDF:', error)
-            throw error
+            return {
+                success: false,
+                error: error.response?.data || error.message,
+                status: error.response?.status
+            }
         }
     },
 
