@@ -44,7 +44,7 @@ const AppNavigator = () => {
 
 			{isAuthenticated ? (
 				<>
-					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} options={{ headerShown: false }} />
+					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 				</>
 			) : (
 				<>

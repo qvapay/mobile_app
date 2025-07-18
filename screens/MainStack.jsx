@@ -20,13 +20,17 @@ import Keypad from './keypad/Keypad'
 import P2P from './p2p/P2P'
 import Store from './store/Store'
 
+// Theme
+import { useTheme } from '../theme/ThemeContext'
+
 // Main Stack
 const MainStack = () => {
 
     const insets = useSafeAreaInsets()
+    const { theme } = useTheme()
 
     return (
-        <SafeAreaProvider style={{ paddingBottom: insets.bottom }}>
+        <SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
             <Tab.Navigator
                 initialRouteName="Home"
                 backBehavior='initialRoute'

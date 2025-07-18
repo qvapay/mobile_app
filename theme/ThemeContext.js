@@ -21,6 +21,8 @@ const colors = {
         placeholder: "#ADB5BD",
         elevation: "#F8F9FA",
         elevationLight: "#E9ECEF",
+        almostBlack: "#0E0E1C",
+        almostWhite: "#F7F7F7",
     },
 
     // Dark theme colors
@@ -34,6 +36,8 @@ const colors = {
         placeholder: "#B4B7BD",
         elevation: "#1E2039",
         elevationLight: "#9DA3B4",
+        almostBlack: "#0E0E1C",
+        almostWhite: "#F7F7F7",
     }
 }
 

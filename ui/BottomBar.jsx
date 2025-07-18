@@ -73,9 +73,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
                                     iconStyle="solid"
                                     style={[
                                         isFocused ? styles.activeTab : styles.fa,
-                                        {
-                                            color: isFocused ? theme.colors.primary : theme.colors.secondaryText
-                                        }
+                                        { color: isFocused ? theme.colors.almostWhite : theme.colors.secondaryText }
                                     ]}
                                 />
                             </View>
