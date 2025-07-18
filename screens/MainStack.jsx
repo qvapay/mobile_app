@@ -36,7 +36,6 @@ const MainStack = () => {
                 backBehavior='initialRoute'
                 tabBar={props => <BottomBar {...props} />}
                 screenOptions={{
-                    headerTitle: '',
                     headerShown: true,
                     headerBackVisible: true,
                     headerBackTitleVisible: false,
@@ -47,8 +46,8 @@ const MainStack = () => {
                     },
                     headerTintColor: theme.colors.primaryText,
                     headerTitleStyle: {
-                        fontSize: 16,
-                        fontWeight: 'bold',
+                        fontSize: 24,
+                        fontFamily: theme.typography.fontFamily.bold,
                     },
                 }}
             >
