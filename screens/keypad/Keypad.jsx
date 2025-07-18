@@ -31,6 +31,7 @@ const VIBRATION_DURATION = 50
 
 export default function Keypad({ navigation }) {
 
+    // 
     const { user } = useAuth()
     const { theme } = useTheme()
     const insets = useSafeAreaInsets()
@@ -66,7 +67,9 @@ export default function Keypad({ navigation }) {
     const calculateFontSize = useCallback((currentAmount) => {
         const baseSize = MAX_FONT_SIZE
         const decreaseFactor = FONT_SIZE_DECREASE_FACTOR
-        const newSize = baseSize - ((currentAmount.length - 1) * decreaseFactor)
+        // Count only numeric characters for font size calculation
+        const numericLength = currentAmount.replace('.', '').length
+        const newSize = baseSize - ((numericLength - 1) * decreaseFactor)
         return Math.max(newSize, MIN_FONT_SIZE)
     }, [])
 
@@ -87,7 +90,7 @@ export default function Keypad({ navigation }) {
             return false
         }
 
-        // Check decimal places
+        // Check decimal places - only for numeric keys, not for decimal point itself
         if (key !== '.' && key !== 'backspace' && newAmount.includes('.')) {
             const [, decimalPart] = newAmount.split('.')
             if (decimalPart && decimalPart.length >= MAX_DECIMAL_PLACES) {
@@ -95,8 +98,9 @@ export default function Keypad({ navigation }) {
             }
         }
 
-        // Check total length
-        if (newAmount.length > MAX_AMOUNT_LENGTH) {
+        // Check total length - exclude decimal point from length calculation for validation
+        const lengthToCheck = newAmount.replace('.', '').length
+        if (lengthToCheck > MAX_AMOUNT_LENGTH) {
             return false
         }
 
@@ -116,6 +120,15 @@ export default function Keypad({ navigation }) {
             // Prevent multiple decimal points
             if (amount.includes('.')) { return }
             newAmount = amount === '0' ? '0.' : amount + '.'
+            // For decimal, we don't need to validate length since we're just adding a decimal point
+            setAmount(newAmount)
+            const newFontSize = calculateFontSize(newAmount)
+            animateFontSize(newFontSize)
+
+            // Announce to screen reader
+            AccessibilityInfo.announceForAccessibility(`Amount: $${newAmount}`)
+
+            return
         } else {
             // Handle numeric keys
             if (amount === '0') {
@@ -240,18 +253,13 @@ export default function Keypad({ navigation }) {
         <View style={[containerStyles.container, styles.container, { paddingBottom: insets.bottom }]}>
             {/* Amount Display Section */}
             <View style={styles.amountSection}>
-                <View style={styles.amountContainer}>
-                    <Text style={[styles.currencySymbol, { color: theme.colors.primaryText }]}>
+                
+                <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
+                    <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText }]}>
                         $
                     </Text>
                     <Animated.Text
-                        style={[
-                            styles.amountText,
-                            {
-                                fontSize: fontSize,
-                                color: theme.colors.primaryText
-                            }
-                        ]}
+                        style={[styles.amountText, { fontSize: fontSize, color: theme.colors.primaryText }]}
                         accessibilityRole="text"
                         accessibilityLabel={`Amount: $${formattedAmount}`}
                     >
@@ -302,6 +310,7 @@ export default function Keypad({ navigation }) {
                         size={16}
                         color={theme.colors.primaryText}
                         style={styles.actionIcon}
+                        iconStyle="solid"
                     />
                     <Text style={[styles.actionButtonText, { color: theme.colors.primaryText }]}>
                         Receive
@@ -328,6 +337,7 @@ export default function Keypad({ navigation }) {
                         size={16}
                         color="white"
                         style={styles.actionIcon}
+                        iconStyle="solid"
                     />
                     <Text style={[styles.actionButtonText, { color: 'white' }]}>
                         {isProcessing ? 'Processing...' : 'Send'}
@@ -354,6 +364,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
+        height: 100,
     },
     currencySymbol: {
         fontSize: 30,
