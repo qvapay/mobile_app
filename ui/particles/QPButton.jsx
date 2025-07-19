@@ -1,9 +1,6 @@
 import React from 'react'
 import { StyleSheet, View, Text, Pressable } from 'react-native'
 
-// Gradients
-import LinearGradient from 'react-native-linear-gradient'
-
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 
@@ -27,7 +24,6 @@ const QPButton = ({ title, onPress, style, icon }) => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

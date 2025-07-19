@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, Button, TextInput, Alert, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../authContext'
@@ -8,10 +7,24 @@ import { useAuth } from '../authContext'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Theme
+import { useTheme } from '../../theme/ThemeContext'
+import { createContainerStyles } from '../../theme/themeUtils'
+
+// UI Particles
+import QPButton from '../../ui/particles/QPButton'
+
 // Login Screen
 const LoginScreen = ({ navigation }) => {
 
+    // Theme variables, dark and light modes
+    const { theme } = useTheme()
+    const containerStyles = createContainerStyles(theme)
+
+    // Auth Context
     const { login, error, clearError } = useAuth()
+
+    // States
     const [isLoading, setIsLoading] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -40,50 +53,43 @@ const LoginScreen = ({ navigation }) => {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[containerStyles.subContainer, styles.container]}>
 
-            <View style={styles.navbar}>
-                <Button title="Back" onPress={() => navigation.goBack()} />
-                <Button title="Help" onPress={() => navigation.navigate(ROUTES.HELP_SCREEN)} />
+            <View style={styles.formContainer}>
+                <Text style={styles.title}>Acceder a tu cuenta</Text>
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                />
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                />
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="2FA Code (1234 for testing)"
+                    value={twoFactorCode}
+                    onChangeText={setTwoFactorCode}
+                    keyboardType="numeric"
+                    maxLength={4}
+                />
+
+                {error && <Text style={styles.errorText}>{error}</Text>}
+
+                {isLoading && <ActivityIndicator style={styles.loader} />}
             </View>
 
-            <Text style={styles.title}>Login</Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
-
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
-
-            <TextInput
-                style={styles.input}
-                placeholder="2FA Code (1234 for testing)"
-                value={twoFactorCode}
-                onChangeText={setTwoFactorCode}
-                keyboardType="numeric"
-                maxLength={4}
-            />
-
-            {error && <Text style={styles.errorText}>{error}</Text>}
-
-            <Button
-                title={isLoading ? "Logging in..." : "Login"}
-                onPress={handleLogin}
-                disabled={isLoading}
-            />
-
-            {isLoading && <ActivityIndicator style={styles.loader} />}
+            <QPButton title="Acceder" onPress={handleLogin} disabled={isLoading} />
 
         </View>
     )
@@ -91,21 +97,17 @@ const LoginScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        paddingHorizontal: 20,
-        justifyContent: 'center',
-        backgroundColor: 'green',
-    },
-    navbar: {
-        flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 30,
+        paddingVertical: 20,
+    },
+    formContainer: {
+        flex: 1,
+        justifyContent: 'center',
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 30,
+        marginBottom: 20,
         color: 'white',
     },
     input: {

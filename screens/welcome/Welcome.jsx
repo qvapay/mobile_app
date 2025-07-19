@@ -22,9 +22,10 @@ const WelcomeScreen = ({ navigation }) => {
     // Theme variables, dark and light modes
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
+    const containerStyles = createContainerStyles(theme)
 
     return (
-        <View style={[styles.content, { backgroundColor: theme.colors.background }]}>
+        <View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 
             <View style={styles.titleContainer}>
                 <Text style={textStyles.title}>Welcome Screen</Text>

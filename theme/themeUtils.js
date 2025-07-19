@@ -49,6 +49,10 @@ export const createTextStyles = (theme) => StyleSheet.create({
 export const createContainerStyles = (theme) => StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: theme.colors.background
+    },
+    subContainer: {
+        flex: 1,
         backgroundColor: theme.colors.background,
         paddingHorizontal: theme.spacing.md,
     },

@@ -61,7 +61,18 @@ const AppNavigator = () => {
 						<Stack.Screen
 							name={ROUTES.LOGIN_SCREEN}
 							component={LoginScreen}
-							options={{ animation: 'slide_from_right' }}
+							options={{
+								headerTitle: '',
+								animation: 'slide_from_right',
+								headerShown: true,
+								headerBackVisible: true,
+								headerBackButtonMenuEnabled: true,
+								headerShadowVisible: false,
+								headerStyle: {
+									backgroundColor: theme.colors.background,
+								},
+								headerTintColor: theme.colors.primaryText,
+							}}
 						/>
 						<Stack.Screen
 							name={ROUTES.REGISTER_SCREEN}
