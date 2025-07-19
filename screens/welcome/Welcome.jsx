@@ -34,7 +34,7 @@ const WelcomeScreen = ({ navigation }) => {
 
                 <View style={styles.buttonContainer}>
                     <QPButton title="Acceder" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
-                    <QPButton title="Registrarse" onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)} />
+                    <QPButton title="Registrarse" onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)} style={{ backgroundColor: theme.colors.secondary }} />
                 </View>
 
             </View>
@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: 5,
+        marginBottom: 10,
     }
 })
 

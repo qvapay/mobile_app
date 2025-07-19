@@ -9,6 +9,8 @@ const colors = {
     success: "#7BFFB1",
     warning: "#ff9f43",
     danger: "#DB253E",
+    secondary: "#3D4A63",
+    tertiary: "#5C6BC0",
 
     // Light theme colors
     light: {
@@ -49,6 +51,8 @@ const createTheme = (isDark) => ({
         success: colors.success,
         warning: colors.warning,
         danger: colors.danger,
+        secondary: colors.secondary,
+        tertiary: colors.tertiary,
         ...(isDark ? colors.dark : colors.light),
     },
     spacing: {

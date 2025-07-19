@@ -49,8 +49,16 @@ const AppNavigator = () => {
 			) : (
 				<>
 					<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
-					<Stack.Screen name={ROUTES.LOGIN_SCREEN} component={LoginScreen} />
-					<Stack.Screen name={ROUTES.REGISTER_SCREEN} component={RegisterScreen} />
+					<Stack.Screen
+						name={ROUTES.LOGIN_SCREEN}
+						component={LoginScreen}
+						options={{ animation: 'slide_from_right' }}
+					/>
+					<Stack.Screen
+						name={ROUTES.REGISTER_SCREEN}
+						component={RegisterScreen}
+						options={{ animation: 'slide_from_right' }}
+					/>
 				</>
 			)}
 
