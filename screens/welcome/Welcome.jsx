@@ -1,7 +1,6 @@
 import React from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -50,9 +49,6 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 5,
         marginBottom: 10,
     }
 })

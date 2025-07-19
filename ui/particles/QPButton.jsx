@@ -8,14 +8,27 @@ import { useTheme } from '../../theme/ThemeContext'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // QPButton component
-const QPButton = ({ title, onPress, style, icon }) => {
+const QPButton = ({ title, onPress, style, icon, disabled = false }) => {
 
     // Contexts
     const { theme } = useTheme()
 
+    const handlePress = () => {
+        if (disabled) return
+        onPress && onPress()
+    }
+
     // Variables
     return (
-        <Pressable onPress={onPress} style={[styles.container, { backgroundColor: theme.colors.primary }, style]}>
+        <Pressable
+            onPress={handlePress}
+            style={({ pressed }) => [
+                styles.container,
+                { backgroundColor: disabled ? theme.colors.secondaryText : theme.colors.primary },
+                { transform: [{ scale: pressed ? 0.99 : 1 }] },
+                { opacity: disabled ? 0.5 : 1 },
+                style
+            ]}>
             {icon && <FontAwesome6 name={icon} size={24} color={theme.colors.primaryText} />}
             <Text style={[styles.text, { color: theme.colors.primaryText }]}>{title}</Text>
         </Pressable>
@@ -27,8 +40,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 12,
-        minHeight: 48,
+        borderRadius: 10,
+        height: 50,
+        width: '100%',
+        marginVertical: 5,
+        paddingVertical: 10,
+        alignItems: 'center',
     },
     text: {
         fontSize: 16,

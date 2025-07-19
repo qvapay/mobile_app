@@ -53,7 +53,7 @@ const LoginScreen = ({ navigation }) => {
     }
 
     return (
-        <View style={[containerStyles.subContainer, styles.container]}>
+        <View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Acceder a tu cuenta</Text>
@@ -96,14 +96,6 @@ const LoginScreen = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        justifyContent: 'space-between',
-        paddingVertical: 20,
-    },
-    formContainer: {
-        flex: 1,
-        justifyContent: 'center',
-    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
