@@ -18,6 +18,12 @@ const QPAvatar = ({ size = 32, source_uri = 'https://qvapay.com/android-chrome-5
     const { user } = useAuth()
     const { theme } = useTheme()
 
+    // Debug logging
+    console.log('QPAvatar - Props vip:', vip)
+    console.log('QPAvatar - User object:', user)
+    console.log('QPAvatar - User vip:', user?.vip)
+    console.log('QPAvatar - User image:', user?.image)
+
     // Variables
     const borderVip = size / 25
     const gradientColors = vip ? [theme.colors.danger, theme.colors.primary, theme.colors.success] : ['#ffffff', '#ffffff']

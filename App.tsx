@@ -36,15 +36,13 @@ import SettingsStack from './screens/settings/Settings'
 // Main App Navigator Component
 const AppNavigator = () => {
 
-	// Auth Context
-	const { isAuthenticated, isLoading } = useAuth()
-
-	// Show splash screen while loading
-	if (isLoading) { return <SplashScreen /> }
-
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
+	
+	// Auth Context
+	const { isAuthenticated, isLoading } = useAuth()
+	if (isLoading) { return <SplashScreen /> }
 
 	return (
 		<SafeAreaView style={[containerStyles.container, { backgroundColor: theme.colors.background }]}>
@@ -93,13 +91,13 @@ const AppNavigator = () => {
 function App() {
 
 	return (
-		<ThemeProvider>
-			<AuthProvider>
+		<AuthProvider>
+			<ThemeProvider>
 				<NavigationContainer>
 					<AppNavigator />
 				</NavigationContainer>
-			</AuthProvider>
-		</ThemeProvider>
+			</ThemeProvider>
+		</AuthProvider>
 	)
 }
 

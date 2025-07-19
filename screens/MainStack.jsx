@@ -30,6 +30,9 @@ import { useAuth } from '../auth/authContext'
 // UI Components
 import QPAvatar from '../ui/particles/QPAvatar'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // Main Stack
 const MainStack = () => {
 
@@ -73,7 +76,20 @@ const MainStack = () => {
             >
                 <Tab.Screen name={ROUTES.HOME_SCREEN} component={Home} />
                 <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
-                <Tab.Screen name={ROUTES.KEYPAD_SCREEN} component={Keypad} />
+                <Tab.Screen
+                    name={ROUTES.KEYPAD_SCREEN}
+                    component={Keypad}
+                    options={({ navigation }) => ({
+                        headerTitle: '',
+                        headerLeft: () => (
+                            <Pressable
+                                style={styles.headerLeft}
+                                onPress={() => navigation.goBack()}>
+                                <FontAwesome6 name="qr" size={24} color="white" iconStyle="solid" />
+                            </Pressable>
+                        )
+                    })}
+                />
                 <Tab.Screen name={ROUTES.P2P_SCREEN} component={P2P} />
                 <Tab.Screen name={ROUTES.STORE_SCREEN} component={Store} />
             </Tab.Navigator>

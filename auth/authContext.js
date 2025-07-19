@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // API
 import { authApi } from '../api/authApi'
+import { setAuthToken, removeAuthToken, getAuthToken } from '../api/client'
 
 // Create the Auth Context
 const AuthContext = createContext()
@@ -59,28 +60,36 @@ export const AuthProvider = ({ children }) => {
             setIsLoading(true)
 
             // Check if user is authenticated, retrieve token from storage
-            const saved_token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN)
+            const saved_token = await getAuthToken()
             if (saved_token) {
 
-                // If token found, check if its valid
-
-                // Load user data and tokens
-                // const [userData, firstTimeUser] = await Promise.all([
-                //     AsyncStorage.getItem(STORAGE_KEYS.USER_DATA),
-                //     AsyncStorage.getItem(STORAGE_KEYS.FIRST_TIME_USER),
-                // ])
-
                 // Check token against API for validity
-                const apiResponse = await authApi.checkToken(saved_token)
+                const apiResponse = await authApi.checkToken()
                 if (apiResponse.success) {
                     console.log('Token is valid')
                     setToken(saved_token)
                     setIsAuthenticated(true)
 
                     // Get user data from API
-                    const userData = await authApi.getProfile(saved_token)
+                    const userData = await authApi.getProfile()
                     console.log('User data:', userData)
-                    setUser(userData.me)
+                    
+                    if (userData.success && userData.me) {
+                        // Map the user data to include vip and image fields
+                        const mappedUserData = {
+                            ...userData.me,
+                            vip: userData.me.vip === 1,
+                            image: userData.me.profile_photo_url,
+                        }
+                        console.log('Mapped user data:', mappedUserData)
+                        console.log('VIP status:', mappedUserData.vip)
+                        console.log('Image URL:', mappedUserData.image)
+                        setUser(mappedUserData)
+                    } else {
+                        console.error('Failed to get user profile:', userData.error)
+                        // If we can't get the profile, we should probably logout
+                        await logout()
+                    }
 
                 } else {
                     console.log('Token is invalid')
@@ -110,8 +119,6 @@ export const AuthProvider = ({ children }) => {
             // Call QvaPay API for authentication
             const apiResponse = await authApi.login(credentials)
 
-            console.log('API Response:', apiResponse)
-
             if (!apiResponse.success) {
                 setError(apiResponse.error || 'Login failed')
                 return { success: false, error: apiResponse.error }
@@ -119,9 +126,6 @@ export const AuthProvider = ({ children }) => {
 
             // Extract data from API response
             const { accessToken, me } = apiResponse
-
-            console.log('API Response Access Token:', accessToken)
-            console.log('API Response Me:', me)
 
             // Map user data from API response
             const userData = {
@@ -137,19 +141,24 @@ export const AuthProvider = ({ children }) => {
                 phone: me.phone,
                 phone_verified: me.phone_verified,
                 kyc: me.kyc,
+                vip: me.vip,
                 golden_check: me.golden_check,
                 golden_expire: me.golden_expire,
                 p2p_enabled: me.p2p_enabled,
                 complete_name: me.complete_name,
                 cover_photo_url: me.cover_photo_url,
-                profile_photo_url: me.profile_photo_url,
+                image: me.image,
                 average_rating: me.average_rating,
             }
+            
+            console.log('Login - Mapped user data:', userData)
+            console.log('Login - VIP status:', userData.vip)
+            console.log('Login - Image URL:', userData.image)
 
             // Store user data and auth status
             await Promise.all([
                 AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
-                AsyncStorage.setItem(STORAGE_KEYS.TOKEN, accessToken),
+                setAuthToken(accessToken), // Use API client's token storage
                 AsyncStorage.setItem(STORAGE_KEYS.FIRST_TIME_USER, 'false'),
             ])
 
@@ -207,10 +216,8 @@ export const AuthProvider = ({ children }) => {
     const clearAuthData = async () => {
         try {
             await Promise.all([
-                AsyncStorage.multiRemove([
-                    STORAGE_KEYS.TOKEN,
-                    STORAGE_KEYS.USER_DATA,
-                ]),
+                removeAuthToken(), // Use API client's token removal
+                AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
             ])
         } catch (error) { console.error('Error clearing auth data:', error) }
     }

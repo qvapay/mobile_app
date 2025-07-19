@@ -8,7 +8,7 @@ const deviceName = DeviceInfo.getDeviceName()
 
 // API Configuration
 const API_BASE_URL = 'https://api.qvapay.com'
-const API_TIMEOUT = 30000 // 30 seconds
+const API_TIMEOUT = 10000 // 10 seconds
 
 // Create axios instance
 const apiClient = axios.create({
@@ -82,14 +82,14 @@ apiClient.interceptors.response.use(
 // Helper functions
 export const setAuthToken = async (token) => {
     try {
-        await AsyncStorage.setItem('token', JSON.stringify(token))
+        await AsyncStorage.setItem('token', token)
     } catch (error) { console.error('Failed to store token:', error) }
 }
 
 export const getAuthToken = async () => {
     try {
         const tokenData = await AsyncStorage.getItem('token')
-        return tokenData ? JSON.parse(tokenData) : null
+        return tokenData || null
     } catch (error) {
         console.error('Failed to get token:', error)
         return null

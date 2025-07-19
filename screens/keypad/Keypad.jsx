@@ -17,6 +17,9 @@ import { useAuth } from '../../auth/authContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
+// UI Particles
+import QPButton from '../../ui/particles/QPButton'
+
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -292,57 +295,33 @@ export default function Keypad({ navigation }) {
 
             {/* Action Buttons */}
             <View style={styles.actionSection}>
-                <Pressable
+                <QPButton
+                    title="Recibir"
+                    onPress={handleReceiveAmount}
+                    disabled={isProcessing}
+                    icon="arrow-down"
                     style={[
                         styles.actionButton,
                         styles.receiveButton,
                         { backgroundColor: theme.colors.elevation },
                         isProcessing && styles.actionButtonDisabled
                     ]}
-                    onPress={handleReceiveAmount}
-                    disabled={isProcessing}
-                    accessibilityRole="button"
-                    accessibilityLabel="Recibir saldo"
-                    accessibilityHint="Navegar a la pantalla de recibir saldo"
-                >
-                    <FontAwesome6
-                        name="arrow-down"
-                        size={16}
-                        color={theme.colors.primaryText}
-                        style={styles.actionIcon}
-                        iconStyle="solid"
-                    />
-                    <Text style={[styles.actionButtonText, { color: theme.colors.primaryText }]}>
-                        Recibir
-                    </Text>
-                </Pressable>
+                />
 
                 <View style={styles.actionButtonSpacer} />
 
-                <Pressable
+                <QPButton
+                    title={isProcessing ? 'Procesando...' : 'Enviar'}
+                    onPress={handleSendAmount}
+                    disabled={isProcessing}
+                    icon="arrow-up"
                     style={[
                         styles.actionButton,
                         styles.sendButton,
                         { backgroundColor: theme.colors.primary },
                         isProcessing && styles.actionButtonDisabled
                     ]}
-                    onPress={handleSendAmount}
-                    disabled={isProcessing}
-                    accessibilityRole="button"
-                    accessibilityLabel="Enviar saldo"
-                    accessibilityHint="Navegar a la pantalla de enviar saldo"
-                >
-                    <FontAwesome6
-                        name="arrow-up"
-                        size={16}
-                        color="white"
-                        style={styles.actionIcon}
-                        iconStyle="solid"
-                    />
-                    <Text style={[styles.actionButtonText, { color: 'white' }]}>
-                        {isProcessing ? 'Procesando...' : 'Enviar'}
-                    </Text>
-                </Pressable>
+                />
             </View>
         </View>
     )
