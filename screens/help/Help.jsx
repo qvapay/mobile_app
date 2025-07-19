@@ -8,11 +8,9 @@ import { ROUTES } from '../../routes'
 const HelpScreen = ({ navigation }) => {
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <Text>Help Screen</Text>
-            </View>
-        </SafeAreaView>
+        <View style={styles.container}>
+            <Text>Help Screen</Text>
+        </View>
     )
 }
 

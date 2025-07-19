@@ -17,26 +17,24 @@ const RegisterScreen = ({ navigation }) => {
     const containerStyles = createContainerStyles(theme)
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-            <View style={styles.container}>
+        <View style={styles.container}>
 
-                <View style={styles.navbar}>
-                    <Button title="Back" onPress={() => navigation.goBack()} />
-                    <Button title="Help" onPress={() => navigation.navigate(ROUTES.HELP_SCREEN)} />
-                </View>
-
-                <View style={styles.content}>
-                    <Text>Register Screen</Text>
-                    <Text>Register Screen</Text>
-                    <Text>Register Screen</Text>
-                    <Text>Register Screen</Text>
-                </View>
-
-                <View style={styles.buttonContainer}>
-                    <Button title="Register" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
-                </View>
+            <View style={styles.navbar}>
+                <Button title="Back" onPress={() => navigation.goBack()} />
+                <Button title="Help" onPress={() => navigation.navigate(ROUTES.HELP_SCREEN)} />
             </View>
-        </SafeAreaView>
+
+            <View style={styles.content}>
+                <Text>Register Screen</Text>
+                <Text>Register Screen</Text>
+                <Text>Register Screen</Text>
+                <Text>Register Screen</Text>
+            </View>
+
+            <View style={styles.buttonContainer}>
+                <Button title="Register" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
+            </View>
+        </View>
     )
 }
 

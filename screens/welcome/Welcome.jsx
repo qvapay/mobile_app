@@ -21,25 +21,22 @@ const WelcomeScreen = ({ navigation }) => {
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
-    const containerStyles = createContainerStyles(theme)
     const textStyles = createTextStyles(theme)
 
     return (
-        <SafeAreaView style={[containerStyles.container]}>
+        <View style={[styles.content, { backgroundColor: theme.colors.background }]}>
 
-            <View style={styles.content}>
-
+            <View style={styles.titleContainer}>
                 <Text style={textStyles.title}>Welcome Screen</Text>
-                <Text style={textStyles.subtitle}>Slider like Revolut with features and stories</Text>
-
-                <View style={styles.buttonContainer}>
-                    <QPButton title="Acceder" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
-                    <QPButton title="Registrarse" onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)} style={{ backgroundColor: theme.colors.secondary }} />
-                </View>
-
+                <Text style={textStyles.subtitle}>Slider with features and stories</Text>
             </View>
 
-        </SafeAreaView>
+            <View style={styles.buttonContainer}>
+                <QPButton title="Acceder" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
+                <QPButton title="Registrarse" onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)} style={{ backgroundColor: theme.colors.secondary }} />
+            </View>
+
+        </View>
     )
 }
 
@@ -47,6 +44,9 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         justifyContent: 'space-between',
+    },
+    titleContainer: {
+        marginTop: 20,
     },
     buttonContainer: {
         flexDirection: 'row',
