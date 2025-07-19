@@ -23,6 +23,9 @@ import QPButton from '../../ui/particles/QPButton'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Routes
+import { ROUTES } from '../../routes'
+
 // Constants
 const MAX_AMOUNT_LENGTH = 5
 const MAX_DECIMAL_PLACES = 2
@@ -197,8 +200,8 @@ export default function Keypad({ navigation }) {
 
         setIsProcessing(true)
         try {
-            // Navigate to send screen with amount
-            navigation.navigate('Send', { amount: numericAmount.toString() })
+            // Navigate to Transfer screen with amount
+            navigation.navigate(ROUTES.SEND_SCREEN, { amount: numericAmount.toString() })
         } catch (error) {
             Alert.alert('Error', 'Failed to process send request')
         } finally {
@@ -210,7 +213,7 @@ export default function Keypad({ navigation }) {
     // Receive amount
     const handleReceiveAmount = useCallback(() => {
         const numericAmount = parseFloat(amount)
-        navigation.navigate('Profile', { amount: numericAmount.toString() })
+        navigation.navigate(ROUTES.PROFILE_SCREEN, { amount: numericAmount.toString() })
     }, [amount, navigation])
 
     // Render individual key

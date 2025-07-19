@@ -31,6 +31,8 @@ export const ROUTES = {
     WITHDRAW_SCREEN: "Withdraw",
     WITHDRAW_INSTRUCTIONS_SCREEN: "WithdrawInstructions",
     SCAN_SCREEN: "Scan",
+
+    // Send, Receive and Confirm Screens
     SEND_SCREEN: "Send",
     CONFIRM_SEND_SCREEN: "ConfirmSend",
 

@@ -28,6 +28,7 @@ import RegisterScreen from './auth/screens/Register'
 
 // Screens with auth
 import MainStack from './screens/MainStack'
+import SendScreen from './screens/transaction/Send'
 
 // Settings Stack
 import SettingsStack from './screens/settings/Settings'
@@ -52,6 +53,9 @@ const AppNavigator = () => {
 					<>
 						<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 						<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} />
+
+						{/* Send, Receive and Confirm Screens */}
+						<Stack.Screen name={ROUTES.SEND_SCREEN} component={SendScreen} />
 					</>
 				) : (
 					<>

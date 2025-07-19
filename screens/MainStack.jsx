@@ -65,17 +65,14 @@ const MainStack = () => {
                         <Pressable
                             style={styles.headerRight}
                             onPress={() => navigation.navigate(ROUTES.SETTINGS_MENU)}>
-                            <QPAvatar
-                                size={32}
-                                vip={user.vip}
-                                source_uri={user.image}
-                            />
+                            <QPAvatar size={32} vip={user.vip} source_uri={user.image} />
                         </Pressable>
                     )
                 })}
             >
                 <Tab.Screen name={ROUTES.HOME_SCREEN} component={Home} />
                 <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
+
                 <Tab.Screen
                     name={ROUTES.KEYPAD_SCREEN}
                     component={Keypad}
@@ -85,13 +82,16 @@ const MainStack = () => {
                             <Pressable
                                 style={styles.headerLeft}
                                 onPress={() => navigation.goBack()}>
-                                <FontAwesome6 name="qr" size={24} color="white" iconStyle="solid" />
+                                <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
                     })}
                 />
+
                 <Tab.Screen name={ROUTES.P2P_SCREEN} component={P2P} />
+
                 <Tab.Screen name={ROUTES.STORE_SCREEN} component={Store} />
+                
             </Tab.Navigator>
         </SafeAreaProvider>
     )
@@ -102,6 +102,12 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 28,
         marginLeft: 20,
+    },
+    headerLeft: {
+        marginLeft: 20,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     headerRight: {
         marginRight: 20,
