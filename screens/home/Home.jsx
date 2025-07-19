@@ -10,6 +10,9 @@ import { useTheme } from '../../theme/ThemeContext'
 // Import transferApi
 import { transferApi } from '../../api/transferApi'
 
+// UI Particles
+import QPTransaction from '../../ui/particles/QPTransaction'
+
 // Home Screen
 const Home = ({ navigation }) => {
 

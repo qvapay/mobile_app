@@ -5,11 +5,19 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Theme
+import { useTheme } from '../../theme/ThemeContext'
+import { createContainerStyles } from '../../theme/themeUtils'
+
 // Register Screen
 const RegisterScreen = ({ navigation }) => {
 
+    // Theme variables, dark and light modes
+    const { theme } = useTheme()
+    const containerStyles = createContainerStyles(theme)
+
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
             <View style={styles.container}>
 
                 <View style={styles.navbar}>
@@ -35,7 +43,6 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: 'green',
     },
     container: {
         flex: 1,

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
-import { StyleSheet, View, Text } from 'react-native'
+import React from 'react'
+import { StyleSheet, View } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/authContext'
