@@ -29,7 +29,7 @@ const QPButton = ({ title, onPress, style, icon, disabled = false }) => {
                 { opacity: disabled ? 0.5 : 1 },
                 style
             ]}>
-            {icon && <FontAwesome6 name={icon} size={24} color={theme.colors.primaryText} />}
+            {icon && <FontAwesome6 name={icon} size={24} color={theme.colors.primaryText} iconStyle="solid" />}
             <Text style={[styles.text, { color: theme.colors.primaryText }]}>{title}</Text>
         </Pressable>
     )

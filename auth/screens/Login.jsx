@@ -12,6 +12,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
+import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 
 // Login Screen
@@ -53,40 +54,43 @@ const LoginScreen = ({ navigation }) => {
     }
 
     return (
-        <View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
+        <View style={[containerStyles.subContainer, styles.container]}>
 
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Acceder a tu cuenta</Text>
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="Email"
+                <QPInput
+                    placeholder="tucorreo@gmail.com"
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
+                    prefixIconName="envelope"
                 />
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="Password"
+                <QPInput
+                    placeholder="Contraseña"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
+                    prefixIconName="lock"
+                    suffixIconName="eye"
                 />
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="2FA Code (1234 for testing)"
+                <QPInput
+                    placeholder="Código 2FA"
                     value={twoFactorCode}
                     onChangeText={setTwoFactorCode}
                     keyboardType="numeric"
                     maxLength={4}
+                    secureTextEntry
+                    prefixIconName="shield"
                 />
 
                 {error && <Text style={styles.errorText}>{error}</Text>}
 
                 {isLoading && <ActivityIndicator style={styles.loader} />}
+                
             </View>
 
             <QPButton title="Acceder" onPress={handleLogin} disabled={isLoading} />
@@ -96,19 +100,20 @@ const LoginScreen = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
+    container: {
+        justifyContent: 'space-between',
+        paddingVertical: 20,
+    },
+    formContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingTop: 40,
+    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 20,
         color: 'white',
-    },
-    input: {
-        backgroundColor: 'white',
-        paddingHorizontal: 15,
-        paddingVertical: 12,
-        borderRadius: 8,
-        marginBottom: 15,
-        fontSize: 16,
     },
     errorText: {
         color: 'red',
