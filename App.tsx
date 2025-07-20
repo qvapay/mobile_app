@@ -1,6 +1,5 @@
 // React Components
 import React from 'react'
-import { StyleSheet, Appearance } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Navigation Components
@@ -104,12 +103,5 @@ function App() {
 		</AuthProvider>
 	)
 }
-
-// const styles = StyleSheet.create({
-// 	container: {
-// 		flex: 1,
-// 		backgroundColor: 'red',
-// 	}
-// })
 
 export default App

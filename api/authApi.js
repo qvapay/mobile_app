@@ -17,7 +17,8 @@ export const authApi = {
             const response = await apiClient.post('/auth/login', {
                 email: credentials.email,
                 password: credentials.password,
-                two_factor_code: credentials.two_factor_code || '', // Default for testing
+                two_factor_code: credentials.two_factor_code || '',
+                remember: true
             })
 
             return {

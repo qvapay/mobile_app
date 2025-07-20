@@ -72,35 +72,15 @@ export const AuthProvider = ({ children }) => {
 
                     // Get user data from API
                     const userData = await authApi.getProfile()
-                    console.log('User data:', userData)
-                    
+                    console.error('User data:', userData)
+
                     if (userData.success && userData.me) {
-                        // Map the user data to include vip and image fields
-                        const mappedUserData = {
-                            ...userData.me,
-                            vip: userData.me.vip === 1,
-                            image: userData.me.profile_photo_url,
-                        }
-                        console.log('Mapped user data:', mappedUserData)
-                        console.log('VIP status:', mappedUserData.vip)
-                        console.log('Image URL:', mappedUserData.image)
-                        setUser(mappedUserData)
-                    } else {
-                        console.error('Failed to get user profile:', userData.error)
-                        // If we can't get the profile, we should probably logout
-                        await logout()
-                    }
+                        setUser(userData.me)
+                    } else { await logout() }
 
-                } else {
-                    console.log('Token is invalid')
-                    setIsAuthenticated(false)
-                }
+                } else { setIsAuthenticated(false) }
 
-            } else {
-                // No auth status found, so set isAuthenticated to false and loading to false
-                // This variable is used to show the splash screen and then, redirect to Welcome Screen
-                setIsAuthenticated(false)
-            }
+            } else { setIsAuthenticated(false) }
 
         } catch (error) {
             console.error('Error initializing auth:', error)
@@ -150,7 +130,7 @@ export const AuthProvider = ({ children }) => {
                 image: me.image,
                 average_rating: me.average_rating,
             }
-            
+
             console.log('Login - Mapped user data:', userData)
             console.log('Login - VIP status:', userData.vip)
             console.log('Login - Image URL:', userData.image)

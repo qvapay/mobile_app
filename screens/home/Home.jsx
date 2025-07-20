@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/authContext'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
+import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // Import transferApi
 import { transferApi } from '../../api/transferApi'
@@ -18,6 +19,8 @@ const Home = ({ navigation }) => {
 
     const { user } = useAuth()
     const { theme } = useTheme()
+    const textStyles = createTextStyles(theme)
+    const containerStyles = createContainerStyles(theme)
 
     // State
     const [latestTransactions, setLatestTransactions] = useState([])
@@ -36,7 +39,7 @@ const Home = ({ navigation }) => {
     }, [])
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[containerStyles.subContainer]}>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -47,7 +50,6 @@ const Home = ({ navigation }) => {
                 <Text style={styles.text}>balance ${user.balance}</Text>
                 <Text style={styles.text}>Send Receive Buttons</Text>
                 <Text style={styles.text}>Services Promotions</Text>
-                <Text style={styles.text}>Latest Transactions</Text>
 
                 {latestTransactions.map((transaction) => (
                     <View key={transaction.uuid} style={{ marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: 12 }}>
@@ -90,6 +92,8 @@ const Home = ({ navigation }) => {
                         <Text style={styles.userText}>Email: {user.email}</Text>
                         <Text style={styles.userText}>Balance: ${user.balance}</Text>
                         <Text style={styles.userText}>Phone: {user.phone}</Text>
+                        <Text style={styles.userText}>Image: {user.image}</Text>
+                        <Text style={styles.userText}>VIP: {user.vip ? 'Yes' : 'No'}</Text>
                         {user.bio && <Text style={styles.userText}>Bio: {user.bio}</Text>}
                     </View>
                 )}

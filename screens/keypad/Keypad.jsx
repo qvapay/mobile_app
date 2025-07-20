@@ -181,32 +181,22 @@ export default function Keypad({ navigation }) {
         const numericAmount = parseFloat(amount)
 
         if (numericAmount <= 0) {
-            Alert.alert(
-                'Invalid Amount',
-                'The amount must be greater than 0',
-                [{ text: 'OK', style: 'default' }]
-            )
+            Alert.alert('Monto inválido', 'El monto debe ser mayor a 0', [{ text: 'OK', style: 'default' }])
             return
         }
 
         if (user?.balance && numericAmount > user.balance) {
-            Alert.alert(
-                'Insufficient Balance',
-                'The amount cannot exceed your available balance',
-                [{ text: 'OK', style: 'default' }]
-            )
+            Alert.alert('Saldo insuficiente', 'El monto no puede exceder tu saldo disponible', [{ text: 'OK', style: 'default' }])
             return
         }
 
         setIsProcessing(true)
+        
         try {
-            // Navigate to Transfer screen with amount
             navigation.navigate(ROUTES.SEND_SCREEN, { amount: numericAmount.toString() })
         } catch (error) {
-            Alert.alert('Error', 'Failed to process send request')
-        } finally {
-            setIsProcessing(false)
-        }
+            Alert.alert('Error', 'Error al procesar la solicitud de envío')
+        } finally { setIsProcessing(false) }
 
     }, [amount, user?.balance, isProcessing, navigation])
 
