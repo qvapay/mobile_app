@@ -16,7 +16,9 @@ import { ROUTES } from '../../routes'
 
 // API
 import { userApi } from '../../api/userApi'
+import { transferApi } from '../../api/transferApi'
 
+// Send Screen, search user, send money and show success message
 const SendScreen = ({ navigation, route }) => {
 
     // Context
@@ -40,7 +42,6 @@ const SendScreen = ({ navigation, route }) => {
     const handleSearch = async () => {
 
         try {
-
             setIsLoading(true)
             console.log('Send', userSearch, description, amount)
 
@@ -64,7 +65,6 @@ const SendScreen = ({ navigation, route }) => {
 
         try {
             setIsLoading(true)
-            console.log('Send', userFound.uuid, description, amount)
 
             const result = await transferApi.transferMoney({
                 amount,
@@ -75,7 +75,8 @@ const SendScreen = ({ navigation, route }) => {
 
             if (result.success) {
                 console.log('Transfer successful', result.data)
-                // 
+                // TODO: Try to get the response data to save in Transactions meme
+                navigation.navigate(ROUTES.SEND_SUCCESS_SCREEN)
             } else {
                 console.log('Error sending:', result.error)
             }

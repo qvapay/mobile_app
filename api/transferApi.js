@@ -68,12 +68,13 @@ export const transferApi = {
      * }
      */
     transferMoney: async ({ amount, description, to, pin }) => {
+        
         try {
             const response = await apiClient.post('/transaction/transfer', {
-                amount,
+                amount: amount.toString(),
                 description,
                 to,
-                pin
+                pin: pin.toString()
             })
 
             return {
@@ -108,7 +109,7 @@ export const transferApi = {
                 data: response.data,
                 status: response.status
             }
-            
+
         } catch (error) {
 
             console.error('Error getting transaction details:', error)
