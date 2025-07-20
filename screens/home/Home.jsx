@@ -17,23 +17,31 @@ import QPTransaction from '../../ui/particles/QPTransaction'
 // Home Screen
 const Home = ({ navigation }) => {
 
+    // Context
     const { user } = useAuth()
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
     // State
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState(null)
     const [latestTransactions, setLatestTransactions] = useState([])
 
     // Fetch latest transactions
     useEffect(() => {
         const fetchLatestTransactions = async () => {
-            const result = await transferApi.getLatestTransactions({ take: 6 })
-            if (result.success) {
-                setLatestTransactions(result.data)
-            } else {
-                console.error('Error fetching latest transactions:', result.error)
-            }
+            try {
+                setIsLoading(true)
+                const result = await transferApi.getLatestTransactions({ take: 6 })
+                if (result.success) {
+                    setLatestTransactions(result.data)
+                } else {
+                    console.error('Error fetching latest transactions:', result.error)
+                }
+            } catch (error) {
+                console.error('Error fetching latest transactions:', error)
+            } finally { setIsLoading(false) }
         }
         fetchLatestTransactions()
     }, [])

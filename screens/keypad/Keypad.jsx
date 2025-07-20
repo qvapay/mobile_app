@@ -191,9 +191,11 @@ export default function Keypad({ navigation }) {
         }
 
         setIsProcessing(true)
-        
+
         try {
+            // Temporary modify this to SendSuccessScreen
             navigation.navigate(ROUTES.SEND_SCREEN, { amount: numericAmount.toString() })
+            // navigation.navigate(ROUTES.SEND_SUCCESS_SCREEN)
         } catch (error) {
             Alert.alert('Error', 'Error al procesar la solicitud de envío')
         } finally { setIsProcessing(false) }

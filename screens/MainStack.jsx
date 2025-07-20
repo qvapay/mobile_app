@@ -65,11 +65,12 @@ const MainStack = () => {
                         <Pressable
                             style={styles.headerRight}
                             onPress={() => navigation.navigate(ROUTES.SETTINGS_MENU)}>
-                            <QPAvatar size={32} vip={user.vip} source_uri={user.image} />
+                            <QPAvatar user={user} size={32} />
                         </Pressable>
                     )
                 })}
             >
+                
                 <Tab.Screen name={ROUTES.HOME_SCREEN} component={Home} />
                 <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
 

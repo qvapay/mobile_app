@@ -72,8 +72,6 @@ export const AuthProvider = ({ children }) => {
 
                     // Get user data from API
                     const userData = await authApi.getProfile()
-                    console.error('User data:', userData)
-
                     if (userData.success && userData.me) {
                         setUser(userData.me)
                     } else { await logout() }

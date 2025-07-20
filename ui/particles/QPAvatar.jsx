@@ -12,22 +12,15 @@ import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from 'react-native-linear-gradient'
 
 // QvaPay Avatar Component
-const QPAvatar = ({ size = 32, source_uri = 'https://qvapay.com/android-chrome-512x512.png', vip = false }) => {
+const QPAvatar = ({ user = {}, size = 32}) => {
 
     // Contexts
-    const { user } = useAuth()
     const { theme } = useTheme()
-
-    // Debug logging
-    console.log('QPAvatar - Props vip:', vip)
-    console.log('QPAvatar - User object:', user)
-    console.log('QPAvatar - User vip:', user?.vip)
-    console.log('QPAvatar - User image:', user?.image)
 
     // Variables
     const borderVip = size / 25
-    const gradientColors = vip ? [theme.colors.danger, theme.colors.primary, theme.colors.success] : ['#ffffff', '#ffffff']
-    const profile_picture = user.image ? `https://media.qvapay.com/${user.image}` : source_uri
+    const gradientColors = user.vip ? [theme.colors.danger, theme.colors.primary, theme.colors.success] : ['#ffffff', '#ffffff']
+    const profile_picture = user.image ? `https://media.qvapay.com/${user.image}` : 'https://qvapay.com/android-chrome-512x512.png'
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background, width: size, height: size }]}>

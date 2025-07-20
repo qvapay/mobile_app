@@ -38,6 +38,21 @@ export const createTextStyles = (theme) => StyleSheet.create({
         fontFamily: theme.typography.fontFamily.medium,
         color: theme.colors.primaryText,
     },
+    h4: {
+        fontSize: theme.typography.fontSize.lg,
+        fontFamily: theme.typography.fontFamily.medium,
+        color: theme.colors.primaryText,
+    },
+    h5: {
+        fontSize: theme.typography.fontSize.md,
+        fontFamily: theme.typography.fontFamily.medium,
+        color: theme.colors.primaryText,
+    },
+    h6: {
+        fontSize: theme.typography.fontSize.sm,
+        fontFamily: theme.typography.fontFamily.medium,
+        color: theme.colors.primaryText,
+    },
     caption: {
         fontSize: theme.typography.fontSize.sm,
         fontFamily: theme.typography.fontFamily.light,

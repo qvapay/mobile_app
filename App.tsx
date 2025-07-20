@@ -28,6 +28,7 @@ import RegisterScreen from './auth/screens/Register'
 // Screens with auth
 import MainStack from './screens/MainStack'
 import SendScreen from './screens/transaction/Send'
+import SendSuccessScreen from './screens/transaction/SendSuccess'
 
 // Settings Stack
 import SettingsStack from './screens/settings/Settings'
@@ -39,22 +40,51 @@ const AppNavigator = () => {
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
-	
+
 	// Auth Context
 	const { isAuthenticated, isLoading } = useAuth()
 	if (isLoading) { return <SplashScreen /> }
 
 	return (
 		<SafeAreaView style={[containerStyles.container, { backgroundColor: theme.colors.background }]}>
-			<Stack.Navigator initialRouteName={isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN} screenOptions={{ headerShown: false }}>
+			<Stack.Navigator
+				initialRouteName={isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
+				screenOptions={{
+					headerShown: false,
+					headerStyle: {
+						backgroundColor: theme.colors.background,
+					},
+					headerTintColor: theme.colors.primaryText,
+				}}
+			>
 
 				{isAuthenticated ? (
 					<>
 						<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 						<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} />
 
-						{/* Send, Receive and Confirm Screens */}
-						<Stack.Screen name={ROUTES.SEND_SCREEN} component={SendScreen} />
+						{/* Send, Receive and Send Success Screens */}
+						<Stack.Screen
+							name={ROUTES.SEND_SCREEN}
+							component={SendScreen}
+							options={{
+								headerTitle: '',
+								headerShown: true,
+								headerBackVisible: true,
+								headerBackButtonMenuEnabled: true,
+								headerShadowVisible: false,
+							}}
+						/>
+						<Stack.Screen
+							name={ROUTES.SEND_SUCCESS_SCREEN}
+							component={SendSuccessScreen}
+							options={{
+								headerTitle: '',
+								headerShown: false,
+								animation: 'slide_from_bottom',
+							}}
+						/>
+
 					</>
 				) : (
 					<>
@@ -69,10 +99,6 @@ const AppNavigator = () => {
 								headerBackVisible: true,
 								headerBackButtonMenuEnabled: true,
 								headerShadowVisible: false,
-								headerStyle: {
-									backgroundColor: theme.colors.background,
-								},
-								headerTintColor: theme.colors.primaryText,
 							}}
 						/>
 						<Stack.Screen

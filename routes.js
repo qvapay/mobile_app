@@ -34,7 +34,7 @@ export const ROUTES = {
 
     // Send, Receive and Confirm Screens
     SEND_SCREEN: "Send",
-    CONFIRM_SEND_SCREEN: "ConfirmSend",
+    SEND_SUCCESS_SCREEN: "SendSuccess",
 
     // In out Screens
     TRANSACTION_SCREEN: "Transaction",
