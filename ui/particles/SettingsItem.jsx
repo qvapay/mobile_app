@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native'
+import { Text, Pressable, StyleSheet } from 'react-native'
 
 // Contexts
 import { useTheme } from '../../theme/ThemeContext'
@@ -6,8 +6,11 @@ import { useTheme } from '../../theme/ThemeContext'
 // UI
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // Settings Item
-const SettingsItem = ({ title, icon, onPress }) => {
+const SettingsItem = ({ title, icon, onPress, index, totalItems }) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -16,24 +19,30 @@ const SettingsItem = ({ title, icon, onPress }) => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
+    // Determine border radius based on position
+    const isFirst = index === 0
+    const isLast = index === totalItems - 1
+    const isMiddle = !isFirst && !isLast
+
+    const containerStyle = {
+        justifyContent: 'space-between',
+        borderRadius: isFirst ? 10 : isLast ? 10 : 0,
+        borderTopLeftRadius: isFirst ? 10 : 0,
+        borderTopRightRadius: isFirst ? 10 : 0,
+        borderBottomLeftRadius: isLast ? 10 : 0,
+        borderBottomRightRadius: isLast ? 10 : 0,
+        marginBottom: isLast ? 10 : 0,
+    }
+
     return (
-        <Pressable style={[styles.box, { backgroundColor: theme.colors.elevation, flexDirection: 'row', alignContent: 'center', alignItems: 'center', overflow: 'hidden' }]} onPress={onPress}>
-            <Image source={icon} style={{ width: 48, height: 48 }} />
-            <Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{title}</Text>
+        <Pressable style={[containerStyles.box, containerStyle]} onPress={onPress}>
+            <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{title}</Text>
+            <FontAwesome6 name="angle-right" size={16} style={{ color: theme.colors.secondaryText }} iconStyle="solid" />
         </Pressable>
     )
 }
 
 const styles = StyleSheet.create({
-    box: {
-        flexDirection: 'row',
-        alignContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-        padding: 10,
-        borderRadius: 10,
-        marginBottom: 10,
-    }
 })
 
 export default SettingsItem

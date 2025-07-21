@@ -27,6 +27,8 @@ const SettingsSection = ({ title, items }) => {
                     title={item.title}
                     icon={item.icon}
                     onPress={item.onPress}
+                    index={index}
+                    totalItems={items.length}
                 />
             ))}
         </View>
