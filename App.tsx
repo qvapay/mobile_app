@@ -61,7 +61,15 @@ const AppNavigator = () => {
 			{isAuthenticated ? (
 				<>
 					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
-					<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} />
+
+					{/* Settings Stack */}
+					<Stack.Screen
+						name={ROUTES.SETTINGS_MENU}
+						component={SettingsStack}
+						options={{
+							animation: 'slide_from_bottom',
+						}}
+					/>
 
 					{/* Send, Receive and Send Success Screens */}
 					<Stack.Screen
@@ -75,6 +83,8 @@ const AppNavigator = () => {
 							headerShadowVisible: false,
 						}}
 					/>
+
+					{/* Send Success Screen */}
 					<Stack.Screen
 						name={ROUTES.SEND_SUCCESS_SCREEN}
 						component={SendSuccessScreen}

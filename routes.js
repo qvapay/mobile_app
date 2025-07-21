@@ -43,6 +43,11 @@ export const ROUTES = {
     SETTINGS_MENU: "SettingsMenu",
     PROFILE_SCREEN: "Profile",
 
+    // Gold Check Screens
+    GOLD_CHECK: "GoldCheck",
+    GOLD_CHECK_SUBSCRIPTION: "GoldCheckSubscription",
+    GOLD_CHECK_PURCHASE: "GoldCheckPurchase",
+
     // Help Screens
     HELP_SCREEN: "Help"
 }

@@ -17,6 +17,9 @@ import SettingsMenu from './SettingsMenu'
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 
+// Gold Check Screens
+import GoldCheck from './GoldCheck'
+
 // Settings Stack
 const SettingsStack = ({ navigation }) => {
 
@@ -25,16 +28,26 @@ const SettingsStack = ({ navigation }) => {
 
     return (
         <Stack.Navigator
-            initialRouteName={ROUTES.SETTINGS_MENU}
+            initialRouteName="SettingsMenuScreen"
             screenOptions={{
-                headerShown: false,
+                headerTitle: '',
                 headerStyle: {
                     backgroundColor: theme.colors.background,
                 },
                 headerTintColor: theme.colors.primaryText,
             }}
         >
-            <Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsMenu} />
+
+            <Stack.Screen
+                name="SettingsMenuScreen"
+                component={SettingsMenu}
+            />
+
+            <Stack.Screen
+                name={ROUTES.GOLD_CHECK}
+                component={GoldCheck}
+            />
+
         </Stack.Navigator>
     )
 }
