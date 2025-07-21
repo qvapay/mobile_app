@@ -31,6 +31,7 @@ const SettingsStack = ({ navigation }) => {
             initialRouteName="SettingsMenuScreen"
             screenOptions={{
                 headerTitle: '',
+                headerShown: true,
                 headerStyle: {
                     backgroundColor: theme.colors.background,
                 },

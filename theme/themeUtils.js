@@ -79,6 +79,16 @@ export const createContainerStyles = (theme) => StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.border,
     },
+    box: {
+        flexDirection: 'row',
+        alignContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.elevation,
+        gap: 10
+    },
     row: {
         flexDirection: 'row',
         alignItems: 'center',

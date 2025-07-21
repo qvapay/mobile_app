@@ -48,6 +48,9 @@ export const ROUTES = {
     GOLD_CHECK_SUBSCRIPTION: "GoldCheckSubscription",
     GOLD_CHECK_PURCHASE: "GoldCheckPurchase",
 
+    // Referal Invitation Screens
+    REFERAL_INVITATION: "ReferalInvitation",
+
     // Help Screens
     HELP_SCREEN: "Help"
 }

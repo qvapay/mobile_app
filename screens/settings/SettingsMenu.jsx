@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, Alert, StyleSheet, ScrollView, Image, Pressable } from 'react-native'
+import { View, Text, Alert, StyleSheet, ScrollView, Image, Pressable, Linking } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -11,12 +11,21 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 // UI Components
 import QPButton from '../../ui/particles/QPButton'
 import QPAvatar from '../../ui/particles/QPAvatar'
+import SettingsSection from '../../ui/SettingsSection'
 
 // Import settings
 import settings from './settings'
 
 // Routes
 import { ROUTES } from '../../routes'
+
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// Constants
+import DeviceInfo from 'react-native-device-info'
+const version = DeviceInfo.getVersion()
+const buildNumber = DeviceInfo.getBuildNumber()
 
 // Settings Menu
 const SettingsMenu = ({ navigation }) => {
@@ -71,20 +80,65 @@ const SettingsMenu = ({ navigation }) => {
                 <Text style={[textStyles.h2, { color: theme.colors.secondaryText, marginVertical: 0, marginTop: -10, paddingVertical: 0 }]}>@{user.username}</Text>
             </View>
 
-            <Pressable style={[styles.box, { backgroundColor: theme.colors.elevation, flexDirection: 'row', alignContent: 'center', alignItems: 'center', overflow: 'hidden' }]} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
+            {/* Gold Check Card */}
+            <Pressable style={containerStyles.box} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
                 <Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 80, height: 80 }} />
                 <View>
                     <Text style={textStyles.h3}>GOLD CHECK</Text>
-                    {user.golden_check ? <Text style={textStyles.h4}>Ver mi suscripción</Text> : <Text style={textStyles.h4}>Comprar GOLD Check</Text>}
+                    {user.golden_check ? <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Ver mi suscripción</Text> : <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Comprar GOLD Check</Text>}
                 </View>
             </Pressable>
 
+            {/* Referal invitation Card */}
+            {/* TODO: Replace Image */}
+            <Pressable style={[containerStyles.box, { marginVertical: 10 }]} onPress={() => navigation.navigate(ROUTES.REFERAL_INVITATION)}>
+                <Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 80, height: 80 }} />
+                <View>
+                    <Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>INVITAR AMIGOS</Text>
+                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Comparte y gana dinero</Text>
+                </View>
+            </Pressable>
 
-            <View style={{ marginVertical: 80 }}>
-                <Text style={textStyles.h2}>GENERAL</Text>
+            {Object.entries(settings).map(([categoryKey, category]) => (
+                // <View key={categoryKey} style={{ marginTop: 10 }}>
+                //     <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 10, paddingHorizontal: 10 }]}>{category.title}</Text>
+                //     {category.options.map((option, index) => (
+                //         <Pressable
+                //             key={index}
+                //             style={[styles.box, { backgroundColor: theme.colors.elevation, flexDirection: 'row', alignContent: 'center', alignItems: 'center', overflow: 'hidden' }]}
+                //             onPress={() => navigation.navigate(option.screen)}
+                //         >
+                //             <View style={{ width: 80, height: 80, justifyContent: 'center', alignItems: 'center' }}>
+                //                 <FontAwesome6 name="cog" size={30} color={theme.colors.primaryText} />
+                //             </View>
+                //             <Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{option.title}</Text>
+                //         </Pressable>
+                //     ))}
+                // </View>
+                <SettingsSection key={categoryKey} title={category.title} items={category.options} />
+            ))}
+
+            <QPButton title="Cerrar sesión" onPress={handleLogout} style={{ backgroundColor: theme.colors.danger, marginTop: 20 }} />
+
+            {/* Github, Twitter and Instagram accounts */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginVertical: 20 }}>
+                <Pressable onPress={() => Linking.openURL('https://github.com/qvapay/mobile_app')}>
+                    <FontAwesome6 name="github" size={24} style={{ color: 'white' }} iconStyle="brand" />
+                </Pressable>
+                <Pressable onPress={() => Linking.openURL('https://twitter.com/qvapay')}>
+                    <FontAwesome6 name="x-twitter" size={24} style={{ color: 'white' }} iconStyle="brand" />
+                </Pressable>
+                <Pressable onPress={() => Linking.openURL('https://instagram.com/qvapay')}>
+                    <FontAwesome6 name="instagram" size={24} style={{ color: 'white' }} iconStyle="brand" />
+                </Pressable>
             </View>
 
-            <QPButton title="Cerrar sesión" onPress={handleLogout} style={{ backgroundColor: theme.colors.danger }} />
+            <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20 }]}>
+                {`QvaPay © ${new Date().getFullYear()} \n`}
+                {`v ${version} build ${buildNumber}\n`}
+                {`Todos los derechos reservados`}
+            </Text>
+
         </ScrollView>
     )
 }
