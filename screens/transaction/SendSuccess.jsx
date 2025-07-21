@@ -5,7 +5,7 @@ import { StyleSheet, View, Text } from 'react-native'
 import LottieView from 'lottie-react-native'
 
 // Context and Theme
-import { useAuth } from '../../auth/authContext'
+import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 

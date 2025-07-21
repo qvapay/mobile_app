@@ -8,7 +8,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
 
 // Auth Context
-import { AuthProvider, useAuth } from './auth/authContext'
+import { AuthProvider, useAuth } from './auth/AuthContext'
+
+// Settings Context
+import { SettingsProvider } from './settings/SettingsContext'
 
 // Theme Provider
 import { ThemeProvider } from './theme/ThemeContext'
@@ -31,8 +34,7 @@ import SendScreen from './screens/transaction/Send'
 import SendSuccessScreen from './screens/transaction/SendSuccess'
 
 // Settings Stack
-import SettingsStack from './screens/settings/Settings'
-
+import SettingsStack from './screens/settings/SettingsStack'
 
 // Main App Navigator Component
 const AppNavigator = () => {
@@ -122,9 +124,11 @@ function App() {
 	return (
 		<AuthProvider>
 			<ThemeProvider>
-				<NavigationContainer>
-					<AppNavigator />
-				</NavigationContainer>
+				<SettingsProvider>
+					<NavigationContainer>
+						<AppNavigator />
+					</NavigationContainer>
+				</SettingsProvider>
 			</ThemeProvider>
 		</AuthProvider>
 	)

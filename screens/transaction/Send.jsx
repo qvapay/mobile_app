@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { View, Text } from 'react-native'
 
 // Context and Theme
-import { useAuth } from '../../auth/authContext'
+import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 

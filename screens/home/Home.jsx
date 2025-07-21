@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
 
 // Auth Context
-import { useAuth } from '../../auth/authContext'
+import { useAuth } from '../../auth/AuthContext'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'

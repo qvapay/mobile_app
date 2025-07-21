@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
                 // Check token against API for validity
                 const apiResponse = await authApi.checkToken()
                 if (apiResponse.success) {
-                    console.log('Token is valid')
+                    
                     setToken(saved_token)
                     setIsAuthenticated(true)
 

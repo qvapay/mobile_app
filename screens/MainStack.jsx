@@ -25,7 +25,7 @@ import Store from './store/Store'
 import { useTheme } from '../theme/ThemeContext'
 
 // Auth
-import { useAuth } from '../auth/authContext'
+import { useAuth } from '../auth/AuthContext'
 
 // UI Components
 import QPAvatar from '../ui/particles/QPAvatar'

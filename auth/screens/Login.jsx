@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { View, Text, StyleSheet, Button, TextInput, Alert, ActivityIndicator } from 'react-native'
 
 // Auth Context
-import { useAuth } from '../authContext'
+import { useAuth } from '../AuthContext'
 
 // Routes
 import { ROUTES } from '../../routes'

@@ -5,7 +5,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import { useTheme } from '../../theme/ThemeContext'
 
 // User Context
-import { useAuth } from '../../auth/authContext'
+import { useAuth } from '../../auth/AuthContext'
 
 // Store component
 const Store = () => {
