@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -20,7 +21,7 @@ const WelcomeScreen = ({ navigation }) => {
     const containerStyles = createContainerStyles(theme)
 
     return (
-        <View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
+        <SafeAreaView style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 
             <View style={styles.titleContainer}>
                 <Text style={textStyles.title}>Welcome Screen</Text>
@@ -32,7 +33,7 @@ const WelcomeScreen = ({ navigation }) => {
                 <QPButton title="Registrarse" onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)} style={{ backgroundColor: theme.colors.secondary }} />
             </View>
 
-        </View>
+        </SafeAreaView>
     )
 }
 

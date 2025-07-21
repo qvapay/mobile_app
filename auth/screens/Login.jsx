@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, Button, TextInput, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -54,7 +55,7 @@ const LoginScreen = ({ navigation }) => {
     }
 
     return (
-        <View style={[containerStyles.subContainer, styles.container]}>
+        <SafeAreaView style={[containerStyles.subContainer, styles.container]}>
 
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Acceder a tu cuenta</Text>
@@ -90,12 +91,12 @@ const LoginScreen = ({ navigation }) => {
                 {error && <Text style={styles.errorText}>{error}</Text>}
 
                 {isLoading && <ActivityIndicator style={styles.loader} />}
-                
+
             </View>
 
             <QPButton title="Acceder" onPress={handleLogin} disabled={isLoading} />
 
-        </View>
+        </SafeAreaView>
     )
 }
 

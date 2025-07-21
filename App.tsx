@@ -1,6 +1,5 @@
 // React Components
 import React from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Navigation Components
 import { NavigationContainer } from '@react-navigation/native'
@@ -48,74 +47,72 @@ const AppNavigator = () => {
 	if (isLoading) { return <SplashScreen /> }
 
 	return (
-		<SafeAreaView style={[containerStyles.container, { backgroundColor: theme.colors.background }]}>
-			<Stack.Navigator
-				initialRouteName={isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
-				screenOptions={{
-					headerShown: false,
-					headerStyle: {
-						backgroundColor: theme.colors.background,
-					},
-					headerTintColor: theme.colors.primaryText,
-				}}
-			>
+		<Stack.Navigator
+			initialRouteName={isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
+			screenOptions={{
+				headerShown: false,
+				headerStyle: {
+					backgroundColor: theme.colors.background,
+				},
+				headerTintColor: theme.colors.primaryText,
+			}}
+		>
 
-				{isAuthenticated ? (
-					<>
-						<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
-						<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} />
+			{isAuthenticated ? (
+				<>
+					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
+					<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} />
 
-						{/* Send, Receive and Send Success Screens */}
-						<Stack.Screen
-							name={ROUTES.SEND_SCREEN}
-							component={SendScreen}
-							options={{
-								headerTitle: '',
-								headerShown: true,
-								headerBackVisible: true,
-								headerBackButtonMenuEnabled: true,
-								headerShadowVisible: false,
-							}}
-						/>
-						<Stack.Screen
-							name={ROUTES.SEND_SUCCESS_SCREEN}
-							component={SendSuccessScreen}
-							options={{
-								headerTitle: '',
-								headerShown: false,
-								animation: 'slide_from_bottom',
-							}}
-						/>
+					{/* Send, Receive and Send Success Screens */}
+					<Stack.Screen
+						name={ROUTES.SEND_SCREEN}
+						component={SendScreen}
+						options={{
+							headerTitle: '',
+							headerShown: true,
+							headerBackVisible: true,
+							headerBackButtonMenuEnabled: true,
+							headerShadowVisible: false,
+						}}
+					/>
+					<Stack.Screen
+						name={ROUTES.SEND_SUCCESS_SCREEN}
+						component={SendSuccessScreen}
+						options={{
+							headerTitle: '',
+							headerShown: false,
+							animation: 'slide_from_bottom',
+						}}
+					/>
 
-					</>
-				) : (
-					<>
-						<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
-						<Stack.Screen
-							name={ROUTES.LOGIN_SCREEN}
-							component={LoginScreen}
-							options={{
-								headerTitle: '',
-								animation: 'slide_from_right',
-								headerShown: true,
-								headerBackVisible: true,
-								headerBackButtonMenuEnabled: true,
-								headerShadowVisible: false,
-							}}
-						/>
-						<Stack.Screen
-							name={ROUTES.REGISTER_SCREEN}
-							component={RegisterScreen}
-							options={{ animation: 'slide_from_right' }}
-						/>
-					</>
-				)}
+				</>
+			) : (
+				<>
+					<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
+					<Stack.Screen
+						name={ROUTES.LOGIN_SCREEN}
+						component={LoginScreen}
+						options={{
+							headerTitle: '',
+							animation: 'slide_from_right',
+							headerShown: true,
+							headerBackVisible: true,
+							headerBackButtonMenuEnabled: true,
+							headerShadowVisible: false,
+						}}
+					/>
+					<Stack.Screen
+						name={ROUTES.REGISTER_SCREEN}
+						component={RegisterScreen}
+						options={{ animation: 'slide_from_right' }}
+					/>
+				</>
+			)}
 
-				{/* Accesible Screens */}
-				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+			{/* Accesible Screens */}
+			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
 
-			</Stack.Navigator>
-		</SafeAreaView>
+		</Stack.Navigator>
 	)
 }
 
