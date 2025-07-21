@@ -1,6 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, Button } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, StyleSheet } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -14,9 +13,6 @@ import QPButton from '../../ui/particles/QPButton'
 
 // Welcome Screen
 const WelcomeScreen = ({ navigation }) => {
-
-    // Safe area insets
-    const insets = useSafeAreaInsets()
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
