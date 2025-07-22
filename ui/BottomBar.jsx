@@ -1,35 +1,19 @@
 import React from 'react'
 import { StyleSheet, View, Pressable } from 'react-native'
+
+// Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// Theme
 import { useTheme } from '../theme/ThemeContext'
+
+// Nav Items from routes.js
+import { navItems } from '../routes'
 
 // Bottom Bar for Main Stack
 export default function BottomBar({ state, descriptors, navigation }) {
 
     const { theme } = useTheme()
-
-    const navItems = [
-        {
-            key: 'Home',
-            name: 'wallet'
-        },
-        {
-            key: 'Invest',
-            name: 'bitcoin-sign'
-        },
-        {
-            key: 'Keypad',
-            name: 'dollar-sign'
-        },
-        {
-            key: 'P2P',
-            name: 'users'
-        },
-        {
-            key: 'Store',
-            name: 'store'
-        },
-    ]
 
     return (
         <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>

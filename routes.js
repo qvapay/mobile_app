@@ -61,3 +61,26 @@ export const ROUTES = {
     // Help Screens
     HELP_SCREEN: "Help"
 }
+
+export const navItems = [
+    {
+        key: 'Home',
+        name: 'wallet'
+    },
+    {
+        key: 'Invest',
+        name: 'bitcoin-sign'
+    },
+    {
+        key: 'Keypad',
+        name: 'dollar-sign'
+    },
+    {
+        key: 'P2P',
+        name: 'users'
+    },
+    {
+        key: 'Store',
+        name: 'store'
+    },
+]
