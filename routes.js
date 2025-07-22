@@ -43,13 +43,20 @@ export const ROUTES = {
     SETTINGS_MENU: "SettingsMenu",
     PROFILE_SCREEN: "Profile",
 
-    // Gold Check Screens
+    // Settings Subpanels
     GOLD_CHECK: "GoldCheck",
-    GOLD_CHECK_SUBSCRIPTION: "GoldCheckSubscription",
-    GOLD_CHECK_PURCHASE: "GoldCheckPurchase",
-
-    // Referal Invitation Screens
-    REFERAL_INVITATION: "ReferalInvitation",
+    REFERAL: "Referal",
+    THEME: "Theme",
+    USERDATA: "Userdata",
+    PHONE: "Phone",
+    TELEGRAM: "Telegram",
+    PASSWORD: "Password",
+    TWO_FACTOR: "TwoFactor",
+    KYC: "KYC",
+    DELETE_ACCOUNT: "DeleteAccount",
+    NOTIFICATIONS: "Notifications",
+    PAYMENT_METHODS: "PaymentMethods",
+    CONTACTS: "Contacts",
 
     // Help Screens
     HELP_SCREEN: "Help"
