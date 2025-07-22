@@ -40,21 +40,12 @@ export default function BottomBar({ state, descriptors, navigation }) {
                     const isFocused = state.index === index
 
                     const onPress = () => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                            canPreventDefault: true,
-                        })
-                        if (!isFocused && !event.defaultPrevented) {
-                            navigation.navigate({ name: route.name, merge: true })
-                        }
+                        const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
+                        if (!isFocused && !event.defaultPrevented) { navigation.navigate({ name: route.name, merge: true }) }
                     }
 
                     const onLongPress = () => {
-                        navigation.emit({
-                            type: 'tabLongPress',
-                            target: route.key,
-                        })
+                        navigation.emit({ type: 'tabLongPress', target: route.key })
                     }
 
                     return (

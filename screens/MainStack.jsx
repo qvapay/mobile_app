@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Pressable } from 'react-native'
+import { StyleSheet, Pressable, View, Text } from 'react-native'
 
 // Safe Area
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -23,6 +23,7 @@ import Store from './store/Store'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
+import { createContainerStyles, createTextStyles } from '../theme/themeUtils'
 
 // Auth
 import { useAuth } from '../auth/AuthContext'
@@ -34,11 +35,13 @@ import QPAvatar from '../ui/particles/QPAvatar'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Main Stack
-const MainStack = () => {
+const MainStack = ({ navigation }) => {
 
     // Contexts
     const { user } = useAuth()
     const { theme } = useTheme()
+    const containerStyles = createContainerStyles(theme)
+    const textStyles = createTextStyles(theme)
     const insets = useSafeAreaInsets()
 
     return (
@@ -62,16 +65,35 @@ const MainStack = () => {
                         fontFamily: theme.typography.fontFamily.bold,
                     },
                     headerRight: () => (
-                        <Pressable
-                            style={styles.headerRight}
-                            onPress={() => navigation.navigate(ROUTES.SETTINGS_MENU)}>
+                        <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.SETTINGS_MENU)}>
                             <QPAvatar user={user} size={32} />
                         </Pressable>
                     )
                 })}
             >
-                
-                <Tab.Screen name={ROUTES.HOME_SCREEN} component={Home} />
+
+                <Tab.Screen
+                    name={ROUTES.HOME_SCREEN}
+                    component={Home}
+                    options={{
+                        headerTitle: '',
+                        headerLeft: () => (
+                            <Pressable style={styles.headerLeft}>
+                                <QPAvatar user={user} size={48} />
+                                <View style={styles.headerLeftTextContainer}>
+                                    <Text style={textStyles.h4}>Hola {user.name}!</Text>
+                                    <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
+                                </View>
+                            </Pressable>
+                        ),
+                        headerRight: () => (
+                            <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.KEYPAD_SCREEN)}>
+                                <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                            </Pressable>
+                        )
+                    }}
+                />
+
                 <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
 
                 <Tab.Screen
@@ -80,9 +102,7 @@ const MainStack = () => {
                     options={({ navigation }) => ({
                         headerTitle: '',
                         headerLeft: () => (
-                            <Pressable
-                                style={styles.headerLeft}
-                                onPress={() => navigation.goBack()}>
+                            <Pressable style={styles.headerLeft} onPress={() => navigation.goBack()}>
                                 <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
@@ -92,7 +112,7 @@ const MainStack = () => {
                 <Tab.Screen name={ROUTES.P2P_SCREEN} component={P2P} />
 
                 <Tab.Screen name={ROUTES.STORE_SCREEN} component={Store} />
-                
+
             </Tab.Navigator>
         </SafeAreaProvider>
     )
@@ -123,6 +143,15 @@ const styles = StyleSheet.create({
     headerRightText: {
         color: 'white',
         fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Rubik-Regular'
+    },
+    headerLeftTextContainer: {
+        marginLeft: 10,
+    },
+    headerLeftText: {
+        color: 'white',
+        fontSize: 24,
         fontWeight: 'bold',
         fontFamily: 'Rubik-Regular'
     },

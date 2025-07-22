@@ -1,8 +1,9 @@
 import React from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, View, Text } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
+import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // Imagecomponents
 import FastImage from "@d11/react-native-fast-image"
@@ -14,18 +15,18 @@ const QPTransaction = ({ transaction, navigation }) => {
 
     // Contexts
     const { theme } = useTheme()
+    const containerStyles = createContainerStyles(theme)
+    const textStyles = createTextStyles(theme)
 
     return (
-        <View style={styles.container}>
-            <Text>{transaction.description}</Text>
+        <View style={containerStyles.box}>
+            <Text style={textStyles.h4}>{transaction.description}</Text>
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: {
-        
-    }
+    
 })
 
 export default QPTransaction

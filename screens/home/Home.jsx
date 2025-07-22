@@ -13,6 +13,7 @@ import { transferApi } from '../../api/transferApi'
 
 // UI Particles
 import QPTransaction from '../../ui/particles/QPTransaction'
+import QPButton from '../../ui/particles/QPButton'
 
 // Home Screen
 const Home = ({ navigation }) => {
@@ -53,13 +54,19 @@ const Home = ({ navigation }) => {
 
                 <Text style={styles.title}>TopBar</Text>
 
-                <Text style={styles.title}>Hi {user.name}!</Text>
+                <Text style={styles.title}>Hola {user.name}!</Text>
 
                 <Text style={styles.text}>balance ${user.balance}</Text>
                 <Text style={styles.text}>Send Receive Buttons</Text>
                 <Text style={styles.text}>Services Promotions</Text>
+                
+                {
+                    latestTransactions.map((transaction) => (
+                        <QPTransaction key={transaction.uuid} transaction={transaction} />
+                    ))
+                }
 
-                {latestTransactions.map((transaction) => (
+                {/* {latestTransactions.map((transaction) => (
                     <View key={transaction.uuid} style={{ marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: 12 }}>
                         <Text style={[styles.text, { fontWeight: 'bold', fontSize: 18 }]}>
                             {transaction.description}
@@ -91,7 +98,7 @@ const Home = ({ navigation }) => {
                             </Text>
                         )}
                     </View>
-                ))}
+                ))} */}
 
                 {user && (
                     <View style={styles.userInfo}>
