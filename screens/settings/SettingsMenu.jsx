@@ -94,10 +94,10 @@ const SettingsMenu = ({ navigation }) => {
             {/* Referal invitation Card */}
             {/* TODO: Replace Image */}
             <Pressable style={[containerStyles.box, { marginVertical: 10 }]} onPress={() => navigation.navigate(ROUTES.REFERAL_INVITATION)}>
-                <Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 80, height: 80 }} />
+                <Image source={require('../../assets/images/ui/referals.png')} style={{ width: 80, height: 80 }} />
                 <View>
                     <Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>INVITAR AMIGOS</Text>
-                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Comparte y gana dinero</Text>
+                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Invita y gana premios únicos</Text>
                 </View>
             </Pressable>
 
