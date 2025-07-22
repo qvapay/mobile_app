@@ -28,6 +28,7 @@ import LoginScreen from './auth/screens/Login'
 import RegisterScreen from './auth/screens/Register'
 
 // Screens with auth
+import Onboard from './screens/onboard/Onboard'
 import MainStack from './screens/MainStack'
 import SendScreen from './screens/transaction/Send'
 import SendSuccessScreen from './screens/transaction/SendSuccess'
@@ -46,9 +47,12 @@ const AppNavigator = () => {
 	const { isAuthenticated, isLoading } = useAuth()
 	if (isLoading) { return <SplashScreen /> }
 
+	// first time
+	const firstTime = true
+
 	return (
 		<Stack.Navigator
-			initialRouteName={isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
+			initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
 			screenOptions={{
 				headerShown: false,
 				headerStyle: {
@@ -57,6 +61,9 @@ const AppNavigator = () => {
 				headerTintColor: theme.colors.primaryText,
 			}}
 		>
+
+			{/* Onboard Screen */}
+			<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
 
 			{isAuthenticated ? (
 				<>

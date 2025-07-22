@@ -12,7 +12,7 @@ const Tab = createBottomTabNavigator()
 import BottomBar from '../ui/BottomBar'
 
 // Routes
-import { ROUTES } from '../routes'
+import { ROUTES, navItems } from '../routes'
 
 // Tab Screens
 import Home from './home/Home'
@@ -47,9 +47,9 @@ const MainStack = ({ navigation }) => {
     return (
         <SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
             <Tab.Navigator
-                initialRouteName="Home"
+                initialRouteName={ROUTES.HOME_SCREEN}
                 backBehavior='initialRoute'
-                tabBar={props => <BottomBar {...props} />}
+                tabBar={props => <BottomBar {...props} navItems={navItems} />}
                 screenOptions={({ navigation }) => ({
                     headerShown: true,
                     headerBackVisible: true,
@@ -73,6 +73,15 @@ const MainStack = ({ navigation }) => {
             >
 
                 <Tab.Screen
+                    name={ROUTES.ONBOARD_SCREEN}
+                    component={Onboard}
+                    options={{
+                        headerShown: false,
+                        tabBarStyle: { display: 'none' }
+                    }}
+                />
+
+                <Tab.Screen
                     name={ROUTES.HOME_SCREEN}
                     component={Home}
                     options={{
@@ -87,8 +96,8 @@ const MainStack = ({ navigation }) => {
                             </Pressable>
                         ),
                         headerRight: () => (
-                            <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.KEYPAD_SCREEN)}>
-                                <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                            <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
+                                <FontAwesome6 name="bell" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
                     }}

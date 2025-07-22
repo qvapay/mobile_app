@@ -52,19 +52,13 @@ const Home = ({ navigation }) => {
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                <Text style={styles.title}>TopBar</Text>
-
-                <Text style={styles.title}>Hola {user.name}!</Text>
-
                 <Text style={styles.text}>balance ${user.balance}</Text>
                 <Text style={styles.text}>Send Receive Buttons</Text>
                 <Text style={styles.text}>Services Promotions</Text>
-                
-                {
-                    latestTransactions.map((transaction) => (
-                        <QPTransaction key={transaction.uuid} transaction={transaction} />
-                    ))
-                }
+
+                {latestTransactions.map((transaction) => (
+                    <QPTransaction key={transaction.uuid} transaction={transaction} />
+                ))}
 
                 {/* {latestTransactions.map((transaction) => (
                     <View key={transaction.uuid} style={{ marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: 12 }}>

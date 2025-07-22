@@ -17,45 +17,37 @@ export default function BottomBar({ state, descriptors, navigation }) {
 
     return (
         <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
-            {
-                state.routes.map((route, index) => {
 
-                    const { options } = descriptors[route.key]
-                    const isFocused = state.index === index
+            {state.routes.map((route, index) => {
 
-                    const onPress = () => {
-                        const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
-                        if (!isFocused && !event.defaultPrevented) { navigation.navigate({ name: route.name, merge: true }) }
-                    }
+                const { options } = descriptors[route.key]
+                const isFocused = state.index === index
 
-                    const onLongPress = () => {
-                        navigation.emit({ type: 'tabLongPress', target: route.key })
-                    }
+                const onPress = () => {
+                    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
+                    if (!isFocused && !event.defaultPrevented) { navigation.navigate({ name: route.name, merge: true }) }
+                }
 
-                    return (
-                        <Pressable
-                            key={route.key}
-                            accessibilityRole="button"
-                            style={styles.pressableArea}
-                            accessibilityState={isFocused ? { selected: true } : {}}
-                            accessibilityLabel={options.tabBarAccessibilityLabel}
-                            onPress={onPress}
-                            onLongPress={onLongPress}
-                        >
-                            <View style={{ flex: 1 }}>
-                                <FontAwesome6
-                                    name={navItems[index].name}
-                                    iconStyle="solid"
-                                    style={[
-                                        isFocused ? styles.activeTab : styles.fa,
-                                        { color: isFocused ? theme.colors.almostWhite : theme.colors.secondaryText }
-                                    ]}
-                                />
-                            </View>
-                        </Pressable>
-                    )
-                })
-            }
+                return (
+                    <Pressable
+                        key={route.key}
+                        accessibilityRole="button"
+                        style={styles.pressableArea}
+                        accessibilityState={isFocused ? { selected: true } : {}}
+                        accessibilityLabel={options.tabBarAccessibilityLabel}
+                        onPress={onPress}
+                    >
+                        <View style={{ flex: 1 }}>
+                            <FontAwesome6 name={navItems[index].name} iconStyle="solid"
+                                style={[
+                                    isFocused ? styles.activeTab : styles.fa,
+                                    { color: isFocused ? theme.colors.almostWhite : theme.colors.secondaryText }
+                                ]}
+                            />
+                        </View>
+                    </Pressable>
+                )
+            })}
         </View>
     )
 }

@@ -1,5 +1,8 @@
 export const ROUTES = {
 
+    // Onboard Screens
+    ONBOARD_SCREEN: "Onboard",
+
     // Initial Screens
     SPLASH_SCREEN: "Splash",
     WELCOME_SCREEN: "Welcome",
