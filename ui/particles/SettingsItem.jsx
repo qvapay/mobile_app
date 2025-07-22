@@ -10,7 +10,7 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Settings Item
-const SettingsItem = ({ title, icon, onPress, index, totalItems }) => {
+const SettingsItem = ({ title, icon, screen, index, totalItems, navigation }) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -35,7 +35,7 @@ const SettingsItem = ({ title, icon, onPress, index, totalItems }) => {
     }
 
     return (
-        <Pressable style={[containerStyles.box, containerStyle]} onPress={onPress}>
+        <Pressable style={[containerStyles.box, containerStyle]} onPress={() => navigation.navigate(screen)}>
             <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{title}</Text>
             <FontAwesome6 name="angle-right" size={16} style={{ color: theme.colors.secondaryText }} iconStyle="solid" />
         </Pressable>

@@ -36,6 +36,8 @@ const SettingsMenu = ({ navigation }) => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
+    console.log(user)
+
     // State
     const [isLoading, setIsLoading] = useState(false)
 
@@ -100,22 +102,7 @@ const SettingsMenu = ({ navigation }) => {
             </Pressable>
 
             {Object.entries(settings).map(([categoryKey, category]) => (
-                // <View key={categoryKey} style={{ marginTop: 10 }}>
-                //     <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 10, paddingHorizontal: 10 }]}>{category.title}</Text>
-                //     {category.options.map((option, index) => (
-                //         <Pressable
-                //             key={index}
-                //             style={[styles.box, { backgroundColor: theme.colors.elevation, flexDirection: 'row', alignContent: 'center', alignItems: 'center', overflow: 'hidden' }]}
-                //             onPress={() => navigation.navigate(option.screen)}
-                //         >
-                //             <View style={{ width: 80, height: 80, justifyContent: 'center', alignItems: 'center' }}>
-                //                 <FontAwesome6 name="cog" size={30} color={theme.colors.primaryText} />
-                //             </View>
-                //             <Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{option.title}</Text>
-                //         </Pressable>
-                //     ))}
-                // </View>
-                <SettingsSection key={categoryKey} title={category.title} items={category.options} />
+                <SettingsSection key={categoryKey} title={category.title} items={category.options} navigation={navigation} />
             ))}
 
             <QPButton title="Cerrar sesión" onPress={handleLogout} style={{ backgroundColor: theme.colors.danger, marginTop: 20 }} />

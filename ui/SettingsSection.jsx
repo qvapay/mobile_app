@@ -10,7 +10,7 @@ import { createTextStyles } from '../theme/themeUtils'
 import SettingsItem from './particles/SettingsItem'
 
 // Settings Item
-const SettingsSection = ({ title, items }) => {
+const SettingsSection = ({ title, items, navigation }) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -26,9 +26,10 @@ const SettingsSection = ({ title, items }) => {
                     key={index}
                     title={item.title}
                     icon={item.icon}
-                    onPress={item.onPress}
+                    screen={item.screen}
                     index={index}
                     totalItems={items.length}
+                    navigation={navigation}
                 />
             ))}
         </View>
