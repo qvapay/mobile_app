@@ -47,7 +47,7 @@ const AppNavigator = () => {
 	const { isAuthenticated, isLoading } = useAuth()
 	if (isLoading) { return <SplashScreen /> }
 
-	// first time
+	// TODO first time
 	const firstTime = true
 
 	return (
