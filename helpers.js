@@ -6,7 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 const timeSince = (date) => {
 
     const now = new Date()
-    const secondsPast = (now.getTime() - date.getTime()) / 1000
+    const desiredDate = new Date(date)
+    const secondsPast = (now - desiredDate) / 1000
 
     if (secondsPast < 60) {
         const seconds = parseInt(secondsPast)
@@ -37,7 +38,7 @@ const reduceString = (string, amount = 20) => {
 
 // Get a long format date and return a short format date time
 const getShortDateTime = (date) => {
-    desiredDate = new Date(date)
+    const desiredDate = new Date(date)
     return desiredDate.toLocaleString('es-ES', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })
 }
 

@@ -6,10 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../AuthContext'
 
 // Settings Context
-import { useSettings, updateSettings } from '../../settings/SettingsContext'
-
-// Routes
-import { ROUTES } from '../../routes'
+import { useSettings } from '../../settings/SettingsContext'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -23,8 +20,7 @@ import QPButton from '../../ui/particles/QPButton'
 const LoginScreen = ({ navigation }) => {
 
     // Settings Context
-    const { appearance } = useSettings()
-    const firstTime = appearance.firstTime
+    const { updateSettings } = useSettings()
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
@@ -58,11 +54,8 @@ const LoginScreen = ({ navigation }) => {
         })
         setIsLoading(false)
 
-        // TODO first time, set to false when onboarding is done
-        // After the first succesful login, set to false
-        appearance.firstTime = false
-        await updateSettings('appearance', appearance)
-
+        // After the first successful login, set firstTime to false
+        if (result.success) { await updateSettings('appearance', { firstTime: false }) }
         if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }
     }
 

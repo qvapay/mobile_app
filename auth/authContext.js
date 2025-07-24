@@ -14,8 +14,7 @@ const AuthContext = createContext()
 // Storage keys
 const STORAGE_KEYS = {
     TOKEN: 'token',
-    USER_DATA: 'user_data',
-    FIRST_TIME_USER: 'first_time_user'
+    USER_DATA: 'user_data'
 }
 
 // Auth Provider Component
@@ -137,7 +136,6 @@ export const AuthProvider = ({ children }) => {
             await Promise.all([
                 AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
                 setAuthToken(accessToken), // Use API client's token storage
-                AsyncStorage.setItem(STORAGE_KEYS.FIRST_TIME_USER, 'false'),
             ])
 
             // Update state

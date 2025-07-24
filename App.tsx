@@ -42,8 +42,7 @@ const AppNavigator = () => {
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 
-	// TODO first time, set to false when onboarding is done
-	// After the first succesful login, set to false
+	// Check if this is the first time using the app
 	const { appearance } = useSettings()
 	const firstTime = appearance.firstTime
 
