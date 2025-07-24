@@ -31,11 +31,11 @@ export default function BottomBar({ state, descriptors, navigation }) {
                 return (
                     <Pressable
                         key={route.key}
-                        accessibilityRole="button"
+                        onPress={onPress}
                         style={styles.pressableArea}
+                        accessibilityRole="button"
                         accessibilityState={isFocused ? { selected: true } : {}}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
-                        onPress={onPress}
                     >
                         <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={[isFocused ? styles.activeTab : styles.fa, { color: isFocused ? theme.colors.almostWhite : theme.colors.secondaryText }]} />
                     </Pressable>
