@@ -1,8 +1,7 @@
 import { StyleSheet, View, Text, Pressable } from 'react-native'
 
-
 // Helpers
-import { getShortDateTime, timeSince, reduceString } from '../../helpers'
+import { timeSince, reduceString } from '../../helpers'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -47,21 +46,21 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const amountFixed = amountFloat.toFixed(2)
 
     // My user is the owner of the transaction
-    const isPaidByMe = user.uuid === paid_by.uuid
+    const isPaidByMe = user.uuid == paid_by.uuid
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.success
 
+    console.log("transaction", transaction)
+
     // Navigate to transaction
     const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION_STACK, { screen: 'TransactionShow', params: { uuid } })
-
-    console.log(transaction)
 
     return (
         <Pressable onPress={navigateToTransaction}>
             <View style={[containerStyles.box, { justifyContent: 'space-between' }, containerStyle]}>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-                    <QPAvatar user={owner} size={48} />
+                    <QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />
                     <View style={{ flexDirection: 'column' }}>
                         <Text style={textStyles.h4}>{reduceString(description)}</Text>
                         <Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{timeSince(updated_at)}</Text>

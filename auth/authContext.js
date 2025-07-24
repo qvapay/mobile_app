@@ -122,15 +122,10 @@ export const AuthProvider = ({ children }) => {
                 golden_check: me.golden_check,
                 golden_expire: me.golden_expire,
                 p2p_enabled: me.p2p_enabled,
-                complete_name: me.complete_name,
                 cover_photo_url: me.cover_photo_url,
                 image: me.image,
                 average_rating: me.average_rating,
             }
-
-            console.log('Login - Mapped user data:', userData)
-            console.log('Login - VIP status:', userData.vip)
-            console.log('Login - Image URL:', userData.image)
 
             // Store user data and auth status
             await Promise.all([
