@@ -17,6 +17,9 @@ import BalanceCard from '../../ui/BalanceCard'
 import ActionButtons from '../../ui/ActionButtons'
 import QPAvatar from '../../ui/particles/QPAvatar'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // Home Screen
 const Home = ({ navigation }) => {
 
@@ -30,6 +33,7 @@ const Home = ({ navigation }) => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState(null)
     const [latestTransactions, setLatestTransactions] = useState([])
+    const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
 
     // Fetch latest transactions
     useEffect(() => {
@@ -47,6 +51,24 @@ const Home = ({ navigation }) => {
         fetchLatestTransactions()
     }, [])
 
+    // Get latest sent transfers users
+    useEffect(() => {
+        const fetchLatestSentTransfersUsers = async () => {
+            try {
+                const result = await transferApi.getLatestSentTransfers(10)
+                if (result.success) {
+                    setLatestSentTransfersUsers(result.data)
+                } else { console.error('Error fetching latest sent transfers:', result.error) }
+            } catch (error) {
+                console.error('Error fetching latest sent transfers:', error)
+            } finally { setIsLoading(false) }
+        }
+        fetchLatestSentTransfersUsers()
+    }, [])
+
+
+    console.log("latestSentTransfersUsers", latestSentTransfersUsers)
+
     return (
         <View style={[containerStyles.subContainer]}>
 
@@ -61,9 +83,21 @@ const Home = ({ navigation }) => {
                         <Text style={textStyles.h5}>Pago rápido</Text>
                         <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginVertical: 5 }}>
-                        <QPAvatar user={user} size={48} />
-                    </View>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingHorizontal: 0 }}
+                        style={{ marginVertical: 5 }}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <View style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}>
+                                <FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />
+                            </View>
+                            {latestSentTransfersUsers.map((user, index) => (
+                                <QPAvatar key={index} user={user} size={56} />
+                            ))}
+                        </View>
+                    </ScrollView>
                 </View>
 
                 <View style={{ marginVertical: 10 }}>

@@ -39,8 +39,32 @@ export const transferApi = {
         } catch (error) {
 
             console.error('Error getting latest transactions:', error)
-            
+
             // Return error response
+            return {
+                success: false,
+                error: error.response?.data || error.message,
+                status: error.response?.status
+            }
+        }
+    },
+
+    /**
+     * 
+     * @param {*} filters 
+     * @returns 
+     */
+    getLatestSentTransfers: async (take = 10) => {
+
+        try {
+            const response = await apiClient.get(`/transaction/latestusers?take=${take}`)
+            return {
+                success: true,
+                data: response.data,
+                status: response.status
+            }
+        } catch (error) {
+            console.error('Error getting latest sent transfers:', error)
             return {
                 success: false,
                 error: error.response?.data || error.message,
@@ -68,7 +92,7 @@ export const transferApi = {
      * }
      */
     transferMoney: async ({ amount, description, to, pin }) => {
-        
+
         try {
             const response = await apiClient.post('/transaction/transfer', {
                 amount: amount.toString(),

@@ -13,12 +13,14 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
     // Contexts
     const { theme } = useTheme()
 
+    console.log("user", user)
+
     // Optional properties
     const vip = user?.vip || false
     const rating = user?.rating || 0
     const kyc = user?.kyc || false
     const golden_check = user?.golden_check || false
-    const image = user?.image || 'https://qvapay.com/android-chrome-512x512.png'
+    const image = user?.image || ''
 
     // Variables
     const borderVip = size / 25

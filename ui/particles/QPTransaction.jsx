@@ -50,8 +50,6 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.success
 
-    console.log("transaction", transaction)
-
     // Navigate to transaction
     const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION_STACK, { screen: 'TransactionShow', params: { uuid } })
 
