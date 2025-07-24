@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }) => {
                 const isValid = await authApi.checkToken(token)
                 if (!isValid.success) {
                     console.log('🔄 Token expired - closing session')
+                    console.log('🔐 Session expired - User will be redirected to login')
                     await logout()
                 }
             }, 30000) // 30 seconds
@@ -66,8 +67,9 @@ export const AuthProvider = ({ children }) => {
                 const apiResponse = await authApi.checkToken()
                 if (apiResponse.success) {
                     
-                    setToken(saved_token)
-                    setIsAuthenticated(true)
+                                setToken(saved_token)
+            setIsAuthenticated(true)
+            console.log('🔐 Auth initialized - User authenticated')
 
                     // Get user data from API
                     const userData = await authApi.getProfile()
@@ -75,9 +77,15 @@ export const AuthProvider = ({ children }) => {
                         setUser(userData.me)
                     } else { await logout() }
 
-                } else { setIsAuthenticated(false) }
+                } else { 
+                    setIsAuthenticated(false)
+                    console.log('🔐 Auth initialized - User not authenticated (token invalid)')
+                }
 
-            } else { setIsAuthenticated(false) }
+            } else { 
+                setIsAuthenticated(false)
+                console.log('🔐 Auth initialized - User not authenticated (no token)')
+            }
 
         } catch (error) {
             console.error('Error initializing auth:', error)

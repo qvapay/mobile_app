@@ -170,6 +170,7 @@ export const SettingsProvider = ({ children }) => {
             const mergedSettings = mergeWithDefaults(storedSettings)
 
             setSettings(mergedSettings)
+            console.log('⚙️ Settings loaded - firstTime:', mergedSettings.appearance.firstTime)
 
         } catch (error) {
             console.error('Error initializing settings:', error)

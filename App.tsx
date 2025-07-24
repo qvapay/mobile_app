@@ -43,12 +43,20 @@ const AppNavigator = () => {
 	const { theme } = useTheme()
 
 	// Check if this is the first time using the app
-	const { appearance } = useSettings()
+	const { appearance, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
 
 	// Auth Context
-	const { isAuthenticated, isLoading } = useAuth()
-	if (isLoading) { return <SplashScreen /> }
+	const { isAuthenticated, isLoading: authLoading } = useAuth()
+	
+	// Wait for both auth and settings to finish loading
+	if (authLoading || settingsLoading) { 
+		console.log('🔄 App loading - Auth:', authLoading, 'Settings:', settingsLoading)
+		return <SplashScreen /> 
+	}
+	
+	// Debug logging for route determination
+	console.log('🎯 Route determination - firstTime:', firstTime, 'isAuthenticated:', isAuthenticated)
 
 	return (
 		<Stack.Navigator
