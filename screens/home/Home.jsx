@@ -15,6 +15,7 @@ import { transferApi } from '../../api/transferApi'
 import QPTransaction from '../../ui/particles/QPTransaction'
 import BalanceCard from '../../ui/BalanceCard'
 import ActionButtons from '../../ui/ActionButtons'
+import QPAvatar from '../../ui/particles/QPAvatar'
 
 // Home Screen
 const Home = ({ navigation }) => {
@@ -38,9 +39,7 @@ const Home = ({ navigation }) => {
                 const result = await transferApi.getLatestTransactions({ take: 6 })
                 if (result.success) {
                     setLatestTransactions(result.data)
-                } else {
-                    console.error('Error fetching latest transactions:', result.error)
-                }
+                } else { console.error('Error fetching latest transactions:', result.error) }
             } catch (error) {
                 console.error('Error fetching latest transactions:', error)
             } finally { setIsLoading(false) }
@@ -62,22 +61,18 @@ const Home = ({ navigation }) => {
                         <Text style={textStyles.h5}>Pago rápido</Text>
                         <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={textStyles.h2}>User1</Text>
-                        <Text style={textStyles.h2}>User1</Text>
-                        <Text style={textStyles.h2}>User1</Text>
-                        <Text style={textStyles.h2}>User1</Text>
-                        <Text style={textStyles.h2}>User1</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginVertical: 5 }}>
+                        <QPAvatar user={user} size={48} />
                     </View>
                 </View>
 
-                <View style={{ marginVertical: 20 }}>
+                <View style={{ marginVertical: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={textStyles.h5}>Últimas transacciones</Text>
                         <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
                     </View>
-                    {latestTransactions.map((transaction) => (
-                        <QPTransaction key={transaction.uuid} transaction={transaction} />
+                    {latestTransactions.map((transaction, index) => (
+                        <QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
                     ))}
                 </View>
 

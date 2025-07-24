@@ -1,8 +1,4 @@
-import React from 'react'
 import { StyleSheet, View } from 'react-native'
-
-// Auth Context
-import { useAuth } from '../../auth/AuthContext'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -12,15 +8,22 @@ import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from 'react-native-linear-gradient'
 
 // QvaPay Avatar Component
-const QPAvatar = ({ user = {}, size = 32}) => {
+const QPAvatar = ({ user = {}, size = 32 }) => {
 
     // Contexts
     const { theme } = useTheme()
 
+    // Optional properties
+    const vip = user?.vip || false
+    const rating = user?.rating || 0
+    const kyc = user?.kyc || false
+    const golden_check = user?.golden_check || false
+    const image = user?.image || 'https://qvapay.com/android-chrome-512x512.png'
+
     // Variables
     const borderVip = size / 25
-    const gradientColors = user.vip ? [theme.colors.danger, theme.colors.primary, theme.colors.success] : ['#ffffff', '#ffffff']
-    const profile_picture = user.image ? `https://media.qvapay.com/${user.image}` : 'https://qvapay.com/android-chrome-512x512.png'
+    const gradientColors = vip ? [theme.colors.danger, theme.colors.primary, theme.colors.success] : ['#ffffff', '#ffffff']
+    const profile_picture = image ? `https://media.qvapay.com/${image}` : 'https://qvapay.com/android-chrome-512x512.png'
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background, width: size, height: size }]}>

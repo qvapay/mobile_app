@@ -36,11 +36,6 @@ const SettingsMenu = ({ navigation }) => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
-    console.log(user)
-
-    // State
-    const [isLoading, setIsLoading] = useState(false)
-
     // Logout function
     const handleLogout = async () => {
         Alert.alert(
@@ -52,9 +47,7 @@ const SettingsMenu = ({ navigation }) => {
                     text: 'Cerrar sesión',
                     style: 'destructive',
                     onPress: async () => {
-                        setIsLoading(true)
                         const result = await logout()
-                        setIsLoading(false)
                         if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
                     }
                 }

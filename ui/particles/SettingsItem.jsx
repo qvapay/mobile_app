@@ -22,7 +22,6 @@ const SettingsItem = ({ title, icon, screen, index, totalItems, navigation }) =>
     // Determine border radius based on position
     const isFirst = index === 0
     const isLast = index === totalItems - 1
-    const isMiddle = !isFirst && !isLast
 
     const containerStyle = {
         justifyContent: 'space-between',
