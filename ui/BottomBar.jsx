@@ -37,14 +37,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                         onPress={onPress}
                     >
-                        <View style={{ flex: 1 }}>
-                            <FontAwesome6 name={navItems[index].name} iconStyle="solid"
-                                style={[
-                                    isFocused ? styles.activeTab : styles.fa,
-                                    { color: isFocused ? theme.colors.almostWhite : theme.colors.secondaryText }
-                                ]}
-                            />
-                        </View>
+                        <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={[isFocused ? styles.activeTab : styles.fa, { color: isFocused ? theme.colors.almostWhite : theme.colors.secondaryText }]} />
                     </Pressable>
                 )
             })}
@@ -62,6 +55,7 @@ const styles = StyleSheet.create({
     pressableArea: {
         flex: 1,
         alignItems: 'center',
+        justifyContent: 'center'
     },
     fa: {
         fontSize: 20,
