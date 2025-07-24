@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
-import { useContainerStyles } from '../../theme/themeUtils'
+import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // Import transferApi
 import { transferApi } from '../../api/transferApi'
@@ -23,6 +23,7 @@ const Home = ({ navigation }) => {
     const { user } = useAuth()
     const { theme } = useTheme()
     const containerStyles = useContainerStyles(theme)
+    const textStyles = useTextStyles(theme)
 
     // State
     const [isLoading, setIsLoading] = useState(false)
@@ -56,43 +57,30 @@ const Home = ({ navigation }) => {
 
                 <ActionButtons />
 
-                {latestTransactions.map((transaction) => (
-                    <QPTransaction key={transaction.uuid} transaction={transaction} />
-                ))}
-
-                {/* {latestTransactions.map((transaction) => (
-                    <View key={transaction.uuid} style={{ marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: 12 }}>
-                        <Text style={[styles.text, { fontWeight: 'bold', fontSize: 18 }]}>
-                            {transaction.description}
-                        </Text>
-                        <Text style={styles.text}>
-                            Amount: <Text style={{ color: parseFloat(transaction.amount) < 0 ? '#e74c3c' : '#2ecc71', fontWeight: 'bold' }}>
-                                {parseFloat(transaction.amount) < 0 ? '-' : '+'}${Math.abs(Number(transaction.amount))}
-                            </Text>
-                        </Text>
-                        <Text style={styles.text}>
-                            Status: <Text style={{ color: transaction.status === 'paid' ? '#2ecc71' : '#e67e22' }}>{transaction.status}</Text>
-                        </Text>
-                        <Text style={styles.text}>
-                            Date: {new Date(transaction.created_at).toLocaleString()}
-                        </Text>
-                        {transaction.paid_by && (
-                            <Text style={styles.text}>
-                                From: {transaction.paid_by.name || transaction.paid_by.username}
-                            </Text>
-                        )}
-                        {transaction.owner && (
-                            <Text style={styles.text}>
-                                To: {transaction.owner.name || transaction.owner.username}
-                            </Text>
-                        )}
-                        {transaction.app && (
-                            <Text style={styles.text}>
-                                App: {transaction.app.name}
-                            </Text>
-                        )}
+                <View style={{ marginVertical: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={textStyles.h5}>Pago rápido</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
                     </View>
-                ))} */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={textStyles.h2}>User1</Text>
+                        <Text style={textStyles.h2}>User1</Text>
+                        <Text style={textStyles.h2}>User1</Text>
+                        <Text style={textStyles.h2}>User1</Text>
+                        <Text style={textStyles.h2}>User1</Text>
+                    </View>
+                </View>
+
+                <View style={{ marginVertical: 20 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={textStyles.h5}>Últimas transacciones</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
+                    </View>
+                    {latestTransactions.map((transaction) => (
+                        <QPTransaction key={transaction.uuid} transaction={transaction} />
+                    ))}
+                </View>
+
 
             </ScrollView>
         </View>
