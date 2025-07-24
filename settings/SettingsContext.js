@@ -72,7 +72,8 @@ const DEFAULT_SETTINGS = {
         fontSize: 'medium', // small, medium, large, extraLarge
         reduceMotion: false,
         highContrast: false,
-        boldText: false
+        boldText: false,
+        firstTime: true // TODO first time, set to false when onboarding is done
     },
 
     // Language and localization
@@ -230,8 +231,8 @@ export const SettingsProvider = ({ children }) => {
 
     // Merge stored settings with defaults
     const mergeWithDefaults = (storedSettings) => {
-        const merged = { ...DEFAULT_SETTINGS }
 
+        const merged = { ...DEFAULT_SETTINGS }
         Object.keys(storedSettings).forEach(category => {
             if (storedSettings[category]) {
                 merged[category] = {
@@ -246,6 +247,7 @@ export const SettingsProvider = ({ children }) => {
 
     // Update a specific setting category
     const updateSettings = async (category, newSettings) => {
+
         try {
             setError(null)
 
@@ -277,7 +279,9 @@ export const SettingsProvider = ({ children }) => {
 
     // Update a specific setting within a category
     const updateSetting = async (category, key, value) => {
+
         try {
+
             setError(null)
 
             // Update state
@@ -308,7 +312,9 @@ export const SettingsProvider = ({ children }) => {
 
     // Reset settings to defaults
     const resetSettings = async (category = null) => {
+
         try {
+
             setError(null)
 
             if (category) {
@@ -347,7 +353,9 @@ export const SettingsProvider = ({ children }) => {
 
     // Export settings
     const exportSettings = async () => {
+
         try {
+
             const settingsData = {
                 version: '1.0',
                 timestamp: new Date().toISOString(),
@@ -364,7 +372,9 @@ export const SettingsProvider = ({ children }) => {
 
     // Import settings
     const importSettings = async (settingsData) => {
+
         try {
+
             setError(null)
 
             // Validate settings data
@@ -421,6 +431,7 @@ export const SettingsProvider = ({ children }) => {
 
     // Context value
     const value = {
+
         // State
         settings,
         isLoading,
@@ -460,9 +471,7 @@ export const SettingsProvider = ({ children }) => {
 // Custom hook to use the settings context
 export const useSettings = () => {
     const context = useContext(SettingsContext)
-    if (!context) {
-        throw new Error('useSettings must be used within a SettingsProvider')
-    }
+    if (!context) { throw new Error('useSettings must be used within a SettingsProvider') }
     return context
 }
 

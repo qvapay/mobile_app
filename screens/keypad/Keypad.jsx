@@ -301,6 +301,7 @@ export default function Keypad({ navigation }) {
                         { backgroundColor: theme.colors.elevation },
                         isProcessing && styles.actionButtonDisabled
                     ]}
+                    iconStyle="solid"
                 />
 
                 <View style={styles.actionButtonSpacer} />
@@ -316,6 +317,7 @@ export default function Keypad({ navigation }) {
                         { backgroundColor: theme.colors.primary },
                         isProcessing && styles.actionButtonDisabled
                     ]}
+                    iconStyle="solid"
                 />
             </View>
         </View>

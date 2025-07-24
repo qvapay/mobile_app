@@ -73,15 +73,6 @@ const MainStack = ({ navigation }) => {
             >
 
                 <Tab.Screen
-                    name={ROUTES.ONBOARD_SCREEN}
-                    component={Onboard}
-                    options={{
-                        headerShown: false,
-                        tabBarStyle: { display: 'none' }
-                    }}
-                />
-
-                <Tab.Screen
                     name={ROUTES.HOME_SCREEN}
                     component={Home}
                     options={{

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
 
 // Common text styles that adapt to theme
@@ -98,3 +99,29 @@ export const createContainerStyles = (theme) => StyleSheet.create({
         alignItems: 'center',
     },
 })
+
+// Memoized versions of style creation functions
+export const createMemoizedTextStyles = (theme) => {
+    return useMemo(() => createTextStyles(theme), [theme])
+}
+
+export const createMemoizedContainerStyles = (theme) => {
+    return useMemo(() => createContainerStyles(theme), [theme])
+}
+
+// Custom hooks for easier usage with automatic memoization
+export const useTextStyles = (theme) => {
+    return useMemo(() => createTextStyles(theme), [theme])
+}
+
+export const useContainerStyles = (theme) => {
+    return useMemo(() => createContainerStyles(theme), [theme])
+}
+
+// Combined hook for both text and container styles
+export const useThemeStyles = (theme) => {
+    return useMemo(() => ({
+        text: createTextStyles(theme),
+        container: createContainerStyles(theme)
+    }), [theme])
+}

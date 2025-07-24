@@ -6,14 +6,15 @@ import { useAuth } from '../../auth/AuthContext'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
-import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
+import { useContainerStyles } from '../../theme/themeUtils'
 
 // Import transferApi
 import { transferApi } from '../../api/transferApi'
 
 // UI Particles
 import QPTransaction from '../../ui/particles/QPTransaction'
-import QPButton from '../../ui/particles/QPButton'
+import BalanceCard from '../../ui/BalanceCard'
+import ActionButtons from '../../ui/ActionButtons'
 
 // Home Screen
 const Home = ({ navigation }) => {
@@ -21,8 +22,7 @@ const Home = ({ navigation }) => {
     // Context
     const { user } = useAuth()
     const { theme } = useTheme()
-    const textStyles = createTextStyles(theme)
-    const containerStyles = createContainerStyles(theme)
+    const containerStyles = useContainerStyles(theme)
 
     // State
     const [isLoading, setIsLoading] = useState(false)
@@ -52,9 +52,9 @@ const Home = ({ navigation }) => {
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                <Text style={styles.text}>balance ${user.balance}</Text>
-                <Text style={styles.text}>Send Receive Buttons</Text>
-                <Text style={styles.text}>Services Promotions</Text>
+                <BalanceCard balance={user.balance} />
+
+                <ActionButtons />
 
                 {latestTransactions.map((transaction) => (
                     <QPTransaction key={transaction.uuid} transaction={transaction} />
@@ -94,18 +94,6 @@ const Home = ({ navigation }) => {
                     </View>
                 ))} */}
 
-                {user && (
-                    <View style={styles.userInfo}>
-                        <Text style={styles.userText}>Hello, {user.name} {user.lastname}!</Text>
-                        <Text style={styles.userText}>Username: @{user.username}</Text>
-                        <Text style={styles.userText}>Email: {user.email}</Text>
-                        <Text style={styles.userText}>Balance: ${user.balance}</Text>
-                        <Text style={styles.userText}>Phone: {user.phone}</Text>
-                        <Text style={styles.userText}>Image: {user.image}</Text>
-                        <Text style={styles.userText}>VIP: {user.vip ? 'Yes' : 'No'}</Text>
-                        {user.bio && <Text style={styles.userText}>Bio: {user.bio}</Text>}
-                    </View>
-                )}
             </ScrollView>
         </View>
     )

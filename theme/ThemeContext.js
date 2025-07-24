@@ -1,5 +1,6 @@
 import { Appearance } from 'react-native'
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useTextStyles, useContainerStyles } from './themeUtils'
+import { createContext, useContext, useEffect, useState, useMemo } from 'react'
 
 // Define your color palette
 const colors = {
@@ -105,6 +106,10 @@ export const ThemeProvider = ({ children }) => {
     const [isDark, setIsDark] = useState(Appearance.getColorScheme() === 'dark')
     const [theme, setTheme] = useState(createTheme(isDark))
 
+    // Memoized styles at context level
+    const textStyles = useTextStyles(theme)
+    const containerStyles = useContainerStyles(theme)
+
     useEffect(() => {
         const subscription = Appearance.addChangeListener(({ colorScheme }) => {
             const newIsDark = colorScheme === 'dark'
@@ -127,8 +132,20 @@ export const ThemeProvider = ({ children }) => {
         setTheme(createTheme(newIsDark))
     }
 
+    // Memoized context value to prevent unnecessary re-renders
+    const contextValue = useMemo(() => ({
+        theme,
+        isDark,
+        toggleTheme,
+        setThemeMode,
+        styles: {
+            text: textStyles,
+            container: containerStyles
+        }
+    }), [theme, isDark, textStyles, containerStyles])
+
     return (
-        <ThemeContext.Provider value={{ theme, isDark, toggleTheme, setThemeMode }}>
+        <ThemeContext.Provider value={contextValue}>
             {children}
         </ThemeContext.Provider>
     )

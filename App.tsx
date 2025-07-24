@@ -10,7 +10,7 @@ const Stack = createNativeStackNavigator()
 import { AuthProvider, useAuth } from './auth/AuthContext'
 
 // Settings Context
-import { SettingsProvider } from './settings/SettingsContext'
+import { SettingsProvider, useSettings } from './settings/SettingsContext'
 
 // Theme Provider
 import { ThemeProvider } from './theme/ThemeContext'
@@ -41,14 +41,15 @@ const AppNavigator = () => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
-	const containerStyles = createContainerStyles(theme)
+
+	// TODO first time, set to false when onboarding is done
+	// After the first succesful login, set to false
+	const { appearance } = useSettings()
+	const firstTime = appearance.firstTime
 
 	// Auth Context
 	const { isAuthenticated, isLoading } = useAuth()
 	if (isLoading) { return <SplashScreen /> }
-
-	// TODO first time
-	const firstTime = true
 
 	return (
 		<Stack.Navigator
