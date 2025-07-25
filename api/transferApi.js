@@ -55,7 +55,6 @@ export const transferApi = {
      * @returns 
      */
     getLatestSentTransfers: async (take = 10) => {
-
         try {
             const response = await apiClient.get(`/transaction/latestusers?take=${take}`)
             return {
@@ -71,6 +70,7 @@ export const transferApi = {
                 status: error.response?.status
             }
         }
+        
     },
 
     /**

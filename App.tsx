@@ -15,7 +15,6 @@ import { SettingsProvider, useSettings } from './settings/SettingsContext'
 // Theme Provider
 import { ThemeProvider } from './theme/ThemeContext'
 import { useTheme } from './theme/ThemeContext'
-import { createContainerStyles } from './theme/themeUtils'
 
 // Routes
 import { ROUTES } from './routes'
@@ -48,19 +47,92 @@ const AppNavigator = () => {
 
 	// Auth Context
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
-	
+
 	// Wait for both auth and settings to finish loading
-	if (authLoading || settingsLoading) { 
+	if (authLoading || settingsLoading) {
 		console.log('🔄 App loading - Auth:', authLoading, 'Settings:', settingsLoading)
-		return <SplashScreen /> 
+		return <SplashScreen />
 	}
-	
+
 	// Debug logging for route determination
 	console.log('🎯 Route determination - firstTime:', firstTime, 'isAuthenticated:', isAuthenticated)
 
+	// Show onboarding if it's the first time
+	if (firstTime) {
+		return (
+			<Stack.Navigator
+				screenOptions={{
+					headerShown: false,
+					headerStyle: {
+						backgroundColor: theme.colors.background,
+					},
+					headerTintColor: theme.colors.primaryText,
+				}}
+			>
+				<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
+				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+			</Stack.Navigator>
+		)
+	}
+
+	// Show authenticated screens if user is logged in
+	if (isAuthenticated) {
+		return (
+			<Stack.Navigator
+				initialRouteName={ROUTES.MAIN_STACK}
+				screenOptions={{
+					headerShown: false,
+					headerStyle: {
+						backgroundColor: theme.colors.background,
+					},
+					headerTintColor: theme.colors.primaryText,
+				}}
+			>
+				<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
+
+				{/* Settings Stack */}
+				<Stack.Screen
+					name={ROUTES.SETTINGS_MENU}
+					component={SettingsStack}
+					options={{
+						animation: 'slide_from_bottom',
+					}}
+				/>
+
+				{/* Send, Receive and Send Success Screens */}
+				<Stack.Screen
+					name={ROUTES.SEND_SCREEN}
+					component={SendScreen}
+					options={{
+						headerTitle: '',
+						headerShown: true,
+						headerBackVisible: true,
+						headerBackButtonMenuEnabled: true,
+						headerShadowVisible: false,
+					}}
+				/>
+
+				{/* Send Success Screen */}
+				<Stack.Screen
+					name={ROUTES.SEND_SUCCESS_SCREEN}
+					component={SendSuccessScreen}
+					options={{
+						headerTitle: '',
+						headerShown: false,
+						animation: 'slide_from_bottom',
+					}}
+				/>
+
+				{/* Accesible Screens */}
+				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+			</Stack.Navigator>
+		)
+	}
+
+	// Show unauthenticated screens (welcome, login, register)
 	return (
 		<Stack.Navigator
-			initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
+			initialRouteName={ROUTES.WELCOME_SCREEN}
 			screenOptions={{
 				headerShown: false,
 				headerStyle: {
@@ -69,74 +141,26 @@ const AppNavigator = () => {
 				headerTintColor: theme.colors.primaryText,
 			}}
 		>
-
-			{/* Onboard Screen */}
-			<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
-
-			{isAuthenticated ? (
-				<>
-					<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
-
-					{/* Settings Stack */}
-					<Stack.Screen
-						name={ROUTES.SETTINGS_MENU}
-						component={SettingsStack}
-						options={{
-							animation: 'slide_from_bottom',
-						}}
-					/>
-
-					{/* Send, Receive and Send Success Screens */}
-					<Stack.Screen
-						name={ROUTES.SEND_SCREEN}
-						component={SendScreen}
-						options={{
-							headerTitle: '',
-							headerShown: true,
-							headerBackVisible: true,
-							headerBackButtonMenuEnabled: true,
-							headerShadowVisible: false,
-						}}
-					/>
-
-					{/* Send Success Screen */}
-					<Stack.Screen
-						name={ROUTES.SEND_SUCCESS_SCREEN}
-						component={SendSuccessScreen}
-						options={{
-							headerTitle: '',
-							headerShown: false,
-							animation: 'slide_from_bottom',
-						}}
-					/>
-
-				</>
-			) : (
-				<>
-					<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
-					<Stack.Screen
-						name={ROUTES.LOGIN_SCREEN}
-						component={LoginScreen}
-						options={{
-							headerTitle: '',
-							animation: 'slide_from_right',
-							headerShown: true,
-							headerBackVisible: true,
-							headerBackButtonMenuEnabled: true,
-							headerShadowVisible: false,
-						}}
-					/>
-					<Stack.Screen
-						name={ROUTES.REGISTER_SCREEN}
-						component={RegisterScreen}
-						options={{ animation: 'slide_from_right' }}
-					/>
-				</>
-			)}
-
+			<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
+			<Stack.Screen
+				name={ROUTES.LOGIN_SCREEN}
+				component={LoginScreen}
+				options={{
+					headerTitle: '',
+					animation: 'slide_from_right',
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+				}}
+			/>
+			<Stack.Screen
+				name={ROUTES.REGISTER_SCREEN}
+				component={RegisterScreen}
+				options={{ animation: 'slide_from_right' }}
+			/>
 			{/* Accesible Screens */}
 			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
-
 		</Stack.Navigator>
 	)
 }

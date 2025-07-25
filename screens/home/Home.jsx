@@ -59,15 +59,11 @@ const Home = ({ navigation }) => {
                 if (result.success) {
                     setLatestSentTransfersUsers(result.data)
                 } else { console.error('Error fetching latest sent transfers:', result.error) }
-            } catch (error) {
-                console.error('Error fetching latest sent transfers:', error)
+            } catch (error) { console.error('Error fetching latest sent transfers:', error)
             } finally { setIsLoading(false) }
         }
         fetchLatestSentTransfersUsers()
     }, [])
-
-
-    console.log("latestSentTransfersUsers", latestSentTransfersUsers)
 
     return (
         <View style={[containerStyles.subContainer]}>

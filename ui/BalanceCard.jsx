@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Text, Pressable, StyleSheet } from 'react-native'
+import AnimatedNumbers from 'react-native-animated-numbers'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -8,7 +9,7 @@ import { createTextStyles } from '../theme/themeUtils'
 // Settings Context
 import { useSettings } from '../settings/SettingsContext'
 
-const BalanceCard = ({ navigation, balance }) => {
+const BalanceCard = ({ balance }) => {
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
@@ -19,12 +20,20 @@ const BalanceCard = ({ navigation, balance }) => {
 
     // State
     const [showBalance, setShowBalance] = useState(true)
+    const [animatedBalance, setAnimatedBalance] = useState(balance || 0)
 
     // Load balance visibility setting on component mount
     useEffect(() => {
         const balanceVisibility = getSetting('privacy', 'showBalance', true)
         setShowBalance(balanceVisibility)
     }, [getSetting])
+
+    // useEffect with balance dependency to animate the balance
+    useEffect(() => {
+        if (balance !== undefined && balance !== null) {
+            setAnimatedBalance(balance)
+        }
+    }, [balance])
 
     // Functions
     const toggleShowBalance = async () => {
@@ -47,9 +56,17 @@ const BalanceCard = ({ navigation, balance }) => {
             <Text style={[textStyles.h1, { color: theme.colors.secondaryText, marginRight: 8 }]}>
                 $
             </Text>
-            <Text style={[textStyles.amount, { color: theme.colors.primaryText }]}>
-                {showBalance ? balance : getHiddenBalance()}
-            </Text>
+            {showBalance ? (
+                <AnimatedNumbers
+                    includeComma
+                    animateToNumber={animatedBalance}
+                    fontStyle={[textStyles.amount, { color: theme.colors.primaryText }]}
+                />
+            ) : (
+                <Text style={[textStyles.amount, { color: theme.colors.primaryText }]}>
+                    {getHiddenBalance()}
+                </Text>
+            )}
         </Pressable>
     )
 }

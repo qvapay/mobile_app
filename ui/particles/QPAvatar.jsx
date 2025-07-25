@@ -13,8 +13,6 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
     // Contexts
     const { theme } = useTheme()
 
-    console.log("user", user)
-
     // Optional properties
     const vip = user?.vip || false
     const rating = user?.rating || 0
