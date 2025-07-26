@@ -4,7 +4,6 @@ import { View, StyleSheet } from 'react-native'
 import { useTheme } from '../../theme/ThemeContext'
 
 // Image components
-import FastImage from "@d11/react-native-fast-image"
 import { SvgUri } from 'react-native-svg'
 
 const QPCoin = ({ coin, size = 32 }) => {

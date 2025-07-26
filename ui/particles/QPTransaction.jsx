@@ -68,6 +68,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
 
                     {wallet_coin ? (
+                        // TODO: Replace wallet coin (TICKER) with coin image from the API
                         <QPCoin coin={wallet_coin} size={48} />
                     ) : (
                         <QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />
