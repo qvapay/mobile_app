@@ -4,6 +4,10 @@ import { StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles } from '../../theme/themeUtils'
 
+// UI
+import QPButton from '../../ui/particles/QPButton'
+import QPInput from '../../ui/particles/QPInput'
+
 const Withdraw = () => {
 
     // Theme variables, dark and light modes
