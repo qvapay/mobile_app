@@ -4,13 +4,13 @@ import { StyleSheet, Text, View, Pressable } from 'react-native'
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
 
-// Icons
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
 // UI
 import QPButton from './particles/QPButton'
 
-const ActionButtons = () => {
+// Routes
+import { ROUTES } from '../routes'
+
+const ActionButtons = ({ navigation }) => {
 
     // Theme variables, dark and light modes with memoized styles
     const { theme } = useTheme()
@@ -27,6 +27,7 @@ const ActionButtons = () => {
                         { backgroundColor: theme.colors.elevation }
                     ]}
                     iconStyle="solid"
+                    onPress={() => navigation.navigate(ROUTES.ADD_SCREEN)}
                 />
 
                 <View style={styles.actionButtonSpacer} />
@@ -40,6 +41,7 @@ const ActionButtons = () => {
                         { backgroundColor: theme.colors.elevation }
                     ]}
                     iconStyle="solid"
+                    onPress={() => navigation.navigate(ROUTES.WITHDRAW_SCREEN)}
                 />
             </View>
         </View>

@@ -32,6 +32,10 @@ import MainStack from './screens/MainStack'
 import SendScreen from './screens/transaction/Send'
 import SendSuccessScreen from './screens/transaction/SendSuccess'
 
+// InOut Screens
+import Add from './screens/add/Add'
+import Withdraw from './screens/withdraw/Withdraw'
+
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
 
@@ -49,13 +53,7 @@ const AppNavigator = () => {
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
 
 	// Wait for both auth and settings to finish loading
-	if (authLoading || settingsLoading) {
-		console.log('🔄 App loading - Auth:', authLoading, 'Settings:', settingsLoading)
-		return <SplashScreen />
-	}
-
-	// Debug logging for route determination
-	console.log('🎯 Route determination - firstTime:', firstTime, 'isAuthenticated:', isAuthenticated)
+	if (authLoading || settingsLoading) { return <SplashScreen /> }
 
 	// Show onboarding if it's the first time
 	if (firstTime) {
@@ -88,7 +86,32 @@ const AppNavigator = () => {
 					headerTintColor: theme.colors.primaryText,
 				}}
 			>
+				{/* Main Stack */}
 				<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
+
+				{/* Add and Withdraw Screens */}
+				<Stack.Screen
+					name={ROUTES.ADD_SCREEN}
+					component={Add}
+					options={{
+						headerTitle: 'Depositar',
+						headerShown: true,
+						headerBackVisible: true,
+						headerBackButtonMenuEnabled: true,
+						headerShadowVisible: false,
+					}}
+				/>
+				<Stack.Screen
+					name={ROUTES.WITHDRAW_SCREEN}
+					component={Withdraw}
+					options={{
+						headerTitle: 'Extraer',
+						headerShown: true,
+						headerBackVisible: true,
+						headerBackButtonMenuEnabled: true,
+						headerShadowVisible: false,
+					}}
+				/>
 
 				{/* Settings Stack */}
 				<Stack.Screen
@@ -125,6 +148,7 @@ const AppNavigator = () => {
 
 				{/* Accesible Screens */}
 				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+
 			</Stack.Navigator>
 		)
 	}

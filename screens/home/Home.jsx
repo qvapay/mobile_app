@@ -57,10 +57,12 @@ const Home = ({ navigation }) => {
             try {
                 const result = await transferApi.getLatestSentTransfers(10)
                 if (result.success) {
-                    setLatestSentTransfersUsers(result.data)
+                    // filter out users with no image
+                    const users = result.data.filter(user => user.image)
+                    setLatestSentTransfersUsers(users)
                 } else { console.error('Error fetching latest sent transfers:', result.error) }
-            } catch (error) { console.error('Error fetching latest sent transfers:', error)
-            } finally { setIsLoading(false) }
+            } catch (error) { console.error('Error fetching latest sent transfers:', error) }
+            finally { setIsLoading(false) }
         }
         fetchLatestSentTransfersUsers()
     }, [])
@@ -72,15 +74,15 @@ const Home = ({ navigation }) => {
 
                 <BalanceCard balance={user.balance} />
 
-                <ActionButtons />
+                <ActionButtons navigation={navigation} />
 
                 <View style={{ marginVertical: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={textStyles.h5}>Pago rápido</Text>
                         <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
                     </View>
-                    <ScrollView 
-                        horizontal 
+                    <ScrollView
+                        horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={{ paddingHorizontal: 0 }}
                         style={{ marginVertical: 5 }}

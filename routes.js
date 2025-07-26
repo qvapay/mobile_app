@@ -29,6 +29,8 @@ export const ROUTES = {
     KEYPAD_SCREEN: "Keypad",
     STORE_SCREEN: "Store",
     P2P_SCREEN: "P2P",
+
+    // InOut Screens
     ADD_SCREEN: "Add",
     ADD_INSTRUCTIONS_SCREEN: "AddInstructions",
     WITHDRAW_SCREEN: "Withdraw",
