@@ -15,9 +15,12 @@ import { ROUTES } from '../../routes'
 
 // Particles
 import QPAvatar from './QPAvatar'
+import QPCoin from './QPCoin'
 
 // QPTransaction component
 const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) => {
+
+    console.log("transaction", transaction)
 
     // My user
     const { user } = useAuth()
@@ -40,13 +43,18 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     }
 
     // Transaction data
-    const { uuid, amount, description, owner, paid_by, updated_at, status } = transaction
+    const { uuid, amount, description, owner = {}, paid_by = {}, wallet = {}, updated_at, status } = transaction
 
     const amountFloat = parseFloat(amount)
     const amountFixed = amountFloat.toFixed(2)
 
+    // Wallet coin
+    const wallet_coin = wallet?.wallet_type || ''
+
     // My user is the owner of the transaction
-    const isPaidByMe = user.uuid == paid_by.uuid
+    const user_uuid = user?.uuid || ''
+    const paid_by_uuid = paid_by?.uuid || ''
+    const isPaidByMe = user_uuid == paid_by_uuid
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.success
 
@@ -58,7 +66,13 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
             <View style={[containerStyles.box, { justifyContent: 'space-between' }, containerStyle]}>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-                    <QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />
+
+                    {wallet_coin ? (
+                        <QPCoin coin={wallet_coin} size={48} />
+                    ) : (
+                        <QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />
+                    )}
+
                     <View style={{ flexDirection: 'column' }}>
                         <Text style={textStyles.h4}>{reduceString(description)}</Text>
                         <Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{timeSince(updated_at)}</Text>

@@ -43,16 +43,6 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
                     resizeMode={FastImage.resizeMode.cover}
                 />
             </LinearGradient>
-            {/* {
-                showBadge && (
-                    <View style={styles.badgeRating}>
-                        <View style={styles.badge}>
-                            <Text style={[styles.badgeRatingText, { fontSize: badgeSize }]}>{rating}</Text>
-                            <FontAwesome name="star" size={badgeSize} style={styles.faIcon} />
-                        </View>
-                    </View>
-                )
-            } */}
         </View>
     )
 }
