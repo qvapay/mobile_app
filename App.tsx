@@ -29,8 +29,9 @@ import RegisterScreen from './auth/screens/Register'
 // Screens with auth
 import Onboard from './screens/onboard/Onboard'
 import MainStack from './screens/MainStack'
-import SendScreen from './screens/transaction/Send'
-import SendSuccessScreen from './screens/transaction/SendSuccess'
+import Send from './screens/transaction/Send'
+import SendSuccess from './screens/transaction/SendSuccess'
+import Receive from './screens/transaction/Receive'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -125,7 +126,7 @@ const AppNavigator = () => {
 				{/* Send, Receive and Send Success Screens */}
 				<Stack.Screen
 					name={ROUTES.SEND_SCREEN}
-					component={SendScreen}
+					component={Send}
 					options={{
 						headerTitle: '',
 						headerShown: true,
@@ -138,7 +139,18 @@ const AppNavigator = () => {
 				{/* Send Success Screen */}
 				<Stack.Screen
 					name={ROUTES.SEND_SUCCESS_SCREEN}
-					component={SendSuccessScreen}
+					component={SendSuccess}
+					options={{
+						headerTitle: '',
+						headerShown: false,
+						animation: 'slide_from_bottom',
+					}}
+				/>
+
+				{/* Receive Screen */}
+				<Stack.Screen
+					name={ROUTES.RECEIVE_SCREEN}
+					component={Receive}
 					options={{
 						headerTitle: '',
 						headerShown: false,

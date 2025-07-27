@@ -19,7 +19,7 @@ import { userApi } from '../../api/userApi'
 import { transferApi } from '../../api/transferApi'
 
 // Send Screen, search user, send money and show success message
-const SendScreen = ({ navigation, route }) => {
+const Send = ({ navigation, route }) => {
 
     // Context
     const { user } = useAuth()
@@ -136,4 +136,4 @@ const SendScreen = ({ navigation, route }) => {
     )
 }
 
-export default SendScreen
+export default Send

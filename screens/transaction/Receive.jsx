@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native'
 
-const Transaction = () => {
+const Receive = () => {
     return (
         <View>
-            <Text>Transaction</Text>
+            <Text>Receive</Text>
         </View>
     )
 }
@@ -12,4 +12,4 @@ const styles = StyleSheet.create({
 
 })
 
-export default Transaction
+export default Receive

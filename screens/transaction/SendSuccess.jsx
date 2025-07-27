@@ -16,7 +16,7 @@ import QPButton from '../../ui/particles/QPButton'
 import { ROUTES } from '../../routes'
 
 // Show a success message with a button to go back to the home screen
-const SendSuccessScreen = ({ navigation }) => {
+const SendSuccess = ({ navigation }) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -47,4 +47,4 @@ const styles = StyleSheet.create({
     }
 })
 
-export default SendSuccessScreen
+export default SendSuccess
