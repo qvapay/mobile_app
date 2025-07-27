@@ -31,9 +31,9 @@ export const ROUTES = {
     P2P_SCREEN: "P2P",
 
     // InOut Screens
-    ADD_SCREEN: "Add",
+    ADD: "Add",
     ADD_INSTRUCTIONS_SCREEN: "AddInstructions",
-    WITHDRAW_SCREEN: "Withdraw",
+    WITHDRAW: "Withdraw",
     WITHDRAW_INSTRUCTIONS_SCREEN: "WithdrawInstructions",
     SCAN_SCREEN: "Scan",
 

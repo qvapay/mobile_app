@@ -102,9 +102,9 @@ const AppNavigator = () => {
 			<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 
 			{/* Add and Withdraw Screens */}
-			<Stack.Screen name={ROUTES.ADD_SCREEN} component={Add} />
+			<Stack.Screen name={ROUTES.ADD} component={Add} />
 			<Stack.Screen
-				name={ROUTES.WITHDRAW_SCREEN}
+				name={ROUTES.WITHDRAW}
 				component={Withdraw}
 				options={{
 					headerTitle: 'Extraer',
@@ -134,16 +134,25 @@ const AppNavigator = () => {
 					headerShadowVisible: false,
 				}}
 			/>
-
-			{/* Send Success Screen */}
 			<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
-
-			{/* Receive Screen */}
 			<Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
 
 			{/* Transaction Screen */}
-			<Stack.Screen name={ROUTES.TRANSACTION} component={Transaction} />
-			<Stack.Screen name={ROUTES.TRANSACTIONS} component={Transactions} />
+			<Stack.Screen
+				name={ROUTES.TRANSACTIONS}
+				component={Transactions}
+				options={{
+					headerTitle: '',
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+				}}
+			/>
+			<Stack.Screen
+				name={ROUTES.TRANSACTION}
+				component={Transaction}
+			/>
 
 			<Stack.Screen
 				name={ROUTES.LOGIN_SCREEN}

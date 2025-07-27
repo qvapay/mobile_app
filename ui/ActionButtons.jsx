@@ -27,7 +27,7 @@ const ActionButtons = ({ navigation }) => {
                         { backgroundColor: theme.colors.elevation }
                     ]}
                     iconStyle="solid"
-                    onPress={() => navigation.navigate(ROUTES.ADD_SCREEN)}
+                    onPress={() => navigation.navigate(ROUTES.ADD)}
                 />
 
                 <View style={styles.actionButtonSpacer} />
@@ -41,7 +41,7 @@ const ActionButtons = ({ navigation }) => {
                         { backgroundColor: theme.colors.elevation }
                     ]}
                     iconStyle="solid"
-                    onPress={() => navigation.navigate(ROUTES.WITHDRAW_SCREEN)}
+                    onPress={() => navigation.navigate(ROUTES.WITHDRAW)}
                 />
             </View>
         </View>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { View, Text, Alert, StyleSheet, ScrollView, Image, Pressable, Linking } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -35,6 +36,7 @@ const SettingsMenu = ({ navigation }) => {
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
+    const insets = useSafeAreaInsets()
 
     // Logout function
     const handleLogout = async () => {
@@ -113,7 +115,7 @@ const SettingsMenu = ({ navigation }) => {
                 </Pressable>
             </View>
 
-            <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20 }]}>
+            <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20, marginBottom: insets.bottom }]}>
                 {`QvaPay © ${new Date().getFullYear()} \n`}
                 {`v ${version} build ${buildNumber}\n`}
                 {`Todos los derechos reservados`}

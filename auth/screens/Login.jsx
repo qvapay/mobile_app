@@ -16,9 +16,6 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 
-// Routes
-import { ROUTES } from '../../routes'
-
 // Login Screen
 const LoginScreen = ({ navigation }) => {
 

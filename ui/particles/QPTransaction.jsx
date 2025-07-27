@@ -56,13 +56,8 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.success
 
-    console.log("Me", user)
-    console.log("Me", user_uuid)
-    console.log("Paid by", paid_by_uuid)
-    console.log("isPaidByMe", isPaidByMe)
-
     // Navigate to transaction
-    const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION_STACK, { screen: 'TransactionShow', params: { uuid } })
+    const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION, { transaction })
 
     return (
         <Pressable onPress={navigateToTransaction}>
