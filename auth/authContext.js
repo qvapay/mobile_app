@@ -38,11 +38,7 @@ export const AuthProvider = ({ children }) => {
             // Check token every 30 seconds
             const interval = setInterval(async () => {
                 const isValid = await authApi.checkToken(token)
-                if (!isValid.success) {
-                    console.log('🔄 Token expired - closing session')
-                    console.log('🔐 Session expired - User will be redirected to login')
-                    await logout()
-                }
+                if (!isValid.success) { await logout() }
             }, 30000) // 30 seconds
             return () => clearInterval(interval)
         }
@@ -66,10 +62,10 @@ export const AuthProvider = ({ children }) => {
                 // Check token against API for validity
                 const apiResponse = await authApi.checkToken()
                 if (apiResponse.success) {
-                    
-                                setToken(saved_token)
-            setIsAuthenticated(true)
-            console.log('🔐 Auth initialized - User authenticated')
+
+                    setToken(saved_token)
+                    setIsAuthenticated(true)
+                    console.log('🔐 Auth initialized - User authenticated')
 
                     // Get user data from API
                     const userData = await authApi.getProfile()
@@ -77,12 +73,12 @@ export const AuthProvider = ({ children }) => {
                         setUser(userData.me)
                     } else { await logout() }
 
-                } else { 
+                } else {
                     setIsAuthenticated(false)
                     console.log('🔐 Auth initialized - User not authenticated (token invalid)')
                 }
 
-            } else { 
+            } else {
                 setIsAuthenticated(false)
                 console.log('🔐 Auth initialized - User not authenticated (no token)')
             }
@@ -114,7 +110,7 @@ export const AuthProvider = ({ children }) => {
 
             // Map user data from API response
             const userData = {
-                id: me.uuid,
+                uuid: me.uuid,
                 email: credentials.email,
                 username: me.username,
                 name: me.name,
@@ -149,7 +145,6 @@ export const AuthProvider = ({ children }) => {
             return { success: true }
 
         } catch (error) {
-            console.error('Login error:', error)
             setError('Login failed. Please try again.')
             return { success: false, error: error.message }
         } finally { setIsLoading(false) }

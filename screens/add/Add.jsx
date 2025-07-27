@@ -7,9 +7,9 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI
-import QPButton from '../../ui/particles/QPButton'
-import QPInput from '../../ui/particles/QPInput'
 import QPCoin from '../../ui/particles/QPCoin'
+import QPInput from '../../ui/particles/QPInput'
+import QPButton from '../../ui/particles/QPButton'
 
 // API
 import apiClient from '../../api/client'
@@ -60,6 +60,7 @@ const Add = () => {
 
     // Handle topup request
     const handleTopup = async () => {
+
         if (!selectedCoin || !amount) {
             Alert.alert('Error', 'Por favor selecciona una moneda e ingresa un monto')
             return
@@ -80,10 +81,15 @@ const Add = () => {
             setIsLoading(true)
             setError(null)
 
+            console.log(selectedCoin.tick)
+            console.log(Number(amount))
+
             const response = await apiClient.post('/topup', {
                 pay_method: selectedCoin.tick,
-                amount: amount
+                amount: Number(amount)
             })
+
+            console.error(response.data)
 
             if (response.data && response.data.response === 200) {
                 setTopupData(response.data)
@@ -94,9 +100,7 @@ const Add = () => {
         } catch (error) {
             console.error('Error creating topup:', error)
             setError('Error al crear la solicitud de depósito')
-        } finally {
-            setIsLoading(false)
-        }
+        } finally { setIsLoading(false) }
     }
 
     // Reset form

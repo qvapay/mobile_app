@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
 
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
 
@@ -67,6 +69,15 @@ const Home = ({ navigation }) => {
         fetchLatestSentTransfersUsers()
     }, [])
 
+    // Get AsyncStorage
+    useEffect(() => {
+        const getAsyncStorage = async () => {
+            const user_data = await AsyncStorage.getItem('user_data')
+            console.log('User data', user_data)
+        }
+        getAsyncStorage()
+    }, [])
+
     return (
         <View style={[containerStyles.subContainer]}>
 
@@ -75,6 +86,16 @@ const Home = ({ navigation }) => {
                 <BalanceCard balance={user.balance} />
 
                 <ActionButtons navigation={navigation} />
+
+                <View style={{ marginVertical: 10 }}>
+                    <Text style={textStyles.h5}>Name {user.name}</Text>
+                    <Text style={textStyles.h6}>UUID {user.uuid}</Text>
+                    <Text style={textStyles.h6}>ID {user.id}</Text>
+                    <Text style={textStyles.h6}>Username {user.username}</Text>
+                    <Text style={textStyles.h6}>Email {user.email}</Text>
+                    <Text style={textStyles.h6}>Hola {user.phone}</Text>
+                    <Text style={textStyles.h6}>Hola {user.name}</Text>
+                </View>
 
                 <View style={{ marginVertical: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

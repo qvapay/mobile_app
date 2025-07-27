@@ -20,8 +20,6 @@ import QPCoin from './QPCoin'
 // QPTransaction component
 const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) => {
 
-    console.log("transaction", transaction)
-
     // My user
     const { user } = useAuth()
 
@@ -57,6 +55,11 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const isPaidByMe = user_uuid == paid_by_uuid
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.success
+
+    console.log("Me", user)
+    console.log("Me", user_uuid)
+    console.log("Paid by", paid_by_uuid)
+    console.log("isPaidByMe", isPaidByMe)
 
     // Navigate to transaction
     const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION_STACK, { screen: 'TransactionShow', params: { uuid } })

@@ -94,7 +94,7 @@ const AppNavigator = () => {
 					name={ROUTES.ADD_SCREEN}
 					component={Add}
 					options={{
-						headerTitle: 'Depositar',
+						headerTitle: '',
 						headerShown: true,
 						headerBackVisible: true,
 						headerBackButtonMenuEnabled: true,
