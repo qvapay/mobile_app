@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -10,7 +10,7 @@ import { useSettings } from '../../settings/SettingsContext'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { createContainerStyles } from '../../theme/themeUtils'
+import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
@@ -27,7 +27,9 @@ const LoginScreen = ({ navigation }) => {
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
+    const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
+    const insets = useSafeAreaInsets()
 
     // Auth Context
     const { login, error, clearError } = useAuth()
@@ -63,11 +65,12 @@ const LoginScreen = ({ navigation }) => {
     }
 
     return (
-        <SafeAreaView style={[containerStyles.subContainer, styles.container]}>
+        <View style={[containerStyles.subContainer, { paddingBottom: insets.bottom }]}>
+
+            <Text style={textStyles.h1}>Acceder a tu cuenta</Text>
 
             <View style={styles.formContainer}>
 
-                <Text style={styles.title}>Acceder a tu cuenta</Text>
 
                 <QPInput
                     placeholder="tucorreo@gmail.com"
@@ -103,22 +106,20 @@ const LoginScreen = ({ navigation }) => {
 
             </View>
 
-            <QPButton
-                title="Acceder"
-                onPress={handleLogin}
-                disabled={isLoading}
-                style={{ borderRadius: 25 }}
-            />
+            <View style={{ marginBottom: 10 }}>
+                <QPButton
+                    title="Acceder"
+                    onPress={handleLogin}
+                    disabled={isLoading}
+                    style={{ borderRadius: 25 }}
+                />
+            </View>
 
-        </SafeAreaView>
+        </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: {
-        justifyContent: 'space-between',
-        paddingVertical: 20,
-    },
     formContainer: {
         flex: 1,
         justifyContent: 'center'
