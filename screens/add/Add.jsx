@@ -120,11 +120,9 @@ const Add = () => {
 
     return (
         <ScrollView style={[containerStyles.subContainer]}>
-            <View style={{ paddingVertical: 20 }}>
+
+            <View>
                 <Text style={textStyles.h1}>Depositar</Text>
-                <Text style={[textStyles.subtitle, { marginTop: 5 }]}>
-                    Selecciona una moneda y monto para depositar
-                </Text>
             </View>
 
             {/* Coin Selection */}
@@ -155,8 +153,7 @@ const Add = () => {
             </View>
 
             {/* Amount Input */}
-            <View style={containerStyles.card}>
-                <Text style={textStyles.h4}>Monto</Text>
+            <View style={{ marginVertical: 10 }}>
                 <QPInput
                     placeholder="0.00"
                     value={amount}

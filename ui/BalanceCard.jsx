@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Text, Pressable, StyleSheet } from 'react-native'
-import AnimatedNumbers from 'react-native-animated-numbers'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -8,6 +7,9 @@ import { createTextStyles } from '../theme/themeUtils'
 
 // Settings Context
 import { useSettings } from '../settings/SettingsContext'
+
+// Particles
+import QPBalance from './particles/QPBalance'
 
 const BalanceCard = ({ balance }) => {
 
@@ -53,15 +55,8 @@ const BalanceCard = ({ balance }) => {
 
     return (
         <Pressable onPress={toggleShowBalance} style={styles.amountContainer}>
-            <Text style={[textStyles.h1, { color: theme.colors.secondaryText, marginRight: 8 }]}>
-                $
-            </Text>
             {showBalance ? (
-                <AnimatedNumbers
-                    includeComma
-                    animateToNumber={animatedBalance}
-                    fontStyle={[textStyles.amount, { color: theme.colors.primaryText }]}
-                />
+                <QPBalance formattedAmount={animatedBalance} fontSize={60} theme={theme} />
             ) : (
                 <Text style={[textStyles.amount, { color: theme.colors.primaryText }]}>
                     {getHiddenBalance()}

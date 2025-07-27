@@ -19,8 +19,9 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
+import QPBalance from '../../ui/particles/QPBalance'
 
-// Icons
+// Icons    
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Routes
@@ -250,7 +251,7 @@ export default function Keypad({ navigation }) {
             {/* Amount Display Section */}
             <View style={styles.amountSection}>
 
-                <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
+                {/* <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
                     <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText }]}>
                         $
                     </Text>
@@ -261,7 +262,8 @@ export default function Keypad({ navigation }) {
                     >
                         {formattedAmount}
                     </Animated.Text>
-                </View>
+                </View> */}
+                <QPBalance formattedAmount={formattedAmount} fontSize={fontSize} theme={theme} />
 
                 {/* Balance Display */}
                 <Pressable
@@ -332,22 +334,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
-    },
-    amountContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-        height: 100,
-    },
-    currencySymbol: {
-        fontSize: 30,
-        fontFamily: 'Rubik-ExtraBold',
-        marginRight: 8,
-    },
-    amountText: {
-        fontFamily: 'Rubik-Black',
-        textAlign: 'center',
     },
     balanceContainer: {
         paddingHorizontal: 16,
