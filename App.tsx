@@ -1,5 +1,5 @@
 // React Components
-import React from 'react'
+import { useEffect, useState } from 'react'
 
 // Navigation Components
 import { NavigationContainer } from '@react-navigation/native'
@@ -48,15 +48,24 @@ const AppNavigator = () => {
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 
+	// State to control minimum splash screen time
+	const [splashReady, setSplashReady] = useState(false)
+
 	// Check if this is the first time using the app
 	const { appearance, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
 
 	// Auth Context
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setSplashReady(true)
+		}, 2000)
+		return () => clearTimeout(timer)
+	}, [])
 
-	// Wait for both auth and settings to finish loading
-	if (authLoading || settingsLoading) { return <SplashScreen /> }
+	// Show splash screen if still loading or if minimum time hasn't passed
+	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
 
 	// Show onboarding if it's the first time
 	if (firstTime) {

@@ -16,7 +16,7 @@ const ActionButtons = ({ navigation }) => {
     const { theme } = useTheme()
 
     return (
-        <View style={styles.container}>
+        <View>
             <View style={styles.InOutButtons}>
                 <QPButton
                     title="Depositar"
@@ -51,7 +51,7 @@ const ActionButtons = ({ navigation }) => {
 const styles = StyleSheet.create({
     InOutButtons: {
         flexDirection: 'row',
-        paddingBottom: 20,
+        paddingBottom: 10,
     },
     amountSection: {
         flex: 1,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     actionButtonSpacer: {
-        width: 12,
+        width: 10,
     },
     actionButtonText: {
         fontSize: 16,

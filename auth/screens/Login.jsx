@@ -55,7 +55,7 @@ const LoginScreen = ({ navigation }) => {
         setIsLoading(false)
 
         // After the first successful login, set firstTime to false
-        if (result.success) { await updateSettings('appearance', { firstTime: false }) }
+        if (result.success) { await updateSettings('appearance', 'firstTime', false) }
         if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }
     }
 
