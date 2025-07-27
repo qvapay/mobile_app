@@ -27,7 +27,7 @@ const QPInput = forwardRef((props, ref) => {
                 ref={ref}
                 {...props}
                 placeholderStyle={{ fontFamily: 'Rubik-Regular' }}
-                placeholderTextColor={theme.colors.tertiaryText}
+                placeholderTextColor={color}
                 style={[
                     styles.input,
                     { color: color },
@@ -43,9 +43,7 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-        height: 120,
+        justifyContent: 'center'
     },
     input: {
         fontFamily: 'Rubik-Black',

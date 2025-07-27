@@ -93,17 +93,7 @@ const AppNavigator = () => {
 				<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 
 				{/* Add and Withdraw Screens */}
-				<Stack.Screen
-					name={ROUTES.ADD_SCREEN}
-					component={Add}
-					options={{
-						headerTitle: '',
-						headerShown: true,
-						headerBackVisible: true,
-						headerBackButtonMenuEnabled: true,
-						headerShadowVisible: false,
-					}}
-				/>
+				<Stack.Screen name={ROUTES.ADD_SCREEN} component={Add} />
 				<Stack.Screen
 					name={ROUTES.WITHDRAW_SCREEN}
 					component={Withdraw}

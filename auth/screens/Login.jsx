@@ -63,6 +63,7 @@ const LoginScreen = ({ navigation }) => {
         <SafeAreaView style={[containerStyles.subContainer, styles.container]}>
 
             <View style={styles.formContainer}>
+
                 <Text style={styles.title}>Acceder a tu cuenta</Text>
 
                 <QPInput
@@ -112,8 +113,7 @@ const styles = StyleSheet.create({
     },
     formContainer: {
         flex: 1,
-        justifyContent: 'center',
-        paddingTop: 40,
+        justifyContent: 'center'
     },
     title: {
         fontSize: 24,
