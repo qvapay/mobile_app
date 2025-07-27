@@ -1,10 +1,17 @@
-import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+
+
 const Theme = () => {
+
+    // Theme variables, dark and light modes with memoized styles
+    // const { theme } = useTheme()
+    // const textStyles = createTextStyles(theme)
+    // const containerStyles = createContainerStyles(theme)
+
     return (
-        <View>
-            <Text>Theme</Text>
+        <View style={[containerStyles.subContainer]}>
+            <Text style={textStyles.h1}>Tema</Text>
         </View>
     )
 }

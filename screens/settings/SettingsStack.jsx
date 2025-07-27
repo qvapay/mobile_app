@@ -1,12 +1,5 @@
-import React from 'react'
-
-// Navigation Components
-import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
-
-// User Context
-import { useAuth } from '../../auth/AuthContext'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -40,7 +33,7 @@ const SettingsStack = ({ navigation }) => {
 
     return (
         <Stack.Navigator
-            initialRouteName="SettingsMenuScreen"
+            initialRouteName={ROUTES.SETTINGS_MENU}
             screenOptions={{
                 headerTitle: '',
                 headerShown: true,
@@ -52,7 +45,7 @@ const SettingsStack = ({ navigation }) => {
         >
 
             <Stack.Screen
-                name="SettingsMenuScreen"
+                name={ROUTES.SETTINGS_MENU}
                 component={SettingsMenu}
             />
 

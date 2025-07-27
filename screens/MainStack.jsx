@@ -65,7 +65,7 @@ const MainStack = ({ navigation }) => {
                         fontFamily: theme.typography.fontFamily.bold,
                     },
                     headerRight: () => (
-                        <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.SETTINGS_MENU)}>
+                        <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
                             <QPAvatar user={user} size={32} />
                         </Pressable>
                     )
@@ -78,7 +78,7 @@ const MainStack = ({ navigation }) => {
                     options={{
                         headerTitle: '',
                         headerLeft: () => (
-                            <Pressable style={styles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_MENU)}>
+                            <Pressable style={styles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
                                 <QPAvatar user={user} size={48} />
                                 <View style={styles.headerLeftTextContainer}>
                                     <Text style={textStyles.h4}>Hola {user.name}!</Text>

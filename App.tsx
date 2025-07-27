@@ -117,7 +117,7 @@ const AppNavigator = () => {
 
 			{/* Settings Stack */}
 			<Stack.Screen
-				name={ROUTES.SETTINGS_MENU}
+				name={ROUTES.SETTINGS_STACK}
 				component={SettingsStack}
 				options={{ animation: 'slide_from_bottom' }}
 			/>
