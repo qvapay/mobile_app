@@ -38,12 +38,13 @@ export const ROUTES = {
     SCAN_SCREEN: "Scan",
 
     // Send, Receive and Confirm Screens
-    SEND_SCREEN: "Send",
-    SEND_SUCCESS_SCREEN: "SendSuccess",
-    RECEIVE_SCREEN: "Receive",
+    SEND: "Send",
+    SEND_SUCCESS: "SendSuccess",
+    RECEIVE: "Receive",
 
     // In out Screens
-    TRANSACTION_SCREEN: "Transaction",
+    TRANSACTION: "Transaction",
+    TRANSACTIONS: "Transactions",
 
     // Profile & Settings Routes
     SETTINGS_MENU: "SettingsMenu",

@@ -193,7 +193,7 @@ export default function Keypad({ navigation }) {
         setIsProcessing(true)
 
         try {
-            navigation.navigate(ROUTES.SEND_SCREEN, { amount: numericAmount.toString() })
+            navigation.navigate(ROUTES.SEND, { amount: numericAmount.toString() })
         } catch (error) {
             Alert.alert('Error', 'Error al procesar la solicitud de envío')
         } finally { setIsProcessing(false) }
@@ -203,7 +203,7 @@ export default function Keypad({ navigation }) {
     // Receive amount
     const handleReceiveAmount = useCallback(() => {
         const numericAmount = parseFloat(amount)
-        navigation.navigate(ROUTES.PROFILE_SCREEN, { amount: numericAmount.toString() })
+        navigation.navigate(ROUTES.RECEIVE, { amount: numericAmount.toString() })
     }, [amount, navigation])
 
     // Render individual key

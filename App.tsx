@@ -32,6 +32,8 @@ import MainStack from './screens/MainStack'
 import Send from './screens/transaction/Send'
 import SendSuccess from './screens/transaction/SendSuccess'
 import Receive from './screens/transaction/Receive'
+import Transaction from './screens/transaction/Transaction'
+import Transactions from './screens/transaction/Transactions'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -115,17 +117,11 @@ const AppNavigator = () => {
 				/>
 
 				{/* Settings Stack */}
-				<Stack.Screen
-					name={ROUTES.SETTINGS_MENU}
-					component={SettingsStack}
-					options={{
-						animation: 'slide_from_bottom',
-					}}
-				/>
+				<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} options={{ animation: 'slide_from_bottom' }} />
 
 				{/* Send, Receive and Send Success Screens */}
 				<Stack.Screen
-					name={ROUTES.SEND_SCREEN}
+					name={ROUTES.SEND}
 					component={Send}
 					options={{
 						headerTitle: '',
@@ -137,26 +133,14 @@ const AppNavigator = () => {
 				/>
 
 				{/* Send Success Screen */}
-				<Stack.Screen
-					name={ROUTES.SEND_SUCCESS_SCREEN}
-					component={SendSuccess}
-					options={{
-						headerTitle: '',
-						headerShown: false,
-						animation: 'slide_from_bottom',
-					}}
-				/>
+				<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
 
 				{/* Receive Screen */}
-				<Stack.Screen
-					name={ROUTES.RECEIVE_SCREEN}
-					component={Receive}
-					options={{
-						headerTitle: '',
-						headerShown: false,
-						animation: 'slide_from_bottom',
-					}}
-				/>
+				<Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
+
+				{/* Transaction Screen */}
+				<Stack.Screen name={ROUTES.TRANSACTION} component={Transaction} />
+				<Stack.Screen name={ROUTES.TRANSACTIONS} component={Transactions} />
 
 				{/* Accesible Screens */}
 				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />

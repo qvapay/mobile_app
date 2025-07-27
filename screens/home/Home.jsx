@@ -20,6 +20,9 @@ import QPAvatar from '../../ui/particles/QPAvatar'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Routes
+import { ROUTES } from '../../routes'
+
 // Home Screen
 const Home = ({ navigation }) => {
 
@@ -101,7 +104,7 @@ const Home = ({ navigation }) => {
                 <View style={{ marginVertical: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={textStyles.h5}>Últimas transacciones</Text>
-                        <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.primary }]} onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>Ver todas</Text>
                     </View>
                     {latestTransactions.map((transaction, index) => (
                         <QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
