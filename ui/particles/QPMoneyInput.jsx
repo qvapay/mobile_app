@@ -30,9 +30,7 @@ const QPInput = forwardRef((props, ref) => {
                 placeholderTextColor={theme.colors.tertiaryText}
                 style={[
                     styles.input,
-                    {
-                        color: color,
-                    },
+                    { color: color },
                     style
                 ]}
                 maxLength={8}
