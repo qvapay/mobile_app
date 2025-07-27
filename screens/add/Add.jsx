@@ -8,8 +8,8 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI
 import QPCoin from '../../ui/particles/QPCoin'
-import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
+import QPMoneyInput from '../../ui/particles/QPMoneyInput'
 
 // API
 import apiClient from '../../api/client'
@@ -17,7 +17,7 @@ import apiClient from '../../api/client'
 // QR Code
 import QRCode from 'react-native-qrcode-styled'
 
-const Add = () => {
+const Add = ({ navigation }) => {
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
@@ -154,12 +154,16 @@ const Add = () => {
 
             {/* Amount Input */}
             <View style={{ marginVertical: 10 }}>
-                <QPInput
+                <QPMoneyInput
                     placeholder="0.00"
                     value={amount}
                     onChangeText={setAmount}
                     keyboardType="numeric"
-                    prefixIconName="dollar-sign"
+                    style={{
+                        color: theme.colors.success,
+                    }}
+                    prefixIconName="plus"
+                    type="add"
                 />
                 {selectedCoin && (
                     <Text style={[textStyles.caption, { marginTop: 5, color: theme.colors.secondaryText }]}>
