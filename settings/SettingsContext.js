@@ -73,7 +73,7 @@ const DEFAULT_SETTINGS = {
         reduceMotion: false,
         highContrast: false,
         boldText: false,
-        firstTime: true // TODO first time, set to false when onboarding is done
+        firstTime: true
     },
 
     // Language and localization
@@ -166,6 +166,8 @@ export const SettingsProvider = ({ children }) => {
             // Load all settings from storage
             const storedSettings = await loadAllSettings()
 
+            console.log('⚙️ Stored settings:', storedSettings)
+
             // Merge with defaults for any missing settings
             const mergedSettings = mergeWithDefaults(storedSettings)
 
@@ -250,6 +252,7 @@ export const SettingsProvider = ({ children }) => {
     const updateSettings = async (category, newSettings) => {
 
         try {
+
             setError(null)
 
             // Update state

@@ -16,6 +16,9 @@ import { createContainerStyles } from '../../theme/themeUtils'
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 
+// Routes
+import { ROUTES } from '../../routes'
+
 // Login Screen
 const LoginScreen = ({ navigation }) => {
 
@@ -55,7 +58,7 @@ const LoginScreen = ({ navigation }) => {
         setIsLoading(false)
 
         // After the first successful login, set firstTime to false
-        if (result.success) { await updateSettings('appearance', 'firstTime', false) }
+        if (result.success) { await updateSettings('appearance', { firstTime: false }) }
         if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }
     }
 
@@ -100,7 +103,12 @@ const LoginScreen = ({ navigation }) => {
 
             </View>
 
-            <QPButton title="Acceder" onPress={handleLogin} disabled={isLoading} />
+            <QPButton
+                title="Acceder"
+                onPress={handleLogin}
+                disabled={isLoading}
+                style={{ borderRadius: 25 }}
+            />
 
         </SafeAreaView>
     )

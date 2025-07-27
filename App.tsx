@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 
 // Navigation Components
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, useNavigation } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
 
@@ -55,6 +55,9 @@ const AppNavigator = () => {
 	const { appearance, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
 
+	// Navigation
+	const navigation = useNavigation()
+
 	// Auth Context
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
 	useEffect(() => {
@@ -64,94 +67,26 @@ const AppNavigator = () => {
 		return () => clearTimeout(timer)
 	}, [])
 
+	// Add this effect after the existing useEffect
+	useEffect(() => {
+		if (splashReady && !authLoading && !settingsLoading) {
+			if (isAuthenticated && !firstTime) {
+				// User is authenticated and not first time - navigate to main stack
+				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK }] })
+			} else if (!isAuthenticated && !firstTime) {
+				// User is not authenticated and not first time - navigate to welcome
+				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
+			}
+		}
+	}, [isAuthenticated, firstTime, splashReady, authLoading, settingsLoading])
+
 	// Show splash screen if still loading or if minimum time hasn't passed
 	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
-
-	// Show onboarding if it's the first time
-	if (firstTime) {
-		return (
-			<Stack.Navigator
-				screenOptions={{
-					headerShown: false,
-					headerStyle: {
-						backgroundColor: theme.colors.background,
-					},
-					headerTintColor: theme.colors.primaryText,
-				}}
-			>
-				<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
-				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
-			</Stack.Navigator>
-		)
-	}
-
-	// Show authenticated screens if user is logged in
-	if (isAuthenticated) {
-		return (
-			<Stack.Navigator
-				initialRouteName={ROUTES.MAIN_STACK}
-				screenOptions={{
-					headerShown: false,
-					headerStyle: {
-						backgroundColor: theme.colors.background,
-					},
-					headerTintColor: theme.colors.primaryText,
-				}}
-			>
-				{/* Main Stack */}
-				<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
-
-				{/* Add and Withdraw Screens */}
-				<Stack.Screen name={ROUTES.ADD_SCREEN} component={Add} />
-				<Stack.Screen
-					name={ROUTES.WITHDRAW_SCREEN}
-					component={Withdraw}
-					options={{
-						headerTitle: 'Extraer',
-						headerShown: true,
-						headerBackVisible: true,
-						headerBackButtonMenuEnabled: true,
-						headerShadowVisible: false,
-					}}
-				/>
-
-				{/* Settings Stack */}
-				<Stack.Screen name={ROUTES.SETTINGS_MENU} component={SettingsStack} options={{ animation: 'slide_from_bottom' }} />
-
-				{/* Send, Receive and Send Success Screens */}
-				<Stack.Screen
-					name={ROUTES.SEND}
-					component={Send}
-					options={{
-						headerTitle: '',
-						headerShown: true,
-						headerBackVisible: true,
-						headerBackButtonMenuEnabled: true,
-						headerShadowVisible: false,
-					}}
-				/>
-
-				{/* Send Success Screen */}
-				<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
-
-				{/* Receive Screen */}
-				<Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
-
-				{/* Transaction Screen */}
-				<Stack.Screen name={ROUTES.TRANSACTION} component={Transaction} />
-				<Stack.Screen name={ROUTES.TRANSACTIONS} component={Transactions} />
-
-				{/* Accesible Screens */}
-				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
-
-			</Stack.Navigator>
-		)
-	}
 
 	// Show unauthenticated screens (welcome, login, register)
 	return (
 		<Stack.Navigator
-			initialRouteName={ROUTES.WELCOME_SCREEN}
+			initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
 			screenOptions={{
 				headerShown: false,
 				headerStyle: {
@@ -160,7 +95,56 @@ const AppNavigator = () => {
 				headerTintColor: theme.colors.primaryText,
 			}}
 		>
+			<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
 			<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
+
+			{/* Main Stack */}
+			<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
+
+			{/* Add and Withdraw Screens */}
+			<Stack.Screen name={ROUTES.ADD_SCREEN} component={Add} />
+			<Stack.Screen
+				name={ROUTES.WITHDRAW_SCREEN}
+				component={Withdraw}
+				options={{
+					headerTitle: 'Extraer',
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+				}}
+			/>
+
+			{/* Settings Stack */}
+			<Stack.Screen
+				name={ROUTES.SETTINGS_MENU}
+				component={SettingsStack}
+				options={{ animation: 'slide_from_bottom' }}
+			/>
+
+			{/* Send, Receive and Send Success Screens */}
+			<Stack.Screen
+				name={ROUTES.SEND}
+				component={Send}
+				options={{
+					headerTitle: '',
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+				}}
+			/>
+
+			{/* Send Success Screen */}
+			<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
+
+			{/* Receive Screen */}
+			<Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
+
+			{/* Transaction Screen */}
+			<Stack.Screen name={ROUTES.TRANSACTION} component={Transaction} />
+			<Stack.Screen name={ROUTES.TRANSACTIONS} component={Transactions} />
+
 			<Stack.Screen
 				name={ROUTES.LOGIN_SCREEN}
 				component={LoginScreen}
@@ -178,6 +162,7 @@ const AppNavigator = () => {
 				component={RegisterScreen}
 				options={{ animation: 'slide_from_right' }}
 			/>
+
 			{/* Accesible Screens */}
 			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
 		</Stack.Navigator>

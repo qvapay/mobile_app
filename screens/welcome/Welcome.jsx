@@ -24,11 +24,11 @@ const WelcomeScreen = ({ navigation }) => {
     const containerStyles = createContainerStyles(theme)
 
     // Set first time user to true
-    const { updateSetting } = useSettings()
-    const setFirstTimeUser = async () => {
-        await updateSetting('appearance', 'firstTime', true)
-        console.log('firstTime set to true')
-    }
+    const { updateSettings } = useSettings()
+    // const setFirstTimeUser = async () => {
+    //     await updateSettings('appearance', { firstTime: true })
+    //     console.log('firstTime set to true')
+    // }
 
     return (
         <SafeAreaView style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
@@ -37,11 +37,11 @@ const WelcomeScreen = ({ navigation }) => {
                 <Text style={textStyles.title}>Welcome Screen</Text>
                 <Text style={textStyles.subtitle}>Slider with features and stories</Text>
 
-                <QPButton
+                {/* <QPButton
                     title="Set first time user"
                     onPress={setFirstTimeUser}
                     style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-                />
+                /> */}
 
             </View>
 
@@ -50,13 +50,13 @@ const WelcomeScreen = ({ navigation }) => {
                     <QPButton
                         title="Acceder"
                         onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)}
-                        style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+                        style={[styles.actionButton, { backgroundColor: theme.colors.primary, borderRadius: 25 }]}
                     />
                     <View style={styles.actionButtonSpacer} />
                     <QPButton
                         title="Registrarse"
                         onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)}
-                        style={[styles.actionButton, { backgroundColor: theme.colors.secondary }]}
+                        style={[styles.actionButton, { backgroundColor: theme.colors.secondary, borderRadius: 25 }]}
                     />
                 </View>
             </View>
