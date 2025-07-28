@@ -26,6 +26,7 @@ const themeOptions = [
     }
 ]
 
+// Theme Screen
 const Theme = () => {
 
     // Theme variables, dark and light modes with memoized styles
