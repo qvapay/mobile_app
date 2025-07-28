@@ -46,9 +46,9 @@ const SettingsMenu = ({ navigation }) => {
             'Cerrar sesión',
             '¿Estás seguro de querer cerrar sesión?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Cancelar', style: 'cancel' },
                 {
-                    text: 'Cerrar sesión',
+                    text: 'Salir',
                     style: 'destructive',
                     onPress: async () => {
                         const result = await logout()
