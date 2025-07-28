@@ -38,11 +38,18 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 const MainStack = ({ navigation }) => {
 
     // Contexts
-    const { user } = useAuth()
+    const { user, isAuthenticated } = useAuth()
     const { theme } = useTheme()
     const containerStyles = createContainerStyles(theme)
     const textStyles = createTextStyles(theme)
     const insets = useSafeAreaInsets()
+
+    // Add safety check for user data
+    if (!isAuthenticated || !user) {
+        // If user is not authenticated or user data is missing, 
+        // this will trigger the navigation logic in App.tsx to redirect to welcome/login
+        return null
+    }
 
     return (
         <SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>

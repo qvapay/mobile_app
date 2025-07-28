@@ -179,7 +179,6 @@ const AppNavigator = () => {
 }
 
 function App() {
-
 	return (
 		<AuthProvider>
 			<ThemeProvider>

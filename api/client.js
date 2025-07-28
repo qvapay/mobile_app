@@ -8,7 +8,10 @@ const deviceName = DeviceInfo.getDeviceName()
 
 // API Configuration
 const API_BASE_URL = 'https://api.qvapay.com'
-const API_TIMEOUT = 10000 // 10 seconds
+const API_TIMEOUT = 20000 // 10 seconds
+
+// Import the logout function from AuthContext
+import { logout } from '../auth/AuthContext'
 
 // Create axios instance
 const apiClient = axios.create({
@@ -42,7 +45,7 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
     (response) => { return response },
-    (error) => {
+    async (error) => {
         // Handle common errors
         if (error.response) {
             // Server responded with error status
@@ -52,7 +55,7 @@ apiClient.interceptors.response.use(
                 case 401:
                     // Unauthorized - token expired or invalid
                     console.error('Authentication failed:', data)
-                    // You might want to trigger logout here
+                    await logout()
                     break
                 case 403:
                     // Forbidden
