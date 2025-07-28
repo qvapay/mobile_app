@@ -37,7 +37,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
                         accessibilityState={isFocused ? { selected: true } : {}}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                     >
-                        <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={[isFocused ? styles.activeTab : styles.fa, { color: isFocused ? theme.colors.almostWhite : theme.colors.secondaryText }]} />
+                        <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={[isFocused ? styles.activeTab : styles.fa, { color: isFocused ? theme.colors.primaryText : theme.colors.secondaryText }]} />
                     </Pressable>
                 )
             })}
