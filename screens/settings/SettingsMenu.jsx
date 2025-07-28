@@ -1,5 +1,4 @@
-import React, { useState } from 'react'
-import { View, Text, Alert, StyleSheet, ScrollView, Image, Pressable, Linking } from 'react-native'
+import { View, Text, Alert, ScrollView, Image, Pressable, Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -53,6 +52,8 @@ const SettingsMenu = ({ navigation }) => {
                     style: 'destructive',
                     onPress: async () => {
                         const result = await logout()
+                        console.log('🔐 Logout result:', result)
+                        navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
                         if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
                     }
                 }
@@ -127,17 +128,5 @@ const SettingsMenu = ({ navigation }) => {
         </ScrollView>
     )
 }
-
-const styles = StyleSheet.create({
-    box: {
-        flexDirection: 'row',
-        alignContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 10,
-        gap: 10,
-    }
-})
 
 export default SettingsMenu

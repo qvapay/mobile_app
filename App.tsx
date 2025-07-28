@@ -178,16 +178,32 @@ const AppNavigator = () => {
 	)
 }
 
+// Theme Provider with Settings Integration
+const ThemeProviderWithSettings = ({ children }) => {
+	const { settings, updateSettings } = useSettings()
+	
+	console.log('🎨 App - ThemeProviderWithSettings - Settings:', {
+		appearance: settings?.appearance,
+		hasUpdateSettings: !!updateSettings
+	})
+	
+	return (
+		<ThemeProvider settings={settings} updateSettings={updateSettings}>
+			{children}
+		</ThemeProvider>
+	)
+}
+
 function App() {
 	return (
 		<AuthProvider>
-			<ThemeProvider>
-				<SettingsProvider>
+			<SettingsProvider>
+				<ThemeProviderWithSettings>
 					<NavigationContainer>
 						<AppNavigator />
 					</NavigationContainer>
-				</SettingsProvider>
-			</ThemeProvider>
+				</ThemeProviderWithSettings>
+			</SettingsProvider>
 		</AuthProvider>
 	)
 }

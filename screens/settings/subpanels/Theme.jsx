@@ -5,6 +5,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 
+// Settings Context
+import { useSettings } from '../../../settings/SettingsContext'
+
 const themeOptions = [
     {
         id: 'auto',
@@ -29,13 +32,32 @@ const themeOptions = [
 // Theme Screen
 const Theme = () => {
 
+    // Settings Context
+    const { settings, updateSettings } = useSettings()
+    const currentTheme = settings.appearance.theme
+
     // Theme variables, dark and light modes with memoized styles
-    const { theme, themeMode, setThemeMode } = useTheme()
+    const { theme, setThemeMode } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
-    const handleThemeSelect = (themeId) => {
-        setThemeMode(themeId)
+    console.log('🎨 Theme Screen - Current theme from settings:', currentTheme)
+    console.log('🎨 Theme Screen - Current theme from context:', theme.isDark ? 'dark' : 'light')
+
+    const handleThemeSelect = async (themeId) => {
+        try {
+            console.log('🎨 Theme Screen - Selecting theme:', themeId)
+            
+            // Update theme in ThemeContext (this will also update settings)
+            await setThemeMode(themeId)
+            
+            // Also update settings directly to ensure consistency
+            const result = await updateSettings('appearance', { theme: themeId })
+            console.log('🎨 Theme Screen - Settings update result:', result)
+            
+        } catch (error) {
+            console.error('🎨 Theme Screen - Error updating theme:', error)
+        }
     }
 
     const ThemeOption = ({ option, isSelected, onPress }) => {
@@ -72,7 +94,7 @@ const Theme = () => {
                     <ThemeOption
                         key={option.id}
                         option={option}
-                        isSelected={themeMode === option.id}
+                        isSelected={currentTheme === option.id}
                         onPress={() => handleThemeSelect(option.id)}
                     />
                 ))}
