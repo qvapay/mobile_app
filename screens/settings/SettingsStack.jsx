@@ -41,6 +41,7 @@ const SettingsStack = ({ navigation }) => {
                     backgroundColor: theme.colors.background,
                 },
                 headerTintColor: theme.colors.primaryText,
+                headerShadowVisible: false,
             }}
         >
 

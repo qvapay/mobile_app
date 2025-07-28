@@ -92,6 +92,7 @@ const AppNavigator = () => {
 				headerStyle: {
 					backgroundColor: theme.colors.background,
 				},
+				headerShadowVisible: false,
 				headerTintColor: theme.colors.primaryText,
 			}}
 		>
@@ -110,8 +111,7 @@ const AppNavigator = () => {
 					headerTitle: 'Extraer',
 					headerShown: true,
 					headerBackVisible: true,
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
+					headerBackButtonMenuEnabled: true
 				}}
 			/>
 

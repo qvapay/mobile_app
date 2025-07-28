@@ -103,6 +103,7 @@ const ThemeContext = createContext()
 // Theme provider component
 export const ThemeProvider = ({ children }) => {
 
+    const [themeMode, setThemeMode] = useState('auto') // 'auto', 'light', 'dark'
     const [isDark, setIsDark] = useState(Appearance.getColorScheme() === 'dark')
     const [theme, setTheme] = useState(createTheme(isDark))
 
@@ -110,39 +111,60 @@ export const ThemeProvider = ({ children }) => {
     const textStyles = useTextStyles(theme)
     const containerStyles = useContainerStyles(theme)
 
+    // Update theme based on mode and system appearance
+    const updateTheme = (mode) => {
+        let shouldBeDark = false
+        
+        if (mode === 'auto') {
+            shouldBeDark = Appearance.getColorScheme() === 'dark'
+        } else if (mode === 'dark') {
+            shouldBeDark = true
+        } else if (mode === 'light') {
+            shouldBeDark = false
+        }
+        
+        setIsDark(shouldBeDark)
+        setTheme(createTheme(shouldBeDark))
+    }
+
     useEffect(() => {
+        // Initial theme setup
+        updateTheme(themeMode)
+        
+        // Listen for system appearance changes (only when in auto mode)
         const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-            const newIsDark = colorScheme === 'dark'
-            setIsDark(newIsDark)
-            setTheme(createTheme(newIsDark))
+            if (themeMode === 'auto') {
+                const newIsDark = colorScheme === 'dark'
+                setIsDark(newIsDark)
+                setTheme(createTheme(newIsDark))
+            }
         })
 
         return () => subscription?.remove()
-    }, [])
+    }, [themeMode])
 
-    const toggleTheme = () => {
-        const newIsDark = !isDark
-        setIsDark(newIsDark)
-        setTheme(createTheme(newIsDark))
+    const changeThemeMode = (mode) => {
+        setThemeMode(mode)
+        updateTheme(mode)
     }
 
-    const setThemeMode = (mode) => {
-        const newIsDark = mode === 'dark'
-        setIsDark(newIsDark)
-        setTheme(createTheme(newIsDark))
+    const toggleTheme = () => {
+        const newMode = isDark ? 'light' : 'dark'
+        changeThemeMode(newMode)
     }
 
     // Memoized context value to prevent unnecessary re-renders
     const contextValue = useMemo(() => ({
         theme,
         isDark,
+        themeMode,
         toggleTheme,
-        setThemeMode,
+        setThemeMode: changeThemeMode,
         styles: {
             text: textStyles,
             container: containerStyles
         }
-    }), [theme, isDark, textStyles, containerStyles])
+    }), [theme, isDark, themeMode, textStyles, containerStyles])
 
     return (
         <ThemeContext.Provider value={contextValue}>

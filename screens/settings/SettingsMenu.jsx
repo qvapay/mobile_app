@@ -38,6 +38,9 @@ const SettingsMenu = ({ navigation }) => {
     const containerStyles = createContainerStyles(theme)
     const insets = useSafeAreaInsets()
 
+    // require('../../assets/images/ui/qvapay-logo-white.png' on theme depends
+    const qvapayLogo = theme.mode === 'dark' ? require('../../assets/images/ui/qvapay-logo-white.png') : require('../../assets/images/ui/logo-qvapay.png')
+
     // Logout function
     const handleLogout = async () => {
         Alert.alert(
@@ -71,7 +74,7 @@ const SettingsMenu = ({ navigation }) => {
                         <Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 20, height: 20 }} />
                     )}
                     {user.role == 'admin' && (
-                        <Image source={require('../../assets/images/ui/qvapay-logo-white.png')} style={{ width: 20, height: 20 }} />
+                        <Image source={qvapayLogo} style={{ width: 20, height: 20 }} />
                     )}
                 </View>
                 <Text style={[textStyles.h2, { color: theme.colors.secondaryText, marginVertical: 0, marginTop: -10, paddingVertical: 0 }]}>@{user.username}</Text>
