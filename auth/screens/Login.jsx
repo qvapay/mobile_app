@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -67,7 +67,6 @@ const LoginScreen = ({ navigation }) => {
             <Text style={textStyles.h1}>Acceder a tu cuenta</Text>
 
             <View style={styles.formContainer}>
-
 
                 <QPInput
                     placeholder="tucorreo@gmail.com"

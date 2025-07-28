@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Pressable } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
+import { useTextStyles } from '../theme/themeUtils'
 
 // UI
 import QPButton from './particles/QPButton'
@@ -24,7 +25,8 @@ const ActionButtons = ({ navigation }) => {
                     style={[
                         styles.actionButton,
                         styles.receiveButton,
-                        { backgroundColor: theme.colors.elevation }
+                        { backgroundColor: theme.colors.elevation },
+                        { color: theme.colors.primaryText }
                     ]}
                     iconStyle="solid"
                     onPress={() => navigation.navigate(ROUTES.ADD)}

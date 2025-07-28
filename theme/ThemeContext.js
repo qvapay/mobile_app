@@ -123,8 +123,8 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
 
     // Update theme based on mode and system appearance
     const updateTheme = (mode) => {
+
         let shouldBeDark = false
-        
         if (mode === 'auto') {
             shouldBeDark = Appearance.getColorScheme() === 'dark'
         } else if (mode === 'dark') {
@@ -145,9 +145,10 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
     }, [settings?.appearance?.theme])
 
     useEffect(() => {
+
         // Initial theme setup
         updateTheme(themeMode)
-        
+
         // Listen for system appearance changes (only when in auto mode)
         const subscription = Appearance.addChangeListener(({ colorScheme }) => {
             if (themeMode === 'auto') {
@@ -161,6 +162,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
     }, [themeMode])
 
     const changeThemeMode = async (mode) => {
+        
         console.log('🎨 ThemeContext - Changing theme mode to:', mode)
         setThemeMode(mode)
         updateTheme(mode)
