@@ -10,7 +10,7 @@ const themeOptions = [
         id: 'auto',
         title: 'Automático',
         icon: 'circle-half-stroke',
-        description: 'La aplicación seguirá automáticamente el tema de tu dispositivo'
+        description: 'Ajuste automático según el sistema'
     },
     {
         id: 'light',
@@ -79,11 +79,7 @@ const Theme = () => {
 
             <View style={styles.infoContainer}>
                 <View style={styles.infoBox}>
-                    <FontAwesome6
-                        name="info-circle"
-                        size={16}
-                        color={theme.colors.secondaryText}
-                    />
+                    <FontAwesome6 name="circle-info" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
                     <Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginLeft: 8 }]}>
                         Los cambios se aplican inmediatamente
                     </Text>
