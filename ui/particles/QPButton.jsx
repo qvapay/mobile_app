@@ -29,7 +29,7 @@ const QPButton = ({ title, onPress, style, icon, disabled = false }) => {
                 style
             ]}>
             {icon && <FontAwesome6 name={icon} size={18} color={theme.colors.primaryText} iconStyle="solid" />}
-            {title && <Text style={[styles.text, { color: theme.colors.primaryText }]}>{title}</Text>}
+            {title && <Text style={[styles.text, { color: theme.colors.almostWhite, marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
         </Pressable>
     )
 }
@@ -49,7 +49,6 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 16,
         fontFamily: 'Rubik-SemiBold',
-        marginLeft: 8,
     },
 })
 
