@@ -108,6 +108,7 @@ const LoginScreen = ({ navigation }) => {
                     onPress={handleLogin}
                     disabled={isLoading}
                     style={{ borderRadius: 25 }}
+                    textStyle={{ color: theme.colors.almostWhite }}
                 />
             </View>
 

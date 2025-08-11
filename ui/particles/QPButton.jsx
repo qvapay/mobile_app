@@ -7,7 +7,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // QPButton component
-const QPButton = ({ title, onPress, style, icon, disabled = false }) => {
+const QPButton = ({ title, onPress, style, textStyle, icon, disabled = false }) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -29,7 +29,7 @@ const QPButton = ({ title, onPress, style, icon, disabled = false }) => {
                 style
             ]}>
             {icon && <FontAwesome6 name={icon} size={18} color={theme.colors.primaryText} iconStyle="solid" />}
-            {title && <Text style={[styles.text, { color: theme.colors.almostWhite, marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
+            {title && <Text style={[styles.text, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
         </Pressable>
     )
 }

@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, useMemo } from 'react'
 
 // Define your color palette
 const colors = {
-    
+
     // Primary colors
     primary: "#6759EF",
     success: "#7BFFB1",
@@ -15,6 +15,7 @@ const colors = {
 
     // Light theme colors
     light: {
+        successText: "#00471E",
         background: "#FFFFFF",
         secondaryBackground: "#F8F9FA",
         surface: "#FFFFFF",
@@ -32,6 +33,7 @@ const colors = {
 
     // Dark theme colors
     dark: {
+        successText: "#7BFFB1",
         background: "#0E0E1C",
         secondaryBackground: "#21415F",
         surface: "#1E2039",
@@ -109,13 +111,13 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
     const [isDark, setIsDark] = useState(initialThemeMode === 'dark' || (initialThemeMode === 'auto' && Appearance.getColorScheme() === 'dark'))
     const [theme, setTheme] = useState(createTheme(isDark))
 
-    console.log('🎨 ThemeProvider - Initialized with:', {
-        initialThemeMode,
-        settingsTheme: settings?.appearance?.theme,
-        themeMode,
-        isDark,
-        hasUpdateSettings: !!updateSettings
-    })
+    // console.log('🎨 ThemeProvider - Initialized with:', {
+    //     initialThemeMode,
+    //     settingsTheme: settings?.appearance?.theme,
+    //     themeMode,
+    //     isDark,
+    //     hasUpdateSettings: !!updateSettings
+    // })
 
     // Memoized styles at context level
     const textStyles = useTextStyles(theme)
@@ -132,7 +134,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
         } else if (mode === 'light') {
             shouldBeDark = false
         }
-        
+
         setIsDark(shouldBeDark)
         setTheme(createTheme(shouldBeDark))
     }
@@ -162,11 +164,11 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
     }, [themeMode])
 
     const changeThemeMode = async (mode) => {
-        
+
         console.log('🎨 ThemeContext - Changing theme mode to:', mode)
         setThemeMode(mode)
         updateTheme(mode)
-        
+
         // Update settings if updateSettings function is provided
         if (updateSettings) {
             console.log('🎨 ThemeContext - Updating settings with theme:', mode)

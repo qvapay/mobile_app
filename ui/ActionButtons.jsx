@@ -30,6 +30,7 @@ const ActionButtons = ({ navigation }) => {
                     ]}
                     iconStyle="solid"
                     onPress={() => navigation.navigate(ROUTES.ADD)}
+                    textStyle={{ color: theme.colors.primaryText }}
                 />
 
                 <View style={styles.actionButtonSpacer} />
@@ -44,6 +45,7 @@ const ActionButtons = ({ navigation }) => {
                     ]}
                     iconStyle="solid"
                     onPress={() => navigation.navigate(ROUTES.WITHDRAW)}
+                    textStyle={{ color: theme.colors.primaryText }}
                 />
             </View>
         </View>

@@ -41,25 +41,24 @@ const Theme = () => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
-    console.log('🎨 Theme Screen - Current theme from settings:', currentTheme)
-    console.log('🎨 Theme Screen - Current theme from context:', theme.isDark ? 'dark' : 'light')
+    // console.log('🎨 Theme Screen - Current theme from settings:', currentTheme)
+    // console.log('🎨 Theme Screen - Current theme from context:', theme.isDark ? 'dark' : 'light')
 
     const handleThemeSelect = async (themeId) => {
         try {
-            console.log('🎨 Theme Screen - Selecting theme:', themeId)
-            
+            // console.log('🎨 Theme Screen - Selecting theme:', themeId)
+
             // Update theme in ThemeContext (this will also update settings)
             await setThemeMode(themeId)
-            
+
             // Also update settings directly to ensure consistency
             const result = await updateSettings('appearance', { theme: themeId })
-            console.log('🎨 Theme Screen - Settings update result:', result)
-            
-        } catch (error) {
-            console.error('🎨 Theme Screen - Error updating theme:', error)
-        }
+            // console.log('🎨 Theme Screen - Settings update result:', result)
+
+        } catch (error) { console.error('🎨 Theme Screen - Error updating theme:', error) }
     }
 
+    // Theme Option Component
     const ThemeOption = ({ option, isSelected, onPress }) => {
         return (
             <Pressable style={[containerStyles.box, styles.themeOption, isSelected && styles.selectedOption]} onPress={onPress} >
@@ -89,6 +88,7 @@ const Theme = () => {
                 </Text>
             </View>
 
+            <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Apariencia</Text>
             <View style={styles.optionsContainer}>
                 {themeOptions.map((option, index) => (
                     <ThemeOption
@@ -100,14 +100,19 @@ const Theme = () => {
                 ))}
             </View>
 
-            <View style={styles.infoContainer}>
-                <View style={styles.infoBox}>
-                    <FontAwesome6 name="circle-info" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
-                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginLeft: 8 }]}>
-                        Los cambios se aplican inmediatamente
-                    </Text>
-                </View>
+            <View style={[styles.infoBox, { marginBottom: 20 }]}>
+                <FontAwesome6 name="circle-info" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
+                <Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginLeft: 8 }]}>
+                    Los cambios se aplican inmediatamente
+                </Text>
             </View>
+
+            {/** Ícono */}
+            <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Ícono</Text>
+
+            {/** Barra de navegación */}
+            <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Barra de navegación</Text>
+            
         </ScrollView>
     )
 }
@@ -118,7 +123,7 @@ const styles = StyleSheet.create({
     },
     optionsContainer: {
         gap: 12,
-        marginBottom: 24,
+        marginBottom: 12,
     },
     themeOption: {
         padding: 16,
@@ -155,9 +160,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 12,
-    },
-    infoContainer: {
-        marginTop: 16,
     },
     infoBox: {
         flexDirection: 'row',

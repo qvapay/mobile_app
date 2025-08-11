@@ -25,8 +25,8 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
 
     // Contexts
     const { theme } = useTheme()
-    const containerStyles = useContainerStyles(theme)
     const textStyles = useTextStyles(theme)
+    const containerStyles = useContainerStyles(theme)
 
     // Determine border radius based on position
     const isFirst = index === 0
@@ -54,7 +54,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const paid_by_uuid = paid_by?.uuid || ''
     const isPaidByMe = user_uuid == paid_by_uuid
     const transactionSign = isPaidByMe ? '-' : '+'
-    const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.success
+    const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
 
     // Navigate to transaction
     const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION, { transaction })

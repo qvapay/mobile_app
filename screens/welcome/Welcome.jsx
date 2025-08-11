@@ -45,12 +45,14 @@ const WelcomeScreen = ({ navigation }) => {
                             title="Acceder"
                             onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)}
                             style={[styles.actionButton, { backgroundColor: theme.colors.primary, borderRadius: 25, color: theme.colors.buttonText }]}
+                            textStyle={{ color: theme.colors.almostWhite }}
                         />
                         <View style={styles.actionButtonSpacer} />
                         <QPButton
                             title="Registrarse"
                             onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)}
                             style={[styles.actionButton, { backgroundColor: theme.colors.secondary, borderRadius: 25, color: theme.colors.buttonText }]}
+                            textStyle={{ color: theme.colors.almostWhite }}
                         />
                     </View>
                 </View>
