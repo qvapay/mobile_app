@@ -68,7 +68,7 @@ const DEFAULT_SETTINGS = {
 
     // Appearance settings
     appearance: {
-        theme: 'system', // light, dark, system
+        theme: 'dark', // light, dark, auto
         fontSize: 'medium', // small, medium, large, extraLarge
         reduceMotion: false,
         highContrast: false,

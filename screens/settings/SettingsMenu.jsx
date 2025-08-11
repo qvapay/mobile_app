@@ -1,5 +1,4 @@
-import React, { useState } from 'react'
-import { View, Text, Alert, StyleSheet, ScrollView, Image, Pressable, Linking } from 'react-native'
+import { View, Text, Alert, ScrollView, Image, Pressable, Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -38,18 +37,23 @@ const SettingsMenu = ({ navigation }) => {
     const containerStyles = createContainerStyles(theme)
     const insets = useSafeAreaInsets()
 
+    // require('../../assets/images/ui/qvapay-logo-white.png' on theme depends
+    const qvapayLogo = theme.mode === 'dark' ? require('../../assets/images/ui/qvapay-logo-white.png') : require('../../assets/images/ui/logo-qvapay.png')
+
     // Logout function
     const handleLogout = async () => {
         Alert.alert(
             'Cerrar sesión',
             '¿Estás seguro de querer cerrar sesión?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Cancelar', style: 'cancel' },
                 {
-                    text: 'Cerrar sesión',
+                    text: 'Salir',
                     style: 'destructive',
                     onPress: async () => {
                         const result = await logout()
+                        console.log('🔐 Logout result:', result)
+                        navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
                         if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
                     }
                 }
@@ -71,7 +75,7 @@ const SettingsMenu = ({ navigation }) => {
                         <Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 20, height: 20 }} />
                     )}
                     {user.role == 'admin' && (
-                        <Image source={require('../../assets/images/ui/qvapay-logo-white.png')} style={{ width: 20, height: 20 }} />
+                        <Image source={qvapayLogo} style={{ width: 20, height: 20 }} />
                     )}
                 </View>
                 <Text style={[textStyles.h2, { color: theme.colors.secondaryText, marginVertical: 0, marginTop: -10, paddingVertical: 0 }]}>@{user.username}</Text>
@@ -124,17 +128,5 @@ const SettingsMenu = ({ navigation }) => {
         </ScrollView>
     )
 }
-
-const styles = StyleSheet.create({
-    box: {
-        flexDirection: 'row',
-        alignContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 10,
-        gap: 10,
-    }
-})
 
 export default SettingsMenu

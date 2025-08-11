@@ -3,9 +3,6 @@ import { View, Text, StyleSheet, ImageBackground } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LinearGradient from 'react-native-linear-gradient'
 
-// Settings Context
-import { useSettings } from '../../settings/SettingsContext'
-
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
@@ -23,13 +20,6 @@ const WelcomeScreen = ({ navigation }) => {
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
-
-    // Set first time user to true
-    const { updateSettings } = useSettings()
-    // const setFirstTimeUser = async () => {
-    //     await updateSettings('appearance', { firstTime: true })
-    //     console.log('firstTime set to true')
-    // }
 
     return (
         <ImageBackground source={require('../../assets/images/welcome/qp-bck.png')} style={{ flex: 1 }}>
@@ -54,13 +44,15 @@ const WelcomeScreen = ({ navigation }) => {
                         <QPButton
                             title="Acceder"
                             onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)}
-                            style={[styles.actionButton, { backgroundColor: theme.colors.primary, borderRadius: 25 }]}
+                            style={[styles.actionButton, { backgroundColor: theme.colors.primary, borderRadius: 25, color: theme.colors.buttonText }]}
+                            textStyle={{ color: theme.colors.almostWhite }}
                         />
                         <View style={styles.actionButtonSpacer} />
                         <QPButton
                             title="Registrarse"
                             onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)}
-                            style={[styles.actionButton, { backgroundColor: theme.colors.secondary, borderRadius: 25 }]}
+                            style={[styles.actionButton, { backgroundColor: theme.colors.secondary, borderRadius: 25, color: theme.colors.buttonText }]}
+                            textStyle={{ color: theme.colors.almostWhite }}
                         />
                     </View>
                 </View>

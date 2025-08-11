@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -68,7 +68,6 @@ const LoginScreen = ({ navigation }) => {
 
             <View style={styles.formContainer}>
 
-
                 <QPInput
                     placeholder="tucorreo@gmail.com"
                     value={email}
@@ -109,6 +108,7 @@ const LoginScreen = ({ navigation }) => {
                     onPress={handleLogin}
                     disabled={isLoading}
                     style={{ borderRadius: 25 }}
+                    textStyle={{ color: theme.colors.almostWhite }}
                 />
             </View>
 

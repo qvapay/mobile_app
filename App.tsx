@@ -92,6 +92,7 @@ const AppNavigator = () => {
 				headerStyle: {
 					backgroundColor: theme.colors.background,
 				},
+				headerShadowVisible: false,
 				headerTintColor: theme.colors.primaryText,
 			}}
 		>
@@ -110,14 +111,13 @@ const AppNavigator = () => {
 					headerTitle: 'Extraer',
 					headerShown: true,
 					headerBackVisible: true,
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
+					headerBackButtonMenuEnabled: true
 				}}
 			/>
 
 			{/* Settings Stack */}
 			<Stack.Screen
-				name={ROUTES.SETTINGS_MENU}
+				name={ROUTES.SETTINGS_STACK}
 				component={SettingsStack}
 				options={{ animation: 'slide_from_bottom' }}
 			/>
@@ -178,17 +178,32 @@ const AppNavigator = () => {
 	)
 }
 
-function App() {
+// Theme Provider with Settings Integration
+const ThemeProviderWithSettings = ({ children }) => {
+	const { settings, updateSettings } = useSettings()
+	
+	console.log('🎨 App - ThemeProviderWithSettings - Settings:', {
+		appearance: settings?.appearance,
+		hasUpdateSettings: !!updateSettings
+	})
+	
+	return (
+		<ThemeProvider settings={settings} updateSettings={updateSettings}>
+			{children}
+		</ThemeProvider>
+	)
+}
 
+function App() {
 	return (
 		<AuthProvider>
-			<ThemeProvider>
-				<SettingsProvider>
+			<SettingsProvider>
+				<ThemeProviderWithSettings>
 					<NavigationContainer>
 						<AppNavigator />
 					</NavigationContainer>
-				</SettingsProvider>
-			</ThemeProvider>
+				</ThemeProviderWithSettings>
+			</SettingsProvider>
 		</AuthProvider>
 	)
 }

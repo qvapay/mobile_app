@@ -7,6 +7,7 @@ import { useTheme } from '../../theme/ThemeContext'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Custom Input Component
 const QPInput = forwardRef((props, ref) => {
 
     const { style, multiline } = props
@@ -29,7 +30,7 @@ const QPInput = forwardRef((props, ref) => {
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.container, { backgroundColor: theme.colors.surface, borderColor: theme.colors.secondaryText }]}>
 
             {hasPrefix && (
                 <View style={styles.prefixContainer}>
@@ -75,7 +76,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderWidth: 0.5,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     prefixContainer: {
         width: 50,

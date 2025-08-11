@@ -37,8 +37,18 @@ export const AuthProvider = ({ children }) => {
         if (isAuthenticated && token) {
             // Check token every 30 seconds
             const interval = setInterval(async () => {
-                const isValid = await authApi.checkToken(token)
-                if (!isValid.success) { await logout() }
+                // const isValid = await authApi.checkToken(token)
+                // if (!isValid.success) { await logout() }
+                try {
+                    const isValid = await authApi.checkToken(token)
+                    if (!isValid.success) {
+                        console.log('🔐 Token validation failed, logging out user')
+                        await logout()
+                    }
+                } catch (error) {
+                    console.error('🔐 Token validation error:', error)
+                    await logout()
+                }
             }, 30000) // 30 seconds
             return () => clearInterval(interval)
         }
