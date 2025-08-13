@@ -150,6 +150,7 @@ const Onboard = ({ navigation }) => {
                             marginRight: 10,
                             backgroundColor: theme.colors.secondary
                         }}
+                        textStyle={{ color: theme.colors.primaryText }}
                     />
                 )}
 
@@ -158,6 +159,7 @@ const Onboard = ({ navigation }) => {
                     title={currentStep === onboard_steps.length - 1 ? "Finalizar" : "Siguiente"}
                     onPress={currentStep === onboard_steps.length - 1 ? handleCompleteOnboarding : handleNextStep}
                     style={{ flex: 1, borderRadius: 25 }}
+                    textStyle={{ color: theme.colors.primaryText }}
                 />
             </View>
         </SafeAreaView>
