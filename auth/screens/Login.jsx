@@ -17,7 +17,7 @@ import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 
 // Login Screen
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
 
     // Settings Context
     const { updateSettings } = useSettings()
@@ -47,18 +47,23 @@ const LoginScreen = ({ navigation }) => {
             return
         }
 
-        clearError()
-        setIsLoading(true)
-        const result = await login({
-            email,
-            password,
-            two_factor_code: twoFactorCode
-        })
-        setIsLoading(false)
+        try {
 
-        // After the first successful login, set firstTime to false
-        if (result.success) { await updateSettings('appearance', { firstTime: false }) }
-        if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }
+            clearError()
+            setIsLoading(true)
+            const result = await login({
+                email,
+                password,
+                two_factor_code: twoFactorCode
+            })
+
+            // After the first successful login, set firstTime to false
+            if (result.success) { await updateSettings('appearance', { firstTime: false }) }
+            if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }
+
+        } catch (error) {
+            Alert.alert('Error', 'An error occurred during login')
+        } finally { setIsLoading(false) }
     }
 
     return (

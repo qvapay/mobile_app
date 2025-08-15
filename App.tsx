@@ -97,7 +97,14 @@ const AppNavigator = () => {
 			}}
 		>
 			<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
-			<Stack.Screen name={ROUTES.WELCOME_SCREEN} component={WelcomeScreen} />
+
+			<Stack.Screen
+				name={ROUTES.WELCOME_SCREEN}
+				component={WelcomeScreen}
+				options={{
+					animation: 'none',
+				}}
+			/>
 
 			{/* Main Stack */}
 			<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
@@ -169,24 +176,26 @@ const AppNavigator = () => {
 			<Stack.Screen
 				name={ROUTES.REGISTER_SCREEN}
 				component={RegisterScreen}
-				options={{ animation: 'slide_from_right' }}
+				options={{
+					headerTitle: '',
+					animation: 'slide_from_right',
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+				}}
 			/>
 
 			{/* Accesible Screens */}
 			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+
 		</Stack.Navigator>
 	)
 }
 
 // Theme Provider with Settings Integration
-const ThemeProviderWithSettings = ({ children }) => {
+const ThemeProviderWithSettings = ({ children }: { children: React.ReactNode }) => {
 	const { settings, updateSettings } = useSettings()
-	
-	console.log('🎨 App - ThemeProviderWithSettings - Settings:', {
-		appearance: settings?.appearance,
-		hasUpdateSettings: !!updateSettings
-	})
-	
 	return (
 		<ThemeProvider settings={settings} updateSettings={updateSettings}>
 			{children}

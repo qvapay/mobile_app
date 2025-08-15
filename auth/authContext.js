@@ -41,14 +41,8 @@ export const AuthProvider = ({ children }) => {
                 // if (!isValid.success) { await logout() }
                 try {
                     const isValid = await authApi.checkToken(token)
-                    if (!isValid.success) {
-                        console.log('🔐 Token validation failed, logging out user')
-                        await logout()
-                    }
-                } catch (error) {
-                    console.error('🔐 Token validation error:', error)
-                    await logout()
-                }
+                    if (!isValid.success) { await logout() }
+                } catch (error) { await logout() }
             }, 30000) // 30 seconds
             return () => clearInterval(interval)
         }
@@ -75,7 +69,6 @@ export const AuthProvider = ({ children }) => {
 
                     setToken(saved_token)
                     setIsAuthenticated(true)
-                    console.log('🔐 Auth initialized - User authenticated')
 
                     // Get user data from API
                     const userData = await authApi.getProfile()
@@ -83,18 +76,11 @@ export const AuthProvider = ({ children }) => {
                         setUser(userData.me)
                     } else { await logout() }
 
-                } else {
-                    setIsAuthenticated(false)
-                    console.log('🔐 Auth initialized - User not authenticated (token invalid)')
-                }
+                } else { setIsAuthenticated(false) }
 
-            } else {
-                setIsAuthenticated(false)
-                console.log('🔐 Auth initialized - User not authenticated (no token)')
-            }
+            } else { setIsAuthenticated(false) }
 
         } catch (error) {
-            console.error('Error initializing auth:', error)
             setError('Failed to initialize authentication')
         } finally { setIsLoading(false) }
     }
@@ -139,6 +125,7 @@ export const AuthProvider = ({ children }) => {
                 cover_photo_url: me.cover_photo_url,
                 image: me.image,
                 average_rating: me.average_rating,
+                role: me.role,
             }
 
             // Store user data and auth status
@@ -187,12 +174,51 @@ export const AuthProvider = ({ children }) => {
             return { success: true }
 
         } catch (error) {
-            console.error('Logout error:', error)
             setError('Logout failed. Please try again.')
             return { success: false, error: error.message }
-        } finally {
-            setIsLoading(false)
-        }
+        } finally { setIsLoading(false) }
+    }
+
+    // Register function, we call the API to register and store the user data in storage and state
+    const register = async (credentials) => {
+
+        try {
+
+            setError(null)
+
+            const apiResponse = await authApi.register(credentials)
+
+            if (apiResponse.success) {
+
+                // Registration successful
+                console.log('🔐 Registration successful:', apiResponse.message)
+
+                // Return success response
+                return {
+                    success: true,
+                    message: apiResponse.message,
+                    user: apiResponse.user
+                }
+
+            } else {
+
+                // Registration failed
+                console.error('🔐 Registration failed:', apiResponse.error)
+                setError(apiResponse.error)
+
+                return {
+                    success: false,
+                    error: apiResponse.error
+                }
+            }
+
+        } catch (error) {
+            setError('Registration failed. Please try again.')
+            return {
+                success: false,
+                error: 'Registration failed. Please try again.'
+            }
+        } finally { setIsLoading(false) }
     }
 
     // Clear all authentication data
@@ -240,6 +266,7 @@ export const AuthProvider = ({ children }) => {
         // Functions
         login,
         logout,
+        register,
         updateUser,
         clearError,
     }

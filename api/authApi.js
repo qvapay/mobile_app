@@ -178,6 +178,56 @@ export const authApi = {
                 error: error.message || 'Network error occurred',
             }
         }
+    },
+
+    /**
+     * Register a new user
+     * @param {Object} credentials - Registration credentials
+     * @param {string} credentials.name - User's first name
+     * @param {string} credentials.lastname - User's last name
+     * @param {string} credentials.email - User's email address
+     * @param {string} credentials.password - User's password
+     * @param {string} credentials.invite - Optional referral username
+     * @param {boolean} credentials.terms - Terms acceptance
+     * @returns {Promise<Object>} Registration response with user data
+     */
+    register: async (credentials) => {
+
+        try {
+
+            const response = await apiClient.post('/auth/register', {
+                name: credentials.name,
+                lastname: credentials.lastname,
+                email: credentials.email,
+                password: credentials.password,
+                invite: credentials.invite || undefined,
+                terms: credentials.terms || true
+            })
+
+            return {
+                success: true,
+                data: response.data,
+                message: response.data.message,
+                user: response.data.user,
+            }
+
+        } catch (error) {
+
+            // Handle specific API errors
+            if (error.response?.data) {
+                const errorData = error.response.data
+                return {
+                    success: false,
+                    error: errorData.error || errorData.message || 'Registration failed',
+                    details: errorData,
+                }
+            }
+
+            return {
+                success: false,
+                error: error.message || 'Network error occurred',
+            }
+        }
     }
 }
 

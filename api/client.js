@@ -7,7 +7,8 @@ const buildNumber = DeviceInfo.getBuildNumber()
 const deviceName = DeviceInfo.getDeviceName()
 
 // API Configuration
-const API_BASE_URL = 'https://api.qvapay.com'
+// const API_BASE_URL = 'https://api.qvapay.com'
+const API_BASE_URL = 'http://192.168.1.76:3000/api'
 const API_TIMEOUT = 20000 // 10 seconds
 
 // Import the logout function from AuthContext

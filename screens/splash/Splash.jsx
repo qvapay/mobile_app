@@ -6,7 +6,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles } from '../../theme/themeUtils'
 
 // Splash Screen
-const SplashScreen = ({ navigation }) => {
+const SplashScreen = () => {
 
     // theme
     const { theme } = useTheme()
