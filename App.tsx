@@ -42,6 +42,9 @@ import Withdraw from './screens/withdraw/Withdraw'
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
 
+// Notifications
+import Toast from 'react-native-toast-message'
+
 // Main App Navigator Component
 const AppNavigator = () => {
 
@@ -72,10 +75,10 @@ const AppNavigator = () => {
 		if (splashReady && !authLoading && !settingsLoading) {
 			if (isAuthenticated && !firstTime) {
 				// User is authenticated and not first time - navigate to main stack
-				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK }] })
+				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK as never }] })
 			} else if (!isAuthenticated && !firstTime) {
 				// User is not authenticated and not first time - navigate to welcome
-				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
+				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
 			}
 		}
 	}, [isAuthenticated, firstTime, splashReady, authLoading, settingsLoading])
@@ -210,6 +213,7 @@ function App() {
 				<ThemeProviderWithSettings>
 					<NavigationContainer>
 						<AppNavigator />
+						<Toast position="top" topOffset={40} />
 					</NavigationContainer>
 				</ThemeProviderWithSettings>
 			</SettingsProvider>

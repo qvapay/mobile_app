@@ -16,6 +16,9 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 
+// Notifications
+import Toast from 'react-native-toast-message'
+
 // Login Screen
 const LoginScreen = () => {
 
@@ -43,7 +46,7 @@ const LoginScreen = () => {
     const handleLogin = async () => {
 
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields')
+            Alert.alert('Error', 'Por favor completa todos los campos')
             return
         }
 
@@ -59,10 +62,15 @@ const LoginScreen = () => {
 
             // After the first successful login, set firstTime to false
             if (result.success) { await updateSettings('appearance', { firstTime: false }) }
-            if (!result.success) { Alert.alert('Login Failed', result.error || 'An error occurred during login') }
+            if (!result.success) {
+                Toast.show({
+                    type: 'error',
+                    text1: result.error
+                })
+            }
 
         } catch (error) {
-            Alert.alert('Error', 'An error occurred during login')
+            Alert.alert('Error', 'Ha ocurrido un error durante el inicio de sesión')
         } finally { setIsLoading(false) }
     }
 
@@ -70,6 +78,7 @@ const LoginScreen = () => {
         <View style={[containerStyles.subContainer, { paddingBottom: insets.bottom }]}>
 
             <Text style={textStyles.h1}>Acceder a tu cuenta</Text>
+            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico y contraseña para acceder a tu cuenta</Text>
 
             <View style={styles.formContainer}>
 
@@ -96,14 +105,10 @@ const LoginScreen = () => {
                     value={twoFactorCode}
                     onChangeText={setTwoFactorCode}
                     keyboardType="numeric"
-                    maxLength={4}
+                    maxLength={6}
                     secureTextEntry
                     prefixIconName="shield"
                 />
-
-                {error && <Text style={styles.errorText}>{error}</Text>}
-
-                {isLoading && <ActivityIndicator style={styles.loader} />}
 
             </View>
 
@@ -111,9 +116,10 @@ const LoginScreen = () => {
                 <QPButton
                     title="Acceder"
                     onPress={handleLogin}
-                    disabled={isLoading}
+                    disabled={!email || !password || !twoFactorCode}
                     style={{ borderRadius: 25 }}
                     textStyle={{ color: theme.colors.almostWhite }}
+                    loading={isLoading}
                 />
             </View>
 

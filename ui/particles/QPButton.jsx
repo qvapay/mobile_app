@@ -1,4 +1,4 @@
-import { StyleSheet, Text, Pressable } from 'react-native'
+import { StyleSheet, Text, Pressable, ActivityIndicator } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -7,7 +7,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // QPButton component
-const QPButton = ({ title, onPress, style, textStyle, icon, disabled = false }) => {
+const QPButton = ({ title, onPress, style, textStyle, icon, disabled = false, loading = false }) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -28,8 +28,12 @@ const QPButton = ({ title, onPress, style, textStyle, icon, disabled = false }) 
                 { opacity: disabled ? 0.5 : 1 },
                 style
             ]}>
-            {icon && <FontAwesome6 name={icon} size={18} color={theme.colors.primaryText} iconStyle="solid" />}
-            {title && <Text style={[styles.text, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
+            {loading ? (<ActivityIndicator size="small" color={theme.colors.almostWhite} />) : (
+                <>
+                    {icon && <FontAwesome6 name={icon} size={18} color={theme.colors.primaryText} iconStyle="solid" />}
+                    {title && <Text style={[styles.text, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
+                </>
+            )}
         </Pressable>
     )
 }

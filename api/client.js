@@ -11,9 +11,6 @@ const deviceName = DeviceInfo.getDeviceName()
 const API_BASE_URL = 'http://192.168.1.76:3000/api'
 const API_TIMEOUT = 20000 // 10 seconds
 
-// Import the logout function from AuthContext
-import { logout } from '../auth/AuthContext'
-
 // Create axios instance
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -55,30 +52,34 @@ apiClient.interceptors.response.use(
             switch (status) {
                 case 401:
                     // Unauthorized - token expired or invalid
-                    console.error('Authentication failed:', data)
-                    await logout()
+                    console.warn('Authentication failed:', data)
+                    // Note: logout should be handled by the component using this client
+                    // We'll clear the token here but let the component handle the actual logout
+                    try {
+                        await AsyncStorage.removeItem('token')
+                    } catch (clearError) { console.warn('Failed to clear token:', clearError) }
                     break
                 case 403:
                     // Forbidden
-                    console.error('Access forbidden:', data)
+                    console.warn('Access forbidden:', data)
                     break
                 case 422:
                     // Validation error
-                    console.error('Validation error:', data)
+                    console.warn('Validation error:', data)
                     break
                 case 500:
                     // Server error
-                    console.error('Server error:', data)
+                    console.warn('Server error:', data)
                     break
                 default:
-                    console.error(`HTTP ${status} error:`, data)
+                    console.warn(`HTTP ${status} error:`, data)
             }
         } else if (error.request) {
             // Network error
-            console.error('Network error:', error.request)
+            console.warn('Network error:', error.request)
         } else {
             // Other error
-            console.error('Request error:', error.message)
+            console.warn('Request error:', error.message)
         }
 
         return Promise.reject(error)
@@ -89,7 +90,7 @@ apiClient.interceptors.response.use(
 export const setAuthToken = async (token) => {
     try {
         await AsyncStorage.setItem('token', token)
-    } catch (error) { console.error('Failed to store token:', error) }
+    } catch (error) { console.warn('Failed to store token:', error) }
 }
 
 export const getAuthToken = async () => {
@@ -97,7 +98,7 @@ export const getAuthToken = async () => {
         const tokenData = await AsyncStorage.getItem('token')
         return tokenData || null
     } catch (error) {
-        console.error('Failed to get token:', error)
+        console.warn('Failed to get token:', error)
         return null
     }
 }
@@ -106,7 +107,7 @@ export const removeAuthToken = async () => {
     try {
         await AsyncStorage.removeItem('token')
     } catch (error) {
-        console.error('Failed to remove token:', error)
+        console.warn('Failed to remove token:', error)
     }
 }
 

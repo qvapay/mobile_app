@@ -36,14 +36,14 @@ export const authApi = {
                 const errorData = error.response.data
                 return {
                     success: false,
-                    error: errorData.message || 'Login failed',
+                    error: errorData.message || 'No se pudo iniciar sesión',
                     details: errorData,
                 }
             }
 
             return {
                 success: false,
-                error: error.message || 'Network error occurred',
+                error: error.message || 'Ha ocurrido un error de red',
             }
         }
     },
@@ -91,14 +91,14 @@ export const authApi = {
                 const errorData = error.response.data
                 return {
                     success: false,
-                    error: errorData.message || 'Failed to get profile',
+                    error: errorData.message || 'No se pudo obtener el perfil',
                     details: errorData,
                 }
             }
 
             return {
                 success: false,
-                error: error.message || 'Network error occurred',
+                error: error.message || 'Ha ocurrido un error de red',
             }
         }
     },
@@ -126,14 +126,14 @@ export const authApi = {
                 const errorData = error.response.data
                 return {
                     success: false,
-                    error: errorData.message || 'Failed to update profile',
+                    error: errorData.message || 'No se pudo actualizar el perfil',
                     details: errorData,
                 }
             }
 
             return {
                 success: false,
-                error: error.message || 'Network error occurred',
+                error: error.message || 'Ha ocurrido un error de red',
             }
         }
     },
@@ -146,7 +146,7 @@ export const authApi = {
     checkToken: async () => {
 
         try {
-            
+
             // The production endpoint expects a POST to /auth/check with the Authorization header
             const response = await apiClient.post('/auth/check')
 
@@ -159,7 +159,7 @@ export const authApi = {
             } else {
                 return {
                     success: false,
-                    error: response.data?.error || 'Acceso denegado',
+                    error: response.data?.error || 'No se pudo verificar su sesión',
                     data: response.data,
                 }
             }
@@ -169,13 +169,13 @@ export const authApi = {
             if (error.response && error.response.data) {
                 return {
                     success: false,
-                    error: error.response.data.error || 'Acceso denegado',
+                    error: error.response.data.error || 'No se pudo verificar su sesión',
                     data: error.response.data,
                 }
             }
             return {
                 success: false,
-                error: error.message || 'Network error occurred',
+                error: error.message || 'Ha ocurrido un error de red',
             }
         }
     },
@@ -218,14 +218,14 @@ export const authApi = {
                 const errorData = error.response.data
                 return {
                     success: false,
-                    error: errorData.error || errorData.message || 'Registration failed',
+                    error: errorData.error || errorData.message || 'No se pudo registrar',
                     details: errorData,
                 }
             }
 
             return {
                 success: false,
-                error: error.message || 'Network error occurred',
+                error: error.message || 'Ha ocurrido un error de red',
             }
         }
     }

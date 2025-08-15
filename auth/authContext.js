@@ -187,7 +187,6 @@ export const AuthProvider = ({ children }) => {
             setError(null)
 
             const apiResponse = await authApi.register(credentials)
-
             if (apiResponse.success) {
 
                 // Registration successful
@@ -203,7 +202,7 @@ export const AuthProvider = ({ children }) => {
             } else {
 
                 // Registration failed
-                console.error('🔐 Registration failed:', apiResponse.error)
+                console.log('🔐 Registration failed:', apiResponse.error)
                 setError(apiResponse.error)
 
                 return {
@@ -229,7 +228,7 @@ export const AuthProvider = ({ children }) => {
                 removeAuthToken(), // Use API client's token removal
                 AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
             ])
-        } catch (error) { console.error('Error clearing auth data:', error) }
+        } catch (error) { console.warn('Error clearing auth data:', error) }
     }
 
     // Update user data
@@ -245,7 +244,6 @@ export const AuthProvider = ({ children }) => {
             setUser(updatedUser)
             return { success: true }
         } catch (error) {
-            console.error('Update user error:', error)
             setError('Failed to update user data')
             return { success: false, error: error.message }
         }
