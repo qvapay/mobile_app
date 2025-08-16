@@ -15,9 +15,9 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
 
     // Optional properties
     const vip = user?.vip || false
-    const rating = user?.rating || 0
-    const kyc = user?.kyc || false
-    const golden_check = user?.golden_check || false
+    // const rating = user?.rating || 0
+    // const kyc = user?.kyc || false
+    // const golden_check = user?.golden_check || false
     const image = user?.image || ''
 
     // Variables
@@ -27,12 +27,23 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
     const hasImage = !!image
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background, width: size, height: size }]}>
-            <LinearGradient colors={gradientColors} style={{ padding: borderVip, borderRadius: size }}>
+        <View style={[styles.container, { width: size, height: size }]}>
+            {vip && (
+                <LinearGradient 
+                    colors={gradientColors} 
+                    style={[styles.gradientBorder, { width: size, height: size, borderRadius: size / 2 }]}
+                />
+            )}
+            <View style={[styles.avatarContainer, { 
+                width: size - (borderVip * 2), 
+                height: size - (borderVip * 2),
+                top: borderVip,
+                left: borderVip
+            }]}>
                 <FastImage
                     style={{ 
-                        width: size - (borderVip * 2), 
-                        height: size - (borderVip * 2), 
+                        width: '100%', 
+                        height: '100%', 
                         borderRadius: (size - (borderVip * 2)) / 2,
                         backgroundColor: vip && !hasImage ? '#ffffff' : 'transparent'
                     }}
@@ -42,13 +53,24 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
                     }}
                     resizeMode={FastImage.resizeMode.cover}
                 />
-            </LinearGradient>
+            </View>
         </View>
     )
 }
 
 const styles = StyleSheet.create({
     container: {
+        position: 'relative',
+        borderRadius: 50,
+        overflow: 'hidden',
+    },
+    gradientBorder: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+    },
+    avatarContainer: {
+        position: 'absolute',
         borderRadius: 50,
         overflow: 'hidden',
     }
