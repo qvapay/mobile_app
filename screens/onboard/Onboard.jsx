@@ -100,7 +100,7 @@ const Onboard = ({ navigation }) => {
         <SafeAreaView style={[containerStyles.subContainer, { flex: 1, justifyContent: 'space-between', alignItems: 'center' }]}>
 
             {/* Step Indicator */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingTop: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
                 {onboard_steps.map((_, index) => (
                     <View
                         key={index}
@@ -135,7 +135,7 @@ const Onboard = ({ navigation }) => {
             </View>
 
             {/* Navigation Buttons */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 20, width: '100%' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
 
                 {/* Previous Button */}
                 {currentStep > 0 && (
@@ -143,9 +143,8 @@ const Onboard = ({ navigation }) => {
                         icon="chevron-left"
                         onPress={handlePreviousStep}
                         style={{
-                            width: 50,
-                            height: 50,
-                            borderRadius: 25,
+                            width: 60,
+                            borderRadius: 30,
                             paddingHorizontal: 0,
                             marginRight: 10,
                             backgroundColor: theme.colors.secondary
