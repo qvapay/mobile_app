@@ -57,12 +57,13 @@ yarn android # or yarn ios
 
 ## 📌 Roadmap
 
-- [x] KYC & biometric login
-- [x] P2P marketplace module
-- [x] Crypto wallet integration
+- [ ] KYC & biometric login
+- [ ] P2P marketplace module
+- [ ] Crypto wallet integration
 - [ ] Push notifications
 - [ ] In-app support chat
 - [ ] Multi-language support (🇺🇸 🇪🇸)
+- [ ] Ultra data saving tweak
 
 ## 🤝 Contributions
 

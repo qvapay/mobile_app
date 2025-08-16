@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -75,59 +75,79 @@ const LoginScreen = () => {
     }
 
     return (
-        <View style={[containerStyles.subContainer, { paddingBottom: insets.bottom }]}>
+        <KeyboardAvoidingView
+            style={[containerStyles.subContainer]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
-            <Text style={textStyles.h1}>Acceder a tu cuenta</Text>
-            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico y contraseña para acceder a tu cuenta</Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-            <View style={styles.formContainer}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContainer}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
 
-                <QPInput
-                    placeholder="tucorreo@gmail.com"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    prefixIconName="envelope"
-                />
+                    <Text style={textStyles.h1}>Acceder a tu cuenta</Text>
+                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico y contraseña para acceder a tu cuenta</Text>
 
-                <QPInput
-                    placeholder="Contraseña"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    prefixIconName="lock"
-                    suffixIconName="eye"
-                />
+                    <View style={styles.formContainer}>
 
-                <QPInput
-                    placeholder="Código 2FA"
-                    value={twoFactorCode}
-                    onChangeText={setTwoFactorCode}
-                    keyboardType="numeric"
-                    maxLength={6}
-                    secureTextEntry
-                    prefixIconName="shield"
-                />
+                        <QPInput
+                            placeholder="tucorreo@gmail.com"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            prefixIconName="envelope"
+                        />
 
-            </View>
+                        <QPInput
+                            placeholder="Contraseña"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                            prefixIconName="lock"
+                            suffixIconName="eye"
+                        />
 
-            <View style={{ marginBottom: 10 }}>
-                <QPButton
-                    title="Acceder"
-                    onPress={handleLogin}
-                    disabled={!email || !password || !twoFactorCode}
-                    style={{ borderRadius: 25 }}
-                    textStyle={{ color: theme.colors.almostWhite }}
-                    loading={isLoading}
-                />
-            </View>
+                        <QPInput
+                            placeholder="Código 2FA"
+                            value={twoFactorCode}
+                            onChangeText={setTwoFactorCode}
+                            keyboardType="numeric"
+                            maxLength={6}
+                            secureTextEntry
+                            prefixIconName="shield"
+                        />
 
-        </View>
+                    </View>
+
+                    <View style={{ marginBottom: 20 }}>
+                        <QPButton
+                            title="Acceder"
+                            onPress={handleLogin}
+                            disabled={!email || !password || !twoFactorCode}
+                            style={{ borderRadius: 25 }}
+                            textStyle={{ color: theme.colors.almostWhite }}
+                            loading={isLoading}
+                        />
+                    </View>
+
+                </ScrollView>
+
+            </TouchableWithoutFeedback>
+
+        </KeyboardAvoidingView>
     )
 }
 
 const styles = StyleSheet.create({
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingVertical: 20
+    },
     formContainer: {
         flex: 1,
         justifyContent: 'center'
