@@ -79,10 +79,13 @@ const Home = ({ navigation }) => {
 
                 <ActionButtons navigation={navigation} />
 
-                <View style={{ marginVertical: 10 }}>
+                <View style={{ marginVertical: 10, gap: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={textStyles.h5}>Pago rápido</Text>
-                        <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                            <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
+                            <FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
+                        </View>
                     </View>
                     <ScrollView
                         horizontal
@@ -101,10 +104,13 @@ const Home = ({ navigation }) => {
                     </ScrollView>
                 </View>
 
-                <View style={{ marginVertical: 10 }}>
+                <View style={{ marginVertical: 10, gap: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={textStyles.h5}>Últimas transacciones</Text>
-                        <Text style={[textStyles.h6, { color: theme.colors.primary }]} onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>Ver todas</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                            <Text style={[textStyles.h6, { color: theme.colors.primary }]} onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>Ver todas</Text>
+                            <FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
+                        </View>
                     </View>
                     {latestTransactions.map((transaction, index) => (
                         <QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
