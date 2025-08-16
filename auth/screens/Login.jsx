@@ -40,6 +40,9 @@ const LoginScreen = () => {
     const [password, setPassword] = useState('')
     const [twoFactorCode, setTwoFactorCode] = useState('')
 
+    // Show PIN Input
+    const [showPin, setShowPin] = useState(false)
+
     // Handle login, we set the loading to true, clear the error and call the login function
     // If login is successful, we set the loading to false
     // If login is not successful, we set the loading to false and show an error message
@@ -111,8 +114,10 @@ const LoginScreen = () => {
                             suffixIconName="eye"
                         />
 
+                        {/** TODO: If login is successfull, then show the PIN Input */}
+
                         <QPInput
-                            placeholder="Código 2FA"
+                            placeholder="PIN o 2FA"
                             value={twoFactorCode}
                             onChangeText={setTwoFactorCode}
                             keyboardType="numeric"

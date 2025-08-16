@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Alert } from 'react-native'
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -13,6 +13,9 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 import BouncyCheckbox from 'react-native-bouncy-checkbox'
+
+// Notifications
+import Toast from 'react-native-toast-message'
 
 // Register Screen
 const RegisterScreen = ({ navigation }) => {
@@ -47,29 +50,44 @@ const RegisterScreen = ({ navigation }) => {
 
         // Validation
         if (!name || !lastname || !email || !password || !confirmPassword) {
-            Alert.alert('Error', 'Por favor completa todos los campos')
+            Toast.show({
+                type: 'error',
+                text1: 'Por favor completa todos los campos'
+            })
             return
         }
 
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Las contraseñas no coinciden')
+            Toast.show({
+                type: 'error',
+                text1: 'Las contraseñas no coinciden'
+            })
             return
         }
 
         if (password.length < 8) {
-            Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres')
+            Toast.show({
+                type: 'error',
+                text1: 'La contraseña debe tener al menos 8 caracteres'
+            })
             return
         }
 
         if (!termsAccepted) {
-            Alert.alert('Error', 'Debes aceptar los términos y condiciones')
+            Toast.show({
+                type: 'error',
+                text1: 'Debes aceptar los términos y condiciones'
+            })
             return
         }
 
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email)) {
-            Alert.alert('Error', 'Por favor ingresa un email válido')
+            Toast.show({
+                type: 'error',
+                text1: 'Por favor ingresa un email válido'
+            })
             return
         }
 
@@ -109,7 +127,7 @@ const RegisterScreen = ({ navigation }) => {
         // Send via API the email and PIN received by email
         setIsLoading(true)
         console.log('Sending PIN to API', pin)
-        
+
         // Wait 2 seconds
         await new Promise(resolve => setTimeout(resolve, 2000))
 
@@ -122,133 +140,154 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     return (
-        <View style={[containerStyles.subContainer, { paddingBottom: insets.bottom }]}>
+        <KeyboardAvoidingView
+            style={[containerStyles.subContainer]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
-            <Text style={textStyles.h1}>{requestPin ? 'Verificar PIN' : 'Crear cuenta'}</Text>
-            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{requestPin ? 'Verifica el código que has recibido por correo electrónico' : 'Completa los siguientes campos para crear tu cuenta'}</Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-            <View style={styles.formContainer}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContainer}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
 
-                {requestPin ? (
-                    <>
-                        <QPInput
-                            placeholder="PIN"
-                            value={pin}
-                            onChangeText={setPin}
-                            keyboardType="numeric"
-                            autoCapitalize="none"
-                            prefixIconName="lock"
-                            maxLength={6}
-                            disabled={!pinEnabled}
-                        />
-                    </>
-                ) : (
-                    <>
-                        <QPInput
-                            placeholder="Nombre"
-                            value={name}
-                            onChangeText={setName}
-                            autoCapitalize="words"
-                            prefixIconName="user"
-                        />
+                    <Text style={textStyles.h1}>{requestPin ? 'Verificar PIN' : 'Crear cuenta'}</Text>
+                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{requestPin ? 'Verifica el código que has recibido por correo electrónico' : 'Completa los siguientes campos para crear tu cuenta'}</Text>
 
-                        <QPInput
-                            placeholder="Apellidos"
-                            value={lastname}
-                            onChangeText={setLastname}
-                            autoCapitalize="words"
-                            prefixIconName="user"
-                        />
+                    <View style={styles.formContainer}>
 
-                        <QPInput
-                            placeholder="tucorreo@gmail.com"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            prefixIconName="envelope"
-                        />
+                        {requestPin ? (
+                            <>
+                                <QPInput
+                                    placeholder="PIN"
+                                    value={pin}
+                                    onChangeText={setPin}
+                                    keyboardType="numeric"
+                                    autoCapitalize="none"
+                                    prefixIconName="lock"
+                                    maxLength={6}
+                                    disabled={!pinEnabled}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <QPInput
+                                    placeholder="Nombre"
+                                    value={name}
+                                    onChangeText={setName}
+                                    autoCapitalize="words"
+                                    prefixIconName="user"
+                                />
 
-                        <QPInput
-                            placeholder="Código de referido (opcional)"
-                            value={invite}
-                            onChangeText={setInvite}
-                            autoCapitalize="none"
-                            prefixIconName="gift"
-                        />
+                                <QPInput
+                                    placeholder="Apellidos"
+                                    value={lastname}
+                                    onChangeText={setLastname}
+                                    autoCapitalize="words"
+                                    prefixIconName="user"
+                                />
 
-                        <QPInput
-                            placeholder="Contraseña"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            prefixIconName="lock"
-                            suffixIconName="eye"
-                        />
+                                <QPInput
+                                    placeholder="tucorreo@gmail.com"
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    prefixIconName="envelope"
+                                />
 
-                        <QPInput
-                            placeholder="Confirmar contraseña"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry
-                            prefixIconName="lock"
-                            suffixIconName="eye"
-                        />
+                                <QPInput
+                                    placeholder="Código de referido (opcional)"
+                                    value={invite}
+                                    onChangeText={setInvite}
+                                    autoCapitalize="none"
+                                    prefixIconName="gift"
+                                />
 
-                        {/* Terms and Conditions Checkbox */}
-                        <View style={styles.termsContainer}>
-                            <BouncyCheckbox
-                                size={22}
-                                fillColor={theme.colors.primary}
-                                unFillColor={theme.colors.secondaryText}
-                                text="Acepto los términos y condiciones"
-                                iconStyle={{ borderColor: theme.colors.primary }}
-                                innerIconStyle={{ borderWidth: 2 }}
-                                textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none' }}
-                                onPress={() => setTermsAccepted(!termsAccepted)}
-                            />
+                                <QPInput
+                                    placeholder="Contraseña"
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry
+                                    prefixIconName="lock"
+                                    suffixIconName="eye"
+                                />
+
+                                <QPInput
+                                    placeholder="Confirmar contraseña"
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry
+                                    prefixIconName="lock"
+                                    suffixIconName="eye"
+                                />
+
+                                {/* Terms and Conditions Checkbox */}
+                                <View style={styles.termsContainer}>
+                                    <BouncyCheckbox
+                                        size={22}
+                                        fillColor={theme.colors.primary}
+                                        unFillColor={theme.colors.secondaryText}
+                                        text="Acepto los términos y condiciones"
+                                        iconStyle={{ borderColor: theme.colors.primary }}
+                                        innerIconStyle={{ borderWidth: 2 }}
+                                        textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none' }}
+                                        onPress={() => setTermsAccepted(!termsAccepted)}
+                                    />
+                                </View>
+                            </>
+                        )}
+                    </View>
+
+                    {!requestPin && (
+                        <View style={styles.loginLink}>
+                            <Text style={{ textAlign: 'center', color: theme.colors.primaryText }}>
+                                ¿Ya tienes una cuenta?{' '}
+                                <Text style={{ color: theme.colors.primary }} onPress={() => navigation.navigate('Login')} >
+                                    Inicia sesión
+                                </Text>
+                            </Text>
                         </View>
-                    </>
-                )}
-            </View>
+                    )}
 
-            {!requestPin && (
-                <View style={styles.loginLink}>
-                    <Text style={{ textAlign: 'center', color: theme.colors.primaryText }}>
-                        ¿Ya tienes una cuenta?{' '}
-                        <Text style={{ color: theme.colors.primary }} onPress={() => navigation.navigate('Login')} >
-                            Inicia sesión
-                        </Text>
-                    </Text>
-                </View>
-            )}
+                    <View style={{ marginBottom: 10 }}>
+                        {requestPin ? (
+                            <QPButton
+                                title="Verificar PIN"
+                                onPress={handleVerifyPin}
+                                disabled={!pinEnabled}
+                                style={{ borderRadius: 25 }}
+                                textStyle={{ color: theme.colors.almostWhite }}
+                                loading={isLoading}
+                            />
+                        ) : (
+                            <QPButton
+                                title="Crear cuenta"
+                                onPress={handleRegister}
+                                disabled={!termsAccepted || !name || !lastname || !email || !password || !confirmPassword}
+                                style={{ borderRadius: 25 }}
+                                textStyle={{ color: theme.colors.almostWhite }}
+                                loading={isLoading}
+                            />
+                        )}
+                    </View>
 
-            <View style={{ marginBottom: 10 }}>
-                {requestPin ? (
-                    <QPButton
-                        title="Verificar PIN"
-                        onPress={handleVerifyPin}
-                        disabled={!pinEnabled}
-                        style={{ borderRadius: 25 }}
-                        textStyle={{ color: theme.colors.almostWhite }}
-                        loading={isLoading}
-                    />
-                ) : (
-                    <QPButton
-                        title="Crear cuenta"
-                        onPress={handleRegister}
-                        disabled={!termsAccepted || !name || !lastname || !email || !password || !confirmPassword}
-                        style={{ borderRadius: 25 }}
-                        textStyle={{ color: theme.colors.almostWhite }}
-                        loading={isLoading}
-                    />
-                )}
-            </View>
-        </View>
+                </ScrollView>
+
+            </TouchableWithoutFeedback>
+
+        </KeyboardAvoidingView>
     )
 }
 
 const styles = StyleSheet.create({
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingVertical: 20
+    },
     formContainer: {
         flex: 1,
         justifyContent: 'center'

@@ -30,7 +30,7 @@ const QPInput = forwardRef((props, ref) => {
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.surface, borderColor: theme.colors.secondaryText }]}>
+        <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
 
             {hasPrefix && (
                 <View style={styles.prefixContainer}>
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderWidth: 0.5,
+        // borderWidth: 0.5,
     },
     prefixContainer: {
         width: 50,
