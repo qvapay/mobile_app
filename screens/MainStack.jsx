@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
         marginLeft: 20,
     },
     headerLeft: {
-        marginLeft: 20,
+        marginLeft: 10,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',

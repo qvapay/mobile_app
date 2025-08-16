@@ -1,5 +1,12 @@
+import { Pressable } from 'react-native'
+
+// Navigation   
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
+
+// FontAwesome6
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -42,6 +49,12 @@ const SettingsStack = ({ navigation }) => {
                 },
                 headerTintColor: theme.colors.primaryText,
                 headerShadowVisible: false,
+                headerBackVisible: false,
+                headerLeft: () => (
+                    <Pressable onPress={() => navigation.goBack()}>
+                        <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                    </Pressable>
+                )
             }}
         >
 
