@@ -1,5 +1,6 @@
 // React Components
 import { useEffect, useState } from 'react'
+import { Pressable, View, Text } from 'react-native'
 
 // Navigation Components
 import { NavigationContainer, useNavigation } from '@react-navigation/native'
@@ -44,6 +45,9 @@ import SettingsStack from './screens/settings/SettingsStack'
 
 // Notifications
 import Toast from 'react-native-toast-message'
+
+// FontAwesome6
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Main App Navigator Component
 const AppNavigator = () => {
@@ -164,6 +168,7 @@ const AppNavigator = () => {
 				component={Transaction}
 			/>
 
+			{/* Login and Register Screens */}
 			<Stack.Screen
 				name={ROUTES.LOGIN_SCREEN}
 				component={LoginScreen}
@@ -171,9 +176,14 @@ const AppNavigator = () => {
 					headerTitle: '',
 					animation: 'slide_from_right',
 					headerShown: true,
-					headerBackVisible: true,
+					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,
 					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
 				}}
 			/>
 			<Stack.Screen
@@ -183,9 +193,14 @@ const AppNavigator = () => {
 					headerTitle: '',
 					animation: 'slide_from_right',
 					headerShown: true,
-					headerBackVisible: true,
+					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,
 					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
 				}}
 			/>
 
