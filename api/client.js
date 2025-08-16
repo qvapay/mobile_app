@@ -103,6 +103,7 @@ export const getAuthToken = async () => {
     }
 }
 
+// Helper function to remove auth token
 export const removeAuthToken = async () => {
     try {
         await AsyncStorage.removeItem('token')

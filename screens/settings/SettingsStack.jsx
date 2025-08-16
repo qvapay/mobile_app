@@ -50,17 +50,19 @@ const SettingsStack = ({ navigation }) => {
                 headerTintColor: theme.colors.primaryText,
                 headerShadowVisible: false,
                 headerBackVisible: false,
-                headerLeft: () => (
-                    <Pressable onPress={() => navigation.goBack()}>
-                        <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                    </Pressable>
-                )
             }}
         >
 
             <Stack.Screen
                 name={ROUTES.SETTINGS_MENU}
                 component={SettingsMenu}
+                options={{
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
+                }}
             />
 
             <Stack.Screen
@@ -76,11 +78,17 @@ const SettingsStack = ({ navigation }) => {
             <Stack.Screen
                 name={ROUTES.THEME}
                 component={Theme}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
                 name={ROUTES.USERDATA}
                 component={Userdata}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen

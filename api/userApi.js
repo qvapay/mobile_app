@@ -8,22 +8,57 @@ export const userApi = {
      * @returns {Promise<Object>} The user data
      */
     searchUser: async (search) => {
-
         try {
-
-            // Call API to search for the user
             const response = await apiClient.post(`/user/search`, { query: search })
-
-            // Return success response with data
             return {
                 success: true,
                 data: response.data,
                 status: response.status
             }
-
         } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                status: error.response?.status
+            }
+        }
+    },
 
-            // Return error response
+    /**
+     * Get current user profile data
+     * @returns {Promise<Object>} The user profile data
+     */
+    getUserProfile: async () => {
+        try {
+            const response = await apiClient.get(`/user/extended`)
+            return {
+                success: true,
+                data: response.data,
+                status: response.status
+            }
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                status: error.response?.status
+            }
+        }
+    },
+
+    /**
+     * Update current user data
+     * @param {Object} userData - The user data to update
+     * @returns {Promise<Object>} The updated user data
+     */
+    updateUser: async (userData) => {
+        try {
+            const response = await apiClient.put(`/user/update`, userData)
+            return {
+                success: true,
+                data: response.data,
+                status: response.status
+            }
+        } catch (error) {
             return {
                 success: false,
                 error: error.message,
