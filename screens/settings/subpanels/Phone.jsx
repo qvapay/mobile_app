@@ -357,9 +357,9 @@ const Phone = () => {
                                 />
 
                                 <ScrollView style={styles.countryList}>
-                                    {countries.filter(countryData => countryData.name.toLowerCase().includes(countrySearch.toLowerCase()) || countryData.code.toLowerCase().includes(countrySearch.toLowerCase())).map((countryData, index) => (
+                                    {countries.filter(countryData => countryData.name.toLowerCase().includes(countrySearch.toLowerCase()) || countryData.code.toLowerCase().includes(countrySearch.toLowerCase())).map((countryData) => (
                                         <TouchableOpacity
-                                            key={`${countryData.code}-${countryData.dial_code}-${index}`}
+                                            key={`${countryData.code}-${countryData.dial_code}`}
                                             style={[styles.countryItem, { backgroundColor: country === countryData.code ? theme.colors.primary : theme.colors.background }]}
                                             onPress={() => {
                                                 setCountry(countryData.code)
