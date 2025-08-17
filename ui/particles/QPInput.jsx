@@ -21,6 +21,9 @@ const QPInput = forwardRef((props, ref) => {
     // Theme variables, dark and light modes
     const { theme } = useTheme()
 
+    // Icon style
+    const iconStyle = props.iconStyle || 'solid'
+
     // Change the TextInput between password and text
     const handleSuffixPress = () => {
         if (props.suffixIconName === 'eye' || props.suffixIconName === 'eye-slash') {
@@ -34,7 +37,7 @@ const QPInput = forwardRef((props, ref) => {
 
             {hasPrefix && (
                 <View style={styles.prefixContainer}>
-                    <FontAwesome6 size={18} color={theme.colors.secondaryText} name={props.prefixIconName} style={styles.icon} iconStyle="solid" />
+                    <FontAwesome6 size={18} color={theme.colors.secondaryText} name={props.prefixIconName} style={styles.icon} iconStyle={iconStyle} />
                 </View>
             )}
 

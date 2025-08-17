@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { StyleSheet, Text, View, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -23,7 +22,6 @@ const Userdata = () => {
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
-    const insets = useSafeAreaInsets()
 
     // States
     const [isLoading, setIsLoading] = useState(false)
@@ -41,6 +39,13 @@ const Userdata = () => {
     const [country, setCountry] = useState('')
     const [bio, setBio] = useState('')
 
+    // User status fields
+    const [userStatus, setUserStatus] = useState({
+        kyc: false,
+        phone_verified: false,
+        createdAt: ''
+    })
+
     // Load user data on component mount
     useEffect(() => {
         loadUserData()
@@ -48,14 +53,14 @@ const Userdata = () => {
 
     // Load user data from API
     const loadUserData = async () => {
-
         try {
-
             setIsLoadingData(true)
             const result = await userApi.getUserProfile()
 
             if (result.success && result.data) {
                 const userData = result.data
+
+                // Basic form fields
                 setUsername(userData.username || '')
                 setName(userData.name || '')
                 setLastname(userData.lastname || '')
@@ -64,8 +69,18 @@ const Userdata = () => {
                 setTelegram(userData.telegram || '')
                 setTwitter(userData.twitter || '')
                 setAddress(userData.address || '')
-                setCountry(userData.country || '')
                 setBio(userData.bio || '')
+
+                // Country from KYC object
+                setCountry(userData.KYC?.country || '')
+
+                // User status information
+                setUserStatus({
+                    kyc: userData.kyc || false,
+                    phone_verified: userData.phone_verified || false,
+                    createdAt: userData.createdAt || ''
+                })
+
             } else {
                 Toast.show({
                     type: 'error',
@@ -80,9 +95,7 @@ const Userdata = () => {
                 text1: 'Error al cargar datos del usuario',
                 text2: error.message
             })
-        } finally {
-            setIsLoadingData(false)
-        }
+        } finally { setIsLoadingData(false) }
     }
 
     // Handle form submission
@@ -183,10 +196,29 @@ const Userdata = () => {
         )
     }
 
+    // Format date for display
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A'
+        try {
+            return new Date(dateString).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })
+        } catch (error) {
+            return 'N/A'
+        }
+    }
+
+    // Get status badge color
+    const getStatusColor = (status) => {
+        return status ? theme.colors.success : theme.colors.danger
+    }
+
     if (isLoadingData) {
         return (
             <View style={[containerStyles.subContainer, styles.loadingContainer]}>
-                <Text style={textStyles.h3}>Cargando datos del usuario...</Text>
+                <Text style={textStyles.h3}>Cargando datos...</Text>
             </View>
         )
     }
@@ -211,6 +243,7 @@ const Userdata = () => {
                     <View style={styles.formContainer}>
 
                         {/* Username (Read-only) */}
+                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Nombre de usuario:</Text>
                         <View style={styles.inputContainer}>
                             <QPInput
                                 placeholder="Nombre de usuario"
@@ -219,13 +252,12 @@ const Userdata = () => {
                                 editable={false}
                                 prefixIconName="user"
                                 style={styles.readOnlyInput}
+                                suffixIconName={userStatus.kyc ? 'circle-check' : ''}
                             />
-                            <Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 5 }]}>
-                                El nombre de usuario no se puede modificar
-                            </Text>
                         </View>
 
                         {/* Name */}
+                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Datos personales:</Text>
                         <QPInput
                             placeholder="Nombre"
                             value={name}
@@ -262,6 +294,7 @@ const Userdata = () => {
                             onChangeText={setPhone}
                             keyboardType="phone-pad"
                             prefixIconName="phone-volume"
+                            suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
                         />
 
                         {/* Telegram */}
@@ -271,6 +304,8 @@ const Userdata = () => {
                             onChangeText={setTelegram}
                             autoCapitalize="none"
                             prefixIconName="telegram"
+                            iconStyle="brand"
+                            suffixIconName={userStatus.telegram_id != "" ? 'circle-check' : ''}
                         />
 
                         {/* Twitter */}
@@ -280,6 +315,7 @@ const Userdata = () => {
                             onChangeText={setTwitter}
                             autoCapitalize="none"
                             prefixIconName="x-twitter"
+                            iconStyle="brand"
                         />
 
                         {/* Address */}
@@ -327,18 +363,12 @@ const Userdata = () => {
                             style={styles.updateButton}
                             textStyle={{ color: theme.colors.almostWhite }}
                             loading={isLoading}
-                            icon="floppy-disk"
-                        />
-
-                        <QPButton
-                            title="Restablecer"
-                            onPress={handleReset}
-                            disabled={isLoading}
-                            style={[styles.resetButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.secondaryText }]}
-                            textStyle={{ color: theme.colors.primaryText }}
-                            icon="arrow-rotate-left"
                         />
                     </View>
+
+                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
+                        Miembro desde: <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{formatDate(userStatus.createdAt)}</Text>
+                    </Text>
 
                 </ScrollView>
             </TouchableWithoutFeedback>
@@ -352,8 +382,35 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         paddingVertical: 20,
     },
+    statusSection: {
+        marginVertical: 20,
+        padding: 20,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.1)'
+    },
+    statusGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 15,
+        marginBottom: 20
+    },
+    statusItem: {
+        alignItems: 'center',
+        minWidth: 80
+    },
+    statusBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginTop: 5
+    },
+    additionalInfo: {
+        gap: 8
+    },
     formContainer: {
-        marginBottom: 30
+        marginVertical: 20
     },
     inputContainer: {
         marginBottom: 10
