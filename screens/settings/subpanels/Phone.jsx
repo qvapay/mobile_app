@@ -255,7 +255,7 @@ const Phone = () => {
                     <View style={styles.formContainer}>
                         {/* Country Selection */}
                         <View style={styles.countryContainer}>
-                            <Text style={[styles.label, { color: theme.colors.primaryText }]}>País</Text>
+                            <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>País</Text>
                             <TouchableOpacity style={[styles.countryPicker, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => setShowCountryPicker(true)} >
                                 <Text style={[styles.countryText, { color: theme.colors.primaryText }]}>
                                     {countries.find(c => c.code === country)?.name} ({countries.find(c => c.code === country)?.dial_code})
@@ -266,7 +266,7 @@ const Phone = () => {
 
                         {/* Phone Input */}
                         <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: theme.colors.primaryText }]}>Número de Teléfono</Text>
+                            <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>Número de Teléfono</Text>
                             <QPInput
                                 value={phone}
                                 onChangeText={setPhone}
@@ -276,6 +276,22 @@ const Phone = () => {
                                 style={styles.input}
                             />
                         </View>
+
+                        {showPinInput && (
+                            <View style={styles.inputContainer}>
+                                <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>Código de Verificación</Text>
+                                <QPInput
+                                    value={pin}
+                                    onChangeText={setPin}
+                                    placeholder="Ingresa el código de 6 dígitos"
+                                    keyboardType="numeric"
+                                    maxLength={6}
+                                    prefixIconName="key"
+                                    style={styles.input}
+                                />
+                            </View>
+                        )}
+
                     </View>
 
                     <View style={containerStyles.bottomButtonContainer}>
@@ -290,25 +306,13 @@ const Phone = () => {
                             />
                         ) : (
                             <>
-                                <View style={styles.inputContainer}>
-                                    <Text style={[styles.label, { color: theme.colors.primaryText }]}>Código de Verificación</Text>
-                                    <QPInput
-                                        value={pin}
-                                        onChangeText={setPin}
-                                        placeholder="Ingresa el código de 6 dígitos"
-                                        keyboardType="numeric"
-                                        maxLength={6}
-                                        prefixIconName="key"
-                                        style={styles.input}
-                                    />
-                                </View>
-
                                 <QPButton
                                     title="Verificar Teléfono"
                                     onPress={handleVerifyPhone}
                                     loading={isVerifying}
                                     disabled={isVerifying || !pin.trim() || pin.trim().length !== 6}
-                                    style={styles.button}
+                                    style={{ borderRadius: 25 }}
+                                    textStyle={{ color: theme.colors.buttonText }}
                                 />
 
                                 <QPButton
@@ -316,7 +320,8 @@ const Phone = () => {
                                     onPress={handleSendCode}
                                     loading={isLoading}
                                     disabled={isLoading}
-                                    style={[styles.button, styles.secondaryButton]}
+                                    style={{ borderRadius: 25 }}
+                                    textStyle={{ color: theme.colors.buttonText }}
                                 />
                             </>
                         )}
@@ -401,11 +406,6 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 20,
     },
-    label: {
-        fontSize: 16,
-        fontFamily: 'Rubik-Medium',
-        marginBottom: 8,
-    },
     countryPicker: {
         height: 50,
         borderRadius: 10,
@@ -424,9 +424,6 @@ const styles = StyleSheet.create({
     },
     input: {
         marginVertical: 0,
-    },
-    button: {
-        marginBottom: 12,
     },
     secondaryButton: {
         backgroundColor: '#6c757d',
