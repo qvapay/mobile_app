@@ -334,64 +334,44 @@ const Phone = () => {
                     >
                         <View style={styles.modalOverlay}>
                             <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+
                                 <View style={styles.modalHeader}>
-                                    <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>
-                                        Seleccionar País
+                                    <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
+                                        Seleccionar país
                                     </Text>
                                     <TouchableOpacity onPress={() => {
                                         setShowCountryPicker(false)
                                         setCountrySearch('')
                                     }}>
-                                        <Text style={[styles.closeButton, { color: theme.colors.secondaryText }]}>✕</Text>
+                                        <FontAwesome6 name="circle-xmark" size={24} color={theme.colors.secondaryText} />
                                     </TouchableOpacity>
                                 </View>
 
                                 {/* Search Input */}
-                                <View style={styles.searchContainer}>
-                                    <QPInput
-                                        value={countrySearch}
-                                        onChangeText={setCountrySearch}
-                                        placeholder="Buscar país..."
-                                        prefixIconName="search"
-                                        style={styles.searchInput}
-                                    />
-                                </View>
+                                <QPInput
+                                    value={countrySearch}
+                                    onChangeText={setCountrySearch}
+                                    placeholder="Buscar país..."
+                                    prefixIconName="magnifying-glass"
+                                    style={styles.searchInput}
+                                />
 
                                 <ScrollView style={styles.countryList}>
-                                    {countries
-                                        .filter(countryData =>
-                                            countryData.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-                                            countryData.code.toLowerCase().includes(countrySearch.toLowerCase())
-                                        )
-                                        .map((countryData) => (
-                                            <TouchableOpacity
-                                                key={countryData.code}
-                                                style={[
-                                                    styles.countryItem,
-                                                    {
-                                                        backgroundColor: country === countryData.code
-                                                            ? theme.colors.primary
-                                                            : theme.colors.background
-                                                    }
-                                                ]}
-                                                onPress={() => {
-                                                    setCountry(countryData.code)
-                                                    setShowCountryPicker(false)
-                                                    setCountrySearch('')
-                                                }}
-                                            >
-                                                <Text style={[
-                                                    styles.countryItemText,
-                                                    {
-                                                        color: country === countryData.code
-                                                            ? theme.colors.buttonText
-                                                            : theme.colors.primaryText
-                                                    }
-                                                ]}>
-                                                    {countryData.name} ({countryData.dial_code})
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
+                                    {countries.filter(countryData => countryData.name.toLowerCase().includes(countrySearch.toLowerCase()) || countryData.code.toLowerCase().includes(countrySearch.toLowerCase())).map((countryData, index) => (
+                                        <TouchableOpacity
+                                            key={`${countryData.code}-${countryData.dial_code}-${index}`}
+                                            style={[styles.countryItem, { backgroundColor: country === countryData.code ? theme.colors.primary : theme.colors.background }]}
+                                            onPress={() => {
+                                                setCountry(countryData.code)
+                                                setShowCountryPicker(false)
+                                                setCountrySearch('')
+                                            }}
+                                        >
+                                            <Text style={[styles.countryItemText, { color: country === countryData.code ? theme.colors.buttonText : theme.colors.primaryText }]}>
+                                                {countryData.name} ({countryData.dial_code})
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
                                 </ScrollView>
                             </View>
                         </View>
@@ -488,24 +468,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E9ECEF',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontFamily: 'Rubik-Bold',
-    },
-    closeButton: {
-        fontSize: 24,
-        fontFamily: 'Rubik-Bold',
+        marginBottom: 10,
     },
     countryList: {
         maxHeight: 400,
-    },
-    searchContainer: {
-        marginBottom: 20,
     },
     searchInput: {
         marginVertical: 0,
