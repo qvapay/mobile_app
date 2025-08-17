@@ -7,7 +7,6 @@ const Stack = createNativeStackNavigator()
 // FontAwesome6
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -94,6 +93,9 @@ const SettingsStack = ({ navigation }) => {
             <Stack.Screen
                 name={ROUTES.PHONE}
                 component={Phone}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen

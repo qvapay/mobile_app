@@ -141,14 +141,14 @@ const RegisterScreen = ({ navigation }) => {
 
     return (
         <KeyboardAvoidingView
-            style={[containerStyles.subContainer]}
+            style={containerStyles.subContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
                 <ScrollView
-                    contentContainerStyle={styles.scrollContainer}
+                    contentContainerStyle={containerStyles.scrollContainer}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
@@ -252,7 +252,7 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
                     )}
 
-                    <View style={{ marginBottom: 10 }}>
+                    <View style={{ marginBottom: 20 }}>
                         {requestPin ? (
                             <QPButton
                                 title="Verificar PIN"
@@ -283,17 +283,9 @@ const RegisterScreen = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-    scrollContainer: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        paddingVertical: 20
-    },
     formContainer: {
         flex: 1,
         justifyContent: 'center'
-    },
-    loader: {
-        marginTop: 10,
     },
     loginLink: {
         marginVertical: 10,
@@ -303,25 +295,6 @@ const styles = StyleSheet.create({
         marginTop: 10,
         paddingHorizontal: 5,
         alignItems: 'center',
-    },
-    checkbox: {
-        width: 20,
-        height: 20,
-        borderWidth: 2,
-        borderColor: '#ccc',
-        borderRadius: 4,
-        marginRight: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    checkmark: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    termsText: {
-        flex: 1,
-        lineHeight: 20,
     },
 })
 

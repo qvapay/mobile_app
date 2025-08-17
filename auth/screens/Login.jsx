@@ -29,7 +29,6 @@ const LoginScreen = () => {
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
-    const insets = useSafeAreaInsets()
 
     // Auth Context
     const { login, error, clearError } = useAuth()
@@ -79,14 +78,14 @@ const LoginScreen = () => {
 
     return (
         <KeyboardAvoidingView
-            style={[containerStyles.subContainer]}
+            style={containerStyles.subContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
                 <ScrollView
-                    contentContainerStyle={styles.scrollContainer}
+                    contentContainerStyle={containerStyles.scrollContainer}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
@@ -148,31 +147,9 @@ const LoginScreen = () => {
 }
 
 const styles = StyleSheet.create({
-    scrollContainer: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        paddingVertical: 20
-    },
     formContainer: {
         flex: 1,
         justifyContent: 'center'
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: 'white',
-    },
-    errorText: {
-        color: 'red',
-        textAlign: 'center',
-        marginBottom: 15,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        padding: 10,
-        borderRadius: 5,
-    },
-    loader: {
-        marginTop: 10,
     },
 })
 

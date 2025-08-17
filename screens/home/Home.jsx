@@ -104,8 +104,8 @@ const Home = ({ navigation }) => {
                     </ScrollView>
                 </View>
 
-                <View style={{ marginVertical: 10, gap: 10 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ marginVertical: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <Text style={textStyles.h5}>Últimas transacciones</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Text style={[textStyles.h6, { color: theme.colors.primary }]} onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>Ver todas</Text>

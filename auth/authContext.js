@@ -53,7 +53,6 @@ export const AuthProvider = ({ children }) => {
     // If Token is found, check agains API if the token is valid
     // If token is valid, set isAuthenticated to true
     const initializeAuth = async () => {
-
         try {
 
             // Set loading to true and we show a loading screen
@@ -231,16 +230,11 @@ export const AuthProvider = ({ children }) => {
         } catch (error) { console.warn('Error clearing auth data:', error) }
     }
 
-    // Update user data
-    // Update user data in storage and state and production server
+    // Update user data in storage
     const updateUser = async (newUserData) => {
         try {
             const updatedUser = { ...user, ...newUserData }
-
-            // Update stored user data
             await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
-
-            // Update state
             setUser(updatedUser)
             return { success: true }
         } catch (error) {

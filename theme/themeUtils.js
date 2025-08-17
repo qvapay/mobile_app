@@ -72,6 +72,11 @@ export const createContainerStyles = (theme) => StyleSheet.create({
         backgroundColor: theme.colors.background,
         paddingHorizontal: theme.spacing.md,
     },
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingVertical: 20
+    },
     card: {
         backgroundColor: theme.colors.surface,
         borderRadius: theme.borderRadius.md,

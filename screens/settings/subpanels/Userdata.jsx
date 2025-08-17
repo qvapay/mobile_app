@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
+import { StyleSheet, Text, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -15,8 +15,14 @@ import { userApi } from '../../../api/userApi'
 // Notifications
 import Toast from 'react-native-toast-message'
 
+// User AuthContext
+import { useAuth } from '../../../auth/AuthContext'
+
 // User Data Settings Component
 const Userdata = () => {
+
+    // Contexts
+    const { updateUser } = useAuth()
 
     // Theme variables, dark and light modes with memoized styles
     const { theme } = useTheme()
@@ -158,6 +164,13 @@ const Userdata = () => {
                 setName(userData.name || name)
                 setLastname(userData.lastname || lastname)
                 setBio(userData.bio || bio)
+
+                // Set the user data in the context
+                updateUser({
+                    name: userData.name || name,
+                    lastname: userData.lastname || lastname
+                })
+
             } else {
                 Toast.show({
                     type: 'error',
@@ -172,28 +185,7 @@ const Userdata = () => {
                 text1: 'Error al actualizar',
                 text2: error.message
             })
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    // Reset form to original values
-    const handleReset = () => {
-        Alert.alert(
-            'Restablecer formulario',
-            '¿Estás seguro de que quieres restablecer todos los cambios?',
-            [
-                {
-                    text: 'Cancelar',
-                    style: 'cancel'
-                },
-                {
-                    text: 'Restablecer',
-                    style: 'destructive',
-                    onPress: () => loadUserData()
-                }
-            ]
-        )
+        } finally { setIsLoading(false) }
     }
 
     // Format date for display
@@ -208,11 +200,6 @@ const Userdata = () => {
         } catch (error) {
             return 'N/A'
         }
-    }
-
-    // Get status badge color
-    const getStatusColor = (status) => {
-        return status ? theme.colors.success : theme.colors.danger
     }
 
     if (isLoadingData) {
