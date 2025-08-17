@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -8,6 +8,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // UI Particles
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
+import QPLoader from '../../../ui/particles/QPLoader'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -18,15 +19,11 @@ import { useAuth } from '../../../auth/AuthContext'
 // Notifications
 import Toast from 'react-native-toast-message'
 
+// FontAwesome6
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // Common country codes with dial codes
-const countryCodes = [
-    { code: 'US', name: 'United States', dial_code: '+1' },
-    { code: 'ES', name: 'Spain', dial_code: '+34' },
-    { code: 'MX', name: 'Mexico', dial_code: '+52' },
-    { code: 'AR', name: 'Argentina', dial_code: '+54' },
-    { code: 'AU', name: 'Australia', dial_code: '+61' },
-    { code: 'NZ', name: 'New Zealand', dial_code: '+64' }
-]
+import { countries } from '../../../labels/countries'
 
 // Phone Component
 const Phone = () => {
@@ -43,13 +40,16 @@ const Phone = () => {
     const [phone, setPhone] = useState('')
     const [country, setCountry] = useState('US')
     const [pin, setPin] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
     const [isVerifying, setIsVerifying] = useState(false)
     const [showPinInput, setShowPinInput] = useState(false)
     const [userPhoneVerified, setUserPhoneVerified] = useState(false)
     const [userPhone, setUserPhone] = useState('')
     const [showCountryPicker, setShowCountryPicker] = useState(false)
     const [countrySearch, setCountrySearch] = useState('')
+
+    // Loading States
+    const [isLoading, setIsLoading] = useState(false)
+    const [isLoadingData, setIsLoadingData] = useState(true)
 
     // Load user data on mount
     useEffect(() => {
@@ -59,6 +59,7 @@ const Phone = () => {
     // Load user data from API
     const loadUserData = async () => {
         try {
+            setIsLoadingData(true)
             const result = await userApi.getUserProfile()
             if (result.success && result.data) {
                 setUserPhoneVerified(result.data.phone_verified || false)
@@ -66,7 +67,7 @@ const Phone = () => {
                 if (result.data.phone) {
                     // Extract country code from phone
                     const phoneWithCode = result.data.phone
-                    const countryData = countryCodes.find(c => phoneWithCode.startsWith(c.dial_code))
+                    const countryData = countries.find(c => phoneWithCode.startsWith(c.dial_code))
                     if (countryData) {
                         setCountry(countryData.code)
                         setPhone(phoneWithCode.replace(countryData.dial_code, ''))
@@ -74,6 +75,7 @@ const Phone = () => {
                 }
             }
         } catch (error) { console.error('Error loading user data:', error) }
+        finally { setIsLoadingData(false) }
     }
 
     const handleSendCode = async () => {
@@ -106,8 +108,9 @@ const Phone = () => {
         }
 
         setIsLoading(true)
+
         try {
-            const countryData = countryCodes.find(c => c.code === country)
+            const countryData = countries.find(c => c.code === country)
             const phoneNumber = `${countryData.dial_code}${phone.trim()}`
 
             const result = await userApi.verifyPhone({
@@ -133,13 +136,19 @@ const Phone = () => {
         } catch (error) {
             console.error('Error sending code:', error)
             if (error.message.includes('Network Error')) {
-                Alert.alert('Error', 'Error de conexión. Verifica tu conexión a internet.')
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'Error de conexión. Verifica tu conexión a internet.'
+                })
             } else {
-                Alert.alert('Error', 'Error al enviar el código. Intenta nuevamente.')
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'Error al enviar el código. Intenta nuevamente.'
+                })
             }
-        } finally {
-            setIsLoading(false)
-        }
+        } finally { setIsLoading(false) }
     }
 
     const handleVerifyPhone = async () => {
@@ -155,7 +164,7 @@ const Phone = () => {
 
         setIsVerifying(true)
         try {
-            const countryData = countryCodes.find(c => c.code === country)
+            const countryData = countries.find(c => c.code === country)
             const phoneNumber = `${countryData.dial_code}${phone.trim()}`
 
             const result = await userApi.verifyPhone({
@@ -201,6 +210,9 @@ const Phone = () => {
         } finally { setIsVerifying(false) }
     }
 
+    // Loading state
+    if (isLoadingData) { return (<QPLoader />) }
+
     if (userPhoneVerified) {
         return (
             <View style={containerStyles.subContainer}>
@@ -212,17 +224,17 @@ const Phone = () => {
                         {userPhone}
                     </Text>
                 </View>
-                <View style={{ marginBottom: 20 }}>
+                <View style={containerStyles.bottomButtonContainer}>
                     <QPButton
                         title="Cambiar Número de Teléfono"
-                        onPress={() => {
-                            setUserPhoneVerified(false)
-                            setUserPhone('')
-                            setPhone('')
-                            setPin('')
-                            setShowPinInput(false)
-                        }}
-                        style={{ marginTop: 20, borderRadius: 25 }}
+                        // onPress={() => {
+                        //     setUserPhoneVerified(false)
+                        //     setUserPhone('')
+                        //     setPhone('')
+                        //     setPin('')
+                        //     setShowPinInput(false)
+                        // }}
+                        style={{ borderRadius: 25 }}
                         textStyle={{ color: theme.colors.almostWhite }}
                     />
                 </View>
@@ -231,166 +243,168 @@ const Phone = () => {
     }
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <View style={styles.content}>
+        <KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
-                <Text style={[styles.title, { color: theme.colors.primaryText }]}>
-                    Verificar Teléfono
-                </Text>
-                <Text style={[styles.subtitle, { color: theme.colors.secondaryText }]}>
-                    Ingresa tu número de teléfono para recibir un código de verificación
-                </Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-                {/* Country Selection */}
-                <View style={styles.countryContainer}>
-                    <Text style={[styles.label, { color: theme.colors.primaryText }]}>País</Text>
-                    <TouchableOpacity style={[styles.countryPicker, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => setShowCountryPicker(true)} >
-                        <Text style={[styles.countryText, { color: theme.colors.primaryText }]}>
-                            {countryCodes.find(c => c.code === country)?.name} ({countryCodes.find(c => c.code === country)?.dial_code})
-                        </Text>
-                        <Text style={[styles.dropdownIcon, { color: theme.colors.secondaryText }]}>▼</Text>
-                    </TouchableOpacity>
-                </View>
+                <View style={containerStyles.scrollContainer}>
 
-                {/* Phone Input */}
-                <View style={styles.inputContainer}>
-                    <Text style={[styles.label, { color: theme.colors.primaryText }]}>Número de Teléfono</Text>
-                    <QPInput
-                        value={phone}
-                        onChangeText={setPhone}
-                        placeholder="Ingresa tu número de teléfono"
-                        keyboardType="phone-pad"
-                        prefixIconName="phone-volume"
-                        style={styles.input}
-                    />
-                </View>
+                    <Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Verificar Teléfono</Text>
+                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número de teléfono para recibir un código de verificación</Text>
 
-                {!showPinInput ? (
-                    <QPButton
-                        title="Enviar Código de Verificación"
-                        onPress={handleSendCode}
-                        loading={isLoading}
-                        disabled={isLoading || !phone.trim()}
-                        style={styles.button}
-                    />
-                ) : (
-                    <>
+                    <View style={styles.formContainer}>
+                        {/* Country Selection */}
+                        <View style={styles.countryContainer}>
+                            <Text style={[styles.label, { color: theme.colors.primaryText }]}>País</Text>
+                            <TouchableOpacity style={[styles.countryPicker, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => setShowCountryPicker(true)} >
+                                <Text style={[styles.countryText, { color: theme.colors.primaryText }]}>
+                                    {countries.find(c => c.code === country)?.name} ({countries.find(c => c.code === country)?.dial_code})
+                                </Text>
+                                <FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Phone Input */}
                         <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: theme.colors.primaryText }]}>Código de Verificación</Text>
+                            <Text style={[styles.label, { color: theme.colors.primaryText }]}>Número de Teléfono</Text>
                             <QPInput
-                                value={pin}
-                                onChangeText={setPin}
-                                placeholder="Ingresa el código de 6 dígitos"
-                                keyboardType="numeric"
-                                maxLength={6}
-                                prefixIconName="key"
+                                value={phone}
+                                onChangeText={setPhone}
+                                placeholder="Ingresa tu número de teléfono"
+                                keyboardType="phone-pad"
+                                prefixIconName="phone-volume"
                                 style={styles.input}
                             />
                         </View>
-
-                        <QPButton
-                            title="Verificar Teléfono"
-                            onPress={handleVerifyPhone}
-                            loading={isVerifying}
-                            disabled={isVerifying || !pin.trim() || pin.trim().length !== 6}
-                            style={styles.button}
-                        />
-
-                        <QPButton
-                            title="Reenviar Código"
-                            onPress={handleSendCode}
-                            loading={isLoading}
-                            disabled={isLoading}
-                            style={[styles.button, styles.secondaryButton]}
-                        />
-                    </>
-                )}
-
-                {/* Country Picker Modal */}
-                <Modal
-                    visible={showCountryPicker}
-                    transparent={true}
-                    animationType="slide"
-                    onRequestClose={() => {
-                        setShowCountryPicker(false)
-                        setCountrySearch('')
-                    }}
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-                            <View style={styles.modalHeader}>
-                                <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>
-                                    Seleccionar País
-                                </Text>
-                                <TouchableOpacity onPress={() => {
-                                    setShowCountryPicker(false)
-                                    setCountrySearch('')
-                                }}>
-                                    <Text style={[styles.closeButton, { color: theme.colors.secondaryText }]}>✕</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Search Input */}
-                            <View style={styles.searchContainer}>
-                                <QPInput
-                                    value={countrySearch}
-                                    onChangeText={setCountrySearch}
-                                    placeholder="Buscar país..."
-                                    prefixIconName="search"
-                                    style={styles.searchInput}
-                                />
-                            </View>
-
-                            <ScrollView style={styles.countryList}>
-                                {countryCodes
-                                    .filter(countryData =>
-                                        countryData.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-                                        countryData.code.toLowerCase().includes(countrySearch.toLowerCase())
-                                    )
-                                    .map((countryData) => (
-                                        <TouchableOpacity
-                                            key={countryData.code}
-                                            style={[
-                                                styles.countryItem,
-                                                {
-                                                    backgroundColor: country === countryData.code
-                                                        ? theme.colors.primary
-                                                        : theme.colors.background
-                                                }
-                                            ]}
-                                            onPress={() => {
-                                                setCountry(countryData.code)
-                                                setShowCountryPicker(false)
-                                                setCountrySearch('')
-                                            }}
-                                        >
-                                            <Text style={[
-                                                styles.countryItemText,
-                                                {
-                                                    color: country === countryData.code
-                                                        ? theme.colors.buttonText
-                                                        : theme.colors.primaryText
-                                                }
-                                            ]}>
-                                                {countryData.name} ({countryData.dial_code})
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                            </ScrollView>
-                        </View>
                     </View>
-                </Modal>
-            </View>
-        </ScrollView>
+
+                    <View style={containerStyles.bottomButtonContainer}>
+                        {!showPinInput ? (
+                            <QPButton
+                                title="Enviar Código de Verificación"
+                                onPress={handleSendCode}
+                                loading={isLoading}
+                                disabled={isLoading || !phone.trim()}
+                                style={{ borderRadius: 25 }}
+                                textStyle={{ color: theme.colors.buttonText }}
+                            />
+                        ) : (
+                            <>
+                                <View style={styles.inputContainer}>
+                                    <Text style={[styles.label, { color: theme.colors.primaryText }]}>Código de Verificación</Text>
+                                    <QPInput
+                                        value={pin}
+                                        onChangeText={setPin}
+                                        placeholder="Ingresa el código de 6 dígitos"
+                                        keyboardType="numeric"
+                                        maxLength={6}
+                                        prefixIconName="key"
+                                        style={styles.input}
+                                    />
+                                </View>
+
+                                <QPButton
+                                    title="Verificar Teléfono"
+                                    onPress={handleVerifyPhone}
+                                    loading={isVerifying}
+                                    disabled={isVerifying || !pin.trim() || pin.trim().length !== 6}
+                                    style={styles.button}
+                                />
+
+                                <QPButton
+                                    title="Reenviar Código"
+                                    onPress={handleSendCode}
+                                    loading={isLoading}
+                                    disabled={isLoading}
+                                    style={[styles.button, styles.secondaryButton]}
+                                />
+                            </>
+                        )}
+                    </View>
+
+                    {/* Country Picker Modal */}
+                    <Modal
+                        visible={showCountryPicker}
+                        transparent={true}
+                        animationType="slide"
+                        onRequestClose={() => {
+                            setShowCountryPicker(false)
+                            setCountrySearch('')
+                        }}
+                    >
+                        <View style={styles.modalOverlay}>
+                            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={[styles.modalTitle, { color: theme.colors.primaryText }]}>
+                                        Seleccionar País
+                                    </Text>
+                                    <TouchableOpacity onPress={() => {
+                                        setShowCountryPicker(false)
+                                        setCountrySearch('')
+                                    }}>
+                                        <Text style={[styles.closeButton, { color: theme.colors.secondaryText }]}>✕</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Search Input */}
+                                <View style={styles.searchContainer}>
+                                    <QPInput
+                                        value={countrySearch}
+                                        onChangeText={setCountrySearch}
+                                        placeholder="Buscar país..."
+                                        prefixIconName="search"
+                                        style={styles.searchInput}
+                                    />
+                                </View>
+
+                                <ScrollView style={styles.countryList}>
+                                    {countries
+                                        .filter(countryData =>
+                                            countryData.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+                                            countryData.code.toLowerCase().includes(countrySearch.toLowerCase())
+                                        )
+                                        .map((countryData) => (
+                                            <TouchableOpacity
+                                                key={countryData.code}
+                                                style={[
+                                                    styles.countryItem,
+                                                    {
+                                                        backgroundColor: country === countryData.code
+                                                            ? theme.colors.primary
+                                                            : theme.colors.background
+                                                    }
+                                                ]}
+                                                onPress={() => {
+                                                    setCountry(countryData.code)
+                                                    setShowCountryPicker(false)
+                                                    setCountrySearch('')
+                                                }}
+                                            >
+                                                <Text style={[
+                                                    styles.countryItemText,
+                                                    {
+                                                        color: country === countryData.code
+                                                            ? theme.colors.buttonText
+                                                            : theme.colors.primaryText
+                                                    }
+                                                ]}>
+                                                    {countryData.name} ({countryData.dial_code})
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                </ScrollView>
+                            </View>
+                        </View>
+                    </Modal>
+                </View>
+            </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
     )
 }
 
 const styles = StyleSheet.create({
-    container: {
+    formContainer: {
         flex: 1,
-    },
-    content: {
-        padding: 20,
     },
     title: {
         fontSize: 24,
@@ -406,6 +420,7 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     countryContainer: {
+        marginTop: 20,
         marginBottom: 20,
     },
     label: {

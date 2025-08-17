@@ -8,6 +8,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // UI Particles
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
+import QPLoader from '../../../ui/particles/QPLoader'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -64,6 +65,7 @@ const Userdata = () => {
             const result = await userApi.getUserProfile()
 
             if (result.success && result.data) {
+
                 const userData = result.data
 
                 // Basic form fields
@@ -197,29 +199,22 @@ const Userdata = () => {
                 month: 'long',
                 day: 'numeric'
             })
-        } catch (error) {
-            return 'N/A'
-        }
+        } catch (error) { return 'N/A' }
     }
 
-    if (isLoadingData) {
-        return (
-            <View style={[containerStyles.subContainer, styles.loadingContainer]}>
-                <Text style={textStyles.h3}>Cargando datos...</Text>
-            </View>
-        )
-    }
+    // Loading state
+    if (isLoadingData) { return (<QPLoader />) }
 
     return (
         <KeyboardAvoidingView
-            style={[containerStyles.subContainer]}
+            style={containerStyles.subContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
                 <ScrollView
-                    contentContainerStyle={styles.scrollContainer}
+                    contentContainerStyle={containerStyles.scrollContainer}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
@@ -342,7 +337,7 @@ const Userdata = () => {
 
                     </View>
 
-                    <View style={styles.buttonContainer}>
+                    <View style={containerStyles.bottomButtonContainer}>
                         <QPButton
                             title="Actualizar datos"
                             onPress={handleSubmit}
@@ -365,46 +360,11 @@ const Userdata = () => {
 }
 
 const styles = StyleSheet.create({
-    scrollContainer: {
-        flexGrow: 1,
-        paddingVertical: 20,
-    },
-    statusSection: {
-        marginVertical: 20,
-        padding: 20,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)'
-    },
-    statusGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 15,
-        marginBottom: 20
-    },
-    statusItem: {
-        alignItems: 'center',
-        minWidth: 80
-    },
-    statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        marginTop: 5
-    },
-    additionalInfo: {
-        gap: 8
-    },
     formContainer: {
         marginVertical: 20
     },
     inputContainer: {
         marginBottom: 10
-    },
-    buttonContainer: {
-        gap: 15,
-        marginBottom: 20
     },
     updateButton: {
         borderRadius: 25

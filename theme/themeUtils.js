@@ -77,6 +77,9 @@ export const createContainerStyles = (theme) => StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 20
     },
+    bottomButtonContainer: {
+        marginBottom: 20
+    },
     card: {
         backgroundColor: theme.colors.surface,
         borderRadius: theme.borderRadius.md,

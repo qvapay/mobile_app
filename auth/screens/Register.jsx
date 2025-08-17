@@ -140,10 +140,7 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     return (
-        <KeyboardAvoidingView
-            style={containerStyles.subContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+        <KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
@@ -252,7 +249,7 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
                     )}
 
-                    <View style={{ marginBottom: 20 }}>
+                    <View style={containerStyles.bottomButtonContainer}>
                         {requestPin ? (
                             <QPButton
                                 title="Verificar PIN"

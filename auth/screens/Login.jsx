@@ -114,7 +114,6 @@ const LoginScreen = () => {
                         />
 
                         {/** TODO: If login is successfull, then show the PIN Input */}
-
                         <QPInput
                             placeholder="PIN o 2FA"
                             value={twoFactorCode}
@@ -127,7 +126,7 @@ const LoginScreen = () => {
 
                     </View>
 
-                    <View style={{ marginBottom: 20 }}>
+                    <View style={containerStyles.bottomButtonContainer}>
                         <QPButton
                             title="Acceder"
                             onPress={handleLogin}
