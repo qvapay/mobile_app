@@ -39,13 +39,6 @@ const WelcomeScreen = ({ navigation }) => {
                     <Text style={textStyles.subtitle}>Tu plataforma de pagos digitales y P2P</Text>
                 </View>
 
-                <QPButton
-                    title="Test Sentry"
-                    onPress={() => {
-                        throw new Error('Test Sentry')
-                    }}
-                />
-
                 <View>
                     <View style={styles.buttonContainer}>
                         <QPButton
