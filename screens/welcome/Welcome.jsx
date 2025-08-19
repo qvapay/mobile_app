@@ -39,22 +39,25 @@ const WelcomeScreen = ({ navigation }) => {
                     <Text style={textStyles.subtitle}>Tu plataforma de pagos digitales y P2P</Text>
                 </View>
 
-                <View>
-                    <View style={styles.buttonContainer}>
-                        <QPButton
-                            title="Acceder"
-                            onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)}
-                            style={[styles.actionButton, { backgroundColor: theme.colors.primary, borderRadius: 25, color: theme.colors.buttonText }]}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                        />
-                        <View style={styles.actionButtonSpacer} />
-                        <QPButton
-                            title="Registrarse"
-                            onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)}
-                            style={[styles.actionButton, { backgroundColor: theme.colors.secondary, borderRadius: 25, color: theme.colors.buttonText }]}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                        />
-                    </View>
+                <View style={styles.buttonContainer}>
+                    <QPButton
+                        title="Acceder"
+                        onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)}
+                        style={[styles.actionButton, { backgroundColor: theme.colors.primary, borderRadius: 25, color: theme.colors.buttonText }]}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                    />
+                    <View style={styles.actionButtonSpacer} />
+                    <QPButton
+                        title="Registrarse"
+                        onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)}
+                        style={[styles.actionButton, { backgroundColor: theme.colors.secondary, borderRadius: 25, color: theme.colors.buttonText }]}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                    />
+                </View>
+
+                {/** Terms and Conditions */}
+                <View style={styles.termsContainer}>
+                    <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>Al continuar, aceptas nuestros Términos y Condiciones</Text>
                 </View>
 
             </SafeAreaView>
@@ -65,6 +68,7 @@ const WelcomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     titleContainer: {
         marginTop: 20,
+        flex: 1,
     },
     buttonContainer: {
         flexDirection: 'row',
