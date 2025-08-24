@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, ImageBackground } from 'react-native'
+import { View, Text, StyleSheet, ImageBackground, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LinearGradient from 'react-native-linear-gradient'
 
@@ -57,7 +57,9 @@ const WelcomeScreen = ({ navigation }) => {
 
                 {/** Terms and Conditions */}
                 <View style={styles.termsContainer}>
-                    <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>Al continuar, aceptas nuestros Términos y Condiciones</Text>
+                    <Text style={[textStyles.h6, { fontFamily: theme.typography.fontFamily.regular, color: theme.colors.tertiaryText, textAlign: 'center' }]}>
+                        Al continuar, aceptas nuestros <Text style={{ fontFamily: theme.typography.fontFamily.medium, color: theme.colors.primary }} onPress={() => Linking.openURL(ROUTES.TERMS_AND_CONDITIONS)}>Términos y Condiciones</Text>
+                    </Text>
                 </View>
 
             </SafeAreaView>

@@ -66,7 +66,10 @@ export const ROUTES = {
     CONTACTS: "Contacts",
 
     // Help Screens
-    HELP_SCREEN: "Help"
+    HELP_SCREEN: "Help",
+
+    // Terms and Conditions
+    TERMS_AND_CONDITIONS: "https://qvapay.com/terms-of-service"
 }
 
 export const navItems = [

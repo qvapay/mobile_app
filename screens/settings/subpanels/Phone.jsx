@@ -78,32 +78,21 @@ const Phone = () => {
         finally { setIsLoadingData(false) }
     }
 
+    // Send code to phone
     const handleSendCode = async () => {
 
         if (!phone.trim()) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Por favor ingresa un número de teléfono'
-            })
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un número de teléfono' })
             return
         }
 
         if (phone.trim().length < 7) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'El número de teléfono debe tener al menos 7 dígitos'
-            })
+            Toast.show({ type: 'error', text1: 'Error', text2: 'El número de teléfono debe tener al menos 7 dígitos' })
             return
         }
 
         if (!country) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Por favor selecciona un país'
-            })
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor selecciona un país' })
             return
         }
 
@@ -121,44 +110,24 @@ const Phone = () => {
 
             if (result.success) {
                 setShowPinInput(true)
-                Toast.show({
-                    type: 'success',
-                    text1: 'Éxito',
-                    text2: 'PIN de verificación enviado'
-                })
+                Toast.show({ type: 'success', text1: 'Éxito', text2: 'PIN de verificación enviado' })
             } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: result.error || 'Error al enviar el código'
-                })
+                Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'Error al enviar el código' })
             }
         } catch (error) {
-            console.error('Error sending code:', error)
             if (error.message.includes('Network Error')) {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Error de conexión. Verifica tu conexión a internet.'
-                })
+                Toast.show({ type: 'error', text1: 'Error', text2: 'Error de conexión. Verifica tu conexión a internet.' })
             } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Error al enviar el código. Intenta nuevamente.'
-                })
+                Toast.show({ type: 'error', text1: 'Error', text2: 'Error al enviar el código. Intenta nuevamente.' })
             }
         } finally { setIsLoading(false) }
     }
 
+    // Verify phone
     const handleVerifyPhone = async () => {
 
         if (!pin.trim() || pin.trim().length !== 6) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Por favor ingresa un PIN válido de 6 dígitos'
-            })
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un PIN válido de 6 dígitos' })
             return
         }
 
@@ -185,27 +154,12 @@ const Phone = () => {
                     text1: 'Éxito',
                     text2: 'Teléfono verificado correctamente'
                 })
-            } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: result.error || 'Error al verificar el teléfono'
-                })
-            }
+            } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'Error al verificar el teléfono' }) }
         } catch (error) {
-            console.error('Error verifying phone:', error)
             if (error.message.includes('Network Error')) {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Error de conexión. Verifica tu conexión a internet.'
-                })
+                Toast.show({ type: 'error', text1: 'Error', text2: 'Error de conexión. Verifica tu conexión a internet.' })
             } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Error al verificar el teléfono. Intenta nuevamente.'
-                })
+                Toast.show({ type: 'error', text1: 'Error', text2: 'Error al verificar el teléfono. Intenta nuevamente.' })
             }
         } finally { setIsVerifying(false) }
     }
