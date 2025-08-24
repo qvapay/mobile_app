@@ -40,7 +40,7 @@ const LoginScreen = () => {
     const [twoFactorCode, setTwoFactorCode] = useState('')
 
     // Show PIN Input
-    const [showPin, setShowPin] = useState(false)
+    const [showPin, setShowPin] = useState(true)
 
     // Handle pre-login, we set the loading to true, clear the error and call the login function
     // If login is successful (HTTP response 202), we set the loading to false and show the PIN Input
@@ -118,15 +118,18 @@ const LoginScreen = () => {
                     <View style={styles.formContainer}>
                         {
                             showPin ? (
-                                <QPInput
-                                    placeholder="PIN o 2FA"
-                                    value={twoFactorCode}
-                                    onChangeText={setTwoFactorCode}
-                                    keyboardType="numeric"
-                                    maxLength={6}
-                                    secureTextEntry
-                                    prefixIconName="shield"
-                                />
+                                <>
+                                    <QPInput
+                                        placeholder="PIN o 2FA"
+                                        value={twoFactorCode}
+                                        onChangeText={setTwoFactorCode}
+                                        keyboardType="numeric"
+                                        maxLength={6}
+                                        secureTextEntry
+                                        prefixIconName="shield"
+                                    />
+                                    
+                                </>
                             ) : (
                                 <>
                                     <QPInput
