@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -42,13 +42,43 @@ const LoginScreen = () => {
     // Show PIN Input
     const [showPin, setShowPin] = useState(false)
 
-    // Handle login, we set the loading to true, clear the error and call the login function
-    // If login is successful, we set the loading to false
-    // If login is not successful, we set the loading to false and show an error message
-    const handleLogin = async () => {
+    // Handle pre-login, we set the loading to true, clear the error and call the login function
+    // If login is successful (HTTP response 202), we set the loading to false and show the PIN Input
+    // If login is not successful (HTTP response 401), we set the loading to false and show an error message
+    const handlePreLogin = async () => {
 
         if (!email || !password) {
-            Alert.alert('Error', 'Por favor completa todos los campos')
+            Toast.show({ type: 'error', text1: 'Por favor completa todos los campos' })
+            return
+        }
+
+        try {
+
+            clearError()
+            setIsLoading(true)
+            const result = await login({
+                email,
+                password
+            })
+
+            // If Prelogin is not successful, we show an error message
+            if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
+
+            // If Prelogin is successful, we set firstTime to false and show the PIN Input
+            if (result.status === 202) {
+                await updateSettings('appearance', { firstTime: false })
+                setShowPin(true)
+            }
+
+        } catch (error) {
+            Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión' })
+        } finally { setIsLoading(false) }
+    }
+
+    const handleLogin = async () => {
+
+        if (!email || !password || !twoFactorCode) {
+            Toast.show({ type: 'error', text1: 'No es posible iniciar sesión sin completar todos los campos' })
             return
         }
 
@@ -61,18 +91,10 @@ const LoginScreen = () => {
                 password,
                 two_factor_code: twoFactorCode
             })
-
-            // After the first successful login, set firstTime to false
-            if (result.success) { await updateSettings('appearance', { firstTime: false }) }
-            if (!result.success) {
-                Toast.show({
-                    type: 'error',
-                    text1: result.error
-                })
-            }
+            if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
 
         } catch (error) {
-            Alert.alert('Error', 'Ha ocurrido un error durante el inicio de sesión')
+            Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente' })
         } finally { setIsLoading(false) }
     }
 
@@ -94,47 +116,63 @@ const LoginScreen = () => {
                     <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico y contraseña para acceder a tu cuenta</Text>
 
                     <View style={styles.formContainer}>
+                        {
+                            showPin ? (
+                                <QPInput
+                                    placeholder="PIN o 2FA"
+                                    value={twoFactorCode}
+                                    onChangeText={setTwoFactorCode}
+                                    keyboardType="numeric"
+                                    maxLength={6}
+                                    secureTextEntry
+                                    prefixIconName="shield"
+                                />
+                            ) : (
+                                <>
+                                    <QPInput
+                                        placeholder="tucorreo@gmail.com"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        prefixIconName="envelope"
+                                    />
 
-                        <QPInput
-                            placeholder="tucorreo@gmail.com"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            prefixIconName="envelope"
-                        />
-
-                        <QPInput
-                            placeholder="Contraseña"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            prefixIconName="lock"
-                            suffixIconName="eye"
-                        />
-
-                        {/** TODO: If login is successfull, then show the PIN Input */}
-                        <QPInput
-                            placeholder="PIN o 2FA"
-                            value={twoFactorCode}
-                            onChangeText={setTwoFactorCode}
-                            keyboardType="numeric"
-                            maxLength={6}
-                            secureTextEntry
-                            prefixIconName="shield"
-                        />
-
+                                    <QPInput
+                                        placeholder="Contraseña"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry
+                                        prefixIconName="lock"
+                                        suffixIconName="eye"
+                                    />
+                                </>
+                            )
+                        }
                     </View>
 
                     <View style={containerStyles.bottomButtonContainer}>
-                        <QPButton
-                            title="Acceder"
-                            onPress={handleLogin}
-                            disabled={!email || !password || !twoFactorCode}
-                            style={{ borderRadius: 25 }}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                            loading={isLoading}
-                        />
+                        {
+                            showPin ? (
+                                <QPButton
+                                    title="Acceder"
+                                    onPress={handleLogin}
+                                    disabled={!email || !password || !twoFactorCode}
+                                    style={{ borderRadius: 25 }}
+                                    textStyle={{ color: theme.colors.almostWhite }}
+                                    loading={isLoading}
+                                />
+                            ) : (
+                                <QPButton
+                                    title="Acceder"
+                                    onPress={handlePreLogin}
+                                    disabled={!email || !password}
+                                    style={{ borderRadius: 25 }}
+                                    textStyle={{ color: theme.colors.almostWhite }}
+                                    loading={isLoading}
+                                />
+                            )
+                        }
                     </View>
 
                 </ScrollView>

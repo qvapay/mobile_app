@@ -95,10 +95,15 @@ export const AuthProvider = ({ children }) => {
             // Call QvaPay API for authentication
             const apiResponse = await authApi.login(credentials)
 
+            console.log('🔐 Login response:', apiResponse)
+
             if (!apiResponse.success) {
                 setError(apiResponse.error || 'Login failed')
                 return { success: false, error: apiResponse.error }
             }
+
+            // If Prelogin is successful, we return the status and success
+            if (apiResponse.status === 202) { return { success: true, status: apiResponse.status } }
 
             // Extract data from API response
             const { accessToken, me } = apiResponse

@@ -21,6 +21,10 @@ export const authApi = {
                 remember: true
             })
 
+            // If Prelogin is successful, we return the status and success
+            if (response.status === 202) { return {status: response.status, success: true }}
+
+            // If Login is successful, we return the data, accessToken, tokenType and me
             return {
                 success: true,
                 data: response.data,
@@ -34,17 +38,10 @@ export const authApi = {
             // Handle specific API errors
             if (error.response?.data) {
                 const errorData = error.response.data
-                return {
-                    success: false,
-                    error: errorData.message || 'No se pudo iniciar sesión',
-                    details: errorData,
-                }
+                return { success: false, error: errorData.message || 'No se pudo iniciar sesión', details: errorData }
             }
 
-            return {
-                success: false,
-                error: error.message || 'Ha ocurrido un error de red',
-            }
+            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     },
 
