@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             // If Prelogin is successful, we return the status and success
-            if (apiResponse.status === 202) { return { success: true, status: apiResponse.status } }
+            if (apiResponse.status === 202) { return { success: true, status: apiResponse.status, notified: apiResponse.notified } }
 
             // Extract data from API response
             const { accessToken, me } = apiResponse
@@ -147,6 +147,31 @@ export const AuthProvider = ({ children }) => {
 
         } catch (error) {
             setError('Login failed. Please try again.')
+            return { success: false, error: error.message }
+        } finally { setIsLoading(false) }
+    }
+
+
+    // Request PIN function, we call the API to request a PIN
+    const requestPin = async (credentials) => {
+
+        try {
+
+            setError(null)
+
+            const apiResponse = await authApi.requestPin(credentials)
+
+            console.log('🔐 Request PIN response:', apiResponse)
+
+            if (apiResponse.success) {
+                return { success: true, message: apiResponse.message }
+            } else {
+                setError(apiResponse.error)
+                return { success: false, error: apiResponse.error }
+            }
+        }
+        catch (error) {
+            setError('Failed to request PIN')
             return { success: false, error: error.message }
         } finally { setIsLoading(false) }
     }
@@ -266,6 +291,7 @@ export const AuthProvider = ({ children }) => {
         register,
         updateUser,
         clearError,
+        requestPin
     }
 
     return (

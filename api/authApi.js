@@ -22,7 +22,7 @@ export const authApi = {
             })
 
             // If Prelogin is successful, we return the status and success
-            if (response.status === 202) { return {status: response.status, success: true }}
+            if (response.status === 202) { return { status: response.status, success: true, notified: response.data.notified } }
 
             // If Login is successful, we return the data, accessToken, tokenType and me
             return {
@@ -39,6 +39,38 @@ export const authApi = {
             if (error.response?.data) {
                 const errorData = error.response.data
                 return { success: false, error: errorData.message || 'No se pudo iniciar sesión', details: errorData }
+            }
+
+            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
+        }
+    },
+
+    /**
+     * Request PIN
+     * @param {Object} credentials - Request PIN credentials
+     * @param {string} credentials.email - User email
+     * @param {string} credentials.password - User password
+     * @returns {Promise<Object>} Request PIN response
+     */
+    requestPin: async (credentials) => {
+
+        try {
+
+            const response = await apiClient.post('/auth/request-pin', {
+                email: credentials.email,
+                password: credentials.password
+            })
+
+            return {
+                success: true,
+                data: response.data,
+            }
+
+        } catch (error) {
+
+            if (error.response?.data) {
+                const errorData = error.response.data
+                return { success: false, error: errorData.message || 'No se pudo solicitar el PIN', details: errorData }
             }
 
             return { success: false, error: error.message || 'Ha ocurrido un error de red' }

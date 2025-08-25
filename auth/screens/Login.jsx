@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -31,7 +31,7 @@ const LoginScreen = () => {
     const containerStyles = createContainerStyles(theme)
 
     // Auth Context
-    const { login, error, clearError } = useAuth()
+    const { login, requestPin, error, clearError } = useAuth()
 
     // States
     const [isLoading, setIsLoading] = useState(false)
@@ -40,7 +40,34 @@ const LoginScreen = () => {
     const [twoFactorCode, setTwoFactorCode] = useState('')
 
     // Show PIN Input
-    const [showPin, setShowPin] = useState(true)
+    const [showPin, setShowPin] = useState(false)
+    const [requestPINLabel, setRequestPINLabel] = useState('Solicitar PIN')
+    const [requestingPIN, setRequestingPIN] = useState(false)
+
+    // Countdown timer states
+    const [countdown, setCountdown] = useState(0)
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false)
+    const countdownRef = useRef(null)
+
+    // Countdown timer effect
+    useEffect(() => {
+        if (countdown > 0) {
+            countdownRef.current = setTimeout(() => {
+                setCountdown(prev => prev - 1)
+            }, 1000)
+
+            // Update button label with formatted time
+            const minutes = Math.floor(countdown / 60)
+            const seconds = countdown % 60
+            const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+            setRequestPINLabel(timeString)
+        } else if (countdown === 0 && isButtonDisabled) {
+            setIsButtonDisabled(false)
+            setRequestPINLabel('Solicitar PIN')
+        }
+
+        return () => { if (countdownRef.current) { clearTimeout(countdownRef.current) } }
+    }, [countdown, isButtonDisabled])
 
     // Handle pre-login, we set the loading to true, clear the error and call the login function
     // If login is successful (HTTP response 202), we set the loading to false and show the PIN Input
@@ -56,12 +83,8 @@ const LoginScreen = () => {
 
             clearError()
             setIsLoading(true)
-            const result = await login({
-                email,
-                password
-            })
 
-            // If Prelogin is not successful, we show an error message
+            const result = await login({ email, password })
             if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
 
             // If Prelogin is successful, we set firstTime to false and show the PIN Input
@@ -75,6 +98,7 @@ const LoginScreen = () => {
         } finally { setIsLoading(false) }
     }
 
+    // Send all credentials to login
     const handleLogin = async () => {
 
         if (!email || !password || !twoFactorCode) {
@@ -86,16 +110,34 @@ const LoginScreen = () => {
 
             clearError()
             setIsLoading(true)
-            const result = await login({
-                email,
-                password,
-                two_factor_code: twoFactorCode
-            })
+
+            const result = await login({ email, password, two_factor_code: twoFactorCode })
             if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
 
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente' })
         } finally { setIsLoading(false) }
+    }
+
+    // Send a PIN request to email
+    const handleRequestPin = async () => {
+
+        try {
+
+            setRequestingPIN(true)
+
+            const result = await requestPin({ email, password })
+            if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
+
+            // Start countdown timer if request was successful
+            if (result.success) {
+                setCountdown(60) // 1 minute = 60 seconds
+                setIsButtonDisabled(true)
+                setRequestPINLabel('01:00')
+            }
+
+        } catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente' }) }
+        finally { setRequestingPIN(false) }
     }
 
     return (
@@ -113,7 +155,13 @@ const LoginScreen = () => {
                 >
 
                     <Text style={textStyles.h1}>Acceder a tu cuenta</Text>
-                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico y contraseña para acceder a tu cuenta</Text>
+                    {
+                        showPin ? (
+                            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Coloca tu PIN o 2FA para acceder a tu cuenta</Text>
+                        ) : (
+                            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico y contraseña para acceder a tu cuenta</Text>
+                        )
+                    }
 
                     <View style={styles.formContainer}>
                         {
@@ -128,7 +176,14 @@ const LoginScreen = () => {
                                         secureTextEntry
                                         prefixIconName="shield"
                                     />
-                                    
+                                    <QPButton
+                                        title={requestPINLabel}
+                                        onPress={handleRequestPin}
+                                        loading={requestingPIN}
+                                        disabled={isButtonDisabled}
+                                        style={{ backgroundColor: null }}
+                                        textStyle={{ color: theme.colors.primary }}
+                                    />
                                 </>
                             ) : (
                                 <>
