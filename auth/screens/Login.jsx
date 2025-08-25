@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -58,7 +57,6 @@ const LoginScreen = ({ navigation }) => {
             countdownRef.current = setTimeout(() => {
                 setCountdown(prev => prev - 1)
             }, 1000)
-
             // Update button label with formatted time
             const minutes = Math.floor(countdown / 60)
             const seconds = countdown % 60
@@ -68,7 +66,6 @@ const LoginScreen = ({ navigation }) => {
             setIsButtonDisabled(false)
             setRequestPINLabel('Solicitar PIN')
         }
-
         return () => { if (countdownRef.current) { clearTimeout(countdownRef.current) } }
     }, [countdown, isButtonDisabled])
 
@@ -115,7 +112,7 @@ const LoginScreen = ({ navigation }) => {
             setIsLoading(true)
 
             const result = await login({ email, password, two_factor_code: twoFactorCode })
-            if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
+            if (!result.success) { Toast.show({ type: 'error', text1: result.error, text2: result.details }) }
 
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente' })

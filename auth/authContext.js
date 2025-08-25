@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 // Keychain and Async Storage
 // import * as Keychain from 'react-native-keychain'
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
 
             if (!apiResponse.success) {
                 setError(apiResponse.error || 'Login failed')
-                return { success: false, error: apiResponse.error }
+                return { success: false, error: apiResponse.error, details: apiResponse.details }
             }
 
             // If Prelogin is successful, we return the status and success
@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
 
         } catch (error) {
             setError('Login failed. Please try again.')
-            return { success: false, error: error.message }
+            return { success: false, error: error.message, details: error.details }
         } finally { setIsLoading(false) }
     }
 

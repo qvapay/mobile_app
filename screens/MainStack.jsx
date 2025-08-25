@@ -1,4 +1,3 @@
-import React from 'react'
 import { StyleSheet, Pressable, View, Text } from 'react-native'
 
 // Safe Area

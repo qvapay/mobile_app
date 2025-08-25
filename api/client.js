@@ -46,13 +46,10 @@ apiClient.interceptors.response.use(
     async (error) => {
         // Handle common errors
         if (error.response) {
-            // Server responded with error status
             const { status, data } = error.response
-
             switch (status) {
                 case 401:
                     // Unauthorized - token expired or invalid
-                    console.warn('Authentication failed:', data)
                     // Note: logout should be handled by the component using this client
                     // We'll clear the token here but let the component handle the actual logout
                     try {
@@ -68,18 +65,17 @@ apiClient.interceptors.response.use(
                     console.warn('Validation error:', data)
                     break
                 case 500:
-                    // Server error
-                    console.warn('Server error:', data)
-                    break
+                    return Promise.reject({ message: "Ha ocurrido un error, contacte a soporte" })
+                    // break
                 default:
                     console.warn(`HTTP ${status} error:`, data)
             }
         } else if (error.request) {
             // Network error
-            console.warn('Network error:', error.request)
+            return Promise.reject({ message: "No se ha podido conectar con el servidor" })
         } else {
             // Other error
-            console.warn('Request error:', error.message)
+            return Promise.reject({ message: "Ha ocurrido un error inesperado" })
         }
 
         return Promise.reject(error)

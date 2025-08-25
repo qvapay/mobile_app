@@ -1,4 +1,3 @@
-import React, { useState } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 
 // Lottie
