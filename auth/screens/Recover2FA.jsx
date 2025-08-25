@@ -20,7 +20,6 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 10,
         justifyContent: 'center',
-        backgroundColor: 'green',
     },
     imageLogo: {
         width: 200,

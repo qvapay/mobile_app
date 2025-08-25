@@ -19,8 +19,11 @@ import QPButton from '../../ui/particles/QPButton'
 // Notifications
 import Toast from 'react-native-toast-message'
 
+// Routes
+import { ROUTES } from '../../routes'
+
 // Login Screen
-const LoginScreen = () => {
+const LoginScreen = ({ navigation }) => {
 
     // Settings Context
     const { updateSettings } = useSettings()
@@ -140,6 +143,14 @@ const LoginScreen = () => {
         finally { setRequestingPIN(false) }
     }
 
+    // Handle restore password
+    const handleRestorePassword = () => {
+        console.log('🔐 Restore password')
+
+        // Go to the restore password screen, we pass the email to the screen
+        navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email })
+    }
+
     return (
         <KeyboardAvoidingView
             style={containerStyles.subContainer}
@@ -203,6 +214,13 @@ const LoginScreen = () => {
                                         secureTextEntry
                                         prefixIconName="lock"
                                         suffixIconName="eye"
+                                    />
+
+                                    <QPButton
+                                        title="Restaurar contraseña"
+                                        style={{ backgroundColor: null }}
+                                        textStyle={{ color: theme.colors.primary }}
+                                        onPress={handleRestorePassword}
                                     />
                                 </>
                             )
