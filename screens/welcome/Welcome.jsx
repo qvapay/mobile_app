@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ImageBackground, Linking } from 'react-native'
+import { View, Text, StyleSheet, ImageBackground, Linking, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LinearGradient from 'react-native-linear-gradient'
 
@@ -12,6 +12,9 @@ import { ROUTES } from '../../routes'
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
 
+// Settings Context
+import { useSettings } from '../../settings/SettingsContext'
+
 // Welcome Screen
 const WelcomeScreen = ({ navigation }) => {
 
@@ -19,6 +22,33 @@ const WelcomeScreen = ({ navigation }) => {
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
+
+    // Settings context
+    const { updateSetting } = useSettings()
+
+    // Handle long press on title to reset first time use
+    const handleTitleLongPress = async () => {
+        Alert.alert(
+            'Reset App',
+            '¿Estás seguro de que quieres resetear la aplicación? Esto te llevará a la pantalla de introducción.',
+            [
+                {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Resetear',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await updateSetting('appearance', 'firstTime', true)
+                            navigation.reset({ index: 0, routes: [{ name: ROUTES.ONBOARD_SCREEN }] })
+                        } catch (error) { console.error('Error resetting app:', error) }
+                    }
+                }
+            ]
+        )
+    }
 
     return (
         <ImageBackground source={require('../../assets/images/welcome/qp-bck.png')} style={{ flex: 1 }}>
@@ -34,7 +64,9 @@ const WelcomeScreen = ({ navigation }) => {
                 />
 
                 <View style={styles.titleContainer}>
-                    <Text style={textStyles.h1}>Bienvenido a QvaPay</Text>
+                    <Text style={textStyles.h1} onLongPress={handleTitleLongPress} delayLongPress={1000}>
+                        Bienvenido a QvaPay
+                    </Text>
                     <Text style={textStyles.subtitle}>Tu plataforma de pagos digitales y P2P</Text>
                 </View>
 
