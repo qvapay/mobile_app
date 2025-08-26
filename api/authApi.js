@@ -257,6 +257,47 @@ export const authApi = {
                 error: error.message || 'Ha ocurrido un error de red',
             }
         }
+    },
+
+    /**
+     * Confirm registration
+     * @param {Object} credentials - Confirmation credentials
+     * @param {string} credentials.uuid - User UUID
+     * @param {string} credentials.pin - User PIN
+     * @returns {Promise<Object>} Confirmation response
+     */
+    confirmRegistration: async (credentials) => {
+
+        try {
+
+            const response = await apiClient.post('/auth/confirm-registration', {
+                uuid: credentials.uuid,
+                email: credentials.email,
+                pin: credentials.pin
+            })
+
+            return {
+                success: true,
+                data: response.data,
+                message: response.data.message,
+            }
+
+        } catch (error) { 
+            // Handle specific API errors
+            if (error.response?.data) {
+                const errorData = error.response.data
+                return { 
+                    success: false, 
+                    error: errorData.error || errorData.message || 'No se pudo confirmar el registro', 
+                    details: errorData 
+                }
+            }
+            
+            return { 
+                success: false, 
+                error: error.message || 'Ha ocurrido un error de red' 
+            } 
+        }
     }
 }
 

@@ -249,6 +249,31 @@ export const AuthProvider = ({ children }) => {
         } finally { setIsLoading(false) }
     }
 
+    // Confirm registration function, we call the API to confirm the registration
+    const confirmRegistration = async (credentials) => {
+        try {
+            const apiResponse = await authApi.confirmRegistration(credentials)
+            if (apiResponse.success) {
+                return { success: true, message: apiResponse.message }
+            } else {
+                setError(apiResponse.error)
+                return { 
+                    success: false, 
+                    error: apiResponse.error,
+                    details: apiResponse.details || {}
+                }
+            }
+        }
+        catch (error) {
+            setError('Failed to confirm registration')
+            return { 
+                success: false, 
+                error: error.message || 'Failed to confirm registration',
+                details: {}
+            }
+        } finally { setIsLoading(false) }
+    }
+
     // Clear all authentication data
     // Remove token, and user data
     const clearAuthData = async () => {
@@ -291,7 +316,8 @@ export const AuthProvider = ({ children }) => {
         register,
         updateUser,
         clearError,
-        requestPin
+        requestPin,
+        confirmRegistration
     }
 
     return (

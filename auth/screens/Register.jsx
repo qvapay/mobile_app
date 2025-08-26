@@ -21,7 +21,7 @@ import Toast from 'react-native-toast-message'
 const RegisterScreen = ({ navigation }) => {
 
     // Auth Context
-    const { register, clearError, error } = useAuth()
+    const { register, clearError, error, confirmRegistration } = useAuth()
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
@@ -31,6 +31,7 @@ const RegisterScreen = ({ navigation }) => {
 
     // States
     const [isLoading, setIsLoading] = useState(false)
+    const [uuid, setUuid] = useState('')
     const [name, setName] = useState('')
     const [lastname, setLastname] = useState('')
     const [email, setEmail] = useState('')
@@ -104,11 +105,14 @@ const RegisterScreen = ({ navigation }) => {
                 terms: termsAccepted
             })
 
-            if (result.success) { setRequestPin(true) }
-            if (!result.success) { Alert.alert('Error', result.error || 'Ocurrió un error durante el registro. Por favor intenta de nuevo.') }
+            if (result.success) {
+                setUuid(result.user.uuid)
+                setRequestPin(true)
+            }
+            if (!result.success) { Toast.show({ type: 'error', text1: result.error, text2: result.details.message }) }
 
         } catch (error) {
-            Alert.alert('Error', 'Ocurrió un error durante el registro. Por favor intenta de nuevo.')
+            Toast.show({ type: 'error', text1: 'Ocurrió un error durante el registro. Por favor intenta de nuevo.' })
         } finally { setIsLoading(false) }
     }
 
@@ -124,19 +128,37 @@ const RegisterScreen = ({ navigation }) => {
     // Verify PIN
     const handleVerifyPin = async () => {
 
-        // Send via API the email and PIN received by email
-        setIsLoading(true)
-        console.log('Sending PIN to API', pin)
 
-        // Wait 2 seconds
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        if (!uuid || !pin || !email) {
+            Toast.show({ type: 'error', text1: 'Por favor completa todos los campos' })
+            return
+        }
 
-        // Send API to verify PIN
-        // If success, send APi to Login
+        try {
+            setIsLoading(true)
+            const result = await confirmRegistration({ uuid, pin, email })
 
-        // Navigate to the main stack
-        console.log('PIN sent to API', pin)
-        setIsLoading(false)
+            if (result.success) {
+                navigation.navigate('Login')
+            } else { 
+                // Handle error message safely
+                const errorMessage = result.error || 'Error al verificar el PIN'
+                const detailsMessage = result.details?.message || result.details?.error || ''
+                
+                Toast.show({ 
+                    type: 'error', 
+                    text1: errorMessage,
+                    text2: detailsMessage || undefined
+                }) 
+            }
+
+        } catch (error) {
+            Toast.show({ 
+                type: 'error', 
+                text1: 'Ocurrió un error durante la verificación', 
+                text2: error.message 
+            })
+        } finally { setIsLoading(false) }
     }
 
     return (
