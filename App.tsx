@@ -89,13 +89,16 @@ const AppNavigator = () => {
     // Add this effect after the existing useEffect
     useEffect(() => {
         if (splashReady && !authLoading && !settingsLoading) {
-            if (isAuthenticated && !firstTime) {
+            // Only navigate if we're not already on the correct screen
+            const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
+            
+            if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
                 // User is authenticated and not first time - navigate to main stack
                 navigation.reset({
                     index: 0,
                     routes: [{ name: ROUTES.MAIN_STACK as never }]
                 })
-            } else if (!isAuthenticated && !firstTime) {
+            } else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
                 // User is not authenticated and not first time - navigate to welcome
                 navigation.reset({
                     index: 0,

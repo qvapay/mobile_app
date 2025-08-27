@@ -15,6 +15,7 @@ const colors = {
 
     // Light theme colors
     light: {
+        contrast: "black",
         successText: "#00471E",
         background: "#FFFFFF",
         secondaryBackground: "#F8F9FA",
@@ -33,6 +34,7 @@ const colors = {
 
     // Dark theme colors
     dark: {
+        contrast: "white",
         successText: "#7BFFB1",
         background: "#0E0E1C",
         secondaryBackground: "#21415F",

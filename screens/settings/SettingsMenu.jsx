@@ -98,21 +98,21 @@ const SettingsMenu = ({ navigation }) => {
                 <SettingsSection key={categoryKey} title={category.title} items={category.options} navigation={navigation} />
             ))}
 
-            <QPButton title="Cerrar sesión" onPress={handleLogout} style={{ backgroundColor: theme.colors.danger, marginTop: 20 }} textStyle={{ color: theme.colors.primaryText }} />
+            <QPButton title="Cerrar sesión" onPress={handleLogout} style={{ backgroundColor: theme.colors.danger, marginTop: 20 }} textStyle={{ color: theme.colors.almostWhite }} />
 
             {/* Github, Twitter and Instagram accounts */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginVertical: 20 }}>
                 <Pressable onPress={() => Linking.openURL('https://t.me/qvapay')}>
-                    <FontAwesome6 name="telegram" size={24} style={{ color: 'white' }} iconStyle="brand" />
+                    <FontAwesome6 name="telegram" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>
                 <Pressable onPress={() => Linking.openURL('https://github.com/qvapay/mobile_app')}>
-                    <FontAwesome6 name="github" size={24} style={{ color: 'white' }} iconStyle="brand" />
+                    <FontAwesome6 name="github" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>
                 <Pressable onPress={() => Linking.openURL('https://twitter.com/qvapay')}>
-                    <FontAwesome6 name="x-twitter" size={24} style={{ color: 'white' }} iconStyle="brand" />
+                    <FontAwesome6 name="x-twitter" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>
                 <Pressable onPress={() => Linking.openURL('https://instagram.com/qvapay')}>
-                    <FontAwesome6 name="instagram" size={24} style={{ color: 'white' }} iconStyle="brand" />
+                    <FontAwesome6 name="instagram" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>
             </View>
 
