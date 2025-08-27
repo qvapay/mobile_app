@@ -141,12 +141,7 @@ const LoginScreen = ({ navigation }) => {
     }
 
     // Handle restore password
-    const handleRestorePassword = () => {
-        console.log('🔐 Restore password')
-
-        // Go to the restore password screen, we pass the email to the screen
-        navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email })
-    }
+    const handleRestorePassword = () => { navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email }) }
 
     return (
         <KeyboardAvoidingView
@@ -214,7 +209,7 @@ const LoginScreen = ({ navigation }) => {
                                     />
 
                                     <QPButton
-                                        title="Restaurar contraseña"
+                                        title="Recuperar contraseña"
                                         style={{ backgroundColor: null }}
                                         textStyle={{ color: theme.colors.primary }}
                                         onPress={handleRestorePassword}
