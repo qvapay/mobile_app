@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -78,6 +78,65 @@ const Phone = () => {
         finally { setIsLoadingData(false) }
     }
 
+    // Remove phone number
+    const handleRemovePhone = async () => {
+        Alert.alert(
+            'Eliminar Teléfono',
+            '¿Estás seguro de que quieres eliminar tu número de teléfono? Esta acción no se puede deshacer.',
+            [
+                {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Eliminar',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setIsLoading(true)
+                            const result = await userApi.removePhone()
+
+                            if (result.success) {
+                                // Update local state
+                                setUserPhoneVerified(false)
+                                setUserPhone('')
+                                setPhone('')
+                                setPin('')
+                                setShowPinInput(false)
+
+                                // Update user context
+                                if (updateUser) {
+                                    updateUser({ phone: null, phone_verified: false })
+                                }
+
+                                Toast.show({
+                                    type: 'success',
+                                    text1: 'Éxito',
+                                    text2: 'Número de teléfono eliminado correctamente'
+                                })
+                            } else {
+                                Toast.show({
+                                    type: 'error',
+                                    text1: 'Error',
+                                    text2: result.error || 'Error al eliminar el número de teléfono'
+                                })
+                            }
+                        } catch (error) {
+                            console.error('Error removing phone:', error)
+                            Toast.show({
+                                type: 'error',
+                                text1: 'Error',
+                                text2: 'Error al eliminar el número de teléfono. Intenta nuevamente.'
+                            })
+                        } finally {
+                            setIsLoading(false)
+                        }
+                    }
+                }
+            ]
+        )
+    }
+
     // Send code to phone
     const handleSendCode = async () => {
 
@@ -99,8 +158,6 @@ const Phone = () => {
         setIsLoading(true)
 
         try {
-            const countryData = countries.find(c => c.code === country)
-            const phoneNumber = `${countryData.dial_code}${phone.trim()}`
 
             const result = await userApi.verifyPhone({
                 phone: phone.trim(),
@@ -111,15 +168,14 @@ const Phone = () => {
             if (result.success) {
                 setShowPinInput(true)
                 Toast.show({ type: 'success', text1: 'Éxito', text2: 'PIN de verificación enviado' })
-            } else {
-                Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'Error al enviar el código' })
-            }
+            } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'Error al enviar el código' }) }
+
         } catch (error) {
+
             if (error.message.includes('Network Error')) {
                 Toast.show({ type: 'error', text1: 'Error', text2: 'Error de conexión. Verifica tu conexión a internet.' })
-            } else {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'Error al enviar el código. Intenta nuevamente.' })
-            }
+            } else { Toast.show({ type: 'error', text1: 'Error', text2: 'Error al enviar el código. Intenta nuevamente.' }) }
+
         } finally { setIsLoading(false) }
     }
 
@@ -132,6 +188,7 @@ const Phone = () => {
         }
 
         setIsVerifying(true)
+
         try {
             const countryData = countries.find(c => c.code === country)
             const phoneNumber = `${countryData.dial_code}${phone.trim()}`
@@ -149,18 +206,15 @@ const Phone = () => {
                 setShowPinInput(false)
                 setPin('')
                 setPhone('')
-                Toast.show({
-                    type: 'success',
-                    text1: 'Éxito',
-                    text2: 'Teléfono verificado correctamente'
-                })
+                Toast.show({ type: 'success', text1: 'Éxito', text2: 'Teléfono verificado correctamente' })
             } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'Error al verificar el teléfono' }) }
+
         } catch (error) {
+
             if (error.message.includes('Network Error')) {
                 Toast.show({ type: 'error', text1: 'Error', text2: 'Error de conexión. Verifica tu conexión a internet.' })
-            } else {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'Error al verificar el teléfono. Intenta nuevamente.' })
-            }
+            } else { Toast.show({ type: 'error', text1: 'Error', text2: 'Error al verificar el teléfono. Intenta nuevamente.' }) }
+
         } finally { setIsVerifying(false) }
     }
 
@@ -180,15 +234,11 @@ const Phone = () => {
                 </View>
                 <View style={containerStyles.bottomButtonContainer}>
                     <QPButton
-                        title="Cambiar Número de Teléfono"
-                        // onPress={() => {
-                        //     setUserPhoneVerified(false)
-                        //     setUserPhone('')
-                        //     setPhone('')
-                        //     setPin('')
-                        //     setShowPinInput(false)
-                        // }}
-                        style={{ borderRadius: 25 }}
+                        title="Eliminar Número de Teléfono"
+                        onPress={handleRemovePhone}
+                        loading={isLoading}
+                        disabled={isLoading}
+                        style={{ borderRadius: 25, backgroundColor: theme.colors.danger, marginBottom: 20 }}
                         textStyle={{ color: theme.colors.almostWhite }}
                     />
                 </View>

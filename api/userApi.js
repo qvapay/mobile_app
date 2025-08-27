@@ -91,5 +91,16 @@ export const userApi = {
                 status: error.response?.status
             }
         }
+    },
+
+    /**
+     * Remove phone number from user account
+     * @returns {Promise<Object>} The removal result
+     */
+    removePhone: async () => {
+        try {
+            const response = await apiClient.put(`/user/verify/phone`)
+            return { success: true, data: response.data, status: response.status }
+        } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
     }
 }
