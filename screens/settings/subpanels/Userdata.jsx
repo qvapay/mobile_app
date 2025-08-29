@@ -359,6 +359,7 @@ const Userdata = () => {
 
 const styles = StyleSheet.create({
     formContainer: {
+        flex: 1,
         marginVertical: 20
     },
     inputContainer: {

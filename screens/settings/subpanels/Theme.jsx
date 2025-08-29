@@ -80,13 +80,11 @@ const Theme = () => {
     }
 
     return (
-        <ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[containerStyles.subContainer, { paddingVertical: 20 }]} showsVerticalScrollIndicator={false}>
             
             <View style={styles.header}>
                 <Text style={textStyles.h1}>Tema</Text>
-                <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-                    Personaliza la apariencia de la aplicación
-                </Text>
+                <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personaliza la apariencia de la aplicación</Text>
             </View>
 
             <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Apariencia</Text>
