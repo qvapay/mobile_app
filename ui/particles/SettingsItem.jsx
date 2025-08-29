@@ -1,4 +1,4 @@
-import { Text, Pressable, StyleSheet } from 'react-native'
+import { Text, Pressable } from 'react-native'
 
 // Contexts
 import { useTheme } from '../../theme/ThemeContext'
@@ -10,7 +10,7 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Settings Item
-const SettingsItem = ({ title, icon, screen, index, totalItems, navigation }) => {
+const SettingsItem = ({ title, icon, screen, index, totalItems, navigation, disabled }) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -31,17 +31,16 @@ const SettingsItem = ({ title, icon, screen, index, totalItems, navigation }) =>
         borderBottomLeftRadius: isLast ? 10 : 0,
         borderBottomRightRadius: isLast ? 10 : 0,
         marginBottom: isLast ? 10 : 0,
+        opacity: disabled ? 0.5 : 1,
+        paddingVertical: 12
     }
 
     return (
-        <Pressable style={[containerStyles.box, containerStyle]} onPress={() => navigation.navigate(screen)}>
-            <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{title}</Text>
+        <Pressable style={[containerStyles.box, containerStyle]} onPress={() => !disabled && navigation.navigate(screen)}>
+            <Text style={[textStyles.h4, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular }]}>{title}</Text>
             <FontAwesome6 name="angle-right" size={16} style={{ color: theme.colors.secondaryText }} iconStyle="solid" />
         </Pressable>
     )
 }
-
-const styles = StyleSheet.create({
-})
 
 export default SettingsItem

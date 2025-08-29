@@ -60,7 +60,9 @@ const Userdata = () => {
 
     // Load user data from API
     const loadUserData = async () => {
+
         try {
+
             setIsLoadingData(true)
             const result = await userApi.getUserProfile()
 

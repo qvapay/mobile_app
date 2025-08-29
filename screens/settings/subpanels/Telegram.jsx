@@ -45,20 +45,13 @@ const Telegram = () => {
 
     // Verify Telegram
     const handleVerifyTelegram = async () => {
-
         try {
-
             setIsLoading(true)
-
             const result = await userApi.getTelegramVerificationLink()
-
             if (result.success) {
-                console.log('Telegram verification link', result.data.verificationLink)
                 Linking.openURL(result.data.verificationLink)
-            }
-
+            } else { Toast.show({ type: 'error', text1: 'Error al verificar la cuenta de Telegram', text2: result.error || 'Error desconocido' }) }
             setIsLoading(false)
-
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Error al verificar la cuenta de Telegram', text2: error.message })
         } finally { setIsLoading(false) }
