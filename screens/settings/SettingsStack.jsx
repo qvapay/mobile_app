@@ -109,36 +109,57 @@ const SettingsStack = ({ navigation }) => {
             <Stack.Screen
                 name={ROUTES.PASSWORD}
                 component={Password}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
                 name={ROUTES.TWO_FACTOR}
                 component={TwoFactor}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
                 name={ROUTES.KYC}
                 component={KYC}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
                 name={ROUTES.DELETE_ACCOUNT}
                 component={DeleteAccount}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
                 name={ROUTES.NOTIFICATIONS}
                 component={Notifications}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
                 name={ROUTES.PAYMENT_METHODS}
                 component={PaymentMethods}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
                 name={ROUTES.CONTACTS}
                 component={Contacts}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
         </Stack.Navigator>
