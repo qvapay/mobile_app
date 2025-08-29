@@ -211,6 +211,7 @@ const RegisterScreen = ({ navigation }) => {
                                 <QPInput
                                     placeholder="tucorreo@gmail.com"
                                     value={email}
+                                    autoComplete="email"
                                     onChangeText={setEmail}
                                     keyboardType="email-address"
                                     autoCapitalize="none"

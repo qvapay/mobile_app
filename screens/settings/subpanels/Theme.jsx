@@ -80,7 +80,8 @@ const Theme = () => {
     }
 
     return (
-        <ScrollView style={[containerStyles.subContainer]} showsVerticalScrollIndicator={false}>
+        <ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false}>
+            
             <View style={styles.header}>
                 <Text style={textStyles.h1}>Tema</Text>
                 <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>

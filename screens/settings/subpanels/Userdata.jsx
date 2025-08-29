@@ -213,11 +213,7 @@ const Userdata = () => {
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-                <ScrollView
-                    contentContainerStyle={containerStyles.scrollContainer}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
+                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
 
                     <Text style={textStyles.h1}>Datos personales</Text>
                     <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tus datos personales</Text>

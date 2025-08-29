@@ -6,10 +6,11 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // Routes
-import { ROUTES } from '../../routes'
+// import { ROUTES } from '../../routes'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
+import QPInput from '../../ui/particles/QPInput'
 
 // Recover Password Screen
 const RecoverPasswordScreen = ({ navigation, route }) => {
@@ -21,6 +22,9 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 
     // States
     const [email, setEmail] = useState(route.params.email || '')
+
+    // Loading state
+    const [isLoading, setIsLoading] = useState(false)
 
     // Handle restore password
     const handleRestorePassword = () => {
@@ -48,17 +52,24 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
                     <View style={styles.formContainer}>
 
                         <QPInput
-                            label="Correo electrónico"
+                            placeholder="Correo electrónico"
+                            autoComplete="email"
                             value={email}
                             onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            prefixIconName="envelope"
                         />
 
                     </View>
 
                     <View style={containerStyles.bottomButtonContainer}>
                         <QPButton
-                            title="Restaurar contraseña"
+                            title="Restablecer contraseña"
                             onPress={handleRestorePassword}
+                            style={{ borderRadius: 25, backgroundColor: theme.colors.danger }}
+                            textStyle={{ color: theme.colors.almostWhite }}
+                            loading={isLoading}
                         />
                     </View>
 

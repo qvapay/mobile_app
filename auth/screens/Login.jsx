@@ -209,7 +209,7 @@ const LoginScreen = ({ navigation }) => {
                                     />
 
                                     <QPButton
-                                        title="Recuperar contraseña"
+                                        title="Restablecer contraseña"
                                         style={{ backgroundColor: null }}
                                         textStyle={{ color: theme.colors.primary }}
                                         onPress={handleRestorePassword}

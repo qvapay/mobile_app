@@ -102,5 +102,27 @@ export const userApi = {
             const response = await apiClient.put(`/user/verify/phone`)
             return { success: true, data: response.data, status: response.status }
         } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+    },
+
+    /**
+     * Get Telegram verification link
+     * @returns {Promise<Object>} The verification link
+     */
+    getTelegramVerificationLink: async () => {
+        try {
+            const response = await apiClient.get(`/user/verify/telegram`)
+            return { success: true, data: response.data, status: response.status }
+        } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+    },
+
+    /**
+     * Remove Telegram account from user account
+     * @returns {Promise<Object>} The removal result
+     */
+    removeTelegram: async () => {
+        try {
+            const response = await apiClient.put(`/user/verify/telegram`)
+            return { success: true, data: response.data, status: response.status }
+        } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
     }
 }

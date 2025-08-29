@@ -253,7 +253,7 @@ const Phone = () => {
 
                 <View style={containerStyles.scrollContainer}>
 
-                    <Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Verificar Teléfono</Text>
+                    <Text style={textStyles.h1}>Verificar Teléfono</Text>
                     <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número de teléfono para recibir un código de verificación</Text>
 
                     <View style={styles.formContainer}>

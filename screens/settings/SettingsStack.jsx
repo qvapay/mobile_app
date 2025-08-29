@@ -101,6 +101,9 @@ const SettingsStack = ({ navigation }) => {
             <Stack.Screen
                 name={ROUTES.TELEGRAM}
                 component={Telegram}
+                options={{
+                    headerBackVisible: true,
+                }}
             />
 
             <Stack.Screen
