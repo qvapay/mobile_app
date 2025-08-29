@@ -46,7 +46,7 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
                     keyboardShouldPersistTaps="handled"
                 >
 
-                    <Text style={textStyles.h1}>Restaurar contraseña</Text>
+                    <Text style={textStyles.h1}>Restablecer contraseña</Text>
                     <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico para restaurar tu contraseña</Text>
 
                     <View style={styles.formContainer}>
@@ -82,7 +82,7 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     formContainer: {
         flex: 1,
-        justifyContent: 'center'
+        marginVertical: 20
     },
 })
 

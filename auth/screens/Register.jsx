@@ -173,7 +173,7 @@ const RegisterScreen = ({ navigation }) => {
                 >
 
                     <Text style={textStyles.h1}>{requestPin ? 'Verificar PIN' : 'Crear cuenta'}</Text>
-                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{requestPin ? 'Verifica el código que has recibido por correo electrónico' : 'Completa los siguientes campos para crear tu cuenta'}</Text>
+                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{requestPin ? 'Verifica el código que has recibido por correo electrónico' : 'Completa tus datos para crear tu cuenta'}</Text>
 
                     <View style={styles.formContainer}>
 
@@ -305,7 +305,7 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     formContainer: {
         flex: 1,
-        justifyContent: 'center'
+        marginVertical: 20
     },
     loginLink: {
         marginVertical: 10,

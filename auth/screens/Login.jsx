@@ -254,7 +254,7 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     formContainer: {
         flex: 1,
-        justifyContent: 'center'
+        marginVertical: 20
     },
 })
 
