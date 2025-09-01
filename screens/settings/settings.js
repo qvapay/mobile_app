@@ -1,3 +1,5 @@
+import { ROUTES } from '../../routes'
+
 // Settings Items as an object of multiple dimensions:
 const settings = {
     general: {
@@ -5,7 +7,7 @@ const settings = {
         options: [
             {
                 title: 'Tema',
-                screen: 'Theme',
+                screen: ROUTES.THEME,
                 enabled: true,
                 notifications: 0,
             },
@@ -16,19 +18,19 @@ const settings = {
         options: [
             {
                 title: 'Datos personales',
-                screen: 'Userdata',
+                screen: ROUTES.USERDATA,
                 enabled: true,
                 notifications: 0,
             },
             {
                 title: 'Verificar Celular',
-                screen: 'Phone',
+                screen: ROUTES.PHONE,
                 enabled: true,
                 notifications: 0
             },
             {
                 title: 'Verificar Telegram',
-                screen: 'Telegram',
+                screen: ROUTES.TELEGRAM,
                 enabled: true,
                 notifications: 0
             },
@@ -39,31 +41,31 @@ const settings = {
         options: [
             {
                 title: 'Cambiar contraseña',
-                screen: 'Password',
+                screen: ROUTES.PASSWORD,
                 enabled: true,
                 notifications: 0,
             },
             {
                 title: 'Autenticación de dos factores',
-                screen: 'TwoFactorSettings',
+                screen: ROUTES.TWO_FACTOR,
                 enabled: true,
                 notifications: 0,
             },
             {
                 title: 'PIN de seguridad',
-                screen: 'TransferPin',
+                screen: ROUTES.TRANSFER_PIN,
                 enabled: true,
                 notifications: 0,
             },
             {
                 title: 'Verificación de identidad',
-                screen: 'KYCStack',
+                screen: ROUTES.KYC,
                 enabled: true,
                 notifications: 0
             },
             {
                 title: 'Eliminar cuenta',
-                screen: 'DeleteAccount',
+                screen: ROUTES.DELETE_ACCOUNT,
                 enabled: true,
                 notifications: 0
             },
@@ -74,7 +76,7 @@ const settings = {
         options: [
             {
                 title: 'Configuración de notificaciones',
-                screen: 'Notification',
+                screen: ROUTES.NOTIFICATIONS,
                 enabled: true,
                 notifications: 0,
             },
@@ -85,13 +87,13 @@ const settings = {
         options: [
             {
                 title: 'Métodos de pago',
-                screen: 'PaymewntMethods',
+                screen: ROUTES.PAYMENT_METHODS,
                 enabled: true,
                 notifications: 0,
             },
             {
                 title: 'Contactos favoritos',
-                screen: 'FavoriteContacts',
+                screen: ROUTES.CONTACTS,
                 enabled: true,
                 notifications: 0,
             },
