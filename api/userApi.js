@@ -124,5 +124,19 @@ export const userApi = {
             const response = await apiClient.put(`/user/verify/telegram`)
             return { success: true, data: response.data, status: response.status }
         } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+    },
+
+    /**
+     * Change password
+     * @param {Object} passwordData - The password data
+     * @param {string} passwordData.current_password - The current password
+     * @param {string} passwordData.new_password - The new password
+     * @returns {Promise<Object>} The password change result
+     */
+    changePassword: async (passwordData) => {
+        try {
+            const response = await apiClient.put(`/user/update/password`, passwordData)
+            return { success: true, data: response.data, status: response.status }
+        } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
     }
 }

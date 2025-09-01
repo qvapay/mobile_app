@@ -15,6 +15,7 @@ import { userApi } from '../../../api/userApi'
 // Notifications
 import Toast from 'react-native-toast-message'
 
+// Password Change Component
 const Password = () => {
 
     // Contexts
@@ -35,8 +36,16 @@ const Password = () => {
     const handleSubmit = async () => {
         try {
             setIsLoading(true)
-            const result = await userApi.changePassword(currentPassword, password)
-            if (result.success) { Toast.show({ type: 'success', text1: 'Contraseña cambiada correctamente' }) }
+            const result = await userApi.changePassword({
+                old_password: currentPassword,
+                new_password: password
+            })
+            if (result.success) {
+                setCurrentPassword('')
+                setPassword('')
+                setConfirmPassword('')
+                Toast.show({ type: 'success', text1: 'Contraseña cambiada correctamente' })
+            }
         } catch (error) { Toast.show({ type: 'error', text1: 'Error al cambiar la contraseña', text2: error.message }) }
         finally { setIsLoading(false) }
     }

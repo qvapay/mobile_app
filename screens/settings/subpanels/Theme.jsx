@@ -41,20 +41,10 @@ const Theme = () => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
-    // console.log('🎨 Theme Screen - Current theme from settings:', currentTheme)
-    // console.log('🎨 Theme Screen - Current theme from context:', theme.isDark ? 'dark' : 'light')
-
     const handleThemeSelect = async (themeId) => {
         try {
-            // console.log('🎨 Theme Screen - Selecting theme:', themeId)
-
-            // Update theme in ThemeContext (this will also update settings)
             await setThemeMode(themeId)
-
-            // Also update settings directly to ensure consistency
-            const result = await updateSettings('appearance', { theme: themeId })
-            // console.log('🎨 Theme Screen - Settings update result:', result)
-
+            await updateSettings('appearance', { theme: themeId })
         } catch (error) { console.error('🎨 Theme Screen - Error updating theme:', error) }
     }
 

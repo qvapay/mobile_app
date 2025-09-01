@@ -250,7 +250,7 @@ const RegisterScreen = ({ navigation }) => {
                                         size={22}
                                         fillColor={theme.colors.primary}
                                         unFillColor={theme.colors.secondaryText}
-                                        text="Acepto los términos y condiciones"
+                                        text="Al crear una cuenta, acepto los términos y condiciones de uso y privacidad de QvaPay"
                                         iconStyle={{ borderColor: theme.colors.primary }}
                                         innerIconStyle={{ borderWidth: 2 }}
                                         textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none' }}
