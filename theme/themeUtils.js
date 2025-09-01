@@ -59,6 +59,11 @@ export const createTextStyles = (theme) => StyleSheet.create({
         fontFamily: theme.typography.fontFamily.light,
         color: theme.colors.secondaryText,
     },
+    error: {
+        fontSize: theme.typography.fontSize.sm,
+        fontFamily: theme.typography.fontFamily.medium,
+        color: theme.colors.danger,
+    },
 })
 
 // Common container styles

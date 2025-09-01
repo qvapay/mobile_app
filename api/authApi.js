@@ -298,6 +298,44 @@ export const authApi = {
                 error: error.message || 'Ha ocurrido un error de red' 
             } 
         }
+    },
+
+    /**
+     * Request password reset
+     * @param {Object} credentials - Reset password credentials
+     * @param {string} credentials.email - User email
+     * @returns {Promise<Object>} Reset password response
+     */
+    resetPassword: async (credentials) => {
+
+        try {
+
+            const response = await apiClient.post('/auth/reset-password', {
+                email: credentials.email
+            })
+
+            return {
+                success: true,
+                data: response.data,
+                message: response.data.message,
+            }
+
+        } catch (error) { 
+            // Handle specific API errors
+            if (error.response?.data) {
+                const errorData = error.response.data
+                return { 
+                    success: false, 
+                    error: errorData.error || errorData.message || 'No se pudo solicitar el restablecimiento de contraseña', 
+                    details: errorData 
+                }
+            }
+            
+            return { 
+                success: false, 
+                error: error.message || 'Ha ocurrido un error de red' 
+            } 
+        }
     }
 }
 
