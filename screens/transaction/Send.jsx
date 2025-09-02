@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList } from 'react-native'
+import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList, Pressable } from 'react-native'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -37,10 +37,7 @@ const Send = ({ navigation, route }) => {
     const containerStyles = createContainerStyles(theme)
 
     // Params from route
-    const { send_amount, user_uuid } = route.params || {}
-
-    console.log("Send amount", send_amount)
-    console.log("User uuid", user_uuid)
+    const { send_amount, user_uuid = null } = route.params || {}
 
     // States
     const [amount, setAmount] = useState(send_amount || '')
@@ -49,6 +46,7 @@ const Send = ({ navigation, route }) => {
     const [description, setDescription] = useState('')
     const [userFound, setUserFound] = useState(null)
     const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
+    const [incomingUserUuid, setIncomingUserUuid] = useState(user_uuid || null)
 
     // Modal states
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false)
@@ -87,18 +85,18 @@ const Send = ({ navigation, route }) => {
     // If user uuid is provided in the route, try to fetch user data
     // TODO: Some day, you will have a DeepLink and this will be useful
     useEffect(() => {
-        if (user_uuid) {
+        if (incomingUserUuid) {
             try {
                 setIsLoadingUser(true)
                 const fetchUserData = async () => {
-                    const result = await userApi.searchUser(user_uuid)
+                    const result = await userApi.searchUser(incomingUserUuid)
                     if (result.success) { setUserFound(result.data[0]) }
                 }
                 fetchUserData()
             } catch (error) { console.error('Error fetching user data:', error) }
             finally { setIsLoadingUser(false) }
         }
-    }, [user_uuid])
+    }, [incomingUserUuid])
 
     // Handle Search in Modal
     const handleSearch = async () => {
@@ -154,7 +152,7 @@ const Send = ({ navigation, route }) => {
             <View style={{ flex: 1 }}>
 
                 {/* Amount Input Component */}
-                <AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} currency={currency} placeholder="Monto a enviar" />
+                <AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} currency={currency} placeholder={incomingUserUuid ? 'Monto a enviar' : 'Monto a enviar a ...'} />
 
                 {/** Latest sent transfers users */}
                 <View style={{ marginVertical: 20, gap: 10 }}>
@@ -167,13 +165,13 @@ const Send = ({ navigation, route }) => {
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}
-                                onPress={() => setIsSearchModalVisible(true)}
-                            >
+                            <TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
                                 <FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
                             </TouchableOpacity>
                             {latestSentTransfersUsers.map((user, index) => (
-                                <QPAvatar key={index} user={user} size={56} />
+                                <Pressable key={index} onPress={() => setIncomingUserUuid(user.uuid)}>
+                                    <QPAvatar key={index} user={user} size={56} />
+                                </Pressable>
                             ))}
                         </View>
                     </ScrollView>

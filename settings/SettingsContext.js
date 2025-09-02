@@ -79,17 +79,17 @@ const DEFAULT_SETTINGS = {
 
     // Language and localization
     language: {
-        currentLanguage: 'en',
-        region: 'US',
-        dateFormat: 'MM/DD/YYYY',
+        currentLanguage: 'es',
+        region: 'ES',
+        dateFormat: 'DD/MM/YYYY',
         timeFormat: '12h', // 12h, 24h
-        currency: 'USD',
-        numberFormat: 'en-US'
+        currency: 'QUSD',
+        numberFormat: 'es-ES'
     },
 
     // Transaction settings
     transactions: {
-        defaultCurrency: 'USD',
+        defaultCurrency: 'QUSD',
         showFees: true,
         confirmLargeTransactions: true,
         largeTransactionThreshold: 100,
