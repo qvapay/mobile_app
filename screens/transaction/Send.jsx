@@ -78,19 +78,19 @@ const Send = ({ navigation, route }) => {
 
     // Handle Search in Modal
     const handleSearch = async () => {
+
         if (!userSearch.trim()) {
             setSearchResults([])
             return
         }
 
         try {
+
             setIsSearching(true)
-            console.log('Searching for:', userSearch)
 
             // Call API to search for the user based on its uuid, username, email or verified phone number
             const result = await userApi.searchUser(userSearch)
             if (result.success) {
-                console.log('Search results:', result.data)
                 setSearchResults(result.data || [])
             } else {
                 setSearchResults([])
@@ -115,6 +115,7 @@ const Send = ({ navigation, route }) => {
 
     // Handle Send
     const handleSend = async () => {
+
         try {
 
             setIsLoading(true)
@@ -127,7 +128,7 @@ const Send = ({ navigation, route }) => {
             })
 
             if (result.success) {
-                navigation.navigate(ROUTES.SEND_SUCCESS_SCREEN)
+                navigation.navigate(ROUTES.SEND_SUCCESS)
             } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error }) }
 
         } catch (error) {
@@ -187,6 +188,7 @@ const Send = ({ navigation, route }) => {
                 title={`Enviar $${amount || '0'} ${currency}`}
                 onPress={handleSend}
                 disabled={!sendEnabled}
+                loading={isLoading}
                 style={{ borderRadius: 25 }}
                 textStyle={{ color: theme.colors.buttonText }}
             />

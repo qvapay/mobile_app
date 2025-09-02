@@ -106,9 +106,9 @@ export const transferApi = {
                 data: response.data,
                 status: response.status
             }
+
         } catch (error) {
 
-            console.error('Error transferring money:', error)
             return {
                 success: false,
                 error: error.response?.data || error.message,
