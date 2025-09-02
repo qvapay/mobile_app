@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -111,7 +111,9 @@ const Home = ({ navigation }) => {
                                 <FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />
                             </View>
                             {latestSentTransfersUsers.map((user, index) => (
-                                <QPAvatar key={index} user={user} size={56} />
+                                <Pressable key={index} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: user.uuid, send_amount: '0.00' })}>
+                                    <QPAvatar key={index} user={user} size={56} />
+                                </Pressable>
                             ))}
                         </View>
                     </ScrollView>

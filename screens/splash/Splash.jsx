@@ -54,16 +54,8 @@ const SplashScreen = () => {
 
     return (
         <View style={[containerStyles.subContainer, { backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }]}>
-            <Animated.View style={{
-                transform: [
-                    { scale: scaleAnim }
-                ],
-                opacity: opacityAnim,
-            }}>
-                <Image
-                    source={require('../../assets/images/ui/qvapay-logo-white.png')}
-                    style={{ width: 100, height: 100 }}
-                />
+            <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }}>
+                <Image source={require('../../assets/images/ui/qvapay-logo-white.png')} style={{ width: 100, height: 100 }} />
             </Animated.View>
         </View>
     )

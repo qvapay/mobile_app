@@ -91,7 +91,6 @@ const AppNavigator = () => {
         if (splashReady && !authLoading && !settingsLoading) {
             // Only navigate if we're not already on the correct screen
             const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
-
             if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
                 // User is authenticated and not first time - navigate to main stack
                 navigation.reset({

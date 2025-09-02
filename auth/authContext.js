@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // API
 import { authApi } from '../api/authApi'
+import { userApi } from '../api/userApi'
 import { setAuthToken, removeAuthToken, getAuthToken } from '../api/client'
 
 // Create the Auth Context
@@ -71,8 +72,8 @@ export const AuthProvider = ({ children }) => {
 
                     // Get user data from API
                     const userData = await userApi.getUserProfile()
-                    if (userData.success && userData.me) {
-                        setUser(userData.me)
+                    if (userData.success && userData.data) {
+                        setUser(userData.data)
                     } else { await logout() }
 
                 } else { setIsAuthenticated(false) }
@@ -158,10 +159,7 @@ export const AuthProvider = ({ children }) => {
         try {
 
             setError(null)
-
             const apiResponse = await authApi.requestPin(credentials)
-
-            console.log('🔐 Request PIN response:', apiResponse)
 
             if (apiResponse.success) {
                 return { success: true, message: apiResponse.message }
@@ -218,9 +216,6 @@ export const AuthProvider = ({ children }) => {
             const apiResponse = await authApi.register(credentials)
             if (apiResponse.success) {
 
-                // Registration successful
-                console.log('🔐 Registration successful:', apiResponse.message)
-
                 // Return success response
                 return {
                     success: true,
@@ -230,8 +225,6 @@ export const AuthProvider = ({ children }) => {
 
             } else {
 
-                // Registration failed
-                console.log('🔐 Registration failed:', apiResponse.error)
                 setError(apiResponse.error)
 
                 return {

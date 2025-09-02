@@ -12,6 +12,7 @@ import QPAvatar from '../../ui/particles/QPAvatar'
 import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
 import ProfileContainer from '../../ui/ProfileContainer'
+import QPLoader from '../../ui/particles/QPLoader'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -35,8 +36,14 @@ const Send = ({ navigation, route }) => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
+    // Params from route
+    const { send_amount, user_uuid } = route.params || {}
+
+    console.log("Send amount", send_amount)
+    console.log("User uuid", user_uuid)
+
     // States
-    const [amount, setAmount] = useState(route.params.amount || '')
+    const [amount, setAmount] = useState(send_amount || '')
     const [currency, setCurrency] = useState('QUSD')
     const [userSearch, setUserSearch] = useState('')
     const [description, setDescription] = useState('')
@@ -52,6 +59,7 @@ const Send = ({ navigation, route }) => {
     const [sendEnabled, setSendEnabled] = useState(false)
     const [error, setError] = useState(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isLoadingUser, setIsLoadingUser] = useState(true)
 
     // Update send enabled state based on amount and user found
     useEffect(() => {
@@ -76,19 +84,29 @@ const Send = ({ navigation, route }) => {
         fetchLatestSentTransfersUsers()
     }, [])
 
+    // If user uuid is provided in the route, try to fetch user data
+    useEffect(() => {
+        if (user_uuid) {
+            try {
+                setIsLoadingUser(true)
+                const fetchUserData = async () => {
+                    const result = await userApi.searchUser(user_uuid)
+                    if (result.success) { setUserFound(result.data[0]) }
+                }
+                fetchUserData()
+            } catch (error) { console.error('Error fetching user data:', error) }
+            finally { setIsLoadingUser(false) }
+        }
+    }, [user_uuid])
+
     // Handle Search in Modal
     const handleSearch = async () => {
-
         if (!userSearch.trim()) {
             setSearchResults([])
             return
         }
-
         try {
-
             setIsSearching(true)
-
-            // Call API to search for the user based on its uuid, username, email or verified phone number
             const result = await userApi.searchUser(userSearch)
             if (result.success) {
                 setSearchResults(result.data || [])
@@ -96,13 +114,10 @@ const Send = ({ navigation, route }) => {
                 setSearchResults([])
                 Toast.show({ type: 'error', text1: 'Error', text2: result.error })
             }
-
         } catch (error) {
             setSearchResults([])
             Toast.show({ type: 'error', text1: 'Error', text2: error.message })
-        } finally {
-            setIsSearching(false)
-        }
+        } finally { setIsSearching(false) }
     }
 
     // Handle User Selection from Search Results
@@ -115,22 +130,17 @@ const Send = ({ navigation, route }) => {
 
     // Handle Send
     const handleSend = async () => {
-
         try {
-
             setIsLoading(true)
-
             const result = await transferApi.transferMoney({
                 amount,
                 description,
                 to: userFound.uuid,
                 pin: user.pin
             })
-
             if (result.success) {
                 navigation.navigate(ROUTES.SEND_SUCCESS)
             } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error }) }
-
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Error', text2: error.message })
         } finally { setIsLoading(false) }
@@ -156,8 +166,7 @@ const Send = ({ navigation, route }) => {
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <TouchableOpacity
-                                style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}
+                            <TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}
                                 onPress={() => setIsSearchModalVisible(true)}
                             >
                                 <FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
@@ -168,6 +177,8 @@ const Send = ({ navigation, route }) => {
                         </View>
                     </ScrollView>
                 </View>
+
+                {isLoadingUser && (<QPLoader />)}
 
                 {userFound && (
                     <View style={{ flex: 1, marginVertical: 10 }}>
@@ -184,14 +195,16 @@ const Send = ({ navigation, route }) => {
             </View>
 
             {/** Button to send */}
-            <QPButton
-                title={`Enviar $${amount || '0'} ${currency}`}
-                onPress={handleSend}
-                disabled={!sendEnabled}
-                loading={isLoading}
-                style={{ borderRadius: 25 }}
-                textStyle={{ color: theme.colors.buttonText }}
-            />
+            <View style={containerStyles.bottomButtonContainer}>
+                <QPButton
+                    title={`Enviar $${amount || '0'} ${currency}`}
+                    onPress={handleSend}
+                    disabled={!sendEnabled}
+                    loading={isLoading}
+                    style={{ borderRadius: 25 }}
+                    textStyle={{ color: theme.colors.buttonText }}
+                />
+            </View>
 
             {/* Search Modal */}
             <Modal visible={isSearchModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsSearchModalVisible(false)} >
@@ -322,6 +335,7 @@ const Send = ({ navigation, route }) => {
                     </View>
                 </View>
             </Modal>
+
         </View>
     )
 }
