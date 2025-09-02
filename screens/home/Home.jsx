@@ -8,8 +8,9 @@ import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// Import transferApi
+// APIs
 import { transferApi } from '../../api/transferApi'
+import { userApi } from '../../api/userApi'
 
 // UI Particles
 import QPTransaction from '../../ui/particles/QPTransaction'
@@ -27,7 +28,7 @@ import { ROUTES } from '../../routes'
 const Home = ({ navigation }) => {
 
     // Context
-    const { user } = useAuth()
+    const { user, updateUser } = useAuth()
     const { theme } = useTheme()
     const containerStyles = useContainerStyles(theme)
     const textStyles = useTextStyles(theme)
@@ -37,6 +38,11 @@ const Home = ({ navigation }) => {
     const [error, setError] = useState(null)
     const [latestTransactions, setLatestTransactions] = useState([])
     const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
+
+    // Load user data
+    useEffect(() => {
+        loadUserData()
+    }, [])
 
     // Fetch latest transactions
     useEffect(() => {
@@ -69,6 +75,18 @@ const Home = ({ navigation }) => {
         }
         fetchLatestSentTransfersUsers()
     }, [])
+
+    // Load user data from API
+    const loadUserData = async () => {
+        try {
+            setIsLoading(true)
+            const result = await userApi.getUserProfile()
+            if (result.success && result.data) {
+                updateUser(result.data)
+            }
+        } catch (error) { console.error('Error loading user data:', error) }
+        finally { setIsLoading(false) }
+    }
 
     return (
         <View style={[containerStyles.subContainer]}>
@@ -111,7 +129,6 @@ const Home = ({ navigation }) => {
                         <QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
                     ))}
                 </View>
-
 
             </ScrollView>
         </View>

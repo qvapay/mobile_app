@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
                     setIsAuthenticated(true)
 
                     // Get user data from API
-                    const userData = await authApi.getProfile()
+                    const userData = await userApi.getUserProfile()
                     if (userData.success && userData.me) {
                         setUser(userData.me)
                     } else { await logout() }

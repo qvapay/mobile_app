@@ -88,83 +88,7 @@ export const authApi = {
                 success: true,
                 data: response.data,
             }
-        } catch (error) {
-            // Logout might not be supported by the API, so we don't treat it as an error
-            console.warn('Logout API call failed:', error.message)
-            return {
-                success: true, // Consider logout successful even if API call fails
-                error: error.message,
-            }
-        }
-    },
-
-    /**
-     * Get current user profile
-     * @returns {Promise<Object>} User profile data
-     */
-    getProfile: async () => {
-
-        try {
-
-            // Get the extended User Profile, we autenticated with the token on the apiClient interceptor
-            const response = await apiClient.get('/user/extended')
-            return {
-                success: true,
-                data: response.data,
-                me: response.data,
-            }
-
-        } catch (error) {
-
-            if (error.response?.data) {
-                const errorData = error.response.data
-                return {
-                    success: false,
-                    error: errorData.message || 'No se pudo obtener el perfil',
-                    details: errorData,
-                }
-            }
-
-            return {
-                success: false,
-                error: error.message || 'Ha ocurrido un error de red',
-            }
-        }
-    },
-
-    /**
-     * Update user profile
-     * @param {Object} profileData - Profile data to update
-     * @returns {Promise<Object>} Update response
-     */
-    updateProfile: async (profileData) => {
-
-        try {
-
-            const response = await apiClient.put('/user/update', profileData)
-
-            return {
-                success: true,
-                data: response.data,
-                me: response.data,
-            }
-
-        } catch (error) {
-
-            if (error.response?.data) {
-                const errorData = error.response.data
-                return {
-                    success: false,
-                    error: errorData.message || 'No se pudo actualizar el perfil',
-                    details: errorData,
-                }
-            }
-
-            return {
-                success: false,
-                error: error.message || 'Ha ocurrido un error de red',
-            }
-        }
+        } catch (error) { return { success: true, error: error.message } }
     },
 
     /**
@@ -181,10 +105,7 @@ export const authApi = {
 
             // The production API returns { success: 'Acceso permitido' } on success
             if (response.data && response.data.success === 'Acceso permitido') {
-                return {
-                    success: true,
-                    data: response.data,
-                }
+                return { success: true, data: response.data }
             } else {
                 return {
                     success: false,
@@ -194,6 +115,7 @@ export const authApi = {
             }
 
         } catch (error) {
+
             // If the API returns 401 or other error, try to extract the error message
             if (error.response && error.response.data) {
                 return {
@@ -202,10 +124,8 @@ export const authApi = {
                     data: error.response.data,
                 }
             }
-            return {
-                success: false,
-                error: error.message || 'Ha ocurrido un error de red',
-            }
+
+            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     },
 
@@ -252,10 +172,7 @@ export const authApi = {
                 }
             }
 
-            return {
-                success: false,
-                error: error.message || 'Ha ocurrido un error de red',
-            }
+            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     },
 
@@ -276,27 +193,20 @@ export const authApi = {
                 pin: credentials.pin
             })
 
-            return {
-                success: true,
-                data: response.data,
-                message: response.data.message,
-            }
+            return { success: true, data: response.data, message: response.data.message }
 
-        } catch (error) { 
-            // Handle specific API errors
+        } catch (error) {
+
             if (error.response?.data) {
                 const errorData = error.response.data
-                return { 
-                    success: false, 
-                    error: errorData.error || errorData.message || 'No se pudo confirmar el registro', 
-                    details: errorData 
+                return {
+                    success: false,
+                    error: errorData.error || errorData.message || 'No se pudo confirmar el registro',
+                    details: errorData
                 }
             }
-            
-            return { 
-                success: false, 
-                error: error.message || 'Ha ocurrido un error de red' 
-            } 
+
+            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     },
 
@@ -320,21 +230,18 @@ export const authApi = {
                 message: response.data.message,
             }
 
-        } catch (error) { 
-            // Handle specific API errors
+        } catch (error) {
+
             if (error.response?.data) {
                 const errorData = error.response.data
-                return { 
-                    success: false, 
-                    error: errorData.error || errorData.message || 'No se pudo solicitar el restablecimiento de contraseña', 
-                    details: errorData 
+                return {
+                    success: false,
+                    error: errorData.error || errorData.message || 'No se pudo solicitar el restablecimiento de contraseña',
+                    details: errorData
                 }
             }
-            
-            return { 
-                success: false, 
-                error: error.message || 'Ha ocurrido un error de red' 
-            } 
+
+            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     }
 }
