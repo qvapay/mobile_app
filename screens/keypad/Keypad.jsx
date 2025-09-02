@@ -4,7 +4,6 @@ import {
     Text,
     View,
     Pressable,
-    Alert,
     Animated,
     AccessibilityInfo,
     Vibration,
@@ -26,6 +25,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Routes
 import { ROUTES } from '../../routes'
+
+// Toast 
+import Toast from 'react-native-toast-message'
 
 // Constants
 const MAX_AMOUNT_LENGTH = 5
@@ -65,9 +67,7 @@ export default function Keypad({ navigation }) {
 
     // Haptic feedback
     const triggerHapticFeedback = useCallback(() => {
-        if (hapticFeedbackEnabled.current && Platform.OS === 'ios') {
-            Vibration.vibrate(VIBRATION_DURATION)
-        }
+        if (hapticFeedbackEnabled.current && Platform.OS === 'ios') { Vibration.vibrate(VIBRATION_DURATION) }
     }, [])
 
     // Calculate font size based on amount length
@@ -93,23 +93,17 @@ export default function Keypad({ navigation }) {
     const validateAmount = useCallback((newAmount, key) => {
 
         // Prevent leading zeros (except for decimal numbers)
-        if (newAmount === '0' && key !== '.' && key !== 'backspace') {
-            return false
-        }
+        if (newAmount === '0' && key !== '.' && key !== 'backspace') { return false }
 
         // Check decimal places - only for numeric keys, not for decimal point itself
         if (key !== '.' && key !== 'backspace' && newAmount.includes('.')) {
             const [, decimalPart] = newAmount.split('.')
-            if (decimalPart && decimalPart.length >= MAX_DECIMAL_PLACES) {
-                return false
-            }
+            if (decimalPart && decimalPart.length >= MAX_DECIMAL_PLACES) { return false }
         }
 
         // Check total length - exclude decimal point from length calculation for validation
         const lengthToCheck = newAmount.replace('.', '').length
-        if (lengthToCheck > MAX_AMOUNT_LENGTH) {
-            return false
-        }
+        if (lengthToCheck > MAX_AMOUNT_LENGTH) { return false }
 
         return true
     }, [])
@@ -146,9 +140,7 @@ export default function Keypad({ navigation }) {
         }
 
         // Validate the new amount
-        if (!validateAmount(newAmount, key)) {
-            return
-        }
+        if (!validateAmount(newAmount, key)) { return }
 
         // Update amount and animate font size
         setAmount(newAmount)
@@ -182,12 +174,12 @@ export default function Keypad({ navigation }) {
         const numericAmount = parseFloat(amount)
 
         if (numericAmount <= 0) {
-            Alert.alert('Monto inválido', 'El monto debe ser mayor a 0', [{ text: 'OK', style: 'default' }])
+            Toast.show({ type: 'error', text1: 'Monto inválido', text2: 'El monto debe ser mayor a 0' })
             return
         }
 
         if (user?.balance && numericAmount > user.balance) {
-            Alert.alert('Saldo insuficiente', 'El monto no puede exceder tu saldo disponible', [{ text: 'OK', style: 'default' }])
+            Toast.show({ type: 'error', text1: 'Saldo insuficiente', text2: 'El monto no puede exceder tu saldo disponible' })
             return
         }
 
@@ -196,7 +188,7 @@ export default function Keypad({ navigation }) {
         try {
             navigation.navigate(ROUTES.SEND, { amount: numericAmount.toString() })
         } catch (error) {
-            Alert.alert('Error', 'Error al procesar la solicitud de envío')
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Error al procesar la solicitud de envío' })
         } finally { setIsProcessing(false) }
 
     }, [amount, user?.balance, isProcessing, navigation])
@@ -216,7 +208,7 @@ export default function Keypad({ navigation }) {
         return (
             <Pressable
                 key={index}
-                style={({ pressed }) => [styles.keyButton, pressed && styles.keyButtonPressed]}
+                style={({ pressed }) => [styles.keyButton, pressed && styles.keyButtonPressed, !theme.isDark ? { borderColor: theme.colors.primary, borderWidth: 0.3 } : {}]}
                 onPress={() => handleKeyPress(key)}
                 accessibilityRole="button"
                 accessibilityLabel={accessibilityLabel}
@@ -251,18 +243,6 @@ export default function Keypad({ navigation }) {
             {/* Amount Display Section */}
             <View style={styles.amountSection}>
 
-                {/* <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
-                    <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText }]}>
-                        $
-                    </Text>
-                    <Animated.Text
-                        style={[styles.amountText, { fontSize: fontSize, color: theme.colors.primaryText }]}
-                        accessibilityRole="text"
-                        accessibilityLabel={`Amount: $${formattedAmount}`}
-                    >
-                        {formattedAmount}
-                    </Animated.Text>
-                </View> */}
                 <QPBalance formattedAmount={formattedAmount} fontSize={fontSize} theme={theme} />
 
                 {/* Balance Display */}
@@ -290,6 +270,7 @@ export default function Keypad({ navigation }) {
 
             {/* Action Buttons */}
             <View style={styles.actionSection}>
+
                 <QPButton
                     title="Recibir"
                     onPress={handleReceiveAmount}
@@ -301,6 +282,8 @@ export default function Keypad({ navigation }) {
                         { backgroundColor: theme.colors.elevation },
                         isProcessing && styles.actionButtonDisabled
                     ]}
+                    iconColor={theme.colors.contrast}
+                    textStyle={{ color: theme.colors.contrast }}
                     iconStyle="solid"
                 />
 
@@ -317,6 +300,8 @@ export default function Keypad({ navigation }) {
                         { backgroundColor: theme.colors.primary },
                         isProcessing && styles.actionButtonDisabled
                     ]}
+                    iconColor={theme.colors.almostWhite}
+                    textStyle={{ color: theme.colors.almostWhite }}
                     iconStyle="solid"
                 />
             </View>

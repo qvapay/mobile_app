@@ -91,13 +91,8 @@ const Userdata = () => {
                     createdAt: userData.createdAt || ''
                 })
 
-            } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error al cargar datos del usuario',
-                    text2: result.error || 'Error desconocido'
-                })
-            }
+            } else { Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario', text2: result.error || 'Error desconocido' }) }
+
         } catch (error) {
             console.error('Error loading user data:', error)
             Toast.show({
@@ -112,35 +107,24 @@ const Userdata = () => {
     const handleSubmit = async () => {
 
         if (!name || !lastname) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Por favor completa al menos el nombre y apellido'
-            })
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor completa al menos el nombre y apellido' })
             return
         }
 
         // Validate email format if provided
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Por favor ingresa un formato de correo electrónico válido'
-            })
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un formato de correo electrónico válido' })
             return
         }
 
         // Validate country code if provided
         if (country && country.length !== 2) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'El código de país debe tener exactamente 2 caracteres (ej: US, ES, MX)'
-            })
+            Toast.show({ type: 'error', text1: 'Error', text2: 'El código de país debe tener exactamente 2 caracteres (ej: US, ES, MX)' })
             return
         }
 
         try {
+
             setIsLoading(true)
 
             const updateData = {
@@ -156,11 +140,8 @@ const Userdata = () => {
             const result = await userApi.updateUser(updateData)
 
             if (result.success && result.data) {
-                Toast.show({
-                    type: 'success',
-                    text1: 'Datos actualizados',
-                    text2: 'Tu información personal ha sido actualizada correctamente'
-                })
+
+                Toast.show({ type: 'success', text1: 'Datos actualizados', text2: 'Tu información personal ha sido actualizada correctamente' })
 
                 // Update local state with response data
                 const userData = result.data
@@ -175,20 +156,10 @@ const Userdata = () => {
                     lastname: userData.lastname || lastname
                 })
 
-            } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error al actualizar',
-                    text2: result.error || 'Error desconocido'
-                })
-            }
+            } else { Toast.show({ type: 'error', text1: 'Error al actualizar', text2: result.error || 'Error desconocido' }) }
+
         } catch (error) {
-            console.error('Error updating user data:', error)
-            Toast.show({
-                type: 'error',
-                text1: 'Error al actualizar',
-                text2: error.message
-            })
+            Toast.show({ type: 'error', text1: 'Error al actualizar', text2: error.message })
         } finally { setIsLoading(false) }
     }
 

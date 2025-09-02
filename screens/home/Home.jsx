@@ -87,12 +87,7 @@ const Home = ({ navigation }) => {
                             <FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
                         </View>
                     </View>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: 0 }}
-                        style={{ marginVertical: 5 }}
-                    >
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <View style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}>
                                 <FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />

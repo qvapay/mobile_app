@@ -33,10 +33,19 @@ const QPInput = forwardRef((props, ref) => {
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+        <View style={[
+            styles.container, 
+            { backgroundColor: theme.colors.surface }, 
+            !theme.isDark ? { borderColor: theme.colors.primary, borderWidth: 0.3 } : {},
+            style,
+        ]}>
 
             {hasPrefix && (
-                <View style={styles.prefixContainer}>
+                <View style={[
+                    styles.prefixContainer,
+                    style?.borderTopLeftRadius !== undefined && { borderTopLeftRadius: style.borderTopLeftRadius },
+                    style?.borderBottomLeftRadius !== undefined && { borderBottomLeftRadius: style.borderBottomLeftRadius }
+                ]}>
                     <FontAwesome6 size={18} color={theme.colors.secondaryText} name={props.prefixIconName} style={styles.icon} iconStyle={iconStyle} />
                 </View>
             )}
@@ -54,14 +63,17 @@ const QPInput = forwardRef((props, ref) => {
                         height: multiline ? 100 : 50,
                         paddingLeft: hasPrefix ? 0 : 15,
                         paddingRight: hasSuffix ? 0 : 15,
-                    },
-                    style
+                    }
                 ]}
             />
 
             {hasSuffix && (
                 <Pressable onPress={handleSuffixPress}>
-                    <View style={styles.suffixContainer}>
+                    <View style={[
+                        styles.suffixContainer,
+                        style?.borderTopRightRadius !== undefined && { borderTopRightRadius: style.borderTopRightRadius },
+                        style?.borderBottomRightRadius !== undefined && { borderBottomRightRadius: style.borderBottomRightRadius }
+                    ]}>
                         <FontAwesome6 size={18} color={theme.colors.secondaryText} name={suffixIconName} style={styles.icon} iconStyle="solid" />
                     </View>
                 </Pressable>

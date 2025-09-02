@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     headerRight: {
-        marginRight: 20,
+        marginRight: 10,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',

@@ -91,7 +91,7 @@ const AppNavigator = () => {
         if (splashReady && !authLoading && !settingsLoading) {
             // Only navigate if we're not already on the correct screen
             const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
-            
+
             if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
                 // User is authenticated and not first time - navigate to main stack
                 navigation.reset({
@@ -162,11 +162,21 @@ const AppNavigator = () => {
                 name={ROUTES.SEND}
                 component={Send}
                 options={{
-                    headerTitle: '',
+                    headerTitle: 'Enviar QUSD',
                     headerShown: true,
-                    headerBackVisible: true,
+                    headerBackVisible: false,
                     headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false
+                    headerShadowVisible: false,
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6
+                                name="arrow-left"
+                                size={24}
+                                color={theme.colors.primaryText}
+                                iconStyle="solid"
+                            />
+                        </Pressable>
+                    )
                 }}
             />
             <Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />

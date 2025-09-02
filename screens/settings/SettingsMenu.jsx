@@ -12,6 +12,7 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 import QPButton from '../../ui/particles/QPButton'
 import QPAvatar from '../../ui/particles/QPAvatar'
 import SettingsSection from '../../ui/SettingsSection'
+import ProfileContainer from '../../ui/ProfileContainer'
 
 // Import settings
 import settings from './settings'
@@ -37,9 +38,6 @@ const SettingsMenu = ({ navigation }) => {
     const containerStyles = createContainerStyles(theme)
     const insets = useSafeAreaInsets()
 
-    // require('../../assets/images/ui/qvapay-logo-white.png' on theme depends
-    const qvapayLogo = theme.mode === 'dark' ? require('../../assets/images/ui/qvapay-logo-white.png') : require('../../assets/images/ui/logo-qvapay.png')
-
     // Logout function
     const handleLogout = async () => {
         Alert.alert(
@@ -64,17 +62,8 @@ const SettingsMenu = ({ navigation }) => {
     return (
         <ScrollView style={containerStyles.subContainer}>
 
-            <View style={{ alignItems: 'center', marginVertical: 20 }}>
-                <QPAvatar size={120} user={user} />
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 15 }}>
-                    <Text style={[textStyles.h1, { marginVertical: 0, paddingVertical: 0 }]}>{user.name} {user.lastname}</Text>
-                    {user.kyc && (<Image source={require('../../assets/images/ui/blue-badge.png')} style={{ width: 20, height: 20 }} />)}
-                    {user.golden_check && (<Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 20, height: 20 }} />)}
-                    {user.role == 'admin' && (<Image source={qvapayLogo} style={{ width: 20, height: 20 }} />)}
-                </View>
-                <Text style={[textStyles.h2, { color: theme.colors.secondaryText, marginVertical: 0, paddingVertical: 0 }]}>@{user.username}</Text>
-            </View>
-
+            <ProfileContainer user={user} />
+            
             {/* Gold Check Card */}
             <Pressable style={containerStyles.box} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
                 <Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 80, height: 80 }} />
