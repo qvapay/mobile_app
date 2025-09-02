@@ -169,12 +169,7 @@ const AppNavigator = () => {
                     headerShadowVisible: false,
                     headerLeft: () => (
                         <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6
-                                name="arrow-left"
-                                size={24}
-                                color={theme.colors.primaryText}
-                                iconStyle="solid"
-                            />
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                         </Pressable>
                     )
                 }}
@@ -187,11 +182,16 @@ const AppNavigator = () => {
                 name={ROUTES.TRANSACTIONS}
                 component={Transactions}
                 options={{
-                    headerTitle: '',
+                    headerTitle: 'Transacciones',
                     headerShown: true,
-                    headerBackVisible: true,
+                    headerBackVisible: false,
                     headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false
+                    headerShadowVisible: false,
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
                 }}
             />
             <Stack.Screen name={ROUTES.TRANSACTION} component={Transaction} />
@@ -209,12 +209,7 @@ const AppNavigator = () => {
                     headerShadowVisible: false,
                     headerLeft: () => (
                         <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6
-                                name="arrow-left"
-                                size={24}
-                                color={theme.colors.primaryText}
-                                iconStyle="solid"
-                            />
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                         </Pressable>
                     )
                 }}
@@ -231,12 +226,7 @@ const AppNavigator = () => {
                     headerShadowVisible: false,
                     headerLeft: () => (
                         <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6
-                                name="arrow-left"
-                                size={24}
-                                color={theme.colors.primaryText}
-                                iconStyle="solid"
-                            />
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                         </Pressable>
                     )
                 }}
@@ -255,12 +245,7 @@ const AppNavigator = () => {
                     headerShadowVisible: false,
                     headerLeft: () => (
                         <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6
-                                name="arrow-left"
-                                size={24}
-                                color={theme.colors.primaryText}
-                                iconStyle="solid"
-                            />
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                         </Pressable>
                     )
                 }}
@@ -277,12 +262,7 @@ const AppNavigator = () => {
                     headerShadowVisible: false,
                     headerLeft: () => (
                         <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6
-                                name="arrow-left"
-                                size={24}
-                                color={theme.colors.primaryText}
-                                iconStyle="solid"
-                            />
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                         </Pressable>
                     )
                 }}

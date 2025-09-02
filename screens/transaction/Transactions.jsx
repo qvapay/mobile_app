@@ -52,7 +52,7 @@ const Transactions = ({ navigation }) => {
             {/** TODO: Retrieve more transactions on last item scroll */}
 
             <FlatList
-                ListHeaderComponent={<Text style={textStyles.h1}>Transacciones</Text>}
+                // ListHeaderComponent={<Text style={textStyles.h1}>Transacciones</Text>}
                 data={transactions}
                 renderItem={({ item, index }) => <QPTransaction transaction={item} navigation={navigation} index={index} totalItems={transactions.length} />}
                 keyExtractor={(item) => item.uuid}
