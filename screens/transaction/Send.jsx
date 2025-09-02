@@ -85,6 +85,7 @@ const Send = ({ navigation, route }) => {
     }, [])
 
     // If user uuid is provided in the route, try to fetch user data
+    // TODO: Some day, you will have a DeepLink and this will be useful
     useEffect(() => {
         if (user_uuid) {
             try {
