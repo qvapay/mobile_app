@@ -73,7 +73,8 @@ const DEFAULT_SETTINGS = {
         reduceMotion: false,
         highContrast: false,
         boldText: false,
-        firstTime: true
+        firstTime: true,
+        bottomBarLabels: false
     },
 
     // Language and localization

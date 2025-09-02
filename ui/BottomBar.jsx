@@ -1,4 +1,4 @@
-import { StyleSheet, View, Pressable } from 'react-native'
+import { StyleSheet, View, Pressable, Text } from 'react-native'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -9,10 +9,27 @@ import { useTheme } from '../theme/ThemeContext'
 // Nav Items from routes.js
 import { navItems } from '../routes'
 
+// Navigation labels in Spanish
+const navLabels = {
+    'Home': 'Inicio',
+    'Invest': 'Invertir',
+    'Keypad': 'Enviar',
+    'P2P': 'P2P',
+    'Store': 'Tienda'
+}
+
+// Settings Context
+import { useSettings } from '../settings/SettingsContext'
+
 // Bottom Bar for Main Stack
 export default function BottomBar({ state, descriptors, navigation }) {
 
+    // Theme Contexts
     const { theme } = useTheme()
+
+    // Settings Context
+    const { settings, getSetting, isSettingEnabled } = useSettings()
+    const showLabels = settings.appearance.bottomBarLabels
 
     return (
         <View style={[styles.bottomNav, { backgroundColor: theme.colors.background }]}>
@@ -36,7 +53,14 @@ export default function BottomBar({ state, descriptors, navigation }) {
                         accessibilityState={isFocused ? { selected: true } : {}}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                     >
-                        <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={[isFocused ? styles.activeTab : styles.fa, { color: isFocused ? theme.colors.primaryText : theme.colors.secondaryText }]} />
+                        <View style={styles.tabContent}>
+                            <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={[isFocused ? styles.activeTab : styles.fa, { color: isFocused ? theme.colors.primaryText : theme.colors.secondaryText }]} />
+                            {showLabels && (
+                                <Text style={[styles.tabLabel, { color: isFocused ? theme.colors.primaryText : theme.colors.secondaryText }]}>
+                                    {navLabels[route.name] || route.name}
+                                </Text>
+                            )}
+                        </View>
                     </Pressable>
                 )
             })}
@@ -46,8 +70,8 @@ export default function BottomBar({ state, descriptors, navigation }) {
 
 const styles = StyleSheet.create({
     bottomNav: {
-        height: 50,
-        paddingVertical: 10,
+        minHeight: 50,
+        paddingTop: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
@@ -56,10 +80,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center'
     },
+    tabContent: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     fa: {
         fontSize: 20,
     },
     activeTab: {
         fontSize: 24,
     },
+    tabLabel: {
+        fontSize: 10,
+        marginTop: 2,
+        textAlign: 'center',
+        fontWeight: '500',
+    }
 })

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native'
+import { StyleSheet, Text, View, Pressable, ScrollView, Switch } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme 
@@ -41,11 +41,19 @@ const Theme = () => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
+    // Dark, Light and Auto theme selection
     const handleThemeSelect = async (themeId) => {
         try {
             await setThemeMode(themeId)
             await updateSettings('appearance', { theme: themeId })
         } catch (error) { console.error('🎨 Theme Screen - Error updating theme:', error) }
+    }
+
+    // Bottom bar labels toggle for Accessibility
+    const handleBottomBarLabelsToggle = async (value) => {
+        try {
+            await updateSettings('appearance', { bottomBarLabels: value })
+        } catch (error) { console.error('🎨 Theme Screen - Error updating bottom bar labels:', error) }
     }
 
     // Theme Option Component
@@ -71,7 +79,7 @@ const Theme = () => {
 
     return (
         <ScrollView style={[containerStyles.subContainer, { paddingVertical: 20 }]} showsVerticalScrollIndicator={false}>
-            
+
             <View style={styles.header}>
                 <Text style={textStyles.h1}>Tema</Text>
                 <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personaliza la apariencia de la aplicación</Text>
@@ -97,11 +105,25 @@ const Theme = () => {
             </View>
 
             {/** Ícono */}
-            <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Ícono</Text>
+            {/* <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Ícono</Text> */}
 
             {/** Barra de navegación */}
-            <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Barra de navegación</Text>
-            
+            <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2, marginTop: 20 }]}>Barra de navegación</Text>
+            <View style={[containerStyles.box, styles.settingRow]}>
+                <View style={styles.settingContent}>
+                    <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Mostrar texto</Text>
+                    <Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
+                        Mostrar etiquetas en la barra de navegación
+                    </Text>
+                </View>
+                <Switch
+                    value={settings.appearance.bottomBarLabels}
+                    onValueChange={handleBottomBarLabelsToggle}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                    thumbColor={settings.appearance.bottomBarLabels ? '#FFFFFF' : theme.colors.secondaryText}
+                />
+            </View>
+
         </ScrollView>
     )
 }
@@ -158,6 +180,17 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: 'rgba(103, 89, 239, 0.1)',
+    },
+    settingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        marginBottom: 12,
+    },
+    settingContent: {
+        flex: 1,
+        // marginRight: 16,
     },
 })
 
