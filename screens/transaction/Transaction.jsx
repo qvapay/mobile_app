@@ -1,21 +1,254 @@
-import { View, Text, StyleSheet } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-const Transaction = ({ route }) => {
+// Theme Context
+import { useTheme } from '../../theme/ThemeContext'
+import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
+
+// Auth Context
+import { useAuth } from '../../auth/AuthContext'
+
+// API
+import { transferApi } from '../../api/transferApi'
+
+// Helpers
+import { timeSince, getShortDateTime, statusText, getFirstChunk, copyTextToClipboard } from '../../helpers'
+
+// UI Particles
+import QPAvatar from '../../ui/particles/QPAvatar'
+
+// FontAwesome6
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// Toast
+import Toast from 'react-native-toast-message'
+import QPButton from '../../ui/particles/QPButton'
+
+const Transaction = ({ route, navigation }) => {
 
     const { transaction } = route.params
+    const [transactionDetails, setTransactionDetails] = useState(transaction)
+    const [loading, setLoading] = useState(false)
 
-    console.log("Transaction", transaction)
+    // Contexts
+    const { theme } = useTheme()
+    const { user } = useAuth()
+    const textStyles = useTextStyles(theme)
+    const containerStyles = useContainerStyles(theme)
+    const insets = useSafeAreaInsets()
+
+    // Fetch detailed transaction data
+    useEffect(() => {
+        const fetchTransactionDetails = async () => {
+            setLoading(true)
+            try {
+                const response = await transferApi.getTransactionDetails(transaction.uuid)
+                if (response.success) {
+                    setTransactionDetails(response.data.data)
+                }
+            } catch (error) {
+                console.error('Error fetching transaction details:', error)
+            } finally { setLoading(false) }
+        }
+        fetchTransactionDetails()
+    }, [transaction.uuid])
+
+    // Determine transaction type and colors
+    const user_uuid = user?.uuid || ''
+    const paid_by_uuid = transactionDetails.paid_by?.uuid || ''
+    const isPaidByMe = user_uuid === paid_by_uuid
+    const transactionSign = isPaidByMe ? '-' : '+'
+    const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
+    const badgeColor = isPaidByMe ? theme.colors.danger : theme.colors.success
+    const badgeIcon = isPaidByMe ? 'arrow-up' : 'arrow-down'
+
+    // Get the other user (not the current user)
+    const otherUser = isPaidByMe ? transactionDetails.owner : transactionDetails.paid_by
+
+    // Format amount
+    const amountFloat = parseFloat(transactionDetails.amount)
+    const amountFixed = amountFloat.toFixed(2)
+
+    // Handle PDF download
+    const handleDownloadPDF = async () => {
+        try {
+            const response = await transferApi.getTransactionPDF(transactionDetails.uuid)
+            if (response.success) {
+                Toast.show({ type: 'success', text1: 'Éxito', text2: 'PDF descargado correctamente' })
+            } else { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' }) }
+        } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' }) }
+    }
 
     return (
-        <View>
-            <Text>Transaction</Text>
-            <Text>{transaction.uuid}</Text>
+        <View style={[containerStyles.subContainer]}>
+
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+
+                {/* User Section */}
+                <View style={styles.userSection}>
+                    <View style={styles.avatarContainer}>
+                        <QPAvatar user={otherUser} size={120} />
+                        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+                            <FontAwesome6 name={badgeIcon} size={16} color="white" />
+                        </View>
+                    </View>
+                    <Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 15 }]}>
+                        {otherUser?.name || 'Usuario'}
+                    </Text>
+                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginTop: 5 }]}>
+                        {getShortDateTime(transactionDetails.created_at)}
+                    </Text>
+                </View>
+
+                {/* Amount Section */}
+                <View style={styles.amountSection}>
+                    <Text style={[textStyles.amount, { color: transactionColor, fontSize: 48 }]}>
+                        {transactionSign}${amountFixed}
+                    </Text>
+                </View>
+
+                {/* Transaction Details Card */}
+                <View style={[styles.detailsCard, { backgroundColor: theme.colors.surface }]}>
+                    <Text style={[textStyles.h3, { color: theme.colors.primaryText, marginBottom: 20 }]}>
+                        Detalles de la Transacción
+                    </Text>
+
+                    <View style={styles.detailRow}>
+                        <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>ID:</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{getFirstChunk(transactionDetails.uuid)}</Text>
+                            <Pressable onPress={() => copyTextToClipboard(transactionDetails.uuid)}>
+                                <FontAwesome6 name="copy" size={16} color={theme.colors.primaryText} />
+                            </Pressable>
+                        </View>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Monto:</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>${amountFixed}</Text>
+                    </View>
+
+                    {transactionDetails.wallet && (
+                        <View style={styles.detailRow}>
+                            <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Tipo de Pago:</Text>
+                            <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
+                                {transactionDetails.wallet.wallet_type || 'N/A'}
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={styles.detailRow}>
+                        <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Estado:</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: theme.colors.success }]}>
+                            <Text style={[textStyles.h6, { color: 'white', fontWeight: '600' }]}>
+                                {statusText(transactionDetails.status)}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {transactionDetails.description && (
+                        <View style={styles.detailRow}>
+                            <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Nota:</Text>
+                            <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
+                                {transactionDetails.description}
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={[styles.detailRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+                        <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Fecha:</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
+                            {getShortDateTime(transactionDetails.created_at)}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Action Buttons */}
+                <View style={containerStyles.bottomButtonContainer}>
+                    <QPButton
+                        title="Descargar"
+                        icon="download"
+                        iconColor="white"
+                        onPress={handleDownloadPDF}
+                        style={{ borderRadius: 25, backgroundColor: theme.colors.primary }}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                        iconStyle="solid"
+                    />
+                </View>
+
+            </ScrollView>
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-
+    container: {
+        flex: 1,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    userSection: {
+        alignItems: 'center',
+        paddingVertical: 30,
+    },
+    avatarContainer: {
+        position: 'relative',
+    },
+    badge: {
+        position: 'absolute',
+        bottom: 5,
+        right: 5,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    amountSection: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    detailsCard: {
+        borderRadius: 16,
+        padding: 20,
+        marginVertical: 20,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 0.5,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    statusBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 15,
+        paddingVertical: 30,
+        paddingBottom: 50,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 15,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    shareButton: {
+        // Styles handled by theme
+    },
+    downloadButton: {
+        borderWidth: 0,
+    },
 })
 
 export default Transaction

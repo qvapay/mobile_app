@@ -6,16 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
-// Routes
-import { ROUTES } from '../../routes'
-
 // API
 import { transferApi } from '../../api/transferApi'
 
 // UI
-import QPButton from '../../ui/particles/QPButton'
 import QPTransaction from '../../ui/particles/QPTransaction'
 
+// Transactions Screen
 const Transactions = ({ navigation }) => {
 
     // States
@@ -25,7 +22,6 @@ const Transactions = ({ navigation }) => {
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
-    const insets = useSafeAreaInsets()
 
     // Get latest transactions
     useEffect(() => {
@@ -35,18 +31,27 @@ const Transactions = ({ navigation }) => {
                 if (result.success) {
                     setTransactions(result.data)
                 }
-            } catch (error) {
-                console.log("Error getting latest transactions", error)
-            }
+            } catch (error) { console.log("Error getting latest transactions", error) }
         }
         fetchTransactions()
     }, [])
 
-    console.log("Transactions", transactions)
+    // Función para mostrar el modal de notificaciones
+    const showFiltersModal = () => {
+        // Aquí puedes implementar tu lógica del modal
+        console.log('Mostrando modal de filtros')
+        // Por ejemplo, navegar a una pantalla de filtros
+        // navigation.navigate('FiltersModal')
+    }
+
+    // Pasar la función al header cuando el componente se monta
+    useEffect(() => {
+        navigation.setParams({ showFiltersModal })
+    }, [navigation])
 
     // Render
     return (
-        <View style={[containerStyles.subContainer, { paddingBottom: insets.bottom }]}>
+        <View style={[containerStyles.subContainer, { paddingTop: 20 }]}>
 
             {/** TODO: Add a filter component */}
             {/** TODO: Retrieve more transactions on last item scroll */}

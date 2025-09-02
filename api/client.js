@@ -31,6 +31,7 @@ apiClient.interceptors.request.use(
     async (config) => {
         try {
             const token = await AsyncStorage.getItem('token')
+            console.log("token", token)
             if (token) { config.headers.Authorization = `Bearer ${token}` }
         } catch (error) { console.warn('Failed to get token from storage:', error) }
         return config

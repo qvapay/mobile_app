@@ -158,10 +158,7 @@ const filterCoins = ({ coins, in_out_p2p = "IN", amount = 0 }) => {
 
 // Show only initial and latest letters from a wallet
 const truncateWalletAddress = (address, amount = 10) => {
-    if (address.length > 28) {
-        return address.substring(0, amount) + '...' + address.substring(address.length - amount)
-    }
-    return address
+    return address.length > 28 ? address.substring(0, amount) + '...' + address.substring(address.length - amount) : address
 }
 
 const adjustNumber = (value) => {
@@ -214,7 +211,9 @@ const statusText = (text) => {
 }
 
 // Save contact function
+// TODO: Deprecate and move to some Context API
 const saveContact = async (contact) => {
+
     try {
 
         const userToSave = {
@@ -235,14 +234,11 @@ const saveContact = async (contact) => {
                 newContacts[contactIndex] = userToSave
             }
             await AsyncStorage.setItem('contacts', JSON.stringify(newContacts))
-        } else {
-            await AsyncStorage.setItem('contacts', JSON.stringify([userToSave]))
-        }
-    } catch (error) {
-        console.log(error)
-    }
+        } else { await AsyncStorage.setItem('contacts', JSON.stringify([userToSave])) }
+    } catch (error) { console.log(error) }
 }
 
+// Shuffle array function
 const shuffleArray = (array) => {
     let currentIndex = array.length, randomIndex
     while (currentIndex !== 0) {
@@ -266,7 +262,12 @@ const copyTextToClipboard = (text) => {
     })
 }
 
-// export timeSince function
+// take am uuid and return the fir chunk of it
+const getFirstChunk = (uuid) => {
+    return uuid.split("-")[0]
+}
+
+// export helpers
 export {
     timeSince,
     reduceString,
@@ -281,5 +282,6 @@ export {
     saveContact,
     shuffleArray,
     statusText,
-    copyTextToClipboard
+    copyTextToClipboard,
+    getFirstChunk
 }

@@ -1,6 +1,6 @@
 // React Components
 import { useEffect, useState } from 'react'
-import { Button, Pressable } from 'react-native'
+import { Button, Pressable, StyleSheet } from 'react-native'
 
 // Navigation Components
 import { NavigationContainer, useNavigation } from '@react-navigation/native'
@@ -180,8 +180,31 @@ const AppNavigator = () => {
             <Stack.Screen
                 name={ROUTES.TRANSACTIONS}
                 component={Transactions}
-                options={{
+                options={({ route }) => ({
                     headerTitle: 'Transacciones',
+                    headerShown: true,
+                    headerBackVisible: false,
+                    headerBackButtonMenuEnabled: true,
+                    headerShadowVisible: false,
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    ),
+                    headerRight: () => (
+                        <Pressable style={styles.headerRight} onPress={route.params?.showFiltersModal || (() => { })}>
+                            <FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
+                })}
+            />
+            
+            <Stack.Screen
+                name={ROUTES.TRANSACTION}
+                component={Transaction}
+                options={{
+                    headerTitle: '',
+                    animation: 'slide_from_right',
                     headerShown: true,
                     headerBackVisible: false,
                     headerBackButtonMenuEnabled: true,
@@ -193,7 +216,6 @@ const AppNavigator = () => {
                     )
                 }}
             />
-            <Stack.Screen name={ROUTES.TRANSACTION} component={Transaction} />
 
             {/* Login and Register Screens */}
             <Stack.Screen
@@ -297,5 +319,14 @@ function App() {
         </AuthProvider>
     )
 }
+
+const styles = StyleSheet.create({
+    headerRight: {
+        marginRight: 10,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+})
 
 export default Sentry.wrap(App)

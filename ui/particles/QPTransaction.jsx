@@ -65,16 +65,11 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
 
-                    {wallet_coin ? (
-                        // TODO: Replace wallet coin (TICKER) with coin image from the API
-                        <QPCoin coin={wallet_coin} size={48} />
-                    ) : (
-                        <QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />
-                    )}
+                    {wallet_coin ? (<QPCoin coin={wallet_coin} size={48} />) : (<QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />)}
 
                     <View style={{ flexDirection: 'column' }}>
                         <Text style={textStyles.h4}>{reduceString(description)}</Text>
-                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{timeSince(updated_at)}</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{timeSince(updated_at)}</Text>
                     </View>
                 </View>
 

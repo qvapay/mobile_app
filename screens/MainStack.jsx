@@ -52,6 +52,7 @@ const MainStack = ({ navigation }) => {
 
     return (
         <SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
+            
             <Tab.Navigator
                 initialRouteName={ROUTES.HOME_SCREEN}
                 backBehavior='initialRoute'
