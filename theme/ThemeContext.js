@@ -19,7 +19,7 @@ const colors = {
         successText: "#00471E",
         background: "#FFFFFF",
         secondaryBackground: "#F8F9FA",
-        surface: "#FFFFFF",
+        surface: "#F8F9FA",
         primaryText: "#1A1A1A",
         buttonText: "#FFFFFF",
         secondaryText: "#6C757D",

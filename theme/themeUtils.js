@@ -54,6 +54,11 @@ export const createTextStyles = (theme) => StyleSheet.create({
         fontFamily: theme.typography.fontFamily.medium,
         color: theme.colors.primaryText,
     },
+    h7: {
+        fontSize: theme.typography.fontSize.xs,
+        fontFamily: theme.typography.fontFamily.medium,
+        color: theme.colors.primaryText,
+    },
     caption: {
         fontSize: theme.typography.fontSize.sm,
         fontFamily: theme.typography.fontFamily.light,

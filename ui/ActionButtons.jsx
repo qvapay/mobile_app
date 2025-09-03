@@ -38,11 +38,7 @@ const ActionButtons = ({ navigation }) => {
                 <QPButton
                     title={'Extraer'}
                     icon="turn-up"
-                    style={[
-                        styles.actionButton,
-                        styles.sendButton,
-                        { backgroundColor: theme.colors.elevation }
-                    ]}
+                    style={[styles.actionButton, styles.sendButton, { backgroundColor: theme.colors.elevation }]}
                     iconStyle="solid"
                     onPress={() => navigation.navigate(ROUTES.WITHDRAW)}
                     textStyle={{ color: theme.colors.primaryText }}

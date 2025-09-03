@@ -36,57 +36,40 @@ const AmountInput = ({
         <View style={[{ marginVertical: 10 }, style]}>
 
             {/* Main Amount Input Container */}
-            <View style={{
-                backgroundColor: theme.colors.surface,
-                borderRadius: 16,
-                padding: 20,
-                borderWidth: theme.isDark ? 0.5 : 1,
-                borderColor: theme.isDark ? theme.colors.border : theme.colors.primary,
-                shadowColor: theme.isDark ? 'transparent' : theme.colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: theme.isDark ? 0 : 0.1,
-                shadowRadius: 8,
-                elevation: theme.isDark ? 0 : 4,
-            }}>
+            <View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, padding: 20, borderWidth: 2, borderColor: theme.colors.primary }}>
+
                 {/* Amount Input Row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
 
-                    <View style={{ flex: 1 }}>
-                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>
-                            {placeholder}
-                        </Text>
-                        <TextInput
-                            value={amount}
-                            onChangeText={onAmountChange}
-                            placeholder="0.00"
-                            placeholderTextColor={theme.colors.placeholder}
-                            keyboardType="numeric"
-                            style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0, }]}
-                        />
-                    </View>
+                    <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>
+                        {placeholder}:
+                    </Text>
 
                     {/* Currency Selector */}
-                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-                        {currency}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                        <Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
+                            Balance:
+                        </Text>
+                        <Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
+                            {formatBalance(balance)} {currency}
+                        </Text>
+                    </View>
                 </View>
 
-                {/* Balance Display */}
-                <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingTop: 12,
-                    borderTopWidth: 1,
-                    borderTopColor: theme.colors.border
-                }}>
-                    <Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>
-                        Balance
-                    </Text>
-                    <Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>
-                        {formatBalance(balance)} {currency}
-                    </Text>
+                <View style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <TextInput
+                        value={amount}
+                        onChangeText={onAmountChange}
+                        placeholder="0.00"
+                        placeholderTextColor={theme.colors.placeholder}
+                        keyboardType="numeric"
+                        style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0, }]}
+                    />
+                    <View style={{ backgroundColor: theme.colors.primary + '22', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginLeft: 8 }}>
+                        <Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: 'bold' }]}>QUSD</Text>
+                    </View>
                 </View>
+
             </View>
 
             {/* Common Amount Badges - 3x2 Grid */}

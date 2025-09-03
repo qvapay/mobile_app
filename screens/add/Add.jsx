@@ -24,6 +24,9 @@ import QRCode from 'react-native-qrcode-styled'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Toast
+import Toast from 'react-native-toast-message'
+
 const Add = ({ navigation }) => {
 
     // Theme variables, dark and light modes
@@ -73,46 +76,38 @@ const Add = ({ navigation }) => {
     const handleTopup = async () => {
 
         if (!selectedCoin || !amount) {
-            Alert.alert('Error', 'Por favor selecciona una moneda e ingresa un monto')
+            Toast.show({ type: 'error', text1: 'Por favor selecciona una moneda e ingresa un monto' })
             return
         }
 
         const amountValue = parseFloat(amount)
         if (isNaN(amountValue) || amountValue <= 0) {
-            Alert.alert('Error', 'Por favor ingresa un monto válido')
+            Toast.show({ type: 'error', text1: 'Por favor ingresa un monto válido' })
             return
         }
 
         if (amountValue < parseFloat(selectedCoin.min_in)) {
-            Alert.alert('Error', `El monto mínimo para ${selectedCoin.name} es ${selectedCoin.min_in}`)
+            Toast.show({ type: 'error', text1: `El monto mínimo para ${selectedCoin.name} es ${selectedCoin.min_in}` })
             return
         }
 
         try {
+
             setIsLoading(true)
             setError(null)
-
-            console.log(selectedCoin.tick)
-            console.log(Number(amount))
 
             const response = await apiClient.post('/topup', {
                 pay_method: selectedCoin.tick,
                 amount: Number(amount)
             })
 
-            console.error(response.data)
-
             if (response.data && response.status === 200) {
                 setTopupData(response.data.data)
                 setShowDepositModal(true)
-                setSuccess('Solicitud de depósito creada exitosamente')
-            } else {
-                setError('Error al crear la solicitud de depósito')
-            }
-        } catch (error) {
-            console.error('Error creating topup:', error)
-            setError('Error al crear la solicitud de depósito')
-        } finally { setIsLoading(false) }
+            } else { Toast.show({ type: 'error', text1: 'Error al crear la solicitud de depósito' }) }
+
+        } catch (error) { setError('Error al crear la solicitud de depósito') }
+        finally { setIsLoading(false) }
     }
 
     // Reset form
@@ -128,7 +123,7 @@ const Add = ({ navigation }) => {
     // Copy to clipboard
     const copyToClipboard = (text) => {
         Clipboard.setString(text)
-        Alert.alert('Copiado', 'Dirección copiada al portapapeles')
+        Toast.show({ type: 'success', text1: 'Dirección copiada al portapapeles' })
     }
 
     // Share deposit details
@@ -136,7 +131,7 @@ const Add = ({ navigation }) => {
         if (topupData) {
             const shareText = `Depósito de ${topupData.value} ${topupData.coin}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
             // You can implement actual sharing logic here
-            Alert.alert('Compartir', 'Funcionalidad de compartir implementada')
+            Toast.show({ type: 'success', text1: 'Funcionalidad de compartir implementada' })
         }
     }
 
@@ -145,14 +140,14 @@ const Add = ({ navigation }) => {
         if (topupData) {
             const emailText = `Detalles del depósito:\nMoneda: ${topupData.coin}\nMonto: ${topupData.value}\nPrecio: $${topupData.price}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
             // You can implement actual email logic here
-            Alert.alert('Email', 'Funcionalidad de email implementada')
+            Toast.show({ type: 'success', text1: 'Funcionalidad de email implementada' })
         }
     }
 
     return (
         <View style={[containerStyles.subContainer, { justifyContent: 'space-between', paddingBottom: 20 }]}>
 
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, marginTop: 20 }}>
 
                 {/* Amount Input Component */}
                 <AmountInput
@@ -166,14 +161,14 @@ const Add = ({ navigation }) => {
 
                 {/* Coin Selection */}
                 <View style={{ marginVertical: 20 }}>
-                    <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
-                        Seleccionar moneda:
-                    </Text>
-                    <Pressable
-                        style={[styles.coinSelector, { backgroundColor: theme.colors.surface }]}
-                        onPress={() => setShowCoinPicker(true)}
-                        disabled={isLoading}
-                    >
+
+                    {selectedCoin && (
+                        <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
+                            Seleccionar moneda:
+                        </Text>
+                    )}
+
+                    <Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface }]} onPress={() => setShowCoinPicker(true)} disabled={isLoading} >
                         {selectedCoin ? (
                             <View style={styles.selectedCoin}>
                                 <QPCoin coin={selectedCoin.logo} size={40} />
@@ -196,7 +191,7 @@ const Add = ({ navigation }) => {
                                 <Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
                                     {isLoading ? "Cargando monedas..." : "Seleccionar moneda"}
                                 </Text>
-                                <FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} />
+                                <FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
                             </View>
                         )}
                     </Pressable>
@@ -233,6 +228,7 @@ const Add = ({ navigation }) => {
 
             {/* Deposit Details Modal */}
             <Modal visible={showDepositModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowDepositModal(false)}>
+
                 <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 
                     {/* Modal Header */}
@@ -355,7 +351,7 @@ const Add = ({ navigation }) => {
                                 </View>
                                 {coin.network && (
                                     <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-                                        <Text style={[textStyles.caption, { color: theme.colors.buttonText }]}>
+                                        <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>
                                             {coin.network}
                                         </Text>
                                     </View>
