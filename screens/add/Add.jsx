@@ -48,6 +48,8 @@ const Add = ({ navigation }) => {
     const [showCoinPicker, setShowCoinPicker] = useState(false)
     const [showDepositModal, setShowDepositModal] = useState(false)
     const [topupData, setTopupData] = useState(null)
+    const [coinSearch, setCoinSearch] = useState('')
+    const [showCoinSearch, setShowCoinSearch] = useState(false)
 
     // Get Available Coins for enabled_in
     useEffect(() => {
@@ -327,9 +329,15 @@ const Add = ({ navigation }) => {
 
                     <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
                         <Text style={textStyles.h4}>Seleccionar Moneda</Text>
-                        <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-                            <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                            <Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
+                                <FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+                            </Pressable>
+                            <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
+                                <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                            </Pressable>
+                        </View>
                     </View>
 
                     <ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
