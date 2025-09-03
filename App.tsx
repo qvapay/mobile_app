@@ -116,9 +116,7 @@ const AppNavigator = () => {
             initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
             screenOptions={{
                 headerShown: false,
-                headerStyle: {
-                    backgroundColor: theme.colors.background
-                },
+                headerStyle: { backgroundColor: theme.colors.background },
                 headerShadowVisible: false,
                 headerTintColor: theme.colors.primaryText
             }}
@@ -137,7 +135,21 @@ const AppNavigator = () => {
             <Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 
             {/* Add and Withdraw Screens */}
-            <Stack.Screen name={ROUTES.ADD} component={Add} />
+            <Stack.Screen
+                name={ROUTES.ADD}
+                component={Add}
+                options={{
+                    headerTitle: '',
+                    headerShown: true,
+                    headerBackVisible: false,
+                    headerBackButtonMenuEnabled: true,
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
+                }}
+            />
             <Stack.Screen
                 name={ROUTES.WITHDRAW}
                 component={Withdraw}
@@ -198,7 +210,7 @@ const AppNavigator = () => {
                     )
                 })}
             />
-            
+
             <Stack.Screen
                 name={ROUTES.TRANSACTION}
                 component={Transaction}

@@ -15,16 +15,8 @@ const QPCoin = ({ coin, size = 32 }) => {
     const coin_image_path = `https://qvpay.me/img/coins/${(coin || '').toLowerCase()}.svg`
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background, width: size, height: size }]}>
-            <SvgUri
-                style={{
-                    width: size,
-                    height: size,
-                    borderRadius: size / 2,
-                    backgroundColor: 'transparent'
-                }}
-                uri={coin_image_path}
-            />
+        <View style={[styles.container, { width: size, height: size }]}>
+            <SvgUri style={styles.svg} uri={coin_image_path} width={size} height={size} />
         </View>
     )
 }
@@ -33,6 +25,11 @@ const styles = StyleSheet.create({
     container: {
         borderRadius: 50,
         overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    svg: {
+        borderRadius: 50,
     }
 })
 

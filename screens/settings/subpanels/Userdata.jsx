@@ -188,7 +188,7 @@ const Userdata = () => {
 
                 <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
 
-                    <Text style={textStyles.h1}>Datos personales</Text>
+                    <Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Datos personales</Text>
                     <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tus datos personales</Text>
 
                     <View style={styles.formContainer}>

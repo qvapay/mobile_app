@@ -18,6 +18,9 @@ import apiClient from '../../api/client'
 // QR Code
 import QRCode from 'react-native-qrcode-styled'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 const Add = ({ navigation }) => {
 
     // Theme variables, dark and light modes
@@ -120,15 +123,15 @@ const Add = ({ navigation }) => {
     }
 
     return (
-        <SafeAreaView style={[containerStyles.subContainer, styles.container]}>
+        <View style={[containerStyles.subContainer, { paddingVertical: 20 }]}>
+
+            <Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Depositar</Text>
 
             <View style={{ flex: 1 }}>
 
-                <Text style={textStyles.h1}>Depositar</Text>
-
                 {/* Coin Selection */}
                 <View style={containerStyles.card}>
-                    <Text style={textStyles.h4}>Moneda</Text>
+                    <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Moneda</Text>
                     <Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface }]} onPress={() => setShowCoinPicker(true)} disabled={isLoading}>
                         {selectedCoin ? (
                             <View style={styles.selectedCoin}>
@@ -240,70 +243,60 @@ const Add = ({ navigation }) => {
             )}
 
             {/* Coin Picker Modal */}
-            <Modal
-                visible={showCoinPicker}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => setShowCoinPicker(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.colors.background }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={textStyles.h2}>Seleccionar Moneda</Text>
-                            <Pressable onPress={() => setShowCoinPicker(false)}>
-                                <Text style={[textStyles.h3, { color: theme.colors.primary }]}>Cerrar</Text>
-                            </Pressable>
-                        </View>
+            <Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
 
-                        <ScrollView style={styles.coinList}>
-                            {isLoading ? (
-                                <View style={styles.loadingContainer}>
-                                    <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
-                                        Cargando monedas...
-                                    </Text>
-                                </View>
-                            ) : availableCoins.length > 0 ? (
-                                availableCoins.map((coin) => (
-                                    <Pressable
-                                        key={coin.id}
-                                        style={[styles.coinItem, { backgroundColor: theme.colors.surface }]}
-                                        onPress={() => handleCoinSelect(coin)}
-                                    >
-                                        <QPCoin coin={coin.logo} size={40} />
-                                        <View style={{ marginLeft: 12, flex: 1 }}>
-                                            <Text style={textStyles.h4}>{coin.name}</Text>
-                                            <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-                                                Mín: {coin.min_in} | Fee: {coin.fee_in}
-                                            </Text>
-                                        </View>
-                                        {coin.network && (
-                                            <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-                                                <Text style={[textStyles.caption, { color: theme.colors.buttonText }]}>
-                                                    {coin.network}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </Pressable>
-                                ))
-                            ) : (
-                                <View style={styles.loadingContainer}>
-                                    <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
-                                        No hay monedas disponibles
-                                    </Text>
-                                </View>
-                            )}
-                        </ScrollView>
+                <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+
+                    <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+                        <Text style={textStyles.h4}>Seleccionar Moneda</Text>
+                        <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
+                            <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
                     </View>
-                </View>
+
+                    <ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
+
+                        {isLoading ? (
+                            <View style={styles.loadingContainer}>
+                                <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
+                                    Cargando monedas...
+                                </Text>
+                            </View>
+                        ) : availableCoins.length > 0 ? (availableCoins.map((coin) => (
+                            <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface }]} onPress={() => handleCoinSelect(coin)} >
+                                <QPCoin coin={coin.logo} size={40} />
+                                <View style={{ marginLeft: 12, flex: 1 }}>
+                                    <Text style={textStyles.h4}>{coin.name}</Text>
+                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
+                                        Mín: {coin.min_in} | Fee: {coin.fee_in}
+                                    </Text>
+                                </View>
+                                {coin.network && (
+                                    <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+                                        <Text style={[textStyles.caption, { color: theme.colors.buttonText }]}>
+                                            {coin.network}
+                                        </Text>
+                                    </View>
+                                )}
+                            </Pressable>
+                        ))
+                        ) : (
+                            <View style={styles.loadingContainer}>
+                                <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
+                                    No hay monedas disponibles
+                                </Text>
+                            </View>
+                        )}
+                        
+                    </ScrollView>
+                </SafeAreaView>
             </Modal>
-        </SafeAreaView>
+
+        </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: {
-        justifyContent: 'space-between',
-    },
     coinSelector: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -350,26 +343,26 @@ const styles = StyleSheet.create({
         borderTopWidth: 0.5,
         borderTopColor: 'rgba(255, 255, 255, 0.2)',
     },
-    modalOverlay: {
+    modalContainer: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '80%',
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
-        borderBottomWidth: 0.5,
-        borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        borderBottomWidth: 0.5
+    },
+    closeButton: {
+        padding: 5,
     },
     coinList: {
+        flex: 1,
+    },
+    coinListContent: {
         padding: 20,
+        paddingBottom: 40,
     },
     coinItem: {
         flexDirection: 'row',
@@ -390,7 +383,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         padding: 40,
-    },
+    }
 })
 
 export default Add
