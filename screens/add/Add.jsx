@@ -7,10 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
+// Context
+import { useAuth } from '../../auth/AuthContext'
+
 // UI
 import QPCoin from '../../ui/particles/QPCoin'
 import QPButton from '../../ui/particles/QPButton'
-import QPMoneyInput from '../../ui/particles/QPMoneyInput'
+import AmountInput from '../../ui/AmountInput'
 
 // API
 import apiClient from '../../api/client'
@@ -28,6 +31,9 @@ const Add = ({ navigation }) => {
     const containerStyles = createContainerStyles(theme)
     const textStyles = createTextStyles(theme)
 
+    // User Context
+    const { user } = useAuth()
+
     // States
     const [availableCoins, setAvailableCoins] = useState([])
     const [selectedCoin, setSelectedCoin] = useState(null)
@@ -37,6 +43,7 @@ const Add = ({ navigation }) => {
     const [success, setSuccess] = useState(null)
     const [showInstructions, setShowInstructions] = useState(false)
     const [showCoinPicker, setShowCoinPicker] = useState(false)
+    const [showDepositModal, setShowDepositModal] = useState(false)
     const [topupData, setTopupData] = useState(null)
 
     // Get Available Coins for enabled_in
@@ -97,6 +104,7 @@ const Add = ({ navigation }) => {
 
             if (response.data && response.status === 200) {
                 setTopupData(response.data.data)
+                setShowDepositModal(true)
                 setSuccess('Solicitud de depósito creada exitosamente')
             } else {
                 setError('Error al crear la solicitud de depósito')
@@ -114,6 +122,7 @@ const Add = ({ navigation }) => {
         setTopupData(null)
         setError(null)
         setSuccess(null)
+        setShowDepositModal(false)
     }
 
     // Copy to clipboard
@@ -122,125 +131,199 @@ const Add = ({ navigation }) => {
         Alert.alert('Copiado', 'Dirección copiada al portapapeles')
     }
 
-    return (
-        <View style={[containerStyles.subContainer, { paddingVertical: 20 }]}>
+    // Share deposit details
+    const shareDepositDetails = () => {
+        if (topupData) {
+            const shareText = `Depósito de ${topupData.value} ${topupData.coin}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
+            // You can implement actual sharing logic here
+            Alert.alert('Compartir', 'Funcionalidad de compartir implementada')
+        }
+    }
 
-            <Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Depositar</Text>
+    // Email deposit details
+    const emailDepositDetails = () => {
+        if (topupData) {
+            const emailText = `Detalles del depósito:\nMoneda: ${topupData.coin}\nMonto: ${topupData.value}\nPrecio: $${topupData.price}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
+            // You can implement actual email logic here
+            Alert.alert('Email', 'Funcionalidad de email implementada')
+        }
+    }
+
+    return (
+        <View style={[containerStyles.subContainer, { justifyContent: 'space-between', paddingBottom: 20 }]}>
 
             <View style={{ flex: 1 }}>
 
+                {/* Amount Input Component */}
+                <AmountInput
+                    amount={amount}
+                    onAmountChange={setAmount}
+                    placeholder="Monto a depositar"
+                    style={{ marginTop: 0 }}
+                    currency={selectedCoin?.tick}
+                    balance={user.balance}
+                />
+
                 {/* Coin Selection */}
-                <View style={containerStyles.card}>
-                    <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Moneda</Text>
-                    <Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface }]} onPress={() => setShowCoinPicker(true)} disabled={isLoading}>
+                <View style={{ marginVertical: 20 }}>
+                    <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
+                        Seleccionar moneda:
+                    </Text>
+                    <Pressable
+                        style={[styles.coinSelector, { backgroundColor: theme.colors.surface }]}
+                        onPress={() => setShowCoinPicker(true)}
+                        disabled={isLoading}
+                    >
                         {selectedCoin ? (
                             <View style={styles.selectedCoin}>
-                                <QPCoin coin={selectedCoin.logo} size={32} />
-                                <View style={{ marginLeft: 12 }}>
+                                <QPCoin coin={selectedCoin.logo} size={40} />
+                                <View style={{ marginLeft: 12, flex: 1 }}>
                                     <Text style={textStyles.h4}>{selectedCoin.name}</Text>
                                     <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
                                         Mín: {selectedCoin.min_in} | Fee: {selectedCoin.fee_in}
                                     </Text>
                                 </View>
+                                {selectedCoin.network && (
+                                    <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+                                        <Text style={[textStyles.caption, { color: theme.colors.buttonText }]}>
+                                            {selectedCoin.network}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                         ) : (
-                            <Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
-                                {isLoading ? "Cargando monedas..." : "Seleccionar moneda"}
-                            </Text>
+                            <View style={styles.coinSelectorPlaceholder}>
+                                <Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
+                                    {isLoading ? "Cargando monedas..." : "Seleccionar moneda"}
+                                </Text>
+                                <FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} />
+                            </View>
                         )}
-                        <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>▼</Text>
                     </Pressable>
-                </View>
-
-                {/* Amount Input */}
-                <View style={{ marginVertical: 10 }}>
-                    <QPMoneyInput
-                        placeholder="0.00"
-                        value={amount}
-                        onChangeText={setAmount}
-                        keyboardType="numeric"
-                        style={{
-                            color: theme.colors.success,
-                        }}
-                        prefixIconName="plus"
-                        type="add"
-                    />
-                    {selectedCoin && (
-                        <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-                            Mínimo: {selectedCoin.min_in} {selectedCoin.tick}
-                        </Text>
-                    )}
                 </View>
 
                 {/* Error/Success Messages */}
                 {error && (
-                    <View style={[containerStyles.card, { backgroundColor: theme.colors.danger + '20' }]}>
+                    <View style={[containerStyles.card, { backgroundColor: theme.colors.danger + '20', marginVertical: 10 }]}>
                         <Text style={[textStyles.caption, { color: theme.colors.danger }]}>{error}</Text>
                     </View>
                 )}
 
                 {success && (
-                    <View style={[containerStyles.card, { backgroundColor: theme.colors.success + '20' }]}>
+                    <View style={[containerStyles.card, { backgroundColor: theme.colors.success + '20', marginVertical: 10 }]}>
                         <Text style={[textStyles.caption, { color: theme.colors.success }]}>{success}</Text>
                     </View>
                 )}
             </View>
 
             {/* Action Buttons */}
-            {!topupData ? (
-                <QPButton title={isLoading ? "Generando..." : "Generar Depósito"} onPress={handleTopup} disabled={!selectedCoin || !amount || isLoading} icon="plus" />
-            ) : (
-                <QPButton title="Nuevo Depósito" onPress={handleReset} icon="plus" />
-            )}
+            <View style={containerStyles.bottomButtonContainer}>
+                {!topupData && (
+                    <QPButton
+                        title={isLoading ? "Generando..." : "Generar Depósito"}
+                        onPress={handleTopup}
+                        disabled={!selectedCoin || !amount || isLoading}
+                        icon="plus"
+                        style={{ borderRadius: 25 }}
+                        iconStyle="solid"
+                        iconColor={theme.colors.almostWhite}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                    />
+                )}
+            </View>
 
-            {/* Topup Details */}
-            {topupData && (
-                <View style={containerStyles.card}>
-                    <Text style={textStyles.h3}>Detalles del Depósito</Text>
+            {/* Deposit Details Modal */}
+            <Modal visible={showDepositModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowDepositModal(false)}>
+                <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 
-                    <View style={styles.detailRow}>
-                        <Text style={textStyles.h5}>Moneda:</Text>
-                        <Text style={textStyles.h4}>{topupData.coin}</Text>
-                    </View>
-
-                    <View style={styles.detailRow}>
-                        <Text style={textStyles.h5}>Monto:</Text>
-                        <Text style={textStyles.h4}>{topupData.value}</Text>
-                    </View>
-
-                    <View style={styles.detailRow}>
-                        <Text style={textStyles.h5}>Precio:</Text>
-                        <Text style={textStyles.h4}>${topupData.price}</Text>
-                    </View>
-
-                    <View style={styles.qrContainer}>
-                        <QRCode
-                            data={topupData.wallet}
-                            size={200}
-                            backgroundColor={theme.colors.background}
-                            color={theme.colors.primaryText}
-                        />
-                    </View>
-
-                    <View style={styles.walletContainer}>
-                        <Text style={textStyles.h5}>Dirección de la Wallet:</Text>
-                        <Pressable
-                            style={[styles.walletAddress, { backgroundColor: theme.colors.surface }]}
-                            onPress={() => copyToClipboard(topupData.wallet)}
-                        >
-                            <Text style={[textStyles.caption, { flex: 1 }]}>{topupData.wallet}</Text>
-                            <Text style={[textStyles.h5, { color: theme.colors.primary }]}>Copiar</Text>
+                    {/* Modal Header */}
+                    <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+                        <Text style={textStyles.h4}>Deposit {topupData?.coin} Request</Text>
+                        <Pressable onPress={() => setShowDepositModal(false)} style={styles.closeButton}>
+                            <Text style={[textStyles.h4, { color: theme.colors.primary }]}>✕</Text>
                         </Pressable>
                     </View>
 
-                    <View style={styles.transactionContainer}>
-                        <Text style={textStyles.h5}>ID de Transacción:</Text>
-                        <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-                            {topupData.transaction_id}
-                        </Text>
-                    </View>
-                </View>
-            )}
+                    <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentContainer}>
+
+                        {/* QR Code Section */}
+                        <View style={styles.qrSection}>
+                            <View style={styles.qrContainer}>
+                                <QRCode
+                                    data={topupData?.wallet}
+                                    size={250}
+                                    backgroundColor={theme.colors.background}
+                                    color={theme.colors.primaryText}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Amount Information */}
+                        <View style={styles.amountSection}>
+                            <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 8 }]}>
+                                1{topupData?.coin} ≈ ${topupData?.price}
+                            </Text>
+                            <Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }]}>
+                                {topupData?.value} {topupData?.coin}
+                            </Text>
+                            <Text style={[textStyles.h4, { color: theme.colors.primary, textAlign: 'center' }]}>
+                                ${topupData?.price} USD
+                            </Text>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.actionButtonsContainer}>
+                            <Pressable style={styles.actionButton} onPress={() => copyToClipboard(topupData?.wallet)}>
+                                <FontAwesome6 name="copy" size={20} color={theme.colors.primary} />
+                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copy</Text>
+                            </Pressable>
+
+                            <Pressable style={styles.actionButton} onPress={shareDepositDetails}>
+                                <FontAwesome6 name="share" size={20} color={theme.colors.primary} />
+                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Share</Text>
+                            </Pressable>
+
+                            <Pressable style={styles.actionButton} onPress={emailDepositDetails}>
+                                <FontAwesome6 name="envelope" size={20} color={theme.colors.primary} />
+                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Email</Text>
+                            </Pressable>
+                        </View>
+
+                        {/* Deposit Details Card */}
+                        <View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
+
+                            {/* Network */}
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailLeft}>
+                                    <FontAwesome6 name="network-wired" size={16} color={theme.colors.secondaryText} />
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Network</Text>
+                                </View>
+                                <View style={styles.detailRight}>
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{topupData?.coin}</Text>
+                                    <FontAwesome6 name="question-circle" size={14} color={theme.colors.secondaryText} style={{ marginLeft: 8 }} />
+                                </View>
+                            </View>
+
+                            {/* Deposit Address */}
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailLeft}>
+                                    <FontAwesome6 name="th" size={16} color={theme.colors.secondaryText} />
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Deposit Address</Text>
+                                </View>
+                                <View style={styles.detailRight}>
+                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>
+                                        {topupData?.wallet}
+                                    </Text>
+                                    <Pressable onPress={() => copyToClipboard(topupData?.wallet)}>
+                                        <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+                                    </Pressable>
+                                </View>
+                            </View>
+                        </View>
+
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
 
             {/* Coin Picker Modal */}
             <Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
@@ -287,7 +370,7 @@ const Add = ({ navigation }) => {
                                 </Text>
                             </View>
                         )}
-                        
+
                     </ScrollView>
                 </SafeAreaView>
             </Modal>
@@ -302,10 +385,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: 15,
-        borderRadius: 10,
-        marginTop: 10,
+        borderRadius: 16,
         borderWidth: 0.5,
         borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    coinSelectorPlaceholder: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flex: 1,
     },
     selectedCoin: {
         flexDirection: 'row',
@@ -383,6 +471,61 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         padding: 40,
+    },
+    // Deposit Modal Styles
+    modalContent: {
+        flex: 1,
+    },
+    modalContentContainer: {
+        padding: 20,
+        paddingBottom: 40,
+    },
+    qrSection: {
+        alignItems: 'center',
+        marginVertical: 20,
+    },
+    qrContainer: {
+        padding: 20,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    amountSection: {
+        alignItems: 'center',
+        marginVertical: 20,
+    },
+    actionButtonsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginVertical: 30,
+        paddingHorizontal: 20,
+    },
+    actionButton: {
+        alignItems: 'center',
+        padding: 15,
+    },
+    depositDetailsCard: {
+        borderRadius: 16,
+        padding: 20,
+        marginTop: 20,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 0.5,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    detailLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    detailRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        justifyContent: 'flex-end',
     }
 })
 

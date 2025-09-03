@@ -139,7 +139,7 @@ const AppNavigator = () => {
                 name={ROUTES.ADD}
                 component={Add}
                 options={{
-                    headerTitle: '',
+                    headerTitle: 'Depositar',
                     headerShown: true,
                     headerBackVisible: false,
                     headerBackButtonMenuEnabled: true,
