@@ -24,6 +24,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Toast
 import Toast from 'react-native-toast-message'
 import QPButton from '../../ui/particles/QPButton'
+import ProfileContainer from '../../ui/ProfileContainer'
 
 const Transaction = ({ route, navigation }) => {
 
@@ -32,8 +33,8 @@ const Transaction = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false)
 
     // Contexts
-    const { theme } = useTheme()
     const { user } = useAuth()
+    const { theme } = useTheme()
     const textStyles = useTextStyles(theme)
     const containerStyles = useContainerStyles(theme)
     const insets = useSafeAreaInsets()
@@ -57,14 +58,27 @@ const Transaction = ({ route, navigation }) => {
     // Determine transaction type and colors
     const user_uuid = user?.uuid || ''
     const paid_by_uuid = transactionDetails.paid_by?.uuid || ''
-    const isPaidByMe = user_uuid === paid_by_uuid
+    const isPaidByMe = user_uuid == paid_by_uuid
+    
+    // Debug logs
+    console.log('Transaction Debug:', {
+        user_uuid,
+        paid_by_uuid,
+        isPaidByMe,
+        user_name: user?.name,
+        paid_by_name: transactionDetails.paid_by?.name,
+        owner_name: transactionDetails.owner?.name
+    })
+
+    console.log('Transaction Details:', transactionDetails)
+    
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
     const badgeColor = isPaidByMe ? theme.colors.danger : theme.colors.success
     const badgeIcon = isPaidByMe ? 'arrow-up' : 'arrow-down'
 
     // Get the other user (not the current user)
-    const otherUser = isPaidByMe ? transactionDetails.owner : transactionDetails.paid_by
+    const otherUser = isPaidByMe ? transactionDetails.user : transactionDetails.paid_by
 
     // Format amount
     const amountFloat = parseFloat(transactionDetails.amount)
@@ -80,26 +94,14 @@ const Transaction = ({ route, navigation }) => {
         } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' }) }
     }
 
+
     return (
         <View style={[containerStyles.subContainer]}>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
-                {/* User Section */}
-                <View style={styles.userSection}>
-                    <View style={styles.avatarContainer}>
-                        <QPAvatar user={otherUser} size={120} />
-                        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-                            <FontAwesome6 name={badgeIcon} size={16} color="white" />
-                        </View>
-                    </View>
-                    <Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 15 }]}>
-                        {otherUser?.name || 'Usuario'}
-                    </Text>
-                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginTop: 5 }]}>
-                        {getShortDateTime(transactionDetails.created_at)}
-                    </Text>
-                </View>
+                {/* Profile Container */}
+                <ProfileContainer user={otherUser} />
 
                 {/* Amount Section */}
                 <View style={styles.amountSection}>
@@ -119,7 +121,7 @@ const Transaction = ({ route, navigation }) => {
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{getFirstChunk(transactionDetails.uuid)}</Text>
                             <Pressable onPress={() => copyTextToClipboard(transactionDetails.uuid)}>
-                                <FontAwesome6 name="copy" size={16} color={theme.colors.primaryText} />
+                                <FontAwesome6 name="copy" size={16} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         </View>
                     </View>
@@ -141,7 +143,7 @@ const Transaction = ({ route, navigation }) => {
                     <View style={styles.detailRow}>
                         <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Estado:</Text>
                         <View style={[styles.statusBadge, { backgroundColor: theme.colors.success }]}>
-                            <Text style={[textStyles.h6, { color: 'white', fontWeight: '600' }]}>
+                            <Text style={[textStyles.h6, { color: theme.colors.almostBlack, fontWeight: '600' }]}>
                                 {statusText(transactionDetails.status)}
                             </Text>
                         </View>

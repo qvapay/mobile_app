@@ -14,8 +14,8 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 import { ROUTES } from '../../routes'
 
 // Particles
-import QPAvatar from './QPAvatar'
 import QPCoin from './QPCoin'
+import QPAvatar from './QPAvatar'
 
 // QPTransaction component
 const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) => {

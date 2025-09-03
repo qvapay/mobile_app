@@ -58,7 +58,9 @@ apiClient.interceptors.response.use(
                     break
                 case 403:
                     // Forbidden
-                    console.warn('Access forbidden:', data)
+                    try {
+                        await AsyncStorage.removeItem('token')
+                    } catch (clearError) { console.warn('Failed to clear token:', clearError) }
                     break
                 case 422:
                     // Validation error
@@ -66,17 +68,13 @@ apiClient.interceptors.response.use(
                     break
                 case 500:
                     return Promise.reject({ message: "Ha ocurrido un error, contacte a soporte" })
-                    // break
+                // break
                 default:
                     console.warn(`HTTP ${status} error:`, data)
             }
         } else if (error.request) {
-            // Network error
             return Promise.reject({ message: "No se ha podido conectar con el servidor" })
-        } else {
-            // Other error
-            return Promise.reject({ message: "Ha ocurrido un error inesperado" })
-        }
+        } else { return Promise.reject({ message: "Ha ocurrido un error inesperado" }) }
 
         return Promise.reject(error)
     }

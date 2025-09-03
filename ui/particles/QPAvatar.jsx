@@ -28,30 +28,21 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
 
     return (
         <View style={[styles.container, { width: size, height: size }]}>
-            {vip && (
-                <LinearGradient 
-                    colors={gradientColors} 
-                    style={[styles.gradientBorder, { width: size, height: size, borderRadius: size / 2 }]}
-                />
-            )}
-            <View style={[styles.avatarContainer, { 
-                width: size - (borderVip * 2), 
+            {vip && (<LinearGradient colors={gradientColors} style={[styles.gradientBorder, { width: size, height: size, borderRadius: size / 2 }]} />)}
+            <View style={[styles.avatarContainer, {
+                width: size - (borderVip * 2),
                 height: size - (borderVip * 2),
                 top: borderVip,
                 left: borderVip
             }]}>
                 <FastImage
-                    style={{ 
-                        width: '100%', 
-                        height: '100%', 
+                    style={{
+                        width: '100%',
+                        height: '100%',
                         borderRadius: (size - (borderVip * 2)) / 2,
                         backgroundColor: vip && !hasImage ? '#ffffff' : 'transparent'
                     }}
-                    source={{
-                        uri: profile_picture,
-                        priority: FastImage.priority.normal,
-                    }}
-                    resizeMode={FastImage.resizeMode.cover}
+                    source={{ uri: profile_picture, priority: FastImage.priority.normal }} resizeMode={FastImage.resizeMode.cover}
                 />
             </View>
         </View>
