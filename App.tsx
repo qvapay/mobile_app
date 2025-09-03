@@ -93,16 +93,10 @@ const AppNavigator = () => {
             const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
             if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
                 // User is authenticated and not first time - navigate to main stack
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: ROUTES.MAIN_STACK as never }]
-                })
+                navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK as never }] })
             } else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
                 // User is not authenticated and not first time - navigate to welcome
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: ROUTES.WELCOME_SCREEN as never }]
-                })
+                navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
             }
         }
     }, [isAuthenticated, firstTime, splashReady, authLoading, settingsLoading])

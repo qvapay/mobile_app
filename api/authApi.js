@@ -38,10 +38,10 @@ export const authApi = {
             // Handle specific API errors
             if (error.response?.data) {
                 const errorData = error.response.data
-                return { success: false, error: errorData.message || 'No se pudo iniciar sesión', details: errorData }
+                return { success: false, error: errorData.message || 'No se pudo iniciar sesión', details: errorData, status: error.response.status }
             }
 
-            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
+            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response.status }
         }
     },
 
@@ -61,19 +61,16 @@ export const authApi = {
                 password: credentials.password
             })
 
-            return {
-                success: true,
-                data: response.data,
-            }
+            return { success: true, data: response.data }
 
         } catch (error) {
 
             if (error.response?.data) {
                 const errorData = error.response.data
-                return { success: false, error: errorData.message || 'No se pudo solicitar el PIN', details: errorData }
+                return { success: false, error: errorData.message || 'No se pudo solicitar el PIN', details: errorData, status: error.response.status }
             }
 
-            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
+            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response.status }
         }
     },
 
@@ -84,11 +81,8 @@ export const authApi = {
     logout: async () => {
         try {
             const response = await apiClient.get('/auth/logout')
-            return {
-                success: true,
-                data: response.data,
-            }
-        } catch (error) { return { success: true, error: error.message } }
+            return { success: true, data: response.data }
+        } catch (error) { return { success: true, error: error.message, status: error.response.status } }
     },
 
     /**
@@ -97,35 +91,14 @@ export const authApi = {
      * @returns {Promise<Object>} Check token response
      */
     checkToken: async () => {
-
         try {
-
-            // The production endpoint expects a POST to /auth/check with the Authorization header
             const response = await apiClient.post('/auth/check')
-
-            // The production API returns { success: 'Acceso permitido' } on success
             if (response.data && response.data.success === 'Acceso permitido') {
                 return { success: true, data: response.data }
-            } else {
-                return {
-                    success: false,
-                    error: response.data?.error || 'No se pudo verificar su sesión',
-                    data: response.data,
-                }
-            }
-
+            } else { return { success: false, error: response.data?.error || 'No se pudo verificar su sesión', data: response.data } }
         } catch (error) {
-
-            // If the API returns 401 or other error, try to extract the error message
-            if (error.response && error.response.data) {
-                return {
-                    success: false,
-                    error: error.response.data.error || 'No se pudo verificar su sesión',
-                    data: error.response.data,
-                }
-            }
-
-            return { success: false, error: error.message || 'Ha ocurrido un error de red' }
+            if (error.response && error.response.data) { return { success: false, error: error.response.data.error || 'No se pudo verificar su sesión', data: error.response.data } }
+            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response.status }
         }
     },
 

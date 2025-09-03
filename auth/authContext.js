@@ -34,17 +34,18 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     // Effect to check token validity periodically
+    // Check token every 30 seconds
     useEffect(() => {
         if (isAuthenticated && token) {
-            // Check token every 30 seconds
             const interval = setInterval(async () => {
-                // const isValid = await authApi.checkToken(token)
-                // if (!isValid.success) { await logout() }
                 try {
                     const isValid = await authApi.checkToken(token)
-                    if (!isValid.success) { await logout() }
-                } catch (error) { await logout() }
-            }, 30000) // 30 seconds
+                    if (!isValid.success) {
+                        // await logout()
+                        // TODO: If it was no possible to check the token, we do what?
+                    }
+                } catch (error) { console.log('Error checking token, maybe token is invalid or expired', error) }
+            }, 30000)
             return () => clearInterval(interval)
         }
     }, [isAuthenticated, token])
@@ -55,34 +56,21 @@ export const AuthProvider = ({ children }) => {
     // If token is valid, set isAuthenticated to true
     const initializeAuth = async () => {
         try {
-
-            // Set loading to true and we show a loading screen
             setIsLoading(true)
-
-            // Check if user is authenticated, retrieve token from storage
             const saved_token = await getAuthToken()
             if (saved_token) {
-
-                // Check token against API for validity
                 const apiResponse = await authApi.checkToken()
                 if (apiResponse.success) {
-
                     setToken(saved_token)
                     setIsAuthenticated(true)
-
-                    // Get user data from API
                     const userData = await userApi.getUserProfile()
                     if (userData.success && userData.data) {
                         setUser(userData.data)
                     } else { await logout() }
-
                 } else { setIsAuthenticated(false) }
-
             } else { setIsAuthenticated(false) }
-
-        } catch (error) {
-            setError('Failed to initialize authentication')
-        } finally { setIsLoading(false) }
+        } catch (error) { setError('Failed to initialize authentication') }
+        finally { setIsLoading(false) }
     }
 
     // Login function, we ask to the API for authentication
@@ -96,11 +84,9 @@ export const AuthProvider = ({ children }) => {
             // Call QvaPay API for authentication
             const apiResponse = await authApi.login(credentials)
 
-            console.log('🔐 Login response:', apiResponse)
-
             if (!apiResponse.success) {
                 setError(apiResponse.error || 'Login failed')
-                return { success: false, error: apiResponse.error, details: apiResponse.details }
+                return { success: false, error: apiResponse.error, details: apiResponse.details, status: apiResponse.status }
             }
 
             // If Prelogin is successful, we return the status and success
@@ -179,14 +165,9 @@ export const AuthProvider = ({ children }) => {
 
         try {
 
-            // Call API logout if we have a token
             if (token) {
-                try {
-                    await authApi.logout()
-                } catch (apiError) {
-                    // Don't fail logout if API call fails
-                    console.warn('API logout failed:', apiError.message)
-                }
+                try { await authApi.logout() }
+                catch (apiError) { console.warn('API logout failed:', apiError.message) }
             }
 
             // Clear all stored data
@@ -250,8 +231,8 @@ export const AuthProvider = ({ children }) => {
                 return { success: true, message: apiResponse.message }
             } else {
                 setError(apiResponse.error)
-                return { 
-                    success: false, 
+                return {
+                    success: false,
                     error: apiResponse.error,
                     details: apiResponse.details || {}
                 }
@@ -259,8 +240,8 @@ export const AuthProvider = ({ children }) => {
         }
         catch (error) {
             setError('Failed to confirm registration')
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: error.message || 'Failed to confirm registration',
                 details: {}
             }

@@ -40,6 +40,7 @@ const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [twoFactorCode, setTwoFactorCode] = useState('')
+    const [failedAttempts, setFailedAttempts] = useState(0)
 
     // Show PIN Input
     const [showPin, setShowPin] = useState(false)
@@ -50,6 +51,8 @@ const LoginScreen = ({ navigation }) => {
     const [countdown, setCountdown] = useState(0)
     const [isButtonDisabled, setIsButtonDisabled] = useState(false)
     const countdownRef = useRef(null)
+
+    console.log('Failed attempts:', failedAttempts)
 
     // Countdown timer effect
     useEffect(() => {
@@ -80,22 +83,20 @@ const LoginScreen = ({ navigation }) => {
         }
 
         try {
-
             clearError()
             setIsLoading(true)
-
             const result = await login({ email, password })
-            if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
-
-            // If Prelogin is successful, we set firstTime to false and show the PIN Input
+            if (!result.success) {
+                Toast.show({ type: 'error', text1: result.error })
+                if (result.status === 401) { setFailedAttempts(failedAttempts + 1) }
+            }
+            // Si el prelogin es exitoso (HTTP 202), muestra el PIN Input
             if (result.status === 202) {
                 await updateSettings('appearance', { firstTime: false })
                 setShowPin(true)
             }
-
-        } catch (error) {
-            Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión' })
-        } finally { setIsLoading(false) }
+        } catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión' }) }
+        finally { setIsLoading(false) }
     }
 
     // Send all credentials to login
@@ -107,35 +108,32 @@ const LoginScreen = ({ navigation }) => {
         }
 
         try {
-
             clearError()
             setIsLoading(true)
-
             const result = await login({ email, password, two_factor_code: twoFactorCode })
-            if (!result.success) { Toast.show({ type: 'error', text1: result.error, text2: result.details }) }
-
-        } catch (error) {
-            Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente' })
-        } finally { setIsLoading(false) }
+            if (!result.success) {
+                Toast.show({ type: 'error', text1: result.error, text2: result.details })
+                if (result.status === 401) {
+                    console.log('Failed attempts:', failedAttempts)
+                    setFailedAttempts(failedAttempts + 1)
+                }
+            }
+            if (result.success && result.status === 202) { setFailedAttempts(0) }
+        } catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente' }) }
+        finally { setIsLoading(false) }
     }
 
     // Send a PIN request to email
     const handleRequestPin = async () => {
-
         try {
-
             setRequestingPIN(true)
-
             const result = await requestPin({ email, password })
             if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
-
-            // Start countdown timer if request was successful
             if (result.success) {
-                setCountdown(60) // 1 minute = 60 seconds
+                setCountdown(60)
                 setIsButtonDisabled(true)
                 setRequestPINLabel('01:00')
             }
-
         } catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente' }) }
         finally { setRequestingPIN(false) }
     }
