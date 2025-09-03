@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -35,6 +35,7 @@ const Home = ({ navigation }) => {
 
     // State
     const [isLoading, setIsLoading] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
     const [error, setError] = useState(null)
     const [latestTransactions, setLatestTransactions] = useState([])
     const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
@@ -42,37 +43,7 @@ const Home = ({ navigation }) => {
     // Load user data
     useEffect(() => {
         loadUserData()
-    }, [])
-
-    // Fetch latest transactions
-    useEffect(() => {
-        const fetchLatestTransactions = async () => {
-            try {
-                setIsLoading(true)
-                const result = await transferApi.getLatestTransactions({ take: 6 })
-                if (result.success) {
-                    setLatestTransactions(result.data)
-                } else { console.error('Error fetching latest transactions:', result.error) }
-            } catch (error) {
-                console.error('Error fetching latest transactions:', error)
-            } finally { setIsLoading(false) }
-        }
         fetchLatestTransactions()
-    }, [])
-
-    // Get latest sent transfers users
-    useEffect(() => {
-        const fetchLatestSentTransfersUsers = async () => {
-            try {
-                const result = await transferApi.getLatestSentTransfers(10)
-                if (result.success) {
-                    // filter out users with no image
-                    const users = result.data.filter(user => user.image)
-                    setLatestSentTransfersUsers(users)
-                } else { console.error('Error fetching latest sent transfers:', result.error) }
-            } catch (error) { console.error('Error fetching latest sent transfers:', error) }
-            finally { setIsLoading(false) }
-        }
         fetchLatestSentTransfersUsers()
     }, [])
 
@@ -81,17 +52,69 @@ const Home = ({ navigation }) => {
         try {
             setIsLoading(true)
             const result = await userApi.getUserProfile()
-            if (result.success && result.data) {
-                updateUser(result.data)
-            }
+            if (result.success && result.data) { updateUser(result.data) }
         } catch (error) { console.error('Error loading user data:', error) }
         finally { setIsLoading(false) }
+    }
+
+    const fetchLatestTransactions = async (skipLoading = false) => {
+        try {
+            if (!skipLoading) setIsLoading(true)
+            const result = await transferApi.getLatestTransactions({ take: 6 })
+            if (result.success) {
+                setLatestTransactions(result.data)
+            } else { console.error('Error fetching latest transactions:', result.error) }
+        } catch (error) { console.error('Error fetching latest transactions:', error) }
+        finally { if (!skipLoading) setIsLoading(false) }
+    }
+
+    const fetchLatestSentTransfersUsers = async (skipLoading = false) => {
+        try {
+            if (!skipLoading) setIsLoading(true)
+            const result = await transferApi.getLatestSentTransfers(10)
+            if (result.success) {
+                // filter out users with no image
+                const users = result.data.filter(user => user.image)
+                setLatestSentTransfersUsers(users)
+            } else { console.error('Error fetching latest sent transfers:', result.error) }
+        } catch (error) { console.error('Error fetching latest sent transfers:', error) }
+        finally { if (!skipLoading) setIsLoading(false) }
+    }
+
+    // Refresh handler for pull-to-refresh
+    const onRefresh = async () => {
+        console.log('onRefresh called, setting refreshing to true')
+        setRefreshing(true)
+        try {
+            // Refresh user data
+            await loadUserData()
+            // Refresh latest transactions
+            await fetchLatestTransactions(true)
+            // Refresh latest sent transfers users
+            await fetchLatestSentTransfersUsers(true)
+        } catch (error) { console.error('Error refreshing data:', error) }
+        finally { setRefreshing(false) }
     }
 
     return (
         <View style={[containerStyles.subContainer]}>
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={theme.colors.primary}
+                        colors={[theme.colors.primary, theme.colors.success]}
+                        progressBackgroundColor="rgba(255,255,255,0.9)"
+                        title=""
+                        titleColor={theme.colors.primary}
+                    />
+                }
+            >
 
                 <BalanceCard balance={user.balance} />
 
