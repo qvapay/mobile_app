@@ -150,7 +150,7 @@ const Telegram = () => {
                                 onPress={handleRemoveTelegram}
                                 loading={isLoading}
                                 disabled={isLoading}
-                                style={{ borderRadius: 25, backgroundColor: theme.colors.danger, marginBottom: 20 }}
+                                style={{ backgroundColor: theme.colors.danger, marginBottom: 20 }}
                                 textStyle={{ color: theme.colors.almostWhite }}
                             />
                         ) : (
@@ -159,7 +159,7 @@ const Telegram = () => {
                                 onPress={handleVerifyTelegram}
                                 loading={isLoading}
                                 disabled={isLoading}
-                                style={{ borderRadius: 25, backgroundColor: theme.colors.primary, marginBottom: 20 }}
+                                style={{ backgroundColor: theme.colors.primary, marginBottom: 20 }}
                                 textStyle={{ color: theme.colors.almostWhite }}
                             />
                         )

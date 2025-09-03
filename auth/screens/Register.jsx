@@ -278,7 +278,6 @@ const RegisterScreen = ({ navigation }) => {
                                 title="Verificar PIN"
                                 onPress={handleVerifyPin}
                                 disabled={!pinEnabled}
-                                style={{ borderRadius: 25 }}
                                 textStyle={{ color: theme.colors.almostWhite }}
                                 loading={isLoading}
                             />
@@ -287,7 +286,6 @@ const RegisterScreen = ({ navigation }) => {
                                 title="Crear cuenta"
                                 onPress={handleRegister}
                                 disabled={!termsAccepted || !name || !lastname || !email || !password || !confirmPassword}
-                                style={{ borderRadius: 25 }}
                                 textStyle={{ color: theme.colors.almostWhite }}
                                 loading={isLoading}
                             />

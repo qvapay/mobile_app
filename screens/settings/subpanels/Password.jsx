@@ -108,7 +108,7 @@ const Password = () => {
                             title="Cambiar contraseña"
                             onPress={handleSubmit}
                             disabled={isButtonDisabled || isLoading}
-                            style={{ backgroundColor: isButtonDisabled ? theme.colors.secondaryText : theme.colors.primary, borderRadius: 25 }}
+                            style={{ backgroundColor: isButtonDisabled ? theme.colors.secondaryText : theme.colors.primary }}
                             textStyle={{ color: theme.colors.almostWhite }}
                             loading={isLoading}
                         />

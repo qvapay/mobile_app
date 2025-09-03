@@ -123,14 +123,14 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
                             <QPButton
                                 title="Volver al inicio de sesión"
                                 onPress={() => navigation.goBack()}
-                                style={{ borderRadius: 25, backgroundColor: theme.colors.primary, marginTop: 10 }}
+                                style={{ backgroundColor: theme.colors.primary, marginTop: 10 }}
                                 textStyle={{ color: theme.colors.almostWhite }}
                             />
                         ) : (
                             <QPButton
                                 title="Restablecer contraseña"
                                 onPress={handleRestorePassword}
-                                style={{ borderRadius: 25, backgroundColor: theme.colors.danger }}
+                                style={{ backgroundColor: theme.colors.danger }}
                                 textStyle={{ color: theme.colors.almostWhite }}
                                 loading={isLoading}
                             />

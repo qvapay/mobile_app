@@ -200,7 +200,6 @@ const Send = ({ navigation, route }) => {
                     onPress={handleSend}
                     disabled={!sendEnabled}
                     loading={isLoading}
-                    style={{ borderRadius: 25 }}
                     textStyle={{ color: theme.colors.buttonText }}
                 />
             </View>

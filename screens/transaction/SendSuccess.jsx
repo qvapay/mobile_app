@@ -35,7 +35,6 @@ const SendSuccess = ({ navigation }) => {
             <QPButton
                 title="Volver al inicio"
                 onPress={() => navigation.navigate(ROUTES.MAIN_STACK)}
-                style={{ borderRadius: 25 }}
                 textStyle={{ color: theme.colors.buttonText }}
             />
         </View>

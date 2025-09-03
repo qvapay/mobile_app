@@ -311,7 +311,6 @@ const Userdata = () => {
                             title="Actualizar datos"
                             onPress={handleSubmit}
                             disabled={!name || !lastname || isLoading}
-                            style={styles.updateButton}
                             textStyle={{ color: theme.colors.almostWhite }}
                             loading={isLoading}
                         />
@@ -335,13 +334,6 @@ const styles = StyleSheet.create({
     },
     inputContainer: {
         marginBottom: 10
-    },
-    updateButton: {
-        borderRadius: 25
-    },
-    resetButton: {
-        borderRadius: 25,
-        borderWidth: 1
     },
     readOnlyInput: {
         opacity: 0.6,

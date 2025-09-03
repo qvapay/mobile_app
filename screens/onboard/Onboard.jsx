@@ -157,7 +157,7 @@ const Onboard = ({ navigation }) => {
                 <QPButton
                     title={currentStep === onboard_steps.length - 1 ? "Finalizar" : "Siguiente"}
                     onPress={currentStep === onboard_steps.length - 1 ? handleCompleteOnboarding : handleNextStep}
-                    style={{ flex: 1, borderRadius: 25 }}
+                    style={{ flex: 1 }}
                     textStyle={{ color: theme.colors.primaryText }}
                 />
             </View>

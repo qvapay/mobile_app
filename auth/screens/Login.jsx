@@ -52,7 +52,17 @@ const LoginScreen = ({ navigation }) => {
     const [isButtonDisabled, setIsButtonDisabled] = useState(false)
     const countdownRef = useRef(null)
 
-    console.log('Failed attempts:', failedAttempts)
+    // Clear failed attempts
+    useEffect(() => {
+        if (failedAttempts > 5) {
+            // If a timer is already running, clear it first
+            if (countdownRef.current) { clearTimeout(countdownRef.current) }
+            // Set a timer to reset failedAttempts after 1 minute (60000 ms)
+            countdownRef.current = setTimeout(() => {
+                setFailedAttempts(0)
+            }, 60000)
+        }
+    }, [failedAttempts])
 
     // Countdown timer effect
     useEffect(() => {
@@ -149,20 +159,10 @@ const LoginScreen = ({ navigation }) => {
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-                <ScrollView
-                    contentContainerStyle={containerStyles.scrollContainer}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
+                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
                     <Text style={textStyles.h1}>Acceder a tu cuenta</Text>
-                    {
-                        showPin ? (
-                            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Coloca tu PIN o 2FA para acceder a tu cuenta</Text>
-                        ) : (
-                            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico y contraseña para acceder a tu cuenta</Text>
-                        )
-                    }
+                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{showPin ? "Coloca tu PIN o 2FA para acceder a tu cuenta" : "Ingresa tu correo electrónico y contraseña para acceder a tu cuenta"}</Text>
 
                     <View style={styles.formContainer}>
                         {
@@ -217,14 +217,15 @@ const LoginScreen = ({ navigation }) => {
                         }
                     </View>
 
+                    {failedAttempts > 5 && <Text style={[textStyles.h4, { color: theme.colors.danger, textAlign: 'center' }]}>Demasiados intentos, por favor espera 1 minuto para intentar nuevamente</Text>}
+
                     <View style={containerStyles.bottomButtonContainer}>
                         {
                             showPin ? (
                                 <QPButton
                                     title="Acceder"
                                     onPress={handleLogin}
-                                    disabled={!email || !password || !twoFactorCode}
-                                    style={{ borderRadius: 25 }}
+                                    disabled={!email || !password || !twoFactorCode || failedAttempts > 5}
                                     textStyle={{ color: theme.colors.almostWhite }}
                                     loading={isLoading}
                                 />
@@ -232,8 +233,7 @@ const LoginScreen = ({ navigation }) => {
                                 <QPButton
                                     title="Acceder"
                                     onPress={handlePreLogin}
-                                    disabled={!email || !password}
-                                    style={{ borderRadius: 25 }}
+                                    disabled={!email || !password || failedAttempts > 5}
                                     textStyle={{ color: theme.colors.almostWhite }}
                                     loading={isLoading}
                                 />

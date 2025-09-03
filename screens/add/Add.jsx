@@ -224,7 +224,6 @@ const Add = ({ navigation }) => {
                         onPress={handleTopup}
                         disabled={!selectedCoin || !amount || isLoading}
                         icon="plus"
-                        style={{ borderRadius: 25 }}
                         iconStyle="solid"
                         iconColor={theme.colors.almostWhite}
                         textStyle={{ color: theme.colors.almostWhite }}

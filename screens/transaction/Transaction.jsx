@@ -173,7 +173,7 @@ const Transaction = ({ route, navigation }) => {
                         icon="download"
                         iconColor="white"
                         onPress={handleDownloadPDF}
-                        style={{ borderRadius: 25, backgroundColor: theme.colors.primary }}
+                        style={{ backgroundColor: theme.colors.primary }}
                         textStyle={{ color: theme.colors.almostWhite }}
                         iconStyle="solid"
                     />

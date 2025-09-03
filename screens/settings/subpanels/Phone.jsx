@@ -238,7 +238,7 @@ const Phone = () => {
                         onPress={handleRemovePhone}
                         loading={isLoading}
                         disabled={isLoading}
-                        style={{ borderRadius: 25, backgroundColor: theme.colors.danger, marginBottom: 20 }}
+                        style={{ backgroundColor: theme.colors.danger, marginBottom: 20 }}
                         textStyle={{ color: theme.colors.almostWhite }}
                     />
                 </View>
@@ -305,7 +305,6 @@ const Phone = () => {
                                 onPress={handleSendCode}
                                 loading={isLoading}
                                 disabled={isLoading || !phone.trim()}
-                                style={{ borderRadius: 25 }}
                                 textStyle={{ color: theme.colors.buttonText }}
                             />
                         ) : (
@@ -315,7 +314,6 @@ const Phone = () => {
                                     onPress={handleVerifyPhone}
                                     loading={isVerifying}
                                     disabled={isVerifying || !pin.trim() || pin.trim().length !== 6}
-                                    style={{ borderRadius: 25 }}
                                     textStyle={{ color: theme.colors.buttonText }}
                                 />
 
@@ -324,7 +322,6 @@ const Phone = () => {
                                     onPress={handleSendCode}
                                     loading={isLoading}
                                     disabled={isLoading}
-                                    style={{ borderRadius: 25 }}
                                     textStyle={{ color: theme.colors.buttonText }}
                                 />
                             </>

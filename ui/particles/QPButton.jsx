@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
         marginVertical: 5,
         paddingVertical: 10,
         alignItems: 'center',
+        borderRadius: 25
     },
     text: {
         fontSize: 16,
