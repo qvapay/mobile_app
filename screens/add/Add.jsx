@@ -349,7 +349,7 @@ const Add = ({ navigation }) => {
                                 </Text>
                             </View>
                         ) : availableCoins.length > 0 ? (availableCoins.map((coin) => (
-                            <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface }]} onPress={() => handleCoinSelect(coin)} >
+                            <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)} >
                                 <QPCoin coin={coin.logo} size={40} />
                                 <View style={{ marginLeft: 12, flex: 1 }}>
                                     <Text style={textStyles.h4}>{coin.name}</Text>
