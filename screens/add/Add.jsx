@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { StyleSheet, Text, View, ScrollView, Pressable, Modal } from 'react-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import FastImage from "@d11/react-native-fast-image"
+
+// Helpers
+import { getFirstChunk } from '../../helpers'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -294,9 +296,9 @@ const Add = ({ navigation }) => {
                             {/* Network */}
                             <View style={styles.detailRow}>
                                 <View style={styles.detailLeft}>
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Red</Text>
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Red:</Text>
                                 </View>
-                                <View style={[styles.detailRight, { gap: 2 }]}>
+                                <View style={[styles.detailRight]}>
                                     <QPCoin coin={topupData?.coin} size={16} />
                                     <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{topupData?.coin}</Text>
                                 </View>
@@ -305,7 +307,7 @@ const Add = ({ navigation }) => {
                             {/* Deposit Address */}
                             <View style={styles.detailRow}>
                                 <View style={styles.detailLeft}>
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Dirección</Text>
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Dirección:</Text>
                                 </View>
                                 <View style={styles.detailRight}>
                                     <Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>
@@ -316,6 +318,22 @@ const Add = ({ navigation }) => {
                                     </Pressable>
                                 </View>
                             </View>
+
+                            {/* Transaction ID */}
+                            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                                <View style={styles.detailLeft}>
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Transacción:</Text>
+                                </View>
+                                <View style={styles.detailRight}>
+                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+                                        {getFirstChunk(topupData?.transaction_uuid)}
+                                    </Text>
+                                    <Pressable onPress={() => copyToClipboard(topupData?.transaction_uuid)}>
+                                        <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+                                    </Pressable>
+                                </View>
+                            </View>
+
                         </View>
 
                     </ScrollView>
@@ -529,6 +547,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
         justifyContent: 'flex-end',
+        gap: 4,
     }
 })
 
