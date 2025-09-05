@@ -1,6 +1,5 @@
 import Toast from 'react-native-toast-message'
 import Clipboard from '@react-native-clipboard/clipboard'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Calculate time since data
 const timeSince = (date) => {
@@ -188,12 +187,8 @@ const adjustNumber = (value) => {
 
 // transform "buy" and "sell" text into "Compra" and "Venta"
 const p2pTypeText = (text) => {
-    if (text === "buy") {
-        return "Compra"
-    }
-    if (text === "sell") {
-        return "Venta"
-    }
+    if (text === "buy") { return "Compra" }
+    if (text === "sell") { return "Venta" }
     return text
 }
 
@@ -212,31 +207,31 @@ const statusText = (text) => {
 
 // Save contact function
 // TODO: Deprecate and move to some Context API
-const saveContact = async (contact) => {
+// const saveContact = async (contact) => {
 
-    try {
+//     try {
 
-        const userToSave = {
-            uuid: contact.uuid,
-            name: contact.name,
-            username: contact.username,
-            source_uri: contact.profile_photo_url,
-        }
+//         const userToSave = {
+//             uuid: contact.uuid,
+//             name: contact.name,
+//             username: contact.username,
+//             source_uri: contact.profile_photo_url,
+//         }
 
-        const contacts = await AsyncStorage.getItem('contacts')
-        let newContacts = []
-        if (contacts) {
-            newContacts = JSON.parse(contacts)
-            const contactIndex = newContacts.findIndex((contact) => contact.uuid === userToSave.uuid)
-            if (contactIndex === -1) {
-                newContacts.push(userToSave)
-            } else {
-                newContacts[contactIndex] = userToSave
-            }
-            await AsyncStorage.setItem('contacts', JSON.stringify(newContacts))
-        } else { await AsyncStorage.setItem('contacts', JSON.stringify([userToSave])) }
-    } catch (error) { console.log(error) }
-}
+//         const contacts = await AsyncStorage.getItem('contacts')
+//         let newContacts = []
+//         if (contacts) {
+//             newContacts = JSON.parse(contacts)
+//             const contactIndex = newContacts.findIndex((contact) => contact.uuid === userToSave.uuid)
+//             if (contactIndex === -1) {
+//                 newContacts.push(userToSave)
+//             } else {
+//                 newContacts[contactIndex] = userToSave
+//             }
+//             await AsyncStorage.setItem('contacts', JSON.stringify(newContacts))
+//         } else { await AsyncStorage.setItem('contacts', JSON.stringify([userToSave])) }
+//     } catch (error) { console.log(error) }
+// }
 
 // Shuffle array function
 const shuffleArray = (array) => {
@@ -279,7 +274,6 @@ export {
     adjustNumber,
     timeAgo,
     p2pTypeText,
-    saveContact,
     shuffleArray,
     statusText,
     copyTextToClipboard,

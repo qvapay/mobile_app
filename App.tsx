@@ -1,6 +1,6 @@
 // React Components
 import { useEffect, useState } from 'react'
-import { Button, Pressable, StyleSheet } from 'react-native'
+import { Pressable, StyleSheet } from 'react-native'
 
 // Navigation Components
 import { NavigationContainer, useNavigation } from '@react-navigation/native'

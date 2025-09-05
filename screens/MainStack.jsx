@@ -44,15 +44,13 @@ const MainStack = ({ navigation }) => {
     const insets = useSafeAreaInsets()
 
     // Add safety check for user data
-    if (!isAuthenticated || !user) {
-        // If user is not authenticated or user data is missing, 
-        // this will trigger the navigation logic in App.tsx to redirect to welcome/login
-        return null
-    }
+    // If user is not authenticated or user data is missing, 
+    // this will trigger the navigation logic in App.tsx to redirect to welcome/login
+    if (!isAuthenticated || !user) { return null }
 
     return (
         <SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
-            
+
             <Tab.Navigator
                 initialRouteName={ROUTES.HOME_SCREEN}
                 backBehavior='initialRoute'

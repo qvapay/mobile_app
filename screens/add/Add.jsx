@@ -108,7 +108,7 @@ const Add = ({ navigation }) => {
                 setShowDepositModal(true)
             } else { Toast.show({ type: 'error', text1: 'Error al crear la solicitud de depósito' }) }
 
-        } catch (error) { setError('Error al crear la solicitud de depósito') }
+        } catch (error) { setError('Error al crear la solicitud de depósito, intente nuevamente en unos minutos') }
         finally { setIsLoading(false) }
     }
 
@@ -217,9 +217,10 @@ const Add = ({ navigation }) => {
             <View style={containerStyles.bottomButtonContainer}>
                 {!topupData && (
                     <QPButton
-                        title={isLoading ? "Generando..." : "Generar Depósito"}
+                        title="Generar Depósito"
                         onPress={handleTopup}
-                        disabled={!selectedCoin || !amount || isLoading}
+                        disabled={!selectedCoin || !amount}
+                        loading={isLoading}
                         icon="plus"
                         iconStyle="solid"
                         iconColor={theme.colors.almostWhite}
@@ -235,9 +236,9 @@ const Add = ({ navigation }) => {
 
                     {/* Modal Header */}
                     <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-                        <Text style={textStyles.h4}>Deposit {topupData?.coin} Request</Text>
+                        <Text style={textStyles.h4}>Depositar ${amount} en {topupData?.coin}</Text>
                         <Pressable onPress={() => setShowDepositModal(false)} style={styles.closeButton}>
-                            <Text style={[textStyles.h4, { color: theme.colors.primary }]}>✕</Text>
+                            <FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
                         </Pressable>
                     </View>
 
@@ -248,7 +249,7 @@ const Add = ({ navigation }) => {
                             <View style={styles.qrContainer}>
                                 <QRCode
                                     data={topupData?.wallet}
-                                    size={250}
+                                    size={350}
                                     backgroundColor={theme.colors.background}
                                     color={theme.colors.primaryText}
                                 />
@@ -272,12 +273,12 @@ const Add = ({ navigation }) => {
                         <View style={styles.actionButtonsContainer}>
                             <Pressable style={styles.actionButton} onPress={() => copyToClipboard(topupData?.wallet)}>
                                 <FontAwesome6 name="copy" size={20} color={theme.colors.primary} />
-                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copy</Text>
+                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copiar</Text>
                             </Pressable>
 
                             <Pressable style={styles.actionButton} onPress={shareDepositDetails}>
                                 <FontAwesome6 name="share" size={20} color={theme.colors.primary} />
-                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Share</Text>
+                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Compartir</Text>
                             </Pressable>
 
                             <Pressable style={styles.actionButton} onPress={emailDepositDetails}>
@@ -292,8 +293,8 @@ const Add = ({ navigation }) => {
                             {/* Network */}
                             <View style={styles.detailRow}>
                                 <View style={styles.detailLeft}>
-                                    <FontAwesome6 name="network-wired" size={16} color={theme.colors.secondaryText} />
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Network</Text>
+                                    <FontAwesome6 name="diagram-circle" size={16} color={theme.colors.secondaryText} />
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Red</Text>
                                 </View>
                                 <View style={styles.detailRight}>
                                     <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{topupData?.coin}</Text>
@@ -354,7 +355,7 @@ const Add = ({ navigation }) => {
                                 <View style={{ marginLeft: 12, flex: 1 }}>
                                     <Text style={textStyles.h4}>{coin.name}</Text>
                                     <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-                                        Mín: {coin.min_in} | Fee: {coin.fee_in}
+                                        Mín: ${coin.min_in} | Precio: ${Number(coin.price).toFixed(6)}
                                     </Text>
                                 </View>
                                 {coin.network && (
