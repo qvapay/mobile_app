@@ -2,9 +2,9 @@ import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import DeviceInfo from 'react-native-device-info'
 
-const version = await DeviceInfo.getVersion()
-const buildNumber = await DeviceInfo.getBuildNumber()
-const deviceName = await DeviceInfo.getDeviceName()
+const version = DeviceInfo.getVersion()
+const buildNumber = DeviceInfo.getBuildNumber()
+const deviceName = DeviceInfo.getDeviceName()
 
 // API Configuration
 // const API_BASE_URL = 'https://api.qvapay.com'
