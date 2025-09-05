@@ -150,8 +150,13 @@ const AppNavigator = () => {
                 options={{
                     headerTitle: 'Extraer',
                     headerShown: true,
-                    headerBackVisible: true,
-                    headerBackButtonMenuEnabled: true
+                    headerBackVisible: false,
+                    headerBackButtonMenuEnabled: true,
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
                 }}
             />
 
