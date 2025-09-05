@@ -160,27 +160,23 @@ const truncateWalletAddress = (address, amount = 10) => {
     return address.length > 28 ? address.substring(0, amount) + '...' + address.substring(address.length - amount) : address
 }
 
+// Adjust a number to a valid format and correct amount of decimals
 const adjustNumber = (value) => {
 
     const numValue = parseFloat(value)
-
     // Si no es un número válido, retornar el valor original
     if (isNaN(numValue)) { return value.toString() }
-
     // Si el valor es 0, retornar null
     if (numValue === 0) { return null }
-
     // Si el valor es superior a 1, retornar con dos decimales
     if (numValue >= 1) { return numValue.toFixed(2) }
-
-    // Si el valor está entre 0 y 0.0001, convertir a notación exponencial
+    // Si el valor es menor a 0.0001, convertir a notación exponencial
     if (numValue > 0 && numValue < 0.0001) {
         let exponentValue = numValue.toExponential()
         let [mantissa, exponent] = exponentValue.split('e')
         mantissa = parseFloat(mantissa).toFixed(1)
         return `${mantissa}e${exponent}`
     }
-
     // Si no se cumplen las condiciones anteriores, retornar el valor como está
     return numValue.toFixed(2)
 }
@@ -204,34 +200,6 @@ const statusText = (text) => {
     if (text === "received") { return "Recibida" }
     return text
 }
-
-// Save contact function
-// TODO: Deprecate and move to some Context API
-// const saveContact = async (contact) => {
-
-//     try {
-
-//         const userToSave = {
-//             uuid: contact.uuid,
-//             name: contact.name,
-//             username: contact.username,
-//             source_uri: contact.profile_photo_url,
-//         }
-
-//         const contacts = await AsyncStorage.getItem('contacts')
-//         let newContacts = []
-//         if (contacts) {
-//             newContacts = JSON.parse(contacts)
-//             const contactIndex = newContacts.findIndex((contact) => contact.uuid === userToSave.uuid)
-//             if (contactIndex === -1) {
-//                 newContacts.push(userToSave)
-//             } else {
-//                 newContacts[contactIndex] = userToSave
-//             }
-//             await AsyncStorage.setItem('contacts', JSON.stringify(newContacts))
-//         } else { await AsyncStorage.setItem('contacts', JSON.stringify([userToSave])) }
-//     } catch (error) { console.log(error) }
-// }
 
 // Shuffle array function
 const shuffleArray = (array) => {
@@ -259,6 +227,9 @@ const copyTextToClipboard = (text) => {
 
 // take am uuid and return the fir chunk of it
 const getFirstChunk = (uuid) => {
+    if (!uuid || typeof uuid !== 'string') {
+        return ''
+    }
     return uuid.split("-")[0]
 }
 

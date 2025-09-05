@@ -1,7 +1,14 @@
-import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, TextInput } from 'react-native'
+import { useState } from 'react'
+import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native'
+
+// Theme
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../theme/themeUtils'
+
+// UI Particles
+import QPCoin from './particles/QPCoin'
+
+// Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 const AmountInput = ({
@@ -9,7 +16,6 @@ const AmountInput = ({
     onAmountChange,
     balance,
     currency = 'QUSD',
-    onCurrencyChange,
     placeholder = 'Enter Amount',
     style = {}
 }) => {
@@ -40,12 +46,9 @@ const AmountInput = ({
 
                 {/* Amount Input Row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-
-                    <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>
+                    <Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>
                         {placeholder}:
                     </Text>
-
-                    {/* Currency Selector */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                         <Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
                             Balance:
@@ -65,8 +68,11 @@ const AmountInput = ({
                         keyboardType="numeric"
                         style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0, }]}
                     />
-                    <View style={{ backgroundColor: theme.colors.primary + '22', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginLeft: 8 }}>
-                        <Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: 'bold' }]}>QUSD</Text>
+                    <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <QPCoin coin="qusd" size={20} />
+                            <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
+                        </View>
                     </View>
                 </View>
 
@@ -133,5 +139,14 @@ const AmountInput = ({
         </View>
     )
 }
+
+const styles = StyleSheet.create({
+    currencyButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 0.5
+    },
+})
 
 export default AmountInput

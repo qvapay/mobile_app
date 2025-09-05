@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+// Helper
+import { adjustNumber } from '../../helpers'
+
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
@@ -36,6 +39,8 @@ const Withdraw = () => {
     const [workingForm, setWorkingForm] = useState({})
     const [showCoinSearch, setShowCoinSearch] = useState(false)
 
+    console.log('selectedCoin', selectedCoin)
+
     // Fetch available coins enabled_out
     useEffect(() => {
         const fetchCoins = async () => {
@@ -49,8 +54,6 @@ const Withdraw = () => {
         fetchCoins()
     }, [])
 
-    console.log('availableCoins', availableCoins)
-
     // Price helpers
     const coinPrice = useMemo(() => {
         if (!selectedCoin) { return null }
@@ -58,23 +61,140 @@ const Withdraw = () => {
         return isNaN(price) ? null : price
     }, [selectedCoin])
 
+    // Calculate fee amount
+    const feeAmount = useMemo(() => {
+        if (!selectedCoin || !amountQUSD) return 0
+        const amount = Number(amountQUSD)
+        if (isNaN(amount)) return 0
+
+        const feePercent = Number(selectedCoin.fee_out) || 0
+
+        // Check if fee_out_fixed is an array [threshold, fixed_amount]
+        let feeFixed = 0
+        let useFixedFee = false
+
+        if (Array.isArray(selectedCoin.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
+            const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
+            const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
+
+            // If amount is below threshold, use fixed fee
+            if (amount < threshold) {
+                feeFixed = fixedAmount
+                useFixedFee = true
+            }
+        } else {
+            // If fee_out_fixed is not an array, treat it as a simple fixed fee
+            feeFixed = Number(selectedCoin.fee_out_fixed) || 0
+        }
+
+        // Calculate fee based on the logic
+        if (useFixedFee) {
+            return feeFixed
+        } else {
+            // Use percentage fee
+            return (amount * feePercent) / 100
+        }
+    }, [selectedCoin, amountQUSD])
+
+    // Calculate net amount (what user will actually receive)
+    const netAmount = useMemo(() => {
+        if (!amountQUSD) return 0
+        const amount = Number(amountQUSD)
+        if (isNaN(amount)) return 0
+        return amount - feeAmount
+    }, [amountQUSD, feeAmount])
+
+    // Helper function to calculate fee
+    const calculateFee = (amount, coin) => {
+        if (!coin) return 0
+        const feePercent = Number(coin.fee_out) || 0
+
+        // Check if fee_out_fixed is an array [threshold, fixed_amount]
+        if (Array.isArray(coin.fee_out_fixed) && coin.fee_out_fixed.length >= 2) {
+            const threshold = Number(coin.fee_out_fixed[0]) || 0
+            const fixedAmount = Number(coin.fee_out_fixed[1]) || 0
+
+            // If amount is below threshold, use fixed fee
+            if (amount < threshold) {
+                return fixedAmount
+            } else {
+                // Use percentage fee with better precision
+                const percentageFee = (amount * feePercent) / 100
+                return Math.round(percentageFee * 100) / 100 // Round to 2 decimal places
+            }
+        } else {
+            // If fee_out_fixed is not an array, treat it as a simple fixed fee
+            const feeFixed = Number(coin.fee_out_fixed) || 0
+            const percentageFee = (amount * feePercent) / 100
+            return Math.round((percentageFee + feeFixed) * 100) / 100 // Round to 2 decimal places
+        }
+    }
+
     // Handlers for amount changes (bidirectional)
     const handleChangeQUSD = (value) => {
         setAmountQUSD(value)
         const num = Number(value)
         if (coinPrice && !isNaN(num)) {
-            const converted = num / coinPrice
-            setAmountCoin(converted ? String(converted.toFixed(6)) : '')
+            // Calculate net amount after fees
+            const totalFee = calculateFee(num, selectedCoin)
+            const netAmount = num - totalFee
+
+            // Convert net amount to coin amount with better precision
+            const converted = netAmount / coinPrice
+
+            // Smart rounding: if the result is very close to a whole number, round to it
+            const nearestInteger = Math.round(converted)
+            const difference = Math.abs(converted - nearestInteger)
+
+            // If the difference is very small (less than or equal to 0.01), use the rounded integer value
+            const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
+
+            setAmountCoin(finalAmount ? String(finalAmount) : '')
         } else { setAmountCoin('') }
     }
 
-    // Handle change coin
+    // Handle change coin (user wants to receive this amount)
     const handleChangeCoin = (value) => {
         setAmountCoin(value)
         const num = Number(value)
         if (coinPrice && !isNaN(num)) {
-            const converted = num * coinPrice
-            setAmountQUSD(converted ? String(converted.toFixed(2)) : '')
+            // Calculate gross amount needed (including fees)
+            const grossAmount = num * coinPrice
+
+            // Calculate required QUSD amount to cover fees
+            const feePercent = Number(selectedCoin?.fee_out) || 0
+
+            let requiredQUSD
+
+            // Check if fee_out_fixed is an array [threshold, fixed_amount]
+            if (Array.isArray(selectedCoin?.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
+                const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
+                const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
+
+                // We need to solve: grossAmount = requiredQUSD - fee
+                // where fee = fixedAmount if requiredQUSD < threshold, else fee = requiredQUSD * feePercent/100
+
+                // First, try with percentage fee
+                const withPercentageFee = grossAmount / (1 - feePercent / 100)
+
+                if (withPercentageFee >= threshold) {
+                    // Use percentage fee
+                    requiredQUSD = withPercentageFee
+                } else {
+                    // Use fixed fee
+                    requiredQUSD = grossAmount + fixedAmount
+                }
+            } else {
+                // Simple case: percentage + fixed fee
+                const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
+                if (feePercent > 0) {
+                    requiredQUSD = (grossAmount + feeFixed) / (1 - feePercent / 100)
+                } else {
+                    requiredQUSD = grossAmount + feeFixed
+                }
+            }
+
+            setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
         } else { setAmountQUSD('') }
     }
 
@@ -108,10 +228,25 @@ const Withdraw = () => {
     const handleCoinSelect = (coin) => {
         setSelectedCoin(coin)
         setShowCoinPicker(false)
-        // Recompute bottom amount when selecting coin
+        // Recompute bottom amount when selecting coin (with fees)
         if (amountQUSD) {
             const price = Number(coin.price)
-            if (!isNaN(price)) { setAmountCoin(String((Number(amountQUSD) / price).toFixed(6))) }
+            if (!isNaN(price)) {
+                // Calculate net amount after fees using the helper function
+                const totalFee = calculateFee(Number(amountQUSD), coin)
+                const netAmount = Number(amountQUSD) - totalFee
+
+                const converted = netAmount / price
+
+                // Smart rounding: if the result is very close to a whole number, round to it
+                const nearestInteger = Math.round(converted)
+                const difference = Math.abs(converted - nearestInteger)
+
+                // If the difference is very small (less than or equal to 0.01), use the rounded integer value
+                const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
+
+                setAmountCoin(finalAmount ? String(finalAmount) : '')
+            }
         }
         // Reset form for new coin
         setWorkingForm({})
@@ -158,6 +293,7 @@ const Withdraw = () => {
                                         </View>
                                     </View>
                                 </View>
+
                             </View>
 
                             {/* Divider with arrows */}
@@ -281,16 +417,25 @@ const Withdraw = () => {
                                     .filter((coin) => coin.name.toLowerCase().includes(coinSearch.toLowerCase()) || coin.tick.toLowerCase().includes(coinSearch.toLowerCase()))
                                     .map((coin) => (
                                         <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)}>
+
                                             <QPCoin coin={coin.logo} size={40} />
+
                                             <View style={{ marginLeft: 12, flex: 1 }}>
                                                 <Text style={textStyles.h4}>{coin.name}</Text>
-                                                <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Mín: ${coin.min_out} | Precio: ${Number(coin.price).toFixed(6)}</Text>
+                                                <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Mín: ${adjustNumber(coin.min_out)} | Precio: ${adjustNumber(coin.price)}</Text>
                                             </View>
-                                            {coin.network && (
-                                                <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-                                                    <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.network}</Text>
-                                                </View>
-                                            )}
+
+                                            <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                                                {coin.network && (
+                                                    <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+                                                        <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.network}</Text>
+                                                    </View>
+                                                )}
+                                                {coin.fee_out && (
+                                                    <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.fee_out}%</Text>
+                                                )}
+                                            </View>
+
                                         </Pressable>
                                     ))
                                 ) : (
