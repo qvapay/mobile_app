@@ -17,7 +17,13 @@ import apiClient from '../../api/client'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Withdraw balance to certain coin
 const Withdraw = () => {
+
+    // Theme variables, dark and light modes
+    const { theme } = useTheme()
+    const containerStyles = createContainerStyles(theme)
+    const textStyles = createTextStyles(theme)
 
     // States
     const [amountQUSD, setAmountQUSD] = useState('')
@@ -29,11 +35,6 @@ const Withdraw = () => {
     const [coinSearch, setCoinSearch] = useState('')
     const [workingForm, setWorkingForm] = useState({})
 
-    // Theme variables, dark and light modes
-    const { theme } = useTheme()
-    const containerStyles = createContainerStyles(theme)
-    const textStyles = createTextStyles(theme)
-
     // Fetch available coins enabled_out
     useEffect(() => {
         const fetchCoins = async () => {
@@ -41,9 +42,8 @@ const Withdraw = () => {
                 setIsLoading(true)
                 const response = await apiClient.get('/coins/v2?enabled_out=true')
                 setAvailableCoins(response.data)
-            } catch (error) {
-                console.warn('Error fetching enabled_out coins', error)
-            } finally { setIsLoading(false) }
+            } catch (error) { console.warn('Error fetching enabled_out coins', error) }
+            finally { setIsLoading(false) }
         }
         fetchCoins()
     }, [])
@@ -107,9 +107,7 @@ const Withdraw = () => {
         // Recompute bottom amount when selecting coin
         if (amountQUSD) {
             const price = Number(coin.price)
-            if (!isNaN(price)) {
-                setAmountCoin(String((Number(amountQUSD) / price).toFixed(6)))
-            }
+            if (!isNaN(price)) { setAmountCoin(String((Number(amountQUSD) / price).toFixed(6))) }
         }
         // Reset form for new coin
         setWorkingForm({})
