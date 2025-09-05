@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, Pressable, Modal, Alert } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Pressable, Modal } from 'react-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import FastImage from "@d11/react-native-fast-image"
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -259,14 +260,14 @@ const Add = ({ navigation }) => {
                         {/* Amount Information */}
                         <View style={styles.amountSection}>
                             <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 8 }]}>
-                                1{topupData?.coin} ≈ ${topupData?.price}
+                                1 {topupData?.coin} ≈ ${Number(topupData?.price).toFixed(2)}
                             </Text>
                             <Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }]}>
-                                {topupData?.value} {topupData?.coin}
+                                {Number(topupData?.value).toFixed(6)} {topupData?.coin}
                             </Text>
-                            <Text style={[textStyles.h4, { color: theme.colors.primary, textAlign: 'center' }]}>
+                            {/* <Text style={[textStyles.h4, { color: theme.colors.primary, textAlign: 'center' }]}>
                                 ${topupData?.price} USD
-                            </Text>
+                            </Text> */}
                         </View>
 
                         {/* Action Buttons */}
@@ -276,10 +277,10 @@ const Add = ({ navigation }) => {
                                 <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copiar</Text>
                             </Pressable>
 
-                            <Pressable style={styles.actionButton} onPress={shareDepositDetails}>
+                            {/* <Pressable style={styles.actionButton} onPress={shareDepositDetails}>
                                 <FontAwesome6 name="share" size={20} color={theme.colors.primary} />
                                 <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Compartir</Text>
-                            </Pressable>
+                            </Pressable> */}
 
                             <Pressable style={styles.actionButton} onPress={emailDepositDetails}>
                                 <FontAwesome6 name="envelope" size={20} color={theme.colors.primary} />
@@ -293,20 +294,18 @@ const Add = ({ navigation }) => {
                             {/* Network */}
                             <View style={styles.detailRow}>
                                 <View style={styles.detailLeft}>
-                                    <FontAwesome6 name="diagram-circle" size={16} color={theme.colors.secondaryText} />
                                     <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Red</Text>
                                 </View>
-                                <View style={styles.detailRight}>
+                                <View style={[styles.detailRight, { gap: 2 }]}>
+                                    <QPCoin coin={topupData?.coin} size={16} />
                                     <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{topupData?.coin}</Text>
-                                    <FontAwesome6 name="question-circle" size={14} color={theme.colors.secondaryText} style={{ marginLeft: 8 }} />
                                 </View>
                             </View>
 
                             {/* Deposit Address */}
                             <View style={styles.detailRow}>
                                 <View style={styles.detailLeft}>
-                                    <FontAwesome6 name="th" size={16} color={theme.colors.secondaryText} />
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Deposit Address</Text>
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Dirección</Text>
                                 </View>
                                 <View style={styles.detailRight}>
                                     <Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>

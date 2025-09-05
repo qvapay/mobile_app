@@ -2,7 +2,7 @@ import { View, Text, Image } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../theme/themeUtils'
+import { useTextStyles } from '../theme/themeUtils'
 
 // UI Particles
 import QPAvatar from './particles/QPAvatar'
