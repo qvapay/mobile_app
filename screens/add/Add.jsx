@@ -218,18 +218,16 @@ const Add = ({ navigation }) => {
 
             {/* Action Buttons */}
             <View style={containerStyles.bottomButtonContainer}>
-                {!topupData && (
-                    <QPButton
-                        title="Generar Depósito"
-                        onPress={handleTopup}
-                        disabled={!selectedCoin || !amount}
-                        loading={isLoading}
-                        icon="plus"
-                        iconStyle="solid"
-                        iconColor={theme.colors.almostWhite}
-                        textStyle={{ color: theme.colors.almostWhite }}
-                    />
-                )}
+                <QPButton
+                    title="Generar Depósito"
+                    onPress={handleTopup}
+                    disabled={!selectedCoin || !amount}
+                    loading={isLoading}
+                    icon="plus"
+                    iconStyle="solid"
+                    iconColor={theme.colors.almostWhite}
+                    textStyle={{ color: theme.colors.almostWhite }}
+                />
             </View>
 
             {/* Deposit Details Modal */}
@@ -318,6 +316,23 @@ const Add = ({ navigation }) => {
                                     </Pressable>
                                 </View>
                             </View>
+
+                            {/* If MEMO is not empty */}
+                            {topupData?.memo && (
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailLeft}>
+                                        <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>MEMO:</Text>
+                                    </View>
+                                    <View style={styles.detailRight}>
+                                        <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+                                            {topupData?.memo}
+                                        </Text>
+                                        <Pressable onPress={() => copyToClipboard(topupData?.memo)}>
+                                            <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+                                        </Pressable>
+                                    </View>
+                                </View>
+                            )}
 
                             {/* Transaction ID */}
                             <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
