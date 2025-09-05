@@ -34,6 +34,7 @@ const Withdraw = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [coinSearch, setCoinSearch] = useState('')
     const [workingForm, setWorkingForm] = useState({})
+    const [showCoinSearch, setShowCoinSearch] = useState(false)
 
     // Fetch available coins enabled_out
     useEffect(() => {
@@ -47,6 +48,8 @@ const Withdraw = () => {
         }
         fetchCoins()
     }, [])
+
+    console.log('availableCoins', availableCoins)
 
     // Price helpers
     const coinPrice = useMemo(() => {
@@ -65,6 +68,7 @@ const Withdraw = () => {
         } else { setAmountCoin('') }
     }
 
+    // Handle change coin
     const handleChangeCoin = (value) => {
         setAmountCoin(value)
         const num = Number(value)
@@ -129,8 +133,8 @@ const Withdraw = () => {
                         <View style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, padding: 16, marginTop: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
 
                             {/* QUSD amount input */}
-                            <View style={{ paddingVertical: 8 }}>
-                                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>Extraer</Text>
+                            <View style={{ paddingVertical: 2 }}>
+                                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Extraer</Text>
 
                                 {/* Single row container with dark background */}
                                 <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -142,7 +146,7 @@ const Withdraw = () => {
                                             placeholder="0.00"
                                             placeholderTextColor={theme.colors.placeholder}
                                             keyboardType="numeric"
-                                            style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0 }]}
+                                            style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
                                         />
                                     </View>
 
@@ -157,15 +161,15 @@ const Withdraw = () => {
                             </View>
 
                             {/* Divider with arrows */}
-                            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 2 }}>
+                            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                                 <View style={{ width: 40, height: 40, borderRadius: 40, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
                                     <FontAwesome6 name="right-left" size={16} color={theme.colors.primary} iconStyle="solid" />
                                 </View>
                             </View>
 
                             {/* Coin amount and selector */}
-                            <View style={{ paddingTop: 8 }}>
-                                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>Recibir</Text>
+                            <View style={{ paddingTop: 2 }}>
+                                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
 
                                 {/* Single row container with dark background */}
                                 <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -177,7 +181,7 @@ const Withdraw = () => {
                                             placeholder="0.00"
                                             placeholderTextColor={theme.colors.placeholder}
                                             keyboardType="numeric"
-                                            style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0 }]}
+                                            style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
                                             editable={!!selectedCoin}
                                         />
                                     </View>
@@ -200,28 +204,29 @@ const Withdraw = () => {
                                 </View>
                             </View>
                         </View>
+
+                        {/* Dynamic Working Data Inputs */}
+                        {selectedCoin && workingFields.length > 0 && (
+                            <View style={{ marginTop: 20 }}>
+                                <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>Datos de su cuenta:</Text>
+                                {workingFields.map((field) => {
+                                    const key = keyFromFieldName(field.name)
+                                    return (
+                                        <QPInput
+                                            key={key}
+                                            value={workingForm[key] || ''}
+                                            onChangeText={(text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
+                                            placeholder={field.name}
+                                            keyboardType={field.type === 'number' ? 'numeric' : 'default'}
+                                            style={{ marginVertical: 6 }}
+                                            prefixIconName="id-card"
+                                        />
+                                    )
+                                })}
+                            </View>
+                        )}
                     </View>
 
-                    {/* Dynamic Working Data Inputs */}
-                    {selectedCoin && workingFields.length > 0 && (
-                        <View style={{ marginTop: 20 }}>
-                            <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>Datos requeridos</Text>
-                            {workingFields.map((field) => {
-                                const key = keyFromFieldName(field.name)
-                                return (
-                                    <QPInput
-                                        key={key}
-                                        value={workingForm[key] || ''}
-                                        onChangeText={(text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
-                                        placeholder={field.name}
-                                        keyboardType={field.type === 'number' ? 'numeric' : 'default'}
-                                        style={{ marginVertical: 6 }}
-                                        prefixIconName="id-card"
-                                    />
-                                )
-                            })}
-                        </View>
-                    )}
 
                     {/* Bottom Button */}
                     <View style={containerStyles.bottomButtonContainer}>
@@ -238,35 +243,56 @@ const Withdraw = () => {
 
                     <Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
                         <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+
                             <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
                                 <Text style={textStyles.h4}>Seleccionar Moneda</Text>
-                                <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-                                    <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                                </Pressable>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                                    <Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
+                                        <FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+                                    </Pressable>
+                                    <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
+                                        <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                                    </Pressable>
+                                </View>
                             </View>
 
-                            <ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
+                            {showCoinSearch && (
+                                <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+                                    <QPInput
+                                        value={coinSearch}
+                                        onChangeText={setCoinSearch}
+                                        placeholder="Buscar moneda..."
+                                        prefixIconName="magnifying-glass"
+                                        style={styles.searchInput}
+                                    />
+                                </View>
+                            )}
+
+                            <ScrollView
+                                style={styles.coinList}
+                                contentContainerStyle={styles.coinListContent}
+                                showsVerticalScrollIndicator={true}
+                            >
                                 {isLoading ? (
                                     <View style={styles.loadingContainer}>
                                         <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
                                     </View>
-                                ) : availableCoins.length > 0 ? (
-                                    availableCoins
-                                        .filter((coin) => coin.name.toLowerCase().includes(coinSearch.toLowerCase()) || coin.tick.toLowerCase().includes(coinSearch.toLowerCase()))
-                                        .map((coin) => (
-                                            <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)}>
-                                                <QPCoin coin={coin.logo} size={40} />
-                                                <View style={{ marginLeft: 12, flex: 1 }}>
-                                                    <Text style={textStyles.h4}>{coin.name}</Text>
-                                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Mín: ${coin.min_out} | Precio: ${Number(coin.price).toFixed(6)}</Text>
+                                ) : availableCoins.length > 0 ? (availableCoins
+                                    .filter((coin) => coin.name.toLowerCase().includes(coinSearch.toLowerCase()) || coin.tick.toLowerCase().includes(coinSearch.toLowerCase()))
+                                    .map((coin) => (
+                                        <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)}>
+                                            <QPCoin coin={coin.logo} size={40} />
+                                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                                <Text style={textStyles.h4}>{coin.name}</Text>
+                                                <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Mín: ${coin.min_out} | Precio: ${Number(coin.price).toFixed(6)}</Text>
+                                            </View>
+                                            {coin.network && (
+                                                <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+                                                    <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.network}</Text>
                                                 </View>
-                                                {coin.network && (
-                                                    <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-                                                        <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.network}</Text>
-                                                    </View>
-                                                )}
-                                            </Pressable>
-                                        ))
+                                            )}
+                                        </Pressable>
+                                    ))
                                 ) : (
                                     <View style={styles.loadingContainer}>
                                         <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
@@ -322,7 +348,7 @@ const styles = StyleSheet.create({
     },
     closeButton: { padding: 5 },
     coinList: { flex: 1 },
-    coinListContent: { padding: 20, paddingBottom: 40 },
+    coinListContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
     coinItem: {
         flexDirection: 'row',
         alignItems: 'center',

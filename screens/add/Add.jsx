@@ -363,7 +363,7 @@ const Add = ({ navigation }) => {
                     <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
                         <Text style={textStyles.h4}>Seleccionar Moneda</Text>
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                             <Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
                                 <FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
@@ -373,7 +373,23 @@ const Add = ({ navigation }) => {
                         </View>
                     </View>
 
-                    <ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
+                    {showCoinSearch && (
+                        <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+                            <QPInput
+                                value={coinSearch}
+                                onChangeText={setCoinSearch}
+                                placeholder="Buscar moneda..."
+                                prefixIconName="magnifying-glass"
+                                style={styles.searchInput}
+                            />
+                        </View>
+                    )}
+
+                    <ScrollView
+                        style={styles.coinList}
+                        contentContainerStyle={styles.coinListContent}
+                        showsVerticalScrollIndicator={true}
+                    >
 
                         {isLoading ? (
                             <View style={styles.loadingContainer}>
