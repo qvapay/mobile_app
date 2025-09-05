@@ -130,36 +130,36 @@ const Withdraw = () => {
                         {/* Swap Card */}
                         <View style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, padding: 16, marginTop: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
 
-                                                         {/* QUSD amount input */}
-                             <View style={{ paddingVertical: 8 }}>
-                                 <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>Extraer</Text>
-                                 
-                                 {/* Single row container with dark background */}
-                                 <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                     {/* Left side - Amount input */}
-                                     <View style={{ flex: 1 }}>
-                                         <TextInput
-                                             value={amountQUSD}
-                                             onChangeText={handleChangeQUSD}
-                                             placeholder="0.00"
-                                             placeholderTextColor={theme.colors.placeholder}
-                                             keyboardType="numeric"
-                                             style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0 }]}
-                                         />
-                                     </View>
-                                     
-                                     {/* Right side - Static QUSD display */}
-                                     <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation }]}>
-                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                             <QPCoin coin="qusd" size={20} />
-                                             <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
-                                         </View>
-                                     </View>
-                                 </View>
-                             </View>
+                            {/* QUSD amount input */}
+                            <View style={{ paddingVertical: 8 }}>
+                                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>Extraer</Text>
+
+                                {/* Single row container with dark background */}
+                                <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    {/* Left side - Amount input */}
+                                    <View style={{ flex: 1 }}>
+                                        <TextInput
+                                            value={amountQUSD}
+                                            onChangeText={handleChangeQUSD}
+                                            placeholder="0.00"
+                                            placeholderTextColor={theme.colors.placeholder}
+                                            keyboardType="numeric"
+                                            style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0 }]}
+                                        />
+                                    </View>
+
+                                    {/* Right side - Static QUSD display */}
+                                    <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation }]}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                            <QPCoin coin="qusd" size={20} />
+                                            <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
 
                             {/* Divider with arrows */}
-                            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
+                            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 2 }}>
                                 <View style={{ width: 40, height: 40, borderRadius: 40, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
                                     <FontAwesome6 name="right-left" size={16} color={theme.colors.primary} iconStyle="solid" />
                                 </View>
@@ -167,10 +167,10 @@ const Withdraw = () => {
 
                             {/* Coin amount and selector */}
                             <View style={{ paddingTop: 8 }}>
-                                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>Recibir</Text>
+                                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>Recibir</Text>
 
                                 {/* Single row container with dark background */}
-                                <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                     {/* Left side - Amount and available balance */}
                                     <View style={{ flex: 1 }}>
                                         <TextInput
