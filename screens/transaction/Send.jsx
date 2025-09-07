@@ -12,7 +12,6 @@ import QPAvatar from '../../ui/particles/QPAvatar'
 import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
 import QPLoader from '../../ui/particles/QPLoader'
-import ProfileContainer from '../../ui/ProfileContainer'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 
 // Routes
@@ -129,18 +128,14 @@ const Send = ({ navigation, route }) => {
     }
 
     // Handle Send
-    const handleSend = async () => {
+    const handleSendConfirm = async () => {
         try {
             setIsLoading(true)
-            const result = await transferApi.transferMoney({
-                amount,
-                description,
-                to: userFound.uuid,
-                pin: user.pin
+            navigation.navigate(ROUTES.SEND_CONFIRM, {
+                user_uuid: userFound.uuid,
+                send_amount: amount,
+                description: description
             })
-            if (result.success) {
-                navigation.navigate(ROUTES.SEND_SUCCESS)
-            } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error }) }
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Error', text2: error.message })
         } finally { setIsLoading(false) }
@@ -219,7 +214,7 @@ const Send = ({ navigation, route }) => {
             <View style={containerStyles.bottomButtonContainer}>
                 <QPButton
                     title={`Enviar $${amount || '0'} ${currency}`}
-                    onPress={handleSend}
+                    onPress={handleSendConfirm}
                     disabled={!sendEnabled}
                     loading={isLoading}
                     textStyle={{ color: theme.colors.buttonText }}
