@@ -39,6 +39,7 @@ export const ROUTES = {
 
     // Send, Receive and Confirm Screens
     SEND: "Send",
+    SEND_CONFIRM: "SendConfirm",
     SEND_SUCCESS: "SendSuccess",
     RECEIVE: "Receive",
 

@@ -33,6 +33,7 @@ import Recover2FAScreen from './auth/screens/Recover2FA'
 import Onboard from './screens/onboard/Onboard'
 import MainStack from './screens/MainStack'
 import Send from './screens/transaction/Send'
+import SendConfirm from './screens/transaction/SendConfirm'
 import SendSuccess from './screens/transaction/SendSuccess'
 import Receive from './screens/transaction/Receive'
 import Transaction from './screens/transaction/Transaction'
@@ -173,6 +174,22 @@ const AppNavigator = () => {
                 component={Send}
                 options={{
                     headerTitle: 'Enviar QUSD',
+                    headerShown: true,
+                    headerBackVisible: false,
+                    headerBackButtonMenuEnabled: true,
+                    headerShadowVisible: false,
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
+                }}
+            />
+            <Stack.Screen
+                name={ROUTES.SEND_CONFIRM}
+                component={SendConfirm}
+                options={{
+                    headerTitle: 'Confirmar pago',
                     headerShown: true,
                     headerBackVisible: false,
                     headerBackButtonMenuEnabled: true,

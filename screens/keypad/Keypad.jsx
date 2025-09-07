@@ -186,7 +186,7 @@ export default function Keypad({ navigation }) {
         setIsProcessing(true)
 
         try {
-            navigation.navigate(ROUTES.SEND, { amount: numericAmount.toString() })
+            navigation.navigate(ROUTES.SEND, { send_amount: numericAmount.toString() })
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Error', text2: 'Error al procesar la solicitud de envío' })
         } finally { setIsProcessing(false) }
@@ -196,7 +196,7 @@ export default function Keypad({ navigation }) {
     // Receive amount
     const handleReceiveAmount = useCallback(() => {
         const numericAmount = parseFloat(amount)
-        navigation.navigate(ROUTES.RECEIVE, { amount: numericAmount.toString() })
+        navigation.navigate(ROUTES.RECEIVE, { receive_amount: numericAmount.toString() })
     }, [amount, navigation])
 
     // Render individual key

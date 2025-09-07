@@ -11,8 +11,9 @@ import QPButton from '../../ui/particles/QPButton'
 import QPAvatar from '../../ui/particles/QPAvatar'
 import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
-import ProfileContainer from '../../ui/ProfileContainer'
 import QPLoader from '../../ui/particles/QPLoader'
+import ProfileContainer from '../../ui/ProfileContainer'
+import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -57,7 +58,7 @@ const Send = ({ navigation, route }) => {
     const [sendEnabled, setSendEnabled] = useState(false)
     const [error, setError] = useState(null)
     const [isLoading, setIsLoading] = useState(false)
-    const [isLoadingUser, setIsLoadingUser] = useState(true)
+    const [isLoadingUser, setIsLoadingUser] = useState(false)
 
     // Update send enabled state based on amount and user found
     useEffect(() => {
@@ -156,6 +157,7 @@ const Send = ({ navigation, route }) => {
 
                 {/** Latest sent transfers users */}
                 <View style={{ marginVertical: 20, gap: 10 }}>
+
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Enviar a:</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -163,34 +165,54 @@ const Send = ({ navigation, route }) => {
                             <FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
                         </View>
                     </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
-                                <FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
+
+                    {userFound ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}>
+                            <View style={{ flex: 1, marginRight: 10 }}>
+                                <ProfileContainerHorizontal user={userFound} />
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setUserFound(null)}
+                                style={{
+                                    backgroundColor: theme.colors.elevation,
+                                    borderRadius: 16,
+                                    width: 32,
+                                    height: 32,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                                accessibilityLabel="Eliminar usuario seleccionado"
+                            >
+                                <FontAwesome6 name="xmark" size={18} color={theme.colors.primaryText} iconStyle="solid" />
                             </TouchableOpacity>
-                            {latestSentTransfersUsers.map((user, index) => (
-                                <Pressable key={index} onPress={() => setIncomingUserUuid(user.uuid)}>
-                                    <QPAvatar key={index} user={user} size={56} />
-                                </Pressable>
-                            ))}
                         </View>
-                    </ScrollView>
+                    ) : (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                <TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
+                                    <FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
+                                </TouchableOpacity>
+                                {latestSentTransfersUsers.map((user, index) => (
+                                    <Pressable key={index} onPress={() => setIncomingUserUuid(user.uuid)}>
+                                        <QPAvatar key={index} user={user} size={56} />
+                                    </Pressable>
+                                ))}
+                            </View>
+                        </ScrollView>
+                    )}
                 </View>
 
                 {isLoadingUser && (<QPLoader />)}
 
                 {userFound && (
-                    <View style={{ flex: 1, marginVertical: 10 }}>
-                        <ProfileContainer user={userFound} />
-                        <QPInput
-                            placeholder={`Deja un mensaje para ${userFound.name} ...`}
-                            value={description}
-                            onChangeText={setDescription}
-                            prefixIconName="comment"
-                            style={{ marginTop: 10 }}
-                        />
-                    </View>
+                    <QPInput
+                        placeholder={`Deja un mensaje para ${userFound.name} ...`}
+                        value={description}
+                        onChangeText={setDescription}
+                        prefixIconName="comment"
+                    />
                 )}
+
             </View>
 
             {/** Button to send */}
