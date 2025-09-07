@@ -44,39 +44,29 @@ const SendConfirm = ({ navigation, route }) => {
     const [isLoadingUser, setIsLoadingUser] = useState(true)
 
     // Fetch recipient user data
+
+    // TODO: Some day, you will have a DeepLink and this will be useful
     useEffect(() => {
+
         const fetchRecipientUser = async () => {
             if (!user_uuid) {
                 setIsLoadingUser(false)
                 return
             }
-
             try {
                 setIsLoadingUser(true)
                 const result = await userApi.searchUser(user_uuid)
                 if (result.success && result.data.length > 0) {
                     setRecipientUser(result.data[0])
                 } else {
-                    Toast.show({
-                        type: 'error',
-                        text1: 'Error',
-                        text2: 'No se pudo encontrar el usuario destinatario'
-                    })
+                    Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo encontrar el usuario destinatario' })
                     navigation.goBack()
                 }
             } catch (error) {
-                console.error('Error fetching recipient user:', error)
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Error al cargar los datos del destinatario'
-                })
+                Toast.show({ type: 'error', text1: 'Error', text2: 'Error al cargar los datos del destinatario' })
                 navigation.goBack()
-            } finally {
-                setIsLoadingUser(false)
-            }
+            } finally { setIsLoadingUser(false) }
         }
-
         fetchRecipientUser()
     }, [user_uuid, navigation])
 
@@ -93,29 +83,13 @@ const SendConfirm = ({ navigation, route }) => {
             })
 
             if (result.success) {
-                // Navigate to success screen
-                navigation.navigate(ROUTES.SEND_SUCCESS, {
-                    amount: send_amount,
-                    recipient: recipientUser,
-                    description: description
-                })
+                navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser, description: description })
             } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error en la transacción',
-                    text2: result.error || 'No se pudo completar la transacción'
-                })
+                Toast.show({ type: 'error', text1: 'Error en la transacción', text2: result.error || 'No se pudo completar la transacción' })
             }
         } catch (error) {
-            console.error('Error executing transaction:', error)
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: error.message || 'Error inesperado al procesar la transacción'
-            })
-        } finally {
-            setIsLoading(false)
-        }
+            Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Error inesperado al procesar la transacción' })
+        } finally { setIsLoading(false) }
     }
 
     // Show loading while fetching user data
@@ -123,9 +97,6 @@ const SendConfirm = ({ navigation, route }) => {
         return (
             <View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
                 <QPLoader />
-                <Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 20 }]}>
-                    Cargando datos del destinatario...
-                </Text>
             </View>
         )
     }
