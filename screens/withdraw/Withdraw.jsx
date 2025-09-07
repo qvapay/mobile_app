@@ -286,7 +286,7 @@ const Withdraw = () => {
                                     </View>
 
                                     {/* Right side - Static QUSD display */}
-                                    <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation }]}>
+                                    <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                             <QPCoin coin="qusd" size={20} />
                                             <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
@@ -323,7 +323,7 @@ const Withdraw = () => {
                                     </View>
 
                                     {/* Right side - Currency selector button */}
-                                    <Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation }]} onPress={() => setShowCoinPicker(true)} >
+                                    <Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)} >
                                         {selectedCoin ? (
                                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                                 <QPCoin coin={selectedCoin.logo} size={20} />
@@ -467,8 +467,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 20,
-        borderWidth: 0.5,
-        borderColor: 'rgba(255, 255, 255, 0.1)'
+        borderWidth: 0.5
     },
     coinSelectorPlaceholder: {
         flexDirection: 'row',
