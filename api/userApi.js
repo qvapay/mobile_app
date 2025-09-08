@@ -152,12 +152,26 @@ export const userApi = {
     },
 
     /**
-     * Get referral link for sharing
-     * @returns {Promise<Object>} The referral link
+     * Get gold check status
+     * @returns {Promise<Object>} The gold check status
      */
-    getReferralLink: async () => {
+    getGoldCheckStatus: async () => {
         try {
-            const response = await apiClient.get(`/user/referral/link`)
+            const response = await apiClient.get(`/user/gold`)
+            return { success: true, data: response.data.user, status: response.status }
+        } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+    },
+
+    /**
+     * Purchase gold check for a user
+     * @param {Object} purchaseData - The purchase data
+     * @param {string} purchaseData.uuid - The target user's UUID
+     * @param {string} purchaseData.duration - The subscription duration
+     * @returns {Promise<Object>} The purchase result
+     */
+    purchaseGold: async (purchaseData) => {
+        try {
+            const response = await apiClient.post(`/user/gold`, purchaseData)
             return { success: true, data: response.data, status: response.status }
         } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
     }

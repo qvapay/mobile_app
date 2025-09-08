@@ -67,6 +67,13 @@ const SettingsStack = ({ navigation }) => {
             <Stack.Screen
                 name={ROUTES.GOLD_CHECK}
                 component={GoldCheck}
+                options={{
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
+                }}
             />
 
             <Stack.Screen

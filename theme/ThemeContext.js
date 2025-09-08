@@ -12,6 +12,7 @@ const colors = {
     danger: "#DB253E",
     secondary: "#3D4A63",
     tertiary: "#5C6BC0",
+    gold: "#FFD700",
 
     // Light theme colors
     light: {
@@ -62,6 +63,7 @@ const createTheme = (isDark) => ({
         danger: colors.danger,
         secondary: colors.secondary,
         tertiary: colors.tertiary,
+        gold: colors.gold,
         ...(isDark ? colors.dark : colors.light),
     },
     spacing: {

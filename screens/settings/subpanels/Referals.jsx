@@ -145,18 +145,15 @@ const Referals = () => {
 
             {/* Share Section */}
             <View style={[containerStyles.card, { marginBottom: 10 }]}>
-
                 <Text style={[textStyles.h3, { marginBottom: 15, color: theme.colors.secondaryText }]}>
                     Compartir Enlace
                 </Text>
-
                 <View style={[containerStyles.box, { marginBottom: 15 }]}>
                     <FontAwesome6 name="link" size={20} color={theme.colors.primary} iconStyle="solid" />
                     <Text style={[textStyles.caption, { flex: 1, marginLeft: 10 }]} numberOfLines={2}>
                         {referralLink || 'Generando enlace...'}
                     </Text>
                 </View>
-
                 <View style={[containerStyles.row, { gap: 10 }]}>
                     <QPButton
                         title="Compartir"
@@ -173,7 +170,6 @@ const Referals = () => {
                         textStyle={{ color: theme.colors.almostWhite }}
                     />
                 </View>
-
             </View>
 
             {/* Referrals List */}
