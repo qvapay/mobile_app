@@ -102,13 +102,11 @@ const Home = ({ navigation }) => {
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
+                        key={`refresh-${theme.isDark ? 'dark' : 'light'}`}
                         refreshing={refreshing}
                         onRefresh={onRefresh}
+                        colors={[theme.colors.primary]}
                         tintColor={theme.colors.primary}
-                        colors={[theme.colors.primary, theme.colors.success]}
-                        progressBackgroundColor="rgba(255,255,255,0.9)"
-                        title=""
-                        titleColor={theme.colors.primary}
                     />
                 }
             >

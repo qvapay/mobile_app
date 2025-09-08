@@ -18,7 +18,7 @@ export default function QPLoader() {
             {/* <ActivityIndicator size="large" color={theme.colors.primary} /> */}
             <LottieView
                 style={styles.loader}
-                source={require('../../assets/lotties/loader.json')}
+                source={require('../../assets/lotties/spinner.json')}
                 autoPlay
                 loop
             />

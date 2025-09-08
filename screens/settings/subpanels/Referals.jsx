@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, Alert, Share, Clipboard, ActivityIndicator, RefreshControl } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Share, RefreshControl } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
@@ -14,9 +14,9 @@ import { userApi } from '../../../api/userApi'
 
 // UI Components
 import QPButton from '../../../ui/particles/QPButton'
-import ProfileContainerHorizontal from '../../../ui/ProfileContainerHorizontal'
-import QPBalance from '../../../ui/particles/QPBalance'
 import QPLoader from '../../../ui/particles/QPLoader'
+import QPBalance from '../../../ui/particles/QPBalance'
+import ProfileContainerHorizontal from '../../../ui/ProfileContainerHorizontal'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -24,6 +24,10 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Toast
 import Toast from 'react-native-toast-message'
 
+// Helpers
+import { copyTextToClipboard } from '../../../helpers'
+
+// Referals Component
 const Referals = () => {
 
     // Contexts
@@ -43,23 +47,16 @@ const Referals = () => {
     // Load referral data
     const loadReferralData = async () => {
         try {
-
             setLoading(true)
-
             // Fetch referrals and earnings
             const referralsResponse = await userApi.getReferrals()
             if (referralsResponse.success) {
                 setReferrals(referralsResponse.data.referrals || [])
                 setTotalEarnings(referralsResponse.data.total_earnings || 0)
             }
-
-            // Fetch referral link
-            const linkResponse = await userApi.getReferralLink()
-            if (linkResponse.success) { setReferralLink(linkResponse.data.link || '') }
-
-        } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudieron cargar los datos de referidos' })
-        } finally { setLoading(false) }
+            setReferralLink(`https://qvapay.com/register/${user.username}`)
+        } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudieron cargar los datos de referidos' }) }
+        finally { setLoading(false) }
     }
 
     // Refresh data
@@ -81,31 +78,21 @@ const Referals = () => {
                 Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo obtener el enlace de referido' })
                 return
             }
-
             const result = await Share.share({
                 message: `¡Únete a QvaPay usando mi enlace de referido y gana premios únicos! ${referralLink}`,
                 url: referralLink,
                 title: 'Invita a tus amigos a QvaPay'
             })
-
-            if (result.action === Share.sharedAction) {
-                Toast.show({ type: 'success', text1: 'Éxito', text2: 'Enlace de referido compartido correctamente' })
-            }
+            if (result.action === Share.sharedAction) { Toast.show({ type: 'success', text1: 'Éxito', text2: 'Enlace de referido compartido correctamente' }) }
         } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo compartir el enlace' }) }
     }
 
     // Copy referral link to clipboard
     const handleCopyLink = async () => {
         try {
-            if (!referralLink) {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo obtener el enlace de referido' })
-                return
-            }
-            await Clipboard.setString(referralLink)
+            copyTextToClipboard(referralLink)
             Toast.show({ type: 'success', text1: 'Éxito', text2: 'Enlace de referido copiado al portapapeles' })
-        } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo copiar el enlace' })
-        }
+        } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo copiar el enlace' }) }
     }
 
     if (loading) { return (<QPLoader />) }
@@ -190,7 +177,7 @@ const Referals = () => {
             </View>
 
             {/* Referrals List */}
-            <View style={[containerStyles.card]}>
+            <View style={{ marginTop: 10 }}>
 
                 <Text style={[textStyles.h3, { marginBottom: 15, color: theme.colors.secondaryText }]}>
                     Mis Referidos ({referrals.length})
@@ -208,17 +195,12 @@ const Referals = () => {
                     </View>
                 ) : (
                     referrals.map((referral, index) => (
-                        <View key={referral.id || index} style={[styles.referralItem, { borderBottomWidth: index < referrals.length - 1 ? 1 : 0, borderBottomColor: theme.colors.border }]}>
-                            <ProfileContainerHorizontal user={referral.user} />
+                        <View key={referral.id || index} style={styles.referralItem}>
+                            <ProfileContainerHorizontal user={referral} />
                             <View style={[containerStyles.center, { marginLeft: 10 }]}>
                                 <Text style={[textStyles.h5, { color: theme.colors.success, marginBottom: 2 }]}>
                                     +{referral.earnings || 0}
                                 </Text>
-                                <View style={[styles.statusBadge, { backgroundColor: referral.status === 'active' ? theme.colors.success : theme.colors.secondaryText }]}>
-                                    <Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: 10 }]}>
-                                        {referral.status === 'active' ? 'Activo' : 'Pendiente'}
-                                    </Text>
-                                </View>
                             </View>
                         </View>
                     ))
@@ -227,7 +209,7 @@ const Referals = () => {
 
             {/* Bottom spacing */}
             <View style={{ height: insets.bottom + 20 }} />
-            
+
         </ScrollView>
     )
 }
@@ -236,8 +218,7 @@ const styles = StyleSheet.create({
     referralItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 15,
+        justifyContent: 'space-between'
     },
     statusBadge: {
         paddingHorizontal: 8,
