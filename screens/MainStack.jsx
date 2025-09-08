@@ -100,7 +100,13 @@ const MainStack = ({ navigation }) => {
                     }}
                 />
 
-                <Tab.Screen name={ROUTES.INVEST_SCREEN} component={Invest} />
+                <Tab.Screen
+                    name={ROUTES.INVEST_SCREEN}
+                    component={Invest}
+                    options={{
+                        headerTitle: '',
+                    }}
+                />
 
                 <Tab.Screen
                     name={ROUTES.KEYPAD_SCREEN}
