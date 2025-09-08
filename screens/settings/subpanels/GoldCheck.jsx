@@ -74,9 +74,7 @@ const GoldCheck = ({ navigation }) => {
             finally { setIsLoading(false) }
         }
         getGoldCheckStatus()
-    }, [])
-
-    console.log(goldCheckStatus, goldCheckExpire)
+    }, [goldCheckStatus])
 
     // Handle Subscribe
     const handleSubscribe = async () => {
@@ -94,7 +92,7 @@ const GoldCheck = ({ navigation }) => {
 
         Alert.alert(
             'Confirmar Suscripción Gold',
-            `¿Estás seguro de que quieres suscribirte a QvaPay Gold?\n\nUsuario: ${user.username || user.email}\nDuración: ${durationText}\n`,
+            `¿Estás seguro de que quieres suscribirte a QvaPay Gold?\n\nUsuario: @${user.username || user.email}\nDuración: ${durationText}\n`,
             [
                 {
                     text: 'Cancelar',
