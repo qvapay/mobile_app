@@ -18,7 +18,7 @@ import { useTheme } from '../../theme/ThemeContext'
 
 // Gold Check Screens
 import GoldCheck from './subpanels/GoldCheck'
-import Referal from './subpanels/Referal'
+import Referals from './subpanels/Referals'
 import Theme from './subpanels/Theme'
 import Userdata from './subpanels/Userdata'
 import Phone from './subpanels/Phone'
@@ -70,8 +70,15 @@ const SettingsStack = ({ navigation }) => {
             />
 
             <Stack.Screen
-                name={ROUTES.REFERAL}
-                component={Referal}
+                name={ROUTES.REFERALS}
+                component={Referals}
+                options={{
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
+                }}
             />
 
             <Stack.Screen

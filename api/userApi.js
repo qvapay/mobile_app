@@ -138,5 +138,27 @@ export const userApi = {
             const response = await apiClient.put(`/user/update/password`, passwordData)
             return { success: true, data: response.data, status: response.status }
         } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+    },
+
+    /**
+     * Get referral data including referrals list and earnings
+     * @returns {Promise<Object>} The referral data
+     */
+    getReferrals: async () => {
+        try {
+            const response = await apiClient.get(`/user/referrals`)
+            return { success: true, data: response.data, status: response.status }
+        } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+    },
+
+    /**
+     * Get referral link for sharing
+     * @returns {Promise<Object>} The referral link
+     */
+    getReferralLink: async () => {
+        try {
+            const response = await apiClient.get(`/user/referral/link`)
+            return { success: true, data: response.data, status: response.status }
+        } catch (error) { return { success: false, error: error.message, status: error.response?.status } }
     }
 }

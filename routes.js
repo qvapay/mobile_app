@@ -53,7 +53,7 @@ export const ROUTES = {
 
     // Settings Subpanels
     GOLD_CHECK: "GoldCheck",
-    REFERAL: "Referal",
+    REFERALS: "Referals",
     THEME: "Theme",
     USERDATA: "Userdata",
     PHONE: "Phone",

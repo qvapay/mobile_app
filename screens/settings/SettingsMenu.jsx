@@ -10,7 +10,6 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Components
 import QPButton from '../../ui/particles/QPButton'
-import QPAvatar from '../../ui/particles/QPAvatar'
 import SettingsSection from '../../ui/SettingsSection'
 import ProfileContainer from '../../ui/ProfileContainer'
 
@@ -75,7 +74,7 @@ const SettingsMenu = ({ navigation }) => {
 
             {/* Referal invitation Card */}
             {/* TODO: Replace Image */}
-            <Pressable style={[containerStyles.box, { marginVertical: 10 }]} onPress={() => navigation.navigate(ROUTES.REFERAL_INVITATION)}>
+            <Pressable style={[containerStyles.box, { marginVertical: 10 }]} onPress={() => navigation.navigate(ROUTES.REFERALS)}>
                 <Image source={require('../../assets/images/ui/referals.png')} style={{ width: 80, height: 80 }} />
                 <View>
                     <Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>INVITAR AMIGOS</Text>
