@@ -27,8 +27,10 @@ import { ROUTES } from '../../routes'
 // Home Screen
 const Home = ({ navigation }) => {
 
-    // Context
+    // User Context
     const { user, updateUser } = useAuth()
+
+    // Context
     const { theme } = useTheme()
     const containerStyles = useContainerStyles(theme)
     const textStyles = useTextStyles(theme)
@@ -83,7 +85,6 @@ const Home = ({ navigation }) => {
 
     // Refresh handler for pull-to-refresh
     const onRefresh = async () => {
-        console.log('onRefresh called, setting refreshing to true')
         setRefreshing(true)
         try {
             // Refresh user data

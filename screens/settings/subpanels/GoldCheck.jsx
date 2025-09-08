@@ -48,13 +48,15 @@ const benefits = [
 const GoldCheck = ({ navigation }) => {
 
     // User AuthContext
-    const { user } = useAuth()
+    const { user, updateUser } = useAuth()
 
     // Contexts
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
     const insets = useSafeAreaInsets()
+
+    // States
     const [selectedPlan, setSelectedPlan] = useState('monthly')
     const [goldCheckStatus, setGoldCheckStatus] = useState(false)
     const [goldCheckExpire, setGoldCheckExpire] = useState('2025-09-08')
@@ -114,6 +116,7 @@ const GoldCheck = ({ navigation }) => {
                             if (result.success) {
                                 setGoldCheckStatus(true)
                                 setGoldCheckExpire(result.data.golden_expire)
+                                updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
                                 Toast.show({ type: 'success', text1: 'Suscripción exitosa' })
                             } else { Toast.show({ type: 'error', text1: result.error || 'No se pudo procesar la suscripción' }) }
 
