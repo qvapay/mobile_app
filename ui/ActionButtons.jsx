@@ -22,12 +22,7 @@ const ActionButtons = ({ navigation }) => {
                 <QPButton
                     title="Depositar"
                     icon="plus"
-                    style={[
-                        styles.actionButton,
-                        styles.receiveButton,
-                        { backgroundColor: theme.colors.elevation },
-                        { color: theme.colors.primaryText }
-                    ]}
+                    style={[styles.actionButton, { backgroundColor: theme.colors.elevation, color: theme.colors.primaryText }]}
                     iconStyle="solid"
                     onPress={() => navigation.navigate(ROUTES.ADD)}
                     textStyle={{ color: theme.colors.primaryText }}
@@ -38,7 +33,7 @@ const ActionButtons = ({ navigation }) => {
                 <QPButton
                     title={'Extraer'}
                     icon="turn-up"
-                    style={[styles.actionButton, styles.sendButton, { backgroundColor: theme.colors.elevation }]}
+                    style={[styles.actionButton, { backgroundColor: theme.colors.elevation, color: theme.colors.primaryText }]}
                     iconStyle="solid"
                     onPress={() => navigation.navigate(ROUTES.WITHDRAW)}
                     textStyle={{ color: theme.colors.primaryText }}
@@ -74,14 +69,6 @@ const styles = StyleSheet.create({
     amountText: {
         fontFamily: 'Rubik-Black',
         textAlign: 'center',
-    },
-    balanceContainer: {
-        paddingHorizontal: 16,
-        paddingTop: 4,
-        paddingBottom: 3,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     balanceText: {
         fontSize: 14,
@@ -129,12 +116,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
-        borderRadius: 12,
         minHeight: 56,
-    },
-    receiveButton: {
-        borderTopLeftRadius: 12,
-        borderBottomLeftRadius: 12,
     },
     sendButton: {
         borderTopRightRadius: 12,
