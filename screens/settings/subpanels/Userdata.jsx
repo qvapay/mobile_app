@@ -342,10 +342,6 @@ const styles = StyleSheet.create({
     bioInput: {
         textAlignVertical: 'top',
         paddingTop: 15
-    },
-    loadingContainer: {
-        justifyContent: 'center',
-        alignItems: 'center'
     }
 })
 

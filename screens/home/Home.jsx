@@ -192,28 +192,12 @@ const Home = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingHorizontal: 10,
-    },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
         paddingTop: 20,
         paddingBottom: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 30,
-        color: 'white',
-    },
-    text: {
-        color: 'white',
-        fontSize: 16,
-        marginBottom: 10,
     },
 })
 

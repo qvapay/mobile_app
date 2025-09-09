@@ -454,31 +454,11 @@ const Withdraw = () => {
 }
 
 const styles = StyleSheet.create({
-    coinSelector: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 12,
-        borderRadius: 12,
-        borderWidth: 0.5,
-        borderColor: 'rgba(255, 255, 255, 0.2)'
-    },
     currencyButton: {
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 20,
         borderWidth: 0.5
-    },
-    coinSelectorPlaceholder: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flex: 1,
-    },
-    selectedCoin: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
     },
     // Modal styles (reused from Add.jsx for consistency)
     modalContainer: { flex: 1 },

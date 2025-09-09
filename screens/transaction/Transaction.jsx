@@ -185,28 +185,8 @@ const Transaction = ({ route, navigation }) => {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
     scrollView: {
         flex: 1,
-    },
-    userSection: {
-        alignItems: 'center',
-        paddingVertical: 30,
-    },
-    avatarContainer: {
-        position: 'relative',
-    },
-    badge: {
-        position: 'absolute',
-        bottom: 5,
-        right: 5,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     amountSection: {
         alignItems: 'center',
@@ -229,27 +209,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
-    },
-    actionButtons: {
-        flexDirection: 'row',
-        gap: 15,
-        paddingVertical: 30,
-        paddingBottom: 50,
-    },
-    actionButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 15,
-        borderRadius: 12,
-        borderWidth: 1,
-    },
-    shareButton: {
-        // Styles handled by theme
-    },
-    downloadButton: {
-        borderWidth: 0,
     },
 })
 

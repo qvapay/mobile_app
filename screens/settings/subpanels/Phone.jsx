@@ -390,19 +390,6 @@ const styles = StyleSheet.create({
     formContainer: {
         flex: 1,
     },
-    title: {
-        fontSize: 24,
-        fontFamily: 'Rubik-Bold',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 16,
-        fontFamily: 'Rubik-Regular',
-        marginBottom: 24,
-        textAlign: 'center',
-        lineHeight: 22,
-    },
     countryContainer: {
         marginTop: 20,
         marginBottom: 20,
@@ -426,15 +413,6 @@ const styles = StyleSheet.create({
     input: {
         marginVertical: 0,
     },
-    secondaryButton: {
-        backgroundColor: '#6c757d',
-    },
-    verifiedCard: {
-        padding: 24,
-        borderRadius: 16,
-        alignItems: 'center',
-        marginTop: 40,
-    },
     verifiedTitle: {
         fontSize: 20,
         fontFamily: 'Rubik-Bold',
@@ -443,10 +421,6 @@ const styles = StyleSheet.create({
     verifiedPhone: {
         fontSize: 18,
         fontFamily: 'Rubik-Medium',
-    },
-    dropdownIcon: {
-        fontSize: 12,
-        marginLeft: 10,
     },
     modalOverlay: {
         flex: 1,

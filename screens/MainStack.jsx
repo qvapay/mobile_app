@@ -130,11 +130,6 @@ const MainStack = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-    qrIconStyle: {
-        color: 'white',
-        fontSize: 28,
-        marginLeft: 20,
-    },
     headerLeft: {
         marginLeft: 10,
         alignItems: 'center',
@@ -147,29 +142,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
-    headerWelcome: {
-        marginRight: 10,
-        alignItems: 'flex-end',
-    },
-    headerRightText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-        fontFamily: 'Rubik-Regular'
-    },
     headerLeftTextContainer: {
         marginLeft: 10,
-    },
-    headerLeftText: {
-        color: 'white',
-        fontSize: 24,
-        fontWeight: 'bold',
-        fontFamily: 'Rubik-Regular'
-    },
-    handleText: {
-        color: 'white',
-        fontSize: 13,
-        fontFamily: 'Rubik-Bold'
     },
 })
 

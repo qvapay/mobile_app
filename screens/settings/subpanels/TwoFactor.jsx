@@ -94,6 +94,14 @@ const TwoFactor = () => {
     )
 }
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+    formContainer: {
+        flex: 1,
+        marginVertical: 20
+    },
+    updateButton: {
+        backgroundColor: '#6759EF'
+    }
+})
 
 export default TwoFactor

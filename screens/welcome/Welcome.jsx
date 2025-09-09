@@ -117,6 +117,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         minHeight: 56,
     },
+    termsContainer: {
+        marginTop: 20,
+        paddingHorizontal: 20,
+    },
 })
 
 export default WelcomeScreen

@@ -163,15 +163,6 @@ const styles = StyleSheet.create({
     textContainer: {
         flex: 1,
     },
-    checkmarkContainer: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#6759EF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 12,
-    },
     infoBox: {
         flexDirection: 'row',
         alignItems: 'center',

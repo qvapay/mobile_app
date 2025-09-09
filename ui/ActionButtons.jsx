@@ -48,68 +48,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingBottom: 10,
     },
-    amountSection: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-    },
-    amountContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-        height: 100,
-    },
-    currencySymbol: {
-        fontSize: 30,
-        fontFamily: 'Rubik-ExtraBold',
-        marginRight: 8,
-    },
-    amountText: {
-        fontFamily: 'Rubik-Black',
-        textAlign: 'center',
-    },
-    balanceText: {
-        fontSize: 14,
-        fontFamily: 'Rubik-Medium',
-    },
-    keypadSection: {
-        paddingHorizontal: 5,
-        marginBottom: 20,
-    },
-    keypadRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-    },
-    keyButton: {
-        flex: 1,
-        height: 60,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginHorizontal: 8,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    keyButtonPressed: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        transform: [{ scale: 0.95 }],
-    },
-    keyText: {
-        fontSize: 24,
-        fontFamily: 'Rubik-Medium',
-    },
-    icon: {
-        marginHorizontal: 2,
-    },
-    actionSection: {
-        flexDirection: 'row',
-        paddingHorizontal: 5,
-        paddingBottom: 20,
-    },
     actionButton: {
         flex: 1,
         flexDirection: 'row',
@@ -118,55 +56,9 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         minHeight: 56,
     },
-    sendButton: {
-        borderTopRightRadius: 12,
-        borderBottomRightRadius: 12,
-    },
-    actionButtonDisabled: {
-        opacity: 0.6,
-    },
     actionButtonSpacer: {
         width: 10,
     },
-    actionButtonText: {
-        fontSize: 16,
-        fontFamily: 'Rubik-SemiBold',
-        marginLeft: 8,
-    },
-    actionIcon: {
-        marginRight: 4,
-    },
-    gray: {
-        color: '#7f8c8d',
-        fontSize: 14,
-        fontFamily: "Rubik-Light",
-    },
-    actionButton1: {
-        flex: 1,
-        marginVertical: 10,
-        paddingVertical: 10,
-        alignItems: 'center',
-        flexDirection: 'row',
-        borderTopLeftRadius: 10,
-        justifyContent: 'center',
-        borderBottomLeftRadius: 10
-    },
-    actionButton2: {
-        flex: 1,
-        marginVertical: 10,
-        paddingVertical: 10,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        borderTopRightRadius: 10,
-        borderBottomRightRadius: 10
-    },
-    actionButtonLabel: {
-        fontSize: 16,
-        color: 'white',
-        textAlign: 'center',
-        fontFamily: "Rubik-Bold",
-    }
 })
 
 export default ActionButtons

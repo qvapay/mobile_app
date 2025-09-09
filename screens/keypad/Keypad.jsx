@@ -270,36 +270,23 @@ export default function Keypad({ navigation }) {
 
             {/* Action Buttons */}
             <View style={styles.actionSection}>
-
                 <QPButton
                     title="Recibir"
                     onPress={handleReceiveAmount}
                     disabled={isProcessing}
                     icon="arrow-down"
-                    style={[
-                        styles.actionButton,
-                        styles.receiveButton,
-                        { backgroundColor: theme.colors.elevation },
-                        isProcessing && styles.actionButtonDisabled
-                    ]}
+                    style={[styles.actionButton, { backgroundColor: theme.colors.elevation }, isProcessing && styles.actionButtonDisabled]}
                     iconColor={theme.colors.contrast}
                     textStyle={{ color: theme.colors.contrast }}
                     iconStyle="solid"
                 />
-
                 <View style={styles.actionButtonSpacer} />
-
                 <QPButton
-                    title={isProcessing ? 'Procesando...' : 'Enviar'}
+                    title={'Enviar'}
                     onPress={handleSendAmount}
                     disabled={isProcessing}
                     icon="arrow-up"
-                    style={[
-                        styles.actionButton,
-                        styles.sendButton,
-                        { backgroundColor: theme.colors.primary },
-                        isProcessing && styles.actionButtonDisabled
-                    ]}
+                    style={[styles.actionButton, { backgroundColor: theme.colors.primary }, isProcessing && styles.actionButtonDisabled]}
                     iconColor={theme.colors.almostWhite}
                     textStyle={{ color: theme.colors.almostWhite }}
                     iconStyle="solid"
@@ -374,7 +361,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
-        borderRadius: 12,
         minHeight: 56,
     },
     receiveButton: {
@@ -390,13 +376,5 @@ const styles = StyleSheet.create({
     },
     actionButtonSpacer: {
         width: 12,
-    },
-    actionButtonText: {
-        fontSize: 16,
-        fontFamily: 'Rubik-SemiBold',
-        marginLeft: 8,
-    },
-    actionIcon: {
-        marginRight: 4,
-    },
+    }
 })

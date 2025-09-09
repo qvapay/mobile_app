@@ -452,37 +452,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
     },
-    detailRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginVertical: 5,
-    },
-    qrContainer: {
-        alignItems: 'center',
-        marginVertical: 20,
-        padding: 20,
-        borderRadius: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    walletContainer: {
-        marginVertical: 10,
-    },
-    walletAddress: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        borderRadius: 8,
-        marginTop: 5,
-        borderWidth: 0.5,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    transactionContainer: {
-        marginTop: 15,
-        paddingTop: 15,
-        borderTopWidth: 0.5,
-        borderTopColor: 'rgba(255, 255, 255, 0.2)',
-    },
     modalContainer: {
         flex: 1,
     },
