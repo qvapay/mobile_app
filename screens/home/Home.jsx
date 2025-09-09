@@ -11,12 +11,14 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 // APIs
 import { transferApi } from '../../api/transferApi'
 import { userApi } from '../../api/userApi'
+import { blogApi } from '../../api/blogApi'
 
 // UI Particles
 import QPTransaction from '../../ui/particles/QPTransaction'
 import BalanceCard from '../../ui/BalanceCard'
 import ActionButtons from '../../ui/ActionButtons'
 import QPAvatar from '../../ui/particles/QPAvatar'
+import BlogPostCard from '../../ui/BlogPostCard'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -41,12 +43,14 @@ const Home = ({ navigation }) => {
     const [error, setError] = useState(null)
     const [latestTransactions, setLatestTransactions] = useState([])
     const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
+    const [latestBlogPosts, setLatestBlogPosts] = useState([])
 
     // Load user data
     useEffect(() => {
         loadUserData()
         fetchLatestTransactions()
         fetchLatestSentTransfersUsers()
+        fetchLatestBlogPosts()
     }, [])
 
     // Load user data from API
@@ -83,6 +87,17 @@ const Home = ({ navigation }) => {
         finally { if (!skipLoading) setIsLoading(false) }
     }
 
+    const fetchLatestBlogPosts = async (skipLoading = false) => {
+        try {
+            if (!skipLoading) setIsLoading(true)
+            const result = await blogApi.getLatestPosts(6)
+            if (result.success) {
+                setLatestBlogPosts(result.data)
+            } else { console.error('Error fetching latest blog posts:', result.error) }
+        } catch (error) { console.error('Error fetching latest blog posts:', error) }
+        finally { if (!skipLoading) setIsLoading(false) }
+    }
+
     // Refresh handler for pull-to-refresh
     const onRefresh = async () => {
         setRefreshing(true)
@@ -93,6 +108,8 @@ const Home = ({ navigation }) => {
             await fetchLatestTransactions(true)
             // Refresh latest sent transfers users
             await fetchLatestSentTransfersUsers(true)
+            // Refresh latest blog posts
+            await fetchLatestBlogPosts(true)
         } catch (error) { console.error('Error refreshing data:', error) }
         finally { setRefreshing(false) }
     }
@@ -151,6 +168,24 @@ const Home = ({ navigation }) => {
                     ))}
                 </View>
 
+                <View style={{ marginVertical: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Últimas noticias</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                            <Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
+                            <FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
+                        </View>
+                    </View>
+                    {latestBlogPosts.map((post, index) => (
+                        <BlogPostCard 
+                            key={post.id} 
+                            post={post} 
+                            index={index} 
+                            totalItems={latestBlogPosts.length} 
+                        />
+                    ))}
+                </View>
+
             </ScrollView>
         </View>
     )
@@ -179,18 +214,6 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         marginBottom: 10,
-    },
-    userInfo: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 20,
-        borderRadius: 10,
-        marginBottom: 30,
-    },
-    userText: {
-        fontSize: 16,
-        marginBottom: 5,
-        textAlign: 'center',
-        fontFamily: 'Rubik-Black',
     },
 })
 
