@@ -69,8 +69,8 @@ const MainStack = ({ navigation }) => {
                         fontSize: 24,
                         fontFamily: theme.typography.fontFamily.bold,
                     },
-                    headerRight: () => (
-                        <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+                    headerLeft: () => (
+                        <Pressable style={styles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
                             <QPAvatar user={user} size={32} />
                         </Pressable>
                     )
@@ -83,8 +83,8 @@ const MainStack = ({ navigation }) => {
                     options={{
                         headerTitle: '',
                         headerLeft: () => (
-                            <Pressable style={[styles.headerLeft, { paddingBottom: 10 }]} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-                                <QPAvatar user={user} size={36} />
+                            <Pressable style={styles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+                                <QPAvatar user={user} size={32} />
                                 <View style={styles.headerLeftTextContainer}>
                                     <Text style={textStyles.h4}>Hola {user.name}!</Text>
                                     <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
@@ -92,7 +92,7 @@ const MainStack = ({ navigation }) => {
                             </Pressable>
                         ),
                         headerRight: () => (
-                            <Pressable style={[styles.headerRight, { paddingBottom: 10 }]} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
+                            <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
                                 <FontAwesome6 name="bell" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
@@ -112,17 +112,39 @@ const MainStack = ({ navigation }) => {
                     component={Keypad}
                     options={({ navigation }) => ({
                         headerTitle: '',
-                        headerLeft: () => (
-                            <Pressable style={styles.headerLeft} onPress={() => navigation.goBack()}>
+                        headerRight: () => (
+                            <Pressable style={styles.headerRight}>
                                 <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
                     })}
                 />
 
-                <Tab.Screen name={ROUTES.P2P_SCREEN} component={P2P} />
+                <Tab.Screen
+                    name={ROUTES.P2P_SCREEN}
+                    component={P2P}
+                    options={({ navigation }) => ({
+                        headerTitle: 'Ofertas P2P',
+                        headerRight: () => (
+                            <Pressable style={styles.headerRight}>
+                                <FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                            </Pressable>
+                        )
+                    })}
+                />
 
-                <Tab.Screen name={ROUTES.STORE_SCREEN} component={Store} />
+                <Tab.Screen
+                    name={ROUTES.STORE_SCREEN}
+                    component={Store}
+                    options={({ navigation }) => ({
+                        headerTitle: '',
+                        headerRight: () => (
+                            <Pressable style={styles.headerRight}>
+                                <FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                            </Pressable>
+                        )
+                    })}
+                />
 
             </Tab.Navigator>
         </SafeAreaProvider>
@@ -131,16 +153,18 @@ const MainStack = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     headerLeft: {
-        marginLeft: 10,
+        marginLeft: 20,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
+        paddingBottom: 10,
     },
     headerRight: {
-        marginRight: 10,
+        marginRight: 20,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
+        paddingBottom: 10,
     },
     headerLeftTextContainer: {
         marginLeft: 10,

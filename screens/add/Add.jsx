@@ -349,6 +349,18 @@ const Add = ({ navigation }) => {
                                 </View>
                             </View>
 
+                            {/* Expires in */}
+                            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                                <View style={styles.detailLeft}>
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Expira en:</Text>
+                                </View>
+                                <View style={styles.detailRight}>
+                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+                                        30:00
+                                    </Text>
+                                </View>
+                            </View>
+
                         </View>
 
                     </ScrollView>
