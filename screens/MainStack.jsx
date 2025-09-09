@@ -83,8 +83,8 @@ const MainStack = ({ navigation }) => {
                     options={{
                         headerTitle: '',
                         headerLeft: () => (
-                            <Pressable style={styles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-                                <QPAvatar user={user} size={48} />
+                            <Pressable style={[styles.headerLeft, { paddingBottom: 10 }]} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+                                <QPAvatar user={user} size={36} />
                                 <View style={styles.headerLeftTextContainer}>
                                     <Text style={textStyles.h4}>Hola {user.name}!</Text>
                                     <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
@@ -92,8 +92,7 @@ const MainStack = ({ navigation }) => {
                             </Pressable>
                         ),
                         headerRight: () => (
-                            // TODO: Add notifications Screen and modify this to navigate to it
-                            <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
+                            <Pressable style={[styles.headerRight, { paddingBottom: 10 }]} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
                                 <FontAwesome6 name="bell" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
