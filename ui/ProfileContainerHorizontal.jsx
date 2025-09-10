@@ -39,12 +39,22 @@ const ProfileContainerHorizontal = ({ user = {}, size = 64, showUsername = true 
                 </View>
                 {showUsername && (<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>@{user.username}</Text>)}
                 {!showUsername && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         {user.phone_verified && (<FontAwesome6 name="phone" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="solid" />)}
                         {user.telegram_verified && (<FontAwesome6 name="telegram" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="brand" />)}
                         {user.twitter_verified && (<FontAwesome6 name="x-twitter" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="solid" />)}
-                        {!!user._count?.P2P && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{operations}</Text>)}
-                        {!!user.rating && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user.rating}</Text>)}
+                        {!!operations && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                <FontAwesome6 name="repeat" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="solid" />
+                                <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{operations}</Text>
+                            </View>
+                        )}
+                        {!!user.rating_avg && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                <FontAwesome6 name="star" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="solid" />
+                                <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user.rating_avg}</Text>
+                            </View>
+                        )}
                         {!!user.operations && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user.operations}</Text>)}
                     </View>
                 )}
