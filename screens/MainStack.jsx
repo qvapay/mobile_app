@@ -19,6 +19,7 @@ import Invest from './invest/Invest'
 import Keypad from './keypad/Keypad'
 import P2P from './p2p/P2P'
 import Store from './store/Store'
+import P2PCreate from './p2p/P2PCreate'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -123,12 +124,17 @@ const MainStack = ({ navigation }) => {
                 <Tab.Screen
                     name={ROUTES.P2P_SCREEN}
                     component={P2P}
-                    options={({ navigation }) => ({
-                        headerTitle: 'Ofertas P2P',
+                    options={({ route, navigation }) => ({
+                        headerTitle: '',
                         headerRight: () => (
-                            <Pressable style={styles.headerRight}>
-                                <FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                            </Pressable>
+                            <>
+                                <Pressable style={styles.headerRight} onPress={route.params?.showFilters || (() => { })}>
+                                    <FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+                                </Pressable>
+                                <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)}>
+                                    <FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                                </Pressable>
+                            </>
                         )
                     })}
                 />

@@ -38,6 +38,7 @@ import SendSuccess from './screens/transaction/SendSuccess'
 import Receive from './screens/transaction/Receive'
 import Transaction from './screens/transaction/Transaction'
 import Transactions from './screens/transaction/Transactions'
+import P2PCreate from './screens/p2p/P2PCreate'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -116,8 +117,10 @@ const AppNavigator = () => {
                 headerTintColor: theme.colors.primaryText
             }}
         >
+            {/* Onboard Screen */}
             <Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
 
+            {/* Welcome Screen */}
             <Stack.Screen
                 name={ROUTES.WELCOME_SCREEN}
                 component={WelcomeScreen}
@@ -161,11 +164,32 @@ const AppNavigator = () => {
                 }}
             />
 
+            {/* P2P Create Screen */}
+            <Stack.Screen
+                name={ROUTES.P2P_CREATE_SCREEN}
+                component={P2PCreate}
+                options={{
+                    headerTitle: 'Crear P2P',
+                    headerShown: true,
+                    headerBackVisible: false,
+                    headerBackButtonMenuEnabled: true,
+                    headerShadowVisible: false,
+                    animation: 'slide_from_bottom',
+                    headerLeft: () => (
+                        <Pressable onPress={() => navigation.goBack()}>
+                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                        </Pressable>
+                    )
+                }}
+            />
+
             {/* Settings Stack */}
             <Stack.Screen
                 name={ROUTES.SETTINGS_STACK}
                 component={SettingsStack}
-                options={{ animation: 'slide_from_bottom' }}
+                options={{
+                    animation: 'slide_from_bottom'
+                }}
             />
 
             {/* Send, Receive and Send Success Screens */}
@@ -220,13 +244,12 @@ const AppNavigator = () => {
                         </Pressable>
                     ),
                     headerRight: () => (
-                        <Pressable style={styles.headerRight} onPress={route.params?.showFiltersModal || (() => { })}>
+                        <Pressable style={styles.headerRight} onPress={route.params?.showFilters || (() => { })}>
                             <FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
                         </Pressable>
                     )
                 })}
             />
-
             <Stack.Screen
                 name={ROUTES.TRANSACTION}
                 component={Transaction}
@@ -319,6 +342,7 @@ const AppNavigator = () => {
 
             {/* Accesible Screens */}
             <Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+
         </Stack.Navigator>
     )
 }
