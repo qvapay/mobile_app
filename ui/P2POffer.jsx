@@ -47,7 +47,7 @@ const P2POffer = ({ offer }) => {
                 </View>
                 <View style={styles.coinRow}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                        <QPCoin coin={offer.Coin?.logo} size={24} />
+                        <QPCoin coin={offer.Coin?.logo} size={20} />
                         <Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{offer.Coin?.name}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>

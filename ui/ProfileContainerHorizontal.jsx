@@ -1,4 +1,5 @@
 import { View, Text, Image } from 'react-native'
+import { memo, useMemo } from 'react'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -20,10 +21,16 @@ const ProfileContainerHorizontal = ({ user = {}, size = 64, showUsername = true 
     // Qvapay Logo based on theme
     const qvapayLogo = theme.isDark ? require('../assets/images/ui/qvapay-logo-white.png') : require('../assets/images/ui/logo-qvapay.png')
 
+    // Calculated operations (memoized)
+    const operations = useMemo(
+        () => (user?._count?.P2P ?? 0) + (user?._count?.P2P_Peer ?? 0),
+        [user && user._count && user._count.P2P, user && user._count && user._count.P2P_Peer]
+    )
+
     return (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <QPAvatar size={size} user={user} />
-            <View style={{  }}>
+            <View style={{}}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                     <Text style={textStyles.h4}>{user.name || ''}</Text>
                     {user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 20, height: 20 }} />)}
@@ -32,14 +39,13 @@ const ProfileContainerHorizontal = ({ user = {}, size = 64, showUsername = true 
                 </View>
                 {showUsername && (<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>@{user.username}</Text>)}
                 {!showUsername && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         {user.phone_verified && (<FontAwesome6 name="phone" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="solid" />)}
                         {user.telegram_verified && (<FontAwesome6 name="telegram" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="brand" />)}
                         {user.twitter_verified && (<FontAwesome6 name="x-twitter" size={theme.typography.fontSize.sm} color={theme.colors.secondaryText} iconStyle="solid" />)}
-                        {user._count?.P2P && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user._count?.P2P}</Text>)}
-                        {user._count?.P2P_Peer && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user._count?.P2P_Peer}</Text>)}
-                        {user.rating && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user.rating}</Text>)}
-                        {user.operations && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user.operations}</Text>)}
+                        {!!user._count?.P2P && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{operations}</Text>)}
+                        {!!user.rating && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user.rating}</Text>)}
+                        {!!user.operations && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{user.operations}</Text>)}
                     </View>
                 )}
             </View>
@@ -47,4 +53,4 @@ const ProfileContainerHorizontal = ({ user = {}, size = 64, showUsername = true 
     )
 }
 
-export default ProfileContainerHorizontal
+export default memo(ProfileContainerHorizontal)
