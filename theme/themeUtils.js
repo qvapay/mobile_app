@@ -94,8 +94,10 @@ export const createContainerStyles = (theme) => StyleSheet.create({
         borderRadius: theme.borderRadius.md,
         padding: theme.spacing.md,
         marginVertical: theme.spacing.sm,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        ...(theme.mode === 'light' ? {
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+        } : {}),
     },
     box: {
         flexDirection: 'row',

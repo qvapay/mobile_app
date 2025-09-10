@@ -32,8 +32,8 @@ const P2PCreate = () => {
     const [minAmount, setMinAmount] = useState('')
     const [maxAmount, setMaxAmount] = useState('')
     const [ratio, setRatio] = useState('')
-    const [timeLimit, setTimeLimit] = useState('30') // minutes
-    const [onlyVerified, setOnlyVerified] = useState(false)
+    const [timeLimit, setTimeLimit] = useState('30')
+    const [onlyVerified, setOnlyVerified] = useState(true)
 
     // Coins (basic list for now)
     const coins = [
@@ -72,69 +72,76 @@ const P2PCreate = () => {
                 {/* Type Selector */}
                 <QPSwitch type={type} onChange={setType} />
 
-                {/* Amount to Sell */}
-                <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                    <Text style={[textStyles.h5, { marginBottom: 8 }]}>Monto a vender</Text>
-                    <View style={[styles.inputRow, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-                        <TextInput
-                            value={amount}
-                            onChangeText={(v) => { if (isNumber(v)) setAmount(v) }}
-                            placeholder="0.00"
-                            placeholderTextColor={theme.colors.placeholder}
-                            keyboardType="decimal-pad"
-                            style={[textStyles.h3, { flex: 1, color: theme.colors.primaryText, padding: 0 }]}
-                        />
-                        <View style={styles.rightPill}>
-                            <QPCoin coin="qusd" size={18} />
-                            <Text style={[textStyles.h6, { marginLeft: 6 }]}>QUSD</Text>
+                {/* Swap Card (Vender / Recibir) */}
+                <View style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 6, borderWidth: 2, borderColor: theme.colors.primary }}>
+
+                    {/* Vender amount input */}
+                    <View style={{ paddingVertical: 2 }}>
+                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Vender</Text>
+
+                        {/* Single row container */}
+                        <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            {/* Left side - Amount input */}
+                            <View style={{ flex: 1 }}>
+                                <TextInput
+                                    value={amount}
+                                    onChangeText={(v) => { if (isNumber(v)) setAmount(v) }}
+                                    placeholder="0.00"
+                                    placeholderTextColor={theme.colors.placeholder}
+                                    keyboardType="decimal-pad"
+                                    style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
+                                />
+                            </View>
+
+                            {/* Right side - Static QUSD pill */}
+                            <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <QPCoin coin="qusd" size={20} />
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
+                                </View>
+                            </View>
                         </View>
                     </View>
-                </View>
 
-                {/* Amount to Receive */}
-                <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                    <Text style={[textStyles.h5, { marginBottom: 8 }]}>Monto a recibir</Text>
-                    <View style={[styles.inputRow, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-                        <TextInput
-                            value={receive}
-                            onChangeText={(v) => { if (isNumber(v)) setReceive(v) }}
-                            placeholder="0.00"
-                            placeholderTextColor={theme.colors.placeholder}
-                            keyboardType="decimal-pad"
-                            style={[textStyles.h3, { flex: 1, color: theme.colors.primaryText, padding: 0 }]}
-                        />
-                        <View style={styles.rightPill}>
-                            <QPCoin coin={selectedCoin.logo} size={18} />
-                            <Text style={[textStyles.h6, { marginLeft: 6 }]}>{selectedCoin.symbol}</Text>
+                    {/* Divider with arrows */}
+                    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 40, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
+                            <FontAwesome6 name="right-left" size={16} color={theme.colors.primary} iconStyle="solid" />
                         </View>
                     </View>
-                </View>
 
-                {/* Coin Selector */}
-                <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                    <Text style={[textStyles.h5, { marginBottom: 8 }]}>Moneda</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                        {coins.map((coin) => {
-                            const isActive = selectedCoin.symbol === coin.symbol
-                            return (
-                                <Pressable
-                                    key={coin.symbol}
-                                    onPress={() => setSelectedCoin(coin)}
-                                    style={[styles.coinChip, {
-                                        backgroundColor: isActive ? theme.colors.primary : theme.colors.elevation,
-                                        borderColor: isActive ? theme.colors.primary : theme.colors.border
-                                    }]}
-                                >
-                                    <QPCoin coin={coin.logo} size={18} />
-                                    <Text style={[textStyles.h6, { marginLeft: 6, color: isActive ? theme.colors.buttonText : theme.colors.primaryText }]}>{coin.symbol}</Text>
-                                </Pressable>
-                            )
-                        })}
-                    </ScrollView>
+                    {/* Recibir amount input */}
+                    <View style={{ paddingTop: 2 }}>
+
+                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
+
+                        {/* Single row container */}
+                        <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            {/* Left side - Amount input */}
+                            <View style={{ flex: 1 }}>
+                                <TextInput
+                                    value={receive}
+                                    onChangeText={(v) => { if (isNumber(v)) setReceive(v) }}
+                                    placeholder="0.00"
+                                    placeholderTextColor={theme.colors.placeholder}
+                                    keyboardType="decimal-pad"
+                                    style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
+                                />
+                            </View>
+
+                            {/* Right side - Selected coin pill */}
+                            <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <QPCoin coin={selectedCoin.logo} size={20} />
+                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.symbol}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
                 </View>
 
                 {/* Details */}
-                <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View style={containerStyles.card}>
                     <Text style={[textStyles.h5, { marginBottom: 8 }]}>Detalles</Text>
                     <QPInput
                         multiline
@@ -147,7 +154,8 @@ const P2PCreate = () => {
                 </View>
 
                 {/* Advanced */}
-                <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View style={containerStyles.card}>
+
                     <Pressable onPress={() => setAdvancedOpen(!advancedOpen)} style={[styles.advancedHeader]}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <FontAwesome6 name="sliders" size={16} color={theme.colors.primaryText} iconStyle="solid" />
@@ -158,64 +166,6 @@ const P2PCreate = () => {
 
                     {advancedOpen && (
                         <View style={{ marginTop: 10, gap: 10 }}>
-                            <View style={{ flexDirection: 'row', gap: 10 }}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[textStyles.h6, { marginBottom: 6, color: theme.colors.tertiaryText }]}>Mínimo</Text>
-                                    <View style={[styles.inputRow, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-                                        <TextInput
-                                            value={minAmount}
-                                            onChangeText={(v) => { if (isNumber(v)) setMinAmount(v) }}
-                                            placeholder="0.00"
-                                            placeholderTextColor={theme.colors.placeholder}
-                                            keyboardType="decimal-pad"
-                                            style={[textStyles.h6, { flex: 1, color: theme.colors.primaryText, padding: 0 }]}
-                                        />
-                                    </View>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[textStyles.h6, { marginBottom: 6, color: theme.colors.tertiaryText }]}>Máximo</Text>
-                                    <View style={[styles.inputRow, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-                                        <TextInput
-                                            value={maxAmount}
-                                            onChangeText={(v) => { if (isNumber(v)) setMaxAmount(v) }}
-                                            placeholder="0.00"
-                                            placeholderTextColor={theme.colors.placeholder}
-                                            keyboardType="decimal-pad"
-                                            style={[textStyles.h6, { flex: 1, color: theme.colors.primaryText, padding: 0 }]}
-                                        />
-                                    </View>
-                                </View>
-                            </View>
-
-                            <View style={{ flexDirection: 'row', gap: 10 }}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[textStyles.h6, { marginBottom: 6, color: theme.colors.tertiaryText }]}>Ratio</Text>
-                                    <View style={[styles.inputRow, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-                                        <TextInput
-                                            value={ratio}
-                                            onChangeText={(v) => { if (isNumber(v)) setRatio(v) }}
-                                            placeholder="1.00"
-                                            placeholderTextColor={theme.colors.placeholder}
-                                            keyboardType="decimal-pad"
-                                            style={[textStyles.h6, { flex: 1, color: theme.colors.primaryText, padding: 0 }]}
-                                        />
-                                    </View>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[textStyles.h6, { marginBottom: 6, color: theme.colors.tertiaryText }]}>Tiempo límite (min)</Text>
-                                    <View style={[styles.inputRow, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-                                        <TextInput
-                                            value={timeLimit}
-                                            onChangeText={(v) => { if (/^\d*$/.test(v)) setTimeLimit(v) }}
-                                            placeholder="30"
-                                            placeholderTextColor={theme.colors.placeholder}
-                                            keyboardType="number-pad"
-                                            style={[textStyles.h6, { flex: 1, color: theme.colors.primaryText, padding: 0 }]}
-                                        />
-                                    </View>
-                                </View>
-                            </View>
-
                             <View style={[styles.switchRow, { borderColor: theme.colors.border }]}>
                                 <Text style={[textStyles.h6]}>Solo usuarios verificados</Text>
                                 <Switch value={onlyVerified} onValueChange={setOnlyVerified} trackColor={{ true: theme.colors.primary }} />
@@ -224,18 +174,19 @@ const P2PCreate = () => {
                     )}
                 </View>
 
-                {/* Publish */}
-                <View style={containerStyles.bottomButtonContainer}>
-                    <QPButton
-                        title="Publicar oferta"
-                        onPress={handlePublish}
-                        style={{ backgroundColor: type === 'buy' ? theme.colors.success : theme.colors.danger }}
-                        textStyle={{ color: type === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite }}
-                        icon="paper-plane"
-                        iconColor={type === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite}
-                    />
-                </View>
             </ScrollView>
+
+            {/* Publish */}
+            <View style={containerStyles.bottomButtonContainer}>
+                <QPButton
+                    title="Publicar oferta"
+                    onPress={handlePublish}
+                    style={{ backgroundColor: type === 'buy' ? theme.colors.success : theme.colors.danger }}
+                    textStyle={{ color: type === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite }}
+                    icon="paper-plane"
+                    iconColor={type === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite}
+                />
+            </View>
         </View>
     )
 }
@@ -245,7 +196,12 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 12,
         marginVertical: 6,
-        borderWidth: 1
+    },
+    currencyButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 0.5
     },
     segmentedContainer: {
         position: 'relative',
