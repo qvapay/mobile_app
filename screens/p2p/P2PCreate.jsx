@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Switch, Alert } from 'react-native'
+import { useState, useEffect, useRef } from 'react'
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Switch, Alert, Animated } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -9,6 +9,7 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 import QPCoin from '../../ui/particles/QPCoin'
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
+import QPSwitch from '../../ui/particles/QPSwitch'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -65,32 +66,11 @@ const P2PCreate = () => {
 
     return (
         <View style={containerStyles.subContainer}>
+
             <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
                 {/* Type Selector */}
-                <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                    <Text style={[textStyles.h5, { marginBottom: 8 }]}>Tipo</Text>
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <Pressable
-                            onPress={() => setType('buy')}
-                            style={[styles.segment, {
-                                backgroundColor: type === 'buy' ? theme.colors.success : theme.colors.elevation,
-                                borderColor: type === 'buy' ? theme.colors.success : theme.colors.border
-                            }]}>
-                            <FontAwesome6 name="circle-arrow-down" size={14} color={type === 'buy' ? theme.colors.almostBlack : theme.colors.primaryText} iconStyle="solid" />
-                            <Text style={[textStyles.h6, { marginLeft: 6, color: type === 'buy' ? theme.colors.almostBlack : theme.colors.primaryText }]}>Comprar</Text>
-                        </Pressable>
-                        <Pressable
-                            onPress={() => setType('sell')}
-                            style={[styles.segment, {
-                                backgroundColor: type === 'sell' ? theme.colors.danger : theme.colors.elevation,
-                                borderColor: type === 'sell' ? theme.colors.danger : theme.colors.border
-                            }]}>
-                            <FontAwesome6 name="circle-arrow-up" size={14} color={type === 'sell' ? theme.colors.almostWhite : theme.colors.primaryText} iconStyle="solid" />
-                            <Text style={[textStyles.h6, { marginLeft: 6, color: type === 'sell' ? theme.colors.almostWhite : theme.colors.primaryText }]}>Vender</Text>
-                        </Pressable>
-                    </View>
-                </View>
+                <QPSwitch type={type} onChange={setType} />
 
                 {/* Amount to Sell */}
                 <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -266,6 +246,28 @@ const styles = StyleSheet.create({
         padding: 12,
         marginVertical: 6,
         borderWidth: 1
+    },
+    segmentedContainer: {
+        position: 'relative',
+        height: 44,
+        borderRadius: 22,
+        borderWidth: 1,
+        overflow: 'hidden',
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    segmentedPill: {
+        position: 'absolute',
+        left: 0,
+        top: 2,
+        bottom: 2,
+        borderRadius: 20,
+    },
+    segmentedOption: {
+        flex: 1,
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     segment: {
         flexDirection: 'row',

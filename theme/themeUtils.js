@@ -84,7 +84,6 @@ export const createContainerStyles = (theme) => StyleSheet.create({
     },
     scrollContainer: {
         flexGrow: 1,
-        justifyContent: 'center',
         paddingVertical: 10
     },
     bottomButtonContainer: {
