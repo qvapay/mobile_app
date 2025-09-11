@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Switch, Alert, Animated } from 'react-native'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Switch, Alert, Animated, Modal } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -13,6 +14,13 @@ import QPSwitch from '../../ui/particles/QPSwitch'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// Toast
+import Toast from 'react-native-toast-message'
+
+// API & Helpers
+import apiClient from '../../api/client'
+import { adjustNumber } from '../../helpers'
 
 const P2PCreate = () => {
 
@@ -28,21 +36,63 @@ const P2PCreate = () => {
     const [details, setDetails] = useState('')
     const [advancedOpen, setAdvancedOpen] = useState(false)
 
-    // Advanced State
-    const [minAmount, setMinAmount] = useState('')
-    const [maxAmount, setMaxAmount] = useState('')
-    const [ratio, setRatio] = useState('')
-    const [timeLimit, setTimeLimit] = useState('30')
+    // Advanced P2P Settings
     const [onlyVerified, setOnlyVerified] = useState(true)
+    const [onlyVIP, setOnlyVIP] = useState(true)
+    const [privateOffer, setPrivateOffer] = useState(false)
 
-    // Coins (basic list for now)
-    const coins = [
-        { symbol: 'QUSD', name: 'QvaPay USD', logo: 'qusd' },
-        { symbol: 'ETECSA', name: 'ETECSA', logo: 'etecsa' },
-        { symbol: 'BANK_CUP', name: 'Bank CUP', logo: 'bank_cup' },
-        { symbol: 'CLASICA', name: 'Clásica', logo: 'clasica' },
-    ]
-    const [selectedCoin, setSelectedCoin] = useState(coins[0])
+    // Coins selector state (mirrors Withdraw)
+    const [availableCoins, setAvailableCoins] = useState([])
+    const [selectedCoin, setSelectedCoin] = useState(null)
+    const [showCoinPicker, setShowCoinPicker] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [coinSearch, setCoinSearch] = useState('')
+    const [showCoinSearch, setShowCoinSearch] = useState(false)
+    const [workingForm, setWorkingForm] = useState({})
+
+    // Button Text State with Type and Amount values
+    const [buttonText, setButtonText] = useState('')
+    useEffect(() => {
+        if (type === 'buy') {
+            setButtonText(`Comprar ${amount > 0 ? '$' + amount : ''}`)
+        } else {
+            setButtonText(`Vender ${amount > 0 ? '$' + amount : ''}`)
+        }
+    }, [type, amount])
+
+    // Fetch available coins (enabled_p2p like Withdraw)
+    useEffect(() => {
+        const fetchCoins = async () => {
+            try {
+                setIsLoading(true)
+                const response = await apiClient.get('/coins/v2?enabled_p2p=true')
+                setAvailableCoins(response.data)
+            } catch (error) { console.warn('Error fetching enabled_p2p coins', error) }
+            finally { setIsLoading(false) }
+        }
+        fetchCoins()
+    }, [])
+
+    const handleCoinSelect = (coin) => {
+        setSelectedCoin(coin)
+        setShowCoinPicker(false)
+        setWorkingForm({})
+    }
+
+    // Working data parsing (same logic as Withdraw)
+    const workingFields = useMemo(() => {
+        if (!selectedCoin || !selectedCoin.working_data) { return [] }
+        try {
+            const raw = typeof selectedCoin.working_data === 'string' ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
+            if (Array.isArray(raw)) { return raw }
+            return []
+        } catch (e) {
+            console.warn('Invalid working_data JSON for coin', selectedCoin?.tick)
+            return []
+        }
+    }, [selectedCoin])
+
+    const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 
     // Helpers
     const isNumber = (val) => /^\d*(?:[.,]?\d*)$/.test(val)
@@ -51,17 +101,28 @@ const P2PCreate = () => {
     const handlePublish = () => {
         // Basic validation
         if (!amount || !receive) {
-            Alert.alert('Datos incompletos', 'Debes completar los montos de vender y recibir')
+            Toast.show({ type: 'error', text1: 'Datos incompletos', text2: 'Debes completar los montos de vender y recibir' })
             return
         }
         const amt = parseFloat(normalizeNumber(amount))
         const rcv = parseFloat(normalizeNumber(receive))
         if (isNaN(amt) || isNaN(rcv) || amt <= 0 || rcv <= 0) {
-            Alert.alert('Montos inválidos', 'Introduce valores numéricos mayores que 0')
+            Toast.show({ type: 'error', text1: 'Montos inválidos', text2: 'Introduce valores numéricos mayores que 0' })
             return
         }
-        // For now, just a stub success
-        Alert.alert('Listo', 'Tu oferta P2P está lista para publicar (próximamente)')
+        // Working data required if coin has fields
+        if (selectedCoin && workingFields.length > 0) {
+            const allFilled = workingFields.every((field) => {
+                const key = keyFromFieldName(field.name)
+                const value = (workingForm[key] ?? '').toString().trim()
+                return value.length > 0
+            })
+            if (!allFilled) {
+                Toast.show({ type: 'error', text1: 'Faltan datos', text2: 'Completa los datos de su cuenta para la moneda seleccionada' })
+                return
+            }
+        }
+        Toast.show({ type: 'success', text1: 'Listo', text2: 'Tu oferta se ha creado correctamente' })
     }
 
     return (
@@ -77,7 +138,7 @@ const P2PCreate = () => {
 
                     {/* Vender amount input */}
                     <View style={{ paddingVertical: 2 }}>
-                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Vender</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>{type === 'buy' ? 'Comprar' : 'Vender'}</Text>
 
                         {/* Single row container */}
                         <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -113,7 +174,7 @@ const P2PCreate = () => {
                     {/* Recibir amount input */}
                     <View style={{ paddingTop: 2 }}>
 
-                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
+                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>{type === 'buy' ? 'Enviar' : 'Recibir'}</Text>
 
                         {/* Single row container */}
                         <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -129,29 +190,44 @@ const P2PCreate = () => {
                                 />
                             </View>
 
-                            {/* Right side - Selected coin pill */}
-                            <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                    <QPCoin coin={selectedCoin.logo} size={20} />
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.symbol}</Text>
-                                </View>
-                            </View>
+                            {/* Right side - Currency selector button */}
+                            <Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)} >
+                                {selectedCoin ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <QPCoin coin={selectedCoin.logo} size={20} />
+                                        <Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
+                                        <FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+                                    </View>
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Moneda</Text>
+                                        <FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+                                    </View>
+                                )}
+                            </Pressable>
                         </View>
                     </View>
                 </View>
 
-                {/* Details */}
-                <View style={containerStyles.card}>
-                    <Text style={[textStyles.h5, { marginBottom: 8 }]}>Detalles</Text>
-                    <QPInput
-                        multiline
-                        numberOfLines={4}
-                        placeholder="Añade detalles, métodos de pago o condiciones"
-                        style={{ borderRadius: 12 }}
-                        value={details}
-                        onChangeText={setDetails}
-                    />
-                </View>
+                {/* Details: Coin working data (same UX as Withdraw) */}
+                {selectedCoin && workingFields.length > 0 && (
+                    <View style={{ marginTop: 12, marginBottom: 6 }}>
+                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 6 }]}>Detalles adicionales:</Text>
+                        {workingFields.map((field) => {
+                            const key = keyFromFieldName(field.name)
+                            return (
+                                <QPInput
+                                    key={key}
+                                    value={workingForm[key] || ''}
+                                    onChangeText={(text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
+                                    placeholder={field.name}
+                                    keyboardType={field.type === 'number' ? 'numeric' : 'default'}
+                                    style={{ marginVertical: 6 }}
+                                />
+                            )
+                        })}
+                    </View>
+                )}
 
                 {/* Advanced */}
                 <View style={containerStyles.card}>
@@ -166,9 +242,17 @@ const P2PCreate = () => {
 
                     {advancedOpen && (
                         <View style={{ marginTop: 10, gap: 10 }}>
-                            <View style={[styles.switchRow, { borderColor: theme.colors.border }]}>
+                            <View style={[styles.switchRow, { marginTop: 12 }]}>
                                 <Text style={[textStyles.h6]}>Solo usuarios verificados</Text>
                                 <Switch value={onlyVerified} onValueChange={setOnlyVerified} trackColor={{ true: theme.colors.primary }} />
+                            </View>
+                            <View style={styles.switchRow}>
+                                <Text style={[textStyles.h6]}>Solo usuarios VIP</Text>
+                                <Switch value={onlyVIP} onValueChange={setOnlyVIP} trackColor={{ true: theme.colors.primary }} />
+                            </View>
+                            <View style={styles.switchRow}>
+                                <Text style={[textStyles.h6]}>Oferta Privada</Text>
+                                <Switch value={privateOffer} onValueChange={setPrivateOffer} trackColor={{ true: theme.colors.primary }} />
                             </View>
                         </View>
                     )}
@@ -179,14 +263,75 @@ const P2PCreate = () => {
             {/* Publish */}
             <View style={containerStyles.bottomButtonContainer}>
                 <QPButton
-                    title="Publicar oferta"
+                    title={buttonText}
                     onPress={handlePublish}
+                    disabled={selectedCoin === null || amount === '' || receive === ''}
                     style={{ backgroundColor: type === 'buy' ? theme.colors.success : theme.colors.danger }}
                     textStyle={{ color: type === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite }}
-                    icon="paper-plane"
                     iconColor={type === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite}
                 />
             </View>
+
+            {/* Coin Picker Modal (same UX as Withdraw) */}
+            <Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
+                <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+
+                    <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+                        <Text style={textStyles.h4}>Seleccionar Moneda</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                            <Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
+                                <FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+                            </Pressable>
+                            <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
+                                <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+                            </Pressable>
+                        </View>
+                    </View>
+
+                    {showCoinSearch && (
+                        <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+                            <QPInput
+                                value={coinSearch}
+                                onChangeText={setCoinSearch}
+                                placeholder="Buscar moneda..."
+                                prefixIconName="magnifying-glass"
+                                style={styles.searchInput}
+                            />
+                        </View>
+                    )}
+
+                    <ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true} >
+                        {isLoading ? (
+                            <View style={styles.loadingContainer}>
+                                <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
+                            </View>
+                        ) : availableCoins.length > 0 ? (availableCoins
+                            .filter((coin) => coin.name.toLowerCase().includes(coinSearch.toLowerCase()) || coin.tick.toLowerCase().includes(coinSearch.toLowerCase()))
+                            .map((coin) => (
+                                <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)}>
+                                    <QPCoin coin={coin.logo} size={40} />
+                                    <View style={{ marginLeft: 12, flex: 1 }}>
+                                        <Text style={textStyles.h4}>{coin.name}</Text>
+                                        <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Mín: ${adjustNumber(coin.min_out)} | Precio: ${adjustNumber(coin.price)}</Text>
+                                    </View>
+                                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                                        {coin.network && (
+                                            <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+                                                <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.network}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </Pressable>
+                            ))
+                        ) : (
+                            <View style={styles.loadingContainer}>
+                                <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
+                            </View>
+                        )}
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
+
         </View>
     )
 }
@@ -196,6 +341,39 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 12,
         marginVertical: 6,
+    },
+    // Modal styles (mirroring Withdraw)
+    modalContainer: { flex: 1 },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        borderBottomWidth: 0.5
+    },
+    closeButton: { padding: 5 },
+    coinList: { flex: 1 },
+    coinListContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
+    coinItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        borderRadius: 10,
+        marginBottom: 10,
+        borderWidth: 0.5,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    networkBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginLeft: 8,
+    },
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 40,
     },
     currencyButton: {
         paddingHorizontal: 16,
@@ -264,12 +442,10 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between'
     },
     switchRow: {
-        marginTop: 4,
-        paddingVertical: 8,
+        paddingVertical: 4,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        borderTopWidth: 1
+        justifyContent: 'space-between'
     }
 })
 
