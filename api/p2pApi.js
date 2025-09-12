@@ -1,168 +1,179 @@
-import { apiClient } from './client'
+import { apiClient } from './client';
 
 // P2P API functions
 export const p2pApi = {
-    /**
-     * Get P2P offers with optional filters
-     * @param {Object} filters - Optional filters for P2P offers
-     * @param {number} filters.page - Page number (default: 1)
-     * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: 'desc')
-     * @param {number} filters.take - Number of items per page (default: 50)
-     * @param {string} filters.type - Offer type: 'buy' or 'sell'
-     * @param {number} filters.min - Minimum amount filter (default: 0)
-     * @param {number} filters.max - Maximum amount filter (default: 1000000)
-     * @param {number} filters.ratio_min - Minimum ratio filter (default: 0)
-     * @param {number} filters.ratio_max - Maximum ratio filter (default: 0)
-     * @param {string} filters.coin - Coin ticker to filter by (e.g., 'ETECSA', 'BANK_CUP', 'CLASICA')
-     * @returns {Promise<Object>} P2P offers response with pagination
-     */
-    index: async (filters = {}) => {
+  /**
+   * Get P2P offers with optional filters
+   * @param {Object} filters - Optional filters for P2P offers
+   * @param {number} filters.page - Page number (default: 1)
+   * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: 'desc')
+   * @param {number} filters.take - Number of items per page (default: 50)
+   * @param {string} filters.type - Offer type: 'buy' or 'sell'
+   * @param {number} filters.min - Minimum amount filter (default: 0)
+   * @param {number} filters.max - Maximum amount filter (default: 1000000)
+   * @param {number} filters.ratio_min - Minimum ratio filter (default: 0)
+   * @param {number} filters.ratio_max - Maximum ratio filter (default: 0)
+   * @param {string} filters.coin - Coin ticker to filter by (e.g., 'ETECSA', 'BANK_CUP', 'CLASICA')
+   * @returns {Promise<Object>} P2P offers response with pagination
+   */
+  index: async (filters = {}) => {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
 
-        try {
+      // Add pagination parameters
+      if (filters.page) params.append('page', filters.page.toString());
+      if (filters.order) params.append('order', filters.order);
+      if (filters.take) params.append('take', filters.take.toString());
 
-            // Build query parameters
-            const params = new URLSearchParams()
+      // Add filter parameters
+      if (filters.type) params.append('type', filters.type);
+      if (filters.min !== undefined)
+        params.append('min', filters.min.toString());
+      if (filters.max !== undefined)
+        params.append('max', filters.max.toString());
+      if (filters.ratio_min !== undefined)
+        params.append('ratio_min', filters.ratio_min.toString());
+      if (filters.ratio_max !== undefined)
+        params.append('ratio_max', filters.ratio_max.toString());
+      if (filters.coin) params.append('coin', filters.coin);
 
-            // Add pagination parameters
-            if (filters.page) params.append('page', filters.page.toString())
-            if (filters.order) params.append('order', filters.order)
-            if (filters.take) params.append('take', filters.take.toString())
+      // Make the API request
+      const response = await apiClient.get(`/p2p/index?${params.toString()}`);
 
-            // Add filter parameters
-            if (filters.type) params.append('type', filters.type)
-            if (filters.min !== undefined) params.append('min', filters.min.toString())
-            if (filters.max !== undefined) params.append('max', filters.max.toString())
-            if (filters.ratio_min !== undefined) params.append('ratio_min', filters.ratio_min.toString())
-            if (filters.ratio_max !== undefined) params.append('ratio_max', filters.ratio_max.toString())
-            if (filters.coin) params.append('coin', filters.coin)
+      return {
+        success: true,
+        data: response.data,
+        current_page: response.data.current_page,
+        per_page: response.data.per_page,
+        total: response.data.total,
+        offers: response.data.data
+      };
+    } catch (error) {
+      // Handle specific API errors
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          error: errorData.message || 'No se pudieron obtener las ofertas P2P',
+          details: errorData,
+          status: error.response.status
+        };
+      }
 
-            // Make the API request
-            const response = await apiClient.get(`/p2p/index?${params.toString()}`)
+      return {
+        success: false,
+        error: error.message || 'Ha ocurrido un error de red',
+        status: error.response?.status
+      };
+    }
+  },
 
-            return {
-                success: true,
-                data: response.data,
-                current_page: response.data.current_page,
-                per_page: response.data.per_page,
-                total: response.data.total,
-                offers: response.data.data
-            }
+  /**
+   * Get P2P offers by type (buy or sell)
+   * @param {string} type - Offer type: 'buy' or 'sell'
+   * @param {Object} additionalFilters - Additional filters to apply
+   * @returns {Promise<Object>} Filtered P2P offers response
+   */
+  getByType: async (type, additionalFilters = {}) => {
+    return p2pApi.index({ ...additionalFilters, type });
+  },
 
-        } catch (error) {
+  /**
+   * Get P2P offers by coin
+   * @param {string} coin - Coin ticker (e.g., 'ETECSA', 'BANK_CUP', 'CLASICA')
+   * @param {Object} additionalFilters - Additional filters to apply
+   * @returns {Promise<Object>} Filtered P2P offers response
+   */
+  getByCoin: async (coin, additionalFilters = {}) => {
+    return p2pApi.index({ ...additionalFilters, coin });
+  },
 
-            // Handle specific API errors
-            if (error.response?.data) {
-                const errorData = error.response.data
-                return {
-                    success: false,
-                    error: errorData.message || 'No se pudieron obtener las ofertas P2P',
-                    details: errorData,
-                    status: error.response.status
-                }
-            }
+  /**
+   * Get P2P offers with amount range filter
+   * @param {number} min - Minimum amount
+   * @param {number} max - Maximum amount
+   * @param {Object} additionalFilters - Additional filters to apply
+   * @returns {Promise<Object>} Filtered P2P offers response
+   */
+  getByAmountRange: async (min, max, additionalFilters = {}) => {
+    return p2pApi.index({ ...additionalFilters, min, max });
+  },
 
-            return {
-                success: false,
-                error: error.message || 'Ha ocurrido un error de red',
-                status: error.response?.status
-            }
-        }
-    },
+  /**
+   * Get buy offers for a specific coin
+   * @param {string} coin - Coin ticker
+   * @param {Object} additionalFilters - Additional filters to apply
+   * @returns {Promise<Object>} Buy offers response
+   */
+  getBuyOffers: async (coin, additionalFilters = {}) => {
+    return p2pApi.index({ ...additionalFilters, type: 'buy', coin });
+  },
 
-    /**
-     * Get P2P offers by type (buy or sell)
-     * @param {string} type - Offer type: 'buy' or 'sell'
-     * @param {Object} additionalFilters - Additional filters to apply
-     * @returns {Promise<Object>} Filtered P2P offers response
-     */
-    getByType: async (type, additionalFilters = {}) => {
-        return p2pApi.index({ ...additionalFilters, type })
-    },
+  /**
+   * Get sell offers for a specific coin
+   * @param {string} coin - Coin ticker
+   * @param {Object} additionalFilters - Additional filters to apply
+   * @returns {Promise<Object>} Sell offers response
+   */
+  getSellOffers: async (coin, additionalFilters = {}) => {
+    return p2pApi.index({ ...additionalFilters, type: 'sell', coin });
+  },
 
-    /**
-     * Get P2P offers by coin
-     * @param {string} coin - Coin ticker (e.g., 'ETECSA', 'BANK_CUP', 'CLASICA')
-     * @param {Object} additionalFilters - Additional filters to apply
-     * @returns {Promise<Object>} Filtered P2P offers response
-     */
-    getByCoin: async (coin, additionalFilters = {}) => {
-        return p2pApi.index({ ...additionalFilters, coin })
-    },
+  /**
+   * Get P2P offers with pagination
+   * @param {number} page - Page number
+   * @param {number} perPage - Items per page
+   * @param {Object} additionalFilters - Additional filters to apply
+   * @returns {Promise<Object>} Paginated P2P offers response
+   */
+  getPaginated: async (page = 1, perPage = 50, additionalFilters = {}) => {
+    return p2pApi.index({ ...additionalFilters, page, take: perPage });
+  },
 
-    /**
-     * Get P2P offers with amount range filter
-     * @param {number} min - Minimum amount
-     * @param {number} max - Maximum amount
-     * @param {Object} additionalFilters - Additional filters to apply
-     * @returns {Promise<Object>} Filtered P2P offers response
-     */
-    getByAmountRange: async (min, max, additionalFilters = {}) => {
-        return p2pApi.index({ ...additionalFilters, min, max })
-    },
+  /**
+   * Create a new P2P offer
+   * @param {Object} data - The P2P offer data
+   * @returns {Promise<Object>} The P2P offer response
+   */
+  create: async data => {
+    try {
+      const response = await apiClient.post('/p2p/create', data);
+      if (response.data && response.status === 201) {
+        return { success: true, data: response.data, status: response.status };
+      } else {
+        return {
+          success: false,
+          error: response.data?.error || 'No se pudo crear la oferta P2P',
+          details: response.data,
+          status: response.status
+        };
+      }
+    } catch (error) {
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          error:
+            errorData.error ||
+            errorData.message ||
+            'No se pudo crear la oferta P2P',
+          details: errorData,
+          status: error.response.status
+        };
+      }
 
-    /**
-     * Get buy offers for a specific coin
-     * @param {string} coin - Coin ticker
-     * @param {Object} additionalFilters - Additional filters to apply
-     * @returns {Promise<Object>} Buy offers response
-     */
-    getBuyOffers: async (coin, additionalFilters = {}) => {
-        return p2pApi.index({ ...additionalFilters, type: 'buy', coin })
-    },
-
-    /**
-     * Get sell offers for a specific coin
-     * @param {string} coin - Coin ticker
-     * @param {Object} additionalFilters - Additional filters to apply
-     * @returns {Promise<Object>} Sell offers response
-     */
-    getSellOffers: async (coin, additionalFilters = {}) => {
-        return p2pApi.index({ ...additionalFilters, type: 'sell', coin })
-    },
-
-    /**
-     * Get P2P offers with pagination
-     * @param {number} page - Page number
-     * @param {number} perPage - Items per page
-     * @param {Object} additionalFilters - Additional filters to apply
-     * @returns {Promise<Object>} Paginated P2P offers response
-     */
-    getPaginated: async (page = 1, perPage = 50, additionalFilters = {}) => {
-        return p2pApi.index({ ...additionalFilters, page, take: perPage })
-    },
-
-    /**
-     * Create a new P2P offer
-     * @param {Object} data - The P2P offer data
-     * @returns {Promise<Object>} The P2P offer response
-     */
-    create: async (data) => {
-
-        try {
-
-            const response = await apiClient.post('/p2p/create', data)
-
-            if (response.data && response.status === 201) {
-                return { success: true, data: response.data, status: response.status }
-            } else {
-                return { success: false, error: response.data?.error || 'No se pudo crear la oferta P2P', details: response.data, status: response.status }
-            }
-
-        } catch (error) {
-
-            // Handle specific API errors
-            if (error.response?.data) {
-                const errorData = error.response.data
-                return { success: false, error: errorData.error || errorData.message || 'No se pudo crear la oferta P2P', details: errorData, status: error.response.status }
-            }
-
-            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
-        }
-    },
-}
+      return {
+        success: false,
+        error: error.message || 'Ha ocurrido un error de red',
+        status: error.response?.status
+      };
+    }
+  }
+};
 
 // Export the apiClient for other API calls
-export { apiClient }
+export { apiClient };
 
 // Export default for convenience
-export default p2pApi
+export default p2pApi;

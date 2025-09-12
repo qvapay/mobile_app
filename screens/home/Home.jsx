@@ -177,11 +177,11 @@ const Home = ({ navigation }) => {
                         </View>
                     </View>
                     {latestBlogPosts.map((post, index) => (
-                        <BlogPostCard 
-                            key={post.id} 
-                            post={post} 
-                            index={index} 
-                            totalItems={latestBlogPosts.length} 
+                        <BlogPostCard
+                            key={post.id}
+                            post={post}
+                            index={index}
+                            totalItems={latestBlogPosts.length}
                         />
                     ))}
                 </View>

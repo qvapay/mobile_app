@@ -53,21 +53,11 @@ import Toast from 'react-native-toast-message'
 // FontAwesome6
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Sentry Error Tracking
-import * as Sentry from '@sentry/react-native'
-
-Sentry.init({
-    dsn: "https://69de2bf07fd7b96e04bd157fe1843757@o483954.ingest.us.sentry.io/4509868469387264",
-    // Adds more context data to events (IP address, cookies, user, etc.)
-    // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-    sendDefaultPii: true,
-})
-
 // Main App Navigator Component
 const AppNavigator = () => {
 
     // Theme variables, dark and light modes
-    const { theme } = useTheme();
+    const { theme } = useTheme()
 
     // State to control minimum splash screen time
     const [splashReady, setSplashReady] = useState(false)
@@ -381,4 +371,4 @@ const styles = StyleSheet.create({
     },
 })
 
-export default Sentry.wrap(App)
+export default App

@@ -8,11 +8,8 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+# Use static frameworks to support Swift pods like VisionCamera and avoid non-modular includes
+use_frameworks! :linkage => :static
 
 target 'QvaPay' do
   config = use_native_modules!
@@ -32,5 +29,29 @@ target 'QvaPay' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Ensure a consistent Swift toolchain across all Pods
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['SWIFT_VERSION'] = '5.9'
+        # Normalize REACT_NATIVE_PATH to an absolute path to avoid script resolution issues
+        config.build_settings['REACT_NATIVE_PATH'] = File.join(Pod::Config.instance.installation_root, '..', 'node_modules', 'react-native')
+      end
+    end
+
+    # Patch script phases that reference with-environment.sh to use absolute path
+    absolute_rn_path = File.join(Pod::Config.instance.installation_root, '..', 'node_modules', 'react-native')
+    with_env_abs = File.join(absolute_rn_path, 'scripts', 'xcode', 'with-environment.sh')
+    installer.pods_project.targets.each do |target|
+      target.build_phases.each do |phase|
+        next unless phase.respond_to?(:shell_script) && phase.shell_script
+        if phase.shell_script.include?('with-environment.sh')
+          phase.shell_script = phase.shell_script
+            .gsub('${REACT_NATIVE_PATH}/scripts/xcode/with-environment.sh', with_env_abs)
+            .gsub('"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"', '"' + with_env_abs + '"')
+            .gsub("'$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh'", "'" + with_env_abs + "'")
+        end
+      end
+    end
   end
 end
