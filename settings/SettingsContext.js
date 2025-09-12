@@ -227,15 +227,12 @@ export const SettingsProvider = ({ children }) => {
                 sounds: sounds ? JSON.parse(sounds) : null,
                 vibration: vibration ? JSON.parse(vibration) : null
             }
-        } catch (error) {
-            console.error('Error loading settings:', error)
-            return {}
-        }
+
+        } catch (error) { return {} }
     }
 
     // Merge stored settings with defaults
     const mergeWithDefaults = (storedSettings) => {
-
         const merged = { ...DEFAULT_SETTINGS }
         Object.keys(storedSettings).forEach(category => {
             if (storedSettings[category]) {
@@ -245,7 +242,6 @@ export const SettingsProvider = ({ children }) => {
                 }
             }
         })
-
         return merged
     }
 
@@ -276,7 +272,6 @@ export const SettingsProvider = ({ children }) => {
             return { success: true }
 
         } catch (error) {
-            console.error('Error updating settings:', error)
             setError('Failed to update settings')
             return { success: false, error: error.message }
         }
@@ -309,7 +304,6 @@ export const SettingsProvider = ({ children }) => {
             return { success: true }
 
         } catch (error) {
-            console.error('Error updating setting:', error)
             setError('Failed to update setting')
             return { success: false, error: error.message }
         }
@@ -350,7 +344,6 @@ export const SettingsProvider = ({ children }) => {
             return { success: true }
 
         } catch (error) {
-            console.error('Error resetting settings:', error)
             setError('Failed to reset settings')
             return { success: false, error: error.message }
         }
@@ -369,7 +362,6 @@ export const SettingsProvider = ({ children }) => {
 
             return { success: true, data: settingsData }
         } catch (error) {
-            console.error('Error exporting settings:', error)
             setError('Failed to export settings')
             return { success: false, error: error.message }
         }
@@ -410,7 +402,6 @@ export const SettingsProvider = ({ children }) => {
             return { success: true }
 
         } catch (error) {
-            console.error('Error importing settings:', error)
             setError('Failed to import settings')
             return { success: false, error: error.message }
         }
@@ -430,9 +421,7 @@ export const SettingsProvider = ({ children }) => {
     }
 
     // Check if a setting is enabled
-    const isSettingEnabled = (category, key) => {
-        return getSetting(category, key, false)
-    }
+    const isSettingEnabled = (category, key) => { return getSetting(category, key, false) }
 
     // Context value
     const value = {

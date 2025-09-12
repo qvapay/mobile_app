@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, Pressable, Modal } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Pressable, Modal, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -16,6 +16,7 @@ import { useAuth } from '../../auth/AuthContext'
 // UI
 import QPCoin from '../../ui/particles/QPCoin'
 import QPButton from '../../ui/particles/QPButton'
+import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
 
 // API
@@ -150,296 +151,297 @@ const Add = ({ navigation }) => {
     }
 
     return (
-        <View style={[containerStyles.subContainer, { justifyContent: 'space-between', paddingBottom: 20 }]}>
+        <KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={{ flex: 1 }}>
 
-            <View style={{ flex: 1, marginTop: 20 }}>
+                    <View style={{ flex: 1, marginTop: 20 }}>
 
-                {/* Amount Input Component */}
-                <AmountInput
-                    amount={amount}
-                    onAmountChange={setAmount}
-                    placeholder="Monto a depositar"
-                    style={{ marginTop: 0 }}
-                    currency={selectedCoin?.tick}
-                    balance={user.balance}
-                />
+                        {/* Amount Input Component */}
+                        <AmountInput
+                            amount={amount}
+                            onAmountChange={setAmount}
+                            placeholder="Monto a depositar"
+                            style={{ marginTop: 0 }}
+                            currency={selectedCoin?.tick}
+                            balance={user.balance}
+                        />
 
-                {/* Coin Selection */}
-                <View style={{ marginVertical: 20 }}>
+                        {/* Coin Selection */}
+                        <View style={{ marginVertical: 20 }}>
 
-                    {selectedCoin && (
-                        <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
-                            Seleccionar moneda:
-                        </Text>
-                    )}
+                            {selectedCoin && (
+                                <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
+                                    Seleccionar moneda:
+                                </Text>
+                            )}
 
-                    <Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface }]} onPress={() => setShowCoinPicker(true)} disabled={isLoading} >
-                        {selectedCoin ? (
-                            <View style={styles.selectedCoin}>
-                                <QPCoin coin={selectedCoin.logo} size={40} />
-                                <View style={{ marginLeft: 12, flex: 1 }}>
-                                    <Text style={textStyles.h4}>{selectedCoin.name}</Text>
-                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-                                        Mín: {selectedCoin.min_in} | Fee: {selectedCoin.fee_in}
-                                    </Text>
-                                </View>
-                                {selectedCoin.network && (
-                                    <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-                                        <Text style={[textStyles.caption, { color: theme.colors.buttonText }]}>
-                                            {selectedCoin.network}
+                            <Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface }]} onPress={() => setShowCoinPicker(true)} disabled={isLoading} >
+                                {selectedCoin ? (
+                                    <View style={styles.selectedCoin}>
+                                        <QPCoin coin={selectedCoin.logo} size={40} />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={textStyles.h4}>{selectedCoin.name}</Text>
+                                            <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
+                                                Mín: {selectedCoin.min_in} | Fee: {selectedCoin.fee_in}
+                                            </Text>
+                                        </View>
+                                        {selectedCoin.network && (
+                                            <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+                                                <Text style={[textStyles.caption, { color: theme.colors.buttonText }]}>
+                                                    {selectedCoin.network}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                ) : (
+                                    <View style={styles.coinSelectorPlaceholder}>
+                                        <Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
+                                            {isLoading ? "Cargando monedas..." : "Seleccionar moneda"}
                                         </Text>
+                                        <FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
                                     </View>
                                 )}
-                            </View>
-                        ) : (
-                            <View style={styles.coinSelectorPlaceholder}>
-                                <Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
-                                    {isLoading ? "Cargando monedas..." : "Seleccionar moneda"}
-                                </Text>
-                                <FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
+                            </Pressable>
+                        </View>
+
+                        {/* Error/Success Messages */}
+                        {error && (
+                            <View style={[containerStyles.card, { backgroundColor: theme.colors.danger + '20', marginVertical: 10 }]}>
+                                <Text style={[textStyles.caption, { color: theme.colors.danger }]}>{error}</Text>
                             </View>
                         )}
-                    </Pressable>
-                </View>
 
-                {/* Error/Success Messages */}
-                {error && (
-                    <View style={[containerStyles.card, { backgroundColor: theme.colors.danger + '20', marginVertical: 10 }]}>
-                        <Text style={[textStyles.caption, { color: theme.colors.danger }]}>{error}</Text>
-                    </View>
-                )}
-
-                {success && (
-                    <View style={[containerStyles.card, { backgroundColor: theme.colors.success + '20', marginVertical: 10 }]}>
-                        <Text style={[textStyles.caption, { color: theme.colors.success }]}>{success}</Text>
-                    </View>
-                )}
-            </View>
-
-            {/* Action Buttons */}
-            <View style={containerStyles.bottomButtonContainer}>
-                <QPButton
-                    title="Generar Depósito"
-                    onPress={handleTopup}
-                    disabled={!selectedCoin || !amount}
-                    loading={isLoading}
-                    icon="plus"
-                    iconStyle="solid"
-                    iconColor={theme.colors.almostWhite}
-                    textStyle={{ color: theme.colors.almostWhite }}
-                />
-            </View>
-
-            {/* Deposit Details Modal */}
-            <Modal visible={showDepositModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowDepositModal(false)}>
-
-                <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-
-                    {/* Modal Header */}
-                    <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-                        <Text style={textStyles.h4}>Depositar ${amount} en {topupData?.coin}</Text>
-                        <Pressable onPress={() => setShowDepositModal(false)} style={styles.closeButton}>
-                            <FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    </View>
-
-                    <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentContainer}>
-
-                        {/* QR Code Section */}
-                        <View style={styles.qrSection}>
-                            <View style={styles.qrContainer}>
-                                <QRCode
-                                    data={topupData?.wallet}
-                                    size={350}
-                                    backgroundColor={theme.colors.background}
-                                    color={theme.colors.primaryText}
-                                />
+                        {success && (
+                            <View style={[containerStyles.card, { backgroundColor: theme.colors.success + '20', marginVertical: 10 }]}>
+                                <Text style={[textStyles.caption, { color: theme.colors.success }]}>{success}</Text>
                             </View>
-                        </View>
+                        )}
+                    </View>
 
-                        {/* Amount Information */}
-                        <View style={styles.amountSection}>
-                            <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 8 }]}>
-                                1 {topupData?.coin} ≈ ${Number(topupData?.price).toFixed(2)}
-                            </Text>
-                            <Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }]}>
-                                {Number(topupData?.value).toFixed(6)} {topupData?.coin}
-                            </Text>
-                            {/* <Text style={[textStyles.h4, { color: theme.colors.primary, textAlign: 'center' }]}>
+                    {/* Action Buttons */}
+                    <View style={containerStyles.bottomButtonContainer}>
+                        <QPButton
+                            title="Generar Depósito"
+                            onPress={handleTopup}
+                            disabled={!selectedCoin || !amount}
+                            loading={isLoading}
+                            icon="plus"
+                            iconStyle="solid"
+                            iconColor={theme.colors.almostWhite}
+                            textStyle={{ color: theme.colors.almostWhite }}
+                        />
+                    </View>
+
+                    {/* Deposit Details Modal */}
+                    <Modal visible={showDepositModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowDepositModal(false)}>
+                        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+
+                            {/* Modal Header */}
+                            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+                                <Text style={textStyles.h4}>Depositar ${amount} en {topupData?.coin}</Text>
+                                <Pressable onPress={() => setShowDepositModal(false)} style={styles.closeButton}>
+                                    <FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+                                </Pressable>
+                            </View>
+
+                            <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentContainer}>
+
+                                {/* QR Code Section */}
+                                <View style={styles.qrSection}>
+                                    <View style={styles.qrContainer}>
+                                        <QRCode
+                                            data={topupData?.wallet}
+                                            size={350}
+                                            backgroundColor={theme.colors.background}
+                                            color={theme.colors.primaryText}
+                                        />
+                                    </View>
+                                </View>
+
+                                {/* Amount Information */}
+                                <View style={styles.amountSection}>
+                                    <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 8 }]}>
+                                        1 {topupData?.coin} ≈ ${Number(topupData?.price).toFixed(2)}
+                                    </Text>
+                                    <Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }]}>
+                                        {Number(topupData?.value).toFixed(6)} {topupData?.coin}
+                                    </Text>
+                                    {/* <Text style={[textStyles.h4, { color: theme.colors.primary, textAlign: 'center' }]}>
                                 ${topupData?.price} USD
                             </Text> */}
-                        </View>
-
-                        {/* Action Buttons */}
-                        <View style={styles.actionButtonsContainer}>
-                            <Pressable style={styles.actionButton} onPress={() => copyToClipboard(topupData?.wallet)}>
-                                <FontAwesome6 name="copy" size={20} color={theme.colors.primary} />
-                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copiar</Text>
-                            </Pressable>
-
-                            {/* <Pressable style={styles.actionButton} onPress={shareDepositDetails}>
-                                <FontAwesome6 name="share" size={20} color={theme.colors.primary} />
-                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Compartir</Text>
-                            </Pressable> */}
-
-                            <Pressable style={styles.actionButton} onPress={emailDepositDetails}>
-                                <FontAwesome6 name="envelope" size={20} color={theme.colors.primary} />
-                                <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Email</Text>
-                            </Pressable>
-                        </View>
-
-                        {/* Deposit Details Card */}
-                        <View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
-
-                            {/* Network */}
-                            <View style={styles.detailRow}>
-                                <View style={styles.detailLeft}>
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Red:</Text>
                                 </View>
-                                <View style={[styles.detailRight]}>
-                                    <QPCoin coin={topupData?.coin} size={16} />
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{topupData?.coin}</Text>
-                                </View>
-                            </View>
 
-                            {/* Deposit Address */}
-                            <View style={styles.detailRow}>
-                                <View style={styles.detailLeft}>
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Dirección:</Text>
+                                {/* Action Buttons */}
+                                <View style={styles.actionButtonsContainer}>
+                                    <Pressable style={styles.actionButton} onPress={() => copyToClipboard(topupData?.wallet)}>
+                                        <FontAwesome6 name="copy" size={20} color={theme.colors.primary} />
+                                        <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copiar</Text>
+                                    </Pressable>
+
+                                    {/* <Pressable style={styles.actionButton} onPress={shareDepositDetails}>
+                                            <FontAwesome6 name="share" size={20} color={theme.colors.primary} />
+                                            <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Compartir</Text>
+                                        </Pressable> */}
+
+                                    <Pressable style={styles.actionButton} onPress={emailDepositDetails}>
+                                        <FontAwesome6 name="envelope" size={20} color={theme.colors.primary} />
+                                        <Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Email</Text>
+                                    </Pressable>
                                 </View>
-                                <View style={styles.detailRight}>
-                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>
-                                        {topupData?.wallet}
-                                    </Text>
-                                    <Pressable onPress={() => copyToClipboard(topupData?.wallet)}>
-                                        <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+
+                                {/* Deposit Details Card */}
+                                <View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
+
+                                    {/* Network */}
+                                    <View style={styles.detailRow}>
+                                        <View style={styles.detailLeft}>
+                                            <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Red:</Text>
+                                        </View>
+                                        <View style={[styles.detailRight]}>
+                                            <QPCoin coin={topupData?.coin} size={16} />
+                                            <Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{topupData?.coin}</Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Deposit Address */}
+                                    <View style={styles.detailRow}>
+                                        <View style={styles.detailLeft}>
+                                            <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Dirección:</Text>
+                                        </View>
+                                        <View style={styles.detailRight}>
+                                            <Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>
+                                                {topupData?.wallet}
+                                            </Text>
+                                            <Pressable onPress={() => copyToClipboard(topupData?.wallet)}>
+                                                <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+                                            </Pressable>
+                                        </View>
+                                    </View>
+
+                                    {/* If MEMO is not empty */}
+                                    {topupData?.memo && (
+                                        <View style={styles.detailRow}>
+                                            <View style={styles.detailLeft}>
+                                                <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>MEMO:</Text>
+                                            </View>
+                                            <View style={styles.detailRight}>
+                                                <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+                                                    {topupData?.memo}
+                                                </Text>
+                                                <Pressable onPress={() => copyToClipboard(topupData?.memo)}>
+                                                    <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+                                                </Pressable>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {/* Transaction ID */}
+                                    <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                                        <View style={styles.detailLeft}>
+                                            <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Transacción:</Text>
+                                        </View>
+                                        <View style={styles.detailRight}>
+                                            <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+                                                {getFirstChunk(topupData?.transaction_uuid)}
+                                            </Text>
+                                            <Pressable onPress={() => copyToClipboard(topupData?.transaction_uuid)}>
+                                                <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+                                            </Pressable>
+                                        </View>
+                                    </View>
+
+                                    {/* Expires in */}
+                                    <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                                        <View style={styles.detailLeft}>
+                                            <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Expira en:</Text>
+                                        </View>
+                                        <View style={styles.detailRight}>
+                                            <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+                                                30:00
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                </View>
+
+                            </ScrollView>
+                        </SafeAreaView>
+                    </Modal>
+
+                    {/* Coin Picker Modal */}
+                    <Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
+                        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+
+                            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+                                <Text style={textStyles.h4}>Seleccionar Moneda</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                                    <Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
+                                        <FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+                                    </Pressable>
+                                    <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
+                                        <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                                     </Pressable>
                                 </View>
                             </View>
 
-                            {/* If MEMO is not empty */}
-                            {topupData?.memo && (
-                                <View style={styles.detailRow}>
-                                    <View style={styles.detailLeft}>
-                                        <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>MEMO:</Text>
-                                    </View>
-                                    <View style={styles.detailRight}>
-                                        <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
-                                            {topupData?.memo}
-                                        </Text>
-                                        <Pressable onPress={() => copyToClipboard(topupData?.memo)}>
-                                            <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
-                                        </Pressable>
-                                    </View>
+                            {showCoinSearch && (
+                                <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+                                    <QPInput
+                                        value={coinSearch}
+                                        onChangeText={setCoinSearch}
+                                        placeholder="Buscar moneda..."
+                                        prefixIconName="magnifying-glass"
+                                        style={styles.searchInput}
+                                    />
                                 </View>
                             )}
 
-                            {/* Transaction ID */}
-                            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                                <View style={styles.detailLeft}>
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Transacción:</Text>
-                                </View>
-                                <View style={styles.detailRight}>
-                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
-                                        {getFirstChunk(topupData?.transaction_uuid)}
-                                    </Text>
-                                    <Pressable onPress={() => copyToClipboard(topupData?.transaction_uuid)}>
-                                        <FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+                            <ScrollView
+                                style={styles.coinList}
+                                contentContainerStyle={styles.coinListContent}
+                                showsVerticalScrollIndicator={true}
+                            >
+
+                                {isLoading ? (
+                                    <View style={styles.loadingContainer}>
+                                        <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
+                                            Cargando monedas...
+                                        </Text>
+                                    </View>
+                                ) : availableCoins.length > 0 ? (availableCoins.map((coin) => (
+                                    <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)} >
+                                        <QPCoin coin={coin.logo} size={40} />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={textStyles.h4}>{coin.name}</Text>
+                                            <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
+                                                Mín: ${coin.min_in} | Precio: ${Number(coin.price).toFixed(6)}
+                                            </Text>
+                                        </View>
+                                        {coin.network && (
+                                            <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+                                                <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>
+                                                    {coin.network}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </Pressable>
-                                </View>
-                            </View>
-
-                            {/* Expires in */}
-                            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                                <View style={styles.detailLeft}>
-                                    <Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Expira en:</Text>
-                                </View>
-                                <View style={styles.detailRight}>
-                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
-                                        30:00
-                                    </Text>
-                                </View>
-                            </View>
-
-                        </View>
-
-                    </ScrollView>
-                </SafeAreaView>
-            </Modal>
-
-            {/* Coin Picker Modal */}
-            <Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
-
-                <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-
-                    <View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-                        <Text style={textStyles.h4}>Seleccionar Moneda</Text>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                            <Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
-                                <FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
-                            </Pressable>
-                            <Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-                                <FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                            </Pressable>
-                        </View>
-                    </View>
-
-                    {showCoinSearch && (
-                        <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
-                            <QPInput
-                                value={coinSearch}
-                                onChangeText={setCoinSearch}
-                                placeholder="Buscar moneda..."
-                                prefixIconName="magnifying-glass"
-                                style={styles.searchInput}
-                            />
-                        </View>
-                    )}
-
-                    <ScrollView
-                        style={styles.coinList}
-                        contentContainerStyle={styles.coinListContent}
-                        showsVerticalScrollIndicator={true}
-                    >
-
-                        {isLoading ? (
-                            <View style={styles.loadingContainer}>
-                                <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
-                                    Cargando monedas...
-                                </Text>
-                            </View>
-                        ) : availableCoins.length > 0 ? (availableCoins.map((coin) => (
-                            <Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)} >
-                                <QPCoin coin={coin.logo} size={40} />
-                                <View style={{ marginLeft: 12, flex: 1 }}>
-                                    <Text style={textStyles.h4}>{coin.name}</Text>
-                                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-                                        Mín: ${coin.min_in} | Precio: ${Number(coin.price).toFixed(6)}
-                                    </Text>
-                                </View>
-                                {coin.network && (
-                                    <View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-                                        <Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>
-                                            {coin.network}
+                                ))
+                                ) : (
+                                    <View style={styles.loadingContainer}>
+                                        <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
+                                            No hay monedas disponibles
                                         </Text>
                                     </View>
                                 )}
-                            </Pressable>
-                        ))
-                        ) : (
-                            <View style={styles.loadingContainer}>
-                                <Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
-                                    No hay monedas disponibles
-                                </Text>
-                            </View>
-                        )}
 
-                    </ScrollView>
-                </SafeAreaView>
-            </Modal>
-
-        </View>
+                            </ScrollView>
+                        </SafeAreaView>
+                    </Modal>
+                    
+                </View>
+            </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
     )
 }
 

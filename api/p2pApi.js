@@ -17,7 +17,9 @@ export const p2pApi = {
      * @returns {Promise<Object>} P2P offers response with pagination
      */
     index: async (filters = {}) => {
+
         try {
+
             // Build query parameters
             const params = new URLSearchParams()
 
@@ -47,6 +49,7 @@ export const p2pApi = {
             }
 
         } catch (error) {
+
             // Handle specific API errors
             if (error.response?.data) {
                 const errorData = error.response.data
@@ -126,7 +129,36 @@ export const p2pApi = {
      */
     getPaginated: async (page = 1, perPage = 50, additionalFilters = {}) => {
         return p2pApi.index({ ...additionalFilters, page, take: perPage })
-    }
+    },
+
+    /**
+     * Create a new P2P offer
+     * @param {Object} data - The P2P offer data
+     * @returns {Promise<Object>} The P2P offer response
+     */
+    create: async (data) => {
+
+        try {
+
+            const response = await apiClient.post('/p2p/create', data)
+
+            if (response.data && response.status === 201) {
+                return { success: true, data: response.data, status: response.status }
+            } else {
+                return { success: false, error: response.data?.error || 'No se pudo crear la oferta P2P', details: response.data, status: response.status }
+            }
+
+        } catch (error) {
+
+            // Handle specific API errors
+            if (error.response?.data) {
+                const errorData = error.response.data
+                return { success: false, error: errorData.error || errorData.message || 'No se pudo crear la oferta P2P', details: errorData, status: error.response.status }
+            }
+
+            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+        }
+    },
 }
 
 // Export the apiClient for other API calls

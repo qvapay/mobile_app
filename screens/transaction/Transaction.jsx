@@ -59,19 +59,6 @@ const Transaction = ({ route, navigation }) => {
     const user_uuid = user?.uuid || ''
     const paid_by_uuid = transactionDetails.paid_by?.uuid || ''
     const isPaidByMe = user_uuid == paid_by_uuid
-    
-    // Debug logs
-    console.log('Transaction Debug:', {
-        user_uuid,
-        paid_by_uuid,
-        isPaidByMe,
-        user_name: user?.name,
-        paid_by_name: transactionDetails.paid_by?.name,
-        owner_name: transactionDetails.owner?.name
-    })
-
-    console.log('Transaction Details:', transactionDetails)
-    
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
     const badgeColor = isPaidByMe ? theme.colors.danger : theme.colors.success
@@ -96,8 +83,7 @@ const Transaction = ({ route, navigation }) => {
 
 
     return (
-        <View style={[containerStyles.subContainer]}>
-
+        <View style={containerStyles.subContainer}>
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
                 {/* Profile Container */}

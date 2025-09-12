@@ -253,15 +253,9 @@ const Withdraw = () => {
     }
 
     return (
-        <KeyboardAvoidingView
-            style={containerStyles.subContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-
+        <KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-
-                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
+                <ScrollView contentContainerStyle={[containerStyles.scrollContainer]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     <View style={{ flex: 1 }}>
 
                         {/* Swap Card */}
@@ -270,7 +264,6 @@ const Withdraw = () => {
                             {/* QUSD amount input */}
                             <View style={{ paddingVertical: 2 }}>
                                 <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Extraer</Text>
-
                                 {/* Single row container with dark background */}
                                 <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                     {/* Left side - Amount input */}
@@ -284,7 +277,6 @@ const Withdraw = () => {
                                             style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
                                         />
                                     </View>
-
                                     {/* Right side - Static QUSD display */}
                                     <View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -293,20 +285,18 @@ const Withdraw = () => {
                                         </View>
                                     </View>
                                 </View>
-
                             </View>
 
                             {/* Divider with arrows */}
-                            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                            {/* <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                                 <View style={{ width: 40, height: 40, borderRadius: 40, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
                                     <FontAwesome6 name="right-left" size={16} color={theme.colors.primary} iconStyle="solid" />
                                 </View>
-                            </View>
+                            </View> */}
 
                             {/* Coin amount and selector */}
                             <View style={{ paddingTop: 2 }}>
                                 <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
-
                                 {/* Single row container with dark background */}
                                 <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                     {/* Left side - Amount and available balance */}
@@ -321,7 +311,6 @@ const Withdraw = () => {
                                             editable={!!selectedCoin}
                                         />
                                     </View>
-
                                     {/* Right side - Currency selector button */}
                                     <Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)} >
                                         {selectedCoin ? (
@@ -362,7 +351,6 @@ const Withdraw = () => {
                             </View>
                         )}
                     </View>
-
 
                     {/* Bottom Button */}
                     <View style={containerStyles.bottomButtonContainer}>

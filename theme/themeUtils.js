@@ -83,8 +83,7 @@ export const createContainerStyles = (theme) => StyleSheet.create({
         paddingHorizontal: theme.spacing.md,
     },
     scrollContainer: {
-        flexGrow: 1,
-        paddingVertical: 10
+        flexGrow: 1
     },
     bottomButtonContainer: {
         marginBottom: 20
