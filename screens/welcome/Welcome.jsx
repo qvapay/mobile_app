@@ -88,7 +88,7 @@ const WelcomeScreen = ({ navigation }) => {
 
                 {/** Terms and Conditions */}
                 <View style={styles.termsContainer}>
-                    <Text style={[textStyles.h6, { fontFamily: theme.typography.fontFamily.regular, color: theme.colors.tertiaryText, textAlign: 'center' }]}>
+                    <Text style={[textStyles.h7, { fontFamily: theme.typography.fontFamily.regular, color: theme.colors.tertiaryText, textAlign: 'center' }]}>
                         Al continuar, aceptas nuestros <Text style={{ fontFamily: theme.typography.fontFamily.medium, color: theme.colors.primary }} onPress={() => Linking.openURL(ROUTES.TERMS_AND_CONDITIONS)}>Términos y Condiciones</Text>
                     </Text>
                 </View>
@@ -104,8 +104,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     buttonContainer: {
-        flexDirection: 'row',
-        marginBottom: 10,
+        flexDirection: 'row'
     },
     actionButtonSpacer: {
         width: 10,
@@ -118,8 +117,7 @@ const styles = StyleSheet.create({
         minHeight: 56,
     },
     termsContainer: {
-        marginTop: 20,
-        paddingHorizontal: 20,
+        marginTop: 10
     },
 })
 
