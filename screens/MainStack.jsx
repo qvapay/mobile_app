@@ -19,7 +19,6 @@ import Invest from './invest/Invest'
 import Keypad from './keypad/Keypad'
 import P2P from './p2p/P2P'
 import Store from './store/Store'
-import P2PCreate from './p2p/P2PCreate'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'

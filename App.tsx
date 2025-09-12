@@ -39,6 +39,7 @@ import Receive from './screens/transaction/Receive'
 import Transaction from './screens/transaction/Transaction'
 import Transactions from './screens/transaction/Transactions'
 import P2PCreate from './screens/p2p/P2PCreate'
+import P2POffer from './screens/p2p/P2POffer'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -56,319 +57,338 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Main App Navigator Component
 const AppNavigator = () => {
 
-    // Theme variables, dark and light modes
-    const { theme } = useTheme()
+	// Theme variables, dark and light modes
+	const { theme } = useTheme()
 
-    // State to control minimum splash screen time
-    const [splashReady, setSplashReady] = useState(false)
+	// State to control minimum splash screen time
+	const [splashReady, setSplashReady] = useState(false)
 
-    // Check if this is the first time using the app
-    const { appearance, isLoading: settingsLoading } = useSettings()
-    const firstTime = appearance.firstTime
+	// Check if this is the first time using the app
+	const { appearance, isLoading: settingsLoading } = useSettings()
+	const firstTime = appearance.firstTime
 
-    // Navigation
-    const navigation = useNavigation()
+	// Navigation
+	const navigation = useNavigation()
 
-    // Auth Context
-    const { isAuthenticated, isLoading: authLoading } = useAuth()
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setSplashReady(true)
-        }, 2000)
-        return () => clearTimeout(timer)
-    }, [])
+	// Auth Context
+	const { isAuthenticated, isLoading: authLoading } = useAuth()
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setSplashReady(true)
+		}, 2000)
+		return () => clearTimeout(timer)
+	}, [])
 
-    // Add this effect after the existing useEffect
-    useEffect(() => {
-        if (splashReady && !authLoading && !settingsLoading) {
-            // Only navigate if we're not already on the correct screen
-            const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
-            if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
-                // User is authenticated and not first time - navigate to main stack
-                navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK as never }] })
-            } else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
-                // User is not authenticated and not first time - navigate to welcome
-                navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
-            }
-        }
-    }, [isAuthenticated, firstTime, splashReady, authLoading, settingsLoading])
+	// Add this effect after the existing useEffect
+	useEffect(() => {
+		if (splashReady && !authLoading && !settingsLoading) {
+			// Only navigate if we're not already on the correct screen
+			const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
+			if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
+				// User is authenticated and not first time - navigate to main stack
+				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK as never }] })
+			} else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
+				// User is not authenticated and not first time - navigate to welcome
+				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
+			}
+		}
+	}, [isAuthenticated, firstTime, splashReady, authLoading, settingsLoading])
 
-    // Show splash screen if still loading or if minimum time hasn't passed
-    if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
+	// Show splash screen if still loading or if minimum time hasn't passed
+	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
 
-    // Show unauthenticated screens (welcome, login, register)
-    return (
-        <Stack.Navigator
-            initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
-            screenOptions={{
-                headerShown: false,
-                headerStyle: { backgroundColor: theme.colors.background },
-                headerShadowVisible: false,
-                headerTintColor: theme.colors.primaryText
-            }}
-        >
-            {/* Onboard Screen */}
-            <Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
+	// Show unauthenticated screens (welcome, login, register)
+	return (
+		<Stack.Navigator
+			initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
+			screenOptions={{
+				headerShown: false,
+				headerStyle: { backgroundColor: theme.colors.background },
+				headerShadowVisible: false,
+				headerTintColor: theme.colors.primaryText
+			}}
+		>
+			{/* Onboard Screen */}
+			<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
 
-            {/* Welcome Screen */}
-            <Stack.Screen
-                name={ROUTES.WELCOME_SCREEN}
-                component={WelcomeScreen}
-                options={{
-                    animation: 'none'
-                }}
-            />
+			{/* Welcome Screen */}
+			<Stack.Screen
+				name={ROUTES.WELCOME_SCREEN}
+				component={WelcomeScreen}
+				options={{
+					animation: 'none'
+				}}
+			/>
 
-            {/* Main Stack */}
-            <Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
+			{/* Main Stack */}
+			<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 
-            {/* Add and Withdraw Screens */}
-            <Stack.Screen
-                name={ROUTES.ADD}
-                component={Add}
-                options={{
-                    headerTitle: 'Depositar',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
-            <Stack.Screen
-                name={ROUTES.WITHDRAW}
-                component={Withdraw}
-                options={{
-                    headerTitle: 'Extraer',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			{/* Add and Withdraw Screens */}
+			<Stack.Screen
+				name={ROUTES.ADD}
+				component={Add}
+				options={{
+					headerTitle: 'Depositar',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
+			<Stack.Screen
+				name={ROUTES.WITHDRAW}
+				component={Withdraw}
+				options={{
+					headerTitle: 'Extraer',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            {/* P2P Create Screen */}
-            <Stack.Screen
-                name={ROUTES.P2P_CREATE_SCREEN}
-                component={P2PCreate}
-                options={{
-                    headerTitle: 'Crear P2P',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    animation: 'slide_from_bottom',
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			{/* P2P Create Screen */}
+			<Stack.Screen
+				name={ROUTES.P2P_CREATE_SCREEN}
+				component={P2PCreate}
+				options={{
+					headerTitle: 'Crear P2P',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					animation: 'slide_from_bottom',
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            {/* Settings Stack */}
-            <Stack.Screen
-                name={ROUTES.SETTINGS_STACK}
-                component={SettingsStack}
-                options={{
-                    animation: 'slide_from_bottom'
-                }}
-            />
+			{/* P2P Offer Screen */}
+			<Stack.Screen
+				name={ROUTES.P2P_OFFER_SCREEN}
+				component={P2POffer}
+				options={{
+					headerTitle: 'Oferta P2P',
+				}}
+			/>
 
-            {/* Send, Receive and Send Success Screens */}
-            <Stack.Screen
-                name={ROUTES.SEND}
-                component={Send}
-                options={{
-                    headerTitle: 'Enviar QUSD',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
-            <Stack.Screen
-                name={ROUTES.SEND_CONFIRM}
-                component={SendConfirm}
-                options={{
-                    headerTitle: 'Confirmar pago',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
-            <Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
-            <Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
+			{/* Settings Stack */}
+			<Stack.Screen
+				name={ROUTES.SETTINGS_STACK}
+				component={SettingsStack}
+				options={{
+					headerTitle: 'Crear P2P',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					animation: 'slide_from_bottom',
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            {/* Transaction Screen */}
-            <Stack.Screen
-                name={ROUTES.TRANSACTIONS}
-                component={Transactions}
-                options={({ route }) => ({
-                    headerTitle: 'Transacciones',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    ),
-                    headerRight: () => (
-                        <Pressable style={styles.headerRight} onPress={route.params?.showFilters || (() => { })}>
-                            <FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                })}
-            />
-            <Stack.Screen
-                name={ROUTES.TRANSACTION}
-                component={Transaction}
-                options={{
-                    headerTitle: '',
-                    animation: 'slide_from_right',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			{/* Send, Receive and Send Success Screens */}
+			<Stack.Screen
+				name={ROUTES.SEND}
+				component={Send}
+				options={{
+					headerTitle: 'Enviar QUSD',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
+			<Stack.Screen
+				name={ROUTES.SEND_CONFIRM}
+				component={SendConfirm}
+				options={{
+					headerTitle: 'Confirmar pago',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
+			<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
+			<Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
 
-            {/* Login and Register Screens */}
-            <Stack.Screen
-                name={ROUTES.LOGIN_SCREEN}
-                component={LoginScreen}
-                options={{
-                    headerTitle: '',
-                    animation: 'slide_from_right',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
-            <Stack.Screen
-                name={ROUTES.REGISTER_SCREEN}
-                component={RegisterScreen}
-                options={{
-                    headerTitle: '',
-                    animation: 'slide_from_right',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			{/* Transaction Screen */}
+			<Stack.Screen
+				name={ROUTES.TRANSACTIONS}
+				component={Transactions}
+				options={({ route }) => ({
+					headerTitle: 'Transacciones',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					),
+					headerRight: () => (
+						<Pressable style={styles.headerRight} onPress={route.params?.showFilters || (() => { })}>
+							<FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				})}
+			/>
+			<Stack.Screen
+				name={ROUTES.TRANSACTION}
+				component={Transaction}
+				options={{
+					headerTitle: '',
+					animation: 'slide_from_right',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            {/* Recover Password Screen */}
-            <Stack.Screen
-                name={ROUTES.RECOVER_PASSWORD_SCREEN}
-                component={RecoverPasswordScreen}
-                options={{
-                    headerTitle: '',
-                    animation: 'slide_from_right',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
-            <Stack.Screen
-                name={ROUTES.RECOVER_2FA_SCREEN}
-                component={Recover2FAScreen}
-                options={{
-                    headerTitle: '',
-                    animation: 'slide_from_right',
-                    headerShown: true,
-                    headerBackVisible: false,
-                    headerBackButtonMenuEnabled: true,
-                    headerShadowVisible: false,
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			{/* Login and Register Screens */}
+			<Stack.Screen
+				name={ROUTES.LOGIN_SCREEN}
+				component={LoginScreen}
+				options={{
+					headerTitle: '',
+					animation: 'slide_from_right',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
+			<Stack.Screen
+				name={ROUTES.REGISTER_SCREEN}
+				component={RegisterScreen}
+				options={{
+					headerTitle: '',
+					animation: 'slide_from_right',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            {/* Accesible Screens */}
-            <Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+			{/* Recover Password Screen */}
+			<Stack.Screen
+				name={ROUTES.RECOVER_PASSWORD_SCREEN}
+				component={RecoverPasswordScreen}
+				options={{
+					headerTitle: '',
+					animation: 'slide_from_right',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
+			<Stack.Screen
+				name={ROUTES.RECOVER_2FA_SCREEN}
+				component={Recover2FAScreen}
+				options={{
+					headerTitle: '',
+					animation: 'slide_from_right',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-        </Stack.Navigator>
-    )
+			{/* Accesible Screens */}
+			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+
+		</Stack.Navigator>
+	)
 }
 
 // Theme Provider with Settings Integration
 const ThemeProviderWithSettings = ({ children }: { children: React.ReactNode }) => {
-    const { settings, updateSettings } = useSettings()
-    return (
-        <ThemeProvider settings={settings} updateSettings={updateSettings}>
-            {children}
-        </ThemeProvider>
-    )
+	const { settings, updateSettings } = useSettings()
+	return (
+		<ThemeProvider settings={settings} updateSettings={updateSettings}>
+			{children}
+		</ThemeProvider>
+	)
 }
 
 function App() {
-    return (
-        <AuthProvider>
-            <SettingsProvider>
-                <ThemeProviderWithSettings>
-                    <NavigationContainer>
-                        <AppNavigator />
-                        <Toast position="top" topOffset={40} />
-                    </NavigationContainer>
-                </ThemeProviderWithSettings>
-            </SettingsProvider>
-        </AuthProvider>
-    )
+	return (
+		<AuthProvider>
+			<SettingsProvider>
+				<ThemeProviderWithSettings>
+					<NavigationContainer>
+						<AppNavigator />
+						<Toast position="top" topOffset={40} />
+					</NavigationContainer>
+				</ThemeProviderWithSettings>
+			</SettingsProvider>
+		</AuthProvider>
+	)
 }
 
 const styles = StyleSheet.create({
-    headerRight: {
-        marginRight: 10,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
+	headerRight: {
+		marginRight: 10,
+		alignItems: 'center',
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+	},
 })
 
 export default App

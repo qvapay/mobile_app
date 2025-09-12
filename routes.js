@@ -30,6 +30,7 @@ export const ROUTES = {
     STORE_SCREEN: "Store",
     P2P_SCREEN: "P2P",
     P2P_CREATE_SCREEN: "P2PCreate",
+	P2P_OFFER_SCREEN: "P2POffer",
 
     // InOut Screens
     ADD: "Add",
