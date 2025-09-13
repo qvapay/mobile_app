@@ -195,7 +195,7 @@ const P2POffer = ({ route }) => {
 								</View>
 
 								{/* Chat */}
-								<View style={[containerStyles.card, { flex: 1 }]}>
+								<View style={[containerStyles.card, { flex: 1, padding: 0 }]}>
 
 									<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
 										{chatLoading && <ActivityIndicator size="small" color={theme.colors.primary} />}
@@ -203,7 +203,7 @@ const P2POffer = ({ route }) => {
 
 									{chatError && (<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 6 }]}>{String(chatError)}</Text>)}
 
-									<ScrollView ref={chatScrollRef} style={{ maxHeight: 260, marginTop: 8 }} contentContainerStyle={{ paddingBottom: 10 }}>
+									<ScrollView ref={chatScrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 10 }}>
 										{chatMessages.length === 0 && !chatLoading ? (
 											<View style={{ alignItems: "center", paddingVertical: 20 }}>
 												<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
@@ -225,13 +225,13 @@ const P2POffer = ({ route }) => {
 										)}
 									</ScrollView>
 
-									<View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
+									<View style={{ flexDirection: "row", alignItems: "center", gap: 2, margin: 2 }}>
 										<TextInput
 											value={chatText}
 											onChangeText={setChatText}
-											placeholder="Escribe un mensaje..."
+											placeholder="Escribe tu mensaje..."
 											placeholderTextColor={theme.colors.placeholder}
-											style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 }]}
+											style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 10 }]}
 										/>
 										<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }}>
 											<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
