@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native"
 
 // Theme Context
@@ -33,13 +33,21 @@ const P2P = ({ navigation }) => {
 	const [p2pOffers, setP2pOffers] = useState([])
 	const [refreshing, setRefreshing] = useState(false)
 	const [error, setError] = useState(null)
+	const lastFetchRef = useRef(0)
 
 	// Get the Latest P2P Offers
 	const fetchP2POffers = async (isRefresh = false) => {
 
+		// Prevent multiple fetches in 60 seconds
+		const now = Date.now()
+		if (lastFetchRef.current && now - lastFetchRef.current < 60000) { return }
+
 		try {
+
 			isRefresh ? setRefreshing(true) : setIsLoadingData(true)
 			setError(null)
+
+			lastFetchRef.current = now
 
 			const response = await p2pApi.index({
 				page: 1,
@@ -51,11 +59,9 @@ const P2P = ({ navigation }) => {
 				setP2pOffers(response.offers || [])
 			} else {
 				setError(response.error || "Error al cargar las ofertas P2P")
-				Toast.show({
-					type: "error",
-					text1: response.error || "Error al cargar las ofertas P2P",
-				})
+				Toast.show({ type: "error", text1: response.error || "Error al cargar las ofertas P2P" })
 			}
+
 		} catch (err) {
 			const errorMessage = "Error de conexión"
 			setError(errorMessage)
