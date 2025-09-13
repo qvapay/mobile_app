@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Alert } from "react-native"
+import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native"
 
 // Theme Context
 import { useTheme } from "../../theme/ThemeContext"
@@ -72,20 +72,16 @@ const P2P = ({ navigation }) => {
 	}, [])
 
 	// Handle refresh
-	const onRefresh = () => {
-		fetchP2POffers(true)
-	}
+	const onRefresh = () => { fetchP2POffers(true) }
 
 	// Render offer item
 	const renderOffer = ({ item }) => <P2POffer offer={item} navigation={navigation} />
 
 	// Loading component
-	if (isLoadingData && !refreshing) {
-		return <QPLoader />
-	}
+	if (isLoadingData && !refreshing) { return <QPLoader /> }
 
 	return (
-		<View style={[containerStyles.subContainer, { paddingTop: 20 }]}>
+		<View style={[containerStyles.subContainer, { paddingTop: 5 }]}>
 			{/* Offers List */}
 			<FlatList
 				data={p2pOffers}
@@ -107,20 +103,6 @@ const P2P = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		paddingHorizontal: 20,
-	},
-	centerContent: {
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	header: {
-		paddingVertical: 20,
-		borderBottomWidth: 1,
-		borderBottomColor: "rgba(0,0,0,0.1)",
-		marginBottom: 16,
-	},
 	listContainer: {
 		paddingBottom: 20,
 	},
@@ -129,20 +111,6 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 		paddingVertical: 40,
-	},
-	offerCard: {
-		borderRadius: 12,
-		padding: 16,
-		marginBottom: 12,
-		borderWidth: 1,
-		shadowColor: "#000",
-		shadowOffset: {
-			width: 0,
-			height: 2,
-		},
-		shadowOpacity: 0.1,
-		shadowRadius: 3.84,
-		elevation: 5,
 	},
 	offerHeader: {
 		flexDirection: "row",
@@ -202,7 +170,7 @@ const styles = StyleSheet.create({
 		paddingTop: 8,
 		borderTopWidth: 1,
 		borderTopColor: "rgba(0,0,0,0.1)",
-	},
+	}
 })
 
 export default P2P

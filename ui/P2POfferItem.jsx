@@ -86,29 +86,6 @@ const P2POfferItem = ({ offer, navigation }) => {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		paddingHorizontal: 20
-	},
-	centerContent: {
-		justifyContent: 'center',
-		alignItems: 'center'
-	},
-	header: {
-		paddingVertical: 20,
-		borderBottomWidth: 1,
-		borderBottomColor: 'rgba(0,0,0,0.1)',
-		marginBottom: 16
-	},
-	listContainer: {
-		paddingBottom: 20
-	},
-	emptyContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		paddingVertical: 40
-	},
 	offerCard: {
 		borderRadius: 12,
 		paddingHorizontal: 12,
@@ -126,11 +103,6 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center'
 	},
-	typeBadge: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 6
-	},
 	typeText: {
 		fontSize: 10,
 		fontWeight: 'bold',
@@ -145,33 +117,6 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 8
-	},
-	userInfo: {
-		marginBottom: 4
-	},
-	userStats: {
-		flexDirection: 'row'
-	},
-	badgesContainer: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		marginBottom: 8
-	},
-	badge: {
-		paddingHorizontal: 6,
-		paddingVertical: 2,
-		borderRadius: 4,
-		marginRight: 6,
-		marginBottom: 4
-	},
-	badgeText: {
-		fontSize: 10,
-		fontWeight: 'bold'
-	},
-	messageContainer: {
-		marginTop: 8,
-		paddingTop: 8,
-		overflow: 'hidden'
 	},
 	messageRow: {
 		flexDirection: 'row',
