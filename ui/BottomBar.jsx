@@ -28,7 +28,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
     const { theme } = useTheme()
 
     // Settings Context
-    const { settings, getSetting, isSettingEnabled } = useSettings()
+    const { settings } = useSettings()
     const showLabels = settings.appearance.bottomBarLabels
 
     return (
@@ -71,7 +71,6 @@ export default function BottomBar({ state, descriptors, navigation }) {
 const styles = StyleSheet.create({
     bottomNav: {
         minHeight: 50,
-        paddingTop: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
