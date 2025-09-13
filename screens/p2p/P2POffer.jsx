@@ -156,9 +156,7 @@ const P2POffer = ({ route }) => {
 
 						{p2p && (
 							<>
-
 								<View style={containerStyles.card}>
-									{/* Header with Type and Coin */}
 									<View style={styles.offerHeader}>
 										<View style={styles.typeContainer}>
 											<Text style={[styles.typeText, { color: theme.colors.primaryText }]}>{getTypeText(p2p.type)}</Text>
@@ -166,7 +164,6 @@ const P2POffer = ({ route }) => {
 										<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>{new Date(p2p.created_at).toLocaleDateString()}</Text>
 									</View>
 
-									{/* Amount and Receive */}
 									<View style={{ gap: 2, marginBottom: 4 }}>
 										<View style={styles.coinRow}>
 											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
@@ -241,7 +238,6 @@ const P2POffer = ({ route }) => {
 										</Pressable>
 									</View>
 								</View>
-
 							</>
 						)}
 					</ScrollView>

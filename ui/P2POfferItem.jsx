@@ -15,8 +15,11 @@ import ProfileContainerHorizontal from './ProfileContainerHorizontal'
 // Helpers
 import { getTypeText } from '../helpers'
 
+// Routes
+import { ROUTES } from '../routes'
+
 // P2P Offer Component
-const P2POfferItem = ({ offer }) => {
+const P2POfferItem = ({ offer, navigation }) => {
 
 	// Contexts
 	const { theme } = useTheme()
@@ -75,6 +78,7 @@ const P2POfferItem = ({ offer }) => {
 					title={offer.type === 'buy' ? 'Vender' : 'Comprar'}
 					style={{ backgroundColor: offer.type === 'buy' ? theme.colors.danger : theme.colors.success, width: 75, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
 					textStyle={{ color: offer.type === 'buy' ? theme.colors.almostWhite : theme.colors.almostBlack, fontSize: 13, fontWeight: '400' }}
+					onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
 				/>
 			</View>
 		</View>
