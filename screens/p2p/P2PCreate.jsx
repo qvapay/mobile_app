@@ -180,7 +180,7 @@ const P2PCreate = ({ navigation }) => {
 
 			if (res.status === 201) {
 				Toast.show({ type: "success", text1: "Listo", text2: "Tu oferta se ha creado correctamente" })
-				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { offer: res.data.p2p.uuid })
+				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: res.data.p2p.uuid })
 			} else {
 				const errMsg = res?.error || "No se pudo crear la oferta P2P"
 				Toast.show({ type: "error", text1: "Error al crear la oferta", text2: errMsg })

@@ -132,6 +132,81 @@ export const p2pApi = {
 		return p2pApi.index({ ...additionalFilters, page, take: perPage })
 	},
 
+	show: async (p2p_uuid) => {
+		try {
+			const response = await apiClient.get(`/p2p/${p2p_uuid}`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Cancel an existing P2P offer/escrow
+	 * @param {string} p2p_uuid - The P2P UUID
+	 */
+	cancel: async (p2p_uuid) => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/cancel`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Mark escrow as paid by the payer
+	 * @param {string} p2p_uuid - The P2P UUID
+	 */
+	markPaid: async (p2p_uuid) => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/paid`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Confirm payment received and release escrow
+	 * @param {string} p2p_uuid - The P2P UUID
+	 */
+	confirmReceived: async (p2p_uuid) => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/received`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Get chat messages for a P2P offer
+	 * @param {string} p2p_uuid - The P2P UUID
+	 */
+	getChat: async (p2p_uuid) => {
+		try {
+			const response = await apiClient.get(`/p2p/${p2p_uuid}/chat`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Send a chat message for a P2P offer
+	 * @param {string} p2p_uuid - The P2P UUID
+	 * @param {{ message: string }} payload - Message payload
+	 */
+	sendChat: async (p2p_uuid, payload) => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/chat`, payload)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+		}
+	},
+
 	/**
 	 * Create a new P2P offer
 	 * @param {Object} data - The P2P offer data

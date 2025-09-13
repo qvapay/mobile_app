@@ -180,15 +180,6 @@ const AppNavigator = () => {
 				component={P2POffer}
 				options={{
 					headerTitle: 'Oferta P2P',
-				}}
-			/>
-
-			{/* Settings Stack */}
-			<Stack.Screen
-				name={ROUTES.SETTINGS_STACK}
-				component={SettingsStack}
-				options={{
-					headerTitle: 'Crear P2P',
 					headerShown: true,
 					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,
@@ -199,6 +190,15 @@ const AppNavigator = () => {
 							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
 					)
+				}}
+			/>
+
+			{/* Settings Stack */}
+			<Stack.Screen
+				name={ROUTES.SETTINGS_STACK}
+				component={SettingsStack}
+				options={{
+					animation: 'slide_from_bottom'
 				}}
 			/>
 

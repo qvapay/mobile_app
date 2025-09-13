@@ -233,6 +233,15 @@ const getFirstChunk = (uuid) => {
     return uuid.split("-")[0]
 }
 
+// Format a date time to a human readable format
+const formatDateTime = (isoString) => {
+	try {
+		if (!isoString) return ""
+		const d = new Date(isoString)
+		return d.toLocaleString('es-ES', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })
+	} catch (e) { return String(isoString || "") }
+}
+
 // export helpers
 export {
     timeSince,
@@ -248,5 +257,6 @@ export {
     shuffleArray,
     statusText,
     copyTextToClipboard,
-    getFirstChunk
+    getFirstChunk,
+    formatDateTime
 }
