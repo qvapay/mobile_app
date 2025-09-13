@@ -70,7 +70,7 @@ const MainStack = ({ navigation }) => {
                         fontFamily: theme.typography.fontFamily.bold,
                     },
                     headerLeft: () => (
-                        <Pressable style={styles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+                        <Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
                             <QPAvatar user={user} size={32} />
                         </Pressable>
                     )
@@ -83,7 +83,7 @@ const MainStack = ({ navigation }) => {
                     options={{
                         headerTitle: '',
                         headerLeft: () => (
-                            <Pressable style={styles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+                            <Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
                                 <QPAvatar user={user} size={32} />
                                 <View style={styles.headerLeftTextContainer}>
                                     <Text style={textStyles.h4}>Hola {user.name}!</Text>
@@ -92,7 +92,7 @@ const MainStack = ({ navigation }) => {
                             </Pressable>
                         ),
                         headerRight: () => (
-                            <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
+                            <Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
                                 <FontAwesome6 name="bell" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
@@ -113,7 +113,7 @@ const MainStack = ({ navigation }) => {
                     options={({ navigation }) => ({
                         headerTitle: '',
                         headerRight: () => (
-                            <Pressable style={styles.headerRight}>
+                            <Pressable style={containerStyles.headerRight}>
                                 <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
@@ -127,10 +127,10 @@ const MainStack = ({ navigation }) => {
                         headerTitle: '',
                         headerRight: () => (
                             <>
-                                <Pressable style={styles.headerRight} onPress={route.params?.showFilters || (() => { })}>
+                                <Pressable style={containerStyles.headerRight} onPress={route.params?.showFilters || (() => { })}>
                                     <FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
                                 </Pressable>
-                                <Pressable style={styles.headerRight} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)}>
+                                <Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)}>
                                     <FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                                 </Pressable>
                             </>
@@ -144,7 +144,7 @@ const MainStack = ({ navigation }) => {
                     options={({ navigation }) => ({
                         headerTitle: '',
                         headerRight: () => (
-                            <Pressable style={styles.headerRight}>
+                            <Pressable style={containerStyles.headerRight}>
                                 <FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
@@ -157,20 +157,6 @@ const MainStack = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-    headerLeft: {
-        marginLeft: 20,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingBottom: 10,
-    },
-    headerRight: {
-        marginRight: 20,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingBottom: 10,
-    },
     headerLeftTextContainer: {
         marginLeft: 10,
     },

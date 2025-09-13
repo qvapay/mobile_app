@@ -16,6 +16,7 @@ import { SettingsProvider, useSettings } from './settings/SettingsContext'
 // Theme Provider
 import { ThemeProvider } from './theme/ThemeContext'
 import { useTheme } from './theme/ThemeContext'
+import { createContainerStyles } from './theme/themeUtils'
 
 // Routes
 import { ROUTES } from './routes'
@@ -54,12 +55,19 @@ import Toast from 'react-native-toast-message'
 // FontAwesome6
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// UI Components
+import QPAvatar from './ui/particles/QPAvatar'
+
 // Main App Navigator Component
 const AppNavigator = () => {
 
+	// Auth Context
+	const { user } = useAuth()
+
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
-
+	const containerStyles = createContainerStyles(theme)
+	
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
 
@@ -189,6 +197,11 @@ const AppNavigator = () => {
 						<Pressable onPress={() => navigation.goBack()}>
 							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
+					),
+					headerRight: () => (
+						<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+                            <QPAvatar user={user} size={32} />
+                        </Pressable>
 					)
 				}}
 			/>
@@ -254,7 +267,7 @@ const AppNavigator = () => {
 						</Pressable>
 					),
 					headerRight: () => (
-						<Pressable style={styles.headerRight} onPress={route.params?.showFilters || (() => { })}>
+						<Pressable style={containerStyles.headerRight} onPress={route.params?.showFilters || (() => { })}>
 							<FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
 					)
@@ -381,14 +394,5 @@ function App() {
 		</AuthProvider>
 	)
 }
-
-const styles = StyleSheet.create({
-	headerRight: {
-		marginRight: 10,
-		alignItems: 'center',
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-	},
-})
 
 export default App

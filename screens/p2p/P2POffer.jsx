@@ -9,6 +9,7 @@ import { createContainerStyles, createTextStyles } from "../../theme/themeUtils"
 import QPButton from "../../ui/particles/QPButton"
 import QPCoin from "../../ui/particles/QPCoin"
 import QPAvatar from "../../ui/particles/QPAvatar"
+import QPLoader from "../../ui/particles/QPLoader"
 
 // Icons
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
@@ -75,32 +76,6 @@ const P2POffer = ({ route }) => {
 		return () => { /* cleanup if needed */ }
 	}, [p2p_uuid])
 
-	// Fetch chat messages
-	const fetchChat = async () => {
-		if (!p2p_uuid) return
-		try {
-			setChatLoading(true)
-			const res = await p2pApi.getChat(p2p_uuid)
-			if (res.success) {
-				const data = res.data?.messages || res.data?.data || []
-				setChatMessages(Array.isArray(data) ? data : [])
-			} else {
-				setChatError(res.error || "No se pudo cargar el chat")
-			}
-		} catch (e) {
-			setChatError(e.message)
-		} finally {
-			setChatLoading(false)
-			setTimeout(() => { chatScrollRef.current?.scrollToEnd?.({ animated: true }) }, 50)
-		}
-	}
-
-	useEffect(() => {
-		fetchChat()
-		chatIntervalRef.current = setInterval(fetchChat, 5000)
-		return () => { if (chatIntervalRef.current) clearInterval(chatIntervalRef.current) }
-	}, [p2p_uuid])
-
 	// Derived booleans
 	const isOwner = useMemo(() => !!(user?.uuid && p2p?.User?.uuid && user.uuid === p2p.User.uuid), [user?.uuid, p2p?.User?.uuid])
 	const isPeer = useMemo(() => !!(user?.uuid && p2p?.Peer?.uuid && user.uuid === p2p.Peer.uuid), [user?.uuid, p2p?.Peer?.uuid])
@@ -161,31 +136,29 @@ const P2POffer = ({ route }) => {
 		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
 	}
 
+	// Loading state check
+	if (isLoading) { return (<QPLoader />) }
+	if (error) {
+		return (
+			<View style={[containerStyles.card, { alignItems: "center", justifyContent: "center" }]}>
+				<Text style={[textStyles.h5, { color: theme.colors.danger }]}>No se pudo cargar la oferta</Text>
+				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error)}</Text>
+			</View>
+		)
+	}
+
 	return (
 		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<View style={{ flex: 1 }}>
 
-					<ScrollView contentContainerStyle={[containerStyles.scrollContainer, { paddingBottom: 12 }]} showsVerticalScrollIndicator={false}>
+					<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-						{/* Loading / Error states */}
-						{isLoading && (
-							<View style={[containerStyles.card, { alignItems: "center", justifyContent: "center" }]}>
-								<ActivityIndicator color={theme.colors.primary} />
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 8 }]}>Cargando oferta...</Text>
-							</View>
-						)}
-						{!isLoading && error && (
-							<View style={[containerStyles.card]}>
-								<Text style={[textStyles.h5, { color: theme.colors.danger }]}>No se pudo cargar la oferta</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error)}</Text>
-							</View>
-						)}
-
-						{!isLoading && p2p && (
+						{p2p && (
 							<>
 								{/* Offer summary */}
-								<View style={[containerStyles.card, { gap: 10 }]}>
+								<View style={containerStyles.card}>
+									
 									<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
 										<View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
 											<QPCoin coin={p2p?.Coin?.logo || p2p?.coin} size={28} />
@@ -211,6 +184,7 @@ const P2POffer = ({ route }) => {
 										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>Estado: <Text style={[textStyles.h6]}>{(p2p?.status || "open").toUpperCase()}</Text></Text>
 										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>Creado: {formatDateTime(p2p?.created_at)}</Text>
 									</View>
+
 									{p2p?.message && (
 										<View style={[containerStyles.box, { marginTop: 6 }]}>
 											<FontAwesome6 name="message" size={14} color={theme.colors.primary} iconStyle="solid" />
@@ -219,47 +193,15 @@ const P2POffer = ({ route }) => {
 									)}
 								</View>
 
-								{/* Parties */}
-								<View style={[containerStyles.card]}>
-									<Text style={textStyles.h5}>Participantes</Text>
-									<View style={{ marginTop: 10, gap: 10 }}>
-										<View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-											<QPAvatar user={p2p?.User || {}} size={36} />
-											<View>
-												<Text style={textStyles.h6}>{p2p?.User?.name || "Usuario"} {isOwner ? "(Tú)" : ""}</Text>
-												{p2p?.User?.username && <Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>@{p2p.User.username}</Text>}
-											</View>
-										</View>
-
-										<View style={{ height: 1, backgroundColor: theme.colors.elevation, marginVertical: 4 }} />
-
-										{p2p?.Peer ? (
-											<View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-												<QPAvatar user={p2p?.Peer || {}} size={36} />
-												<View>
-													<Text style={textStyles.h6}>{p2p?.Peer?.name || "Usuario"} {isPeer ? "(Tú)" : ""}</Text>
-													{p2p?.Peer?.username && <Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>@{p2p.Peer.username}</Text>}
-												</View>
-											</View>
-										) : (
-											<View style={[containerStyles.box]}>
-												<FontAwesome6 name="user-clock" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
-												<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Aún no hay contraparte</Text>
-											</View>
-										)}
-									</View>
-
-								</View>
-
 								{/* Chat */}
-								<View style={[containerStyles.card, { paddingBottom: 6 }]}>
+								<View style={[containerStyles.card, { flex: 1 }]}>
+
 									<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-										<Text style={textStyles.h5}>Chat</Text>
 										{chatLoading && <ActivityIndicator size="small" color={theme.colors.primary} />}
 									</View>
-									{chatError && (
-										<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 6 }]}>{String(chatError)}</Text>
-									)}
+
+									{chatError && (<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 6 }]}>{String(chatError)}</Text>)}
+
 									<ScrollView ref={chatScrollRef} style={{ maxHeight: 260, marginTop: 8 }} contentContainerStyle={{ paddingBottom: 10 }}>
 										{chatMessages.length === 0 && !chatLoading ? (
 											<View style={{ alignItems: "center", paddingVertical: 20 }}>
@@ -281,6 +223,7 @@ const P2POffer = ({ route }) => {
 											})
 										)}
 									</ScrollView>
+
 									<View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
 										<TextInput
 											value={chatText}
@@ -297,7 +240,6 @@ const P2POffer = ({ route }) => {
 
 							</>
 						)}
-
 					</ScrollView>
 
 					<View style={[containerStyles.bottomButtonContainer, { gap: 8 }]}>
@@ -305,8 +247,8 @@ const P2POffer = ({ route }) => {
 							<QPButton
 								title="Cancelar"
 								onPress={handleCancel}
-								style={{ backgroundColor: theme.colors.elevation }}
-								textStyle={{ color: theme.colors.primaryText }}
+								style={{ backgroundColor: theme.colors.danger }}
+								textStyle={{ color: theme.colors.almostWhite }}
 								icon="xmark"
 								iconColor={theme.colors.primaryText}
 								iconStyle="solid"
@@ -335,7 +277,6 @@ const P2POffer = ({ route }) => {
 							/>
 						)}
 					</View>
-
 
 				</View>
 			</TouchableWithoutFeedback>
