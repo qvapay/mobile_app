@@ -12,7 +12,7 @@ import { useAuth } from "../../auth/AuthContext"
 import { p2pApi } from "../../api/p2pApi"
 
 // UI
-import P2POffer from "../../ui/P2POffer"
+import P2POffer from "../../ui/P2POfferItem"
 import QPLoader from "../../ui/particles/QPLoader"
 
 // Toast

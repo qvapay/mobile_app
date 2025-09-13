@@ -67,7 +67,7 @@ const AppNavigator = () => {
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
-	
+
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
 
@@ -199,9 +199,9 @@ const AppNavigator = () => {
 						</Pressable>
 					),
 					headerRight: () => (
-						<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-                            <QPAvatar user={user} size={32} />
-                        </Pressable>
+						<Pressable>
+							<QPAvatar user={user} size={32} />
+						</Pressable>
 					)
 				}}
 			/>

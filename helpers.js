@@ -242,6 +242,9 @@ const formatDateTime = (isoString) => {
 	} catch (e) { return String(isoString || "") }
 }
 
+const getTypeText = type => { return type === 'buy' ? 'COMPRA' : 'VENDE' }
+const getTypeColor = type => { return type === 'buy' ? theme.colors.success : theme.colors.error }
+
 // export helpers
 export {
     timeSince,
@@ -258,5 +261,7 @@ export {
     statusText,
     copyTextToClipboard,
     getFirstChunk,
-    formatDateTime
+    formatDateTime,
+    getTypeText,
+    getTypeColor
 }

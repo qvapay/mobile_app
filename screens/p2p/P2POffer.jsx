@@ -24,7 +24,7 @@ import { p2pApi } from "../../api/p2pApi"
 import Toast from "react-native-toast-message"
 
 // Helpers
-import { formatDateTime } from "../../helpers"
+import { formatDateTime, getTypeText } from "../../helpers"
 
 // P2P Offer Component
 const P2POffer = ({ route }) => {
@@ -156,39 +156,43 @@ const P2POffer = ({ route }) => {
 
 						{p2p && (
 							<>
-								{/* Offer summary */}
+
 								<View style={containerStyles.card}>
-									
-									<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-										<View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-											<QPCoin coin={p2p?.Coin?.logo || p2p?.coin} size={28} />
-											<Text style={textStyles.h4}>{p2p?.Coin?.tick || p2p?.coin}</Text>
+									{/* Header with Type and Coin */}
+									<View style={styles.offerHeader}>
+										<View style={styles.typeContainer}>
+											<Text style={[styles.typeText, { color: theme.colors.primaryText }]}>{getTypeText(p2p.type)}</Text>
 										</View>
-										<View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, backgroundColor: p2p?.type === "buy" ? theme.colors.success : theme.colors.danger }}>
-											<Text style={[textStyles.h7, { color: p2p?.type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite, fontWeight: "700" }]}>{(p2p?.type || "").toUpperCase()}</Text>
-										</View>
+										<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>{new Date(p2p.created_at).toLocaleDateString()}</Text>
 									</View>
 
-									<View style={[containerStyles.box, { justifyContent: "space-between" }]}>
-										<View>
-											<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>Vender</Text>
-											<Text style={[textStyles.h3]}>${p2p?.amount}</Text>
+									{/* Amount and Receive */}
+									<View style={{ gap: 2, marginBottom: 4 }}>
+										<View style={styles.coinRow}>
+											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+												<QPCoin coin={p2p.Coin?.logo} size={20} />
+												<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+													{p2p.Coin?.name}
+												</Text>
+											</View>
+											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+												<FontAwesome6 name="money-bill-transfer" size={12} color={theme.colors.primaryText} iconStyle="solid" />
+												<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '400' }]} >
+													{Number(p2p.receive / p2p.amount).toFixed(2)}
+												</Text>
+											</View>
 										</View>
-										<View>
-											<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{p2p?.type === "buy" ? "Enviar" : "Recibir"}</Text>
-											<Text style={[textStyles.h3]}>{p2p?.receive} {(p2p?.Coin?.tick || p2p?.coin)}</Text>
+										<View style={[styles.amountRow, { marginLeft: 2 }]}>
+											<Text style={[textStyles.h2, { color: theme.colors.primary, fontWeight: '800' }]}>${p2p.amount}</Text>
+											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
+											<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{p2p.receive}</Text>
 										</View>
-									</View>
-
-									<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
-										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>Estado: <Text style={[textStyles.h6]}>{(p2p?.status || "open").toUpperCase()}</Text></Text>
-										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>Creado: {formatDateTime(p2p?.created_at)}</Text>
 									</View>
 
 									{p2p?.message && (
-										<View style={[containerStyles.box, { marginTop: 6 }]}>
+										<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6 }}>
 											<FontAwesome6 name="message" size={14} color={theme.colors.primary} iconStyle="solid" />
-											<Text style={textStyles.h6}>{p2p.message}</Text>
+											<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1} ellipsizeMode="tail">{p2p.message}</Text>
 										</View>
 									)}
 								</View>
@@ -283,5 +287,105 @@ const P2POffer = ({ route }) => {
 		</KeyboardAvoidingView>
 	)
 }
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		paddingHorizontal: 20
+	},
+	centerContent: {
+		justifyContent: 'center',
+		alignItems: 'center'
+	},
+	header: {
+		paddingVertical: 20,
+		borderBottomWidth: 1,
+		borderBottomColor: 'rgba(0,0,0,0.1)',
+		marginBottom: 16
+	},
+	listContainer: {
+		paddingBottom: 20
+	},
+	emptyContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		paddingVertical: 40
+	},
+	offerCard: {
+		borderRadius: 12,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		marginBottom: 8,
+		position: 'relative'
+	},
+	offerHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 12
+	},
+	typeContainer: {
+		flexDirection: 'row',
+		alignItems: 'center'
+	},
+	typeBadge: {
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 6
+	},
+	typeText: {
+		fontSize: 10,
+		fontWeight: 'bold',
+		textTransform: 'uppercase'
+	},
+	amountRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 4
+	},
+	coinRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8
+	},
+	userInfo: {
+		marginBottom: 4
+	},
+	userStats: {
+		flexDirection: 'row'
+	},
+	badgesContainer: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		marginBottom: 8
+	},
+	badge: {
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: 4,
+		marginRight: 6,
+		marginBottom: 4
+	},
+	badgeText: {
+		fontSize: 10,
+		fontWeight: 'bold'
+	},
+	messageContainer: {
+		marginTop: 8,
+		paddingTop: 8,
+		overflow: 'hidden'
+	},
+	messageRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingTop: 4
+	},
+	messageText: {
+		flex: 1,
+		marginRight: 12
+	}
+})
 
 export default P2POffer
