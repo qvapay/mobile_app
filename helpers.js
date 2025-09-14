@@ -31,9 +31,10 @@ const timeSince = (date) => {
 }
 
 // String reduce function from P2P_796a9e71-3d67-4a42-9dc2-02a5d069fa23 to P2P_796a9e71
-const reduceString = (string, amount = 20) => {
-    return string.substring(0, amount)
-}
+const reduceString = (string, amount = 20) => { return string.substring(0, amount) }
+
+// String reduce function from TEvQ7WSPCbJCKVC7qLo29L6zGJb2VQBRVy to TEvQ.....QBRVy
+const reduceStringInside = (string, amount = 20) => { return string.substring(0, amount) + '...' + string.substring(string.length - amount) }
 
 // Get a long format date and return a short format date time
 const getShortDateTime = (date) => {
@@ -156,9 +157,7 @@ const filterCoins = ({ coins, in_out_p2p = "IN", amount = 0 }) => {
 }
 
 // Show only initial and latest letters from a wallet
-const truncateWalletAddress = (address, amount = 10) => {
-    return address.length > 28 ? address.substring(0, amount) + '...' + address.substring(address.length - amount) : address
-}
+const truncateWalletAddress = (address, amount = 10) => { return address.length > 28 ? address.substring(0, amount) + '...' + address.substring(address.length - amount) : address }
 
 // Adjust a number to a valid format and correct amount of decimals
 const adjustNumber = (value) => {
@@ -263,5 +262,6 @@ export {
     getFirstChunk,
     formatDateTime,
     getTypeText,
-    getTypeColor
+    getTypeColor,
+	reduceStringInside
 }
