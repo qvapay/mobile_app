@@ -35,6 +35,7 @@ import Toast from "react-native-toast-message"
 import coinsApi from "../../api/coinsApi"
 import p2pApi from "../../api/p2pApi"
 import { adjustNumber } from "../../helpers"
+import { userApi } from "../../api/userApi"
 
 // User context
 import { useAuth } from "../../auth/AuthContext"
@@ -75,6 +76,9 @@ const P2PCreate = ({ navigation }) => {
 	const [coinSearch, setCoinSearch] = useState("")
 	const [showCoinSearch, setShowCoinSearch] = useState(false)
 	const [workingForm, setWorkingForm] = useState({})
+	const [showSavedMethods, setShowSavedMethods] = useState(false)
+	const [savedMethods, setSavedMethods] = useState([])
+	const [savedMethodsLoading, setSavedMethodsLoading] = useState(false)
 
 	// Button Text State with Type and Amount values
 	const [buttonText, setButtonText] = useState("")
@@ -105,7 +109,6 @@ const P2PCreate = ({ navigation }) => {
 
 	// Working data parsing (same logic as Withdraw)
 	const workingFields = useMemo(() => {
-
 		if (!selectedCoin || !selectedCoin.working_data) { return [] }
 		try {
 			const raw = typeof selectedCoin.working_data === "string" ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
@@ -191,11 +194,54 @@ const P2PCreate = ({ navigation }) => {
 		} finally { setIsSending(false) }
 	}
 
+	// Handle launch saved payment methods
+	const lauchSavedPaymentMethods = () => {
+		if (!selectedCoin) {
+			Toast.show({ type: "error", text1: "Selecciona una moneda" })
+			return
+		}
+		setSavedMethodsLoading(true)
+		userApi.getPaymentMethods()
+			.then((res) => {
+				if (res.success) {
+					const raw = Array.isArray(res.data) ? res.data : (res.data?.methods || [])
+					const filtered = raw.filter((m) => {
+						const tick = m?.coin?.tick || m?.tick || m?.coin || m?.ticker
+						return String(tick || "").toLowerCase() === String(selectedCoin?.tick || "").toLowerCase()
+					})
+					setSavedMethods(filtered)
+					setShowSavedMethods(true)
+				} else { Toast.show({ type: "error", text1: res.error || "No se pudieron cargar los métodos" }) }
+			})
+			.catch((e) => { Toast.show({ type: "error", text1: e.message || "Error de red" }) })
+			.finally(() => setSavedMethodsLoading(false))
+	}
+
+	// Apply saved method into working form
+	const handleSelectSavedMethod = (method) => {
+		try {
+			const rawDetails = (method && (method.details || method.Details)) || null
+			let detailsArray = []
+			if (Array.isArray(rawDetails)) {
+				detailsArray = rawDetails.map((d) => ({ name: d.name || d.key, value: String(d.value ?? d.val ?? "") }))
+			} else if (rawDetails && typeof rawDetails === "object") { detailsArray = Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) }
+			const nextForm = {}
+			workingFields.forEach((field) => {
+				const key = keyFromFieldName(field.name)
+				const found = detailsArray.find((d) => String(d.name).toLowerCase() === String(field.name).toLowerCase())
+				nextForm[key] = found ? found.value : ""
+			})
+			setWorkingForm(nextForm)
+			setShowSavedMethods(false)
+			Toast.show({ type: "success", text1: "Datos completados" })
+		} catch (e) { Toast.show({ type: "error", text1: e.message || "No se pudo aplicar el método" }) }
+	}
+
 	return (
 		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<View style={{ flex: 1 }}>
-					
+
 					<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
 						{/* Type Selector */}
@@ -315,16 +361,9 @@ const P2PCreate = ({ navigation }) => {
 						{/* Details: Coin working data (same UX as Withdraw) */}
 						{selectedCoin && workingFields.length > 0 && (
 							<View style={{ marginTop: 12, marginBottom: 6 }}>
-								<View
-									style={{
-										flexDirection: "row",
-										alignItems: "center",
-										justifyContent: "space-between",
-									}}
-								>
+								<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }} >
 									<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 6 }]}>Detalles adicionales:</Text>
-
-									<Pressable onPress={() => console.log(selectedCoin.working_data)}>
+									<Pressable onPress={() => { lauchSavedPaymentMethods() }}>
 										<FontAwesome6 name="book" size={16} color={theme.colors.primary} iconStyle="solid" />
 									</Pressable>
 								</View>
@@ -487,6 +526,57 @@ const P2PCreate = ({ navigation }) => {
 								) : (
 									<View style={styles.loadingContainer}>
 										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
+									</View>
+								)}
+							</ScrollView>
+						</SafeAreaView>
+					</Modal>
+
+					{/* Saved Payment Methods Modal */}
+					<Modal visible={showSavedMethods} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowSavedMethods(false)}>
+						<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+							<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+								<Text style={textStyles.h4}>Seleccionar método guardado</Text>
+								<Pressable onPress={() => setShowSavedMethods(false)} style={styles.closeButton}>
+									<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+								</Pressable>
+							</View>
+
+							<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
+								{savedMethodsLoading ? (
+									<View style={styles.loadingContainer}>
+										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando métodos...</Text>
+									</View>
+								) : (savedMethods || []).length > 0 ? (
+									(savedMethods || []).map((method) => {
+										const name = method?.name || method?.coin?.name || "Método"
+										const rawDetails = (method && (method.details || method.Details)) || null
+										const details = Array.isArray(rawDetails)
+											? rawDetails
+											: rawDetails && typeof rawDetails === "object"
+												? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") }))
+												: []
+										return (
+											<Pressable key={method.id || method.uuid || JSON.stringify(method)} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleSelectSavedMethod(method)}>
+												<View style={{ flex: 1 }}>
+													<Text style={textStyles.h4}>{name}</Text>
+													{details.length > 0 && (
+														<View style={{ marginTop: 6, gap: 4 }}>
+															{details.slice(0, 4).map((d, idx) => (
+																<View key={idx} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+																	<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
+																	<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600", marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
+																</View>
+															))}
+														</View>
+													)}
+												</View>
+											</Pressable>
+										)
+									})
+								) : (
+									<View style={styles.loadingContainer}>
+										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay métodos guardados para esta moneda</Text>
 									</View>
 								)}
 							</ScrollView>
