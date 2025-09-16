@@ -50,9 +50,8 @@ const P2POffer = ({ route }) => {
 	const chatScrollRef = useRef(null)
 	const chatIntervalRef = useRef(null)
 
+	// Get the P2P UUID
 	const { p2p_uuid } = route.params
-
-	console.log(p2p_uuid)
 
 	// Fetch P2P data
 	useEffect(() => {
@@ -74,7 +73,7 @@ const P2POffer = ({ route }) => {
 		}
 		fetchP2P()
 		return () => { /* cleanup if needed */ }
-	}, [p2p_uuid])
+	}, [])
 
 	// Derived booleans
 	const isOwner = useMemo(() => !!(user?.uuid && p2p?.User?.uuid && user.uuid === p2p.User.uuid), [user?.uuid, p2p?.User?.uuid])
@@ -83,10 +82,14 @@ const P2POffer = ({ route }) => {
 	const isPayer = useMemo(() => (payerIsOwner ? isOwner : isPeer), [payerIsOwner, isOwner, isPeer])
 	const isReceiver = useMemo(() => (!isPayer && (isOwner || isPeer)), [isPayer, isOwner, isPeer])
 
+	console.log(p2p)
+	console.log(isOwner, isPeer, payerIsOwner, isPayer, isReceiver)
+
+	// Off Status dynamics
 	const status = p2p?.status || "open"
-	const canCancel = (isOwner || isPeer) && ["open", "escrow", "paid"].includes(status)
-	const canMarkPaid = isPayer && status === "escrow"
-	const canConfirmReceived = isReceiver && status === "paid"
+	const canCancel = (isOwner || isPeer) && ["open", "paid", "processing"].includes(status)
+	const canMarkPaid = isPayer && status === "processing"
+	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing" || status === "processing")
 
 	// Actions
 	const refetchP2P = async () => {
@@ -140,9 +143,11 @@ const P2POffer = ({ route }) => {
 	if (isLoading) { return (<QPLoader />) }
 	if (error) {
 		return (
-			<View style={[containerStyles.card, { alignItems: "center", justifyContent: "center" }]}>
-				<Text style={[textStyles.h5, { color: theme.colors.danger }]}>No se pudo cargar la oferta</Text>
-				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error)}</Text>
+			<View style={containerStyles.subContainer}>
+				<View style={[containerStyles.card, { alignItems: "center", justifyContent: "center" }]}>
+					<Text style={[textStyles.h5, { color: theme.colors.danger }]}>No se pudo cargar la oferta</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error)}</Text>
+				</View>
 			</View>
 		)
 	}
@@ -242,40 +247,50 @@ const P2POffer = ({ route }) => {
 						)}
 					</ScrollView>
 
-					<View style={[containerStyles.bottomButtonContainer, { gap: 8 }]}>
+					<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row' }]}>
+
 						{canCancel && (
 							<QPButton
-								title="Cancelar"
+								title=""
 								onPress={handleCancel}
-								style={{ backgroundColor: theme.colors.danger }}
-								textStyle={{ color: theme.colors.almostWhite }}
+								style={{
+									width: 60,
+									borderRadius: 30,
+									paddingHorizontal: 0,
+									marginRight: 10,
+									backgroundColor: theme.colors.danger
+								}}
+								textStyle={{ color: theme.colors.primaryText }}
 								icon="xmark"
 								iconColor={theme.colors.primaryText}
 								iconStyle="solid"
 							/>
 						)}
+
 						{canMarkPaid && (
 							<QPButton
 								title="He pagado"
 								onPress={handleMarkPaid}
-								style={{ backgroundColor: theme.colors.success }}
+								style={[{ backgroundColor: theme.colors.success }, styles.actionButton]}
 								textStyle={{ color: theme.colors.almostBlack }}
 								icon="circle-check"
 								iconColor={theme.colors.almostBlack}
 								iconStyle="solid"
 							/>
 						)}
+
 						{canConfirmReceived && (
 							<QPButton
 								title="Pago recibido"
 								onPress={handleConfirmReceived}
-								style={{ backgroundColor: theme.colors.primary }}
-								textStyle={{ color: theme.colors.almostBlack }}
+								style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
+								textStyle={{ color: theme.colors.almostWhite }}
 								icon="money-bill-1-wave"
-								iconColor={theme.colors.almostBlack}
+								iconColor={theme.colors.almostWhite}
 								iconStyle="solid"
 							/>
 						)}
+
 					</View>
 
 				</View>
@@ -381,7 +396,14 @@ const styles = StyleSheet.create({
 	messageText: {
 		flex: 1,
 		marginRight: 12
-	}
+	},
+	actionButton: {
+		flex: 1,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		minHeight: 56,
+	},
 })
 
 export default P2POffer

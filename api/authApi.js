@@ -14,12 +14,16 @@ export const authApi = {
 
         try {
 
+			console.log("requesting")
+
             const response = await apiClient.post('/auth/login', {
                 email: credentials.email,
                 password: credentials.password,
                 two_factor_code: credentials.two_factor_code || '',
                 remember: true
             })
+
+			console.log("response", response)
 
             // If Prelogin is successful, we return the status and success
             if (response.status === 202) { return { status: response.status, success: true, notified: response.data.notified } }
@@ -35,13 +39,26 @@ export const authApi = {
 
         } catch (error) {
 
+			console.log("error", error)
+
             // Handle specific API errors
-            if (error.response?.data) {
+            if (error?.response?.data) {
                 const errorData = error.response.data
-                return { success: false, error: errorData.message || 'No se pudo iniciar sesión', details: errorData, status: error.response.status }
+                return {
+                    success: false,
+                    error: errorData.message || errorData.error || 'No se pudo iniciar sesión',
+                    details: errorData,
+                    status: error.response?.status ?? null
+                }
             }
 
-            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response.status }
+            // Network or unexpected error
+            const friendlyMessage = 'No se ha podido conectar al servidor'
+            return {
+                success: false,
+                error: error.message || friendlyMessage,
+                status: error?.response?.status ?? null
+            }
         }
     },
 
