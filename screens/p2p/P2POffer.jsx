@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable } from "react-native"
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -51,6 +51,8 @@ const P2POffer = ({ route }) => {
 	const chatScrollRef = useRef(null)
 	const chatIntervalRef = useRef(null)
 	const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
+	const [visibleTimestamps, setVisibleTimestamps] = useState(new Set())
+	const messageAnimations = useRef({})
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
@@ -178,6 +180,24 @@ const P2POffer = ({ route }) => {
 		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
 	}
 
+	// Create animation if it doesn't exist
+	const toggleTimestamp = (messageId) => {
+		if (!messageAnimations.current[messageId]) { messageAnimations.current[messageId] = new Animated.Value(0) }
+		setVisibleTimestamps(prev => {
+			const newSet = new Set(prev)
+			const isCurrentlyVisible = newSet.has(messageId)
+			if (isCurrentlyVisible) {
+				// Hide with animation
+				Animated.timing(messageAnimations.current[messageId], { toValue: 0, duration: 200, useNativeDriver: true }).start(() => { newSet.delete(messageId) })
+			} else {
+				// Show with animation
+				newSet.add(messageId)
+				Animated.timing(messageAnimations.current[messageId], { toValue: 1, duration: 300, useNativeDriver: true }).start()
+			}
+			return newSet
+		})
+	}
+
 	// Loading state check
 	if (isLoading) { return (<QPLoader />) }
 	if (error) {
@@ -236,7 +256,7 @@ const P2POffer = ({ route }) => {
 					)}
 
 					{/* Chat Container - Scrollable */}
-					<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0 }]}>
+					<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>
 
 						{counterparty && (
 							<View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
@@ -283,8 +303,10 @@ const P2POffer = ({ route }) => {
 									<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
 								</View>
 							) : (
+
+								// Use peer_id to determine if message is from current user
 								chatMessages.map((m, idx) => {
-									// Use peer_id to determine if message is from current user
+
 									const mine = m.peer_id && user?.uuid && m.peer_id === user.uuid
 									const prevMessage = idx > 0 ? chatMessages[idx - 1] : null
 									const nextMessage = idx < chatMessages.length - 1 ? chatMessages[idx + 1] : null
@@ -292,6 +314,7 @@ const P2POffer = ({ route }) => {
 									const nextMine = nextMessage?.peer_id && user?.uuid && nextMessage.peer_id === user.uuid
 									const isConsecutive = prevMine === mine
 									const isLastInGroup = nextMine !== mine || idx === chatMessages.length - 1
+									const showTimestamp = isLastInGroup || visibleTimestamps.has(m.id)
 
 									// Get sender info for avatar (use counterparty if not mine)
 									const sender = mine ? user : counterparty
@@ -302,18 +325,21 @@ const P2POffer = ({ route }) => {
 											{/* Avatar - only show on last message in group */}
 											{isLastInGroup ? (<View style={{ marginHorizontal: 6 }}><QPAvatar user={sender} size={16} /></View>) : (<View style={{ width: 16, marginHorizontal: 6 }} />)}
 
-											{/* Message Bubble */}
-											<View style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
+											{/* Message Bubble - Touchable */}
+											<TouchableOpacity onPress={() => !isLastInGroup && m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7} style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
 												<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
 													{m.message || m.text || ""}
 												</Text>
-												{/* Show timestamp only on last message in group */}
-												{isLastInGroup && m.created_at && (
-													<Text style={[textStyles.h7, { color: theme.colors.almostBlack, marginTop: 4, opacity: 0.5, textAlign: mine ? "right" : "left" }]}>
-														{formatDateTime(m.created_at)}
-													</Text>
+												{/* Show timestamp on last message in group or when manually toggled */}
+												{showTimestamp && m.created_at && (
+													<Animated.View
+														style={{ opacity: isLastInGroup ? 1 : (messageAnimations.current[m.id] || new Animated.Value(0)), transform: [{ translateY: isLastInGroup ? 0 : (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
+														<Text style={[textStyles.h7, { color: theme.colors.almostBlack, marginTop: 4, opacity: 0.5, textAlign: mine ? "right" : "left" }]}>
+															{formatDateTime(m.created_at)}
+														</Text>
+													</Animated.View>
 												)}
-											</View>
+											</TouchableOpacity>
 										</View>
 									)
 								})
