@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity } from "react-native"
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -10,6 +10,7 @@ import QPButton from "../../ui/particles/QPButton"
 import QPCoin from "../../ui/particles/QPCoin"
 import QPAvatar from "../../ui/particles/QPAvatar"
 import QPLoader from "../../ui/particles/QPLoader"
+import QPRate from "../../ui/particles/QPRate"
 import ProfileContainerHorizontal from "../../ui/ProfileContainerHorizontal"
 
 // Icons
@@ -42,6 +43,7 @@ const P2POffer = ({ route }) => {
 	const [p2p, setP2p] = useState(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState(null)
+	const [loadingReceived, setLoadingReceived] = useState(false)
 
 	// Chat state
 	const [chatMessages, setChatMessages] = useState([])
@@ -123,10 +125,13 @@ const P2POffer = ({ route }) => {
 
 	// Offer Status dynamics
 	const status = p2p?.status || "open"
+	const counterparty = isOwner ? p2p?.Peer : p2p?.User
+
+	// Actions Buttons
 	const canCancel = (isOwner || isPeer) && ["open", "paid", "processing"].includes(status)
 	const canMarkPaid = isPayer && status === "processing"
 	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing" || status === "processing")
-	const counterparty = isOwner ? p2p?.Peer : p2p?.User
+	const canRatePeer = p2p?.status === "completed"
 
 	// Actions
 	const refetchP2P = async () => {
@@ -136,34 +141,76 @@ const P2POffer = ({ route }) => {
 		} catch (e) { /* ignore */ }
 	}
 
-	const handleCancel = async () => {
-		try {
-			const res = await p2pApi.cancel(p2p.uuid)
-			if (res.success) {
-				Toast.show({ type: "success", text1: "Oferta cancelada" })
-				refetchP2P()
-			} else { Toast.show({ type: "error", text1: "No se pudo cancelar", text2: String(res.error || "") }) }
-		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+	const handleCancel = () => {
+		Alert.alert(
+			"Cancelar Oferta",
+			"¿Estás seguro de que quieres cancelar esta oferta? Esta acción no se puede deshacer.",
+			[
+				{ text: "No", style: "cancel" },
+				{
+					text: "Sí, Cancelar",
+					style: "destructive",
+					onPress: async () => {
+						try {
+							const res = await p2pApi.cancel(p2p.uuid)
+							if (res.success) {
+								Toast.show({ type: "success", text1: "Oferta cancelada" })
+								refetchP2P()
+							} else { Toast.show({ type: "error", text1: "No se pudo cancelar", text2: String(res.error || "") }) }
+						} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+					}
+				}
+			]
+		)
 	}
 
-	const handleMarkPaid = async () => {
-		try {
-			const res = await p2pApi.markPaid(p2p.uuid)
-			if (res.success) {
-				Toast.show({ type: "success", text1: "Pago marcado como realizado" })
-				refetchP2P()
-			} else { Toast.show({ type: "error", text1: "No se pudo marcar pago", text2: String(res.error || "") }) }
-		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+	const handleMarkPaid = () => {
+		Alert.alert(
+			"Confirmar Pago",
+			"¿Has realizado el pago al vendedor? Una vez confirmado, no podrás deshacer esta acción.",
+			[
+				{ text: "No", style: "cancel" },
+				{
+					text: "Sí, he pagado",
+					style: "default",
+					onPress: async () => {
+						try {
+							const res = await p2pApi.markPaid(p2p.uuid)
+							if (res.success) {
+								Toast.show({ type: "success", text1: "Pago marcado como realizado" })
+								refetchP2P()
+							} else { Toast.show({ type: "error", text1: "No se pudo marcar pago", text2: String(res.error || "") }) }
+						} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+					}
+				}
+			]
+		)
 	}
 
-	const handleConfirmReceived = async () => {
-		try {
-			const res = await p2pApi.confirmReceived(p2p.uuid)
-			if (res.success) {
-				Toast.show({ type: "success", text1: "Pago recibido. Fondos liberados" })
-				refetchP2P()
-			} else { Toast.show({ type: "error", text1: "No se pudo confirmar", text2: String(res.error || "") }) }
-		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+	// Confirm received
+	const handleConfirmReceived = () => {
+		Alert.alert(
+			"Confirmar Recepción",
+			"¿Has recibido el pago del comprador? Esta acción liberará los fondos en garantía.",
+			[
+				{ text: "No", style: "cancel" },
+				{
+					text: "Sí, he recibido",
+					style: "default",
+					onPress: async () => {
+						try {
+							setLoadingReceived(true)
+							const res = await p2pApi.confirmReceived(p2p.uuid)
+							if (res.success) {
+								Toast.show({ type: "success", text1: "Pago recibido. Fondos liberados" })
+								refetchP2P()
+							} else { Toast.show({ type: "error", text1: "No se pudo confirmar", text2: String(res.error || "") }) }
+						} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+						finally { setLoadingReceived(false) }
+					}
+				}
+			]
+		)
 	}
 
 	const handleSendChat = async () => {
@@ -334,7 +381,7 @@ const P2POffer = ({ route }) => {
 												{showTimestamp && m.created_at && (
 													<Animated.View
 														style={{ opacity: isLastInGroup ? 1 : (messageAnimations.current[m.id] || new Animated.Value(0)), transform: [{ translateY: isLastInGroup ? 0 : (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-														<Text style={[textStyles.h7, { color: theme.colors.almostBlack, marginTop: 4, opacity: 0.5, textAlign: mine ? "right" : "left" }]}>
+														<Text style={[textStyles.h7, { fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
 															{formatDateTime(m.created_at)}
 														</Text>
 													</Animated.View>
@@ -400,8 +447,16 @@ const P2POffer = ({ route }) => {
 								icon="money-bill-1-wave"
 								iconColor={theme.colors.almostWhite}
 								iconStyle="solid"
+								loading={loadingReceived}
 							/>
 						)}
+
+						{canRatePeer && (
+							<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 10 }}>
+								<QPRate value={p2p.rating} size={28} />
+							</View>
+						)}
+
 					</View>
 
 				</View>
