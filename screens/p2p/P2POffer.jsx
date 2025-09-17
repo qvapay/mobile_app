@@ -256,9 +256,9 @@ const P2POffer = ({ route }) => {
 							style={{ flex: 1 }}
 							contentContainerStyle={{
 								flexGrow: 1,
-								paddingVertical: 12,
-								paddingHorizontal: 16,
-								paddingBottom: 16
+								paddingVertical: 6,
+								paddingHorizontal: 0,
+								paddingBottom: 6
 							}}
 							showsVerticalScrollIndicator={true}
 							keyboardShouldPersistTaps="handled"
@@ -304,11 +304,11 @@ const P2POffer = ({ route }) => {
 
 											{/* Message Bubble */}
 											<View style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
-												<Text style={[textStyles.h6, { color: mine ? theme.colors.almostBlack : theme.colors.primaryText, lineHeight: 20 }]}>
+												<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
 													{m.message || m.text || ""}
 												</Text>
 												{m.created_at && (
-													<Text style={[textStyles.h7, { color: mine ? theme.colors.almostBlack : theme.colors.secondaryText, marginTop: 4, opacity: 0.7 }]}>
+													<Text style={[textStyles.h7, { color: theme.colors.almostBlack, marginTop: 4, opacity: 0.5, textAlign: mine ? "right" : "left" }]}>
 														{formatDateTime(m.created_at)}
 													</Text>
 												)}
