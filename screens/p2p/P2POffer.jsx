@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, ActivityIndicator, Pressable } from "react-native"
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -10,6 +10,7 @@ import QPButton from "../../ui/particles/QPButton"
 import QPCoin from "../../ui/particles/QPCoin"
 import QPAvatar from "../../ui/particles/QPAvatar"
 import QPLoader from "../../ui/particles/QPLoader"
+import ProfileContainerHorizontal from "../../ui/ProfileContainerHorizontal"
 
 // Icons
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
@@ -49,31 +50,67 @@ const P2POffer = ({ route }) => {
 	const [chatText, setChatText] = useState("")
 	const chatScrollRef = useRef(null)
 	const chatIntervalRef = useRef(null)
+	const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
 
 	// Fetch P2P data
 	useEffect(() => {
-		const fetchP2P = async () => {
-			try {
-				setIsLoading(true)
-				const response = await p2pApi.show(p2p_uuid)
-				if (response.success) {
-					const payload = response.data?.p2p || response.data
-					setP2p(payload)
-				} else {
-					setError(response.error)
-					Toast.show({ type: "error", text1: "Error", text2: String(response.error || "No se pudo cargar la oferta") })
-				}
-			} catch (error) {
-				setError(error.message)
-				Toast.show({ type: "error", text1: "Error", text2: error.message })
-			} finally { setIsLoading(false) }
-		}
 		fetchP2P()
-		return () => { /* cleanup if needed */ }
+		fetchChat()
+		return () => { /* cleanup */ }
 	}, [])
+
+	// Helpers
+	const sortMessagesAscending = (messagesArray) => {
+		if (!Array.isArray(messagesArray)) return []
+		return [...messagesArray].sort((a, b) => {
+			const aTime = a.created_at ? new Date(a.created_at).getTime() : (parseInt(a.id, 10) || 0)
+			const bTime = b.created_at ? new Date(b.created_at).getTime() : (parseInt(b.id, 10) || 0)
+			return aTime - bTime
+		})
+	}
+
+	// Loaders
+	const fetchP2P = async () => {
+		try {
+			setIsLoading(true)
+			const response = await p2pApi.show(p2p_uuid)
+			if (response.success) {
+				const payload = response.data?.p2p || response.data
+				setP2p(payload)
+			} else {
+				setError(response.error)
+				Toast.show({ type: "error", text1: "Error", text2: String(response.error || "No se pudo cargar la oferta") })
+			}
+		} catch (error) {
+			setError(error.message)
+			Toast.show({ type: "error", text1: "Error", text2: error.message })
+		} finally { setIsLoading(false) }
+	}
+
+	const fetchChat = async () => {
+		try {
+			setChatLoading(true)
+			setChatError(null)
+			const response = await p2pApi.getChat(p2p_uuid)
+			if (response.success) {
+				const raw = response.data?.chat || response.data
+				setChatMessages(sortMessagesAscending(raw))
+			}
+		} catch (error) {
+			setChatError(error.message)
+			Toast.show({ type: "error", text1: "Error", text2: error.message })
+		} finally { setChatLoading(false) }
+	}
+
+	// Auto-scroll to bottom when messages change (only if enabled)
+	useEffect(() => {
+		if (!autoScrollEnabled) return
+		const t = setTimeout(() => { chatScrollRef.current?.scrollToEnd({ animated: true }) }, 50)
+		return () => clearTimeout(t)
+	}, [chatMessages?.length, autoScrollEnabled])
 
 	// Derived booleans
 	const isOwner = useMemo(() => !!(user?.uuid && p2p?.User?.uuid && user.uuid === p2p.User.uuid), [user?.uuid, p2p?.User?.uuid])
@@ -82,14 +119,12 @@ const P2POffer = ({ route }) => {
 	const isPayer = useMemo(() => (payerIsOwner ? isOwner : isPeer), [payerIsOwner, isOwner, isPeer])
 	const isReceiver = useMemo(() => (!isPayer && (isOwner || isPeer)), [isPayer, isOwner, isPeer])
 
-	console.log(p2p)
-	console.log(isOwner, isPeer, payerIsOwner, isPayer, isReceiver)
-
-	// Off Status dynamics
+	// Offer Status dynamics
 	const status = p2p?.status || "open"
 	const canCancel = (isOwner || isPeer) && ["open", "paid", "processing"].includes(status)
 	const canMarkPaid = isPayer && status === "processing"
 	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing" || status === "processing")
+	const counterparty = isOwner ? p2p?.Peer : p2p?.User
 
 	// Actions
 	const refetchP2P = async () => {
@@ -133,8 +168,12 @@ const P2POffer = ({ route }) => {
 		const message = (chatText || "").trim()
 		if (message.length === 0) return
 		try {
-			const res = await p2pApi.sendChat(p2p.uuid, { message })
-			if (res.success) { setChatText(""); fetchChat() }
+			const res = await p2pApi.sendChat(p2p_uuid, { message })
+			if (res.success) {
+				setChatText("")
+				await fetchChat()
+				chatScrollRef.current?.scrollToEnd({ animated: true })
+			}
 			else { Toast.show({ type: "error", text1: "No se pudo enviar", text2: String(res.error || "") }) }
 		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
 	}
@@ -153,113 +192,159 @@ const P2POffer = ({ route }) => {
 	}
 
 	return (
-		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
-			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+		<View style={containerStyles.subContainer}>
+			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
 				<View style={{ flex: 1 }}>
 
-					<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-						{p2p && (
-							<>
-								<View style={containerStyles.card}>
-									<View style={styles.offerHeader}>
-										<View style={styles.typeContainer}>
-											<Text style={[styles.typeText, { color: theme.colors.primaryText }]}>{getTypeText(p2p.type)}</Text>
-										</View>
-										<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>{new Date(p2p.created_at).toLocaleDateString()}</Text>
-									</View>
-
-									<View style={{ gap: 2, marginBottom: 4 }}>
-										<View style={styles.coinRow}>
-											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-												<QPCoin coin={p2p.Coin?.logo} size={20} />
-												<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
-													{p2p.Coin?.name}
-												</Text>
-											</View>
-											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-												<FontAwesome6 name="money-bill-transfer" size={12} color={theme.colors.primaryText} iconStyle="solid" />
-												<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '400' }]} >
-													{Number(p2p.receive / p2p.amount).toFixed(2)}
-												</Text>
-											</View>
-										</View>
-										<View style={[styles.amountRow, { marginLeft: 2 }]}>
-											<Text style={[textStyles.h2, { color: theme.colors.primary, fontWeight: '800' }]}>${p2p.amount}</Text>
-											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
-											<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{p2p.receive}</Text>
-										</View>
-									</View>
-
-									{p2p?.message && (
-										<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6 }}>
-											<FontAwesome6 name="message" size={14} color={theme.colors.primary} iconStyle="solid" />
-											<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1} ellipsizeMode="tail">{p2p.message}</Text>
-										</View>
-									)}
+					{/* Offer Header - Fixed */}
+					{p2p && (
+						<View style={containerStyles.card}>
+							<View style={styles.offerHeader}>
+								<View style={styles.typeContainer}>
+									<Text style={[styles.typeText, { color: theme.colors.primaryText }]}>{getTypeText(p2p.type)}</Text>
 								</View>
-
-								{/* Chat */}
-								<View style={[containerStyles.card, { flex: 1, padding: 0 }]}>
-
-									<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-										{chatLoading && <ActivityIndicator size="small" color={theme.colors.primary} />}
+								<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>{new Date(p2p.created_at).toLocaleDateString()}</Text>
+							</View>
+							<View style={{ gap: 2, marginBottom: 4 }}>
+								<View style={styles.coinRow}>
+									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+										<QPCoin coin={p2p.Coin?.logo} size={20} />
+										<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+											{p2p.Coin?.name}
+										</Text>
 									</View>
-
-									{chatError && (<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 6 }]}>{String(chatError)}</Text>)}
-
-									<ScrollView ref={chatScrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 10 }}>
-										{chatMessages.length === 0 && !chatLoading ? (
-											<View style={{ alignItems: "center", paddingVertical: 20 }}>
-												<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
-											</View>
-										) : (
-											chatMessages.map((m, idx) => {
-												const sender = m.user || m.User || {}
-												const mine = sender?.uuid && user?.uuid && sender.uuid === user.uuid
-												return (
-													<View key={m.id || idx} style={{ flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginVertical: 6, gap: 8 }}>
-														<QPAvatar user={sender} size={28} />
-														<View style={{ maxWidth: "78%", backgroundColor: mine ? theme.colors.primary : theme.colors.elevation, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14 }}>
-															<Text style={[textStyles.h6, { color: mine ? theme.colors.almostBlack : theme.colors.primaryText }]}>{m.message || m.text || ""}</Text>
-															{m.created_at && <Text style={[textStyles.h7, { color: mine ? theme.colors.almostBlack : theme.colors.secondaryText, marginTop: 4 }]}>{formatDateTime(m.created_at)}</Text>}
-														</View>
-													</View>
-												)
-											})
-										)}
-									</ScrollView>
-
-									<View style={{ flexDirection: "row", alignItems: "center", gap: 2, margin: 2 }}>
-										<TextInput
-											value={chatText}
-											onChangeText={setChatText}
-											placeholder="Escribe tu mensaje..."
-											placeholderTextColor={theme.colors.placeholder}
-											style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 10 }]}
-										/>
-										<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }}>
-											<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
-										</Pressable>
+									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+										<FontAwesome6 name="money-bill-transfer" size={12} color={theme.colors.primaryText} iconStyle="solid" />
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '400' }]} >
+											{Number(p2p.receive / p2p.amount).toFixed(2)}
+										</Text>
 									</View>
 								</View>
-							</>
+								<View style={[styles.amountRow, { marginLeft: 2 }]}>
+									<Text style={[textStyles.h2, { color: theme.colors.primary, fontWeight: '800' }]}>${p2p.amount}</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
+									<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{p2p.receive}</Text>
+								</View>
+							</View>
+							{p2p?.message && (
+								<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6 }}>
+									<FontAwesome6 name="message" size={14} color={theme.colors.primary} iconStyle="solid" />
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1} ellipsizeMode="tail">{p2p.message}</Text>
+								</View>
+							)}
+						</View>
+					)}
+
+					{/* Chat Container - Scrollable */}
+					<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0 }]}>
+
+						{counterparty && (
+							<View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+								<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
+							</View>
 						)}
-					</ScrollView>
 
+						{chatError && (
+							<View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+								<Text style={[textStyles.h7, { color: theme.colors.danger }]}>{String(chatError)}</Text>
+							</View>
+						)}
+
+						{/* Chat Messages - Scrollable Area */}
+						<ScrollView
+							ref={chatScrollRef}
+							style={{ flex: 1 }}
+							contentContainerStyle={{
+								flexGrow: 1,
+								paddingVertical: 12,
+								paddingHorizontal: 16,
+								paddingBottom: 16
+							}}
+							showsVerticalScrollIndicator={true}
+							keyboardShouldPersistTaps="handled"
+							keyboardDismissMode="interactive"
+							nestedScrollEnabled={false}
+							scrollEventThrottle={16}
+							onScrollBeginDrag={() => setAutoScrollEnabled(false)}
+							onScroll={(e) => {
+								const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent
+								const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y)
+								if (distanceFromBottom < 50) { setAutoScrollEnabled(true) }
+							}}
+							onMomentumScrollEnd={(e) => {
+								const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent
+								const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y)
+								if (distanceFromBottom < 50) { setAutoScrollEnabled(true) }
+							}}
+							onContentSizeChange={() => { if (autoScrollEnabled) { setTimeout(() => { chatScrollRef.current?.scrollToEnd({ animated: true }) }, 100) } }}
+						>
+							{chatMessages.length === 0 && !chatLoading ? (
+								<View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 }}>
+									<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
+								</View>
+							) : (
+								chatMessages.map((m, idx) => {
+									// Use peer_id to determine if message is from current user
+									const mine = m.peer_id && user?.uuid && m.peer_id === user.uuid
+									const prevMessage = idx > 0 ? chatMessages[idx - 1] : null
+									const prevMine = prevMessage?.peer_id && user?.uuid && prevMessage.peer_id === user.uuid
+									const isConsecutive = prevMine === mine
+
+									// Get sender info for avatar (use counterparty if not mine)
+									const sender = mine ? user : counterparty
+
+									return (
+										<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 2 : 6, marginBottom: isConsecutive ? 2 : 6 }]}>
+
+											{/* Avatar - only show if not consecutive or first message */}
+											{!isConsecutive && (<View style={{ marginHorizontal: 6 }}><QPAvatar user={sender} size={16} /></View>)}
+
+											{/* Spacer for consecutive messages */}
+											{isConsecutive && <View style={{ width: 28 }} />}
+
+											{/* Message Bubble */}
+											<View style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
+												<Text style={[textStyles.h6, { color: mine ? theme.colors.almostBlack : theme.colors.primaryText, lineHeight: 20 }]}>
+													{m.message || m.text || ""}
+												</Text>
+												{m.created_at && (
+													<Text style={[textStyles.h7, { color: mine ? theme.colors.almostBlack : theme.colors.secondaryText, marginTop: 4, opacity: 0.7 }]}>
+														{formatDateTime(m.created_at)}
+													</Text>
+												)}
+											</View>
+										</View>
+									)
+								})
+							)}
+						</ScrollView>
+
+						{/* Chat Input - Fixed at bottom */}
+						<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+							<View style={[styles.chatInputContainer, { borderTopColor: theme.colors.border }]}>
+								<TextInput
+									value={chatText}
+									onChangeText={setChatText}
+									placeholder="Escribe tu mensaje..."
+									placeholderTextColor={theme.colors.placeholder}
+									style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, maxHeight: 100 }]}
+									multiline
+									textAlignVertical="center"
+								/>
+								<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={[styles.sendButton, { backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }]}>
+									<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
+								</Pressable>
+							</View>
+						</TouchableWithoutFeedback>
+					</View>
+
+					{/* Action Buttons - Fixed at bottom */}
 					<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row' }]}>
-
 						{canCancel && (
 							<QPButton
 								title=""
 								onPress={handleCancel}
-								style={{
-									width: 60,
-									borderRadius: 30,
-									paddingHorizontal: 0,
-									marginRight: 10,
-									backgroundColor: theme.colors.danger
-								}}
+								style={{ width: 60, borderRadius: 30, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
 								textStyle={{ color: theme.colors.primaryText }}
 								icon="xmark"
 								iconColor={theme.colors.primaryText}
@@ -290,12 +375,11 @@ const P2POffer = ({ route }) => {
 								iconStyle="solid"
 							/>
 						)}
-
 					</View>
 
 				</View>
-			</TouchableWithoutFeedback>
-		</KeyboardAvoidingView>
+			</KeyboardAvoidingView>
+		</View>
 	)
 }
 
@@ -403,6 +487,35 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		minHeight: 56,
+	},
+	messageContainer: {
+		flexDirection: 'row',
+		alignItems: 'flex-end',
+		marginVertical: 4,
+	},
+	messageBubble: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 1, },
+		shadowOpacity: 0.1,
+		shadowRadius: 2,
+		elevation: 2,
+	},
+	chatInputContainer: {
+		flexDirection: 'row',
+		alignItems: 'flex-end',
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderTopWidth: 1,
+		gap: 4,
+	},
+	sendButton: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 })
 
