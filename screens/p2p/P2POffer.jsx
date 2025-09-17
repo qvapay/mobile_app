@@ -287,8 +287,11 @@ const P2POffer = ({ route }) => {
 									// Use peer_id to determine if message is from current user
 									const mine = m.peer_id && user?.uuid && m.peer_id === user.uuid
 									const prevMessage = idx > 0 ? chatMessages[idx - 1] : null
+									const nextMessage = idx < chatMessages.length - 1 ? chatMessages[idx + 1] : null
 									const prevMine = prevMessage?.peer_id && user?.uuid && prevMessage.peer_id === user.uuid
+									const nextMine = nextMessage?.peer_id && user?.uuid && nextMessage.peer_id === user.uuid
 									const isConsecutive = prevMine === mine
+									const isLastInGroup = nextMine !== mine || idx === chatMessages.length - 1
 
 									// Get sender info for avatar (use counterparty if not mine)
 									const sender = mine ? user : counterparty
@@ -296,18 +299,16 @@ const P2POffer = ({ route }) => {
 									return (
 										<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 2 : 6, marginBottom: isConsecutive ? 2 : 6 }]}>
 
-											{/* Avatar - only show if not consecutive or first message */}
-											{!isConsecutive && (<View style={{ marginHorizontal: 6 }}><QPAvatar user={sender} size={16} /></View>)}
-
-											{/* Spacer for consecutive messages */}
-											{isConsecutive && <View style={{ width: 28 }} />}
+											{/* Avatar - only show on last message in group */}
+											{isLastInGroup ? (<View style={{ marginHorizontal: 6 }}><QPAvatar user={sender} size={16} /></View>) : (<View style={{ width: 16, marginHorizontal: 6 }} />)}
 
 											{/* Message Bubble */}
 											<View style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
 												<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
 													{m.message || m.text || ""}
 												</Text>
-												{m.created_at && (
+												{/* Show timestamp only on last message in group */}
+												{isLastInGroup && m.created_at && (
 													<Text style={[textStyles.h7, { color: theme.colors.almostBlack, marginTop: 4, opacity: 0.5, textAlign: mine ? "right" : "left" }]}>
 														{formatDateTime(m.created_at)}
 													</Text>
