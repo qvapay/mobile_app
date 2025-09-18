@@ -40,6 +40,7 @@ const benefits = [
     'Más operaciones simultáneas en el P2P',
     `Subdominio exclusivo (xxx.qvapay.com)`,
     'Acceso anticipado a ofertas P2P',
+	'0% de comisión en P2P',
     'Acceso anticipado a funciones nuevas',
     'Cashback en compras de recargas',
     'Soporte prioritario'

@@ -41,6 +41,7 @@ import Transaction from './screens/transaction/Transaction'
 import Transactions from './screens/transaction/Transactions'
 import P2PCreate from './screens/p2p/P2PCreate'
 import P2POffer from './screens/p2p/P2POffer'
+import Scan from './screens/scan/Scan'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -286,6 +287,30 @@ const AppNavigator = () => {
 					headerLeft: () => (
 						<Pressable onPress={() => navigation.goBack()}>
 							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
+
+			{/* QR Scan Screen */}
+			<Stack.Screen
+				name={ROUTES.SCAN_SCREEN}
+				component={Scan}
+				options={{
+					headerTitle: 'Scan QR',
+					animation: 'slide_from_left',
+					headerShown: true,
+					headerBackVisible: false,
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					),
+					headerRight: () => (
+						<Pressable>
+							<FontAwesome6 name="ellipsis-vertical" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
 					)
 				}}

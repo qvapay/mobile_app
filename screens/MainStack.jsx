@@ -113,7 +113,7 @@ const MainStack = ({ navigation }) => {
                     options={({ navigation }) => ({
                         headerTitle: '',
                         headerRight: () => (
-                            <Pressable style={containerStyles.headerRight}>
+                            <Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
                                 <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
                             </Pressable>
                         )
