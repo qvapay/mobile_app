@@ -237,7 +237,20 @@ export const p2pApi = {
 				status: error.response?.status
 			}
 		}
-	}
+	},
+
+	/**
+	 * Rate a P2P offer
+	 * @param {string} p2p_uuid - The P2P UUID
+	 * @param {Object} payload - The rating payload
+	 * @returns {Promise<Object>} The P2P offer rating response
+	 */
+	rateOffer: async (p2p_uuid, payload) => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/rate`, payload)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+	},
 }
 
 // Export the apiClient for other API calls

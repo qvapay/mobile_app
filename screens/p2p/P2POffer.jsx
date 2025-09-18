@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert } from "react-native"
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, RefreshControl } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -26,7 +26,10 @@ import { p2pApi } from "../../api/p2pApi"
 import Toast from "react-native-toast-message"
 
 // Helpers
-import { formatDateTime, getTypeText } from "../../helpers"
+import { getTypeText, getShortDateTime } from "../../helpers"
+
+// Lottie
+import LottieView from "lottie-react-native"
 
 // P2P Offer Component
 const P2POffer = ({ route }) => {
@@ -44,6 +47,8 @@ const P2POffer = ({ route }) => {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState(null)
 	const [loadingReceived, setLoadingReceived] = useState(false)
+	const [refreshing, setRefreshing] = useState(false)
+	const [rating, setRating] = useState(0)
 
 	// Chat state
 	const [chatMessages, setChatMessages] = useState([])
@@ -58,6 +63,7 @@ const P2POffer = ({ route }) => {
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
+	console.log("p2p_uuid", p2p_uuid)
 
 	// Fetch P2P data
 	useEffect(() => {
@@ -76,7 +82,7 @@ const P2POffer = ({ route }) => {
 		})
 	}
 
-	// Loaders
+	// Fetch P2P
 	const fetchP2P = async () => {
 		try {
 			setIsLoading(true)
@@ -84,6 +90,8 @@ const P2POffer = ({ route }) => {
 			if (response.success) {
 				const payload = response.data?.p2p || response.data
 				setP2p(payload)
+				// Initialize rating with existing rating from P2P data
+				setRating(payload?.rating || 0)
 			} else {
 				setError(response.error)
 				Toast.show({ type: "error", text1: "Error", text2: String(response.error || "No se pudo cargar la oferta") })
@@ -94,6 +102,7 @@ const P2POffer = ({ route }) => {
 		} finally { setIsLoading(false) }
 	}
 
+	// Fetch chat
 	const fetchChat = async () => {
 		try {
 			setChatLoading(true)
@@ -141,6 +150,17 @@ const P2POffer = ({ route }) => {
 		} catch (e) { /* ignore */ }
 	}
 
+	// Refresh handler for pull-to-refresh
+	const onRefresh = async () => {
+		setRefreshing(true)
+		try {
+			await Promise.all([refetchP2P(), fetchChat()])
+		} catch (error) {
+			// Error handling is done in individual fetch functions
+		} finally { setRefreshing(false) }
+	}
+
+	// Cancel
 	const handleCancel = () => {
 		Alert.alert(
 			"Cancelar Oferta",
@@ -164,6 +184,7 @@ const P2POffer = ({ route }) => {
 		)
 	}
 
+	// Mark paid
 	const handleMarkPaid = () => {
 		Alert.alert(
 			"Confirmar Pago",
@@ -213,6 +234,25 @@ const P2POffer = ({ route }) => {
 		)
 	}
 
+	// Rate peer
+	const handleRate = async (newRating) => {
+		try {
+			setRating(newRating)
+			const res = await p2pApi.rateOffer(p2p_uuid, { rating: newRating })
+			if (res.success) {
+				Toast.show({ type: "success", text1: "Oferta calificada" })
+				refetchP2P()
+			} else {
+				Toast.show({ type: "error", text1: "No se pudo calificar", text2: String(res.error.error || "") })
+				setRating(p2p?.rating || 0)
+			}
+		} catch (error) {
+			Toast.show({ type: "error", text1: "Error", text2: error.message })
+			setRating(p2p?.rating || 0)
+		}
+	}
+
+	// Send chat
 	const handleSendChat = async () => {
 		const message = (chatText || "").trim()
 		if (message.length === 0) return
@@ -227,7 +267,7 @@ const P2POffer = ({ route }) => {
 		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
 	}
 
-	// Create animation if it doesn't exist
+	// Toggle timestamp
 	const toggleTimestamp = (messageId) => {
 		if (!messageAnimations.current[messageId]) { messageAnimations.current[messageId] = new Animated.Value(0) }
 		setVisibleTimestamps(prev => {
@@ -261,7 +301,21 @@ const P2POffer = ({ route }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
-				<View style={{ flex: 1 }}>
+				<ScrollView
+					style={{ flex: 1 }}
+					contentContainerStyle={{ flexGrow: 1 }}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={onRefresh}
+							tintColor={theme.colors.primary}
+							colors={[theme.colors.primary]}
+							title="Actualizando..."
+							titleColor={theme.colors.secondaryText}
+						/>
+					}
+					showsVerticalScrollIndicator={false}
+				>
 
 					{/* Offer Header - Fixed */}
 					{p2p && (
@@ -302,162 +356,176 @@ const P2POffer = ({ route }) => {
 						</View>
 					)}
 
-					{/* Chat Container - Scrollable */}
-					<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>
+					{status == "open" ? (
+						<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Estamos buscando un peer interesado en tu oferta.</Text>
+							<LottieView
+								source={require("../../assets/lotties/searching.json")}
+								autoPlay
+								loop
+								style={{ width: 250, height: 250 }}
+							/>
+						</View>
+					) : (
+						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>
 
-						{counterparty && (
-							<View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-								<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
-							</View>
-						)}
-
-						{chatError && (
-							<View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-								<Text style={[textStyles.h7, { color: theme.colors.danger }]}>{String(chatError)}</Text>
-							</View>
-						)}
-
-						{/* Chat Messages - Scrollable Area */}
-						<ScrollView
-							ref={chatScrollRef}
-							style={{ flex: 1 }}
-							contentContainerStyle={{
-								flexGrow: 1,
-								paddingVertical: 6,
-								paddingHorizontal: 0,
-								paddingBottom: 6
-							}}
-							showsVerticalScrollIndicator={true}
-							keyboardShouldPersistTaps="handled"
-							keyboardDismissMode="interactive"
-							nestedScrollEnabled={false}
-							scrollEventThrottle={16}
-							onScrollBeginDrag={() => setAutoScrollEnabled(false)}
-							onScroll={(e) => {
-								const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent
-								const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y)
-								if (distanceFromBottom < 50) { setAutoScrollEnabled(true) }
-							}}
-							onMomentumScrollEnd={(e) => {
-								const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent
-								const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y)
-								if (distanceFromBottom < 50) { setAutoScrollEnabled(true) }
-							}}
-							onContentSizeChange={() => { if (autoScrollEnabled) { setTimeout(() => { chatScrollRef.current?.scrollToEnd({ animated: true }) }, 100) } }}
-						>
-							{chatMessages.length === 0 && !chatLoading ? (
-								<View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 }}>
-									<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
+							{counterparty && (
+								<View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
 								</View>
-							) : (
-
-								// Use peer_id to determine if message is from current user
-								chatMessages.map((m, idx) => {
-
-									const mine = m.peer_id && user?.uuid && m.peer_id === user.uuid
-									const prevMessage = idx > 0 ? chatMessages[idx - 1] : null
-									const nextMessage = idx < chatMessages.length - 1 ? chatMessages[idx + 1] : null
-									const prevMine = prevMessage?.peer_id && user?.uuid && prevMessage.peer_id === user.uuid
-									const nextMine = nextMessage?.peer_id && user?.uuid && nextMessage.peer_id === user.uuid
-									const isConsecutive = prevMine === mine
-									const isLastInGroup = nextMine !== mine || idx === chatMessages.length - 1
-									const showTimestamp = isLastInGroup || visibleTimestamps.has(m.id)
-
-									// Get sender info for avatar (use counterparty if not mine)
-									const sender = mine ? user : counterparty
-
-									return (
-										<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 2 : 6, marginBottom: isConsecutive ? 2 : 6 }]}>
-
-											{/* Avatar - only show on last message in group */}
-											{isLastInGroup ? (<View style={{ marginHorizontal: 6 }}><QPAvatar user={sender} size={16} /></View>) : (<View style={{ width: 16, marginHorizontal: 6 }} />)}
-
-											{/* Message Bubble - Touchable */}
-											<TouchableOpacity onPress={() => !isLastInGroup && m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7} style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
-												<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
-													{m.message || m.text || ""}
-												</Text>
-												{/* Show timestamp on last message in group or when manually toggled */}
-												{showTimestamp && m.created_at && (
-													<Animated.View
-														style={{ opacity: isLastInGroup ? 1 : (messageAnimations.current[m.id] || new Animated.Value(0)), transform: [{ translateY: isLastInGroup ? 0 : (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-														<Text style={[textStyles.h7, { fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
-															{formatDateTime(m.created_at)}
-														</Text>
-													</Animated.View>
-												)}
-											</TouchableOpacity>
-										</View>
-									)
-								})
 							)}
-						</ScrollView>
 
-						{/* Chat Input - Fixed at bottom */}
-						<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-							<View style={[styles.chatInputContainer, { borderTopColor: theme.colors.border }]}>
-								<TextInput
-									value={chatText}
-									onChangeText={setChatText}
-									placeholder="Escribe tu mensaje..."
-									placeholderTextColor={theme.colors.placeholder}
-									style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, maxHeight: 100 }]}
-									multiline
-									textAlignVertical="center"
-								/>
-								<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={[styles.sendButton, { backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }]}>
-									<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
-								</Pressable>
-							</View>
-						</TouchableWithoutFeedback>
-					</View>
+							{chatError && (
+								<View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+									<Text style={[textStyles.h7, { color: theme.colors.danger }]}>{String(chatError)}</Text>
+								</View>
+							)}
 
-					{/* Action Buttons - Fixed at bottom */}
-					<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row' }]}>
-						{canCancel && (
-							<QPButton
-								title=""
-								onPress={handleCancel}
-								style={{ width: 60, borderRadius: 30, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
-								textStyle={{ color: theme.colors.primaryText }}
-								icon="xmark"
-								iconColor={theme.colors.primaryText}
-								iconStyle="solid"
-							/>
-						)}
+							{/* Chat Messages - Scrollable Area */}
+							<ScrollView
+								ref={chatScrollRef}
+								style={{ flex: 1 }}
+								contentContainerStyle={{
+									flexGrow: 1,
+									paddingVertical: 6,
+									paddingHorizontal: 0,
+									paddingBottom: 6
+								}}
+								showsVerticalScrollIndicator={true}
+								keyboardShouldPersistTaps="handled"
+								keyboardDismissMode="interactive"
+								nestedScrollEnabled={false}
+								scrollEventThrottle={16}
+								onScrollBeginDrag={() => setAutoScrollEnabled(false)}
+								onScroll={(e) => {
+									const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent
+									const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y)
+									if (distanceFromBottom < 50) { setAutoScrollEnabled(true) }
+								}}
+								onMomentumScrollEnd={(e) => {
+									const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent
+									const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y)
+									if (distanceFromBottom < 50) { setAutoScrollEnabled(true) }
+								}}
+								onContentSizeChange={() => { if (autoScrollEnabled) { setTimeout(() => { chatScrollRef.current?.scrollToEnd({ animated: true }) }, 100) } }}
+							>
+								{chatMessages.length === 0 && !chatLoading ? (
+									<View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 }}>
+										<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
+									</View>
+								) : (
 
-						{canMarkPaid && (
-							<QPButton
-								title="He pagado"
-								onPress={handleMarkPaid}
-								style={[{ backgroundColor: theme.colors.success }, styles.actionButton]}
-								textStyle={{ color: theme.colors.almostBlack }}
-								icon="circle-check"
-								iconColor={theme.colors.almostBlack}
-								iconStyle="solid"
-							/>
-						)}
+									// Use peer_id to determine if message is from current user
+									chatMessages.map((m, idx) => {
 
-						{canConfirmReceived && (
-							<QPButton
-								title="Pago recibido"
-								onPress={handleConfirmReceived}
-								style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
-								textStyle={{ color: theme.colors.almostWhite }}
-								icon="money-bill-1-wave"
-								iconColor={theme.colors.almostWhite}
-								iconStyle="solid"
-								loading={loadingReceived}
-							/>
-						)}
+										const mine = m.peer_id && user?.uuid && m.peer_id === user.uuid
+										const prevMessage = idx > 0 ? chatMessages[idx - 1] : null
+										const nextMessage = idx < chatMessages.length - 1 ? chatMessages[idx + 1] : null
+										const prevMine = prevMessage?.peer_id && user?.uuid && prevMessage.peer_id === user.uuid
+										const nextMine = nextMessage?.peer_id && user?.uuid && nextMessage.peer_id === user.uuid
+										const isConsecutive = prevMine === mine
+										const isLastInGroup = nextMine !== mine || idx === chatMessages.length - 1
+										const showTimestamp = isLastInGroup || visibleTimestamps.has(m.id)
 
-						{canRatePeer && (
-							<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 10 }}>
-								<QPRate value={p2p.rating} size={28} />
-							</View>
-						)}
+										// Get sender info for avatar (use counterparty if not mine)
+										const sender = mine ? user : counterparty
 
-					</View>
+										return (
+											<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 2 : 6, marginBottom: isConsecutive ? 2 : 6 }]}>
+
+												{/* Avatar - only show on last message in group */}
+												{isLastInGroup ? (<View style={{ marginHorizontal: 6 }}><QPAvatar user={sender} size={16} /></View>) : (<View style={{ width: 16, marginHorizontal: 6 }} />)}
+
+												{/* Message Bubble - Touchable */}
+												<TouchableOpacity
+													onPress={() => !isLastInGroup && m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7}
+													style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
+													<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
+														{m.message || m.text || ""}
+													</Text>
+													{/* Show timestamp on last message in group or when manually toggled */}
+													{showTimestamp && m.created_at && (
+														<Animated.View style={{ opacity: isLastInGroup ? 1 : (messageAnimations.current[m.id] || new Animated.Value(0)), transform: [{ translateY: isLastInGroup ? 0 : (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
+															<Text style={[textStyles.h7, { fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
+																{getShortDateTime(m.created_at)}
+															</Text>
+														</Animated.View>
+													)}
+												</TouchableOpacity>
+											</View>
+										)
+									})
+								)}
+							</ScrollView>
+
+							{/* Chat Input - Fixed at bottom */}
+							<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+								<View style={[styles.chatInputContainer, { borderTopColor: theme.colors.border }]}>
+									<TextInput
+										value={chatText}
+										onChangeText={setChatText}
+										placeholder="Escribe tu mensaje..."
+										placeholderTextColor={theme.colors.placeholder}
+										style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, maxHeight: 100 }]}
+										multiline
+										textAlignVertical="center"
+									/>
+									<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={[styles.sendButton, { backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }]}>
+										<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
+									</Pressable>
+								</View>
+							</TouchableWithoutFeedback>
+						</View>
+					)}
+
+
+
+				</ScrollView>
+
+				{/* Action Buttons - Fixed at bottom */}
+				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row' }]}>
+					{canCancel && (
+						<QPButton
+							title=""
+							onPress={handleCancel}
+							style={{ width: 60, borderRadius: 30, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
+							textStyle={{ color: theme.colors.primaryText }}
+							icon="xmark"
+							iconColor={theme.colors.primaryText}
+							iconStyle="solid"
+						/>
+					)}
+
+					{canMarkPaid && (
+						<QPButton
+							title="He pagado"
+							onPress={handleMarkPaid}
+							style={[{ backgroundColor: theme.colors.success }, styles.actionButton]}
+							textStyle={{ color: theme.colors.almostBlack }}
+							icon="circle-check"
+							iconColor={theme.colors.almostBlack}
+							iconStyle="solid"
+						/>
+					)}
+
+					{canConfirmReceived && (
+						<QPButton
+							title="Pago recibido"
+							onPress={handleConfirmReceived}
+							style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
+							textStyle={{ color: theme.colors.almostWhite }}
+							icon="money-bill-1-wave"
+							iconColor={theme.colors.almostWhite}
+							iconStyle="solid"
+							loading={loadingReceived}
+						/>
+					)}
+
+					{canRatePeer && (
+						<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 10 }}>
+							<QPRate value={rating} onRate={handleRate} size={28} readOnly={false} />
+						</View>
+					)}
 
 				</View>
 			</KeyboardAvoidingView>
@@ -549,8 +617,8 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold'
 	},
 	messageContainer: {
-		marginTop: 8,
-		paddingTop: 8,
+		marginTop: 4,
+		paddingTop: 4,
 		overflow: 'hidden'
 	},
 	messageRow: {
@@ -576,8 +644,8 @@ const styles = StyleSheet.create({
 		marginVertical: 4,
 	},
 	messageBubble: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 1, },
 		shadowOpacity: 0.1,

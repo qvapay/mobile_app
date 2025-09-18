@@ -233,7 +233,6 @@ const P2PCreate = ({ navigation }) => {
 			})
 			setWorkingForm(nextForm)
 			setShowSavedMethods(false)
-			Toast.show({ type: "success", text1: "Datos completados" })
 		} catch (e) { Toast.show({ type: "error", text1: e.message || "No se pudo aplicar el método" }) }
 	}
 

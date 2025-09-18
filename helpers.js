@@ -232,16 +232,7 @@ const getFirstChunk = (uuid) => {
     return uuid.split("-")[0]
 }
 
-// Format a date time to a human readable format
-const formatDateTime = (isoString) => {
-	try {
-		if (!isoString) return ""
-		const d = new Date(isoString)
-		return d.toLocaleString('es-ES', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })
-	} catch (e) { return String(isoString || "") }
-}
-
-const getTypeText = type => { return type === 'buy' ? 'COMPRA' : 'VENDE' }
+const getTypeText = type => { return type === 'buy' ? 'COMPRA' : 'VENTA' }
 const getTypeColor = type => { return type === 'buy' ? theme.colors.success : theme.colors.error }
 
 // export helpers
@@ -260,7 +251,6 @@ export {
     statusText,
     copyTextToClipboard,
     getFirstChunk,
-    formatDateTime,
     getTypeText,
     getTypeColor,
 	reduceStringInside
