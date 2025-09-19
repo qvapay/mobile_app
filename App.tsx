@@ -297,8 +297,8 @@ const AppNavigator = () => {
 				name={ROUTES.SCAN_SCREEN}
 				component={Scan}
 				options={{
-					headerTitle: 'Scan QR',
-					animation: 'slide_from_left',
+					headerTitle: '',
+					animation: 'slide_from_bottom',		// slide_from_left but check white background issue
 					headerShown: true,
 					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,
@@ -310,7 +310,7 @@ const AppNavigator = () => {
 					),
 					headerRight: () => (
 						<Pressable>
-							<FontAwesome6 name="ellipsis-vertical" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+							<FontAwesome6 name="lightbulb" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
 					)
 				}}

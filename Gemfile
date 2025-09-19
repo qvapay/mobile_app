@@ -14,3 +14,4 @@ gem 'bigdecimal'
 gem 'logger'
 gem 'benchmark'
 gem 'mutex_m'
+# gem 'nkf', '~> 0.1.0', platforms: :ruby  # Temporarily disabled due to build issues

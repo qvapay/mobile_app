@@ -115,6 +115,7 @@ export const createContainerStyles = (theme) => StyleSheet.create({
 	center: {
 		justifyContent: 'center',
 		alignItems: 'center',
+		gap: 10,
 	},
 	headerLeft: {
 		marginLeft: 20,

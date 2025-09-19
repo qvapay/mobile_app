@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, Dimensions, Animated, Alert } from 'react-native'
-import { Camera, useCameraDevices, useCodeScanner } from 'react-native-vision-camera'
+import { Camera, useCameraDevices, useCodeScanner, useCameraPermission } from 'react-native-vision-camera'
+import { View, Text, StyleSheet, Dimensions, Animated, Alert, Linking } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -12,68 +12,53 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../../routes'
 
+// UI Components
+import QPButton from '../../ui/particles/QPButton'
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 const SCAN_AREA_SIZE = Math.min(screenWidth * 0.8, 300)
 
+// Scan Screen
 const Scan = ({ navigation }) => {
+
 	// Context
 	const { theme } = useTheme()
-	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
+	const containerStyles = useContainerStyles(theme)
 
 	// Camera
-	const devices = useCameraDevices()
+	const devices = useCameraDevices('back')
 	const device = devices.back
+	console.log('device', device)
+	const { hasPermission, requestPermission } = useCameraPermission()
 
 	// State
-	const [hasPermission, setHasPermission] = useState(false)
 	const [isScanning, setIsScanning] = useState(true)
 	const [scannedData, setScannedData] = useState(null)
 
 	// Animation
 	const scanLineAnimation = useRef(new Animated.Value(0)).current
 
-	// Request camera permission
-	useEffect(() => {
-		requestCameraPermission()
-	}, [])
-
 	// Start scanning animation
 	useEffect(() => {
-		if (isScanning) {
-			startScanAnimation()
-		}
+		if (isScanning) { startScanAnimation() }
 	}, [isScanning])
 
-	const requestCameraPermission = async () => {
-		try {
-			const permission = await Camera.requestCameraPermission()
-			setHasPermission(permission === 'authorized')
-		} catch (error) {
-			console.error('Error requesting camera permission:', error)
-			Alert.alert('Error', 'Unable to access camera')
-		}
-	}
-
+	// Start scanning animation
 	const startScanAnimation = () => {
 		Animated.loop(
 			Animated.sequence([
-				Animated.timing(scanLineAnimation, {
-					toValue: 1,
-					duration: 2000,
-					useNativeDriver: true,
-				}),
-				Animated.timing(scanLineAnimation, {
-					toValue: 0,
-					duration: 2000,
-					useNativeDriver: true,
-				}),
+				Animated.timing(scanLineAnimation, { toValue: 1, duration: 2000, useNativeDriver: true }),
+				Animated.timing(scanLineAnimation, { toValue: 0, duration: 2000, useNativeDriver: true })
 			])
 		).start()
 	}
 
+	// Handle barcode scanned
 	const handleBarcodeScanned = (data) => {
+
 		if (data && isScanning) {
+
 			setIsScanning(false)
 			setScannedData(data)
 			console.log('QR Code scanned:', data)
@@ -103,6 +88,7 @@ const Scan = ({ navigation }) => {
 		}
 	}
 
+	// Code scanner
 	const codeScanner = useCodeScanner({
 		codeTypes: ['qr', 'ean-13'],
 		onCodeScanned: (codes) => {
@@ -112,13 +98,21 @@ const Scan = ({ navigation }) => {
 		},
 	})
 
+	// Check if has permission
 	if (!hasPermission) {
 		return (
 			<View style={[containerStyles.container, containerStyles.center]}>
-				<Text style={textStyles.h4}>Camera permission required</Text>
-				<Text style={[textStyles.caption, { textAlign: 'center', marginTop: 10 }]}>
-					Please allow camera access to scan QR codes
-				</Text>
+				<Text style={textStyles.h4}>Permiso de cámara requerido</Text>
+				<Text style={[textStyles.caption, { textAlign: 'center', marginTop: 10 }]}>Por favor permite el acceso a la cámara para escanear QR</Text>
+				<QPButton
+					title="Ajustes"
+					onPress={() => Linking.openSettings()}
+					style={{ marginTop: 20, backgroundColor: 'transparent' }}
+					textStyle={{ color: theme.colors.almostWhite }}
+					icon="gear"
+					iconStyle="solid"
+					iconColor="white"
+				/>
 			</View>
 		)
 	}
@@ -126,33 +120,33 @@ const Scan = ({ navigation }) => {
 	if (!device) {
 		return (
 			<View style={[containerStyles.container, containerStyles.center]}>
-				<Text style={textStyles.h4}>Camera not available</Text>
+				<Text style={textStyles.h4}>Cámara no disponible</Text>
+				<FontAwesome6 name="heart-crack" size={64} color={theme.colors.tertiaryText} iconStyle="solid" />
 			</View>
 		)
 	}
 
 	return (
 		<View style={[containerStyles.container]}>
+
 			{/* Camera View */}
-			<Camera
-				style={StyleSheet.absoluteFillObject}
-				device={device}
-				isActive={isScanning}
-				codeScanner={codeScanner}
-			/>
+			<Camera style={StyleSheet.absoluteFillObject} device={device} isActive={isScanning} codeScanner={codeScanner} />
 
 			{/* Custom Overlay */}
 			<View style={styles.overlay}>
+
 				{/* Top overlay */}
 				<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
 
 				{/* Middle section with scan area */}
 				<View style={styles.middleSection}>
+
 					{/* Left overlay */}
 					<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
 
 					{/* Scan area */}
 					<View style={styles.scanArea}>
+
 						{/* Corner indicators */}
 						<View style={[styles.corner, styles.topLeft]} />
 						<View style={[styles.corner, styles.topRight]} />
@@ -160,38 +154,26 @@ const Scan = ({ navigation }) => {
 						<View style={[styles.corner, styles.bottomRight]} />
 
 						{/* Scanning line */}
-						{isScanning && (
-							<Animated.View
-								style={[
-									styles.scanLine,
-									{
-										transform: [{
-											translateY: scanLineAnimation.interpolate({
-												inputRange: [0, 1],
-												outputRange: [0, SCAN_AREA_SIZE - 2],
-											})
-										}]
-									}
-								]}
-							/>
-						)}
+						{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [0, SCAN_AREA_SIZE - 2], }) }] }]} />)}
 					</View>
 
 					{/* Right overlay */}
 					<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
+
 				</View>
 
 				{/* Bottom overlay */}
 				<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
+
 			</View>
 
 			{/* Instructions */}
 			<View style={styles.instructionsContainer}>
 				<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>
-					Position QR code within the frame
+					Coloca el QR code dentro del marco
 				</Text>
 				<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 5 }]}>
-					The QR code will be scanned automatically
+					El QR code será escaneado automáticamente
 				</Text>
 			</View>
 		</View>
