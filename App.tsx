@@ -169,7 +169,7 @@ const AppNavigator = () => {
 				name={ROUTES.P2P_CREATE_SCREEN}
 				component={P2PCreate}
 				options={{
-					headerTitle: 'Crear P2P',
+					headerTitle: '',
 					headerShown: true,
 					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,

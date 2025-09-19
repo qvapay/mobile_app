@@ -244,7 +244,14 @@ const P2PCreate = ({ navigation }) => {
 					<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
 						{/* Type Selector */}
-						<QPSwitch type={type} onChange={setType} />
+						<QPSwitch
+							value={type === "buy" ? "left" : "right"}
+							onChange={(side) => setType(side === "left" ? "buy" : "sell")}
+							leftText="Comprar"
+							rightText="Vender"
+							leftColor={theme.colors.success}
+							rightColor={theme.colors.danger}
+						/>
 
 						{/* Swap Card (Vender / Recibir) */}
 						<View style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 6, borderWidth: 2, borderColor: theme.colors.primary }} >
