@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Camera, useCameraDevice, useCodeScanner, useCameraPermission } from 'react-native-vision-camera'
 import { View, Text, StyleSheet, Dimensions, Animated, Alert, Linking, Pressable } from 'react-native'
+import QRCodeStyled from 'react-native-qrcode-styled'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -11,12 +12,20 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // UI Components
 import QPButton from '../../ui/particles/QPButton'
+import QPSwitch from '../../ui/particles/QPSwitch'
+import ProfileContainer from '../../ui/ProfileContainer'
+
+// Auth Context
+import { useAuth } from '../../auth/AuthContext'
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 const SCAN_AREA_SIZE = Math.min(screenWidth * 0.8, 300)
 
 // Scan Screen
 const Scan = ({ navigation }) => {
+
+	// User
+	const { user } = useAuth()
 
 	// Context
 	const { theme } = useTheme()
@@ -31,6 +40,7 @@ const Scan = ({ navigation }) => {
 	const [isScanning, setIsScanning] = useState(true)
 	const [scannedData, setScannedData] = useState(null)
 	const [isTorchEnabled, setIsTorchEnabled] = useState(false)
+	const [viewMode, setViewMode] = useState('scan') // 'scan' | 'show'
 
 	// Animation
 	const scanLineAnimation = useRef(new Animated.Value(0)).current
@@ -44,6 +54,12 @@ const Scan = ({ navigation }) => {
 	useEffect(() => {
 		if (isScanning) { startScanAnimation() }
 	}, [isScanning])
+
+	// Toggle camera based on mode
+	useEffect(() => {
+		setIsScanning(viewMode === 'scan')
+		if (viewMode !== 'scan') { setIsTorchEnabled(false) }
+	}, [viewMode])
 
 	// Start scanning animation
 	const startScanAnimation = () => {
@@ -99,8 +115,8 @@ const Scan = ({ navigation }) => {
 		},
 	})
 
-	// Check if has permission
-	if (!hasPermission) {
+	// Check if has permission (only when scanning)
+	if (viewMode === 'scan' && !hasPermission) {
 		return (
 			<View style={[containerStyles.container, containerStyles.center]}>
 				<Text style={textStyles.h4}>Permiso de cámara requerido</Text>
@@ -118,7 +134,7 @@ const Scan = ({ navigation }) => {
 		)
 	}
 
-	if (!device) {
+	if (viewMode === 'scan' && !device) {
 		return (
 			<View style={[containerStyles.container, containerStyles.center]}>
 				<Text style={textStyles.h4}>Cámara no disponible</Text>
@@ -130,50 +146,81 @@ const Scan = ({ navigation }) => {
 	return (
 		<View style={[containerStyles.container]}>
 
-			{/* Camera View */}
-			<Camera
-				style={StyleSheet.absoluteFillObject}
-				device={device}
-				isActive={isScanning}
-				codeScanner={codeScanner}
-				torch={isTorchEnabled ? 'on' : 'off'}
-			/>
+			{/* Camera View (Scan mode) */}
+			{viewMode === 'scan' && (
+				<Camera
+					style={StyleSheet.absoluteFillObject}
+					device={device}
+					isActive={isScanning}
+					codeScanner={codeScanner}
+					torch={isTorchEnabled ? 'on' : 'off'}
+				/>
+			)}
 
-			<View style={styles.overlay}>
-				<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
-				<View style={styles.middleSection}>
-					<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
-					<View style={styles.scanArea}>
-						<View style={[styles.corner, styles.topLeft]} />
-						<View style={[styles.corner, styles.topRight]} />
-						<View style={[styles.corner, styles.bottomLeft]} />
-						<View style={[styles.corner, styles.bottomRight]} />
-						{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [0, SCAN_AREA_SIZE - 2], }) }] }]} />)}
+			{viewMode === 'scan' && (
+				<View style={styles.overlay}>
+					<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
+					<View style={styles.middleSection}>
+						<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
+						<View style={styles.scanArea}>
+							<View style={[styles.corner, styles.topLeft]} />
+							<View style={[styles.corner, styles.topRight]} />
+							<View style={[styles.corner, styles.bottomLeft]} />
+							<View style={[styles.corner, styles.bottomRight]} />
+							{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [0, SCAN_AREA_SIZE - 2], }) }] }]} />)}
+						</View>
+						<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
 					</View>
-					<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
+					<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
 				</View>
-				<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
-			</View>
+			)}
 
 			{/* Top Controls */}
 			<View style={styles.topControls}>
 				<Pressable onPress={() => navigation.goBack()} style={styles.topButton} hitSlop={10}>
 					<FontAwesome6 name="arrow-left" size={20} color={'white'} iconStyle="solid" />
 				</Pressable>
-				<Pressable onPress={() => setIsTorchEnabled((prev) => !prev)} style={styles.topButton} hitSlop={10}>
+				<View style={styles.topSwitchWrapper}>
+					<QPSwitch
+						value={viewMode === 'scan' ? 'left' : 'right'}
+						onChange={(side) => setViewMode(side === 'left' ? 'scan' : 'show')}
+						leftText="Scan QR"
+						rightText="Mi QR"
+						leftColor={theme.colors.primary}
+						rightColor={theme.colors.primary}
+					/>
+				</View>
+				<Pressable onPress={() => setIsTorchEnabled((prev) => !prev)} style={[styles.topButton, viewMode !== 'scan' && { opacity: 0.5 }]} hitSlop={10} disabled={viewMode !== 'scan'}>
 					<FontAwesome6 name="lightbulb" size={20} color={'white'} iconStyle="solid" />
 				</Pressable>
 			</View>
 
-			{/* Instructions */}
-			<View style={styles.instructionsContainer}>
-				<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>
-					Coloca el QR code dentro del marco
-				</Text>
-				<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 5 }]}>
-					El QR code será escaneado automáticamente
-				</Text>
-			</View>
+			{/* Instructions or My QR */}
+			{viewMode === 'scan' ? (
+				<View style={styles.instructionsContainer}>
+					<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>Coloca el QR code dentro del marco</Text>
+					<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 5 }]}>El QR code será escaneado automáticamente</Text>
+				</View>
+			) : (
+				<View style={styles.showQRContainer}>
+					<View style={styles.profileWrapper}>
+						<ProfileContainer user={user || {}} />
+					</View>
+					<View style={styles.qrWrapper}>
+						<QRCodeStyled
+							data={user?.username ? `https://qvapay.com/@${user.username}` : (user?.uuid || 'qvapay:user')}
+							size={350}
+							pieceScale={0.7}
+							style={{ backgroundColor: theme.colors.background, borderRadius: 10 }}
+							padding={10}
+							pieceSize={8}
+							backgroundColor={'transparent'}
+							color={theme.colors.primaryText}
+						/>
+						{user?.username && (<Text style={[textStyles.h6, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 10 }]}>@{user.username}</Text>)}
+					</View>
+				</View>
+			)}
 
 		</View>
 	)
@@ -198,6 +245,16 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.2)',
+	},
+	topSwitchWrapper: {
+		flex: 1,
+		marginHorizontal: 12,
+	},
+	modeSwitchContainer: {
+		position: 'absolute',
+		bottom: 30,
+		left: 20,
+		right: 20,
 	},
 	overlay: {
 		position: 'absolute',
@@ -266,6 +323,20 @@ const styles = StyleSheet.create({
 		bottom: 100,
 		left: 20,
 		right: 20,
+	},
+	showQRContainer: {
+		position: 'absolute',
+		top: 150,
+		left: 20,
+		right: 20,
+		alignItems: 'center',
+	},
+	profileWrapper: {
+		marginBottom: 10,
+	},
+	qrWrapper: {
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 })
 
