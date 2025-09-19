@@ -9,9 +9,6 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Routes
-import { ROUTES } from '../../routes'
-
 // UI Components
 import QPButton from '../../ui/particles/QPButton'
 
@@ -28,9 +25,7 @@ const Scan = ({ navigation }) => {
 
 	// Camera
 	const device = useCameraDevice('back')
-	console.log('device', device)
 	const { hasPermission, requestPermission } = useCameraPermission()
-	console.log('hasPermission', hasPermission)
 
 	// State
 	const [isScanning, setIsScanning] = useState(true)
@@ -144,39 +139,20 @@ const Scan = ({ navigation }) => {
 				torch={isTorchEnabled ? 'on' : 'off'}
 			/>
 
-			{/* Custom Overlay */}
 			<View style={styles.overlay}>
-
-				{/* Top overlay */}
 				<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
-
-				{/* Middle section with scan area */}
 				<View style={styles.middleSection}>
-
-					{/* Left overlay */}
 					<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
-
-					{/* Scan area */}
 					<View style={styles.scanArea}>
-
-						{/* Corner indicators */}
 						<View style={[styles.corner, styles.topLeft]} />
 						<View style={[styles.corner, styles.topRight]} />
 						<View style={[styles.corner, styles.bottomLeft]} />
 						<View style={[styles.corner, styles.bottomRight]} />
-
-						{/* Scanning line */}
 						{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [0, SCAN_AREA_SIZE - 2], }) }] }]} />)}
 					</View>
-
-					{/* Right overlay */}
 					<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
-
 				</View>
-
-				{/* Bottom overlay */}
 				<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
-
 			</View>
 
 			{/* Top Controls */}
@@ -198,6 +174,7 @@ const Scan = ({ navigation }) => {
 					El QR code será escaneado automáticamente
 				</Text>
 			</View>
+
 		</View>
 	)
 }
@@ -230,7 +207,7 @@ const styles = StyleSheet.create({
 		bottom: 0,
 	},
 	overlaySection: {
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		backgroundColor: 'rgba(0, 0, 0, 0.8)',
 	},
 	middleSection: {
 		flexDirection: 'row',
