@@ -299,20 +299,9 @@ const AppNavigator = () => {
 				options={{
 					headerTitle: '',
 					animation: 'slide_from_bottom',		// slide_from_left but check white background issue
-					headerShown: true,
+					headerShown: false,
 					headerBackVisible: false,
-					headerBackButtonMenuEnabled: true,
 					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
-					headerRight: () => (
-						<Pressable>
-							<FontAwesome6 name="lightbulb" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
 				}}
 			/>
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Camera, useCameraDevices, useCodeScanner, useCameraPermission } from 'react-native-vision-camera'
-import { View, Text, StyleSheet, Dimensions, Animated, Alert, Linking } from 'react-native'
+import { Camera, useCameraDevice, useCodeScanner, useCameraPermission } from 'react-native-vision-camera'
+import { View, Text, StyleSheet, Dimensions, Animated, Alert, Linking, Pressable } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -27,17 +27,23 @@ const Scan = ({ navigation }) => {
 	const containerStyles = useContainerStyles(theme)
 
 	// Camera
-	const devices = useCameraDevices('back')
-	const device = devices.back
+	const device = useCameraDevice('back')
 	console.log('device', device)
 	const { hasPermission, requestPermission } = useCameraPermission()
+	console.log('hasPermission', hasPermission)
 
 	// State
 	const [isScanning, setIsScanning] = useState(true)
 	const [scannedData, setScannedData] = useState(null)
+	const [isTorchEnabled, setIsTorchEnabled] = useState(false)
 
 	// Animation
 	const scanLineAnimation = useRef(new Animated.Value(0)).current
+
+	// Request permission
+	useEffect(() => {
+		requestPermission()
+	}, [])
 
 	// Start scanning animation
 	useEffect(() => {
@@ -130,7 +136,13 @@ const Scan = ({ navigation }) => {
 		<View style={[containerStyles.container]}>
 
 			{/* Camera View */}
-			<Camera style={StyleSheet.absoluteFillObject} device={device} isActive={isScanning} codeScanner={codeScanner} />
+			<Camera
+				style={StyleSheet.absoluteFillObject}
+				device={device}
+				isActive={isScanning}
+				codeScanner={codeScanner}
+				torch={isTorchEnabled ? 'on' : 'off'}
+			/>
 
 			{/* Custom Overlay */}
 			<View style={styles.overlay}>
@@ -167,6 +179,16 @@ const Scan = ({ navigation }) => {
 
 			</View>
 
+			{/* Top Controls */}
+			<View style={styles.topControls}>
+				<Pressable onPress={() => navigation.goBack()} style={styles.topButton} hitSlop={10}>
+					<FontAwesome6 name="arrow-left" size={20} color={'white'} iconStyle="solid" />
+				</Pressable>
+				<Pressable onPress={() => setIsTorchEnabled((prev) => !prev)} style={styles.topButton} hitSlop={10}>
+					<FontAwesome6 name="lightbulb" size={20} color={'white'} iconStyle="solid" />
+				</Pressable>
+			</View>
+
 			{/* Instructions */}
 			<View style={styles.instructionsContainer}>
 				<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>
@@ -181,6 +203,25 @@ const Scan = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
+	topControls: {
+		position: 'absolute',
+		top: 60,
+		left: 16,
+		right: 16,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+	},
+	topButton: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: 'rgba(0,0,0,0.4)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.2)',
+	},
 	overlay: {
 		position: 'absolute',
 		top: 0,
