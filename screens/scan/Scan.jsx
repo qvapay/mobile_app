@@ -134,20 +134,11 @@ const Scan = ({ navigation }) => {
 		)
 	}
 
-	if (viewMode === 'scan' && !device) {
-		return (
-			<View style={[containerStyles.container, containerStyles.center]}>
-				<Text style={textStyles.h4}>Cámara no disponible</Text>
-				<FontAwesome6 name="heart-crack" size={64} color={theme.colors.tertiaryText} iconStyle="solid" />
-			</View>
-		)
-	}
-
 	return (
 		<View style={[containerStyles.container]}>
 
 			{/* Camera View (Scan mode) */}
-			{viewMode === 'scan' && (
+			{viewMode === 'scan' && device && (
 				<Camera
 					style={StyleSheet.absoluteFillObject}
 					device={device}
@@ -208,16 +199,27 @@ const Scan = ({ navigation }) => {
 					</View>
 					<View style={styles.qrWrapper}>
 						<QRCodeStyled
-							data={user?.username ? `https://qvapay.com/@${user.username}` : (user?.uuid || 'qvapay:user')}
+							data={user?.username ? `https://qvapay.com/payme/${user.username}` : (`https://qvapay.com/payme/${user?.uuid}` || '')}
+							style={styles.svg}
 							size={350}
-							pieceScale={0.7}
-							style={{ backgroundColor: theme.colors.background, borderRadius: 10 }}
-							padding={10}
+							padding={8}
 							pieceSize={8}
-							backgroundColor={'transparent'}
+							isPiecesGlued
+							pieceBorderRadius={2}
+							pieceCornerType={'cut'}
+							errorCorrectionLevel={'H'}
+							preserveAspectRatio="none"
 							color={theme.colors.primaryText}
+							outerEyesOptions={{
+								borderRadius: 2,
+								color: theme.colors.primary,
+							}}
+							logo={{
+								href: require('../../assets/images/ui/logo-qvapay.png'),
+								padding: 10,
+								scale: 0.8,
+							}}
 						/>
-						{user?.username && (<Text style={[textStyles.h6, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 10 }]}>@{user.username}</Text>)}
 					</View>
 				</View>
 			)}
@@ -337,6 +339,10 @@ const styles = StyleSheet.create({
 	qrWrapper: {
 		alignItems: 'center',
 		justifyContent: 'center',
+	},
+	svg: {
+		borderRadius: 16,
+		overflow: 'hidden',
 	},
 })
 
