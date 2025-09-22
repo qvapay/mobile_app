@@ -24,8 +24,10 @@ import LottieView from "lottie-react-native"
 // P2P component
 const P2P = ({ navigation }) => {
 
-	// Contexts
+	// User
 	const { user } = useAuth()
+
+	// Theme Context
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -38,6 +40,8 @@ const P2P = ({ navigation }) => {
 	const [error, setError] = useState(null)
 	const lastFetchRef = useRef(0)
 	const [p2pEnabled, setP2pEnabled] = useState(user.p2p_enabled)
+
+	console.log('p2pEnabled', p2pEnabled)
 
 	// Get the Latest P2P Offers
 	const fetchP2POffers = async (isRefresh = false) => {
@@ -79,6 +83,7 @@ const P2P = ({ navigation }) => {
 	// Load data on component mount
 	useEffect(() => {
 		if (p2pEnabled) { fetchP2POffers() }
+		else { setIsLoadingData(false) }
 	}, [])
 
 	// Handle refresh
@@ -92,30 +97,28 @@ const P2P = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer, { paddingTop: 5 }]}>
-			{
-				p2pEnabled ? (
-					<FlatList
-						data={p2pOffers}
-						renderItem={renderOffer}
-						keyExtractor={(item) => item.uuid}
-						contentContainerStyle={styles.listContainer}
-						refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
-						showsVerticalScrollIndicator={false}
-						ListEmptyComponent={
-							<View style={styles.emptyContainer}>
-								<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
-									{error ? error : "No hay ofertas P2P disponibles"}
-								</Text>
-							</View>
-						}
-					/>
-				) : (
-					<View style={styles.emptyContainer}>
-						<LottieView source={require("../../assets/lotties/cancelled.json")} autoPlay loop={false} style={{ width: 250, height: 250 }} />
-						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>P2P no está habilitado</Text>
-					</View>
-				)
-			}
+			{p2pEnabled ? (
+				<FlatList
+					data={p2pOffers}
+					renderItem={renderOffer}
+					keyExtractor={(item) => item.uuid}
+					contentContainerStyle={styles.listContainer}
+					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
+					showsVerticalScrollIndicator={false}
+					ListEmptyComponent={
+						<View style={styles.emptyContainer}>
+							<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
+								{error ? error : "No hay ofertas P2P disponibles"}
+							</Text>
+						</View>
+					}
+				/>
+			) : (
+				<View style={styles.emptyContainer}>
+					<LottieView source={require("../../assets/lotties/cancelled.json")} autoPlay loop={false} style={{ width: 250, height: 250 }} />
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>P2P no está habilitado</Text>
+				</View>
+			)}
 		</View>
 	)
 }
