@@ -143,9 +143,11 @@ const Home = ({ navigation }) => {
 					</View>
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-							<View style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}>
-								<FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />
-							</View>
+							<Pressable onPress={() => navigation.navigate(ROUTES.SEND)}>
+								<View style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}>
+									<FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />
+								</View>
+							</Pressable>
 							{latestSentTransfersUsers.map((user, index) => (
 								<Pressable key={index} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: user.uuid, send_amount: '0.00' })}>
 									<QPAvatar key={index} user={user} size={56} />
