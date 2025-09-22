@@ -392,36 +392,35 @@ const Add = ({ navigation }) => {
 								</View>
 							)}
 
-							<ScrollView
-								style={styles.coinList}
-								contentContainerStyle={styles.coinListContent}
-								showsVerticalScrollIndicator={true}
-							>
+							<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
 
 								{isLoading ? (
 									<View style={styles.loadingContainer}>
-										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
-											Cargando monedas...
-										</Text>
+										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
 									</View>
-								) : availableCoins.length > 0 ? (availableCoins.map((coin) => (
-									<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)} >
-										<QPCoin coin={coin.logo} size={40} />
-										<View style={{ marginLeft: 12, flex: 1 }}>
-											<Text style={textStyles.h4}>{coin.name}</Text>
-											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-												Mín: ${coin.min_in} | Precio: ${Number(coin.price).toFixed(6)}
-											</Text>
-										</View>
-										{coin.network && (
-											<View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-												<Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>
-													{coin.network}
+								) : availableCoins.length > 0 ? (availableCoins
+									.filter((coin) =>
+										coin.name.toLowerCase().includes(coinSearch.toLowerCase()) ||
+										coin.tick.toLowerCase().includes(coinSearch.toLowerCase())
+									)
+									.map((coin) => (
+										<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)} >
+											<QPCoin coin={coin.logo} size={40} />
+											<View style={{ marginLeft: 12, flex: 1 }}>
+												<Text style={textStyles.h4}>{coin.name}</Text>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
+													Mín: ${coin.min_in} | Precio: ${Number(coin.price).toFixed(6)}
 												</Text>
 											</View>
-										)}
-									</Pressable>
-								))
+											{coin.network && (
+												<View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
+													<Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>
+														{coin.network}
+													</Text>
+												</View>
+											)}
+										</Pressable>
+									))
 								) : (
 									<View style={styles.loadingContainer}>
 										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>

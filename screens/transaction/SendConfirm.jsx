@@ -8,7 +8,6 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
-import QPAvatar from '../../ui/particles/QPAvatar'
 import QPLoader from '../../ui/particles/QPLoader'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 

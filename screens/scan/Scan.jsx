@@ -22,6 +22,12 @@ import ProfileContainer from '../../ui/ProfileContainer'
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
 
+// Helpers
+import { parseQRData } from '../../helpers'
+
+// Routes
+import { ROUTES } from '../../routes'
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 const SCAN_AREA_SIZE = Math.min(screenWidth * 0.8, 300)
 
@@ -82,37 +88,26 @@ const Scan = ({ navigation, route }) => {
 
 			setIsScanning(false)
 			setScannedData(data)
-			console.log('QR Code scanned:', data)
+			const parsedData = parseQRData(data)
 
-			// Here you can scan various king of data:
-			// 1. link like https://qvapay.com/payme/username
-			// 2. Link like https://qvapay.com/pay/uuid
-			// 3. Link like https://qvapay.com/pay/username/amount
-			// 4. Link like https://qvapay.com/pay/uuid/amount
-			
+			if (parsedData?.type === 'payme') {
 
-			// Navigate to appropriate screen based on QR code content
-			// For now, just show an alert
-			Alert.alert(
-				'QR Code Scanned',
-				`Data: ${data}`,
-				[
-					{
-						text: 'Scan Again',
-						onPress: () => {
-							setIsScanning(true)
-							setScannedData(null)
-						}
-					},
-					{
-						text: 'Continue',
-						onPress: () => {
-							// Handle the scanned data - could navigate to payment screen
-							navigation.goBack()
-						}
-					}
-				]
-			)
+				setIsScanning(true)
+				setScannedData(null)
+
+				if (parsedData?.username && !parsedData?.amount) {
+					navigation.navigate(ROUTES.SEND, { user_uuid: parsedData.username })
+				}
+				if (parsedData?.uuid && !parsedData?.amount) {
+					navigation.navigate(ROUTES.SEND, { user_uuid: parsedData.uuid })
+				}
+				if (parsedData?.username && parsedData?.amount) {
+					navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.username, send_amount: parsedData.amount })
+				}
+				if (parsedData?.uuid && parsedData?.amount) {
+					navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.uuid, send_amount: parsedData.amount })
+				}
+			}
 		}
 	}
 

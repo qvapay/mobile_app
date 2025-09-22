@@ -4,30 +4,30 @@ import Clipboard from '@react-native-clipboard/clipboard'
 // Calculate time since data
 const timeSince = (date) => {
 
-    const now = new Date()
-    const desiredDate = new Date(date)
-    const secondsPast = (now - desiredDate) / 1000
+	const now = new Date()
+	const desiredDate = new Date(date)
+	const secondsPast = (now - desiredDate) / 1000
 
-    if (secondsPast < 60) {
-        const seconds = parseInt(secondsPast)
-        return `${seconds} segundo${seconds > 1 ? 's' : ''}`
-    }
-    if (secondsPast < 3600) {
-        const minutes = parseInt(secondsPast / 60)
-        return `${minutes} minuto${minutes > 1 ? 's' : ''}`
-    }
-    if (secondsPast <= 86400) {
-        const hours = parseInt(secondsPast / 3600)
-        return `${hours} hora${hours > 1 ? 's' : ''}`
-    }
-    if (secondsPast > 86400) {
-        const day = parseInt(secondsPast / 86400)
-        return `${day} dia${day > 1 ? 's' : ''}`
-    }
-    if (secondsPast > 604800) {
-        const week = parseInt(secondsPast / 604800)
-        return `${week} semana${week > 1 ? 's' : ''}`
-    }
+	if (secondsPast < 60) {
+		const seconds = parseInt(secondsPast)
+		return `${seconds} segundo${seconds > 1 ? 's' : ''}`
+	}
+	if (secondsPast < 3600) {
+		const minutes = parseInt(secondsPast / 60)
+		return `${minutes} minuto${minutes > 1 ? 's' : ''}`
+	}
+	if (secondsPast <= 86400) {
+		const hours = parseInt(secondsPast / 3600)
+		return `${hours} hora${hours > 1 ? 's' : ''}`
+	}
+	if (secondsPast > 86400) {
+		const day = parseInt(secondsPast / 86400)
+		return `${day} dia${day > 1 ? 's' : ''}`
+	}
+	if (secondsPast > 604800) {
+		const week = parseInt(secondsPast / 604800)
+		return `${week} semana${week > 1 ? 's' : ''}`
+	}
 }
 
 // String reduce function from P2P_796a9e71-3d67-4a42-9dc2-02a5d069fa23 to P2P_796a9e71
@@ -38,122 +38,136 @@ const reduceStringInside = (string, amount = 20) => { return string.substring(0,
 
 // Get a long format date and return a short format date time
 const getShortDateTime = (date) => {
-    const desiredDate = new Date(date)
-    return desiredDate.toLocaleString('es-ES', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })
+	const desiredDate = new Date(date)
+	return desiredDate.toLocaleString('es-ES', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
 // get a time ago from a date
 const timeAgo = (date) => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000)
-    let interval = seconds / 31536000
-    if (interval > 1) {
-        return Math.floor(interval) + " año" + (Math.floor(interval) > 1 ? "s" : "")
-    }
-    interval = seconds / 2592000
-    if (interval > 1) {
-        return Math.floor(interval) + " mes" + (Math.floor(interval) > 1 ? "es" : "")
-    }
-    interval = seconds / 86400
-    if (interval > 1) {
-        return Math.floor(interval) + " día" + (Math.floor(interval) > 1 ? "s" : "")
-    }
-    interval = seconds / 3600
-    if (interval > 1) {
-        return Math.floor(interval) + " hora" + (Math.floor(interval) > 1 ? "s" : "")
-    }
-    interval = seconds / 60
-    if (interval > 1) {
-        return Math.floor(interval) + " minuto" + (Math.floor(interval) > 1 ? "s" : "")
-    }
-    return Math.floor(seconds) + " segundo" + (Math.floor(seconds) > 1 ? "s" : "")
+	const seconds = Math.floor((new Date() - new Date(date)) / 1000)
+	let interval = seconds / 31536000
+	if (interval > 1) {
+		return Math.floor(interval) + " año" + (Math.floor(interval) > 1 ? "s" : "")
+	}
+	interval = seconds / 2592000
+	if (interval > 1) {
+		return Math.floor(interval) + " mes" + (Math.floor(interval) > 1 ? "es" : "")
+	}
+	interval = seconds / 86400
+	if (interval > 1) {
+		return Math.floor(interval) + " día" + (Math.floor(interval) > 1 ? "s" : "")
+	}
+	interval = seconds / 3600
+	if (interval > 1) {
+		return Math.floor(interval) + " hora" + (Math.floor(interval) > 1 ? "s" : "")
+	}
+	interval = seconds / 60
+	if (interval > 1) {
+		return Math.floor(interval) + " minuto" + (Math.floor(interval) > 1 ? "s" : "")
+	}
+	return Math.floor(seconds) + " segundo" + (Math.floor(seconds) > 1 ? "s" : "")
 }
 
-// get a QR data and parse it, get the usernam, amount and transactionUUID
+// get a QR data and parse it robustly using RegExp
+// Supports:
+// 1) https://qvapay.com/payme/username/<name>[/<amount>]
+// 2) https://qvapay.com/payme/uuid/<uuid>[/<amount>]
+// 3) https://qvapay.com/payme/<identifier>[/<amount>] (auto-detects uuid vs username)
 const parseQRData = (data) => {
 
-    // TODO Add a Bitcoin Lighning reader when starting with "lnbc1",
-    // a Bitcoin reader when start with bc1, 1, or 3
-    // and a QP reader when starts with qp://
-    // A common QP qr is qp://u:username:a:amount:t:transactionUUID
-    // splitted could be ["u", "username", "a", "amount", "t", "transactionUUID"]
+	if (typeof data !== 'string') { return null }
 
-    // In case of a qp:// schema
-    if (data.startsWith('qp://')) {
-        const params = data.replace('qp://', '').split(':')
-        const parsedData = {}
-        for (let i = 0; i < params.length; i += 2) {
-            const key = params[i]
-            const value = params[i + 1]
-            switch (key) {
-                case 'u':
-                    parsedData.username = value
-                    break
-                case 'a':
-                    parsedData.amount = value
-                    break
-                case 't':
-                    parsedData.transactionUUID = value
-                    break
-                default:
-                    break
-            }
-        }
-        // set qp property to true
-        parsedData.qp = true
-        return parsedData
-    }
+	// Strip query/hash parts to simplify matching
+	const raw = data.trim()
+	const pathOnly = raw.split('?')[0].split('#')[0]
 
-    return null
+	// Typed patterns
+	const reUsernameTyped = /^https?:\/\/qvapay\.com\/payme\/username\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
+	const reUuidTyped = /^https?:\/\/qvapay\.com\/payme\/uuid\/([0-9a-fA-F-]{8,})(?:\/([^\/?#]+))?\/?$/i
+
+	// Untyped pattern (identifier could be username or uuid)
+	const reUntyped = /^https?:\/\/qvapay\.com\/payme\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
+
+	let match
+
+	// 1) Explicit username route
+	match = pathOnly.match(reUsernameTyped)
+	if (match) {
+		const username = match[1]
+		const amount = match[2]
+		return amount ? { type: 'payme', username, amount } : { type: 'payme', username }
+	}
+
+	// 2) Explicit uuid route
+	match = pathOnly.match(reUuidTyped)
+	if (match) {
+		const uuid = match[1]
+		const amount = match[2]
+		return amount ? { type: 'payme', uuid, amount } : { type: 'payme', uuid }
+	}
+
+	// 3) Untyped route
+	match = pathOnly.match(reUntyped)
+	if (match) {
+		const identifier = match[1]
+		const amount = match[2]
+		// Detect UUID format (lenient: 8-4-4-4-12 hex)
+		const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(identifier)
+		if (isUuid) { return amount ? { type: 'payme', uuid: identifier, amount } : { type: 'payme', uuid: identifier } }
+		return amount ? { type: 'payme', username: identifier, amount } : { type: 'payme', username: identifier }
+	}
+
+	return null
 }
 
 // Check for a valid QR data
 const isValidQRData = (parsedData) => {
-    if (parsedData === null) { return false }
-    if ('transactionUUID' in parsedData) { return true }
-    return 'username' in parsedData && 'amount' in parsedData
+	if (parsedData === null) { return false }
+	if ('transactionUUID' in parsedData) { return true }
+	return 'username' in parsedData && 'amount' in parsedData
 }
 
 // Get a list of coins and filter them by IN/OUT/P2P 
 const filterCoins = ({ coins, in_out_p2p = "IN", amount = 0 }) => {
 
-    const filterByInOut = (option) => {
-        if (in_out_p2p === 'IN') {
-            return option.enabled_in
-        } else if (in_out_p2p === 'OUT') {
-            return option.enabled_out
-        } else if (in_out_p2p === 'P2P') {
-            return option.enabled_p2p
-        } else {
-            return false
-        }
-    }
+	const filterByInOut = (option) => {
+		if (in_out_p2p === 'IN') {
+			return option.enabled_in
+		} else if (in_out_p2p === 'OUT') {
+			return option.enabled_out
+		} else if (in_out_p2p === 'P2P') {
+			return option.enabled_p2p
+		} else {
+			return false
+		}
+	}
 
-    const filterCategoryCoins = (categoryName) => {
-        const category = coins.find((category) => category.name === categoryName)
-        if (category) {
-            const filteredCoins = category.coins.filter(filterByInOut)
-            if (amount > 0) {
-                if (in_out_p2p === 'IN') {
-                    return filteredCoins.filter((coin) => parseFloat(coin.min_in) <= amount)
-                }
-                if (in_out_p2p === 'OUT') {
-                    return filteredCoins.filter((coin) => parseFloat(coin.min_out) <= amount)
-                }
-            }
-            return filteredCoins
-        }
-        return []
-    }
+	const filterCategoryCoins = (categoryName) => {
+		const category = coins.find((category) => category.name === categoryName)
+		if (category) {
+			const filteredCoins = category.coins.filter(filterByInOut)
+			if (amount > 0) {
+				if (in_out_p2p === 'IN') {
+					return filteredCoins.filter((coin) => parseFloat(coin.min_in) <= amount)
+				}
+				if (in_out_p2p === 'OUT') {
+					return filteredCoins.filter((coin) => parseFloat(coin.min_out) <= amount)
+				}
+			}
+			return filteredCoins
+		}
+		return []
+	}
 
-    const filteredBanks = filterCategoryCoins('Bank')
-    const filteredCryptoCurrencies = filterCategoryCoins('Criptomonedas')
-    const filteredEWallets = filterCategoryCoins('E-Wallet')
+	const filteredBanks = filterCategoryCoins('Bank')
+	const filteredCryptoCurrencies = filterCategoryCoins('Criptomonedas')
+	const filteredEWallets = filterCategoryCoins('E-Wallet')
 
-    return {
-        banks: filteredBanks,
-        cryptoCurrencies: filteredCryptoCurrencies,
-        eWallets: filteredEWallets,
-    }
+	return {
+		banks: filteredBanks,
+		cryptoCurrencies: filteredCryptoCurrencies,
+		eWallets: filteredEWallets,
+	}
 }
 
 // Show only initial and latest letters from a wallet
@@ -161,75 +175,74 @@ const truncateWalletAddress = (address, amount = 10) => { return address.length 
 
 // Adjust a number to a valid format and correct amount of decimals
 const adjustNumber = (value) => {
-
-    const numValue = parseFloat(value)
-    // Si no es un número válido, retornar el valor original
-    if (isNaN(numValue)) { return value.toString() }
-    // Si el valor es 0, retornar null
-    if (numValue === 0) { return null }
-    // Si el valor es superior a 1, retornar con dos decimales
-    if (numValue >= 1) { return numValue.toFixed(2) }
-    // Si el valor es menor a 0.0001, convertir a notación exponencial
-    if (numValue > 0 && numValue < 0.0001) {
-        let exponentValue = numValue.toExponential()
-        let [mantissa, exponent] = exponentValue.split('e')
-        mantissa = parseFloat(mantissa).toFixed(1)
-        return `${mantissa}e${exponent}`
-    }
-    // Si no se cumplen las condiciones anteriores, retornar el valor como está
-    return numValue.toFixed(2)
+	const numValue = parseFloat(value)
+	// Si no es un número válido, retornar el valor original
+	if (isNaN(numValue)) { return value.toString() }
+	// Si el valor es 0, retornar null
+	if (numValue === 0) { return null }
+	// Si el valor es superior a 1, retornar con dos decimales
+	if (numValue >= 1) { return numValue.toFixed(2) }
+	// Si el valor es menor a 0.0001, convertir a notación exponencial
+	if (numValue > 0 && numValue < 0.0001) {
+		let exponentValue = numValue.toExponential()
+		let [mantissa, exponent] = exponentValue.split('e')
+		mantissa = parseFloat(mantissa).toFixed(1)
+		return `${mantissa}e${exponent}`
+	}
+	// Si no se cumplen las condiciones anteriores, retornar el valor como está
+	return numValue.toFixed(2)
 }
 
 // transform "buy" and "sell" text into "Compra" and "Venta"
 const p2pTypeText = (text) => {
-    if (text === "buy") { return "Compra" }
-    if (text === "sell") { return "Venta" }
-    return text
+	if (text === "buy") { return "Compra" }
+	if (text === "sell") { return "Venta" }
+	return text
 }
 
 const statusText = (text) => {
-    if (text === "open") { return "Abierta" }
-    if (text === "revision") { return "Revisión" }
-    if (text === "cancelled") { return "Cancelada" }
-    if (text === "closed") { return "Cerrada" }
-    if (text === "completed") { return "Completada" }
-    if (text === "processing") { return "Procesando" }
-    if (text === "pending") { return "Pendiente" }
-    if (text === "paid") { return "Pagada" }
-    if (text === "received") { return "Recibida" }
-    return text
+	if (text === "open") { return "Abierta" }
+	if (text === "revision") { return "Revisión" }
+	if (text === "cancelled") { return "Cancelada" }
+	if (text === "closed") { return "Cerrada" }
+	if (text === "completed") { return "Completada" }
+	if (text === "processing") { return "Procesando" }
+	if (text === "pending") { return "Pendiente" }
+	if (text === "paid") { return "Pagada" }
+	if (text === "received") { return "Recibida" }
+	return text
 }
 
 // Shuffle array function
 const shuffleArray = (array) => {
-    let currentIndex = array.length, randomIndex
-    while (currentIndex !== 0) {
-        randomIndex = Math.floor(Math.random() * currentIndex)
-        currentIndex--
-        [array[currentIndex], array[randomIndex]] = [
-            array[randomIndex], array[currentIndex]]
-    }
+	let currentIndex = array.length, randomIndex
+	while (currentIndex !== 0) {
+		randomIndex = Math.floor(Math.random() * currentIndex)
+		currentIndex--
+		[array[currentIndex], array[randomIndex]] = [
+			array[randomIndex], array[currentIndex]]
+	}
 
-    return array
+	return array
 }
 
 // Copy wallet address to clipboard
 const copyTextToClipboard = (text) => {
-    Clipboard.setString(text)
-    Toast.show({
-        type: 'success',
-        text1: 'Elemento copiado al portapapeles',
-        position: 'bottom',
-        bottomOffset: 10,
-    })
+	Clipboard.setString(text)
+	Toast.show({
+		type: 'success',
+		text1: 'Elemento copiado al portapapeles',
+		position: 'bottom',
+		bottomOffset: 10,
+	})
 }
 
 // take am uuid and return the fir chunk of it
 const getFirstChunk = (uuid) => {
-    if (!uuid || typeof uuid !== 'string') {
-        return ''
-    }
-    return uuid.split("-")[0]
+	if (!uuid || typeof uuid !== 'string') {
+		return ''
+	}
+	return uuid.split("-")[0]
 }
 
 const getTypeText = type => { return type === 'buy' ? 'COMPRA' : 'VENTA' }
@@ -237,21 +250,21 @@ const getTypeColor = type => { return type === 'buy' ? theme.colors.success : th
 
 // export helpers
 export {
-    timeSince,
-    reduceString,
-    getShortDateTime,
-    parseQRData,
-    isValidQRData,
-    filterCoins,
-    truncateWalletAddress,
-    adjustNumber,
-    timeAgo,
-    p2pTypeText,
-    shuffleArray,
-    statusText,
-    copyTextToClipboard,
-    getFirstChunk,
-    getTypeText,
-    getTypeColor,
+	timeSince,
+	reduceString,
+	getShortDateTime,
+	parseQRData,
+	isValidQRData,
+	filterCoins,
+	truncateWalletAddress,
+	adjustNumber,
+	timeAgo,
+	p2pTypeText,
+	shuffleArray,
+	statusText,
+	copyTextToClipboard,
+	getFirstChunk,
+	getTypeText,
+	getTypeColor,
 	reduceStringInside
 }
