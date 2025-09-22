@@ -55,10 +55,14 @@ export const AuthProvider = ({ children }) => {
     // If Token is found, check agains API if the token is valid
     // If token is valid, set isAuthenticated to true
     const initializeAuth = async () => {
-        try {
-            setIsLoading(true)
+        
+		try {
+            
+			setIsLoading(true)
             const saved_token = await getAuthToken()
-            if (saved_token) {
+            
+			if (saved_token) {
+				
                 const apiResponse = await authApi.checkToken()
                 if (apiResponse.success) {
                     setToken(saved_token)
@@ -66,9 +70,21 @@ export const AuthProvider = ({ children }) => {
                     const userData = await userApi.getUserProfile()
                     if (userData.success && userData.data) {
                         setUser(userData.data)
-                    } else { await logout() }
+                    } else {
+						await clearAuthData()
+						setUser(null)
+						setToken(null)
+						setIsAuthenticated(false)
+					}
                 } else { setIsAuthenticated(false) }
-            } else { setIsAuthenticated(false) }
+
+            } else {
+				await clearAuthData()
+				setUser(null)
+				setToken(null)
+				setIsAuthenticated(false)
+			}
+
         } catch (error) { setError('Failed to initialize authentication') }
         finally { setIsLoading(false) }
     }

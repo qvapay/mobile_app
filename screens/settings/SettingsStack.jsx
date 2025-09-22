@@ -34,150 +34,155 @@ import Contacts from './subpanels/Contacts'
 // Settings Stack
 const SettingsStack = ({ navigation }) => {
 
-    // Contexts
-    const { theme } = useTheme()
+	// Contexts
+	const { theme } = useTheme()
 
-    return (
-        <Stack.Navigator
-            initialRouteName={ROUTES.SETTINGS_MENU}
-            screenOptions={{
-                headerTitle: '',
-                headerShown: true,
-                headerStyle: {
-                    backgroundColor: theme.colors.background,
-                },
-                headerTintColor: theme.colors.primaryText,
-                headerShadowVisible: false,
-                headerBackVisible: false,
-            }}
-        >
+	return (
+		<Stack.Navigator
+			initialRouteName={ROUTES.SETTINGS_MENU}
+			screenOptions={{
+				headerTitle: '',
+				headerShown: true,
+				headerStyle: {
+					backgroundColor: theme.colors.background,
+				},
+				headerTintColor: theme.colors.primaryText,
+				headerShadowVisible: false,
+				headerBackVisible: false,
+			}}
+		>
 
-            <Stack.Screen
-                name={ROUTES.SETTINGS_MENU}
-                component={SettingsMenu}
-                options={{
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.SETTINGS_MENU}
+				component={SettingsMenu}
+				options={{
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					),
+					headerRight: () => (
+						<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })}>
+							<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.GOLD_CHECK}
-                component={GoldCheck}
-                options={{
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.GOLD_CHECK}
+				component={GoldCheck}
+				options={{
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.REFERALS}
-                component={Referals}
-                options={{
-                    headerLeft: () => (
-                        <Pressable onPress={() => navigation.goBack()}>
-                            <FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                        </Pressable>
-                    )
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.REFERALS}
+				component={Referals}
+				options={{
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()}>
+							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					)
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.THEME}
-                component={Theme}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.THEME}
+				component={Theme}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.USERDATA}
-                component={Userdata}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.USERDATA}
+				component={Userdata}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.PHONE}
-                component={Phone}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.PHONE}
+				component={Phone}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.TELEGRAM}
-                component={Telegram}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.TELEGRAM}
+				component={Telegram}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.PASSWORD}
-                component={Password}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.PASSWORD}
+				component={Password}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.TWO_FACTOR}
-                component={TwoFactor}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.TWO_FACTOR}
+				component={TwoFactor}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.KYC}
-                component={KYC}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.KYC}
+				component={KYC}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.DELETE_ACCOUNT}
-                component={DeleteAccount}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.DELETE_ACCOUNT}
+				component={DeleteAccount}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.NOTIFICATIONS}
-                component={Notifications}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.NOTIFICATIONS}
+				component={Notifications}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.PAYMENT_METHODS}
-                component={PaymentMethods}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.PAYMENT_METHODS}
+				component={PaymentMethods}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-            <Stack.Screen
-                name={ROUTES.CONTACTS}
-                component={Contacts}
-                options={{
-                    headerBackVisible: true,
-                }}
-            />
+			<Stack.Screen
+				name={ROUTES.CONTACTS}
+				component={Contacts}
+				options={{
+					headerBackVisible: true,
+				}}
+			/>
 
-        </Stack.Navigator>
-    )
+		</Stack.Navigator>
+	)
 }
 
 export default SettingsStack

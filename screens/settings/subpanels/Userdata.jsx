@@ -22,327 +22,321 @@ import { useAuth } from '../../../auth/AuthContext'
 // User Data Settings Component
 const Userdata = () => {
 
-    // Contexts
-    const { updateUser } = useAuth()
+	// Contexts
+	const { updateUser } = useAuth()
 
-    // Theme variables, dark and light modes with memoized styles
-    const { theme } = useTheme()
-    const textStyles = createTextStyles(theme)
-    const containerStyles = createContainerStyles(theme)
+	// Theme variables, dark and light modes with memoized styles
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
 
-    // States
-    const [isLoading, setIsLoading] = useState(false)
-    const [isLoadingData, setIsLoadingData] = useState(true)
+	// States
+	const [isLoading, setIsLoading] = useState(false)
+	const [isLoadingData, setIsLoadingData] = useState(true)
 
-    // Form fields
-    const [username, setUsername] = useState('')
-    const [name, setName] = useState('')
-    const [lastname, setLastname] = useState('')
-    const [email, setEmail] = useState('')
-    const [phone, setPhone] = useState('')
-    const [telegram, setTelegram] = useState('')
-    const [twitter, setTwitter] = useState('')
-    const [address, setAddress] = useState('')
-    const [country, setCountry] = useState('')
-    const [bio, setBio] = useState('')
+	// Form fields
+	const [username, setUsername] = useState('')
+	const [name, setName] = useState('')
+	const [lastname, setLastname] = useState('')
+	const [email, setEmail] = useState('')
+	const [phone, setPhone] = useState('')
+	const [telegram, setTelegram] = useState('')
+	const [twitter, setTwitter] = useState('')
+	const [address, setAddress] = useState('')
+	const [country, setCountry] = useState('')
+	const [bio, setBio] = useState('')
 
-    // User status fields
-    const [userStatus, setUserStatus] = useState({
-        kyc: false,
-        phone_verified: false,
-        createdAt: ''
-    })
+	// User status fields
+	const [userStatus, setUserStatus] = useState({
+		kyc: false,
+		phone_verified: false,
+		createdAt: ''
+	})
 
-    // Load user data on component mount
-    useEffect(() => {
-        loadUserData()
-    }, [])
+	// Load user data on component mount
+	useEffect(() => {
+		loadUserData()
+	}, [])
 
-    // Load user data from API
-    const loadUserData = async () => {
+	// Load user data from API
+	const loadUserData = async () => {
 
-        try {
+		try {
 
-            setIsLoadingData(true)
-            const result = await userApi.getUserProfile()
+			setIsLoadingData(true)
+			const result = await userApi.getUserProfile()
 
-            if (result.success && result.data) {
+			if (result.success && result.data) {
 
-                const userData = result.data
+				const userData = result.data
 
-                // Basic form fields
-                setUsername(userData.username || '')
-                setName(userData.name || '')
-                setLastname(userData.lastname || '')
-                setEmail(userData.email || '')
-                setPhone(userData.phone || '')
-                setTelegram(userData.telegram || '')
-                setTwitter(userData.twitter || '')
-                setAddress(userData.address || '')
-                setBio(userData.bio || '')
+				// Basic form fields
+				setUsername(userData.username || '')
+				setName(userData.name || '')
+				setLastname(userData.lastname || '')
+				setEmail(userData.email || '')
+				setPhone(userData.phone || '')
+				setTelegram(userData.telegram || '')
+				setTwitter(userData.twitter || '')
+				setAddress(userData.address || '')
+				setBio(userData.bio || '')
 
-                // Country from KYC object
-                setCountry(userData.KYC?.country || '')
+				// Country from KYC object
+				setCountry(userData.KYC?.country || '')
 
-                // User status information
-                setUserStatus({
-                    kyc: userData.kyc || false,
-                    phone_verified: userData.phone_verified || false,
-                    createdAt: userData.createdAt || ''
-                })
+				// User status information
+				setUserStatus({
+					kyc: userData.kyc || false,
+					phone_verified: userData.phone_verified || false,
+					createdAt: userData.createdAt || ''
+				})
 
-            } else { Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario', text2: result.error || 'Error desconocido' }) }
+			} else { Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario', text2: result.error || 'Error desconocido' }) }
 
-        } catch (error) {
-            console.error('Error loading user data:', error)
-            Toast.show({
-                type: 'error',
-                text1: 'Error al cargar datos del usuario',
-                text2: error.message
-            })
-        } finally { setIsLoadingData(false) }
-    }
+		} catch (error) {
+			console.error('Error loading user data:', error)
+			Toast.show({
+				type: 'error',
+				text1: 'Error al cargar datos del usuario',
+				text2: error.message
+			})
+		} finally { setIsLoadingData(false) }
+	}
 
-    // Handle form submission
-    const handleSubmit = async () => {
+	// Handle form submission
+	const handleSubmit = async () => {
 
-        if (!name || !lastname) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor completa al menos el nombre y apellido' })
-            return
-        }
+		if (!name || !lastname) {
+			Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor completa al menos el nombre y apellido' })
+			return
+		}
 
-        // Validate email format if provided
-        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un formato de correo electrónico válido' })
-            return
-        }
+		// Validate email format if provided
+		if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+			Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un formato de correo electrónico válido' })
+			return
+		}
 
-        // Validate country code if provided
-        if (country && country.length !== 2) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'El código de país debe tener exactamente 2 caracteres (ej: US, ES, MX)' })
-            return
-        }
+		// Validate country code if provided
+		if (country && country.length !== 2) {
+			Toast.show({ type: 'error', text1: 'Error', text2: 'El código de país debe tener exactamente 2 caracteres (ej: US, ES, MX)' })
+			return
+		}
 
-        try {
+		try {
 
-            setIsLoading(true)
+			setIsLoading(true)
 
-            const updateData = {
-                name: name.trim(),
-                lastname: lastname.trim(),
-                bio: bio.trim(),
-                address: address.trim(),
-                country: country.trim().toUpperCase(),
-                telegram: telegram.trim(),
-                twitter: twitter.trim()
-            }
+			const updateData = {
+				name: name.trim(),
+				lastname: lastname.trim(),
+				bio: bio.trim(),
+				address: address.trim(),
+				country: country.trim().toUpperCase(),
+				telegram: telegram.trim(),
+				twitter: twitter.trim()
+			}
 
-            const result = await userApi.updateUser(updateData)
+			const result = await userApi.updateUser(updateData)
 
-            if (result.success && result.data) {
+			if (result.success && result.data) {
 
-                Toast.show({ type: 'success', text1: 'Datos actualizados', text2: 'Tu información personal ha sido actualizada correctamente' })
+				Toast.show({ type: 'success', text1: 'Datos actualizados', text2: 'Tu información personal ha sido actualizada correctamente' })
 
-                // Update local state with response data
-                const userData = result.data
-                setUsername(userData.username || username)
-                setName(userData.name || name)
-                setLastname(userData.lastname || lastname)
-                setBio(userData.bio || bio)
+				// Update local state with response data
+				const userData = result.data
+				setUsername(userData.username || username)
+				setName(userData.name || name)
+				setLastname(userData.lastname || lastname)
+				setBio(userData.bio || bio)
 
-                // Set the user data in the context
-                updateUser({
-                    name: userData.name || name,
-                    lastname: userData.lastname || lastname
-                })
+				// Set the user data in the context
+				updateUser({
+					name: userData.name || name,
+					lastname: userData.lastname || lastname
+				})
 
-            } else { Toast.show({ type: 'error', text1: 'Error al actualizar', text2: result.error || 'Error desconocido' }) }
+			} else { Toast.show({ type: 'error', text1: 'Error al actualizar', text2: result.error || 'Error desconocido' }) }
 
-        } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error al actualizar', text2: error.message })
-        } finally { setIsLoading(false) }
-    }
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error al actualizar', text2: error.message })
+		} finally { setIsLoading(false) }
+	}
 
-    // Format date for display
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A'
-        try {
-            return new Date(dateString).toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            })
-        } catch (error) { return 'N/A' }
-    }
+	// Format date for display
+	const formatDate = (dateString) => {
+		if (!dateString) return 'N/A'
+		try {
+			return new Date(dateString).toLocaleDateString('es-ES', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			})
+		} catch (error) { return 'N/A' }
+	}
 
-    // Loading state
-    if (isLoadingData) { return (<QPLoader />) }
+	// Loading state
+	if (isLoadingData) { return (<QPLoader />) }
 
-    return (
-        <KeyboardAvoidingView
-            style={containerStyles.subContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+	return (
+		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
 
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+					<Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Datos personales</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tus datos personales</Text>
 
-                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
+					<View style={styles.formContainer}>
 
-                    <Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Datos personales</Text>
-                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tus datos personales</Text>
+						{/* Username (Read-only) */}
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Nombre de usuario:</Text>
+						<View style={styles.inputContainer}>
+							<QPInput
+								placeholder="Nombre de usuario"
+								value={username}
+								onChangeText={setUsername}
+								editable={false}
+								prefixIconName="user"
+								style={styles.readOnlyInput}
+								suffixIconName={userStatus.kyc ? 'circle-check' : ''}
+							/>
+						</View>
 
-                    <View style={styles.formContainer}>
+						{/* Name */}
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Datos personales:</Text>
+						<QPInput
+							placeholder="Nombre"
+							value={name}
+							onChangeText={setName}
+							prefixIconName="user"
+							autoCapitalize="words"
+						/>
 
-                        {/* Username (Read-only) */}
-                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Nombre de usuario:</Text>
-                        <View style={styles.inputContainer}>
-                            <QPInput
-                                placeholder="Nombre de usuario"
-                                value={username}
-                                onChangeText={setUsername}
-                                editable={false}
-                                prefixIconName="user"
-                                style={styles.readOnlyInput}
-                                suffixIconName={userStatus.kyc ? 'circle-check' : ''}
-                            />
-                        </View>
+						{/* Last Name */}
+						<QPInput
+							placeholder="Apellido"
+							value={lastname}
+							onChangeText={setLastname}
+							prefixIconName="user"
+							autoCapitalize="words"
+						/>
 
-                        {/* Name */}
-                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Datos personales:</Text>
-                        <QPInput
-                            placeholder="Nombre"
-                            value={name}
-                            onChangeText={setName}
-                            prefixIconName="user"
-                            autoCapitalize="words"
-                        />
+						{/* Email */}
+						<QPInput
+							placeholder="Correo electrónico"
+							value={email}
+							onChangeText={setEmail}
+							keyboardType="email-address"
+							autoCapitalize="none"
+							editable={false}
+							style={styles.readOnlyInput}
+							prefixIconName="envelope"
+						/>
 
-                        {/* Last Name */}
-                        <QPInput
-                            placeholder="Apellido"
-                            value={lastname}
-                            onChangeText={setLastname}
-                            prefixIconName="user"
-                            autoCapitalize="words"
-                        />
+						{/* Phone */}
+						<QPInput
+							placeholder="Teléfono"
+							value={phone}
+							onChangeText={setPhone}
+							keyboardType="phone-pad"
+							prefixIconName="phone-volume"
+							suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
+						/>
 
-                        {/* Email */}
-                        <QPInput
-                            placeholder="Correo electrónico"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            editable={false}
-                            style={styles.readOnlyInput}
-                            prefixIconName="envelope"
-                        />
+						{/* Telegram */}
+						<QPInput
+							placeholder="@usuario_telegram"
+							value={telegram}
+							onChangeText={setTelegram}
+							autoCapitalize="none"
+							prefixIconName="telegram"
+							iconStyle="brand"
+							suffixIconName={userStatus.telegram_id != "" ? 'circle-check' : ''}
+						/>
 
-                        {/* Phone */}
-                        <QPInput
-                            placeholder="Teléfono"
-                            value={phone}
-                            onChangeText={setPhone}
-                            keyboardType="phone-pad"
-                            prefixIconName="phone-volume"
-                            suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
-                        />
+						{/* Twitter */}
+						<QPInput
+							placeholder="@usuario_twitter"
+							value={twitter}
+							onChangeText={setTwitter}
+							autoCapitalize="none"
+							prefixIconName="x-twitter"
+							iconStyle="brand"
+						/>
 
-                        {/* Telegram */}
-                        <QPInput
-                            placeholder="@usuario_telegram"
-                            value={telegram}
-                            onChangeText={setTelegram}
-                            autoCapitalize="none"
-                            prefixIconName="telegram"
-                            iconStyle="brand"
-                            suffixIconName={userStatus.telegram_id != "" ? 'circle-check' : ''}
-                        />
+						{/* Address */}
+						<QPInput
+							placeholder="Dirección"
+							value={address}
+							onChangeText={setAddress}
+							autoCapitalize="words"
+							prefixIconName="location-dot"
+						/>
 
-                        {/* Twitter */}
-                        <QPInput
-                            placeholder="@usuario_twitter"
-                            value={twitter}
-                            onChangeText={setTwitter}
-                            autoCapitalize="none"
-                            prefixIconName="x-twitter"
-                            iconStyle="brand"
-                        />
+						{/* Country */}
+						<View style={styles.inputContainer}>
+							<QPInput
+								placeholder="País (ej: US, ES, MX)"
+								value={country}
+								onChangeText={setCountry}
+								autoCapitalize="characters"
+								maxLength={2}
+								prefixIconName="globe"
+							/>
+							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 5 }]}>
+								Código de país de 2 letras (ISO 3166-1 alpha-2)
+							</Text>
+						</View>
 
-                        {/* Address */}
-                        <QPInput
-                            placeholder="Dirección"
-                            value={address}
-                            onChangeText={setAddress}
-                            autoCapitalize="words"
-                            prefixIconName="location-dot"
-                        />
+						{/* Bio */}
+						<QPInput
+							placeholder="Biografía o descripción personal"
+							value={bio}
+							onChangeText={setBio}
+							multiline
+							numberOfLines={4}
+							prefixIconName="user-pen"
+							style={styles.bioInput}
+						/>
 
-                        {/* Country */}
-                        <View style={styles.inputContainer}>
-                            <QPInput
-                                placeholder="País (ej: US, ES, MX)"
-                                value={country}
-                                onChangeText={setCountry}
-                                autoCapitalize="characters"
-                                maxLength={2}
-                                prefixIconName="globe"
-                            />
-                            <Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 5 }]}>
-                                Código de país de 2 letras (ISO 3166-1 alpha-2)
-                            </Text>
-                        </View>
+					</View>
 
-                        {/* Bio */}
-                        <QPInput
-                            placeholder="Biografía o descripción personal"
-                            value={bio}
-                            onChangeText={setBio}
-                            multiline
-                            numberOfLines={4}
-                            prefixIconName="user-pen"
-                            style={styles.bioInput}
-                        />
+					<View style={containerStyles.bottomButtonContainer}>
+						<QPButton
+							title="Actualizar datos"
+							onPress={handleSubmit}
+							disabled={!name || !lastname || isLoading}
+							textStyle={{ color: theme.colors.almostWhite }}
+							loading={isLoading}
+						/>
+					</View>
 
-                    </View>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 40 }]}>
+						Miembro desde: <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{formatDate(userStatus.createdAt)}</Text>
+					</Text>
 
-                    <View style={containerStyles.bottomButtonContainer}>
-                        <QPButton
-                            title="Actualizar datos"
-                            onPress={handleSubmit}
-                            disabled={!name || !lastname || isLoading}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                            loading={isLoading}
-                        />
-                    </View>
-
-                    <Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
-                        Miembro desde: <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{formatDate(userStatus.createdAt)}</Text>
-                    </Text>
-
-                </ScrollView>
-            </TouchableWithoutFeedback>
-
-        </KeyboardAvoidingView>
-    )
+				</ScrollView>
+			</TouchableWithoutFeedback>
+		</KeyboardAvoidingView>
+	)
 }
 
 const styles = StyleSheet.create({
-    formContainer: {
-        flex: 1,
-        marginVertical: 20
-    },
-    inputContainer: {
-        marginBottom: 10
-    },
-    readOnlyInput: {
-        opacity: 0.6,
-        backgroundColor: 'transparent'
-    },
-    bioInput: {
-        textAlignVertical: 'top',
-        paddingTop: 15
-    }
+	formContainer: {
+		flex: 1,
+		marginVertical: 20
+	},
+	inputContainer: {
+		marginBottom: 10
+	},
+	readOnlyInput: {
+		opacity: 0.6,
+		backgroundColor: 'transparent'
+	},
+	bioInput: {
+		textAlignVertical: 'top',
+		paddingTop: 15
+	}
 })
 
 export default Userdata

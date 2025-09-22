@@ -61,25 +61,23 @@ import QPAvatar from './ui/particles/QPAvatar'
 
 // Main App Navigator Component
 const AppNavigator = () => {
-
-	// Auth Context
-	const { user } = useAuth()
-
+	
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
-
+	
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
-
+	
 	// Check if this is the first time using the app
 	const { appearance, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
-
+	
 	// Navigation
 	const navigation = useNavigation()
-
+	
 	// Auth Context
+	const { user } = useAuth()
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
 	useEffect(() => {
 		const timer = setTimeout(() => {

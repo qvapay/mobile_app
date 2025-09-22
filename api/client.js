@@ -1,6 +1,6 @@
 import axios from 'axios'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import DeviceInfo from 'react-native-device-info'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const version = DeviceInfo.getVersion()
 const buildNumber = DeviceInfo.getBuildNumber()
@@ -31,13 +31,13 @@ apiClient.interceptors.request.use(
 	async (config) => {
 		try {
 			const token = await AsyncStorage.getItem('token')
+			console.log('token', token)
 			if (token) { config.headers.Authorization = `Bearer ${token}` }
 		} catch (error) { console.warn('Failed to get token from storage:', error) }
 		return config
 	},
 	(error) => { return Promise.reject(error) }
 )
-
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
@@ -49,7 +49,6 @@ apiClient.interceptors.response.use(
 			switch (status) {
 				case 401:
 					// Unauthorized - token expired or invalid
-					// Note: logout should be handled by the component using this client
 					// We'll clear the token here but let the component handle the actual logout
 					try {
 						await AsyncStorage.removeItem('token')

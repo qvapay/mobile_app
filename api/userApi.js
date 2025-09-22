@@ -25,6 +25,78 @@ export const userApi = {
 	},
 
 	/**
+	 * Submit KYC information (country, birthday, confirmed)
+	 * @param {{ country: string, birthday: string, confirmed: boolean }} payload
+	 */
+	submitKYCInfo: async ({ country, birthday, confirmed }) => {
+
+		try {
+
+			const formData = new FormData()
+			formData.append('country', country)
+			formData.append('birthday', birthday)
+			formData.append('confirmed', confirmed ? 'true' : 'false')
+
+			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
+			const response = await apiClient.post(`/user/kyc2/info`, formData, config)
+			return { success: response.status === 200, data: response.data, status: response.status }
+
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || (errorData.errors ? errorData.errors[0] : 'No se pudo enviar la información'), details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Get KYC status for the current user
+	 * @returns {Promise<Object>} KYC data { uuid, KYC: { result, country, birthday, document_url, selfie_url } }
+	 */
+	getKYCStatus: async () => {
+		try {
+			const response = await apiClient.get(`/user/kyc2`)
+			return { success: true, data: response.data?.data, raw: response.data, status: response.status }
+		} catch (error) {
+			return { success: false, error: error.message, status: error.response?.status, details: error.response?.data }
+		}
+	},
+
+	/**
+	 * Upload a KYC picture (document | selfie | check)
+	 * @param {Object} payload
+	 * @param {'document'|'selfie'|'check'} payload.pictureType
+	 * @param {{ uri: string, name?: string, type?: string }} payload.file
+	 * @returns {Promise<Object>} Upload result
+	 */
+	uploadKYCPicture: async ({ pictureType, file }) => {
+
+		try {
+
+			const formData = new FormData()
+			formData.append('picture_type', pictureType)
+			formData.append('image', {
+				uri: file.uri,
+				name: file.name || `kyc-${pictureType}.jpg`,
+				type: file.type || 'image/jpeg'
+			})
+
+			// Axios won't set proper headers for multipart unless we override content-type boundary automatically
+			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
+			const response = await apiClient.post(`/user/kyc2`, formData, config)
+			return { success: response.status === 201 || response.status === 200, data: response.data, status: response.status }
+
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo subir la imagen', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Get current user profile data
 	 * @returns {Promise<Object>} The user profile data
 	 */

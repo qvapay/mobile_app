@@ -45,12 +45,12 @@ const settings = {
                 enabled: true,
                 notifications: 0,
             },
-            {
-                title: 'Autenticación de dos factores',
-                screen: ROUTES.TWO_FACTOR,
-                enabled: true,
-                notifications: 0,
-            },
+            // {
+            //     title: 'Autenticación de dos factores',
+            //     screen: ROUTES.TWO_FACTOR,
+            //     enabled: true,
+            //     notifications: 0,
+            // },
             {
                 title: 'PIN de seguridad',
                 screen: ROUTES.TRANSFER_PIN,

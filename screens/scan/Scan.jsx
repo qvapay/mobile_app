@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Camera, useCameraDevice, useCodeScanner, useCameraPermission } from 'react-native-vision-camera'
 import { View, Text, StyleSheet, Dimensions, Animated, Alert, Linking, Pressable } from 'react-native'
+
+// QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
+
+// camera
+import { Camera, useCameraDevice, useCodeScanner, useCameraPermission } from 'react-native-vision-camera'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -22,7 +26,7 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 const SCAN_AREA_SIZE = Math.min(screenWidth * 0.8, 300)
 
 // Scan Screen
-const Scan = ({ navigation }) => {
+const Scan = ({ navigation, route }) => {
 
 	// User
 	const { user } = useAuth()
@@ -40,7 +44,7 @@ const Scan = ({ navigation }) => {
 	const [isScanning, setIsScanning] = useState(true)
 	const [scannedData, setScannedData] = useState(null)
 	const [isTorchEnabled, setIsTorchEnabled] = useState(false)
-	const [viewMode, setViewMode] = useState('scan') // 'scan' | 'show'
+	const [viewMode, setViewMode] = useState(route.params?.view || 'scan') // 'scan' | 'show'
 
 	// Animation
 	const scanLineAnimation = useRef(new Animated.Value(0)).current
