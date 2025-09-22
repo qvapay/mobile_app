@@ -203,9 +203,9 @@ const KYC = () => {
 	if (isProcessing) {
 		return (
 			<View style={[containerStyles.subContainer, styles.center]}>
-				<LottieView source={require('../../../assets/lotties/searching.json')} autoPlay loop style={{ width: 200, height: 200 }} />
+				<LottieView source={require('../../../assets/lotties/looking.json')} autoPlay loop style={{ width: 200, height: 200 }} />
 				<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 10 }]}>Estamos revisando tu verificación</Text>
-				<Text style={[textStyles.h5, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>Esto puede tardar unos minutos. Te avisaremos cuando esté lista.</Text>
+				<Text style={[textStyles.h5, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>Esto puede tardar verios dias. Te avisaremos cuando esté lista.</Text>
 			</View>
 		)
 	}
