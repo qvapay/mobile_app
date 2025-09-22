@@ -84,6 +84,13 @@ const Scan = ({ navigation, route }) => {
 			setScannedData(data)
 			console.log('QR Code scanned:', data)
 
+			// Here you can scan various king of data:
+			// 1. link like https://qvapay.com/payme/username
+			// 2. Link like https://qvapay.com/pay/uuid
+			// 3. Link like https://qvapay.com/pay/username/amount
+			// 4. Link like https://qvapay.com/pay/uuid/amount
+			
+
 			// Navigate to appropriate screen based on QR code content
 			// For now, just show an alert
 			Alert.alert(
