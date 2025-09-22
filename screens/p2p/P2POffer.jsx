@@ -26,7 +26,7 @@ import { p2pApi } from "../../api/p2pApi"
 import Toast from "react-native-toast-message"
 
 // Helpers
-import { getTypeText, getShortDateTime } from "../../helpers"
+import { getTypeText, getShortDateTime, reduceStringInside } from "../../helpers"
 
 // Lottie
 import LottieView from "lottie-react-native"
@@ -50,20 +50,23 @@ const P2POffer = ({ route }) => {
 	const [refreshing, setRefreshing] = useState(false)
 	const [rating, setRating] = useState(0)
 
+	console.log('p2p', p2p)
+
 	// Chat state
 	const [chatMessages, setChatMessages] = useState([])
 	const [chatLoading, setChatLoading] = useState(false)
 	const [chatError, setChatError] = useState(null)
 	const [chatText, setChatText] = useState("")
 	const chatScrollRef = useRef(null)
-	const chatIntervalRef = useRef(null)
+
+	// const chatIntervalRef = useRef(null)
+
 	const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
 	const [visibleTimestamps, setVisibleTimestamps] = useState(new Set())
 	const messageAnimations = useRef({})
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
-	console.log("p2p_uuid", p2p_uuid)
 
 	// Fetch P2P data
 	useEffect(() => {
@@ -301,9 +304,7 @@ const P2POffer = ({ route }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
-				<ScrollView
-					style={{ flex: 1 }}
-					contentContainerStyle={{ flexGrow: 1 }}
+				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}
 					refreshControl={
 						<RefreshControl
 							refreshing={refreshing}
@@ -314,7 +315,6 @@ const P2POffer = ({ route }) => {
 							titleColor={theme.colors.secondaryText}
 						/>
 					}
-					showsVerticalScrollIndicator={false}
 				>
 
 					{/* Offer Header - Fixed */}
@@ -353,18 +353,38 @@ const P2POffer = ({ route }) => {
 									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1} ellipsizeMode="tail">{p2p.message}</Text>
 								</View>
 							)}
+							{(() => {
+								const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
+								const details = Array.isArray(rawDetails)
+									? rawDetails
+									: (rawDetails && typeof rawDetails === "object")
+										? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") }))
+										: []
+
+								if (!details || details.length === 0) { return null }
+
+								return (
+									<View style={{ marginTop: 10, gap: 4 }}>
+										{details.slice(0, 4).map((d, idx) => (
+											<View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+												<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
+												{(d.name === "Wallet" || d.key === "Wallet") ? (
+													<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{reduceStringInside(d.value || d.val, 8)}</Text>
+												) : (
+													<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
+												)}
+											</View>
+										))}
+									</View>
+								)
+							})()}
 						</View>
 					)}
 
 					{status == "open" ? (
 						<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Estamos buscando un peer interesado en tu oferta.</Text>
-							<LottieView
-								source={require("../../assets/lotties/searching.json")}
-								autoPlay
-								loop
-								style={{ width: 250, height: 250 }}
-							/>
+							<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
 						</View>
 					) : (
 						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>

@@ -266,7 +266,7 @@ const AppNavigator = () => {
 						</Pressable>
 					),
 					headerRight: () => (
-						<Pressable style={containerStyles.headerRight} onPress={route.params?.showFilters || (() => { })}>
+						<Pressable style={containerStyles.headerRight} onPress={(() => { })}>
 							<FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
 					)

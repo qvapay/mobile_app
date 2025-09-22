@@ -127,7 +127,10 @@ const MainStack = ({ navigation }) => {
                         headerTitle: '',
                         headerRight: () => (
                             <>
-                                <Pressable style={containerStyles.headerRight} onPress={route.params?.showFilters || (() => { })}>
+                                <Pressable style={containerStyles.headerRight} onPress={() => {
+                                    const openFilters = route?.params?.openFilters
+                                    if (typeof route?.params?.openFilters === 'function') { openFilters() }
+                                }}>
                                     <FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
                                 </Pressable>
                                 <Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)}>

@@ -13,7 +13,7 @@ import { transferApi } from '../../api/transferApi'
 import QPTransaction from '../../ui/particles/QPTransaction'
 
 // Transactions Screen
-const Transactions = ({ navigation }) => {
+const Transactions = ({ navigation, route }) => {
 
     // States
     const [transactions, setTransactions] = useState([])
@@ -35,19 +35,6 @@ const Transactions = ({ navigation }) => {
         }
         fetchTransactions()
     }, [])
-
-    // Función para mostrar el modal de notificaciones
-    const showFiltersModal = () => {
-        // Aquí puedes implementar tu lógica del modal
-        console.log('Mostrando modal de filtros')
-        // Por ejemplo, navegar a una pantalla de filtros
-        // navigation.navigate('FiltersModal')
-    }
-
-    // Pasar la función al header cuando el componente se monta
-    useEffect(() => {
-        navigation.setParams({ showFiltersModal })
-    }, [navigation])
 
     // Render
     return (

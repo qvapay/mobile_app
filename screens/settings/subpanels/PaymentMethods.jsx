@@ -202,7 +202,6 @@ const PaymentMethods = () => {
 						</View>
 					) : (
 						methods.map((method) => {
-
 							const name = method?.name || method?.coin?.name || 'Método'
 							const logo = method?.coin?.logo
 							const rawDetails = (method && (method.details || method.Details)) || null

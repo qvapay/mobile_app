@@ -29,6 +29,9 @@ export const p2pApi = {
 
 			// Add filter parameters
 			if (filters.type) params.append('type', filters.type)
+			if (filters.my) params.append('my', 'true')
+			if (filters.only_kyc) params.append('only_kyc', '1')
+			if (filters.only_vip) params.append('only_vip', '1')
 			if (filters.min !== undefined)
 				params.append('min', filters.min.toString())
 			if (filters.max !== undefined)
@@ -50,7 +53,9 @@ export const p2pApi = {
 				total: response.data.total,
 				offers: response.data.data
 			}
+
 		} catch (error) {
+			
 			// Handle specific API errors
 			if (error.response?.data) {
 				const errorData = error.response.data
