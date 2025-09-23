@@ -243,6 +243,8 @@ const P2POffer = ({ route }) => {
 	// Apply
 	const handleApply = () => {
 		console.log('handleApply')
+		setLoadingApply(true)
+		setLoadingApply(false)
 	}
 
 	// Rate peer
@@ -522,10 +524,11 @@ const P2POffer = ({ route }) => {
 							title="Aplicar"
 							onPress={handleApply}
 							style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
-							textStyle={{ color: theme.colors.almostBlack }}
+							textStyle={{ color: theme.colors.primaryText }}
 							icon="circle-check"
-							iconColor={theme.colors.almostBlack}
+							iconColor={theme.colors.primaryText}
 							iconStyle="solid"
+							loading={loadingApply}
 						/>
 					)}
 
