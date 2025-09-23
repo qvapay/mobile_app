@@ -145,6 +145,9 @@ const P2POffer = ({ route }) => {
 	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing" || status === "processing")
 	const canRatePeer = p2p?.status === "completed"
 
+	// canApply becomes ready if offer is open and counterparty is not set
+	const canApply = status === "open" && counterparty
+
 	// Actions
 	const refetchP2P = async () => {
 		try {
@@ -235,6 +238,11 @@ const P2POffer = ({ route }) => {
 				}
 			]
 		)
+	}
+
+	// Apply
+	const handleApply = () => {
+		console.log('handleApply')
 	}
 
 	// Rate peer
@@ -382,10 +390,16 @@ const P2POffer = ({ route }) => {
 					)}
 
 					{status == "open" ? (
-						<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Estamos buscando un peer interesado en tu oferta.</Text>
-							<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
-						</View>
+						counterparty ? (
+							<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Aplica, eres counterparty</Text>
+							</View>
+						) : (
+							<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Estamos buscando un peer interesado en tu oferta.</Text>
+								<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
+							</View>
+						)
 					) : (
 						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>
 
@@ -498,12 +512,23 @@ const P2POffer = ({ route }) => {
 						</View>
 					)}
 
-
-
 				</ScrollView>
 
 				{/* Action Buttons - Fixed at bottom */}
 				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row' }]}>
+
+					{canApply && (
+						<QPButton
+							title="Aplicar"
+							onPress={handleApply}
+							style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
+							textStyle={{ color: theme.colors.almostBlack }}
+							icon="circle-check"
+							iconColor={theme.colors.almostBlack}
+							iconStyle="solid"
+						/>
+					)}
+
 					{canCancel && (
 						<QPButton
 							title=""

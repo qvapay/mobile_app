@@ -105,31 +105,18 @@ const P2P = ({ navigation, route }) => {
 	const [coinSearch, setCoinSearch] = useState("")
 	const [loadingCoins, setLoadingCoins] = useState(false)
 
-	console.log('showCoinPicker', showCoinPicker)
-
 	// Get the Latest P2P Offers
 	const fetchP2POffers = async (isRefresh = false) => {
-
-		// Prevent multiple fetches in 60 seconds
-		const now = Date.now()
-		if (lastFetchRef.current && now - lastFetchRef.current < 30000) { return }
-
 		try {
-
 			isRefresh ? setRefreshing(true) : setIsLoadingData(true)
 			setError(null)
-
-			lastFetchRef.current = now
-
 			const response = await p2pApi.index(apiFilters)
-
 			if (response.success) {
 				setP2pOffers(response.offers || [])
 			} else {
 				setError(response.error || "Error al cargar las ofertas P2P")
 				Toast.show({ type: "error", text1: response.error || "Error al cargar las ofertas P2P" })
 			}
-
 		} catch (err) {
 			const errorMessage = "Error de conexión"
 			setError(errorMessage)
@@ -169,7 +156,6 @@ const P2P = ({ navigation, route }) => {
 			try {
 				setLoadingCoins(true)
 				const res = await coinsApi.index({ enabled_p2p: true })
-				console.log('res', res)
 				if (mounted && res.success) { setAvailableCoins(res.data || []) }
 			} catch (e) { /* ignore */ }
 			finally { if (mounted) setLoadingCoins(false) }
