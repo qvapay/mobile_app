@@ -36,133 +36,120 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Main Stack
 const MainStack = ({ navigation }) => {
 
-    // Contexts
-    const { user, isAuthenticated } = useAuth()
-    const { theme } = useTheme()
-    const containerStyles = createContainerStyles(theme)
-    const textStyles = createTextStyles(theme)
-    const insets = useSafeAreaInsets()
+	// Contexts
+	const { user, isAuthenticated } = useAuth()
+	const { theme } = useTheme()
+	const containerStyles = createContainerStyles(theme)
+	const textStyles = createTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
-    // Add safety check for user data
-    // If user is not authenticated or user data is missing, 
-    // this will trigger the navigation logic in App.tsx to redirect to welcome/login
-    if (!isAuthenticated || !user) { return null }
+	// Add safety check for user data
+	// If user is not authenticated or user data is missing, 
+	// this will trigger the navigation logic in App.tsx to redirect to welcome/login
+	if (!isAuthenticated || !user) { return null }
 
-    return (
-        <SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
+	return (
+		<SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
 
-            <Tab.Navigator
-                initialRouteName={ROUTES.HOME_SCREEN}
-                backBehavior='initialRoute'
-                tabBar={props => <BottomBar {...props} navItems={navItems} />}
-                screenOptions={({ navigation }) => ({
-                    headerShown: true,
-                    headerBackVisible: true,
-                    headerBackTitleVisible: false,
-                    headerBackButtonMenuEnabled: false,
-                    headerShadowVisible: false,
-                    headerStyle: {
-                        backgroundColor: theme.colors.background,
-                    },
-                    headerTintColor: theme.colors.primaryText,
-                    headerTitleStyle: {
-                        fontSize: 24,
-                        fontFamily: theme.typography.fontFamily.bold,
-                    },
-                    headerLeft: () => (
-                        <Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-                            <QPAvatar user={user} size={32} />
-                        </Pressable>
-                    )
-                })}
-            >
+			<Tab.Navigator
+				initialRouteName={ROUTES.HOME_SCREEN}
+				backBehavior='initialRoute'
+				tabBar={props => <BottomBar {...props} navItems={navItems} />}
+				screenOptions={({ navigation }) => ({
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackTitleVisible: false,
+					headerBackButtonMenuEnabled: false,
+					headerShadowVisible: false,
+					headerStyle: {
+						backgroundColor: theme.colors.background,
+					},
+					headerTintColor: theme.colors.primaryText,
+					headerTitleStyle: {
+						fontSize: 24,
+						fontFamily: theme.typography.fontFamily.bold,
+					},
+					headerLeft: () => (
+						<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+							<QPAvatar user={user} size={32} />
+						</Pressable>
+					)
+				})}
+			>
 
-                <Tab.Screen
-                    name={ROUTES.HOME_SCREEN}
-                    component={Home}
-                    options={{
-                        headerTitle: '',
-                        headerLeft: () => (
-                            <Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-                                <QPAvatar user={user} size={32} />
-                                <View style={styles.headerLeftTextContainer}>
-                                    <Text style={textStyles.h4}>Hola {user.name}!</Text>
-                                    <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
-                                </View>
-                            </Pressable>
-                        ),
-                        headerRight: () => (
-                            <Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
-                                <FontAwesome6 name="bell" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                            </Pressable>
-                        )
-                    }}
-                />
+				<Tab.Screen
+					name={ROUTES.HOME_SCREEN}
+					component={Home}
+					options={{
+						headerTitle: '',
+						headerLeft: () => (
+							<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+								<QPAvatar user={user} size={32} />
+								<View style={styles.headerLeftTextContainer}>
+									<Text style={textStyles.h4}>Hola {user.name}!</Text>
+									<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
+								</View>
+							</Pressable>
+						),
+						headerRight: () => (
+							<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
+								<FontAwesome6 name="bell" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+							</Pressable>
+						)
+					}}
+				/>
 
-                <Tab.Screen
-                    name={ROUTES.INVEST_SCREEN}
-                    component={Invest}
-                    options={{
-                        headerTitle: '',
-                    }}
-                />
+				<Tab.Screen
+					name={ROUTES.INVEST_SCREEN}
+					component={Invest}
+					options={{
+						headerTitle: '',
+					}}
+				/>
 
-                <Tab.Screen
-                    name={ROUTES.KEYPAD_SCREEN}
-                    component={Keypad}
-                    options={({ navigation }) => ({
-                        headerTitle: '',
-                        headerRight: () => (
-                            <Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
-                                <FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                            </Pressable>
-                        )
-                    })}
-                />
+				<Tab.Screen
+					name={ROUTES.KEYPAD_SCREEN}
+					component={Keypad}
+					options={({ navigation }) => ({
+						headerTitle: '',
+						headerRight: () => (
+							<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
+								<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+							</Pressable>
+						)
+					})}
+				/>
 
-                <Tab.Screen
-                    name={ROUTES.P2P_SCREEN}
-                    component={P2P}
-                    options={({ route, navigation }) => ({
-                        headerTitle: '',
-                        headerRight: () => (
-                            <>
-                                <Pressable style={containerStyles.headerRight} onPress={() => {
-                                    const openFilters = route?.params?.openFilters
-                                    if (typeof route?.params?.openFilters === 'function') { openFilters() }
-                                }}>
-                                    <FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
-                                </Pressable>
-                                <Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)}>
-                                    <FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                                </Pressable>
-                            </>
-                        )
-                    })}
-                />
+				<Tab.Screen
+					name={ROUTES.P2P_SCREEN}
+					component={P2P}
+					options={{
+						headerTitle: '',
+					}}
+				/>
 
-                <Tab.Screen
-                    name={ROUTES.STORE_SCREEN}
-                    component={Store}
-                    options={({ navigation }) => ({
-                        headerTitle: '',
-                        headerRight: () => (
-                            <Pressable style={containerStyles.headerRight}>
-                                <FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-                            </Pressable>
-                        )
-                    })}
-                />
+				<Tab.Screen
+					name={ROUTES.STORE_SCREEN}
+					component={Store}
+					options={({ navigation }) => ({
+						headerTitle: '',
+						headerRight: () => (
+							<Pressable style={containerStyles.headerRight}>
+								<FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+							</Pressable>
+						)
+					})}
+				/>
 
-            </Tab.Navigator>
-        </SafeAreaProvider>
-    )
+			</Tab.Navigator>
+		</SafeAreaProvider>
+	)
 }
 
 const styles = StyleSheet.create({
-    headerLeftTextContainer: {
-        marginLeft: 10,
-    },
+	headerLeftTextContainer: {
+		marginLeft: 10,
+	},
 })
 
 export default MainStack

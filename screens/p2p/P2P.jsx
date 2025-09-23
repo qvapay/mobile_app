@@ -18,6 +18,7 @@ import QPLoader from "../../ui/particles/QPLoader"
 import QPInput from "../../ui/particles/QPInput"
 import QPSwitch from "../../ui/particles/QPSwitch"
 import QPCoin from "../../ui/particles/QPCoin"
+import QPButton from "../../ui/particles/QPButton"
 
 // Toast
 import Toast from "react-native-toast-message"
@@ -26,6 +27,9 @@ import Toast from "react-native-toast-message"
 import LottieView from "lottie-react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+
+// Routes
+import { ROUTES } from "../../routes"
 
 // P2P component
 const P2P = ({ navigation, route }) => {
@@ -49,6 +53,7 @@ const P2P = ({ navigation, route }) => {
 
 	// modal Show Hide
 	const [showFiltersModal, setShowFiltersModal] = useState(false)
+	const [showCoinPicker, setShowCoinPicker] = useState(false)
 
 	// Filters state
 	const [showMine, setShowMine] = useState(false)
@@ -60,6 +65,21 @@ const P2P = ({ navigation, route }) => {
 	const [ratioMax, setRatioMax] = useState("")
 	const [onlyKyc, setOnlyKyc] = useState(false)
 	const [onlyVip, setOnlyVip] = useState(false)
+
+	// Whether any non-default filter is active
+	const hasActiveFilters = useMemo(() => {
+		return (
+			showMine ||
+			!!selectedCoin?.tick ||
+			minAmount !== "" ||
+			maxAmount !== "" ||
+			ratioMin !== "" ||
+			ratioMax !== "" ||
+			onlyKyc ||
+			onlyVip ||
+			typeFilter !== "buy"
+		)
+	}, [showMine, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, onlyKyc, onlyVip, typeFilter])
 
 	// Filters object used for API
 	const apiFilters = useMemo(() => {
@@ -82,9 +102,10 @@ const P2P = ({ navigation, route }) => {
 
 	// Coins for selector
 	const [availableCoins, setAvailableCoins] = useState([])
-	const [showCoinPicker, setShowCoinPicker] = useState(false)
 	const [coinSearch, setCoinSearch] = useState("")
 	const [loadingCoins, setLoadingCoins] = useState(false)
+
+	console.log('showCoinPicker', showCoinPicker)
 
 	// Get the Latest P2P Offers
 	const fetchP2POffers = async (isRefresh = false) => {
@@ -125,26 +146,38 @@ const P2P = ({ navigation, route }) => {
 		else { setIsLoadingData(false) }
 	}, [])
 
-	// Expose open filters method to header button
+	// Configure header buttons locally to avoid non-serializable params
 	useEffect(() => {
-		navigation.setParams({ openFilters: () => setShowFiltersModal(true) })
-	}, [navigation])
+		navigation.setOptions({
+			headerRight: () => (
+				<>
+					<Pressable style={containerStyles.headerRight} onPress={() => setShowFiltersModal(true)}>
+						<FontAwesome6 name="filter" size={20} color={hasActiveFilters ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+					</Pressable>
+					<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)}>
+						<FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+					</Pressable>
+				</>
+			)
+		})
+	}, [navigation, theme, hasActiveFilters])
 
 	// Load coins for coin picker (on demand)
 	useEffect(() => {
-		if (!showCoinPicker) return
 		let mounted = true
 		const loadCoins = async () => {
 			try {
 				setLoadingCoins(true)
 				const res = await coinsApi.index({ enabled_p2p: true })
+				console.log('res', res)
 				if (mounted && res.success) { setAvailableCoins(res.data || []) }
 			} catch (e) { /* ignore */ }
 			finally { if (mounted) setLoadingCoins(false) }
 		}
+		// Preload coins once on mount
 		loadCoins()
 		return () => { mounted = false }
-	}, [showCoinPicker])
+	}, [])
 
 	// Handle refresh
 	const onRefresh = () => { fetchP2POffers(true) }
@@ -181,7 +214,7 @@ const P2P = ({ navigation, route }) => {
 			)}
 
 			{/* Filters Modal */}
-			<Modal visible={showFiltersModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFiltersModal(false)}>
+			<Modal visible={showFiltersModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowFiltersModal(false) }}>
 				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 						<Text style={textStyles.h4}>Filtros</Text>
@@ -207,14 +240,14 @@ const P2P = ({ navigation, route }) => {
 								rightText="Vender"
 								leftColor={theme.colors.success}
 								rightColor={theme.colors.danger}
-								style={{ width: 200 }}
+								style={{ width: 180, height: 30 }}
 							/>
 						</View>
 
 						{/* Coin */}
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Moneda</Text>
-							<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)}>
+							<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => { setShowCoinPicker(true); setShowFiltersModal(false) }}>
 								{selectedCoin ? (
 									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
 										<QPCoin coin={selectedCoin.logo} size={20} />
@@ -270,27 +303,30 @@ const P2P = ({ navigation, route }) => {
 					</ScrollView>
 
 					{/* Bottom buttons */}
-					<View style={[{ paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: theme.colors.elevation, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
-						<Pressable onPress={() => { setShowMine(false); setTypeFilter("buy"); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); }} style={[styles.clearButton, { borderColor: theme.colors.border }]}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Limpiar</Text>
-						</Pressable>
-						<Pressable onPress={() => { setShowFiltersModal(false); fetchP2POffers(true) }} style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}>
-							<Text style={[textStyles.h6, { color: theme.colors.almostBlack, fontWeight: "600" }]}>Aplicar</Text>
-						</Pressable>
+					<View style={[{ paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.elevation, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
+						<QPButton
+							title="Limpiar"
+							onPress={() => { setShowMine(false); setTypeFilter("buy"); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); }}
+							style={[styles.clearButton, { borderColor: theme.colors.border, backgroundColor: "transparent" }]}
+							textStyle={{ color: theme.colors.secondaryText }}
+						/>
+						<QPButton
+							title="Aplicar"
+							onPress={() => { setShowFiltersModal(false); fetchP2POffers(true) }}
+							style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}
+							textStyle={{ color: theme.colors.primaryText }}
+						/>
 					</View>
 				</SafeAreaView>
 			</Modal>
 
 			{/* Coin Picker Modal */}
-			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
+			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowCoinPicker(false); setShowFiltersModal(true) }}>
 				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
 						<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-							<Pressable onPress={() => { /* toggle search */ }}>
-								<FontAwesome6 name="magnifying-glass" size={18} color={theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-							<Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
+							<Pressable onPress={() => { setShowCoinPicker(false); setShowFiltersModal(true) }} style={styles.closeButton}>
 								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
 						</View>
@@ -309,7 +345,7 @@ const P2P = ({ navigation, route }) => {
 							(availableCoins || [])
 								.filter((coin) => coin.name.toLowerCase().includes((coinSearch || "").toLowerCase()) || coin.tick.toLowerCase().includes((coinSearch || "").toLowerCase()))
 								.map((coin) => (
-									<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => { setSelectedCoin(coin); setShowCoinPicker(false) }}>
+									<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => { setSelectedCoin(coin); setShowCoinPicker(false); setShowFiltersModal(true) }}>
 										<QPCoin coin={coin.logo} size={40} />
 										<View style={{ marginLeft: 12, flex: 1 }}>
 											<Text style={textStyles.h4}>{coin.name}</Text>
@@ -344,7 +380,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingVertical: 10,
+		paddingVertical: 6,
 	},
 	coinSelector: {
 		paddingHorizontal: 12,
@@ -443,18 +479,10 @@ const styles = StyleSheet.create({
 	},
 	clearButton: {
 		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
 		borderWidth: 1,
-		borderRadius: 12,
-		paddingVertical: 12,
 	},
 	applyButton: {
 		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: 12,
-		paddingVertical: 12,
 	}
 })
 
