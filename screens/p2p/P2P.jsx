@@ -57,7 +57,7 @@ const P2P = ({ navigation, route }) => {
 
 	// Filters state
 	const [showMine, setShowMine] = useState(false)
-	const [typeFilter, setTypeFilter] = useState("buy") // 'buy' | 'sell'
+	const [typeFilter, setTypeFilter] = useState("buy")
 	const [selectedCoin, setSelectedCoin] = useState(null)
 	const [minAmount, setMinAmount] = useState("")
 	const [maxAmount, setMaxAmount] = useState("")
