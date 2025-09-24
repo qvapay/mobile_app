@@ -299,5 +299,40 @@ export const userApi = {
 			}
 			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
 		}
+	},
+
+	/**
+	 * Get user's saved contacts
+	 * @returns {Promise<Object>} The contacts list
+	 */
+	getContacts: async () => {
+		try {
+			const response = await apiClient.get(`/user/contact`)
+			return { success: true, data: response.data?.contacts ?? [], status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener los contactos', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Delete a contact by id/uuid
+	 * @param {string|number} idOrUuid - The contact identifier
+	 * @returns {Promise<Object>} The deletion result
+	 */
+	deleteContact: async (idOrUuid) => {
+		try {
+			const response = await apiClient.delete(`/user/contact/${idOrUuid}`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo eliminar el contacto', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
 	}
 }
