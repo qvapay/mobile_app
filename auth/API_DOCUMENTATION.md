@@ -69,7 +69,7 @@ https://api.qvapay.com
 ### File Structure
 ```
 auth/
-├── authContext.js      # React Context for auth state management
+├── AuthContext.js      # React Context for auth state management
 ├── authApi.js          # API functions for authentication
 └── screens/
     ├── Login.jsx       # Login screen with 2FA support
@@ -123,7 +123,7 @@ const userData = {
 
 ### Login with 2FA
 ```javascript
-import { useAuth } from '../auth/authContext';
+import { useAuth } from '../auth/AuthContext';
 
 const LoginScreen = () => {
     const { login, isLoading, error } = useAuth();
@@ -154,7 +154,7 @@ const response = await apiClient.get('/some/protected/endpoint');
 
 ### Logout
 ```javascript
-import { useAuth } from '../auth/authContext';
+import { useAuth } from '../auth/AuthContext';
 
 const HomeScreen = () => {
     const { logout } = useAuth();
