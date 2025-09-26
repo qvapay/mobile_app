@@ -202,6 +202,7 @@ const P2P = ({ navigation, route }) => {
 			{/* Filters Modal */}
 			<Modal visible={showFiltersModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowFiltersModal(false) }}>
 				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+
 					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 						<Text style={textStyles.h4}>Filtros</Text>
 						<Pressable onPress={() => setShowFiltersModal(false)} style={styles.closeButton}>
@@ -213,7 +214,12 @@ const P2P = ({ navigation, route }) => {
 						{/* Show My Offers */}
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Mis ofertas</Text>
-							<Switch value={showMine} onValueChange={setShowMine} trackColor={{ true: theme.colors.primary }} />
+							<Switch
+								value={showMine}
+								onValueChange={setShowMine}
+								trackColor={{ true: theme.colors.primary }}
+								style={{ width: 50, height: 30 }}
+							/>
 						</View>
 
 						{/* Type */}
@@ -226,14 +232,14 @@ const P2P = ({ navigation, route }) => {
 								rightText="Vender"
 								leftColor={theme.colors.success}
 								rightColor={theme.colors.danger}
-								style={{ width: 180, height: 30 }}
+								style={{ width: 160, height: 30 }}
 							/>
 						</View>
 
 						{/* Coin */}
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Moneda</Text>
-							<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => { setShowCoinPicker(true); setShowFiltersModal(false) }}>
+							<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, width: 160 }]} onPress={() => { setShowCoinPicker(true); setShowFiltersModal(false) }}>
 								{selectedCoin ? (
 									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
 										<QPCoin coin={selectedCoin.logo} size={20} />
@@ -280,11 +286,25 @@ const P2P = ({ navigation, route }) => {
 						{/* Only KYC / VIP */}
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Solo KYC</Text>
-							<Switch value={onlyKyc} onValueChange={setOnlyKyc} trackColor={{ true: theme.colors.primary }} />
+							<View style={{ marginLeft: 16 }}>
+								<Switch
+									value={onlyKyc}
+									onValueChange={setOnlyKyc}
+									trackColor={{ true: theme.colors.primary }}
+									style={{ width: 50, height: 30 }}
+								/>
+							</View>
 						</View>
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Solo VIP</Text>
-							<Switch value={onlyVip} onValueChange={setOnlyVip} trackColor={{ true: theme.colors.primary }} />
+							<View style={{ marginLeft: 16 }}>
+								<Switch
+									value={onlyVip}
+									onValueChange={setOnlyVip}
+									trackColor={{ true: theme.colors.primary }}
+									style={{ width: 50, height: 30 }}
+								/>
+							</View>
 						</View>
 					</ScrollView>
 
@@ -309,6 +329,7 @@ const P2P = ({ navigation, route }) => {
 			{/* Coin Picker Modal */}
 			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowCoinPicker(false); setShowFiltersModal(true) }}>
 				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+
 					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
 						<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
@@ -366,7 +387,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingVertical: 6,
+		paddingVertical: 8,
 	},
 	coinSelector: {
 		paddingHorizontal: 12,
@@ -437,7 +458,10 @@ const styles = StyleSheet.create({
 		borderTopColor: "rgba(0,0,0,0.1)",
 	},
 	// Modal styles
-	modalContainer: { flex: 1 },
+	modalContainer: {
+		flex: 1,
+		paddingBottom: 20
+	},
 	modalHeader: {
 		flexDirection: "row",
 		justifyContent: "space-between",
