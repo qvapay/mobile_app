@@ -31,10 +31,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Para poder escanear QRs, $(PRODUCT_NAME) necesita permiso.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to provide you with the best experience.</string>
 	<key>RCTNewArchEnabled</key>
-	<true/>
+	<false/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>FontAwesome6_Brands.ttf</string>
@@ -61,6 +63,8 @@
 	<array>
 		<string>arm64</string>
 	</array>
+	<key>UIRequiresPersistentWiFi</key>
+	<true/>
 	<key>UIStatusBarHidden</key>
 	<true/>
 	<key>UIStatusBarStyle</key>
@@ -77,9 +81,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>UIRequiresPersistentWiFi</key>
-	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Para poder escanear QRs, $(PRODUCT_NAME) necesita permiso.</string>
 </dict>
 </plist>

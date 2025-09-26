@@ -1,10 +1,12 @@
 {
   "name": "QvaPay",
-  "version": "0.0.2",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "ios:build": "cd ios && xcodebuild -workspace QvaPay.xcworkspace -scheme QvaPay -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build",
     "ios": "react-native run-ios",
+    "pods": "cd ios && pod install",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest"

@@ -246,7 +246,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\n# Ensure Node is available\nif ! command -v node >/dev/null 2>&1; then\n  if [ -x /usr/local/bin/node ]; then\n    export PATH=\"/usr/local/bin:$PATH\"\n  fi\nfi\nexport NODE_BINARY=\"$(command -v node || echo /usr/local/bin/node)\"\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\nSENTRY_SCRIPT=\"../node_modules/@sentry/react-native/scripts/sentry-xcode.sh\"\n\nrun_with_env() {\n  if [ -x \"$WITH_ENVIRONMENT\" ]; then\n    /bin/sh -c \"$WITH_ENVIRONMENT \\\"/bin/sh $1\\\"\"\n  else\n    /bin/sh -c \"/bin/sh $1\"\n  fi\n}\n\nif [ -f \"$SENTRY_SCRIPT\" ]; then\n  run_with_env \"$SENTRY_SCRIPT $REACT_NATIVE_XCODE\"\nelse\n  run_with_env \"$REACT_NATIVE_XCODE\"\nfi\n";
+			shellScript = "set -e\n\n# Ensure Node is available\nif ! command -v node >/dev/null 2>&1; then\n  if [ -x /usr/local/bin/node ]; then\n    export PATH=\"/usr/local/bin:$PATH\"\n  fi\nfi\nexport NODE_BINARY=\"$(command -v node || echo /usr/local/bin/node)\"\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\nSENTRY_SCRIPT=\"../node_modules/@sentry/react-native/scripts/sentry-xcode.sh\"\n\nrun_with_env() {\n  if [ -x \"$WITH_ENVIRONMENT\" ]; then\n    /bin/sh -c \"$WITH_ENVIRONMENT \\\"$1\\\"\"\n  else\n    /bin/sh -c \"$1\"\n  fi\n}\n\nif [ -f \"$SENTRY_SCRIPT\" ]; then\n  run_with_env \"$SENTRY_SCRIPT\"\nelse\n  run_with_env \"$REACT_NATIVE_XCODE\"\nfi\n";
 		};
 		45DB9EE7F3703EFAC2924230 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;

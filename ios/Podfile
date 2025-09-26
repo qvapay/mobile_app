@@ -16,7 +16,7 @@ target 'QvaPay' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # :new_arch_enabled => false, # ← cambia esto a false
+    :new_arch_enabled => false,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
@@ -36,6 +36,8 @@ target 'QvaPay' do
         config.build_settings['SWIFT_VERSION'] = '5.9'
         # Normalize REACT_NATIVE_PATH to an absolute path to avoid script resolution issues
         config.build_settings['REACT_NATIVE_PATH'] = File.join(Pod::Config.instance.installation_root, '..', 'node_modules', 'react-native')
+        # Allow non-modular includes to prevent build errors with static frameworks
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
       end
     end
 
