@@ -256,6 +256,18 @@ export const p2pApi = {
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
 	},
+
+	/**
+	 * Apply to a P2P offer
+	 * @param {string} p2p_uuid - The P2P UUID
+	 * @returns {Promise<Object>} The P2P offer apply response
+	 */
+	apply: async (p2p_uuid) => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/apply`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+	},
 }
 
 // Export the apiClient for other API calls

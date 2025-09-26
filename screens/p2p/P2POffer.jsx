@@ -46,11 +46,15 @@ const P2POffer = ({ route }) => {
 	const [p2p, setP2p] = useState(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState(null)
-	const [loadingReceived, setLoadingReceived] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
 	const [rating, setRating] = useState(0)
 
-	console.log('p2p', p2p)
+	// Loading states for actions
+	const [loadingApply, setLoadingApply] = useState(false)
+	const [loadingCancel, setLoadingCancel] = useState(false)
+	const [loadingReceived, setLoadingReceived] = useState(false)
+	const [loadingMarkPaid, setLoadingMarkPaid] = useState(false)
+
 
 	// Chat state
 	const [chatMessages, setChatMessages] = useState([])
@@ -67,6 +71,7 @@ const P2POffer = ({ route }) => {
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
+	console.log('p2p', p2p)
 
 	// Fetch P2P data
 	useEffect(() => {
@@ -168,83 +173,88 @@ const P2POffer = ({ route }) => {
 
 	// Cancel
 	const handleCancel = () => {
-		Alert.alert(
-			"Cancelar Oferta",
-			"¿Estás seguro de que quieres cancelar esta oferta? Esta acción no se puede deshacer.",
-			[
-				{ text: "No", style: "cancel" },
-				{
-					text: "Sí, Cancelar",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							const res = await p2pApi.cancel(p2p.uuid)
-							if (res.success) {
-								Toast.show({ type: "success", text1: "Oferta cancelada" })
-								refetchP2P()
-							} else { Toast.show({ type: "error", text1: "No se pudo cancelar", text2: String(res.error || "") }) }
-						} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
-					}
+		Alert.alert("Cancelar Oferta", "¿Estás seguro de que quieres cancelar esta oferta? Esta acción no se puede deshacer.", [
+			{ text: "No", style: "cancel" },
+			{
+				text: "Sí, Cancelar",
+				style: "destructive",
+				onPress: async () => {
+					try {
+						setLoadingCancel(true)
+						const res = await p2pApi.cancel(p2p.uuid)
+						if (res.success) {
+							Toast.show({ type: "success", text1: "Oferta cancelada" })
+							refetchP2P()
+						} else { Toast.show({ type: "error", text1: "No se pudo cancelar", text2: String(res.error || "") }) }
+					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+					finally { setLoadingCancel(false) }
 				}
-			]
-		)
+			}
+		])
 	}
 
 	// Mark paid
 	const handleMarkPaid = () => {
-		Alert.alert(
-			"Confirmar Pago",
-			"¿Has realizado el pago al vendedor? Una vez confirmado, no podrás deshacer esta acción.",
-			[
-				{ text: "No", style: "cancel" },
-				{
-					text: "Sí, he pagado",
-					style: "default",
-					onPress: async () => {
-						try {
-							const res = await p2pApi.markPaid(p2p.uuid)
-							if (res.success) {
-								Toast.show({ type: "success", text1: "Pago marcado como realizado" })
-								refetchP2P()
-							} else { Toast.show({ type: "error", text1: "No se pudo marcar pago", text2: String(res.error || "") }) }
-						} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
-					}
+		Alert.alert("Confirmar Pago", "¿Has realizado el pago al vendedor? Una vez confirmado, no podrás deshacer esta acción.", [
+			{ text: "No", style: "cancel" },
+			{
+				text: "Sí, he pagado",
+				style: "default",
+				onPress: async () => {
+					try {
+						setLoadingMarkPaid(true)
+						const res = await p2pApi.markPaid(p2p.uuid)
+						if (res.success) {
+							Toast.show({ type: "success", text1: "Pago marcado como realizado" })
+							refetchP2P()
+						} else { Toast.show({ type: "error", text1: "No se pudo marcar pago", text2: String(res.error || "") }) }
+					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+					finally { setLoadingMarkPaid(false) }
 				}
-			]
-		)
+			}
+		])
 	}
 
 	// Confirm received
 	const handleConfirmReceived = () => {
-		Alert.alert(
-			"Confirmar Recepción",
-			"¿Has recibido el pago del comprador? Esta acción liberará los fondos en garantía.",
-			[
-				{ text: "No", style: "cancel" },
-				{
-					text: "Sí, he recibido",
-					style: "default",
-					onPress: async () => {
-						try {
-							setLoadingReceived(true)
-							const res = await p2pApi.confirmReceived(p2p.uuid)
-							if (res.success) {
-								Toast.show({ type: "success", text1: "Pago recibido. Fondos liberados" })
-								refetchP2P()
-							} else { Toast.show({ type: "error", text1: "No se pudo confirmar", text2: String(res.error || "") }) }
-						} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
-						finally { setLoadingReceived(false) }
-					}
+		Alert.alert("Confirmar Recepción", "¿Has recibido el pago del comprador? Esta acción liberará los fondos en garantía.", [
+			{ text: "No", style: "cancel" },
+			{
+				text: "Sí, he recibido", style: "default",
+				onPress: async () => {
+					try {
+						setLoadingReceived(true)
+						const res = await p2pApi.confirmReceived(p2p.uuid)
+						if (res.success) {
+							Toast.show({ type: "success", text1: "Pago recibido. Fondos liberados" })
+							refetchP2P()
+						} else { Toast.show({ type: "error", text1: "No se pudo confirmar", text2: String(res.error || "") }) }
+					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+					finally { setLoadingReceived(false) }
 				}
-			]
-		)
+			}
+		])
 	}
 
 	// Apply
-	const handleApply = () => {
-		console.log('handleApply')
-		setLoadingApply(true)
-		setLoadingApply(false)
+	const handleApply = async () => {
+		Alert.alert("Aplicar", "¿Estás seguro de que quieres aplicar a esta oferta?", [
+			{ text: "No", style: "cancel" },
+			{
+				text: "Sí, aplicar", style: "default",
+				onPress: async () => {
+					try {
+						setLoadingApply(true)
+						const res = await p2pApi.apply(p2p.uuid)
+						if (res.success) {
+							Toast.show({ type: "success", text1: "Aplicado" })
+							refetchP2P()
+						} else { Toast.show({ type: "error", text1: "No se pudo aplicar", text2: String(res.error || "") }) }
+					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+					finally { setLoadingApply(false) }
+				}
+			}
+		])
 	}
 
 	// Rate peer
@@ -529,6 +539,7 @@ const P2POffer = ({ route }) => {
 							iconColor={theme.colors.primaryText}
 							iconStyle="solid"
 							loading={loadingApply}
+							disabled={loadingApply}
 						/>
 					)}
 
@@ -541,6 +552,8 @@ const P2POffer = ({ route }) => {
 							icon="xmark"
 							iconColor={theme.colors.primaryText}
 							iconStyle="solid"
+							loading={loadingCancel}
+							disabled={loadingCancel}
 						/>
 					)}
 
@@ -553,6 +566,8 @@ const P2POffer = ({ route }) => {
 							icon="circle-check"
 							iconColor={theme.colors.almostBlack}
 							iconStyle="solid"
+							loading={loadingMarkPaid}
+							disabled={loadingMarkPaid}
 						/>
 					)}
 
