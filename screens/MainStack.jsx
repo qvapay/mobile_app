@@ -1,6 +1,4 @@
-import { StyleSheet, Pressable, View, Text } from 'react-native'
-
-// Safe Area
+import { Pressable, View, Text } from 'react-native'
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Bottom Tab Navigator
@@ -61,14 +59,9 @@ const MainStack = ({ navigation }) => {
 					headerBackTitleVisible: false,
 					headerBackButtonMenuEnabled: false,
 					headerShadowVisible: false,
-					headerStyle: {
-						backgroundColor: theme.colors.background,
-					},
+					headerStyle: { backgroundColor: theme.colors.background },
 					headerTintColor: theme.colors.primaryText,
-					headerTitleStyle: {
-						fontSize: 24,
-						fontFamily: theme.typography.fontFamily.bold,
-					},
+					headerTitleStyle: { fontSize: 24, fontFamily: theme.typography.fontFamily.bold },
 					headerLeft: () => (
 						<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
 							<QPAvatar user={user} size={32} />
@@ -85,7 +78,7 @@ const MainStack = ({ navigation }) => {
 						headerLeft: () => (
 							<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
 								<QPAvatar user={user} size={32} />
-								<View style={styles.headerLeftTextContainer}>
+								<View style={{ marginLeft: 10 }}>
 									<Text style={textStyles.h4}>Hola {user.name}!</Text>
 									<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
 								</View>
@@ -145,11 +138,5 @@ const MainStack = ({ navigation }) => {
 		</SafeAreaProvider>
 	)
 }
-
-const styles = StyleSheet.create({
-	headerLeftTextContainer: {
-		marginLeft: 10,
-	},
-})
 
 export default MainStack
