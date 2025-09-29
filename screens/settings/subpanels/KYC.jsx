@@ -60,8 +60,6 @@ const KYC = () => {
 	const [captureType, setCaptureType] = useState(null) // 'document' | 'selfie' | 'check'
 	const [isCaptureOpen, setIsCaptureOpen] = useState(false)
 
-	console.log(kycData)
-
 	// Load profile and KYC status
 	useEffect(() => {
 		const load = async () => {
@@ -115,7 +113,7 @@ const KYC = () => {
 	const isVerified = useMemo(() => {
 		if (!kycData) return false
 		const result = kycData?.KYC?.result || kycData?.result
-		return result === 'verified' || result === 'approved' || result === 'completed' || user?.kyc === true
+		return result === 'verified' || result === 'approved' || result === 'completed' || result === 'passed' || user?.kyc === true
 	}, [kycData, user])
 
 	const isProcessing = useMemo(() => {

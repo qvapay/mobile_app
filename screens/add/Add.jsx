@@ -80,51 +80,31 @@ const Add = ({ navigation }) => {
 
 	// Handle topup request
 	const handleTopup = async () => {
-
-		if (!selectedCoin || !amount) {
-			Toast.show({ type: 'error', text1: 'Por favor selecciona una moneda e ingresa un monto' })
-			return
-		}
-
 		const amountValue = parseFloat(amount)
-		if (isNaN(amountValue) || amountValue <= 0) {
-			Toast.show({ type: 'error', text1: 'Por favor ingresa un monto válido' })
-			return
-		}
-
-		if (amountValue < parseFloat(selectedCoin.min_in)) {
-			Toast.show({ type: 'error', text1: `El monto mínimo para ${selectedCoin.name} es ${selectedCoin.min_in}` })
-			return
-		}
-
+		if (isNaN(amountValue) || amountValue <= 0) { Toast.show({ type: 'error', text1: 'Por favor ingresa un monto válido' }); return }
+		if (!selectedCoin || !amount) { Toast.show({ type: 'error', text1: 'Por favor selecciona una moneda e ingresa un monto' }); return }
+		if (amountValue < parseFloat(selectedCoin.min_in)) { Toast.show({ type: 'error', text1: `El monto mínimo para ${selectedCoin.name} es ${selectedCoin.min_in}` }); return }
 		try {
-
 			setIsLoading(true)
 			setError(null)
-
-			const response = await apiClient.post('/topup', {
-				pay_method: selectedCoin.tick,
-				amount: Number(amount)
-			})
-
+			const response = await apiClient.post('/topup', { pay_method: selectedCoin.tick, amount: Number(amount) })
 			if (response.data && response.status === 200) {
 				setTopupData(response.data.data)
 				setShowDepositModal(true)
 			} else { Toast.show({ type: 'error', text1: 'Error al crear la solicitud de depósito' }) }
-
 		} catch (error) { setError('Error al crear la solicitud de depósito, intente nuevamente en unos minutos') }
 		finally { setIsLoading(false) }
 	}
 
-	// Reset form
-	const handleReset = () => {
-		setSelectedCoin(null)
-		setAmount('')
-		setTopupData(null)
-		setError(null)
-		setSuccess(null)
-		setShowDepositModal(false)
-	}
+	// // Reset form
+	// const handleReset = () => {
+	// 	setSelectedCoin(null)
+	// 	setAmount('')
+	// 	setTopupData(null)
+	// 	setError(null)
+	// 	setSuccess(null)
+	// 	setShowDepositModal(false)
+	// }
 
 	// Copy to clipboard
 	const copyToClipboard = (text) => {
@@ -133,13 +113,13 @@ const Add = ({ navigation }) => {
 	}
 
 	// Share deposit details
-	const shareDepositDetails = () => {
-		if (topupData) {
-			const shareText = `Depósito de ${topupData.value} ${topupData.coin}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
-			// You can implement actual sharing logic here
-			Toast.show({ type: 'success', text1: 'Funcionalidad de compartir implementada' })
-		}
-	}
+	// const shareDepositDetails = () => {
+	// 	if (topupData) {
+	// 		const shareText = `Depósito de ${topupData.value} ${topupData.coin}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
+	// 		// You can implement actual sharing logic here
+	// 		Toast.show({ type: 'success', text1: 'Funcionalidad de compartir implementada' })
+	// 	}
+	// }
 
 	// Email deposit details
 	const emailDepositDetails = () => {
@@ -274,7 +254,7 @@ const Add = ({ navigation }) => {
 								</View>
 
 								{/* Action Buttons */}
-								<View style={styles.actionButtonsContainer}>
+								{/* <View style={styles.actionButtonsContainer}>
 									<Pressable style={styles.actionButton} onPress={() => copyToClipboard(topupData?.wallet)}>
 										<FontAwesome6 name="copy" size={20} color={theme.colors.primary} />
 										<Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copiar</Text>
@@ -283,7 +263,7 @@ const Add = ({ navigation }) => {
 										<FontAwesome6 name="envelope" size={20} color={theme.colors.primary} />
 										<Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Email</Text>
 									</Pressable>
-								</View>
+								</View> */}
 
 								{/* Deposit Details Card */}
 								<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
@@ -298,6 +278,57 @@ const Add = ({ navigation }) => {
 											<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{topupData?.coin}</Text>
 										</View>
 									</View>
+
+									{/* Bank Account Options */}
+									{topupData?.account_name && (
+										<View style={styles.detailRow}>
+											<View style={styles.detailLeft}>
+												<Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Nombre del titular:</Text>
+											</View>
+											<View style={styles.detailRight}>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>
+													{topupData?.account_name}
+												</Text>
+												<Pressable onPress={() => copyToClipboard(topupData?.account_name)}>
+													<FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+												</Pressable>
+											</View>
+										</View>
+									)}
+
+									{/* Bank Account Options */}
+									{topupData?.routing_number && (
+										<View style={styles.detailRow}>
+											<View style={styles.detailLeft}>
+												<Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Número de ruta:</Text>
+											</View>
+											<View style={styles.detailRight}>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>
+													{topupData?.routing_number}
+												</Text>
+												<Pressable onPress={() => copyToClipboard(topupData?.routing_number)}>
+													<FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+												</Pressable>
+											</View>
+										</View>
+									)}
+
+									{/* Bank Account Options */}
+									{topupData?.account_number && (
+										<View style={styles.detailRow}>
+											<View style={styles.detailLeft}>
+												<Text style={[textStyles.h6, { color: theme.colors.primaryText, marginLeft: 8 }]}>Número de cuenta:</Text>
+											</View>
+											<View style={styles.detailRight}>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText, flex: 1, marginRight: 8 }]} numberOfLines={1}>
+													{topupData?.account_number}
+												</Text>
+												<Pressable onPress={() => copyToClipboard(topupData?.account_number)}>
+													<FontAwesome6 name="copy" size={14} color={theme.colors.primary} />
+												</Pressable>
+											</View>
+										</View>
+									)}
 
 									{/* Deposit Address */}
 									<View style={styles.detailRow}>
