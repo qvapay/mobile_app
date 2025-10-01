@@ -25,18 +25,23 @@ const QPSwitch = ({
 	onRightPress,
 	// Misc
 	disabled = false,
-	style,
-	testID
+	style
 }) => {
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
 	const controlledValue = value !== undefined ? value : (position !== undefined ? position : undefined)
-	const initialIsLeft = (controlledValue ?? defaultValue) === 'left'
-	const translate = useRef(new Animated.Value(initialIsLeft ? 0 : 1)).current
+	const hasValue = controlledValue !== undefined && controlledValue !== null
+	const initialValue = hasValue ? controlledValue : defaultValue
+	const getInitialTranslateValue = () => {
+		if (initialValue === 'left') return 0
+		if (initialValue === 'right') return 1
+		return 0.5 // Neutral position
+	}
+	const translate = useRef(new Animated.Value(getInitialTranslateValue())).current
 	const [containerWidth, setContainerWidth] = useState(0)
-	const [internalValue, setInternalValue] = useState(controlledValue ?? defaultValue)
+	const [internalValue, setInternalValue] = useState(hasValue ? controlledValue : defaultValue)
 
 	// Keep internal value in sync when controlled
 	useEffect(() => {
@@ -46,8 +51,12 @@ const QPSwitch = ({
 	}, [controlledValue])
 
 	useEffect(() => {
+		let targetValue = 0.5 // Default to neutral
+		if (internalValue === 'left') targetValue = 0
+		else if (internalValue === 'right') targetValue = 1
+
 		Animated.spring(translate, {
-			toValue: internalValue === 'left' ? 0 : 1,
+			toValue: targetValue,
 			useNativeDriver: true,
 			friction: 12,
 			tension: 120
@@ -58,42 +67,39 @@ const QPSwitch = ({
 	const pillWidth = Math.max(0, halfWidth - 4) // 2px inset on each side within half
 	const leftStart = 2 // Starting position with 2px margin
 	const rightStart = halfWidth - 1 // Starting position for right side with 2px margin
-	const pillTranslateX = translate.interpolate({ inputRange: [0, 1], outputRange: [leftStart, rightStart] })
+	const centerStart = halfWidth / 2 - pillWidth / 2 // Center position when no selection
+	const pillTranslateX = translate.interpolate({
+		inputRange: [0, 0.5, 1],
+		outputRange: [leftStart, centerStart, rightStart]
+	})
 
 	const handlePress = (next) => {
+		
 		if (disabled) return
 		const isControlled = controlledValue !== undefined
-		if (!isControlled) {
-			setInternalValue(next)
-		}
-		onChange && onChange(next)
-		if (next === 'left') {
-			onLeftPress && onLeftPress()
-		} else {
-			onRightPress && onRightPress()
-		}
+
+		// If clicking on the already selected option, deselect it (toggle off)
+		const currentValue = isControlled ? controlledValue : internalValue
+		const newValue = currentValue === next ? null : next
+
+		if (!isControlled) { setInternalValue(newValue) }
+		onChange && onChange(newValue)
+		if (newValue === 'left') { onLeftPress && onLeftPress() }
+		else if (newValue === 'right') { onRightPress && onRightPress() }
 	}
 
 	return (
-		<View
-			testID={testID}
-			onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-			style={[
-				styles.segmentedContainer,
-				{ backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, opacity: disabled ? 0.6 : 1 },
-				style
-			]}
-		>
+		<View onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)} style={[styles.segmentedContainer, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, opacity: disabled ? 0.6 : 1 }, style]}>
 			<Animated.View
 				pointerEvents='none'
 				style={[styles.segmentedPill, {
 					left: 0,
 					width: pillWidth,
-					backgroundColor: internalValue === 'left' ? leftColor : rightColor,
-					transform: [{ translateX: pillTranslateX }]
+					backgroundColor: internalValue === 'left' ? leftColor : internalValue === 'right' ? rightColor : 'transparent',
+					transform: [{ translateX: pillTranslateX }],
+					opacity: internalValue !== null && internalValue !== undefined ? 1 : 0
 				}]}
 			/>
-
 			<Pressable style={styles.segmentedOption} onPress={() => handlePress('left')} disabled={disabled}>
 				<Text style={[textStyles.h6, { color: internalValue === 'left' ? theme.colors.almostBlack : theme.colors.primaryText }]}>{leftText}</Text>
 			</Pressable>

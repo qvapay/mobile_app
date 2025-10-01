@@ -57,7 +57,7 @@ const P2P = ({ navigation, route }) => {
 
 	// Filters state
 	const [showMine, setShowMine] = useState(false)
-	const [typeFilter, setTypeFilter] = useState("buy")
+	const [typeFilter, setTypeFilter] = useState()
 	const [selectedCoin, setSelectedCoin] = useState(null)
 	const [minAmount, setMinAmount] = useState("")
 	const [maxAmount, setMaxAmount] = useState("")
@@ -127,6 +127,8 @@ const P2P = ({ navigation, route }) => {
 		}
 	}
 
+	console.log('p2pOffers', p2pOffers)
+
 	// Load data on component mount
 	useEffect(() => {
 		if (p2pEnabled) { fetchP2POffers() }
@@ -176,6 +178,7 @@ const P2P = ({ navigation, route }) => {
 
 	return (
 		<View style={[containerStyles.subContainer, { paddingTop: 5 }]}>
+			
 			{p2pEnabled ? (
 				<FlatList
 					data={p2pOffers}
@@ -226,8 +229,8 @@ const P2P = ({ navigation, route }) => {
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Tipo</Text>
 							<QPSwitch
-								value={typeFilter === "buy" ? "left" : "right"}
-								onChange={(side) => setTypeFilter(side === "left" ? "buy" : "sell")}
+								value={typeFilter === "buy" ? "left" : typeFilter === "sell" ? "right" : null}
+								onChange={(side) => setTypeFilter(side === "left" ? "buy" : side === "right" ? "sell" : null)}
 								leftText="Comprar"
 								rightText="Vender"
 								leftColor={theme.colors.success}

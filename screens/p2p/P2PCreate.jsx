@@ -84,8 +84,6 @@ const P2PCreate = ({ navigation }) => {
 	const [savedMethodsLoading, setSavedMethodsLoading] = useState(false)
 	const [p2pEnabled, setP2pEnabled] = useState(user.p2p_enabled)
 
-	console.log('p2pEnabled', p2pEnabled)
-
 	// Button Text State with Type and Amount values
 	const [buttonText, setButtonText] = useState("")
 	useEffect(() => {

@@ -186,7 +186,7 @@ const AppNavigator = () => {
 				name={ROUTES.P2P_OFFER_SCREEN}
 				component={P2POffer}
 				options={{
-					headerTitle: 'Oferta P2P',
+					headerTitle: '',
 					headerShown: true,
 					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,

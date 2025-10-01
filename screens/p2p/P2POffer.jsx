@@ -55,15 +55,12 @@ const P2POffer = ({ route }) => {
 	const [loadingReceived, setLoadingReceived] = useState(false)
 	const [loadingMarkPaid, setLoadingMarkPaid] = useState(false)
 
-
 	// Chat state
 	const [chatMessages, setChatMessages] = useState([])
 	const [chatLoading, setChatLoading] = useState(false)
 	const [chatError, setChatError] = useState(null)
 	const [chatText, setChatText] = useState("")
 	const chatScrollRef = useRef(null)
-
-	// const chatIntervalRef = useRef(null)
 
 	const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
 	const [visibleTimestamps, setVisibleTimestamps] = useState(new Set())
@@ -149,6 +146,7 @@ const P2POffer = ({ route }) => {
 	const canMarkPaid = isPayer && status === "processing"
 	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing" || status === "processing")
 	const canRatePeer = p2p?.status === "completed"
+	const markedAsPaid = p2p?.status === "paid"
 
 	// canApply becomes ready if offer is open and counterparty is not set
 	const canApply = status === "open" && counterparty
@@ -298,7 +296,8 @@ const P2POffer = ({ route }) => {
 			const isCurrentlyVisible = newSet.has(messageId)
 			if (isCurrentlyVisible) {
 				// Hide with animation
-				Animated.timing(messageAnimations.current[messageId], { toValue: 0, duration: 200, useNativeDriver: true }).start(() => { newSet.delete(messageId) })
+				Animated.timing(messageAnimations.current[messageId], { toValue: 0, duration: 200, useNativeDriver: true }).start()
+				newSet.delete(messageId)
 			} else {
 				// Show with animation
 				newSet.add(messageId)
@@ -367,12 +366,14 @@ const P2POffer = ({ route }) => {
 									<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{p2p.receive}</Text>
 								</View>
 							</View>
+
 							{p2p?.message && (
 								<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6 }}>
 									<FontAwesome6 name="message" size={14} color={theme.colors.primary} iconStyle="solid" />
 									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1} ellipsizeMode="tail">{p2p.message}</Text>
 								</View>
 							)}
+
 							{(() => {
 								const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
 								const details = Array.isArray(rawDetails)
@@ -384,15 +385,23 @@ const P2POffer = ({ route }) => {
 								if (!details || details.length === 0) { return null }
 
 								return (
-									<View style={{ marginTop: 10, gap: 4 }}>
+									<View style={{ marginTop: 10, gap: 6 }}>
 										{details.slice(0, 4).map((d, idx) => (
-											<View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-												<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-												{(d.name === "Wallet" || d.key === "Wallet") ? (
-													<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{reduceStringInside(d.value || d.val, 8)}</Text>
-												) : (
-													<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
-												)}
+											<View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 20 }}>
+												<View style={{ flex: 1, marginRight: 8 }}>
+													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
+												</View>
+												<View style={{ flex: 1.5, alignItems: 'flex-end' }}>
+													{(d.name === "Wallet" || d.key === "Wallet") ? (
+														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+															{reduceStringInside(d.value || d.val, 8)}
+														</Text>
+													) : (
+														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+															{d.value || d.val}
+														</Text>
+													)}
+												</View>
 											</View>
 										))}
 									</View>
@@ -403,9 +412,16 @@ const P2POffer = ({ route }) => {
 
 					{status == "open" ? (
 						counterparty ? (
-							<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Aplica, eres counterparty</Text>
-							</View>
+							<>
+								<View style={[containerStyles.card, { padding: 0, marginVertical: 0 }]}>
+									<View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+										<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
+									</View>
+								</View>
+								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
+									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
+								</View>
+							</>
 						) : (
 							<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Estamos buscando un peer interesado en tu oferta.</Text>
@@ -433,9 +449,8 @@ const P2POffer = ({ route }) => {
 								style={{ flex: 1 }}
 								contentContainerStyle={{
 									flexGrow: 1,
-									paddingVertical: 6,
-									paddingHorizontal: 0,
-									paddingBottom: 6
+									paddingVertical: 4,
+									paddingHorizontal: 0
 								}}
 								showsVerticalScrollIndicator={true}
 								keyboardShouldPersistTaps="handled"
@@ -456,7 +471,7 @@ const P2POffer = ({ route }) => {
 								onContentSizeChange={() => { if (autoScrollEnabled) { setTimeout(() => { chatScrollRef.current?.scrollToEnd({ animated: true }) }, 100) } }}
 							>
 								{chatMessages.length === 0 && !chatLoading ? (
-									<View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 }}>
+									<View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
 										<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
 									</View>
 								) : (
@@ -471,27 +486,37 @@ const P2POffer = ({ route }) => {
 										const nextMine = nextMessage?.peer_id && user?.uuid && nextMessage.peer_id === user.uuid
 										const isConsecutive = prevMine === mine
 										const isLastInGroup = nextMine !== mine || idx === chatMessages.length - 1
-										const showTimestamp = isLastInGroup || visibleTimestamps.has(m.id)
+										const showTimestamp = visibleTimestamps.has(m.id)
 
 										// Get sender info for avatar (use counterparty if not mine)
 										const sender = mine ? user : counterparty
 
 										return (
-											<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 2 : 6, marginBottom: isConsecutive ? 2 : 6 }]}>
+											<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 0 : 6, marginBottom: isConsecutive ? 0 : 6 }]}>
 
 												{/* Avatar - only show on last message in group */}
-												{isLastInGroup ? (<View style={{ marginHorizontal: 6 }}><QPAvatar user={sender} size={16} /></View>) : (<View style={{ width: 16, marginHorizontal: 6 }} />)}
+												<View style={{ marginHorizontal: 6, width: 16, height: 16, justifyContent: 'center', alignItems: 'center' }}>
+													{isLastInGroup ? <QPAvatar user={sender} size={16} /> : null}
+												</View>
 
 												{/* Message Bubble - Touchable */}
 												<TouchableOpacity
-													onPress={() => !isLastInGroup && m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7}
-													style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, }]}>
+													onPress={() => m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7}
+													style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, borderTopRightRadius: mine ? isConsecutive ? 4 : 18 : 18 }]}>
 													<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
 														{m.message || m.text || ""}
 													</Text>
-													{/* Show timestamp on last message in group or when manually toggled */}
+													{/* Show timestamp only when manually toggled */}
 													{showTimestamp && m.created_at && (
-														<Animated.View style={{ opacity: isLastInGroup ? 1 : (messageAnimations.current[m.id] || new Animated.Value(0)), transform: [{ translateY: isLastInGroup ? 0 : (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
+														<Animated.View style={{
+															opacity: messageAnimations.current[m.id] || new Animated.Value(0),
+															transform: [{
+																translateY: (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({
+																	inputRange: [0, 1],
+																	outputRange: [10, 0]
+																})
+															}]
+														}}>
 															<Text style={[textStyles.h7, { fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
 																{getShortDateTime(m.created_at)}
 															</Text>
@@ -521,6 +546,7 @@ const P2POffer = ({ route }) => {
 									</Pressable>
 								</View>
 							</TouchableWithoutFeedback>
+
 						</View>
 					)}
 
@@ -535,7 +561,7 @@ const P2POffer = ({ route }) => {
 							onPress={handleApply}
 							style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
 							textStyle={{ color: theme.colors.primaryText }}
-							icon="circle-check"
+							icon="check"
 							iconColor={theme.colors.primaryText}
 							iconStyle="solid"
 							loading={loadingApply}
@@ -563,11 +589,24 @@ const P2POffer = ({ route }) => {
 							onPress={handleMarkPaid}
 							style={[{ backgroundColor: theme.colors.success }, styles.actionButton]}
 							textStyle={{ color: theme.colors.almostBlack }}
-							icon="circle-check"
+							icon="check"
 							iconColor={theme.colors.almostBlack}
 							iconStyle="solid"
 							loading={loadingMarkPaid}
 							disabled={loadingMarkPaid}
+						/>
+					)}
+
+					{markedAsPaid && (
+						<QPButton
+							title="Pagado"
+							onPress={handleMarkPaid}
+							style={[{ backgroundColor: theme.colors.success }, styles.actionButton]}
+							textStyle={{ color: theme.colors.almostBlack }}
+							icon="check-double"
+							iconColor={theme.colors.almostBlack}
+							iconStyle="solid"
+							disabled={true}
 						/>
 					)}
 
@@ -582,6 +621,12 @@ const P2POffer = ({ route }) => {
 							iconStyle="solid"
 							loading={loadingReceived}
 						/>
+					)}
+
+					{p2p?.status === "cancelled" && (
+						<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 10 }}>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Oferta cancelada</Text>
+						</View>
 					)}
 
 					{canRatePeer && (
@@ -679,11 +724,6 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 		fontWeight: 'bold'
 	},
-	messageContainer: {
-		marginTop: 4,
-		paddingTop: 4,
-		overflow: 'hidden'
-	},
 	messageRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -704,13 +744,13 @@ const styles = StyleSheet.create({
 	messageContainer: {
 		flexDirection: 'row',
 		alignItems: 'flex-end',
-		marginVertical: 4,
+		overflow: 'hidden'
 	},
 	messageBubble: {
-		paddingHorizontal: 12,
+		paddingHorizontal: 14,
 		paddingVertical: 8,
 		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 1, },
+		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.1,
 		shadowRadius: 2,
 		elevation: 2,
