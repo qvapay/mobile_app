@@ -77,7 +77,7 @@ const P2P = ({ navigation, route }) => {
 			ratioMax !== "" ||
 			onlyKyc ||
 			onlyVip ||
-			typeFilter !== "buy"
+			typeFilter
 		)
 	}, [showMine, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, onlyKyc, onlyVip, typeFilter])
 

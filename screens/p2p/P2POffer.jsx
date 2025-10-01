@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, RefreshControl } from "react-native"
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, RefreshControl, Share } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -253,6 +253,20 @@ const P2POffer = ({ route }) => {
 				}
 			}
 		])
+	}
+
+	// Share Offer
+	const handleShareIntent = async () => {
+		try {
+			await Share.share({
+				url: `https://qvapay.com/p2p/${p2p_uuid}`,
+				title: "Oferta P2P",
+				message: "¡Revisa esta oferta P2P en QvaPay!",
+				subject: "Mira esta oferta P2P en QvaPay 🔥"
+			})
+			if (result.action === Share.sharedAction) { Toast.show({ type: "success", text1: "Oferta compartida" }) }
+			else { Toast.show({ type: "error", text1: "No se pudo compartir", text2: String(result.error || "") }) }
+		} catch (error) {  }
 	}
 
 	// Rate peer
@@ -621,6 +635,23 @@ const P2POffer = ({ route }) => {
 							iconStyle="solid"
 							loading={loadingReceived}
 						/>
+					)}
+
+					{/* Share Intent */}
+					{p2p?.status === "open" && (
+						<>
+							<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}></View>
+							<QPButton
+								title=""
+								onPress={handleShareIntent}
+								style={{ width: 60, borderRadius: 30, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.primary }}
+								textStyle={{ color: theme.colors.almostWhite }}
+								icon="share"
+								iconColor={theme.colors.almostWhite}
+								iconStyle="solid"
+								disabled={false}
+							/>
+						</>
 					)}
 
 					{p2p?.status === "cancelled" && (
