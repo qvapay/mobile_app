@@ -393,9 +393,7 @@ const P2POffer = ({ route }) => {
 								const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
 								const details = Array.isArray(rawDetails)
 									? rawDetails
-									: (rawDetails && typeof rawDetails === "object")
-										? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") }))
-										: []
+									: (rawDetails && typeof rawDetails === "object") ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) : []
 
 								if (!details || details.length === 0) { return null }
 
@@ -447,7 +445,7 @@ const P2POffer = ({ route }) => {
 						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>
 
 							{counterparty && (
-								<View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+								<View style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
 									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
 								</View>
 							)}
@@ -639,7 +637,7 @@ const P2POffer = ({ route }) => {
 					)}
 
 					{/* Share Intent */}
-					{p2p?.status === "open" && (
+					{p2p?.status === "open" && isOwner && (
 						<>
 							<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}></View>
 							<QPButton
