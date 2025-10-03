@@ -136,6 +136,7 @@ const AppNavigator = () => {
 				component={Add}
 				options={{
 					headerTitle: 'Depositar',
+					headerTitleAlign: 'center',
 					headerShown: true,
 					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,
@@ -151,6 +152,7 @@ const AppNavigator = () => {
 				component={Withdraw}
 				options={{
 					headerTitle: 'Extraer',
+					headerTitleAlign: 'center',
 					headerShown: true,
 					headerBackVisible: false,
 					headerBackButtonMenuEnabled: true,

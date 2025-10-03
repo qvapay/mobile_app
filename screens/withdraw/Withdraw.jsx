@@ -20,8 +20,14 @@ import apiClient from '../../api/client'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// User Context
+import { useAuth } from '../../auth/AuthContext'
+
 // Withdraw balance to certain coin
 const Withdraw = () => {
+
+	// Contexts
+	const { user } = useAuth()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -38,6 +44,8 @@ const Withdraw = () => {
 	const [coinSearch, setCoinSearch] = useState('')
 	const [workingForm, setWorkingForm] = useState({})
 	const [showCoinSearch, setShowCoinSearch] = useState(false)
+	const [balance, setBalance] = useState(user?.balance || 0)
+	const [currency, setCurrency] = useState('QUSD')
 
 	console.log('selectedCoin', selectedCoin)
 
@@ -82,18 +90,13 @@ const Withdraw = () => {
 				feeFixed = fixedAmount
 				useFixedFee = true
 			}
-		} else {
-			// If fee_out_fixed is not an array, treat it as a simple fixed fee
-			feeFixed = Number(selectedCoin.fee_out_fixed) || 0
-		}
+
+		} else { feeFixed = Number(selectedCoin.fee_out_fixed) || 0 }
 
 		// Calculate fee based on the logic
-		if (useFixedFee) {
-			return feeFixed
-		} else {
-			// Use percentage fee
-			return (amount * feePercent) / 100
-		}
+		if (useFixedFee) { return feeFixed }
+		else { return (amount * feePercent) / 100 }
+
 	}, [selectedCoin, amountQUSD])
 
 	// Calculate net amount (what user will actually receive)
@@ -106,6 +109,7 @@ const Withdraw = () => {
 
 	// Helper function to calculate fee
 	const calculateFee = (amount, coin) => {
+
 		if (!coin) return 0
 		const feePercent = Number(coin.fee_out) || 0
 
@@ -187,11 +191,8 @@ const Withdraw = () => {
 			} else {
 				// Simple case: percentage + fixed fee
 				const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
-				if (feePercent > 0) {
-					requiredQUSD = (grossAmount + feeFixed) / (1 - feePercent / 100)
-				} else {
-					requiredQUSD = grossAmount + feeFixed
-				}
+				if (feePercent > 0) { requiredQUSD = (grossAmount + feeFixed) / (1 - feePercent / 100) }
+				else { requiredQUSD = grossAmount + feeFixed }
 			}
 
 			setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
@@ -252,6 +253,12 @@ const Withdraw = () => {
 		setWorkingForm({})
 	}
 
+	// Format balance for display
+	const formatBalance = (balance) => {
+		if (!balance) return '0.00'
+		return parseFloat(balance).toFixed(2)
+	}
+
 	return (
 		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -259,13 +266,25 @@ const Withdraw = () => {
 					<View style={{ flex: 1 }}>
 
 						{/* Swap Card */}
-						<View style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, padding: 16, marginTop: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
+						<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, padding: 20, borderWidth: 2, borderColor: theme.colors.primary }}>
 
 							{/* QUSD amount input */}
 							<View style={{ paddingVertical: 2 }}>
-								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Extraer</Text>
+
+								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Extraer</Text>
+									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
+											Balance:
+										</Text>
+										<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
+											{formatBalance(balance)} {currency}
+										</Text>
+									</View>
+								</View>
+
 								{/* Single row container with dark background */}
-								<View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+								<View style={{ borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 									{/* Left side - Amount input */}
 									<View style={{ flex: 1 }}>
 										<TextInput
@@ -298,7 +317,7 @@ const Withdraw = () => {
 							<View style={{ paddingTop: 2 }}>
 								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
 								{/* Single row container with dark background */}
-								<View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+								<View style={{ borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 									{/* Left side - Amount and available balance */}
 									<View style={{ flex: 1 }}>
 										<TextInput
@@ -393,7 +412,7 @@ const Withdraw = () => {
 							)}
 
 							<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-								
+
 								{isLoading ? (
 									<View style={styles.loadingContainer}>
 										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
@@ -431,7 +450,7 @@ const Withdraw = () => {
 										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
 									</View>
 								)}
-								
+
 							</ScrollView>
 						</SafeAreaView>
 					</Modal>

@@ -256,12 +256,13 @@ const P2POffer = ({ route }) => {
 	}
 
 	// Share Offer
+	// TODO: Check if this is a good idea for link sharing
 	const handleShareIntent = async () => {
 		try {
 			await Share.share({
 				url: `https://qvapay.com/p2p/${p2p_uuid}`,
 				title: "Oferta P2P",
-				message: "¡Revisa esta oferta P2P en QvaPay!",
+				message: `Mira esta oferta en QvaPay: https://qvapay.com/p2p/${p2p_uuid}`,
 				subject: "Mira esta oferta P2P en QvaPay 🔥"
 			})
 			if (result.action === Share.sharedAction) { Toast.show({ type: "success", text1: "Oferta compartida" }) }

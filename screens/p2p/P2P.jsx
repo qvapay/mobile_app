@@ -177,7 +177,7 @@ const P2P = ({ navigation, route }) => {
 	if (isLoadingData && !refreshing) { return <QPLoader /> }
 
 	return (
-		<View style={[containerStyles.subContainer, { paddingTop: 5 }]}>
+		<View style={containerStyles.subContainer}>
 			
 			{p2pEnabled ? (
 				<FlatList

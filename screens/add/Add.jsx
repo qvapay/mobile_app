@@ -31,15 +31,16 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Toast
 import Toast from 'react-native-toast-message'
 
+// Add money into the platform
 const Add = ({ navigation }) => {
+
+	// User Context
+	const { user } = useAuth()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-
-	// User Context
-	const { user } = useAuth()
 
 	// States
 	const [availableCoins, setAvailableCoins] = useState([])
@@ -65,9 +66,7 @@ const Add = ({ navigation }) => {
 			} catch (error) {
 				console.error('Error fetching coins:', error)
 				setError('Error al cargar las monedas disponibles')
-			} finally {
-				setIsLoading(false)
-			}
+			} finally { setIsLoading(false) }
 		}
 		fetchAvailableCoins()
 	}, [])
@@ -122,13 +121,13 @@ const Add = ({ navigation }) => {
 	// }
 
 	// Email deposit details
-	const emailDepositDetails = () => {
-		if (topupData) {
-			const emailText = `Detalles del depósito:\nMoneda: ${topupData.coin}\nMonto: ${topupData.value}\nPrecio: $${topupData.price}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
-			// You can implement actual email logic here
-			Toast.show({ type: 'success', text1: 'Funcionalidad de email implementada' })
-		}
-	}
+	// const emailDepositDetails = () => {
+	// 	if (topupData) {
+	// 		const emailText = `Detalles del depósito:\nMoneda: ${topupData.coin}\nMonto: ${topupData.value}\nPrecio: $${topupData.price}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
+	// 		// You can implement actual email logic here
+	// 		Toast.show({ type: 'success', text1: 'Funcionalidad de email implementada' })
+	// 	}
+	// }
 
 	return (
 		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
