@@ -259,15 +259,21 @@ const P2POffer = ({ route }) => {
 	// TODO: Check if this is a good idea for link sharing
 	const handleShareIntent = async () => {
 		try {
-			await Share.share({
+			const result = await Share.share({
 				url: `https://qvapay.com/p2p/${p2p_uuid}`,
 				title: "Oferta P2P",
 				message: `Mira esta oferta en QvaPay: https://qvapay.com/p2p/${p2p_uuid}`,
 				subject: "Mira esta oferta P2P en QvaPay 🔥"
 			})
-			if (result.action === Share.sharedAction) { Toast.show({ type: "success", text1: "Oferta compartida" }) }
-			else { Toast.show({ type: "error", text1: "No se pudo compartir", text2: String(result.error || "") }) }
-		} catch (error) {  }
+
+			if (result.action === Share.sharedAction) {
+				Toast.show({ type: "success", text1: "Oferta compartida" })
+			} else if (result.action === Share.dismissedAction) {
+				Toast.show({ type: "info", text1: "Compartir cancelado" })
+			}
+		} catch (error) {
+			Toast.show({ type: "error", text1: "No se pudo compartir", text2: String(error?.message || error) })
+		}
 	}
 
 	// Rate peer

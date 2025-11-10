@@ -57,7 +57,7 @@ const P2P = ({ navigation, route }) => {
 
 	// Filters state
 	const [showMine, setShowMine] = useState(false)
-	const [typeFilter, setTypeFilter] = useState()
+	const [typeFilter, setTypeFilter] = useState(null)
 	const [selectedCoin, setSelectedCoin] = useState(null)
 	const [minAmount, setMinAmount] = useState("")
 	const [maxAmount, setMaxAmount] = useState("")
@@ -315,7 +315,7 @@ const P2P = ({ navigation, route }) => {
 					<View style={[{ paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.elevation, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
 						<QPButton
 							title="Limpiar"
-							onPress={() => { setShowMine(false); setTypeFilter("buy"); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); }}
+							onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); }}
 							style={[styles.clearButton, { borderColor: theme.colors.border, backgroundColor: "transparent" }]}
 							textStyle={{ color: theme.colors.secondaryText }}
 						/>
