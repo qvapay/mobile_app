@@ -61,21 +61,21 @@ import QPAvatar from './ui/particles/QPAvatar'
 
 // Main App Navigator Component
 const AppNavigator = () => {
-	
+
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
-	
+
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
-	
+
 	// Check if this is the first time using the app
 	const { appearance, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
-	
+
 	// Navigation
 	const navigation = useNavigation()
-	
+
 	// Auth Context
 	const { user } = useAuth()
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
@@ -313,14 +313,10 @@ const AppNavigator = () => {
 					headerTitle: '',
 					animation: 'slide_from_right',
 					headerShown: true,
-					headerBackVisible: false,
+					headerBackVisible: true,
+					headerBackTitle: 'Regresar',
 					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
+					headerShadowVisible: false
 				}}
 			/>
 			<Stack.Screen
@@ -330,14 +326,10 @@ const AppNavigator = () => {
 					headerTitle: '',
 					animation: 'slide_from_right',
 					headerShown: true,
-					headerBackVisible: false,
+					headerBackVisible: true,
+					headerBackTitle: 'Regresar',
 					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
+					headerShadowVisible: false
 				}}
 			/>
 
