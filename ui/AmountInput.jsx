@@ -39,7 +39,7 @@ const AmountInput = ({
 		<View style={[{ marginVertical: 10 }, style]}>
 
 			{/* Main Amount Input Container */}
-			<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, padding: 20, borderWidth: 2, borderColor: theme.colors.primary }}>
+			<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 20, borderWidth: 2, borderColor: theme.colors.primary }}>
 
 				{/* Amount Input Row */}
 				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -51,7 +51,7 @@ const AmountInput = ({
 							Balance:
 						</Text>
 						<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
-							{formatBalance(balance)} {currency}
+							${formatBalance(balance)} QUSD
 						</Text>
 					</View>
 				</View>

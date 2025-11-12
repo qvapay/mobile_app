@@ -47,8 +47,6 @@ const Withdraw = () => {
 	const [balance, setBalance] = useState(user?.balance || 0)
 	const [currency, setCurrency] = useState('QUSD')
 
-	console.log('selectedCoin', selectedCoin)
-
 	// Fetch available coins enabled_out
 	useEffect(() => {
 		const fetchCoins = async () => {
@@ -218,7 +216,6 @@ const Withdraw = () => {
 		if (!selectedCoin) { return false }
 		const amount = Number(amountQUSD)
 		if (!amount || isNaN(amount)) { return false }
-		// Check working fields
 		return workingFields.every((field) => {
 			const key = keyFromFieldName(field.name)
 			const value = (workingForm[key] ?? '').toString().trim()
@@ -236,16 +233,12 @@ const Withdraw = () => {
 				// Calculate net amount after fees using the helper function
 				const totalFee = calculateFee(Number(amountQUSD), coin)
 				const netAmount = Number(amountQUSD) - totalFee
-
 				const converted = netAmount / price
-
 				// Smart rounding: if the result is very close to a whole number, round to it
 				const nearestInteger = Math.round(converted)
 				const difference = Math.abs(converted - nearestInteger)
-
 				// If the difference is very small (less than or equal to 0.01), use the rounded integer value
 				const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
-
 				setAmountCoin(finalAmount ? String(finalAmount) : '')
 			}
 		}
@@ -307,11 +300,11 @@ const Withdraw = () => {
 							</View>
 
 							{/* Divider with arrows */}
-							{/* <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                                <View style={{ width: 40, height: 40, borderRadius: 40, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
-                                    <FontAwesome6 name="right-left" size={16} color={theme.colors.primary} iconStyle="solid" />
-                                </View>
-                            </View> */}
+							<View style={{ alignItems: 'center', justifyContent: 'center' }}>
+								<View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
+									<FontAwesome6 name="up-down" size={10} color={theme.colors.primary} iconStyle="solid" />
+								</View>
+							</View>
 
 							{/* Coin amount and selector */}
 							<View style={{ paddingTop: 2 }}>

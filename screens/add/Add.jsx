@@ -95,39 +95,11 @@ const Add = ({ navigation }) => {
 		finally { setIsLoading(false) }
 	}
 
-	// // Reset form
-	// const handleReset = () => {
-	// 	setSelectedCoin(null)
-	// 	setAmount('')
-	// 	setTopupData(null)
-	// 	setError(null)
-	// 	setSuccess(null)
-	// 	setShowDepositModal(false)
-	// }
-
 	// Copy to clipboard
 	const copyToClipboard = (text) => {
 		Clipboard.setString(text)
 		Toast.show({ type: 'success', text1: 'Dirección copiada al portapapeles' })
 	}
-
-	// Share deposit details
-	// const shareDepositDetails = () => {
-	// 	if (topupData) {
-	// 		const shareText = `Depósito de ${topupData.value} ${topupData.coin}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
-	// 		// You can implement actual sharing logic here
-	// 		Toast.show({ type: 'success', text1: 'Funcionalidad de compartir implementada' })
-	// 	}
-	// }
-
-	// Email deposit details
-	// const emailDepositDetails = () => {
-	// 	if (topupData) {
-	// 		const emailText = `Detalles del depósito:\nMoneda: ${topupData.coin}\nMonto: ${topupData.value}\nPrecio: $${topupData.price}\nDirección: ${topupData.wallet}\nID: ${topupData.transaction_id}`
-	// 		// You can implement actual email logic here
-	// 		Toast.show({ type: 'success', text1: 'Funcionalidad de email implementada' })
-	// 	}
-	// }
 
 	return (
 		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
@@ -231,11 +203,11 @@ const Add = ({ navigation }) => {
 									<View style={styles.qrContainer}>
 										<QRCodeStyled
 											data={topupData?.wallet}
-											size={350}
-											pieceScale={0.7}
+											size={250}
+											pieceScale={0.5}
 											style={{ backgroundColor: theme.colors.background, borderRadius: 10 }}
 											padding={10}
-											pieceSize={8}
+											pieceSize={4}
 											backgroundColor={'transparent'}
 											color={theme.colors.primaryText}
 										/>
@@ -251,18 +223,6 @@ const Add = ({ navigation }) => {
 										{Number(topupData?.value).toFixed(6)} {topupData?.coin}
 									</Text>
 								</View>
-
-								{/* Action Buttons */}
-								{/* <View style={styles.actionButtonsContainer}>
-									<Pressable style={styles.actionButton} onPress={() => copyToClipboard(topupData?.wallet)}>
-										<FontAwesome6 name="copy" size={20} color={theme.colors.primary} />
-										<Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Copiar</Text>
-									</Pressable>
-									<Pressable style={styles.actionButton} onPress={emailDepositDetails}>
-										<FontAwesome6 name="envelope" size={20} color={theme.colors.primary} />
-										<Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 4 }]}>Email</Text>
-									</Pressable>
-								</View> */}
 
 								{/* Deposit Details Card */}
 								<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
