@@ -71,9 +71,7 @@ const LoginScreen = ({ navigation }) => {
 	// Countdown timer effect
 	useEffect(() => {
 		if (countdown > 0) {
-			countdownRef.current = setTimeout(() => {
-				setCountdown(prev => prev - 1)
-			}, 1000)
+			countdownRef.current = setTimeout(() => { setCountdown(prev => prev - 1) }, 1000)
 			// Update button label with formatted time
 			const minutes = Math.floor(countdown / 60)
 			const seconds = countdown % 60

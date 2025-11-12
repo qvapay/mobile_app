@@ -8,7 +8,7 @@ const deviceName = DeviceInfo.getDeviceName()
 
 // API Configuration
 // const API_BASE_URL = 'https://api.qvapay.com'
-const API_BASE_URL = 'http://192.168.0.10:3000/api'
+const API_BASE_URL = 'http://192.168.0.191:3000/api'
 const API_TIMEOUT = 20000 // 10 seconds
 
 // Create axios instance
