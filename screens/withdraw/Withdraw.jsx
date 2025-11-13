@@ -37,6 +37,7 @@ const Withdraw = () => {
 	// States
 	const [amountQUSD, setAmountQUSD] = useState('')
 	const [amountCoin, setAmountCoin] = useState('')
+	const [netAmount, setNetAmount] = useState('')
 	const [availableCoins, setAvailableCoins] = useState([])
 	const [selectedCoin, setSelectedCoin] = useState(null)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
@@ -97,14 +98,6 @@ const Withdraw = () => {
 
 	}, [selectedCoin, amountQUSD])
 
-	// Calculate net amount (what user will actually receive)
-	const netAmount = useMemo(() => {
-		if (!amountQUSD) return 0
-		const amount = Number(amountQUSD)
-		if (isNaN(amount)) return 0
-		return amount - feeAmount
-	}, [amountQUSD, feeAmount])
-
 	// Helper function to calculate fee
 	const calculateFee = (amount, coin) => {
 
@@ -136,13 +129,16 @@ const Withdraw = () => {
 	const handleChangeQUSD = (value) => {
 		setAmountQUSD(value)
 		const num = Number(value)
-		if (coinPrice && !isNaN(num)) {
+		if (coinPrice && !isNaN(num) && selectedCoin) {
 			// Calculate net amount after fees
 			const totalFee = calculateFee(num, selectedCoin)
-			const netAmount = num - totalFee
+			const calculatedNetAmount = num - totalFee
+
+			// Update netAmount state
+			setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
 
 			// Convert net amount to coin amount with better precision
-			const converted = netAmount / coinPrice
+			const converted = calculatedNetAmount / coinPrice
 
 			// Smart rounding: if the result is very close to a whole number, round to it
 			const nearestInteger = Math.round(converted)
@@ -152,14 +148,73 @@ const Withdraw = () => {
 			const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
 
 			setAmountCoin(finalAmount ? String(finalAmount) : '')
-		} else { setAmountCoin('') }
+		} else {
+			setNetAmount('')
+			setAmountCoin('')
+		}
 	}
 
-	// Handle change coin (user wants to receive this amount)
+	// Handle change net amount (user wants to receive this net amount in dollars)
+	const handleChangeNetAmount = (value) => {
+		setNetAmount(value)
+		const num = Number(value)
+		if (coinPrice && !isNaN(num) && selectedCoin) {
+			// Calculate required QUSD amount to achieve this net amount after fees
+			const feePercent = Number(selectedCoin?.fee_out) || 0
+			let requiredQUSD
+
+			// Check if fee_out_fixed is an array [threshold, fixed_amount]
+			if (Array.isArray(selectedCoin?.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
+				const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
+				const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
+
+				// We need to solve: netAmount = requiredQUSD - fee
+				// where fee = fixedAmount if requiredQUSD < threshold, else fee = requiredQUSD * feePercent/100
+
+				// First, try with percentage fee
+				const withPercentageFee = num / (1 - feePercent / 100)
+
+				if (withPercentageFee >= threshold) {
+					// Use percentage fee
+					requiredQUSD = withPercentageFee
+				} else {
+					// Use fixed fee
+					requiredQUSD = num + fixedAmount
+				}
+			} else {
+				// Simple case: percentage + fixed fee
+				const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
+				if (feePercent > 0) {
+					requiredQUSD = (num + feeFixed) / (1 - feePercent / 100)
+				} else {
+					requiredQUSD = num + feeFixed
+				}
+			}
+
+			setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
+
+			// Convert net amount to coin amount with better precision
+			const converted = num / coinPrice
+
+			// Smart rounding: if the result is very close to a whole number, round to it
+			const nearestInteger = Math.round(converted)
+			const difference = Math.abs(converted - nearestInteger)
+
+			// If the difference is very small (less than or equal to 0.01), use the rounded integer value
+			const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
+
+			setAmountCoin(finalAmount ? String(finalAmount) : '')
+		} else {
+			setAmountQUSD('')
+			setAmountCoin('')
+		}
+	}
+
+	// Handle change coin (user wants to receive this amount in coin)
 	const handleChangeCoin = (value) => {
 		setAmountCoin(value)
 		const num = Number(value)
-		if (coinPrice && !isNaN(num)) {
+		if (coinPrice && !isNaN(num) && selectedCoin) {
 			// Calculate gross amount needed (including fees)
 			const grossAmount = num * coinPrice
 
@@ -194,7 +249,16 @@ const Withdraw = () => {
 			}
 
 			setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
-		} else { setAmountQUSD('') }
+
+			// Calculate net amount after fees
+			const calculatedRequiredQUSD = Number(requiredQUSD) || 0
+			const totalFee = calculateFee(calculatedRequiredQUSD, selectedCoin)
+			const calculatedNetAmount = calculatedRequiredQUSD - totalFee
+			setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
+		} else {
+			setAmountQUSD('')
+			setNetAmount('')
+		}
 	}
 
 	// Working data parsing
@@ -232,8 +296,9 @@ const Withdraw = () => {
 			if (!isNaN(price)) {
 				// Calculate net amount after fees using the helper function
 				const totalFee = calculateFee(Number(amountQUSD), coin)
-				const netAmount = Number(amountQUSD) - totalFee
-				const converted = netAmount / price
+				const calculatedNetAmount = Number(amountQUSD) - totalFee
+				setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
+				const converted = calculatedNetAmount / price
 				// Smart rounding: if the result is very close to a whole number, round to it
 				const nearestInteger = Math.round(converted)
 				const difference = Math.abs(converted - nearestInteger)
@@ -314,8 +379,8 @@ const Withdraw = () => {
 									{/* Left side - Amount and available balance */}
 									<View style={{ flex: 1 }}>
 										<TextInput
-											value={amountCoin}
-											onChangeText={handleChangeCoin}
+											value={netAmount}
+											onChangeText={handleChangeNetAmount}
 											placeholder="0.00"
 											placeholderTextColor={theme.colors.placeholder}
 											keyboardType="numeric"
@@ -339,6 +404,19 @@ const Withdraw = () => {
 										)}
 									</Pressable>
 								</View>
+								{selectedCoin && amountCoin && !selectedCoin.stable && (
+									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}></Text>
+										<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+											<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
+												Aproximado:
+											</Text>
+											<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
+												{formatBalance(amountCoin)} {selectedCoin.tick}
+											</Text>
+										</View>
+									</View>
+								)}
 							</View>
 						</View>
 

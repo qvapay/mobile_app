@@ -67,7 +67,7 @@ const P2POfferItem = ({ offer, navigation }) => {
 
 			{/* User Info */}
 			<View style={{ marginVertical: 4 }}>
-				<ProfileContainerHorizontal user={offer.User} size={40} showUsername={false} />
+				<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />
 			</View>
 
 			{/* Message and Action in one row */}
