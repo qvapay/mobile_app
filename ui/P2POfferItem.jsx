@@ -39,36 +39,54 @@ const P2POfferItem = ({ offer, navigation }) => {
 				<View style={styles.typeContainer}>
 					<Text style={[styles.typeText, { color: theme.colors.primaryText }]}>{getTypeText(offer.type)}</Text>
 				</View>
-				<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>{new Date(offer.created_at).toLocaleDateString()}</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontSize: 10 }]}>{new Date(offer.created_at).toLocaleDateString()}</Text>
 			</View>
 
-			{/* Amount and Receive */}
-			<View style={{ gap: 2, marginBottom: 4 }}>
-				<View style={styles.coinRow}>
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-						<QPCoin coin={offer.Coin?.logo} size={20} />
-						<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
-							{offer.Coin?.name}
-						</Text>
+			<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+
+				<View>
+					{/* Amount and Receive */}
+					<View style={{ gap: 2, marginBottom: 4 }}>
+						<View style={styles.coinRow}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+								<QPCoin coin={offer.Coin?.logo} size={20} />
+								<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+									{offer.Coin?.name}
+								</Text>
+							</View>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+								<FontAwesome6 name="money-bill-transfer" size={12} color={theme.colors.primaryText} iconStyle="solid" />
+								<Text style={[textStyles.h7, { color: theme.colors.primaryText, fontWeight: '400' }]} >
+									{Number(offer.receive / offer.amount).toFixed(2)}
+								</Text>
+							</View>
+						</View>
+						<View style={[styles.amountRow, { marginLeft: 2 }]}>
+							<Text style={[textStyles.h3, { color: theme.colors.primary, fontWeight: '800' }]}>${offer.amount}</Text>
+							<Text style={[textStyles.h7, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '800' }]}>{offer.receive}</Text>
+						</View>
 					</View>
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-						<FontAwesome6 name="money-bill-transfer" size={12} color={theme.colors.primaryText} iconStyle="solid" />
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '400' }]} >
-							{Number(offer.receive / offer.amount).toFixed(2)}
-						</Text>
+
+					{/* User Info */}
+					<View style={{ marginVertical: 2 }}>
+						<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />
 					</View>
 				</View>
-				<View style={[styles.amountRow, { marginLeft: 2 }]}>
-					<Text style={[textStyles.h2, { color: theme.colors.primary, fontWeight: '800' }]}>${offer.amount}</Text>
-					<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{offer.receive}</Text>
+
+				{/* 3 Tags in column */}
+				<View style={{ flexDirection: 'column', gap: 2 }}>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+						<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontSize: 10 }]}>Tag 2</Text>
+						<View style={{ width: 2, height: 12, backgroundColor: theme.colors.primary }} />
+					</View>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+						<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontSize: 10 }]}>Tag 3</Text>
+						<View style={{ width: 2, height: 12, backgroundColor: theme.colors.primary }} />
+					</View>
 				</View>
 			</View>
 
-			{/* User Info */}
-			<View style={{ marginVertical: 4 }}>
-				<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />
-			</View>
 
 			{/* Message and Action in one row */}
 			<View style={styles.messageRow}>
@@ -103,10 +121,10 @@ const P2POfferItem = ({ offer, navigation }) => {
 
 const styles = StyleSheet.create({
 	offerCard: {
-		borderRadius: 12,
+		borderRadius: 8,
 		paddingHorizontal: 12,
-		paddingVertical: 8,
-		marginBottom: 8,
+		paddingVertical: 4,
+		marginBottom: 4,
 		position: 'relative'
 	},
 	offerHeader: {
