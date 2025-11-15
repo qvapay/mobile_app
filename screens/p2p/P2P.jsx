@@ -127,8 +127,6 @@ const P2P = ({ navigation, route }) => {
 		}
 	}
 
-	console.log('p2pOffers', p2pOffers)
-
 	// Load data on component mount
 	useEffect(() => {
 		if (p2pEnabled) { fetchP2POffers() }
@@ -184,7 +182,6 @@ const P2P = ({ navigation, route }) => {
 					data={p2pOffers}
 					renderItem={renderOffer}
 					keyExtractor={(item) => item.uuid}
-					contentContainerStyle={styles.listContainer}
 					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
 					showsVerticalScrollIndicator={false}
 					ListEmptyComponent={
@@ -374,9 +371,6 @@ const P2P = ({ navigation, route }) => {
 }
 
 const styles = StyleSheet.create({
-	listContainer: {
-		paddingBottom: 20,
-	},
 	emptyContainer: {
 		flex: 1,
 		justifyContent: "center",
@@ -459,8 +453,7 @@ const styles = StyleSheet.create({
 	},
 	// Modal styles
 	modalContainer: {
-		flex: 1,
-		paddingBottom: 20
+		flex: 1
 	},
 	modalHeader: {
 		flexDirection: "row",

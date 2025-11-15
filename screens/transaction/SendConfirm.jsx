@@ -122,7 +122,7 @@ const SendConfirm = ({ navigation, route }) => {
 	}
 
 	return (
-		<View style={[containerStyles.subContainer, { justifyContent: 'space-between', paddingBottom: 20 }]}>
+		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 
 			<ScrollView style={{ flex: 1, gap: 10, paddingTop: 10 }} showsVerticalScrollIndicator={false}>
 

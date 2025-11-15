@@ -17,40 +17,40 @@ import { ROUTES } from '../../routes'
 // Show a success message with a button to go back to the home screen
 const SendSuccess = ({ navigation }) => {
 
-    // Contexts
-    const { theme } = useTheme()
-    const textStyles = createTextStyles(theme)
-    const containerStyles = createContainerStyles(theme)
+	// Contexts
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
 
-    // Render
-    return (
-        <View style={[containerStyles.subContainer, styles.container]}>
+	// Render
+	return (
+		<View style={[containerStyles.subContainer, styles.container]}>
 
-            <View style={{ alignItems: 'center' }}>
-                <LottieView source={require('../../assets/lotties/completed.json')} autoPlay loop={false} style={styles.loadingAnimation} />
-                <Text style={textStyles.h2}>Pago completado</Text>
-                <Text style={[textStyles.h6, { textAlign: 'center', paddingHorizontal: 20 }]}>Hemos procesado este pago y estará en su destino en pocos segundos.</Text>
-            </View>
+			<View style={{ alignItems: 'center' }}>
+				<LottieView source={require('../../assets/lotties/completed.json')} autoPlay loop={false} style={styles.loadingAnimation} />
+				<Text style={textStyles.h2}>Pago completado</Text>
+				<Text style={[textStyles.h6, { textAlign: 'center', paddingHorizontal: 20 }]}>Hemos procesado este pago y estará en su destino en pocos segundos.</Text>
+			</View>
 
-            <QPButton
-                title="Volver al inicio"
-                onPress={() => navigation.navigate(ROUTES.MAIN_STACK)}
-                textStyle={{ color: theme.colors.buttonText }}
-            />
-        </View>
-    )
+			<QPButton
+				title="Volver al inicio"
+				onPress={() => navigation.navigate(ROUTES.MAIN_STACK)}
+				textStyle={{ color: theme.colors.buttonText }}
+			/>
+		</View>
+	)
 }
 
 const styles = StyleSheet.create({
-    container: {
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: 40,
-    },
-    loadingAnimation: {
-        width: 500,
-        height: 350,
-    }
+	container: {
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingBottom: 20,
+	},
+	loadingAnimation: {
+		width: 500,
+		height: 350,
+	}
 })
 
 export default SendSuccess

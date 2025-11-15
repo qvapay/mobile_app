@@ -659,9 +659,6 @@ const styles = StyleSheet.create({
 		borderBottomColor: 'rgba(0,0,0,0.1)',
 		marginBottom: 16
 	},
-	listContainer: {
-		paddingBottom: 20
-	},
 	emptyContainer: {
 		flex: 1,
 		justifyContent: 'center',
