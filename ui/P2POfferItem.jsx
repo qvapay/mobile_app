@@ -31,6 +31,9 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
+	// P2P Log
+	console.log('offer', offer)
+
 	return (
 		<View style={[styles.offerCard, { backgroundColor: theme.colors.surface }]}>
 
@@ -71,7 +74,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 					{/* User Info */}
 					{show_user && (
 						<View style={{ marginVertical: 2 }}>
-							<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />
+							{offer.Peer && offer.Peer.uuid ? (<ProfileContainerHorizontal user={offer.Peer} size={36} showUsername={false} />) : (<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />)}
 						</View>
 					)}
 				</View>
@@ -100,17 +103,48 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 					</View>
 				) : (<View style={styles.messageText} />)}
 
+				<Text>{offer.status}</Text>
+
 				{show_buttons && user.uuid === offer.User.uuid ? (
-					<QPButton
-						title="Editar"
-						style={{ backgroundColor: theme.colors.primary, width: 75, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
-						textStyle={{ color: theme.colors.almostWhite, fontSize: 13, fontWeight: '400' }}
-						onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
-					/>
+
+					offer.status === 'completed' ? (
+						<QPButton
+							title="Finalizado"
+							style={{ backgroundColor: theme.colors.primary, width: 90, height: 24, borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2 }}
+							textStyle={{ color: theme.colors.almostWhite, fontSize: 13, fontWeight: '400' }}
+							onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+						/>
+					) : (
+						offer.status === 'paid' ? (
+							<QPButton
+								title="Pagado"
+								style={{ backgroundColor: theme.colors.success, width: 90, height: 24, borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2 }}
+								textStyle={{ color: theme.colors.almostBlack, fontSize: 13, fontWeight: '400' }}
+								onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+							/>
+						) : (
+							offer.status === 'revision' ? (
+								<QPButton
+									title="Revisión"
+									style={{ backgroundColor: theme.colors.warning, width: 90, height: 24, borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2 }}
+									textStyle={{ color: theme.colors.almostBlack, fontSize: 13, fontWeight: '400' }}
+									onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+								/>
+							) : (
+								<QPButton
+									title="Editar"
+									style={{ backgroundColor: theme.colors.primary, width: 90, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
+									textStyle={{ color: theme.colors.almostWhite, fontSize: 13, fontWeight: '400' }}
+									onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+								/>
+							)
+						)
+					)
+
 				) : show_buttons && (
 					<QPButton
 						title={offer.type === 'buy' ? 'Vender' : 'Comprar'}
-						style={{ backgroundColor: offer.type === 'buy' ? theme.colors.danger : theme.colors.success, width: 75, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
+						style={{ backgroundColor: offer.type === 'buy' ? theme.colors.danger : theme.colors.success, width: 90, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
 						textStyle={{ color: offer.type === 'buy' ? theme.colors.almostWhite : theme.colors.almostBlack, fontSize: 13, fontWeight: '400' }}
 						onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
 					/>

@@ -85,7 +85,7 @@ const P2P = ({ navigation, route }) => {
 	const apiFilters = useMemo(() => {
 		const filters = {
 			page: 1,
-			take: 30,
+			take: 60,
 			order: "desc",
 			type: typeFilter,
 		}

@@ -55,7 +55,7 @@ export const p2pApi = {
 			}
 
 		} catch (error) {
-			
+
 			// Handle specific API errors
 			if (error.response?.data) {
 				const errorData = error.response.data
@@ -67,11 +67,7 @@ export const p2pApi = {
 				}
 			}
 
-			return {
-				success: false,
-				error: error.message || 'Ha ocurrido un error de red',
-				status: error.response?.status
-			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
 		}
 	},
 
