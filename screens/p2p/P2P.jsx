@@ -178,7 +178,7 @@ const P2P = ({ navigation, route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			
+
 			{p2pEnabled ? (
 				<FlatList
 					data={p2pOffers}
@@ -312,7 +312,7 @@ const P2P = ({ navigation, route }) => {
 					</ScrollView>
 
 					{/* Bottom buttons */}
-					<View style={[{ paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.elevation, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
+					<View style={[{ paddingHorizontal: 10, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
 						<QPButton
 							title="Limpiar"
 							onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); }}
@@ -332,7 +332,6 @@ const P2P = ({ navigation, route }) => {
 			{/* Coin Picker Modal */}
 			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowCoinPicker(false); setShowFiltersModal(true) }}>
 				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-
 					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
 						<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
@@ -341,11 +340,9 @@ const P2P = ({ navigation, route }) => {
 							</Pressable>
 						</View>
 					</View>
-
 					<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
 						<QPInput value={coinSearch} onChangeText={setCoinSearch} placeholder="Buscar moneda..." prefixIconName="magnifying-glass" />
 					</View>
-
 					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
 						{loadingCoins ? (
 							<View style={styles.loadingContainer}>

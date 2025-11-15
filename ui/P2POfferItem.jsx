@@ -22,7 +22,7 @@ import { useAuth } from '../auth/AuthContext'
 import { ROUTES } from '../routes'
 
 // P2P Offer Component
-const P2POfferItem = ({ offer, navigation }) => {
+const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true }) => {
 
 	// User context
 	const { user } = useAuth()
@@ -69,9 +69,11 @@ const P2POfferItem = ({ offer, navigation }) => {
 					</View>
 
 					{/* User Info */}
-					<View style={{ marginVertical: 2 }}>
-						<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />
-					</View>
+					{show_user && (
+						<View style={{ marginVertical: 2 }}>
+							<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />
+						</View>
+					)}
 				</View>
 
 				{/* 3 Tags in column */}
@@ -98,14 +100,14 @@ const P2POfferItem = ({ offer, navigation }) => {
 					</View>
 				) : (<View style={styles.messageText} />)}
 
-				{user.uuid === offer.User.uuid ? (
+				{show_buttons && user.uuid === offer.User.uuid ? (
 					<QPButton
 						title="Editar"
 						style={{ backgroundColor: theme.colors.primary, width: 75, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
 						textStyle={{ color: theme.colors.almostWhite, fontSize: 13, fontWeight: '400' }}
 						onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
 					/>
-				) : (
+				) : show_buttons && (
 					<QPButton
 						title={offer.type === 'buy' ? 'Vender' : 'Comprar'}
 						style={{ backgroundColor: offer.type === 'buy' ? theme.colors.danger : theme.colors.success, width: 75, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
@@ -116,7 +118,7 @@ const P2POfferItem = ({ offer, navigation }) => {
 
 			</View>
 		</View>
-	);
+	)
 }
 
 const styles = StyleSheet.create({

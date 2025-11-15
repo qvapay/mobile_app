@@ -6,8 +6,8 @@ import { useTheme } from "../../theme/ThemeContext"
 import { createContainerStyles, createTextStyles } from "../../theme/themeUtils"
 
 // UI Particles
+import P2POfferItem from "../../ui/P2POfferItem"
 import QPButton from "../../ui/particles/QPButton"
-import QPCoin from "../../ui/particles/QPCoin"
 import QPAvatar from "../../ui/particles/QPAvatar"
 import QPLoader from "../../ui/particles/QPLoader"
 import QPRate from "../../ui/particles/QPRate"
@@ -68,7 +68,6 @@ const P2POffer = ({ route }) => {
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
-	console.log('p2p', p2p)
 
 	// Fetch P2P data
 	useEffect(() => {
@@ -99,11 +98,11 @@ const P2POffer = ({ route }) => {
 				setRating(payload?.rating || 0)
 			} else {
 				setError(response.error)
-				Toast.show({ type: "error", text1: "Error", text2: String(response.error || "No se pudo cargar la oferta") })
+				// Toast.show({ type: "error", text1: "Error", text2: String(response.error || "No se pudo cargar la oferta") })
 			}
 		} catch (error) {
 			setError(error.message)
-			Toast.show({ type: "error", text1: "Error", text2: error.message })
+			// Toast.show({ type: "error", text1: "Error", text2: error.message })
 		} finally { setIsLoading(false) }
 	}
 
@@ -335,7 +334,7 @@ const P2POffer = ({ route }) => {
 			<View style={containerStyles.subContainer}>
 				<View style={[containerStyles.card, { alignItems: "center", justifyContent: "center" }]}>
 					<Text style={[textStyles.h5, { color: theme.colors.danger }]}>No se pudo cargar la oferta</Text>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error)}</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error.error || error.message || error)}</Text>
 				</View>
 			</View>
 		)
@@ -359,83 +358,51 @@ const P2POffer = ({ route }) => {
 
 					{/* Offer Header - Fixed */}
 					{p2p && (
-						<View style={containerStyles.card}>
-							<View style={styles.offerHeader}>
-								<View style={styles.typeContainer}>
-									<Text style={[styles.typeText, { color: theme.colors.primaryText }]}>{getTypeText(p2p.type)}</Text>
-								</View>
-								<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>{new Date(p2p.created_at).toLocaleDateString()}</Text>
-							</View>
-							<View style={{ gap: 2, marginBottom: 4 }}>
-								<View style={styles.coinRow}>
-									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-										<QPCoin coin={p2p.Coin?.logo} size={20} />
-										<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
-											{p2p.Coin?.name}
-										</Text>
-									</View>
-									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-										<FontAwesome6 name="money-bill-transfer" size={12} color={theme.colors.primaryText} iconStyle="solid" />
-										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '400' }]} >
-											{Number(p2p.receive / p2p.amount).toFixed(2)}
-										</Text>
-									</View>
-								</View>
-								<View style={[styles.amountRow, { marginLeft: 2 }]}>
-									<Text style={[textStyles.h2, { color: theme.colors.primary, fontWeight: '800' }]}>${p2p.amount}</Text>
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
-									<Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>{p2p.receive}</Text>
-								</View>
-							</View>
+						<>
+							<P2POfferItem offer={p2p} show_buttons={false} show_user={false} />
+							{p2p.details && (
+								<View style={[containerStyles.card, { marginTop: 2 }]}>
+									{(() => {
+										const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
+										const details = Array.isArray(rawDetails)
+											? rawDetails
+											: (rawDetails && typeof rawDetails === "object") ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) : []
 
-							{p2p?.message && (
-								<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6 }}>
-									<FontAwesome6 name="message" size={14} color={theme.colors.primary} iconStyle="solid" />
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1} ellipsizeMode="tail">{p2p.message}</Text>
+										if (!details || details.length === 0) { return null }
+
+										return (
+											<View style={{ gap: 6 }}>
+												{details.slice(0, 4).map((d, idx) => (
+													<View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 20 }}>
+														<View style={{ flex: 1, marginRight: 8 }}>
+															<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
+														</View>
+														<View style={{ flex: 1.5, alignItems: 'flex-end' }}>
+															{(d.name === "Wallet" || d.key === "Wallet") ? (
+																<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+																	{reduceStringInside(d.value || d.val, 8)}
+																</Text>
+															) : (
+																<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+																	{d.value || d.val}
+																</Text>
+															)}
+														</View>
+													</View>
+												))}
+											</View>
+										)
+									})()}
 								</View>
 							)}
-
-							{(() => {
-								const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
-								const details = Array.isArray(rawDetails)
-									? rawDetails
-									: (rawDetails && typeof rawDetails === "object") ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) : []
-
-								if (!details || details.length === 0) { return null }
-
-								return (
-									<View style={{ marginTop: 10, gap: 6 }}>
-										{details.slice(0, 4).map((d, idx) => (
-											<View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 20 }}>
-												<View style={{ flex: 1, marginRight: 8 }}>
-													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-												</View>
-												<View style={{ flex: 1.5, alignItems: 'flex-end' }}>
-													{(d.name === "Wallet" || d.key === "Wallet") ? (
-														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
-															{reduceStringInside(d.value || d.val, 8)}
-														</Text>
-													) : (
-														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
-															{d.value || d.val}
-														</Text>
-													)}
-												</View>
-											</View>
-										))}
-									</View>
-								)
-							})()}
-						</View>
+						</>
 					)}
 
 					{status == "open" ? (
 						counterparty ? (
 							<>
-								<View style={[containerStyles.card, { padding: 0, marginVertical: 0 }]}>
-									<View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-										<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
-									</View>
+								<View style={[containerStyles.card, { paddingVertical: 6, paddingHorizontal: 8 }]}>
+									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
 								</View>
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
@@ -451,7 +418,7 @@ const P2POffer = ({ route }) => {
 						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>
 
 							{counterparty && (
-								<View style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
+								<View style={{ paddingVertical: 6, paddingHorizontal: 8 }}>
 									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
 								</View>
 							)}
@@ -550,7 +517,7 @@ const P2POffer = ({ route }) => {
 
 							{/* Chat Input - Fixed at bottom */}
 							<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-								<View style={[styles.chatInputContainer, { borderTopColor: theme.colors.border }]}>
+								<View style={[styles.chatInputContainer, { borderTopColor: theme.colors.border, borderTopWidth: 0.5 }]}>
 									<TextInput
 										value={chatText}
 										onChangeText={setChatText}
