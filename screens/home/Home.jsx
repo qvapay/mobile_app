@@ -19,6 +19,7 @@ import BalanceCard from '../../ui/BalanceCard'
 import ActionButtons from '../../ui/ActionButtons'
 import QPAvatar from '../../ui/particles/QPAvatar'
 import BlogPostCard from '../../ui/BlogPostCard'
+import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -117,30 +118,14 @@ const Home = ({ navigation }) => {
 	return (
 		<View style={[containerStyles.subContainer]}>
 
-			<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
-				refreshControl={
-					<RefreshControl
-						key={`refresh-${theme.isDark ? 'dark' : 'light'}`}
-						refreshing={refreshing}
-						onRefresh={onRefresh}
-						colors={[theme.colors.primary]}
-						tintColor={theme.colors.primary}
-					/>
-				}
-			>
+			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl key={`refresh-${theme.isDark ? 'dark' : 'light'}`} refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}>
 
 				<BalanceCard balance={user.balance} />
 
 				<ActionButtons navigation={navigation} />
 
 				<View style={{ marginVertical: 10, gap: 10 }}>
-					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Pago rápido</Text>
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
-							<FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
-						</View>
-					</View>
+					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PAYMENT_METHODS)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 							<Pressable onPress={() => navigation.navigate(ROUTES.SEND)}>
@@ -158,26 +143,14 @@ const Home = ({ navigation }) => {
 				</View>
 
 				<View style={{ marginVertical: 10 }}>
-					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Últimas transacciones</Text>
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.primary }]} onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>Ver todas</Text>
-							<FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
-						</View>
-					</View>
+					<QPSectionHeader title="Últimas transacciones" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} />
 					{latestTransactions.map((transaction, index) => (
 						<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
 					))}
 				</View>
 
 				<View style={{ marginVertical: 10 }}>
-					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Últimas noticias</Text>
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
-							<FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
-						</View>
-					</View>
+					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.BLOG)} />
 					{latestBlogPosts.map((post, index) => (
 						<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} />
 					))}
@@ -191,10 +164,7 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
 	scrollView: {
 		flex: 1,
-	},
-	scrollContent: {
-		paddingTop: 20,
-	},
+	}
 })
 
 export default Home

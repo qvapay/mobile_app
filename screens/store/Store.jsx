@@ -1,8 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native'
+import { useState } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
+
+// UI Particles
+import QPInput from '../../ui/particles/QPInput'
+import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -15,6 +20,9 @@ const Store = () => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
+
+	// States
+	const [search, setSearch] = useState('')
 
 	// Mock data for sections
 	const rechargePlans = [
@@ -38,32 +46,15 @@ const Store = () => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
-			<ScrollView
-				style={styles.scrollView}
-				contentContainerStyle={styles.scrollContent}
-				showsVerticalScrollIndicator={false}
-			>
+			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
 				{/* Search bar */}
-				<View style={[styles.searchContainer, { backgroundColor: theme.colors.elevation }]}>
-					<TextInput
-						placeholder="Buscar en la tienda"
-						placeholderTextColor={theme.colors.placeholder}
-						style={[styles.searchInput, { color: theme.colors.primaryText }]}
-					/>
-				</View>
+				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />
 
 				{/* Mobile top-up plans */}
-				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Recargas móviles</Text>
-						<Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
-					</View>
-					<ScrollView
-						horizontal
-						showsHorizontalScrollIndicator={false}
-						contentContainerStyle={styles.horizontalList}
-					>
+				<View style={[styles.section, { marginTop: 10 }]}>
+					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.MOBILE_RECHARGES)} />
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList} >
 						{rechargePlans.map((plan) => (
 							<Pressable key={plan.id} style={[styles.card, { backgroundColor: theme.colors.elevation }]}>
 								<Text style={[textStyles.h6, styles.cardTitle]}>{plan.title}</Text>
@@ -76,15 +67,8 @@ const Store = () => {
 
 				{/* Gift cards */}
 				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Tarjetas de regalo</Text>
-						<Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todas</Text>
-					</View>
-					<ScrollView
-						horizontal
-						showsHorizontalScrollIndicator={false}
-						contentContainerStyle={styles.horizontalList}
-					>
+					<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
 						{giftCards.map((card) => (
 							<Pressable key={card.id} style={[styles.card, { backgroundColor: theme.colors.surface }]}>
 								<Text style={[textStyles.h6, styles.cardTitle]}>{card.title}</Text>
@@ -97,23 +81,10 @@ const Store = () => {
 
 				{/* Popular products */}
 				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Productos populares</Text>
-						<Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todos</Text>
-					</View>
-
+					<QPSectionHeader title="Productos populares" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.POPULAR_PRODUCTS)} />
 					<View style={styles.grid}>
 						{popularProducts.map((product) => (
-							<Pressable
-								key={product.id}
-								style={[
-									styles.productCard,
-									{
-										backgroundColor: theme.colors.surface,
-										borderColor: theme.colors.border,
-									},
-								]}
-							>
+							<Pressable key={product.id} style={[styles.productCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
 								<View style={styles.productImagePlaceholder} />
 								<Text style={[textStyles.h6, styles.productTitle]} numberOfLines={2}>
 									{product.title}
@@ -132,9 +103,6 @@ const Store = () => {
 const styles = StyleSheet.create({
 	scrollView: {
 		flex: 1,
-	},
-	scrollContent: {
-		paddingVertical: 20,
 	},
 	searchContainer: {
 		borderRadius: 16,
