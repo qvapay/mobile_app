@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
+import { View, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -91,10 +91,9 @@ const Home = ({ navigation }) => {
 	const fetchLatestBlogPosts = async (skipLoading = false) => {
 		try {
 			if (!skipLoading) setIsLoading(true)
-			const result = await blogApi.getLatestPosts(6)
-			if (result.success) {
-				setLatestBlogPosts(result.data)
-			} else { console.error('Error fetching latest blog posts:', result.error) }
+			const result = await blogApi.getLatestPosts(3)
+			if (result.success) { setLatestBlogPosts(result.data) }
+			else { console.error('Error fetching latest blog posts:', result.error) }
 		} catch (error) { console.error('Error fetching latest blog posts:', error) }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
@@ -124,9 +123,9 @@ const Home = ({ navigation }) => {
 
 				<ActionButtons navigation={navigation} />
 
-				<View style={{ marginVertical: 10, gap: 10 }}>
+				<View style={{ marginVertical: 10, gap: 5 }}>
 					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PAYMENT_METHODS)} />
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 							<Pressable onPress={() => navigation.navigate(ROUTES.SEND)}>
 								<View style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}>
@@ -142,18 +141,22 @@ const Home = ({ navigation }) => {
 					</ScrollView>
 				</View>
 
-				<View style={{ marginVertical: 10 }}>
+				<View style={{ marginVertical: 10, gap: 5 }}>
 					<QPSectionHeader title="Últimas transacciones" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} />
-					{latestTransactions.map((transaction, index) => (
-						<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
-					))}
+					<View>
+						{latestTransactions.map((transaction, index) => (
+							<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
+						))}
+					</View>
 				</View>
 
 				<View style={{ marginVertical: 10 }}>
 					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.BLOG)} />
-					{latestBlogPosts.map((post, index) => (
-						<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} />
-					))}
+					<View>
+						{latestBlogPosts.map((post, index) => (
+							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} />
+						))}
+					</View>
 				</View>
 
 			</ScrollView>
