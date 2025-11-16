@@ -115,14 +115,6 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
     const [isDark, setIsDark] = useState(initialThemeMode === 'dark' || (initialThemeMode === 'auto' && Appearance.getColorScheme() === 'dark'))
     const [theme, setTheme] = useState(createTheme(isDark))
 
-    // console.log('🎨 ThemeProvider - Initialized with:', {
-    //     initialThemeMode,
-    //     settingsTheme: settings?.appearance?.theme,
-    //     themeMode,
-    //     isDark,
-    //     hasUpdateSettings: !!updateSettings
-    // })
-
     // Memoized styles at context level
     const textStyles = useTextStyles(theme)
     const containerStyles = useContainerStyles(theme)
@@ -178,9 +170,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
             console.log('🎨 ThemeContext - Updating settings with theme:', mode)
             const result = await updateSettings('appearance', { theme: mode })
             console.log('🎨 ThemeContext - Settings update result:', result)
-        } else {
-            console.log('🎨 ThemeContext - No updateSettings function provided')
-        }
+        } else { console.log('🎨 ThemeContext - No updateSettings function provided') }
     }
 
     const toggleTheme = () => {

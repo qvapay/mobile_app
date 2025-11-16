@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme Context
@@ -7,10 +7,14 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
+import QPProduct from '../../ui/particles/QPProduct'
 import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
+
+// API
+import { storeApi } from '../../api/storeApi'
 
 // Store component
 const Store = () => {
@@ -23,13 +27,21 @@ const Store = () => {
 
 	// States
 	const [search, setSearch] = useState('')
+	const [topupPlans, setTopupPlans] = useState([])
+	const [isLoading, setIsLoading] = useState(false)
 
-	// Mock data for sections
-	const rechargePlans = [
-		{ id: '1', title: 'Paquete Diario', description: '500 MB + 20 min', price: '$3.00' },
-		{ id: '2', title: 'Paquete Semanal', description: '3 GB + 80 min', price: '$10.00' },
-		{ id: '3', title: 'Paquete Mensual', description: '10 GB + 200 min', price: '$25.00' },
-	]
+	// Effects Topups
+	useEffect(() => {
+		const fetchTopupPlans = async () => {
+			setIsLoading(true)
+			try {
+				const response = await storeApi.phonePackages()
+				if (response.success) { setTopupPlans(response.data || []) }
+			} catch (error) { console.error('Error fetching topup plans:', error) }
+			finally { setIsLoading(false) }
+		}
+		fetchTopupPlans()
+	}, [])
 
 	const giftCards = [
 		{ id: '1', title: 'Netflix', tag: 'Entretenimiento', amount: '$15' },
@@ -55,12 +67,8 @@ const Store = () => {
 				<View style={[styles.section, { marginTop: 10 }]}>
 					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.MOBILE_RECHARGES)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList} >
-						{rechargePlans.map((plan) => (
-							<Pressable key={plan.id} style={[styles.card, { backgroundColor: theme.colors.elevation }]}>
-								<Text style={[textStyles.h6, styles.cardTitle]}>{plan.title}</Text>
-								<Text style={[textStyles.caption, styles.cardSubtitle]}>{plan.description}</Text>
-								<Text style={[textStyles.h5, styles.cardPrice]}>{plan.price}</Text>
-							</Pressable>
+						{topupPlans.map((plan) => (
+							<QPProduct key={plan.id} name={plan.name} price={plan.price} details={plan.details} image={plan.image} onPress={() => navigation.navigate(ROUTES.MOBILE_RECHARGE, { planId: plan.id })} />
 						))}
 					</ScrollView>
 				</View>
@@ -70,11 +78,7 @@ const Store = () => {
 					<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
 						{giftCards.map((card) => (
-							<Pressable key={card.id} style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-								<Text style={[textStyles.h6, styles.cardTitle]}>{card.title}</Text>
-								<Text style={[textStyles.caption, styles.cardSubtitle]}>{card.tag}</Text>
-								<Text style={[textStyles.h5, styles.cardPrice]}>{card.amount}</Text>
-							</Pressable>
+							<QPProduct key={card.id} name={card.title} price={card.amount} details={card.tag} image={card.image} onPress={() => navigation.navigate(ROUTES.GIFT_CARD, { cardId: card.id })} />
 						))}
 					</ScrollView>
 				</View>
@@ -84,13 +88,7 @@ const Store = () => {
 					<QPSectionHeader title="Productos populares" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.POPULAR_PRODUCTS)} />
 					<View style={styles.grid}>
 						{popularProducts.map((product) => (
-							<Pressable key={product.id} style={[styles.productCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-								<View style={styles.productImagePlaceholder} />
-								<Text style={[textStyles.h6, styles.productTitle]} numberOfLines={2}>
-									{product.title}
-								</Text>
-								<Text style={[textStyles.h5, styles.productPrice]}>{product.price}</Text>
-							</Pressable>
+							<QPProduct key={product.id} name={product.title} price={product.price} details={product.details} image={product.image} onPress={() => navigation.navigate(ROUTES.PRODUCT, { productId: product.id })} style={{ width: '46%' }} />
 						))}
 					</View>
 				</View>
@@ -124,6 +122,32 @@ const styles = StyleSheet.create({
 	},
 	horizontalList: {
 		paddingRight: 8,
+	},
+	topupCard: {
+		width: 220,
+		borderRadius: 12,
+		padding: 8,
+		marginRight: 12,
+		borderWidth: 0.5,
+	},
+	topupImagePlaceholder: {
+		height: 80,
+		borderRadius: 8,
+		marginBottom: 10,
+		backgroundColor: 'rgba(255,255,255,0.06)',
+	},
+	topupHeaderRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginBottom: 4,
+	},
+	topupTitle: {
+		flex: 1,
+		marginRight: 8,
+	},
+	topupPrice: {
+		textAlign: 'right',
 	},
 	card: {
 		width: 180,
