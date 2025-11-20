@@ -214,15 +214,12 @@ const AppNavigator = () => {
 				component={Send}
 				options={{
 					headerTitle: 'Enviar QUSD',
+					headerTitleAlign: 'center',
 					headerShown: true,
-					headerBackVisible: false,
+					headerBackVisible: true,
+					headerBackTitle: 'Regresar',
 					headerBackButtonMenuEnabled: true,
 					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
 				}}
 			/>
 			<Stack.Screen
@@ -230,15 +227,12 @@ const AppNavigator = () => {
 				component={SendConfirm}
 				options={{
 					headerTitle: 'Confirmar pago',
+					headerTitleAlign: 'center',
 					headerShown: true,
-					headerBackVisible: false,
+					headerBackVisible: true,
+					headerBackTitle: 'Regresar',
 					headerBackButtonMenuEnabled: true,
 					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
 				}}
 			/>
 			<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
@@ -250,15 +244,12 @@ const AppNavigator = () => {
 				component={Transactions}
 				options={({ route }) => ({
 					headerTitle: 'Transacciones',
+					headerTitleAlign: 'center',
 					headerShown: true,
-					headerBackVisible: false,
+					headerBackVisible: true,
+					headerBackTitle: 'Regresar',
 					headerBackButtonMenuEnabled: true,
 					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
 					headerRight: () => (
 						<Pressable style={containerStyles.headerRight} onPress={(() => { })}>
 							<FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />

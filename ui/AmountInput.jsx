@@ -31,9 +31,7 @@ const AmountInput = ({
 	}
 
 	// Handle amount selection from badges
-	const handleAmountSelect = (selectedAmount) => {
-		onAmountChange(selectedAmount.toString())
-	}
+	const handleAmountSelect = (selectedAmount) => { onAmountChange(selectedAmount.toString()) }
 
 	return (
 		<View style={[{ marginVertical: 10 }, style]}>

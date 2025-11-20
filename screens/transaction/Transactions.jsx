@@ -15,48 +15,44 @@ import QPTransaction from '../../ui/particles/QPTransaction'
 // Transactions Screen
 const Transactions = ({ navigation, route }) => {
 
-    // States
-    const [transactions, setTransactions] = useState([])
+	// States
+	const [transactions, setTransactions] = useState([])
 
-    // Contexts
-    const { theme } = useTheme()
-    const textStyles = createTextStyles(theme)
-    const containerStyles = createContainerStyles(theme)
+	// Contexts
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
 
-    // Get latest transactions
-    useEffect(() => {
-        const fetchTransactions = async () => {
-            try {
-                const result = await transferApi.getLatestTransactions()
-                if (result.success) {
-                    setTransactions(result.data)
-                }
-            } catch (error) { console.log("Error getting latest transactions", error) }
-        }
-        fetchTransactions()
-    }, [])
+	// Get latest transactions
+	useEffect(() => {
+		const fetchTransactions = async () => {
+			try {
+				const result = await transferApi.getLatestTransactions()
+				if (result.success) {
+					setTransactions(result.data)
+				}
+			} catch (error) { console.log("Error getting latest transactions", error) }
+		}
+		fetchTransactions()
+	}, [])
 
-    // Render
-    return (
-        <View style={[containerStyles.subContainer, { paddingTop: 20 }]}>
+	// Render
+	return (
+		<View style={containerStyles.subContainer}>
 
-            {/** TODO: Add a filter component */}
-            {/** TODO: Retrieve more transactions on last item scroll */}
+			{/** TODO: Add a filter component */}
+			{/** TODO: Retrieve more transactions on last item scroll */}
 
-            <FlatList
-                // ListHeaderComponent={<Text style={textStyles.h1}>Transacciones</Text>}
-                data={transactions}
-                renderItem={({ item, index }) => <QPTransaction transaction={item} navigation={navigation} index={index} totalItems={transactions.length} />}
-                keyExtractor={(item) => item.uuid}
-                ListEmptyComponent={<Text style={textStyles.h2}>No hay transacciones</Text>}
-            />
+			<FlatList
+				// ListHeaderComponent={<Text style={textStyles.h1}>Transacciones</Text>}
+				data={transactions}
+				renderItem={({ item, index }) => <QPTransaction transaction={item} navigation={navigation} index={index} totalItems={transactions.length} />}
+				keyExtractor={(item) => item.uuid}
+				ListEmptyComponent={<Text style={textStyles.h2}>No hay transacciones</Text>}
+			/>
 
-        </View>
-    )
+		</View>
+	)
 }
-
-const styles = StyleSheet.create({
-
-})
 
 export default Transactions

@@ -106,7 +106,7 @@ const Add = ({ navigation }) => {
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<View style={{ flex: 1 }}>
 
-					<View style={{ flex: 1, marginTop: 20 }}>
+					<View style={{ flex: 1 }}>
 
 						{/* Amount Input Component */}
 						<AmountInput

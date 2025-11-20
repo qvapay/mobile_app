@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -16,6 +16,7 @@ import QPInput from '../../ui/particles/QPInput'
 
 // API
 import apiClient from '../../api/client'
+import { withdrawApi } from '../../api/withdrawApi'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -23,8 +24,11 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // User Context
 import { useAuth } from '../../auth/AuthContext'
 
+// Toast
+import Toast from 'react-native-toast-message'
+
 // Withdraw balance to certain coin
-const Withdraw = () => {
+const Withdraw = ({ navigation }) => {
 
 	// Contexts
 	const { user } = useAuth()
@@ -47,6 +51,16 @@ const Withdraw = () => {
 	const [showCoinSearch, setShowCoinSearch] = useState(false)
 	const [balance, setBalance] = useState(user?.balance || 0)
 	const [currency, setCurrency] = useState('QUSD')
+
+	// States for pending withdraw
+	const [pendingWithdraw, setPendingWithdraw] = useState(false)
+	const [sendingPreWithdraw, setSendingPreWithdraw] = useState(false)
+	const [sendingWithdraw, setSendingWithdraw] = useState(false)
+
+	// PIN
+	const [pin, setPin] = useState('')
+	const pinInputsRef = useRef([])
+	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
 
 	// Fetch available coins enabled_out
 	useEffect(() => {
@@ -73,37 +87,25 @@ const Withdraw = () => {
 		if (!selectedCoin || !amountQUSD) return 0
 		const amount = Number(amountQUSD)
 		if (isNaN(amount)) return 0
-
 		const feePercent = Number(selectedCoin.fee_out) || 0
-
-		// Check if fee_out_fixed is an array [threshold, fixed_amount]
 		let feeFixed = 0
 		let useFixedFee = false
-
 		if (Array.isArray(selectedCoin.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
 			const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
 			const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
-
-			// If amount is below threshold, use fixed fee
 			if (amount < threshold) {
 				feeFixed = fixedAmount
 				useFixedFee = true
 			}
-
 		} else { feeFixed = Number(selectedCoin.fee_out_fixed) || 0 }
-
-		// Calculate fee based on the logic
 		if (useFixedFee) { return feeFixed }
 		else { return (amount * feePercent) / 100 }
-
 	}, [selectedCoin, amountQUSD])
 
 	// Helper function to calculate fee
 	const calculateFee = (amount, coin) => {
-
 		if (!coin) return 0
 		const feePercent = Number(coin.fee_out) || 0
-
 		// Check if fee_out_fixed is an array [threshold, fixed_amount]
 		if (Array.isArray(coin.fee_out_fixed) && coin.fee_out_fixed.length >= 2) {
 			const threshold = Number(coin.fee_out_fixed[0]) || 0
@@ -113,7 +115,6 @@ const Withdraw = () => {
 			if (amount < threshold) {
 				return fixedAmount
 			} else {
-				// Use percentage fee with better precision
 				const percentageFee = (amount * feePercent) / 100
 				return Math.round(percentageFee * 100) / 100 // Round to 2 decimal places
 			}
@@ -174,21 +175,13 @@ const Withdraw = () => {
 				// First, try with percentage fee
 				const withPercentageFee = num / (1 - feePercent / 100)
 
-				if (withPercentageFee >= threshold) {
-					// Use percentage fee
-					requiredQUSD = withPercentageFee
-				} else {
-					// Use fixed fee
-					requiredQUSD = num + fixedAmount
-				}
+				if (withPercentageFee >= threshold) { requiredQUSD = withPercentageFee }
+				else { requiredQUSD = num + fixedAmount }
 			} else {
 				// Simple case: percentage + fixed fee
 				const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
-				if (feePercent > 0) {
-					requiredQUSD = (num + feeFixed) / (1 - feePercent / 100)
-				} else {
-					requiredQUSD = num + feeFixed
-				}
+				if (feePercent > 0) { requiredQUSD = (num + feeFixed) / (1 - feePercent / 100) }
+				else { requiredQUSD = num + feeFixed }
 			}
 
 			setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
@@ -207,57 +200,6 @@ const Withdraw = () => {
 		} else {
 			setAmountQUSD('')
 			setAmountCoin('')
-		}
-	}
-
-	// Handle change coin (user wants to receive this amount in coin)
-	const handleChangeCoin = (value) => {
-		setAmountCoin(value)
-		const num = Number(value)
-		if (coinPrice && !isNaN(num) && selectedCoin) {
-			// Calculate gross amount needed (including fees)
-			const grossAmount = num * coinPrice
-
-			// Calculate required QUSD amount to cover fees
-			const feePercent = Number(selectedCoin?.fee_out) || 0
-
-			let requiredQUSD
-
-			// Check if fee_out_fixed is an array [threshold, fixed_amount]
-			if (Array.isArray(selectedCoin?.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
-				const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
-				const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
-
-				// We need to solve: grossAmount = requiredQUSD - fee
-				// where fee = fixedAmount if requiredQUSD < threshold, else fee = requiredQUSD * feePercent/100
-
-				// First, try with percentage fee
-				const withPercentageFee = grossAmount / (1 - feePercent / 100)
-
-				if (withPercentageFee >= threshold) {
-					// Use percentage fee
-					requiredQUSD = withPercentageFee
-				} else {
-					// Use fixed fee
-					requiredQUSD = grossAmount + fixedAmount
-				}
-			} else {
-				// Simple case: percentage + fixed fee
-				const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
-				if (feePercent > 0) { requiredQUSD = (grossAmount + feeFixed) / (1 - feePercent / 100) }
-				else { requiredQUSD = grossAmount + feeFixed }
-			}
-
-			setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
-
-			// Calculate net amount after fees
-			const calculatedRequiredQUSD = Number(requiredQUSD) || 0
-			const totalFee = calculateFee(calculatedRequiredQUSD, selectedCoin)
-			const calculatedNetAmount = calculatedRequiredQUSD - totalFee
-			setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
-		} else {
-			setAmountQUSD('')
-			setNetAmount('')
 		}
 	}
 
@@ -317,6 +259,95 @@ const Withdraw = () => {
 		return parseFloat(balance).toFixed(2)
 	}
 
+	// Send withdraw request to API without PIN
+	const handlePreWithdraw = async () => {
+		try {
+			setPendingWithdraw(true)
+			setSendingPreWithdraw(true)
+			setPin('')
+
+			// Send request to API
+			const result = await withdrawApi.preWithdraw(amountQUSD, selectedCoin.tick, workingForm)
+
+			if (!result.success) {
+				console.error('Pre-withdraw error:', result.error)
+				// TODO: Show error toast/message to user
+				setPendingWithdraw(false)
+			}
+			// If successful, the PIN input will be shown and user will receive email
+
+		} catch (error) { console.error('Error processing withdrawal:', error); setPendingWithdraw(false) }
+		finally { setSendingPreWithdraw(false) }
+	}
+
+	// Send withdraw request to API with PIN
+	const handleWithdraw = async () => {
+
+		if (!pin || pin.length !== 4) {
+			Toast.show({ type: 'error', text1: 'El PIN es requerido' })
+			return
+		}
+
+		try {
+			setSendingWithdraw(true)
+
+			// Send request to API with PIN
+			const result = await withdrawApi.withdraw(amountQUSD, selectedCoin.tick, workingForm, pin)
+
+			if (result.success) {
+				// TODO: Show success message and navigate back or to transactions
+				console.log('Withdrawal successful:', result.data)
+				// Reset form and navigate
+				setPendingWithdraw(false)
+				setPin('')
+				setAmountQUSD('')
+				setAmountCoin('')
+				setNetAmount('')
+				setWorkingForm({})
+				// Optionally navigate to transactions or home
+			} else {
+				console.error('Withdraw error:', result.error)
+				// TODO: Show error toast/message to user
+			}
+
+		} catch (error) { console.error('Error processing withdrawal:', error) }
+		finally { setSendingWithdraw(false) }
+	}
+
+	// Handle PIN input change
+	const handlePinChange = (text, index) => {
+		const numericText = text.replace(/[^0-9]/g, '')
+		const newPin = pin.split('')
+		newPin[index] = numericText
+		const updatedPin = newPin.join('')
+		setPin(updatedPin)
+		if (numericText && index < 3) { pinInputsRef.current[index + 1]?.focus() }
+	}
+
+	// Handle PIN input focus
+	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
+
+	// Handle PIN input blur
+	const handlePinBlur = () => { setFocusedInputIndex(null) }
+
+	// Handle PIN backspace
+	const handlePinKeyPress = (e, index) => {
+		if (e.nativeEvent.key === 'Backspace') {
+			if (pin[index]) {
+				// If current input has content, clear it
+				const newPin = pin.split('')
+				newPin[index] = ''
+				setPin(newPin.join(''))
+			} else if (index > 0) {
+				// If current input is empty, go to previous input and clear it
+				const newPin = pin.split('')
+				newPin[index - 1] = ''
+				setPin(newPin.join(''))
+				pinInputsRef.current[index - 1]?.focus()
+			}
+		}
+	}
+
 	return (
 		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -324,7 +355,7 @@ const Withdraw = () => {
 					<View style={{ flex: 1 }}>
 
 						{/* Swap Card */}
-						<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, padding: 20, borderWidth: 2, borderColor: theme.colors.primary }}>
+						<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
 
 							{/* QUSD amount input */}
 							<View style={{ paddingVertical: 2 }}>
@@ -438,21 +469,64 @@ const Withdraw = () => {
 										/>
 									)
 								})}
+
+								{/** PIN input */}
+								{pendingWithdraw && (
+									<View style={{ marginTop: 30 }}>
+										<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center' }]}>Hemos enviado un código a tu correo electrónico para verificar tu identidad.</Text>
+										<Text style={[textStyles.h5, { color: theme.colors.secondaryText, textAlign: 'center' }]}>Ingresa el código para continuar:</Text>
+										<View style={styles.pinContainer}>
+											{[0, 1, 2, 3].map((index) => (
+												<TextInput
+													key={index}
+													ref={(ref) => pinInputsRef.current[index] = ref}
+													style={[styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
+													value={pin[index] || ''}
+													onChangeText={(text) => handlePinChange(text, index)}
+													onFocus={() => handlePinFocus(index)}
+													onBlur={handlePinBlur}
+													onKeyPress={(e) => handlePinKeyPress(e, index)}
+													keyboardType="numeric"
+													maxLength={1}
+													secureTextEntry
+													textAlign="center"
+													selectTextOnFocus
+													placeholder={focusedInputIndex === index ? "" : "0"}
+													placeholderTextColor={theme.colors.tertiaryText}
+												/>
+											))}
+										</View>
+									</View>
+								)}
+
 							</View>
 						)}
 					</View>
 
 					{/* Bottom Button */}
 					<View style={containerStyles.bottomButtonContainer}>
-						<QPButton
-							title="Continuar"
-							onPress={() => { /* Submit flow will be handled in next step */ }}
-							disabled={!isFormValid}
-							icon="arrow-right"
-							iconStyle="solid"
-							iconColor={theme.colors.almostWhite}
-							textStyle={{ color: theme.colors.almostWhite }}
-						/>
+
+						{pendingWithdraw ? (
+							<QPButton
+								title={`Extraer ${amountQUSD} ${currency}`}
+								onPress={() => { handleWithdraw() }}
+								disabled={!isFormValid || !pin}
+								icon="arrow-right"
+								iconStyle="solid"
+								iconColor={theme.colors.almostWhite}
+								textStyle={{ color: theme.colors.almostWhite }}
+							/>
+						) : (
+							<QPButton
+								title="Continuar"
+								onPress={() => { handlePreWithdraw() }}
+								disabled={!isFormValid}
+								icon="arrow-right"
+								iconStyle="solid"
+								iconColor={theme.colors.almostWhite}
+								textStyle={{ color: theme.colors.almostWhite }}
+							/>
+						)}
 					</View>
 
 					<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
@@ -571,6 +645,21 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		padding: 40,
+	},
+	pinContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		marginVertical: 20,
+		paddingHorizontal: 20,
+	},
+	pinInput: {
+		width: 60,
+		height: 60,
+		borderRadius: 12,
+		borderWidth: 1,
+		fontSize: 24,
+		fontWeight: 'bold',
+		textAlign: 'center',
 	},
 })
 

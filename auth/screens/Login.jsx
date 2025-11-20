@@ -89,10 +89,7 @@ const LoginScreen = ({ navigation }) => {
 	// If login is not successful (HTTP response 401), we set the loading to false and show an error message
 	const handlePreLogin = async () => {
 
-		if (!email || !password) {
-			Toast.show({ type: 'error', text1: 'Por favor completa todos los campos' })
-			return
-		}
+		if (!email || !password) { Toast.show({ type: 'error', text1: 'Por favor completa todos los campos' }); return }
 
 		try {
 			clearError()
@@ -108,6 +105,7 @@ const LoginScreen = ({ navigation }) => {
 				setShowPin(true)
 			}
 		} catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión' }) }
+		
 		finally { setIsLoading(false) }
 	}
 
