@@ -293,12 +293,14 @@ const AppNavigator = () => {
 				name={ROUTES.LOGIN_SCREEN}
 				component={LoginScreen}
 				options={{
+					title: '',
 					headerTitle: '',
 					animation: 'slide_from_right',
 					headerShown: true,
 					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
+					headerBackTitle: '',
+					headerBackButtonDisplayMode: 'minimal',
+					headerBackButtonMenuEnabled: false,
 					headerShadowVisible: false
 				}}
 			/>
@@ -310,8 +312,9 @@ const AppNavigator = () => {
 					animation: 'slide_from_right',
 					headerShown: true,
 					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
+					headerBackTitle: '',
+					headerBackButtonDisplayMode: 'minimal',
+					headerBackButtonMenuEnabled: false,
 					headerShadowVisible: false
 				}}
 			/>
