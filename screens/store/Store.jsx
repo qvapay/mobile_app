@@ -44,16 +44,16 @@ const Store = () => {
 	}, [])
 
 	const giftCards = [
-		{ id: '1', title: 'Netflix', tag: 'Entretenimiento', amount: '$15' },
-		{ id: '2', title: 'PlayStation', tag: 'Gaming', amount: '$20' },
-		{ id: '3', title: 'Amazon', tag: 'Shopping', amount: '$25' },
+		// { id: '1', title: 'Netflix', tag: 'Entretenimiento', amount: '$15' },
+		// { id: '2', title: 'PlayStation', tag: 'Gaming', amount: '$20' },
+		// { id: '3', title: 'Amazon', tag: 'Shopping', amount: '$25' },
 	]
 
 	const popularProducts = [
-		{ id: '1', title: 'AirPods Pro', price: '$210.00' },
-		{ id: '2', title: 'Tarjeta Visa Virtual', price: '$50.00' },
-		{ id: '3', title: 'Cuenta Spotify Premium', price: '$8.00' },
-		{ id: '4', title: 'Gift Card Steam', price: '$20.00' },
+		// { id: '1', title: 'AirPods Pro', price: '$210.00' },
+		// { id: '2', title: 'Tarjeta Visa Virtual', price: '$50.00' },
+		// { id: '3', title: 'Cuenta Spotify Premium', price: '$8.00' },
+		// { id: '4', title: 'Gift Card Steam', price: '$20.00' },
 	]
 
 	return (
@@ -64,7 +64,7 @@ const Store = () => {
 				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />
 
 				{/* Mobile top-up plans */}
-				<View style={[styles.section, { marginTop: 10 }]}>
+				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
 					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.MOBILE_RECHARGES)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList} >
 						{topupPlans.map((plan) => (
@@ -74,7 +74,7 @@ const Store = () => {
 				</View>
 
 				{/* Gift cards */}
-				<View style={styles.section}>
+				<View style={[styles.section, { gap: 5 }]}>
 					<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
 						{giftCards.map((card) => (
@@ -84,7 +84,7 @@ const Store = () => {
 				</View>
 
 				{/* Popular products */}
-				<View style={styles.section}>
+				<View style={[styles.section, { gap: 5 }]}>
 					<QPSectionHeader title="Productos populares" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.POPULAR_PRODUCTS)} />
 					<View style={styles.grid}>
 						{popularProducts.map((product) => (

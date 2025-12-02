@@ -112,6 +112,7 @@ const AppNavigator = () => {
 				headerShown: false,
 				headerStyle: { backgroundColor: theme.colors.background },
 				headerShadowVisible: false,
+				headerBackButtonDisplayMode: 'minimal',
 				headerTintColor: theme.colors.primaryText
 			}}
 		>

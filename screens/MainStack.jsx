@@ -54,10 +54,12 @@ const MainStack = ({ navigation }) => {
 				backBehavior='initialRoute'
 				tabBar={props => <BottomBar {...props} navItems={navItems} />}
 				screenOptions={({ navigation }) => ({
+					headerTitle: '',
 					headerShown: true,
 					headerBackVisible: true,
 					headerBackTitleVisible: false,
 					headerBackButtonMenuEnabled: false,
+					headerBackButtonDisplayMode: 'minimal',
 					headerShadowVisible: false,
 					headerStyle: { backgroundColor: theme.colors.background },
 					headerTintColor: theme.colors.primaryText,
@@ -65,6 +67,11 @@ const MainStack = ({ navigation }) => {
 					headerLeft: () => (
 						<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
 							<QPAvatar user={user} size={32} />
+						</Pressable>
+					),
+					headerRight: () => (
+						<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
+							<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
 					)
 				})}
@@ -74,7 +81,6 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.HOME_SCREEN}
 					component={Home}
 					options={{
-						headerTitle: '',
 						headerLeft: () => (
 							<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
 								<QPAvatar user={user} size={32} />
@@ -82,11 +88,6 @@ const MainStack = ({ navigation }) => {
 									<Text style={textStyles.h4}>Hola {user.name}!</Text>
 									<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
 								</View>
-							</Pressable>
-						),
-						headerRight: () => (
-							<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.MAIN_STACK, { screen: ROUTES.KEYPAD_SCREEN })}>
-								<FontAwesome6 name="bell" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
 						)
 					}}
@@ -96,28 +97,20 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.INVEST_SCREEN}
 					component={Invest}
 					options={{
-						headerTitle: '',
 					}}
 				/>
 
 				<Tab.Screen
 					name={ROUTES.KEYPAD_SCREEN}
 					component={Keypad}
-					options={({ navigation }) => ({
-						headerTitle: '',
-						headerRight: () => (
-							<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
-								<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-						)
-					})}
+					options={{
+					}}
 				/>
 
 				<Tab.Screen
 					name={ROUTES.P2P_SCREEN}
 					component={P2P}
 					options={{
-						headerTitle: '',
 					}}
 				/>
 
