@@ -37,7 +37,50 @@ export const storeApi = {
 		}
 	},
 
-	
+	/**
+	 * Purchase a phone package (recarga telefónica)
+	 * @param {Object} purchaseData - Datos de compra { phone_package_id, phone_number }
+	 * @returns {Promise<Object>} Purchase response
+	 */
+	purchasePhonePackage: async (purchaseData) => {
+
+		try {
+
+			const { phone_package_id, phone_number } = purchaseData
+			if (!phone_package_id || !phone_number) { return { success: false, error: 'phone_package_id y phone_number son requeridos', status: 400 } }
+
+			const response = await apiClient.post('/store/phone_package', {
+				phone_package_id,
+				phone_number,
+			})
+
+			return {
+				success: true,
+				data: response.data,
+				status: response.status,
+			}
+
+		} catch (error) {
+
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return {
+					success: false,
+					error: errorData.error || errorData.message || 'No se pudo realizar la compra de la recarga',
+					details: errorData,
+					status: error.response.status,
+				}
+			}
+
+			return {
+				success: false,
+				error: error.message || 'Ha ocurrido un error de red',
+				status: error.response?.status,
+			}
+		}
+	},
+
+
 }
 
 // Export the apiClient for other API calls

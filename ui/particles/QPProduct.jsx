@@ -1,19 +1,28 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import FastImage from "@d11/react-native-fast-image"
+import { View, Text, StyleSheet, Pressable } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
-const QPProduct = ({ name = '', price = '', details = [], image = '', onPress = () => {}, style = {} }) => {
+const QPProduct = ({ name = '', price = '', details = [], logo = '', image = '', onPress = () => { }, style = {} }) => {
 
 	// Contexts
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
+	// Support both 'logo' and 'image' props, logo takes precedence
+	const imageSource = logo || image
+	const logoImage = imageSource ? (imageSource.startsWith('http') ? imageSource : `https://media.qvapay.com/${imageSource}`) : ''
+
 	return (
 		<Pressable style={[styles.topupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]} onPress={onPress}>
-			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]} />
+
+			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]}>
+				{logoImage ? (
+					<FastImage source={{ uri: logoImage, priority: FastImage.priority.normal }} style={styles.topupImage} resizeMode={FastImage.resizeMode.cover} />
+				) : null}
+			</View>
 
 			<View style={styles.topupHeaderRow}>
 				<Text style={[textStyles.h6, styles.topupTitle]} numberOfLines={2}>{name}</Text>
@@ -40,7 +49,12 @@ const styles = StyleSheet.create({
 	topupImagePlaceholder: {
 		height: 80,
 		borderRadius: 8,
-		marginBottom: 10
+		marginBottom: 10,
+		overflow: 'hidden',
+	},
+	topupImage: {
+		width: '100%',
+		height: '100%',
 	},
 	topupHeaderRow: {
 		flexDirection: 'row',

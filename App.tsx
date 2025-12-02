@@ -47,6 +47,10 @@ import Scan from './screens/scan/Scan'
 import Add from './screens/add/Add'
 import Withdraw from './screens/withdraw/Withdraw'
 
+// Store Screens
+import PhoneTopupIndex from './screens/store/PhoneTopupIndex'
+import PhoneTopupPurchase from './screens/store/PhoneTopupPurchase'
+
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
 
@@ -353,6 +357,34 @@ const AppNavigator = () => {
 							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
 					)
+				}}
+			/>
+
+			{/* Phone Topup Screens */}
+			<Stack.Screen
+				name={ROUTES.PHONE_TOPUP_INDEX}
+				component={PhoneTopupIndex}
+				options={{
+					headerTitle: 'Recargas telefónicas',
+					headerTitleAlign: 'center',
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackTitle: 'Regresar',
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
+				}}
+			/>
+			<Stack.Screen
+				name={ROUTES.PHONE_TOPUP_PURCHASE}
+				component={PhoneTopupPurchase}
+				options={{
+					headerTitle: 'Comprar recarga',
+					headerTitleAlign: 'center',
+					headerShown: true,
+					headerBackVisible: true,
+					headerBackTitle: 'Regresar',
+					headerBackButtonMenuEnabled: true,
+					headerShadowVisible: false,
 				}}
 			/>
 

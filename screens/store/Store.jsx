@@ -13,11 +13,14 @@ import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 // User Context
 import { useAuth } from '../../auth/AuthContext'
 
+// Routes
+import { ROUTES } from '../../routes'
+
 // API
 import { storeApi } from '../../api/storeApi'
 
 // Store component
-const Store = () => {
+const Store = ({ navigation }) => {
 
 	// Contexts
 	const { user } = useAuth()
@@ -56,6 +59,8 @@ const Store = () => {
 		// { id: '4', title: 'Gift Card Steam', price: '$20.00' },
 	]
 
+	console.log(topupPlans)
+
 	return (
 		<View style={[containerStyles.subContainer]}>
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -65,10 +70,10 @@ const Store = () => {
 
 				{/* Mobile top-up plans */}
 				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
-					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.MOBILE_RECHARGES)} />
+					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList} >
 						{topupPlans.map((plan) => (
-							<QPProduct key={plan.id} name={plan.name} price={plan.price} details={plan.details} image={plan.image} onPress={() => navigation.navigate(ROUTES.MOBILE_RECHARGE, { planId: plan.id })} />
+							<QPProduct key={plan.id} name={plan.name} price={plan.price} details={[plan.operator, plan.country].filter(Boolean)} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
 						))}
 					</ScrollView>
 				</View>
