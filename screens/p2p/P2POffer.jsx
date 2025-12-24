@@ -26,7 +26,7 @@ import { p2pApi } from "../../api/p2pApi"
 import Toast from "react-native-toast-message"
 
 // Helpers
-import { getTypeText, getShortDateTime, reduceStringInside } from "../../helpers"
+import { getShortDateTime, reduceStringInside } from "../../helpers"
 
 // Lottie
 import LottieView from "lottie-react-native"
@@ -569,7 +569,7 @@ const P2POffer = ({ route }) => {
 						/>
 					)}
 
-					{canMarkPaid && (
+					{canMarkPaid && isPayer && (
 						<QPButton
 							title="He pagado"
 							onPress={handleMarkPaid}
@@ -583,7 +583,7 @@ const P2POffer = ({ route }) => {
 						/>
 					)}
 
-					{markedAsPaid && (
+					{markedAsPaid && isPayer && (
 						<QPButton
 							title="Pagado"
 							onPress={handleMarkPaid}
@@ -596,7 +596,7 @@ const P2POffer = ({ route }) => {
 						/>
 					)}
 
-					{canConfirmReceived && (
+					{canConfirmReceived && isReceiver && (
 						<QPButton
 							title="Pago recibido"
 							onPress={handleConfirmReceived}
