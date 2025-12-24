@@ -18,7 +18,7 @@ const QPProduct = ({ name = '', price = '', details = [], logo = '', image = '',
 	return (
 		<Pressable style={[styles.topupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]} onPress={onPress}>
 
-			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]}>
+			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight, ...style.imagePlaceholder }]}>
 				{logoImage ? (
 					<FastImage source={{ uri: logoImage, priority: FastImage.priority.normal }} style={styles.topupImage} resizeMode={FastImage.resizeMode.cover} />
 				) : null}

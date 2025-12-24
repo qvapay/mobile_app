@@ -187,17 +187,12 @@ const AppNavigator = () => {
 				options={{
 					headerTitle: '',
 					headerShown: true,
-					headerBackVisible: false,
+					headerBackVisible: true,
 					headerBackButtonMenuEnabled: true,
 					headerShadowVisible: false,
-					animation: 'slide_from_bottom',
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
+					animation: 'slide_from_right',
 					headerRight: () => (
-						<Pressable>
+						<Pressable style={containerStyles.headerRight} onPress={() => {}}>
 							<QPAvatar user={user} size={32} />
 						</Pressable>
 					)

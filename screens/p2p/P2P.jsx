@@ -25,7 +25,7 @@ import Toast from "react-native-toast-message"
 
 // Lottie
 import LottieView from "lottie-react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 // Routes
@@ -41,6 +41,7 @@ const P2P = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
@@ -201,7 +202,7 @@ const P2P = ({ navigation, route }) => {
 
 			{/* Filters Modal */}
 			<Modal visible={showFiltersModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowFiltersModal(false) }}>
-				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
 
 					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 						<Text style={textStyles.h4}>Filtros</Text>
@@ -309,7 +310,7 @@ const P2P = ({ navigation, route }) => {
 					</ScrollView>
 
 					{/* Bottom buttons */}
-					<View style={[{ paddingHorizontal: 10, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
+					<View style={[{ paddingHorizontal: 10, paddingBottom: insets.bottom || 20, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
 						<QPButton
 							title="Limpiar"
 							onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); }}

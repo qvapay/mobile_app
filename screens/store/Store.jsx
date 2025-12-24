@@ -73,7 +73,7 @@ const Store = ({ navigation }) => {
 					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList} >
 						{topupPlans.map((plan) => (
-							<QPProduct key={plan.id} name={plan.name} price={plan.price} details={[plan.operator, plan.country].filter(Boolean)} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
+							<QPProduct key={plan.id} name={plan.name} price={plan.price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
 						))}
 					</ScrollView>
 				</View>

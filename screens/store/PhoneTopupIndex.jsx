@@ -159,20 +159,26 @@ const PhoneTopupIndex = ({ navigation }) => {
 								<FlatList
 									data={filteredPackages}
 									keyExtractor={(item) => item.id?.toString() || item.uuid?.toString() || Math.random().toString()}
-									renderItem={({ item }) => (
-										<QPProduct
-											name={item.name || 'Recarga'}
-											price={item.price}
-											details={[
-												item.operator,
-												item.country,
-												item.amount ? `${item.amount} ${item.currency || 'QUSD'}` : null,
-											].filter(Boolean)}
-											image={item.image}
-											onPress={() => handlePackageSelect(item)}
-											style={styles.packageCard}
-										/>
-									)}
+									renderItem={({ item }) => {
+										// Build details array - use item.details if available, otherwise construct from available fields
+										const details = item.details || [
+											item.operator,
+											item.country,
+											item.amount ? `${item.amount} ${item.currency || 'QUSD'}` : null,
+										].filter(Boolean)
+
+										return (
+											<QPProduct
+												name={item.name || 'Recarga'}
+												price={item.price}
+												details={details}
+												logo={item.logo}
+												image={item.image}
+												onPress={() => handlePackageSelect(item)}
+												style={styles.packageCard}
+											/>
+										)
+									}}
 									numColumns={2}
 									columnWrapperStyle={styles.row}
 									scrollEnabled={false}

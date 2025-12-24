@@ -9,6 +9,7 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
+import QPProduct from '../../ui/particles/QPProduct'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -48,9 +49,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 	}
 
 	// Check if purchase button should be enabled
-	const isPurchaseEnabled = () => {
-		return phoneNumber.trim().length > 0 && validatePhoneNumber(phoneNumber) && !isPurchasing
-	}
+	const isPurchaseEnabled = () => { return phoneNumber.trim().length > 0 && validatePhoneNumber(phoneNumber) && !isPurchasing }
 
 	// Handle purchase
 	const handlePurchase = async () => {
@@ -110,11 +109,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 				<Text style={[textStyles.h5, { color: theme.colors.danger, marginTop: 16, textAlign: 'center' }]}>
 					Paquete no encontrado
 				</Text>
-				<QPButton
-					title="Volver"
-					onPress={() => navigation.goBack()}
-					style={{ marginTop: 20 }}
-				/>
+				<QPButton title="Volver" onPress={() => navigation.goBack()} style={{ marginTop: 20 }} />
 			</View>
 		)
 	}
@@ -123,48 +118,20 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 				{/* Package Details Card */}
-				<View style={[styles.packageCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-					<View style={[styles.packageImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]} />
-
-					<View style={styles.packageInfo}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginBottom: 8 }]}>
-							{packageItem.name || 'Recarga telefónica'}
-						</Text>
-
-						<View style={styles.detailRow}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Precio:</Text>
-							<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>
-								${packageItem.price || '0.00'}
-							</Text>
-						</View>
-
-						{packageItem.operator && (
-							<View style={styles.detailRow}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Operador:</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
-									{packageItem.operator}
-								</Text>
-							</View>
-						)}
-
-						{packageItem.country && (
-							<View style={styles.detailRow}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>País:</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
-									{packageItem.country}
-								</Text>
-							</View>
-						)}
-
-						{packageItem.amount && (
-							<View style={styles.detailRow}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Monto:</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
-									{packageItem.amount} {packageItem.currency || 'QUSD'}
-								</Text>
-							</View>
-						)}
-					</View>
+				<View style={styles.packageContainer}>
+					<QPProduct
+						name={packageItem.name || 'Recarga telefónica'}
+						price={packageItem.price}
+						details={packageItem.details || [
+							packageItem.operator,
+							packageItem.country,
+							packageItem.amount ? `${packageItem.amount} ${packageItem.currency || 'QUSD'}` : null,
+						].filter(Boolean)}
+						logo={packageItem.logo}
+						image={packageItem.image}
+						onPress={() => { }} // Disabled in purchase screen
+						style={styles.packageCard}
+					/>
 				</View>
 
 				{/* Phone Number Input */}
@@ -222,25 +189,16 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		padding: 20,
 	},
-	packageCard: {
-		borderRadius: 16,
-		padding: 16,
-		marginBottom: 24,
-		borderWidth: 1,
-	},
-	packageImagePlaceholder: {
-		height: 120,
-		borderRadius: 12,
-		marginBottom: 16,
-	},
-	packageInfo: {
-		gap: 8,
-	},
-	detailRow: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
+	packageContainer: {
 		alignItems: 'center',
-		marginTop: 4,
+		marginBottom: 24,
+	},
+	packageCard: {
+		width: '100%',
+		marginRight: 0,
+		imagePlaceholder: {
+			height: 160,
+		}
 	},
 	inputSection: {
 		marginBottom: 24,
