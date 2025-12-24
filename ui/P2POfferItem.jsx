@@ -129,12 +129,21 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 									onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
 								/>
 							) : (
-								<QPButton
-									title="Editar"
-									style={{ backgroundColor: theme.colors.primary, width: 90, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
-									textStyle={{ color: theme.colors.almostWhite, fontSize: 13, fontWeight: '400' }}
-									onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
-								/>
+								offer.status === 'cancelled' ? (
+									<QPButton
+										title="Cancelado"
+										style={{ backgroundColor: theme.colors.danger, width: 90, height: 24, borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2 }}
+										textStyle={{ color: theme.colors.almostWhite, fontSize: 13, fontWeight: '400' }}
+										onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+									/>
+								) : (
+									<QPButton
+										title="Editar"
+										style={{ backgroundColor: theme.colors.primary, width: 90, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
+										textStyle={{ color: theme.colors.almostWhite, fontSize: 13, fontWeight: '400' }}
+										onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+									/>
+								)
 							)
 						)
 					)
@@ -165,12 +174,21 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 									onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
 								/>
 							) : (
-								<QPButton
-									title={offer.type === 'buy' ? 'Vender' : 'Comprar'}
-									style={{ backgroundColor: offer.type === 'buy' ? theme.colors.danger : theme.colors.success, width: 90, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
-									textStyle={{ color: offer.type === 'buy' ? theme.colors.almostWhite : theme.colors.almostBlack, fontSize: 13, fontWeight: '400' }}
-									onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
-								/>
+								offer.status === 'cancelled' ? (
+									<QPButton
+										title="Cancelado"
+										style={{ backgroundColor: theme.colors.danger, width: 90, height: 24, borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2 }}
+										textStyle={{ color: theme.colors.almostBlack, fontSize: 13, fontWeight: '400' }}
+										onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+									/>
+								) : (
+									<QPButton
+										title={offer.type === 'buy' ? 'Vender' : 'Comprar'}
+										style={{ backgroundColor: offer.type === 'buy' ? theme.colors.danger : theme.colors.success, width: 90, height: 24, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 }}
+										textStyle={{ color: offer.type === 'buy' ? theme.colors.almostWhite : theme.colors.almostBlack, fontSize: 13, fontWeight: '400' }}
+										onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+									/>
+								)
 							)
 						)
 					)

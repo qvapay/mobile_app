@@ -192,7 +192,7 @@ const AppNavigator = () => {
 					headerShadowVisible: false,
 					animation: 'slide_from_right',
 					headerRight: () => (
-						<Pressable style={containerStyles.headerRight} onPress={() => {}}>
+						<Pressable style={containerStyles.headerRight} onPress={() => { }}>
 							<QPAvatar user={user} size={32} />
 						</Pressable>
 					)
