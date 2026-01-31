@@ -334,5 +334,59 @@ export const userApi = {
 			}
 			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
 		}
+	},
+
+	/**
+	 * Generate a new 2FA secret and QR code
+	 * @returns {Promise<Object>} The 2FA secret and otpauth_url for QR code
+	 */
+	generate2FA: async () => {
+		try {
+			const response = await apiClient.post('/user/update/password', {})
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo generar el código 2FA', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Activate 2FA by verifying the code and saving the secret
+	 * @param {Object} data - The 2FA activation data
+	 * @param {string} data.code - The 6-digit TOTP code from authenticator app
+	 * @param {string} data.secret - The secret to save
+	 * @returns {Promise<Object>} The activation result
+	 */
+	activate2FA: async ({ code, secret }) => {
+		try {
+			const response = await apiClient.post('/user/update/password', { code, secret })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo activar el 2FA', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Deactivate 2FA for the current user
+	 * @returns {Promise<Object>} The deactivation result
+	 */
+	deactivate2FA: async () => {
+		try {
+			const response = await apiClient.post('/user/update/password', { delete: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo desactivar el 2FA', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
 	}
 }

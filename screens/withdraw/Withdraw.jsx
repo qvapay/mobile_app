@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Helper
 import { adjustNumber } from '../../helpers'
@@ -37,6 +37,7 @@ const Withdraw = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// States
 	const [amountQUSD, setAmountQUSD] = useState('')
@@ -504,7 +505,7 @@ const Withdraw = ({ navigation }) => {
 					</View>
 
 					{/* Bottom Button */}
-					<View style={containerStyles.bottomButtonContainer}>
+					<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
 
 						{pendingWithdraw ? (
 							<QPButton

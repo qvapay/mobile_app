@@ -230,6 +230,7 @@ export default function Keypad({ navigation }) {
 				)}
 			</Pressable>
 		)
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [handleKeyPress, isProcessing, theme.colors.primaryText])
 
 	// Format amount for display

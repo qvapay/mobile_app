@@ -58,11 +58,13 @@ const Scan = ({ navigation, route }) => {
 	// Request permission
 	useEffect(() => {
 		requestPermission()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// Start scanning animation
 	useEffect(() => {
 		if (isScanning) { startScanAnimation() }
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isScanning])
 
 	// Toggle camera based on mode

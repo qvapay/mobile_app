@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -27,6 +28,7 @@ const Store = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// States
 	const [search, setSearch] = useState('')
@@ -63,7 +65,7 @@ const Store = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
-			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
 
 				{/* Search bar */}
 				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />

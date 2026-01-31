@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -31,6 +32,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// Get package from route params
 	const { package: packageItem } = route.params || {}
@@ -167,7 +169,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 			</ScrollView>
 
 			{/* Purchase Button */}
-			<View style={containerStyles.bottomButtonContainer}>
+			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
 				<QPButton
 					title={isPurchasing ? 'Procesando...' : `Comprar por $${packageItem.price || '0.00'}`}
 					onPress={handlePurchase}

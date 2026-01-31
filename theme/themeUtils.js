@@ -86,7 +86,9 @@ export const createContainerStyles = (theme) => StyleSheet.create({
 		flexGrow: 1
 	},
 	bottomButtonContainer: {
-		marginBottom: 20
+		paddingTop: 16,
+		paddingBottom: 24,
+		gap: 12,
 	},
 	card: {
 		backgroundColor: theme.colors.surface,
@@ -133,9 +135,7 @@ export const createContainerStyles = (theme) => StyleSheet.create({
 	}
 })
 
-// Memoized versions of style creation functions
-export const createMemoizedTextStyles = (theme) => { return useMemo(() => createTextStyles(theme), [theme]) }
-export const createMemoizedContainerStyles = (theme) => { return useMemo(() => createContainerStyles(theme), [theme]) }
+// Memoized hook versions (must be called from React components)
 export const useTextStyles = (theme) => { return useMemo(() => createTextStyles(theme), [theme]) }
 export const useContainerStyles = (theme) => { return useMemo(() => createContainerStyles(theme), [theme]) }
 

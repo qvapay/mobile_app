@@ -310,6 +310,7 @@ const CaptureModal = ({ visible, onClose, onCaptured, type, theme }) => {
 	const device = useCameraDevice(type === 'document' ? 'back' : 'front')
 	const { hasPermission, requestPermission } = useCameraPermission()
 
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	useEffect(() => { if (visible) { requestPermission() } }, [visible])
 
 	const takePhoto = async () => {

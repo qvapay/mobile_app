@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, FlatList, ActivityIndicator, RefreshControl } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -26,6 +27,7 @@ const PhoneTopupIndex = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// States
 	const [search, setSearch] = useState('')
@@ -60,6 +62,7 @@ const PhoneTopupIndex = ({ navigation }) => {
 	// Initial load
 	useEffect(() => {
 		fetchPhonePackages()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// Filter packages when search changes (client-side filtering)
@@ -87,6 +90,7 @@ const PhoneTopupIndex = ({ navigation }) => {
 			if (filters.country || filters.operator) { fetchPhonePackages() }
 		}, 500)
 		return () => clearTimeout(timeoutId)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [filters.country, filters.operator])
 
 	// Handle package selection
@@ -99,6 +103,7 @@ const PhoneTopupIndex = ({ navigation }) => {
 		<View style={[containerStyles.subContainer]}>
 			<ScrollView
 				style={styles.scrollView}
+				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
 				showsVerticalScrollIndicator={false}
 				refreshControl={
 					<RefreshControl

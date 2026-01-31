@@ -13,7 +13,7 @@ import {
 	TouchableWithoutFeedback,
 	Keyboard,
 } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -56,6 +56,7 @@ const P2PCreate = ({ navigation }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// Form State
 	const [type, setType] = useState("buy") // 'buy' | 'sell'
@@ -438,7 +439,7 @@ const P2PCreate = ({ navigation }) => {
 						</ScrollView>
 
 						{/* Publish */}
-						<View style={containerStyles.bottomButtonContainer}>
+						<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
 							<QPButton
 								title={buttonText}
 								onPress={handlePublish}

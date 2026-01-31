@@ -102,6 +102,9 @@ const SettingsMenu = ({ navigation }) => {
                 <Pressable onPress={() => Linking.openURL('https://instagram.com/qvapay')}>
                     <FontAwesome6 name="instagram" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>
+                <Pressable onPress={() => Linking.openURL('https://youtube.com/@qvapay')}>
+                    <FontAwesome6 name="youtube" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
+                </Pressable>
             </View>
 
             <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20, marginBottom: insets.bottom }]}>

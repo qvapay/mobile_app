@@ -156,6 +156,7 @@ export const SettingsProvider = ({ children }) => {
     // Initialize settings on app start
     useEffect(() => {
         initializeSettings()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     // Initialize settings from storage

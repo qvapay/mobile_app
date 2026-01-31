@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
 	// Initialize auth state on app start
 	useEffect(() => {
 		initializeAuth()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// Effect to check token validity periodically

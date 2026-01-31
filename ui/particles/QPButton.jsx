@@ -43,13 +43,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 10,
+        borderRadius: 25,
         height: 56,
         width: '100%',
         marginVertical: 5,
         paddingVertical: 10,
-        alignItems: 'center',
-        borderRadius: 25
     },
     text: {
         fontSize: 16,

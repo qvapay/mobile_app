@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList, Pressable } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -35,6 +36,7 @@ const Send = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// Params from route
 	const { send_amount, user_uuid = null } = route.params || {}
@@ -210,7 +212,7 @@ const Send = ({ navigation, route }) => {
 			</View>
 
 			{/** Button to send */}
-			<View style={containerStyles.bottomButtonContainer}>
+			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
 				<QPButton
 					title={`Enviar $${amount || '0'} ${currency}`}
 					onPress={handleSendConfirm}
@@ -284,10 +286,9 @@ const Send = ({ navigation, route }) => {
 								iconColor={theme.colors.almostWhite}
 								style={{
 									width: 50,
-									height: 50,
+									height: '100%',
 									borderRadius: 0,
 									marginVertical: 0,
-									height: '100%',
 								}}
 							/>
 						</View>

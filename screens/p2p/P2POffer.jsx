@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, RefreshControl, Share } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -41,6 +42,7 @@ const P2POffer = ({ route }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// States
 	const [p2p, setP2p] = useState(null)
@@ -74,6 +76,7 @@ const P2POffer = ({ route }) => {
 		fetchP2P()
 		fetchChat()
 		return () => { /* cleanup */ }
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// Helpers
@@ -539,7 +542,7 @@ const P2POffer = ({ route }) => {
 				</ScrollView>
 
 				{/* Action Buttons - Fixed at bottom */}
-				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row' }]}>
+				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row', paddingBottom: insets.bottom + 16 }]}>
 
 					{canApply && (
 						<QPButton

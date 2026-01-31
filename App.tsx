@@ -1,6 +1,6 @@
 // React Components
-import { useEffect, useState } from 'react'
-import { Pressable, StyleSheet } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Pressable } from 'react-native'
 
 // Navigation Components
 import { NavigationContainer, useNavigation } from '@react-navigation/native'
@@ -90,8 +90,8 @@ const AppNavigator = () => {
 		return () => clearTimeout(timer)
 	}, [])
 
-	// Add this effect after the existing useEffect
-	useEffect(() => {
+	// Navigation handler for auth state changes
+	const handleAuthNavigation = useCallback(() => {
 		if (splashReady && !authLoading && !settingsLoading) {
 			// Only navigate if we're not already on the correct screen
 			const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
@@ -103,7 +103,12 @@ const AppNavigator = () => {
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
 			}
 		}
-	}, [isAuthenticated, firstTime, splashReady, authLoading, settingsLoading])
+	}, [navigation, splashReady, authLoading, settingsLoading, isAuthenticated, firstTime])
+
+	// Add this effect after the existing useEffect
+	useEffect(() => {
+		handleAuthNavigation()
+	}, [handleAuthNavigation])
 
 	// Show splash screen if still loading or if minimum time hasn't passed
 	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
@@ -242,7 +247,7 @@ const AppNavigator = () => {
 			<Stack.Screen
 				name={ROUTES.TRANSACTIONS}
 				component={Transactions}
-				options={({ route }) => ({
+				options={() => ({
 					headerTitle: 'Transacciones',
 					headerTitleAlign: 'center',
 					headerShown: true,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { StyleSheet, Text, View, ScrollView, Pressable, Modal, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import Clipboard from '@react-native-clipboard/clipboard'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Helpers
 import { getFirstChunk } from '../../helpers'
@@ -41,6 +41,7 @@ const Add = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// States
 	const [availableCoins, setAvailableCoins] = useState([])
@@ -171,7 +172,7 @@ const Add = ({ navigation }) => {
 					</View>
 
 					{/* Action Buttons */}
-					<View style={containerStyles.bottomButtonContainer}>
+					<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
 						<QPButton
 							title="Generar Depósito"
 							onPress={handleTopup}

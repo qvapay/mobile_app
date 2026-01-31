@@ -246,7 +246,7 @@ const getFirstChunk = (uuid) => {
 }
 
 const getTypeText = type => { return type === 'buy' ? 'COMPRA' : 'VENTA' }
-const getTypeColor = type => { return type === 'buy' ? theme.colors.success : theme.colors.error }
+const getTypeColor = (type, theme) => { return type === 'buy' ? theme.colors.success : theme.colors.error }
 
 // export helpers
 export {

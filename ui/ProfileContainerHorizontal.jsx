@@ -18,7 +18,9 @@ const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const qvapayLogo = theme.isDark ? require('../assets/images/ui/qvapay-logo-white.png') : require('../assets/images/ui/logo-qvapay.png')
-	const operations = useMemo(() => (user?._count?.P2P ?? 0) + (user?._count?.P2P_Peer ?? 0), [user && user._count && user._count.P2P, user && user._count && user._count.P2P_Peer])
+	const p2pCount = user?._count?.P2P ?? 0
+	const p2pPeerCount = user?._count?.P2P_Peer ?? 0
+	const operations = useMemo(() => p2pCount + p2pPeerCount, [p2pCount, p2pPeerCount])
 
 	return (
 		<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

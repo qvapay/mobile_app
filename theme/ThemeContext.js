@@ -140,6 +140,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
         if (settings?.appearance?.theme && settings.appearance.theme !== themeMode) {
             setThemeMode(settings.appearance.theme)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [settings?.appearance?.theme])
 
     useEffect(() => {
@@ -157,6 +158,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
         })
 
         return () => subscription?.remove()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [themeMode])
 
     const changeThemeMode = async (mode) => {
@@ -189,6 +191,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
             text: textStyles,
             container: containerStyles
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [theme, isDark, themeMode, textStyles, containerStyles])
 
     return (

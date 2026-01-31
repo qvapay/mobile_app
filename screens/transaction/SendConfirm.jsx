@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -33,6 +34,7 @@ const SendConfirm = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// Params from route
 	const { send_amount, user_uuid, description = '' } = route.params || {}
@@ -197,6 +199,7 @@ const SendConfirm = ({ navigation, route }) => {
 					borderRadius: 12,
 					padding: 16,
 					marginTop: 10,
+					marginBottom: 20,
 					borderLeftWidth: 4,
 					borderLeftColor: theme.colors.primary
 				}}>
@@ -208,26 +211,26 @@ const SendConfirm = ({ navigation, route }) => {
 					</View>
 				</View>
 
-				{/* Action Buttons */}
-				<View style={[containerStyles.bottomButtonContainer, { marginTop: 10 }]}>
-					<QPButton
-						title="Confirmar Envío"
-						onPress={executeTransaction}
-						loading={isLoading}
-						disabled={isLoading}
-						textStyle={{ color: theme.colors.buttonText }}
-					/>
-
-					<QPButton
-						title="Cancelar"
-						onPress={() => navigation.goBack()}
-						disabled={isLoading}
-						style={{ backgroundColor: theme.colors.danger }}
-						textStyle={{ color: theme.colors.primaryText }}
-					/>
-				</View>
-
 			</ScrollView>
+
+			{/* Action Buttons - Outside ScrollView */}
+			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
+				<QPButton
+					title="Confirmar Envío"
+					onPress={executeTransaction}
+					loading={isLoading}
+					disabled={isLoading}
+					textStyle={{ color: theme.colors.buttonText }}
+				/>
+
+				<QPButton
+					title="Cancelar"
+					onPress={() => navigation.goBack()}
+					disabled={isLoading}
+					style={{ backgroundColor: theme.colors.danger }}
+					textStyle={{ color: theme.colors.primaryText }}
+				/>
+			</View>
 
 		</View>
 	)

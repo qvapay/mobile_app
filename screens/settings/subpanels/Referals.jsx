@@ -69,6 +69,7 @@ const Referals = () => {
     // Load data on component mount
     useEffect(() => {
         loadReferralData()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     // Share referral link

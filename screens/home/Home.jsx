@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -37,6 +38,7 @@ const Home = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// State
 	const [isLoading, setIsLoading] = useState(false)
@@ -52,6 +54,7 @@ const Home = ({ navigation }) => {
 		fetchLatestTransactions()
 		fetchLatestSentTransfersUsers()
 		fetchLatestBlogPosts()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// Load user data from API
@@ -117,7 +120,7 @@ const Home = ({ navigation }) => {
 	return (
 		<View style={[containerStyles.subContainer]}>
 
-			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl key={`refresh-${theme.isDark ? 'dark' : 'light'}`} refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}>
+			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl key={`refresh-${theme.isDark ? 'dark' : 'light'}`} refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}>
 
 				<BalanceCard balance={user.balance} />
 

@@ -1,10 +1,10 @@
-import { StyleSheet, View, Text } from 'react-native'
+import { View, Text } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Lottie
 import LottieView from 'lottie-react-native'
 
 // Context and Theme
-import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
@@ -21,36 +21,29 @@ const SendSuccess = ({ navigation }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// Render
 	return (
-		<View style={[containerStyles.subContainer, styles.container]}>
+		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 
-			<View style={{ alignItems: 'center' }}>
-				<LottieView source={require('../../assets/lotties/completed.json')} autoPlay loop={false} style={styles.loadingAnimation} />
+			<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+				<LottieView source={require('../../assets/lotties/completed.json')} autoPlay loop={false} style={{ width: 500, height: 350 }} />
 				<Text style={textStyles.h2}>Pago completado</Text>
-				<Text style={[textStyles.h6, { textAlign: 'center', paddingHorizontal: 20 }]}>Hemos procesado este pago y estará en su destino en pocos segundos.</Text>
+				<Text style={[textStyles.h6, { textAlign: 'center', paddingHorizontal: 20, color: theme.colors.secondaryText }]}>
+					Hemos procesado este pago y estará en su destino en pocos segundos.
+				</Text>
 			</View>
 
-			<QPButton
-				title="Volver al inicio"
-				onPress={() => navigation.navigate(ROUTES.MAIN_STACK)}
-				textStyle={{ color: theme.colors.buttonText }}
-			/>
+			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
+				<QPButton
+					title="Volver al inicio"
+					onPress={() => navigation.navigate(ROUTES.MAIN_STACK)}
+					textStyle={{ color: theme.colors.buttonText }}
+				/>
+			</View>
 		</View>
 	)
 }
-
-const styles = StyleSheet.create({
-	container: {
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingBottom: 20,
-	},
-	loadingAnimation: {
-		width: 500,
-		height: 350,
-	}
-})
 
 export default SendSuccess

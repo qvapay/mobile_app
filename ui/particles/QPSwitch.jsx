@@ -61,6 +61,7 @@ const QPSwitch = ({
 			friction: 12,
 			tension: 120
 		}).start()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [internalValue])
 
 	const halfWidth = Math.max(0, containerWidth / 2)

@@ -132,6 +132,7 @@ const P2P = ({ navigation, route }) => {
 	useEffect(() => {
 		if (p2pEnabled) { fetchP2POffers() }
 		else { setIsLoadingData(false) }
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// Configure header buttons locally to avoid non-serializable params
@@ -148,6 +149,7 @@ const P2P = ({ navigation, route }) => {
 				</>
 			)
 		})
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [navigation, theme, hasActiveFilters])
 
 	// Load coins for coin picker (on demand)
