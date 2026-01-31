@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -27,6 +27,29 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Routes
 import { ROUTES } from '../../routes'
+
+// Service Card Component
+const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
+	<Pressable
+		onPress={onPress}
+		style={({ pressed }) => [
+			styles.serviceCard,
+			{
+				backgroundColor: theme.colors.surface,
+				transform: [{ scale: pressed ? 0.97 : 1 }]
+			},
+			theme.mode === 'light' && {
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+			}
+		]}
+	>
+		<View style={[styles.serviceCardIcon, { backgroundColor: iconColor + '20' }]}>
+			<FontAwesome6 name={icon} size={22} color={iconColor} iconStyle="solid" />
+		</View>
+		<Text style={[styles.serviceCardTitle, { color: theme.colors.primaryText }]}>{title}</Text>
+	</Pressable>
+)
 
 // Home Screen
 const Home = ({ navigation }) => {
@@ -126,7 +149,7 @@ const Home = ({ navigation }) => {
 
 				<ActionButtons navigation={navigation} />
 
-				<View style={{ marginVertical: 10, gap: 5 }}>
+				<View style={styles.section}>
 					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PAYMENT_METHODS)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -144,7 +167,7 @@ const Home = ({ navigation }) => {
 					</ScrollView>
 				</View>
 
-				<View style={{ marginVertical: 10, gap: 5 }}>
+				<View style={styles.section}>
 					<QPSectionHeader title="Últimas transacciones" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} />
 					<View>
 						{latestTransactions.map((transaction, index) => (
@@ -153,7 +176,42 @@ const Home = ({ navigation }) => {
 					</View>
 				</View>
 
-				<View style={{ marginVertical: 10 }}>
+				{/* Service Cards */}
+				<View style={styles.section}>
+					<QPSectionHeader title="Servicios" />
+					<View style={styles.serviceCardsContainer}>
+						<ServiceCard
+							icon="mobile-screen"
+							title="Recargas"
+							iconColor="#10B981"
+							onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)}
+							theme={theme}
+						/>
+						<ServiceCard
+							icon="gift"
+							title="Gift Cards"
+							iconColor="#8B5CF6"
+							onPress={() => navigation.navigate(ROUTES.STORE)}
+							theme={theme}
+						/>
+						<ServiceCard
+							icon="chart-line"
+							title="Invest"
+							iconColor="#F59E0B"
+							onPress={() => navigation.navigate(ROUTES.INVEST)}
+							theme={theme}
+						/>
+						<ServiceCard
+							icon="building-columns"
+							title="P2P"
+							iconColor={theme.colors.primary}
+							onPress={() => navigation.navigate(ROUTES.P2P)}
+							theme={theme}
+						/>
+					</View>
+				</View>
+
+				<View style={styles.section}>
 					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.BLOG)} />
 					<View>
 						{latestBlogPosts.map((post, index) => (
@@ -170,7 +228,35 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
 	scrollView: {
 		flex: 1,
-	}
+	},
+	section: {
+		marginVertical: 10,
+		gap: 8,
+	},
+	// Service Cards
+	serviceCardsContainer: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 10,
+	},
+	serviceCard: {
+		width: '48%',
+		borderRadius: 12,
+		padding: 14,
+		alignItems: 'center',
+		gap: 10,
+	},
+	serviceCardIcon: {
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	serviceCardTitle: {
+		fontFamily: 'Rubik-Medium',
+		fontSize: 14,
+	},
 })
 
 export default Home
