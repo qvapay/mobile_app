@@ -191,21 +191,21 @@ const Home = ({ navigation }) => {
 							icon="gift"
 							title="Gift Cards"
 							iconColor="#8B5CF6"
-							onPress={() => navigation.navigate(ROUTES.STORE)}
+							onPress={() => navigation.navigate(ROUTES.STORE_SCREEN)}
 							theme={theme}
 						/>
 						<ServiceCard
 							icon="chart-line"
 							title="Invest"
 							iconColor="#F59E0B"
-							onPress={() => navigation.navigate(ROUTES.INVEST)}
+							onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)}
 							theme={theme}
 						/>
 						<ServiceCard
 							icon="building-columns"
 							title="P2P"
 							iconColor={theme.colors.primary}
-							onPress={() => navigation.navigate(ROUTES.P2P)}
+							onPress={() => navigation.navigate(ROUTES.P2P_SCREEN)}
 							theme={theme}
 						/>
 					</View>

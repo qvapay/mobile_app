@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+
+// Async Storage
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -25,6 +28,9 @@ import Toast from 'react-native-toast-message'
 import QPButton from '../../ui/particles/QPButton'
 import ProfileContainer from '../../ui/ProfileContainer'
 
+// Cache key prefix for transactions
+const TRANSACTION_CACHE_KEY = 'transaction_cache_'
+
 const Transaction = ({ route, navigation }) => {
 
 	const { transaction } = route.params
@@ -37,20 +43,43 @@ const Transaction = ({ route, navigation }) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 
-	// Fetch detailed transaction data
+	// Load cached data first, then fetch fresh data from server
 	useEffect(() => {
-		const fetchTransactionDetails = async () => {
+		const loadTransactionDetails = async () => {
+			const cacheKey = `${TRANSACTION_CACHE_KEY}${transaction.uuid}`
+
+			// Step 1: Try to load from cache first (instant display)
+			try {
+				const cachedData = await AsyncStorage.getItem(cacheKey)
+				if (cachedData) {
+					const parsed = JSON.parse(cachedData)
+					setTransactionDetails(parsed)
+				}
+			} catch (error) {
+				console.error('Error loading cached transaction:', error)
+			}
+
+			// Step 2: Fetch fresh data from server (in background)
 			setLoading(true)
 			try {
 				const response = await transferApi.getTransactionDetails(transaction.uuid)
 				if (response.success) {
-					setTransactionDetails(response.data.data)
+					const freshData = response.data.data
+					setTransactionDetails(freshData)
+
+					// Step 3: Save fresh data to cache for next time
+					try {
+						await AsyncStorage.setItem(cacheKey, JSON.stringify(freshData))
+					} catch (cacheError) {
+						console.error('Error caching transaction:', cacheError)
+					}
 				}
 			} catch (error) {
 				console.error('Error fetching transaction details:', error)
 			} finally { setLoading(false) }
 		}
-		fetchTransactionDetails()
+
+		loadTransactionDetails()
 	}, [transaction.uuid])
 
 	// Determine transaction type and colors
@@ -78,8 +107,6 @@ const Transaction = ({ route, navigation }) => {
 			} else { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' }) }
 		} catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' }) }
 	}
-
-	console.log(transactionDetails)
 
 	return (
 		<View style={containerStyles.subContainer}>

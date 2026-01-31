@@ -1,7 +1,8 @@
 import { Pressable } from 'react-native'
 
-// Navigation   
+// Navigation
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { useNavigation } from '@react-navigation/native'
 const Stack = createNativeStackNavigator()
 
 // FontAwesome6
@@ -31,11 +32,26 @@ import Notifications from './subpanels/Notifications'
 import PaymentMethods from './subpanels/PaymentMethods'
 import Contacts from './subpanels/Contacts'
 
+// Custom Back Button Component
+const BackButton = ({ color }) => {
+	const navigation = useNavigation()
+	return (
+		<Pressable onPress={() => navigation.goBack()} style={{ padding: 8, marginLeft: -8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} >
+			<FontAwesome6 name="arrow-left" size={22} color={color} iconStyle="solid" />
+		</Pressable>
+	)
+}
+
 // Settings Stack
 const SettingsStack = ({ navigation }) => {
 
 	// Contexts
 	const { theme } = useTheme()
+
+	// Common header options with custom back button
+	const headerWithBack = {
+		headerLeft: () => <BackButton color={theme.colors.primaryText} />
+	}
 
 	return (
 		<Stack.Navigator
@@ -56,11 +72,7 @@ const SettingsStack = ({ navigation }) => {
 				name={ROUTES.SETTINGS_MENU}
 				component={SettingsMenu}
 				options={{
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
+					...headerWithBack,
 					headerRight: () => (
 						<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })}>
 							<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
@@ -72,113 +84,79 @@ const SettingsStack = ({ navigation }) => {
 			<Stack.Screen
 				name={ROUTES.GOLD_CHECK}
 				component={GoldCheck}
-				options={{
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.REFERALS}
 				component={Referals}
-				options={{
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.THEME}
 				component={Theme}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.USERDATA}
 				component={Userdata}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.PHONE}
 				component={Phone}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.TELEGRAM}
 				component={Telegram}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.PASSWORD}
 				component={Password}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.TWO_FACTOR}
 				component={TwoFactor}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.KYC}
 				component={KYC}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.DELETE_ACCOUNT}
 				component={DeleteAccount}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.NOTIFICATIONS}
 				component={Notifications}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.PAYMENT_METHODS}
 				component={PaymentMethods}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 			<Stack.Screen
 				name={ROUTES.CONTACTS}
 				component={Contacts}
-				options={{
-					headerBackVisible: true,
-				}}
+				options={headerWithBack}
 			/>
 
 		</Stack.Navigator>

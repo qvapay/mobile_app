@@ -1,5 +1,5 @@
 // React Components
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
 
 // Navigation Components
@@ -63,12 +63,36 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // UI Components
 import QPAvatar from './ui/particles/QPAvatar'
 
+// Custom Back Button Component for consistent navigation
+const BackButton = ({ onPress, color }: { onPress: () => void; color: string }) => (
+	<Pressable onPress={onPress} style={{ padding: 8, marginLeft: -8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} >
+		<FontAwesome6 name="arrow-left" size={22} color={color} iconStyle="solid" />
+	</Pressable>
+)
+
 // Main App Navigator Component
 const AppNavigator = () => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
+
+	// Consistent header options with custom back button
+	const getHeaderOptions = (title: string, options?: {
+		animation?: 'slide_from_right' | 'slide_from_bottom' | 'slide_from_left' | 'none';
+		headerRight?: () => React.ReactNode;
+	}) => ({
+		headerTitle: title,
+		headerTitleAlign: 'center' as const,
+		headerShown: true,
+		headerBackVisible: false,
+		headerShadowVisible: false,
+		animation: options?.animation || 'slide_from_right' as const,
+		headerLeft: () => (
+			<BackButton onPress={() => navigation.goBack()} color={theme.colors.primaryText} />
+		),
+		...(options?.headerRight && { headerRight: options.headerRight }),
+	})
 
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
@@ -144,64 +168,32 @@ const AppNavigator = () => {
 			<Stack.Screen
 				name={ROUTES.ADD}
 				component={Add}
-				options={{
-					headerTitle: 'Depositar',
-					headerTitleAlign: 'center',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
-				}}
+				options={getHeaderOptions('Depositar')}
 			/>
 			<Stack.Screen
 				name={ROUTES.WITHDRAW}
 				component={Withdraw}
-				options={{
-					headerTitle: 'Extraer',
-					headerTitleAlign: 'center',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
-				}}
+				options={getHeaderOptions('Extraer')}
 			/>
 
 			{/* P2P Create Screen */}
 			<Stack.Screen
 				name={ROUTES.P2P_CREATE_SCREEN}
 				component={P2PCreate}
-				options={{
-					headerTitle: '',
-					headerShown: true,
-					headerBackVisible: false,
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-					animation: 'slide_from_bottom',
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
-				}}
+				options={getHeaderOptions('', { animation: 'slide_from_bottom' })}
 			/>
 
 			{/* P2P Offer Screen */}
 			<Stack.Screen
 				name={ROUTES.P2P_OFFER_SCREEN}
 				component={P2POffer}
-				options={{
-					headerTitle: '',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-					animation: 'slide_from_right',
+				options={getHeaderOptions('', {
 					headerRight: () => (
 						<Pressable style={containerStyles.headerRight} onPress={() => { }}>
 							<QPAvatar user={user} size={32} />
 						</Pressable>
 					)
-				}}
+				})}
 			/>
 
 			{/* Settings Stack */}
@@ -217,28 +209,12 @@ const AppNavigator = () => {
 			<Stack.Screen
 				name={ROUTES.SEND}
 				component={Send}
-				options={{
-					headerTitle: 'Enviar QUSD',
-					headerTitleAlign: 'center',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-				}}
+				options={getHeaderOptions('Enviar QUSD')}
 			/>
 			<Stack.Screen
 				name={ROUTES.SEND_CONFIRM}
 				component={SendConfirm}
-				options={{
-					headerTitle: 'Confirmar pago',
-					headerTitleAlign: 'center',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-				}}
+				options={getHeaderOptions('Confirmar pago')}
 			/>
 			<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
 			<Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
@@ -247,14 +223,7 @@ const AppNavigator = () => {
 			<Stack.Screen
 				name={ROUTES.TRANSACTIONS}
 				component={Transactions}
-				options={() => ({
-					headerTitle: 'Transacciones',
-					headerTitleAlign: 'center',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
+				options={getHeaderOptions('Transacciones', {
 					headerRight: () => (
 						<Pressable style={containerStyles.headerRight} onPress={(() => { })}>
 							<FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
@@ -265,19 +234,7 @@ const AppNavigator = () => {
 			<Stack.Screen
 				name={ROUTES.TRANSACTION}
 				component={Transaction}
-				options={{
-					headerTitle: '',
-					animation: 'slide_from_right',
-					headerShown: true,
-					headerBackVisible: false,
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
-				}}
+				options={getHeaderOptions('')}
 			/>
 
 			{/* QR Scan Screen */}
@@ -297,95 +254,36 @@ const AppNavigator = () => {
 			<Stack.Screen
 				name={ROUTES.LOGIN_SCREEN}
 				component={LoginScreen}
-				options={{
-					title: '',
-					headerTitle: '',
-					animation: 'slide_from_right',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: '',
-					headerBackButtonDisplayMode: 'minimal',
-					headerBackButtonMenuEnabled: false,
-					headerShadowVisible: false
-				}}
+				options={getHeaderOptions('')}
 			/>
 			<Stack.Screen
 				name={ROUTES.REGISTER_SCREEN}
 				component={RegisterScreen}
-				options={{
-					headerTitle: '',
-					animation: 'slide_from_right',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: '',
-					headerBackButtonDisplayMode: 'minimal',
-					headerBackButtonMenuEnabled: false,
-					headerShadowVisible: false
-				}}
+				options={getHeaderOptions('')}
 			/>
 
 			{/* Recover Password Screen */}
 			<Stack.Screen
 				name={ROUTES.RECOVER_PASSWORD_SCREEN}
 				component={RecoverPasswordScreen}
-				options={{
-					headerTitle: '',
-					animation: 'slide_from_right',
-					headerShown: true,
-					headerBackVisible: false,
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
-				}}
+				options={getHeaderOptions('')}
 			/>
 			<Stack.Screen
 				name={ROUTES.RECOVER_2FA_SCREEN}
 				component={Recover2FAScreen}
-				options={{
-					headerTitle: '',
-					animation: 'slide_from_right',
-					headerShown: true,
-					headerBackVisible: false,
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()}>
-							<FontAwesome6 name="arrow-left" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					)
-				}}
+				options={getHeaderOptions('')}
 			/>
 
 			{/* Phone Topup Screens */}
 			<Stack.Screen
 				name={ROUTES.PHONE_TOPUP_INDEX}
 				component={PhoneTopupIndex}
-				options={{
-					headerTitle: 'Recargas telefónicas',
-					headerTitleAlign: 'center',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-				}}
+				options={getHeaderOptions('Recargas telefónicas')}
 			/>
 			<Stack.Screen
 				name={ROUTES.PHONE_TOPUP_PURCHASE}
 				component={PhoneTopupPurchase}
-				options={{
-					headerTitle: 'Comprar recarga',
-					headerTitleAlign: 'center',
-					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitle: 'Regresar',
-					headerBackButtonMenuEnabled: true,
-					headerShadowVisible: false,
-				}}
+				options={getHeaderOptions('Comprar recarga')}
 			/>
 
 			{/* Accesible Screens */}
