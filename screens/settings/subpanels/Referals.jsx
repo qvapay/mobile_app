@@ -50,9 +50,13 @@ const Referals = () => {
             setLoading(true)
             // Fetch referrals and earnings
             const referralsResponse = await userApi.getReferrals()
-            if (referralsResponse.success) {
-                setReferrals(referralsResponse.data.referrals || [])
-                setTotalEarnings(referralsResponse.data.total_earnings || 0)
+            if (referralsResponse.success && referralsResponse.data) {
+                // Handle both possible response structures
+                const data = referralsResponse.data
+                const referralsList = data.referrals || data.data?.referrals || []
+                const earnings = data.total_earnings || data.data?.total_earnings || data.earnings || 0
+                setReferrals(referralsList)
+                setTotalEarnings(earnings)
             }
             setReferralLink(`https://qvapay.com/register/${user.username}`)
         } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudieron cargar los datos de referidos' }) }
@@ -134,10 +138,10 @@ const Referals = () => {
                     </View>
                     <View style={[containerStyles.center, { flex: 1 }]}>
                         <Text style={[textStyles.h2, { color: theme.colors.success }]}>
-                            {referrals.filter(ref => ref.status === 'active').length}
+                            {referrals.filter(ref => ref.status === 'active' || ref.verified || ref.kyc).length}
                         </Text>
                         <Text style={[textStyles.caption, { textAlign: 'center' }]}>
-                            Activos
+                            Verificados
                         </Text>
                     </View>
                 </View>
@@ -191,16 +195,21 @@ const Referals = () => {
                         </Text>
                     </View>
                 ) : (
-                    referrals.map((referral, index) => (
-                        <View key={referral.id || index} style={styles.referralItem}>
-                            <ProfileContainerHorizontal user={referral} />
-                            <View style={[containerStyles.center, { marginLeft: 10 }]}>
-                                <Text style={[textStyles.h5, { color: theme.colors.success, marginBottom: 2 }]}>
-                                    +{referral.earnings || 0}
-                                </Text>
+                    referrals.map((referral, index) => {
+                        // Handle both structures: direct user or nested user object
+                        const referredUser = referral.User || referral.referredUser || referral
+                        const earnings = referral.earnings || referral.amount || 0
+                        return (
+                            <View key={referral.id || referral.uuid || index} style={styles.referralItem}>
+                                <ProfileContainerHorizontal user={referredUser} />
+                                <View style={[containerStyles.center, { marginLeft: 10 }]}>
+                                    <Text style={[textStyles.h5, { color: theme.colors.success, marginBottom: 2 }]}>
+                                        +${parseFloat(earnings).toFixed(2)}
+                                    </Text>
+                                </View>
                             </View>
-                        </View>
-                    ))
+                        )
+                    })
                 )}
             </View>
 

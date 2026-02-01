@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, RefreshControl, Share } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -31,6 +32,9 @@ import { getShortDateTime, reduceStringInside } from "../../helpers"
 
 // Lottie
 import LottieView from "lottie-react-native"
+
+// Cache key prefix for P2P offers
+const P2P_CACHE_KEY = "p2p_cache_"
 
 // P2P Offer Component
 const P2POffer = ({ route }) => {
@@ -71,9 +75,9 @@ const P2POffer = ({ route }) => {
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
 
-	// Fetch P2P data
+	// Fetch P2P data - load from cache first, then fetch fresh
 	useEffect(() => {
-		fetchP2P()
+		loadP2PData()
 		fetchChat()
 		return () => { /* cleanup */ }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,23 +93,48 @@ const P2POffer = ({ route }) => {
 		})
 	}
 
-	// Fetch P2P
+	// Load P2P data with cache-first strategy
+	const loadP2PData = async () => {
+		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
+
+		// Step 1: Try to load from cache first (instant display)
+		try {
+			const cachedData = await AsyncStorage.getItem(cacheKey)
+			if (cachedData) {
+				const parsed = JSON.parse(cachedData)
+				setP2p(parsed)
+				setRating(parsed?.rating || 0)
+			}
+		} catch (error) {
+			console.error("Error loading cached P2P:", error)
+		}
+
+		// Step 2: Fetch fresh data from server
+		await fetchP2P()
+	}
+
+	// Fetch P2P from server and cache
 	const fetchP2P = async () => {
+		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
 		try {
 			setIsLoading(true)
 			const response = await p2pApi.show(p2p_uuid)
 			if (response.success) {
 				const payload = response.data?.p2p || response.data
 				setP2p(payload)
-				// Initialize rating with existing rating from P2P data
 				setRating(payload?.rating || 0)
+
+				// Step 3: Save fresh data to cache
+				try {
+					await AsyncStorage.setItem(cacheKey, JSON.stringify(payload))
+				} catch (cacheError) {
+					console.error("Error caching P2P:", cacheError)
+				}
 			} else {
 				setError(response.error)
-				// Toast.show({ type: "error", text1: "Error", text2: String(response.error || "No se pudo cargar la oferta") })
 			}
 		} catch (error) {
 			setError(error.message)
-			// Toast.show({ type: "error", text1: "Error", text2: error.message })
 		} finally { setIsLoading(false) }
 	}
 
@@ -153,11 +182,21 @@ const P2POffer = ({ route }) => {
 	// canApply becomes ready if offer is open and counterparty is not set
 	const canApply = status === "open" && counterparty
 
-	// Actions
+	// Actions - refetch and update cache
 	const refetchP2P = async () => {
+		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
 		try {
 			const response = await p2pApi.show(p2p_uuid)
-			if (response.success) { setP2p(response.data?.p2p || response.data) }
+			if (response.success) {
+				const payload = response.data?.p2p || response.data
+				setP2p(payload)
+				// Update cache with fresh data
+				try {
+					await AsyncStorage.setItem(cacheKey, JSON.stringify(payload))
+				} catch (cacheError) {
+					console.error("Error updating P2P cache:", cacheError)
+				}
+			}
 		} catch (e) { /* ignore */ }
 	}
 
@@ -330,8 +369,8 @@ const P2POffer = ({ route }) => {
 		})
 	}
 
-	// Loading state check
-	if (isLoading) { return (<QPLoader />) }
+	// Loading state check - only show loader if no cached data
+	if (isLoading && !p2p) { return (<QPLoader />) }
 	if (error) {
 		return (
 			<View style={containerStyles.subContainer}>

@@ -50,6 +50,7 @@ const Userdata = () => {
 	const [userStatus, setUserStatus] = useState({
 		kyc: false,
 		phone_verified: false,
+		telegram_id: '',
 		createdAt: ''
 	})
 
@@ -88,6 +89,7 @@ const Userdata = () => {
 				setUserStatus({
 					kyc: userData.kyc || false,
 					phone_verified: userData.phone_verified || false,
+					telegram_id: userData.telegram_id || '',
 					createdAt: userData.createdAt || ''
 				})
 
@@ -233,7 +235,7 @@ const Userdata = () => {
 							prefixIconName="envelope"
 						/>
 
-						{/* Phone */}
+						{/* Phone - Read only, verified separately */}
 						<QPInput
 							placeholder="Teléfono"
 							value={phone}
@@ -241,6 +243,8 @@ const Userdata = () => {
 							keyboardType="phone-pad"
 							prefixIconName="phone-volume"
 							suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
+							editable={false}
+							style={styles.readOnlyInput}
 						/>
 
 						{/* Telegram */}
@@ -251,7 +255,7 @@ const Userdata = () => {
 							autoCapitalize="none"
 							prefixIconName="telegram"
 							iconStyle="brand"
-							suffixIconName={userStatus.telegram_id != "" ? 'circle-check' : ''}
+							suffixIconName={userStatus.telegram_id ? 'circle-check' : ''}
 						/>
 
 						{/* Twitter */}

@@ -168,7 +168,10 @@ const Phone = () => {
             if (result.success) {
                 setShowPinInput(true)
                 Toast.show({ type: 'success', text1: 'Éxito', text2: 'PIN de verificación enviado' })
-            } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'Error al enviar el código' }) }
+            } else {
+                const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al enviar el código'
+                Toast.show({ type: 'error', text1: 'Error', text2: String(errorMsg) })
+            }
 
         } catch (error) {
 
@@ -207,7 +210,10 @@ const Phone = () => {
                 setPin('')
                 setPhone('')
                 Toast.show({ type: 'success', text1: 'Éxito', text2: 'Teléfono verificado correctamente' })
-            } else { Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'Error al verificar el teléfono' }) }
+            } else {
+                const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al verificar el teléfono'
+                Toast.show({ type: 'error', text1: 'Error', text2: String(errorMsg) })
+            }
 
         } catch (error) {
 

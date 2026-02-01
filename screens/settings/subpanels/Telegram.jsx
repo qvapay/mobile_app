@@ -48,14 +48,18 @@ const Telegram = () => {
         try {
             setIsLoading(true)
             const result = await userApi.getTelegramVerificationLink()
-            if (result.success) {
-                Linking.openURL(result.data.verificationLink)
+            if (result.success && result.data) {
+                // Handle different possible response structures
+                const link = result.data.verificationLink || result.data.link || result.data.url || result.data.data?.verificationLink
+                if (link) {
+                    await Linking.openURL(link)
+                } else {
+                    Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo obtener el enlace de verificación' })
+                }
             } else { Toast.show({ type: 'error', text1: 'Error al verificar la cuenta de Telegram', text2: result.error || 'Error desconocido' }) }
-            setIsLoading(false)
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Error al verificar la cuenta de Telegram', text2: error.message })
         } finally { setIsLoading(false) }
-
     }
 
     // Remove Telegram
@@ -133,13 +137,18 @@ const Telegram = () => {
                 </Text>
 
                 <View style={styles.formContainer}>
-                    {
-                        telegram_id ? (
+                    {telegram_id ? (
+                        <>
                             <LottieView source={require('../../../assets/lotties/telegram.json')} autoPlay loop={false} style={styles.loadingAnimation} />
-                        ) : (
-                            <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>No tienes Telegram verificado</Text>
-                        )
-                    }
+                            {telegram && (
+                                <Text style={[textStyles.h4, { color: theme.colors.successText, marginTop: 10 }]}>
+                                    @{telegram.replace('@', '')}
+                                </Text>
+                            )}
+                        </>
+                    ) : (
+                        <Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 4 }]}>No tienes Telegram verificado</Text>
+                    )}
                 </View>
 
                 <View style={containerStyles.bottomButtonContainer}>
