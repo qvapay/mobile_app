@@ -36,6 +36,7 @@
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.20.0",
     "react-native-sound": "^0.13.0",
+    "react-native-sse": "^1.2.1",
     "react-native-svg": "^15.15.1",
     "react-native-toast-message": "^2.3.3",
     "react-native-vector-image": "^0.6.0",

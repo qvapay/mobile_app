@@ -73,7 +73,7 @@ const FloatingCoin = ({ Icon, size, x, y, duration, delay }) => {
 				true
 			)
 		)
-	}, [])
+	}, [delay, duration, progress, rotation])
 
 	const animatedStyle = useAnimatedStyle(() => ({
 		transform: [
@@ -119,7 +119,7 @@ const GradientOrb = ({ colors, size, x, y, duration, delay }) => {
 				true
 			)
 		)
-	}, [])
+	}, [delay, duration, opacity, scale])
 
 	const animatedStyle = useAnimatedStyle(() => ({
 		transform: [{ scale: scale.value }],
@@ -165,7 +165,7 @@ const WelcomeScreen = ({ navigation }) => {
 
 		buttonsOpacity.value = withDelay(900, withTiming(1, { duration: 600 }))
 		buttonsTranslateY.value = withDelay(900, withTiming(0, { duration: 600, easing: Easing.out(Easing.ease) }))
-	}, [])
+	}, [buttonsOpacity, buttonsTranslateY, coinsOpacity, coinsScale, titleOpacity, titleTranslateY])
 
 	const titleAnimatedStyle = useAnimatedStyle(() => ({
 		opacity: titleOpacity.value,

@@ -45,7 +45,6 @@ const Theme = () => {
 	const handleThemeSelect = async (themeId) => {
 		try {
 			await setThemeMode(themeId)
-			await updateSettings('appearance', { theme: themeId })
 		} catch (error) { console.error('🎨 Theme Screen - Error updating theme:', error) }
 	}
 

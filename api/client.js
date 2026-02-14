@@ -1,15 +1,14 @@
 import axios from 'axios'
 import DeviceInfo from 'react-native-device-info'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import config from '../config'
 
 const version = DeviceInfo.getVersion()
 const buildNumber = DeviceInfo.getBuildNumber()
 const deviceName = DeviceInfo.getDeviceName()
 
-// API Configuration
-// const API_BASE_URL = 'https://api.qvapay.com'
-const API_BASE_URL = 'http://192.168.0.114:3000/api'
-const API_TIMEOUT = 20000 // 10 seconds
+const API_BASE_URL = config.API_BASE_URL
+const API_TIMEOUT = config.API_TIMEOUT
 
 // Create axios instance
 const apiClient = axios.create({

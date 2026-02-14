@@ -1,9 +1,9 @@
 import { ROUTES } from '../../routes'
 
-// Settings Items as an object of multiple dimensions:
+// Settings Items - grouped to match web dashboard structure
 const settings = {
-    general: {
-        title: 'GENERAL',
+    appearance: {
+        title: 'APARIENCIA',
         options: [
             {
                 title: 'Tema',
@@ -13,8 +13,8 @@ const settings = {
             },
         ],
     },
-    account: {
-        title: 'CUENTA',
+    profile: {
+        title: 'PERFIL',
         options: [
             {
                 title: 'Datos personales',
@@ -26,13 +26,30 @@ const settings = {
                 title: 'Verificar Celular',
                 screen: ROUTES.PHONE,
                 enabled: true,
-                notifications: 0
+                notifications: 0,
             },
             {
                 title: 'Verificar Telegram',
                 screen: ROUTES.TELEGRAM,
                 enabled: true,
-                notifications: 0
+                notifications: 0,
+            },
+        ],
+    },
+    gold: {
+        title: 'GOLD',
+        options: [
+            {
+                title: 'Suscripción GOLD',
+                screen: ROUTES.GOLD_CHECK,
+                enabled: true,
+                notifications: 0,
+            },
+            {
+                title: 'Invitar amigos',
+                screen: ROUTES.REFERALS,
+                enabled: true,
+                notifications: 0,
             },
         ],
     },
@@ -45,12 +62,6 @@ const settings = {
                 enabled: true,
                 notifications: 0,
             },
-            // {
-            //     title: 'Autenticación de dos factores',
-            //     screen: ROUTES.TWO_FACTOR,
-            //     enabled: true,
-            //     notifications: 0,
-            // },
             {
                 title: 'PIN de seguridad',
                 screen: ROUTES.TRANSFER_PIN,
@@ -61,13 +72,13 @@ const settings = {
                 title: 'Verificación de identidad',
                 screen: ROUTES.KYC,
                 enabled: true,
-                notifications: 0
+                notifications: 0,
             },
             {
                 title: 'Eliminar cuenta',
                 screen: ROUTES.DELETE_ACCOUNT,
                 enabled: true,
-                notifications: 0
+                notifications: 0,
             },
         ],
     },
@@ -82,8 +93,8 @@ const settings = {
             },
         ],
     },
-    payment_methods: {
-        title: 'AJUSTES DE PAGO',
+    payments: {
+        title: 'PAGOS',
         options: [
             {
                 title: 'Métodos de pago',
@@ -98,7 +109,7 @@ const settings = {
                 notifications: 0,
             },
         ],
-    }
+    },
 }
 
 export default settings

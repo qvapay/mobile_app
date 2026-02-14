@@ -1,6 +1,6 @@
 // React Components
-import React, { useCallback, useEffect, useState } from 'react'
 import { Pressable } from 'react-native'
+import React, { useEffect, useState } from 'react'
 
 // Navigation Components
 import { NavigationContainer, useNavigation } from '@react-navigation/native'
@@ -115,24 +115,18 @@ const AppNavigator = () => {
 	}, [])
 
 	// Navigation handler for auth state changes
-	const handleAuthNavigation = useCallback(() => {
+	// Only re-run when auth state actually changes, not on settings/theme changes
+	useEffect(() => {
 		if (splashReady && !authLoading && !settingsLoading) {
-			// Only navigate if we're not already on the correct screen
 			const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
 			if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
-				// User is authenticated and not first time - navigate to main stack
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK as never }] })
 			} else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
-				// User is not authenticated and not first time - navigate to welcome
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
 			}
 		}
-	}, [navigation, splashReady, authLoading, settingsLoading, isAuthenticated, firstTime])
-
-	// Add this effect after the existing useEffect
-	useEffect(() => {
-		handleAuthNavigation()
-	}, [handleAuthNavigation])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [splashReady, authLoading, settingsLoading, isAuthenticated, firstTime])
 
 	// Show splash screen if still loading or if minimum time hasn't passed
 	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }

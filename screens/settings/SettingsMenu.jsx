@@ -1,4 +1,4 @@
-import { View, Text, Alert, ScrollView, Image, Pressable, Linking } from 'react-native'
+import { View, Text, Alert, ScrollView, Pressable, Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -62,25 +62,6 @@ const SettingsMenu = ({ navigation }) => {
         <ScrollView style={containerStyles.subContainer}>
 
             <ProfileContainer user={user} />
-            
-            {/* Gold Check Card */}
-            <Pressable style={containerStyles.box} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
-                <Image source={require('../../assets/images/ui/gold-badge.png')} style={{ width: 80, height: 80 }} />
-                <View>
-                    <Text style={textStyles.h3}>GOLD CHECK</Text>
-                    {user.golden_check ? <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Ver mi suscripción</Text> : <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Comprar GOLD Check</Text>}
-                </View>
-            </Pressable>
-
-            {/* Referal invitation Card */}
-            {/* TODO: Replace Image */}
-            <Pressable style={[containerStyles.box, { marginVertical: 10 }]} onPress={() => navigation.navigate(ROUTES.REFERALS)}>
-                <Image source={require('../../assets/images/ui/referals.png')} style={{ width: 80, height: 80 }} />
-                <View>
-                    <Text style={[textStyles.h3, { color: theme.colors.primaryText }]}>INVITAR AMIGOS</Text>
-                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Invita y gana premios únicos</Text>
-                </View>
-            </Pressable>
 
             {Object.entries(settings).map(([categoryKey, category]) => (
                 <SettingsSection key={categoryKey} title={category.title} items={category.options} navigation={navigation} />
