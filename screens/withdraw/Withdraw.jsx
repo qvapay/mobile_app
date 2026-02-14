@@ -2,9 +2,6 @@ import { useEffect, useMemo, useState, useRef } from 'react'
 import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// Helper
-import { adjustNumber } from '../../helpers'
-
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
@@ -13,6 +10,7 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPButton from '../../ui/particles/QPButton'
 import QPCoin from '../../ui/particles/QPCoin'
 import QPInput from '../../ui/particles/QPInput'
+import QPCoinRow from '../../ui/QPCoinRow'
 
 // API
 import apiClient from '../../api/client'
@@ -53,12 +51,13 @@ const Withdraw = ({ navigation }) => {
 	const [balance, setBalance] = useState(user?.balance || 0)
 	const [currency, setCurrency] = useState('QUSD')
 
-	// States for pending withdraw
-	const [pendingWithdraw, setPendingWithdraw] = useState(false)
-	const [sendingPreWithdraw, setSendingPreWithdraw] = useState(false)
+	// PIN/OTP step
+	const [showPinStep, setShowPinStep] = useState(false)
+	const [sendingPin, setSendingPin] = useState(false)
 	const [sendingWithdraw, setSendingWithdraw] = useState(false)
-
-	// PIN
+	const [twoFactorMethod, setTwoFactorMethod] = useState('pin')
+	const hasOTP = !!user?.two_factor_secret
+	const codeLength = twoFactorMethod === 'pin' ? 4 : 6
 	const [pin, setPin] = useState('')
 	const pinInputsRef = useRef([])
 	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
@@ -117,13 +116,12 @@ const Withdraw = ({ navigation }) => {
 				return fixedAmount
 			} else {
 				const percentageFee = (amount * feePercent) / 100
-				return Math.round(percentageFee * 100) / 100 // Round to 2 decimal places
+				return Math.round(percentageFee * 100) / 100
 			}
 		} else {
-			// If fee_out_fixed is not an array, treat it as a simple fixed fee
 			const feeFixed = Number(coin.fee_out_fixed) || 0
 			const percentageFee = (amount * feePercent) / 100
-			return Math.round((percentageFee + feeFixed) * 100) / 100 // Round to 2 decimal places
+			return Math.round((percentageFee + feeFixed) * 100) / 100
 		}
 	}
 
@@ -132,23 +130,13 @@ const Withdraw = ({ navigation }) => {
 		setAmountQUSD(value)
 		const num = Number(value)
 		if (coinPrice && !isNaN(num) && selectedCoin) {
-			// Calculate net amount after fees
 			const totalFee = calculateFee(num, selectedCoin)
 			const calculatedNetAmount = num - totalFee
-
-			// Update netAmount state
 			setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
-
-			// Convert net amount to coin amount with better precision
 			const converted = calculatedNetAmount / coinPrice
-
-			// Smart rounding: if the result is very close to a whole number, round to it
 			const nearestInteger = Math.round(converted)
 			const difference = Math.abs(converted - nearestInteger)
-
-			// If the difference is very small (less than or equal to 0.01), use the rounded integer value
 			const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
-
 			setAmountCoin(finalAmount ? String(finalAmount) : '')
 		} else {
 			setNetAmount('')
@@ -161,42 +149,26 @@ const Withdraw = ({ navigation }) => {
 		setNetAmount(value)
 		const num = Number(value)
 		if (coinPrice && !isNaN(num) && selectedCoin) {
-			// Calculate required QUSD amount to achieve this net amount after fees
 			const feePercent = Number(selectedCoin?.fee_out) || 0
 			let requiredQUSD
 
-			// Check if fee_out_fixed is an array [threshold, fixed_amount]
 			if (Array.isArray(selectedCoin?.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
 				const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
 				const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
-
-				// We need to solve: netAmount = requiredQUSD - fee
-				// where fee = fixedAmount if requiredQUSD < threshold, else fee = requiredQUSD * feePercent/100
-
-				// First, try with percentage fee
 				const withPercentageFee = num / (1 - feePercent / 100)
-
 				if (withPercentageFee >= threshold) { requiredQUSD = withPercentageFee }
 				else { requiredQUSD = num + fixedAmount }
 			} else {
-				// Simple case: percentage + fixed fee
 				const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
 				if (feePercent > 0) { requiredQUSD = (num + feeFixed) / (1 - feePercent / 100) }
 				else { requiredQUSD = num + feeFixed }
 			}
 
 			setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
-
-			// Convert net amount to coin amount with better precision
 			const converted = num / coinPrice
-
-			// Smart rounding: if the result is very close to a whole number, round to it
 			const nearestInteger = Math.round(converted)
 			const difference = Math.abs(converted - nearestInteger)
-
-			// If the difference is very small (less than or equal to 0.01), use the rounded integer value
 			const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
-
 			setAmountCoin(finalAmount ? String(finalAmount) : '')
 		} else {
 			setAmountQUSD('')
@@ -233,24 +205,19 @@ const Withdraw = ({ navigation }) => {
 	const handleCoinSelect = (coin) => {
 		setSelectedCoin(coin)
 		setShowCoinPicker(false)
-		// Recompute bottom amount when selecting coin (with fees)
 		if (amountQUSD) {
 			const price = Number(coin.price)
 			if (!isNaN(price)) {
-				// Calculate net amount after fees using the helper function
 				const totalFee = calculateFee(Number(amountQUSD), coin)
 				const calculatedNetAmount = Number(amountQUSD) - totalFee
 				setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
 				const converted = calculatedNetAmount / price
-				// Smart rounding: if the result is very close to a whole number, round to it
 				const nearestInteger = Math.round(converted)
 				const difference = Math.abs(converted - nearestInteger)
-				// If the difference is very small (less than or equal to 0.01), use the rounded integer value
 				const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
 				setAmountCoin(finalAmount ? String(finalAmount) : '')
 			}
 		}
-		// Reset form for new coin
 		setWorkingForm({})
 	}
 
@@ -260,59 +227,61 @@ const Withdraw = ({ navigation }) => {
 		return parseFloat(balance).toFixed(2)
 	}
 
-	// Send withdraw request to API without PIN
-	const handlePreWithdraw = async () => {
+	// Request PIN via email
+	const handleRequestPin = async () => {
 		try {
-			setPendingWithdraw(true)
-			setSendingPreWithdraw(true)
-			setPin('')
-
-			// Send request to API
-			const result = await withdrawApi.preWithdraw(amountQUSD, selectedCoin.tick, workingForm)
-
-			if (!result.success) {
-				console.error('Pre-withdraw error:', result.error)
-				// TODO: Show error toast/message to user
-				setPendingWithdraw(false)
+			setSendingPin(true)
+			const result = await withdrawApi.requestPin()
+			if (result.success) {
+				Toast.show({ type: 'success', text1: 'PIN enviado', text2: 'Revisa tu correo electrónico' })
+			} else {
+				Toast.show({ type: 'error', text1: result.error || 'No se pudo enviar el PIN' })
 			}
-			// If successful, the PIN input will be shown and user will receive email
-
-		} catch (error) { console.error('Error processing withdrawal:', error); setPendingWithdraw(false) }
-		finally { setSendingPreWithdraw(false) }
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error al solicitar el PIN' })
+		} finally { setSendingPin(false) }
 	}
 
-	// Send withdraw request to API with PIN
+	// Submit withdraw with PIN
 	const handleWithdraw = async () => {
-
-		if (!pin || pin.length !== 4) {
-			Toast.show({ type: 'error', text1: 'El PIN es requerido' })
+		if (!pin || pin.length !== codeLength) {
+			Toast.show({ type: 'error', text1: twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos' })
 			return
 		}
 
 		try {
 			setSendingWithdraw(true)
-
-			// Send request to API with PIN
-			const result = await withdrawApi.withdraw(amountQUSD, selectedCoin.tick, workingForm, pin)
+			// Build details with original field names from working_data
+			const details = {}
+			for (const field of workingFields) {
+				const key = keyFromFieldName(field.name)
+				details[field.name] = workingForm[key] || ''
+			}
+			const result = await withdrawApi.withdraw(amountQUSD, selectedCoin.tick, details, pin)
 
 			if (result.success) {
-				// TODO: Show success message and navigate back or to transactions
-				console.log('Withdrawal successful:', result.data)
-				// Reset form and navigate
-				setPendingWithdraw(false)
+				Toast.show({ type: 'success', text1: 'Extracción procesada', text2: `Se han extraído $${amountQUSD} QUSD` })
+				setShowPinStep(false)
 				setPin('')
 				setAmountQUSD('')
 				setAmountCoin('')
 				setNetAmount('')
 				setWorkingForm({})
-				// Optionally navigate to transactions or home
+				navigation.goBack()
 			} else {
-				console.error('Withdraw error:', result.error)
-				// TODO: Show error toast/message to user
+				Toast.show({ type: 'error', text1: result.error || 'No se pudo completar la extracción' })
 			}
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error al procesar la extracción' })
+		} finally { setSendingWithdraw(false) }
+	}
 
-		} catch (error) { console.error('Error processing withdrawal:', error) }
-		finally { setSendingWithdraw(false) }
+	// Switch between PIN and OTP
+	const handleMethodChange = (method) => {
+		setTwoFactorMethod(method)
+		setPin('')
+		pinInputsRef.current = new Array(method === 'pin' ? 4 : 6).fill(null)
+		setTimeout(() => { pinInputsRef.current[0]?.focus() }, 0)
 	}
 
 	// Handle PIN input change
@@ -322,7 +291,7 @@ const Withdraw = ({ navigation }) => {
 		newPin[index] = numericText
 		const updatedPin = newPin.join('')
 		setPin(updatedPin)
-		if (numericText && index < 3) { pinInputsRef.current[index + 1]?.focus() }
+		if (numericText && index < codeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
 	}
 
 	// Handle PIN input focus
@@ -335,12 +304,10 @@ const Withdraw = ({ navigation }) => {
 	const handlePinKeyPress = (e, index) => {
 		if (e.nativeEvent.key === 'Backspace') {
 			if (pin[index]) {
-				// If current input has content, clear it
 				const newPin = pin.split('')
 				newPin[index] = ''
 				setPin(newPin.join(''))
 			} else if (index > 0) {
-				// If current input is empty, go to previous input and clear it
 				const newPin = pin.split('')
 				newPin[index - 1] = ''
 				setPin(newPin.join(''))
@@ -470,48 +437,81 @@ const Withdraw = ({ navigation }) => {
 										/>
 									)
 								})}
+							</View>
+						)}
 
-								{/** PIN input */}
-								{pendingWithdraw && (
-									<View style={{ marginTop: 30 }}>
-										<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center' }]}>Hemos enviado un código a tu correo electrónico para verificar tu identidad.</Text>
-										<Text style={[textStyles.h5, { color: theme.colors.secondaryText, textAlign: 'center' }]}>Ingresa el código para continuar:</Text>
-										<View style={styles.pinContainer}>
-											{[0, 1, 2, 3].map((index) => (
-												<TextInput
-													key={index}
-													ref={(ref) => pinInputsRef.current[index] = ref}
-													style={[styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
-													value={pin[index] || ''}
-													onChangeText={(text) => handlePinChange(text, index)}
-													onFocus={() => handlePinFocus(index)}
-													onBlur={handlePinBlur}
-													onKeyPress={(e) => handlePinKeyPress(e, index)}
-													keyboardType="numeric"
-													maxLength={1}
-													secureTextEntry
-													textAlign="center"
-													selectTextOnFocus
-													placeholder={focusedInputIndex === index ? "" : "0"}
-													placeholderTextColor={theme.colors.tertiaryText}
-												/>
-											))}
-										</View>
+						{/* PIN/OTP Step */}
+						{showPinStep && (
+							<View style={{ marginTop: 30 }}>
+
+								{/* PIN/OTP Toggle - only show if user has OTP */}
+								{hasOTP && (
+									<View style={[styles.methodToggle, { borderColor: theme.colors.elevation }]}>
+										<Pressable
+											onPress={() => handleMethodChange('pin')}
+											style={[styles.methodToggleButton, styles.methodToggleLeft, twoFactorMethod === 'pin' && { backgroundColor: theme.colors.primary }]}
+										>
+											<Text style={[textStyles.h6, { color: twoFactorMethod === 'pin' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>PIN</Text>
+										</Pressable>
+										<Pressable
+											onPress={() => handleMethodChange('otp')}
+											style={[styles.methodToggleButton, styles.methodToggleRight, { borderLeftWidth: 1, borderLeftColor: theme.colors.elevation }, twoFactorMethod === 'otp' && { backgroundColor: theme.colors.primary }]}
+										>
+											<Text style={[textStyles.h6, { color: twoFactorMethod === 'otp' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>OTP</Text>
+										</Pressable>
 									</View>
 								)}
 
+								{/* Request PIN button - only in PIN mode */}
+								{twoFactorMethod === 'pin' && (
+									<Pressable
+										onPress={handleRequestPin}
+										disabled={sendingPin}
+										style={[styles.requestPinButton, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary, marginTop: hasOTP ? 16 : 0 }]}
+									>
+										<FontAwesome6 name="envelope" size={16} color={theme.colors.primary} iconStyle="solid" />
+										<Text style={[textStyles.h6, { color: theme.colors.primary, marginLeft: 8 }]}>
+											{sendingPin ? 'Enviando...' : 'Recibir PIN por correo'}
+										</Text>
+									</Pressable>
+								)}
+
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20 }]}>
+									{twoFactorMethod === 'pin' ? 'Ingresa el PIN de 4 dígitos:' : 'Ingresa tu código OTP:'}
+								</Text>
+								<View style={styles.pinContainer}>
+									{Array.from({ length: codeLength }, (_, index) => (
+										<TextInput
+											key={`${twoFactorMethod}-${index}`}
+											ref={(ref) => pinInputsRef.current[index] = ref}
+											style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
+											value={pin[index] || ''}
+											onChangeText={(text) => handlePinChange(text, index)}
+											onFocus={() => handlePinFocus(index)}
+											onBlur={handlePinBlur}
+											onKeyPress={(e) => handlePinKeyPress(e, index)}
+											keyboardType="numeric"
+											maxLength={1}
+											secureTextEntry
+											textAlign="center"
+											selectTextOnFocus
+											placeholder={focusedInputIndex === index ? "" : "0"}
+											placeholderTextColor={theme.colors.tertiaryText}
+										/>
+									))}
+								</View>
 							</View>
 						)}
 					</View>
 
 					{/* Bottom Button */}
 					<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-
-						{pendingWithdraw ? (
+						{showPinStep ? (
 							<QPButton
-								title={`Extraer ${amountQUSD} ${currency}`}
-								onPress={() => { handleWithdraw() }}
-								disabled={!isFormValid || !pin}
+								title={`Extraer $${amountQUSD} ${currency}`}
+								onPress={handleWithdraw}
+								disabled={!isFormValid || !pin || pin.length < codeLength}
+								loading={sendingWithdraw}
 								icon="arrow-right"
 								iconStyle="solid"
 								iconColor={theme.colors.almostWhite}
@@ -520,7 +520,7 @@ const Withdraw = ({ navigation }) => {
 						) : (
 							<QPButton
 								title="Continuar"
-								onPress={() => { handlePreWithdraw() }}
+								onPress={() => { setShowPinStep(true); setPin('') }}
 								disabled={!isFormValid}
 								icon="arrow-right"
 								iconStyle="solid"
@@ -569,26 +569,8 @@ const Withdraw = ({ navigation }) => {
 										coin.tick.toLowerCase().includes(coinSearch.toLowerCase())
 									)
 									.map((coin) => (
-										<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)}>
-
-											<QPCoin coin={coin.logo} size={40} />
-
-											<View style={{ marginLeft: 12, flex: 1 }}>
-												<Text style={textStyles.h4}>{coin.name}</Text>
-												<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Mín: ${adjustNumber(coin.min_out)} | Precio: ${adjustNumber(coin.price)}</Text>
-											</View>
-
-											<View style={{ alignItems: 'flex-end', gap: 4 }}>
-												{coin.network && (
-													<View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-														<Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.network}</Text>
-													</View>
-												)}
-												{coin.fee_out && (
-													<Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.fee_out}%</Text>
-												)}
-											</View>
-
+										<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.elevation }]} onPress={() => handleCoinSelect(coin)}>
+											<QPCoinRow coin={coin} amount={amountQUSD} direction="out" />
 										</Pressable>
 									))
 								) : (
@@ -614,7 +596,7 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		borderWidth: 0.5
 	},
-	// Modal styles (reused from Add.jsx for consistency)
+	// Modal styles
 	modalContainer: { flex: 1 },
 	modalHeader: {
 		flexDirection: 'row',
@@ -630,37 +612,64 @@ const styles = StyleSheet.create({
 	coinItem: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		padding: 15,
-		borderRadius: 10,
-		marginBottom: 10,
-		borderWidth: 0.5,
-		borderColor: 'rgba(255, 255, 255, 0.2)',
-	},
-	networkBadge: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
+		padding: 12,
 		borderRadius: 12,
-		marginLeft: 8,
+		marginBottom: 10,
+		borderWidth: 1,
 	},
 	loadingContainer: {
 		alignItems: 'center',
 		justifyContent: 'center',
 		padding: 40,
 	},
+	methodToggle: {
+		flexDirection: 'row',
+		borderRadius: 10,
+		borderWidth: 1,
+		overflow: 'hidden',
+	},
+	methodToggleButton: {
+		flex: 1,
+		paddingVertical: 10,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	methodToggleLeft: {
+		borderTopLeftRadius: 9,
+		borderBottomLeftRadius: 9,
+	},
+	methodToggleRight: {
+		borderTopRightRadius: 9,
+		borderBottomRightRadius: 9,
+	},
+	requestPinButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		padding: 14,
+		borderRadius: 12,
+		borderWidth: 1,
+	},
 	pinContainer: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		marginVertical: 20,
 		paddingHorizontal: 20,
+		gap: 8,
 	},
 	pinInput: {
-		width: 60,
+		flex: 1,
 		height: 60,
 		borderRadius: 12,
 		borderWidth: 1,
 		fontSize: 24,
 		fontWeight: 'bold',
 		textAlign: 'center',
+	},
+	pinInputSmall: {
+		height: 54,
+		borderRadius: 10,
+		fontSize: 20,
 	},
 })
 
