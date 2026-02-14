@@ -211,7 +211,7 @@ const AppNavigator = () => {
 				options={getHeaderOptions('Confirmar pago')}
 			/>
 			<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
-			<Stack.Screen name={ROUTES.RECEIVE} component={Receive} />
+			<Stack.Screen name={ROUTES.RECEIVE} component={Receive} options={getHeaderOptions('Recibir')} />
 
 			{/* Transaction Screen */}
 			<Stack.Screen
