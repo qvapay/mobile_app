@@ -30,6 +30,8 @@ export const ROUTES = {
     STORE_SCREEN: "Store",
     PHONE_TOPUP_INDEX: "PhoneTopupIndex",
     PHONE_TOPUP_PURCHASE: "PhoneTopupPurchase",
+    GIFT_CARDS: "GiftCards",
+    GIFT_CARD_DETAIL: "GiftCardDetail",
     P2P_SCREEN: "P2P",
     P2P_CREATE_SCREEN: "P2PCreate",
 	P2P_OFFER_SCREEN: "P2POffer",

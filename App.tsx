@@ -50,6 +50,8 @@ import Withdraw from './screens/withdraw/Withdraw'
 // Store Screens
 import PhoneTopupIndex from './screens/store/PhoneTopupIndex'
 import PhoneTopupPurchase from './screens/store/PhoneTopupPurchase'
+import GiftCards from './screens/store/GiftCards'
+import GiftCardDetail from './screens/store/GiftCardDetail'
 
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
@@ -278,6 +280,18 @@ const AppNavigator = () => {
 				name={ROUTES.PHONE_TOPUP_PURCHASE}
 				component={PhoneTopupPurchase}
 				options={getHeaderOptions('Comprar recarga')}
+			/>
+
+			{/* Gift Card Screens */}
+			<Stack.Screen
+				name={ROUTES.GIFT_CARDS}
+				component={GiftCards}
+				options={getHeaderOptions('Tarjetas de regalo')}
+			/>
+			<Stack.Screen
+				name={ROUTES.GIFT_CARD_DETAIL}
+				component={GiftCardDetail}
+				options={getHeaderOptions('')}
 			/>
 
 			{/* Accesible Screens */}

@@ -33,35 +33,28 @@ const Store = ({ navigation }) => {
 	// States
 	const [search, setSearch] = useState('')
 	const [topupPlans, setTopupPlans] = useState([])
+	const [giftCards, setGiftCards] = useState([])
 	const [isLoading, setIsLoading] = useState(false)
 
-	// Effects Topups
+	// Effects Topups + Gift Cards
 	useEffect(() => {
-		const fetchTopupPlans = async () => {
+		const fetchData = async () => {
 			setIsLoading(true)
 			try {
-				const response = await storeApi.phonePackages()
-				if (response.success) { setTopupPlans(response.data || []) }
-			} catch (error) { console.error('Error fetching topup plans:', error) }
+				const [topupResponse, giftCardResponse] = await Promise.all([
+					storeApi.phonePackages(),
+					storeApi.getGiftCards({ featured: true, take: 6 }),
+				])
+				if (topupResponse.success) { setTopupPlans(topupResponse.data || []) }
+				if (giftCardResponse.success) {
+					const cards = Array.isArray(giftCardResponse.data) ? giftCardResponse.data : []
+					setGiftCards(cards)
+				}
+			} catch (error) { console.error('Error fetching store data:', error) }
 			finally { setIsLoading(false) }
 		}
-		fetchTopupPlans()
+		fetchData()
 	}, [])
-
-	const giftCards = [
-		// { id: '1', title: 'Netflix', tag: 'Entretenimiento', amount: '$15' },
-		// { id: '2', title: 'PlayStation', tag: 'Gaming', amount: '$20' },
-		// { id: '3', title: 'Amazon', tag: 'Shopping', amount: '$25' },
-	]
-
-	const popularProducts = [
-		// { id: '1', title: 'AirPods Pro', price: '$210.00' },
-		// { id: '2', title: 'Tarjeta Visa Virtual', price: '$50.00' },
-		// { id: '3', title: 'Cuenta Spotify Premium', price: '$8.00' },
-		// { id: '4', title: 'Gift Card Steam', price: '$20.00' },
-	]
-
-	console.log(topupPlans)
 
 	return (
 		<View style={[containerStyles.subContainer]}>
@@ -85,19 +78,9 @@ const Store = ({ navigation }) => {
 					<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
 						{giftCards.map((card) => (
-							<QPProduct key={card.id} name={card.title} price={card.amount} details={card.tag} image={card.image} onPress={() => navigation.navigate(ROUTES.GIFT_CARD, { cardId: card.id })} />
+							<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} />
 						))}
 					</ScrollView>
-				</View>
-
-				{/* Popular products */}
-				<View style={[styles.section, { gap: 5 }]}>
-					<QPSectionHeader title="Productos populares" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.POPULAR_PRODUCTS)} />
-					<View style={styles.grid}>
-						{popularProducts.map((product) => (
-							<QPProduct key={product.id} name={product.title} price={product.price} details={product.details} image={product.image} onPress={() => navigation.navigate(ROUTES.PRODUCT, { productId: product.id })} style={{ width: '46%' }} />
-						))}
-					</View>
 				</View>
 
 			</ScrollView>
