@@ -63,7 +63,7 @@ const QPRate = ({
 				}}
 				disabled={readOnly}
 			>
-				<FontAwesome6 name="star" size={size} color={starColor} solid={isActive || isHovered} />
+				<FontAwesome6 name="star" size={size} color={starColor} iconStyle={(isActive || isHovered) ? "solid" : "regular"} />
 			</TouchableOpacity>
 		);
 	};

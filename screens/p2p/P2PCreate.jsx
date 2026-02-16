@@ -269,9 +269,11 @@ const P2PCreate = ({ navigation }) => {
 										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
 											{type === "buy" ? "Comprar" : "Vender"}
 										</Text>
-										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-											Balance: <Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: "600" }]}>${user?.balance || 0}</Text>
-										</Text>
+										<Pressable onPress={() => { if (type === "sell") setAmount(String(user?.balance || 0)) }}>
+											<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
+												Balance: <Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: "600" }]}>${user?.balance || 0}</Text>
+											</Text>
+										</Pressable>
 									</View>
 
 									{/* Single row container */}
@@ -369,6 +371,16 @@ const P2PCreate = ({ navigation }) => {
 									</View>
 								</View>
 							</View>
+
+							{/* Live Ratio Display */}
+							{selectedCoin && parseFloat(amount) > 0 && parseFloat(receive) > 0 && (
+								<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 }}>
+									<FontAwesome6 name="money-bill-transfer" size={14} color={theme.colors.primary} iconStyle="solid" />
+									<Text style={[textStyles.h6, { color: theme.colors.primary, fontWeight: "600" }]}>
+										1 QUSD = {(parseFloat(receive) / parseFloat(amount)).toFixed(4)} {selectedCoin.tick}
+									</Text>
+								</View>
+							)}
 
 							{/* Details: Coin working data (same UX as Withdraw) */}
 							{selectedCoin && workingFields.length > 0 && (

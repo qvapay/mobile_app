@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -7,10 +7,11 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
-import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
-import QPLoader from '../../ui/particles/QPLoader'
 import QPProduct from '../../ui/particles/QPProduct'
+
+// Phone Input
+import PhoneInput, { isValidPhoneNumber } from 'react-native-international-phone-number'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -39,19 +40,17 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 
 	// States
 	const [phoneNumber, setPhoneNumber] = useState('')
-	const [isLoading, setIsLoading] = useState(false)
+	const [selectedCountry, setSelectedCountry] = useState(null)
 	const [isPurchasing, setIsPurchasing] = useState(false)
 
-	// Validate phone number format
-	const validatePhoneNumber = (number) => {
-		// Remove any non-digit characters for validation
-		const cleaned = number.replace(/\D/g, '')
-		// Basic validation: should have at least 7 digits
-		return cleaned.length >= 7 && cleaned.length <= 15
-	}
+	// Build full phone number with country calling code
+	const fullPhoneNumber = selectedCountry ? `${selectedCountry.callingCode}${phoneNumber.replace(/\D/g, '')}` : phoneNumber
+
+	// Validate using libphonenumber-js via the package
+	const isPhoneValid = selectedCountry && phoneNumber.trim().length > 0 && isValidPhoneNumber(phoneNumber, selectedCountry)
 
 	// Check if purchase button should be enabled
-	const isPurchaseEnabled = () => { return phoneNumber.trim().length > 0 && validatePhoneNumber(phoneNumber) && !isPurchasing }
+	const isPurchaseEnabled = () => isPhoneValid && !isPurchasing
 
 	// Handle purchase
 	const handlePurchase = async () => {
@@ -61,7 +60,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 			return
 		}
 
-		if (!validatePhoneNumber(phoneNumber)) {
+		if (!isPhoneValid) {
 			Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un número de teléfono válido' })
 			return
 		}
@@ -69,7 +68,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 		// Confirm purchase
 		Alert.alert(
 			'Confirmar compra',
-			`¿Estás seguro de que deseas comprar ${packageItem.name} por $${packageItem.price} para el número ${phoneNumber}?`,
+			`¿Estás seguro de que deseas comprar ${packageItem.name} por $${packageItem.price} para el número ${fullPhoneNumber}?`,
 			[
 				{
 					text: 'Cancelar',
@@ -82,7 +81,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 						try {
 							const response = await storeApi.purchasePhonePackage({
 								phone_package_id: packageItem.id,
-								phone_number: phoneNumber.trim(),
+								phone_number: fullPhoneNumber,
 							})
 
 							if (response.success) {
@@ -141,16 +140,33 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginBottom: 12 }]}>
 						Número de teléfono
 					</Text>
-					<QPInput
+					<PhoneInput
 						value={phoneNumber}
-						onChangeText={setPhoneNumber}
-						placeholder="Ingresa el número de teléfono"
-						prefixIconName="phone"
-						keyboardType="phone-pad"
-						autoFocus={true}
-						style={styles.phoneInput}
+						onChangePhoneNumber={setPhoneNumber}
+						selectedCountry={selectedCountry}
+						onChangeSelectedCountry={setSelectedCountry}
+						defaultCountry="CU"
+						placeholder="Número de teléfono"
+						language="es"
+						theme={theme.mode === 'light' ? 'light' : 'dark'}
+						phoneInputStyles={{
+							container: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12 },
+							input: { color: theme.colors.primaryText, fontSize: 16, fontFamily: 'Rubik-Regular' },
+							flagContainer: { backgroundColor: theme.colors.elevation, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+							callingCode: { color: theme.colors.primaryText, fontSize: 14 },
+							caret: { color: theme.colors.secondaryText },
+						}}
+						modalStyles={{
+							modal: { backgroundColor: theme.colors.background },
+							searchInput: { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: theme.colors.border },
+							countryButton: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+							callingCode: { color: theme.colors.primaryText },
+							countryName: { color: theme.colors.primaryText },
+						}}
+						modalSearchInputPlaceholder="Buscar país..."
+						modalSearchInputPlaceholderTextColor={theme.colors.placeholder}
 					/>
-					{phoneNumber.trim().length > 0 && !validatePhoneNumber(phoneNumber) && (
+					{phoneNumber.trim().length > 0 && !isPhoneValid && (
 						<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
 							Por favor ingresa un número de teléfono válido
 						</Text>

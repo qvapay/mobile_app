@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { View, Text, StyleSheet, FlatList, RefreshControl, Modal, Pressable, Switch, ScrollView } from "react-native"
 
 // Theme Context
@@ -31,6 +31,15 @@ import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 // Routes
 import { ROUTES } from "../../routes"
 
+// Sort options for cycling
+const SORT_OPTIONS = [
+	{ label: "Reciente", orderBy: "updated_at", orderType: "desc" },
+	{ label: "Monto ↓", orderBy: "amount", orderType: "desc" },
+	{ label: "Monto ↑", orderBy: "amount", orderType: "asc" },
+	{ label: "Ratio ↓", orderBy: "ratio", orderType: "desc" },
+	{ label: "Ratio ↑", orderBy: "ratio", orderType: "asc" },
+]
+
 // P2P component
 const P2P = ({ navigation, route }) => {
 
@@ -56,16 +65,23 @@ const P2P = ({ navigation, route }) => {
 	const [showFiltersModal, setShowFiltersModal] = useState(false)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 
-	// Filters state
-	const [showMine, setShowMine] = useState(false)
+	// Quick filter states
 	const [typeFilter, setTypeFilter] = useState(null)
 	const [selectedCoin, setSelectedCoin] = useState(null)
+	const [sortIndex, setSortIndex] = useState(0)
+
+	// Modal filter states
+	const [showMine, setShowMine] = useState(false)
 	const [minAmount, setMinAmount] = useState("")
 	const [maxAmount, setMaxAmount] = useState("")
 	const [ratioMin, setRatioMin] = useState("")
 	const [ratioMax, setRatioMax] = useState("")
 	const [onlyKyc, setOnlyKyc] = useState(false)
 	const [onlyVip, setOnlyVip] = useState(false)
+
+	// Derived sort values
+	const orderBy = SORT_OPTIONS[sortIndex].orderBy
+	const orderType = SORT_OPTIONS[sortIndex].orderType
 
 	// Whether any non-default filter is active
 	const hasActiveFilters = useMemo(() => {
@@ -87,7 +103,8 @@ const P2P = ({ navigation, route }) => {
 		const filters = {
 			page: 1,
 			take: 30,
-			order: "desc",
+			order: orderType,
+			orderBy: orderBy,
 			type: typeFilter,
 		}
 		if (showMine) { filters.my = true }
@@ -99,7 +116,7 @@ const P2P = ({ navigation, route }) => {
 		if (onlyKyc) { filters.only_kyc = 1 }
 		if (onlyVip) { filters.only_vip = 1 }
 		return filters
-	}, [typeFilter, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, showMine, onlyKyc, onlyVip])
+	}, [typeFilter, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, showMine, onlyKyc, onlyVip, orderBy, orderType])
 
 	// Coins for selector
 	const [availableCoins, setAvailableCoins] = useState([])
@@ -107,7 +124,7 @@ const P2P = ({ navigation, route }) => {
 	const [loadingCoins, setLoadingCoins] = useState(false)
 
 	// Get the Latest P2P Offers
-	const fetchP2POffers = async (isRefresh = false) => {
+	const fetchP2POffers = useCallback(async (isRefresh = false) => {
 		try {
 			isRefresh ? setRefreshing(true) : setIsLoadingData(true)
 			setError(null)
@@ -126,7 +143,7 @@ const P2P = ({ navigation, route }) => {
 			setIsLoadingData(false)
 			setRefreshing(false)
 		}
-	}
+	}, [apiFilters])
 
 	// Load data on component mount
 	useEffect(() => {
@@ -134,6 +151,17 @@ const P2P = ({ navigation, route }) => {
 		else { setIsLoadingData(false) }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
+
+	// Auto-fetch when quick filters change (type, coin, sort)
+	const isFirstRender = useRef(true)
+	useEffect(() => {
+		if (isFirstRender.current) {
+			isFirstRender.current = false
+			return
+		}
+		if (p2pEnabled) { fetchP2POffers(true) }
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [typeFilter, selectedCoin?.tick, orderBy, orderType])
 
 	// Configure header buttons locally to avoid non-serializable params
 	useEffect(() => {
@@ -171,6 +199,31 @@ const P2P = ({ navigation, route }) => {
 	// Handle refresh
 	const onRefresh = () => { fetchP2POffers(true) }
 
+	// Cycle sort option
+	const cycleSortOption = () => {
+		setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
+	}
+
+	// Active filters badges (for modal filters only)
+	const activeFilterBadges = useMemo(() => {
+		const badges = []
+		if (showMine) badges.push({ key: "showMine", label: "Mis ofertas", onRemove: () => setShowMine(false) })
+		if (minAmount !== "") badges.push({ key: "minAmount", label: `Min: $${minAmount}`, onRemove: () => setMinAmount("") })
+		if (maxAmount !== "") badges.push({ key: "maxAmount", label: `Max: $${maxAmount}`, onRemove: () => setMaxAmount("") })
+		if (ratioMin !== "") badges.push({ key: "ratioMin", label: `Ratio ≥ ${ratioMin}`, onRemove: () => setRatioMin("") })
+		if (ratioMax !== "") badges.push({ key: "ratioMax", label: `Ratio ≤ ${ratioMax}`, onRemove: () => setRatioMax("") })
+		if (onlyKyc) badges.push({ key: "onlyKyc", label: "Solo KYC", onRemove: () => setOnlyKyc(false) })
+		if (onlyVip) badges.push({ key: "onlyVip", label: "Solo VIP", onRemove: () => setOnlyVip(false) })
+		return badges
+	}, [showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyKyc, onlyVip])
+
+	// Remove a filter badge and re-fetch
+	const handleRemoveBadge = (badge) => {
+		badge.onRemove()
+		// Schedule re-fetch after state update
+		setTimeout(() => fetchP2POffers(true), 0)
+	}
+
 	// Render offer item
 	const renderOffer = ({ item }) => <P2POffer offer={item} navigation={navigation} />
 
@@ -181,20 +234,88 @@ const P2P = ({ navigation, route }) => {
 		<View style={containerStyles.subContainer}>
 
 			{p2pEnabled ? (
-				<FlatList
-					data={p2pOffers}
-					renderItem={renderOffer}
-					keyExtractor={(item) => item.uuid}
-					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
-					showsVerticalScrollIndicator={false}
-					ListEmptyComponent={
-						<View style={styles.emptyContainer}>
-							<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
-								{error ? error : "No hay ofertas P2P disponibles"}
-							</Text>
+				<>
+					{/* Quick Filters Bar */}
+					<View style={styles.quickFiltersBar}>
+						{/* Buy/Sell Switch */}
+						<QPSwitch
+							value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
+							onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
+							leftText="Comprar"
+							rightText="Vender"
+							leftColor={theme.colors.success}
+							rightColor={theme.colors.danger}
+							style={{ width: 150, height: 32 }}
+						/>
+
+						<View style={{ flex: 1 }} />
+
+						{/* Coin Pill */}
+						<Pressable
+							style={[styles.filterPill, { backgroundColor: selectedCoin ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.border }]}
+							onPress={() => setShowCoinPicker(true)}
+						>
+							{selectedCoin ? (
+								<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+									<QPCoin coin={selectedCoin.logo} size={16} />
+									<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontWeight: "600" }]}>{selectedCoin.tick}</Text>
+									<Pressable onPress={() => setSelectedCoin(null)} hitSlop={8}>
+										<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
+									</Pressable>
+								</View>
+							) : (
+								<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+									<FontAwesome6 name="coins" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Moneda</Text>
+								</View>
+							)}
+						</Pressable>
+
+						{/* Sort Pill */}
+						<Pressable
+							style={[styles.filterPill, { backgroundColor: sortIndex > 0 ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.border }]}
+							onPress={cycleSortOption}
+						>
+							<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+								<FontAwesome6 name="arrow-down-short-wide" size={12} color={sortIndex > 0 ? theme.colors.almostWhite : theme.colors.secondaryText} iconStyle="solid" />
+								<Text style={[textStyles.caption, { color: sortIndex > 0 ? theme.colors.almostWhite : theme.colors.secondaryText }]}>
+									{SORT_OPTIONS[sortIndex].label}
+								</Text>
+							</View>
+						</Pressable>
+					</View>
+
+					{/* Active Filter Badges */}
+					{activeFilterBadges.length > 0 && (
+						<View style={styles.activeBadgesBar}>
+							{activeFilterBadges.map((badge) => (
+								<Pressable
+									key={badge.key}
+									style={[styles.activeBadge, { backgroundColor: theme.colors.primary }]}
+									onPress={() => handleRemoveBadge(badge)}
+								>
+									<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: 11 }]}>{badge.label}</Text>
+									<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
+								</Pressable>
+							))}
 						</View>
-					}
-				/>
+					)}
+
+					<FlatList
+						data={p2pOffers}
+						renderItem={renderOffer}
+						keyExtractor={(item) => item.uuid}
+						refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
+						showsVerticalScrollIndicator={false}
+						ListEmptyComponent={
+							<View style={styles.emptyContainer}>
+								<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
+									{error ? error : "No hay ofertas P2P disponibles"}
+								</Text>
+							</View>
+						}
+					/>
+				</>
 			) : (
 				<View style={styles.emptyContainer}>
 					<LottieView source={require("../../assets/lotties/cancelled.json")} autoPlay loop={false} style={{ width: 250, height: 250 }} />
@@ -229,8 +350,8 @@ const P2P = ({ navigation, route }) => {
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Tipo</Text>
 							<QPSwitch
-								value={typeFilter === "buy" ? "left" : typeFilter === "sell" ? "right" : null}
-								onChange={(side) => setTypeFilter(side === "left" ? "buy" : side === "right" ? "sell" : null)}
+								value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
+								onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
 								leftText="Comprar"
 								rightText="Vender"
 								leftColor={theme.colors.success}
@@ -315,7 +436,7 @@ const P2P = ({ navigation, route }) => {
 					<View style={[{ paddingHorizontal: 10, paddingBottom: insets.bottom || 20, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
 						<QPButton
 							title="Limpiar"
-							onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); }}
+							onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); setSortIndex(0); }}
 							style={[styles.clearButton, { borderColor: theme.colors.border, backgroundColor: "transparent" }]}
 							textStyle={{ color: theme.colors.secondaryText }}
 						/>
@@ -330,12 +451,12 @@ const P2P = ({ navigation, route }) => {
 			</Modal>
 
 			{/* Coin Picker Modal */}
-			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowCoinPicker(false); setShowFiltersModal(true) }}>
+			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowCoinPicker(false); if (showFiltersModal) setShowFiltersModal(true) }}>
 				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
 						<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-							<Pressable onPress={() => { setShowCoinPicker(false); setShowFiltersModal(true) }} style={styles.closeButton}>
+							<Pressable onPress={() => { setShowCoinPicker(false) }} style={styles.closeButton}>
 								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
 						</View>
@@ -352,7 +473,7 @@ const P2P = ({ navigation, route }) => {
 							(availableCoins || [])
 								.filter((coin) => coin.name.toLowerCase().includes((coinSearch || "").toLowerCase()) || coin.tick.toLowerCase().includes((coinSearch || "").toLowerCase()))
 								.map((coin) => (
-									<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => { setSelectedCoin(coin); setShowCoinPicker(false); setShowFiltersModal(true) }}>
+									<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => { setSelectedCoin(coin); setShowCoinPicker(false) }}>
 										<QPCoin coin={coin.logo} size={40} />
 										<View style={{ marginLeft: 12, flex: 1 }}>
 											<Text style={textStyles.h4}>{coin.name}</Text>
@@ -380,6 +501,36 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		paddingVertical: 40,
 	},
+	quickFiltersBar: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		paddingVertical: 6,
+		paddingHorizontal: 2,
+	},
+	filterPill: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 16,
+		borderWidth: 0.5,
+	},
+	activeBadgesBar: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 6,
+		paddingHorizontal: 2,
+		marginBottom: 4,
+	},
+	activeBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
 	rowBetween: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -394,65 +545,6 @@ const styles = StyleSheet.create({
 		minWidth: 140,
 		alignItems: "center",
 		justifyContent: "center",
-	},
-	offerHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 12,
-	},
-	typeContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	typeBadge: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 6,
-	},
-	typeText: {
-		fontSize: 10,
-		fontWeight: "bold",
-		textTransform: "uppercase",
-	},
-	amountContainer: {
-		marginBottom: 12,
-	},
-	amountRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		marginBottom: 4,
-	},
-	userContainer: {
-		marginBottom: 12,
-	},
-	userInfo: {
-		marginBottom: 4,
-	},
-	userStats: {
-		flexDirection: "row",
-	},
-	badgesContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		marginBottom: 8,
-	},
-	badge: {
-		paddingHorizontal: 6,
-		paddingVertical: 2,
-		borderRadius: 4,
-		marginRight: 6,
-		marginBottom: 4,
-	},
-	badgeText: {
-		fontSize: 10,
-		fontWeight: "bold",
-	},
-	messageContainer: {
-		marginTop: 8,
-		paddingTop: 8,
-		borderTopWidth: 1,
-		borderTopColor: "rgba(0,0,0,0.1)",
 	},
 	// Modal styles
 	modalContainer: {

@@ -11,6 +11,7 @@ import { createContainerStyles, createTextStyles } from "../../theme/themeUtils"
 import P2POfferItem from "../../ui/P2POfferItem"
 import QPButton from "../../ui/particles/QPButton"
 import QPAvatar from "../../ui/particles/QPAvatar"
+import QPInput from "../../ui/particles/QPInput"
 import QPLoader from "../../ui/particles/QPLoader"
 import QPRate from "../../ui/particles/QPRate"
 import ProfileContainerHorizontal from "../../ui/ProfileContainerHorizontal"
@@ -71,6 +72,9 @@ const P2POffer = ({ route }) => {
 	const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
 	const [visibleTimestamps, setVisibleTimestamps] = useState(new Set())
 	const messageAnimations = useRef({})
+
+	// TX ID input for markPaid
+	const [txIdInput, setTxIdInput] = useState("")
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
@@ -161,6 +165,20 @@ const P2POffer = ({ route }) => {
 		return () => clearTimeout(t)
 	}, [chatMessages?.length, autoScrollEnabled])
 
+	// Auto-polling every 5s for active statuses
+	useEffect(() => {
+		const activeStatuses = ["open", "processing", "paid"]
+		if (!p2p || !activeStatuses.includes(p2p.status)) return
+
+		const interval = setInterval(() => {
+			refetchP2P()
+			fetchChat()
+		}, 5000)
+
+		return () => clearInterval(interval)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [p2p?.status, p2p_uuid])
+
 	// Derived booleans
 	const isOwner = useMemo(() => !!(user?.uuid && p2p?.User?.uuid && user.uuid === p2p.User.uuid), [user?.uuid, p2p?.User?.uuid])
 	const isPeer = useMemo(() => !!(user?.uuid && p2p?.Peer?.uuid && user.uuid === p2p.Peer.uuid), [user?.uuid, p2p?.Peer?.uuid])
@@ -175,12 +193,22 @@ const P2POffer = ({ route }) => {
 	// Actions Buttons
 	const canCancel = (isOwner || isPeer) && ["open", "paid", "processing"].includes(status)
 	const canMarkPaid = isPayer && status === "processing"
-	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing" || status === "processing")
+	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing")
 	const canRatePeer = p2p?.status === "completed"
 	const markedAsPaid = p2p?.status === "paid"
 
-	// canApply becomes ready if offer is open and counterparty is not set
-	const canApply = status === "open" && counterparty
+	// Contextual status message
+	const statusMessage = useMemo(() => {
+		if (status === "processing" && isPayer) return { icon: "money-bill-wave", text: "Realiza el pago y marca como pagado", color: theme.colors.warning }
+		if (status === "processing" && isReceiver) return { icon: "clock", text: "Esperando que el comprador marque como pagado...", color: theme.colors.secondaryText }
+		if (status === "paid" && isPayer) return { icon: "check-double", text: "Has marcado como pagado. Esperando confirmación...", color: theme.colors.success }
+		if (status === "paid" && isReceiver) return { icon: "bell", text: "El comprador marcó como pagado. Verifica y confirma.", color: theme.colors.warning }
+		if (status === "revision") return { icon: "shield-halved", text: "Esta oferta está en revisión por el equipo de soporte", color: theme.colors.danger }
+		return null
+	}, [status, isPayer, isReceiver, theme])
+
+	// canApply: only non-owner/non-peer users can apply to an open offer
+	const canApply = status === "open" && !isOwner && !isPeer
 
 	// Actions - refetch and update cache
 	const refetchP2P = async () => {
@@ -242,7 +270,7 @@ const P2POffer = ({ route }) => {
 				onPress: async () => {
 					try {
 						setLoadingMarkPaid(true)
-						const res = await p2pApi.markPaid(p2p.uuid)
+						const res = await p2pApi.markPaid(p2p.uuid, txIdInput)
 						if (res.success) {
 							Toast.show({ type: "success", text1: "Pago marcado como realizado" })
 							refetchP2P()
@@ -399,11 +427,12 @@ const P2POffer = ({ route }) => {
 				>
 
 					{/* Offer Header - Fixed */}
+					{/* Offer Header - Fixed */}
 					{p2p && (
 						<>
 							<P2POfferItem offer={p2p} show_buttons={false} show_user={false} />
 							{p2p.details && (
-								<View style={[containerStyles.card, { marginTop: 2 }]}>
+								<View style={[containerStyles.card, { marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 }]}>
 									{(() => {
 										const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
 										const details = Array.isArray(rawDetails)
@@ -440,27 +469,49 @@ const P2POffer = ({ route }) => {
 						</>
 					)}
 
-					{status == "open" ? (
-						counterparty ? (
-							<>
-								<View style={[containerStyles.card, { paddingVertical: 6, paddingHorizontal: 8 }]}>
-									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
-								</View>
-								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
-									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
-								</View>
-							</>
-						) : (
+					{/* Status Message */}
+					{statusMessage && (
+						<View style={[containerStyles.card, { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 }]}>
+							<FontAwesome6 name={statusMessage.icon} size={16} color={statusMessage.color} iconStyle="solid" />
+							<Text style={[textStyles.h6, { color: statusMessage.color, flex: 1 }]}>{statusMessage.text}</Text>
+						</View>
+					)}
+
+					{/* TX ID Input for payer when they can mark paid */}
+					{canMarkPaid && isPayer && (
+						<View style={{ marginVertical: 4 }}>
+							<QPInput
+								value={txIdInput}
+								onChangeText={setTxIdInput}
+								placeholder="ID de transacción"
+								prefixIconName="hashtag"
+							/>
+						</View>
+					)}
+
+					{status === "open" ? (
+						isOwner ? (
 							<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Estamos buscando un peer interesado en tu oferta.</Text>
 								<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
 							</View>
+						) : (
+							<>
+								{p2p?.User && (
+									<View style={[containerStyles.card, { paddingVertical: 6, paddingHorizontal: 8 }]}>
+										<ProfileContainerHorizontal user={p2p.User} size={40} showUsername={false} />
+									</View>
+								)}
+								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
+									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
+								</View>
+							</>
 						)
 					) : (
-						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 0, marginBottom: 10 }]}>
+						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 4 }]}>
 
 							{counterparty && (
-								<View style={{ paddingVertical: 6, paddingHorizontal: 8 }}>
+								<View style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
 									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
 								</View>
 							)}
@@ -621,7 +672,7 @@ const P2POffer = ({ route }) => {
 							iconColor={theme.colors.almostBlack}
 							iconStyle="solid"
 							loading={loadingMarkPaid}
-							disabled={loadingMarkPaid}
+							disabled={loadingMarkPaid || !txIdInput.trim()}
 						/>
 					)}
 

@@ -41,6 +41,7 @@ export const p2pApi = {
 			if (filters.ratio_max !== undefined)
 				params.append('ratio_max', filters.ratio_max.toString())
 			if (filters.coin) params.append('coin', filters.coin)
+			if (filters.orderBy) params.append('orderBy', filters.orderBy)
 
 			// Make the API request
 			const response = await apiClient.get(`/p2p/index?${params.toString()}`)
@@ -159,9 +160,9 @@ export const p2pApi = {
 	 * Mark escrow as paid by the payer
 	 * @param {string} p2p_uuid - The P2P UUID
 	 */
-	markPaid: async (p2p_uuid) => {
+	markPaid: async (p2p_uuid, tx_id = '') => {
 		try {
-			const response = await apiClient.post(`/p2p/${p2p_uuid}/paid`)
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/paid`, { tx_id })
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
 	},
