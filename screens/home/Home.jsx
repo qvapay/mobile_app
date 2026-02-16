@@ -86,7 +86,7 @@ const Home = ({ navigation }) => {
 			setIsLoading(true)
 			const result = await userApi.getUserProfile()
 			if (result.success && result.data) { updateUser(result.data) }
-		} catch (error) { console.error('Error loading user data:', error) }
+		} catch (error) { /* error loading user data */ }
 		finally { setIsLoading(false) }
 	}
 
@@ -96,8 +96,8 @@ const Home = ({ navigation }) => {
 			const result = await transferApi.getLatestTransactions({ take: 6 })
 			if (result.success) {
 				setLatestTransactions(result.data)
-			} else { console.error('Error fetching latest transactions:', result.error) }
-		} catch (error) { console.error('Error fetching latest transactions:', error) }
+			}
+		} catch (error) { /* error fetching transactions */ }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
@@ -109,8 +109,8 @@ const Home = ({ navigation }) => {
 				// filter out users with no image
 				const users = result.data.filter(user => user.image)
 				setLatestSentTransfersUsers(users)
-			} else { console.error('Error fetching latest sent transfers:', result.error) }
-		} catch (error) { console.error('Error fetching latest sent transfers:', error) }
+			}
+		} catch (error) { /* error fetching sent transfers */ }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
@@ -119,8 +119,8 @@ const Home = ({ navigation }) => {
 			if (!skipLoading) setIsLoading(true)
 			const result = await blogApi.getLatestPosts(3)
 			if (result.success) { setLatestBlogPosts(result.data) }
-			else { console.error('Error fetching latest blog posts:', result.error) }
-		} catch (error) { console.error('Error fetching latest blog posts:', error) }
+			}
+		} catch (error) { /* error fetching blog posts */ }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
@@ -136,7 +136,7 @@ const Home = ({ navigation }) => {
 			await fetchLatestSentTransfersUsers(true)
 			// Refresh latest blog posts
 			await fetchLatestBlogPosts(true)
-		} catch (error) { console.error('Error refreshing data:', error) }
+		} catch (error) { /* error refreshing data */ }
 		finally { setRefreshing(false) }
 	}
 

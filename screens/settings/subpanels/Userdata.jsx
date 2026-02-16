@@ -96,8 +96,7 @@ const Userdata = () => {
 			} else { Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario', text2: result.error || 'Error desconocido' }) }
 
 		} catch (error) {
-			console.error('Error loading user data:', error)
-			Toast.show({
+		Toast.show({
 				type: 'error',
 				text1: 'Error al cargar datos del usuario',
 				text2: error.message

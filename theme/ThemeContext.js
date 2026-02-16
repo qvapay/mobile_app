@@ -163,16 +163,13 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
 
     const changeThemeMode = async (mode) => {
 
-        console.log('🎨 ThemeContext - Changing theme mode to:', mode)
         setThemeMode(mode)
         updateTheme(mode)
 
         // Update settings if updateSettings function is provided
         if (updateSettings) {
-            console.log('🎨 ThemeContext - Updating settings with theme:', mode)
-            const result = await updateSettings('appearance', { theme: mode })
-            console.log('🎨 ThemeContext - Settings update result:', result)
-        } else { console.log('🎨 ThemeContext - No updateSettings function provided') }
+            await updateSettings('appearance', { theme: mode })
+        }
     }
 
     const toggleTheme = () => {

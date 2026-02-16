@@ -124,8 +124,7 @@ const LoginScreen = ({ navigation }) => {
 			if (!result.success) {
 				Toast.show({ type: 'error', text1: result.error, text2: result.details })
 				if (result.status === 401) {
-					console.log('Failed attempts:', failedAttempts)
-					setFailedAttempts(failedAttempts + 1)
+		setFailedAttempts(failedAttempts + 1)
 				}
 			}
 			if (result.success && result.status === 202) { setFailedAttempts(0) }

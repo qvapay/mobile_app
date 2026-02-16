@@ -69,7 +69,7 @@ const Withdraw = ({ navigation }) => {
 				setIsLoading(true)
 				const response = await apiClient.get('/coins/v2?enabled_out=true')
 				setAvailableCoins(response.data)
-			} catch (error) { console.warn('Error fetching enabled_out coins', error) }
+			} catch (error) { /* error fetching coins */ }
 			finally { setIsLoading(false) }
 		}
 		fetchCoins()
@@ -184,7 +184,7 @@ const Withdraw = ({ navigation }) => {
 			if (Array.isArray(raw)) { return raw }
 			return []
 		} catch (e) {
-			console.warn('Invalid working_data JSON for coin', selectedCoin?.tick)
+			// invalid working_data JSON
 			return []
 		}
 	}, [selectedCoin])

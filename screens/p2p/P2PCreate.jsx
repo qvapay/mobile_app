@@ -99,7 +99,7 @@ const P2PCreate = ({ navigation }) => {
 				const response = await coinsApi.index({ enabled_p2p: true })
 				setAvailableCoins(response.data)
 			} catch (error) {
-				console.warn("Error fetching enabled_p2p coins", error)
+				// error fetching coins
 			} finally { setIsLoading(false) }
 		}
 		fetchCoins()

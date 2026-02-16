@@ -168,16 +168,12 @@ export const SettingsProvider = ({ children }) => {
             // Load all settings from storage
             const storedSettings = await loadAllSettings()
 
-            console.log('⚙️ Stored settings:', storedSettings)
-
             // Merge with defaults for any missing settings
             const mergedSettings = mergeWithDefaults(storedSettings)
 
             setSettings(mergedSettings)
-            console.log('⚙️ Settings loaded - firstTime:', mergedSettings.appearance.firstTime)
 
         } catch (error) {
-            console.error('Error initializing settings:', error)
             setError('Failed to load settings')
             // Use default settings if loading fails
             setSettings(DEFAULT_SETTINGS)
@@ -416,7 +412,7 @@ export const SettingsProvider = ({ children }) => {
         try {
             return settings[category]?.[key] ?? defaultValue
         } catch (error) {
-            console.error('Error getting setting:', error)
+            // error getting setting
             return defaultValue
         }
     }

@@ -49,7 +49,6 @@ const SettingsMenu = ({ navigation }) => {
                     style: 'destructive',
                     onPress: async () => {
                         const result = await logout()
-                        console.log('🔐 Logout result:', result)
                         navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
                         if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
                     }

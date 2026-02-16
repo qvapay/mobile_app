@@ -57,8 +57,7 @@ const GiftCardDetail = ({ navigation, route }) => {
 					Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudo cargar la tarjeta de regalo' })
 				}
 			} catch (error) {
-				console.error('Error fetching gift card detail:', error)
-				Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar el detalle' })
+		Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar el detalle' })
 			} finally {
 				setIsLoading(false)
 			}
@@ -132,8 +131,7 @@ const GiftCardDetail = ({ navigation, route }) => {
 								Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudo realizar la compra' })
 							}
 						} catch (error) {
-							console.error('Error purchasing gift card:', error)
-							Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Ha ocurrido un error al procesar la compra' })
+		Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Ha ocurrido un error al procesar la compra' })
 						} finally {
 							setIsPurchasing(false)
 						}

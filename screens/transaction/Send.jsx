@@ -77,8 +77,8 @@ const Send = ({ navigation, route }) => {
 					// filter out users with no image
 					const users = result.data.filter(user => user.image)
 					setLatestSentTransfersUsers(users)
-				} else { console.error('Error fetching latest sent transfers:', result.error) }
-			} catch (error) { console.error('Error fetching latest sent transfers:', error) }
+				}
+			} catch (error) { /* error fetching sent transfers */ }
 			finally { setIsLoading(false) }
 		}
 		fetchLatestSentTransfersUsers()
@@ -91,10 +91,10 @@ const Send = ({ navigation, route }) => {
 				setIsLoadingUser(true)
 				const fetchUserData = async () => {
 					const result = await userApi.searchUser(incomingUserUuid)
-					if (result.success) { setUserFound(result.data[0]) }
+					if (result.success && result.data?.length > 0) { setUserFound(result.data[0]) }
 				}
 				fetchUserData()
-			} catch (error) { console.error('Error fetching user data:', error) }
+			} catch (error) { /* error fetching user data */ }
 			finally { setIsLoadingUser(false) }
 		}
 	}, [incomingUserUuid])

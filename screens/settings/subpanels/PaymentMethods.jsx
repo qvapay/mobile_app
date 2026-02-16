@@ -119,8 +119,6 @@ const PaymentMethods = () => {
 			return
 		}
 
-		console.log(selectedCoin)
-
 		if ((workingFields || []).length > 0) {
 			const allFilled = workingFields.every((field) => ((workingForm[keyFromFieldName(field.name)] ?? '').toString().trim()).length > 0)
 			if (!allFilled) {
@@ -128,8 +126,6 @@ const PaymentMethods = () => {
 				return
 			}
 		}
-
-		console.log(workingFields)
 
 		try {
 

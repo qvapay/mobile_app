@@ -51,8 +51,7 @@ const PhoneTopupIndex = ({ navigation }) => {
 			}
 			else { Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudieron obtener las recargas telefónicas' }) }
 		} catch (error) {
-			console.error('Error fetching phone packages:', error)
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las recargas' })
+		Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las recargas' })
 		} finally {
 			setIsLoading(false)
 			setIsRefreshing(false)

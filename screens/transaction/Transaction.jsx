@@ -80,12 +80,11 @@ const Transaction = ({ route, navigation }) => {
 				try {
 					await AsyncStorage.setItem(cacheKey, JSON.stringify(freshData))
 				} catch (cacheError) {
-					console.error('Error caching transaction:', cacheError)
+					// error caching transaction
 				}
 			}
 		} catch (error) {
-			console.error('Error fetching transaction details:', error)
-		} finally { setLoading(false) }
+			} finally { setLoading(false) }
 	}, [transaction.uuid])
 
 	// Load cached data first, then fetch fresh data from server
@@ -98,7 +97,7 @@ const Transaction = ({ route, navigation }) => {
 					setTransactionDetails(JSON.parse(cachedData))
 				}
 			} catch (error) {
-				console.error('Error loading cached transaction:', error)
+				// error loading cached transaction
 			}
 			fetchTransaction()
 		}

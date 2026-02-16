@@ -27,6 +27,7 @@ import { useAuth } from '../auth/AuthContext'
 
 // UI Components
 import QPAvatar from '../ui/particles/QPAvatar'
+import ErrorBoundary from '../ui/ErrorBoundary'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -49,6 +50,7 @@ const MainStack = ({ navigation }) => {
 	return (
 		<SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
 
+			<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
 			<Tab.Navigator
 				initialRouteName={ROUTES.HOME_SCREEN}
 				backBehavior='initialRoute'
@@ -128,6 +130,7 @@ const MainStack = ({ navigation }) => {
 				/>
 
 			</Tab.Navigator>
+			</ErrorBoundary>
 		</SafeAreaProvider>
 	)
 }

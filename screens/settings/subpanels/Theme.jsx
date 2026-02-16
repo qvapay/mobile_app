@@ -45,14 +45,14 @@ const Theme = () => {
 	const handleThemeSelect = async (themeId) => {
 		try {
 			await setThemeMode(themeId)
-		} catch (error) { console.error('🎨 Theme Screen - Error updating theme:', error) }
+		} catch (error) { /* error updating theme */ }
 	}
 
 	// Bottom bar labels toggle for Accessibility
 	const handleBottomBarLabelsToggle = async (value) => {
 		try {
 			await updateSettings('appearance', { bottomBarLabels: value })
-		} catch (error) { console.error('🎨 Theme Screen - Error updating bottom bar labels:', error) }
+		} catch (error) { /* error updating bottom bar labels */ }
 	}
 
 	// Theme Option Component

@@ -64,6 +64,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // UI Components
 import QPAvatar from './ui/particles/QPAvatar'
+import ErrorBoundary from './ui/ErrorBoundary'
 
 // Custom Back Button Component for consistent navigation
 const BackButton = ({ onPress, color }: { onPress: () => void; color: string }) => (
@@ -313,16 +314,18 @@ const ThemeProviderWithSettings = ({ children }: { children: React.ReactNode }) 
 
 function App() {
 	return (
-		<AuthProvider>
-			<SettingsProvider>
-				<ThemeProviderWithSettings>
-					<NavigationContainer>
-						<AppNavigator />
-						<Toast position="top" topOffset={40} />
-					</NavigationContainer>
-				</ThemeProviderWithSettings>
-			</SettingsProvider>
-		</AuthProvider>
+		<ErrorBoundary>
+			<AuthProvider>
+				<SettingsProvider>
+					<ThemeProviderWithSettings>
+						<NavigationContainer>
+							<AppNavigator />
+							<Toast position="top" topOffset={40} />
+						</NavigationContainer>
+					</ThemeProviderWithSettings>
+				</SettingsProvider>
+			</AuthProvider>
+		</ErrorBoundary>
 	)
 }
 

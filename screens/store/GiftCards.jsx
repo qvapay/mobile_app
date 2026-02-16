@@ -51,8 +51,7 @@ const GiftCards = ({ navigation }) => {
 			}
 			else { Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudieron obtener las tarjetas de regalo' }) }
 		} catch (error) {
-			console.error('Error fetching gift cards:', error)
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las tarjetas de regalo' })
+		Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las tarjetas de regalo' })
 		} finally {
 			setIsLoading(false)
 			setIsRefreshing(false)

@@ -110,7 +110,7 @@ const P2POffer = ({ route }) => {
 				setRating(parsed?.rating || 0)
 			}
 		} catch (error) {
-			console.error("Error loading cached P2P:", error)
+			// error loading cached P2P
 		}
 
 		// Step 2: Fetch fresh data from server
@@ -132,7 +132,7 @@ const P2POffer = ({ route }) => {
 				try {
 					await AsyncStorage.setItem(cacheKey, JSON.stringify(payload))
 				} catch (cacheError) {
-					console.error("Error caching P2P:", cacheError)
+					// error caching P2P
 				}
 			} else {
 				setError(response.error)
@@ -222,7 +222,7 @@ const P2POffer = ({ route }) => {
 				try {
 					await AsyncStorage.setItem(cacheKey, JSON.stringify(payload))
 				} catch (cacheError) {
-					console.error("Error updating P2P cache:", cacheError)
+					// error updating P2P cache
 				}
 			}
 		} catch (e) { /* ignore */ }

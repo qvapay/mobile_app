@@ -196,7 +196,7 @@ export const AuthProvider = ({ children }) => {
 
 			if (token) {
 				try { await authApi.logout() }
-				catch (apiError) { console.warn('API logout failed:', apiError.message) }
+				catch (apiError) { /* API logout failed */ }
 			}
 
 			// Clear all stored data
@@ -285,7 +285,7 @@ export const AuthProvider = ({ children }) => {
 				removeAuthToken(), // Use API client's token removal
 				AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
 			])
-		} catch (error) { console.warn('Error clearing auth data:', error) }
+		} catch (error) { /* error clearing auth data */ }
 	}
 
 	// Update user data in storage

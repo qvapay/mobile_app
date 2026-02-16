@@ -93,8 +93,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 							}
 							else { Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudo realizar la compra' }) }
 						} catch (error) {
-							console.error('Error purchasing phone package:', error)
-							Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Ha ocurrido un error al procesar la compra' })
+		Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Ha ocurrido un error al procesar la compra' })
 						} finally { setIsPurchasing(false) }
 					},
 				},

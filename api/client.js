@@ -33,7 +33,7 @@ apiClient.interceptors.request.use(
 		try {
 			const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
 			if (credentials) { config.headers.Authorization = `Bearer ${credentials.password}` }
-		} catch (error) { console.warn('Failed to get token from keychain:', error) }
+		} catch (error) { /* token retrieval failed */ }
 		return config
 	},
 	(error) => { return Promise.reject(error) }
@@ -51,15 +51,14 @@ apiClient.interceptors.response.use(
 				case 403:
 					try {
 						await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
-					} catch (clearError) { console.warn('Failed to clear token:', clearError) }
+					} catch (clearError) { /* token clear failed */ }
 					break
 				case 422:
-					console.warn('Validation error:', data)
 					break
 				case 500:
 					return Promise.reject({ message: "Ha ocurrido un error, contacte a soporte" })
 				default:
-					console.warn(`HTTP ${status} error:`, data)
+					break
 			}
 		} else if (error.request) {
 			return Promise.reject({ message: "No se ha podido conectar con el servidor" })
@@ -73,7 +72,7 @@ apiClient.interceptors.response.use(
 export const setAuthToken = async (token) => {
 	try {
 		await Keychain.setGenericPassword('token', token, { service: KEYCHAIN_SERVICE })
-	} catch (error) { console.warn('Failed to store token:', error) }
+	} catch (error) { /* token store failed */ }
 }
 
 export const getAuthToken = async () => {
@@ -81,7 +80,7 @@ export const getAuthToken = async () => {
 		const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
 		return credentials ? credentials.password : null
 	} catch (error) {
-		console.warn('Failed to get token:', error)
+		// token retrieval failed
 		return null
 	}
 }
@@ -91,7 +90,7 @@ export const removeAuthToken = async () => {
 	try {
 		await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
 	} catch (error) {
-		console.warn('Failed to remove token:', error)
+		// token removal failed
 	}
 }
 

@@ -94,8 +94,7 @@ const Add = ({ navigation }) => {
 				const response = await apiClient.get('/coins/v2?enabled_in=true')
 				setAvailableCoins(response.data)
 			} catch (error) {
-				console.error('Error fetching coins:', error)
-				setError('Error al cargar las monedas disponibles')
+		setError('Error al cargar las monedas disponibles')
 			} finally { setIsLoading(false) }
 		}
 		fetchAvailableCoins()

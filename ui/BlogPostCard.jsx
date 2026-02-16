@@ -31,7 +31,7 @@ const BlogPostCard = ({ post, index, totalItems }) => {
 	const handlePress = async () => {
 		try {
 			await Linking.openURL(post.link)
-		} catch (error) { console.error('Error opening blog post:', error) }
+		} catch (error) { /* error opening blog post */ }
 	}
 
 	return (

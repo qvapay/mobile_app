@@ -38,8 +38,6 @@ export const transferApi = {
 
         } catch (error) {
 
-            console.error('Error getting latest transactions:', error)
-
             // Return error response
             return {
                 success: false,
@@ -63,7 +61,6 @@ export const transferApi = {
                 status: response.status
             }
         } catch (error) {
-            console.error('Error getting latest sent transfers:', error)
             return {
                 success: false,
                 error: error.response?.data || error.message,
@@ -136,8 +133,6 @@ export const transferApi = {
 
         } catch (error) {
 
-            console.error('Error getting transaction details:', error)
-
             return {
                 success: false,
                 error: error.response?.data || error.message,
@@ -161,7 +156,6 @@ export const transferApi = {
                 status: response.status
             }
         } catch (error) {
-            console.error('Error getting transaction PDF:', error)
             return {
                 success: false,
                 error: error.response?.data || error.message,
@@ -169,8 +163,5 @@ export const transferApi = {
             }
         }
     },
-
-    // Pay a specific transaction Bill
-    // TODO
 
 }

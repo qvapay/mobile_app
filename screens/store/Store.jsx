@@ -50,7 +50,7 @@ const Store = ({ navigation }) => {
 					const cards = Array.isArray(giftCardResponse.data) ? giftCardResponse.data : []
 					setGiftCards(cards)
 				}
-			} catch (error) { console.error('Error fetching store data:', error) }
+			} catch (error) { /* error fetching store data */ }
 			finally { setIsLoading(false) }
 		}
 		fetchData()

@@ -78,7 +78,6 @@ const Onboard = ({ navigation }) => {
     const { updateSetting } = useSettings()
     const handleCompleteOnboarding = async () => {
         await updateSetting('appearance', 'firstTime', false)
-        console.log('🔄 Onboarding completed')
         navigation.navigate(ROUTES.WELCOME_SCREEN)
     }
 

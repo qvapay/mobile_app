@@ -187,7 +187,7 @@ const WelcomeScreen = ({ navigation }) => {
 		try {
 			await updateSetting('appearance', 'firstTime', true)
 			navigation.reset({ index: 0, routes: [{ name: ROUTES.ONBOARD_SCREEN }] })
-		} catch (error) { console.error('Error resetting app:', error) }
+		} catch (error) { /* error resetting app */ }
 	}
 
 	return (

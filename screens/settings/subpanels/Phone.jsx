@@ -74,7 +74,7 @@ const Phone = () => {
                     }
                 }
             }
-        } catch (error) { console.error('Error loading user data:', error) }
+        } catch (error) { /* error loading user data */ }
         finally { setIsLoadingData(false) }
     }
 
@@ -122,7 +122,7 @@ const Phone = () => {
                                 })
                             }
                         } catch (error) {
-                            console.error('Error removing phone:', error)
+                            // error removing phone
                             Toast.show({
                                 type: 'error',
                                 text1: 'Error',

@@ -73,7 +73,7 @@ const GoldCheck = ({ navigation }) => {
                     setGoldCheckStatus(result.data.golden_check)
                     setGoldCheckExpire(result.data.golden_expire)
                 }
-            } catch (error) { console.error('Error fetching gold check status:', error) }
+            } catch (error) { /* error fetching gold check status */ }
             finally { setIsLoading(false) }
         }
         getGoldCheckStatus()
@@ -122,7 +122,7 @@ const GoldCheck = ({ navigation }) => {
                             } else { Toast.show({ type: 'error', text1: result.error || 'No se pudo procesar la suscripción' }) }
 
                         } catch (error) {
-                            console.error('Error purchasing gold:', error)
+                            // error purchasing gold
                             Toast.show({ type: 'error', text1: 'Ocurrió un error al procesar la suscripción' })
                         }
                         finally {
