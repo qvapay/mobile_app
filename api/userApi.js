@@ -38,7 +38,7 @@ export const userApi = {
 			formData.append('confirmed', confirmed ? 'true' : 'false')
 
 			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
-			const response = await apiClient.post(`/user/kyc2/info`, formData, config)
+			const response = await apiClient.post(`/user/kyc`, formData, config)
 			return { success: response.status === 200, data: response.data, status: response.status }
 
 		} catch (error) {
@@ -56,7 +56,7 @@ export const userApi = {
 	 */
 	getKYCStatus: async () => {
 		try {
-			const response = await apiClient.get(`/user/kyc2`)
+			const response = await apiClient.get(`/user/kyc`)
 			return { success: true, data: response.data?.data, raw: response.data, status: response.status }
 		} catch (error) {
 			return { success: false, error: error.message, status: error.response?.status, details: error.response?.data }
@@ -84,7 +84,7 @@ export const userApi = {
 
 			// Axios won't set proper headers for multipart unless we override content-type boundary automatically
 			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
-			const response = await apiClient.post(`/user/kyc2`, formData, config)
+			const response = await apiClient.post(`/user/kyc`, formData, config)
 			return { success: response.status === 201 || response.status === 200, data: response.data, status: response.status }
 
 		} catch (error) {
@@ -124,7 +124,7 @@ export const userApi = {
 	 */
 	updateUser: async (userData) => {
 		try {
-			const response = await apiClient.put(`/user/update`, userData)
+			const response = await apiClient.post(`/user/update`, userData)
 			return {
 				success: true,
 				data: response.data,
@@ -342,7 +342,7 @@ export const userApi = {
 	 */
 	generate2FA: async () => {
 		try {
-			const response = await apiClient.post('/user/update/password', {})
+			const response = await apiClient.post('/auth/create-2fa', {})
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
 			if (error.response?.data) {
@@ -362,7 +362,7 @@ export const userApi = {
 	 */
 	activate2FA: async ({ code, secret }) => {
 		try {
-			const response = await apiClient.post('/user/update/password', { code, secret })
+			const response = await apiClient.post('/auth/create-2fa', { code, secret })
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
 			if (error.response?.data) {
@@ -379,7 +379,7 @@ export const userApi = {
 	 */
 	deactivate2FA: async () => {
 		try {
-			const response = await apiClient.post('/user/update/password', { delete: true })
+			const response = await apiClient.post('/auth/reset-2fa', {})
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
 			if (error.response?.data) {

@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 
-// Keychain and Async Storage
-// import * as Keychain from 'react-native-keychain'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // API
@@ -14,7 +12,6 @@ const AuthContext = createContext()
 
 // Storage keys
 const STORAGE_KEYS = {
-	TOKEN: 'token',
 	USER_DATA: 'user_data'
 }
 
@@ -68,9 +65,8 @@ export const AuthProvider = ({ children }) => {
 	}, [isAuthenticated, token])
 
 	// Initialize authentication state from storage
-	// This is the initial function to check if the user is authenticated
-	// If Token is found, check agains API if the token is valid
-	// If token is valid, set isAuthenticated to true
+	// Migrates legacy AsyncStorage token to Keychain on first run
+	// If token is found, validates against API
 	const initializeAuth = async () => {
 
 		try {

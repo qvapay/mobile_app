@@ -38,9 +38,7 @@ export const ROUTES = {
 
     // InOut Screens
     ADD: "Add",
-    ADD_INSTRUCTIONS_SCREEN: "AddInstructions",
     WITHDRAW: "Withdraw",
-    WITHDRAW_INSTRUCTIONS_SCREEN: "WithdrawInstructions",
     SCAN_SCREEN: "Scan",
 
     // Send, Receive and Confirm Screens
@@ -55,7 +53,6 @@ export const ROUTES = {
 
     // Profile & Settings Routes
     SETTINGS_MENU: "SettingsMenu",
-    PROFILE_SCREEN: "Profile",
 
     // Settings Subpanels
     GOLD_CHECK: "GoldCheck",

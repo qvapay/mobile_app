@@ -1,6 +1,6 @@
 import axios from 'axios'
 import DeviceInfo from 'react-native-device-info'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as Keychain from 'react-native-keychain'
 import config from '../config'
 
 const version = DeviceInfo.getVersion()
@@ -9,6 +9,8 @@ const deviceName = DeviceInfo.getDeviceName()
 
 const API_BASE_URL = config.API_BASE_URL
 const API_TIMEOUT = config.API_TIMEOUT
+
+const KEYCHAIN_SERVICE = 'com.qvapay.auth'
 
 // Create axios instance
 const apiClient = axios.create({
@@ -29,9 +31,9 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
 	async (config) => {
 		try {
-			const token = await AsyncStorage.getItem('token')
-			if (token) { config.headers.Authorization = `Bearer ${token}` }
-		} catch (error) { console.warn('Failed to get token from storage:', error) }
+			const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
+			if (credentials) { config.headers.Authorization = `Bearer ${credentials.password}` }
+		} catch (error) { console.warn('Failed to get token from keychain:', error) }
 		return config
 	},
 	(error) => { return Promise.reject(error) }
@@ -46,25 +48,16 @@ apiClient.interceptors.response.use(
 			const { status, data } = error.response
 			switch (status) {
 				case 401:
-					// Unauthorized - token expired or invalid
-					// We'll clear the token here but let the component handle the actual logout
-					try {
-						await AsyncStorage.removeItem('token')
-					} catch (clearError) { console.warn('Failed to clear token:', clearError) }
-					break
 				case 403:
-					// Forbidden
 					try {
-						await AsyncStorage.removeItem('token')
+						await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
 					} catch (clearError) { console.warn('Failed to clear token:', clearError) }
 					break
 				case 422:
-					// Validation error
 					console.warn('Validation error:', data)
 					break
 				case 500:
 					return Promise.reject({ message: "Ha ocurrido un error, contacte a soporte" })
-				// break
 				default:
 					console.warn(`HTTP ${status} error:`, data)
 			}
@@ -76,17 +69,17 @@ apiClient.interceptors.response.use(
 	}
 )
 
-// Helper functions
+// Helper functions - use Keychain for secure token storage
 export const setAuthToken = async (token) => {
 	try {
-		await AsyncStorage.setItem('token', token)
+		await Keychain.setGenericPassword('token', token, { service: KEYCHAIN_SERVICE })
 	} catch (error) { console.warn('Failed to store token:', error) }
 }
 
 export const getAuthToken = async () => {
 	try {
-		const tokenData = await AsyncStorage.getItem('token')
-		return tokenData || null
+		const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
+		return credentials ? credentials.password : null
 	} catch (error) {
 		console.warn('Failed to get token:', error)
 		return null
@@ -96,7 +89,7 @@ export const getAuthToken = async () => {
 // Helper function to remove auth token
 export const removeAuthToken = async () => {
 	try {
-		await AsyncStorage.removeItem('token')
+		await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
 	} catch (error) {
 		console.warn('Failed to remove token:', error)
 	}

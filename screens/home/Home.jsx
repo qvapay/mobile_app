@@ -212,7 +212,7 @@ const Home = ({ navigation }) => {
 				</View>
 
 				<View style={styles.section}>
-					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.BLOG)} />
+					<QPSectionHeader title="Últimas noticias" />
 					<View>
 						{latestBlogPosts.map((post, index) => (
 							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} />

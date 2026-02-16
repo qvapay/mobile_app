@@ -91,7 +91,7 @@ export const authApi = {
      */
     logout: async () => {
         try {
-            const response = await apiClient.get('/auth/logout')
+            const response = await apiClient.post('/auth/logout')
             return { success: true, data: response.data }
         } catch (error) { return { success: true, error: error.message, status: error.response.status } }
     },
