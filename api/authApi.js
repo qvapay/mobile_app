@@ -14,16 +14,12 @@ export const authApi = {
 
         try {
 
-			console.log("requesting")
-
             const response = await apiClient.post('/auth/login', {
                 email: credentials.email,
                 password: credentials.password,
                 two_factor_code: credentials.two_factor_code || '',
                 remember: true
             })
-
-			console.log("response", response)
 
             // If Prelogin is successful, we return the status and success
             if (response.status === 202) { return { status: response.status, success: true, notified: response.data.notified } }
@@ -38,8 +34,6 @@ export const authApi = {
             }
 
         } catch (error) {
-
-			console.log("error", error)
 
             // Handle specific API errors
             if (error?.response?.data) {

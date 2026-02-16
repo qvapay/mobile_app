@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 
 // Keychain and Async Storage
 // import * as Keychain from 'react-native-keychain'
@@ -34,6 +34,10 @@ export const AuthProvider = ({ children }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
+	// Track consecutive token check failures to distinguish transient network errors from invalid tokens
+	const tokenCheckFailures = useRef(0)
+	const MAX_TOKEN_FAILURES = 2
+
 	// Effect to check token validity periodically
 	// Check token every 30 seconds
 	useEffect(() => {
@@ -41,14 +45,26 @@ export const AuthProvider = ({ children }) => {
 			const interval = setInterval(async () => {
 				try {
 					const isValid = await authApi.checkToken(token)
-					if (!isValid.success) {
-						// await logout()
-						// TODO: If it was no possible to check the token, we do what?
+					if (isValid.success) {
+						tokenCheckFailures.current = 0
+					} else {
+						tokenCheckFailures.current += 1
+						if (tokenCheckFailures.current >= MAX_TOKEN_FAILURES) {
+							tokenCheckFailures.current = 0
+							await logout()
+						}
 					}
-				} catch (error) { console.log('Error checking token, maybe token is invalid or expired', error) }
+				} catch (error) {
+					tokenCheckFailures.current += 1
+					if (tokenCheckFailures.current >= MAX_TOKEN_FAILURES) {
+						tokenCheckFailures.current = 0
+						await logout()
+					}
+				}
 			}, 30000)
 			return () => clearInterval(interval)
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isAuthenticated, token])
 
 	// Initialize authentication state from storage

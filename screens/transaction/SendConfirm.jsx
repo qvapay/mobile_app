@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { useState, useRef } from 'react'
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Context and Theme
@@ -15,6 +15,7 @@ import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 // API
 import { userApi } from '../../api/userApi'
 import { transferApi } from '../../api/transferApi'
+import { withdrawApi } from '../../api/withdrawApi'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -44,11 +45,18 @@ const SendConfirm = ({ navigation, route }) => {
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingUser, setIsLoadingUser] = useState(true)
 
+	// PIN/OTP states
+	const [showPinStep, setShowPinStep] = useState(false)
+	const [sendingPin, setSendingPin] = useState(false)
+	const [twoFactorMethod, setTwoFactorMethod] = useState('pin')
+	const hasOTP = !!user?.two_factor_secret
+	const codeLength = twoFactorMethod === 'pin' ? 4 : 6
+	const [pin, setPin] = useState('')
+	const pinInputsRef = useRef([])
+	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
+
 	// Fetch recipient user data
-
-	// TODO: Some day, you will have a DeepLink and this will be useful
-	useEffect(() => {
-
+	useState(() => {
 		const fetchRecipientUser = async () => {
 			if (!user_uuid) {
 				setIsLoadingUser(false)
@@ -71,8 +79,65 @@ const SendConfirm = ({ navigation, route }) => {
 		fetchRecipientUser()
 	}, [user_uuid, navigation])
 
+	// Request PIN via email
+	const handleRequestPin = async () => {
+		try {
+			setSendingPin(true)
+			const result = await withdrawApi.requestPin()
+			if (result.success) {
+				Toast.show({ type: 'success', text1: 'PIN enviado', text2: 'Revisa tu correo electrónico' })
+			} else {
+				Toast.show({ type: 'error', text1: result.error || 'No se pudo enviar el PIN' })
+			}
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error al solicitar el PIN' })
+		} finally { setSendingPin(false) }
+	}
+
+	// Switch between PIN and OTP
+	const handleMethodChange = (method) => {
+		setTwoFactorMethod(method)
+		setPin('')
+		pinInputsRef.current = new Array(method === 'pin' ? 4 : 6).fill(null)
+		setTimeout(() => { pinInputsRef.current[0]?.focus() }, 0)
+	}
+
+	// Handle PIN input change
+	const handlePinChange = (text, index) => {
+		const numericText = text.replace(/[^0-9]/g, '')
+		const newPin = pin.split('')
+		newPin[index] = numericText
+		const updatedPin = newPin.join('')
+		setPin(updatedPin)
+		if (numericText && index < codeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
+	}
+
+	// Handle PIN input focus/blur
+	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
+	const handlePinBlur = () => { setFocusedInputIndex(null) }
+
+	// Handle PIN backspace
+	const handlePinKeyPress = (e, index) => {
+		if (e.nativeEvent.key === 'Backspace') {
+			if (pin[index]) {
+				const newPin = pin.split('')
+				newPin[index] = ''
+				setPin(newPin.join(''))
+			} else if (index > 0) {
+				const newPin = pin.split('')
+				newPin[index - 1] = ''
+				setPin(newPin.join(''))
+				pinInputsRef.current[index - 1]?.focus()
+			}
+		}
+	}
+
 	// Execute the actual transaction
 	const executeTransaction = async () => {
+		if (!pin || pin.length !== codeLength) {
+			Toast.show({ type: 'error', text1: twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos' })
+			return
+		}
 
 		try {
 			setIsLoading(true)
@@ -80,7 +145,7 @@ const SendConfirm = ({ navigation, route }) => {
 				amount: send_amount,
 				description: description,
 				to: recipientUser.uuid,
-				pin: user.pin
+				pin: pin
 			})
 
 			if (result.success) {
@@ -193,6 +258,69 @@ const SendConfirm = ({ navigation, route }) => {
 					</View>
 				</View>
 
+				{/* PIN/OTP Step */}
+				{showPinStep && (
+					<View style={{ marginTop: 10 }}>
+
+						{/* PIN/OTP Toggle - only show if user has OTP */}
+						{hasOTP && (
+							<View style={[styles.methodToggle, { borderColor: theme.colors.elevation }]}>
+								<Pressable
+									onPress={() => handleMethodChange('pin')}
+									style={[styles.methodToggleButton, styles.methodToggleLeft, twoFactorMethod === 'pin' && { backgroundColor: theme.colors.primary }]}
+								>
+									<Text style={[textStyles.h6, { color: twoFactorMethod === 'pin' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>PIN</Text>
+								</Pressable>
+								<Pressable
+									onPress={() => handleMethodChange('otp')}
+									style={[styles.methodToggleButton, styles.methodToggleRight, { borderLeftWidth: 1, borderLeftColor: theme.colors.elevation }, twoFactorMethod === 'otp' && { backgroundColor: theme.colors.primary }]}
+								>
+									<Text style={[textStyles.h6, { color: twoFactorMethod === 'otp' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>OTP</Text>
+								</Pressable>
+							</View>
+						)}
+
+						{/* Request PIN button - only in PIN mode */}
+						{twoFactorMethod === 'pin' && (
+							<Pressable
+								onPress={handleRequestPin}
+								disabled={sendingPin}
+								style={[styles.requestPinButton, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary, marginTop: hasOTP ? 16 : 0 }]}
+							>
+								<FontAwesome6 name="envelope" size={16} color={theme.colors.primary} iconStyle="solid" />
+								<Text style={[textStyles.h6, { color: theme.colors.primary, marginLeft: 8 }]}>
+									{sendingPin ? 'Enviando...' : 'Recibir PIN por correo'}
+								</Text>
+							</Pressable>
+						)}
+
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20 }]}>
+							{twoFactorMethod === 'pin' ? 'Ingresa el PIN de 4 dígitos:' : 'Ingresa tu código OTP:'}
+						</Text>
+						<View style={styles.pinContainer}>
+							{Array.from({ length: codeLength }, (_, index) => (
+								<TextInput
+									key={`${twoFactorMethod}-${index}`}
+									ref={(ref) => pinInputsRef.current[index] = ref}
+									style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
+									value={pin[index] || ''}
+									onChangeText={(text) => handlePinChange(text, index)}
+									onFocus={() => handlePinFocus(index)}
+									onBlur={handlePinBlur}
+									onKeyPress={(e) => handlePinKeyPress(e, index)}
+									keyboardType="numeric"
+									maxLength={1}
+									secureTextEntry
+									textAlign="center"
+									selectTextOnFocus
+									placeholder={focusedInputIndex === index ? "" : "0"}
+									placeholderTextColor={theme.colors.tertiaryText}
+								/>
+							))}
+						</View>
+					</View>
+				)}
+
 				{/* Security Notice */}
 				<View style={{
 					backgroundColor: theme.colors.elevation,
@@ -215,13 +343,21 @@ const SendConfirm = ({ navigation, route }) => {
 
 			{/* Action Buttons - Outside ScrollView */}
 			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-				<QPButton
-					title="Confirmar Envío"
-					onPress={executeTransaction}
-					loading={isLoading}
-					disabled={isLoading}
-					textStyle={{ color: theme.colors.buttonText }}
-				/>
+				{showPinStep ? (
+					<QPButton
+						title="Confirmar Envío"
+						onPress={executeTransaction}
+						loading={isLoading}
+						disabled={isLoading || !pin || pin.length < codeLength}
+						textStyle={{ color: theme.colors.buttonText }}
+					/>
+				) : (
+					<QPButton
+						title="Continuar"
+						onPress={() => { setShowPinStep(true); setPin('') }}
+						textStyle={{ color: theme.colors.buttonText }}
+					/>
+				)}
 
 				<QPButton
 					title="Cancelar"
@@ -235,5 +371,57 @@ const SendConfirm = ({ navigation, route }) => {
 		</View>
 	)
 }
+
+const styles = StyleSheet.create({
+	methodToggle: {
+		flexDirection: 'row',
+		borderRadius: 10,
+		borderWidth: 1,
+		overflow: 'hidden',
+	},
+	methodToggleButton: {
+		flex: 1,
+		paddingVertical: 12,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	methodToggleLeft: {
+		borderTopLeftRadius: 9,
+		borderBottomLeftRadius: 9,
+	},
+	methodToggleRight: {
+		borderTopRightRadius: 9,
+		borderBottomRightRadius: 9,
+	},
+	requestPinButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		padding: 14,
+		borderRadius: 12,
+		borderWidth: 1,
+	},
+	pinContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		marginVertical: 20,
+		paddingHorizontal: 20,
+		gap: 8,
+	},
+	pinInput: {
+		flex: 1,
+		height: 60,
+		borderRadius: 12,
+		borderWidth: 1,
+		fontSize: 24,
+		fontWeight: 'bold',
+		textAlign: 'center',
+	},
+	pinInputSmall: {
+		height: 54,
+		borderRadius: 10,
+		fontSize: 20,
+	},
+})
 
 export default SendConfirm
