@@ -119,7 +119,6 @@ const Home = ({ navigation }) => {
 			if (!skipLoading) setIsLoading(true)
 			const result = await blogApi.getLatestPosts(3)
 			if (result.success) { setLatestBlogPosts(result.data) }
-			}
 		} catch (error) { /* error fetching blog posts */ }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
