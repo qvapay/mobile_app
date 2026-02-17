@@ -1,6 +1,6 @@
 // React Components
-import { Pressable } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { Linking, Pressable } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
 
 // Navigation Components
 import { NavigationContainer, useNavigation } from '@react-navigation/native'
@@ -20,6 +20,9 @@ import { createContainerStyles } from './theme/themeUtils'
 
 // Routes
 import { ROUTES } from './routes'
+
+// Deep Linking
+import linking from './linking'
 
 // Screens without auth
 import SplashScreen from './screens/splash/Splash'
@@ -66,21 +69,23 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import QPAvatar from './ui/particles/QPAvatar'
 import ErrorBoundary from './ui/ErrorBoundary'
 
-// Custom Back Button Component for consistent navigation
-const BackButton = ({ onPress, color }: { onPress: () => void; color: string }) => (
-	<Pressable onPress={onPress} style={{ padding: 8, marginLeft: -8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} >
-		<FontAwesome6 name="arrow-left" size={22} color={color} iconStyle="solid" />
-	</Pressable>
-)
+// Parse P2P UUID from a deep link URL
+const parseP2PUuid = (url: string): string | null => {
+	const match = url.match(/\/p2p\/([^/?#]+)/)
+	if (match) return match[1]
+	const schemeMatch = url.match(/qvapay:\/\/p2p\/([^/?#]+)/)
+	if (schemeMatch) return schemeMatch[1]
+	return null
+}
 
 // Main App Navigator Component
-const AppNavigator = () => {
+const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObject<string | null> }) => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 
-	// Consistent header options with custom back button
+	// Consistent header options using native back button (works with iOS liquid glass)
 	const getHeaderOptions = (title: string, options?: {
 		animation?: 'slide_from_right' | 'slide_from_bottom' | 'slide_from_left' | 'none';
 		headerRight?: () => React.ReactNode;
@@ -88,12 +93,8 @@ const AppNavigator = () => {
 		headerTitle: title,
 		headerTitleAlign: 'center' as const,
 		headerShown: true,
-		headerBackVisible: false,
 		headerShadowVisible: false,
 		animation: options?.animation || 'slide_from_right' as const,
-		headerLeft: () => (
-			<BackButton onPress={() => navigation.goBack()} color={theme.colors.primaryText} />
-		),
 		...(options?.headerRight && { headerRight: options.headerRight }),
 	})
 
@@ -123,13 +124,48 @@ const AppNavigator = () => {
 		if (splashReady && !authLoading && !settingsLoading) {
 			const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
 			if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
+				// Check for a pending deep link after login
+				const pendingUrl = pendingDeepLinkRef.current
+				if (pendingUrl) {
+					pendingDeepLinkRef.current = null
+					const uuid = parseP2PUuid(pendingUrl)
+					if (uuid) {
+						navigation.reset({
+							index: 1,
+							routes: [
+								{ name: ROUTES.MAIN_STACK as never },
+								{ name: ROUTES.P2P_OFFER_SCREEN as never, params: { p2p_uuid: uuid } as never },
+							],
+						})
+						return
+					}
+				}
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK as never }] })
 			} else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
+				// Capture the current deep link URL before resetting to Welcome
+				Linking.getInitialURL().then((url) => {
+					if (url && parseP2PUuid(url)) {
+						pendingDeepLinkRef.current = url
+						Toast.show({ type: 'info', text1: 'Inicia sesión para ver la oferta P2P' })
+					}
+				})
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [splashReady, authLoading, settingsLoading, isAuthenticated, firstTime])
+
+	// Listen for foreground deep links while unauthenticated
+	useEffect(() => {
+		const subscription = Linking.addEventListener('url', ({ url }) => {
+			if (!isAuthenticated && url && parseP2PUuid(url)) {
+				pendingDeepLinkRef.current = url
+				Toast.show({ type: 'info', text1: 'Inicia sesión para ver la oferta P2P' })
+			}
+		})
+		return () => subscription.remove()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthenticated])
 
 	// Show splash screen if still loading or if minimum time hasn't passed
 	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
@@ -239,11 +275,8 @@ const AppNavigator = () => {
 				name={ROUTES.SCAN_SCREEN}
 				component={Scan}
 				options={{
-					headerTitle: '',
-					animation: 'slide_from_bottom',		// slide_from_left but check white background issue
+					animation: 'slide_from_bottom',
 					headerShown: false,
-					headerBackVisible: false,
-					headerShadowVisible: false,
 				}}
 			/>
 
@@ -313,13 +346,15 @@ const ThemeProviderWithSettings = ({ children }: { children: React.ReactNode }) 
 }
 
 function App() {
+	const pendingDeepLinkRef = useRef<string | null>(null)
+
 	return (
 		<ErrorBoundary>
 			<AuthProvider>
 				<SettingsProvider>
 					<ThemeProviderWithSettings>
-						<NavigationContainer>
-							<AppNavigator />
+						<NavigationContainer linking={linking as any}>
+							<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
 							<Toast position="top" topOffset={40} />
 						</NavigationContainer>
 					</ThemeProviderWithSettings>

@@ -2,7 +2,6 @@ import { Pressable } from 'react-native'
 
 // Navigation
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { useNavigation } from '@react-navigation/native'
 const Stack = createNativeStackNavigator()
 
 // FontAwesome6
@@ -32,26 +31,11 @@ import Notifications from './subpanels/Notifications'
 import PaymentMethods from './subpanels/PaymentMethods'
 import Contacts from './subpanels/Contacts'
 
-// Custom Back Button Component
-const BackButton = ({ color }) => {
-	const navigation = useNavigation()
-	return (
-		<Pressable onPress={() => navigation.goBack()} style={{ padding: 8, marginLeft: -8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} >
-			<FontAwesome6 name="arrow-left" size={22} color={color} iconStyle="solid" />
-		</Pressable>
-	)
-}
-
 // Settings Stack
 const SettingsStack = ({ navigation }) => {
 
 	// Contexts
 	const { theme } = useTheme()
-
-	// Common header options with custom back button
-	const headerWithBack = {
-		headerLeft: () => <BackButton color={theme.colors.primaryText} />
-	}
 
 	return (
 		<Stack.Navigator
@@ -59,12 +43,12 @@ const SettingsStack = ({ navigation }) => {
 			screenOptions={{
 				headerTitle: '',
 				headerShown: true,
+				headerBackButtonDisplayMode: 'minimal',
 				headerStyle: {
 					backgroundColor: theme.colors.background,
 				},
 				headerTintColor: theme.colors.primaryText,
 				headerShadowVisible: false,
-				headerBackVisible: false,
 			}}
 		>
 
@@ -72,7 +56,11 @@ const SettingsStack = ({ navigation }) => {
 				name={ROUTES.SETTINGS_MENU}
 				component={SettingsMenu}
 				options={{
-					...headerWithBack,
+					headerLeft: () => (
+						<Pressable onPress={() => navigation.goBack()} hitSlop={10}>
+							<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+						</Pressable>
+					),
 					headerRight: () => (
 						<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })}>
 							<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
@@ -81,83 +69,19 @@ const SettingsStack = ({ navigation }) => {
 				}}
 			/>
 
-			<Stack.Screen
-				name={ROUTES.GOLD_CHECK}
-				component={GoldCheck}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.REFERALS}
-				component={Referals}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.THEME}
-				component={Theme}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.USERDATA}
-				component={Userdata}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.PHONE}
-				component={Phone}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.TELEGRAM}
-				component={Telegram}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.PASSWORD}
-				component={Password}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.TWO_FACTOR}
-				component={TwoFactor}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.KYC}
-				component={KYC}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.DELETE_ACCOUNT}
-				component={DeleteAccount}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.NOTIFICATIONS}
-				component={Notifications}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.PAYMENT_METHODS}
-				component={PaymentMethods}
-				options={headerWithBack}
-			/>
-
-			<Stack.Screen
-				name={ROUTES.CONTACTS}
-				component={Contacts}
-				options={headerWithBack}
-			/>
+			<Stack.Screen name={ROUTES.GOLD_CHECK} component={GoldCheck} />
+			<Stack.Screen name={ROUTES.REFERALS} component={Referals} />
+			<Stack.Screen name={ROUTES.THEME} component={Theme} />
+			<Stack.Screen name={ROUTES.USERDATA} component={Userdata} />
+			<Stack.Screen name={ROUTES.PHONE} component={Phone} />
+			<Stack.Screen name={ROUTES.TELEGRAM} component={Telegram} />
+			<Stack.Screen name={ROUTES.PASSWORD} component={Password} />
+			<Stack.Screen name={ROUTES.TWO_FACTOR} component={TwoFactor} />
+			<Stack.Screen name={ROUTES.KYC} component={KYC} />
+			<Stack.Screen name={ROUTES.DELETE_ACCOUNT} component={DeleteAccount} />
+			<Stack.Screen name={ROUTES.NOTIFICATIONS} component={Notifications} />
+			<Stack.Screen name={ROUTES.PAYMENT_METHODS} component={PaymentMethods} />
+			<Stack.Screen name={ROUTES.CONTACTS} component={Contacts} />
 
 		</Stack.Navigator>
 	)

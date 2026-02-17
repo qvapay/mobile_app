@@ -73,7 +73,7 @@ const SettingsMenu = ({ navigation }) => {
                 <Pressable onPress={() => Linking.openURL('https://t.me/qvapay')}>
                     <FontAwesome6 name="telegram" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>
-                <Pressable onPress={() => Linking.openURL('https://github.com/qvapay/mobile_app')}>
+                <Pressable onPress={() => Linking.openURL('https://github.com/qvapay')}>
                     <FontAwesome6 name="github" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>
                 <Pressable onPress={() => Linking.openURL('https://twitter.com/qvapay')}>
