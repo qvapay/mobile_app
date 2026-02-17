@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useState, useEffect, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
@@ -10,6 +10,7 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPInput from '../../ui/particles/QPInput'
 import QPProduct from '../../ui/particles/QPProduct'
 import QPSectionHeader from '../../ui/particles/QPSectionHeader'
+import QPLoader from '../../ui/particles/QPLoader'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -19,6 +20,9 @@ import { ROUTES } from '../../routes'
 
 // API
 import { storeApi } from '../../api/storeApi'
+
+// Toast
+import Toast from 'react-native-toast-message'
 
 // Store component
 const Store = ({ navigation }) => {
@@ -34,31 +38,62 @@ const Store = ({ navigation }) => {
 	const [search, setSearch] = useState('')
 	const [topupPlans, setTopupPlans] = useState([])
 	const [giftCards, setGiftCards] = useState([])
-	const [isLoading, setIsLoading] = useState(false)
+	const [isLoading, setIsLoading] = useState(true)
+	const [isRefreshing, setIsRefreshing] = useState(false)
 
-	// Effects Topups + Gift Cards
-	useEffect(() => {
-		const fetchData = async () => {
-			setIsLoading(true)
-			try {
-				const [topupResponse, giftCardResponse] = await Promise.all([
-					storeApi.phonePackages(),
-					storeApi.getGiftCards({ featured: true, take: 6 }),
-				])
-				if (topupResponse.success) { setTopupPlans(topupResponse.data || []) }
-				if (giftCardResponse.success) {
-					const cards = Array.isArray(giftCardResponse.data) ? giftCardResponse.data : []
-					setGiftCards(cards)
-				}
-			} catch (error) { /* error fetching store data */ }
-			finally { setIsLoading(false) }
+	// Fetch store data
+	const fetchData = useCallback(async (refresh = false) => {
+		if (refresh) { setIsRefreshing(true) }
+		else { setIsLoading(true) }
+
+		try {
+			const [topupResponse, giftCardResponse] = await Promise.all([
+				storeApi.phonePackages(),
+				storeApi.getGiftCards({ featured: true, take: 6 }),
+			])
+
+			if (topupResponse.success) {
+				setTopupPlans(topupResponse.data || [])
+			} else {
+				Toast.show({ type: 'error', text1: 'Recargas', text2: topupResponse.error || 'No se pudieron cargar las recargas' })
+			}
+
+			if (giftCardResponse.success) {
+				const cards = Array.isArray(giftCardResponse.data) ? giftCardResponse.data : []
+				setGiftCards(cards)
+			} else {
+				Toast.show({ type: 'error', text1: 'Tarjetas', text2: giftCardResponse.error || 'No se pudieron cargar las tarjetas de regalo' })
+			}
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo conectar con el servidor' })
+		} finally {
+			setIsLoading(false)
+			setIsRefreshing(false)
 		}
-		fetchData()
 	}, [])
+
+	// Initial load
+	useEffect(() => { fetchData() }, [fetchData])
+
+	// Loading state
+	if (isLoading) {
+		return (
+			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+				<QPLoader />
+			</View>
+		)
+	}
 
 	return (
 		<View style={[containerStyles.subContainer]}>
-			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+			<ScrollView
+				style={styles.scrollView}
+				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+				showsVerticalScrollIndicator={false}
+				refreshControl={
+					<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchData(true)} tintColor={theme.colors.primary} />
+				}
+			>
 
 				{/* Search bar */}
 				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />
@@ -66,21 +101,33 @@ const Store = ({ navigation }) => {
 				{/* Mobile top-up plans */}
 				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
 					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)} />
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList} >
-						{topupPlans.map((plan) => (
-							<QPProduct key={plan.id} name={plan.name} price={plan.price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
-						))}
-					</ScrollView>
+					{topupPlans.length > 0 ? (
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+							{topupPlans.map((plan) => (
+								<QPProduct key={plan.id} name={plan.name} price={plan.price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
+							))}
+						</ScrollView>
+					) : (
+						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
+							No hay recargas disponibles
+						</Text>
+					)}
 				</View>
 
 				{/* Gift cards */}
 				<View style={[styles.section, { gap: 5 }]}>
 					<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-						{giftCards.map((card) => (
-							<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} />
-						))}
-					</ScrollView>
+					{giftCards.length > 0 ? (
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+							{giftCards.map((card) => (
+								<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} />
+							))}
+						</ScrollView>
+					) : (
+						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
+							No hay tarjetas disponibles
+						</Text>
+					)}
 				</View>
 
 			</ScrollView>

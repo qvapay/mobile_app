@@ -66,14 +66,15 @@ const GiftCardDetail = ({ navigation, route }) => {
 	}, [uuid, navigation])
 
 	// Get base price for the selected option
+	// Backend already returns prices in dollars (converted from cents)
 	const getBasePrice = () => {
 		if (!selectedOption) return 0
 		if (selectedOption.priceType === 'FIXED') {
-			return (selectedOption.price?.fixed || 0) / 100
+			return selectedOption.price?.fixed || 0
 		}
-		// RANGE: use the amount entered by user
+		// RANGE: use the amount entered by user (already in dollars)
 		const amount = parseFloat(rangeAmount)
-		return isNaN(amount) ? 0 : amount / 100
+		return isNaN(amount) ? 0 : amount
 	}
 
 	// Calculate tax amount
@@ -87,12 +88,13 @@ const GiftCardDetail = ({ navigation, route }) => {
 	const getTotal = () => getBasePrice() + getTax()
 
 	// Validate range amount
+	// Backend already returns prices in dollars (converted from cents)
 	const isRangeValid = () => {
 		if (!selectedOption || selectedOption.priceType !== 'RANGE') return true
 		const amount = parseFloat(rangeAmount)
 		if (isNaN(amount) || amount <= 0) return false
-		const min = (selectedOption.price?.min || 0) / 100
-		const max = (selectedOption.price?.max || Infinity) / 100
+		const min = selectedOption.price?.min || 0
+		const max = selectedOption.price?.max || Infinity
 		return amount >= min && amount <= max
 	}
 
@@ -196,7 +198,7 @@ const GiftCardDetail = ({ navigation, route }) => {
 						{card.options.map((option) => {
 							const isSelected = selectedOption?.code === option.code
 							const isFixed = option.priceType === 'FIXED'
-							const displayPrice = isFixed ? `$${((option.price?.fixed || 0) / 100).toFixed(2)}` : `$${((option.price?.min || 0) / 100).toFixed(2)} - $${((option.price?.max || 0) / 100).toFixed(2)}`
+							const displayPrice = isFixed ? `$${(option.price?.fixed || 0).toFixed(2)}` : `$${(option.price?.min || 0).toFixed(2)} - $${(option.price?.max || 0).toFixed(2)}`
 
 							return (
 								<Pressable
@@ -244,14 +246,14 @@ const GiftCardDetail = ({ navigation, route }) => {
 						<QPInput
 							value={rangeAmount}
 							onChangeText={setRangeAmount}
-							placeholder={`Min $${((selectedOption.price?.min || 0) / 100).toFixed(2)} - Max $${((selectedOption.price?.max || 0) / 100).toFixed(2)}`}
+							placeholder={`Min $${(selectedOption.price?.min || 0).toFixed(2)} - Max $${(selectedOption.price?.max || 0).toFixed(2)}`}
 							prefixIconName="dollar-sign"
 							keyboardType="decimal-pad"
 							style={styles.amountInput}
 						/>
 						{rangeAmount && !isRangeValid() && (
 							<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-								El monto debe estar entre ${((selectedOption.price?.min || 0) / 100).toFixed(2)} y ${((selectedOption.price?.max || 0) / 100).toFixed(2)}
+								El monto debe estar entre ${(selectedOption.price?.min || 0).toFixed(2)} y ${(selectedOption.price?.max || 0).toFixed(2)}
 							</Text>
 						)}
 					</View>
