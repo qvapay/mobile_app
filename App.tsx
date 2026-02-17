@@ -57,6 +57,7 @@ import PhoneTopupPurchase from './screens/store/PhoneTopupPurchase'
 import GiftCards from './screens/store/GiftCards'
 import GiftCardDetail from './screens/store/GiftCardDetail'
 import MyPurchases from './screens/store/MyPurchases'
+import PurchaseDetail from './screens/store/PurchaseDetail'
 
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
@@ -331,11 +332,16 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				options={getHeaderOptions('')}
 			/>
 
-			{/* My Purchases Screen */}
+			{/* My Purchases Screens */}
 			<Stack.Screen
 				name={ROUTES.MY_PURCHASES}
 				component={MyPurchases}
 				options={getHeaderOptions('Mis Compras')}
+			/>
+			<Stack.Screen
+				name={ROUTES.PURCHASE_DETAIL}
+				component={PurchaseDetail}
+				options={getHeaderOptions('')}
 			/>
 
 			{/* Accesible Screens */}

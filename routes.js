@@ -33,6 +33,7 @@ export const ROUTES = {
     GIFT_CARDS: "GiftCards",
     GIFT_CARD_DETAIL: "GiftCardDetail",
     MY_PURCHASES: "MyPurchases",
+    PURCHASE_DETAIL: "PurchaseDetail",
     P2P_SCREEN: "P2P",
     P2P_CREATE_SCREEN: "P2PCreate",
 	P2P_OFFER_SCREEN: "P2POffer",

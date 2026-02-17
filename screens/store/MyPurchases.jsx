@@ -43,7 +43,6 @@ const MyPurchases = ({ navigation }) => {
 	const [purchases, setPurchases] = useState([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [isRefreshing, setIsRefreshing] = useState(false)
-	const [loadingId, setLoadingId] = useState(null)
 
 	// Fetch purchases
 	const fetchPurchases = useCallback(async (refresh = false) => {
@@ -68,21 +67,9 @@ const MyPurchases = ({ navigation }) => {
 	// Initial load
 	useEffect(() => { fetchPurchases() }, [fetchPurchases])
 
-	// Handle purchase tap - fetch detail and navigate to Transaction
-	const handlePurchasePress = async (purchase) => {
-		setLoadingId(purchase.id)
-		try {
-			const response = await storeApi.getPurchaseDetail(purchase.id)
-			if (response.success && response.data?.transaction?.uuid) {
-				navigation.navigate(ROUTES.TRANSACTION, { transaction: { uuid: response.data.transaction.uuid } })
-			} else {
-				Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo obtener el detalle de la compra' })
-			}
-		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo conectar con el servidor' })
-		} finally {
-			setLoadingId(null)
-		}
+	// Handle purchase tap - navigate to PurchaseDetail
+	const handlePurchasePress = (purchase) => {
+		navigation.navigate(ROUTES.PURCHASE_DETAIL, { purchaseId: purchase.id })
 	}
 
 	// Get logo URL (same pattern as QPProduct)
@@ -95,25 +82,18 @@ const MyPurchases = ({ navigation }) => {
 	const renderItem = ({ item }) => {
 		const logoUrl = getLogoUrl(item.service_logo)
 		const color = getStatusColor(item.status, theme)
-		const isItemLoading = loadingId === item.id
 
 		return (
-			<Pressable
-				style={[styles.purchaseItem, { backgroundColor: theme.colors.surface }]}
-				onPress={() => handlePurchasePress(item)}
-				disabled={isItemLoading}
-			>
+			<Pressable style={[styles.purchaseItem, { backgroundColor: theme.colors.surface }]} onPress={() => handlePurchasePress(item)} >
 				<View style={[styles.logoContainer, { backgroundColor: theme.colors.elevationLight }]}>
 					{logoUrl ? (
 						<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
 					) : null}
 				</View>
-
 				<View style={styles.itemContent}>
 					<Text style={[textStyles.h6, { fontWeight: '600' }]} numberOfLines={1}>{item.service_name}</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{getShortDateTime(item.created_at)}</Text>
 				</View>
-
 				<View style={[styles.statusBadge, { backgroundColor: color }]}>
 					<Text style={[textStyles.h7, { color: theme.colors.almostBlack, fontWeight: '600' }]}>
 						{statusText(item.status)}
@@ -155,9 +135,7 @@ const MyPurchases = ({ navigation }) => {
 				renderItem={renderItem}
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
-				refreshControl={
-					<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchPurchases(true)} tintColor={theme.colors.primary} />
-				}
+				refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchPurchases(true)} tintColor={theme.colors.primary} />}
 			/>
 		</View>
 	)
