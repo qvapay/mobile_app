@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Dimensions, Animated, Alert, Linking, Pressable } from 'react-native'
+import Svg, { Path } from 'react-native-svg'
 
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
@@ -30,6 +31,26 @@ import { ROUTES } from '../../routes'
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 const SCAN_AREA_SIZE = Math.min(screenWidth * 0.8, 300)
+const CUTOUT_R = 22
+const CUTOUT_X = (screenWidth - SCAN_AREA_SIZE) / 2
+const CUTOUT_Y = (screenHeight - SCAN_AREA_SIZE) / 2
+
+// SVG path: full-screen rect with a rounded-rect hole (evenodd)
+const OVERLAY_PATH = [
+	// Outer rect (clockwise)
+	`M0,0 H${screenWidth} V${screenHeight} H0 Z`,
+	// Inner rounded rect (counter-clockwise for evenodd cutout)
+	`M${CUTOUT_X + CUTOUT_R},${CUTOUT_Y}`,
+	`H${CUTOUT_X + SCAN_AREA_SIZE - CUTOUT_R}`,
+	`Q${CUTOUT_X + SCAN_AREA_SIZE},${CUTOUT_Y} ${CUTOUT_X + SCAN_AREA_SIZE},${CUTOUT_Y + CUTOUT_R}`,
+	`V${CUTOUT_Y + SCAN_AREA_SIZE - CUTOUT_R}`,
+	`Q${CUTOUT_X + SCAN_AREA_SIZE},${CUTOUT_Y + SCAN_AREA_SIZE} ${CUTOUT_X + SCAN_AREA_SIZE - CUTOUT_R},${CUTOUT_Y + SCAN_AREA_SIZE}`,
+	`H${CUTOUT_X + CUTOUT_R}`,
+	`Q${CUTOUT_X},${CUTOUT_Y + SCAN_AREA_SIZE} ${CUTOUT_X},${CUTOUT_Y + SCAN_AREA_SIZE - CUTOUT_R}`,
+	`V${CUTOUT_Y + CUTOUT_R}`,
+	`Q${CUTOUT_X},${CUTOUT_Y} ${CUTOUT_X + CUTOUT_R},${CUTOUT_Y}`,
+	'Z',
+].join(' ')
 
 // Scan Screen
 const Scan = ({ navigation, route }) => {
@@ -52,6 +73,9 @@ const Scan = ({ navigation, route }) => {
 	const [isTorchEnabled, setIsTorchEnabled] = useState(false)
 	const [viewMode, setViewMode] = useState(route.params?.view || 'scan') // 'scan' | 'show'
 
+	// Ref to avoid stale closure in onCodeScanned callback
+	const isScanningRef = useRef(true)
+
 	// Animation
 	const scanLineAnimation = useRef(new Animated.Value(0)).current
 
@@ -69,7 +93,9 @@ const Scan = ({ navigation, route }) => {
 
 	// Toggle camera based on mode
 	useEffect(() => {
-		setIsScanning(viewMode === 'scan')
+		const scanning = viewMode === 'scan'
+		isScanningRef.current = scanning
+		setIsScanning(scanning)
 		if (viewMode !== 'scan') { setIsTorchEnabled(false) }
 	}, [viewMode])
 
@@ -86,38 +112,40 @@ const Scan = ({ navigation, route }) => {
 	// Handle barcode scanned
 	const handleBarcodeScanned = (data) => {
 
-		if (data && isScanning) {
+		if (!data || !isScanningRef.current) return
 
-			setIsScanning(false)
-			setScannedData(data)
-			const parsedData = parseQRData(data)
+		// Lock immediately via ref (sync) to prevent rapid-fire duplicates
+		isScanningRef.current = false
+		setIsScanning(false)
+		setScannedData(data)
 
-			if (parsedData?.type === 'payme') {
+		const parsedData = parseQRData(data)
 
-				setIsScanning(true)
-				setScannedData(null)
-
-				if (parsedData?.username && !parsedData?.amount) {
-					navigation.navigate(ROUTES.SEND, { user_uuid: parsedData.username })
-				}
-				if (parsedData?.uuid && !parsedData?.amount) {
-					navigation.navigate(ROUTES.SEND, { user_uuid: parsedData.uuid })
-				}
-				if (parsedData?.username && parsedData?.amount) {
-					navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.username, send_amount: parsedData.amount })
-				}
-				if (parsedData?.uuid && parsedData?.amount) {
-					navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.uuid, send_amount: parsedData.amount })
-				}
+		if (parsedData?.type === 'payme') {
+			if (parsedData?.username && !parsedData?.amount) {
+				navigation.navigate(ROUTES.SEND, { user_uuid: parsedData.username })
+			} else if (parsedData?.uuid && !parsedData?.amount) {
+				navigation.navigate(ROUTES.SEND, { user_uuid: parsedData.uuid })
+			} else if (parsedData?.username && parsedData?.amount) {
+				navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.username, send_amount: parsedData.amount })
+			} else if (parsedData?.uuid && parsedData?.amount) {
+				navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.uuid, send_amount: parsedData.amount })
 			}
 		}
+
+		// Re-enable scanning after a short delay (allows navigation to complete)
+		setTimeout(() => {
+			isScanningRef.current = true
+			setIsScanning(true)
+			setScannedData(null)
+		}, 2000)
 	}
 
-	// Code scanner
+	// Code scanner — uses ref to avoid stale closure issues
 	const codeScanner = useCodeScanner({
 		codeTypes: ['qr', 'ean-13'],
 		onCodeScanned: (codes) => {
-			if (codes.length > 0 && isScanning) {
+			if (codes.length > 0 && isScanningRef.current) {
 				handleBarcodeScanned(codes[0].value)
 			}
 		},
@@ -157,21 +185,21 @@ const Scan = ({ navigation, route }) => {
 			)}
 
 			{viewMode === 'scan' && (
-				<View style={styles.overlay}>
-					<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
-					<View style={styles.middleSection}>
-						<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
-						<View style={styles.scanArea}>
-							<View style={[styles.corner, styles.topLeft]} />
-							<View style={[styles.corner, styles.topRight]} />
-							<View style={[styles.corner, styles.bottomLeft]} />
-							<View style={[styles.corner, styles.bottomRight]} />
-							{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [0, SCAN_AREA_SIZE - 2], }) }] }]} />)}
-						</View>
-						<View style={[styles.overlaySection, { width: (screenWidth - SCAN_AREA_SIZE) / 2 }]} />
+				<>
+					{/* Dark overlay with rounded cutout */}
+					<Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
+						<Path d={OVERLAY_PATH} fill="rgba(0,0,0,0.8)" fillRule="evenodd" />
+					</Svg>
+
+					{/* Corner brackets + scan line */}
+					<View style={styles.scanFrame}>
+						<View style={[styles.corner, styles.topLeft]} />
+						<View style={[styles.corner, styles.topRight]} />
+						<View style={[styles.corner, styles.bottomLeft]} />
+						<View style={[styles.corner, styles.bottomRight]} />
+						{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [16, SCAN_AREA_SIZE - 16], }) }] }]} />)}
 					</View>
-					<View style={[styles.overlaySection, { height: (screenHeight - SCAN_AREA_SIZE) / 2 }]} />
-				</View>
+				</>
 			)}
 
 			{/* Top Controls */}
@@ -207,7 +235,7 @@ const Scan = ({ navigation, route }) => {
 					</View>
 					<View style={styles.qrWrapper}>
 						<QRCodeStyled
-							data={user?.username ? `https://qvapay.com/payme/${user.username}` : (`https://qvapay.com/payme/${user?.uuid}` || '')}
+							data={user?.username ? `https://www.qvapay.com/payme/${user.username}` : (`https://www.qvapay.com/payme/${user?.uuid}` || '')}
 							style={styles.svg}
 							size={350}
 							padding={8}
@@ -228,6 +256,9 @@ const Scan = ({ navigation, route }) => {
 								scale: 0.8,
 							}}
 						/>
+						<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 10 }]}>
+							{user?.username ? `www.qvapay.com/payme/${user.username}` : `www.qvapay.com/payme/${user?.uuid}`}
+						</Text>
 					</View>
 				</View>
 			)}
@@ -266,67 +297,55 @@ const styles = StyleSheet.create({
 		left: 20,
 		right: 20,
 	},
-	overlay: {
+	scanFrame: {
 		position: 'absolute',
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-	},
-	overlaySection: {
-		backgroundColor: 'rgba(0, 0, 0, 0.8)',
-	},
-	middleSection: {
-		flexDirection: 'row',
-		height: SCAN_AREA_SIZE,
-	},
-	scanArea: {
+		top: CUTOUT_Y,
+		left: CUTOUT_X,
 		width: SCAN_AREA_SIZE,
 		height: SCAN_AREA_SIZE,
-		position: 'relative',
 	},
 	corner: {
 		position: 'absolute',
-		width: 20,
-		height: 20,
+		width: 56,
+		height: 56,
 		borderColor: '#6759EF',
-		borderWidth: 3,
+		borderWidth: 4,
 	},
 	topLeft: {
-		top: 0,
-		left: 0,
+		top: -2,
+		left: -2,
 		borderRightWidth: 0,
 		borderBottomWidth: 0,
-		borderTopLeftRadius: 8,
+		borderTopLeftRadius: 22,
 	},
 	topRight: {
-		top: 0,
-		right: 0,
+		top: -2,
+		right: -2,
 		borderLeftWidth: 0,
 		borderBottomWidth: 0,
-		borderTopRightRadius: 8,
+		borderTopRightRadius: 22,
 	},
 	bottomLeft: {
-		bottom: 0,
-		left: 0,
+		bottom: -2,
+		left: -2,
 		borderRightWidth: 0,
 		borderTopWidth: 0,
-		borderBottomLeftRadius: 8,
+		borderBottomLeftRadius: 22,
 	},
 	bottomRight: {
-		bottom: 0,
-		right: 0,
+		bottom: -2,
+		right: -2,
 		borderLeftWidth: 0,
 		borderTopWidth: 0,
-		borderBottomRightRadius: 8,
+		borderBottomRightRadius: 22,
 	},
 	scanLine: {
 		position: 'absolute',
-		left: 0,
-		right: 0,
+		left: 10,
+		right: 10,
 		height: 2,
 		backgroundColor: '#6759EF',
-		opacity: 0.8,
+		opacity: 0.6,
 	},
 	instructionsContainer: {
 		position: 'absolute',

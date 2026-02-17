@@ -25,12 +25,12 @@ const Receive = ({ route }) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 
-	// Build QR URL: https://qvapay.com/payme/{username}/{amount}
+	// Build QR URL: https://www.qvapay.com/payme/{username}/{amount}
 	const identifier = user?.username || user?.uuid || ''
 	const amount = parseFloat(receive_amount) || 0
 	const qrUrl = amount > 0
-		? `https://qvapay.com/payme/${identifier}/${amount}`
-		: `https://qvapay.com/payme/${identifier}`
+		? `https://www.qvapay.com/payme/${identifier}/${amount}`
+		: `https://www.qvapay.com/payme/${identifier}`
 
 	// Share link
 	const handleShare = async () => {

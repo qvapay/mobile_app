@@ -69,10 +69,10 @@ const timeAgo = (date) => {
 }
 
 // get a QR data and parse it robustly using RegExp
-// Supports:
-// 1) https://qvapay.com/payme/username/<name>[/<amount>]
-// 2) https://qvapay.com/payme/uuid/<uuid>[/<amount>]
-// 3) https://qvapay.com/payme/<identifier>[/<amount>] (auto-detects uuid vs username)
+// Supports (with or without www):
+// 1) https://[www.]qvapay.com/payme/username/<name>[/<amount>]
+// 2) https://[www.]qvapay.com/payme/uuid/<uuid>[/<amount>]
+// 3) https://[www.]qvapay.com/payme/<identifier>[/<amount>] (auto-detects uuid vs username)
 const parseQRData = (data) => {
 
 	if (typeof data !== 'string') { return null }
@@ -82,11 +82,11 @@ const parseQRData = (data) => {
 	const pathOnly = raw.split('?')[0].split('#')[0]
 
 	// Typed patterns
-	const reUsernameTyped = /^https?:\/\/qvapay\.com\/payme\/username\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
-	const reUuidTyped = /^https?:\/\/qvapay\.com\/payme\/uuid\/([0-9a-fA-F-]{8,})(?:\/([^\/?#]+))?\/?$/i
+	const reUsernameTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/username\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
+	const reUuidTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/uuid\/([0-9a-fA-F-]{8,})(?:\/([^\/?#]+))?\/?$/i
 
 	// Untyped pattern (identifier could be username or uuid)
-	const reUntyped = /^https?:\/\/qvapay\.com\/payme\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
+	const reUntyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
 
 	let match
 

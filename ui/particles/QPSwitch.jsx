@@ -102,7 +102,7 @@ const QPSwitch = ({
 				}]}
 			/>
 			<Pressable style={styles.segmentedOption} onPress={() => handlePress('left')} disabled={disabled}>
-				<Text style={[textStyles.h6, { color: internalValue === 'left' ? theme.colors.almostBlack : theme.colors.primaryText }]}>{leftText}</Text>
+				<Text style={[textStyles.h6, { color: internalValue === 'left' ? theme.colors.almostWhite : theme.colors.primaryText }]}>{leftText}</Text>
 			</Pressable>
 			<Pressable style={styles.segmentedOption} onPress={() => handlePress('right')} disabled={disabled}>
 				<Text style={[textStyles.h6, { color: internalValue === 'right' ? theme.colors.almostWhite : theme.colors.primaryText }]}>{rightText}</Text>
