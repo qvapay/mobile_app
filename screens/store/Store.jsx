@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import FastImage from '@d11/react-native-fast-image'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -12,23 +13,38 @@ import QPProduct from '../../ui/particles/QPProduct'
 import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 import QPLoader from '../../ui/particles/QPLoader'
 
-// User Context
-import { useAuth } from '../../auth/AuthContext'
-
 // Routes
 import { ROUTES } from '../../routes'
 
 // API
 import { storeApi } from '../../api/storeApi'
 
+// Helpers
+import { statusText } from '../../helpers'
+
 // Toast
 import Toast from 'react-native-toast-message'
+
+// Status colors (same pattern as Transaction.jsx)
+const getStatusColor = (status, theme) => {
+	switch (status) {
+		case 'paid': case 'completed': case 'received': return theme.colors.success
+		case 'pending': case 'processing': return theme.colors.warning
+		case 'cancelled': case 'failed': return theme.colors.danger
+		default: return theme.colors.secondaryText
+	}
+}
+
+// Get logo URL (same pattern as QPProduct)
+const getLogoUrl = (logo) => {
+	if (!logo) return ''
+	return logo.startsWith('http') ? logo : `https://media.qvapay.com/${logo}`
+}
 
 // Store component
 const Store = ({ navigation }) => {
 
 	// Contexts
-	const { user } = useAuth()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -38,6 +54,7 @@ const Store = ({ navigation }) => {
 	const [search, setSearch] = useState('')
 	const [topupPlans, setTopupPlans] = useState([])
 	const [giftCards, setGiftCards] = useState([])
+	const [myPurchases, setMyPurchases] = useState([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -47,9 +64,10 @@ const Store = ({ navigation }) => {
 		else { setIsLoading(true) }
 
 		try {
-			const [topupResponse, giftCardResponse] = await Promise.all([
+			const [topupResponse, giftCardResponse, purchasesResponse] = await Promise.all([
 				storeApi.phonePackages(),
 				storeApi.getGiftCards({ featured: true, take: 6 }),
+				storeApi.getMyPurchases(),
 			])
 
 			if (topupResponse.success) {
@@ -63,6 +81,10 @@ const Store = ({ navigation }) => {
 				setGiftCards(cards)
 			} else {
 				Toast.show({ type: 'error', text1: 'Tarjetas', text2: giftCardResponse.error || 'No se pudieron cargar las tarjetas de regalo' })
+			}
+
+			if (purchasesResponse.success) {
+				setMyPurchases(purchasesResponse.data || [])
 			}
 		} catch (error) {
 			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo conectar con el servidor' })
@@ -97,6 +119,34 @@ const Store = ({ navigation }) => {
 
 				{/* Search bar */}
 				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />
+
+				{/* My Purchases */}
+				{myPurchases.length > 0 && (
+					<View style={[styles.section, { gap: 5 }]}>
+						<QPSectionHeader title="Mis Compras" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.MY_PURCHASES)} />
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+							{myPurchases.slice(0, 3).map((purchase) => {
+								const logoUrl = getLogoUrl(purchase.service_logo)
+								const color = getStatusColor(purchase.status, theme)
+								return (
+									<Pressable key={purchase.id} style={[styles.purchaseCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => navigation.navigate(ROUTES.MY_PURCHASES)}>
+										<View style={[styles.purchaseLogoContainer, { backgroundColor: theme.colors.elevationLight }]}>
+											{logoUrl ? (
+												<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal }} style={styles.purchaseLogo} resizeMode={FastImage.resizeMode.contain} />
+											) : null}
+										</View>
+										<Text style={[textStyles.h6, { marginTop: 6 }]} numberOfLines={1}>{purchase.service_name}</Text>
+										<View style={[styles.purchaseStatusBadge, { backgroundColor: color }]}>
+											<Text style={[textStyles.h7, { color: theme.colors.almostBlack, fontWeight: '600', fontSize: 9 }]}>
+												{statusText(purchase.status)}
+											</Text>
+										</View>
+									</Pressable>
+								)
+							})}
+						</ScrollView>
+					</View>
+				)}
 
 				{/* Mobile top-up plans */}
 				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
@@ -159,6 +209,32 @@ const styles = StyleSheet.create({
 	},
 	horizontalList: {
 		paddingRight: 8,
+	},
+	purchaseCard: {
+		width: 120,
+		borderRadius: 12,
+		padding: 8,
+		marginRight: 12,
+		borderWidth: 0.5,
+		alignItems: 'center',
+	},
+	purchaseLogoContainer: {
+		width: 44,
+		height: 44,
+		borderRadius: 10,
+		overflow: 'hidden',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	purchaseLogo: {
+		width: '100%',
+		height: '100%',
+	},
+	purchaseStatusBadge: {
+		paddingHorizontal: 8,
+		paddingVertical: 2,
+		borderRadius: 8,
+		marginTop: 4,
 	},
 	topupCard: {
 		width: 220,

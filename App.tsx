@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 
 // Navigation Components
 import { NavigationContainer, useNavigation } from '@react-navigation/native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
 
@@ -55,6 +56,7 @@ import PhoneTopupIndex from './screens/store/PhoneTopupIndex'
 import PhoneTopupPurchase from './screens/store/PhoneTopupPurchase'
 import GiftCards from './screens/store/GiftCards'
 import GiftCardDetail from './screens/store/GiftCardDetail'
+import MyPurchases from './screens/store/MyPurchases'
 
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
@@ -329,6 +331,13 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				options={getHeaderOptions('')}
 			/>
 
+			{/* My Purchases Screen */}
+			<Stack.Screen
+				name={ROUTES.MY_PURCHASES}
+				component={MyPurchases}
+				options={getHeaderOptions('Mis Compras')}
+			/>
+
 			{/* Accesible Screens */}
 			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
 
@@ -351,16 +360,18 @@ function App() {
 
 	return (
 		<ErrorBoundary>
-			<AuthProvider>
-				<SettingsProvider>
-					<ThemeProviderWithSettings>
-						<NavigationContainer linking={linking as any}>
-							<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-							<Toast position="top" topOffset={40} />
-						</NavigationContainer>
-					</ThemeProviderWithSettings>
-				</SettingsProvider>
-			</AuthProvider>
+			<SafeAreaProvider>
+				<AuthProvider>
+					<SettingsProvider>
+						<ThemeProviderWithSettings>
+							<NavigationContainer linking={linking as any}>
+								<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+								<Toast position="top" topOffset={40} />
+							</NavigationContainer>
+						</ThemeProviderWithSettings>
+					</SettingsProvider>
+				</AuthProvider>
+			</SafeAreaProvider>
 		</ErrorBoundary>
 	)
 }

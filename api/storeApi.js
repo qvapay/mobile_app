@@ -144,6 +144,63 @@ export const storeApi = {
 	},
 
 	/**
+	 * List user's purchases (Mis Compras)
+	 * @returns {Promise<Object>} Purchases response
+	 */
+	getMyPurchases: async () => {
+
+		try {
+
+			const response = await apiClient.get('/store/my')
+
+			return { success: true, data: response.data.data || [], status: response.status }
+
+		} catch (error) {
+
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return {
+					success: false,
+					error: errorData.error || errorData.message || 'No se pudieron obtener tus compras',
+					details: errorData,
+					status: error.response.status,
+				}
+			}
+
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Get purchase detail
+	 * @param {number|string} id - ID de la compra
+	 * @returns {Promise<Object>} Purchase detail response
+	 */
+	getPurchaseDetail: async (id) => {
+
+		try {
+
+			const response = await apiClient.get(`/store/my/${id}`)
+
+			return { success: true, data: response.data.data || response.data, status: response.status }
+
+		} catch (error) {
+
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return {
+					success: false,
+					error: errorData.error || errorData.message || 'No se pudo obtener el detalle de la compra',
+					details: errorData,
+					status: error.response.status,
+				}
+			}
+
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Purchase a gift card
 	 * @param {string} uuid - UUID de la tarjeta de regalo
 	 * @param {Object} purchaseData - { code, amount (para RANGE) }

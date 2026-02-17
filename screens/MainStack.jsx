@@ -1,8 +1,10 @@
 import { Pressable, View, Text, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// Native Bottom Tab Navigator (uses UITabBarController on iOS → liquid glass on iOS 26)
+// Tab Navigators: native for iOS (liquid glass), JS-based for Android (full style control)
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable'
-const Tab = createNativeBottomTabNavigator()
+const Tab = Platform.OS === 'ios' ? createNativeBottomTabNavigator() : createBottomTabNavigator()
 
 // Routes
 import { ROUTES } from '../routes'
@@ -21,6 +23,9 @@ import { createContainerStyles, createTextStyles } from '../theme/themeUtils'
 // Auth
 import { useAuth } from '../auth/AuthContext'
 
+// Settings
+import { useSettings } from '../settings/SettingsContext'
+
 // UI Components
 import QPAvatar from '../ui/particles/QPAvatar'
 import ErrorBoundary from '../ui/ErrorBoundary'
@@ -28,12 +33,34 @@ import ErrorBoundary from '../ui/ErrorBoundary'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Tab icon config per screen: iOS uses sfSymbol, Android uses FontAwesome6
+const TAB_ICONS = {
+	[ROUTES.HOME_SCREEN]: { ios: 'wallet.pass.fill', android: 'wallet', label: 'Inicio' },
+	[ROUTES.INVEST_SCREEN]: { ios: 'bitcoinsign.circle.fill', android: 'bitcoin-sign', label: 'Invertir' },
+	[ROUTES.KEYPAD_SCREEN]: { ios: 'dollarsign.circle.fill', android: 'dollar-sign', label: 'Enviar' },
+	[ROUTES.P2P_SCREEN]: { ios: 'person.2.fill', android: 'people-group', label: 'P2P' },
+	[ROUTES.STORE_SCREEN]: { ios: 'storefront.fill', android: 'store', label: 'Tienda' },
+}
+
+const getTabIcon = (routeName) => {
+	const config = TAB_ICONS[routeName]
+	if (Platform.OS === 'ios') {
+		return { type: 'sfSymbol', name: config.ios }
+	}
+	return ({ color, size }) => (
+		<FontAwesome6 name={config.android} size={size || 22} color={color} iconStyle="solid" />
+	)
+}
+
 // Main Stack
 const MainStack = ({ navigation }) => {
 
 	// Contexts
 	const { user, isAuthenticated } = useAuth()
 	const { theme } = useTheme()
+	const { appearance } = useSettings()
+	const showLabels = appearance.bottomBarLabels
+	const insets = useSafeAreaInsets()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	// Add safety check for user data
@@ -81,8 +108,24 @@ const MainStack = ({ navigation }) => {
 							onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
 						}],
 					}),
-					tabBarActiveTintColor: theme.colors.primaryText,
+					tabBarActiveTintColor: theme.colors.primary,
 					tabBarInactiveTintColor: theme.colors.secondaryText,
+					tabBarShowLabel: showLabels,
+					// Android tab bar styling
+					...(Platform.OS === 'android' && {
+						tabBarStyle: {
+							backgroundColor: theme.colors.background,
+							borderTopColor: theme.colors.surface,
+							borderTopWidth: 1,
+							height: (showLabels ? 64 : 56) + insets.bottom,
+							paddingBottom: insets.bottom + 4,
+							paddingTop: 8,
+						},
+						tabBarLabelStyle: {
+							fontFamily: 'Rubik-Medium',
+							fontSize: 12,
+						},
+					}),
 				})}
 			>
 
@@ -91,10 +134,7 @@ const MainStack = ({ navigation }) => {
 					component={Home}
 					options={{
 						tabBarLabel: 'Inicio',
-						tabBarIcon: Platform.select({
-							ios: { type: 'sfSymbol', name: 'wallet.pass.fill' },
-							default: { type: 'drawableResource', name: 'ic_tab_wallet' },
-						}),
+						tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
 						// Android fallback
 						headerLeft: () => (
 							<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
@@ -129,10 +169,7 @@ const MainStack = ({ navigation }) => {
 					component={Invest}
 					options={{
 						tabBarLabel: 'Invertir',
-						tabBarIcon: Platform.select({
-							ios: { type: 'sfSymbol', name: 'bitcoinsign.circle.fill' },
-							default: { type: 'drawableResource', name: 'ic_tab_bitcoin' },
-						}),
+						tabBarIcon: getTabIcon(ROUTES.INVEST_SCREEN),
 					}}
 				/>
 
@@ -141,10 +178,7 @@ const MainStack = ({ navigation }) => {
 					component={Keypad}
 					options={{
 						tabBarLabel: 'Enviar',
-						tabBarIcon: Platform.select({
-							ios: { type: 'sfSymbol', name: 'dollarsign.circle.fill' },
-							default: { type: 'drawableResource', name: 'ic_tab_dollar' },
-						}),
+						tabBarIcon: getTabIcon(ROUTES.KEYPAD_SCREEN),
 					}}
 				/>
 
@@ -153,10 +187,7 @@ const MainStack = ({ navigation }) => {
 					component={P2P}
 					options={{
 						tabBarLabel: 'P2P',
-						tabBarIcon: Platform.select({
-							ios: { type: 'sfSymbol', name: 'person.2.fill' },
-							default: { type: 'drawableResource', name: 'ic_tab_people' },
-						}),
+						tabBarIcon: getTabIcon(ROUTES.P2P_SCREEN),
 					}}
 				/>
 
@@ -165,10 +196,7 @@ const MainStack = ({ navigation }) => {
 					component={Store}
 					options={{
 						tabBarLabel: 'Tienda',
-						tabBarIcon: Platform.select({
-							ios: { type: 'sfSymbol', name: 'storefront.fill' },
-							default: { type: 'drawableResource', name: 'ic_tab_store' },
-						}),
+						tabBarIcon: getTabIcon(ROUTES.STORE_SCREEN),
 						headerTitle: '',
 						// Android fallback
 						headerRight: () => (

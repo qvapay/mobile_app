@@ -1,6 +1,6 @@
 import { Appearance } from 'react-native'
 import { useTextStyles, useContainerStyles } from './themeUtils'
-import { createContext, useContext, useEffect, useState, useMemo } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react'
 
 // Define your color palette
 const colors = {
@@ -161,14 +161,18 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [themeMode])
 
+    // Keep a ref to updateSettings so the memoized context value never uses a stale closure
+    const updateSettingsRef = useRef(updateSettings)
+    updateSettingsRef.current = updateSettings
+
     const changeThemeMode = async (mode) => {
 
         setThemeMode(mode)
         updateTheme(mode)
 
         // Update settings if updateSettings function is provided
-        if (updateSettings) {
-            await updateSettings('appearance', { theme: mode })
+        if (updateSettingsRef.current) {
+            await updateSettingsRef.current('appearance', { theme: mode })
         }
     }
 
