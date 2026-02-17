@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -177,7 +177,7 @@ const Home = ({ navigation }) => {
 
 				{/* Service Cards */}
 				<View style={styles.section}>
-					<QPSectionHeader title="Servicios" />
+					<QPSectionHeader title="Servicios" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.STORE_SCREEN)} />
 					<View style={styles.serviceCardsContainer}>
 						<ServiceCard
 							icon="mobile-screen"
@@ -211,7 +211,7 @@ const Home = ({ navigation }) => {
 				</View>
 
 				<View style={styles.section}>
-					<QPSectionHeader title="Últimas noticias" />
+					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => Linking.openURL('https://qvapay.blog')} />
 					<View>
 						{latestBlogPosts.map((post, index) => (
 							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} />

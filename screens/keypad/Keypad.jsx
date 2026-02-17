@@ -240,7 +240,7 @@ export default function Keypad({ navigation }) {
 	}, [amount])
 
 	return (
-		<View style={[containerStyles.container, styles.container, { paddingBottom: insets.bottom }]}>
+		<View style={[containerStyles.container, styles.container, { paddingBottom: Platform.OS === 'ios' ? insets.bottom + 60 : insets.bottom }]}>
 			{/* Amount Display Section */}
 			<View style={styles.amountSection}>
 
