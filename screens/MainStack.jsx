@@ -1,15 +1,11 @@
-import { Pressable, View, Text } from 'react-native'
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Pressable, View, Text, Platform } from 'react-native'
 
-// Bottom Tab Navigator
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-const Tab = createBottomTabNavigator()
-
-// Bottom Bar
-import BottomBar from '../ui/BottomBar'
+// Native Bottom Tab Navigator (uses UITabBarController on iOS → liquid glass on iOS 26)
+import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable'
+const Tab = createNativeBottomTabNavigator()
 
 // Routes
-import { ROUTES, navItems } from '../routes'
+import { ROUTES } from '../routes'
 
 // Tab Screens
 import Home from './home/Home'
@@ -40,32 +36,23 @@ const MainStack = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
-
 	// Add safety check for user data
-	// If user is not authenticated or user data is missing, 
+	// If user is not authenticated or user data is missing,
 	// this will trigger the navigation logic in App.tsx to redirect to welcome/login
 	if (!isAuthenticated || !user) { return null }
 
 	return (
-		<SafeAreaProvider style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.background }}>
-
-			<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
+		<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
 			<Tab.Navigator
 				initialRouteName={ROUTES.HOME_SCREEN}
 				backBehavior='initialRoute'
-				tabBar={props => <BottomBar {...props} navItems={navItems} />}
 				screenOptions={({ navigation }) => ({
 					headerTitle: '',
 					headerShown: true,
-					headerBackVisible: true,
-					headerBackTitleVisible: false,
-					headerBackButtonMenuEnabled: false,
-					headerBackButtonDisplayMode: 'minimal',
 					headerShadowVisible: false,
 					headerStyle: { backgroundColor: theme.colors.background },
 					headerTintColor: theme.colors.primaryText,
-					headerTitleStyle: { fontSize: 24, fontFamily: theme.typography.fontFamily.bold },
+					// Android fallback
 					headerLeft: () => (
 						<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
 							<QPAvatar user={user} size={32} />
@@ -75,7 +62,27 @@ const MainStack = ({ navigation }) => {
 						<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
 							<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
-					)
+					),
+					// iOS native header items (liquid glass compatible)
+					...(Platform.OS === 'ios' && {
+						unstable_headerLeftItems: () => [{
+							type: 'custom',
+							element: (
+								<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+									<QPAvatar user={user} size={28} />
+								</Pressable>
+							),
+							hidesSharedBackground: true,
+						}],
+						unstable_headerRightItems: () => [{
+							type: 'button',
+							label: 'Escanear',
+							icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
+							onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
+						}],
+					}),
+					tabBarActiveTintColor: theme.colors.primaryText,
+					tabBarInactiveTintColor: theme.colors.secondaryText,
 				})}
 			>
 
@@ -83,6 +90,12 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.HOME_SCREEN}
 					component={Home}
 					options={{
+						tabBarLabel: 'Inicio',
+						tabBarIcon: Platform.select({
+							ios: { type: 'sfSymbol', name: 'wallet.pass.fill' },
+							default: { type: 'drawableResource', name: 'ic_tab_wallet' },
+						}),
+						// Android fallback
 						headerLeft: () => (
 							<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
 								<QPAvatar user={user} size={32} />
@@ -91,7 +104,23 @@ const MainStack = ({ navigation }) => {
 									<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
 								</View>
 							</Pressable>
-						)
+						),
+						// iOS native header items (liquid glass compatible)
+						...(Platform.OS === 'ios' && {
+							unstable_headerLeftItems: () => [{
+								type: 'custom',
+								element: (
+									<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+										<QPAvatar user={user} size={28} />
+										<View style={{ marginLeft: 8 }}>
+											<Text style={textStyles.h4}>Hola {user.name}!</Text>
+											<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user.username}</Text>
+										</View>
+									</Pressable>
+								),
+								hidesSharedBackground: true,
+							}],
+						}),
 					}}
 				/>
 
@@ -99,6 +128,11 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.INVEST_SCREEN}
 					component={Invest}
 					options={{
+						tabBarLabel: 'Invertir',
+						tabBarIcon: Platform.select({
+							ios: { type: 'sfSymbol', name: 'bitcoinsign.circle.fill' },
+							default: { type: 'drawableResource', name: 'ic_tab_bitcoin' },
+						}),
 					}}
 				/>
 
@@ -106,6 +140,11 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.KEYPAD_SCREEN}
 					component={Keypad}
 					options={{
+						tabBarLabel: 'Enviar',
+						tabBarIcon: Platform.select({
+							ios: { type: 'sfSymbol', name: 'dollarsign.circle.fill' },
+							default: { type: 'drawableResource', name: 'ic_tab_dollar' },
+						}),
 					}}
 				/>
 
@@ -113,25 +152,44 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.P2P_SCREEN}
 					component={P2P}
 					options={{
+						tabBarLabel: 'P2P',
+						tabBarIcon: Platform.select({
+							ios: { type: 'sfSymbol', name: 'person.2.fill' },
+							default: { type: 'drawableResource', name: 'ic_tab_people' },
+						}),
 					}}
 				/>
 
 				<Tab.Screen
 					name={ROUTES.STORE_SCREEN}
 					component={Store}
-					options={({ navigation }) => ({
+					options={{
+						tabBarLabel: 'Tienda',
+						tabBarIcon: Platform.select({
+							ios: { type: 'sfSymbol', name: 'storefront.fill' },
+							default: { type: 'drawableResource', name: 'ic_tab_store' },
+						}),
 						headerTitle: '',
+						// Android fallback
 						headerRight: () => (
 							<Pressable style={containerStyles.headerRight}>
 								<FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
-						)
-					})}
+						),
+						// iOS native header items (liquid glass compatible)
+						...(Platform.OS === 'ios' && {
+							unstable_headerRightItems: () => [{
+								type: 'button',
+								label: 'Carrito',
+								icon: { type: 'sfSymbol', name: 'cart.fill' },
+								onPress: () => {},
+							}],
+						}),
+					}}
 				/>
 
 			</Tab.Navigator>
-			</ErrorBoundary>
-		</SafeAreaProvider>
+		</ErrorBoundary>
 	)
 }
 

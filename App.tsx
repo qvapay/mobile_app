@@ -1,5 +1,5 @@
 // React Components
-import { Linking, Pressable } from 'react-native'
+import { Linking, Platform, Pressable } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
 
 // Navigation Components
@@ -220,13 +220,23 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 			<Stack.Screen
 				name={ROUTES.P2P_OFFER_SCREEN}
 				component={P2POffer}
-				options={getHeaderOptions('', {
+				options={{
+					...getHeaderOptions(''),
+					// Android fallback
 					headerRight: () => (
 						<Pressable style={containerStyles.headerRight} onPress={() => { }}>
 							<QPAvatar user={user} size={32} />
 						</Pressable>
-					)
-				})}
+					),
+					// iOS native header items (liquid glass compatible)
+					...(Platform.OS === 'ios' && {
+						unstable_headerRightItems: () => [{
+							type: 'custom' as const,
+							element: <QPAvatar user={user} size={28} />,
+							hidesSharedBackground: true,
+						}],
+					}),
+				}}
 			/>
 
 			{/* Settings Stack */}
@@ -256,13 +266,24 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 			<Stack.Screen
 				name={ROUTES.TRANSACTIONS}
 				component={Transactions}
-				options={getHeaderOptions('Transacciones', {
+				options={{
+					...getHeaderOptions('Transacciones'),
+					// Android fallback
 					headerRight: () => (
 						<Pressable style={containerStyles.headerRight} onPress={(() => { })}>
 							<FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
-					)
-				})}
+					),
+					// iOS native header items (liquid glass compatible)
+					...(Platform.OS === 'ios' && {
+						unstable_headerRightItems: () => [{
+							type: 'button' as const,
+							label: 'Filtrar',
+							icon: { type: 'sfSymbol' as const, name: 'line.3.horizontal.decrease' as any },
+							onPress: () => {},
+						}],
+					}),
+				}}
 			/>
 			<Stack.Screen
 				name={ROUTES.TRANSACTION}
