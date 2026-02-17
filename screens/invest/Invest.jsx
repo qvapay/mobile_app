@@ -47,11 +47,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         flex: 1,
+        paddingBottom: 80,
     },
     animation: {
-        width: 300,
-        height: 300,
-        marginBottom: 40,
+        width: 220,
+        height: 220,
+        marginBottom: 24,
     },
     textContainer: {
         alignItems: 'center',

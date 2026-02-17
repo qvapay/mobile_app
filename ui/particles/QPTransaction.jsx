@@ -41,7 +41,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     }
 
     // Transaction data
-    const { uuid, amount, description, owner = {}, paid_by = {}, wallet = {}, updated_at, status } = transaction
+    const { uuid, amount, description, User: owner = {}, PaidBy: paid_by = {}, Wallet: wallet = {}, updated_at, status } = transaction
 
     const amountFloat = parseFloat(amount)
     const amountFixed = amountFloat.toFixed(2)

@@ -62,9 +62,6 @@ import SettingsStack from './screens/settings/SettingsStack'
 // Notifications
 import Toast from 'react-native-toast-message'
 
-// FontAwesome6
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
 // UI Components
 import QPAvatar from './ui/particles/QPAvatar'
 import ErrorBoundary from './ui/ErrorBoundary'
@@ -266,24 +263,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 			<Stack.Screen
 				name={ROUTES.TRANSACTIONS}
 				component={Transactions}
-				options={{
-					...getHeaderOptions('Transacciones'),
-					// Android fallback
-					headerRight: () => (
-						<Pressable style={containerStyles.headerRight} onPress={(() => { })}>
-							<FontAwesome6 name="filter" size={20} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
-					// iOS native header items (liquid glass compatible)
-					...(Platform.OS === 'ios' && {
-						unstable_headerRightItems: () => [{
-							type: 'button' as const,
-							label: 'Filtrar',
-							icon: { type: 'sfSymbol' as const, name: 'line.3.horizontal.decrease' as any },
-							onPress: () => {},
-						}],
-					}),
-				}}
+				options={getHeaderOptions('Transacciones')}
 			/>
 			<Stack.Screen
 				name={ROUTES.TRANSACTION}
