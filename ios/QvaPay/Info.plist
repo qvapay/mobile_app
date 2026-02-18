@@ -33,6 +33,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Para poder escanear QRs, $(PRODUCT_NAME) necesita permiso.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>QvaPay utiliza Face ID para acceder a tu cuenta de forma segura.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to provide you with the best experience.</string>
 	<key>RCTNewArchEnabled</key>

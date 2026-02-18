@@ -25,6 +25,8 @@ import Phone from './subpanels/Phone'
 import Telegram from './subpanels/Telegram'
 import Password from './subpanels/Password'
 import TwoFactor from './subpanels/TwoFactor'
+import TransferPin from './subpanels/TransferPin'
+import Biometrics from './subpanels/Biometrics'
 import KYC from './subpanels/KYC'
 import DeleteAccount from './subpanels/DeleteAccount'
 import Notifications from './subpanels/Notifications'
@@ -92,7 +94,9 @@ const SettingsStack = ({ navigation }) => {
 			<Stack.Screen name={ROUTES.PHONE} component={Phone} />
 			<Stack.Screen name={ROUTES.TELEGRAM} component={Telegram} />
 			<Stack.Screen name={ROUTES.PASSWORD} component={Password} />
+			<Stack.Screen name={ROUTES.TRANSFER_PIN} component={TransferPin} />
 			<Stack.Screen name={ROUTES.TWO_FACTOR} component={TwoFactor} />
+			<Stack.Screen name={ROUTES.BIOMETRICS} component={Biometrics} />
 			<Stack.Screen name={ROUTES.KYC} component={KYC} />
 			<Stack.Screen name={ROUTES.DELETE_ACCOUNT} component={DeleteAccount} />
 			<Stack.Screen name={ROUTES.NOTIFICATIONS} component={Notifications} />

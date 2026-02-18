@@ -69,6 +69,12 @@ const settings = {
                 notifications: 0,
             },
             {
+                title: 'Face ID / Touch ID',
+                screen: ROUTES.BIOMETRICS,
+                enabled: true,
+                notifications: 0,
+            },
+            {
                 title: 'Verificación de identidad',
                 screen: ROUTES.KYC,
                 enabled: true,

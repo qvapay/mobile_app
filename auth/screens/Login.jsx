@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput } from 'react-native'
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Alert, Pressable, ActivityIndicator } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -14,6 +14,13 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
+
+// Biometric utilities
+import { getSupportedBiometryType, hasBiometricCredentials, getBiometricCredentials, setBiometricCredentials, removeBiometricCredentials } from '../../api/client'
+
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import FaceIDIcon from '../../ui/particles/FaceIDIcon'
 
 // Notifications
 import Toast from 'react-native-toast-message'
@@ -51,6 +58,10 @@ const LoginScreen = ({ navigation }) => {
 	const [requestPINLabel, setRequestPINLabel] = useState('Solicitar PIN')
 	const [requestingPIN, setRequestingPIN] = useState(false)
 
+	// Biometric states
+	const [biometryType, setBiometryType] = useState(null)
+	const [hasBiometrics, setHasBiometrics] = useState(false)
+
 	// Countdown timer states
 	const [countdown, setCountdown] = useState(0)
 	const [isButtonDisabled, setIsButtonDisabled] = useState(false)
@@ -84,6 +95,82 @@ const LoginScreen = ({ navigation }) => {
 		return () => { if (countdownRef.current) { clearTimeout(countdownRef.current) } }
 	}, [countdown, isButtonDisabled])
 
+	// Detect biometric support on mount
+	useEffect(() => {
+		const checkBiometrics = async () => {
+			try {
+				const type = await getSupportedBiometryType()
+				const has = await hasBiometricCredentials()
+				setBiometryType(type)
+				setHasBiometrics(has)
+			} catch (error) {
+				// Biometric detection failed silently
+			}
+		}
+		checkBiometrics()
+	}, [])
+
+	// Biometric login handler
+	const handleBiometricLogin = async () => {
+		try {
+			const credentials = await getBiometricCredentials()
+			if (!credentials) return // user cancelled
+
+			setIsLoading(true)
+			clearError()
+			const result = await login({ email: credentials.email, password: credentials.password })
+
+			if (!result.success) {
+				if (result.status === 401) {
+					await removeBiometricCredentials()
+					setHasBiometrics(false)
+					await updateSettings('security', { biometricsEnabled: false })
+					Toast.show({ type: 'error', text1: 'Credenciales inválidas', text2: 'Inicia sesión manualmente' })
+				} else {
+					Toast.show({ type: 'error', text1: result.error })
+				}
+			}
+
+			if (result.status === 202) {
+				setEmail(credentials.email)
+				setPassword(credentials.password)
+				await updateSettings('appearance', { firstTime: false })
+				setShowPin(true)
+			}
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error al acceder con biometría' })
+		} finally {
+			setIsLoading(false)
+		}
+	}
+
+	// Prompt biometric enrollment after successful login
+	const promptBiometricEnrollment = async (loginEmail, loginPassword) => {
+		const type = await getSupportedBiometryType()
+		if (!type) return
+		const has = await hasBiometricCredentials()
+		if (has) return
+
+		const biometricLabel = type === 'FaceID' ? 'Face ID' : type === 'TouchID' ? 'Touch ID' : 'huella digital'
+		Alert.alert(
+			`Activar ${biometricLabel}`,
+			`¿Deseas usar ${biometricLabel} para acceder a tu cuenta en el futuro?`,
+			[
+				{ text: 'Ahora no', style: 'cancel' },
+				{
+					text: 'Activar',
+					onPress: async () => {
+						const saved = await setBiometricCredentials(loginEmail, loginPassword)
+						if (saved) {
+							await updateSettings('security', { biometricsEnabled: true })
+							Toast.show({ type: 'success', text1: `${biometricLabel} activado` })
+						}
+					}
+				}
+			]
+		)
+	}
+
 	// Handle pre-login, we set the loading to true, clear the error and call the login function
 	// If login is successful (HTTP response 202), we set the loading to false and show the PIN Input
 	// If login is not successful (HTTP response 401), we set the loading to false and show an error message
@@ -103,6 +190,10 @@ const LoginScreen = ({ navigation }) => {
 			if (result.status === 202) {
 				await updateSettings('appearance', { firstTime: false })
 				setShowPin(true)
+			}
+			// Login directo exitoso (sin 2FA) — ofrecer biometría
+			if (result.success && result.status !== 202) {
+				promptBiometricEnrollment(email, password)
 			}
 		} catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión' }) }
 		
@@ -127,7 +218,10 @@ const LoginScreen = ({ navigation }) => {
 		setFailedAttempts(failedAttempts + 1)
 				}
 			}
-			if (result.success && result.status === 202) { setFailedAttempts(0) }
+			if (result.success) {
+				setFailedAttempts(0)
+				promptBiometricEnrollment(email, password)
+			}
 		} catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente' }) }
 		finally { setIsLoading(false) }
 	}
@@ -284,6 +378,25 @@ const LoginScreen = ({ navigation }) => {
 								/>
 							)
 						}
+
+						{!showPin && hasBiometrics && biometryType && (
+							<Pressable
+								onPress={handleBiometricLogin}
+								disabled={isLoading}
+								style={({ pressed }) => [
+									styles.biometricButton,
+									{ backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : isLoading ? 0.5 : 1 }
+								]}
+							>
+								{isLoading ? (
+									<ActivityIndicator size="small" color={theme.colors.primary} />
+								) : biometryType === 'FaceID' ? (
+									<FaceIDIcon size={30} color={theme.colors.primary} />
+								) : (
+									<FontAwesome6 name="fingerprint" size={28} color={theme.colors.primary} iconStyle="solid" />
+								)}
+							</Pressable>
+						)}
 					</View>
 
 				</ScrollView>
@@ -310,6 +423,15 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 		fontWeight: 'bold',
 		textAlign: 'center'
+	},
+	biometricButton: {
+		width: 56,
+		height: 56,
+		borderRadius: 28,
+		alignItems: 'center',
+		justifyContent: 'center',
+		alignSelf: 'center',
+		marginTop: 16,
 	}
 })
 

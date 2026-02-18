@@ -133,7 +133,7 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.HOME_SCREEN}
 					component={Home}
 					options={{
-						tabBarLabel: 'Inicio',
+						tabBarLabel: showLabels ? 'Inicio' : '',
 						tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
 						// Android fallback
 						headerLeft: () => (
@@ -168,7 +168,7 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.INVEST_SCREEN}
 					component={Invest}
 					options={{
-						tabBarLabel: 'Invertir',
+						tabBarLabel: showLabels ? 'Invertir' : '',
 						tabBarIcon: getTabIcon(ROUTES.INVEST_SCREEN),
 					}}
 				/>
@@ -177,7 +177,7 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.KEYPAD_SCREEN}
 					component={Keypad}
 					options={{
-						tabBarLabel: 'Enviar',
+						tabBarLabel: showLabels ? 'Enviar' : '',
 						tabBarIcon: getTabIcon(ROUTES.KEYPAD_SCREEN),
 					}}
 				/>
@@ -186,7 +186,7 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.P2P_SCREEN}
 					component={P2P}
 					options={{
-						tabBarLabel: 'P2P',
+						tabBarLabel: showLabels ? 'P2P' : '',
 						tabBarIcon: getTabIcon(ROUTES.P2P_SCREEN),
 					}}
 				/>
@@ -195,7 +195,7 @@ const MainStack = ({ navigation }) => {
 					name={ROUTES.STORE_SCREEN}
 					component={Store}
 					options={{
-						tabBarLabel: 'Tienda',
+						tabBarLabel: showLabels ? 'Tienda' : '',
 						tabBarIcon: getTabIcon(ROUTES.STORE_SCREEN),
 						headerTitle: '',
 						// Android fallback

@@ -388,5 +388,40 @@ export const userApi = {
 			}
 			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
 		}
-	}
+	},
+
+	/**
+	 * Request a new random PIN sent via email
+	 * @returns {Promise<Object>} Result with success status
+	 */
+	resetPin: async () => {
+		try {
+			const response = await apiClient.post('/user/reset-pin')
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo enviar el PIN', status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Change PIN to a custom 4-digit code
+	 * @param {Object} params - { old_pin, new_pin }
+	 * @returns {Promise<Object>} Result with success status
+	 */
+	changePin: async ({ old_pin, new_pin }) => {
+		try {
+			const response = await apiClient.put('/user/reset-pin', { old_pin, new_pin })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo cambiar el PIN', status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
 }

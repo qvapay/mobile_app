@@ -11,6 +11,10 @@ import QPButton from '../../../ui/particles/QPButton'
 
 // API
 import { userApi } from '../../../api/userApi'
+import { removeBiometricCredentials, hasBiometricCredentials } from '../../../api/client'
+
+// Settings
+import { useSettings } from '../../../settings/SettingsContext'
 
 // Notifications
 import Toast from 'react-native-toast-message'
@@ -20,6 +24,7 @@ const Password = () => {
 
     // Contexts
     const { theme } = useTheme()
+    const { updateSettings } = useSettings()
     const containerStyles = createContainerStyles(theme)
     const textStyles = createTextStyles(theme)
 
@@ -45,6 +50,13 @@ const Password = () => {
                 setPassword('')
                 setConfirmPassword('')
                 Toast.show({ type: 'success', text1: 'Contraseña cambiada correctamente' })
+                // Invalidate biometric credentials since password changed
+                const has = await hasBiometricCredentials()
+                if (has) {
+                    await removeBiometricCredentials()
+                    await updateSettings('security', { biometricsEnabled: false })
+                    Toast.show({ type: 'info', text1: 'Biometría desactivada', text2: 'Actívala de nuevo en tu próximo inicio de sesión' })
+                }
             }
         } catch (error) { Toast.show({ type: 'error', text1: 'Error al cambiar la contraseña', text2: error.message }) }
         finally { setIsLoading(false) }

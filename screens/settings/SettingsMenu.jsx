@@ -1,10 +1,14 @@
+import { useState, useEffect } from 'react'
 import { View, Text, Alert, ScrollView, Pressable, Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
 
-// Theme 
+// Settings Context
+import { useSettings } from '../../settings/SettingsContext'
+
+// Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
@@ -12,6 +16,9 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 import QPButton from '../../ui/particles/QPButton'
 import SettingsSection from '../../ui/SettingsSection'
 import ProfileContainer from '../../ui/ProfileContainer'
+
+// Biometric utilities
+import { hasBiometricCredentials, removeBiometricCredentials } from '../../api/client'
 
 // Import settings
 import settings from './settings'
@@ -32,29 +39,70 @@ const SettingsMenu = ({ navigation }) => {
 
     // Contexts
     const { user, logout } = useAuth()
+    const { updateSettings } = useSettings()
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
     const insets = useSafeAreaInsets()
 
+    // Biometric state for logout flow
+    const [biometricsActive, setBiometricsActive] = useState(false)
+
+    useEffect(() => {
+        const checkBiometrics = async () => {
+            const has = await hasBiometricCredentials()
+            setBiometricsActive(has)
+        }
+        checkBiometrics()
+    }, [])
+
     // Logout function
     const handleLogout = async () => {
-        Alert.alert(
-            'Cerrar sesión',
-            '¿Estás seguro de querer cerrar sesión?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Salir',
-                    style: 'destructive',
-                    onPress: async () => {
-                        const result = await logout()
-                        navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
-                        if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
+        if (biometricsActive) {
+            Alert.alert(
+                'Cerrar sesión',
+                '¿Deseas mantener el acceso biométrico para la próxima vez?',
+                [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                        text: 'Mantener biometría',
+                        onPress: async () => {
+                            const result = await logout()
+                            navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
+                            if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión.') }
+                        }
+                    },
+                    {
+                        text: 'Eliminar todo',
+                        style: 'destructive',
+                        onPress: async () => {
+                            await removeBiometricCredentials()
+                            await updateSettings('security', { biometricsEnabled: false })
+                            const result = await logout()
+                            navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
+                            if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión.') }
+                        }
                     }
-                }
-            ]
-        )
+                ]
+            )
+        } else {
+            Alert.alert(
+                'Cerrar sesión',
+                '¿Estás seguro de querer cerrar sesión?',
+                [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                        text: 'Salir',
+                        style: 'destructive',
+                        onPress: async () => {
+                            const result = await logout()
+                            navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
+                            if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
+                        }
+                    }
+                ]
+            )
+        }
     }
 
     return (

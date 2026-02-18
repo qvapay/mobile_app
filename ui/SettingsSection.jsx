@@ -21,14 +21,14 @@ const SettingsSection = ({ title, items, navigation }) => {
     return (
         <View style={{ marginTop: 10 }}>
             <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>{title}</Text>
-            {items.map((item, index) => (
+            {items.filter(item => item.enabled !== false).map((item, index, filtered) => (
                 <SettingsItem
                     key={index}
                     title={item.title}
                     icon={item.icon}
                     screen={item.screen}
                     index={index}
-                    totalItems={items.length}
+                    totalItems={filtered.length}
                     navigation={navigation}
                 />
             ))}

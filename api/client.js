@@ -11,6 +11,7 @@ const API_BASE_URL = config.API_BASE_URL
 const API_TIMEOUT = config.API_TIMEOUT
 
 const KEYCHAIN_SERVICE = 'com.qvapay.auth'
+const BIOMETRIC_SERVICE = 'com.qvapay.biometrics'
 
 // Create axios instance
 const apiClient = axios.create({
@@ -98,6 +99,68 @@ export const removeAuthToken = async () => {
 export const createAuthHeader = (token) => ({
 	'Authorization': `Bearer ${token}`,
 })
+
+// Biometric authentication helpers
+export const getSupportedBiometryType = async () => {
+	try {
+		const type = await Keychain.getSupportedBiometryType()
+		return type // 'FaceID', 'TouchID', 'Fingerprint', or null
+	} catch (error) {
+		return null
+	}
+}
+
+export const setBiometricCredentials = async (email, password) => {
+	try {
+		await Keychain.setGenericPassword(email, password, {
+			service: BIOMETRIC_SERVICE,
+			accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+			accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+		})
+		return true
+	} catch (error) {
+		return false
+	}
+}
+
+export const getBiometricCredentials = async () => {
+	try {
+		// Verify biometry is still available before prompting
+		const biometryType = await Keychain.getSupportedBiometryType()
+		if (!biometryType) return null
+
+		const credentials = await Keychain.getGenericPassword({
+			service: BIOMETRIC_SERVICE,
+			authenticationPrompt: { title: 'Accede a tu cuenta QvaPay' },
+		})
+		if (credentials) {
+			return { email: credentials.username, password: credentials.password }
+		}
+		return null
+	} catch (error) {
+		// If reading fails (e.g. access control mismatch), clean up corrupted entry
+		try { await Keychain.resetGenericPassword({ service: BIOMETRIC_SERVICE }) } catch (_) {}
+		return null
+	}
+}
+
+export const removeBiometricCredentials = async () => {
+	try {
+		await Keychain.resetGenericPassword({ service: BIOMETRIC_SERVICE })
+		return true
+	} catch (error) {
+		return false
+	}
+}
+
+export const hasBiometricCredentials = async () => {
+	try {
+		const credentials = await Keychain.hasGenericPassword({ service: BIOMETRIC_SERVICE })
+		return !!credentials
+	} catch (error) {
+		return false
+	}
+}
 
 // Export the apiClient for other API calls
 export { apiClient }
