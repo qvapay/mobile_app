@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { View, Text, StyleSheet, FlatList, RefreshControl, Modal, Pressable, Switch, ScrollView, Platform } from "react-native"
+import { View, Text, StyleSheet, RefreshControl, Modal, Pressable, Switch, ScrollView, Platform } from "react-native"
+
+// Reanimated
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, withTiming, interpolate } from "react-native-reanimated"
 
 // Theme Context
 import { useTheme } from "../../theme/ThemeContext"
@@ -78,6 +81,32 @@ const P2P = ({ navigation, route }) => {
 	const [ratioMax, setRatioMax] = useState("")
 	const [onlyKyc, setOnlyKyc] = useState(false)
 	const [onlyVip, setOnlyVip] = useState(false)
+
+	// Scroll-hide filter bar (Twitter-style)
+	const lastScrollY = useSharedValue(0)
+	const filterBarVisible = useSharedValue(1)
+	const filterBarHeight = useSharedValue(50)
+
+	const scrollHandler = useAnimatedScrollHandler({
+		onScroll: (event) => {
+			const currentY = event.contentOffset.y
+			const diff = currentY - lastScrollY.value
+			if (currentY <= 0) {
+				filterBarVisible.value = withTiming(1, { duration: 200 })
+			} else if (diff > 5) {
+				filterBarVisible.value = withTiming(0, { duration: 200 })
+			} else if (diff < -5) {
+				filterBarVisible.value = withTiming(1, { duration: 200 })
+			}
+			lastScrollY.value = currentY
+		},
+	})
+
+	const filterBarStyle = useAnimatedStyle(() => ({
+		transform: [{ translateY: interpolate(filterBarVisible.value, [0, 1], [-filterBarHeight.value, 0]) }],
+		marginBottom: interpolate(filterBarVisible.value, [0, 1], [-filterBarHeight.value, 0]),
+		opacity: filterBarVisible.value,
+	}))
 
 	// Derived sort values
 	const orderBy = SORT_OPTIONS[sortIndex].orderBy
@@ -269,6 +298,7 @@ const P2P = ({ navigation, route }) => {
 			{p2pEnabled ? (
 				<>
 					{/* Quick Filters Bar */}
+				<Animated.View onLayout={(e) => { filterBarHeight.value = e.nativeEvent.layout.height }} style={filterBarStyle}>
 					<View style={styles.quickFiltersBar}>
 						{/* Buy/Sell Switch */}
 						<QPSwitch
@@ -276,8 +306,9 @@ const P2P = ({ navigation, route }) => {
 							onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
 							leftText="Comprar"
 							rightText="Vender"
-							leftColor={theme.colors.success}
-							rightColor={theme.colors.danger}
+							leftColor={theme.colors.danger}
+							rightColor={theme.colors.success}
+							rightTextColor={theme.colors.almostBlack}
 							style={{ width: 150, height: 32 }}
 						/>
 
@@ -333,11 +364,14 @@ const P2P = ({ navigation, route }) => {
 							))}
 						</View>
 					)}
+				</Animated.View>
 
-					<FlatList
+					<Animated.FlatList
 						data={p2pOffers}
 						renderItem={renderOffer}
 						keyExtractor={(item) => item.uuid}
+						onScroll={scrollHandler}
+						scrollEventThrottle={16}
 						refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
 						showsVerticalScrollIndicator={false}
 						ListEmptyComponent={
@@ -387,8 +421,9 @@ const P2P = ({ navigation, route }) => {
 								onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
 								leftText="Comprar"
 								rightText="Vender"
-								leftColor={theme.colors.success}
-								rightColor={theme.colors.danger}
+								leftColor={theme.colors.danger}
+								rightColor={theme.colors.success}
+								rightTextColor={theme.colors.almostBlack}
 								style={{ width: 160, height: 30 }}
 							/>
 						</View>
@@ -544,8 +579,9 @@ const styles = StyleSheet.create({
 	filterPill: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
 		paddingHorizontal: 10,
-		paddingVertical: 6,
+		height: 32,
 		borderRadius: 16,
 		borderWidth: 0.5,
 	},

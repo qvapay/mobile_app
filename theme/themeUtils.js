@@ -95,9 +95,14 @@ export const createContainerStyles = (theme) => StyleSheet.create({
 		borderRadius: theme.borderRadius.md,
 		padding: theme.spacing.md,
 		marginVertical: theme.spacing.sm,
-		...(theme.mode === 'light' ? {
+		...(!theme.isDark ? {
 			borderWidth: 1,
 			borderColor: theme.colors.border,
+			shadowColor: '#000',
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.06,
+			shadowRadius: 3,
+			elevation: 1,
 		} : {}),
 	},
 	box: {
