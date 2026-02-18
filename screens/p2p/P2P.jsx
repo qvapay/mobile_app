@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { View, Text, StyleSheet, FlatList, RefreshControl, Modal, Pressable, Switch, ScrollView } from "react-native"
+import { View, Text, StyleSheet, FlatList, RefreshControl, Modal, Pressable, Switch, ScrollView, Platform } from "react-native"
 
 // Theme Context
 import { useTheme } from "../../theme/ThemeContext"
@@ -163,11 +163,20 @@ const P2P = ({ navigation, route }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [typeFilter, selectedCoin?.tick, orderBy, orderType])
 
+	// Toggle my offers filter
+	const toggleMyOffers = useCallback(() => {
+		setShowMine(prev => !prev)
+		setTimeout(() => fetchP2POffers(true), 0)
+	}, [fetchP2POffers])
+
 	// Configure header buttons locally to avoid non-serializable params
 	useEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
 				<>
+					<Pressable style={containerStyles.headerRight} onPress={toggleMyOffers}>
+						<FontAwesome6 name="rectangle-list" size={20} color={showMine ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+					</Pressable>
 					<Pressable style={containerStyles.headerRight} onPress={() => setShowFiltersModal(true)}>
 						<FontAwesome6 name="filter" size={20} color={hasActiveFilters ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
@@ -175,10 +184,34 @@ const P2P = ({ navigation, route }) => {
 						<FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
 				</>
-			)
+			),
+			...(Platform.OS === 'ios' && {
+				unstable_headerRightItems: () => [
+					{
+						type: 'button',
+						label: 'Mis Ofertas',
+						icon: { type: 'sfSymbol', name: 'list.bullet.rectangle' },
+						onPress: toggleMyOffers,
+						tintColor: showMine ? theme.colors.primary : theme.colors.primaryText,
+					},
+					{
+						type: 'button',
+						label: 'Filtros',
+						icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease.circle' },
+						onPress: () => setShowFiltersModal(true),
+						tintColor: hasActiveFilters ? theme.colors.primary : theme.colors.primaryText,
+					},
+					{
+						type: 'button',
+						label: 'Crear',
+						icon: { type: 'sfSymbol', name: 'plus' },
+						onPress: () => navigation.navigate(ROUTES.P2P_CREATE_SCREEN),
+					},
+				],
+			}),
 		})
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [navigation, theme, hasActiveFilters])
+	}, [navigation, theme, hasActiveFilters, showMine, toggleMyOffers])
 
 	// Load coins for coin picker (on demand)
 	useEffect(() => {

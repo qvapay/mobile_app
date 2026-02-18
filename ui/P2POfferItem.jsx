@@ -35,8 +35,8 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
 			}
 			return {
 				title: offerType === 'buy' ? 'Vender' : 'Comprar',
-				bg: offerType === 'buy' ? theme.colors.danger : theme.colors.success,
-				textColor: offerType === 'buy' ? theme.colors.almostWhite : theme.colors.almostBlack,
+				bg: offerType === 'buy' ? theme.colors.success : theme.colors.danger,
+				textColor: offerType === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite,
 				borderRadius: 5
 			}
 	}
