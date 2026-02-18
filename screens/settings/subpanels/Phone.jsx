@@ -29,7 +29,7 @@ import { countries } from '../../../labels/countries'
 const Phone = () => {
 
 	// Contexts
-	const { user, updateUser } = useAuth()
+	const { updateUser } = useAuth()
 
 	// Theme variables, dark and light modes with memoized styles
 	const { theme } = useTheme()
