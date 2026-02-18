@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
+import { Text, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -19,13 +19,14 @@ import Toast from 'react-native-toast-message'
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // User Data Settings Component
 const Userdata = () => {
 
 	// Contexts
 	const { updateUser } = useAuth()
-
-	// Theme variables, dark and light modes with memoized styles
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -61,17 +62,11 @@ const Userdata = () => {
 
 	// Load user data from API
 	const loadUserData = async () => {
-
 		try {
-
 			setIsLoadingData(true)
 			const result = await userApi.getUserProfile()
-
 			if (result.success && result.data) {
-
 				const userData = result.data
-
-				// Basic form fields
 				setUsername(userData.username || '')
 				setName(userData.name || '')
 				setLastname(userData.lastname || '')
@@ -81,53 +76,36 @@ const Userdata = () => {
 				setTwitter(userData.twitter || '')
 				setAddress(userData.address || '')
 				setBio(userData.bio || '')
-
-				// Country from KYC object
 				setCountry(userData.KYC?.country || '')
-
-				// User status information
 				setUserStatus({
 					kyc: userData.kyc || false,
 					phone_verified: userData.phone_verified || false,
 					telegram_id: userData.telegram_id || '',
 					createdAt: userData.createdAt || ''
 				})
-
-			} else { Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario', text2: result.error || 'Error desconocido' }) }
-
+			} else { Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario' }) }
 		} catch (error) {
-		Toast.show({
-				type: 'error',
-				text1: 'Error al cargar datos del usuario',
-				text2: error.message
-			})
+			Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario' })
 		} finally { setIsLoadingData(false) }
 	}
 
 	// Handle form submission
 	const handleSubmit = async () => {
-
 		if (!name || !lastname) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor completa al menos el nombre y apellido' })
+			Toast.show({ type: 'error', text1: 'Completa al menos el nombre y apellido' })
 			return
 		}
-
-		// Validate email format if provided
 		if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un formato de correo electrónico válido' })
+			Toast.show({ type: 'error', text1: 'Formato de correo electrónico inválido' })
 			return
 		}
-
-		// Validate country code if provided
 		if (country && country.length !== 2) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'El código de país debe tener exactamente 2 caracteres (ej: US, ES, MX)' })
+			Toast.show({ type: 'error', text1: 'El código de país debe tener 2 caracteres (ej: US, ES)' })
 			return
 		}
 
 		try {
-
 			setIsLoading(true)
-
 			const updateData = {
 				name: name.trim(),
 				lastname: lastname.trim(),
@@ -137,30 +115,18 @@ const Userdata = () => {
 				telegram: telegram.trim(),
 				twitter: twitter.trim()
 			}
-
 			const result = await userApi.updateUser(updateData)
-
 			if (result.success && result.data) {
-
-				Toast.show({ type: 'success', text1: 'Datos actualizados', text2: 'Tu información personal ha sido actualizada correctamente' })
-
-				// Update local state with response data
+				Toast.show({ type: 'success', text1: 'Datos actualizados correctamente' })
 				const userData = result.data
 				setUsername(userData.username || username)
 				setName(userData.name || name)
 				setLastname(userData.lastname || lastname)
 				setBio(userData.bio || bio)
-
-				// Set the user data in the context
-				updateUser({
-					name: userData.name || name,
-					lastname: userData.lastname || lastname
-				})
-
-			} else { Toast.show({ type: 'error', text1: 'Error al actualizar', text2: result.error || 'Error desconocido' }) }
-
+				updateUser({ name: userData.name || name, lastname: userData.lastname || lastname })
+			} else { Toast.show({ type: 'error', text1: result.error || 'Error al actualizar' }) }
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al actualizar', text2: error.message })
+			Toast.show({ type: 'error', text1: 'Error al actualizar' })
 		} finally { setIsLoading(false) }
 	}
 
@@ -168,11 +134,7 @@ const Userdata = () => {
 	const formatDate = (dateString) => {
 		if (!dateString) return 'N/A'
 		try {
-			return new Date(dateString).toLocaleDateString('es-ES', {
-				year: 'numeric',
-				month: 'long',
-				day: 'numeric'
-			})
+			return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
 		} catch (error) { return 'N/A' }
 	}
 
@@ -184,45 +146,21 @@ const Userdata = () => {
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
 
-					<Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Datos personales</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tus datos personales</Text>
+					<Text style={textStyles.h1}>Datos personales</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tu información de perfil</Text>
 
-					<View style={styles.formContainer}>
-
-						{/* Username (Read-only) */}
-						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Nombre de usuario:</Text>
-						<View style={styles.inputContainer}>
-							<QPInput
-								placeholder="Nombre de usuario"
-								value={username}
-								onChangeText={setUsername}
-								editable={false}
-								prefixIconName="user"
-								style={styles.readOnlyInput}
-								suffixIconName={userStatus.kyc ? 'circle-check' : ''}
-							/>
-						</View>
-
-						{/* Name */}
-						<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>Datos personales:</Text>
+					{/* Account section */}
+					<View style={{ marginTop: 20 }}>
+						<SectionHeader icon="user-tag" title="Cuenta" theme={theme} textStyles={textStyles} />
 						<QPInput
-							placeholder="Nombre"
-							value={name}
-							onChangeText={setName}
+							placeholder="Nombre de usuario"
+							value={username}
+							onChangeText={setUsername}
+							editable={false}
 							prefixIconName="user"
-							autoCapitalize="words"
+							style={{ opacity: 0.6 }}
+							suffixIconName={userStatus.kyc ? 'circle-check' : ''}
 						/>
-
-						{/* Last Name */}
-						<QPInput
-							placeholder="Apellido"
-							value={lastname}
-							onChangeText={setLastname}
-							prefixIconName="user"
-							autoCapitalize="words"
-						/>
-
-						{/* Email */}
 						<QPInput
 							placeholder="Correo electrónico"
 							value={email}
@@ -230,11 +168,42 @@ const Userdata = () => {
 							keyboardType="email-address"
 							autoCapitalize="none"
 							editable={false}
-							style={styles.readOnlyInput}
+							style={{ opacity: 0.6 }}
 							prefixIconName="envelope"
 						/>
+					</View>
 
-						{/* Phone - Read only, verified separately */}
+					{/* Personal info section */}
+					<View style={{ marginTop: 10 }}>
+						<SectionHeader icon="id-card" title="Información personal" theme={theme} textStyles={textStyles} />
+						<QPInput
+							placeholder="Nombre"
+							value={name}
+							onChangeText={setName}
+							prefixIconName="user"
+							autoCapitalize="words"
+						/>
+						<QPInput
+							placeholder="Apellido"
+							value={lastname}
+							onChangeText={setLastname}
+							prefixIconName="user"
+							autoCapitalize="words"
+						/>
+						<QPInput
+							placeholder="Biografía o descripción"
+							value={bio}
+							onChangeText={setBio}
+							multiline
+							numberOfLines={4}
+							prefixIconName="user-pen"
+							style={{ textAlignVertical: 'top', paddingTop: 15 }}
+						/>
+					</View>
+
+					{/* Contact section */}
+					<View style={{ marginTop: 10 }}>
+						<SectionHeader icon="address-book" title="Contacto y redes" theme={theme} textStyles={textStyles} />
 						<QPInput
 							placeholder="Teléfono"
 							value={phone}
@@ -243,10 +212,8 @@ const Userdata = () => {
 							prefixIconName="phone-volume"
 							suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
 							editable={false}
-							style={styles.readOnlyInput}
+							style={{ opacity: 0.6 }}
 						/>
-
-						{/* Telegram */}
 						<QPInput
 							placeholder="@usuario_telegram"
 							value={telegram}
@@ -256,8 +223,6 @@ const Userdata = () => {
 							iconStyle="brand"
 							suffixIconName={userStatus.telegram_id ? 'circle-check' : ''}
 						/>
-
-						{/* Twitter */}
 						<QPInput
 							placeholder="@usuario_twitter"
 							value={twitter}
@@ -266,8 +231,11 @@ const Userdata = () => {
 							prefixIconName="x-twitter"
 							iconStyle="brand"
 						/>
+					</View>
 
-						{/* Address */}
+					{/* Location section */}
+					<View style={{ marginTop: 10 }}>
+						<SectionHeader icon="location-dot" title="Ubicación" theme={theme} textStyles={textStyles} />
 						<QPInput
 							placeholder="Dirección"
 							value={address}
@@ -275,33 +243,24 @@ const Userdata = () => {
 							autoCapitalize="words"
 							prefixIconName="location-dot"
 						/>
+						<QPInput
+							placeholder="País (ej: US, ES, MX)"
+							value={country}
+							onChangeText={setCountry}
+							autoCapitalize="characters"
+							maxLength={2}
+							prefixIconName="globe"
+						/>
+					</View>
 
-						{/* Country */}
-						<View style={styles.inputContainer}>
-							<QPInput
-								placeholder="País (ej: US, ES, MX)"
-								value={country}
-								onChangeText={setCountry}
-								autoCapitalize="characters"
-								maxLength={2}
-								prefixIconName="globe"
-							/>
-							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 5 }]}>
-								Código de país de 2 letras (ISO 3166-1 alpha-2)
+					{/* Info card */}
+					<View style={[containerStyles.card, { marginTop: 10 }]}>
+						<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+							<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
+							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+								El nombre de usuario, email y teléfono se gestionan desde sus respectivas secciones de ajustes.
 							</Text>
 						</View>
-
-						{/* Bio */}
-						<QPInput
-							placeholder="Biografía o descripción personal"
-							value={bio}
-							onChangeText={setBio}
-							multiline
-							numberOfLines={4}
-							prefixIconName="user-pen"
-							style={styles.bioInput}
-						/>
-
 					</View>
 
 					<View style={containerStyles.bottomButtonContainer}>
@@ -324,22 +283,12 @@ const Userdata = () => {
 	)
 }
 
-const styles = StyleSheet.create({
-	formContainer: {
-		flex: 1,
-		marginVertical: 20
-	},
-	inputContainer: {
-		marginBottom: 10
-	},
-	readOnlyInput: {
-		opacity: 0.6,
-		backgroundColor: 'transparent'
-	},
-	bioInput: {
-		textAlignVertical: 'top',
-		paddingTop: 15
-	}
-})
+// Section header component
+const SectionHeader = ({ icon, title, theme, textStyles }) => (
+	<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+		<FontAwesome6 name={icon} size={14} color={theme.colors.primary} iconStyle="solid" />
+		<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginLeft: 8, marginBottom: 0 }]}>{title}</Text>
+	</View>
+)
 
 export default Userdata

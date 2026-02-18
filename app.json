@@ -1,4 +1,6 @@
 {
-  "name": "QvaPay",
-  "displayName": "QvaPay"
+	"name": "QvaPay",
+	"displayName": "QvaPay",
+	"version": "0.7",
+	"versionCode": 7
 }

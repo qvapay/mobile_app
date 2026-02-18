@@ -424,4 +424,27 @@ export const userApi = {
 			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
 		}
 	},
+
+	/**
+	 * Get notification settings
+	 * @returns {Promise<Object>} The notification settings
+	 */
+	getNotificationSettings: async () => {
+		try {
+			const response = await apiClient.get('/user/notifications')
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+	},
+
+	/**
+	 * Update notification settings
+	 * @param {Object} settings - The notification settings to update
+	 * @returns {Promise<Object>} The updated notification settings
+	 */
+	updateNotificationSettings: async (settings) => {
+		try {
+			const response = await apiClient.post('/user/notifications', settings)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+	},
 }

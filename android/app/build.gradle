@@ -9,6 +9,11 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Read version from app.json (single source of truth)
+def appJson = new groovy.json.JsonSlurper().parse(file("../../app.json"))
+def appVersionName = appJson.version
+def appVersionCode = appJson.versionCode
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -89,8 +94,8 @@ android {
         applicationId "com.qvapay"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 6
-        versionName "0.6"
+        versionCode appVersionCode
+        versionName appVersionName
     }
     signingConfigs {
         debug {

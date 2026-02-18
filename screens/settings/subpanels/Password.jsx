@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
+import { Text, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -19,125 +19,149 @@ import { useSettings } from '../../../settings/SettingsContext'
 // Notifications
 import Toast from 'react-native-toast-message'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // Password Change Component
 const Password = () => {
 
-    // Contexts
-    const { theme } = useTheme()
-    const { updateSettings } = useSettings()
-    const containerStyles = createContainerStyles(theme)
-    const textStyles = createTextStyles(theme)
+	// Contexts
+	const { theme } = useTheme()
+	const { updateSettings } = useSettings()
+	const containerStyles = createContainerStyles(theme)
+	const textStyles = createTextStyles(theme)
 
-    // States
-    const [password, setPassword] = useState('')
-    const [confirmPassword, setConfirmPassword] = useState('')
-    const [currentPassword, setCurrentPassword] = useState('')
+	// States
+	const [password, setPassword] = useState('')
+	const [confirmPassword, setConfirmPassword] = useState('')
+	const [currentPassword, setCurrentPassword] = useState('')
 
-    // Loading state
-    const [isLoading, setIsLoading] = useState(false)
-    const [isButtonDisabled, setIsButtonDisabled] = useState(true)
+	// Loading state
+	const [isLoading, setIsLoading] = useState(false)
+	const [isButtonDisabled, setIsButtonDisabled] = useState(true)
 
-    // Handle submit
-    const handleSubmit = async () => {
-        try {
-            setIsLoading(true)
-            const result = await userApi.changePassword({
-                old_password: currentPassword,
-                new_password: password
-            })
-            if (result.success) {
-                setCurrentPassword('')
-                setPassword('')
-                setConfirmPassword('')
-                Toast.show({ type: 'success', text1: 'Contraseña cambiada correctamente' })
-                // Invalidate biometric credentials since password changed
-                const has = await hasBiometricCredentials()
-                if (has) {
-                    await removeBiometricCredentials()
-                    await updateSettings('security', { biometricsEnabled: false })
-                    Toast.show({ type: 'info', text1: 'Biometría desactivada', text2: 'Actívala de nuevo en tu próximo inicio de sesión' })
-                }
-            }
-        } catch (error) { Toast.show({ type: 'error', text1: 'Error al cambiar la contraseña', text2: error.message }) }
-        finally { setIsLoading(false) }
-    }
+	// Handle submit
+	const handleSubmit = async () => {
+		try {
+			setIsLoading(true)
+			const result = await userApi.changePassword({
+				old_password: currentPassword,
+				new_password: password
+			})
+			if (result.success) {
+				setCurrentPassword('')
+				setPassword('')
+				setConfirmPassword('')
+				Toast.show({ type: 'success', text1: 'Contraseña cambiada correctamente' })
+				// Invalidate biometric credentials since password changed
+				const has = await hasBiometricCredentials()
+				if (has) {
+					await removeBiometricCredentials()
+					await updateSettings('security', { biometricsEnabled: false })
+					Toast.show({ type: 'info', text1: 'Biometría desactivada', text2: 'Actívala de nuevo en tu próximo inicio de sesión' })
+				}
+			}
+		} catch (error) { Toast.show({ type: 'error', text1: 'Error al cambiar la contraseña', text2: error.message }) }
+		finally { setIsLoading(false) }
+	}
 
-    // useEffect to disable QPButtin until both new passwords are filled and match
-    useEffect(() => {
-        if (password && confirmPassword && password === confirmPassword) { setIsButtonDisabled(false) }
-        else { setIsButtonDisabled(true) }
-    }, [password, confirmPassword])
+	// useEffect to disable QPButton until both new passwords are filled and match
+	useEffect(() => {
+		if (password && confirmPassword && password === confirmPassword) { setIsButtonDisabled(false) }
+		else { setIsButtonDisabled(true) }
+	}, [password, confirmPassword])
 
-    return (
-        <KeyboardAvoidingView
-            style={containerStyles.subContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+	return (
+		<KeyboardAvoidingView
+			style={containerStyles.subContainer}
+			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+			keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
 
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
+				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
 
-                    <Text style={textStyles.h1}>Cambiar contraseña</Text>
-                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Establece una nueva contraseña para tu cuenta</Text>
+					<Text style={textStyles.h1}>Cambiar contraseña</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Establece una nueva contraseña para tu cuenta</Text>
 
-                    <View style={styles.formContainer}>
+					<View style={{ flex: 1, marginVertical: 20 }}>
 
-                        {/* Current Password */}
-                        <QPInput
-                            placeholder="Contraseña actual"
-                            value={currentPassword}
-                            onChangeText={setCurrentPassword}
-                            prefixIconName="lock"
-                            autoCapitalize="none"
-                            secureTextEntry
-                        />
+						{/* Current Password */}
+						<QPInput
+							placeholder="Contraseña actual"
+							value={currentPassword}
+							onChangeText={setCurrentPassword}
+							prefixIconName="lock"
+							autoCapitalize="none"
+							secureTextEntry
+						/>
 
-                        {/* New Password */}
-                        <QPInput
-                            placeholder="Nueva contraseña"
-                            value={password}
-                            onChangeText={setPassword}
-                            prefixIconName="lock"
-                            autoCapitalize="none"
-                            secureTextEntry
-                        />
+						{/* New Password */}
+						<QPInput
+							placeholder="Nueva contraseña"
+							value={password}
+							onChangeText={setPassword}
+							prefixIconName="lock"
+							autoCapitalize="none"
+							secureTextEntry
+						/>
 
-                        {/* Confirm New Password */}
-                        <QPInput
-                            placeholder="Confirmar nueva contraseña"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            prefixIconName="lock"
-                            autoCapitalize="none"
-                            secureTextEntry
-                        />
+						{/* Confirm New Password */}
+						<QPInput
+							placeholder="Confirmar nueva contraseña"
+							value={confirmPassword}
+							onChangeText={setConfirmPassword}
+							prefixIconName="lock"
+							autoCapitalize="none"
+							secureTextEntry
+						/>
 
-                    </View>
+						{/* Password requirements */}
+						<View style={[containerStyles.card, { marginTop: 10 }]}>
+							<Text style={[textStyles.h4, { marginBottom: 12 }]}>
+								Requisitos de contraseña:
+							</Text>
+							{[
+								{ icon: 'text-width', text: 'Mínimo 8 caracteres' },
+								{ icon: 'font', text: 'Al menos una letra mayúscula' },
+								{ icon: 'hashtag', text: 'Al menos un número' },
+							].map((req, index) => (
+								<View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: index < 2 ? 10 : 0 }}>
+									<FontAwesome6 name={req.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
+									<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12 }]}>
+										{req.text}
+									</Text>
+								</View>
+							))}
+						</View>
 
-                    <View style={containerStyles.bottomButtonContainer}>
-                        <QPButton
-                            title="Cambiar contraseña"
-                            onPress={handleSubmit}
-                            disabled={isButtonDisabled || isLoading}
-                            style={{ backgroundColor: isButtonDisabled ? theme.colors.secondaryText : theme.colors.primary }}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                            loading={isLoading}
-                        />
-                    </View>
+						{/* Security tip */}
+						<View style={[containerStyles.card, { marginTop: 10 }]}>
+							<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+								<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
+								<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+									Usa una contraseña única que no utilices en otros servicios. Si tienes biometría activa, se desactivará al cambiar la contraseña.
+								</Text>
+							</View>
+						</View>
+					</View>
 
-                </ScrollView>
-            </TouchableWithoutFeedback>
+					<View style={containerStyles.bottomButtonContainer}>
+						<QPButton
+							title="Cambiar contraseña"
+							onPress={handleSubmit}
+							disabled={isButtonDisabled || isLoading}
+							style={{ backgroundColor: isButtonDisabled ? theme.colors.secondaryText : theme.colors.primary }}
+							textStyle={{ color: theme.colors.almostWhite }}
+							loading={isLoading}
+						/>
+					</View>
 
-        </KeyboardAvoidingView>
-    )
+				</ScrollView>
+			</TouchableWithoutFeedback>
+
+		</KeyboardAvoidingView>
+	)
 }
-
-const styles = StyleSheet.create({
-    formContainer: {
-        flex: 1,
-        marginVertical: 20
-    },
-})
 
 export default Password

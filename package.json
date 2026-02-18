@@ -1,6 +1,6 @@
 {
   "name": "QvaPay",
-  "version": "1.0.1",
+  "version": "0.7",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -9,7 +9,11 @@
     "pods": "cd ios && pod install",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "version:sync": "node scripts/sync-version.js",
+    "preios": "node scripts/sync-version.js",
+    "preios:build": "node scripts/sync-version.js",
+    "preandroid": "node scripts/sync-version.js"
   },
   "dependencies": {
     "@adrianso/react-native-device-brightness": "^1.2.7",
