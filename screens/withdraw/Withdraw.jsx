@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -22,8 +22,21 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // User Context
 import { useAuth } from '../../auth/AuthContext'
 
+// AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
 // Toast
 import Toast from 'react-native-toast-message'
+
+// Quick coin pills for withdraw
+const DEFAULT_WITHDRAW_COINS = [
+	{ tick: 'BANK_CUP', label: 'CUP' },
+	{ tick: 'BANK_MLC', label: 'MLC' },
+	{ tick: 'CLASICA', label: 'Clásica' },
+	{ tick: 'ETECSA', label: 'ETECSA' },
+]
+const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
+const MAX_QUICK_PILLS = 4
 
 // Withdraw balance to certain coin
 const Withdraw = ({ navigation }) => {
@@ -50,6 +63,46 @@ const Withdraw = ({ navigation }) => {
 	const [showCoinSearch, setShowCoinSearch] = useState(false)
 	const [balance, setBalance] = useState(user?.balance || 0)
 	const [currency, setCurrency] = useState('QUSD')
+
+	// Recent coins for quick pills
+	const [recentCoins, setRecentCoins] = useState([])
+
+	useEffect(() => {
+		AsyncStorage.getItem(RECENT_WITHDRAW_KEY).then((stored) => {
+			if (stored) {
+				try {
+					const parsed = JSON.parse(stored)
+					if (Array.isArray(parsed)) { setRecentCoins(parsed.slice(0, MAX_QUICK_PILLS)) }
+				} catch (e) { /* ignore */ }
+			}
+		})
+	}, [])
+
+	const saveRecentCoin = useCallback((coinTick) => {
+		setRecentCoins((prev) => {
+			const updated = [coinTick, ...prev.filter((t) => t !== coinTick)].slice(0, MAX_QUICK_PILLS)
+			AsyncStorage.setItem(RECENT_WITHDRAW_KEY, JSON.stringify(updated))
+			return updated
+		})
+	}, [])
+
+	const quickCoinPills = useMemo(() => {
+		if (!availableCoins.length) return []
+		const pills = []
+		for (const tick of recentCoins) {
+			if (pills.length >= MAX_QUICK_PILLS) break
+			const coinData = availableCoins.find((c) => c.tick === tick)
+			if (coinData) { pills.push({ tick, label: coinData.name, coinData }) }
+		}
+		for (const pc of DEFAULT_WITHDRAW_COINS) {
+			if (pills.length >= MAX_QUICK_PILLS) break
+			if (!pills.some((p) => p.tick === pc.tick)) {
+				const coinData = availableCoins.find((c) => c.tick === pc.tick)
+				if (coinData) { pills.push({ tick: pc.tick, label: pc.label, coinData }) }
+			}
+		}
+		return pills
+	}, [recentCoins, availableCoins])
 
 	// PIN/OTP step
 	const [showPinStep, setShowPinStep] = useState(false)
@@ -203,6 +256,7 @@ const Withdraw = ({ navigation }) => {
 	}, [selectedCoin, amountQUSD, workingFields, workingForm])
 
 	const handleCoinSelect = (coin) => {
+		saveRecentCoin(coin.tick)
 		setSelectedCoin(coin)
 		setShowCoinPicker(false)
 		if (amountQUSD) {
@@ -557,6 +611,27 @@ const Withdraw = ({ navigation }) => {
 								</View>
 							)}
 
+							{quickCoinPills.length > 0 && (
+								<View style={styles.quickCoinPills}>
+									{quickCoinPills.map((pill) => (
+										<Pressable
+											key={pill.tick}
+											style={[styles.quickCoinPill, {
+												backgroundColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.surface,
+												borderColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.border,
+											}]}
+											onPress={() => handleCoinSelect(pill.coinData)}
+										>
+											<QPCoin coin={pill.coinData.logo} size={16} />
+											<Text style={[textStyles.caption, {
+												fontWeight: '600',
+												color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText,
+											}]}>{pill.label}</Text>
+										</Pressable>
+									))}
+								</View>
+							)}
+
 							<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
 
 								{isLoading ? (
@@ -595,6 +670,24 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		borderRadius: 20,
 		borderWidth: 0.5
+	},
+	// Quick coin pills
+	quickCoinPills: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+		paddingHorizontal: 20,
+		paddingTop: 10,
+		justifyContent: 'center',
+	},
+	quickCoinPill: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 6,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 16,
+		borderWidth: 0.5,
 	},
 	// Modal styles
 	modalContainer: { flex: 1 },

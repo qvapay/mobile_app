@@ -22,6 +22,7 @@ import QPInput from "../../ui/particles/QPInput"
 import QPSwitch from "../../ui/particles/QPSwitch"
 import QPCoin from "../../ui/particles/QPCoin"
 import QPButton from "../../ui/particles/QPButton"
+import QPCoinRow from "../../ui/QPCoinRow"
 
 // Toast
 import Toast from "react-native-toast-message"
@@ -31,8 +32,21 @@ import LottieView from "lottie-react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
+// AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage"
+
 // Routes
 import { ROUTES } from "../../routes"
+
+// Default popular coins for quick select pills
+const DEFAULT_POPULAR_COINS = [
+	{ tick: "BANK_CUP", label: "CUP" },
+	{ tick: "BANK_MLC", label: "MLC" },
+	{ tick: "CLASICA", label: "Clásica" },
+	{ tick: "ETECSA", label: "ETECSA" },
+]
+const RECENT_COINS_KEY = "qp_recent_p2p_coins"
+const MAX_QUICK_PILLS = 4
 
 // Sort options for cycling
 const SORT_OPTIONS = [
@@ -169,6 +183,54 @@ const P2P = ({ navigation, route }) => {
 	const [availableCoins, setAvailableCoins] = useState([])
 	const [coinSearch, setCoinSearch] = useState("")
 	const [loadingCoins, setLoadingCoins] = useState(false)
+	const [recentCoins, setRecentCoins] = useState([])
+
+	// Load recent coins from AsyncStorage
+	useEffect(() => {
+		AsyncStorage.getItem(RECENT_COINS_KEY).then((stored) => {
+			if (stored) {
+				try {
+					const parsed = JSON.parse(stored)
+					if (Array.isArray(parsed)) { setRecentCoins(parsed.slice(0, MAX_QUICK_PILLS)) }
+				} catch (e) { /* ignore */ }
+			}
+		})
+	}, [])
+
+	// Save coin to recent history
+	const saveRecentCoin = useCallback((coinTick) => {
+		setRecentCoins((prev) => {
+			const updated = [coinTick, ...prev.filter((t) => t !== coinTick)].slice(0, MAX_QUICK_PILLS)
+			AsyncStorage.setItem(RECENT_COINS_KEY, JSON.stringify(updated))
+			return updated
+		})
+	}, [])
+
+	// Quick select pills: recent coins first, then fill with popular defaults
+	const quickCoinPills = useMemo(() => {
+		if (!availableCoins.length) return []
+		const pills = []
+		for (const tick of recentCoins) {
+			if (pills.length >= MAX_QUICK_PILLS) break
+			const coinData = availableCoins.find((c) => c.tick === tick)
+			if (coinData) { pills.push({ tick, label: coinData.name, coinData }) }
+		}
+		for (const pc of DEFAULT_POPULAR_COINS) {
+			if (pills.length >= MAX_QUICK_PILLS) break
+			if (!pills.some((p) => p.tick === pc.tick)) {
+				const coinData = availableCoins.find((c) => c.tick === pc.tick)
+				if (coinData) { pills.push({ tick: pc.tick, label: pc.label, coinData }) }
+			}
+		}
+		return pills
+	}, [recentCoins, availableCoins])
+
+	// Quick select a coin from pills
+	const quickSelectCoin = useCallback((pill) => {
+		saveRecentCoin(pill.tick)
+		setSelectedCoin(pill.coinData)
+		setShowCoinPicker(false)
+	}, [saveRecentCoin])
 
 	// Get the Latest P2P Offers
 	const fetchP2POffers = useCallback(async (isRefresh = false) => {
@@ -549,6 +611,26 @@ const P2P = ({ navigation, route }) => {
 					<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
 						<QPInput value={coinSearch} onChangeText={setCoinSearch} placeholder="Buscar moneda..." prefixIconName="magnifying-glass" />
 					</View>
+					{quickCoinPills.length > 0 && (
+						<View style={styles.quickCoinPills}>
+							{quickCoinPills.map((pill) => (
+								<Pressable
+									key={pill.tick}
+									style={[styles.quickCoinPill, {
+										backgroundColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.surface,
+										borderColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.border,
+									}]}
+									onPress={() => quickSelectCoin(pill)}
+								>
+									<QPCoin coin={pill.coinData.logo} size={16} />
+									<Text style={[textStyles.caption, {
+										fontWeight: "600",
+										color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText,
+									}]}>{pill.label}</Text>
+								</Pressable>
+							))}
+						</View>
+					)}
 					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
 						{loadingCoins ? (
 							<View style={styles.loadingContainer}>
@@ -558,12 +640,8 @@ const P2P = ({ navigation, route }) => {
 							(availableCoins || [])
 								.filter((coin) => coin.name.toLowerCase().includes((coinSearch || "").toLowerCase()) || coin.tick.toLowerCase().includes((coinSearch || "").toLowerCase()))
 								.map((coin) => (
-									<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => { setSelectedCoin(coin); setShowCoinPicker(false) }}>
-										<QPCoin coin={coin.logo} size={40} />
-										<View style={{ marginLeft: 12, flex: 1 }}>
-											<Text style={textStyles.h4}>{coin.name}</Text>
-											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Ticker: {coin.tick}</Text>
-										</View>
+									<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.elevation }]} onPress={() => { saveRecentCoin(coin.tick); setSelectedCoin(coin); setShowCoinPicker(false) }}>
+										<QPCoinRow coin={coin} direction="in" />
 									</Pressable>
 								))
 						) : (
@@ -622,6 +700,23 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		paddingVertical: 8,
+	},
+	quickCoinPills: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+		paddingHorizontal: 20,
+		paddingTop: 10,
+		justifyContent: "center",
+	},
+	quickCoinPill: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 16,
+		borderWidth: 0.5,
 	},
 	coinSelector: {
 		paddingHorizontal: 12,
