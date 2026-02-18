@@ -29,7 +29,7 @@ const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true 
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
 					<Text style={textStyles.h5}>{user.name || ''}</Text>
 					{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 16, height: 16 }} />)}
-					{user.golden_check && (<Image source={require('../assets/images/ui/gold-badge.png')} style={{ width: 16, height: 16 }} />)}
+					{user.golden_check && (<FontAwesome6 name="crown" size={14} color={theme.colors.gold} iconStyle="solid" />)}
 					{user.role == 'admin' && (<Image source={qvapayLogo} style={{ width: 16, height: 16 }} />)}
 				</View>
 				{showUsername && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>@{user.username}</Text>)}

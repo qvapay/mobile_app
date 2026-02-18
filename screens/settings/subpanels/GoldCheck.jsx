@@ -13,6 +13,9 @@ import { useAuth } from '../../../auth/AuthContext'
 // UI Components
 import QPButton from '../../../ui/particles/QPButton'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // API
 import { userApi } from '../../../api/userApi'
 
@@ -142,7 +145,7 @@ const GoldCheck = ({ navigation }) => {
 
                 {goldCheckStatus ? (
                     <View style={containerStyles.center}>
-                        <Image source={require('../../../assets/images/ui/gold-badge.png')} style={{ width: 180, height: 180 }} resizeMode="contain" />
+                        <FontAwesome6 name="crown" size={120} color={theme.colors.gold} iconStyle="solid" />
                     </View>
                 ) : (
                     <View style={containerStyles.center}>
@@ -165,7 +168,7 @@ const GoldCheck = ({ navigation }) => {
                         borderColor: theme.colors.gold + '40'
                     }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                            <Image source={require('../../../assets/images/ui/gold-badge.png')} style={{ width: 20, height: 20, marginRight: theme.spacing.sm }} resizeMode="contain" />
+                            <FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" style={{ marginRight: theme.spacing.sm }} />
                             <Text style={[textStyles.h3, { textAlign: 'center', color: theme.colors.gold }]}>
                                 Suscripción Activa
                             </Text>

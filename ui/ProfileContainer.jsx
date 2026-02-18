@@ -7,6 +7,9 @@ import { useTextStyles } from '../theme/themeUtils'
 // UI Particles
 import QPAvatar from './particles/QPAvatar'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // Profile Container Component
 const ProfileContainer = ({ user = {} }) => {
 
@@ -23,7 +26,7 @@ const ProfileContainer = ({ user = {} }) => {
 			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 15 }}>
 				{user.name && (<Text style={[textStyles.h1, { marginVertical: 0, paddingVertical: 0 }]}>{user.name || ''}</Text>)}
 				{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 20, height: 20 }} />)}
-				{user.golden_check && (<Image source={require('../assets/images/ui/gold-badge.png')} style={{ width: 20, height: 20 }} />)}
+				{user.golden_check && (<FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" />)}
 				{user.role == 'admin' && (<Image source={qvapayLogo} style={{ width: 20, height: 20 }} />)}
 			</View>
 			{user.username && (<Text style={[textStyles.h2, { color: theme.colors.secondaryText, marginVertical: 0, paddingVertical: 0 }]}>@{user.username}</Text>)}
