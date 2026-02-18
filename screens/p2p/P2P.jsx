@@ -86,18 +86,36 @@ const P2P = ({ navigation, route }) => {
 	const lastScrollY = useSharedValue(0)
 	const filterBarVisible = useSharedValue(1)
 	const filterBarHeight = useSharedValue(50)
+	const scrollDirection = useSharedValue(0)
+	const accumulatedDelta = useSharedValue(0)
 
 	const scrollHandler = useAnimatedScrollHandler({
 		onScroll: (event) => {
 			const currentY = event.contentOffset.y
 			const diff = currentY - lastScrollY.value
+
 			if (currentY <= 0) {
-				filterBarVisible.value = withTiming(1, { duration: 200 })
-			} else if (diff > 5) {
-				filterBarVisible.value = withTiming(0, { duration: 200 })
-			} else if (diff < -5) {
-				filterBarVisible.value = withTiming(1, { duration: 200 })
+				filterBarVisible.value = withTiming(1, { duration: 250 })
+				accumulatedDelta.value = 0
+			} else {
+				const dir = diff > 0 ? 1 : diff < 0 ? -1 : 0
+				if (dir !== 0) {
+					if (dir === scrollDirection.value) {
+						accumulatedDelta.value += Math.abs(diff)
+					} else {
+						accumulatedDelta.value = Math.abs(diff)
+						scrollDirection.value = dir
+					}
+					if (accumulatedDelta.value > 20) {
+						if (dir === 1 && filterBarVisible.value !== 0) {
+							filterBarVisible.value = withTiming(0, { duration: 250 })
+						} else if (dir === -1 && filterBarVisible.value !== 1) {
+							filterBarVisible.value = withTiming(1, { duration: 250 })
+						}
+					}
+				}
 			}
+
 			lastScrollY.value = currentY
 		},
 	})
@@ -190,13 +208,12 @@ const P2P = ({ navigation, route }) => {
 		}
 		if (p2pEnabled) { fetchP2POffers(true) }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [typeFilter, selectedCoin?.tick, orderBy, orderType])
+	}, [typeFilter, selectedCoin?.tick, orderBy, orderType, showMine])
 
 	// Toggle my offers filter
 	const toggleMyOffers = useCallback(() => {
 		setShowMine(prev => !prev)
-		setTimeout(() => fetchP2POffers(true), 0)
-	}, [fetchP2POffers])
+	}, [])
 
 	// Configure header buttons locally to avoid non-serializable params
 	useEffect(() => {

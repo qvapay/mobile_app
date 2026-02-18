@@ -639,9 +639,9 @@ const P2POffer = ({ route }) => {
 							title="Aplicar"
 							onPress={handleApply}
 							style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
-							textStyle={{ color: theme.colors.primaryText }}
+							textStyle={{ color: theme.colors.buttonText }}
 							icon="check"
-							iconColor={theme.colors.primaryText}
+							iconColor={theme.colors.buttonText}
 							iconStyle="solid"
 							loading={loadingApply}
 							disabled={loadingApply}
