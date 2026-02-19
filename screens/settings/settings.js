@@ -75,6 +75,12 @@ const settings = {
                 notifications: 0,
             },
             {
+                title: 'Bloqueo de app',
+                screen: ROUTES.APP_LOCK,
+                enabled: true,
+                notifications: 0,
+            },
+            {
                 title: 'Verificación de identidad',
                 screen: ROUTES.KYC,
                 enabled: true,

@@ -14,6 +14,10 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 // Settings Context
 import { SettingsProvider, useSettings } from './settings/SettingsContext'
 
+// App Lock
+import { AppLockProvider } from './lock/AppLockContext'
+import LockScreen from './lock/LockScreen'
+
 // Theme Provider
 import { ThemeProvider } from './theme/ThemeContext'
 import { useTheme } from './theme/ThemeContext'
@@ -370,10 +374,13 @@ function App() {
 				<AuthProvider>
 					<SettingsProvider>
 						<ThemeProviderWithSettings>
-							<NavigationContainer linking={linking as any}>
-								<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-								<Toast position="top" topOffset={40} />
-							</NavigationContainer>
+							<AppLockProvider>
+								<NavigationContainer linking={linking as any}>
+									<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+									<Toast position="top" topOffset={40} />
+								</NavigationContainer>
+								<LockScreen />
+							</AppLockProvider>
 						</ThemeProviderWithSettings>
 					</SettingsProvider>
 				</AuthProvider>

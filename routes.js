@@ -72,6 +72,7 @@ export const ROUTES = {
     NOTIFICATIONS: "Notifications",
     PAYMENT_METHODS: "PaymentMethods",
     CONTACTS: "Contacts",
+    APP_LOCK: "AppLock",
 
     // Help Screens
     HELP_SCREEN: "Help",

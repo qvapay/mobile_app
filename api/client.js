@@ -12,6 +12,7 @@ const API_TIMEOUT = config.API_TIMEOUT
 
 const KEYCHAIN_SERVICE = 'com.qvapay.auth'
 const BIOMETRIC_SERVICE = 'com.qvapay.biometrics'
+const APP_LOCK_SERVICE = 'com.qvapay.applock'
 
 // Create axios instance
 const apiClient = axios.create({
@@ -157,6 +158,46 @@ export const hasBiometricCredentials = async () => {
 	try {
 		const credentials = await Keychain.hasGenericPassword({ service: BIOMETRIC_SERVICE })
 		return !!credentials
+	} catch (error) {
+		return false
+	}
+}
+
+// App Lock PIN helpers
+export const setAppLockPin = async (pin) => {
+	try {
+		await Keychain.setGenericPassword('applock', pin, {
+			service: APP_LOCK_SERVICE,
+			accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+		})
+		return true
+	} catch (error) {
+		return false
+	}
+}
+
+export const getAppLockPin = async () => {
+	try {
+		const credentials = await Keychain.getGenericPassword({ service: APP_LOCK_SERVICE })
+		return credentials ? credentials.password : null
+	} catch (error) {
+		return null
+	}
+}
+
+export const hasAppLockPin = async () => {
+	try {
+		const credentials = await Keychain.hasGenericPassword({ service: APP_LOCK_SERVICE })
+		return !!credentials
+	} catch (error) {
+		return false
+	}
+}
+
+export const removeAppLockPin = async () => {
+	try {
+		await Keychain.resetGenericPassword({ service: APP_LOCK_SERVICE })
+		return true
 	} catch (error) {
 		return false
 	}
