@@ -426,6 +426,32 @@ export const userApi = {
 	},
 
 	/**
+	 * Upload user avatar
+	 * @param {{ uri: string, name?: string, type?: string }} file - The image file
+	 * @returns {Promise<Object>} Upload result with { url, path }
+	 */
+	uploadAvatar: async ({ file }) => {
+		try {
+			const formData = new FormData()
+			formData.append('file', {
+				uri: file.uri,
+				name: file.name || 'avatar.jpg',
+				type: file.type || 'image/jpeg'
+			})
+			formData.append('type', 'avatar')
+			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
+			const response = await apiClient.post('/user/avatar', formData, config)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo subir la imagen', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Get notification settings
 	 * @returns {Promise<Object>} The notification settings
 	 */

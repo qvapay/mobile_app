@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, Alert, ScrollView, Pressable, Linking } from 'react-native'
+import { View, Text, Alert, ScrollView, Pressable, Linking, Platform, ActionSheetIOS } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -20,6 +20,12 @@ import ProfileContainer from '../../ui/ProfileContainer'
 // Biometric utilities
 import { hasBiometricCredentials, removeBiometricCredentials } from '../../api/client'
 
+// API
+import { userApi } from '../../api/userApi'
+
+// Image Picker
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker'
+
 // Import settings
 import settings from './settings'
 
@@ -28,6 +34,9 @@ import { ROUTES } from '../../routes'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// Toast
+import Toast from 'react-native-toast-message'
 
 // Constants
 import DeviceInfo from 'react-native-device-info'
@@ -38,7 +47,7 @@ const buildNumber = DeviceInfo.getBuildNumber()
 const SettingsMenu = ({ navigation }) => {
 
     // Contexts
-    const { user, logout } = useAuth()
+    const { user, logout, updateUser } = useAuth()
     const { updateSettings } = useSettings()
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
@@ -55,6 +64,51 @@ const SettingsMenu = ({ navigation }) => {
         }
         checkBiometrics()
     }, [])
+
+    // Image picker options
+    const imagePickerOptions = { mediaType: 'photo', maxWidth: 512, maxHeight: 512, quality: 0.8, includeBase64: false }
+
+    // Handle avatar upload from picker result
+    const processAvatarUpload = async (response) => {
+        if (response.didCancel || response.errorCode) return
+        const asset = response.assets?.[0]
+        if (!asset) return
+
+        Toast.show({ type: 'info', text1: 'Subiendo foto...', autoHide: false })
+        const result = await userApi.uploadAvatar({
+            file: { uri: asset.uri, type: asset.type || 'image/jpeg', name: asset.fileName || 'avatar.jpg' }
+        })
+        Toast.hide()
+
+        if (result.success) {
+            updateUser({ image: result.data?.data?.path })
+            Toast.show({ type: 'success', text1: 'Foto actualizada' })
+        } else {
+            Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'No se pudo subir la imagen' })
+        }
+    }
+
+    // Edit avatar handler
+    const handleEditAvatar = () => {
+        const options = ['Tomar foto', 'Elegir de galería', 'Cancelar']
+        const cancelButtonIndex = 2
+
+        if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions(
+                { options, cancelButtonIndex },
+                (buttonIndex) => {
+                    if (buttonIndex === 0) launchCamera(imagePickerOptions, processAvatarUpload)
+                    else if (buttonIndex === 1) launchImageLibrary(imagePickerOptions, processAvatarUpload)
+                }
+            )
+        } else {
+            Alert.alert('Cambiar foto de perfil', null, [
+                { text: 'Tomar foto', onPress: () => launchCamera(imagePickerOptions, processAvatarUpload) },
+                { text: 'Elegir de galería', onPress: () => launchImageLibrary(imagePickerOptions, processAvatarUpload) },
+                { text: 'Cancelar', style: 'cancel' },
+            ])
+        }
+    }
 
     // Logout function
     const handleLogout = async () => {
@@ -108,7 +162,7 @@ const SettingsMenu = ({ navigation }) => {
     return (
         <ScrollView style={containerStyles.subContainer}>
 
-            <ProfileContainer user={user} />
+            <ProfileContainer user={user} onEditAvatar={handleEditAvatar} />
 
             {Object.entries(settings).map(([categoryKey, category]) => (
                 <SettingsSection key={categoryKey} title={category.title} items={category.options} navigation={navigation} />

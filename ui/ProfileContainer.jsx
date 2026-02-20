@@ -1,4 +1,4 @@
-import { View, Text, Image } from 'react-native'
+import { View, Text, Image, Pressable } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -11,7 +11,7 @@ import QPAvatar from './particles/QPAvatar'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Profile Container Component
-const ProfileContainer = ({ user = {} }) => {
+const ProfileContainer = ({ user = {}, onEditAvatar }) => {
 
 	// Contexts
 	const { theme } = useTheme()
@@ -22,7 +22,28 @@ const ProfileContainer = ({ user = {} }) => {
 
 	return (
 		<View style={{ alignItems: 'center', marginVertical: 10 }}>
-			<QPAvatar size={120} user={user} />
+			<Pressable onPress={onEditAvatar} disabled={!onEditAvatar}>
+				<View style={{ position: 'relative' }}>
+					<QPAvatar size={120} user={user} />
+					{onEditAvatar && (
+						<View style={{
+							position: 'absolute',
+							bottom: 4,
+							right: 4,
+							width: 28,
+							height: 28,
+							borderRadius: 14,
+							backgroundColor: theme.colors.primary,
+							alignItems: 'center',
+							justifyContent: 'center',
+							borderWidth: 2,
+							borderColor: theme.colors.background,
+						}}>
+							<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
+						</View>
+					)}
+				</View>
+			</Pressable>
 			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 15 }}>
 				{user.name && (<Text style={[textStyles.h1, { marginVertical: 0, paddingVertical: 0 }]}>{user.name || ''}</Text>)}
 				{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 20, height: 20 }} />)}

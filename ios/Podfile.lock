@@ -2004,6 +2004,34 @@ PODS:
     - SocketRocket
   - react-native-device-brightness (1.2.7):
     - React
+  - react-native-image-picker (8.2.1):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - react-native-safe-area-context (5.6.2):
     - boost
     - DoubleConversion
@@ -3164,6 +3192,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - "react-native-device-brightness (from `../node_modules/@adrianso/react-native-device-brightness`)"
+  - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-vector-icons-fontawesome6 (from `../node_modules/@react-native-vector-icons/fontawesome6`)"
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
@@ -3324,6 +3353,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-device-brightness:
     :path: "../node_modules/@adrianso/react-native-device-brightness"
+  react-native-image-picker:
+    :path: "../node_modules/react-native-image-picker"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-vector-icons-fontawesome6:
@@ -3473,6 +3504,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 9d33f0f79b6b5705d08d89d8fb9709d1ee655c81
   React-microtasksnativemodule: 1a5a9488d2a05c74ea276c2012df632d8221d169
   react-native-device-brightness: 886cfbfb49a32b6de4ccfc1f720776dc5f381d24
+  react-native-image-picker: b99d9c1f2ddbef491eb49e1103e5c2ce78b9ab37
   react-native-safe-area-context: fea29ae0275beaa22f72d0a8be1eb0ab09c3feae
   react-native-vector-icons-fontawesome6: 1a73ea16a698f70851ad47e94521a99499e8e974
   React-NativeModulesApple: dfce21d2c4b7eab44db0af861fcb8998d0b8ad16
