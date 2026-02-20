@@ -51,7 +51,9 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>QvaPay utiliza Face ID para acceder a tu cuenta de forma segura.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to provide you with the best experience.</string>
+	<string>QvaPay necesita tu ubicación para brindarte peers cerca de tu ubicación.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>QvaPay necesita acceso a tu galería de fotos para cambiar tu foto de perfil y subir comprobantes de pago.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
