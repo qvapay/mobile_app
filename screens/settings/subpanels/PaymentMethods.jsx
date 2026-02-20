@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
 
 // Theme
@@ -27,12 +27,23 @@ import { reduceStringInside } from '../../../helpers'
 // Helpers
 const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 
-const PaymentMethods = () => {
+const PaymentMethods = ({ navigation }) => {
 
 	// Theme
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+
+	// Header button "+"
+	useEffect(() => {
+		navigation.setOptions({
+			headerRight: () => (
+				<Pressable style={containerStyles.headerRight} onPress={openCreate}>
+					<FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+				</Pressable>
+			)
+		})
+	}, [navigation, containerStyles.headerRight, theme.colors.primaryText])
 
 	// State
 	const [loading, setLoading] = useState(true)
@@ -234,11 +245,6 @@ const PaymentMethods = () => {
 					)}
 				</View>
 			</ScrollView>
-
-			{/* Bottom Button */}
-			<View style={containerStyles.bottomButtonContainer}>
-				<QPButton title="Agregar método" onPress={openCreate} icon="plus" textStyle={{ color: theme.colors.buttonText }} />
-			</View>
 
 			{/* Create Modal */}
 			<Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeCreate}>

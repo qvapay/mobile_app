@@ -14,6 +14,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Notifications
 import Toast from 'react-native-toast-message'
 
+// OneSignal Push Notifications
+import { OneSignal } from 'react-native-onesignal'
+
 // UI
 import QPLoader from '../../../ui/particles/QPLoader'
 
@@ -83,14 +86,34 @@ const Notifications = () => {
 		const previous = settings[key]
 		setSettings(prev => ({ ...prev, [key]: value }))
 
+		// Sync push subscription with OneSignal
+		if (key === 'push_enabled') {
+			if (value) {
+				OneSignal.Notifications.requestPermission(true)
+				OneSignal.User.pushSubscription.optIn()
+			} else {
+				OneSignal.User.pushSubscription.optOut()
+			}
+		}
+
 		try {
 			const result = await userApi.updateNotificationSettings({ [key]: value })
 			if (!result.success) {
 				setSettings(prev => ({ ...prev, [key]: previous }))
+				// Rollback OneSignal state
+				if (key === 'push_enabled') {
+					if (previous) { OneSignal.User.pushSubscription.optIn() }
+					else { OneSignal.User.pushSubscription.optOut() }
+				}
 				Toast.show({ type: 'error', text1: 'No se pudo actualizar la configuración' })
 			}
 		} catch (error) {
 			setSettings(prev => ({ ...prev, [key]: previous }))
+			// Rollback OneSignal state
+			if (key === 'push_enabled') {
+				if (previous) { OneSignal.User.pushSubscription.optIn() }
+				else { OneSignal.User.pushSubscription.optOut() }
+			}
 			Toast.show({ type: 'error', text1: 'Error de conexión' })
 		}
 	}

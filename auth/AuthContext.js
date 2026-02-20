@@ -7,6 +7,9 @@ import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
 import { setAuthToken, removeAuthToken, getAuthToken } from '../api/client'
 
+// OneSignal Push Notifications
+import { OneSignal } from 'react-native-onesignal'
+
 // Create the Auth Context
 const AuthContext = createContext()
 
@@ -83,6 +86,8 @@ export const AuthProvider = ({ children }) => {
 					const userData = await userApi.getUserProfile()
 					if (userData.success && userData.data) {
 						setUser(userData.data)
+						// Re-register with OneSignal on app restart
+						OneSignal.login(userData.data.uuid)
 					} else {
 						await clearAuthData()
 						setUser(null)
@@ -159,6 +164,14 @@ export const AuthProvider = ({ children }) => {
 			setToken(accessToken)
 			setIsAuthenticated(true)
 
+			// Register user with OneSignal for targeted push notifications
+			OneSignal.login(userData.uuid)
+			OneSignal.User.addTags({
+				kyc: userData.kyc ? 'true' : 'false',
+				vip: userData.vip ? 'true' : 'false',
+				golden_check: userData.golden_check ? 'true' : 'false',
+			})
+
 			return { success: true, security_warning: apiResponse.security_warning || null }
 
 		} catch (error) {
@@ -198,6 +211,9 @@ export const AuthProvider = ({ children }) => {
 				try { await authApi.logout() }
 				catch (apiError) { /* API logout failed */ }
 			}
+
+			// Unlink user from OneSignal push notifications
+			OneSignal.logout()
 
 			// Clear all stored data
 			await clearAuthData()

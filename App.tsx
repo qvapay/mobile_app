@@ -2,6 +2,9 @@
 import { Linking, Platform, Pressable } from 'react-native'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+// OneSignal Push Notifications
+import { OneSignal } from 'react-native-onesignal'
+
 // Navigation Components
 import { NavigationContainer, useNavigation, DefaultTheme, DarkTheme } from '@react-navigation/native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -168,6 +171,44 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 			}
 		})
 		return () => subscription.remove()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthenticated])
+
+	// OneSignal notification listeners
+	useEffect(() => {
+		// Foreground notification: show as toast
+		const onForeground = (event: any) => {
+			event.preventDefault()
+			const notification = event.getNotification()
+			Toast.show({
+				type: 'info',
+				text1: notification.title || 'QvaPay',
+				text2: notification.body || '',
+			})
+			notification.display()
+		}
+
+		// Notification tapped: navigate to the right screen
+		const onClicked = (event: any) => {
+			const data = event.notification?.additionalData
+			if (!data?.type || !isAuthenticated) return
+
+			if (data.type === 'transaction' && data.uuid) {
+				(navigation as any).navigate(ROUTES.TRANSACTION, { uuid: data.uuid })
+			} else if (data.type === 'p2p' && data.uuid) {
+				(navigation as any).navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: data.uuid })
+			} else if (data.type === 'transfer') {
+				(navigation as any).navigate(ROUTES.TRANSACTIONS)
+			}
+		}
+
+		OneSignal.Notifications.addEventListener('foregroundWillDisplay', onForeground)
+		OneSignal.Notifications.addEventListener('click', onClicked)
+
+		return () => {
+			OneSignal.Notifications.removeEventListener('foregroundWillDisplay', onForeground)
+			OneSignal.Notifications.removeEventListener('click', onClicked)
+		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isAuthenticated])
 
@@ -394,6 +435,9 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
 		</NavigationContainer>
 	)
 }
+
+// Initialize OneSignal (must be called outside component, before render)
+OneSignal.initialize('8f69c017-b7e7-40b2-903b-11ce7ac5cc81')
 
 function App() {
 	const pendingDeepLinkRef = useRef<string | null>(null)

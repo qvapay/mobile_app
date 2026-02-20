@@ -319,6 +319,25 @@ export const userApi = {
 	},
 
 	/**
+	 * Add a contact
+	 * @param {string} contact_uuid - The UUID of the user to add as contact
+	 * @param {string} name - The display name for the contact
+	 * @returns {Promise<Object>} The created contact
+	 */
+	addContact: async (contact_uuid, name) => {
+		try {
+			const response = await apiClient.post(`/user/contact`, { contact_uuid, name })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo agregar el contacto', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Delete a contact by id/uuid
 	 * @param {string|number} idOrUuid - The contact identifier
 	 * @returns {Promise<Object>} The deletion result

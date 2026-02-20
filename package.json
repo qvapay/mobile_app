@@ -38,6 +38,7 @@
     "react-native-keychain": "^10.0.0",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-nitro-modules": "^0.31.10",
+    "react-native-onesignal": "^5.3.1",
     "react-native-qrcode-scanner": "^1.5.5",
     "react-native-qrcode-styled": "^0.4.0",
     "react-native-reanimated": "^4.2.1",
