@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -9,6 +9,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
+import QPKeyboardView from '../../../ui/QPKeyboardView'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -225,153 +226,151 @@ const Phone = () => {
 
 	// Unverified state - form
 	return (
-		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
-					<Text style={textStyles.h1}>Verificar Teléfono</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para recibir un código de verificación</Text>
-
-					{/* Status icon */}
-					<View style={{ alignItems: 'center', paddingVertical: 24 }}>
-						<View style={{
-							width: 80,
-							height: 80,
-							borderRadius: 40,
-							alignItems: 'center',
-							justifyContent: 'center',
-							backgroundColor: theme.colors.warning + '20',
-						}}>
-							<FontAwesome6 name="phone" size={36} color={theme.colors.warning} iconStyle="solid" />
-						</View>
-					</View>
-
-					<View style={{ flex: 1 }}>
-						{/* Country Selection */}
-						<TouchableOpacity
-							style={{
-								flexDirection: 'row',
-								alignItems: 'center',
-								justifyContent: 'space-between',
-								backgroundColor: theme.colors.surface,
-								borderRadius: 12,
-								padding: 16,
-								marginBottom: 12,
-							}}
-							onPress={() => setShowCountryPicker(true)}
-						>
-							<View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-								<FontAwesome6 name="globe" size={18} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.body, { color: theme.colors.primaryText, marginLeft: 12 }]}>
-									{countries.find(c => c.code === country)?.name} ({countries.find(c => c.code === country)?.dial_code})
-								</Text>
-							</View>
-							<FontAwesome6 name="chevron-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
-						</TouchableOpacity>
-
-						{/* Phone Input */}
-						<QPInput
-							value={phone}
-							onChangeText={setPhone}
-							placeholder="Número de teléfono"
-							keyboardType="phone-pad"
-							prefixIconName="phone-volume"
+		<>
+			<QPKeyboardView
+				actions={
+					!showPinInput ? (
+						<QPButton
+							title="Enviar código"
+							onPress={handleSendCode}
+							loading={isLoading}
+							disabled={isLoading || !phone.trim()}
+							textStyle={{ color: theme.colors.buttonText }}
 						/>
-
-						{showPinInput && (
-							<QPInput
-								value={pin}
-								onChangeText={setPin}
-								placeholder="Código de 6 dígitos"
-								keyboardType="numeric"
-								maxLength={6}
-								prefixIconName="key"
-							/>
-						)}
-					</View>
-
-					{/* Info card */}
-					<View style={[containerStyles.card, { marginTop: 10, marginBottom: 20 }]}>
-						<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-							<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
-							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-								Verificar tu teléfono te permite recibir notificaciones SMS y añade una capa extra de seguridad a tu cuenta.
-							</Text>
-						</View>
-					</View>
-
-					<View style={containerStyles.bottomButtonContainer}>
-						{!showPinInput ? (
+					) : (
+						<>
 							<QPButton
-								title="Enviar código"
-								onPress={handleSendCode}
-								loading={isLoading}
-								disabled={isLoading || !phone.trim()}
+								title="Verificar teléfono"
+								onPress={handleVerifyPhone}
+								loading={isVerifying}
+								disabled={isVerifying || !pin.trim() || pin.trim().length !== 6}
 								textStyle={{ color: theme.colors.buttonText }}
 							/>
-						) : (
-							<>
-								<QPButton
-									title="Verificar teléfono"
-									onPress={handleVerifyPhone}
-									loading={isVerifying}
-									disabled={isVerifying || !pin.trim() || pin.trim().length !== 6}
-									textStyle={{ color: theme.colors.buttonText }}
-								/>
-								<QPButton
-									title="Reenviar código"
-									onPress={handleSendCode}
-									loading={isLoading}
-									disabled={isLoading}
-									style={{ backgroundColor: theme.colors.surface, marginTop: 10 }}
-									textStyle={{ color: theme.colors.primaryText }}
-								/>
-							</>
-						)}
+							<QPButton
+								title="Reenviar código"
+								onPress={handleSendCode}
+								loading={isLoading}
+								disabled={isLoading}
+								style={{ backgroundColor: theme.colors.surface, marginTop: 10 }}
+								textStyle={{ color: theme.colors.primaryText }}
+							/>
+						</>
+					)
+				}
+			>
+
+				<Text style={textStyles.h1}>Verificar Teléfono</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para recibir un código de verificación</Text>
+
+				{/* Status icon */}
+				<View style={{ alignItems: 'center', paddingVertical: 24 }}>
+					<View style={{
+						width: 80,
+						height: 80,
+						borderRadius: 40,
+						alignItems: 'center',
+						justifyContent: 'center',
+						backgroundColor: theme.colors.warning + '20',
+					}}>
+						<FontAwesome6 name="phone" size={36} color={theme.colors.warning} iconStyle="solid" />
 					</View>
+				</View>
 
-					{/* Country Picker Modal */}
-					<Modal
-						visible={showCountryPicker}
-						transparent={true}
-						animationType="slide"
-						onRequestClose={() => { setShowCountryPicker(false); setCountrySearch('') }}
+				<View style={{ flex: 1 }}>
+					{/* Country Selection */}
+					<TouchableOpacity
+						style={{
+							flexDirection: 'row',
+							alignItems: 'center',
+							justifyContent: 'space-between',
+							backgroundColor: theme.colors.surface,
+							borderRadius: 12,
+							padding: 16,
+							marginBottom: 12,
+						}}
+						onPress={() => setShowCountryPicker(true)}
 					>
-						<View style={styles.modalOverlay}>
-							<View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-								<View style={styles.modalHeader}>
-									<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Seleccionar país</Text>
-									<TouchableOpacity onPress={() => { setShowCountryPicker(false); setCountrySearch('') }}>
-										<FontAwesome6 name="circle-xmark" size={24} color={theme.colors.secondaryText} />
-									</TouchableOpacity>
-								</View>
-								<QPInput
-									value={countrySearch}
-									onChangeText={setCountrySearch}
-									placeholder="Buscar país..."
-									prefixIconName="magnifying-glass"
-									style={{ marginVertical: 0 }}
-								/>
-								<ScrollView style={{ maxHeight: 400 }}>
-									{countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).map((c) => (
-										<TouchableOpacity
-											key={`${c.code}-${c.dial_code}`}
-											style={[styles.countryItem, { backgroundColor: country === c.code ? theme.colors.primary : theme.colors.background }]}
-											onPress={() => { setCountry(c.code); setShowCountryPicker(false); setCountrySearch('') }}
-										>
-											<Text style={[styles.countryItemText, { color: country === c.code ? theme.colors.buttonText : theme.colors.primaryText }]}>
-												{c.name} ({c.dial_code})
-											</Text>
-										</TouchableOpacity>
-									))}
-								</ScrollView>
-							</View>
+						<View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+							<FontAwesome6 name="globe" size={18} color={theme.colors.primary} iconStyle="solid" />
+							<Text style={[textStyles.body, { color: theme.colors.primaryText, marginLeft: 12 }]}>
+								{countries.find(c => c.code === country)?.name} ({countries.find(c => c.code === country)?.dial_code})
+							</Text>
 						</View>
-					</Modal>
+						<FontAwesome6 name="chevron-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
+					</TouchableOpacity>
 
-				</ScrollView>
-			</TouchableWithoutFeedback>
-		</KeyboardAvoidingView>
+					{/* Phone Input */}
+					<QPInput
+						value={phone}
+						onChangeText={setPhone}
+						placeholder="Número de teléfono"
+						keyboardType="phone-pad"
+						prefixIconName="phone-volume"
+					/>
+
+					{showPinInput && (
+						<QPInput
+							value={pin}
+							onChangeText={setPin}
+							placeholder="Código de 6 dígitos"
+							keyboardType="numeric"
+							maxLength={6}
+							prefixIconName="key"
+						/>
+					)}
+				</View>
+
+				{/* Info card */}
+				<View style={[containerStyles.card, { marginTop: 10, marginBottom: 20 }]}>
+					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+						<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
+						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+							Verificar tu teléfono te permite recibir notificaciones SMS y añade una capa extra de seguridad a tu cuenta.
+						</Text>
+					</View>
+				</View>
+
+			</QPKeyboardView>
+
+			{/* Country Picker Modal */}
+			<Modal
+				visible={showCountryPicker}
+				transparent={true}
+				animationType="slide"
+				onRequestClose={() => { setShowCountryPicker(false); setCountrySearch('') }}
+			>
+				<View style={styles.modalOverlay}>
+					<View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+						<View style={styles.modalHeader}>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Seleccionar país</Text>
+							<TouchableOpacity onPress={() => { setShowCountryPicker(false); setCountrySearch('') }}>
+								<FontAwesome6 name="circle-xmark" size={24} color={theme.colors.secondaryText} />
+							</TouchableOpacity>
+						</View>
+						<QPInput
+							value={countrySearch}
+							onChangeText={setCountrySearch}
+							placeholder="Buscar país..."
+							prefixIconName="magnifying-glass"
+							style={{ marginVertical: 0 }}
+						/>
+						<ScrollView style={{ maxHeight: 400 }}>
+							{countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).map((c) => (
+								<TouchableOpacity
+									key={`${c.code}-${c.dial_code}`}
+									style={[styles.countryItem, { backgroundColor: country === c.code ? theme.colors.primary : theme.colors.background }]}
+									onPress={() => { setCountry(c.code); setShowCountryPicker(false); setCountrySearch('') }}
+								>
+									<Text style={[styles.countryItemText, { color: country === c.code ? theme.colors.buttonText : theme.colors.primaryText }]}>
+										{c.name} ({c.dial_code})
+									</Text>
+								</TouchableOpacity>
+							))}
+						</ScrollView>
+					</View>
+				</View>
+			</Modal>
+		</>
 	)
 }
 

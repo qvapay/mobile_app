@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Platform, Modal, Pressable, ScrollView, FlatList } from 'react-native'
+import { View, Text, StyleSheet, Platform, Modal, Pressable, FlatList } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -9,6 +9,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPInput from '../../../ui/particles/QPInput'
+import QPKeyboardView from '../../../ui/QPKeyboardView'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -209,68 +210,71 @@ const KYC = () => {
 	}
 
 	return (
-		<ScrollView style={containerStyles.subContainer} contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+		<>
+			<QPKeyboardView
+				actions={
+					<QPButton
+						title="Enviar verificación"
+						onPress={submitVerification}
+						loading={submittingInfo}
+						textStyle={{ color: theme.colors.almostWhite }}
+					/>
+				}
+			>
 
-			<Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Verificación de identidad</Text>
-			<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Sigue los pasos para verificar tu cuenta</Text>
+				<Text style={[textStyles.h1, { color: theme.colors.primaryText }]}>Verificación de identidad</Text>
+				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>Sigue los pasos para verificar tu cuenta</Text>
 
-			<View style={[containerStyles.card, { marginTop: 16 }]}>
-				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginBottom: 8 }]}>Recomendaciones</Text>
-				<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>- Asegúrate de buena iluminación</Text>
-				<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>- No uses gafas oscuras ni gorras para la selfie.</Text>
-				<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>- Ten tu documento a mano.</Text>
-			</View>
+				<View style={[containerStyles.card, { marginTop: 16 }]}>
+					<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginBottom: 8 }]}>Recomendaciones</Text>
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>- Asegúrate de buena iluminación</Text>
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>- No uses gafas oscuras ni gorras para la selfie.</Text>
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>- Ten tu documento a mano.</Text>
+				</View>
 
-			{/* KYC Info form */}
-			<View style={[containerStyles.card, { marginTop: 16 }]}>
-				<KYCInfoForm
-					theme={theme}
-					textStyles={textStyles}
-					country={formCountry}
-					countryName={formCountryName}
-					setCountry={setFormCountry}
-					setCountryName={setFormCountryName}
-					day={formDay}
-					setDay={setFormDay}
-					month={formMonth}
-					setMonth={setFormMonth}
-					year={formYear}
-					setYear={setFormYear}
-					confirmed={formConfirmed}
-					setConfirmed={setFormConfirmed}
-				/>
-			</View>
+				{/* KYC Info form */}
+				<View style={[containerStyles.card, { marginTop: 16 }]}>
+					<KYCInfoForm
+						theme={theme}
+						textStyles={textStyles}
+						country={formCountry}
+						countryName={formCountryName}
+						setCountry={setFormCountry}
+						setCountryName={setFormCountryName}
+						day={formDay}
+						setDay={setFormDay}
+						month={formMonth}
+						setMonth={setFormMonth}
+						year={formYear}
+						setYear={setFormYear}
+						confirmed={formConfirmed}
+						setConfirmed={setFormConfirmed}
+					/>
+				</View>
 
-			<View style={{ marginTop: 8 }}>
+				<View style={{ marginTop: 8 }}>
 
-				<KYCStep
-					title="Documento de identidad"
-					description="Toma una foto clara del documento (anverso)"
-					done={documentUploaded}
-					onPress={() => openCapture('document')}
-					theme={theme}
-					textStyles={textStyles}
-				/>
+					<KYCStep
+						title="Documento de identidad"
+						description="Toma una foto clara del documento (anverso)"
+						done={documentUploaded}
+						onPress={() => openCapture('document')}
+						theme={theme}
+						textStyles={textStyles}
+					/>
 
-				<KYCStep
-					title="Selfie"
-					description="Toma una selfie mirando a la cámara"
-					done={selfieUploaded}
-					onPress={() => openCapture('selfie')}
-					theme={theme}
-					textStyles={textStyles}
-				/>
+					<KYCStep
+						title="Selfie"
+						description="Toma una selfie mirando a la cámara"
+						done={selfieUploaded}
+						onPress={() => openCapture('selfie')}
+						theme={theme}
+						textStyles={textStyles}
+					/>
 
-			</View>
+				</View>
 
-			<View style={[containerStyles.bottomButtonContainer, { marginTop: 16, gap: 8 }]}>
-				<QPButton
-					title="Enviar verificación"
-					onPress={submitVerification}
-					loading={submittingInfo}
-					textStyle={{ color: theme.colors.almostWhite }}
-				/>
-			</View>
+			</QPKeyboardView>
 
 			<CaptureModal
 				visible={isCaptureOpen}
@@ -282,8 +286,7 @@ const KYC = () => {
 				}}
 				theme={theme}
 			/>
-
-		</ScrollView>
+		</>
 	)
 }
 

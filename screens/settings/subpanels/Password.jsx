@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Text, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
+import { Text, View } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -8,6 +8,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // UI Particles
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
+import QPKeyboardView from '../../../ui/QPKeyboardView'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -72,95 +73,85 @@ const Password = () => {
 	}, [password, confirmPassword])
 
 	return (
-		<KeyboardAvoidingView
-			style={containerStyles.subContainer}
-			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-			keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+		<QPKeyboardView
+			actions={
+				<QPButton
+					title="Cambiar contraseña"
+					onPress={handleSubmit}
+					disabled={isButtonDisabled || isLoading}
+					style={{ backgroundColor: isButtonDisabled ? theme.colors.secondaryText : theme.colors.primary }}
+					textStyle={{ color: theme.colors.almostWhite }}
+					loading={isLoading}
+				/>
+			}
+		>
 
-			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+			<Text style={textStyles.h1}>Cambiar contraseña</Text>
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Establece una nueva contraseña para tu cuenta</Text>
 
-				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
+			<View style={{ flex: 1, marginVertical: 20 }}>
 
-					<Text style={textStyles.h1}>Cambiar contraseña</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Establece una nueva contraseña para tu cuenta</Text>
+				{/* Current Password */}
+				<QPInput
+					placeholder="Contraseña actual"
+					value={currentPassword}
+					onChangeText={setCurrentPassword}
+					prefixIconName="lock"
+					autoCapitalize="none"
+					secureTextEntry
+				/>
 
-					<View style={{ flex: 1, marginVertical: 20 }}>
+				{/* New Password */}
+				<QPInput
+					placeholder="Nueva contraseña"
+					value={password}
+					onChangeText={setPassword}
+					prefixIconName="lock"
+					autoCapitalize="none"
+					secureTextEntry
+				/>
 
-						{/* Current Password */}
-						<QPInput
-							placeholder="Contraseña actual"
-							value={currentPassword}
-							onChangeText={setCurrentPassword}
-							prefixIconName="lock"
-							autoCapitalize="none"
-							secureTextEntry
-						/>
+				{/* Confirm New Password */}
+				<QPInput
+					placeholder="Confirmar nueva contraseña"
+					value={confirmPassword}
+					onChangeText={setConfirmPassword}
+					prefixIconName="lock"
+					autoCapitalize="none"
+					secureTextEntry
+				/>
 
-						{/* New Password */}
-						<QPInput
-							placeholder="Nueva contraseña"
-							value={password}
-							onChangeText={setPassword}
-							prefixIconName="lock"
-							autoCapitalize="none"
-							secureTextEntry
-						/>
-
-						{/* Confirm New Password */}
-						<QPInput
-							placeholder="Confirmar nueva contraseña"
-							value={confirmPassword}
-							onChangeText={setConfirmPassword}
-							prefixIconName="lock"
-							autoCapitalize="none"
-							secureTextEntry
-						/>
-
-						{/* Password requirements */}
-						<View style={[containerStyles.card, { marginTop: 10 }]}>
-							<Text style={[textStyles.h4, { marginBottom: 12 }]}>
-								Requisitos de contraseña:
+				{/* Password requirements */}
+				<View style={[containerStyles.card, { marginTop: 10 }]}>
+					<Text style={[textStyles.h4, { marginBottom: 12 }]}>
+						Requisitos de contraseña:
+					</Text>
+					{[
+						{ icon: 'text-width', text: 'Mínimo 8 caracteres' },
+						{ icon: 'font', text: 'Al menos una letra mayúscula' },
+						{ icon: 'hashtag', text: 'Al menos un número' },
+					].map((req, index) => (
+						<View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: index < 2 ? 10 : 0 }}>
+							<FontAwesome6 name={req.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
+							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12 }]}>
+								{req.text}
 							</Text>
-							{[
-								{ icon: 'text-width', text: 'Mínimo 8 caracteres' },
-								{ icon: 'font', text: 'Al menos una letra mayúscula' },
-								{ icon: 'hashtag', text: 'Al menos un número' },
-							].map((req, index) => (
-								<View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: index < 2 ? 10 : 0 }}>
-									<FontAwesome6 name={req.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
-									<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12 }]}>
-										{req.text}
-									</Text>
-								</View>
-							))}
 						</View>
+					))}
+				</View>
 
-						{/* Security tip */}
-						<View style={[containerStyles.card, { marginTop: 10 }]}>
-							<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-								<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-									Usa una contraseña única que no utilices en otros servicios. Si tienes biometría activa, se desactivará al cambiar la contraseña.
-								</Text>
-							</View>
-						</View>
+				{/* Security tip */}
+				<View style={[containerStyles.card, { marginTop: 10 }]}>
+					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+						<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
+						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+							Usa una contraseña única que no utilices en otros servicios. Si tienes biometría activa, se desactivará al cambiar la contraseña.
+						</Text>
 					</View>
+				</View>
+			</View>
 
-					<View style={containerStyles.bottomButtonContainer}>
-						<QPButton
-							title="Cambiar contraseña"
-							onPress={handleSubmit}
-							disabled={isButtonDisabled || isLoading}
-							style={{ backgroundColor: isButtonDisabled ? theme.colors.secondaryText : theme.colors.primary }}
-							textStyle={{ color: theme.colors.almostWhite }}
-							loading={isLoading}
-						/>
-					</View>
-
-				</ScrollView>
-			</TouchableWithoutFeedback>
-
-		</KeyboardAvoidingView>
+		</QPKeyboardView>
 	)
 }
 

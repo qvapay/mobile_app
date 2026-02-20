@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, KeyboardAvoidingView, TouchableWithoutFeedback, ScrollView, Keyboard, Platform } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -7,6 +7,9 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // Routes
 // import { ROUTES } from '../../routes'
+
+// UI
+import QPKeyboardView from '../../ui/QPKeyboardView'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
@@ -71,75 +74,62 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 
     return (
 
-        <KeyboardAvoidingView
-            style={containerStyles.subContainer}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+        <QPKeyboardView
+            actions={
+                successMessage ? (
+                    <QPButton
+                        title="Volver al inicio de sesión"
+                        onPress={() => navigation.goBack()}
+                        style={{ backgroundColor: theme.colors.primary, marginTop: 10 }}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                    />
+                ) : (
+                    <QPButton
+                        title="Restablecer contraseña"
+                        onPress={handleRestorePassword}
+                        style={{ backgroundColor: theme.colors.danger }}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                        loading={isLoading}
+                    />
+                )
+            }
+        >
 
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <Text style={textStyles.h1}>Restablecer contraseña</Text>
+            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico para restaurar tu contraseña</Text>
 
-                <ScrollView
-                    contentContainerStyle={containerStyles.scrollContainer}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
+            <View style={styles.formContainer}>
 
-                    <Text style={textStyles.h1}>Restablecer contraseña</Text>
-                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico para restaurar tu contraseña</Text>
+                <QPInput
+                    placeholder="Correo electrónico"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={(text) => {
+                        setEmail(text)
+                        if (emailError) setEmailError('')
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    prefixIconName="envelope"
+                />
 
-                    <View style={styles.formContainer}>
+                {emailError ? (
+                    <Text style={[textStyles.error, { marginTop: 5, marginLeft: 5 }]}>
+                        {emailError}
+                    </Text>
+                ) : null}
 
-                        <QPInput
-                            placeholder="Correo electrónico"
-                            autoComplete="email"
-                            value={email}
-                            onChangeText={(text) => {
-                                setEmail(text)
-                                if (emailError) setEmailError('')
-                            }}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            prefixIconName="envelope"
-                        />
-
-                        {emailError ? (
-                            <Text style={[textStyles.error, { marginTop: 5, marginLeft: 5 }]}>
-                                {emailError}
-                            </Text>
-                        ) : null}
-
-                        {successMessage ? (
-                            <View style={[styles.successContainer, { backgroundColor: theme.colors.success + '20', borderColor: theme.colors.success }]}>
-                                <Text style={[textStyles.caption, { color: theme.colors.success, textAlign: 'center' }]}>
-                                    {successMessage}
-                                </Text>
-                            </View>
-                        ) : null}
-
+                {successMessage ? (
+                    <View style={[styles.successContainer, { backgroundColor: theme.colors.success + '20', borderColor: theme.colors.success }]}>
+                        <Text style={[textStyles.caption, { color: theme.colors.success, textAlign: 'center' }]}>
+                            {successMessage}
+                        </Text>
                     </View>
+                ) : null}
 
-                    <View style={containerStyles.bottomButtonContainer}>
-                        {successMessage ? (
-                            <QPButton
-                                title="Volver al inicio de sesión"
-                                onPress={() => navigation.goBack()}
-                                style={{ backgroundColor: theme.colors.primary, marginTop: 10 }}
-                                textStyle={{ color: theme.colors.almostWhite }}
-                            />
-                        ) : (
-                            <QPButton
-                                title="Restablecer contraseña"
-                                onPress={handleRestorePassword}
-                                style={{ backgroundColor: theme.colors.danger }}
-                                textStyle={{ color: theme.colors.almostWhite }}
-                                loading={isLoading}
-                            />
-                        )}
-                    </View>
+            </View>
 
-                </ScrollView>
-            </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
+        </QPKeyboardView>
     )
 }
 

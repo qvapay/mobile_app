@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
-import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
+import { createTextStyles } from '../../theme/themeUtils'
 
 // UI
+import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPButton from '../../ui/particles/QPButton'
 import QPCoin from '../../ui/particles/QPCoin'
 import QPInput from '../../ui/particles/QPInput'
@@ -46,10 +47,7 @@ const Withdraw = ({ navigation }) => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
-	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
-
 	// States
 	const [amountQUSD, setAmountQUSD] = useState('')
 	const [amountCoin, setAmountCoin] = useState('')
@@ -371,296 +369,293 @@ const Withdraw = ({ navigation }) => {
 	}
 
 	return (
-		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-				<ScrollView contentContainerStyle={[containerStyles.scrollContainer]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-					<View style={{ flex: 1 }}>
+		<>
+			<QPKeyboardView
+				actions={
+					showPinStep ? (
+						<QPButton
+							title={`Extraer $${amountQUSD} ${currency}`}
+							onPress={handleWithdraw}
+							disabled={!isFormValid || !pin || pin.length < codeLength}
+							loading={sendingWithdraw}
+							icon="arrow-right"
+							iconStyle="solid"
+							iconColor={theme.colors.almostWhite}
+							textStyle={{ color: theme.colors.almostWhite }}
+						/>
+					) : (
+						<QPButton
+							title="Continuar"
+							onPress={() => { setShowPinStep(true); setPin('') }}
+							disabled={!isFormValid}
+							icon="arrow-right"
+							iconStyle="solid"
+							iconColor={theme.colors.almostWhite}
+							textStyle={{ color: theme.colors.almostWhite }}
+						/>
+					)
+				}
+	
+			>
+				<View style={{ flex: 1 }}>
 
-						{/* Swap Card */}
-						<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
+					{/* Swap Card */}
+					<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
 
-							{/* QUSD amount input */}
-							<View style={{ paddingVertical: 2 }}>
+						{/* QUSD amount input */}
+						<View style={{ paddingVertical: 2 }}>
 
-								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Extraer</Text>
-									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
-											Balance:
-										</Text>
-										<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
-											{formatBalance(balance)} {currency}
-										</Text>
-									</View>
-								</View>
-
-								{/* Single row container with dark background */}
-								<View style={{ borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-									{/* Left side - Amount input */}
-									<View style={{ flex: 1 }}>
-										<TextInput
-											value={amountQUSD}
-											onChangeText={handleChangeQUSD}
-											placeholder="0.00"
-											placeholderTextColor={theme.colors.placeholder}
-											keyboardType="numeric"
-											style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
-										/>
-									</View>
-									{/* Right side - Static QUSD display */}
-									<View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-										<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-											<QPCoin coin="qusd" size={20} />
-											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
-										</View>
-									</View>
-								</View>
-							</View>
-
-							{/* Divider with arrows */}
-							<View style={{ alignItems: 'center', justifyContent: 'center' }}>
-								<View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
-									<FontAwesome6 name="up-down" size={10} color={theme.colors.primary} iconStyle="solid" />
+							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Extraer</Text>
+								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+									<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
+										Balance:
+									</Text>
+									<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
+										{formatBalance(balance)} {currency}
+									</Text>
 								</View>
 							</View>
 
-							{/* Coin amount and selector */}
-							<View style={{ paddingTop: 2 }}>
-								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
-								{/* Single row container with dark background */}
-								<View style={{ borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-									{/* Left side - Amount and available balance */}
-									<View style={{ flex: 1 }}>
-										<TextInput
-											value={netAmount}
-											onChangeText={handleChangeNetAmount}
-											placeholder="0.00"
-											placeholderTextColor={theme.colors.placeholder}
-											keyboardType="numeric"
-											style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
-											editable={!!selectedCoin}
-										/>
-									</View>
-									{/* Right side - Currency selector button */}
-									<Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)} >
-										{selectedCoin ? (
-											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-												<QPCoin coin={selectedCoin.logo} size={20} />
-												<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
-												<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-											</View>
-										) : (
-											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-												<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Moneda</Text>
-												<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-											</View>
-										)}
-									</Pressable>
+							{/* Single row container with dark background */}
+							<View style={{ borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+								{/* Left side - Amount input */}
+								<View style={{ flex: 1 }}>
+									<TextInput
+										value={amountQUSD}
+										onChangeText={handleChangeQUSD}
+										placeholder="0.00"
+										placeholderTextColor={theme.colors.placeholder}
+										keyboardType="numeric"
+										style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
+									/>
 								</View>
-								{selectedCoin && amountCoin && !selectedCoin.stable && (
-									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}></Text>
-										<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-											<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
-												Aproximado:
-											</Text>
-											<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
-												{formatBalance(amountCoin)} {selectedCoin.tick}
-											</Text>
-										</View>
+								{/* Right side - Static QUSD display */}
+								<View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
+									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+										<QPCoin coin="qusd" size={20} />
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
 									</View>
-								)}
+								</View>
 							</View>
 						</View>
 
-						{/* Dynamic Working Data Inputs */}
-						{selectedCoin && workingFields.length > 0 && (
-							<View style={{ marginTop: 20 }}>
-								<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>Datos de su cuenta:</Text>
-								{workingFields.map((field) => {
-									const key = keyFromFieldName(field.name)
-									return (
-										<QPInput
-											key={key}
-											value={workingForm[key] || ''}
-											onChangeText={(text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
-											placeholder={field.name}
-											keyboardType={field.type === 'number' ? 'numeric' : 'default'}
-											style={{ marginVertical: 6 }}
-											prefixIconName="id-card"
-										/>
-									)
-								})}
+						{/* Divider with arrows */}
+						<View style={{ alignItems: 'center', justifyContent: 'center' }}>
+							<View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center' }}>
+								<FontAwesome6 name="up-down" size={10} color={theme.colors.primary} iconStyle="solid" />
 							</View>
-						)}
+						</View>
 
-						{/* PIN/OTP Step */}
-						{showPinStep && (
-							<View style={{ marginTop: 30 }}>
-
-								{/* PIN/OTP Toggle - only show if user has OTP */}
-								{hasOTP && (
-									<View style={[styles.methodToggle, { borderColor: theme.colors.elevation }]}>
-										<Pressable
-											onPress={() => handleMethodChange('pin')}
-											style={[styles.methodToggleButton, styles.methodToggleLeft, twoFactorMethod === 'pin' && { backgroundColor: theme.colors.primary }]}
-										>
-											<Text style={[textStyles.h6, { color: twoFactorMethod === 'pin' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>PIN</Text>
-										</Pressable>
-										<Pressable
-											onPress={() => handleMethodChange('otp')}
-											style={[styles.methodToggleButton, styles.methodToggleRight, { borderLeftWidth: 1, borderLeftColor: theme.colors.elevation }, twoFactorMethod === 'otp' && { backgroundColor: theme.colors.primary }]}
-										>
-											<Text style={[textStyles.h6, { color: twoFactorMethod === 'otp' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>OTP</Text>
-										</Pressable>
-									</View>
-								)}
-
-								{/* Request PIN button - only in PIN mode */}
-								{twoFactorMethod === 'pin' && (
-									<Pressable
-										onPress={handleRequestPin}
-										disabled={sendingPin}
-										style={[styles.requestPinButton, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary, marginTop: hasOTP ? 16 : 0 }]}
-									>
-										<FontAwesome6 name="envelope" size={16} color={theme.colors.primary} iconStyle="solid" />
-										<Text style={[textStyles.h6, { color: theme.colors.primary, marginLeft: 8 }]}>
-											{sendingPin ? 'Enviando...' : 'Recibir PIN por correo'}
-										</Text>
-									</Pressable>
-								)}
-
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20 }]}>
-									{twoFactorMethod === 'pin' ? 'Ingresa el PIN de 4 dígitos:' : 'Ingresa tu código OTP:'}
-								</Text>
-								<View style={styles.pinContainer}>
-									{Array.from({ length: codeLength }, (_, index) => (
-										<TextInput
-											key={`${twoFactorMethod}-${index}`}
-											ref={(ref) => pinInputsRef.current[index] = ref}
-											style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
-											value={pin[index] || ''}
-											onChangeText={(text) => handlePinChange(text, index)}
-											onFocus={() => handlePinFocus(index)}
-											onBlur={handlePinBlur}
-											onKeyPress={(e) => handlePinKeyPress(e, index)}
-											keyboardType="numeric"
-											maxLength={1}
-											secureTextEntry
-											textAlign="center"
-											selectTextOnFocus
-											placeholder={focusedInputIndex === index ? "" : "0"}
-											placeholderTextColor={theme.colors.tertiaryText}
-										/>
-									))}
-								</View>
-							</View>
-						)}
-					</View>
-
-					{/* Bottom Button */}
-					<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-						{showPinStep ? (
-							<QPButton
-								title={`Extraer $${amountQUSD} ${currency}`}
-								onPress={handleWithdraw}
-								disabled={!isFormValid || !pin || pin.length < codeLength}
-								loading={sendingWithdraw}
-								icon="arrow-right"
-								iconStyle="solid"
-								iconColor={theme.colors.almostWhite}
-								textStyle={{ color: theme.colors.almostWhite }}
-							/>
-						) : (
-							<QPButton
-								title="Continuar"
-								onPress={() => { setShowPinStep(true); setPin('') }}
-								disabled={!isFormValid}
-								icon="arrow-right"
-								iconStyle="solid"
-								iconColor={theme.colors.almostWhite}
-								textStyle={{ color: theme.colors.almostWhite }}
-							/>
-						)}
-					</View>
-
-					<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
-						<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-
-							<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-								<Text style={textStyles.h4}>Seleccionar Moneda</Text>
-								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-									<Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
-										<FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
-									</Pressable>
-									<Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-										<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-									</Pressable>
-								</View>
-							</View>
-
-							{showCoinSearch && (
-								<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
-									<QPInput
-										value={coinSearch}
-										onChangeText={setCoinSearch}
-										placeholder="Buscar moneda..."
-										prefixIconName="magnifying-glass"
-										style={styles.searchInput}
+						{/* Coin amount and selector */}
+						<View style={{ paddingTop: 2 }}>
+							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
+							{/* Single row container with dark background */}
+							<View style={{ borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+								{/* Left side - Amount and available balance */}
+								<View style={{ flex: 1 }}>
+									<TextInput
+										value={netAmount}
+										onChangeText={handleChangeNetAmount}
+										placeholder="0.00"
+										placeholderTextColor={theme.colors.placeholder}
+										keyboardType="numeric"
+										style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
+										editable={!!selectedCoin}
 									/>
 								</View>
+								{/* Right side - Currency selector button */}
+								<Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)} >
+									{selectedCoin ? (
+										<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+											<QPCoin coin={selectedCoin.logo} size={20} />
+											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
+											<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+										</View>
+									) : (
+										<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+											<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Moneda</Text>
+											<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+										</View>
+									)}
+								</Pressable>
+							</View>
+							{selectedCoin && amountCoin && !selectedCoin.stable && (
+								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}></Text>
+									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
+											Aproximado:
+										</Text>
+										<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
+											{formatBalance(amountCoin)} {selectedCoin.tick}
+										</Text>
+									</View>
+								</View>
 							)}
+						</View>
+					</View>
 
-							{quickCoinPills.length > 0 && (
-								<View style={styles.quickCoinPills}>
-									{quickCoinPills.map((pill) => (
-										<Pressable
-											key={pill.tick}
-											style={[styles.quickCoinPill, {
-												backgroundColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.surface,
-												borderColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.border,
-											}]}
-											onPress={() => handleCoinSelect(pill.coinData)}
-										>
-											<QPCoin coin={pill.coinData.logo} size={16} />
-											<Text style={[textStyles.caption, {
-												fontWeight: '600',
-												color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText,
-											}]}>{pill.label}</Text>
-										</Pressable>
-									))}
+					{/* Dynamic Working Data Inputs */}
+					{selectedCoin && workingFields.length > 0 && (
+						<View style={{ marginTop: 20 }}>
+							<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>Datos de su cuenta:</Text>
+							{workingFields.map((field) => {
+								const key = keyFromFieldName(field.name)
+								return (
+									<QPInput
+										key={key}
+										value={workingForm[key] || ''}
+										onChangeText={(text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
+										placeholder={field.name}
+										keyboardType={field.type === 'number' ? 'numeric' : 'default'}
+										style={{ marginVertical: 6 }}
+										prefixIconName="id-card"
+									/>
+								)
+							})}
+						</View>
+					)}
+
+					{/* PIN/OTP Step */}
+					{showPinStep && (
+						<View style={{ marginTop: 30 }}>
+
+							{/* PIN/OTP Toggle - only show if user has OTP */}
+							{hasOTP && (
+								<View style={[styles.methodToggle, { borderColor: theme.colors.elevation }]}>
+									<Pressable
+										onPress={() => handleMethodChange('pin')}
+										style={[styles.methodToggleButton, styles.methodToggleLeft, twoFactorMethod === 'pin' && { backgroundColor: theme.colors.primary }]}
+									>
+										<Text style={[textStyles.h6, { color: twoFactorMethod === 'pin' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>PIN</Text>
+									</Pressable>
+									<Pressable
+										onPress={() => handleMethodChange('otp')}
+										style={[styles.methodToggleButton, styles.methodToggleRight, { borderLeftWidth: 1, borderLeftColor: theme.colors.elevation }, twoFactorMethod === 'otp' && { backgroundColor: theme.colors.primary }]}
+									>
+										<Text style={[textStyles.h6, { color: twoFactorMethod === 'otp' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>OTP</Text>
+									</Pressable>
 								</View>
 							)}
 
-							<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
+							{/* Request PIN button - only in PIN mode */}
+							{twoFactorMethod === 'pin' && (
+								<Pressable
+									onPress={handleRequestPin}
+									disabled={sendingPin}
+									style={[styles.requestPinButton, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary, marginTop: hasOTP ? 16 : 0 }]}
+								>
+									<FontAwesome6 name="envelope" size={16} color={theme.colors.primary} iconStyle="solid" />
+									<Text style={[textStyles.h6, { color: theme.colors.primary, marginLeft: 8 }]}>
+										{sendingPin ? 'Enviando...' : 'Recibir PIN por correo'}
+									</Text>
+								</Pressable>
+							)}
 
-								{isLoading ? (
-									<View style={styles.loadingContainer}>
-										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
-									</View>
-								) : availableCoins.length > 0 ? (availableCoins
-									.filter((coin) =>
-										coin.name.toLowerCase().includes(coinSearch.toLowerCase()) ||
-										coin.tick.toLowerCase().includes(coinSearch.toLowerCase())
-									)
-									.map((coin) => (
-										<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.elevation }]} onPress={() => handleCoinSelect(coin)}>
-											<QPCoinRow coin={coin} amount={amountQUSD} direction="out" />
-										</Pressable>
-									))
-								) : (
-									<View style={styles.loadingContainer}>
-										<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
-									</View>
-								)}
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20 }]}>
+								{twoFactorMethod === 'pin' ? 'Ingresa el PIN de 4 dígitos:' : 'Ingresa tu código OTP:'}
+							</Text>
+							<View style={styles.pinContainer}>
+								{Array.from({ length: codeLength }, (_, index) => (
+									<TextInput
+										key={`${twoFactorMethod}-${index}`}
+										ref={(ref) => pinInputsRef.current[index] = ref}
+										style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
+										value={pin[index] || ''}
+										onChangeText={(text) => handlePinChange(text, index)}
+										onFocus={() => handlePinFocus(index)}
+										onBlur={handlePinBlur}
+										onKeyPress={(e) => handlePinKeyPress(e, index)}
+										keyboardType="numeric"
+										maxLength={1}
+										secureTextEntry
+										textAlign="center"
+										selectTextOnFocus
+										placeholder={focusedInputIndex === index ? "" : "0"}
+										placeholderTextColor={theme.colors.tertiaryText}
+									/>
+								))}
+							</View>
+						</View>
+					)}
+				</View>
+			</QPKeyboardView>
 
-							</ScrollView>
-						</SafeAreaView>
-					</Modal>
+			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
+				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 
-				</ScrollView>
-			</TouchableWithoutFeedback>
-		</KeyboardAvoidingView>
+					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
+						<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+							<Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
+								<FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+							</Pressable>
+							<Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
+								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+							</Pressable>
+						</View>
+					</View>
+
+					{showCoinSearch && (
+						<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+							<QPInput
+								value={coinSearch}
+								onChangeText={setCoinSearch}
+								placeholder="Buscar moneda..."
+								prefixIconName="magnifying-glass"
+								style={styles.searchInput}
+							/>
+						</View>
+					)}
+
+					{quickCoinPills.length > 0 && (
+						<View style={styles.quickCoinPills}>
+							{quickCoinPills.map((pill) => (
+								<Pressable
+									key={pill.tick}
+									style={[styles.quickCoinPill, {
+										backgroundColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.surface,
+										borderColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.border,
+									}]}
+									onPress={() => handleCoinSelect(pill.coinData)}
+								>
+									<QPCoin coin={pill.coinData.logo} size={16} />
+									<Text style={[textStyles.caption, {
+										fontWeight: '600',
+										color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText,
+									}]}>{pill.label}</Text>
+								</Pressable>
+							))}
+						</View>
+					)}
+
+					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
+
+						{isLoading ? (
+							<View style={styles.loadingContainer}>
+								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
+							</View>
+						) : availableCoins.length > 0 ? (availableCoins
+							.filter((coin) =>
+								coin.name.toLowerCase().includes(coinSearch.toLowerCase()) ||
+								coin.tick.toLowerCase().includes(coinSearch.toLowerCase())
+							)
+							.map((coin) => (
+								<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.elevation }]} onPress={() => handleCoinSelect(coin)}>
+									<QPCoinRow coin={coin} amount={amountQUSD} direction="out" />
+								</Pressable>
+							))
+						) : (
+							<View style={styles.loadingContainer}>
+								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
+							</View>
+						)}
+
+					</ScrollView>
+				</SafeAreaView>
+			</Modal>
+		</>
 	)
 }
 

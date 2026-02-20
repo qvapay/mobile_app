@@ -236,7 +236,7 @@ const Scan = ({ navigation, route }) => {
 					<View style={styles.qrWrapper}>
 						<QRCodeStyled
 							data={user?.username ? `https://www.qvapay.com/payme/${user.username}` : (`https://www.qvapay.com/payme/${user?.uuid}` || '')}
-							style={styles.svg}
+							style={[styles.svg, { backgroundColor: '#FFFFFF' }]}
 							size={350}
 							padding={8}
 							pieceSize={8}
@@ -245,15 +245,11 @@ const Scan = ({ navigation, route }) => {
 							pieceCornerType={'cut'}
 							errorCorrectionLevel={'H'}
 							preserveAspectRatio="none"
-							color={theme.colors.primaryText}
+							backgroundColor={'#FFFFFF'}
+							color={'#000000'}
 							outerEyesOptions={{
 								borderRadius: 2,
 								color: theme.colors.primary,
-							}}
-							logo={{
-								href: require('../../assets/images/ui/logo-qvapay.png'),
-								padding: 10,
-								scale: 0.8,
 							}}
 						/>
 						<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 10 }]}>

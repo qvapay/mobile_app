@@ -22,7 +22,7 @@ export const authApi = {
             })
 
             // If Prelogin is successful, we return the status and success
-            if (response.status === 202) { return { status: response.status, success: true, notified: response.data.notified } }
+            if (response.status === 202) { return { status: response.status, success: true, notified: response.data.notified, has_otp: response.data.has_otp || false } }
 
             // If Login is successful, we return the data, accessToken, tokenType and me
             return {
@@ -31,6 +31,7 @@ export const authApi = {
                 accessToken: response.data.accessToken,
                 tokenType: response.data.token_type,
                 me: response.data.me,
+                security_warning: response.data.security_warning || null,
             }
 
         } catch (error) {
@@ -42,7 +43,8 @@ export const authApi = {
                     success: false,
                     error: errorData.message || errorData.error || 'No se pudo iniciar sesión',
                     details: errorData,
-                    status: error.response?.status ?? null
+                    status: error.response?.status ?? null,
+                    action: errorData.action || null,
                 }
             }
 
@@ -64,23 +66,17 @@ export const authApi = {
      * @returns {Promise<Object>} Request PIN response
      */
     requestPin: async (credentials) => {
-
         try {
-
             const response = await apiClient.post('/auth/request-pin', {
                 email: credentials.email,
                 password: credentials.password
             })
-
             return { success: true, data: response.data }
-
         } catch (error) {
-
             if (error.response?.data) {
                 const errorData = error.response.data
                 return { success: false, error: errorData.message || 'No se pudo solicitar el PIN', details: errorData, status: error.response.status }
             }
-
             return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response.status }
         }
     },
@@ -125,9 +121,7 @@ export const authApi = {
      * @returns {Promise<Object>} Registration response with user data
      */
     register: async (credentials) => {
-
         try {
-
             const response = await apiClient.post('/auth/register', {
                 name: credentials.name,
                 lastname: credentials.lastname,
@@ -136,17 +130,13 @@ export const authApi = {
                 invite: credentials.invite || undefined,
                 terms: credentials.terms || true
             })
-
             return {
                 success: true,
                 data: response.data,
                 message: response.data.message,
                 user: response.data.user,
             }
-
         } catch (error) {
-
-            // Handle specific API errors
             if (error.response?.data) {
                 const errorData = error.response.data
                 return {
@@ -155,7 +145,6 @@ export const authApi = {
                     details: errorData,
                 }
             }
-
             return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     },
@@ -168,19 +157,14 @@ export const authApi = {
      * @returns {Promise<Object>} Confirmation response
      */
     confirmRegistration: async (credentials) => {
-
         try {
-
             const response = await apiClient.post('/auth/confirm-registration', {
                 uuid: credentials.uuid,
                 email: credentials.email,
                 pin: credentials.pin
             })
-
             return { success: true, data: response.data, message: response.data.message }
-
         } catch (error) {
-
             if (error.response?.data) {
                 const errorData = error.response.data
                 return {
@@ -189,7 +173,6 @@ export const authApi = {
                     details: errorData
                 }
             }
-
             return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     },
@@ -201,21 +184,16 @@ export const authApi = {
      * @returns {Promise<Object>} Reset password response
      */
     resetPassword: async (credentials) => {
-
         try {
-
             const response = await apiClient.post('/auth/reset-password', {
                 email: credentials.email
             })
-
             return {
                 success: true,
                 data: response.data,
                 message: response.data.message,
             }
-
         } catch (error) {
-
             if (error.response?.data) {
                 const errorData = error.response.data
                 return {
@@ -224,7 +202,6 @@ export const authApi = {
                     details: errorData
                 }
             }
-
             return { success: false, error: error.message || 'Ha ocurrido un error de red' }
         }
     }

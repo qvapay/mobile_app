@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { StyleSheet, Text, View, ScrollView, TextInput, Alert } from 'react-native'
+import { StyleSheet, Text, View, TextInput, Alert } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -7,6 +7,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 
 // UI Particles
 import QPButton from '../../../ui/particles/QPButton'
+import QPKeyboardView from '../../../ui/QPKeyboardView'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -189,121 +190,112 @@ const TransferPin = () => {
     // Change PIN mode
     if (mode === 'change') {
         return (
-            <View style={containerStyles.subContainer}>
-                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <QPKeyboardView actions={[
+                <QPButton
+                    title="Cambiar PIN"
+                    onPress={handleChangePin}
+                    loading={isLoading}
+                    disabled={!canSubmit || isLoading}
+                    style={{ backgroundColor: canSubmit ? theme.colors.primary : theme.colors.secondaryText }}
+                    textStyle={{ color: theme.colors.almostWhite }}
+                />,
+                <QPButton
+                    title="Cancelar"
+                    onPress={() => { resetForm(); setMode('info') }}
+                    disabled={isLoading}
+                    style={{ backgroundColor: theme.colors.surface }}
+                    textStyle={{ color: theme.colors.primaryText }}
+                />,
+            ]}>
 
-                    <Text style={textStyles.h1}>Cambiar PIN</Text>
-                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-                        Establece un PIN personalizado de 4 dígitos
+                <Text style={textStyles.h1}>Cambiar PIN</Text>
+                <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
+                    Establece un PIN personalizado de 4 dígitos
+                </Text>
+
+                <View style={{ marginTop: 24 }}>
+                    {renderPinInputRow('PIN actual', currentPin, setCurrentPin, currentPinRefs, 'current', newPinRefs)}
+                    {renderPinInputRow('Nuevo PIN', newPin, setNewPin, newPinRefs, 'new', confirmPinRefs)}
+                    {renderPinInputRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
+                </View>
+
+                {newPin.length === 4 && confirmPin.length === 4 && newPin !== confirmPin && (
+                    <Text style={[textStyles.h5, { color: theme.colors.danger, textAlign: 'center', marginTop: 8 }]}>
+                        Los PINs no coinciden
                     </Text>
+                )}
 
-                    <View style={{ marginTop: 24 }}>
-                        {renderPinInputRow('PIN actual', currentPin, setCurrentPin, currentPinRefs, 'current', newPinRefs)}
-                        {renderPinInputRow('Nuevo PIN', newPin, setNewPin, newPinRefs, 'new', confirmPinRefs)}
-                        {renderPinInputRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
-                    </View>
+                <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 12 }]}>
+                    Si no recuerdas tu PIN actual, solicita uno nuevo por correo
+                </Text>
 
-                    {newPin.length === 4 && confirmPin.length === 4 && newPin !== confirmPin && (
-                        <Text style={[textStyles.h5, { color: theme.colors.danger, textAlign: 'center', marginTop: 8 }]}>
-                            Los PINs no coinciden
-                        </Text>
-                    )}
-
-                    <Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 12 }]}>
-                        Si no recuerdas tu PIN actual, solicita uno nuevo por correo
-                    </Text>
-
-                    <View style={[containerStyles.bottomButtonContainer, { gap: 10 }]}>
-                        <QPButton
-                            title="Cambiar PIN"
-                            onPress={handleChangePin}
-                            loading={isLoading}
-                            disabled={!canSubmit || isLoading}
-                            style={{ backgroundColor: canSubmit ? theme.colors.primary : theme.colors.secondaryText }}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                        />
-                        <QPButton
-                            title="Cancelar"
-                            onPress={() => { resetForm(); setMode('info') }}
-                            disabled={isLoading}
-                            style={{ backgroundColor: theme.colors.surface }}
-                            textStyle={{ color: theme.colors.primaryText }}
-                        />
-                    </View>
-
-                </ScrollView>
-            </View>
+            </QPKeyboardView>
         )
     }
 
     // Info mode (default)
     return (
-        <View style={containerStyles.subContainer}>
-            <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <QPKeyboardView actions={[
+            <QPButton
+                title="Personalizar PIN"
+                onPress={() => setMode('change')}
+                icon="pen"
+                iconColor={theme.colors.almostWhite}
+                textStyle={{ color: theme.colors.almostWhite }}
+            />,
+            <QPButton
+                title="Solicitar PIN por correo"
+                onPress={handleRequestPin}
+                loading={isSendingPin}
+                disabled={isSendingPin}
+                icon="envelope"
+                iconColor={theme.colors.primary}
+                style={{ backgroundColor: theme.colors.surface }}
+                textStyle={{ color: theme.colors.primaryText }}
+            />,
+        ]}>
 
-                <Text style={textStyles.h1}>PIN de seguridad</Text>
-                <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-                    Tu PIN protege transferencias y extracciones
+            <Text style={textStyles.h1}>PIN de seguridad</Text>
+            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
+                Tu PIN protege transferencias y extracciones
+            </Text>
+
+            {/* Status icon */}
+            <View style={styles.statusContainer}>
+                <View style={[styles.statusIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                    <FontAwesome6 name="lock" size={48} color={theme.colors.primary} iconStyle="solid" />
+                </View>
+                <Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 20 }]}>
+                    PIN de 4 dígitos
                 </Text>
+                <Text style={[textStyles.h4, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
+                    Se solicita cada vez que realizas una transferencia o extracción
+                </Text>
+            </View>
 
-                {/* Status icon */}
-                <View style={styles.statusContainer}>
-                    <View style={[styles.statusIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-                        <FontAwesome6 name="lock" size={48} color={theme.colors.primary} iconStyle="solid" />
-                    </View>
-                    <Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 20 }]}>
-                        PIN de 4 dígitos
+            {/* Info cards */}
+            <View style={[containerStyles.card, { marginTop: 20 }]}>
+                <View style={styles.infoRow}>
+                    <FontAwesome6 name="envelope" size={16} color={theme.colors.primary} iconStyle="solid" />
+                    <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+                        Puedes solicitar un PIN aleatorio que se envía a tu correo electrónico
                     </Text>
-                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
-                        Se solicita cada vez que realizas una transferencia o extracción
+                </View>
+                <View style={[styles.infoRow, { marginTop: 12 }]}>
+                    <FontAwesome6 name="pen" size={16} color={theme.colors.primary} iconStyle="solid" />
+                    <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+                        O puedes establecer un PIN personalizado que recuerdes fácilmente
                     </Text>
                 </View>
-
-                {/* Info cards */}
-                <View style={[containerStyles.card, { marginTop: 20 }]}>
-                    <View style={styles.infoRow}>
-                        <FontAwesome6 name="envelope" size={16} color={theme.colors.primary} iconStyle="solid" />
-                        <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Puedes solicitar un PIN aleatorio que se envía a tu correo electrónico
-                        </Text>
-                    </View>
-                    <View style={[styles.infoRow, { marginTop: 12 }]}>
-                        <FontAwesome6 name="pen" size={16} color={theme.colors.primary} iconStyle="solid" />
-                        <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            O puedes establecer un PIN personalizado que recuerdes fácilmente
-                        </Text>
-                    </View>
-                    <View style={[styles.infoRow, { marginTop: 12 }]}>
-                        <FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
-                        <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Nunca compartas tu PIN con nadie, ni siquiera con el equipo de QvaPay
-                        </Text>
-                    </View>
+                <View style={[styles.infoRow, { marginTop: 12 }]}>
+                    <FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
+                    <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+                        Nunca compartas tu PIN con nadie, ni siquiera con el equipo de QvaPay
+                    </Text>
                 </View>
+            </View>
 
-                {/* Actions */}
-                <View style={[containerStyles.bottomButtonContainer, { gap: 10 }]}>
-                    <QPButton
-                        title="Personalizar PIN"
-                        onPress={() => setMode('change')}
-                        icon="pen"
-                        iconColor={theme.colors.almostWhite}
-                        textStyle={{ color: theme.colors.almostWhite }}
-                    />
-                    <QPButton
-                        title="Solicitar PIN por correo"
-                        onPress={handleRequestPin}
-                        loading={isSendingPin}
-                        disabled={isSendingPin}
-                        icon="envelope"
-                        iconColor={theme.colors.primary}
-                        style={{ backgroundColor: theme.colors.surface }}
-                        textStyle={{ color: theme.colors.primaryText }}
-                    />
-                </View>
-
-            </ScrollView>
-        </View>
+        </QPKeyboardView>
     )
 }
 

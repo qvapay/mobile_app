@@ -65,7 +65,7 @@ const Receive = ({ route }) => {
 					<View style={[styles.qrCard, { backgroundColor: theme.colors.surface }]}>
 						<QRCodeStyled
 							data={qrUrl}
-							style={styles.svg}
+							style={[styles.svg, { backgroundColor: '#FFFFFF' }]}
 							size={280}
 							padding={12}
 							pieceSize={8}
@@ -74,15 +74,11 @@ const Receive = ({ route }) => {
 							pieceCornerType={'cut'}
 							errorCorrectionLevel={'H'}
 							preserveAspectRatio="none"
-							color={theme.colors.primaryText}
+							backgroundColor={'#FFFFFF'}
+							color={'#000000'}
 							outerEyesOptions={{
 								borderRadius: 2,
 								color: theme.colors.primary,
-							}}
-							logo={{
-								href: require('../../assets/images/ui/logo-qvapay.png'),
-								padding: 10,
-								scale: 0.8,
 							}}
 						/>
 					</View>

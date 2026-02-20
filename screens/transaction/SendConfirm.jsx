@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -8,6 +7,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
+import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
@@ -35,8 +35,6 @@ const SendConfirm = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
-	const insets = useSafeAreaInsets()
-
 	// Params from route
 	const { send_amount, user_uuid, description = '' } = route.params || {}
 
@@ -189,9 +187,38 @@ const SendConfirm = ({ navigation, route }) => {
 	}
 
 	return (
-		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
+		<QPKeyboardView
+			actions={
+				<>
+					{showPinStep ? (
+						<QPButton
+							title="Confirmar Envío"
+							onPress={executeTransaction}
+							loading={isLoading}
+							disabled={isLoading || !pin || pin.length < codeLength}
+							textStyle={{ color: theme.colors.buttonText }}
+						/>
+					) : (
+						<QPButton
+							title="Continuar"
+							onPress={() => { setShowPinStep(true); setPin('') }}
+							textStyle={{ color: theme.colors.buttonText }}
+						/>
+					)}
 
-			<ScrollView style={{ flex: 1, gap: 10, paddingTop: 10 }} showsVerticalScrollIndicator={false}>
+					<QPButton
+						title="Cancelar"
+						onPress={() => navigation.goBack()}
+						disabled={isLoading}
+						style={{ backgroundColor: theme.colors.danger }}
+						textStyle={{ color: theme.colors.primaryText }}
+					/>
+				</>
+			}
+	
+		>
+
+			<View style={{ gap: 10, paddingTop: 10 }}>
 
 				{/* Amount Card */}
 				<View style={containerStyles.card}>
@@ -339,36 +366,9 @@ const SendConfirm = ({ navigation, route }) => {
 					</View>
 				</View>
 
-			</ScrollView>
-
-			{/* Action Buttons - Outside ScrollView */}
-			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-				{showPinStep ? (
-					<QPButton
-						title="Confirmar Envío"
-						onPress={executeTransaction}
-						loading={isLoading}
-						disabled={isLoading || !pin || pin.length < codeLength}
-						textStyle={{ color: theme.colors.buttonText }}
-					/>
-				) : (
-					<QPButton
-						title="Continuar"
-						onPress={() => { setShowPinStep(true); setPin('') }}
-						textStyle={{ color: theme.colors.buttonText }}
-					/>
-				)}
-
-				<QPButton
-					title="Cancelar"
-					onPress={() => navigation.goBack()}
-					disabled={isLoading}
-					style={{ backgroundColor: theme.colors.danger }}
-					textStyle={{ color: theme.colors.primaryText }}
-				/>
 			</View>
 
-		</View>
+		</QPKeyboardView>
 	)
 }
 

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -14,6 +13,7 @@ import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
 import QPLoader from '../../ui/particles/QPLoader'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
+import QPKeyboardView from '../../ui/QPKeyboardView'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -36,8 +36,6 @@ const Send = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
-	const insets = useSafeAreaInsets()
-
 	// Params from route
 	const { send_amount, user_uuid = null } = route.params || {}
 
@@ -144,9 +142,19 @@ const Send = ({ navigation, route }) => {
 
 	// Render
 	return (
-		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-
-			<View style={{ flex: 1 }}>
+		<>
+			<QPKeyboardView
+				actions={
+					<QPButton
+						title={`Enviar $${amount || '0'} ${currency}`}
+						onPress={handleSendConfirm}
+						disabled={!sendEnabled}
+						loading={isLoading}
+						textStyle={{ color: theme.colors.buttonText }}
+					/>
+				}
+	
+			>
 
 				{/* Amount Input Component */}
 				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} currency={currency} placeholder={incomingUserUuid ? 'Monto a enviar' : 'Monto a enviar a ...'} />
@@ -209,18 +217,7 @@ const Send = ({ navigation, route }) => {
 					/>
 				)}
 
-			</View>
-
-			{/** Button to send */}
-			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-				<QPButton
-					title={`Enviar $${amount || '0'} ${currency}`}
-					onPress={handleSendConfirm}
-					disabled={!sendEnabled}
-					loading={isLoading}
-					textStyle={{ color: theme.colors.buttonText }}
-				/>
-			</View>
+			</QPKeyboardView>
 
 			{/* Search Modal */}
 			<Modal visible={isSearchModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsSearchModalVisible(false)} >
@@ -351,7 +348,7 @@ const Send = ({ navigation, route }) => {
 				</View>
 			</Modal>
 
-		</View>
+		</>
 	)
 }
 

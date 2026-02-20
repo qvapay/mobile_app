@@ -115,11 +115,11 @@ export const AuthProvider = ({ children }) => {
 
 			if (!apiResponse.success) {
 				setError(apiResponse.error || 'Login failed')
-				return { success: false, error: apiResponse.error, details: apiResponse.details, status: apiResponse.status }
+				return { success: false, error: apiResponse.error, details: apiResponse.details, status: apiResponse.status, action: apiResponse.action }
 			}
 
 			// If Prelogin is successful, we return the status and success
-			if (apiResponse.status === 202) { return { success: true, status: apiResponse.status, notified: apiResponse.notified } }
+			if (apiResponse.status === 202) { return { success: true, status: apiResponse.status, notified: apiResponse.notified, has_otp: apiResponse.has_otp } }
 
 			// Extract data from API response
 			const { accessToken, me } = apiResponse
@@ -159,7 +159,7 @@ export const AuthProvider = ({ children }) => {
 			setToken(accessToken)
 			setIsAuthenticated(true)
 
-			return { success: true }
+			return { success: true, security_warning: apiResponse.security_warning || null }
 
 		} catch (error) {
 			setError('Login failed. Please try again.')

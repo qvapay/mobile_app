@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Pressable, View, Text, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -61,159 +62,174 @@ const MainStack = ({ navigation }) => {
 	const { appearance } = useSettings()
 	const showLabels = appearance.bottomBarLabels
 	const insets = useSafeAreaInsets()
-	const containerStyles = createContainerStyles(theme)
-	const textStyles = createTextStyles(theme)
+	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
+	const textStyles = useMemo(() => createTextStyles(theme), [theme])
+
 	// Add safety check for user data
 	// If user is not authenticated or user data is missing,
 	// this will trigger the navigation logic in App.tsx to redirect to welcome/login
 	if (!isAuthenticated || !user) { return null }
+
+	// Memoized screen options to prevent liquid glass flash on iOS
+	const screenOptions = useMemo(() => ({
+		headerTitle: '',
+		headerShown: true,
+		headerShadowVisible: false,
+		headerStyle: { backgroundColor: theme.colors.background },
+		headerTintColor: theme.colors.primaryText,
+		// Android fallback
+		headerLeft: () => (
+			<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+				<QPAvatar user={user} size={32} />
+			</Pressable>
+		),
+		headerRight: () => (
+			<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
+				<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+			</Pressable>
+		),
+		// iOS native header items (liquid glass compatible)
+		...(Platform.OS === 'ios' && {
+			unstable_headerLeftItems: () => [{
+				type: 'custom',
+				element: (
+					<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+						<QPAvatar user={user} size={28} />
+					</Pressable>
+				),
+				hidesSharedBackground: true,
+			}],
+			unstable_headerRightItems: () => [{
+				type: 'button',
+				label: 'Escanear',
+				icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
+				onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
+			}],
+		}),
+		tabBarActiveTintColor: theme.colors.primary,
+		tabBarInactiveTintColor: theme.colors.secondaryText,
+		tabBarShowLabel: showLabels,
+		// Android tab bar styling
+		...(Platform.OS === 'android' && {
+			tabBarStyle: {
+				backgroundColor: theme.colors.background,
+				borderTopColor: theme.colors.surface,
+				borderTopWidth: 1,
+				height: (showLabels ? 64 : 56) + insets.bottom,
+				paddingBottom: insets.bottom + 4,
+				paddingTop: 8,
+			},
+			tabBarLabelStyle: {
+				fontFamily: 'Rubik-Medium',
+				fontSize: 12,
+			},
+		}),
+	}), [theme, showLabels, insets.bottom, user, containerStyles, navigation])
+
+	// Memoized per-screen options
+	const homeOptions = useMemo(() => ({
+		tabBarLabel: showLabels ? 'Inicio' : '',
+		tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
+		// Android fallback
+		headerLeft: () => (
+			<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
+				<QPAvatar user={user} size={32} />
+				<View style={{ marginLeft: 10 }}>
+					<Text style={textStyles.h4}>Hola {user.name}!</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
+				</View>
+			</Pressable>
+		),
+		// iOS native header items (liquid glass compatible)
+		...(Platform.OS === 'ios' && {
+			unstable_headerLeftItems: () => [{
+				type: 'custom',
+				element: (
+					<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+						<QPAvatar user={user} size={28} />
+						<View style={{ marginLeft: 8 }}>
+							<Text style={textStyles.h4}>Hola {user.name}!</Text>
+							<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user.username}</Text>
+						</View>
+					</Pressable>
+				),
+				hidesSharedBackground: true,
+			}],
+		}),
+	}), [showLabels, containerStyles, textStyles, theme, user, navigation])
+
+	const investOptions = useMemo(() => ({
+		tabBarLabel: showLabels ? 'Invertir' : '',
+		tabBarIcon: getTabIcon(ROUTES.INVEST_SCREEN),
+	}), [showLabels])
+
+	const keypadOptions = useMemo(() => ({
+		tabBarLabel: showLabels ? 'Enviar' : '',
+		tabBarIcon: getTabIcon(ROUTES.KEYPAD_SCREEN),
+	}), [showLabels])
+
+	const p2pOptions = useMemo(() => ({
+		tabBarLabel: showLabels ? 'P2P' : '',
+		tabBarIcon: getTabIcon(ROUTES.P2P_SCREEN),
+	}), [showLabels])
+
+	const storeOptions = useMemo(() => ({
+		tabBarLabel: showLabels ? 'Tienda' : '',
+		tabBarIcon: getTabIcon(ROUTES.STORE_SCREEN),
+		headerTitle: '',
+		// Android fallback
+		headerRight: () => (
+			<Pressable style={containerStyles.headerRight}>
+				<FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+			</Pressable>
+		),
+		// iOS native header items (liquid glass compatible)
+		...(Platform.OS === 'ios' && {
+			unstable_headerRightItems: () => [{
+				type: 'button',
+				label: 'Carrito',
+				icon: { type: 'sfSymbol', name: 'cart.fill' },
+				onPress: () => {},
+			}],
+		}),
+	}), [showLabels, containerStyles, theme])
 
 	return (
 		<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
 			<Tab.Navigator
 				initialRouteName={ROUTES.HOME_SCREEN}
 				backBehavior='initialRoute'
-				screenOptions={({ navigation }) => ({
-					headerTitle: '',
-					headerShown: true,
-					headerShadowVisible: false,
-					headerStyle: { backgroundColor: theme.colors.background },
-					headerTintColor: theme.colors.primaryText,
-					// Android fallback
-					headerLeft: () => (
-						<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-							<QPAvatar user={user} size={32} />
-						</Pressable>
-					),
-					headerRight: () => (
-						<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
-							<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
-					// iOS native header items (liquid glass compatible)
-					...(Platform.OS === 'ios' && {
-						unstable_headerLeftItems: () => [{
-							type: 'custom',
-							element: (
-								<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-									<QPAvatar user={user} size={28} />
-								</Pressable>
-							),
-							hidesSharedBackground: true,
-						}],
-						unstable_headerRightItems: () => [{
-							type: 'button',
-							label: 'Escanear',
-							icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
-							onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
-						}],
-					}),
-					tabBarActiveTintColor: theme.colors.primary,
-					tabBarInactiveTintColor: theme.colors.secondaryText,
-					tabBarShowLabel: showLabels,
-					// Android tab bar styling
-					...(Platform.OS === 'android' && {
-						tabBarStyle: {
-							backgroundColor: theme.colors.background,
-							borderTopColor: theme.colors.surface,
-							borderTopWidth: 1,
-							height: (showLabels ? 64 : 56) + insets.bottom,
-							paddingBottom: insets.bottom + 4,
-							paddingTop: 8,
-						},
-						tabBarLabelStyle: {
-							fontFamily: 'Rubik-Medium',
-							fontSize: 12,
-						},
-					}),
-				})}
+				screenOptions={screenOptions}
 			>
 
 				<Tab.Screen
 					name={ROUTES.HOME_SCREEN}
 					component={Home}
-					options={{
-						tabBarLabel: showLabels ? 'Inicio' : '',
-						tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
-						// Android fallback
-						headerLeft: () => (
-							<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-								<QPAvatar user={user} size={32} />
-								<View style={{ marginLeft: 10 }}>
-									<Text style={textStyles.h4}>Hola {user.name}!</Text>
-									<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
-								</View>
-							</Pressable>
-						),
-						// iOS native header items (liquid glass compatible)
-						...(Platform.OS === 'ios' && {
-							unstable_headerLeftItems: () => [{
-								type: 'custom',
-								element: (
-									<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-										<QPAvatar user={user} size={28} />
-										<View style={{ marginLeft: 8 }}>
-											<Text style={textStyles.h4}>Hola {user.name}!</Text>
-											<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user.username}</Text>
-										</View>
-									</Pressable>
-								),
-								hidesSharedBackground: true,
-							}],
-						}),
-					}}
+					options={homeOptions}
 				/>
 
 				<Tab.Screen
 					name={ROUTES.INVEST_SCREEN}
 					component={Invest}
-					options={{
-						tabBarLabel: showLabels ? 'Invertir' : '',
-						tabBarIcon: getTabIcon(ROUTES.INVEST_SCREEN),
-					}}
+					options={investOptions}
 				/>
 
 				<Tab.Screen
 					name={ROUTES.KEYPAD_SCREEN}
 					component={Keypad}
-					options={{
-						tabBarLabel: showLabels ? 'Enviar' : '',
-						tabBarIcon: getTabIcon(ROUTES.KEYPAD_SCREEN),
-					}}
+					options={keypadOptions}
 				/>
 
 				<Tab.Screen
 					name={ROUTES.P2P_SCREEN}
 					component={P2P}
-					options={{
-						tabBarLabel: showLabels ? 'P2P' : '',
-						tabBarIcon: getTabIcon(ROUTES.P2P_SCREEN),
-					}}
+					options={p2pOptions}
 				/>
 
 				<Tab.Screen
 					name={ROUTES.STORE_SCREEN}
 					component={Store}
-					options={{
-						tabBarLabel: showLabels ? 'Tienda' : '',
-						tabBarIcon: getTabIcon(ROUTES.STORE_SCREEN),
-						headerTitle: '',
-						// Android fallback
-						headerRight: () => (
-							<Pressable style={containerStyles.headerRight}>
-								<FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-						),
-						// iOS native header items (liquid glass compatible)
-						...(Platform.OS === 'ios' && {
-							unstable_headerRightItems: () => [{
-								type: 'button',
-								label: 'Carrito',
-								icon: { type: 'sfSymbol', name: 'cart.fill' },
-								onPress: () => {},
-							}],
-						}),
-					}}
+					options={storeOptions}
 				/>
 
 			</Tab.Navigator>

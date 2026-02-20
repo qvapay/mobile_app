@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, Alert, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { StyleSheet, Text, View, Alert, Pressable } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -10,6 +9,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
+import QPKeyboardView from '../../../ui/QPKeyboardView'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -37,8 +37,6 @@ const TwoFactor = () => {
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
-    const insets = useSafeAreaInsets()
-
     // States
     const [isLoading, setIsLoading] = useState(false)
     const [isLoadingData, setIsLoadingData] = useState(true)
@@ -186,100 +184,52 @@ const TwoFactor = () => {
     // 2FA is enabled - show status
     if (is2FAEnabled && !isSettingUp) {
         return (
-            <View style={containerStyles.subContainer}>
-                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+            <QPKeyboardView
+                actions={
+                    <QPButton
+                        title="Desactivar 2FA"
+                        onPress={handleDeactivate2FA}
+                        loading={isLoading}
+                        disabled={isLoading}
+                        style={{ backgroundColor: theme.colors.danger }}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                    />
+                }
+            >
 
-                    <View style={styles.statusContainer}>
-                        <View style={[styles.statusIcon, { backgroundColor: theme.colors.success + '20' }]}>
-                            <FontAwesome6 name="shield-halved" size={48} color={theme.colors.success} iconStyle="solid" />
-                        </View>
+                <View style={styles.statusContainer}>
+                    <View style={[styles.statusIcon, { backgroundColor: theme.colors.success + '20' }]}>
+                        <FontAwesome6 name="shield-halved" size={48} color={theme.colors.success} iconStyle="solid" />
+                    </View>
 
-                        <Text style={[textStyles.h1, { color: theme.colors.success, marginTop: 20 }]}>
-                            2FA Activo
+                    <Text style={[textStyles.h1, { color: theme.colors.success, marginTop: 20 }]}>
+                        2FA Activo
+                    </Text>
+
+                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
+                        Tu cuenta está protegida con autenticación de dos factores
+                    </Text>
+                </View>
+
+                <View style={[containerStyles.card, { marginTop: 30 }]}>
+                    <View style={styles.infoRow}>
+                        <FontAwesome6 name="circle-check" size={20} color={theme.colors.success} iconStyle="solid" />
+                        <Text style={[textStyles.body, { color: theme.colors.primaryText, marginLeft: 12, flex: 1 }]}>
+                            Cada vez que inicies sesión, necesitarás un código de tu app de autenticación
                         </Text>
-
-                        <Text style={[textStyles.h4, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
-                            Tu cuenta está protegida con autenticación de dos factores
-                        </Text>
                     </View>
+                </View>
 
-                    <View style={[containerStyles.card, { marginTop: 30 }]}>
-                        <View style={styles.infoRow}>
-                            <FontAwesome6 name="circle-check" size={20} color={theme.colors.success} iconStyle="solid" />
-                            <Text style={[textStyles.body, { color: theme.colors.primaryText, marginLeft: 12, flex: 1 }]}>
-                                Cada vez que inicies sesión, necesitarás un código de tu app de autenticación
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-                        <QPButton
-                            title="Desactivar 2FA"
-                            onPress={handleDeactivate2FA}
-                            loading={isLoading}
-                            disabled={isLoading}
-                            style={{ backgroundColor: theme.colors.danger }}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                        />
-                    </View>
-
-                </ScrollView>
-            </View>
+            </QPKeyboardView>
         )
     }
 
     // Setting up 2FA - show QR code
     if (isSettingUp) {
         return (
-            <View style={containerStyles.subContainer}>
-                <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-                    <Text style={textStyles.h1}>Configurar 2FA</Text>
-                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
-                        Escanea el código QR con tu app de autenticación (Google Authenticator, Authy, etc.)
-                    </Text>
-
-                    {/* QR Code */}
-                    <View style={[styles.qrContainer, { backgroundColor: theme.colors.almostWhite }]}>
-                        <QRCodeStyled
-                            data={otpauthUrl}
-                            style={{ backgroundColor: 'white' }}
-                            pieceSize={6}
-                            padding={20}
-                            color={theme.colors.almostBlack}
-                        />
-                    </View>
-
-                    {/* Manual secret */}
-                    <View style={[containerStyles.card, { marginTop: 20 }]}>
-                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
-                            O ingresa este código manualmente:
-                        </Text>
-                        <Pressable onPress={handleCopySecret} style={styles.secretContainer}>
-                            <Text style={[styles.secretText, { color: theme.colors.primary }]} selectable>
-                                {secret}
-                            </Text>
-                            <FontAwesome6 name="copy" size={16} color={theme.colors.primary} iconStyle="regular" />
-                        </Pressable>
-                    </View>
-
-                    {/* Verification code input */}
-                    <View style={{ marginTop: 20 }}>
-                        <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
-                            Ingresa el código de 6 dígitos de tu app:
-                        </Text>
-                        <QPInput
-                            value={verificationCode}
-                            onChangeText={(text) => setVerificationCode(text.replace(/[^0-9]/g, '').slice(0, 6))}
-                            placeholder="000000"
-                            keyboardType="number-pad"
-                            maxLength={6}
-                            prefixIconName="key"
-                            style={styles.codeInput}
-                        />
-                    </View>
-
-                    <View style={[containerStyles.bottomButtonContainer, { gap: 10, paddingBottom: insets.bottom + 16 }]}>
+            <QPKeyboardView
+                actions={
+                    <>
                         <QPButton
                             title="Activar 2FA"
                             onPress={handleActivate2FA}
@@ -294,72 +244,121 @@ const TwoFactor = () => {
                             style={{ backgroundColor: theme.colors.surface }}
                             textStyle={{ color: theme.colors.primaryText }}
                         />
-                    </View>
+                    </>
+                }
+                actionsContainerStyle={{ gap: 10 }}
+            >
 
-                </ScrollView>
-            </View>
+                <Text style={textStyles.h1}>Configurar 2FA</Text>
+                <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
+                    Escanea el código QR con tu app de autenticación (Google Authenticator, Authy, etc.)
+                </Text>
+
+                {/* QR Code */}
+                <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF' }]}>
+                    <QRCodeStyled
+                        data={otpauthUrl}
+                        style={{ backgroundColor: '#FFFFFF' }}
+                        pieceSize={6}
+                        padding={20}
+                        backgroundColor={'#FFFFFF'}
+                        color={'#000000'}
+                        outerEyesOptions={{
+                            color: theme.colors.primary,
+                        }}
+                    />
+                </View>
+
+                {/* Manual secret */}
+                <View style={[containerStyles.card, { marginTop: 20 }]}>
+                    <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
+                        O ingresa este código manualmente:
+                    </Text>
+                    <Pressable onPress={handleCopySecret} style={styles.secretContainer}>
+                        <Text style={[styles.secretText, { color: theme.colors.primary }]} selectable>
+                            {secret}
+                        </Text>
+                        <FontAwesome6 name="copy" size={16} color={theme.colors.primary} iconStyle="regular" />
+                    </Pressable>
+                </View>
+
+                {/* Verification code input */}
+                <View style={{ marginTop: 20 }}>
+                    <Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
+                        Ingresa el código de 6 dígitos de tu app:
+                    </Text>
+                    <QPInput
+                        value={verificationCode}
+                        onChangeText={(text) => setVerificationCode(text.replace(/[^0-9]/g, '').slice(0, 6))}
+                        placeholder="000000"
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        prefixIconName="key"
+                        style={styles.codeInput}
+                    />
+                </View>
+
+            </QPKeyboardView>
         )
     }
 
     // 2FA not enabled - show setup option
     return (
-        <View style={containerStyles.subContainer}>
-            <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <QPKeyboardView
+            actions={
+                <QPButton
+                    title="Configurar 2FA"
+                    onPress={handleGenerate2FA}
+                    loading={isLoading}
+                    disabled={isLoading}
+                    textStyle={{ color: theme.colors.almostWhite }}
+                />
+            }
+        >
 
-                <Text style={textStyles.h1}>Autenticación de Dos Factores</Text>
-                <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
-                    Añade una capa extra de seguridad a tu cuenta
+            <Text style={textStyles.h1}>Autenticación de Dos Factores</Text>
+            <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
+                Añade una capa extra de seguridad a tu cuenta
+            </Text>
+
+            <View style={[styles.statusContainer, { marginTop: 30 }]}>
+                <View style={[styles.statusIcon, { backgroundColor: theme.colors.warning + '20' }]}>
+                    <FontAwesome6 name="shield" size={48} color={theme.colors.warning} iconStyle="solid" />
+                </View>
+
+                <Text style={[textStyles.h2, { color: theme.colors.warning, marginTop: 20 }]}>
+                    2FA No Activo
+                </Text>
+            </View>
+
+            <View style={[containerStyles.card, { marginTop: 30 }]}>
+                <Text style={[textStyles.h4, { color: theme.colors.primaryText, marginBottom: 12 }]}>
+                    Beneficios del 2FA:
                 </Text>
 
-                <View style={[styles.statusContainer, { marginTop: 30 }]}>
-                    <View style={[styles.statusIcon, { backgroundColor: theme.colors.warning + '20' }]}>
-                        <FontAwesome6 name="shield" size={48} color={theme.colors.warning} iconStyle="solid" />
-                    </View>
-
-                    <Text style={[textStyles.h2, { color: theme.colors.warning, marginTop: 20 }]}>
-                        2FA No Activo
+                <View style={styles.benefitRow}>
+                    <FontAwesome6 name="lock" size={16} color={theme.colors.primary} iconStyle="solid" />
+                    <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+                        Protege tu cuenta incluso si alguien conoce tu contraseña
                     </Text>
                 </View>
 
-                <View style={[containerStyles.card, { marginTop: 30 }]}>
-                    <Text style={[textStyles.h4, { color: theme.colors.primaryText, marginBottom: 12 }]}>
-                        Beneficios del 2FA:
+                <View style={styles.benefitRow}>
+                    <FontAwesome6 name="mobile-screen" size={16} color={theme.colors.primary} iconStyle="solid" />
+                    <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+                        Usa apps como Google Authenticator o Authy
                     </Text>
-
-                    <View style={styles.benefitRow}>
-                        <FontAwesome6 name="lock" size={16} color={theme.colors.primary} iconStyle="solid" />
-                        <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Protege tu cuenta incluso si alguien conoce tu contraseña
-                        </Text>
-                    </View>
-
-                    <View style={styles.benefitRow}>
-                        <FontAwesome6 name="mobile-screen" size={16} color={theme.colors.primary} iconStyle="solid" />
-                        <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Usa apps como Google Authenticator o Authy
-                        </Text>
-                    </View>
-
-                    <View style={styles.benefitRow}>
-                        <FontAwesome6 name="clock" size={16} color={theme.colors.primary} iconStyle="solid" />
-                        <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Códigos que cambian cada 30 segundos
-                        </Text>
-                    </View>
                 </View>
 
-                <View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-                    <QPButton
-                        title="Configurar 2FA"
-                        onPress={handleGenerate2FA}
-                        loading={isLoading}
-                        disabled={isLoading}
-                        textStyle={{ color: theme.colors.almostWhite }}
-                    />
+                <View style={styles.benefitRow}>
+                    <FontAwesome6 name="clock" size={16} color={theme.colors.primary} iconStyle="solid" />
+                    <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+                        Códigos que cambian cada 30 segundos
+                    </Text>
                 </View>
+            </View>
 
-            </ScrollView>
-        </View>
+        </QPKeyboardView>
     )
 }
 

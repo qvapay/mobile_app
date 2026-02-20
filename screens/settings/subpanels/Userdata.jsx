@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Text, View, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
+import { Text, View } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
+
+// UI
+import QPKeyboardView from '../../../ui/QPKeyboardView'
 
 // UI Particles
 import QPInput from '../../../ui/particles/QPInput'
@@ -142,144 +145,140 @@ const Userdata = () => {
 	if (isLoadingData) { return (<QPLoader />) }
 
 	return (
-		<KeyboardAvoidingView style={containerStyles.subContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
+		<QPKeyboardView
+			actions={
+				<QPButton
+					title="Actualizar datos"
+					onPress={handleSubmit}
+					disabled={!name || !lastname || isLoading}
+					textStyle={{ color: theme.colors.almostWhite }}
+					loading={isLoading}
+				/>
+			}
+		>
 
-					<Text style={textStyles.h1}>Datos personales</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tu información de perfil</Text>
+			<Text style={textStyles.h1}>Datos personales</Text>
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tu información de perfil</Text>
 
-					{/* Account section */}
-					<View style={{ marginTop: 20 }}>
-						<SectionHeader icon="user-tag" title="Cuenta" theme={theme} textStyles={textStyles} />
-						<QPInput
-							placeholder="Nombre de usuario"
-							value={username}
-							onChangeText={setUsername}
-							editable={false}
-							prefixIconName="user"
-							style={{ opacity: 0.6 }}
-							suffixIconName={userStatus.kyc ? 'circle-check' : ''}
-						/>
-						<QPInput
-							placeholder="Correo electrónico"
-							value={email}
-							onChangeText={setEmail}
-							keyboardType="email-address"
-							autoCapitalize="none"
-							editable={false}
-							style={{ opacity: 0.6 }}
-							prefixIconName="envelope"
-						/>
-					</View>
+			{/* Account section */}
+			<View style={{ marginTop: 20 }}>
+				<SectionHeader icon="user-tag" title="Cuenta" theme={theme} textStyles={textStyles} />
+				<QPInput
+					placeholder="Nombre de usuario"
+					value={username}
+					onChangeText={setUsername}
+					editable={false}
+					prefixIconName="user"
+					style={{ opacity: 0.6 }}
+					suffixIconName={userStatus.kyc ? 'circle-check' : ''}
+				/>
+				<QPInput
+					placeholder="Correo electrónico"
+					value={email}
+					onChangeText={setEmail}
+					keyboardType="email-address"
+					autoCapitalize="none"
+					editable={false}
+					style={{ opacity: 0.6 }}
+					prefixIconName="envelope"
+				/>
+			</View>
 
-					{/* Personal info section */}
-					<View style={{ marginTop: 10 }}>
-						<SectionHeader icon="id-card" title="Información personal" theme={theme} textStyles={textStyles} />
-						<QPInput
-							placeholder="Nombre"
-							value={name}
-							onChangeText={setName}
-							prefixIconName="user"
-							autoCapitalize="words"
-						/>
-						<QPInput
-							placeholder="Apellido"
-							value={lastname}
-							onChangeText={setLastname}
-							prefixIconName="user"
-							autoCapitalize="words"
-						/>
-						<QPInput
-							placeholder="Biografía o descripción"
-							value={bio}
-							onChangeText={setBio}
-							multiline
-							numberOfLines={4}
-							prefixIconName="user-pen"
-							style={{ textAlignVertical: 'top', paddingTop: 15 }}
-						/>
-					</View>
+			{/* Personal info section */}
+			<View style={{ marginTop: 10 }}>
+				<SectionHeader icon="id-card" title="Información personal" theme={theme} textStyles={textStyles} />
+				<QPInput
+					placeholder="Nombre"
+					value={name}
+					onChangeText={setName}
+					prefixIconName="user"
+					autoCapitalize="words"
+				/>
+				<QPInput
+					placeholder="Apellido"
+					value={lastname}
+					onChangeText={setLastname}
+					prefixIconName="user"
+					autoCapitalize="words"
+				/>
+				<QPInput
+					placeholder="Biografía o descripción"
+					value={bio}
+					onChangeText={setBio}
+					multiline
+					numberOfLines={4}
+					prefixIconName="user-pen"
+					style={{ textAlignVertical: 'top', paddingTop: 15 }}
+				/>
+			</View>
 
-					{/* Contact section */}
-					<View style={{ marginTop: 10 }}>
-						<SectionHeader icon="address-book" title="Contacto y redes" theme={theme} textStyles={textStyles} />
-						<QPInput
-							placeholder="Teléfono"
-							value={phone}
-							onChangeText={setPhone}
-							keyboardType="phone-pad"
-							prefixIconName="phone-volume"
-							suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
-							editable={false}
-							style={{ opacity: 0.6 }}
-						/>
-						<QPInput
-							placeholder="@usuario_telegram"
-							value={telegram}
-							onChangeText={setTelegram}
-							autoCapitalize="none"
-							prefixIconName="telegram"
-							iconStyle="brand"
-							suffixIconName={userStatus.telegram_id ? 'circle-check' : ''}
-						/>
-						<QPInput
-							placeholder="@usuario_twitter"
-							value={twitter}
-							onChangeText={setTwitter}
-							autoCapitalize="none"
-							prefixIconName="x-twitter"
-							iconStyle="brand"
-						/>
-					</View>
+			{/* Contact section */}
+			<View style={{ marginTop: 10 }}>
+				<SectionHeader icon="address-book" title="Contacto y redes" theme={theme} textStyles={textStyles} />
+				<QPInput
+					placeholder="Teléfono"
+					value={phone}
+					onChangeText={setPhone}
+					keyboardType="phone-pad"
+					prefixIconName="phone-volume"
+					suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
+					editable={false}
+					style={{ opacity: 0.6 }}
+				/>
+				<QPInput
+					placeholder="@usuario_telegram"
+					value={telegram}
+					onChangeText={setTelegram}
+					autoCapitalize="none"
+					prefixIconName="telegram"
+					iconStyle="brand"
+					suffixIconName={userStatus.telegram_id ? 'circle-check' : ''}
+				/>
+				<QPInput
+					placeholder="@usuario_twitter"
+					value={twitter}
+					onChangeText={setTwitter}
+					autoCapitalize="none"
+					prefixIconName="x-twitter"
+					iconStyle="brand"
+				/>
+			</View>
 
-					{/* Location section */}
-					<View style={{ marginTop: 10 }}>
-						<SectionHeader icon="location-dot" title="Ubicación" theme={theme} textStyles={textStyles} />
-						<QPInput
-							placeholder="Dirección"
-							value={address}
-							onChangeText={setAddress}
-							autoCapitalize="words"
-							prefixIconName="location-dot"
-						/>
-						<QPInput
-							placeholder="País (ej: US, ES, MX)"
-							value={country}
-							onChangeText={setCountry}
-							autoCapitalize="characters"
-							maxLength={2}
-							prefixIconName="globe"
-						/>
-					</View>
+			{/* Location section */}
+			<View style={{ marginTop: 10 }}>
+				<SectionHeader icon="location-dot" title="Ubicación" theme={theme} textStyles={textStyles} />
+				<QPInput
+					placeholder="Dirección"
+					value={address}
+					onChangeText={setAddress}
+					autoCapitalize="words"
+					prefixIconName="location-dot"
+				/>
+				<QPInput
+					placeholder="País (ej: US, ES, MX)"
+					value={country}
+					onChangeText={setCountry}
+					autoCapitalize="characters"
+					maxLength={2}
+					prefixIconName="globe"
+				/>
+			</View>
 
-					{/* Info card */}
-					<View style={[containerStyles.card, { marginTop: 10 }]}>
-						<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-							<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
-							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-								El nombre de usuario, email y teléfono se gestionan desde sus respectivas secciones de ajustes.
-							</Text>
-						</View>
-					</View>
-
-					<View style={containerStyles.bottomButtonContainer}>
-						<QPButton
-							title="Actualizar datos"
-							onPress={handleSubmit}
-							disabled={!name || !lastname || isLoading}
-							textStyle={{ color: theme.colors.almostWhite }}
-							loading={isLoading}
-						/>
-					</View>
-
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 40 }]}>
-						Miembro desde: <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{formatDate(userStatus.createdAt)}</Text>
+			{/* Info card */}
+			<View style={[containerStyles.card, { marginTop: 10 }]}>
+				<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+					<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
+						El nombre de usuario, email y teléfono se gestionan desde sus respectivas secciones de ajustes.
 					</Text>
+				</View>
+			</View>
 
-				</ScrollView>
-			</TouchableWithoutFeedback>
-		</KeyboardAvoidingView>
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 40 }]}>
+				Miembro desde: <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{formatDate(userStatus.createdAt)}</Text>
+			</Text>
+
+		</QPKeyboardView>
 	)
 }
 

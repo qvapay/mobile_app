@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, StyleSheet, Alert } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -9,6 +8,7 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
 import QPProduct from '../../ui/particles/QPProduct'
+import QPKeyboardView from '../../ui/QPKeyboardView'
 
 // Phone Input
 import PhoneInput, { isValidPhoneNumber } from 'react-native-international-phone-number'
@@ -33,8 +33,6 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
-
 	// Get package from route params
 	const { package: packageItem } = route.params || {}
 
@@ -115,76 +113,8 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 	}
 
 	return (
-		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-				{/* Package Details Card */}
-				<View style={styles.packageContainer}>
-					<QPProduct
-						name={packageItem.name || 'Recarga telefónica'}
-						price={packageItem.price}
-						details={packageItem.details || [
-							packageItem.operator,
-							packageItem.country,
-							packageItem.amount ? `${packageItem.amount} ${packageItem.currency || 'QUSD'}` : null,
-						].filter(Boolean)}
-						logo={packageItem.logo}
-						image={packageItem.image}
-						onPress={() => { }} // Disabled in purchase screen
-						style={styles.packageCard}
-					/>
-				</View>
-
-				{/* Phone Number Input */}
-				<View style={styles.inputSection}>
-					<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginBottom: 12 }]}>
-						Número de teléfono
-					</Text>
-					<PhoneInput
-						value={phoneNumber}
-						onChangePhoneNumber={setPhoneNumber}
-						selectedCountry={selectedCountry}
-						onChangeSelectedCountry={setSelectedCountry}
-						defaultCountry="CU"
-						placeholder="Número de teléfono"
-						language="es"
-						theme={theme.mode === 'light' ? 'light' : 'dark'}
-						phoneInputStyles={{
-							container: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12 },
-							input: { color: theme.colors.primaryText, fontSize: 16, fontFamily: 'Rubik-Regular' },
-							flagContainer: { backgroundColor: theme.colors.elevation, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-							callingCode: { color: theme.colors.primaryText, fontSize: 14 },
-							caret: { color: theme.colors.secondaryText },
-						}}
-						modalStyles={{
-							modal: { backgroundColor: theme.colors.background },
-							searchInput: { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: theme.colors.border },
-							countryButton: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-							callingCode: { color: theme.colors.primaryText },
-							countryName: { color: theme.colors.primaryText },
-						}}
-						modalSearchInputPlaceholder="Buscar país..."
-						modalSearchInputPlaceholderTextColor={theme.colors.placeholder}
-					/>
-					{phoneNumber.trim().length > 0 && !isPhoneValid && (
-						<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-							Por favor ingresa un número de teléfono válido
-						</Text>
-					)}
-				</View>
-
-				{/* Balance Info */}
-				{user?.balance && (
-					<View style={[styles.balanceInfo, { backgroundColor: theme.colors.elevation }]}>
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Balance disponible:</Text>
-						<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>
-							${parseFloat(user.balance).toFixed(2)} QUSD
-						</Text>
-					</View>
-				)}
-			</ScrollView>
-
-			{/* Purchase Button */}
-			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
+		<QPKeyboardView
+			actions={
 				<QPButton
 					title={isPurchasing ? 'Procesando...' : `Comprar por $${packageItem.price || '0.00'}`}
 					onPress={handlePurchase}
@@ -192,8 +122,74 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 					loading={isPurchasing}
 					textStyle={{ color: theme.colors.buttonText }}
 				/>
+			}
+	
+		>
+			{/* Package Details Card */}
+			<View style={styles.packageContainer}>
+				<QPProduct
+					name={packageItem.name || 'Recarga telefónica'}
+					price={packageItem.price}
+					details={packageItem.details || [
+						packageItem.operator,
+						packageItem.country,
+						packageItem.amount ? `${packageItem.amount} ${packageItem.currency || 'QUSD'}` : null,
+					].filter(Boolean)}
+					logo={packageItem.logo}
+					image={packageItem.image}
+					onPress={() => { }} // Disabled in purchase screen
+					style={styles.packageCard}
+				/>
 			</View>
-		</View>
+
+			{/* Phone Number Input */}
+			<View style={styles.inputSection}>
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginBottom: 12 }]}>
+					Número de teléfono
+				</Text>
+				<PhoneInput
+					value={phoneNumber}
+					onChangePhoneNumber={setPhoneNumber}
+					selectedCountry={selectedCountry}
+					onChangeSelectedCountry={setSelectedCountry}
+					defaultCountry="CU"
+					placeholder="Número de teléfono"
+					language="es"
+					theme={theme.mode === 'light' ? 'light' : 'dark'}
+					phoneInputStyles={{
+						container: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12 },
+						input: { color: theme.colors.primaryText, fontSize: 16, fontFamily: 'Rubik-Regular' },
+						flagContainer: { backgroundColor: theme.colors.elevation, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+						callingCode: { color: theme.colors.primaryText, fontSize: 14 },
+						caret: { color: theme.colors.secondaryText },
+					}}
+					modalStyles={{
+						modal: { backgroundColor: theme.colors.background },
+						searchInput: { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: theme.colors.border },
+						countryButton: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+						callingCode: { color: theme.colors.primaryText },
+						countryName: { color: theme.colors.primaryText },
+					}}
+					modalSearchInputPlaceholder="Buscar país..."
+					modalSearchInputPlaceholderTextColor={theme.colors.placeholder}
+				/>
+				{phoneNumber.trim().length > 0 && !isPhoneValid && (
+					<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
+						Por favor ingresa un número de teléfono válido
+					</Text>
+				)}
+			</View>
+
+			{/* Balance Info */}
+			{user?.balance && (
+				<View style={[styles.balanceInfo, { backgroundColor: theme.colors.elevation }]}>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Balance disponible:</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>
+						${parseFloat(user.balance).toFixed(2)} QUSD
+					</Text>
+				</View>
+			)}
+		</QPKeyboardView>
 	)
 }
 

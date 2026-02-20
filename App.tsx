@@ -1,9 +1,9 @@
 // React Components
 import { Linking, Platform, Pressable } from 'react-native'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 // Navigation Components
-import { NavigationContainer, useNavigation } from '@react-navigation/native'
+import { NavigationContainer, useNavigation, DefaultTheme, DarkTheme } from '@react-navigation/native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
@@ -87,10 +87,10 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
-	const containerStyles = createContainerStyles(theme)
+	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
 
 	// Consistent header options using native back button (works with iOS liquid glass)
-	const getHeaderOptions = (title: string, options?: {
+	const getHeaderOptions = useMemo(() => (title: string, options?: {
 		animation?: 'slide_from_right' | 'slide_from_bottom' | 'slide_from_left' | 'none';
 		headerRight?: () => React.ReactNode;
 	}) => ({
@@ -100,7 +100,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 		headerShadowVisible: false,
 		animation: options?.animation || 'slide_from_right' as const,
 		...(options?.headerRight && { headerRight: options.headerRight }),
-	})
+	}), [])
 
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
@@ -171,6 +171,16 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isAuthenticated])
 
+	// Memoized screen options to prevent re-renders that cause liquid glass flash on iOS
+	const stackScreenOptions = useMemo(() => ({
+		headerShown: false,
+		headerStyle: { backgroundColor: theme.colors.background },
+		headerShadowVisible: false,
+		headerBackButtonDisplayMode: 'minimal' as const,
+		headerTintColor: theme.colors.primaryText,
+		contentStyle: { backgroundColor: theme.colors.background },
+	}), [theme])
+
 	// Show splash screen if still loading or if minimum time hasn't passed
 	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
 
@@ -178,13 +188,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 	return (
 		<Stack.Navigator
 			initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
-			screenOptions={{
-				headerShown: false,
-				headerStyle: { backgroundColor: theme.colors.background },
-				headerShadowVisible: false,
-				headerBackButtonDisplayMode: 'minimal',
-				headerTintColor: theme.colors.primaryText
-			}}
+			screenOptions={stackScreenOptions}
 		>
 			{/* Onboard Screen */}
 			<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
@@ -365,6 +369,32 @@ const ThemeProviderWithSettings = ({ children }: { children: React.ReactNode }) 
 	)
 }
 
+// Navigation wrapper that provides theme to NavigationContainer
+// This prevents the iOS native layer from using default white background during transitions
+const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
+	const { theme, isDark } = useTheme()
+	const baseTheme = isDark ? DarkTheme : DefaultTheme
+	const navigationTheme = useMemo(() => ({
+		...baseTheme,
+		dark: isDark,
+		colors: {
+			...baseTheme.colors,
+			primary: theme.colors.primary,
+			background: theme.colors.background,
+			card: theme.colors.background,
+			text: theme.colors.primaryText,
+			border: theme.colors.surface,
+			notification: theme.colors.primary,
+		},
+	}), [theme, isDark, baseTheme])
+
+	return (
+		<NavigationContainer linking={linking as any} theme={navigationTheme}>
+			{children}
+		</NavigationContainer>
+	)
+}
+
 function App() {
 	const pendingDeepLinkRef = useRef<string | null>(null)
 
@@ -375,10 +405,10 @@ function App() {
 					<SettingsProvider>
 						<ThemeProviderWithSettings>
 							<AppLockProvider>
-								<NavigationContainer linking={linking as any}>
+								<NavigationWrapper>
 									<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
 									<Toast position="top" topOffset={40} />
-								</NavigationContainer>
+								</NavigationWrapper>
 								<LockScreen />
 							</AppLockProvider>
 						</ThemeProviderWithSettings>
