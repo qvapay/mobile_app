@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native'
+import { Alert, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -20,6 +20,9 @@ import Toast from 'react-native-toast-message'
 
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 // Contacts Component
 const Contacts = () => {
@@ -112,7 +115,8 @@ const Contacts = () => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.colors.primary} />}>
+			<QPRefreshIndicator refreshing={refreshing} />
+			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, refresh)}>
 
 				<Text style={textStyles.h1}>Contactos</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personas a las que envías con frecuencia</Text>

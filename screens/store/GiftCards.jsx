@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, FlatList, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, FlatList } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
@@ -16,6 +16,9 @@ import { storeApi } from '../../api/storeApi'
 
 // Routes
 import { ROUTES } from '../../routes'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Toast
 import Toast from 'react-native-toast-message'
@@ -84,17 +87,12 @@ const GiftCards = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
+			<QPRefreshIndicator refreshing={isRefreshing} />
 			<ScrollView
 				style={styles.scrollView}
 				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
 				showsVerticalScrollIndicator={false}
-				refreshControl={
-					<RefreshControl
-						refreshing={isRefreshing}
-						onRefresh={handleRefresh}
-						tintColor={theme.colors.primary}
-					/>
-				}
+				refreshControl={createHiddenRefreshControl(isRefreshing, handleRefresh)}
 			>
 				{/* Search bar */}
 				<QPInput

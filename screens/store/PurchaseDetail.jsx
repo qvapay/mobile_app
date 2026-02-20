@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import FastImage from '@d11/react-native-fast-image'
 
 // Theme Context
@@ -18,6 +18,9 @@ import { ROUTES } from '../../routes'
 
 // API
 import { storeApi } from '../../api/storeApi'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Helpers
 import { getShortDateTime, statusText, copyTextToClipboard, getFirstChunk } from '../../helpers'
@@ -152,10 +155,11 @@ const PurchaseDetail = ({ route, navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
+			<QPRefreshIndicator refreshing={isLoading} />
 			<ScrollView
 				style={styles.scrollView}
 				showsVerticalScrollIndicator={false}
-				refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchDetail} tintColor={theme.colors.primary} />}
+				refreshControl={createHiddenRefreshControl(isLoading, fetchDetail)}
 			>
 
 				{/* Service Header */}

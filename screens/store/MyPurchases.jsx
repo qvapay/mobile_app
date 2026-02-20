@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable } from 'react-native'
+import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native'
 import FastImage from '@d11/react-native-fast-image'
 
 // Theme Context
@@ -15,6 +15,9 @@ import { ROUTES } from '../../routes'
 
 // API
 import { storeApi } from '../../api/storeApi'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Helpers
 import { getShortDateTime, statusText } from '../../helpers'
@@ -129,13 +132,14 @@ const MyPurchases = ({ navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
+			<QPRefreshIndicator refreshing={isRefreshing} />
 			<FlatList
 				data={purchases}
 				keyExtractor={(item) => String(item.id)}
 				renderItem={renderItem}
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
-				refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchPurchases(true)} tintColor={theme.colors.primary} />}
+				refreshControl={createHiddenRefreshControl(isRefreshing, () => fetchPurchases(true))}
 			/>
 		</View>
 	)

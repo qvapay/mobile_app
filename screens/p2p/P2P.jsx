@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { View, Text, StyleSheet, RefreshControl, Modal, Pressable, Switch, ScrollView, Platform } from "react-native"
+import { View, Text, StyleSheet, Modal, Pressable, Switch, ScrollView, Platform } from "react-native"
 
 // Reanimated
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, withTiming, interpolate } from "react-native-reanimated"
@@ -37,6 +37,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Routes
 import { ROUTES } from "../../routes"
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
 // Default popular coins for quick select pills
 const DEFAULT_POPULAR_COINS = [
@@ -373,6 +376,7 @@ const P2P = ({ navigation, route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
+			<QPRefreshIndicator refreshing={refreshing} />
 
 			{p2pEnabled ? (
 				<>
@@ -451,7 +455,7 @@ const P2P = ({ navigation, route }) => {
 						keyExtractor={(item) => item.uuid}
 						onScroll={scrollHandler}
 						scrollEventThrottle={16}
-						refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}
+						refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 						showsVerticalScrollIndicator={false}
 						ListEmptyComponent={
 							<View style={styles.emptyContainer}>

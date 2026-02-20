@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, RefreshControl, Share } from "react-native"
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
@@ -30,6 +30,9 @@ import Toast from "react-native-toast-message"
 
 // Helpers
 import { getShortDateTime, reduceStringInside } from "../../helpers"
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
 // Lottie
 import LottieView from "lottie-react-native"
@@ -412,18 +415,10 @@ const P2POffer = ({ route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
+			<QPRefreshIndicator refreshing={refreshing} />
 			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
 				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}
-					refreshControl={
-						<RefreshControl
-							refreshing={refreshing}
-							onRefresh={onRefresh}
-							tintColor={theme.colors.primary}
-							colors={[theme.colors.primary]}
-							title="Actualizando..."
-							titleColor={theme.colors.secondaryText}
-						/>
-					}
+					refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 				>
 
 					{/* Offer Header - Fixed */}

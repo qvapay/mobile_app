@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FastImage from '@d11/react-native-fast-image'
 
@@ -18,6 +18,9 @@ import { ROUTES } from '../../routes'
 
 // API
 import { storeApi } from '../../api/storeApi'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Helpers
 import { statusText } from '../../helpers'
@@ -108,13 +111,12 @@ const Store = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
+			<QPRefreshIndicator refreshing={isRefreshing} />
 			<ScrollView
 				style={styles.scrollView}
 				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
 				showsVerticalScrollIndicator={false}
-				refreshControl={
-					<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchData(true)} tintColor={theme.colors.primary} />
-				}
+				refreshControl={createHiddenRefreshControl(isRefreshing, () => fetchData(true))}
 			>
 
 				{/* Search bar */}

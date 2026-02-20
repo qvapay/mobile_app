@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Async Storage
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -28,6 +28,9 @@ import Toast from 'react-native-toast-message'
 import QPButton from '../../ui/particles/QPButton'
 import QPCoin from '../../ui/particles/QPCoin'
 import ProfileContainer from '../../ui/ProfileContainer'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Cache key prefix for transactions
 const TRANSACTION_CACHE_KEY = 'transaction_cache_'
@@ -155,7 +158,8 @@ const Transaction = ({ route, navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchTransaction} tintColor={theme.colors.primary} />}>
+			<QPRefreshIndicator refreshing={loading} />
+			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction)}>
 
 				{/* Profile Container */}
 				{otherUser && <ProfileContainer user={otherUser} />}

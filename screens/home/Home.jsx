@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Linking } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -27,6 +27,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Routes
 import { ROUTES } from '../../routes'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Service Card Component
 const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
@@ -141,8 +144,9 @@ const Home = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
+			<QPRefreshIndicator refreshing={refreshing} />
 
-			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl key={`refresh-${theme.isDark ? 'dark' : 'light'}`} refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />}>
+			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}>
 
 				<BalanceCard balance={user.balance} />
 

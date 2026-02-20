@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, Share, RefreshControl } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Share } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
@@ -26,6 +26,9 @@ import Toast from 'react-native-toast-message'
 
 // Helpers
 import { copyTextToClipboard } from '../../../helpers'
+
+// Pull-to-refresh
+import QPRefreshIndicator, { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 // Referals Component
 const Referals = () => {
@@ -103,16 +106,11 @@ const Referals = () => {
     if (loading) { return (<QPLoader />) }
 
     return (
-        <ScrollView style={containerStyles.subContainer}
-            refreshControl={
-                <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    colors={[theme.colors.primary]}
-                    tintColor={theme.colors.primary}
-                />
-            }
-        >
+        <View style={containerStyles.subContainer}>
+            <QPRefreshIndicator refreshing={refreshing} />
+            <ScrollView style={{ flex: 1 }}
+                refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
+            >
 
             {/* Header Section */}
             <Text style={textStyles.h1}>Programa de Referidos</Text>
@@ -216,7 +214,8 @@ const Referals = () => {
             {/* Bottom spacing */}
             <View style={{ height: insets.bottom + 20 }} />
 
-        </ScrollView>
+            </ScrollView>
+        </View>
     )
 }
 
