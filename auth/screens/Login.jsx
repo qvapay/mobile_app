@@ -184,7 +184,7 @@ const LoginScreen = ({ navigation }) => {
 		const has = await hasBiometricCredentials()
 		if (has) return
 
-		const biometricLabel = type === 'FaceID' ? 'Face ID' : type === 'TouchID' ? 'Touch ID' : 'huella digital'
+		const biometricLabel = type === 'FaceID' ? 'Face ID' : type === 'TouchID' ? 'Touch ID' : 'Huella Digital'
 		Alert.alert(
 			`Activar ${biometricLabel}`,
 			`¿Deseas usar ${biometricLabel} para acceder a tu cuenta en el futuro?`,

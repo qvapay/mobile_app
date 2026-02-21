@@ -256,7 +256,7 @@ const AppLock = () => {
 									<FontAwesome6 name="fingerprint" size={18} style={{ color: theme.colors.primary, marginRight: 12 }} iconStyle="solid" />
 								)}
 								<Text style={[textStyles.h4, { flex: 1, marginBottom: 0 }]}>
-									{biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella'} activado
+									{biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella Digital'} activado
 								</Text>
 								<FontAwesome6 name="circle-check" size={20} color={theme.colors.success} iconStyle="solid" />
 							</View>
@@ -356,7 +356,7 @@ const AppLock = () => {
 							<View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
 								<FontAwesome6 name="fingerprint" size={16} color={theme.colors.primary} iconStyle="solid" />
 								<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-									Desbloquea con Face ID, huella digital o tu PIN de 4 dígitos
+									Desbloquea con Face ID, Touch ID o Huella Digital o tu PIN de 4 dígitos
 								</Text>
 							</View>
 							<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, FlatList, Linking } from "react-native"
+import { View, Text, StyleSheet, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, FlatList, Linking } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
@@ -100,6 +100,17 @@ const P2POffer = ({ route }) => {
 
 	// TX ID input for markPaid
 	const [txIdInput, setTxIdInput] = useState("")
+
+	// Keyboard height tracking
+	const [keyboardHeight, setKeyboardHeight] = useState(0)
+	useEffect(() => {
+		const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+		const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+		const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height))
+		const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0))
+		return () => { showSub.remove(); hideSub.remove() }
+	}, [])
+	const keyboardVisible = keyboardHeight > 0
 
 	// Get the P2P UUID
 	const { p2p_uuid } = route.params
@@ -511,7 +522,7 @@ const P2POffer = ({ route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
+			<View style={[{ flex: 1 }, keyboardVisible && { paddingBottom: keyboardHeight }]}>
 				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}
 					refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 				>
@@ -835,7 +846,7 @@ const P2POffer = ({ route }) => {
 				</ScrollView>
 
 				{/* Action Buttons - Fixed at bottom */}
-				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row', paddingBottom: insets.bottom + 16 }]}>
+				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row', paddingBottom: keyboardVisible ? 8 : insets.bottom + 16 }]}>
 
 					{canApply && (
 						<QPButton
@@ -935,7 +946,7 @@ const P2POffer = ({ route }) => {
 					)}
 
 				</View>
-			</KeyboardAvoidingView>
+			</View>
 		</View>
 	)
 }

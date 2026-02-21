@@ -46,7 +46,7 @@ const Biometrics = () => {
         checkBiometrics()
     }, [])
 
-    const biometricLabel = biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella digital'
+    const biometricLabel = biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella Digital'
     const biometricIcon = biometryType === 'FaceID' ? 'face-smile' : 'fingerprint'
 
     // Toggle biometrics
