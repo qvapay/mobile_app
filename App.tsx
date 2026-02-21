@@ -72,6 +72,9 @@ import SettingsStack from './screens/settings/SettingsStack'
 // Notifications
 import Toast from 'react-native-toast-message'
 
+// Sound
+import playSound from './helpers/playSound'
+
 // UI Components
 import QPAvatar from './ui/particles/QPAvatar'
 import ErrorBoundary from './ui/ErrorBoundary'
@@ -109,7 +112,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 	const [splashReady, setSplashReady] = useState(false)
 
 	// Check if this is the first time using the app
-	const { appearance, isLoading: settingsLoading } = useSettings()
+	const { appearance, sounds, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
 
 	// Navigation
@@ -180,6 +183,15 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 		const onForeground = (event: any) => {
 			event.preventDefault()
 			const notification = event.getNotification()
+			const data = notification.additionalData
+			// Play sound based on notification type
+			if (sounds?.enabled) {
+				if (sounds?.transactionSound && (data?.type === 'transaction' || data?.type === 'transfer')) {
+					playSound('money_in')
+				} else {
+					playSound('notification')
+				}
+			}
 			Toast.show({
 				type: 'info',
 				text1: notification.title || 'QvaPay',

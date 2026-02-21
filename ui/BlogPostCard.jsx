@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, Image, Linking } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Image, Linking, useWindowDimensions } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -8,11 +8,13 @@ import { useContainerStyles, useTextStyles } from '../theme/themeUtils'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Blog Post Card
-const BlogPostCard = ({ post, index, totalItems }) => {
+const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
+	const { width: screenWidth } = useWindowDimensions()
+	const cardWidth = iPad ? (screenWidth - 32 - 12) / 2 : undefined
 
 	// Format date
 	const formatDate = (dateString) => {
@@ -35,7 +37,7 @@ const BlogPostCard = ({ post, index, totalItems }) => {
 	}
 
 	return (
-		<Pressable style={[styles.card, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, marginBottom: index < totalItems - 1 ? 12 : 0 }]} onPress={handlePress} >
+		<Pressable style={[styles.card, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, marginBottom: iPad ? 0 : (index < totalItems - 1 ? 12 : 0), width: cardWidth }]} onPress={handlePress} >
 			<View style={styles.imageContainer}>
 				<Image source={{ uri: post.featuredImage }} style={styles.featuredImage} resizeMode="cover" />
 			</View>

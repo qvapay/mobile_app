@@ -179,7 +179,7 @@ const MainStack = ({ navigation }) => {
 		headerTitle: '',
 		// Android fallback
 		headerRight: () => (
-			<Pressable style={containerStyles.headerRight}>
+			<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.MY_PURCHASES)}>
 				<FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
 		),
@@ -189,10 +189,10 @@ const MainStack = ({ navigation }) => {
 				type: 'button',
 				label: 'Carrito',
 				icon: { type: 'sfSymbol', name: 'cart.fill' },
-				onPress: () => {},
+				onPress: () => navigation.navigate(ROUTES.MY_PURCHASES),
 			}],
 		}),
-	}), [showLabels, containerStyles, theme])
+	}), [showLabels, containerStyles, theme, navigation])
 
 	return (
 		<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
@@ -208,11 +208,13 @@ const MainStack = ({ navigation }) => {
 					options={homeOptions}
 				/>
 
-				<Tab.Screen
-					name={ROUTES.INVEST_SCREEN}
-					component={Invest}
-					options={investOptions}
-				/>
+				{Platform.OS !== 'ios' && (
+					<Tab.Screen
+						name={ROUTES.INVEST_SCREEN}
+						component={Invest}
+						options={investOptions}
+					/>
+				)}
 
 				<Tab.Screen
 					name={ROUTES.KEYPAD_SCREEN}

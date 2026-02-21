@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Auth Context
@@ -120,7 +120,7 @@ const Home = ({ navigation }) => {
 	const fetchLatestBlogPosts = async (skipLoading = false) => {
 		try {
 			if (!skipLoading) setIsLoading(true)
-			const result = await blogApi.getLatestPosts(3)
+			const result = await blogApi.getLatestPosts(Platform.isPad ? 4 : 3)
 			if (result.success) { setLatestBlogPosts(result.data) }
 		} catch (error) { /* error fetching blog posts */ }
 		finally { if (!skipLoading) setIsLoading(false) }
@@ -216,9 +216,9 @@ const Home = ({ navigation }) => {
 
 				<View style={styles.section}>
 					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => Linking.openURL('https://qvapay.blog')} />
-					<View>
+					<View style={Platform.isPad ? styles.blogGrid : undefined}>
 						{latestBlogPosts.map((post, index) => (
-							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} />
+							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} iPad={Platform.isPad} />
 						))}
 					</View>
 				</View>
@@ -243,7 +243,8 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	serviceCard: {
-		width: '48%',
+		flexBasis: Platform.isPad ? '22%' : '46%',
+		flexGrow: 1,
 		borderRadius: 12,
 		padding: 14,
 		alignItems: 'center',
@@ -259,6 +260,11 @@ const styles = StyleSheet.create({
 	serviceCardTitle: {
 		fontFamily: 'Rubik-Medium',
 		fontSize: 14,
+	},
+	blogGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 12,
 	},
 })
 

@@ -41,13 +41,13 @@ const CHANNELS = [
 		description: 'Recibe notificaciones en tiempo real en tu dispositivo',
 		icon: 'bell',
 	},
-	{
-		key: 'sms_enabled',
-		label: 'SMS',
-		description: 'Recibe notificaciones por mensaje de texto',
-		icon: 'comment-sms',
-		comingSoon: true,
-	},
+	// {
+	// 	key: 'sms_enabled',
+	// 	label: 'SMS',
+	// 	description: 'Recibe notificaciones por mensaje de texto',
+	// 	icon: 'comment-sms',
+	// 	comingSoon: true,
+	// },
 ]
 
 const Notifications = () => {

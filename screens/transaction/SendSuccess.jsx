@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { View, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -8,8 +9,14 @@ import LottieView from 'lottie-react-native'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
+// Settings
+import { useSettings } from '../../settings/SettingsContext'
+
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
+
+// Sound
+import playSound from '../../helpers/playSound'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -22,6 +29,14 @@ const SendSuccess = ({ navigation }) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
+	const { sounds } = useSettings()
+
+	// Play money out sound on mount
+	useEffect(() => {
+		if (sounds.enabled && sounds.transactionSound) {
+			playSound('money_out')
+		}
+	}, [])
 
 	// Render
 	return (
