@@ -12,7 +12,7 @@ import { transferApi } from '../../api/transferApi'
 import QPTransaction from '../../ui/particles/QPTransaction'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -247,7 +247,6 @@ const Transactions = ({ navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<QPRefreshIndicator refreshing={isRefreshing} />
 			<FlatList
 				data={transactions}
 				renderItem={({ item, index }) => <QPTransaction transaction={item} navigation={navigation} index={index} totalItems={transactions.length} />}

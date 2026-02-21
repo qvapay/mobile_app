@@ -17,7 +17,6 @@ import coinsApi from "../../api/coinsApi"
 
 // UI
 import P2POffer from "../../ui/P2POfferItem"
-import QPLoader from "../../ui/particles/QPLoader"
 import QPInput from "../../ui/particles/QPInput"
 import QPSwitch from "../../ui/particles/QPSwitch"
 import QPCoin from "../../ui/particles/QPCoin"
@@ -39,7 +38,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { ROUTES } from "../../routes"
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
+import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
 // Default popular coins for quick select pills
 const DEFAULT_POPULAR_COINS = [
@@ -371,13 +370,8 @@ const P2P = ({ navigation, route }) => {
 	// Render offer item
 	const renderOffer = ({ item }) => <P2POffer offer={item} navigation={navigation} />
 
-	// Loading component
-	if (isLoadingData && !refreshing) { return <QPLoader /> }
-
 	return (
 		<View style={containerStyles.subContainer}>
-			<QPRefreshIndicator refreshing={refreshing} />
-
 			{p2pEnabled ? (
 				<>
 					{/* Quick Filters Bar */}

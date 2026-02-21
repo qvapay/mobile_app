@@ -10,7 +10,6 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
-import QPLoader from '../../ui/particles/QPLoader'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -143,14 +142,8 @@ const GiftCardDetail = ({ navigation, route }) => {
 		)
 	}
 
-	// Loading state
-	if (isLoading) {
-		return (
-			<View style={[containerStyles.subContainer, styles.loadingContainer]}>
-				<QPLoader />
-			</View>
-		)
-	}
+	// Loading state — global loading bar handles the indicator
+	if (isLoading) { return <View style={containerStyles.subContainer} /> }
 
 	// Error state
 	if (!card) {

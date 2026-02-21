@@ -9,7 +9,6 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
 import QPProduct from '../../ui/particles/QPProduct'
-import QPLoader from '../../ui/particles/QPLoader'
 
 // API
 import { storeApi } from '../../api/storeApi'
@@ -18,7 +17,7 @@ import { storeApi } from '../../api/storeApi'
 import { ROUTES } from '../../routes'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Toast
 import Toast from 'react-native-toast-message'
@@ -103,7 +102,6 @@ const PhoneTopupIndex = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
-			<QPRefreshIndicator refreshing={isRefreshing} />
 			<ScrollView
 				style={styles.scrollView}
 				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
@@ -142,13 +140,6 @@ const PhoneTopupIndex = ({ navigation }) => {
 						</View>
 					</View>
 				</View>
-
-				{/* Loading state */}
-				{isLoading && !isRefreshing && (
-					<View style={styles.loadingContainer}>
-						<QPLoader />
-					</View>
-				)}
 
 				{/* Packages list */}
 				{!isLoading && (

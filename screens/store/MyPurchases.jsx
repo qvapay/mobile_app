@@ -7,7 +7,6 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
-import QPLoader from '../../ui/particles/QPLoader'
 import QPButton from '../../ui/particles/QPButton'
 
 // Routes
@@ -17,7 +16,7 @@ import { ROUTES } from '../../routes'
 import { storeApi } from '../../api/storeApi'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Helpers
 import { getShortDateTime, statusText } from '../../helpers'
@@ -106,14 +105,8 @@ const MyPurchases = ({ navigation }) => {
 		)
 	}
 
-	// Loading state
-	if (isLoading) {
-		return (
-			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
-				<QPLoader />
-			</View>
-		)
-	}
+	// Loading state — global loading bar handles the indicator
+	if (isLoading) { return <View style={containerStyles.subContainer} /> }
 
 	// Empty state
 	if (purchases.length === 0) {
@@ -132,7 +125,6 @@ const MyPurchases = ({ navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<QPRefreshIndicator refreshing={isRefreshing} />
 			<FlatList
 				data={purchases}
 				keyExtractor={(item) => String(item.id)}

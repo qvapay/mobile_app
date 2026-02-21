@@ -11,7 +11,6 @@ import QPButton from '../../ui/particles/QPButton'
 import QPAvatar from '../../ui/particles/QPAvatar'
 import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
-import QPLoader from '../../ui/particles/QPLoader'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 
@@ -205,8 +204,6 @@ const Send = ({ navigation, route }) => {
 						</ScrollView>
 					)}
 				</View>
-
-				{isLoadingUser && (<QPLoader />)}
 
 				{userFound && (
 					<QPInput

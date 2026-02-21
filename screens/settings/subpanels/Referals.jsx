@@ -28,7 +28,7 @@ import Toast from 'react-native-toast-message'
 import { copyTextToClipboard } from '../../../helpers'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 // Referals Component
 const Referals = () => {
@@ -107,7 +107,6 @@ const Referals = () => {
 
     return (
         <View style={containerStyles.subContainer}>
-            <QPRefreshIndicator refreshing={refreshing} />
             <ScrollView style={{ flex: 1 }}
                 refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
             >

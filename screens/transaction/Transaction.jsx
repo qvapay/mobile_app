@@ -30,7 +30,7 @@ import QPCoin from '../../ui/particles/QPCoin'
 import ProfileContainer from '../../ui/ProfileContainer'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Cache key prefix for transactions
 const TRANSACTION_CACHE_KEY = 'transaction_cache_'
@@ -158,7 +158,6 @@ const Transaction = ({ route, navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<QPRefreshIndicator refreshing={loading} />
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction)}>
 
 				{/* Profile Container */}

@@ -7,7 +7,6 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
-import QPLoader from '../../ui/particles/QPLoader'
 import QPButton from '../../ui/particles/QPButton'
 
 // Icons
@@ -20,7 +19,7 @@ import { ROUTES } from '../../routes'
 import { storeApi } from '../../api/storeApi'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Helpers
 import { getShortDateTime, statusText, copyTextToClipboard, getFirstChunk } from '../../helpers'
@@ -124,14 +123,8 @@ const PurchaseDetail = ({ route, navigation }) => {
 		</View>
 	)
 
-	// Loading state
-	if (isLoading) {
-		return (
-			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
-				<QPLoader />
-			</View>
-		)
-	}
+	// Loading state — global loading bar handles the indicator
+	if (isLoading) { return <View style={containerStyles.subContainer} /> }
 
 	// Error state
 	if (!purchase) {
@@ -155,7 +148,6 @@ const PurchaseDetail = ({ route, navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<QPRefreshIndicator refreshing={isLoading} />
 			<ScrollView
 				style={styles.scrollView}
 				showsVerticalScrollIndicator={false}

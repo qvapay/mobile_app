@@ -9,7 +9,6 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 // UI Particles
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPButton from '../../ui/particles/QPButton'
-import QPLoader from '../../ui/particles/QPLoader'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 
 // API
@@ -156,14 +155,8 @@ const SendConfirm = ({ navigation, route }) => {
 		} finally { setIsLoading(false) }
 	}
 
-	// Show loading while fetching user data
-	if (isLoadingUser) {
-		return (
-			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
-				<QPLoader />
-			</View>
-		)
-	}
+	// Loading state — global loading bar handles the indicator
+	if (isLoadingUser) { return <View style={containerStyles.subContainer} /> }
 
 	// Show error if no recipient user found
 	if (!recipientUser) {

@@ -25,7 +25,7 @@ import Toast from 'react-native-toast-message'
 import { useAuth } from '../../../auth/AuthContext'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 // Contacts Component
 const Contacts = ({ navigation }) => {
@@ -175,7 +175,6 @@ const Contacts = ({ navigation }) => {
 	return (
 		<>
 			<View style={containerStyles.subContainer}>
-				<QPRefreshIndicator refreshing={refreshing} />
 				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, refresh)}>
 
 					<Text style={textStyles.h1}>Contactos</Text>

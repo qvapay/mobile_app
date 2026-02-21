@@ -21,6 +21,11 @@ import { SettingsProvider, useSettings } from './settings/SettingsContext'
 import { AppLockProvider } from './lock/AppLockContext'
 import LockScreen from './lock/LockScreen'
 
+// Loading
+import { LoadingProvider, useLoading } from './loading/LoadingContext'
+import { registerLoadingCallbacks, unregisterLoadingCallbacks } from './api/client'
+import GlobalLoadingBar from './ui/GlobalLoadingBar'
+
 // Theme Provider
 import { ThemeProvider } from './theme/ThemeContext'
 import { useTheme } from './theme/ThemeContext'
@@ -448,6 +453,16 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
 	)
 }
 
+// Bridge component that connects LoadingContext to Axios interceptors
+const LoadingBridge = ({ children }: { children: React.ReactNode }) => {
+	const { startLoading, stopLoading } = useLoading()
+	useEffect(() => {
+		registerLoadingCallbacks(startLoading, stopLoading)
+		return () => { unregisterLoadingCallbacks() }
+	}, [startLoading, stopLoading])
+	return <>{children}</>
+}
+
 // Initialize OneSignal (must be called outside component, before render)
 OneSignal.initialize('8f69c017-b7e7-40b2-903b-11ce7ac5cc81')
 
@@ -457,19 +472,24 @@ function App() {
 	return (
 		<ErrorBoundary>
 			<SafeAreaProvider>
-				<AuthProvider>
-					<SettingsProvider>
-						<ThemeProviderWithSettings>
-							<AppLockProvider>
-								<NavigationWrapper>
-									<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-									<Toast position="top" topOffset={40} />
-								</NavigationWrapper>
-								<LockScreen />
-							</AppLockProvider>
-						</ThemeProviderWithSettings>
-					</SettingsProvider>
-				</AuthProvider>
+				<LoadingProvider>
+					<AuthProvider>
+						<SettingsProvider>
+							<ThemeProviderWithSettings>
+								<LoadingBridge>
+									<AppLockProvider>
+										<NavigationWrapper>
+											<GlobalLoadingBar />
+											<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+											<Toast position="top" topOffset={40} />
+										</NavigationWrapper>
+										<LockScreen />
+									</AppLockProvider>
+								</LoadingBridge>
+							</ThemeProviderWithSettings>
+						</SettingsProvider>
+					</AuthProvider>
+				</LoadingProvider>
 			</SafeAreaProvider>
 		</ErrorBoundary>
 	)

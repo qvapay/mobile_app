@@ -20,7 +20,7 @@ import { ROUTES } from '../../routes'
 import { storeApi } from '../../api/storeApi'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Helpers
 import { statusText } from '../../helpers'
@@ -111,7 +111,6 @@ const Store = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
-			<QPRefreshIndicator refreshing={isRefreshing} />
 			<ScrollView
 				style={styles.scrollView}
 				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}

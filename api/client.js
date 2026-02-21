@@ -14,6 +14,20 @@ const KEYCHAIN_SERVICE = 'com.qvapay.auth'
 const BIOMETRIC_SERVICE = 'com.qvapay.biometrics'
 const APP_LOCK_SERVICE = 'com.qvapay.applock'
 
+// Loading callbacks for global loading bar
+let _loadingStart = null
+let _loadingStop = null
+
+export const registerLoadingCallbacks = (start, stop) => {
+	_loadingStart = start
+	_loadingStop = stop
+}
+
+export const unregisterLoadingCallbacks = () => {
+	_loadingStart = null
+	_loadingStop = null
+}
+
 // Create axios instance
 const apiClient = axios.create({
 	baseURL: API_BASE_URL,
@@ -32,19 +46,27 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
 	async (config) => {
+		if (!config.silent && _loadingStart) { _loadingStart() }
 		try {
 			const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
 			if (credentials) { config.headers.Authorization = `Bearer ${credentials.password}` }
 		} catch (error) { /* token retrieval failed */ }
 		return config
 	},
-	(error) => { return Promise.reject(error) }
+	(error) => {
+		if (!error.config?.silent && _loadingStop) { _loadingStop() }
+		return Promise.reject(error)
+	}
 )
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
-	(response) => { return response },
+	(response) => {
+		if (!response.config?.silent && _loadingStop) { _loadingStop() }
+		return response
+	},
 	async (error) => {
+		if (!error.config?.silent && _loadingStop) { _loadingStop() }
 		// Handle common errors
 		if (error.response) {
 			const { status, data } = error.response

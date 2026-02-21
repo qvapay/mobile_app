@@ -32,7 +32,7 @@ import Toast from "react-native-toast-message"
 import { getShortDateTime, reduceStringInside } from "../../helpers"
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
+import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
 // Lottie
 import LottieView from "lottie-react-native"
@@ -511,7 +511,6 @@ const P2POffer = ({ route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<QPRefreshIndicator refreshing={refreshing} />
 			<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} >
 				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}
 					refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}

@@ -99,7 +99,7 @@ export const authApi = {
      */
     checkToken: async () => {
         try {
-            const response = await apiClient.post('/auth/check')
+            const response = await apiClient.post('/auth/check', null, { silent: true })
             if (response.data && response.data.success === 'Acceso permitido') {
                 return { success: true, data: response.data }
             } else { return { success: false, error: response.data?.error || 'No se pudo verificar su sesión', data: response.data } }

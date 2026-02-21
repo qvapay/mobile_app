@@ -29,7 +29,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { ROUTES } from '../../routes'
 
 // Pull-to-refresh
-import QPRefreshIndicator, { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
+import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Service Card Component
 const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
@@ -144,8 +144,6 @@ const Home = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
-			<QPRefreshIndicator refreshing={refreshing} />
-
 			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}>
 
 				<BalanceCard balance={user.balance} />
