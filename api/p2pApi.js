@@ -191,11 +191,27 @@ export const p2pApi = {
 
 	/**
 	 * Send a chat message for a P2P offer
+	 * Supports text messages, stickers (`:sticker:name.webm`), and image uploads
 	 * @param {string} p2p_uuid - The P2P UUID
-	 * @param {{ message: string }} payload - Message payload
+	 * @param {{ message?: string, image?: object }} payload - Message payload. image should be { uri, type, fileName }
 	 */
 	sendChat: async (p2p_uuid, payload) => {
 		try {
+			if (payload.image) {
+				const formData = new FormData()
+				formData.append('file', {
+					uri: payload.image.uri,
+					type: payload.image.type || 'image/jpeg',
+					name: payload.image.fileName || 'photo.jpg',
+				})
+				if (payload.message) {
+					formData.append('message', payload.message)
+				}
+				const response = await apiClient.post(`/p2p/${p2p_uuid}/chat`, formData, {
+					headers: { 'Content-Type': 'multipart/form-data' },
+				})
+				return { success: true, data: response.data, status: response.status }
+			}
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/chat`, payload)
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }

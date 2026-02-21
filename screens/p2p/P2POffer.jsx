@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react"
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share } from "react-native"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, FlatList, Linking } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
@@ -36,6 +36,21 @@ import QPRefreshIndicator, { createHiddenRefreshControl } from "../../ui/QPRefre
 
 // Lottie
 import LottieView from "lottie-react-native"
+
+// Image picker
+import { launchImageLibrary } from "react-native-image-picker"
+
+// FastImage for chat images and sticker GIFs
+import FastImage from "@d11/react-native-fast-image"
+
+// Stickers list (GOLD exclusive)
+const P2P_STICKERS = [
+	"angry", "bro", "clown", "cry", "cuba", "facepalm", "finger", "guest", "hum", "joy",
+	"like", "loading", "lol", "love", "money", "ok", "search", "upset", "who", "yeah"
+]
+const STICKER_BASE_URL = "https://media.qvapay.com/qvi/"
+const CHAT_MEDIA_BASE_URL = "https://media.qvapay.com/"
+const MAX_IMAGE_SIZE_MB = 10
 
 // Cache key prefix for P2P offers
 const P2P_CACHE_KEY = "p2p_cache_"
@@ -75,6 +90,13 @@ const P2POffer = ({ route }) => {
 	const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
 	const [visibleTimestamps, setVisibleTimestamps] = useState(new Set())
 	const messageAnimations = useRef({})
+
+	// Image picker state
+	const [selectedImage, setSelectedImage] = useState(null)
+	const [sendingImage, setSendingImage] = useState(false)
+
+	// Sticker panel state
+	const [showStickerPanel, setShowStickerPanel] = useState(false)
 
 	// TX ID input for markPaid
 	const [txIdInput, setTxIdInput] = useState("")
@@ -381,6 +403,80 @@ const P2POffer = ({ route }) => {
 		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
 	}
 
+	// Open image picker
+	const handlePickImage = useCallback(() => {
+		launchImageLibrary({
+			mediaType: 'photo',
+			maxWidth: 1200,
+			maxHeight: 1200,
+			quality: 0.8,
+		}, (response) => {
+			if (response.didCancel || response.errorCode) return
+			const asset = response.assets?.[0]
+			if (!asset) return
+			// Validate file size (max 10MB)
+			if (asset.fileSize && asset.fileSize > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+				Toast.show({ type: "error", text1: "Imagen muy grande", text2: `El máximo es ${MAX_IMAGE_SIZE_MB}MB` })
+				return
+			}
+			// Validate file type
+			const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg']
+			if (asset.type && !validTypes.includes(asset.type.toLowerCase())) {
+				Toast.show({ type: "error", text1: "Formato no soportado", text2: "Solo JPG, PNG y GIF" })
+				return
+			}
+			setSelectedImage(asset)
+		})
+	}, [])
+
+	// Send image message
+	const handleSendImage = async () => {
+		if (!selectedImage) return
+		try {
+			setSendingImage(true)
+			const res = await p2pApi.sendChat(p2p_uuid, {
+				message: chatText.trim() || undefined,
+				image: {
+					uri: selectedImage.uri,
+					type: selectedImage.type || 'image/jpeg',
+					fileName: selectedImage.fileName || 'photo.jpg',
+				},
+			})
+			if (res.success) {
+				setSelectedImage(null)
+				setChatText("")
+				await fetchChat()
+				chatScrollRef.current?.scrollToEnd({ animated: true })
+			} else {
+				Toast.show({ type: "error", text1: "No se pudo enviar", text2: String(res.error || "") })
+			}
+		} catch (e) {
+			Toast.show({ type: "error", text1: "Error", text2: e.message })
+		} finally {
+			setSendingImage(false)
+		}
+	}
+
+	// Send sticker message
+	const handleSendSticker = async (stickerName) => {
+		setShowStickerPanel(false)
+		try {
+			const res = await p2pApi.sendChat(p2p_uuid, { message: `:sticker:${stickerName}.gif` })
+			if (res.success) {
+				await fetchChat()
+				chatScrollRef.current?.scrollToEnd({ animated: true })
+			} else {
+				Toast.show({ type: "error", text1: "No se pudo enviar", text2: String(res.error || "") })
+			}
+		} catch (e) {
+			Toast.show({ type: "error", text1: "Error", text2: e.message })
+		}
+	}
+
+	// Helper: check if message is a sticker
+	const isSticker = (message) => typeof message === 'string' && message.startsWith(':sticker:')
+	const getStickerName = (message) => message.replace(':sticker:', '').replace(/\.(webm|gif)$/, '')
+
 	// Toggle timestamp
 	const toggleTimestamp = (messageId) => {
 		if (!messageAnimations.current[messageId]) { messageAnimations.current[messageId] = new Animated.Value(0) }
@@ -565,6 +661,34 @@ const P2POffer = ({ route }) => {
 										// Get sender info for avatar (use counterparty if not mine)
 										const sender = mine ? user : counterparty
 
+										const messageText = m.message || m.text || ""
+										const messageIsSticker = isSticker(messageText)
+										const hasImage = !!m.image
+
+										// Sticker message - no bubble, just the animation
+										if (messageIsSticker) {
+											const stickerName = getStickerName(messageText)
+											return (
+												<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 0 : 6, marginBottom: isConsecutive ? 0 : 6 }]}>
+													<View style={{ marginHorizontal: 6, width: 16, height: 16, justifyContent: 'center', alignItems: 'center' }}>
+														{isLastInGroup ? <QPAvatar user={sender} size={16} /> : null}
+													</View>
+													<TouchableOpacity onPress={() => m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7}>
+														<FastImage
+															source={{ uri: `${STICKER_BASE_URL}${stickerName}.gif` }}
+															style={{ width: 96, height: 96 }}
+															resizeMode={FastImage.resizeMode.contain}
+														/>
+														{showTimestamp && m.created_at && (
+															<Text style={[textStyles.h7, { fontSize: 10, color: theme.colors.secondaryText, marginTop: 2, textAlign: mine ? "right" : "left" }]}>
+																{getShortDateTime(m.created_at)}
+															</Text>
+														)}
+													</TouchableOpacity>
+												</View>
+											)
+										}
+
 										return (
 											<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 0 : 6, marginBottom: isConsecutive ? 0 : 6 }]}>
 
@@ -576,10 +700,26 @@ const P2POffer = ({ route }) => {
 												{/* Message Bubble - Touchable */}
 												<TouchableOpacity
 													onPress={() => m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7}
-													style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, borderTopRightRadius: mine ? isConsecutive ? 4 : 18 : 18 }]}>
-													<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
-														{m.message || m.text || ""}
-													</Text>
+													style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, borderTopRightRadius: mine ? isConsecutive ? 4 : 18 : 18, overflow: 'hidden' }]}>
+
+													{/* Image in message */}
+													{hasImage && (
+														<Pressable onPress={() => Linking.openURL(`${CHAT_MEDIA_BASE_URL}${m.image}`)}>
+															<FastImage
+																source={{ uri: `${CHAT_MEDIA_BASE_URL}${m.image}` }}
+																style={{ width: 200, height: 150, borderRadius: 12, marginBottom: messageText ? 6 : 0 }}
+																resizeMode={FastImage.resizeMode.cover}
+															/>
+														</Pressable>
+													)}
+
+													{/* Text content */}
+													{messageText ? (
+														<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
+															{messageText}
+														</Text>
+													) : null}
+
 													{/* Show timestamp only when manually toggled */}
 													{showTimestamp && m.created_at && (
 														<Animated.View style={{
@@ -603,9 +743,30 @@ const P2POffer = ({ route }) => {
 								)}
 							</ScrollView>
 
+							{/* Image Preview */}
+							{selectedImage && (
+								<View style={[styles.imagePreviewContainer, { borderTopColor: theme.colors.border }]}>
+									<FastImage source={{ uri: selectedImage.uri }} style={styles.imagePreview} resizeMode={FastImage.resizeMode.cover} />
+									<Pressable onPress={() => setSelectedImage(null)} style={[styles.imagePreviewClose, { backgroundColor: theme.colors.danger }]}>
+										<FontAwesome6 name="xmark" size={12} color="#fff" iconStyle="solid" />
+									</Pressable>
+								</View>
+							)}
+
 							{/* Chat Input - Fixed at bottom */}
 							<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 								<View style={[styles.chatInputContainer, { borderTopColor: theme.colors.border, borderTopWidth: 0.5 }]}>
+
+									{/* Image picker button */}
+									<Pressable onPress={handlePickImage} style={[styles.mediaButton, { backgroundColor: theme.colors.elevation }]}>
+										<FontAwesome6 name="image" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
+									</Pressable>
+
+									{/* Sticker button */}
+									<Pressable onPress={() => setShowStickerPanel(true)} style={[styles.mediaButton, { backgroundColor: theme.colors.elevation }]}>
+										<FontAwesome6 name="face-smile" size={16} color={theme.colors.secondaryText} iconStyle="regular" />
+									</Pressable>
+
 									<TextInput
 										value={chatText}
 										onChangeText={setChatText}
@@ -615,11 +776,59 @@ const P2POffer = ({ route }) => {
 										multiline
 										textAlignVertical="center"
 									/>
-									<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={[styles.sendButton, { backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }]}>
-										<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
-									</Pressable>
+
+									{/* Send button: image or text */}
+									{selectedImage ? (
+										<Pressable onPress={handleSendImage} disabled={sendingImage} style={[styles.sendButton, { backgroundColor: theme.colors.primary, opacity: sendingImage ? 0.5 : 1 }]}>
+											<FontAwesome6 name="paper-plane" size={16} color={theme.colors.almostBlack} iconStyle="solid" />
+										</Pressable>
+									) : (
+										<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={[styles.sendButton, { backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }]}>
+											<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
+										</Pressable>
+									)}
 								</View>
 							</TouchableWithoutFeedback>
+
+							{/* Sticker Panel Modal */}
+							<Modal visible={showStickerPanel} transparent animationType="slide" onRequestClose={() => setShowStickerPanel(false)}>
+								<Pressable style={styles.stickerModalOverlay} onPress={() => setShowStickerPanel(false)}>
+									<View style={[styles.stickerPanel, { backgroundColor: theme.colors.background }]}>
+										<View style={styles.stickerPanelHeader}>
+											<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>Stickers</Text>
+											<Pressable onPress={() => setShowStickerPanel(false)}>
+												<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+											</Pressable>
+										</View>
+
+										{user?.golden_check ? (
+											<FlatList
+												data={P2P_STICKERS}
+												numColumns={4}
+												keyExtractor={(item) => item}
+												contentContainerStyle={{ paddingVertical: 8 }}
+												renderItem={({ item }) => (
+													<TouchableOpacity onPress={() => handleSendSticker(item)} style={styles.stickerItem}>
+														<FastImage
+															source={{ uri: `${STICKER_BASE_URL}${item}.gif` }}
+															style={{ width: 64, height: 64 }}
+															resizeMode={FastImage.resizeMode.contain}
+														/>
+													</TouchableOpacity>
+												)}
+											/>
+										) : (
+											<View style={styles.stickerLockedContainer}>
+												<FontAwesome6 name="crown" size={40} color={theme.colors.gold} iconStyle="solid" />
+												<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginTop: 12 }]}>Stickers exclusivos</Text>
+												<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center", marginTop: 4 }]}>
+													Necesitas GOLD para usar stickers
+												</Text>
+											</View>
+										)}
+									</View>
+								</Pressable>
+							</Modal>
 
 						</View>
 					)}
@@ -857,6 +1066,63 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		alignItems: 'center',
 		justifyContent: 'center',
+	},
+	mediaButton: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	imagePreviewContainer: {
+		padding: 8,
+		borderTopWidth: 0.5,
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	imagePreview: {
+		width: 80,
+		height: 80,
+		borderRadius: 12,
+	},
+	imagePreviewClose: {
+		position: 'absolute',
+		top: 4,
+		left: 84,
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	stickerModalOverlay: {
+		flex: 1,
+		justifyContent: 'flex-end',
+		backgroundColor: 'rgba(0,0,0,0.4)',
+	},
+	stickerPanel: {
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		paddingHorizontal: 16,
+		paddingBottom: 30,
+		maxHeight: '50%',
+	},
+	stickerPanelHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingVertical: 14,
+	},
+	stickerItem: {
+		flex: 1,
+		alignItems: 'center',
+		paddingVertical: 8,
+		maxWidth: '25%',
+	},
+	stickerLockedContainer: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingVertical: 40,
 	},
 })
 
