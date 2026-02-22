@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View, Pressable, Modal, FlatList, TouchableOpacity } from 'react-native'
+import { Alert, ScrollView, StyleSheet, Text, View, Pressable, Modal, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -27,6 +27,9 @@ import { useAuth } from '../../../auth/AuthContext'
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
+// Device Contacts Hook
+import useDeviceContacts from '../../../hooks/useDeviceContacts'
+
 // Contacts Component
 const Contacts = ({ navigation }) => {
 
@@ -44,27 +47,108 @@ const Contacts = ({ navigation }) => {
 	const [error, setError] = useState(null)
 	const [refreshing, setRefreshing] = useState(false)
 
+	// Local filter
+	const [filterQuery, setFilterQuery] = useState('')
+
 	// Add modal states
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [userSearch, setUserSearch] = useState('')
 	const [searchResults, setSearchResults] = useState([])
 	const [isSearching, setIsSearching] = useState(false)
 
-	// Header button "+"
+	// Device contacts hook
+	const {
+		matchedContacts,
+		permissionStatus,
+		isSyncing,
+		checkPermission,
+		requestPermission,
+		syncContacts: syncDeviceContacts,
+		loadCachedMatches,
+		openSettings,
+	} = useDeviceContacts()
+
+	// Resolving permission state (show spinner while checking/requesting)
+	const [isResolvingPermission, setIsResolvingPermission] = useState(false)
+
+	// Handle sync button press
+	const handleSyncPress = useCallback(async () => {
+		setIsResolvingPermission(true)
+		try {
+			const status = await checkPermission()
+			if (status === 'authorized' || status === 'limited') {
+				syncDeviceContacts({ force: true })
+			} else if (status === 'denied') {
+				Alert.alert(
+					'Permiso denegado',
+					'Para sincronizar tus contactos, activa el permiso en la configuración de tu dispositivo.',
+					[
+						{ text: 'Cancelar', style: 'cancel' },
+						{ text: 'Abrir Configuración', onPress: openSettings },
+					]
+				)
+			} else {
+				const result = await requestPermission()
+				if (result === 'authorized') {
+					syncDeviceContacts({ force: true })
+				} else if (result === 'denied') {
+					Alert.alert(
+						'Permiso denegado',
+						'Para sincronizar tus contactos, activa el permiso en la configuración de tu dispositivo.',
+						[
+							{ text: 'Cancelar', style: 'cancel' },
+							{ text: 'Abrir Configuración', onPress: openSettings },
+						]
+					)
+				}
+			}
+		} finally {
+			setIsResolvingPermission(false)
+		}
+	}, [checkPermission, requestPermission, syncDeviceContacts, openSettings])
+
+	// Header buttons: sync + add
 	useEffect(() => {
 		navigation.setOptions({
+			// Android fallback
 			headerRight: () => (
-				<Pressable style={containerStyles.headerRight} onPress={() => setShowAddModal(true)}>
-					<FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-				</Pressable>
-			)
+				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+					<Pressable onPress={handleSyncPress} hitSlop={10}>
+						<FontAwesome6 name="address-book" size={22} color={theme.colors.primaryText} iconStyle="solid" />
+					</Pressable>
+					<Pressable onPress={() => setShowAddModal(true)} hitSlop={10}>
+						<FontAwesome6 name="plus" size={22} color={theme.colors.primaryText} iconStyle="solid" />
+					</Pressable>
+				</View>
+			),
+			// iOS native header items (liquid glass compatible)
+			...(Platform.OS === 'ios' && {
+				unstable_headerRightItems: () => [
+					{
+						type: 'button',
+						label: 'Sincronizar',
+						icon: { type: 'sfSymbol', name: 'person.2' },
+						onPress: handleSyncPress,
+					},
+					{
+						type: 'button',
+						label: 'Agregar',
+						icon: { type: 'sfSymbol', name: 'plus' },
+						onPress: () => setShowAddModal(true),
+					},
+				],
+			}),
 		})
-	}, [navigation, containerStyles.headerRight, theme.colors.primaryText])
+	}, [navigation, theme.colors.primaryText, handleSyncPress])
+
+	// Load cached matches on mount
+	useEffect(() => {
+		checkPermission()
+		loadCachedMatches()
+	}, [checkPermission, loadCachedMatches])
 
 	// Map API contact to user
 	const mapApiContactToUser = useCallback((contact) => {
-		// API returns shape:
-		// { id, name, Contact: { uuid, name, image, username, kyc, vip, golden_check, phone_verified, telegram_verified }, created_at }
 		const user = contact?.Contact || {}
 		return {
 			uuid: user.uuid,
@@ -78,6 +162,14 @@ const Contacts = ({ navigation }) => {
 			telegram_verified: !!user.telegram_verified,
 		}
 	}, [])
+
+	// Check if a matched contact is already saved
+	const isAlreadySaved = useCallback((matchedUser) => {
+		return contacts.some((c) => {
+			const saved = c?.Contact || {}
+			return saved.uuid === matchedUser.uuid
+		})
+	}, [contacts])
 
 	// Load contacts
 	const load = useCallback(async () => {
@@ -106,6 +198,24 @@ const Contacts = ({ navigation }) => {
 			} else { Toast.show({ type: 'error', text1: res.error || 'No se pudieron cargar los contactos' }) }
 		} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
 		finally { setRefreshing(false) }
+	}, [])
+
+	// Handle toggle favorite
+	const handleToggleFavorite = useCallback(async (contact) => {
+		const id = contact?.id
+		if (!id) return
+		try {
+			const res = await userApi.toggleFavoriteContact(id)
+			if (res.success) {
+				setContacts((prev) => prev.map((c) =>
+					c.id === id ? { ...c, favorite: res.data.favorite } : c
+				))
+			} else {
+				Toast.show({ type: 'error', text1: res.error || 'No se pudo actualizar' })
+			}
+		} catch (e) {
+			Toast.show({ type: 'error', text1: e.message || 'Error de red' })
+		}
 	}, [])
 
 	// Handle delete contact
@@ -169,6 +279,48 @@ const Contacts = ({ navigation }) => {
 		}
 	}
 
+	// Add all matched contacts at once
+	const [isAddingAll, setIsAddingAll] = useState(false)
+	const handleAddAll = useCallback(async () => {
+		const pending = matchedContacts.filter((m) => !isAlreadySaved(m))
+		if (pending.length === 0) return
+		setIsAddingAll(true)
+		let added = 0
+		for (const user of pending) {
+			try {
+				const res = await userApi.addContact(user.uuid, user.name)
+				if (res.success) {
+					added++
+					setContacts((prev) => [...prev, res.data])
+				}
+			} catch { /* skip */ }
+		}
+		if (added > 0) {
+			Toast.show({ type: 'success', text1: `${added} contacto${added > 1 ? 's' : ''} agregado${added > 1 ? 's' : ''}` })
+		}
+		setIsAddingAll(false)
+	}, [matchedContacts, isAlreadySaved])
+
+	// Filter contacts locally
+	const query = filterQuery.trim().toLowerCase()
+	const filteredMatched = matchedContacts
+		.filter((m) => !isAlreadySaved(m))
+		.filter((m) => {
+			if (!query) return true
+			const name = (m.name || '').toLowerCase()
+			const username = (m.username || '').toLowerCase()
+			const deviceName = (m.deviceContactName || '').toLowerCase()
+			return name.includes(query) || username.includes(query) || deviceName.includes(query)
+		})
+	const filteredContacts = query
+		? contacts.filter((c) => {
+			const u = c?.Contact || {}
+			const name = (u.name || c?.name || '').toLowerCase()
+			const username = (u.username || '').toLowerCase()
+			return name.includes(query) || username.includes(query)
+		})
+		: contacts
+
 	// Render
 	if (loading) { return (<QPLoader />) }
 
@@ -180,24 +332,144 @@ const Contacts = ({ navigation }) => {
 					<Text style={textStyles.h1}>Contactos</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personas a las que envias con frecuencia</Text>
 
+					{/* Local search filter */}
+					{(contacts.length > 0 || matchedContacts.length > 0) && (
+						<QPInput
+							placeholder="Buscar contacto ..."
+							value={filterQuery}
+							onChangeText={setFilterQuery}
+							autoCapitalize="none"
+							prefixIconName="magnifying-glass"
+							style={{ marginTop: 12, marginBottom: 0 }}
+						/>
+					)}
+
 					{error && (
 						<View style={[containerStyles.card, { borderColor: theme.colors.danger, borderWidth: 1 }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.danger }]}>{String(error)}</Text>
 						</View>
 					)}
 
+					{/* Syncing indicator */}
+					{isSyncing && (
+						<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 }]}>
+							<ActivityIndicator size="small" color={theme.colors.primary} />
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Sincronizando contactos...</Text>
+						</View>
+					)}
+
+					{/* Sync CTA (when permission not granted) or matched contacts section */}
+					{permissionStatus !== 'authorized' && permissionStatus !== 'limited' ? (
+						<Pressable
+							onPress={isResolvingPermission ? undefined : handleSyncPress}
+							disabled={isResolvingPermission}
+							style={[containerStyles.card, {
+								borderColor: theme.colors.primary,
+								borderWidth: 1,
+								flexDirection: 'row',
+								alignItems: 'center',
+								gap: 12,
+								marginTop: 10,
+								opacity: isResolvingPermission ? 0.8 : 1,
+							}]}
+						>
+							{isResolvingPermission ? (
+								<ActivityIndicator size="small" color={theme.colors.primary} />
+							) : (
+								<FontAwesome6 name="address-book" size={28} color={theme.colors.primary} iconStyle="solid" />
+							)}
+							<View style={{ flex: 1 }}>
+								<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
+									{isResolvingPermission ? 'Solicitando permiso...' : 'Sincronizar agenda'}
+								</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+									Encuentra amigos que usan QvaPay
+								</Text>
+							</View>
+							{!isResolvingPermission && (
+								<FontAwesome6 name="chevron-right" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
+							)}
+						</Pressable>
+					) : filteredMatched.length > 0 ? (
+						<View style={{ marginTop: 10 }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+									<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
+										En tu agenda ({filteredMatched.length})
+									</Text>
+									{isSyncing && <ActivityIndicator size="small" color={theme.colors.primary} />}
+								</View>
+								<TouchableOpacity
+									onPress={handleAddAll}
+									disabled={isAddingAll}
+									style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+								>
+									{isAddingAll
+										? <ActivityIndicator size="small" color={theme.colors.primary} />
+										: <FontAwesome6 name="user-plus" size={13} color={theme.colors.primary} iconStyle="solid" />
+									}
+									<Text style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600' }]}>
+										{isAddingAll ? 'Agregando...' : 'Agregar todos'}
+									</Text>
+								</TouchableOpacity>
+							</View>
+							{filteredMatched.map((matched) => (
+								<View key={matched.uuid} style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+									<View style={{ flex: 1 }}>
+										<ProfileContainerHorizontal user={matched} size={52} />
+										{matched.deviceContactName ? (
+											<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginLeft: 64, marginTop: -4 }]}>
+												{matched.deviceContactName}
+											</Text>
+										) : null}
+									</View>
+									{!isAlreadySaved(matched) && (
+										<TouchableOpacity
+											onPress={() => handleAddContact(matched)}
+											style={{
+												backgroundColor: theme.colors.primary,
+												borderRadius: 8,
+												paddingHorizontal: 12,
+												paddingVertical: 6,
+											}}
+										>
+											<Text style={[textStyles.h6, { color: theme.colors.almostWhite, fontWeight: '600' }]}>Agregar</Text>
+										</TouchableOpacity>
+									)}
+								</View>
+							))}
+						</View>
+					) : null}
+
+					{/* Saved contacts */}
 					<View style={{ marginTop: 10 }}>
-						{(contacts || []).length === 0 ? (
+						{filteredContacts.length > 0 && (
+							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 8 }]}>
+								Contactos guardados ({filteredContacts.length})
+							</Text>
+						)}
+						{contacts.length === 0 ? (
 							<View style={[containerStyles.card, { alignItems: 'center' }]}>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No tienes contactos guardados</Text>
 							</View>
+						) : filteredContacts.length === 0 ? (
+							<View style={[containerStyles.card, { alignItems: 'center' }]}>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Sin resultados para "{filterQuery}"</Text>
+							</View>
 						) : (
-							contacts.map((contact) => (
+							filteredContacts.map((contact) => (
 								<View key={contact.id || contact.uuid || JSON.stringify(contact)} style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-									<ProfileContainerHorizontal user={mapApiContactToUser(contact)} size={52} />
-									<Pressable onPress={() => handleDelete(contact)} style={{ padding: 6 }}>
-										<FontAwesome6 name="trash" size={16} color={theme.colors.danger} iconStyle="solid" />
-									</Pressable>
+									<View style={{ flex: 1 }}>
+										<ProfileContainerHorizontal user={mapApiContactToUser(contact)} size={52} />
+									</View>
+									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+										<Pressable onPress={() => handleToggleFavorite(contact)} hitSlop={8}>
+											<FontAwesome6 name="star" size={18} color={contact.favorite ? theme.colors.warning : theme.colors.tertiaryText} iconStyle={contact.favorite ? 'solid' : 'regular'} />
+										</Pressable>
+										<Pressable onPress={() => handleDelete(contact)} hitSlop={8}>
+											<FontAwesome6 name="trash" size={16} color={theme.colors.danger} iconStyle="solid" />
+										</Pressable>
+									</View>
 								</View>
 							))
 						)}

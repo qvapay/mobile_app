@@ -27,6 +27,9 @@ import Toast from 'react-native-toast-message'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Device Contacts Hook
+import useDeviceContacts from '../../hooks/useDeviceContacts'
+
 // Send Screen, search user, send money and show success message
 const Send = ({ navigation, route }) => {
 
@@ -38,6 +41,9 @@ const Send = ({ navigation, route }) => {
 	// Params from route
 	const { send_amount, user_uuid = null } = route.params || {}
 
+	// Device contacts hook
+	const { loadCachedMatches } = useDeviceContacts()
+
 	// States
 	const [amount, setAmount] = useState(send_amount || '')
 	const [currency, setCurrency] = useState('QUSD')
@@ -45,6 +51,7 @@ const Send = ({ navigation, route }) => {
 	const [description, setDescription] = useState('')
 	const [userFound, setUserFound] = useState(null)
 	const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
+	const [carouselUsers, setCarouselUsers] = useState([])
 	const [incomingUserUuid, setIncomingUserUuid] = useState(user_uuid || null)
 
 	// Modal states
@@ -65,20 +72,56 @@ const Send = ({ navigation, route }) => {
 		setSendEnabled(hasValidAmount && hasUserFound)
 	}, [amount, userFound])
 
-	// Get latest sent transfers users
+	// Get latest sent transfers users, saved contacts, and synced contacts
 	useEffect(() => {
-		const fetchLatestSentTransfersUsers = async () => {
+		const fetchCarouselUsers = async () => {
 			try {
-				const result = await transferApi.getLatestSentTransfers(10)
-				if (result.success) {
-					// filter out users with no image
-					const users = result.data.filter(user => user.image)
+				const seen = new Set()
+				const combined = []
+
+				// 1. Latest sent transfers
+				const sentResult = await transferApi.getLatestSentTransfers(10)
+				if (sentResult.success) {
+					const users = (sentResult.data || []).filter(u => u.image)
 					setLatestSentTransfersUsers(users)
+					for (const u of users) {
+						if (u.uuid && !seen.has(u.uuid)) {
+							seen.add(u.uuid)
+							combined.push(u)
+						}
+					}
 				}
-			} catch (error) { /* error fetching sent transfers */ }
+
+				// 2. Saved contacts
+				const contactsResult = await userApi.getContacts()
+				if (contactsResult.success) {
+					const list = Array.isArray(contactsResult.data) ? contactsResult.data : (contactsResult.data?.contacts || [])
+					for (const c of list) {
+						const cu = c?.Contact || {}
+						if (cu.uuid && !seen.has(cu.uuid) && cu.image) {
+							seen.add(cu.uuid)
+							combined.push(cu)
+						}
+					}
+				}
+
+				// 3. Synced device contacts (from cache)
+				const cached = await loadCachedMatches()
+				if (cached) {
+					for (const m of cached) {
+						if (m.uuid && !seen.has(m.uuid) && m.image) {
+							seen.add(m.uuid)
+							combined.push(m)
+						}
+					}
+				}
+
+				setCarouselUsers(combined)
+			} catch (error) { /* error fetching carousel users */ }
 			finally { setIsLoading(false) }
 		}
-		fetchLatestSentTransfersUsers()
+		fetchCarouselUsers()
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// If user uuid is provided in the route, try to fetch user data
@@ -195,9 +238,9 @@ const Send = ({ navigation, route }) => {
 								<TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
 									<FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
 								</TouchableOpacity>
-								{latestSentTransfersUsers.map((user, index) => (
-									<Pressable key={index} onPress={() => setIncomingUserUuid(user.uuid)}>
-										<QPAvatar key={index} user={user} size={56} />
+								{carouselUsers.map((user, index) => (
+									<Pressable key={user.uuid || index} onPress={() => setIncomingUserUuid(user.uuid)}>
+										<QPAvatar user={user} size={56} />
 									</Pressable>
 								))}
 							</View>

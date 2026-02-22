@@ -104,8 +104,8 @@ export const authApi = {
                 return { success: true, data: response.data }
             } else { return { success: false, error: response.data?.error || 'No se pudo verificar su sesión', data: response.data } }
         } catch (error) {
-            if (error.response && error.response.data) { return { success: false, error: error.response.data.error || 'No se pudo verificar su sesión', data: error.response.data } }
-            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response.status }
+            if (error.response && error.response.data) { return { success: false, error: error.response.data.error || 'No se pudo verificar su sesión', status: error.response.status, data: error.response.data } }
+            return { success: false, error: error.message || 'Ha ocurrido un error de red', isNetworkError: true }
         }
     },
 

@@ -31,6 +31,7 @@
     "react-native": "^0.83.1",
     "react-native-animated-numbers": "^0.6.3",
     "react-native-bouncy-checkbox": "^4.1.4",
+    "react-native-contacts": "^8.0.10",
     "react-native-device-info": "^15.0.1",
     "react-native-iap": "^14.7.11",
     "react-native-image-picker": "^8.2.1",

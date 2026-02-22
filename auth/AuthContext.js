@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -33,39 +33,6 @@ export const AuthProvider = ({ children }) => {
 		initializeAuth()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
-
-	// Track consecutive token check failures to distinguish transient network errors from invalid tokens
-	const tokenCheckFailures = useRef(0)
-	const MAX_TOKEN_FAILURES = 2
-
-	// Effect to check token validity periodically
-	// Check token every 30 seconds
-	useEffect(() => {
-		if (isAuthenticated && token) {
-			const interval = setInterval(async () => {
-				try {
-					const isValid = await authApi.checkToken(token)
-					if (isValid.success) {
-						tokenCheckFailures.current = 0
-					} else {
-						tokenCheckFailures.current += 1
-						if (tokenCheckFailures.current >= MAX_TOKEN_FAILURES) {
-							tokenCheckFailures.current = 0
-							await logout()
-						}
-					}
-				} catch (error) {
-					tokenCheckFailures.current += 1
-					if (tokenCheckFailures.current >= MAX_TOKEN_FAILURES) {
-						tokenCheckFailures.current = 0
-						await logout()
-					}
-				}
-			}, 30000)
-			return () => clearInterval(interval)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isAuthenticated, token])
 
 	// Initialize authentication state from storage
 	// Migrates legacy AsyncStorage token to Keychain on first run
@@ -294,12 +261,17 @@ export const AuthProvider = ({ children }) => {
 	}
 
 	// Clear all authentication data
-	// Remove token, and user data
+	// Remove token, user data, and synced contacts data
 	const clearAuthData = async () => {
 		try {
 			await Promise.all([
 				removeAuthToken(), // Use API client's token removal
 				AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
+				AsyncStorage.multiRemove([
+					'device_contacts_matched',
+					'device_contacts_last_sync',
+					'device_contacts_consent',
+				]),
 			])
 		} catch (error) { /* error clearing auth data */ }
 	}

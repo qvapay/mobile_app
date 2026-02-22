@@ -71,12 +71,12 @@ apiClient.interceptors.response.use(
 		if (error.response) {
 			const { status, data } = error.response
 			switch (status) {
-				case 401:
 				case 403:
 					try {
 						await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
 					} catch (clearError) { /* token clear failed */ }
 					break
+				case 401:
 				case 422:
 					break
 				case 500:

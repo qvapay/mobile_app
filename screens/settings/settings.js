@@ -115,7 +115,7 @@ const settings = {
                 notifications: 0,
             },
             {
-                title: 'Contactos favoritos',
+                title: 'Contactos',
                 screen: ROUTES.CONTACTS,
                 enabled: true,
                 notifications: 0,

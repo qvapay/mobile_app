@@ -338,6 +338,24 @@ export const userApi = {
 	},
 
 	/**
+	 * Toggle favorite status for a contact
+	 * @param {number} contact_id - The contact ID
+	 * @returns {Promise<Object>} { favorite: boolean }
+	 */
+	toggleFavoriteContact: async (contact_id) => {
+		try {
+			const response = await apiClient.patch(`/user/contact`, { contact_id })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo actualizar el favorito', status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Delete a contact by id/uuid
 	 * @param {string|number} idOrUuid - The contact identifier
 	 * @returns {Promise<Object>} The deletion result
@@ -352,6 +370,23 @@ export const userApi = {
 				return { success: false, error: errorData.error || errorData.message || 'No se pudo eliminar el contacto', details: errorData, status: error.response.status }
 			}
 			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Sync device contacts phone numbers with the backend to find matching QvaPay users
+	 * @param {string[]} phoneNumbers - Array of normalized phone numbers
+	 * @returns {Promise<Object>} The matched contacts { matches: [{ phone, user }] }
+	 */
+	syncContacts: async (phoneNumbers) => {
+		try {
+			const response = await apiClient.post('/user/contacts/sync', { phones: phoneNumbers })
+			return { success: true, data: response.data }
+		} catch (error) {
+			if (error.response?.data) {
+				return { success: false, error: error.response.data.error || 'No se pudieron sincronizar los contactos' }
+			}
+			return { success: false, error: error.message || 'Error de red' }
 		}
 	},
 
