@@ -11,9 +11,8 @@ const STORAGE_KEYS = {
 	CONSENT: 'device_contacts_consent',
 }
 
-const SYNC_COOLDOWN_MS = 15 * 60 * 1000 // 15 minutes
-const BATCH_SIZE = 500
-// iOS 18+ workaround: Contacts.checkPermission() can hang — race with this timeout
+const BATCH_SIZE = 2000
+const SYNC_COOLDOWN_MS = 15 * 60 * 1000
 const CONTACTS_CHECK_TIMEOUT_MS = 2000
 
 /**
