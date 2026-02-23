@@ -41,8 +41,8 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 	const [selectedCountry, setSelectedCountry] = useState(null)
 	const [isPurchasing, setIsPurchasing] = useState(false)
 
-	// Build full phone number with country calling code
-	const fullPhoneNumber = selectedCountry ? `${selectedCountry.callingCode}${phoneNumber.replace(/\D/g, '')}` : phoneNumber
+	// Build full phone number with country calling code (idd.root = "+53", etc.)
+	const fullPhoneNumber = selectedCountry?.idd?.root ? `${selectedCountry.idd.root}${phoneNumber.replace(/\D/g, '')}` : phoneNumber
 
 	// Validate using libphonenumber-js via the package
 	const isPhoneValid = selectedCountry && phoneNumber.trim().length > 0 && isValidPhoneNumber(phoneNumber, selectedCountry)
