@@ -166,7 +166,7 @@ const GiftCardDetail = ({ navigation, route }) => {
 		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
-				{/* Header: Logo + Name + Description */}
+				{/* Header: Logo + Name */}
 				<View style={styles.headerSection}>
 					{logoUrl ? (
 						<View style={[styles.logoContainer, { backgroundColor: card.color || theme.colors.elevationLight }]}>
@@ -177,22 +177,48 @@ const GiftCardDetail = ({ navigation, route }) => {
 					{card.lead ? (
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 4 }]}>{card.lead}</Text>
 					) : null}
-					{card.desc ? (
-						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 12, lineHeight: 20 }]}>{card.desc}</Text>
-					) : null}
 				</View>
 
-				{/* Options */}
+				{/* Options (pricing) */}
 				{hasOptions ? (
 					<View style={styles.optionsSection}>
 						<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginBottom: 12 }]}>
 							Selecciona una opción
 						</Text>
-						{card.options.map((option) => {
-							const isSelected = selectedOption?.code === option.code
-							const isFixed = option.priceType === 'FIXED'
-							const displayPrice = isFixed ? `$${(option.price?.fixed || 0).toFixed(2)}` : `$${(option.price?.min || 0).toFixed(2)} - $${(option.price?.max || 0).toFixed(2)}`
 
+						{/* Fixed-price options as compact chips */}
+						{card.options.some(o => o.priceType === 'FIXED') && (
+							<View style={styles.chipsGrid}>
+								{card.options.filter(o => o.priceType === 'FIXED').map((option) => {
+									const isSelected = selectedOption?.code === option.code
+									return (
+										<Pressable
+											key={option.code}
+											style={[
+												styles.chip,
+												{
+													backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+													borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+												}
+											]}
+											onPress={() => {
+												setSelectedOption(option)
+												setRangeAmount('')
+											}}
+										>
+											<Text style={[textStyles.h6, { color: isSelected ? theme.colors.almostWhite : theme.colors.primaryText, fontWeight: '600' }]}>
+												${(option.price?.fixed || 0).toFixed(2)}
+											</Text>
+										</Pressable>
+									)
+								})}
+							</View>
+						)}
+
+						{/* Range options keep full card layout */}
+						{card.options.filter(o => o.priceType === 'RANGE').map((option) => {
+							const isSelected = selectedOption?.code === option.code
+							const displayPrice = `$${(option.price?.min || 0).toFixed(2)} - $${(option.price?.max || 0).toFixed(2)}`
 							return (
 								<Pressable
 									key={option.code}
@@ -217,7 +243,7 @@ const GiftCardDetail = ({ navigation, route }) => {
 												{option.brand} · {option.country}
 											</Text>
 											<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-												{isFixed ? 'Precio fijo' : 'Monto variable'} · {displayPrice}
+												Monto variable · {displayPrice}
 											</Text>
 										</View>
 										<Text style={[textStyles.h5, { color: isSelected ? theme.colors.primary : theme.colors.primaryText }]}>
@@ -279,6 +305,13 @@ const GiftCardDetail = ({ navigation, route }) => {
 						</Text>
 					</View>
 				) : null}
+
+				{/* Description */}
+				{card.desc ? (
+					<View style={styles.descSection}>
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, lineHeight: 20 }]}>{card.desc}</Text>
+					</View>
+				) : null}
 			</ScrollView>
 
 			{/* Purchase Button */}
@@ -328,6 +361,22 @@ const styles = StyleSheet.create({
 	},
 	optionsSection: {
 		marginBottom: 24,
+	},
+	descSection: {
+		marginBottom: 24,
+	},
+	chipsGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+		marginBottom: 12,
+	},
+	chip: {
+		width: '23%',
+		borderRadius: 10,
+		borderWidth: 1.5,
+		paddingVertical: 10,
+		alignItems: 'center',
 	},
 	optionCard: {
 		borderRadius: 12,

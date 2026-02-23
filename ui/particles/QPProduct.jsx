@@ -24,12 +24,11 @@ const QPProduct = ({ name = '', price = '', details = [], logo = '', image = '',
 				) : null}
 			</View>
 
-			<View style={styles.topupHeaderRow}>
-				<Text style={[textStyles.h6, styles.topupTitle]} numberOfLines={2}>{name}</Text>
-				<Text style={[textStyles.h5, styles.topupPrice]}>{price != null ? `$${Number(price).toFixed(2)}` : ''}</Text>
-			</View>
-
-			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: 10 }]}>{Array.isArray(details) ? details.join(' • ') : ''}</Text>
+			<Text style={[textStyles.h5, styles.topupPrice]}>{price != null ? `$${Number(price).toFixed(2)}` : ''}</Text>
+			<Text style={[textStyles.h6, styles.topupTitle, { color: theme.colors.secondaryText }]} numberOfLines={2}>{name}</Text>
+			{Array.isArray(details) && details.length > 0 && (
+				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: 10 }]}>{details.join(' • ')}</Text>
+			)}
 		</Pressable>
 	)
 }
@@ -42,28 +41,22 @@ const styles = StyleSheet.create({
 		marginRight: 12,
 		borderWidth: 0.5,
 	},
-	topupTitle: {
-		flex: 1,
-		marginRight: 8,
-	},
 	topupImagePlaceholder: {
 		height: 80,
 		borderRadius: 8,
-		marginBottom: 10,
+		marginBottom: 8,
 		overflow: 'hidden',
 	},
 	topupImage: {
 		width: '100%',
 		height: '100%',
 	},
-	topupHeaderRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		marginBottom: 4,
-	},
 	topupPrice: {
-		textAlign: 'right',
+		fontWeight: '700',
+		marginBottom: 2,
+	},
+	topupTitle: {
+		marginBottom: 2,
 	},
 })
 
