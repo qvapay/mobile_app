@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View, Pressable, Modal, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { Alert, Text, View, Pressable, Modal, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -30,6 +30,9 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 // Device Contacts Hook
 import useDeviceContacts from '../../../hooks/useDeviceContacts'
 
+// Routes
+import { ROUTES } from '../../../routes'
+
 // Contacts Component
 const Contacts = ({ navigation }) => {
 
@@ -58,13 +61,11 @@ const Contacts = ({ navigation }) => {
 
 	// Device contacts hook
 	const {
-		matchedContacts,
 		permissionStatus,
 		isSyncing,
 		checkPermission,
 		requestPermission,
 		syncContacts: syncDeviceContacts,
-		loadCachedMatches,
 		openSettings,
 	} = useDeviceContacts()
 
@@ -74,10 +75,11 @@ const Contacts = ({ navigation }) => {
 	// Handle sync button press
 	const handleSyncPress = useCallback(async () => {
 		setIsResolvingPermission(true)
+		const syncOpts = { force: true, onSyncComplete: refresh }
 		try {
 			const status = await checkPermission()
 			if (status === 'authorized' || status === 'limited') {
-				syncDeviceContacts({ force: true })
+				syncDeviceContacts(syncOpts)
 			} else if (status === 'denied') {
 				Alert.alert(
 					'Permiso denegado',
@@ -90,7 +92,7 @@ const Contacts = ({ navigation }) => {
 			} else {
 				const result = await requestPermission()
 				if (result === 'authorized') {
-					syncDeviceContacts({ force: true })
+					syncDeviceContacts(syncOpts)
 				} else if (result === 'denied') {
 					Alert.alert(
 						'Permiso denegado',
@@ -105,7 +107,7 @@ const Contacts = ({ navigation }) => {
 		} finally {
 			setIsResolvingPermission(false)
 		}
-	}, [checkPermission, requestPermission, syncDeviceContacts, openSettings])
+	}, [checkPermission, requestPermission, syncDeviceContacts, openSettings, refresh])
 
 	// Header buttons: sync + add
 	useEffect(() => {
@@ -114,7 +116,7 @@ const Contacts = ({ navigation }) => {
 			headerRight: () => (
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
 					<Pressable onPress={handleSyncPress} hitSlop={10}>
-						<FontAwesome6 name="address-book" size={22} color={theme.colors.primaryText} iconStyle="solid" />
+						<FontAwesome6 name="arrows-rotate" size={22} color={theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
 					<Pressable onPress={() => setShowAddModal(true)} hitSlop={10}>
 						<FontAwesome6 name="plus" size={22} color={theme.colors.primaryText} iconStyle="solid" />
@@ -127,7 +129,7 @@ const Contacts = ({ navigation }) => {
 					{
 						type: 'button',
 						label: 'Sincronizar',
-						icon: { type: 'sfSymbol', name: 'person.2' },
+						icon: { type: 'sfSymbol', name: 'arrow.triangle.2.circlepath' },
 						onPress: handleSyncPress,
 					},
 					{
@@ -141,11 +143,10 @@ const Contacts = ({ navigation }) => {
 		})
 	}, [navigation, theme.colors.primaryText, handleSyncPress])
 
-	// Load cached matches on mount
+	// Check permission on mount
 	useEffect(() => {
 		checkPermission()
-		loadCachedMatches()
-	}, [checkPermission, loadCachedMatches])
+	}, [checkPermission])
 
 	// Map API contact to user
 	const mapApiContactToUser = useCallback((contact) => {
@@ -162,14 +163,6 @@ const Contacts = ({ navigation }) => {
 			telegram_verified: !!user.telegram_verified,
 		}
 	}, [])
-
-	// Check if a matched contact is already saved
-	const isAlreadySaved = useCallback((matchedUser) => {
-		return contacts.some((c) => {
-			const saved = c?.Contact || {}
-			return saved.uuid === matchedUser.uuid
-		})
-	}, [contacts])
 
 	// Load contacts
 	const load = useCallback(async () => {
@@ -207,15 +200,9 @@ const Contacts = ({ navigation }) => {
 		try {
 			const res = await userApi.toggleFavoriteContact(id)
 			if (res.success) {
-				setContacts((prev) => prev.map((c) =>
-					c.id === id ? { ...c, favorite: res.data.favorite } : c
-				))
-			} else {
-				Toast.show({ type: 'error', text1: res.error || 'No se pudo actualizar' })
-			}
-		} catch (e) {
-			Toast.show({ type: 'error', text1: e.message || 'Error de red' })
-		}
+				setContacts((prev) => prev.map((c) => c.id === id ? { ...c, favorite: res.data.favorite } : c))
+			} else { Toast.show({ type: 'error', text1: res.error || 'No se pudo actualizar' }) }
+		} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
 	}, [])
 
 	// Handle delete contact
@@ -271,55 +258,139 @@ const Contacts = ({ navigation }) => {
 				setUserSearch('')
 				setSearchResults([])
 				refresh()
-			} else {
-				Toast.show({ type: 'error', text1: res.error || 'No se pudo agregar el contacto' })
-			}
-		} catch (e) {
-			Toast.show({ type: 'error', text1: e.message || 'Error de red' })
-		}
+			} else { Toast.show({ type: 'error', text1: res.error || 'No se pudo agregar el contacto' }) }
+		} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
 	}
-
-	// Add all matched contacts at once
-	const [isAddingAll, setIsAddingAll] = useState(false)
-	const handleAddAll = useCallback(async () => {
-		const pending = matchedContacts.filter((m) => !isAlreadySaved(m))
-		if (pending.length === 0) return
-		setIsAddingAll(true)
-		let added = 0
-		for (const user of pending) {
-			try {
-				const res = await userApi.addContact(user.uuid, user.name)
-				if (res.success) {
-					added++
-					setContacts((prev) => [...prev, res.data])
-				}
-			} catch { /* skip */ }
-		}
-		if (added > 0) {
-			Toast.show({ type: 'success', text1: `${added} contacto${added > 1 ? 's' : ''} agregado${added > 1 ? 's' : ''}` })
-		}
-		setIsAddingAll(false)
-	}, [matchedContacts, isAlreadySaved])
 
 	// Filter contacts locally
 	const query = filterQuery.trim().toLowerCase()
-	const filteredMatched = matchedContacts
-		.filter((m) => !isAlreadySaved(m))
-		.filter((m) => {
-			if (!query) return true
-			const name = (m.name || '').toLowerCase()
-			const username = (m.username || '').toLowerCase()
-			const deviceName = (m.deviceContactName || '').toLowerCase()
-			return name.includes(query) || username.includes(query) || deviceName.includes(query)
-		})
-	const filteredContacts = query
-		? contacts.filter((c) => {
+	const filteredContacts = useMemo(() => {
+		if (!query) return contacts
+		return contacts.filter((c) => {
 			const u = c?.Contact || {}
 			const name = (u.name || c?.name || '').toLowerCase()
 			const username = (u.username || '').toLowerCase()
 			return name.includes(query) || username.includes(query)
 		})
-		: contacts
+	}, [contacts, query])
+
+	// FlatList renderItem: borderRadius solo en el primer (top) y último (bottom) contacto
+	const renderContact = useCallback(({ item: contact, index }) => {
+		const isFirst = index === 0
+		const isLast = index === filteredContacts.length - 1
+		const radius = theme.borderRadius?.md ?? 12
+		const cardStyle = [
+			containerStyles.card,
+			{
+				flexDirection: 'row',
+				alignItems: 'center',
+				justifyContent: 'space-between',
+				marginVertical: 0,
+				borderRadius: 0,
+				...(isFirst && { borderTopLeftRadius: radius, borderTopRightRadius: radius }),
+				...(isLast && { borderBottomLeftRadius: radius, borderBottomRightRadius: radius }),
+			},
+		]
+		return (
+			<View style={cardStyle}>
+				<View style={{ flex: 1 }}>
+					<ProfileContainerHorizontal user={mapApiContactToUser(contact)} size={52} />
+				</View>
+				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+					<Pressable onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: contact?.Contact?.uuid })} hitSlop={8}>
+						<FontAwesome6 name="dollar-sign" size={18} color={theme.colors.success} iconStyle="solid" />
+					</Pressable>
+					<Pressable onPress={() => handleToggleFavorite(contact)} hitSlop={8}>
+						<FontAwesome6 name="star" size={18} color={contact.favorite ? theme.colors.warning : theme.colors.tertiaryText} iconStyle={contact.favorite ? 'solid' : 'regular'} />
+					</Pressable>
+					<Pressable onPress={() => handleDelete(contact)} hitSlop={8}>
+						<FontAwesome6 name="trash" size={16} color={theme.colors.danger} iconStyle="solid" />
+					</Pressable>
+				</View>
+			</View>
+		)
+	}, [containerStyles.card, mapApiContactToUser, handleToggleFavorite, handleDelete, theme, filteredContacts.length, navigation])
+
+	const keyExtractor = useCallback((item) => String(item.id || item.uuid), [])
+
+	// FlatList header
+	const listHeader = useMemo(() => (
+		<>
+			<Text style={textStyles.h1}>Contactos</Text>
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personas a las que envias con frecuencia</Text>
+
+			{contacts.length > 0 && (
+				<QPInput
+					placeholder="Buscar contacto ..."
+					value={filterQuery}
+					onChangeText={setFilterQuery}
+					autoCapitalize="none"
+					prefixIconName="magnifying-glass"
+					style={{ marginTop: 12, marginBottom: 0 }}
+				/>
+			)}
+
+			{error && (
+				<View style={[containerStyles.card, { borderColor: theme.colors.danger, borderWidth: 1 }]}>
+					<Text style={[textStyles.h6, { color: theme.colors.danger }]}>{String(error)}</Text>
+				</View>
+			)}
+
+			{isSyncing && (
+				<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 }]}>
+					<ActivityIndicator size="small" color={theme.colors.primary} />
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Sincronizando contactos...</Text>
+				</View>
+			)}
+
+			{permissionStatus !== 'authorized' && permissionStatus !== 'limited' && (
+				<Pressable
+					onPress={isResolvingPermission ? undefined : handleSyncPress}
+					disabled={isResolvingPermission}
+					style={[containerStyles.card, {
+						borderColor: theme.colors.primary,
+						borderWidth: 1,
+						flexDirection: 'row',
+						alignItems: 'center',
+						gap: 12,
+						marginTop: 10,
+						opacity: isResolvingPermission ? 0.8 : 1,
+					}]}
+				>
+					{isResolvingPermission ? (
+						<ActivityIndicator size="small" color={theme.colors.primary} />
+					) : (
+						<FontAwesome6 name="address-book" size={28} color={theme.colors.primary} iconStyle="solid" />
+					)}
+					<View style={{ flex: 1 }}>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
+							{isResolvingPermission ? 'Solicitando permiso...' : 'Sincronizar agenda'}
+						</Text>
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+							Encuentra amigos que usan QvaPay
+						</Text>
+					</View>
+					{!isResolvingPermission && (
+						<FontAwesome6 name="chevron-right" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
+					)}
+				</Pressable>
+			)}
+
+			{filteredContacts.length > 0 && (
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 10, marginBottom: 8 }]}>
+					Contactos guardados ({filteredContacts.length})
+				</Text>
+			)}
+		</>
+	), [textStyles, containerStyles, theme.colors, contacts.length, filterQuery, error, isSyncing, permissionStatus, isResolvingPermission, handleSyncPress, filteredContacts.length])
+
+	const listEmpty = useMemo(() => (
+		<View style={[containerStyles.card, { alignItems: 'center' }]}>
+			<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+				{contacts.length === 0 ? 'No tienes contactos guardados' : `Sin resultados para "${filterQuery}"`}
+			</Text>
+		</View>
+	), [containerStyles.card, textStyles.h6, theme.colors.secondaryText, contacts.length, filterQuery])
 
 	// Render
 	if (loading) { return (<QPLoader />) }
@@ -327,154 +398,19 @@ const Contacts = ({ navigation }) => {
 	return (
 		<>
 			<View style={containerStyles.subContainer}>
-				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, refresh)}>
-
-					<Text style={textStyles.h1}>Contactos</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personas a las que envias con frecuencia</Text>
-
-					{/* Local search filter */}
-					{(contacts.length > 0 || matchedContacts.length > 0) && (
-						<QPInput
-							placeholder="Buscar contacto ..."
-							value={filterQuery}
-							onChangeText={setFilterQuery}
-							autoCapitalize="none"
-							prefixIconName="magnifying-glass"
-							style={{ marginTop: 12, marginBottom: 0 }}
-						/>
-					)}
-
-					{error && (
-						<View style={[containerStyles.card, { borderColor: theme.colors.danger, borderWidth: 1 }]}>
-							<Text style={[textStyles.h6, { color: theme.colors.danger }]}>{String(error)}</Text>
-						</View>
-					)}
-
-					{/* Syncing indicator */}
-					{isSyncing && (
-						<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 }]}>
-							<ActivityIndicator size="small" color={theme.colors.primary} />
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Sincronizando contactos...</Text>
-						</View>
-					)}
-
-					{/* Sync CTA (when permission not granted) or matched contacts section */}
-					{permissionStatus !== 'authorized' && permissionStatus !== 'limited' ? (
-						<Pressable
-							onPress={isResolvingPermission ? undefined : handleSyncPress}
-							disabled={isResolvingPermission}
-							style={[containerStyles.card, {
-								borderColor: theme.colors.primary,
-								borderWidth: 1,
-								flexDirection: 'row',
-								alignItems: 'center',
-								gap: 12,
-								marginTop: 10,
-								opacity: isResolvingPermission ? 0.8 : 1,
-							}]}
-						>
-							{isResolvingPermission ? (
-								<ActivityIndicator size="small" color={theme.colors.primary} />
-							) : (
-								<FontAwesome6 name="address-book" size={28} color={theme.colors.primary} iconStyle="solid" />
-							)}
-							<View style={{ flex: 1 }}>
-								<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-									{isResolvingPermission ? 'Solicitando permiso...' : 'Sincronizar agenda'}
-								</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-									Encuentra amigos que usan QvaPay
-								</Text>
-							</View>
-							{!isResolvingPermission && (
-								<FontAwesome6 name="chevron-right" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
-							)}
-						</Pressable>
-					) : filteredMatched.length > 0 ? (
-						<View style={{ marginTop: 10 }}>
-							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-									<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-										En tu agenda ({filteredMatched.length})
-									</Text>
-									{isSyncing && <ActivityIndicator size="small" color={theme.colors.primary} />}
-								</View>
-								<TouchableOpacity
-									onPress={handleAddAll}
-									disabled={isAddingAll}
-									style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-								>
-									{isAddingAll
-										? <ActivityIndicator size="small" color={theme.colors.primary} />
-										: <FontAwesome6 name="user-plus" size={13} color={theme.colors.primary} iconStyle="solid" />
-									}
-									<Text style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600' }]}>
-										{isAddingAll ? 'Agregando...' : 'Agregar todos'}
-									</Text>
-								</TouchableOpacity>
-							</View>
-							{filteredMatched.map((matched) => (
-								<View key={matched.uuid} style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-									<View style={{ flex: 1 }}>
-										<ProfileContainerHorizontal user={matched} size={52} />
-										{matched.deviceContactName ? (
-											<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginLeft: 64, marginTop: -4 }]}>
-												{matched.deviceContactName}
-											</Text>
-										) : null}
-									</View>
-									{!isAlreadySaved(matched) && (
-										<TouchableOpacity
-											onPress={() => handleAddContact(matched)}
-											style={{
-												backgroundColor: theme.colors.primary,
-												borderRadius: 8,
-												paddingHorizontal: 12,
-												paddingVertical: 6,
-											}}
-										>
-											<Text style={[textStyles.h6, { color: theme.colors.almostWhite, fontWeight: '600' }]}>Agregar</Text>
-										</TouchableOpacity>
-									)}
-								</View>
-							))}
-						</View>
-					) : null}
-
-					{/* Saved contacts */}
-					<View style={{ marginTop: 10 }}>
-						{filteredContacts.length > 0 && (
-							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 8 }]}>
-								Contactos guardados ({filteredContacts.length})
-							</Text>
-						)}
-						{contacts.length === 0 ? (
-							<View style={[containerStyles.card, { alignItems: 'center' }]}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No tienes contactos guardados</Text>
-							</View>
-						) : filteredContacts.length === 0 ? (
-							<View style={[containerStyles.card, { alignItems: 'center' }]}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Sin resultados para "{filterQuery}"</Text>
-							</View>
-						) : (
-							filteredContacts.map((contact) => (
-								<View key={contact.id || contact.uuid || JSON.stringify(contact)} style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-									<View style={{ flex: 1 }}>
-										<ProfileContainerHorizontal user={mapApiContactToUser(contact)} size={52} />
-									</View>
-									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-										<Pressable onPress={() => handleToggleFavorite(contact)} hitSlop={8}>
-											<FontAwesome6 name="star" size={18} color={contact.favorite ? theme.colors.warning : theme.colors.tertiaryText} iconStyle={contact.favorite ? 'solid' : 'regular'} />
-										</Pressable>
-										<Pressable onPress={() => handleDelete(contact)} hitSlop={8}>
-											<FontAwesome6 name="trash" size={16} color={theme.colors.danger} iconStyle="solid" />
-										</Pressable>
-									</View>
-								</View>
-							))
-						)}
-					</View>
-				</ScrollView>
+				<FlatList
+					data={filteredContacts}
+					keyExtractor={keyExtractor}
+					renderItem={renderContact}
+					ListHeaderComponent={listHeader}
+					ListEmptyComponent={listEmpty}
+					contentContainerStyle={containerStyles.scrollContainer}
+					showsVerticalScrollIndicator={false}
+					refreshControl={createHiddenRefreshControl(refreshing, refresh)}
+					initialNumToRender={15}
+					maxToRenderPerBatch={10}
+					windowSize={5}
+				/>
 			</View>
 
 			{/* Add Contact Modal */}
@@ -613,7 +549,5 @@ const Contacts = ({ navigation }) => {
 		</>
 	)
 }
-
-const styles = StyleSheet.create({})
 
 export default Contacts

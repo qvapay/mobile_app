@@ -190,7 +190,7 @@ const useDeviceContacts = () => {
 	}, [])
 
 	// Main sync function
-	const syncContacts = useCallback(async ({ force = false } = {}) => {
+	const syncContacts = useCallback(async ({ force = false, onSyncComplete } = {}) => {
 
 		if (syncingRef.current) return
 		syncingRef.current = true
@@ -242,6 +242,7 @@ const useDeviceContacts = () => {
 
 			// Send in batches
 			const allMatches = []
+			let totalAutoAdded = 0
 			for (let i = 0; i < allPhones.length; i += BATCH_SIZE) {
 				const batch = allPhones.slice(i, i + BATCH_SIZE)
 				const result = await userApi.syncContacts(batch)
@@ -250,6 +251,9 @@ const useDeviceContacts = () => {
 				}
 				if (result.data?.matches) {
 					allMatches.push(...result.data.matches)
+				}
+				if (result.data?.auto_added_count) {
+					totalAutoAdded += result.data.auto_added_count
 				}
 			}
 
@@ -265,11 +269,15 @@ const useDeviceContacts = () => {
 			await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, String(Date.now()))
 			setMatchedContacts(merged)
 
-			if (merged.length > 0) {
-				Toast.show({ type: 'success', text1: `${merged.length} contacto${merged.length > 1 ? 's' : ''} encontrado${merged.length > 1 ? 's' : ''} en QvaPay` })
+			if (totalAutoAdded > 0) {
+				Toast.show({ type: 'success', text1: `${totalAutoAdded} contacto${totalAutoAdded > 1 ? 's' : ''} agregado${totalAutoAdded > 1 ? 's' : ''} automáticamente` })
+			} else if (merged.length > 0) {
+				Toast.show({ type: 'success', text1: 'Contactos sincronizados' })
 			} else {
 				Toast.show({ type: 'info', text1: 'Ninguno de tus contactos usa QvaPay aún' })
 			}
+
+			onSyncComplete?.()
 
 		} catch (e) {
 			setError(e.message || 'Error al sincronizar contactos')

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList, Pressable } from 'react-native'
 
 // Context and Theme
@@ -27,9 +27,6 @@ import Toast from 'react-native-toast-message'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Device Contacts Hook
-import useDeviceContacts from '../../hooks/useDeviceContacts'
-
 // Send Screen, search user, send money and show success message
 const Send = ({ navigation, route }) => {
 
@@ -40,9 +37,6 @@ const Send = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	// Params from route
 	const { send_amount, user_uuid = null } = route.params || {}
-
-	// Device contacts hook
-	const { loadCachedMatches } = useDeviceContacts()
 
 	// States
 	const [amount, setAmount] = useState(send_amount || '')
@@ -105,17 +99,6 @@ const Send = ({ navigation, route }) => {
 					}
 				}
 
-				// 3. Synced device contacts (from cache)
-				const cached = await loadCachedMatches()
-				if (cached) {
-					for (const m of cached) {
-						if (m.uuid && !seen.has(m.uuid) && m.image) {
-							seen.add(m.uuid)
-							combined.push(m)
-						}
-					}
-				}
-
 				setCarouselUsers(combined)
 			} catch (error) { /* error fetching carousel users */ }
 			finally { setIsLoading(false) }
@@ -138,6 +121,18 @@ const Send = ({ navigation, route }) => {
 			finally { setIsLoadingUser(false) }
 		}
 	}, [incomingUserUuid])
+
+	// Live filter carousel users by search query
+	const filteredCarouselUsers = useMemo(() => {
+		const q = userSearch.trim().toLowerCase()
+		if (!q) return carouselUsers
+		return carouselUsers.filter((u) => {
+			const name = (u.name || '').toLowerCase()
+			const lastname = (u.lastname || '').toLowerCase()
+			const username = (u.username || '').toLowerCase()
+			return name.includes(q) || lastname.includes(q) || username.includes(q)
+		})
+	}, [carouselUsers, userSearch])
 
 	// Handle Search in Modal
 	const handleSearch = async () => {
@@ -331,59 +326,76 @@ const Send = ({ navigation, route }) => {
 						</View>
 					</View>
 
-					{/* Search Results */}
+					{/* Search Results / Contacts list */}
 					<View style={{ flex: 1, paddingHorizontal: 20 }}>
-						{searchResults.length > 0 ? (
-							<FlatList
-								data={searchResults}
-								keyExtractor={(item) => item.uuid}
-								showsVerticalScrollIndicator={false}
-								renderItem={({ item }) => (
-									<TouchableOpacity
-										onPress={() => handleUserSelect(item)}
-										style={{
-											backgroundColor: theme.colors.surface,
-											borderRadius: 12,
-											padding: 16,
-											marginBottom: 8,
-											borderWidth: 1,
-											borderColor: theme.colors.border,
-											flexDirection: 'row',
-											alignItems: 'center',
-											gap: 12
+						{(() => {
+							// Merge: local filtered contacts first, then API results (no duplicates)
+							const localUuids = new Set(filteredCarouselUsers.map(u => u.uuid))
+							const apiOnly = searchResults.filter(u => !localUuids.has(u.uuid))
+							const merged = [...filteredCarouselUsers, ...apiOnly]
+							const hasQuery = userSearch.trim().length > 0
+
+							if (merged.length > 0) {
+								return (
+									<FlatList
+										data={merged}
+										keyExtractor={(item) => item.uuid}
+										showsVerticalScrollIndicator={false}
+										renderItem={({ item, index }) => {
+											const radius = theme.borderRadius?.md ?? 12
+											return (
+												<TouchableOpacity
+													onPress={() => handleUserSelect(item)}
+													style={[containerStyles.card, {
+														flexDirection: 'row',
+														alignItems: 'center',
+														gap: 12,
+														marginVertical: 0,
+														borderRadius: 0,
+														...(index === 0 && { borderTopLeftRadius: radius, borderTopRightRadius: radius }),
+														...(index === merged.length - 1 && { borderBottomLeftRadius: radius, borderBottomRightRadius: radius }),
+													}]}
+												>
+													<QPAvatar user={item} size={48} />
+													<View style={{ flex: 1 }}>
+														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
+															{item.name} {item.lastname}
+														</Text>
+														<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+															@{item.username}
+														</Text>
+													</View>
+													<FontAwesome6 name="chevron-right" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
+												</TouchableOpacity>
+											)
 										}}
-									>
-										<QPAvatar user={item} size={48} />
-										<View style={{ flex: 1 }}>
-											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-												{item.name} {item.lastname}
-											</Text>
-											<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-												@{item.username}
-											</Text>
-										</View>
-										<FontAwesome6 name="chevron-right" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
-									</TouchableOpacity>
-								)}
-							/>
-						) : userSearch.trim() && !isSearching ? (
-							<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
-								<FontAwesome6 name="user-slash" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
-								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-									No se encontraron usuarios
-								</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8, textAlign: 'center' }]}>
-									Intenta con otro nombre o username
-								</Text>
-							</View>
-						) : (
-							<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
-								<FontAwesome6 name="magnifying-glass" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
-								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-									Busca por nombre, username o email
-								</Text>
-							</View>
-						)}
+									/>
+								)
+							}
+
+							if (hasQuery && !isSearching) {
+								return (
+									<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+										<FontAwesome6 name="user-slash" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
+										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
+											No se encontraron usuarios
+										</Text>
+										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8, textAlign: 'center' }]}>
+											Intenta con otro nombre o username
+										</Text>
+									</View>
+								)
+							}
+
+							return (
+								<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+									<FontAwesome6 name="magnifying-glass" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
+										Busca por nombre, username o email
+									</Text>
+								</View>
+							)
+						})()}
 					</View>
 				</View>
 			</Modal>
