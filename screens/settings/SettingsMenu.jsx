@@ -29,6 +29,9 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker'
 // Import settings
 import settings from './settings'
 
+// Push prompt
+import usePushPrompt from '../../hooks/usePushPrompt'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -53,6 +56,9 @@ const SettingsMenu = ({ navigation }) => {
     const textStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
     const insets = useSafeAreaInsets()
+
+    // Push prompt
+    const { shouldShowRedDot } = usePushPrompt()
 
     // Biometric state for logout flow
     const [biometricsActive, setBiometricsActive] = useState(false)
@@ -164,9 +170,12 @@ const SettingsMenu = ({ navigation }) => {
 
             <ProfileContainer user={user} onEditAvatar={handleEditAvatar} />
 
-            {Object.entries(settings).map(([categoryKey, category]) => (
-                <SettingsSection key={categoryKey} title={category.title} items={category.options} navigation={navigation} />
-            ))}
+            {Object.entries(settings).map(([categoryKey, category]) => {
+                const items = categoryKey === 'notifications' && shouldShowRedDot
+                    ? category.options.map(opt => ({ ...opt, showBadge: true }))
+                    : category.options
+                return <SettingsSection key={categoryKey} title={category.title} items={items} navigation={navigation} />
+            })}
 
             <QPButton title="Cerrar sesión" onPress={handleLogout} style={{ backgroundColor: theme.colors.danger, marginTop: 20 }} textStyle={{ color: theme.colors.almostWhite }} />
 

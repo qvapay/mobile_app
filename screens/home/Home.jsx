@@ -31,6 +31,9 @@ import { ROUTES } from '../../routes'
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
+// Push prompt
+import usePushPrompt from '../../hooks/usePushPrompt'
+
 // Service Card Component
 const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
 	<Pressable
@@ -65,6 +68,9 @@ const Home = ({ navigation }) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 	const insets = useSafeAreaInsets()
+
+	// Push prompt
+	const { shouldShowBanner, enablePush, dismissBanner } = usePushPrompt()
 
 	// State
 	const [isLoading, setIsLoading] = useState(false)
@@ -149,6 +155,26 @@ const Home = ({ navigation }) => {
 				<BalanceCard balance={user.balance} />
 
 				<ActionButtons navigation={navigation} />
+
+				{shouldShowBanner && (
+					<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+						<View style={[styles.pushBannerIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+							<FontAwesome6 name="bell" size={16} color={theme.colors.primary} iconStyle="solid" />
+						</View>
+						<View style={{ flex: 1 }}>
+							<Text style={[styles.pushBannerText, { color: theme.colors.primaryText }]}>Recibe alertas de tus pagos al instante</Text>
+						</View>
+						<Pressable
+							onPress={() => { enablePush(); dismissBanner() }}
+							style={[styles.pushBannerButton, { backgroundColor: theme.colors.primary }]}
+						>
+							<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite }]}>Activar</Text>
+						</Pressable>
+						<Pressable onPress={dismissBanner} hitSlop={8}>
+							<FontAwesome6 name="xmark" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
+						</Pressable>
+					</View>
+				)}
 
 				<View style={styles.section}>
 					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PAYMENT_METHODS)} />
@@ -263,6 +289,35 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		flexWrap: 'wrap',
 		gap: 12,
+	},
+	// Push banner
+	pushBanner: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		borderRadius: 12,
+		padding: 12,
+		marginVertical: 10,
+		gap: 10,
+	},
+	pushBannerIcon: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	pushBannerText: {
+		fontFamily: 'Rubik-Regular',
+		fontSize: 13,
+	},
+	pushBannerButton: {
+		borderRadius: 8,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+	},
+	pushBannerButtonText: {
+		fontFamily: 'Rubik-Medium',
+		fontSize: 13,
 	},
 })
 

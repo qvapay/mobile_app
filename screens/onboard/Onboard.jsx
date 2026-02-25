@@ -5,6 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { ROUTES } from '../../routes'
 import { useSettings } from '../../settings/SettingsContext'
 
+// Push prompt
+import usePushPrompt from '../../hooks/usePushPrompt'
+import PushPromptModal from '../../ui/PushPromptModal'
+
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
@@ -67,17 +71,37 @@ const Onboard = ({ navigation }) => {
 
     // States
     const [currentStep, setCurrentStep] = useState(0)
-    const [isComplete, setIsComplete] = useState(false)
+    const [showPushModal, setShowPushModal] = useState(false)
 
     // Theme Context
     const { theme } = useTheme()
     const fontStyles = createTextStyles(theme)
     const containerStyles = createContainerStyles(theme)
 
+    // Push prompt
+    const { shouldShowOnboardPrompt, enablePush, dismissOnboardPrompt } = usePushPrompt()
+
     // Settings Context
     const { updateSetting } = useSettings()
     const handleCompleteOnboarding = async () => {
         await updateSetting('appearance', 'firstTime', false)
+        if (shouldShowOnboardPrompt) {
+            setShowPushModal(true)
+        } else {
+            navigation.navigate(ROUTES.WELCOME_SCREEN)
+        }
+    }
+
+    const handlePushAccept = async () => {
+        await enablePush()
+        await dismissOnboardPrompt()
+        setShowPushModal(false)
+        navigation.navigate(ROUTES.WELCOME_SCREEN)
+    }
+
+    const handlePushDismiss = async () => {
+        await dismissOnboardPrompt()
+        setShowPushModal(false)
         navigation.navigate(ROUTES.WELCOME_SCREEN)
     }
 
@@ -160,6 +184,11 @@ const Onboard = ({ navigation }) => {
                     textStyle={{ color: theme.colors.primaryText }}
                 />
             </View>
+            <PushPromptModal
+                visible={showPushModal}
+                onAccept={handlePushAccept}
+                onDismiss={handlePushDismiss}
+            />
         </SafeAreaView>
     )
 }

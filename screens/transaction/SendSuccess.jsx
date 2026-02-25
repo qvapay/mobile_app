@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -21,6 +21,10 @@ import playSound from '../../helpers/playSound'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Push prompt
+import usePushPrompt from '../../hooks/usePushPrompt'
+import PushPromptModal from '../../ui/PushPromptModal'
+
 // Show a success message with a button to go back to the home screen
 const SendSuccess = ({ navigation }) => {
 
@@ -30,6 +34,10 @@ const SendSuccess = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
 	const { sounds } = useSettings()
+	const { shouldShowPostTxPrompt, enablePush, dismissPostTxPrompt } = usePushPrompt()
+
+	// Push prompt state
+	const [showPushPrompt, setShowPushPrompt] = useState(false)
 
 	// Play money out sound on mount
 	useEffect(() => {
@@ -37,6 +45,13 @@ const SendSuccess = ({ navigation }) => {
 			playSound('money_out')
 		}
 	}, [])
+
+	// Show push prompt with delay after mount
+	useEffect(() => {
+		if (!shouldShowPostTxPrompt) return
+		const timer = setTimeout(() => setShowPushPrompt(true), 1500)
+		return () => clearTimeout(timer)
+	}, [shouldShowPostTxPrompt])
 
 	// Render
 	return (
@@ -57,6 +72,19 @@ const SendSuccess = ({ navigation }) => {
 					textStyle={{ color: theme.colors.buttonText }}
 				/>
 			</View>
+
+			<PushPromptModal
+				visible={showPushPrompt}
+				onAccept={() => {
+					enablePush()
+					dismissPostTxPrompt()
+					setShowPushPrompt(false)
+				}}
+				onDismiss={() => {
+					dismissPostTxPrompt()
+					setShowPushPrompt(false)
+				}}
+			/>
 		</View>
 	)
 }
