@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
 
 // Async Storage
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -13,6 +13,11 @@ import { useAuth } from '../../auth/AuthContext'
 
 // API
 import { transferApi } from '../../api/transferApi'
+import { getAuthToken } from '../../api/client'
+import config from '../../config'
+
+// PDF download
+import ReactNativeBlobUtil from 'react-native-blob-util'
 
 // Helpers
 import { getShortDateTime, statusText, getFirstChunk, copyTextToClipboard, truncateWalletAddress } from '../../helpers'
@@ -122,13 +127,44 @@ const Transaction = ({ route, navigation }) => {
 	const amountFixed = amountFloat.toFixed(2)
 
 	// Handle PDF download
+	const [downloading, setDownloading] = useState(false)
 	const handleDownloadPDF = async () => {
+		if (downloading) return
+		setDownloading(true)
 		try {
-			const response = await transferApi.getTransactionPDF(transactionDetails.uuid)
-			if (response.success) {
+			const token = await getAuthToken()
+			if (!token) {
+				Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo obtener el token de autenticación' })
+				return
+			}
+
+			const url = `${config.API_BASE_URL}/transaction/${transactionDetails.uuid}/pdf`
+			const dirs = ReactNativeBlobUtil.fs.dirs
+			const filePath = `${dirs.CacheDir}/transaction-${transactionDetails.uuid}.pdf`
+			const res = await ReactNativeBlobUtil.config({
+				path: filePath,
+			}).fetch('GET', url, {
+				Authorization: `Bearer ${token}`,
+				Accept: 'application/pdf',
+			})
+
+			const status = res.info().status
+			if (status === 200) {
+				const path = res.path()
+				if (Platform.OS === 'ios') {
+					ReactNativeBlobUtil.ios.openDocument(path)
+				} else {
+					ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf')
+				}
 				Toast.show({ type: 'success', text1: 'Éxito', text2: 'PDF descargado correctamente' })
-			} else { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' }) }
-		} catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' }) }
+			} else {
+				Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' })
+			}
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' })
+		} finally {
+			setDownloading(false)
+		}
 	}
 
 	// Shared detail row component
@@ -195,7 +231,10 @@ const Transaction = ({ route, navigation }) => {
 					</DetailRow>
 
 					{transactionDetails.description && (
-						<DetailRow label="Nota:" value={transactionDetails.description} />
+						<View style={[styles.detailRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Nota:</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{transactionDetails.description}</Text>
+						</View>
 					)}
 
 					<DetailRow label="Fecha:" value={getShortDateTime(transactionDetails.created_at)} last />

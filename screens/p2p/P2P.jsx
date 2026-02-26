@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { View, Text, StyleSheet, Modal, Pressable, Switch, ScrollView, Platform } from "react-native"
+import { View, Text, StyleSheet, Modal, Pressable, Switch, ScrollView, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
+import { FlashList } from "@shopify/flash-list"
 
 // Reanimated
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, withTiming, interpolate } from "react-native-reanimated"
+
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList)
 
 // Theme Context
 import { useTheme } from "../../theme/ThemeContext"
@@ -20,7 +23,6 @@ import P2POffer from "../../ui/P2POfferItem"
 import QPInput from "../../ui/particles/QPInput"
 import QPSwitch from "../../ui/particles/QPSwitch"
 import QPCoin from "../../ui/particles/QPCoin"
-import QPButton from "../../ui/particles/QPButton"
 import QPCoinRow from "../../ui/QPCoinRow"
 
 // Toast
@@ -74,6 +76,7 @@ const P2P = ({ navigation, route }) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
+	const { height: windowHeight } = useWindowDimensions()
 
 	// Bottom bar (Android scroll-hide)
 	const { bottomBarVisible } = useBottomBar()
@@ -93,10 +96,13 @@ const P2P = ({ navigation, route }) => {
 	const [error, setError] = useState(null)
 	const lastFetchRef = useRef(0)
 	const [p2pEnabled, setP2pEnabled] = useState(user.p2p_enabled)
+	const [page, setPage] = useState(1)
+	const [hasMore, setHasMore] = useState(true)
 
 	// modal Show Hide
 	const [showFiltersModal, setShowFiltersModal] = useState(false)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
+	const [showSortMenu, setShowSortMenu] = useState(false)
 
 	// Quick filter states
 	const [typeFilter, setTypeFilter] = useState(null)
@@ -179,10 +185,10 @@ const P2P = ({ navigation, route }) => {
 	}, [showMine, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, onlyKyc, onlyVip, typeFilter])
 
 	// Filters object used for API
+	const PAGE_SIZE = 30
 	const apiFilters = useMemo(() => {
 		const filters = {
-			page: 1,
-			take: 30,
+			take: PAGE_SIZE,
 			order: orderType,
 			orderBy: orderBy,
 			type: typeFilter,
@@ -252,13 +258,23 @@ const P2P = ({ navigation, route }) => {
 	}, [saveRecentCoin])
 
 	// Get the Latest P2P Offers
-	const fetchP2POffers = useCallback(async (isRefresh = false) => {
+	const fetchP2POffers = useCallback(async (pageNum = 1, isRefresh = false) => {
+		if (isLoading) return
 		try {
-			isRefresh ? setRefreshing(true) : setIsLoadingData(true)
+			if (isRefresh) { setRefreshing(true) }
+			else if (pageNum === 1) { setIsLoadingData(true) }
+			else { setIsLoading(true) }
 			setError(null)
-			const response = await p2pApi.index(apiFilters)
+			const response = await p2pApi.index({ ...apiFilters, page: pageNum })
 			if (response.success) {
-				setP2pOffers(response.offers || [])
+				const newData = response.offers || []
+				if (isRefresh || pageNum === 1) {
+					setP2pOffers(newData)
+				} else {
+					setP2pOffers(prev => [...prev, ...newData])
+				}
+				setHasMore(newData.length >= PAGE_SIZE)
+				setPage(pageNum)
 			} else {
 				setError(response.error || "Error al cargar las ofertas P2P")
 				Toast.show({ type: "error", text1: response.error || "Error al cargar las ofertas P2P" })
@@ -269,13 +285,15 @@ const P2P = ({ navigation, route }) => {
 			Toast.show({ type: "error", text1: errorMessage })
 		} finally {
 			setIsLoadingData(false)
+			setIsLoading(false)
 			setRefreshing(false)
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [apiFilters])
 
 	// Load data on component mount
 	useEffect(() => {
-		if (p2pEnabled) { fetchP2POffers() }
+		if (p2pEnabled) { fetchP2POffers(1) }
 		else { setIsLoadingData(false) }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
@@ -287,7 +305,7 @@ const P2P = ({ navigation, route }) => {
 			isFirstRender.current = false
 			return
 		}
-		if (p2pEnabled) { fetchP2POffers(true) }
+		if (p2pEnabled) { fetchP2POffers(1, true) }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [typeFilter, selectedCoin?.tick, orderBy, orderType, showMine])
 
@@ -357,11 +375,21 @@ const P2P = ({ navigation, route }) => {
 	}, [])
 
 	// Handle refresh
-	const onRefresh = () => { fetchP2POffers(true) }
+	const onRefresh = () => { setHasMore(true); fetchP2POffers(1, true) }
 
-	// Cycle sort option
-	const cycleSortOption = () => {
-		setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
+	// Load more on scroll end
+	const handleLoadMore = useCallback(() => {
+		if (!isLoading && hasMore) { fetchP2POffers(page + 1) }
+	}, [isLoading, hasMore, page, fetchP2POffers])
+
+	// Footer loader
+	const renderFooter = () => {
+		if (!isLoading || p2pOffers.length === 0) return null
+		return (
+			<View style={{ paddingVertical: 20, alignItems: 'center' }}>
+				<ActivityIndicator size="small" color={theme.colors.primary} />
+			</View>
+		)
 	}
 
 	// Active filters badges (for modal filters only)
@@ -381,7 +409,7 @@ const P2P = ({ navigation, route }) => {
 	const handleRemoveBadge = (badge) => {
 		badge.onRemove()
 		// Schedule re-fetch after state update
-		setTimeout(() => fetchP2POffers(true), 0)
+		setTimeout(() => fetchP2POffers(1, true), 0)
 	}
 
 	// Render offer item
@@ -392,75 +420,79 @@ const P2P = ({ navigation, route }) => {
 			{p2pEnabled ? (
 				<>
 					{/* Quick Filters Bar */}
-				<Animated.View onLayout={(e) => { filterBarHeight.value = e.nativeEvent.layout.height }} style={filterBarStyle}>
-					<View style={styles.quickFiltersBar}>
-						{/* Buy/Sell Switch */}
-						<QPSwitch
-							value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
-							onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
-							leftText="Comprar"
-							rightText="Vender"
-							leftColor={theme.colors.danger}
-							rightColor={theme.colors.success}
-							rightTextColor={theme.colors.almostBlack}
-							style={{ width: 150, height: 32 }}
-						/>
+					<Animated.View onLayout={(e) => { filterBarHeight.value = e.nativeEvent.layout.height }} style={filterBarStyle}>
 
-						<View style={{ flex: 1 }} />
+						<View style={styles.quickFiltersBar}>
 
-						{/* Coin Pill */}
-						<Pressable
-							style={[styles.filterPill, { backgroundColor: selectedCoin ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.border }]}
-							onPress={() => setShowCoinPicker(true)}
-						>
-							{selectedCoin ? (
-								<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-									<QPCoin coin={selectedCoin.logo} size={16} />
-									<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontWeight: "600" }]}>{selectedCoin.tick}</Text>
-									<Pressable onPress={() => setSelectedCoin(null)} hitSlop={8}>
+							{/* Buy/Sell Switch */}
+							<QPSwitch
+								value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
+								onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
+								leftText="Comprar"
+								rightText="Vender"
+								leftColor={theme.colors.danger}
+								rightColor={theme.colors.success}
+								rightTextColor={theme.colors.almostBlack}
+								style={{ width: 150, height: 32 }}
+							/>
+
+							<View style={{ flex: 1 }} />
+
+							{/* Coin Pill */}
+							<Pressable style={[styles.filterPill, { backgroundColor: selectedCoin ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)} >
+								{selectedCoin ? (
+									<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+										<QPCoin coin={selectedCoin.logo} size={16} />
+										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontWeight: "600" }]}>{selectedCoin.tick}</Text>
+										<Pressable onPress={() => setSelectedCoin(null)} hitSlop={8}>
+											<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
+										</Pressable>
+									</View>
+								) : (
+									<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+										<FontAwesome6 name="coins" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+										<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Moneda</Text>
+									</View>
+								)}
+							</Pressable>
+
+							{/* Sort Pill */}
+							<Pressable style={[styles.filterPill, { backgroundColor: sortIndex > 0 || showSortMenu ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => setShowSortMenu((prev) => !prev)}>
+								<FontAwesome6 name="arrow-down-short-wide" size={12} color={sortIndex > 0 || showSortMenu ? theme.colors.almostWhite : theme.colors.secondaryText} iconStyle="solid" />
+							</Pressable>
+						</View>
+
+						{/* Sort Menu */}
+						{showSortMenu && (
+							<View style={styles.activeBadgesBar}>
+								{SORT_OPTIONS.map((option, idx) => (
+									<Pressable key={idx} style={[styles.activeBadge, { backgroundColor: sortIndex === idx ? theme.colors.primary : theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { setSortIndex(idx); setShowSortMenu(false) }} >
+										<Text style={[textStyles.caption, { color: sortIndex === idx ? theme.colors.almostWhite : theme.colors.primaryText, fontSize: 11 }]}>{option.label}</Text>
+									</Pressable>
+								))}
+							</View>
+						)}
+
+						{/* Active Filter & Sort Badges */}
+						{(activeFilterBadges.length > 0 || sortIndex > 0) && (
+							<View style={styles.activeBadgesBar}>
+								{sortIndex > 0 && (
+									<Pressable style={[styles.activeBadge, { backgroundColor: theme.colors.primary }]} onPress={() => setSortIndex(0)} >
+										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: 11 }]}>{SORT_OPTIONS[sortIndex].label}</Text>
 										<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
 									</Pressable>
-								</View>
-							) : (
-								<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-									<FontAwesome6 name="coins" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Moneda</Text>
-								</View>
-							)}
-						</Pressable>
-
-						{/* Sort Pill */}
-						<Pressable
-							style={[styles.filterPill, { backgroundColor: sortIndex > 0 ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.border }]}
-							onPress={cycleSortOption}
-						>
-							<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-								<FontAwesome6 name="arrow-down-short-wide" size={12} color={sortIndex > 0 ? theme.colors.almostWhite : theme.colors.secondaryText} iconStyle="solid" />
-								<Text style={[textStyles.caption, { color: sortIndex > 0 ? theme.colors.almostWhite : theme.colors.secondaryText }]}>
-									{SORT_OPTIONS[sortIndex].label}
-								</Text>
+								)}
+								{activeFilterBadges.map((badge) => (
+									<Pressable key={badge.key} style={[styles.activeBadge, { backgroundColor: theme.colors.primary }]} onPress={() => handleRemoveBadge(badge)} >
+										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: 11 }]}>{badge.label}</Text>
+										<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
+									</Pressable>
+								))}
 							</View>
-						</Pressable>
-					</View>
+						)}
+					</Animated.View>
 
-					{/* Active Filter Badges */}
-					{activeFilterBadges.length > 0 && (
-						<View style={styles.activeBadgesBar}>
-							{activeFilterBadges.map((badge) => (
-								<Pressable
-									key={badge.key}
-									style={[styles.activeBadge, { backgroundColor: theme.colors.primary }]}
-									onPress={() => handleRemoveBadge(badge)}
-								>
-									<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: 11 }]}>{badge.label}</Text>
-									<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
-								</Pressable>
-							))}
-						</View>
-					)}
-				</Animated.View>
-
-					<Animated.FlatList
+					<AnimatedFlashList
 						data={p2pOffers}
 						renderItem={renderOffer}
 						keyExtractor={(item) => item.uuid}
@@ -469,6 +501,9 @@ const P2P = ({ navigation, route }) => {
 						refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 						showsVerticalScrollIndicator={false}
 						contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 64 + insets.bottom : 24 }}
+						onEndReached={handleLoadMore}
+						onEndReachedThreshold={0.3}
+						ListFooterComponent={renderFooter}
 						ListEmptyComponent={
 							<View style={styles.emptyContainer}>
 								<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
@@ -476,6 +511,7 @@ const P2P = ({ navigation, route }) => {
 								</Text>
 							</View>
 						}
+						estimatedItemSize={120}
 					/>
 				</>
 			) : (
@@ -486,94 +522,96 @@ const P2P = ({ navigation, route }) => {
 			)}
 
 			{/* Filters Modal */}
-			<Modal visible={showFiltersModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowFiltersModal(false) }}>
-				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
+			<Modal visible={showFiltersModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => { setShowFiltersModal(false) }}>
+				<Pressable style={styles.overlay} onPress={() => setShowFiltersModal(false)}>
+					<Pressable style={[styles.filterCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
 
-					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-						<Text style={textStyles.h4}>Filtros</Text>
-						<Pressable onPress={() => setShowFiltersModal(false)} style={styles.closeButton}>
-							<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					</View>
-
-					<ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-						{/* Show My Offers */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Mis ofertas</Text>
-							<Switch
-								value={showMine}
-								onValueChange={setShowMine}
-								trackColor={{ true: theme.colors.primary }}
-								style={{ width: 50, height: 30 }}
-							/>
-						</View>
-
-						{/* Type */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Tipo</Text>
-							<QPSwitch
-								value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
-								onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
-								leftText="Comprar"
-								rightText="Vender"
-								leftColor={theme.colors.danger}
-								rightColor={theme.colors.success}
-								rightTextColor={theme.colors.almostBlack}
-								style={{ width: 160, height: 30 }}
-							/>
-						</View>
-
-						{/* Coin */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Moneda</Text>
-							<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, width: 160 }]} onPress={() => { setShowCoinPicker(true); setShowFiltersModal(false) }}>
-								{selectedCoin ? (
-									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-										<QPCoin coin={selectedCoin.logo} size={20} />
-										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]}>{selectedCoin.tick}</Text>
-										<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-									</View>
-								) : (
-									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Seleccionar</Text>
-										<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-									</View>
-								)}
+						{/* Header */}
+						<View style={styles.filterCardHeader}>
+							<FontAwesome6 name="sliders" size={20} color={theme.colors.primary} iconStyle="solid" />
+							<Text style={[textStyles.h3, { flex: 1, marginLeft: 12 }]}>Filtros</Text>
+							<Pressable onPress={() => setShowFiltersModal(false)} hitSlop={12}>
+								<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
 						</View>
 
-						{/* Min / Max */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Mínimo</Text>
-							<View style={{ width: 160 }}>
-								<QPInput value={minAmount} onChangeText={setMinAmount} placeholder="0" keyboardType="numeric" />
+						<ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+							{/* Show My Offers */}
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Mis ofertas</Text>
+								<Switch
+									value={showMine}
+									onValueChange={setShowMine}
+									trackColor={{ true: theme.colors.primary }}
+									style={{ width: 50, height: 30 }}
+								/>
 							</View>
-						</View>
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Máximo</Text>
-							<View style={{ width: 160 }}>
-								<QPInput value={maxAmount} onChangeText={setMaxAmount} placeholder="0" keyboardType="numeric" />
-							</View>
-						</View>
 
-						{/* Ratio Min / Max */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Ratio mín</Text>
-							<View style={{ width: 160 }}>
-								<QPInput value={ratioMin} onChangeText={setRatioMin} placeholder="0" keyboardType="numeric" />
+							{/* Type */}
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Tipo</Text>
+								<QPSwitch
+									value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
+									onChange={(side) => setTypeFilter(side === "left" ? "sell" : side === "right" ? "buy" : null)}
+									leftText="Comprar"
+									rightText="Vender"
+									leftColor={theme.colors.danger}
+									rightColor={theme.colors.success}
+									rightTextColor={theme.colors.almostBlack}
+									style={{ width: 160, height: 30 }}
+								/>
 							</View>
-						</View>
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Ratio máx</Text>
-							<View style={{ width: 160 }}>
-								<QPInput value={ratioMax} onChangeText={setRatioMax} placeholder="0" keyboardType="numeric" />
-							</View>
-						</View>
 
-						{/* Only KYC / VIP */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Solo KYC</Text>
-							<View style={{ marginLeft: 16 }}>
+							{/* Coin */}
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Moneda</Text>
+								<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, width: 160 }]} onPress={() => { setShowCoinPicker(true); setShowFiltersModal(false) }}>
+									{selectedCoin ? (
+										<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+											<QPCoin coin={selectedCoin.logo} size={20} />
+											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]}>{selectedCoin.tick}</Text>
+											<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+										</View>
+									) : (
+										<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+											<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Seleccionar</Text>
+											<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+										</View>
+									)}
+								</Pressable>
+							</View>
+
+							{/* Min / Max */}
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Mínimo</Text>
+								<View style={{ width: 160 }}>
+									<QPInput value={minAmount} onChangeText={setMinAmount} placeholder="0" keyboardType="numeric" />
+								</View>
+							</View>
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Máximo</Text>
+								<View style={{ width: 160 }}>
+									<QPInput value={maxAmount} onChangeText={setMaxAmount} placeholder="0" keyboardType="numeric" />
+								</View>
+							</View>
+
+							{/* Ratio Min / Max */}
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Ratio mín</Text>
+								<View style={{ width: 160 }}>
+									<QPInput value={ratioMin} onChangeText={setRatioMin} placeholder="0" keyboardType="numeric" />
+								</View>
+							</View>
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Ratio máx</Text>
+								<View style={{ width: 160 }}>
+									<QPInput value={ratioMax} onChangeText={setRatioMax} placeholder="0" keyboardType="numeric" />
+								</View>
+							</View>
+
+							{/* Only KYC / VIP */}
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Solo KYC</Text>
 								<Switch
 									value={onlyKyc}
 									onValueChange={setOnlyKyc}
@@ -581,10 +619,8 @@ const P2P = ({ navigation, route }) => {
 									style={{ width: 50, height: 30 }}
 								/>
 							</View>
-						</View>
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Solo VIP</Text>
-							<View style={{ marginLeft: 16 }}>
+							<View style={styles.rowBetween}>
+								<Text style={textStyles.h6}>Solo VIP</Text>
 								<Switch
 									value={onlyVip}
 									onValueChange={setOnlyVip}
@@ -592,25 +628,26 @@ const P2P = ({ navigation, route }) => {
 									style={{ width: 50, height: 30 }}
 								/>
 							</View>
-						</View>
-					</ScrollView>
+						</ScrollView>
 
-					{/* Bottom buttons */}
-					<View style={[{ paddingHorizontal: 10, paddingBottom: insets.bottom || 20, flexDirection: "row", justifyContent: "space-between", gap: 10 }]}>
-						<QPButton
-							title="Limpiar"
-							onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); setSortIndex(0); }}
-							style={[styles.clearButton, { borderColor: theme.colors.border, backgroundColor: "transparent" }]}
-							textStyle={{ color: theme.colors.secondaryText }}
-						/>
-						<QPButton
-							title="Aplicar"
-							onPress={() => { setShowFiltersModal(false); fetchP2POffers(true) }}
-							style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}
-							textStyle={{ color: theme.colors.primaryText }}
-						/>
-					</View>
-				</SafeAreaView>
+						{/* Action buttons */}
+						<View style={styles.filterCardActions}>
+							<Pressable
+								onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); setSortIndex(0); }}
+								style={[styles.filterCardActionButton, { backgroundColor: theme.colors.elevation }]}
+							>
+								<Text style={[styles.filterCardActionText, { color: theme.colors.primaryText }]}>Limpiar</Text>
+							</Pressable>
+							<Pressable
+								onPress={() => { setShowFiltersModal(false); fetchP2POffers(1, true) }}
+								style={[styles.filterCardActionButton, { backgroundColor: theme.colors.primary, flex: 1 }]}
+							>
+								<Text style={[styles.filterCardActionText, { color: "#FFFFFF" }]}>Aplicar</Text>
+							</Pressable>
+						</View>
+
+					</Pressable>
+				</Pressable>
 			</Modal>
 
 			{/* Coin Picker Modal */}
@@ -743,7 +780,41 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	// Modal styles
+	// Filter card modal (Contacts-style)
+	overlay: {
+		flex: 1,
+		backgroundColor: "rgba(0,0,0,0.6)",
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 24,
+	},
+	filterCard: {
+		width: "100%",
+		borderRadius: 16,
+		padding: 24,
+	},
+	filterCardHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 8,
+	},
+	filterCardActions: {
+		flexDirection: "row",
+		gap: 12,
+		marginTop: 16,
+	},
+	filterCardActionButton: {
+		paddingVertical: 14,
+		paddingHorizontal: 24,
+		borderRadius: 25,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	filterCardActionText: {
+		fontSize: 16,
+		fontFamily: "Rubik-SemiBold",
+	},
+	// Coin picker modal styles
 	modalContainer: {
 		flex: 1
 	},
@@ -772,13 +843,6 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		padding: 40,
 	},
-	clearButton: {
-		flex: 1,
-		borderWidth: 1,
-	},
-	applyButton: {
-		flex: 1,
-	}
 })
 
 export default P2P

@@ -10,6 +10,9 @@ import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
+// Settings Context
+import { useSettings } from '../../settings/SettingsContext'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -27,6 +30,8 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const { theme } = useTheme()
     const textStyles = useTextStyles(theme)
     const containerStyles = useContainerStyles(theme)
+    const { getSetting } = useSettings()
+    const showBalance = getSetting('privacy', 'showBalance', true)
 
     // Determine border radius based on position
     const isFirst = index === 0
@@ -74,7 +79,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
                 </View>
 
                 <View>
-                    <Text style={[textStyles.h4, { color: transactionColor }]}>{transactionSign}{amountFixed}</Text>
+                    <Text style={[textStyles.h4, { color: transactionColor }]}>{showBalance ? `${transactionSign}${amountFixed}` : '***'}</Text>
                 </View>
             </View>
         </Pressable>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { View, Text, StyleSheet, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, FlatList, Linking } from "react-native"
+import { View, Text, StyleSheet, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, FlatList, Linking, Switch, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
@@ -29,7 +29,7 @@ import { p2pApi } from "../../api/p2pApi"
 import Toast from "react-native-toast-message"
 
 // Helpers
-import { getShortDateTime, reduceStringInside } from "../../helpers"
+import { getShortDateTime, reduceStringInside, copyTextToClipboard } from "../../helpers"
 
 // Pull-to-refresh
 import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
@@ -98,16 +98,24 @@ const P2POffer = ({ route }) => {
 	// Sticker panel state
 	const [showStickerPanel, setShowStickerPanel] = useState(false)
 
+	// Edit modal state
+	const [showEditModal, setShowEditModal] = useState(false)
+	const [editAmount, setEditAmount] = useState("")
+	const [editReceive, setEditReceive] = useState("")
+	const [editMessage, setEditMessage] = useState("")
+	const [editOnlyVip, setEditOnlyVip] = useState(false)
+	const [editLoading, setEditLoading] = useState(false)
+	const { height: windowHeight } = useWindowDimensions()
+
 	// TX ID input for markPaid
 	const [txIdInput, setTxIdInput] = useState("")
 
 	// Keyboard height tracking
 	const [keyboardHeight, setKeyboardHeight] = useState(0)
 	useEffect(() => {
-		const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
-		const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-		const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height))
-		const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0))
+		if (Platform.OS !== 'ios') return
+		const showSub = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardHeight(e.endCoordinates.height))
+		const hideSub = Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0))
 		return () => { showSub.remove(); hideSub.remove() }
 	}, [])
 	const keyboardVisible = keyboardHeight > 0
@@ -381,6 +389,62 @@ const P2POffer = ({ route }) => {
 		}
 	}
 
+	// Open edit modal and populate fields from current offer
+	const openEditModal = () => {
+		if (!p2p) return
+		setEditAmount(String(p2p.amount || ""))
+		setEditReceive(String(p2p.receive || ""))
+		setEditMessage(p2p.message || "")
+		setEditOnlyVip(!!p2p.only_vip)
+		setShowEditModal(true)
+	}
+
+	// Submit edit
+	const handleEdit = async () => {
+		const amt = parseFloat(editAmount)
+		const rcv = parseFloat(editReceive)
+
+		if (isNaN(amt) || amt < 0.1 || amt > 100000) {
+			Toast.show({ type: "error", text1: "Monto inválido", text2: "El monto debe ser entre 0.1 y 100,000" })
+			return
+		}
+		if (isNaN(rcv) || rcv <= 0) {
+			Toast.show({ type: "error", text1: "Valor inválido", text2: "El valor a recibir debe ser mayor a 0" })
+			return
+		}
+
+		// For SELL offers, check balance if amount increased
+		if (p2p.type === "sell") {
+			const amountIncrease = amt - parseFloat(p2p.amount || 0)
+			if (amountIncrease > 0 && amountIncrease > parseFloat(user?.balance || 0)) {
+				Toast.show({ type: "error", text1: "Balance insuficiente", text2: "No tienes suficiente balance para aumentar el monto" })
+				return
+			}
+		}
+
+		try {
+			setEditLoading(true)
+			const payload = {
+				amount: amt,
+				receive: rcv,
+				only_vip: editOnlyVip ? 1 : 0,
+				message: editMessage.trim(),
+			}
+			const res = await p2pApi.edit(p2p.uuid, payload)
+			if (res.success) {
+				Toast.show({ type: "success", text1: "Oferta actualizada" })
+				setShowEditModal(false)
+				refetchP2P()
+			} else {
+				Toast.show({ type: "error", text1: "No se pudo editar", text2: String(res.error || "") })
+			}
+		} catch (e) {
+			Toast.show({ type: "error", text1: "Error", text2: e.message })
+		} finally {
+			setEditLoading(false)
+		}
+	}
+
 	// Rate peer
 	const handleRate = async (newRating) => {
 		try {
@@ -523,9 +587,7 @@ const P2POffer = ({ route }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<View style={[{ flex: 1 }, keyboardVisible && { paddingBottom: keyboardHeight }]}>
-				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}
-					refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
-				>
+				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)} >
 
 					{/* Offer Header - Fixed */}
 					{/* Offer Header - Fixed */}
@@ -544,24 +606,25 @@ const P2POffer = ({ route }) => {
 
 										return (
 											<View style={{ gap: 6 }}>
-												{details.slice(0, 4).map((d, idx) => (
-													<View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 20 }}>
-														<View style={{ flex: 1, marginRight: 8 }}>
-															<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-														</View>
-														<View style={{ flex: 1.5, alignItems: 'flex-end' }}>
-															{(d.name === "Wallet" || d.key === "Wallet") ? (
-																<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
-																	{reduceStringInside(d.value || d.val, 8)}
+												{details.slice(0, 4).map((d, idx) => {
+													const fullValue = d.value || d.val || ""
+													const isWallet = d.name === "Wallet" || d.key === "Wallet"
+													return (
+														<View key={idx} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 20 }}>
+															<View style={{ flex: 1, marginRight: 8 }}>
+																<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
+															</View>
+															<View style={{ flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+																<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+																	{isWallet ? reduceStringInside(fullValue, 8) : fullValue}
 																</Text>
-															) : (
-																<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
-																	{d.value || d.val}
-																</Text>
-															)}
+																<Pressable onPress={() => copyTextToClipboard(fullValue)} hitSlop={8}>
+																	<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
+																</Pressable>
+															</View>
 														</View>
-													</View>
-												))}
+													)
+												})}
 											</View>
 										)
 									})()}
@@ -569,6 +632,23 @@ const P2POffer = ({ route }) => {
 							)}
 						</>
 					)}
+
+					{/* TX ID - shown after buyer marks as paid */}
+					{p2p?.tx_id ? (
+						<View style={[containerStyles.card, { marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', minHeight: 20 }]}>
+							<View style={{ flex: 1, marginRight: 8 }}>
+								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>ID de transacción</Text>
+							</View>
+							<View style={{ flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+								<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+									{p2p.tx_id}
+								</Text>
+								<Pressable onPress={() => copyTextToClipboard(p2p.tx_id)} hitSlop={8}>
+									<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
+								</Pressable>
+							</View>
+						</View>
+					) : null}
 
 					{/* Status Message */}
 					{statusMessage && (
@@ -732,15 +812,7 @@ const P2POffer = ({ route }) => {
 
 													{/* Show timestamp only when manually toggled */}
 													{showTimestamp && m.created_at && (
-														<Animated.View style={{
-															opacity: messageAnimations.current[m.id] || new Animated.Value(0),
-															transform: [{
-																translateY: (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({
-																	inputRange: [0, 1],
-																	outputRange: [10, 0]
-																})
-															}]
-														}}>
+														<Animated.View style={{ opacity: messageAnimations.current[m.id] || new Animated.Value(0), transform: [{ translateY: (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
 															<Text style={[textStyles.h7, { fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
 																{getShortDateTime(m.created_at)}
 															</Text>
@@ -845,8 +917,83 @@ const P2POffer = ({ route }) => {
 
 				</ScrollView>
 
+				{/* Edit Offer Modal */}
+				<Modal visible={showEditModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowEditModal(false)}>
+					<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setShowEditModal(false)}>
+						<Pressable onPress={() => {}} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
+							<ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+								{/* Header */}
+								<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+									<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Editar Oferta</Text>
+									<Pressable onPress={() => setShowEditModal(false)} hitSlop={8}>
+										<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+									</Pressable>
+								</View>
+
+								{/* Amount */}
+								<QPInput
+									value={editAmount}
+									onChangeText={setEditAmount}
+									placeholder="0.00"
+									keyboardType="decimal-pad"
+									prelabel="Monto (QUSD)"
+								/>
+
+								{/* Receive */}
+								<QPInput
+									value={editReceive}
+									onChangeText={setEditReceive}
+									placeholder="0.00"
+									keyboardType="decimal-pad"
+									prelabel="A recibir"
+								/>
+
+								{/* Balance warning for SELL offers */}
+								{p2p?.type === "sell" && parseFloat(editAmount || 0) > parseFloat(p2p?.amount || 0) && (parseFloat(editAmount || 0) - parseFloat(p2p?.amount || 0)) > parseFloat(user?.balance || 0) && (
+									<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 4 }]}>
+										Balance insuficiente para aumentar el monto
+									</Text>
+								)}
+
+								{/* Message */}
+								<QPInput
+									value={editMessage}
+									onChangeText={(text) => setEditMessage(text.slice(0, 79))}
+									placeholder="Mensaje opcional"
+									prelabel="Mensaje"
+									multiline
+								/>
+								<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, textAlign: 'right', marginTop: 2 }]}>
+									{editMessage.length}/79
+								</Text>
+
+								{/* Only VIP toggle */}
+								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginTop: 4 }}>
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>Solo usuarios VIP</Text>
+									<Switch value={editOnlyVip} onValueChange={setEditOnlyVip} trackColor={{ true: theme.colors.primary }} />
+								</View>
+
+								{/* Submit */}
+								<QPButton
+									title="Guardar"
+									onPress={handleEdit}
+									style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
+									textStyle={{ color: theme.colors.buttonText }}
+									icon="check"
+									iconColor={theme.colors.buttonText}
+									iconStyle="solid"
+									loading={editLoading}
+									disabled={editLoading}
+								/>
+
+							</ScrollView>
+						</Pressable>
+					</Pressable>
+				</Modal>
+
 				{/* Action Buttons - Fixed at bottom */}
-				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row', paddingBottom: keyboardVisible ? 8 : insets.bottom + 16 }]}>
+				<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row', paddingTop: 8, paddingBottom: keyboardVisible ? 4 : insets.bottom + 4, gap: 8 }]}>
 
 					{canApply && (
 						<QPButton
@@ -866,7 +1013,7 @@ const P2POffer = ({ route }) => {
 						<QPButton
 							title=""
 							onPress={handleCancel}
-							style={{ width: 60, borderRadius: 30, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
+							style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
 							textStyle={{ color: theme.colors.primaryText }}
 							icon="xmark"
 							iconColor={theme.colors.primaryText}
@@ -916,31 +1063,37 @@ const P2POffer = ({ route }) => {
 						/>
 					)}
 
-					{/* Share Intent */}
+					{/* Edit + Share - Owner of open offer */}
 					{p2p?.status === "open" && isOwner && (
 						<>
-							<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}></View>
+							<View style={{ flex: 1 }} />
+							<QPButton
+								title=""
+								onPress={openEditModal}
+								style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, backgroundColor: theme.colors.surface }}
+								icon="pen-to-square"
+								iconColor={theme.colors.primaryText}
+								iconStyle="solid"
+							/>
 							<QPButton
 								title=""
 								onPress={handleShareIntent}
-								style={{ width: 60, borderRadius: 30, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.primary }}
-								textStyle={{ color: theme.colors.almostWhite }}
+								style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, backgroundColor: theme.colors.primary }}
 								icon="share"
 								iconColor={theme.colors.almostWhite}
 								iconStyle="solid"
-								disabled={false}
 							/>
 						</>
 					)}
 
 					{p2p?.status === "cancelled" && (
-						<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 10 }}>
+						<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Oferta cancelada</Text>
 						</View>
 					)}
 
 					{canRatePeer && (
-						<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 10 }}>
+						<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
 							<QPRate value={rating} onRate={handleRate} size={28} readOnly={false} />
 						</View>
 					)}

@@ -9,6 +9,7 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 // UI Particles
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPButton from '../../ui/particles/QPButton'
+import QPSwitch from '../../ui/particles/QPSwitch'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 
 // API
@@ -92,20 +93,31 @@ const SendConfirm = ({ navigation, route }) => {
 	}
 
 	// Switch between PIN and OTP
-	const handleMethodChange = (method) => {
-		setTwoFactorMethod(method)
-		setPin('')
-		pinInputsRef.current = new Array(method === 'pin' ? 4 : 6).fill(null)
-		setTimeout(() => { pinInputsRef.current[0]?.focus() }, 0)
+	const handleMethodToggle = (side) => {
+		const method = side === 'left' ? 'pin' : 'otp'
+		if (method !== twoFactorMethod) {
+			setTwoFactorMethod(method)
+			setPin('')
+			pinInputsRef.current = new Array(method === 'pin' ? 4 : 6).fill(null)
+			setTimeout(() => { pinInputsRef.current[0]?.focus() }, 0)
+		}
 	}
 
 	// Handle PIN input change
 	const handlePinChange = (text, index) => {
 		const numericText = text.replace(/[^0-9]/g, '')
+		if (numericText.length > 1) {
+			const digits = numericText.slice(0, codeLength).split('')
+			const newPin = pin.split('')
+			digits.forEach((d, i) => { if (index + i < codeLength) newPin[index + i] = d })
+			setPin(newPin.join(''))
+			const focusIdx = Math.min(index + digits.length, codeLength - 1)
+			pinInputsRef.current[focusIdx]?.focus()
+			return
+		}
 		const newPin = pin.split('')
 		newPin[index] = numericText
-		const updatedPin = newPin.join('')
-		setPin(updatedPin)
+		setPin(newPin.join(''))
 		if (numericText && index < codeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
 	}
 
@@ -131,6 +143,7 @@ const SendConfirm = ({ navigation, route }) => {
 
 	// Execute the actual transaction
 	const executeTransaction = async () => {
+
 		if (!pin || pin.length !== codeLength) {
 			Toast.show({ type: 'error', text1: twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos' })
 			return
@@ -208,10 +221,9 @@ const SendConfirm = ({ navigation, route }) => {
 					/>
 				</>
 			}
-	
 		>
 
-			<View style={{ gap: 10, paddingTop: 10 }}>
+			<View>
 
 				{/* Amount Card */}
 				<View style={containerStyles.card}>
@@ -284,39 +296,16 @@ const SendConfirm = ({ navigation, route }) => {
 
 						{/* PIN/OTP Toggle - only show if user has OTP */}
 						{hasOTP && (
-							<View style={[styles.methodToggle, { borderColor: theme.colors.elevation }]}>
-								<Pressable
-									onPress={() => handleMethodChange('pin')}
-									style={[styles.methodToggleButton, styles.methodToggleLeft, twoFactorMethod === 'pin' && { backgroundColor: theme.colors.primary }]}
-								>
-									<Text style={[textStyles.h6, { color: twoFactorMethod === 'pin' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>PIN</Text>
-								</Pressable>
-								<Pressable
-									onPress={() => handleMethodChange('otp')}
-									style={[styles.methodToggleButton, styles.methodToggleRight, { borderLeftWidth: 1, borderLeftColor: theme.colors.elevation }, twoFactorMethod === 'otp' && { backgroundColor: theme.colors.primary }]}
-								>
-									<Text style={[textStyles.h6, { color: twoFactorMethod === 'otp' ? theme.colors.buttonText : theme.colors.secondaryText, fontWeight: '600' }]}>OTP</Text>
-								</Pressable>
-							</View>
+							<QPSwitch
+								value={twoFactorMethod === 'pin' ? 'left' : 'right'}
+								leftText="PIN"
+								rightText="OTP"
+								leftColor={theme.colors.primary}
+								rightColor={theme.colors.primary}
+								onChange={handleMethodToggle}
+							/>
 						)}
 
-						{/* Request PIN button - only in PIN mode */}
-						{twoFactorMethod === 'pin' && (
-							<Pressable
-								onPress={handleRequestPin}
-								disabled={sendingPin}
-								style={[styles.requestPinButton, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary, marginTop: hasOTP ? 16 : 0 }]}
-							>
-								<FontAwesome6 name="envelope" size={16} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.h6, { color: theme.colors.primary, marginLeft: 8 }]}>
-									{sendingPin ? 'Enviando...' : 'Recibir PIN por correo'}
-								</Text>
-							</Pressable>
-						)}
-
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20 }]}>
-							{twoFactorMethod === 'pin' ? 'Ingresa el PIN de 4 dígitos:' : 'Ingresa tu código OTP:'}
-						</Text>
 						<View style={styles.pinContainer}>
 							{Array.from({ length: codeLength }, (_, index) => (
 								<TextInput
@@ -329,7 +318,6 @@ const SendConfirm = ({ navigation, route }) => {
 									onBlur={handlePinBlur}
 									onKeyPress={(e) => handlePinKeyPress(e, index)}
 									keyboardType="numeric"
-									maxLength={1}
 									secureTextEntry
 									textAlign="center"
 									selectTextOnFocus
@@ -341,24 +329,6 @@ const SendConfirm = ({ navigation, route }) => {
 					</View>
 				)}
 
-				{/* Security Notice */}
-				<View style={{
-					backgroundColor: theme.colors.elevation,
-					borderRadius: 12,
-					padding: 16,
-					marginTop: 10,
-					marginBottom: 20,
-					borderLeftWidth: 4,
-					borderLeftColor: theme.colors.primary
-				}}>
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-						<FontAwesome6 name="shield-halved" size={20} color={theme.colors.primary} iconStyle="solid" />
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, flex: 1 }]}>
-							Esta transacción es segura y será procesada inmediatamente
-						</Text>
-					</View>
-				</View>
-
 			</View>
 
 		</QPKeyboardView>
@@ -366,26 +336,6 @@ const SendConfirm = ({ navigation, route }) => {
 }
 
 const styles = StyleSheet.create({
-	methodToggle: {
-		flexDirection: 'row',
-		borderRadius: 10,
-		borderWidth: 1,
-		overflow: 'hidden',
-	},
-	methodToggleButton: {
-		flex: 1,
-		paddingVertical: 12,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	methodToggleLeft: {
-		borderTopLeftRadius: 9,
-		borderBottomLeftRadius: 9,
-	},
-	methodToggleRight: {
-		borderTopRightRadius: 9,
-		borderBottomRightRadius: 9,
-	},
 	requestPinButton: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -396,9 +346,7 @@ const styles = StyleSheet.create({
 	},
 	pinContainer: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
 		marginVertical: 20,
-		paddingHorizontal: 20,
 		gap: 8,
 	},
 	pinInput: {

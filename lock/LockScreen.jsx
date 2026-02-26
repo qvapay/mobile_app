@@ -145,21 +145,11 @@ const LockScreen = () => {
 			onRequestClose={() => { }}
 		>
 			<StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
-			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}>
-
-				{/* Lock animation */}
-				<View style={styles.animationContainer}>
-					<LottieView
-						style={styles.lottie}
-						source={require('../assets/lotties/lock.json')}
-						autoPlay
-						loop={false}
-					/>
-				</View>
+			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
 
 				{/* Title */}
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
-					Verifica tu identidad para continuar
+					Ingresa tu PIN de seguridad
 				</Text>
 
 				{/* Biometric button */}
@@ -189,19 +179,13 @@ const LockScreen = () => {
 						<TextInput
 							key={`lock-pin-${index}`}
 							ref={(ref) => pinInputsRef.current[index] = ref}
-							style={[styles.pinInput, {
-								backgroundColor: theme.colors.surface,
-								color: theme.colors.primaryText,
-								borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border,
-								borderWidth: 0.5,
-							}]}
+							style={[styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }]}
 							value={pin[index] || ''}
 							onChangeText={(text) => handlePinChange(text, index)}
 							onFocus={() => handlePinFocus(index)}
 							onBlur={handlePinBlur}
 							onKeyPress={(e) => handlePinKeyPress(e, index)}
 							keyboardType="numeric"
-							maxLength={1}
 							secureTextEntry
 							textAlign="center"
 							selectTextOnFocus
@@ -216,11 +200,7 @@ const LockScreen = () => {
 					<Text style={[textStyles.h6, { color: theme.colors.danger, textAlign: 'center', marginTop: 12 }]}>
 						{error}
 					</Text>
-				) : (
-					<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 12 }]}>
-						Ingresa tu PIN de 4 dígitos
-					</Text>
-				)}
+				) : (<></>)}
 
 			</View>
 		</Modal>
@@ -232,7 +212,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingHorizontal: 32,
+		paddingHorizontal: 16,
 	},
 	animationContainer: {
 		width: 150,
@@ -266,16 +246,16 @@ const styles = StyleSheet.create({
 	},
 	pinContainer: {
 		flexDirection: 'row',
-		gap: 12,
+		gap: 8,
 		marginTop: 24,
 	},
 	pinInput: {
-		width: 60,
+		flex: 1,
 		height: 60,
 		borderRadius: 12,
 		fontSize: 24,
 		fontWeight: 'bold',
-		fontFamily: 'Rubik-Bold',
+		textAlign: 'center',
 	},
 })
 

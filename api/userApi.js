@@ -318,9 +318,9 @@ export const userApi = {
 	 * @param {string|number} idOrUuid - The contact identifier
 	 * @returns {Promise<Object>} The deletion result
 	 */
-	deleteContact: async (idOrUuid) => {
+	deleteContact: async (contactId) => {
 		try {
-			const response = await apiClient.delete(`/user/contact/${idOrUuid}`)
+			const response = await apiClient.delete(`/user/contact`, { data: { contact_id: contactId } })
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
 			if (error.response?.data) {

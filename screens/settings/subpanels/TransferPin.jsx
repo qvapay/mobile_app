@@ -320,11 +320,10 @@ const styles = StyleSheet.create({
     },
     pinRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
+        gap: 8,
     },
     pinInput: {
-        width: 60,
+        flex: 1,
         height: 60,
         borderRadius: 12,
         fontSize: 24,

@@ -111,14 +111,8 @@ const MyPurchases = ({ navigation }) => {
 	// Empty state
 	if (purchases.length === 0) {
 		return (
-			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center', gap: 16 }]}>
-				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>No tienes compras a\u00FAn</Text>
-				<QPButton
-					title="Ir a la tienda"
-					onPress={() => navigation.goBack()}
-					style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 24 }}
-					textStyle={{ color: theme.colors.almostWhite }}
-				/>
+			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>No tienes compras aún</Text>
 			</View>
 		)
 	}

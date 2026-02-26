@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useLayoutEffect, useMemo } from 'react'
-import { View, Text, FlatList, ActivityIndicator, Modal, Pressable, TextInput, ScrollView, StyleSheet, Platform } from 'react-native'
+import { View, Text, ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 
 // Contexts
 import { useTheme } from '../../theme/ThemeContext'
@@ -10,6 +11,7 @@ import { transferApi } from '../../api/transferApi'
 
 // UI
 import QPTransaction from '../../ui/particles/QPTransaction'
+import QPInput from '../../ui/particles/QPInput'
 
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
@@ -82,18 +84,8 @@ const SORT_DIR_OPTIONS = [
 
 // Chip component
 const Chip = ({ label, selected, onPress, theme }) => (
-	<Pressable
-		onPress={onPress}
-		style={[
-			styles.chip,
-			{ backgroundColor: selected ? theme.colors.primary : theme.colors.surface },
-			!theme.isDark && !selected && { borderWidth: 1, borderColor: theme.colors.border },
-		]}
-	>
-		<Text style={[
-			styles.chipText,
-			{ color: selected ? '#FFFFFF' : theme.colors.primaryText },
-		]}>
+	<Pressable onPress={onPress} style={[styles.chip, selected ? { backgroundColor: theme.colors.primary } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]}>
+		<Text style={[styles.chipText, { color: selected ? '#FFFFFF' : theme.colors.secondaryText }]}>
 			{label}
 		</Text>
 	</Pressable>
@@ -122,6 +114,7 @@ const Transactions = ({ navigation }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const { height: windowHeight } = useWindowDimensions()
 
 	// Check if any filters are active
 	const hasActiveFilters = useMemo(() => Object.keys(filters).length > 0, [filters])
@@ -156,9 +149,11 @@ const Transactions = ({ navigation }) => {
 
 	// Fetch transactions with current filters
 	const fetchTransactions = useCallback(async (pageNum = 1, refresh = false, activeFilters = filters) => {
+
 		if (isLoading) return
 
 		try {
+
 			if (refresh) { setIsRefreshing(true) }
 			else { setIsLoading(true) }
 
@@ -170,11 +165,8 @@ const Transactions = ({ navigation }) => {
 
 			if (result.success) {
 				const newData = result.data || []
-				if (refresh || pageNum === 1) {
-					setTransactions(newData)
-				} else {
-					setTransactions(prev => [...prev, ...newData])
-				}
+				if (refresh || pageNum === 1) { setTransactions(newData) }
+				else { setTransactions(prev => [...prev, ...newData]) }
 				setHasMore(newData.length >= PAGE_SIZE)
 				setPage(pageNum)
 			}
@@ -226,11 +218,8 @@ const Transactions = ({ navigation }) => {
 	const updateDraft = (key, value) => {
 		setDraftFilters(prev => {
 			const next = { ...prev }
-			if (value === undefined || value === null || value === '') {
-				delete next[key]
-			} else {
-				next[key] = value
-			}
+			if (value === undefined || value === null || value === '') { delete next[key] }
+			else { next[key] = value }
 			return next
 		})
 	}
@@ -247,7 +236,7 @@ const Transactions = ({ navigation }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<FlatList
+			<FlashList
 				data={transactions}
 				renderItem={({ item, index }) => <QPTransaction transaction={item} navigation={navigation} index={index} totalItems={transactions.length} />}
 				keyExtractor={(item) => item.uuid}
@@ -256,31 +245,29 @@ const Transactions = ({ navigation }) => {
 				onEndReached={handleLoadMore}
 				onEndReachedThreshold={0.3}
 				refreshControl={createHiddenRefreshControl(isRefreshing, handleRefresh)}
+				showsVerticalScrollIndicator={false}
+				estimatedItemSize={70}
 			/>
 
 			{/* Filter Modal */}
-			<Modal
-				visible={showFilters}
-				animationType="slide"
-				transparent
-				onRequestClose={() => setShowFilters(false)}
-			>
-				<View style={styles.modalOverlay}>
-					<View style={[styles.modalContent, { backgroundColor: theme.colors.background }]}>
+			<Modal visible={showFilters} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowFilters(false)} >
+				<Pressable style={styles.overlay} onPress={() => setShowFilters(false)}>
+					<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
 
 						{/* Header */}
 						<View style={styles.modalHeader}>
-							<Text style={[textStyles.h3, { flex: 1 }]}>Filtrar transacciones</Text>
+							<FontAwesome6 name="filter" size={20} color={theme.colors.primary} iconStyle="solid" />
+							<Text style={[textStyles.h3, { flex: 1, marginLeft: 12 }]}>Filtrar</Text>
 							<Pressable onPress={() => setShowFilters(false)} hitSlop={12}>
 								<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
 						</View>
 
-						<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+						<ScrollView showsVerticalScrollIndicator={false} bounces={false}>
 
 							{/* Status */}
 							<Text style={[textStyles.h6, styles.sectionLabel]}>Estado</Text>
-							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+							<View style={styles.chipRow}>
 								{STATUS_OPTIONS.map(opt => (
 									<Chip
 										key={opt.value}
@@ -290,23 +277,23 @@ const Transactions = ({ navigation }) => {
 										theme={theme}
 									/>
 								))}
-							</ScrollView>
+							</View>
 
 							{/* Search */}
 							<Text style={[textStyles.h6, styles.sectionLabel]}>Buscar</Text>
-							<TextInput
-								style={[styles.input, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}
+							<QPInput
 								placeholder="Descripción o UUID"
-								placeholderTextColor={theme.colors.tertiaryText}
 								value={draftFilters.search || ''}
 								onChangeText={v => updateDraft('search', v)}
 								autoCapitalize="none"
 								autoCorrect={false}
+								prefixIconName="magnifying-glass"
+								style={{ marginVertical: 0 }}
 							/>
 
 							{/* Period */}
 							<Text style={[textStyles.h6, styles.sectionLabel]}>Período</Text>
-							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+							<View style={styles.chipRow}>
 								{PERIOD_OPTIONS.map((opt, idx) => (
 									<Chip
 										key={opt.label}
@@ -326,33 +313,35 @@ const Transactions = ({ navigation }) => {
 										theme={theme}
 									/>
 								))}
-							</ScrollView>
+							</View>
 
 							{/* Amount Range */}
 							<Text style={[textStyles.h6, styles.sectionLabel]}>Monto</Text>
 							<View style={styles.amountRow}>
-								<TextInput
-									style={[styles.input, styles.amountInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}
-									placeholder="Mínimo"
-									placeholderTextColor={theme.colors.tertiaryText}
-									value={draftFilters.min_amount || ''}
-									onChangeText={v => updateDraft('min_amount', v.replace(/[^0-9.]/g, ''))}
-									keyboardType="decimal-pad"
-								/>
+								<View style={{ flex: 1 }}>
+									<QPInput
+										placeholder="Mínimo"
+										value={draftFilters.min_amount || ''}
+										onChangeText={v => updateDraft('min_amount', v.replace(/[^0-9.]/g, ''))}
+										keyboardType="decimal-pad"
+										style={{ marginVertical: 0 }}
+									/>
+								</View>
 								<Text style={[textStyles.caption, { marginHorizontal: 8 }]}>—</Text>
-								<TextInput
-									style={[styles.input, styles.amountInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}
-									placeholder="Máximo"
-									placeholderTextColor={theme.colors.tertiaryText}
-									value={draftFilters.max_amount || ''}
-									onChangeText={v => updateDraft('max_amount', v.replace(/[^0-9.]/g, ''))}
-									keyboardType="decimal-pad"
-								/>
+								<View style={{ flex: 1 }}>
+									<QPInput
+										placeholder="Máximo"
+										value={draftFilters.max_amount || ''}
+										onChangeText={v => updateDraft('max_amount', v.replace(/[^0-9.]/g, ''))}
+										keyboardType="decimal-pad"
+										style={{ marginVertical: 0 }}
+									/>
+								</View>
 							</View>
 
 							{/* Sort */}
 							<Text style={[textStyles.h6, styles.sectionLabel]}>Ordenar por</Text>
-							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+							<View style={styles.chipRow}>
 								{SORT_FIELD_OPTIONS.map(opt => (
 									<Chip
 										key={opt.value}
@@ -362,10 +351,10 @@ const Transactions = ({ navigation }) => {
 										theme={theme}
 									/>
 								))}
-							</ScrollView>
+							</View>
 
 							<Text style={[textStyles.h6, styles.sectionLabel]}>Dirección</Text>
-							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+							<View style={styles.chipRow}>
 								{SORT_DIR_OPTIONS.map(opt => (
 									<Chip
 										key={opt.value}
@@ -375,51 +364,44 @@ const Transactions = ({ navigation }) => {
 										theme={theme}
 									/>
 								))}
-							</ScrollView>
+							</View>
 
 						</ScrollView>
 
 						{/* Action buttons */}
 						<View style={styles.actions}>
-							<Pressable
-								onPress={clearFilters}
-								style={[styles.actionButton, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}
-							>
+							<Pressable onPress={clearFilters} style={[styles.actionButton, { backgroundColor: theme.colors.elevation }]} >
 								<Text style={[styles.actionText, { color: theme.colors.primaryText }]}>Limpiar</Text>
 							</Pressable>
-							<Pressable
-								onPress={applyFilters}
-								style={[styles.actionButton, { backgroundColor: theme.colors.primary, flex: 1 }]}
-							>
+							<Pressable onPress={applyFilters} style={[styles.actionButton, { backgroundColor: theme.colors.primary, flex: 1 }]} >
 								<Text style={[styles.actionText, { color: '#FFFFFF' }]}>Aplicar</Text>
 							</Pressable>
 						</View>
 
-					</View>
-				</View>
+					</Pressable>
+				</Pressable>
 			</Modal>
 		</View>
 	)
 }
 
 const styles = StyleSheet.create({
-	modalOverlay: {
+	overlay: {
 		flex: 1,
-		justifyContent: 'flex-end',
-		backgroundColor: 'rgba(0,0,0,0.5)',
+		backgroundColor: 'rgba(0,0,0,0.6)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 24,
 	},
-	modalContent: {
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
-		paddingHorizontal: 20,
-		paddingTop: 20,
-		paddingBottom: 34,
-		maxHeight: '85%',
+	modalCard: {
+		width: '100%',
+		borderRadius: 16,
+		padding: 24,
 	},
 	modalHeader: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		marginBottom: 16,
+		marginBottom: 8,
 	},
 	sectionLabel: {
 		marginTop: 16,
@@ -427,6 +409,7 @@ const styles = StyleSheet.create({
 	},
 	chipRow: {
 		flexDirection: 'row',
+		flexWrap: 'wrap',
 		gap: 8,
 	},
 	chip: {
@@ -438,19 +421,9 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontFamily: 'Rubik-Medium',
 	},
-	input: {
-		borderRadius: 10,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
-		fontSize: 16,
-		fontFamily: 'Rubik-Regular',
-	},
 	amountRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-	},
-	amountInput: {
-		flex: 1,
 	},
 	actions: {
 		flexDirection: 'row',

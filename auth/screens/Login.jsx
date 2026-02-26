@@ -303,18 +303,26 @@ const LoginScreen = ({ navigation }) => {
 		if (!wasBlocked) { promptBiometricEnrollment(email, password) }
 	}
 
-	// Handle PIN input change
+	// Handle PIN input change (supports paste of full code)
 	const handlePinChange = (text, index) => {
-		// Only allow numeric input
 		const numericText = text.replace(/[^0-9]/g, '')
 
-		// Update the PIN code
+		// Paste: multiple digits received at once
+		if (numericText.length > 1) {
+			const digits = numericText.slice(0, expectedCodeLength).split('')
+			const newPin = twoFactorCode.split('')
+			digits.forEach((d, i) => { if (index + i < expectedCodeLength) newPin[index + i] = d })
+			setTwoFactorCode(newPin.join(''))
+			const focusIdx = Math.min(index + digits.length, expectedCodeLength - 1)
+			pinInputsRef.current[focusIdx]?.focus()
+			return
+		}
+
+		// Single digit
 		const newPin = twoFactorCode.split('')
 		newPin[index] = numericText
-		const updatedPin = newPin.join('')
-		setTwoFactorCode(updatedPin)
+		setTwoFactorCode(newPin.join(''))
 
-		// Auto-focus next input if digit entered
 		if (numericText && index < expectedCodeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
 	}
 
@@ -396,7 +404,6 @@ const LoginScreen = ({ navigation }) => {
 											onBlur={handlePinBlur}
 											onKeyPress={(e) => handlePinKeyPress(e, index)}
 											keyboardType="numeric"
-											maxLength={1}
 											secureTextEntry
 											textAlign="center"
 											selectTextOnFocus
@@ -517,12 +524,11 @@ const styles = StyleSheet.create({
 	},
 	pinContainer: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
+		gap: 8,
 		marginBottom: 20,
-		paddingHorizontal: 20,
 	},
 	pinInput: {
-		width: 60,
+		flex: 1,
 		height: 60,
 		borderRadius: 12,
 		fontSize: 24,
@@ -530,7 +536,7 @@ const styles = StyleSheet.create({
 		textAlign: 'center'
 	},
 	pinInputSmall: {
-		width: 46,
+		flex: 1,
 		height: 46,
 		borderRadius: 10,
 		fontSize: 20,

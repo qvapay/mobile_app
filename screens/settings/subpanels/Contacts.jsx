@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Alert, Text, View, Pressable, Modal, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
+import { Alert, Text, View, Pressable, Modal, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -404,18 +405,18 @@ const Contacts = ({ navigation }) => {
 	return (
 		<>
 			<View style={containerStyles.subContainer}>
-				<FlatList
+				<FlashList
 					data={filteredContacts}
 					keyExtractor={keyExtractor}
 					renderItem={renderContact}
+					extraData={filteredContacts.length}
 					ListHeaderComponent={listHeader}
 					ListEmptyComponent={listEmpty}
+					ListFooterComponent={<View style={{ height: 20 }} />}
 					contentContainerStyle={containerStyles.scrollContainer}
 					showsVerticalScrollIndicator={false}
 					refreshControl={createHiddenRefreshControl(refreshing, refresh)}
-					initialNumToRender={15}
-					maxToRenderPerBatch={10}
-					windowSize={5}
+					estimatedItemSize={70}
 				/>
 			</View>
 
@@ -495,10 +496,11 @@ const Contacts = ({ navigation }) => {
 					{/* Search Results */}
 					<View style={{ flex: 1, paddingHorizontal: 20 }}>
 						{searchResults.length > 0 ? (
-							<FlatList
+							<FlashList
 								data={searchResults}
 								keyExtractor={(item) => item.uuid}
 								showsVerticalScrollIndicator={false}
+								estimatedItemSize={80}
 								renderItem={({ item }) => (
 									<View style={{
 										backgroundColor: theme.colors.surface,

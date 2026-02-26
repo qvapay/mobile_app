@@ -117,7 +117,7 @@ const RegisterScreen = ({ navigation }) => {
 
     // Handle PIN input
     useEffect(() => {
-        if (pin.length === 6) {
+        if (pin.length === 4) {
             setPinEnabled(true)
         } else {
             setPinEnabled(false)
@@ -197,7 +197,7 @@ const RegisterScreen = ({ navigation }) => {
                             keyboardType="numeric"
                             autoCapitalize="none"
                             prefixIconName="lock"
-                            maxLength={6}
+                            maxLength={4}
                             disabled={!pinEnabled}
                         />
                     </>

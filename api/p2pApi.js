@@ -258,6 +258,28 @@ export const p2pApi = {
 	},
 
 	/**
+	 * Edit an open P2P offer (owner only)
+	 * @param {string} p2p_uuid - The P2P UUID
+	 * @param {Object} data - Editable fields: amount, receive, only_vip, message
+	 * @returns {Promise<Object>} The updated P2P offer response
+	 */
+	edit: async (p2p_uuid, data) => {
+		try {
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/edit`, data)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				return {
+					success: false,
+					error: error.response.data.error || error.response.data.message || 'No se pudo editar la oferta',
+					status: error.response.status
+				}
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Rate a P2P offer
 	 * @param {string} p2p_uuid - The P2P UUID
 	 * @param {Object} payload - The rating payload

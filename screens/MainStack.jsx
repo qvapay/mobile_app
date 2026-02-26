@@ -73,11 +73,12 @@ const MainStack = ({ navigation }) => {
 	if (!isAuthenticated || !user) { return null }
 
 	// Memoized screen options to prevent liquid glass flash on iOS
+	// TopBar height: 56 + insets.top
 	const screenOptions = useMemo(() => ({
 		headerTitle: '',
 		headerShown: true,
 		headerShadowVisible: false,
-		headerStyle: { backgroundColor: theme.colors.background, height: 36 + insets.top },
+		headerStyle: { backgroundColor: theme.colors.background, height: 56 + insets.top },
 		headerTintColor: theme.colors.primaryText,
 		// Android fallback
 		headerLeft: () => (
