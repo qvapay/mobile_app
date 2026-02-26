@@ -5,11 +5,18 @@ import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
-const QPProduct = ({ name = '', price = '', details = [], logo = '', image = '', onPress = () => { }, style = {} }) => {
+// Auth
+import { useAuth } from '../../auth/AuthContext'
+
+const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo = '', image = '', onPress = () => { }, style = {} }) => {
 
 	// Contexts
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
+	const { user } = useAuth()
+
+	const isGold = user?.golden_check
+	const hasGoldPrice = isGold && goldPrice && goldPrice > 0 && goldPrice !== price
 
 	// Support both 'logo' and 'image' props, logo takes precedence
 	const imageSource = logo || image
@@ -24,7 +31,17 @@ const QPProduct = ({ name = '', price = '', details = [], logo = '', image = '',
 				) : null}
 			</View>
 
-			<Text style={[textStyles.h5, styles.topupPrice]}>{price != null ? `$${Number(price).toFixed(2)}` : ''}</Text>
+			{price != null ? (
+				hasGoldPrice ? (
+					<View style={styles.priceRow}>
+						<Text style={[textStyles.caption, styles.strikePrice, { color: theme.colors.tertiaryText }]}>${Number(price).toFixed(2)}</Text>
+						<Text style={[textStyles.h5, styles.goldPrice, { color: theme.colors.gold }]}>${Number(goldPrice).toFixed(2)}</Text>
+					</View>
+				) : (
+					<Text style={[textStyles.h5, styles.topupPrice]}>{`$${Number(price).toFixed(2)}`}</Text>
+				)
+			) : null}
+
 			<Text style={[textStyles.h6, styles.topupTitle, { color: theme.colors.secondaryText }]} numberOfLines={2}>{name}</Text>
 			{Array.isArray(details) && details.length > 0 && (
 				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: 10 }]}>{details.join(' • ')}</Text>
@@ -54,6 +71,19 @@ const styles = StyleSheet.create({
 	topupPrice: {
 		fontWeight: '700',
 		marginBottom: 2,
+	},
+	priceRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 6,
+		marginBottom: 2,
+	},
+	strikePrice: {
+		textDecorationLine: 'line-through',
+		fontSize: 11,
+	},
+	goldPrice: {
+		fontWeight: '700',
 	},
 	topupTitle: {
 		marginBottom: 2,

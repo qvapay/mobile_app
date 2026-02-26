@@ -42,15 +42,16 @@ const useDeviceContacts = () => {
 	const [permissionStatus, setPermissionStatus] = useState('undefined')
 	const [isSyncing, setIsSyncing] = useState(false)
 	const [error, setError] = useState(null)
+	const [showDisclosure, setShowDisclosure] = useState(false)
 	const syncingRef = useRef(false)
+	// Holds a resolve callback so acceptDisclosure can continue the permission flow
+	const disclosureResolveRef = useRef(null)
 
 	// Open device settings
 	const openSettings = useCallback(() => {
 		if (Platform.OS === 'ios') {
 			Linking.openURL('app-settings:')
-		} else {
-			Linking.openSettings()
-		}
+		} else { Linking.openSettings() }
 	}, [])
 
 	// Show alert to guide user to Settings
@@ -90,77 +91,88 @@ const useDeviceContacts = () => {
 		}
 	}, [])
 
-	// Request permission — Android uses PermissionsAndroid, iOS uses Contacts library
-	const requestPermission = useCallback(async () => {
+	// Actually request the OS-level permission (called after consent is given)
+	const requestOsPermission = useCallback(async () => {
 		try {
 			if (Platform.OS === 'android') {
 				const granted = await PermissionsAndroid.request(
-					PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
-					{
-						title: 'Acceso a contactos',
-						message: 'QvaPay necesita acceso a tus contactos para encontrar amigos que usan la app.',
-						buttonPositive: 'Permitir',
-						buttonNegative: 'Cancelar',
-					}
+					PermissionsAndroid.PERMISSIONS.READ_CONTACTS
 				)
 				const status = granted === PermissionsAndroid.RESULTS.GRANTED ? 'authorized' : 'denied'
 				setPermissionStatus(status)
-				if (status === 'authorized') {
-					await AsyncStorage.setItem(STORAGE_KEYS.CONSENT, 'true')
-				}
 				return status
 			}
 
-			// iOS — use checkPermission with timeout (iOS 18+ may hang), then requestPermission
-			const currentStatus = await Promise.race([
-				Contacts.checkPermission(),
-				new Promise((resolve) => setTimeout(() => resolve('undefined'), CONTACTS_CHECK_TIMEOUT_MS)),
-			])
+			// iOS
+			const status = await Contacts.requestPermission()
+			setPermissionStatus(status)
+			return (status === 'authorized' || status === 'limited') ? 'authorized' : 'denied'
+		} catch (e) {
+			console.warn('OS permission request failed:', e.message)
+			showSettingsAlert()
+			return 'denied'
+		}
+	}, [showSettingsAlert])
 
-			if (currentStatus === 'authorized' || currentStatus === 'limited') {
-				setPermissionStatus(currentStatus)
-				return 'authorized'
+	// Accept disclosure → store consent, hide modal, proceed to OS permission
+	const acceptDisclosure = useCallback(async () => {
+		await AsyncStorage.setItem(STORAGE_KEYS.CONSENT, 'true')
+		setShowDisclosure(false)
+		const status = await requestOsPermission()
+		if (disclosureResolveRef.current) {
+			disclosureResolveRef.current(status)
+			disclosureResolveRef.current = null
+		}
+	}, [requestOsPermission])
+
+	// Decline disclosure → hide modal, no consent
+	const declineDisclosure = useCallback(() => {
+		setShowDisclosure(false)
+		if (disclosureResolveRef.current) {
+			disclosureResolveRef.current('denied')
+			disclosureResolveRef.current = null
+		}
+	}, [])
+
+	// Request permission — shows disclosure modal if consent not yet given
+	const requestPermission = useCallback(async () => {
+		try {
+			// If consent already stored, go straight to OS permission
+			const consent = await AsyncStorage.getItem(STORAGE_KEYS.CONSENT)
+			if (consent === 'true') {
+				return await requestOsPermission()
 			}
 
-			if (currentStatus === 'denied') {
-				setPermissionStatus('denied')
-				return 'denied'
+			// On iOS, check if already authorized/denied before showing disclosure
+			if (Platform.OS === 'ios') {
+				const currentStatus = await Promise.race([
+					Contacts.checkPermission(),
+					new Promise((resolve) => setTimeout(() => resolve('undefined'), CONTACTS_CHECK_TIMEOUT_MS)),
+				])
+
+				if (currentStatus === 'authorized' || currentStatus === 'limited') {
+					setPermissionStatus(currentStatus)
+					await AsyncStorage.setItem(STORAGE_KEYS.CONSENT, 'true')
+					return 'authorized'
+				}
+
+				if (currentStatus === 'denied') {
+					setPermissionStatus('denied')
+					return 'denied'
+				}
 			}
 
-			// Status is 'undefined' (first time) — show explanatory alert before OS dialog
+			// No consent yet — show the prominent disclosure modal and wait
 			return new Promise((resolve) => {
-				Alert.alert(
-					'Sincronizar agenda',
-					'QvaPay revisará los números de teléfono de tus contactos para encontrar amigos que ya usan la app. Tus contactos se envían de forma segura.',
-					[
-						{ text: 'Ahora no', style: 'cancel', onPress: () => resolve('denied') },
-						{
-							text: 'Continuar',
-							onPress: async () => {
-								try {
-									const status = await Contacts.requestPermission()
-									setPermissionStatus(status)
-									if (status === 'authorized' || status === 'limited') {
-										await AsyncStorage.setItem(STORAGE_KEYS.CONSENT, 'true')
-										resolve('authorized')
-									} else {
-										resolve('denied')
-									}
-								} catch {
-									Toast.show({ type: 'error', text1: 'No se pudo solicitar el permiso' })
-									resolve('denied')
-								}
-							},
-						},
-					]
-				)
+				disclosureResolveRef.current = resolve
+				setShowDisclosure(true)
 			})
 		} catch (e) {
 			console.warn('Contacts permission request failed:', e.message)
 			showSettingsAlert()
 			return 'denied'
 		}
-	}, [showSettingsAlert])
+	}, [requestOsPermission, showSettingsAlert])
 
 	// Load cached matches from AsyncStorage
 	const loadCachedMatches = useCallback(async () => {
@@ -294,8 +306,11 @@ const useDeviceContacts = () => {
 		permissionStatus,
 		isSyncing,
 		error,
+		showDisclosure,
 		checkPermission,
 		requestPermission,
+		acceptDisclosure,
+		declineDisclosure,
 		syncContacts,
 		loadCachedMatches,
 		clearSyncedData,

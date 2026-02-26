@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FastImage from '@d11/react-native-fast-image'
 
@@ -121,43 +121,23 @@ const Store = ({ navigation }) => {
 				{/* Search bar */}
 				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />
 
-				{/* My Purchases */}
-				{myPurchases.length > 0 && (
-					<View style={[styles.section, { gap: 5 }]}>
-						<QPSectionHeader title="Mis Compras" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.MY_PURCHASES)} />
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-							{myPurchases.slice(0, 3).map((purchase) => {
-								const logoUrl = getLogoUrl(purchase.service_logo)
-								const color = getStatusColor(purchase.status, theme)
-								return (
-									<Pressable key={purchase.id} style={[styles.purchaseCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => navigation.navigate(ROUTES.MY_PURCHASES)}>
-										<View style={[styles.purchaseLogoContainer, { backgroundColor: theme.colors.elevationLight }]}>
-											{logoUrl ? (
-												<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal }} style={styles.purchaseLogo} resizeMode={FastImage.resizeMode.contain} />
-											) : null}
-										</View>
-										<Text style={[textStyles.h6, { marginTop: 6 }]} numberOfLines={1}>{purchase.service_name}</Text>
-										<View style={[styles.purchaseStatusBadge, { backgroundColor: color }]}>
-											<Text style={[textStyles.h7, { color: theme.colors.almostBlack, fontWeight: '600', fontSize: 9 }]}>
-												{statusText(purchase.status)}
-											</Text>
-										</View>
-									</Pressable>
-								)
-							})}
-						</ScrollView>
-					</View>
-				)}
-
 				{/* Mobile top-up plans */}
 				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
 					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)} />
 					{topupPlans.length > 0 ? (
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-							{topupPlans.map((plan) => (
-								<QPProduct key={plan.id} name={plan.name} price={plan.price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
-							))}
-						</ScrollView>
+						Platform.OS === 'ios' ? (
+							<View style={styles.grid}>
+								{topupPlans.map((plan) => (
+									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: '48%', marginRight: 0 }} />
+								))}
+							</View>
+						) : (
+							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+								{topupPlans.map((plan) => (
+									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
+								))}
+							</ScrollView>
+						)
 					) : (
 						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
 							No hay recargas disponibles
@@ -165,21 +145,23 @@ const Store = ({ navigation }) => {
 					)}
 				</View>
 
-				{/* Gift cards */}
-				<View style={[styles.section, { gap: 5 }]}>
-					<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
-					{giftCards.length > 0 ? (
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-							{giftCards.map((card) => (
-								<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} />
-							))}
-						</ScrollView>
-					) : (
-						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
-							No hay tarjetas disponibles
-						</Text>
-					)}
-				</View>
+				{/* Gift cards (hidden on iOS per App Store Guideline 3.1.1) */}
+				{Platform.OS !== 'ios' && (
+					<View style={[styles.section, { gap: 5 }]}>
+						<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
+						{giftCards.length > 0 ? (
+							<View style={styles.grid}>
+								{giftCards.map((card) => (
+									<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} style={{ width: '48%', marginRight: 0 }} />
+								))}
+							</View>
+						) : (
+							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
+								No hay tarjetas disponibles
+							</Text>
+						)}
+					</View>
+				)}
 
 			</ScrollView>
 		</View>

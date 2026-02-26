@@ -30,6 +30,8 @@ import { useSettings } from '../settings/SettingsContext'
 // UI Components
 import QPAvatar from '../ui/particles/QPAvatar'
 import ErrorBoundary from '../ui/ErrorBoundary'
+import { BottomBarProvider } from '../ui/BottomBarContext'
+import AnimatedTabBar from '../ui/AnimatedTabBar'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -75,7 +77,7 @@ const MainStack = ({ navigation }) => {
 		headerTitle: '',
 		headerShown: true,
 		headerShadowVisible: false,
-		headerStyle: { backgroundColor: theme.colors.background },
+		headerStyle: { backgroundColor: theme.colors.background, height: 36 + insets.top },
 		headerTintColor: theme.colors.primaryText,
 		// Android fallback
 		headerLeft: () => (
@@ -195,47 +197,50 @@ const MainStack = ({ navigation }) => {
 	}), [showLabels, containerStyles, theme, navigation])
 
 	return (
-		<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
-			<Tab.Navigator
-				initialRouteName={ROUTES.HOME_SCREEN}
-				backBehavior='initialRoute'
-				screenOptions={screenOptions}
-			>
+		<BottomBarProvider>
+			<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
+				<Tab.Navigator
+					initialRouteName={ROUTES.HOME_SCREEN}
+					backBehavior='initialRoute'
+					screenOptions={screenOptions}
+					{...(Platform.OS === 'android' ? { tabBar: (props) => <AnimatedTabBar {...props} /> } : {})}
+				>
 
-				<Tab.Screen
-					name={ROUTES.HOME_SCREEN}
-					component={Home}
-					options={homeOptions}
-				/>
-
-				{Platform.OS !== 'ios' && (
 					<Tab.Screen
-						name={ROUTES.INVEST_SCREEN}
-						component={Invest}
-						options={investOptions}
+						name={ROUTES.HOME_SCREEN}
+						component={Home}
+						options={homeOptions}
 					/>
-				)}
 
-				<Tab.Screen
-					name={ROUTES.KEYPAD_SCREEN}
-					component={Keypad}
-					options={keypadOptions}
-				/>
+					{Platform.OS !== 'ios' && (
+						<Tab.Screen
+							name={ROUTES.INVEST_SCREEN}
+							component={Invest}
+							options={investOptions}
+						/>
+					)}
 
-				<Tab.Screen
-					name={ROUTES.P2P_SCREEN}
-					component={P2P}
-					options={p2pOptions}
-				/>
+					<Tab.Screen
+						name={ROUTES.KEYPAD_SCREEN}
+						component={Keypad}
+						options={keypadOptions}
+					/>
 
-				<Tab.Screen
-					name={ROUTES.STORE_SCREEN}
-					component={Store}
-					options={storeOptions}
-				/>
+					<Tab.Screen
+						name={ROUTES.P2P_SCREEN}
+						component={P2P}
+						options={p2pOptions}
+					/>
 
-			</Tab.Navigator>
-		</ErrorBoundary>
+					<Tab.Screen
+						name={ROUTES.STORE_SCREEN}
+						component={Store}
+						options={storeOptions}
+					/>
+
+				</Tab.Navigator>
+			</ErrorBoundary>
+		</BottomBarProvider>
 	)
 }
 

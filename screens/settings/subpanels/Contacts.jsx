@@ -30,6 +30,9 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 // Device Contacts Hook
 import useDeviceContacts from '../../../hooks/useDeviceContacts'
 
+// Prominent Disclosure Modal
+import ContactsDisclosureModal from '../../../ui/ContactsDisclosureModal'
+
 // Routes
 import { ROUTES } from '../../../routes'
 
@@ -63,8 +66,11 @@ const Contacts = ({ navigation }) => {
 	const {
 		permissionStatus,
 		isSyncing,
+		showDisclosure,
 		checkPermission,
 		requestPermission,
+		acceptDisclosure,
+		declineDisclosure,
 		syncContacts: syncDeviceContacts,
 		openSettings,
 	} = useDeviceContacts()
@@ -412,6 +418,9 @@ const Contacts = ({ navigation }) => {
 					windowSize={5}
 				/>
 			</View>
+
+			{/* Contacts Prominent Disclosure Modal */}
+			<ContactsDisclosureModal visible={showDisclosure} onAccept={acceptDisclosure} onDecline={declineDisclosure} />
 
 			{/* Add Contact Modal */}
 			<Modal visible={showAddModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAddModal(false)}>

@@ -275,8 +275,9 @@ const P2PCreate = ({ navigation }) => {
 					onChange={(side) => setType(side === "left" ? "buy" : "sell")}
 					leftText="Comprar"
 					rightText="Vender"
-					leftColor={theme.colors.success}
-					rightColor={theme.colors.danger}
+					leftColor={theme.colors.danger}
+					rightColor={theme.colors.success}
+					rightTextColor={theme.colors.almostBlack}
 				/>
 
 				{/* Swap Card (Vender / Recibir) */}

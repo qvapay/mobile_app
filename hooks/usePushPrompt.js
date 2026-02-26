@@ -25,7 +25,7 @@ const usePushPrompt = () => {
 	useEffect(() => {
 		const load = async () => {
 			try {
-				const hasPermission = OneSignal.Notifications.hasPermission()
+				const hasPermission = await OneSignal.Notifications.getPermissionAsync()
 				setIsPushEnabled(hasPermission)
 
 				const [ptx, bdc, bld, obs] = await AsyncStorage.multiGet([

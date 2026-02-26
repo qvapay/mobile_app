@@ -36,9 +36,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Routes
 import { ROUTES } from "../../routes"
+import { useFocusEffect } from "@react-navigation/native"
 
 // Pull-to-refresh
 import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
+
+// Bottom bar hide on scroll (Android only)
+import { useBottomBar } from "../../ui/BottomBarContext"
 
 // Default popular coins for quick select pills
 const DEFAULT_POPULAR_COINS = [
@@ -70,6 +74,16 @@ const P2P = ({ navigation, route }) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
+
+	// Bottom bar (Android scroll-hide)
+	const { bottomBarVisible } = useBottomBar()
+
+	// Reset bottom bar when leaving P2P tab
+	useFocusEffect(
+		useCallback(() => {
+			return () => { bottomBarVisible.value = withTiming(1, { duration: 250 }) }
+		}, [bottomBarVisible])
+	)
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
@@ -112,6 +126,7 @@ const P2P = ({ navigation, route }) => {
 
 			if (currentY <= 0) {
 				filterBarVisible.value = withTiming(1, { duration: 250 })
+				bottomBarVisible.value = withTiming(1, { duration: 250 })
 				accumulatedDelta.value = 0
 			} else {
 				const dir = diff > 0 ? 1 : diff < 0 ? -1 : 0
@@ -125,8 +140,10 @@ const P2P = ({ navigation, route }) => {
 					if (accumulatedDelta.value > 20) {
 						if (dir === 1 && filterBarVisible.value !== 0) {
 							filterBarVisible.value = withTiming(0, { duration: 250 })
+							bottomBarVisible.value = withTiming(0, { duration: 250 })
 						} else if (dir === -1 && filterBarVisible.value !== 1) {
 							filterBarVisible.value = withTiming(1, { duration: 250 })
+							bottomBarVisible.value = withTiming(1, { duration: 250 })
 						}
 					}
 				}
@@ -451,6 +468,7 @@ const P2P = ({ navigation, route }) => {
 						scrollEventThrottle={16}
 						refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 						showsVerticalScrollIndicator={false}
+						contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 64 + insets.bottom : 24 }}
 						ListEmptyComponent={
 							<View style={styles.emptyContainer}>
 								<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
