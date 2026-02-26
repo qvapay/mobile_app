@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
+import { useState, useRef, useEffect } from 'react'
+import { View, Text, TextInput, StyleSheet } from 'react-native'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -120,6 +120,14 @@ const SendConfirm = ({ navigation, route }) => {
 		setPin(newPin.join(''))
 		if (numericText && index < codeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
 	}
+
+	// Auto-submit when all digits entered
+	useEffect(() => {
+		if (pin.length === codeLength && !isLoading) {
+			executeTransaction()
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pin])
 
 	// Handle PIN input focus/blur
 	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
@@ -321,6 +329,8 @@ const SendConfirm = ({ navigation, route }) => {
 									secureTextEntry
 									textAlign="center"
 									selectTextOnFocus
+									textContentType="oneTimeCode"
+									autoComplete="sms-otp"
 									placeholder={focusedInputIndex === index ? "" : "0"}
 									placeholderTextColor={theme.colors.tertiaryText}
 								/>
@@ -355,7 +365,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		borderWidth: 1,
 		fontSize: 24,
-		fontWeight: 'bold',
+		fontFamily: 'Rubik-Bold',
 		textAlign: 'center',
 	},
 	pinInputSmall: {

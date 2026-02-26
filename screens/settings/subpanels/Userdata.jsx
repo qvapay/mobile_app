@@ -251,7 +251,7 @@ const Userdata = () => {
 					placeholder="Dirección"
 					value={address}
 					onChangeText={setAddress}
-					autoCapitalize="words"
+					autoCapitalize="sentences"
 					prefixIconName="location-dot"
 				/>
 				<QPInput
@@ -275,7 +275,7 @@ const Userdata = () => {
 			</View>
 
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 40 }]}>
-				Miembro desde: <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{formatDate(userStatus.createdAt)}</Text>
+				Miembro desde: <Text style={{ color: theme.colors.primary, fontFamily: 'Rubik-Medium' }}>{formatDate(userStatus.createdAt)}</Text>
 			</Text>
 
 		</QPKeyboardView>

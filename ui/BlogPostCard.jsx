@@ -50,7 +50,7 @@ const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 						<View style={[styles.dot, { backgroundColor: theme.colors.secondaryText }]} />
 					</View>
 					<View style={styles.authorContainer}>
-						<Image source={{ uri: 'https://qvpay.me/assets/qvapay-logo-white.png' }} style={styles.authorAvatar} />
+						<Image source={{ uri: 'https://www.qvapay.com/assets/qvapay-logo-white.png' }} style={styles.authorAvatar} />
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
 							{post.author}
 						</Text>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, Share } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Pressable, Linking, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
@@ -13,9 +13,7 @@ import { useAuth } from '../../../auth/AuthContext'
 import { userApi } from '../../../api/userApi'
 
 // UI Components
-import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
-import QPBalance from '../../../ui/particles/QPBalance'
 import ProfileContainerHorizontal from '../../../ui/ProfileContainerHorizontal'
 
 // Icons
@@ -33,197 +31,345 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 // Referals Component
 const Referals = () => {
 
-    // Contexts
-    const { user } = useAuth()
-    const { theme } = useTheme()
-    const textStyles = createTextStyles(theme)
-    const containerStyles = createContainerStyles(theme)
-    const insets = useSafeAreaInsets()
+	// Contexts
+	const { user } = useAuth()
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
-    // State
-    const [referrals, setReferrals] = useState([])
-    const [totalEarnings, setTotalEarnings] = useState(0)
-    const [referralLink, setReferralLink] = useState('')
-    const [loading, setLoading] = useState(true)
-    const [refreshing, setRefreshing] = useState(false)
+	// State
+	const [referrals, setReferrals] = useState([])
+	const [totalReferrals, setTotalReferrals] = useState(0)
+	const [loading, setLoading] = useState(true)
+	const [refreshing, setRefreshing] = useState(false)
 
-    // Load referral data
-    const loadReferralData = async () => {
-        try {
-            setLoading(true)
-            // Fetch referrals and earnings
-            const referralsResponse = await userApi.getReferrals()
-            if (referralsResponse.success && referralsResponse.data) {
-                // Handle both possible response structures
-                const data = referralsResponse.data
-                const referralsList = data.referrals || data.data?.referrals || []
-                const earnings = data.total_earnings || data.data?.total_earnings || data.earnings || 0
-                setReferrals(referralsList)
-                setTotalEarnings(earnings)
-            }
-            setReferralLink(`https://qvapay.com/register/${user.username}`)
-        } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudieron cargar los datos de referidos' }) }
-        finally { setLoading(false) }
-    }
+	// Referral link
+	const referralLink = `https://qvapay.com/register/${user.username}`
 
-    // Refresh data
-    const onRefresh = async () => {
-        setRefreshing(true)
-        await loadReferralData()
-        setRefreshing(false)
-    }
+	// Load referral data
+	const loadReferralData = async () => {
+		try {
+			setLoading(true)
+			const response = await userApi.getReferrals()
+			if (response.success && response.data) {
+				const data = response.data
+				setReferrals(data.referrals || [])
+				setTotalReferrals(data.totalReferrals || 0)
+			}
+		} catch (error) {
+			Toast.show({ type: 'error', text1: 'Error al cargar los referidos' })
+		} finally {
+			setLoading(false)
+		}
+	}
 
-    // Load data on component mount
-    useEffect(() => {
-        loadReferralData()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+	// Refresh data
+	const onRefresh = async () => {
+		setRefreshing(true)
+		await loadReferralData()
+		setRefreshing(false)
+	}
 
-    // Share referral link
-    const handleShare = async () => {
-        try {
-            if (!referralLink) {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo obtener el enlace de referido' })
-                return
-            }
-            const result = await Share.share({
-                message: `¡Únete a QvaPay usando mi enlace de referido y gana premios únicos! ${referralLink}`,
-                url: referralLink,
-                title: 'Invita a tus amigos a QvaPay'
-            })
-            if (result.action === Share.sharedAction) { Toast.show({ type: 'success', text1: 'Éxito', text2: 'Enlace de referido compartido correctamente' }) }
-        } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo compartir el enlace' }) }
-    }
+	// Load data on mount
+	useEffect(() => {
+		loadReferralData()
+	}, [])
 
-    // Copy referral link to clipboard
-    const handleCopyLink = async () => {
-        try {
-            copyTextToClipboard(referralLink)
-            Toast.show({ type: 'success', text1: 'Éxito', text2: 'Enlace de referido copiado al portapapeles' })
-        } catch (error) { Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo copiar el enlace' }) }
-    }
+	// Copy referral link
+	const handleCopyLink = () => {
+		copyTextToClipboard(referralLink)
+		Toast.show({ type: 'success', text1: 'Enlace copiado al portapapeles' })
+	}
 
-    if (loading) { return (<QPLoader />) }
+	// Share message
+	const shareMessage = `Únete a QvaPay usando mi enlace de referido: ${referralLink}`
 
-    return (
-        <View style={containerStyles.subContainer}>
-            <ScrollView style={{ flex: 1 }}
-                refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
-            >
+	// Social share handlers
+	const shareToX = () => {
+		const url = `https://x.com/intent/tweet?text=${encodeURIComponent(shareMessage)}`
+		Linking.openURL(url)
+	}
 
-            {/* Header Section */}
-            <Text style={textStyles.h1}>Programa de Referidos</Text>
-            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Invita amigos y gana dinero por cada referido exitoso</Text>
+	const shareToFacebook = () => {
+		const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`
+		Linking.openURL(url)
+	}
 
-            {/* Earnings Card */}
-            <View style={[containerStyles.card, { marginBottom: 10 }]}>
+	const shareToTelegram = () => {
+		const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Únete a QvaPay usando mi enlace de referido')}`
+		Linking.openURL(url)
+	}
 
-                <Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 5 }]}>
-                    Ganancias Totales
-                </Text>
+	const shareToSMS = () => {
+		const separator = Platform.OS === 'ios' ? '&' : '?'
+		const url = `sms:${separator}body=${encodeURIComponent(shareMessage)}`
+		Linking.openURL(url)
+	}
 
-                <QPBalance formattedAmount={totalEarnings} fontSize={32} theme={theme} />
+	// Derived stats
+	const verifiedCount = referrals.filter(r => r.kyc).length
 
-                <View style={[containerStyles.row, { justifyContent: 'space-between', marginBottom: 10 }]}>
-                    <View style={[containerStyles.center, { flex: 1 }]}>
-                        <Text style={[textStyles.h2, { color: theme.colors.primary }]}>
-                            {referrals.length}
-                        </Text>
-                        <Text style={[textStyles.caption, { textAlign: 'center' }]}>
-                            Referidos
-                        </Text>
-                    </View>
-                    <View style={[containerStyles.center, { flex: 1 }]}>
-                        <Text style={[textStyles.h2, { color: theme.colors.success }]}>
-                            {referrals.filter(ref => ref.status === 'active' || ref.verified || ref.kyc).length}
-                        </Text>
-                        <Text style={[textStyles.caption, { textAlign: 'center' }]}>
-                            Verificados
-                        </Text>
-                    </View>
-                </View>
+	if (loading) return <QPLoader />
 
-            </View>
+	return (
+		<View style={containerStyles.subContainer}>
+			<ScrollView
+				style={{ flex: 1 }}
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
+			>
 
-            {/* Share Section */}
-            <View style={[containerStyles.card, { marginBottom: 10 }]}>
-                <Text style={[textStyles.h3, { marginBottom: 15, color: theme.colors.secondaryText }]}>
-                    Compartir Enlace
-                </Text>
-                <View style={[containerStyles.box, { marginBottom: 15 }]}>
-                    <FontAwesome6 name="link" size={20} color={theme.colors.primary} iconStyle="solid" />
-                    <Text style={[textStyles.caption, { flex: 1, marginLeft: 10 }]} numberOfLines={2}>
-                        {referralLink || 'Generando enlace...'}
-                    </Text>
-                </View>
-                <View style={[containerStyles.row, { gap: 10 }]}>
-                    <QPButton
-                        title="Compartir"
-                        onPress={handleShare}
-                        icon="share"
-                        style={{ flex: 1 }}
-                        textStyle={{ color: theme.colors.almostWhite }}
-                    />
-                    <QPButton
-                        title="Copiar"
-                        onPress={handleCopyLink}
-                        icon="copy"
-                        style={{ flex: 1, backgroundColor: theme.colors.secondaryText }}
-                        textStyle={{ color: theme.colors.almostWhite }}
-                    />
-                </View>
-            </View>
+				<Text style={textStyles.h1}>Referidos</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
+					Invita amigos y gana recompensas
+				</Text>
 
-            {/* Referrals List */}
-            <View style={{ marginTop: 10 }}>
+				{/* Stats Row */}
+				<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
+					<View style={styles.statItem}>
+						<Text style={[styles.statValue, { color: theme.colors.primary }]}>{totalReferrals}</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Referidos</Text>
+					</View>
+					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
+					<View style={styles.statItem}>
+						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+							<FontAwesome6 name="circle-check" size={14} color={theme.colors.success} iconStyle="solid" />
+							<Text style={[styles.statValue, { color: theme.colors.primaryText }]}>{verifiedCount}</Text>
+						</View>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Verificados</Text>
+					</View>
+					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
+					<View style={styles.statItem}>
+						<Text style={[styles.statValue, { color: theme.colors.primaryText }]}>{referrals.length - verifiedCount}</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Pendientes</Text>
+					</View>
+				</View>
 
-                <Text style={[textStyles.h3, { marginBottom: 15, color: theme.colors.secondaryText }]}>
-                    Mis Referidos ({referrals.length})
-                </Text>
+				{/* Share Card */}
+				<View style={[styles.shareCard, { backgroundColor: theme.colors.surface }]}>
+					<Text style={[styles.shareTitle, { color: theme.colors.primaryText }]}>Tu enlace de referido</Text>
+					<Pressable onPress={handleCopyLink} style={[styles.linkBox, { backgroundColor: theme.colors.background }]}>
+						<FontAwesome6 name="link" size={14} color={theme.colors.primary} iconStyle="solid" />
+						<Text style={[styles.linkText, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+							{referralLink}
+						</Text>
+						<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
+					</Pressable>
+					<View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 8 }}>
+						<SocialButton icon="x-twitter" label="X" color="#000" iconStyle="brand" onPress={shareToX} theme={theme} />
+						<SocialButton icon="facebook" label="Facebook" color="#1877F2" iconStyle="brand" onPress={shareToFacebook} theme={theme} />
+						<SocialButton icon="telegram" label="Telegram" color="#26A5E4" iconStyle="brand" onPress={shareToTelegram} theme={theme} />
+						<SocialButton icon="comment-sms" label="SMS" color={theme.colors.success} iconStyle="solid" onPress={shareToSMS} theme={theme} />
+					</View>
+				</View>
 
-                {referrals.length === 0 ? (
-                    <View style={[containerStyles.center, { paddingVertical: 40 }]}>
-                        <FontAwesome6 name="users" size={48} color={theme.colors.secondaryText} iconStyle="solid" />
-                        <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginTop: 15 }]}>
-                            Aún no tienes referidos
-                        </Text>
-                        <Text style={[textStyles.caption, { marginTop: 5 }]}>
-                            Comparte tu enlace para empezar a ganar
-                        </Text>
-                    </View>
-                ) : (
-                    referrals.map((referral, index) => {
-                        // Handle both structures: direct user or nested user object
-                        const referredUser = referral.User || referral.referredUser || referral
-                        const earnings = referral.earnings || referral.amount || 0
-                        return (
-                            <View key={referral.id || referral.uuid || index} style={styles.referralItem}>
-                                <ProfileContainerHorizontal user={referredUser} />
-                                <View style={[containerStyles.center, { marginLeft: 10 }]}>
-                                    <Text style={[textStyles.h5, { color: theme.colors.success, marginBottom: 2 }]}>
-                                        +${parseFloat(earnings).toFixed(2)}
-                                    </Text>
-                                </View>
-                            </View>
-                        )
-                    })
-                )}
-            </View>
+				{/* How it works */}
+				<View style={[styles.howItWorks, { backgroundColor: theme.colors.surface }]}>
+					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>
+						<FontAwesome6 name="lightbulb" size={14} color={theme.colors.warning} iconStyle="solid" />
+						{'  '}Cómo funciona
+					</Text>
+					<Step number="1" text="Comparte tu enlace con amigos" theme={theme} />
+					<Step number="2" text="Tu amigo se registra en QvaPay" theme={theme} />
+					<Step number="3" text="Ambos reciben recompensas al verificarse" theme={theme} />
+				</View>
 
-            {/* Bottom spacing */}
-            <View style={{ height: insets.bottom + 20 }} />
+				{/* Referrals List */}
+				<View style={{ marginTop: 20 }}>
+					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, marginBottom: 12 }]}>
+						Mis referidos ({totalReferrals})
+					</Text>
 
-            </ScrollView>
-        </View>
-    )
+					{referrals.length === 0 ? (
+						<View style={[styles.emptyState, { backgroundColor: theme.colors.surface }]}>
+							<FontAwesome6 name="user-group" size={32} color={theme.colors.secondaryText} iconStyle="solid" />
+							<Text style={[styles.emptyTitle, { color: theme.colors.primaryText }]}>
+								Aún no tienes referidos
+							</Text>
+							<Text style={[styles.emptySubtitle, { color: theme.colors.secondaryText }]}>
+								Comparte tu enlace para empezar a invitar amigos
+							</Text>
+						</View>
+					) : (
+						referrals.map((referral) => (
+							<View key={referral.uuid} style={[styles.referralRow, { backgroundColor: theme.colors.surface }]}>
+								<ProfileContainerHorizontal user={referral} size={40} />
+								{referral.kyc ? (
+									<View style={[styles.badge, { backgroundColor: theme.colors.success + '20' }]}>
+										<FontAwesome6 name="circle-check" size={10} color={theme.colors.success} iconStyle="solid" />
+										<Text style={[styles.badgeText, { color: theme.colors.success }]}>KYC</Text>
+									</View>
+								) : (
+									<View style={[styles.badge, { backgroundColor: theme.colors.warning + '20' }]}>
+										<FontAwesome6 name="clock" size={10} color={theme.colors.warning} iconStyle="solid" />
+										<Text style={[styles.badgeText, { color: theme.colors.warning }]}>Pendiente</Text>
+									</View>
+								)}
+							</View>
+						))
+					)}
+				</View>
+
+				{/* Bottom spacing */}
+				<View style={{ height: insets.bottom + 20 }} />
+
+			</ScrollView>
+		</View>
+	)
 }
 
+// Social share button
+const SocialButton = ({ icon, label, color, iconStyle, onPress, theme }) => (
+	<Pressable onPress={onPress} style={styles.socialButton}>
+		<View style={[styles.socialCircle, { backgroundColor: color + '18' }]}>
+			<FontAwesome6 name={icon} size={18} color={color} iconStyle={iconStyle} />
+		</View>
+		<Text style={[styles.socialLabel, { color: theme.colors.secondaryText }]}>{label}</Text>
+	</Pressable>
+)
+
+// Step component for "how it works"
+const Step = ({ number, text, theme }) => (
+	<View style={styles.stepRow}>
+		<View style={[styles.stepCircle, { backgroundColor: theme.colors.primary + '20' }]}>
+			<Text style={[styles.stepNumber, { color: theme.colors.primary }]}>{number}</Text>
+		</View>
+		<Text style={[styles.stepText, { color: theme.colors.secondaryText }]}>{text}</Text>
+	</View>
+)
+
 const styles = StyleSheet.create({
-    referralItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-    },
+	statsCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		borderRadius: 12,
+		paddingVertical: 14,
+		paddingHorizontal: 20,
+		marginTop: 16,
+	},
+	statItem: {
+		flex: 1,
+		alignItems: 'center',
+		gap: 4,
+	},
+	statValue: {
+		fontSize: 20,
+		fontFamily: 'Rubik-Medium',
+	},
+	statLabel: {
+		fontSize: 11,
+		fontFamily: 'Rubik-Regular',
+	},
+	statDivider: {
+		width: 1,
+		height: 30,
+	},
+	shareCard: {
+		borderRadius: 12,
+		padding: 16,
+		marginTop: 12,
+	},
+	shareTitle: {
+		fontSize: 14,
+		fontFamily: 'Rubik-Medium',
+		marginBottom: 10,
+	},
+	linkBox: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 10,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderRadius: 8,
+	},
+	linkText: {
+		flex: 1,
+		fontSize: 13,
+		fontFamily: 'Rubik-Regular',
+	},
+	howItWorks: {
+		borderRadius: 12,
+		padding: 16,
+		marginTop: 12,
+	},
+	sectionTitle: {
+		fontSize: 14,
+		fontFamily: 'Rubik-Medium',
+	},
+	stepRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+		marginTop: 12,
+	},
+	stepCircle: {
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	stepNumber: {
+		fontSize: 13,
+		fontFamily: 'Rubik-Medium',
+	},
+	stepText: {
+		fontSize: 13,
+		fontFamily: 'Rubik-Regular',
+		flex: 1,
+	},
+	emptyState: {
+		borderRadius: 12,
+		padding: 30,
+		alignItems: 'center',
+		gap: 8,
+	},
+	emptyTitle: {
+		fontSize: 15,
+		fontFamily: 'Rubik-Medium',
+		marginTop: 4,
+	},
+	emptySubtitle: {
+		fontSize: 13,
+		fontFamily: 'Rubik-Regular',
+		textAlign: 'center',
+	},
+	referralRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		borderRadius: 10,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		marginBottom: 6,
+	},
+	badge: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
+	badgeText: {
+		fontSize: 11,
+		fontFamily: 'Rubik-Medium',
+	},
+	socialButton: {
+		alignItems: 'center',
+		gap: 6,
+	},
+	socialCircle: {
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	socialLabel: {
+		fontSize: 11,
+		fontFamily: 'Rubik-Regular',
+	},
 })
 
 export default Referals

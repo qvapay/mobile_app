@@ -22,7 +22,7 @@ const QPCoinRow = ({ coin, amount = '', direction = 'in' }) => {
 			<QPCoin coin={coin.logo} size={44} />
 			<View style={styles.info}>
 				<View style={styles.nameRow}>
-					<Text style={[textStyles.h5, { fontWeight: 'bold' }]}>{coin.name}</Text>
+					<Text style={[textStyles.h5, { fontFamily: 'Rubik-Medium' }]}>{coin.name}</Text>
 					{coin.network && (
 						<View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
 							<Text style={{ color: theme.colors.buttonText, fontSize: 9, fontWeight: '600' }}>
@@ -33,21 +33,21 @@ const QPCoinRow = ({ coin, amount = '', direction = 'in' }) => {
 				</View>
 				<View style={styles.stats}>
 					<View style={styles.stat}>
-						<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>${min}</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>${min}</Text>
 						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>{minLabel}</Text>
 					</View>
 					<View style={styles.stat}>
-						<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>{fee}%</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>{fee}%</Text>
 						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>{feeLabel}</Text>
 					</View>
 					<View style={styles.stat}>
-						<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>${Number(coin.price).toFixed(4)}</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>${Number(coin.price).toFixed(4)}</Text>
 						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>Precio</Text>
 					</View>
 					<View style={styles.statAprox}>
 						{amountNum > 0 ? (
 							<>
-								<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: 'bold' }]} numberOfLines={1}>{aprox.toFixed(5)}</Text>
+								<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: 'Rubik-Medium' }]} numberOfLines={1}>{aprox.toFixed(5)}</Text>
 								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>Aprox.</Text>
 							</>
 						) : (

@@ -78,7 +78,7 @@ export const ROUTES = {
     HELP_SCREEN: "Help",
 
     // Terms and Conditions
-    TERMS_AND_CONDITIONS: "https://qvpay.me/terms"
+    TERMS_AND_CONDITIONS: "https://www.qvapay.com/terms"
 }
 
 export const navItems = [

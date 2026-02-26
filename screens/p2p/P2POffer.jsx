@@ -1149,7 +1149,7 @@ const styles = StyleSheet.create({
 	},
 	typeText: {
 		fontSize: 10,
-		fontWeight: 'bold',
+		fontFamily: 'Rubik-Medium',
 		textTransform: 'uppercase'
 	},
 	amountRow: {
@@ -1182,7 +1182,7 @@ const styles = StyleSheet.create({
 	},
 	badgeText: {
 		fontSize: 10,
-		fontWeight: 'bold'
+		fontFamily: 'Rubik-Medium'
 	},
 	messageRow: {
 		flexDirection: 'row',

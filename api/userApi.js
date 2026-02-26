@@ -246,9 +246,9 @@ export const userApi = {
 	 * @param {string|number} idOrUuid - The identifier of the payment method
 	 * @returns {Promise<Object>} The deletion result
 	 */
-	deletePaymentMethod: async (idOrUuid) => {
+	deletePaymentMethod: async (id) => {
 		try {
-			const response = await apiClient.delete(`/user/payment-methods/${idOrUuid}`)
+			const response = await apiClient.delete(`/user/payment-methods`, { data: { id } })
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
 			if (error.response?.data) {

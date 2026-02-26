@@ -38,7 +38,7 @@ const DEFAULT_WITHDRAW_COINS = [
 	{ tick: 'ETECSA', label: 'ETECSA' },
 ]
 const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
-const MAX_QUICK_PILLS = 4
+const MAX_QUICK_PILLS = 3
 
 // Withdraw balance to certain coin
 const Withdraw = ({ navigation }) => {
@@ -360,6 +360,14 @@ const Withdraw = ({ navigation }) => {
 		if (numericText && index < codeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
 	}
 
+	// Auto-submit when all digits entered
+	useEffect(() => {
+		if (pin.length === codeLength && !sendingWithdraw) {
+			handleWithdraw()
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pin])
+
 	// Handle PIN input focus
 	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
 
@@ -409,7 +417,7 @@ const Withdraw = ({ navigation }) => {
 						/>
 					)
 				}
-	
+
 			>
 				<View style={{ flex: 1 }}>
 
@@ -579,6 +587,8 @@ const Withdraw = ({ navigation }) => {
 										secureTextEntry
 										textAlign="center"
 										selectTextOnFocus
+										textContentType="oneTimeCode"
+										autoComplete="sms-otp"
 										placeholder={focusedInputIndex === index ? "" : "0"}
 										placeholderTextColor={theme.colors.tertiaryText}
 									/>
@@ -628,17 +638,13 @@ const Withdraw = ({ navigation }) => {
 									onPress={() => handleCoinSelect(pill.coinData)}
 								>
 									<QPCoin coin={pill.coinData.logo} size={16} />
-									<Text style={[textStyles.caption, {
-										fontWeight: '600',
-										color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText,
-									}]}>{pill.label}</Text>
+									<Text style={[textStyles.caption, { fontWeight: '600', color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText, }]}>{pill.label}</Text>
 								</Pressable>
 							))}
 						</View>
 					)}
 
 					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-
 						{isLoading ? (
 							<View style={styles.loadingContainer}>
 								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
@@ -658,7 +664,6 @@ const Withdraw = ({ navigation }) => {
 								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
 							</View>
 						)}
-
 					</ScrollView>
 				</SafeAreaView>
 			</Modal>
@@ -679,7 +684,7 @@ const styles = StyleSheet.create({
 		flexWrap: 'wrap',
 		gap: 8,
 		paddingHorizontal: 20,
-		paddingTop: 10,
+		paddingVertical: 10,
 		justifyContent: 'center',
 	},
 	quickCoinPill: {
@@ -687,7 +692,7 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 6,
 		paddingHorizontal: 12,
-		paddingVertical: 6,
+		paddingVertical: 4,
 		borderRadius: 16,
 		borderWidth: 0.5,
 	},
@@ -703,13 +708,13 @@ const styles = StyleSheet.create({
 	},
 	closeButton: { padding: 5 },
 	coinList: { flex: 1 },
-	coinListContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
+	coinListContent: { paddingHorizontal: 10, paddingBottom: 20 },
 	coinItem: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		padding: 12,
 		borderRadius: 12,
-		marginBottom: 10,
+		marginBottom: 4,
 		borderWidth: 1,
 	},
 	loadingContainer: {
@@ -736,7 +741,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		borderWidth: 1,
 		fontSize: 24,
-		fontWeight: 'bold',
+		fontFamily: 'Rubik-Bold',
 		textAlign: 'center',
 	},
 	pinInputSmall: {

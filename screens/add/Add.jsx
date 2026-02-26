@@ -242,7 +242,7 @@ const Add = ({ navigation }) => {
 							<View style={[styles.sseDot, { backgroundColor: sseConnected ? theme.colors.success : theme.colors.danger }]} />
 							<View style={[styles.countdownBadge, { backgroundColor: getCountdownColor(countdown) + '20', borderColor: getCountdownColor(countdown) }]}>
 								<FontAwesome6 name="clock" size={12} color={getCountdownColor(countdown)} iconStyle="solid" />
-								<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontWeight: 'bold', marginLeft: 4 }]}>
+								<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontFamily: 'Rubik-Medium', marginLeft: 4 }]}>
 									{countdown > 0 ? formatCountdown(countdown) : 'Expirado'}
 								</Text>
 							</View>
@@ -348,7 +348,7 @@ const Add = ({ navigation }) => {
 								Total a pagar
 							</Text>
 							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-								<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontWeight: 'bold' }]}>
+								<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: 'Rubik-Bold' }]}>
 									{Number(topupData?.value).toFixed(8)}
 								</Text>
 								<Text style={[textStyles.h3, { color: theme.colors.primary, marginLeft: 8 }]}>
@@ -481,7 +481,7 @@ const Add = ({ navigation }) => {
 									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Total a pagar</Text>
 								</View>
 								<View style={styles.detailRight}>
-									<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: 'bold', flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+									<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontFamily: 'Rubik-Medium', flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
 										{Number(topupData?.value).toFixed(8)} {topupData?.coin}
 									</Text>
 									<Pressable onPress={() => copyTextToClipboard(Number(topupData?.value).toFixed(8))} hitSlop={8}>

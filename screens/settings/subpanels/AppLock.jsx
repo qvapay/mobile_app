@@ -446,7 +446,6 @@ const styles = StyleSheet.create({
 		height: 60,
 		borderRadius: 12,
 		fontSize: 24,
-		fontWeight: 'bold',
 		fontFamily: 'Rubik-Bold',
 		textAlign: 'center',
 	},

@@ -18,7 +18,7 @@ export const getLatestPosts = async (amount = 6) => {
             content: post.content.rendered,
             link: post.link,
             date: post.date,
-            featuredImage: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://qvpay.me/assets/qvapay-logo-white.png',
+            featuredImage: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://www.qvapay.com/assets/qvapay-logo-white.png',
             author: post._embedded?.author?.[0]?.name || 'QvaPay',
             categories: post._embedded?.['wp:term']?.[0] || []
         }))
@@ -46,7 +46,7 @@ export const getPostById = async (postId) => {
             content: post.content.rendered,
             link: post.link,
             date: post.date,
-            featuredImage: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://qvpay.me/assets/qvapay-logo-white.png',
+            featuredImage: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://www.qvapay.com/assets/qvapay-logo-white.png',
             author: post._embedded?.author?.[0]?.name || 'QvaPay',
             categories: post._embedded?.['wp:term']?.[0] || []
         }

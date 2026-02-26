@@ -199,6 +199,8 @@ const RegisterScreen = ({ navigation }) => {
                             prefixIconName="lock"
                             maxLength={4}
                             disabled={!pinEnabled}
+                            textContentType="oneTimeCode"
+                            autoComplete="sms-otp"
                         />
                     </>
                 ) : (
@@ -209,6 +211,8 @@ const RegisterScreen = ({ navigation }) => {
                             onChangeText={setName}
                             autoCapitalize="words"
                             prefixIconName="user"
+                            textContentType="givenName"
+                            autoComplete="name"
                         />
 
                         <QPInput
@@ -217,16 +221,19 @@ const RegisterScreen = ({ navigation }) => {
                             onChangeText={setLastname}
                             autoCapitalize="words"
                             prefixIconName="user"
+                            textContentType="familyName"
+                            autoComplete="name-family"
                         />
 
                         <QPInput
                             placeholder="tucorreo@gmail.com"
                             value={email}
-                            autoComplete="email"
                             onChangeText={setEmail}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             prefixIconName="envelope"
+                            textContentType="emailAddress"
+                            autoComplete="email"
                         />
 
                         <QPInput
@@ -244,6 +251,8 @@ const RegisterScreen = ({ navigation }) => {
                             secureTextEntry
                             prefixIconName="lock"
                             suffixIconName="eye"
+                            textContentType="newPassword"
+                            autoComplete="password-new"
                         />
 
                         <QPInput
@@ -253,6 +262,8 @@ const RegisterScreen = ({ navigation }) => {
                             secureTextEntry
                             prefixIconName="lock"
                             suffixIconName="eye"
+                            textContentType="newPassword"
+                            autoComplete="password-new"
                         />
 
                         {/* Terms and Conditions Checkbox */}

@@ -189,6 +189,8 @@ const LockScreen = () => {
 							secureTextEntry
 							textAlign="center"
 							selectTextOnFocus
+							textContentType="oneTimeCode"
+							autoComplete="sms-otp"
 							placeholder={focusedInputIndex === index ? '' : '0'}
 							placeholderTextColor={theme.colors.tertiaryText}
 						/>

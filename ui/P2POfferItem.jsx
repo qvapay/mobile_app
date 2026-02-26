@@ -109,7 +109,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 						<View style={{ gap: 2, alignItems: 'flex-end' }}>
 							{badges.map((badge) => (
 								<View key={badge.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-									<Text style={[textStyles.caption, { color: badge.color, fontSize: 10, fontWeight: 'bold' }]}>{badge.label}</Text>
+									<Text style={[textStyles.caption, { color: badge.color, fontSize: 10, fontFamily: 'Rubik-Medium' }]}>{badge.label}</Text>
 									<View style={{ width: 2, height: 12, backgroundColor: badge.color }} />
 								</View>
 							))}

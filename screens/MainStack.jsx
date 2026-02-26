@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pressable, View, Text, Platform } from 'react-native'
+import { Pressable, View, Text, Image, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Tab Navigators: native for iOS (liquid glass), JS-based for Android (full style control)
@@ -66,6 +66,7 @@ const MainStack = ({ navigation }) => {
 	const insets = useSafeAreaInsets()
 	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
 	const textStyles = useMemo(() => createTextStyles(theme), [theme])
+	const qvapayLogo = theme.isDark ? require('../assets/images/ui/qvapay-logo-white.png') : require('../assets/images/ui/logo-qvapay.png')
 
 	// Add safety check for user data
 	// If user is not authenticated or user data is missing,
@@ -78,7 +79,7 @@ const MainStack = ({ navigation }) => {
 		headerTitle: '',
 		headerShown: true,
 		headerShadowVisible: false,
-		headerStyle: { backgroundColor: theme.colors.background, height: 56 + insets.top },
+		headerStyle: { backgroundColor: theme.colors.background, height: 64 + insets.top },
 		headerTintColor: theme.colors.primaryText,
 		// Android fallback
 		headerLeft: () => (
@@ -136,10 +137,15 @@ const MainStack = ({ navigation }) => {
 		// Android fallback
 		headerLeft: () => (
 			<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-				<QPAvatar user={user} size={32} />
+				<QPAvatar user={user} size={36} />
 				<View style={{ marginLeft: 10 }}>
-					<Text style={textStyles.h4}>Hola {user.name}!</Text>
-					<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+						<Text style={textStyles.h4}>{user.name}</Text>
+						{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 16, height: 16 }} />)}
+						{user.golden_check && (<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />)}
+						{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 16, height: 16 }} />)}
+					</View>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
 				</View>
 			</Pressable>
 		),
@@ -149,10 +155,15 @@ const MainStack = ({ navigation }) => {
 				type: 'custom',
 				element: (
 					<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-						<QPAvatar user={user} size={28} />
+						<QPAvatar user={user} size={36} />
 						<View style={{ marginLeft: 8 }}>
-							<Text style={textStyles.h4}>Hola {user.name}!</Text>
-							<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user.username}</Text>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+								<Text style={textStyles.h4}>{user.name}</Text>
+								{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 14, height: 14 }} />)}
+								{user.golden_check && (<FontAwesome6 name="crown" size={11} color={theme.colors.gold} iconStyle="solid" />)}
+								{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 14, height: 14 }} />)}
+							</View>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user.username}</Text>
 						</View>
 					</Pressable>
 				),

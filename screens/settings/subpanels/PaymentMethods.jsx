@@ -38,7 +38,7 @@ const PaymentMethods = ({ navigation }) => {
 	useEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
-				<Pressable style={containerStyles.headerRight} onPress={openCreate}>
+				<Pressable onPress={openCreate} hitSlop={8}>
 					<FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 				</Pressable>
 			)
@@ -164,7 +164,6 @@ const PaymentMethods = ({ navigation }) => {
 
 	// Handle delete method
 	const handleDelete = (method) => {
-
 		const id = method?.id || method?.uuid || method?.ID || method?.Id
 		if (!id) { Toast.show({ type: 'error', text1: 'ID de método inválido' }); return }
 		Alert.alert(
@@ -174,11 +173,12 @@ const PaymentMethods = ({ navigation }) => {
 				{ text: 'Cancelar', style: 'cancel' },
 				{
 					text: 'Eliminar', style: 'destructive', onPress: async () => {
+						setMethods(prev => prev.filter(m => (m.id || m.uuid) !== id))
 						try {
 							const res = await userApi.deletePaymentMethod(id)
-							if (res.success) { Toast.show({ type: 'success', text1: 'Método eliminado' }); refresh() }
-							else { Toast.show({ type: 'error', text1: res.error || 'No se pudo eliminar' }) }
-						} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
+							if (res.success) { Toast.show({ type: 'success', text1: 'Método eliminado' }) }
+							else { Toast.show({ type: 'error', text1: res.error || 'No se pudo eliminar' }); refresh() }
+						} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }); refresh() }
 					}
 				}
 			]
@@ -202,7 +202,7 @@ const PaymentMethods = ({ navigation }) => {
 				)}
 
 				{/* Methods list */}
-				<View style={{ marginTop: 10 }}>
+				<View style={{ marginTop: 10, marginBottom: 20 }}>
 					{methods.length === 0 ? (
 						<View style={[containerStyles.card, { alignItems: 'center' }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No tienes métodos de pago guardados</Text>
@@ -213,9 +213,8 @@ const PaymentMethods = ({ navigation }) => {
 							const logo = method?.coin?.logo
 							const rawDetails = (method && (method.details || method.Details)) || null
 							const details = Array.isArray(rawDetails) ? rawDetails : (rawDetails && typeof rawDetails === 'object') ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
-
 							return (
-								<View key={method.id || method.uuid || JSON.stringify(method)} style={containerStyles.card}>
+								<View key={method.id || method.uuid || JSON.stringify(method)} style={[containerStyles.card, { marginVertical: 4 }]}>
 									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 										<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 											<QPCoin coin={logo} size={28} />

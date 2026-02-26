@@ -263,7 +263,7 @@ const LoginScreen = ({ navigation }) => {
 					Toast.show({ type: 'error', text1: result.error, text2: result.details })
 				}
 				if (result.status === 401) {
-		setFailedAttempts(failedAttempts + 1)
+					setFailedAttempts(failedAttempts + 1)
 				}
 			}
 			if (result.success) {
@@ -325,6 +325,12 @@ const LoginScreen = ({ navigation }) => {
 
 		if (numericText && index < expectedCodeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
 	}
+
+	// Auto-submit when all digits entered
+	useEffect(() => {
+		if (showPin && twoFactorCode.length === expectedCodeLength && !isLoading) { handleLogin() }
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [twoFactorCode])
 
 	// Handle PIN input focus
 	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
@@ -407,6 +413,8 @@ const LoginScreen = ({ navigation }) => {
 											secureTextEntry
 											textAlign="center"
 											selectTextOnFocus
+											textContentType="oneTimeCode"
+											autoComplete="sms-otp"
 											placeholder={focusedInputIndex === index ? "" : "0"}
 											placeholderTextColor={theme.colors.tertiaryText}
 										/>
@@ -432,6 +440,8 @@ const LoginScreen = ({ navigation }) => {
 									keyboardType="email-address"
 									autoCapitalize="none"
 									prefixIconName="envelope"
+									textContentType="emailAddress"
+									autoComplete="email"
 								/>
 
 								<QPInput
@@ -441,6 +451,8 @@ const LoginScreen = ({ navigation }) => {
 									secureTextEntry
 									prefixIconName="lock"
 									suffixIconName="eye"
+									textContentType="password"
+									autoComplete="password"
 								/>
 
 								<QPButton
@@ -532,7 +544,7 @@ const styles = StyleSheet.create({
 		height: 60,
 		borderRadius: 12,
 		fontSize: 24,
-		fontWeight: 'bold',
+		fontFamily: 'Rubik-Bold',
 		textAlign: 'center'
 	},
 	pinInputSmall: {
@@ -540,7 +552,7 @@ const styles = StyleSheet.create({
 		height: 46,
 		borderRadius: 10,
 		fontSize: 20,
-		fontWeight: 'bold',
+		fontFamily: 'Rubik-Bold',
 		textAlign: 'center'
 	},
 	biometricButton: {
