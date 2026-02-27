@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import FastImage from '@d11/react-native-fast-image'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -22,27 +21,8 @@ import { storeApi } from '../../api/storeApi'
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
-// Helpers
-import { statusText } from '../../helpers'
-
 // Toast
 import Toast from 'react-native-toast-message'
-
-// Status colors (same pattern as Transaction.jsx)
-const getStatusColor = (status, theme) => {
-	switch (status) {
-		case 'paid': case 'completed': case 'received': return theme.colors.success
-		case 'pending': case 'processing': return theme.colors.warning
-		case 'cancelled': case 'failed': return theme.colors.danger
-		default: return theme.colors.secondaryText
-	}
-}
-
-// Get logo URL (same pattern as QPProduct)
-const getLogoUrl = (logo) => {
-	if (!logo) return ''
-	return logo.startsWith('http') ? logo : `https://media.qvapay.com/${logo}`
-}
 
 // Store component
 const Store = ({ navigation }) => {
@@ -52,6 +32,9 @@ const Store = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
+	const { width: screenWidth } = useWindowDimensions()
+	const numColumns = screenWidth >= 1024 ? 4 : screenWidth >= 768 ? 3 : 2
+	const itemWidth = numColumns === 4 ? '23.5%' : numColumns === 3 ? '31.5%' : '48%'
 
 	// States
 	const [search, setSearch] = useState('')
@@ -64,10 +47,12 @@ const Store = ({ navigation }) => {
 
 	// Fetch store data
 	const fetchData = useCallback(async (refresh = false) => {
+
 		if (refresh) { setIsRefreshing(true) }
 		else { setIsLoading(true) }
 
 		try {
+
 			const [topupResponse, giftCardResponse, purchasesResponse] = await Promise.all([
 				storeApi.phonePackages(),
 				storeApi.getGiftCards({ featured: true, take: 6 }),
@@ -78,20 +63,15 @@ const Store = ({ navigation }) => {
 				const all = topupResponse.data || []
 				setExternalPlans(all.filter((p) => p.external === true))
 				setMicroPlans(all.filter((p) => p.external === false))
-			} else {
-				Toast.show({ type: 'error', text1: 'Recargas', text2: topupResponse.error || 'No se pudieron cargar las recargas' })
-			}
+			} else { Toast.show({ type: 'error', text1: 'Recargas', text2: topupResponse.error || 'No se pudieron cargar las recargas' }) }
 
 			if (giftCardResponse.success) {
 				const cards = Array.isArray(giftCardResponse.data) ? giftCardResponse.data : []
 				setGiftCards(cards)
-			} else {
-				Toast.show({ type: 'error', text1: 'Tarjetas', text2: giftCardResponse.error || 'No se pudieron cargar las tarjetas de regalo' })
-			}
+			} else { Toast.show({ type: 'error', text1: 'Tarjetas', text2: giftCardResponse.error || 'No se pudieron cargar las tarjetas de regalo' }) }
 
-			if (purchasesResponse.success) {
-				setMyPurchases(purchasesResponse.data || [])
-			}
+			if (purchasesResponse.success) { setMyPurchases(purchasesResponse.data || []) }
+
 		} catch (error) {
 			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo conectar con el servidor' })
 		} finally {
@@ -131,7 +111,7 @@ const Store = ({ navigation }) => {
 						Platform.OS === 'ios' ? (
 							<View style={styles.grid}>
 								{microPlans.map((plan) => (
-									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: '48%', marginRight: 0 }} />
+									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: itemWidth, marginRight: 0 }} />
 								))}
 							</View>
 						) : (
@@ -155,7 +135,7 @@ const Store = ({ navigation }) => {
 						Platform.OS === 'ios' ? (
 							<View style={styles.grid}>
 								{externalPlans.map((plan) => (
-									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: '48%', marginRight: 0 }} />
+									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: itemWidth, marginRight: 0 }} />
 								))}
 							</View>
 						) : (
@@ -179,7 +159,7 @@ const Store = ({ navigation }) => {
 						{giftCards.length > 0 ? (
 							<View style={styles.grid}>
 								{giftCards.map((card) => (
-									<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} style={{ width: '48%', marginRight: 0 }} />
+									<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} style={{ width: itemWidth, marginRight: 0 }} />
 								))}
 							</View>
 						) : (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, FlatList, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, FlatList, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Theme Context
@@ -33,6 +33,9 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
+	const { width: screenWidth } = useWindowDimensions()
+	const numColumns = screenWidth >= 1024 ? 4 : screenWidth >= 768 ? 3 : 2
+	const itemWidth = numColumns === 4 ? '23.5%' : numColumns === 3 ? '31.5%' : '48%'
 
 	// States
 	const [search, setSearch] = useState('')
@@ -56,7 +59,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 			}
 			else { Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudieron obtener las recargas telefónicas' }) }
 		} catch (error) {
-		Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las recargas' })
+			Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las recargas' })
 		} finally {
 			setIsLoading(false)
 			setIsRefreshing(false)
@@ -74,9 +77,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 		let filtered = phonePackages
 
 		// Apply external filter from route params
-		if (external !== undefined) {
-			filtered = filtered.filter((pkg) => pkg.external === external)
-		}
+		if (external !== undefined) { filtered = filtered.filter((pkg) => pkg.external === external) }
 
 		// Apply search filter
 		if (search.trim()) {
@@ -176,11 +177,12 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 												logo={item.logo}
 												image={item.image}
 												onPress={() => handlePackageSelect(item)}
-												style={styles.packageCard}
+												style={[styles.packageCard, { width: itemWidth }]}
 											/>
 										)
 									}}
-									numColumns={2}
+									numColumns={numColumns}
+									key={numColumns}
 									columnWrapperStyle={styles.row}
 									scrollEnabled={false}
 									contentContainerStyle={styles.listContent}
@@ -254,4 +256,3 @@ const styles = StyleSheet.create({
 })
 
 export default PhoneTopupIndex
-
