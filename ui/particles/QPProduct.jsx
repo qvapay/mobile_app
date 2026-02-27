@@ -25,27 +25,30 @@ const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo
 	return (
 		<Pressable style={[styles.topupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]} onPress={onPress}>
 
-			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight, ...style.imagePlaceholder }]}>
+			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]}>
 				{logoImage ? (
 					<FastImage source={{ uri: logoImage, priority: FastImage.priority.normal }} style={styles.topupImage} resizeMode={FastImage.resizeMode.cover} />
 				) : null}
 			</View>
 
-			{price != null ? (
-				hasGoldPrice ? (
-					<View style={styles.priceRow}>
-						<Text style={[textStyles.caption, styles.strikePrice, { color: theme.colors.tertiaryText }]}>${Number(price).toFixed(2)}</Text>
-						<Text style={[textStyles.h5, styles.goldPrice, { color: theme.colors.gold }]}>${Number(goldPrice).toFixed(2)}</Text>
-					</View>
-				) : (
-					<Text style={[textStyles.h5, styles.topupPrice]}>{`$${Number(price).toFixed(2)}`}</Text>
-				)
-			) : null}
-
-			<Text style={[textStyles.h6, styles.topupTitle, { color: theme.colors.secondaryText }]} numberOfLines={2}>{name}</Text>
-			{Array.isArray(details) && details.length > 0 && (
-				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: 10 }]}>{details.join(' • ')}</Text>
-			)}
+			<View style={styles.topupContent}>
+				<View style={styles.infoRow}>
+					<Text style={[textStyles.h6, styles.topupTitle, { color: theme.colors.secondaryText, flex: 1, marginRight: 6 }]} numberOfLines={2}>{name}</Text>
+					{price != null && (
+						hasGoldPrice ? (
+							<View style={styles.priceColumn}>
+								<Text style={[textStyles.caption, styles.strikePrice, { color: theme.colors.tertiaryText }]}>${Number(price).toFixed(2)}</Text>
+								<Text style={[textStyles.h5, styles.goldPrice, { color: theme.colors.gold }]}>${Number(goldPrice).toFixed(2)}</Text>
+							</View>
+						) : (
+							<Text style={[textStyles.h5, styles.topupPrice]}>{`$${Number(price).toFixed(2)}`}</Text>
+						)
+					)}
+				</View>
+				{Array.isArray(details) && details.length > 0 && (
+					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: 10 }]}>{details.join(' • ')}</Text>
+				)}
+			</View>
 		</Pressable>
 	)
 }
@@ -54,29 +57,30 @@ const styles = StyleSheet.create({
 	topupCard: {
 		width: 168,
 		borderRadius: 12,
-		padding: 8,
 		marginRight: 12,
 		borderWidth: 0.5,
+		overflow: 'hidden',
 	},
 	topupImagePlaceholder: {
 		height: 80,
-		borderRadius: 8,
-		marginBottom: 8,
-		overflow: 'hidden',
+	},
+	topupContent: {
+		padding: 8,
 	},
 	topupImage: {
 		width: '100%',
 		height: '100%',
 	},
+	infoRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'flex-start',
+	},
 	topupPrice: {
 		fontWeight: '700',
-		marginBottom: 2,
 	},
-	priceRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 6,
-		marginBottom: 2,
+	priceColumn: {
+		alignItems: 'flex-end',
 	},
 	strikePrice: {
 		textDecorationLine: 'line-through',

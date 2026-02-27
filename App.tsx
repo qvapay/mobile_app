@@ -378,7 +378,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 			<Stack.Screen
 				name={ROUTES.PHONE_TOPUP_INDEX}
 				component={PhoneTopupIndex}
-				options={getHeaderOptions('Recargas telefónicas')}
+				options={({ route }) => getHeaderOptions(route.params?.external === true ? 'Recargas del exterior' : route.params?.external === false ? 'Microrecargas' : 'Recargas telefónicas')}
 			/>
 			<Stack.Screen
 				name={ROUTES.PHONE_TOPUP_PURCHASE}

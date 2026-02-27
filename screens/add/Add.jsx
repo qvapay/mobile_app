@@ -39,7 +39,7 @@ import Toast from 'react-native-toast-message'
 const Add = ({ navigation }) => {
 
 	// User Context
-	const { user } = useAuth()
+	const { user, updateUser } = useAuth()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -64,9 +64,13 @@ const Add = ({ navigation }) => {
 	const handleDepositStatusChange = useCallback((newStatus) => {
 		setDepositStatus(newStatus)
 		if (newStatus === 'paid') {
-			// Stop countdown on successful payment
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			Toast.show({ type: 'success', text1: 'Pago confirmado', text2: 'Tu depósito ha sido procesado exitosamente' })
+			// Close modal and refresh balance after a brief delay
+			setTimeout(() => {
+				setShowDepositModal(false)
+				updateUser()
+			}, 2000)
 		} else if (newStatus === 'expired') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			setCountdown(0)
@@ -93,7 +97,7 @@ const Add = ({ navigation }) => {
 				const response = await apiClient.get('/coins/v2?enabled_in=true')
 				setAvailableCoins(response.data)
 			} catch (error) {
-		setError('Error al cargar las monedas disponibles')
+				setError('Error al cargar las monedas disponibles')
 			} finally { setIsLoading(false) }
 		}
 		fetchAvailableCoins()
@@ -174,7 +178,7 @@ const Add = ({ navigation }) => {
 						textStyle={{ color: theme.colors.almostWhite }}
 					/>
 				}
-	
+
 			>
 
 				{/* Amount Input Component */}
@@ -242,7 +246,7 @@ const Add = ({ navigation }) => {
 							<View style={[styles.sseDot, { backgroundColor: sseConnected ? theme.colors.success : theme.colors.danger }]} />
 							<View style={[styles.countdownBadge, { backgroundColor: getCountdownColor(countdown) + '20', borderColor: getCountdownColor(countdown) }]}>
 								<FontAwesome6 name="clock" size={12} color={getCountdownColor(countdown)} iconStyle="solid" />
-								<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontFamily: 'Rubik-Medium', marginLeft: 4 }]}>
+								<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontFamily: 'Rubik-Medium', marginLeft: 4, fontVariant: ['tabular-nums'], minWidth: 42 }]}>
 									{countdown > 0 ? formatCountdown(countdown) : 'Expirado'}
 								</Text>
 							</View>
@@ -255,14 +259,6 @@ const Add = ({ navigation }) => {
 					<ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentContainer}>
 
 						{/* Deposit Status Banner */}
-						{depositStatus === 'pending' && countdown > 0 && (
-							<View style={[styles.statusBanner, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
-								<FontAwesome6 name="circle-dot" size={14} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.subtitle, { color: theme.colors.primary, marginLeft: 8, flex: 1 }]}>
-									Esperando pago...
-								</Text>
-							</View>
-						)}
 						{depositStatus === 'processing' && (
 							<View style={[styles.statusBanner, { backgroundColor: theme.colors.warning + '15', borderColor: theme.colors.warning }]}>
 								<FontAwesome6 name="spinner" size={14} color={theme.colors.warning} iconStyle="solid" />
@@ -323,19 +319,24 @@ const Add = ({ navigation }) => {
 							</View>
 						</View>
 
-						{/* QR Code Section - Always White Background */}
+						{/* QR Code Section */}
 						<View style={styles.qrSection}>
-							<View style={styles.qrContainerWhite}>
+							<View style={[styles.qrCard, { backgroundColor: theme.colors.surface }]}>
 								<QRCodeStyled
 									data={topupData?.wallet}
-									size={220}
-									pieceScale={0.5}
-									style={{ backgroundColor: '#FFFFFF', borderRadius: 12 }}
-									padding={10}
-									pieceSize={4}
+									style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}
+									size={280}
+									padding={12}
+									pieceSize={8}
+									isPiecesGlued
+									pieceBorderRadius={2}
+									pieceCornerType={'cut'}
+									errorCorrectionLevel={'H'}
+									preserveAspectRatio="none"
 									backgroundColor={'#FFFFFF'}
 									color={'#000000'}
 									outerEyesOptions={{
+										borderRadius: 2,
 										color: theme.colors.primary,
 									}}
 								/>
@@ -358,13 +359,6 @@ const Add = ({ navigation }) => {
 							<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 4 }]}>
 								1 {topupData?.coin} ≈ ${Number(topupData?.price).toFixed(6)}
 							</Text>
-							<Pressable
-								onPress={() => copyTextToClipboard(Number(topupData?.value).toFixed(8))}
-								style={[styles.copyAmountButton, { borderColor: theme.colors.primary + '40' }]}
-							>
-								<FontAwesome6 name="copy" size={12} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.caption, { color: theme.colors.primary, marginLeft: 6 }]}>Copiar monto</Text>
-							</Pressable>
 						</View>
 
 						{/* Deposit Details Card */}
@@ -708,28 +702,14 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		marginVertical: 16,
 	},
-	qrContainerWhite: {
-		padding: 20,
-		borderRadius: 16,
-		backgroundColor: '#FFFFFF',
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 8,
-		elevation: 4,
+	qrCard: {
+		padding: 16,
+		borderRadius: 20,
+		alignItems: 'center',
 	},
 	amountSection: {
 		alignItems: 'center',
 		marginVertical: 16,
-	},
-	copyAmountButton: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 10,
-		paddingHorizontal: 14,
-		paddingVertical: 7,
-		borderRadius: 20,
-		borderWidth: 1,
 	},
 	depositDetailsCard: {
 		borderRadius: 16,

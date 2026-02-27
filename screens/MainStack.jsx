@@ -2,10 +2,13 @@ import { useMemo } from 'react'
 import { Pressable, View, Text, Image, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// Tab Navigators: native for iOS (liquid glass), JS-based for Android (full style control)
+// Liquid glass requires iOS 26+
+const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
+
+// Tab Navigators: native for iOS 26+ (liquid glass), JS-based for Android and older iOS
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable'
-const Tab = Platform.OS === 'ios' ? createNativeBottomTabNavigator() : createBottomTabNavigator()
+const Tab = supportsLiquidGlass ? createNativeBottomTabNavigator() : createBottomTabNavigator()
 
 // Routes
 import { ROUTES } from '../routes'
@@ -47,7 +50,7 @@ const TAB_ICONS = {
 
 const getTabIcon = (routeName) => {
 	const config = TAB_ICONS[routeName]
-	if (Platform.OS === 'ios') {
+	if (supportsLiquidGlass) {
 		return { type: 'sfSymbol', name: config.ios }
 	}
 	return ({ color, size }) => (
@@ -92,8 +95,8 @@ const MainStack = ({ navigation }) => {
 				<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
 		),
-		// iOS native header items (liquid glass compatible)
-		...(Platform.OS === 'ios' && {
+		// iOS 26+ native header items (liquid glass compatible)
+		...(supportsLiquidGlass && {
 			unstable_headerLeftItems: () => [{
 				type: 'custom',
 				element: (
@@ -113,8 +116,8 @@ const MainStack = ({ navigation }) => {
 		tabBarActiveTintColor: theme.colors.primary,
 		tabBarInactiveTintColor: theme.colors.secondaryText,
 		tabBarShowLabel: showLabels,
-		// Android tab bar styling
-		...(Platform.OS === 'android' && {
+		// Tab bar styling for Android and pre-liquid-glass iOS
+		...(!supportsLiquidGlass && {
 			tabBarStyle: {
 				backgroundColor: theme.colors.background,
 				borderTopColor: theme.colors.surface,
@@ -149,8 +152,8 @@ const MainStack = ({ navigation }) => {
 				</View>
 			</Pressable>
 		),
-		// iOS native header items (liquid glass compatible)
-		...(Platform.OS === 'ios' && {
+		// iOS 26+ native header items (liquid glass compatible)
+		...(supportsLiquidGlass && {
 			unstable_headerLeftItems: () => [{
 				type: 'custom',
 				element: (
@@ -197,8 +200,8 @@ const MainStack = ({ navigation }) => {
 				<FontAwesome6 name="cart-shopping" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
 		),
-		// iOS native header items (liquid glass compatible)
-		...(Platform.OS === 'ios' && {
+		// iOS 26+ native header items (liquid glass compatible)
+		...(supportsLiquidGlass && {
 			unstable_headerRightItems: () => [{
 				type: 'button',
 				label: 'Carrito',

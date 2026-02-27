@@ -240,7 +240,7 @@ export default function Keypad({ navigation }) {
 	}, [amount])
 
 	return (
-		<View style={[containerStyles.container, styles.container, { paddingBottom: Platform.OS === 'ios' ? insets.bottom + 60 : insets.bottom }]}>
+		<View style={[containerStyles.container, styles.container, Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26 && { paddingBottom: insets.bottom + 60 }]}>
 			{/* Amount Display Section */}
 			<View style={styles.amountSection}>
 
@@ -322,12 +322,11 @@ const styles = StyleSheet.create({
 	},
 	keypadSection: {
 		paddingHorizontal: 5,
-		marginBottom: 20,
 	},
 	keypadRow: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
-		marginBottom: 20,
+		marginBottom: 12,
 	},
 	keyButton: {
 		flex: 1,
@@ -353,7 +352,8 @@ const styles = StyleSheet.create({
 	},
 	actionSection: {
 		flexDirection: 'row',
-		paddingHorizontal: 5
+		paddingHorizontal: 5,
+		paddingBottom: 8,
 	},
 	actionButton: {
 		flex: 1,

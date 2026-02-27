@@ -1,5 +1,6 @@
 import Toast from 'react-native-toast-message'
 import Clipboard from '@react-native-clipboard/clipboard'
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 
 // Calculate time since data
 const timeSince = (date) => {
@@ -229,11 +230,13 @@ const shuffleArray = (array) => {
 // Copy wallet address to clipboard
 const copyTextToClipboard = (text) => {
 	Clipboard.setString(text)
+	ReactNativeHapticFeedback.trigger('notificationSuccess', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
 	Toast.show({
 		type: 'success',
-		text1: 'Elemento copiado al portapapeles',
+		text1: 'Copiado al portapapeles',
 		position: 'bottom',
 		bottomOffset: 10,
+		visibilityTime: 1500,
 	})
 }
 

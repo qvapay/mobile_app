@@ -49,9 +49,7 @@ export const userApi = {
 		try {
 			const response = await apiClient.get(`/user/kyc`)
 			return { success: true, data: response.data?.data, raw: response.data, status: response.status }
-		} catch (error) {
-			return { success: false, error: error.message, status: error.response?.status, details: error.response?.data }
-		}
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status, details: error.response?.data } }
 	},
 
 	/**
@@ -61,18 +59,8 @@ export const userApi = {
 	getUserProfile: async () => {
 		try {
 			const response = await apiClient.get(`/user/extended`)
-			return {
-				success: true,
-				data: response.data,
-				status: response.status
-			}
-		} catch (error) {
-			return {
-				success: false,
-				error: error.message,
-				status: error.response?.status
-			}
-		}
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
 	},
 
 	/**
@@ -83,18 +71,8 @@ export const userApi = {
 	updateUser: async (userData) => {
 		try {
 			const response = await apiClient.post(`/user/update`, userData)
-			return {
-				success: true,
-				data: response.data,
-				status: response.status
-			}
-		} catch (error) {
-			return {
-				success: false,
-				error: error.message,
-				status: error.response?.status
-			}
-		}
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
 	},
 
 	/**

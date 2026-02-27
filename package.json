@@ -1,6 +1,6 @@
 {
   "name": "QvaPay",
-  "version": "1.3.2",
+  "version": "1.3.4",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -39,6 +39,7 @@
     "react-native-bouncy-checkbox": "^4.1.4",
     "react-native-contacts": "^8.0.10",
     "react-native-device-info": "^15.0.1",
+    "react-native-haptic-feedback": "^2.3.3",
     "react-native-iap": "^14.7.11",
     "react-native-image-picker": "^8.2.1",
     "react-native-international-phone-number": "^0.11.6",

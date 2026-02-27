@@ -62,8 +62,7 @@ const P2PCreate = ({ navigation }) => {
 	const [advancedOpen, setAdvancedOpen] = useState(false)
 
 	// Advanced P2P Settings
-	const [onlyVerified, setOnlyVerified] = useState(true)
-	const [onlyVIP, setOnlyVIP] = useState(true)
+	const [onlyVIP, setOnlyVIP] = useState(false)
 	const [privateOffer, setPrivateOffer] = useState(false)
 
 	// Coins selector state (mirrors Withdraw)
@@ -174,7 +173,6 @@ const P2PCreate = ({ navigation }) => {
 				amount: amt,
 				receive: rcv,
 				details: detailsArray,
-				only_kyc: onlyVerified ? 1 : 0,
 				only_vip: onlyVIP ? 1 : 0,
 				private: privateOffer ? 1 : 0,
 				message: message,
@@ -442,10 +440,6 @@ const P2PCreate = ({ navigation }) => {
 					{advancedOpen && (
 						<View style={{ marginTop: 10, gap: 10 }}>
 							<View style={[styles.switchRow, { marginTop: 12 }]}>
-								<Text style={[textStyles.h6]}>Solo usuarios verificados</Text>
-								<Switch value={onlyVerified} onValueChange={setOnlyVerified} trackColor={{ true: theme.colors.primary }} />
-							</View>
-							<View style={styles.switchRow}>
 								<Text style={[textStyles.h6]}>Solo usuarios VIP</Text>
 								<Switch value={onlyVIP} onValueChange={setOnlyVIP} trackColor={{ true: theme.colors.primary }} />
 							</View>

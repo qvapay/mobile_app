@@ -115,7 +115,6 @@ const P2P = ({ navigation, route }) => {
 	const [maxAmount, setMaxAmount] = useState("")
 	const [ratioMin, setRatioMin] = useState("")
 	const [ratioMax, setRatioMax] = useState("")
-	const [onlyKyc, setOnlyKyc] = useState(false)
 	const [onlyVip, setOnlyVip] = useState(false)
 
 	// Scroll-hide filter bar (Twitter-style)
@@ -178,11 +177,10 @@ const P2P = ({ navigation, route }) => {
 			maxAmount !== "" ||
 			ratioMin !== "" ||
 			ratioMax !== "" ||
-			onlyKyc ||
 			onlyVip ||
 			typeFilter
 		)
-	}, [showMine, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, onlyKyc, onlyVip, typeFilter])
+	}, [showMine, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, onlyVip, typeFilter])
 
 	// Filters object used for API
 	const PAGE_SIZE = 30
@@ -199,10 +197,9 @@ const P2P = ({ navigation, route }) => {
 		if (maxAmount !== "" && !isNaN(parseFloat(maxAmount))) { filters.max = parseFloat(maxAmount) }
 		if (ratioMin !== "" && !isNaN(parseFloat(ratioMin))) { filters.ratio_min = parseFloat(ratioMin) }
 		if (ratioMax !== "" && !isNaN(parseFloat(ratioMax))) { filters.ratio_max = parseFloat(ratioMax) }
-		if (onlyKyc) { filters.only_kyc = 1 }
 		if (onlyVip) { filters.only_vip = 1 }
 		return filters
-	}, [typeFilter, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, showMine, onlyKyc, onlyVip, orderBy, orderType])
+	}, [typeFilter, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, showMine, onlyVip, orderBy, orderType])
 
 	// Coins for selector
 	const [availableCoins, setAvailableCoins] = useState([])
@@ -400,10 +397,9 @@ const P2P = ({ navigation, route }) => {
 		if (maxAmount !== "") badges.push({ key: "maxAmount", label: `Max: $${maxAmount}`, onRemove: () => setMaxAmount("") })
 		if (ratioMin !== "") badges.push({ key: "ratioMin", label: `Ratio ≥ ${ratioMin}`, onRemove: () => setRatioMin("") })
 		if (ratioMax !== "") badges.push({ key: "ratioMax", label: `Ratio ≤ ${ratioMax}`, onRemove: () => setRatioMax("") })
-		if (onlyKyc) badges.push({ key: "onlyKyc", label: "Solo KYC", onRemove: () => setOnlyKyc(false) })
 		if (onlyVip) badges.push({ key: "onlyVip", label: "Solo VIP", onRemove: () => setOnlyVip(false) })
 		return badges
-	}, [showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyKyc, onlyVip])
+	}, [showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip])
 
 	// Remove a filter badge and re-fetch
 	const handleRemoveBadge = (badge) => {
@@ -543,7 +539,7 @@ const P2P = ({ navigation, route }) => {
 									value={showMine}
 									onValueChange={setShowMine}
 									trackColor={{ true: theme.colors.primary }}
-									style={{ width: 50, height: 30 }}
+									style={{ transform: [{ scale: 0.85 }] }}
 								/>
 							</View>
 
@@ -609,23 +605,14 @@ const P2P = ({ navigation, route }) => {
 								</View>
 							</View>
 
-							{/* Only KYC / VIP */}
-							<View style={styles.rowBetween}>
-								<Text style={textStyles.h6}>Solo KYC</Text>
-								<Switch
-									value={onlyKyc}
-									onValueChange={setOnlyKyc}
-									trackColor={{ true: theme.colors.primary }}
-									style={{ width: 50, height: 30 }}
-								/>
-							</View>
+							{/* Only VIP */}
 							<View style={styles.rowBetween}>
 								<Text style={textStyles.h6}>Solo VIP</Text>
 								<Switch
 									value={onlyVip}
 									onValueChange={setOnlyVip}
 									trackColor={{ true: theme.colors.primary }}
-									style={{ width: 50, height: 30 }}
+									style={{ transform: [{ scale: 0.85 }] }}
 								/>
 							</View>
 						</ScrollView>
@@ -633,7 +620,7 @@ const P2P = ({ navigation, route }) => {
 						{/* Action buttons */}
 						<View style={styles.filterCardActions}>
 							<Pressable
-								onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyKyc(false); setOnlyVip(false); setSortIndex(0); }}
+								onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyVip(false); setSortIndex(0); }}
 								style={[styles.filterCardActionButton, { backgroundColor: theme.colors.elevation }]}
 							>
 								<Text style={[styles.filterCardActionText, { color: theme.colors.primaryText }]}>Limpiar</Text>

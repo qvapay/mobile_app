@@ -55,7 +55,8 @@ const Store = ({ navigation }) => {
 
 	// States
 	const [search, setSearch] = useState('')
-	const [topupPlans, setTopupPlans] = useState([])
+	const [externalPlans, setExternalPlans] = useState([])
+	const [microPlans, setMicroPlans] = useState([])
 	const [giftCards, setGiftCards] = useState([])
 	const [myPurchases, setMyPurchases] = useState([])
 	const [isLoading, setIsLoading] = useState(true)
@@ -74,7 +75,9 @@ const Store = ({ navigation }) => {
 			])
 
 			if (topupResponse.success) {
-				setTopupPlans(topupResponse.data || [])
+				const all = topupResponse.data || []
+				setExternalPlans(all.filter((p) => p.external === true))
+				setMicroPlans(all.filter((p) => p.external === false))
 			} else {
 				Toast.show({ type: 'error', text1: 'Recargas', text2: topupResponse.error || 'No se pudieron cargar las recargas' })
 			}
@@ -121,26 +124,50 @@ const Store = ({ navigation }) => {
 				{/* Search bar */}
 				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />
 
-				{/* Mobile top-up plans */}
+				{/* Microrecargas */}
 				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
-					<QPSectionHeader title="Recargas móviles" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)} />
-					{topupPlans.length > 0 ? (
+					<QPSectionHeader title="Microrecargas" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { external: false })} />
+					{microPlans.length > 0 ? (
 						Platform.OS === 'ios' ? (
 							<View style={styles.grid}>
-								{topupPlans.map((plan) => (
+								{microPlans.map((plan) => (
 									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: '48%', marginRight: 0 }} />
 								))}
 							</View>
 						) : (
 							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-								{topupPlans.map((plan) => (
+								{microPlans.map((plan) => (
 									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
 								))}
 							</ScrollView>
 						)
 					) : (
 						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
-							No hay recargas disponibles
+							No hay microrecargas disponibles
+						</Text>
+					)}
+				</View>
+
+				{/* Recargas del exterior */}
+				<View style={[styles.section, { gap: 5 }]}>
+					<QPSectionHeader title="Recargas del exterior" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { external: true })} />
+					{externalPlans.length > 0 ? (
+						Platform.OS === 'ios' ? (
+							<View style={styles.grid}>
+								{externalPlans.map((plan) => (
+									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: '48%', marginRight: 0 }} />
+								))}
+							</View>
+						) : (
+							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+								{externalPlans.map((plan) => (
+									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
+								))}
+							</ScrollView>
+						)
+					) : (
+						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
+							No hay recargas del exterior disponibles
 						</Text>
 					)}
 				</View>

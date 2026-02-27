@@ -23,7 +23,10 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 import Toast from 'react-native-toast-message'
 
 // PhoneTopupIndex component
-const PhoneTopupIndex = ({ navigation }) => {
+const PhoneTopupIndex = ({ navigation, route }) => {
+
+	// External filter from route params
+	const external = route.params?.external
 
 	// Contexts
 	const { theme } = useTheme()
@@ -66,9 +69,14 @@ const PhoneTopupIndex = ({ navigation }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
-	// Filter packages when search changes (client-side filtering)
+	// Filter packages by external param and search (client-side filtering)
 	useEffect(() => {
 		let filtered = phonePackages
+
+		// Apply external filter from route params
+		if (external !== undefined) {
+			filtered = filtered.filter((pkg) => pkg.external === external)
+		}
 
 		// Apply search filter
 		if (search.trim()) {
@@ -81,7 +89,7 @@ const PhoneTopupIndex = ({ navigation }) => {
 		}
 
 		setFilteredPackages(filtered)
-	}, [search, phonePackages])
+	}, [search, phonePackages, external])
 
 	// Refetch when country or operator filters change (server-side filtering)
 	useEffect(() => {

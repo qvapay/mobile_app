@@ -46,13 +46,13 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     }
 
     // Transaction data
-    const { uuid, amount, description, User: owner = {}, PaidBy: paid_by = {}, Wallet: wallet = {}, updated_at, status } = transaction
+    const { uuid, amount, description, User: owner = {}, PaidBy: paid_by = {}, Wallet: wallet = {}, Withdraw: withdraw = {}, App: app = null, BuyedService: buyedService = null, updated_at, status } = transaction
 
     const amountFloat = parseFloat(amount)
     const amountFixed = amountFloat.toFixed(2)
 
-    // Wallet coin
-    const wallet_coin = wallet?.wallet_type || ''
+    // Wallet coin (deposits) or Withdraw payment_method (withdrawals)
+    const wallet_coin = wallet?.wallet_type || withdraw?.payment_method || ''
 
     // My user is the owner of the transaction
     const user_uuid = user?.uuid || ''
@@ -61,23 +61,30 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
 
+    // Display description with smart fallback
+    const displayDescription = (description && description.trim())
+        ? reduceString(description, 16)
+        : wallet_coin && !withdraw?.payment_method ? `Depósito ${wallet_coin}`
+        : withdraw?.payment_method ? `Extracción ${withdraw.payment_method}`
+        : app?.name ? app.name
+        : buyedService ? 'Compra de servicio'
+        : isPaidByMe && owner?.username ? `Envío a @${reduceString(owner.username, 12)}`
+        : !isPaidByMe && paid_by?.username ? `Pago de @${reduceString(paid_by.username, 12)}`
+        : 'Transferencia'
+
     // Navigate to transaction
     const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION, { transaction })
 
     return (
         <Pressable onPress={navigateToTransaction}>
             <View style={[containerStyles.box, { justifyContent: 'space-between' }, containerStyle]}>
-
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-
                     {wallet_coin ? (<QPCoin coin={wallet_coin} size={48} />) : (<QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />)}
-
                     <View style={{ flexDirection: 'column' }}>
-                        <Text style={textStyles.h4}>{reduceString(description, 16)}</Text>
+                        <Text style={textStyles.h4}>{displayDescription}</Text>
                         <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{timeSince(updated_at)}</Text>
                     </View>
                 </View>
-
                 <View>
                     <Text style={[textStyles.h4, { color: transactionColor }]}>{showBalance ? `${transactionSign}${amountFixed}` : '***'}</Text>
                 </View>
