@@ -181,6 +181,9 @@ const SettingsMenu = ({ navigation }) => {
 
             {/* Github, Twitter and Instagram accounts */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginVertical: 20 }}>
+                <Pressable onPress={() => Linking.openURL('https://support.qvapay.com')}>
+                    <FontAwesome6 name="headset" size={24} style={{ color: theme.colors.contrast }} iconStyle="solid" />
+                </Pressable>
                 <Pressable onPress={() => Linking.openURL('https://t.me/qvapay')}>
                     <FontAwesome6 name="telegram" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
                 </Pressable>

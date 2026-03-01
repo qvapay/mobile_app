@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { View, Text, StyleSheet, Dimensions, Animated, Alert, Linking, Pressable } from 'react-native'
+import { View, Text, StyleSheet, Dimensions, Animated, Linking, Pressable, ScrollView } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
@@ -52,6 +53,13 @@ const OVERLAY_PATH = [
 	'Z',
 ].join(' ')
 
+// Responsive QR size
+const QR_SIZE = Math.min(screenWidth - 80, 240)
+
+// Top bar layout
+const TOP_BAR_Y = 60
+const CONTENT_TOP = TOP_BAR_Y + 40 + 16 // bar Y + button height + gap
+
 // Scan Screen
 const Scan = ({ navigation, route }) => {
 
@@ -62,6 +70,7 @@ const Scan = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// Camera
 	const device = useCameraDevice('back')
@@ -69,7 +78,6 @@ const Scan = ({ navigation, route }) => {
 
 	// State
 	const [isScanning, setIsScanning] = useState(true)
-	const [scannedData, setScannedData] = useState(null)
 	const [isTorchEnabled, setIsTorchEnabled] = useState(false)
 	const [viewMode, setViewMode] = useState(route.params?.view || 'scan') // 'scan' | 'show'
 
@@ -117,7 +125,6 @@ const Scan = ({ navigation, route }) => {
 		// Lock immediately via ref (sync) to prevent rapid-fire duplicates
 		isScanningRef.current = false
 		setIsScanning(false)
-		setScannedData(data)
 
 		const parsedData = parseQRData(data)
 
@@ -137,7 +144,6 @@ const Scan = ({ navigation, route }) => {
 		setTimeout(() => {
 			isScanningRef.current = true
 			setIsScanning(true)
-			setScannedData(null)
 		}, 2000)
 	}
 
@@ -150,6 +156,11 @@ const Scan = ({ navigation, route }) => {
 			}
 		},
 	})
+
+	// QR URL
+	const qrUrl = user?.username
+		? `https://www.qvapay.com/payme/${user.username}`
+		: `https://www.qvapay.com/payme/${user?.uuid || ''}`
 
 	// Check if has permission (only when scanning)
 	if (viewMode === 'scan' && !hasPermission) {
@@ -170,22 +181,24 @@ const Scan = ({ navigation, route }) => {
 		)
 	}
 
+	// Unified layout — top bar always in the same position
 	return (
 		<View style={[containerStyles.container]}>
 
-			{/* Camera View (Scan mode) */}
-			{viewMode === 'scan' && device && (
-				<Camera
-					style={StyleSheet.absoluteFillObject}
-					device={device}
-					isActive={isScanning}
-					codeScanner={codeScanner}
-					torch={isTorchEnabled ? 'on' : 'off'}
-				/>
-			)}
-
-			{viewMode === 'scan' && (
+			{/* === CONTENT LAYER === */}
+			{viewMode === 'scan' ? (
 				<>
+					{/* Camera View */}
+					{device && (
+						<Camera
+							style={StyleSheet.absoluteFillObject}
+							device={device}
+							isActive={isScanning}
+							codeScanner={codeScanner}
+							torch={isTorchEnabled ? 'on' : 'off'}
+						/>
+					)}
+
 					{/* Dark overlay with rounded cutout */}
 					<Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
 						<Path d={OVERLAY_PATH} fill="rgba(0,0,0,0.8)" fillRule="evenodd" />
@@ -199,13 +212,58 @@ const Scan = ({ navigation, route }) => {
 						<View style={[styles.corner, styles.bottomRight]} />
 						{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [16, SCAN_AREA_SIZE - 16], }) }] }]} />)}
 					</View>
+
+					{/* Instructions */}
+					<View style={styles.instructionsContainer}>
+						<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>Coloca el QR code dentro del marco</Text>
+						<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 5 }]}>El QR code será escaneado automáticamente</Text>
+					</View>
 				</>
+			) : (
+				<ScrollView
+					style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]}
+					contentContainerStyle={{ paddingTop: CONTENT_TOP, paddingBottom: insets.bottom + 20 }}
+					showsVerticalScrollIndicator={false}
+				>
+					{/* Profile + Stats */}
+					<ProfileContainer user={user || {}} />
+
+					{/* QR Code */}
+					<View style={styles.qrSection}>
+						<View style={[styles.qrCard, { backgroundColor: '#FFFFFF' }]}>
+							<QRCodeStyled
+								data={qrUrl}
+								style={{ backgroundColor: '#FFFFFF' }}
+								size={QR_SIZE}
+								padding={8}
+								pieceSize={7}
+								isPiecesGlued
+								pieceBorderRadius={2}
+								pieceCornerType={'cut'}
+								errorCorrectionLevel={'H'}
+								backgroundColor={'#FFFFFF'}
+								color={'#000000'}
+								outerEyesOptions={{
+									borderRadius: 2,
+									color: theme.colors.primary,
+								}}
+							/>
+						</View>
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 10 }]}>
+							{user?.username ? `qvapay.com/payme/${user.username}` : `qvapay.com/payme/${user?.uuid}`}
+						</Text>
+					</View>
+				</ScrollView>
 			)}
 
-			{/* Top Controls */}
+			{/* === TOP BAR — always same position === */}
 			<View style={styles.topControls}>
-				<Pressable onPress={() => navigation.goBack()} style={styles.topButton} hitSlop={10}>
-					<FontAwesome6 name="arrow-left" size={20} color={'white'} iconStyle="solid" />
+				<Pressable
+					onPress={() => navigation.goBack()}
+					style={[styles.topButton, viewMode === 'show' && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+					hitSlop={10}
+				>
+					<FontAwesome6 name="arrow-left" size={20} color={viewMode === 'scan' ? 'white' : theme.colors.primaryText} iconStyle="solid" />
 				</Pressable>
 				<View style={styles.topSwitchWrapper}>
 					<QPSwitch
@@ -217,53 +275,24 @@ const Scan = ({ navigation, route }) => {
 						rightColor={theme.colors.primary}
 					/>
 				</View>
-				<Pressable onPress={() => setIsTorchEnabled((prev) => !prev)} style={[styles.topButton, viewMode !== 'scan' && { opacity: 0.5 }]} hitSlop={10} disabled={viewMode !== 'scan'}>
-					<FontAwesome6 name="lightbulb" size={20} color={'white'} iconStyle="solid" />
-				</Pressable>
+				{viewMode === 'scan' ? (
+					<Pressable onPress={() => setIsTorchEnabled((prev) => !prev)} style={styles.topButton} hitSlop={10}>
+						<FontAwesome6 name="lightbulb" size={20} color={'white'} iconStyle="solid" />
+					</Pressable>
+				) : (
+					<View style={{ width: 40 }} />
+				)}
 			</View>
-
-			{/* Instructions or My QR */}
-			{viewMode === 'scan' ? (
-				<View style={styles.instructionsContainer}>
-					<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>Coloca el QR code dentro del marco</Text>
-					<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 5 }]}>El QR code será escaneado automáticamente</Text>
-				</View>
-			) : (
-				<View style={styles.showQRContainer}>
-					<View style={styles.profileWrapper}>
-						<ProfileContainer user={user || {}} />
-					</View>
-					<View style={styles.qrWrapper}>
-						<QRCodeStyled
-							data={user?.username ? `https://www.qvapay.com/payme/${user.username}` : (`https://www.qvapay.com/payme/${user?.uuid}` || '')}
-							style={[styles.svg, { backgroundColor: '#FFFFFF' }]}
-							size={350}
-							padding={8}
-							pieceSize={8}
-							isPiecesGlued
-							pieceBorderRadius={2}
-							pieceCornerType={'cut'}
-							errorCorrectionLevel={'H'}
-							preserveAspectRatio="none"
-							backgroundColor={'#FFFFFF'}
-							color={'#000000'}
-							outerEyesOptions={{
-								borderRadius: 2,
-								color: theme.colors.primary,
-							}}
-						/>
-						<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 10 }]}>
-							{user?.username ? `www.qvapay.com/payme/${user.username}` : `www.qvapay.com/payme/${user?.uuid}`}
-						</Text>
-					</View>
-				</View>
-			)}
 
 		</View>
 	)
 }
 
 const styles = StyleSheet.create({
+	scrollView: {
+		flex: 1,
+	},
+	// Scan mode
 	topControls: {
 		position: 'absolute',
 		top: 60,
@@ -286,12 +315,6 @@ const styles = StyleSheet.create({
 	topSwitchWrapper: {
 		flex: 1,
 		marginHorizontal: 12,
-	},
-	modeSwitchContainer: {
-		position: 'absolute',
-		bottom: 30,
-		left: 20,
-		right: 20,
 	},
 	scanFrame: {
 		position: 'absolute',
@@ -349,22 +372,14 @@ const styles = StyleSheet.create({
 		left: 20,
 		right: 20,
 	},
-	showQRContainer: {
-		position: 'absolute',
-		top: 150,
-		left: 20,
-		right: 20,
+	// Show QR mode
+	qrSection: {
 		alignItems: 'center',
+		marginTop: 10,
 	},
-	profileWrapper: {
-		marginBottom: 10,
-	},
-	qrWrapper: {
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	svg: {
+	qrCard: {
 		borderRadius: 16,
+		padding: 10,
 		overflow: 'hidden',
 	},
 })
