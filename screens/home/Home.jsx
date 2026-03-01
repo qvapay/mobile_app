@@ -13,6 +13,7 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 import { transferApi } from '../../api/transferApi'
 import { userApi } from '../../api/userApi'
 import { blogApi } from '../../api/blogApi'
+import { coinsApi } from '../../api/coinsApi'
 
 // UI Particles
 import QPTransaction from '../../ui/particles/QPTransaction'
@@ -21,6 +22,7 @@ import ActionButtons from '../../ui/ActionButtons'
 import QPAvatar from '../../ui/particles/QPAvatar'
 import BlogPostCard from '../../ui/BlogPostCard'
 import QPSectionHeader from '../../ui/particles/QPSectionHeader'
+import WatchlistCard from '../../ui/WatchlistCard'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -79,6 +81,7 @@ const Home = ({ navigation }) => {
 	const [latestTransactions, setLatestTransactions] = useState([])
 	const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
 	const [latestBlogPosts, setLatestBlogPosts] = useState([])
+	const [watchlistData, setWatchlistData] = useState([])
 
 	// Load user data
 	useEffect(() => {
@@ -86,6 +89,7 @@ const Home = ({ navigation }) => {
 		fetchLatestTransactions()
 		fetchLatestSentTransfersUsers()
 		fetchLatestBlogPosts()
+		fetchWatchlist()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
@@ -132,6 +136,28 @@ const Home = ({ navigation }) => {
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
+	const WATCHLIST_COINS = ['BTC', 'ETH', 'LTC', 'SOL']
+
+	const fetchWatchlist = async () => {
+		try {
+			const results = await Promise.all(
+				WATCHLIST_COINS.map(tick => coinsApi.priceHistory(tick, '24H'))
+			)
+			const data = results.map((result, i) => {
+				const tick = WATCHLIST_COINS[i]
+				if (!result.success || !result.data?.length) {
+					return { tick, price: 0, change: 0, priceHistory: [] }
+				}
+				const history = result.data
+				const first = history[0].value
+				const last = history[history.length - 1].value
+				const change = first > 0 ? ((last - first) / first) * 100 : 0
+				return { tick, price: last, change, priceHistory: history }
+			})
+			setWatchlistData(data)
+		} catch { /* error fetching watchlist */ }
+	}
+
 	// Refresh handler for pull-to-refresh
 	const onRefresh = async () => {
 		setRefreshing(true)
@@ -144,6 +170,8 @@ const Home = ({ navigation }) => {
 			await fetchLatestSentTransfersUsers(true)
 			// Refresh latest blog posts
 			await fetchLatestBlogPosts(true)
+			// Refresh watchlist
+			await fetchWatchlist()
 		} catch (error) { /* error refreshing data */ }
 		finally { setRefreshing(false) }
 	}
@@ -238,6 +266,17 @@ const Home = ({ navigation }) => {
 					</View>
 				</View>
 
+				{watchlistData.length > 0 && (
+					<View style={styles.section}>
+						<QPSectionHeader title="Mi Watchlist" subtitle="Ver todo" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)} />
+						<View style={styles.watchlistGrid}>
+							{watchlistData.map(coin => (
+								<WatchlistCard key={coin.tick} coin={coin} onPress={() => {}} />
+							))}
+						</View>
+					</View>
+				)}
+
 				<View style={styles.section}>
 					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => Linking.openURL('https://qvapay.blog')} />
 					<View style={Platform.isPad ? styles.blogGrid : undefined}>
@@ -261,6 +300,11 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	// Service Cards
+	watchlistGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 10,
+	},
 	serviceCardsContainer: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',

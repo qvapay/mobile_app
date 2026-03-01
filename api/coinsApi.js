@@ -33,6 +33,25 @@ export const coinsApi = {
             return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
         }
     },
+
+    /**
+     * Get price history for a coin
+     * @param {string} tick - Coin ticker (e.g., 'BTC', 'ETH')
+     * @param {string} timeframe - Timeframe for history (e.g., '24H', '7D', '30D')
+     * @returns {Promise<Object>} Price history response with array of { time, value }
+     */
+    priceHistory: async (tick, timeframe = '24H') => {
+        try {
+            const response = await apiClient.get(`/coins/price-history/${tick}?timeframe=${timeframe}`)
+            return { success: true, data: response.data, status: response.status }
+        } catch (error) {
+            if (error.response?.data) {
+                const errorData = error.response.data
+                return { success: false, error: errorData.error || errorData.message || 'No se pudo obtener el historial de precios', details: errorData, status: error.response.status }
+            }
+            return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+        }
+    },
 }
 
 // Export the apiClient for other API calls

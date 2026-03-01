@@ -293,6 +293,23 @@ export const p2pApi = {
 	},
 
 	/**
+	 * Get P2P averages per coin (cached endpoint)
+	 * @returns {Promise<Object>} Averages by coin: { BANK_CUP: { name, average, average_buy, average_sell, count }, ... }
+	 */
+	getAverages: async () => {
+		try {
+			const response = await apiClient.get('/p2p/averages')
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener los promedios P2P', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Apply to a P2P offer
 	 * @param {string} p2p_uuid - The P2P UUID
 	 * @returns {Promise<Object>} The P2P offer apply response
