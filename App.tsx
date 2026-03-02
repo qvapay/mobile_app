@@ -59,6 +59,9 @@ import P2PCreate from './screens/p2p/P2PCreate'
 import P2POffer from './screens/p2p/P2POffer'
 import Scan from './screens/scan/Scan'
 
+// Invest Screens
+import Savings from './screens/invest/Savings'
+
 // InOut Screens
 import Add from './screens/add/Add'
 import Withdraw from './screens/withdraw/Withdraw'
@@ -338,6 +341,13 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				name={ROUTES.TRANSACTION}
 				component={Transaction}
 				options={getHeaderOptions('')}
+			/>
+
+			{/* Savings Screen */}
+			<Stack.Screen
+				name={ROUTES.SAVINGS_SCREEN}
+				component={Savings}
+				options={getHeaderOptions('Ahorros')}
 			/>
 
 			{/* QR Scan Screen */}

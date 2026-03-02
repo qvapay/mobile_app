@@ -74,6 +74,9 @@ export const ROUTES = {
     CONTACTS: "Contacts",
     APP_LOCK: "AppLock",
 
+    // Invest Screens
+    SAVINGS_SCREEN: "Savings",
+
     // Help Screens
     HELP_SCREEN: "Help",
 

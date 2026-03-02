@@ -178,6 +178,8 @@ const MainStack = ({ navigation }) => {
 	const investOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? 'Invertir' : '',
 		tabBarIcon: getTabIcon(ROUTES.INVEST_SCREEN),
+		headerRight: () => null,
+		...(supportsLiquidGlass && { unstable_headerRightItems: () => [] }),
 	}), [showLabels])
 
 	const keypadOptions = useMemo(() => ({
@@ -227,13 +229,11 @@ const MainStack = ({ navigation }) => {
 						options={homeOptions}
 					/>
 
-					{Platform.OS !== 'ios' && (
-						<Tab.Screen
-							name={ROUTES.INVEST_SCREEN}
-							component={Invest}
-							options={investOptions}
-						/>
-					)}
+					<Tab.Screen
+						name={ROUTES.INVEST_SCREEN}
+						component={Invest}
+						options={investOptions}
+					/>
 
 					<Tab.Screen
 						name={ROUTES.KEYPAD_SCREEN}

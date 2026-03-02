@@ -281,9 +281,6 @@ const Invest = ({ navigation }) => {
 						/>
 					))}
 					{exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText }]}>Sin datos</Text>}
-					<Pressable style={[styles.exploreAllBtn, { backgroundColor: theme.colors.primary + '15' }]} onPress={() => {}}>
-						<Text style={[styles.exploreAllText, { color: theme.colors.primary }]}>Explorar todo</Text>
-					</Pressable>
 				</SectionCard>
 
 				{/* P2P Mercado */}
