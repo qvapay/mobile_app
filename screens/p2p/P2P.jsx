@@ -463,7 +463,7 @@ const P2P = ({ navigation, route }) => {
 							<View style={styles.activeBadgesBar}>
 								{SORT_OPTIONS.map((option, idx) => (
 									<Pressable key={idx} style={[styles.activeBadge, { backgroundColor: sortIndex === idx ? theme.colors.primary : theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { setSortIndex(idx); setShowSortMenu(false) }} >
-										<Text style={[textStyles.caption, { color: sortIndex === idx ? theme.colors.almostWhite : theme.colors.primaryText, fontSize: 11 }]}>{option.label}</Text>
+										<Text style={[textStyles.caption, { color: sortIndex === idx ? theme.colors.almostWhite : theme.colors.primaryText, fontSize: theme.typography.fontSize.xs }]}>{option.label}</Text>
 									</Pressable>
 								))}
 							</View>
@@ -474,13 +474,13 @@ const P2P = ({ navigation, route }) => {
 							<View style={styles.activeBadgesBar}>
 								{sortIndex > 0 && (
 									<Pressable style={[styles.activeBadge, { backgroundColor: theme.colors.primary }]} onPress={() => setSortIndex(0)} >
-										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: 11 }]}>{SORT_OPTIONS[sortIndex].label}</Text>
+										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.xs }]}>{SORT_OPTIONS[sortIndex].label}</Text>
 										<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
 									</Pressable>
 								)}
 								{activeFilterBadges.map((badge) => (
 									<Pressable key={badge.key} style={[styles.activeBadge, { backgroundColor: theme.colors.primary }]} onPress={() => handleRemoveBadge(badge)} >
-										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: 11 }]}>{badge.label}</Text>
+										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.xs }]}>{badge.label}</Text>
 										<FontAwesome6 name="xmark" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
 									</Pressable>
 								))}
@@ -623,13 +623,13 @@ const P2P = ({ navigation, route }) => {
 								onPress={() => { setShowMine(false); setTypeFilter(null); setSelectedCoin(null); setMinAmount(""); setMaxAmount(""); setRatioMin(""); setRatioMax(""); setOnlyVip(false); setSortIndex(0); }}
 								style={[styles.filterCardActionButton, { backgroundColor: theme.colors.elevation }]}
 							>
-								<Text style={[styles.filterCardActionText, { color: theme.colors.primaryText }]}>Limpiar</Text>
+								<Text style={[styles.filterCardActionText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Limpiar</Text>
 							</Pressable>
 							<Pressable
 								onPress={() => { setShowFiltersModal(false); fetchP2POffers(1, true) }}
 								style={[styles.filterCardActionButton, { backgroundColor: theme.colors.primary, flex: 1 }]}
 							>
-								<Text style={[styles.filterCardActionText, { color: "#FFFFFF" }]}>Aplicar</Text>
+								<Text style={[styles.filterCardActionText, { color: "#FFFFFF", fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Aplicar</Text>
 							</Pressable>
 						</View>
 
@@ -797,10 +797,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	filterCardActionText: {
-		fontSize: 16,
-		fontFamily: "Rubik-SemiBold",
-	},
+	filterCardActionText: {},
 	// Coin picker modal styles
 	modalContainer: {
 		flex: 1

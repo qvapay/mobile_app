@@ -98,7 +98,7 @@ const GiftCards = ({ navigation }) => {
 					onChangeText={setSearch}
 					placeholder="Buscar tarjeta de regalo..."
 					prefixIconName="magnifying-glass"
-					style={styles.searchInput}
+					style={[styles.searchInput, { fontSize: theme.typography.fontSize.md }]}
 				/>
 
 				{/* Cards list */}
@@ -152,7 +152,6 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	searchInput: {
-		fontSize: 16,
 		marginBottom: 16,
 	},
 	loadingContainer: {

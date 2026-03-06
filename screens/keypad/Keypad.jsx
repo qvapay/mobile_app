@@ -224,7 +224,7 @@ export default function Keypad({ navigation }) {
 						iconStyle="solid"
 					/>
 				) : (
-					<Text style={[styles.keyText, { color: theme.colors.primaryText }]}>
+					<Text style={[styles.keyText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.medium }]}>
 						{key}
 					</Text>
 				)}
@@ -254,7 +254,7 @@ export default function Keypad({ navigation }) {
 					accessibilityLabel={`Current balance: $${user?.balance || 0}`}
 					accessibilityHint="Double tap to set amount to maximum balance"
 				>
-					<Text style={[styles.balanceText, { color: theme.colors.primaryText }]}>
+					<Text style={[styles.balanceText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
 						${user?.balance || 0}
 					</Text>
 				</Pressable>
@@ -316,10 +316,7 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: 'rgba(255, 255, 255, 0.1)',
 	},
-	balanceText: {
-		fontSize: 14,
-		fontFamily: 'Rubik-Medium',
-	},
+	balanceText: {},
 	keypadSection: {
 		paddingHorizontal: 5,
 	},
@@ -343,10 +340,7 @@ const styles = StyleSheet.create({
 		backgroundColor: 'rgba(255, 255, 255, 0.1)',
 		transform: [{ scale: 0.95 }],
 	},
-	keyText: {
-		fontSize: 24,
-		fontFamily: 'Rubik-Medium',
-	},
+	keyText: {},
 	icon: {
 		marginHorizontal: 2,
 	},

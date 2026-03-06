@@ -403,7 +403,7 @@ const LoginScreen = ({ navigation }) => {
 										<TextInput
 											key={`${twoFactorMethod}-${index}`}
 											ref={(ref) => pinInputsRef.current[index] = ref}
-											style={[twoFactorMethod === 'otp' ? styles.pinInputSmall : styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }]}
+											style={[twoFactorMethod === 'otp' ? styles.pinInputSmall : styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: twoFactorMethod === 'otp' ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
 											value={twoFactorCode[index] || ''}
 											onChangeText={(text) => handlePinChange(text, index)}
 											onFocus={() => handlePinFocus(index)}
@@ -543,16 +543,12 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: 60,
 		borderRadius: 12,
-		fontSize: 24,
-		fontFamily: 'Rubik-Bold',
 		textAlign: 'center'
 	},
 	pinInputSmall: {
 		flex: 1,
 		height: 46,
 		borderRadius: 10,
-		fontSize: 20,
-		fontFamily: 'Rubik-Bold',
 		textAlign: 'center'
 	},
 	biometricButton: {

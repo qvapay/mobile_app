@@ -35,7 +35,7 @@ const QPInput = forwardRef((props, ref) => {
 	return (
 		<View>
 
-			{prelabel && (<Text style={[styles.label, { color: theme.colors.secondaryText }]}>{prelabel}</Text>)}
+			{prelabel && (<Text style={[styles.label, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{prelabel}</Text>)}
 
 			<View style={[styles.container, { backgroundColor: theme.colors.surface }, !theme.isDark ? { borderColor: theme.colors.primary, borderWidth: 0.3 } : {}, style]}>
 
@@ -53,12 +53,12 @@ const QPInput = forwardRef((props, ref) => {
 					ref={ref}
 					{...props}
 					secureTextEntry={isSecure}
-					placeholderStyle={{ fontFamily: 'Rubik-Regular' }}
+					placeholderStyle={{ fontFamily: theme.typography.fontFamily.regular }}
 					placeholderTextColor={theme.colors.tertiaryText}
 					style={[
 						styles.input,
 						{
-							color: theme.colors.primaryText,
+							color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular,
 							height: multiline ? 100 : 50,
 							paddingLeft: hasPrefix ? 0 : 15,
 							paddingRight: hasSuffix ? 0 : 15,
@@ -94,8 +94,6 @@ const styles = StyleSheet.create({
 		// borderWidth: 0.5,
 	},
 	label: {
-		fontSize: 14,
-		fontFamily: 'Rubik-Regular',
 		marginBottom: 5,
 	},
 	prefixContainer: {
@@ -118,10 +116,9 @@ const styles = StyleSheet.create({
 		marginHorizontal: 10
 	},
 	input: {
-		fontSize: 16,
 		flex: 1,
-		fontFamily: 'Rubik-Regular',
 		paddingVertical: 12,
+		// fontSize and fontFamily set inline via theme
 	}
 })
 

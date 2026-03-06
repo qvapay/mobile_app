@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, Switch } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Theme 
+// Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 

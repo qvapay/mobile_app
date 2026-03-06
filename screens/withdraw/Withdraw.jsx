@@ -449,7 +449,7 @@ const Withdraw = ({ navigation }) => {
 										placeholder="0.00"
 										placeholderTextColor={theme.colors.placeholder}
 										keyboardType="numeric"
-										style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
+										style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, padding: 0, margin: 0 }]}
 									/>
 								</View>
 								{/* Right side - Static QUSD display */}
@@ -482,7 +482,7 @@ const Withdraw = ({ navigation }) => {
 										placeholder="0.00"
 										placeholderTextColor={theme.colors.placeholder}
 										keyboardType="numeric"
-										style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: '600', padding: 0, margin: 0 }]}
+										style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, padding: 0, margin: 0 }]}
 										editable={!!selectedCoin}
 									/>
 								</View>
@@ -577,7 +577,7 @@ const Withdraw = ({ navigation }) => {
 									<TextInput
 										key={`${twoFactorMethod}-${index}`}
 										ref={(ref) => pinInputsRef.current[index] = ref}
-										style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
+										style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold, backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
 										value={pin[index] || ''}
 										onChangeText={(text) => handlePinChange(text, index)}
 										onFocus={() => handlePinFocus(index)}
@@ -740,14 +740,14 @@ const styles = StyleSheet.create({
 		height: 60,
 		borderRadius: 12,
 		borderWidth: 1,
-		fontSize: 24,
-		fontFamily: 'Rubik-Bold',
+		
+		
 		textAlign: 'center',
 	},
 	pinInputSmall: {
 		height: 54,
 		borderRadius: 10,
-		fontSize: 20,
+		
 	},
 })
 

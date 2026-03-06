@@ -240,17 +240,17 @@ const WelcomeScreen = ({ navigation }) => {
 					{/* Title section */}
 					<Animated.View style={[styles.titleContainer, titleAnimatedStyle]}>
 						<Pressable onLongPress={handleTitleLongPress} delayLongPress={3000}>
-							<Text style={[styles.title, { color: theme.colors.primaryText }]}>
+							<Text style={[styles.title, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.bold, fontSize: 42 }]}>
 								Tu cuenta digital
 							</Text>
-							<Text style={[styles.title, { color: theme.colors.primaryText }]}>
+							<Text style={[styles.title, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.bold, fontSize: 42 }]}>
 								en{' '}
-								<Text style={styles.titleGradient}>
+								<Text style={[styles.titleGradient, { fontFamily: theme.typography.fontFamily.bold, fontSize: 42 }]}>
 									DÓLARES
 								</Text>
 							</Text>
 						</Pressable>
-						<Text style={[styles.subtitle, { color: theme.colors.secondaryText }]}>
+						<Text style={[styles.subtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.md }]}>
 							La plataforma de pagos P2P más rápida y segura del Caribe
 						</Text>
 					</Animated.View>
@@ -271,7 +271,7 @@ const WelcomeScreen = ({ navigation }) => {
 								title="Comenzar"
 								onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)}
 								style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
-								textStyle={styles.primaryButtonText}
+								textStyle={{ fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.lg, color: '#FFFFFF' }}
 							/>
 							<QPButton
 								title="Crear cuenta"
@@ -281,15 +281,15 @@ const WelcomeScreen = ({ navigation }) => {
 									borderWidth: 1.5,
 									borderColor: theme.colors.primary + '60'
 								}]}
-								textStyle={[styles.secondaryButtonText, { color: theme.colors.primaryText }]}
+								textStyle={{ fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.lg, color: theme.colors.primaryText }}
 							/>
 						</View>
 
 						{/* Terms and Conditions */}
-						<Text style={[styles.terms, { color: theme.colors.tertiaryText }]}>
+						<Text style={[styles.terms, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
 							Al continuar, aceptas nuestros{' '}
 							<Text
-								style={[styles.termsLink, { color: theme.colors.primary }]}
+								style={[styles.termsLink, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]}
 								onPress={() => Linking.openURL(ROUTES.TERMS_AND_CONDITIONS)}
 							>
 								Términos y Condiciones
@@ -344,19 +344,19 @@ const styles = StyleSheet.create({
 		zIndex: 10,
 	},
 	title: {
-		fontFamily: 'Rubik-Bold',
-		fontSize: 42,
+		
+		
 		lineHeight: 50,
 		letterSpacing: -1,
 	},
 	titleGradient: {
-		fontFamily: 'Rubik-Bold',
-		fontSize: 42,
+		
+		
 		color: '#F59E0B', // Warm yellow-orange for "DÓLARES"
 	},
 	subtitle: {
-		fontFamily: 'Rubik-Regular',
-		fontSize: 16,
+		
+		
 		marginTop: 16,
 		lineHeight: 24,
 		maxWidth: '85%',
@@ -385,27 +385,27 @@ const styles = StyleSheet.create({
 		height: 56,
 	},
 	primaryButtonText: {
-		fontFamily: 'Rubik-SemiBold',
-		fontSize: 17,
+		
+		
 		color: '#FFFFFF',
 	},
 	secondaryButton: {
 		height: 56,
 	},
 	secondaryButtonText: {
-		fontFamily: 'Rubik-SemiBold',
-		fontSize: 17,
+		
+		
 	},
 	// Terms
 	terms: {
-		fontFamily: 'Rubik-Regular',
-		fontSize: 13,
+		
+		
 		textAlign: 'center',
 		marginTop: 20,
 		lineHeight: 18,
 	},
 	termsLink: {
-		fontFamily: 'Rubik-Medium',
+		
 	},
 })
 

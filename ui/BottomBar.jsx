@@ -56,7 +56,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
                         <View style={styles.tabContent}>
                             <FontAwesome6 name={navItems[index].name} iconStyle="solid" style={[isFocused ? styles.activeTab : styles.fa, { color: isFocused ? theme.colors.primaryText : theme.colors.secondaryText }]} />
                             {showLabels && (
-                                <Text style={[styles.tabLabel, { color: isFocused ? theme.colors.primaryText : theme.colors.secondaryText }]}>
+                                <Text style={[styles.tabLabel, { color: isFocused ? theme.colors.primaryText : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>
                                     {navLabels[route.name] || route.name}
                                 </Text>
                             )}
@@ -90,7 +90,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
     },
     tabLabel: {
-        fontSize: 10,
         marginTop: 2,
         textAlign: 'center',
         fontWeight: '500',

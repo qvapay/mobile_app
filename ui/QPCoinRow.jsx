@@ -22,10 +22,10 @@ const QPCoinRow = ({ coin, amount = '', direction = 'in' }) => {
 			<QPCoin coin={coin.logo} size={44} />
 			<View style={styles.info}>
 				<View style={styles.nameRow}>
-					<Text style={[textStyles.h5, { fontFamily: 'Rubik-Medium' }]}>{coin.name}</Text>
+					<Text style={[textStyles.h5, { fontFamily: theme.typography.fontFamily.medium }]}>{coin.name}</Text>
 					{coin.network && (
 						<View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-							<Text style={{ color: theme.colors.buttonText, fontSize: 9, fontWeight: '600' }}>
+							<Text style={{ color: theme.colors.buttonText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.semiBold }}>
 								{coin.network}
 							</Text>
 						</View>
@@ -34,26 +34,26 @@ const QPCoinRow = ({ coin, amount = '', direction = 'in' }) => {
 				<View style={styles.stats}>
 					<View style={styles.stat}>
 						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>${min}</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>{minLabel}</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{minLabel}</Text>
 					</View>
 					<View style={styles.stat}>
 						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>{fee}%</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>{feeLabel}</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{feeLabel}</Text>
 					</View>
 					<View style={styles.stat}>
 						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>${Number(coin.price).toFixed(4)}</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>Precio</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Precio</Text>
 					</View>
 					<View style={styles.statAprox}>
 						{amountNum > 0 ? (
 							<>
-								<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: 'Rubik-Medium' }]} numberOfLines={1}>{aprox.toFixed(5)}</Text>
-								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>Aprox.</Text>
+								<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]} numberOfLines={1}>{aprox.toFixed(5)}</Text>
+								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Aprox.</Text>
 							</>
 						) : (
 							<>
 								<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{'\u2014'}</Text>
-								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText }]}>Aprox.</Text>
+								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Aprox.</Text>
 							</>
 						)}
 					</View>
@@ -98,7 +98,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	statLabel: {
-		fontSize: 9,
 		marginTop: 2,
 		textTransform: 'uppercase',
 		letterSpacing: 0.3,

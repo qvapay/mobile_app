@@ -53,8 +53,17 @@ const colors = {
     }
 }
 
+// Font scale multipliers
+const fontScaleMap = {
+    extraSmall: 0.8,
+    small: 0.9,
+    medium: 1.0,
+    large: 1.15,
+    extraLarge: 1.3,
+}
+
 // Create theme objects
-const createTheme = (isDark) => ({
+const createTheme = (isDark, fontScale = 1.0) => ({
     isDark,
     colors: {
         primary: colors.primary,
@@ -91,14 +100,14 @@ const createTheme = (isDark) => ({
             light: 'Rubik-Light',
         },
         fontSize: {
-            xs: 12,
-            sm: 14,
-            md: 16,
-            lg: 18,
-            xl: 20,
-            xxl: 24,
-            xxxl: 30,
-            display: 60,
+            xs: Math.round(12 * fontScale),
+            sm: Math.round(14 * fontScale),
+            md: Math.round(16 * fontScale),
+            lg: Math.round(18 * fontScale),
+            xl: Math.round(20 * fontScale),
+            xxl: Math.round(24 * fontScale),
+            xxxl: Math.round(30 * fontScale),
+            display: Math.round(60 * fontScale),
         },
     }
 })
@@ -111,16 +120,21 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
 
     // Get theme mode from settings or default to dark
     const initialThemeMode = settings?.appearance?.theme || 'dark'
+    const initialFontSize = settings?.appearance?.fontSize || 'medium'
     const [themeMode, setThemeMode] = useState(initialThemeMode)
+    const [fontSizeKey, setFontSizeKey] = useState(initialFontSize)
     const [isDark, setIsDark] = useState(initialThemeMode === 'dark' || (initialThemeMode === 'auto' && Appearance.getColorScheme() === 'dark'))
-    const [theme, setTheme] = useState(createTheme(isDark))
+    const [theme, setTheme] = useState(createTheme(isDark, fontScaleMap[initialFontSize] || 1.0))
 
     // Memoized styles at context level
     const textStyles = useTextStyles(theme)
     const containerStyles = useContainerStyles(theme)
 
+    // Get current font scale from key
+    const getFontScale = (key) => fontScaleMap[key] || 1.0
+
     // Update theme based on mode and system appearance
-    const updateTheme = (mode) => {
+    const updateTheme = (mode, fKey = fontSizeKey) => {
 
         let shouldBeDark = false
         if (mode === 'auto') {
@@ -132,7 +146,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
         }
 
         setIsDark(shouldBeDark)
-        setTheme(createTheme(shouldBeDark))
+        setTheme(createTheme(shouldBeDark, getFontScale(fKey)))
     }
 
     // Sync with settings when they change
@@ -142,6 +156,16 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [settings?.appearance?.theme])
+
+    // Sync fontSize from settings
+    useEffect(() => {
+        const newFontSize = settings?.appearance?.fontSize || 'medium'
+        if (newFontSize !== fontSizeKey) {
+            setFontSizeKey(newFontSize)
+            updateTheme(themeMode, newFontSize)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings?.appearance?.fontSize])
 
     useEffect(() => {
 
@@ -153,7 +177,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
             if (themeMode === 'auto') {
                 const newIsDark = colorScheme === 'dark'
                 setIsDark(newIsDark)
-                setTheme(createTheme(newIsDark))
+                setTheme(createTheme(newIsDark, getFontScale(fontSizeKey)))
             }
         })
 
@@ -181,19 +205,29 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
         changeThemeMode(newMode)
     }
 
+    const changeFontSize = async (size) => {
+        setFontSizeKey(size)
+        updateTheme(themeMode, size)
+        if (updateSettingsRef.current) {
+            await updateSettingsRef.current('appearance', { fontSize: size })
+        }
+    }
+
     // Memoized context value to prevent unnecessary re-renders
     const contextValue = useMemo(() => ({
         theme,
         isDark,
         themeMode,
+        fontSizeKey,
         toggleTheme,
         setThemeMode: changeThemeMode,
+        setFontSize: changeFontSize,
         styles: {
             text: textStyles,
             container: containerStyles
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [theme, isDark, themeMode, textStyles, containerStyles])
+    }), [theme, isDark, themeMode, fontSizeKey, textStyles, containerStyles])
 
     return (
         <ThemeContext.Provider value={contextValue}>
@@ -210,4 +244,4 @@ export const useTheme = () => {
 }
 
 // Export theme creation function for testing
-export { createTheme }
+export { createTheme, fontScaleMap }

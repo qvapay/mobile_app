@@ -306,7 +306,7 @@ const P2PCreate = ({ navigation }) => {
 									placeholder="0.00"
 									placeholderTextColor={theme.colors.placeholder}
 									keyboardType="decimal-pad"
-									style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 32, fontWeight: "600", padding: 0, margin: 0 }]}
+									style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontWeight: "600", padding: 0, margin: 0 }]}
 								/>
 							</View>
 
@@ -342,7 +342,7 @@ const P2PCreate = ({ navigation }) => {
 										textStyles.h2,
 										{
 											color: theme.colors.primaryText,
-											fontSize: 32,
+											fontSize: theme.typography.fontSize.xxxl,
 											fontWeight: "600",
 											padding: 0,
 											margin: 0,

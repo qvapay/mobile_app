@@ -12,7 +12,7 @@ const QPPill = ({ title, onPress, style }) => {
 
 	return (
 		<Pressable style={[styles.pill, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]} onPress={onPress}>
-			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: 10 }]}>{title}</Text>
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{title}</Text>
 		</Pressable>
 	)
 }

@@ -85,7 +85,7 @@ const SORT_DIR_OPTIONS = [
 // Chip component
 const Chip = ({ label, selected, onPress, theme }) => (
 	<Pressable onPress={onPress} style={[styles.chip, selected ? { backgroundColor: theme.colors.primary } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]}>
-		<Text style={[styles.chipText, { color: selected ? '#FFFFFF' : theme.colors.secondaryText }]}>
+		<Text style={[styles.chipText, { color: selected ? '#FFFFFF' : theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
 			{label}
 		</Text>
 	</Pressable>
@@ -371,10 +371,10 @@ const Transactions = ({ navigation }) => {
 						{/* Action buttons */}
 						<View style={styles.actions}>
 							<Pressable onPress={clearFilters} style={[styles.actionButton, { backgroundColor: theme.colors.elevation }]} >
-								<Text style={[styles.actionText, { color: theme.colors.primaryText }]}>Limpiar</Text>
+								<Text style={[styles.actionText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Limpiar</Text>
 							</Pressable>
 							<Pressable onPress={applyFilters} style={[styles.actionButton, { backgroundColor: theme.colors.primary, flex: 1 }]} >
-								<Text style={[styles.actionText, { color: '#FFFFFF' }]}>Aplicar</Text>
+								<Text style={[styles.actionText, { color: '#FFFFFF', fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Aplicar</Text>
 							</Pressable>
 						</View>
 
@@ -418,8 +418,6 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 	},
 	chipText: {
-		fontSize: 14,
-		fontFamily: 'Rubik-Medium',
 	},
 	amountRow: {
 		flexDirection: 'row',
@@ -438,8 +436,6 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 	},
 	actionText: {
-		fontSize: 16,
-		fontFamily: 'Rubik-SemiBold',
 	},
 })
 

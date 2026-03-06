@@ -60,6 +60,7 @@ export const ROUTES = {
     GOLD_CHECK: "GoldCheck",
     REFERALS: "Referals",
     THEME: "Theme",
+    FONT_SIZE: "FontSize",
     USERDATA: "Userdata",
     PHONE: "Phone",
     TELEGRAM: "Telegram",
@@ -76,6 +77,7 @@ export const ROUTES = {
 
     // Invest Screens
     SAVINGS_SCREEN: "Savings",
+    STOCK_DETAIL_SCREEN: "StockDetail",
 
     // Help Screens
     HELP_SCREEN: "Help",

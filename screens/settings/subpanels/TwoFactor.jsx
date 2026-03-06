@@ -275,7 +275,7 @@ const TwoFactor = () => {
                         O ingresa este código manualmente:
                     </Text>
                     <Pressable onPress={handleCopySecret} style={styles.secretContainer}>
-                        <Text style={[styles.secretText, { color: theme.colors.primary }]} selectable>
+                        <Text style={[styles.secretText, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]} selectable>
                             {secret}
                         </Text>
                         <FontAwesome6 name="copy" size={16} color={theme.colors.primary} iconStyle="regular" />
@@ -294,7 +294,7 @@ const TwoFactor = () => {
                         keyboardType="number-pad"
                         maxLength={6}
                         prefixIconName="key"
-                        style={styles.codeInput}
+                        style={[styles.codeInput, { fontSize: theme.typography.fontSize.xxl }]}
                     />
                 </View>
 
@@ -400,15 +400,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(103, 89, 239, 0.1)'
     },
     secretText: {
-        fontFamily: 'Rubik-Medium',
-        fontSize: 14,
         letterSpacing: 1,
         flex: 1,
         marginRight: 10
     },
     codeInput: {
         textAlign: 'center',
-        fontSize: 24,
+
         letterSpacing: 8
     }
 })

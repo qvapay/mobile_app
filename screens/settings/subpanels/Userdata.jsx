@@ -275,7 +275,7 @@ const Userdata = () => {
 			</View>
 
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 40 }]}>
-				Miembro desde: <Text style={{ color: theme.colors.primary, fontFamily: 'Rubik-Medium' }}>{formatDate(userStatus.createdAt)}</Text>
+				Miembro desde: <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }}>{formatDate(userStatus.createdAt)}</Text>
 			</Text>
 
 		</QPKeyboardView>

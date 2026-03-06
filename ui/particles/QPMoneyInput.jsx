@@ -26,11 +26,11 @@ const QPInput = forwardRef((props, ref) => {
             <TextInput
                 ref={ref}
                 {...props}
-                placeholderStyle={{ fontFamily: 'Rubik-Regular' }}
+                placeholderStyle={{ fontFamily: theme.typography.fontFamily.regular }}
                 placeholderTextColor={color}
                 style={[
                     styles.input,
-                    { color: color },
+                    { color: color, fontFamily: theme.typography.fontFamily.black, fontSize: Math.round(theme.typography.fontSize.display * 0.83) },
                     style
                 ]}
                 maxLength={8}
@@ -46,9 +46,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     input: {
-        fontFamily: 'Rubik-Black',
         textAlign: 'center',
-        fontSize: 50,
     }
 })
 

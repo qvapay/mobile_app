@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, Animated } from 'react-native'
 const QPBalance = ({ formattedAmount, fontSize, theme }) => {
     return (
         <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
-            <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText }]}>$</Text>
-            <Animated.Text style={[styles.amountText, { fontSize: fontSize, color: theme.colors.primaryText }]} accessibilityRole="text" accessibilityLabel={`Amount: $${formattedAmount}`}>
+            <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.bold }]}>$</Text>
+            <Animated.Text style={[styles.amountText, { fontSize: fontSize, color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.black }]} accessibilityRole="text" accessibilityLabel={`Amount: $${formattedAmount}`}>
                 {formattedAmount}
             </Animated.Text>
         </View>
@@ -20,12 +20,9 @@ const styles = StyleSheet.create({
         height: 100,
     },
     currencySymbol: {
-        fontSize: 30,
-        fontFamily: 'Rubik-ExtraBold',
         marginRight: 8,
     },
     amountText: {
-        fontFamily: 'Rubik-Black',
         textAlign: 'center',
     },
 })

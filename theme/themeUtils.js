@@ -59,6 +59,11 @@ export const createTextStyles = (theme) => StyleSheet.create({
 		fontFamily: theme.typography.fontFamily.medium,
 		color: theme.colors.primaryText,
 	},
+	body: {
+		fontSize: theme.typography.fontSize.sm,
+		fontFamily: theme.typography.fontFamily.regular,
+		color: theme.colors.primaryText,
+	},
 	caption: {
 		fontSize: theme.typography.fontSize.sm,
 		fontFamily: theme.typography.fontFamily.light,

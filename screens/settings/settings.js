@@ -11,6 +11,12 @@ const settings = {
                 enabled: true,
                 notifications: 0,
             },
+            {
+                title: 'Fuente',
+                screen: ROUTES.FONT_SIZE,
+                enabled: true,
+                notifications: 0,
+            },
         ],
     },
     profile: {

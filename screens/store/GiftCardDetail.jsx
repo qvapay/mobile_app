@@ -268,7 +268,7 @@ const GiftCardDetail = ({ navigation, route }) => {
 							placeholder={`Min $${(selectedOption.price?.min || 0).toFixed(2)} - Max $${(selectedOption.price?.max || 0).toFixed(2)}`}
 							prefixIconName="dollar-sign"
 							keyboardType="decimal-pad"
-							style={styles.amountInput}
+							style={[styles.amountInput, { fontSize: theme.typography.fontSize.md }]}
 						/>
 						{rangeAmount && !isRangeValid() && (
 							<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
@@ -410,7 +410,6 @@ const styles = StyleSheet.create({
 		marginBottom: 24,
 	},
 	amountInput: {
-		fontSize: 16,
 	},
 	summarySection: {
 		borderRadius: 12,

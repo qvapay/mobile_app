@@ -210,7 +210,7 @@ const GoldCheck = ({ navigation }) => {
                         >
                             {key === 'yearly' && (
                                 <View style={{ position: 'absolute', top: -8, right: 8, backgroundColor: theme.colors.primary, paddingHorizontal: theme.spacing.sm, paddingVertical: 4, borderRadius: theme.borderRadius.sm }}>
-                                    <Text style={[textStyles.caption, { color: theme.colors.buttonText, fontSize: 10, fontFamily: theme.typography.fontFamily.medium }]}>
+                                    <Text style={[textStyles.caption, { color: theme.colors.buttonText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
                                         Más eficiente
                                     </Text>
                                 </View>
@@ -221,10 +221,10 @@ const GoldCheck = ({ navigation }) => {
                             </Text>
 
                             <View style={containerStyles.center}>
-                                <Text style={[textStyles.amount, { fontSize: 24, color: theme.colors.primaryText, marginBottom: 4 }]}>
+                                <Text style={[textStyles.amount, { fontSize: theme.typography.fontSize.xxl, color: theme.colors.primaryText, marginBottom: 4 }]}>
                                     ${plan.value}
                                 </Text>
-                                <Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: 12 }]}>
+                                <Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>
                                     {plan.period}
                                 </Text>
                             </View>

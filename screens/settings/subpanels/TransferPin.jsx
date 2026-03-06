@@ -164,7 +164,7 @@ const TransferPin = () => {
                                 backgroundColor: theme.colors.surface,
                                 color: theme.colors.primaryText,
                                 borderColor: focusedField === fieldName && focusedIndex === index ? theme.colors.primary : theme.colors.surface,
-                                borderWidth: 1.5,
+                                borderWidth: 1.5, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold,
                             }
                         ]}
                         value={pin[index] || ''}
@@ -326,8 +326,6 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 60,
         borderRadius: 12,
-        fontSize: 24,
-        fontFamily: 'Rubik-Bold',
         textAlign: 'center',
     },
 })

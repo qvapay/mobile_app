@@ -14,6 +14,7 @@ import { transferApi } from '../../api/transferApi'
 import { userApi } from '../../api/userApi'
 import { blogApi } from '../../api/blogApi'
 import { coinsApi } from '../../api/coinsApi'
+import { promoApi } from '../../api/promoApi'
 
 // UI Particles
 import QPTransaction from '../../ui/particles/QPTransaction'
@@ -23,6 +24,7 @@ import QPAvatar from '../../ui/particles/QPAvatar'
 import BlogPostCard from '../../ui/BlogPostCard'
 import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 import WatchlistCard from '../../ui/WatchlistCard'
+import PromoBanner from '../../ui/PromoBanner'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -55,7 +57,7 @@ const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
 		<View style={[styles.serviceCardIcon, { backgroundColor: iconColor + '20' }]}>
 			<FontAwesome6 name={icon} size={22} color={iconColor} iconStyle="solid" />
 		</View>
-		<Text style={[styles.serviceCardTitle, { color: theme.colors.primaryText }]}>{title}</Text>
+		<Text style={[styles.serviceCardTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{title}</Text>
 	</Pressable>
 )
 
@@ -82,6 +84,7 @@ const Home = ({ navigation }) => {
 	const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
 	const [latestBlogPosts, setLatestBlogPosts] = useState([])
 	const [watchlistData, setWatchlistData] = useState([])
+	const [promo, setPromo] = useState(null)
 
 	// Load user data
 	useEffect(() => {
@@ -90,6 +93,7 @@ const Home = ({ navigation }) => {
 		fetchLatestSentTransfersUsers()
 		fetchLatestBlogPosts()
 		fetchWatchlist()
+		fetchPromo()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
@@ -158,6 +162,13 @@ const Home = ({ navigation }) => {
 		} catch { /* error fetching watchlist */ }
 	}
 
+	const fetchPromo = async () => {
+		try {
+			const result = await promoApi.getPromo()
+			if (result.success && result.data) { setPromo(result.data) }
+		} catch { /* no promo available */ }
+	}
+
 	// Refresh handler for pull-to-refresh
 	const onRefresh = async () => {
 		setRefreshing(true)
@@ -172,6 +183,8 @@ const Home = ({ navigation }) => {
 			await fetchLatestBlogPosts(true)
 			// Refresh watchlist
 			await fetchWatchlist()
+			// Refresh promo
+			await fetchPromo()
 		} catch (error) { /* error refreshing data */ }
 		finally { setRefreshing(false) }
 	}
@@ -179,6 +192,8 @@ const Home = ({ navigation }) => {
 	return (
 		<View style={[containerStyles.subContainer]}>
 			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}>
+
+				<PromoBanner promo={promo} />
 
 				<BalanceCard balance={user.balance} />
 
@@ -190,13 +205,13 @@ const Home = ({ navigation }) => {
 							<FontAwesome6 name="bell" size={16} color={theme.colors.primary} iconStyle="solid" />
 						</View>
 						<View style={{ flex: 1 }}>
-							<Text style={[styles.pushBannerText, { color: theme.colors.primaryText }]}>Recibe alertas de tus pagos al instante</Text>
+							<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Recibe alertas de tus pagos al instante</Text>
 						</View>
 						<Pressable
 							onPress={() => { enablePush(); dismissBanner() }}
 							style={[styles.pushBannerButton, { backgroundColor: theme.colors.primary }]}
 						>
-							<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite }]}>Activar</Text>
+							<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Activar</Text>
 						</Pressable>
 						<Pressable onPress={dismissBanner} hitSlop={8}>
 							<FontAwesome6 name="xmark" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
@@ -271,7 +286,7 @@ const Home = ({ navigation }) => {
 						<QPSectionHeader title="Mi Watchlist" subtitle="Ver todo" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)} />
 						<View style={styles.watchlistGrid}>
 							{watchlistData.map(coin => (
-								<WatchlistCard key={coin.tick} coin={coin} onPress={() => {}} />
+								<WatchlistCard key={coin.tick} coin={coin} onPress={() => { }} />
 							))}
 						</View>
 					</View>
@@ -325,10 +340,7 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
-	serviceCardTitle: {
-		fontFamily: 'Rubik-Medium',
-		fontSize: 14,
-	},
+	serviceCardTitle: {},
 	blogGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
@@ -350,19 +362,13 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
-	pushBannerText: {
-		fontFamily: 'Rubik-Regular',
-		fontSize: 13,
-	},
+	pushBannerText: {},
 	pushBannerButton: {
 		borderRadius: 8,
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 	},
-	pushBannerButtonText: {
-		fontFamily: 'Rubik-Medium',
-		fontSize: 13,
-	},
+	pushBannerButtonText: {},
 })
 
 export default Home

@@ -319,7 +319,7 @@ const SendConfirm = ({ navigation, route }) => {
 								<TextInput
 									key={`${twoFactorMethod}-${index}`}
 									ref={(ref) => pinInputsRef.current[index] = ref}
-									style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
+									style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5, fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
 									value={pin[index] || ''}
 									onChangeText={(text) => handlePinChange(text, index)}
 									onFocus={() => handlePinFocus(index)}
@@ -364,14 +364,11 @@ const styles = StyleSheet.create({
 		height: 60,
 		borderRadius: 12,
 		borderWidth: 1,
-		fontSize: 24,
-		fontFamily: 'Rubik-Bold',
 		textAlign: 'center',
 	},
 	pinInputSmall: {
 		height: 54,
 		borderRadius: 10,
-		fontSize: 20,
 	},
 })
 

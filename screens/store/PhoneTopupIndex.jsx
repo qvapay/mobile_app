@@ -123,7 +123,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 					onChangeText={setSearch}
 					placeholder="Buscar recarga..."
 					prefixIconName="magnifying-glass"
-					style={styles.searchInput}
+					style={[styles.searchInput, { fontSize: theme.typography.fontSize.md }]}
 				/>
 
 				{/* Filters section */}
@@ -135,7 +135,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 								onChangeText={(value) => setFilters({ ...filters, country: value })}
 								placeholder="País (ej: CU)"
 								prefixIconName="globe"
-								style={styles.filterInputStyle}
+								style={[styles.filterInputStyle, { fontSize: theme.typography.fontSize.sm }]}
 							/>
 						</View>
 						<View style={[styles.filterInput, { flex: 1, marginLeft: 8 }]}>
@@ -144,7 +144,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 								onChangeText={(value) => setFilters({ ...filters, operator: value })}
 								placeholder="Operador (ej: ETECSA)"
 								prefixIconName="tower-broadcast"
-								style={styles.filterInputStyle}
+								style={[styles.filterInputStyle, { fontSize: theme.typography.fontSize.sm }]}
 							/>
 						</View>
 					</View>
@@ -212,7 +212,6 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	searchInput: {
-		fontSize: 16,
 		marginBottom: 16,
 	},
 	filtersContainer: {
@@ -226,7 +225,6 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	filterInputStyle: {
-		fontSize: 14,
 	},
 	loadingContainer: {
 		flex: 1,

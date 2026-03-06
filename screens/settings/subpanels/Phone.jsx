@@ -361,7 +361,7 @@ const Phone = () => {
 									style={[styles.countryItem, { backgroundColor: country === c.code ? theme.colors.primary : theme.colors.background }]}
 									onPress={() => { setCountry(c.code); setShowCountryPicker(false); setCountrySearch('') }}
 								>
-									<Text style={[styles.countryItemText, { color: country === c.code ? theme.colors.buttonText : theme.colors.primaryText }]}>
+									<Text style={[styles.countryItemText, { color: country === c.code ? theme.colors.buttonText : theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular }]}>
 										{c.name} ({c.dial_code})
 									</Text>
 								</TouchableOpacity>
@@ -400,8 +400,6 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	countryItemText: {
-		fontSize: 16,
-		fontFamily: 'Rubik-Regular',
 	},
 })
 

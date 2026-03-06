@@ -158,9 +158,9 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 					theme={theme.mode === 'light' ? 'light' : 'dark'}
 					phoneInputStyles={{
 						container: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12 },
-						input: { color: theme.colors.primaryText, fontSize: 16, fontFamily: 'Rubik-Regular' },
+						input: { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular },
 						flagContainer: { backgroundColor: theme.colors.elevation, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-						callingCode: { color: theme.colors.primaryText, fontSize: 14 },
+						callingCode: { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm },
 						caret: { color: theme.colors.secondaryText },
 					}}
 					modalStyles={{
@@ -217,7 +217,6 @@ const styles = StyleSheet.create({
 		marginBottom: 24,
 	},
 	phoneInput: {
-		fontSize: 16,
 	},
 	balanceInfo: {
 		flexDirection: 'row',

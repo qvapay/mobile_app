@@ -61,7 +61,7 @@ const AmountInput = ({
 						placeholder="0.00"
 						placeholderTextColor={theme.colors.placeholder}
 						keyboardType="numeric"
-						style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: 28, fontWeight: '600', padding: 0, margin: 0, }]}
+						style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, padding: 0, margin: 0, }]}
 					/>
 					<View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

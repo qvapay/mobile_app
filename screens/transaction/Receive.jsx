@@ -54,7 +54,7 @@ const Receive = ({ route }) => {
 				{/* Amount */}
 				{amount > 0 && (
 					<View style={styles.amountSection}>
-						<Text style={[textStyles.amount, { color: theme.colors.successText, fontSize: 48 }]}>
+						<Text style={[textStyles.amount, { color: theme.colors.successText, fontSize: theme.typography.fontSize.display }]}>
 							${amount.toFixed(2)}
 						</Text>
 					</View>

@@ -46,7 +46,7 @@ const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo
 					)}
 				</View>
 				{Array.isArray(details) && details.length > 0 && (
-					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: 10 }]}>{details.join(' • ')}</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs }]}>{details.join(' • ')}</Text>
 				)}
 			</View>
 		</Pressable>
@@ -84,7 +84,6 @@ const styles = StyleSheet.create({
 	},
 	strikePrice: {
 		textDecorationLine: 'line-through',
-		fontSize: 11,
 	},
 	goldPrice: {
 		fontWeight: '700',

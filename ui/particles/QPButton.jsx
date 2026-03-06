@@ -1,4 +1,4 @@
-import { StyleSheet, Text, Pressable, ActivityIndicator } from 'react-native'
+import { Text, Pressable, ActivityIndicator } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -40,14 +40,14 @@ const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid',
             {loading ? (<ActivityIndicator size="small" color={loadingColor || (isDangerOutlined ? theme.colors.danger : theme.colors.almostWhite)} />) : (
                 <>
                     {icon && <FontAwesome6 name={icon} size={18} color={iconColor || (isDangerOutlined ? theme.colors.danger : theme.colors.primaryText)} iconStyle={iconStyle} />}
-                    {title && <Text style={[styles.text, { color: textColor }, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
+                    {title && <Text style={[{ fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold, color: textColor }, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
                 </>
             )}
         </Pressable>
     )
 }
 
-const styles = StyleSheet.create({
+const styles = {
     container: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -58,10 +58,6 @@ const styles = StyleSheet.create({
         marginVertical: 5,
         paddingVertical: 10,
     },
-    text: {
-        fontSize: 16,
-        fontFamily: 'Rubik-SemiBold',
-    },
-})
+}
 
 export default QPButton

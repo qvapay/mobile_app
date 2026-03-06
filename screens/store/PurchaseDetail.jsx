@@ -171,7 +171,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 
 				{/* Amount */}
 				<View style={styles.amountSection}>
-					<Text style={[textStyles.amount, { color: theme.colors.danger, fontSize: 48 }]}>
+					<Text style={[textStyles.amount, { color: theme.colors.danger, fontSize: theme.typography.fontSize.display }]}>
 						-${Number(purchase.amount).toFixed(2)}
 					</Text>
 				</View>

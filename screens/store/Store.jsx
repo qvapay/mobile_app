@@ -102,7 +102,7 @@ const Store = ({ navigation }) => {
 			>
 
 				{/* Search bar */}
-				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={styles.searchInput} />
+				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={[styles.searchInput, { fontSize: theme.typography.fontSize.md }]} />
 
 				{/* Microrecargas */}
 				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
 		marginBottom: 20,
 	},
 	searchInput: {
-		fontSize: 16,
 	},
 	section: {
 		marginBottom: 24,

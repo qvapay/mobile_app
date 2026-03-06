@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, ScrollView, Pressable, Modal } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Helpers
-import { getFirstChunk, truncateWalletAddress, copyTextToClipboard } from '../../helpers'
+import { getFirstChunk, truncateWalletAddress, copyTextToClipboard, formatCryptoAmount } from '../../helpers'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -246,7 +246,7 @@ const Add = ({ navigation }) => {
 							<View style={[styles.sseDot, { backgroundColor: sseConnected ? theme.colors.success : theme.colors.danger }]} />
 							<View style={[styles.countdownBadge, { backgroundColor: getCountdownColor(countdown) + '20', borderColor: getCountdownColor(countdown) }]}>
 								<FontAwesome6 name="clock" size={12} color={getCountdownColor(countdown)} iconStyle="solid" />
-								<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontFamily: 'Rubik-Medium', marginLeft: 4, fontVariant: ['tabular-nums'], minWidth: 42 }]}>
+								<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontFamily: theme.typography.fontFamily.medium, marginLeft: 4, fontVariant: ['tabular-nums'], minWidth: 42 }]}>
 									{countdown > 0 ? formatCountdown(countdown) : 'Expirado'}
 								</Text>
 							</View>
@@ -349,15 +349,15 @@ const Add = ({ navigation }) => {
 								Total a pagar
 							</Text>
 							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-								<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: 'Rubik-Bold' }]}>
-									{Number(topupData?.value).toFixed(8)}
+								<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.bold }]}>
+									{formatCryptoAmount(topupData?.value)}
 								</Text>
 								<Text style={[textStyles.h3, { color: theme.colors.primary, marginLeft: 8 }]}>
 									{topupData?.coin}
 								</Text>
 							</View>
 							<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 4 }]}>
-								1 {topupData?.coin} ≈ ${Number(topupData?.price).toFixed(6)}
+								1 {topupData?.coin} ≈ ${formatCryptoAmount(topupData?.price)}
 							</Text>
 						</View>
 
@@ -464,7 +464,7 @@ const Add = ({ navigation }) => {
 								</View>
 								<View style={styles.detailRight}>
 									<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>
-										${Number(topupData?.price).toFixed(6)}
+										${formatCryptoAmount(topupData?.price)}
 									</Text>
 								</View>
 							</View>
@@ -475,10 +475,10 @@ const Add = ({ navigation }) => {
 									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Total a pagar</Text>
 								</View>
 								<View style={styles.detailRight}>
-									<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontFamily: 'Rubik-Medium', flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
-										{Number(topupData?.value).toFixed(8)} {topupData?.coin}
+									<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+										{formatCryptoAmount(topupData?.value)} {topupData?.coin}
 									</Text>
-									<Pressable onPress={() => copyTextToClipboard(Number(topupData?.value).toFixed(8))} hitSlop={8}>
+									<Pressable onPress={() => copyTextToClipboard(formatCryptoAmount(topupData?.value))} hitSlop={8}>
 										<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
 									</Pressable>
 								</View>

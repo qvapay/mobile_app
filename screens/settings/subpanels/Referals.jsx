@@ -127,30 +127,30 @@ const Referals = () => {
 				{/* Stats Row */}
 				<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
 					<View style={styles.statItem}>
-						<Text style={[styles.statValue, { color: theme.colors.primary }]}>{totalReferrals}</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Referidos</Text>
+						<Text style={[styles.statValue, { color: theme.colors.primary, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>{totalReferrals}</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Referidos</Text>
 					</View>
 					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 					<View style={styles.statItem}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
 							<FontAwesome6 name="circle-check" size={14} color={theme.colors.success} iconStyle="solid" />
-							<Text style={[styles.statValue, { color: theme.colors.primaryText }]}>{verifiedCount}</Text>
+							<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>{verifiedCount}</Text>
 						</View>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Verificados</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Verificados</Text>
 					</View>
 					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 					<View style={styles.statItem}>
-						<Text style={[styles.statValue, { color: theme.colors.primaryText }]}>{referrals.length - verifiedCount}</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Pendientes</Text>
+						<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>{referrals.length - verifiedCount}</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Pendientes</Text>
 					</View>
 				</View>
 
 				{/* Share Card */}
 				<View style={[styles.shareCard, { backgroundColor: theme.colors.surface }]}>
-					<Text style={[styles.shareTitle, { color: theme.colors.primaryText }]}>Tu enlace de referido</Text>
+					<Text style={[styles.shareTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Tu enlace de referido</Text>
 					<Pressable onPress={handleCopyLink} style={[styles.linkBox, { backgroundColor: theme.colors.background }]}>
 						<FontAwesome6 name="link" size={14} color={theme.colors.primary} iconStyle="solid" />
-						<Text style={[styles.linkText, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+						<Text style={[styles.linkText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]} numberOfLines={1}>
 							{referralLink}
 						</Text>
 						<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
@@ -165,7 +165,7 @@ const Referals = () => {
 
 				{/* How it works */}
 				<View style={[styles.howItWorks, { backgroundColor: theme.colors.surface }]}>
-					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>
+					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
 						<FontAwesome6 name="lightbulb" size={14} color={theme.colors.warning} iconStyle="solid" />
 						{'  '}Cómo funciona
 					</Text>
@@ -176,17 +176,17 @@ const Referals = () => {
 
 				{/* Referrals List */}
 				<View style={{ marginTop: 20 }}>
-					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, marginBottom: 12 }]}>
+					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, marginBottom: 12, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
 						Mis referidos ({totalReferrals})
 					</Text>
 
 					{referrals.length === 0 ? (
 						<View style={[styles.emptyState, { backgroundColor: theme.colors.surface }]}>
 							<FontAwesome6 name="user-group" size={32} color={theme.colors.secondaryText} iconStyle="solid" />
-							<Text style={[styles.emptyTitle, { color: theme.colors.primaryText }]}>
+							<Text style={[styles.emptyTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }]}>
 								Aún no tienes referidos
 							</Text>
-							<Text style={[styles.emptySubtitle, { color: theme.colors.secondaryText }]}>
+							<Text style={[styles.emptySubtitle, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
 								Comparte tu enlace para empezar a invitar amigos
 							</Text>
 						</View>
@@ -197,12 +197,12 @@ const Referals = () => {
 								{referral.kyc ? (
 									<View style={[styles.badge, { backgroundColor: theme.colors.success + '20' }]}>
 										<FontAwesome6 name="circle-check" size={10} color={theme.colors.success} iconStyle="solid" />
-										<Text style={[styles.badgeText, { color: theme.colors.success }]}>KYC</Text>
+										<Text style={[styles.badgeText, { color: theme.colors.success, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>KYC</Text>
 									</View>
 								) : (
 									<View style={[styles.badge, { backgroundColor: theme.colors.warning + '20' }]}>
 										<FontAwesome6 name="clock" size={10} color={theme.colors.warning} iconStyle="solid" />
-										<Text style={[styles.badgeText, { color: theme.colors.warning }]}>Pendiente</Text>
+										<Text style={[styles.badgeText, { color: theme.colors.warning, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>Pendiente</Text>
 									</View>
 								)}
 							</View>
@@ -224,7 +224,7 @@ const SocialButton = ({ icon, label, color, iconStyle, onPress, theme }) => (
 		<View style={[styles.socialCircle, { backgroundColor: color + '18' }]}>
 			<FontAwesome6 name={icon} size={18} color={color} iconStyle={iconStyle} />
 		</View>
-		<Text style={[styles.socialLabel, { color: theme.colors.secondaryText }]}>{label}</Text>
+		<Text style={[styles.socialLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{label}</Text>
 	</Pressable>
 )
 
@@ -232,9 +232,9 @@ const SocialButton = ({ icon, label, color, iconStyle, onPress, theme }) => (
 const Step = ({ number, text, theme }) => (
 	<View style={styles.stepRow}>
 		<View style={[styles.stepCircle, { backgroundColor: theme.colors.primary + '20' }]}>
-			<Text style={[styles.stepNumber, { color: theme.colors.primary }]}>{number}</Text>
+			<Text style={[styles.stepNumber, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{number}</Text>
 		</View>
-		<Text style={[styles.stepText, { color: theme.colors.secondaryText }]}>{text}</Text>
+		<Text style={[styles.stepText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{text}</Text>
 	</View>
 )
 
@@ -253,12 +253,8 @@ const styles = StyleSheet.create({
 		gap: 4,
 	},
 	statValue: {
-		fontSize: 20,
-		fontFamily: 'Rubik-Medium',
 	},
 	statLabel: {
-		fontSize: 11,
-		fontFamily: 'Rubik-Regular',
 	},
 	statDivider: {
 		width: 1,
@@ -270,8 +266,6 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 	},
 	shareTitle: {
-		fontSize: 14,
-		fontFamily: 'Rubik-Medium',
 		marginBottom: 10,
 	},
 	linkBox: {
@@ -284,8 +278,6 @@ const styles = StyleSheet.create({
 	},
 	linkText: {
 		flex: 1,
-		fontSize: 13,
-		fontFamily: 'Rubik-Regular',
 	},
 	howItWorks: {
 		borderRadius: 12,
@@ -293,8 +285,6 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 	},
 	sectionTitle: {
-		fontSize: 14,
-		fontFamily: 'Rubik-Medium',
 	},
 	stepRow: {
 		flexDirection: 'row',
@@ -310,12 +300,8 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 	},
 	stepNumber: {
-		fontSize: 13,
-		fontFamily: 'Rubik-Medium',
 	},
 	stepText: {
-		fontSize: 13,
-		fontFamily: 'Rubik-Regular',
 		flex: 1,
 	},
 	emptyState: {
@@ -325,13 +311,9 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	emptyTitle: {
-		fontSize: 15,
-		fontFamily: 'Rubik-Medium',
 		marginTop: 4,
 	},
 	emptySubtitle: {
-		fontSize: 13,
-		fontFamily: 'Rubik-Regular',
 		textAlign: 'center',
 	},
 	referralRow: {
@@ -352,8 +334,6 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 	},
 	badgeText: {
-		fontSize: 11,
-		fontFamily: 'Rubik-Medium',
 	},
 	socialButton: {
 		alignItems: 'center',
@@ -367,8 +347,6 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 	},
 	socialLabel: {
-		fontSize: 11,
-		fontFamily: 'Rubik-Regular',
 	},
 })
 

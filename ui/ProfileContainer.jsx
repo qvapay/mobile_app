@@ -60,21 +60,21 @@ const ProfileContainer = ({ user = {}, onEditAvatar }) => {
 			{/* P2P Stats Card */}
 			<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
 				<View style={styles.statItem}>
-					<Text style={[styles.statValue, { color: theme.colors.primaryText }]}>{p2pCount}</Text>
-					<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Operaciones</Text>
+					<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{p2pCount}</Text>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Operaciones</Text>
 				</View>
 				<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 				<View style={styles.statItem}>
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
 						<FontAwesome6 name="star" size={14} color={theme.colors.warning} iconStyle="solid" />
-						<Text style={[styles.statValue, { color: theme.colors.primaryText }]}>{rating.toFixed(1)}</Text>
+						<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{rating.toFixed(1)}</Text>
 					</View>
-					<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>Rating</Text>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Rating</Text>
 				</View>
 				<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 				<View style={styles.statItem}>
-					<Text style={[styles.statValue, { color: theme.colors.primaryText }]}>{trustScore}</Text>
-					<Text style={[styles.statLabel, { color: theme.colors.secondaryText }]}>TrustScore</Text>
+					<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{trustScore}</Text>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>TrustScore</Text>
 				</View>
 			</View>
 		</View>
@@ -96,14 +96,8 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 4,
 	},
-	statValue: {
-		fontSize: 18,
-		fontFamily: 'Rubik-Medium',
-	},
-	statLabel: {
-		fontSize: 11,
-		fontFamily: 'Rubik-Regular',
-	},
+	statValue: {},
+	statLabel: {},
 	statDivider: {
 		width: 1,
 		height: 30,

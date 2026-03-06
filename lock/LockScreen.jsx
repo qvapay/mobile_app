@@ -179,7 +179,7 @@ const LockScreen = () => {
 						<TextInput
 							key={`lock-pin-${index}`}
 							ref={(ref) => pinInputsRef.current[index] = ref}
-							style={[styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }]}
+							style={[styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
 							value={pin[index] || ''}
 							onChangeText={(text) => handlePinChange(text, index)}
 							onFocus={() => handlePinFocus(index)}
@@ -255,7 +255,6 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: 60,
 		borderRadius: 12,
-		fontSize: 24,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},

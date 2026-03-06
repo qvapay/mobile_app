@@ -201,7 +201,7 @@ const Transaction = ({ route, navigation }) => {
 
 				{/* Amount Section */}
 				<View style={styles.amountSection}>
-					<Text style={[textStyles.amount, { color: transactionColor, fontSize: 48 }]}>
+					<Text style={[textStyles.amount, { color: transactionColor, fontSize: theme.typography.fontSize.display }]}>
 						{transactionSign}${amountFixed}
 					</Text>
 				</View>

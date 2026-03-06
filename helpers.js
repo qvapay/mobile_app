@@ -251,6 +251,21 @@ const getFirstChunk = (uuid) => {
 const getTypeText = type => { return type === 'buy' ? 'COMPRA' : 'VENTA' }
 const getTypeColor = (type, theme) => { return type === 'buy' ? theme.colors.success : theme.colors.error }
 
+// Format crypto amounts removing unnecessary trailing zeros
+// formatCryptoAmount(0.00145000, 8) → "0.00145"
+// formatCryptoAmount(1.50000000, 8) → "1.50"
+const formatCryptoAmount = (value, maxDecimals = 8) => {
+	const num = Number(value)
+	if (isNaN(num)) return '0'
+	const fixed = num.toFixed(maxDecimals)
+	// Remove trailing zeros but keep at least 2 decimal places
+	const trimmed = fixed.replace(/\.?0+$/, '')
+	const parts = trimmed.split('.')
+	if (parts.length === 1) return parts[0] + '.00'
+	if (parts[1].length < 2) return parts[0] + '.' + parts[1].padEnd(2, '0')
+	return trimmed
+}
+
 // export helpers
 export {
 	timeSince,
@@ -269,5 +284,6 @@ export {
 	getFirstChunk,
 	getTypeText,
 	getTypeColor,
-	reduceStringInside
+	reduceStringInside,
+	formatCryptoAmount
 }

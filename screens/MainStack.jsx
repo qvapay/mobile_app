@@ -127,8 +127,8 @@ const MainStack = ({ navigation }) => {
 				paddingTop: 8,
 			},
 			tabBarLabelStyle: {
-				fontFamily: 'Rubik-Medium',
-				fontSize: 12,
+				fontFamily: theme.typography.fontFamily.medium,
+				fontSize: theme.typography.fontSize.xs,
 			},
 		}),
 	}), [theme, showLabels, insets.bottom, user, containerStyles, navigation])

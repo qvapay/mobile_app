@@ -55,6 +55,44 @@ export const savingApi = {
 			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
 		}
 	},
+
+	/**
+	 * Get savings transactions history
+	 * @param {number} limit - Max results (default 50)
+	 * @param {number} offset - Offset for pagination (default 0)
+	 * @returns {Promise<Object>} Transactions list
+	 */
+	getTransactions: async (limit = 50, offset = 0) => {
+		try {
+			const response = await apiClient.get(`/saving/transactions?limit=${limit}&offset=${offset}`)
+			return { success: true, data: response.data?.data || response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener las transacciones', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Get savings earnings history
+	 * @param {number} limit - Max results (default 12)
+	 * @param {number} offset - Offset for pagination (default 0)
+	 * @returns {Promise<Object>} Earnings list
+	 */
+	getEarnings: async (limit = 12, offset = 0) => {
+		try {
+			const response = await apiClient.get(`/saving/earnings?limit=${limit}&offset=${offset}`)
+			return { success: true, data: response.data?.data || response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener las ganancias', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
 }
 
 export default savingApi

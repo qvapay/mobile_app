@@ -61,6 +61,7 @@ import Scan from './screens/scan/Scan'
 
 // Invest Screens
 import Savings from './screens/invest/Savings'
+import StockDetail from './screens/invest/StockDetail'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -348,6 +349,13 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				name={ROUTES.SAVINGS_SCREEN}
 				component={Savings}
 				options={getHeaderOptions('Ahorros')}
+			/>
+
+			{/* Stock Detail Screen */}
+			<Stack.Screen
+				name={ROUTES.STOCK_DETAIL_SCREEN}
+				component={StockDetail}
+				options={({ route }) => getHeaderOptions(route.params?.name || '')}
 			/>
 
 			{/* QR Scan Screen */}

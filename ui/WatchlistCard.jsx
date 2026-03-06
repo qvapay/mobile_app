@@ -47,11 +47,11 @@ const WatchlistCard = memo(({ coin, onPress }) => {
 
 			<View style={styles.bottomRow}>
 				<View style={styles.tickerRow}>
-					<Text style={[styles.ticker, { color: theme.colors.primaryText }]}>{coin.tick}</Text>
+					<Text style={[styles.ticker, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{coin.tick}</Text>
 					<FontAwesome6 name={isPositive ? 'caret-up' : 'caret-down'} size={12} color={changeColor} iconStyle="solid" />
-					<Text style={[styles.change, { color: changeColor }]}>{formattedChange}</Text>
+					<Text style={[styles.change, { color: changeColor, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{formattedChange}</Text>
 				</View>
-				<Text style={[styles.price, { color: theme.colors.primaryText }]}>{formattedPrice}</Text>
+				<Text style={[styles.price, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.bold }]}>{formattedPrice}</Text>
 			</View>
 		</Pressable>
 	)
@@ -80,18 +80,9 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 4,
 	},
-	ticker: {
-		fontFamily: 'Rubik-Medium',
-		fontSize: 14,
-	},
-	change: {
-		fontFamily: 'Rubik-Regular',
-		fontSize: 12,
-	},
-	price: {
-		fontFamily: 'Rubik-Bold',
-		fontSize: 16,
-	},
+	ticker: {},
+	change: {},
+	price: {},
 })
 
 export default WatchlistCard

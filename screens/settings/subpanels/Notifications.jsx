@@ -164,7 +164,7 @@ const Notifications = () => {
 									<Text style={[textStyles.h4, { marginBottom: 0 }]}>{channel.label}</Text>
 									{channel.comingSoon && (
 										<View style={{ backgroundColor: theme.colors.warning + '30', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-											<Text style={{ fontSize: 10, color: theme.colors.warning, fontWeight: '600' }}>Próximamente</Text>
+											<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.warning, fontWeight: '600' }}>Próximamente</Text>
 										</View>
 									)}
 								</View>

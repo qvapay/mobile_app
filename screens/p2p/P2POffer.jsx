@@ -770,7 +770,7 @@ const P2POffer = ({ route }) => {
 															resizeMode={FastImage.resizeMode.contain}
 														/>
 														{showTimestamp && m.created_at && (
-															<Text style={[textStyles.h7, { fontSize: 10, color: theme.colors.secondaryText, marginTop: 2, textAlign: mine ? "right" : "left" }]}>
+															<Text style={[textStyles.h7, { fontSize: theme.typography.fontSize.xs, color: theme.colors.secondaryText, marginTop: 2, textAlign: mine ? "right" : "left" }]}>
 																{getShortDateTime(m.created_at)}
 															</Text>
 														)}
@@ -813,7 +813,7 @@ const P2POffer = ({ route }) => {
 													{/* Show timestamp only when manually toggled */}
 													{showTimestamp && m.created_at && (
 														<Animated.View style={{ opacity: messageAnimations.current[m.id] || new Animated.Value(0), transform: [{ translateY: (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-															<Text style={[textStyles.h7, { fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
+															<Text style={[textStyles.h7, { fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
 																{getShortDateTime(m.created_at)}
 															</Text>
 														</Animated.View>
@@ -1148,8 +1148,6 @@ const styles = StyleSheet.create({
 		borderRadius: 6
 	},
 	typeText: {
-		fontSize: 10,
-		fontFamily: 'Rubik-Medium',
 		textTransform: 'uppercase'
 	},
 	amountRow: {
@@ -1180,10 +1178,7 @@ const styles = StyleSheet.create({
 		marginRight: 6,
 		marginBottom: 4
 	},
-	badgeText: {
-		fontSize: 10,
-		fontFamily: 'Rubik-Medium'
-	},
+	badgeText: {},
 	messageRow: {
 		flexDirection: 'row',
 		alignItems: 'center',

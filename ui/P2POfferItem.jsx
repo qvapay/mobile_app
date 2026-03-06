@@ -104,12 +104,12 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 
 				{/* Right column: date + badges + button */}
 				<View style={{ alignItems: 'flex-end', gap: 4 }}>
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: 10 }]}>{new Date(offer.created_at).toLocaleDateString()}</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{new Date(offer.created_at).toLocaleDateString()}</Text>
 					{badges.length > 0 && (
 						<View style={{ gap: 2, alignItems: 'flex-end' }}>
 							{badges.map((badge) => (
 								<View key={badge.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-									<Text style={[textStyles.caption, { color: badge.color, fontSize: 10, fontFamily: 'Rubik-Medium' }]}>{badge.label}</Text>
+									<Text style={[textStyles.caption, { color: badge.color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>{badge.label}</Text>
 									<View style={{ width: 2, height: 12, backgroundColor: badge.color }} />
 								</View>
 							))}
@@ -119,7 +119,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 						<QPButton
 							title={btnConfig.title}
 							style={{ backgroundColor: btnConfig.bg, width: 90, height: 24, borderRadius: btnConfig.borderRadius, paddingHorizontal: 5, paddingVertical: 2 }}
-							textStyle={{ color: btnConfig.textColor, fontSize: 13, fontWeight: '400' }}
+							textStyle={{ color: btnConfig.textColor, fontSize: theme.typography.fontSize.sm, fontWeight: '400' }}
 							onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
 						/>
 					)}
