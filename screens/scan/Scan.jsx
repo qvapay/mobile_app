@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { View, Text, StyleSheet, Dimensions, Animated, Linking, Pressable, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, Dimensions, Animated, Linking, Pressable } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -220,15 +220,11 @@ const Scan = ({ navigation, route }) => {
 					</View>
 				</>
 			) : (
-				<ScrollView
-					style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]}
-					contentContainerStyle={{ paddingTop: CONTENT_TOP, paddingBottom: insets.bottom + 20 }}
-					showsVerticalScrollIndicator={false}
-				>
-					{/* Profile + Stats */}
+				<View style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]}>
+					{/* Profile + Stats (cover extends behind top controls) */}
 					<ProfileContainer user={user || {}} />
 
-					{/* QR Code */}
+					{/* QR Code — centered in remaining space */}
 					<View style={styles.qrSection}>
 						<View style={[styles.qrCard, { backgroundColor: '#FFFFFF' }]}>
 							<QRCodeStyled
@@ -253,7 +249,7 @@ const Scan = ({ navigation, route }) => {
 							{user?.username ? `qvapay.com/payme/${user.username}` : `qvapay.com/payme/${user?.uuid}`}
 						</Text>
 					</View>
-				</ScrollView>
+				</View>
 			)}
 
 			{/* === TOP BAR — always same position === */}
@@ -374,8 +370,9 @@ const styles = StyleSheet.create({
 	},
 	// Show QR mode
 	qrSection: {
+		flex: 1,
 		alignItems: 'center',
-		marginTop: 10,
+		justifyContent: 'center',
 	},
 	qrCard: {
 		borderRadius: 16,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { StyleSheet, Text, View, ScrollView, Pressable, Modal } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Pressable, Modal, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Helpers
@@ -120,8 +120,12 @@ const Add = ({ navigation }) => {
 			setError(null)
 			const response = await apiClient.post('/topup', { pay_method: selectedCoin.tick, amount: Number(amount) })
 			if (response.data && response.status === 200) {
-				setTopupData(response.data.data)
+				const data = response.data.data
+				setTopupData(data)
 				setShowDepositModal(true)
+				if (data?.redirect_url) {
+					Linking.openURL(data.redirect_url)
+				}
 			} else { Toast.show({ type: 'error', text1: 'Error al crear la solicitud de depósito' }) }
 		} catch (error) { setError('Error al crear la solicitud de depósito, intente nuevamente en unos minutos') }
 		finally { setIsLoading(false) }
@@ -319,206 +323,285 @@ const Add = ({ navigation }) => {
 							</View>
 						</View>
 
-						{/* QR Code Section */}
-						<View style={styles.qrSection}>
-							<View style={[styles.qrCard, { backgroundColor: theme.colors.surface }]}>
-								<QRCodeStyled
-									data={topupData?.wallet}
-									style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}
-									size={280}
-									padding={12}
-									pieceSize={8}
-									isPiecesGlued
-									pieceBorderRadius={2}
-									pieceCornerType={'cut'}
-									errorCorrectionLevel={'H'}
-									preserveAspectRatio="none"
-									backgroundColor={'#FFFFFF'}
-									color={'#000000'}
-									outerEyesOptions={{
-										borderRadius: 2,
-										color: theme.colors.primary,
-									}}
-								/>
-							</View>
-						</View>
-
-						{/* Crypto Amount - Prominent */}
-						<View style={styles.amountSection}>
-							<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
-								Total a pagar
-							</Text>
-							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-								<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.bold }]}>
-									{formatCryptoAmount(topupData?.value)}
-								</Text>
-								<Text style={[textStyles.h3, { color: theme.colors.primary, marginLeft: 8 }]}>
-									{topupData?.coin}
-								</Text>
-							</View>
-							<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 4 }]}>
-								1 {topupData?.coin} ≈ ${formatCryptoAmount(topupData?.price)}
-							</Text>
-						</View>
-
-						{/* Deposit Details Card */}
-						<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
-
-							{/* Deposit Address */}
-							<View style={styles.detailRow}>
-								<View style={styles.detailLeft}>
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Dirección</Text>
-								</View>
-								<View style={styles.detailRight}>
-									<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
-										{truncateWalletAddress(topupData?.wallet || '')}
+						{topupData?.redirect_url ? (
+							<>
+								{/* PayPal Deposit View */}
+								<View style={styles.amountSection}>
+									<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
+										Monto a depositar
 									</Text>
-									<Pressable onPress={() => copyTextToClipboard(topupData?.wallet)} hitSlop={8}>
-										<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
-									</Pressable>
-								</View>
-							</View>
-
-							{/* Deposit Amount in QUSD */}
-							<View style={styles.detailRow}>
-								<View style={styles.detailLeft}>
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Monto a depositar</Text>
-								</View>
-								<View style={styles.detailRight}>
-									<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>
+									<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.bold }]}>
 										${amount} QUSD
 									</Text>
 								</View>
-							</View>
 
-							{/* Bank Account Options */}
-							{topupData?.account_name && (
-								<View style={styles.detailRow}>
-									<View style={styles.detailLeft}>
-										<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Nombre del titular</Text>
-									</View>
-									<View style={styles.detailRight}>
-										<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
-											{topupData?.account_name}
+								{/* Open PayPal Button */}
+								<QPButton
+									title="Abrir PayPal"
+									onPress={() => Linking.openURL(topupData.redirect_url)}
+									icon="arrow-up-right-from-square"
+									iconStyle="solid"
+									iconColor={theme.colors.almostWhite}
+									textStyle={{ color: theme.colors.almostWhite }}
+									style={{ marginBottom: 20 }}
+								/>
+
+								{/* Waiting message */}
+								{depositStatus === 'pending' && countdown > 0 && (
+									<View style={[styles.statusBanner, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
+										<FontAwesome6 name="clock" size={14} color={theme.colors.primary} iconStyle="solid" />
+										<Text style={[textStyles.subtitle, { color: theme.colors.primary, marginLeft: 8, flex: 1 }]}>
+											Esperando confirmación de pago en PayPal...
 										</Text>
-										<Pressable onPress={() => copyTextToClipboard(topupData?.account_name)} hitSlop={8}>
-											<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
-										</Pressable>
+									</View>
+								)}
+
+								{/* Deposit Details Card */}
+								<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
+									<View style={styles.detailRow}>
+										<View style={styles.detailLeft}>
+											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Monto a depositar</Text>
+										</View>
+										<View style={styles.detailRight}>
+											<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>
+												${amount} QUSD
+											</Text>
+										</View>
+									</View>
+									<View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+										<View style={styles.detailLeft}>
+											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Transacción</Text>
+										</View>
+										<View style={styles.detailRight}>
+											<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>
+												{getFirstChunk(topupData?.transaction_uuid)}
+											</Text>
+										</View>
 									</View>
 								</View>
-							)}
 
-							{topupData?.routing_number && (
-								<View style={styles.detailRow}>
-									<View style={styles.detailLeft}>
-										<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Número de ruta</Text>
+								{/* PayPal Warnings */}
+								<View style={[styles.warningsCard, { backgroundColor: theme.colors.danger + '10', borderColor: theme.colors.danger + '30' }]}>
+									<View style={styles.warningsHeader}>
+										<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.danger} iconStyle="solid" />
+										<Text style={[textStyles.h6, { color: theme.colors.danger, marginLeft: 8 }]}>Importante</Text>
 									</View>
-									<View style={styles.detailRight}>
-										<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
-											{topupData?.routing_number}
+									<View style={styles.warningsList}>
+										<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
+											{'\u2022'} Complete el pago en PayPal en 30 minutos
 										</Text>
-										<Pressable onPress={() => copyTextToClipboard(topupData?.routing_number)} hitSlop={8}>
-											<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
-										</Pressable>
-									</View>
-								</View>
-							)}
-
-							{topupData?.account_number && (
-								<View style={styles.detailRow}>
-									<View style={styles.detailLeft}>
-										<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Número de cuenta</Text>
-									</View>
-									<View style={styles.detailRight}>
-										<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
-											{topupData?.account_number}
+										<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
+											{'\u2022'} No cierre esta pantalla hasta confirmar el pago
 										</Text>
-										<Pressable onPress={() => copyTextToClipboard(topupData?.account_number)} hitSlop={8}>
-											<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
-										</Pressable>
 									</View>
 								</View>
-							)}
+							</>
+						) : (
+							<>
+								{/* Crypto Deposit View */}
 
-							{/* Memo - only if exists */}
-							{topupData?.memo && (
-								<View style={styles.detailRow}>
-									<View style={styles.detailLeft}>
-										<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Memo</Text>
+								{/* QR Code Section */}
+								<View style={styles.qrSection}>
+									<View style={[styles.qrCard, { backgroundColor: theme.colors.surface }]}>
+										<QRCodeStyled
+											data={topupData?.wallet}
+											style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}
+											size={280}
+											padding={12}
+											pieceSize={8}
+											isPiecesGlued
+											pieceBorderRadius={2}
+											pieceCornerType={'cut'}
+											errorCorrectionLevel={'H'}
+											preserveAspectRatio="none"
+											backgroundColor={'#FFFFFF'}
+											color={'#000000'}
+											outerEyesOptions={{
+												borderRadius: 2,
+												color: theme.colors.primary,
+											}}
+										/>
 									</View>
-									<View style={styles.detailRight}>
-										<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
-											{topupData?.memo}
+								</View>
+
+								{/* Crypto Amount - Prominent */}
+								<View style={styles.amountSection}>
+									<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
+										Total a pagar
+									</Text>
+									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+										<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.bold }]}>
+											{formatCryptoAmount(topupData?.value)}
 										</Text>
-										<Pressable onPress={() => copyTextToClipboard(topupData?.memo)} hitSlop={8}>
-											<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
-										</Pressable>
+										<Text style={[textStyles.h3, { color: theme.colors.primary, marginLeft: 8 }]}>
+											{topupData?.coin}
+										</Text>
 									</View>
-								</View>
-							)}
-
-							{/* Exchange Rate */}
-							<View style={styles.detailRow}>
-								<View style={styles.detailLeft}>
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Tasa de cambio</Text>
-								</View>
-								<View style={styles.detailRight}>
-									<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>
-										${formatCryptoAmount(topupData?.price)}
+									<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 4 }]}>
+										1 {topupData?.coin} ≈ ${formatCryptoAmount(topupData?.price)}
 									</Text>
 								</View>
-							</View>
 
-							{/* Total to Pay */}
-							<View style={styles.detailRow}>
-								<View style={styles.detailLeft}>
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Total a pagar</Text>
-								</View>
-								<View style={styles.detailRight}>
-									<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
-										{formatCryptoAmount(topupData?.value)} {topupData?.coin}
-									</Text>
-									<Pressable onPress={() => copyTextToClipboard(formatCryptoAmount(topupData?.value))} hitSlop={8}>
-										<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
-									</Pressable>
-								</View>
-							</View>
+								{/* Deposit Details Card */}
+								<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
 
-							{/* Transaction ID */}
-							<View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-								<View style={styles.detailLeft}>
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Transacción</Text>
-								</View>
-								<View style={styles.detailRight}>
-									<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>
-										{getFirstChunk(topupData?.transaction_uuid)}
-									</Text>
-								</View>
-							</View>
+									{/* Deposit Address */}
+									<View style={styles.detailRow}>
+										<View style={styles.detailLeft}>
+											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Dirección</Text>
+										</View>
+										<View style={styles.detailRight}>
+											<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+												{truncateWalletAddress(topupData?.wallet || '')}
+											</Text>
+											<Pressable onPress={() => copyTextToClipboard(topupData?.wallet)} hitSlop={8}>
+												<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
+											</Pressable>
+										</View>
+									</View>
 
-						</View>
+									{/* Deposit Amount in QUSD */}
+									<View style={styles.detailRow}>
+										<View style={styles.detailLeft}>
+											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Monto a depositar</Text>
+										</View>
+										<View style={styles.detailRight}>
+											<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>
+												${amount} QUSD
+											</Text>
+										</View>
+									</View>
 
-						{/* Warnings Section */}
-						<View style={[styles.warningsCard, { backgroundColor: theme.colors.danger + '10', borderColor: theme.colors.danger + '30' }]}>
-							<View style={styles.warningsHeader}>
-								<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.danger} iconStyle="solid" />
-								<Text style={[textStyles.h6, { color: theme.colors.danger, marginLeft: 8 }]}>Importante</Text>
-							</View>
-							<View style={styles.warningsList}>
-								<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
-									{'\u2022'} No envíe cripto a otra dirección
-								</Text>
-								<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
-									{'\u2022'} Complete el pago en 30 minutos
-								</Text>
-								<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
-									{'\u2022'} Envíe exactamente la cantidad indicada
-								</Text>
-								<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
-									{'\u2022'} No use una red/token diferente
-								</Text>
-							</View>
-						</View>
+									{/* Bank Account Options */}
+									{topupData?.account_name && (
+										<View style={styles.detailRow}>
+											<View style={styles.detailLeft}>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Nombre del titular</Text>
+											</View>
+											<View style={styles.detailRight}>
+												<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+													{topupData?.account_name}
+												</Text>
+												<Pressable onPress={() => copyTextToClipboard(topupData?.account_name)} hitSlop={8}>
+													<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
+												</Pressable>
+											</View>
+										</View>
+									)}
+
+									{topupData?.routing_number && (
+										<View style={styles.detailRow}>
+											<View style={styles.detailLeft}>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Número de ruta</Text>
+											</View>
+											<View style={styles.detailRight}>
+												<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+													{topupData?.routing_number}
+												</Text>
+												<Pressable onPress={() => copyTextToClipboard(topupData?.routing_number)} hitSlop={8}>
+													<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
+												</Pressable>
+											</View>
+										</View>
+									)}
+
+									{topupData?.account_number && (
+										<View style={styles.detailRow}>
+											<View style={styles.detailLeft}>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Número de cuenta</Text>
+											</View>
+											<View style={styles.detailRight}>
+												<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+													{topupData?.account_number}
+												</Text>
+												<Pressable onPress={() => copyTextToClipboard(topupData?.account_number)} hitSlop={8}>
+													<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
+												</Pressable>
+											</View>
+										</View>
+									)}
+
+									{/* Memo - only if exists */}
+									{topupData?.memo && (
+										<View style={styles.detailRow}>
+											<View style={styles.detailLeft}>
+												<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Memo</Text>
+											</View>
+											<View style={styles.detailRight}>
+												<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+													{topupData?.memo}
+												</Text>
+												<Pressable onPress={() => copyTextToClipboard(topupData?.memo)} hitSlop={8}>
+													<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
+												</Pressable>
+											</View>
+										</View>
+									)}
+
+									{/* Exchange Rate */}
+									<View style={styles.detailRow}>
+										<View style={styles.detailLeft}>
+											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Tasa de cambio</Text>
+										</View>
+										<View style={styles.detailRight}>
+											<Text style={[textStyles.caption, { color: theme.colors.primaryText }]}>
+												${formatCryptoAmount(topupData?.price)}
+											</Text>
+										</View>
+									</View>
+
+									{/* Total to Pay */}
+									<View style={styles.detailRow}>
+										<View style={styles.detailLeft}>
+											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Total a pagar</Text>
+										</View>
+										<View style={styles.detailRight}>
+											<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, flex: 1, marginRight: 8, textAlign: 'right' }]} numberOfLines={1}>
+												{formatCryptoAmount(topupData?.value)} {topupData?.coin}
+											</Text>
+											<Pressable onPress={() => copyTextToClipboard(formatCryptoAmount(topupData?.value))} hitSlop={8}>
+												<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
+											</Pressable>
+										</View>
+									</View>
+
+									{/* Transaction ID */}
+									<View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+										<View style={styles.detailLeft}>
+											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Transacción</Text>
+										</View>
+										<View style={styles.detailRight}>
+											<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>
+												{getFirstChunk(topupData?.transaction_uuid)}
+											</Text>
+										</View>
+									</View>
+
+								</View>
+
+								{/* Warnings Section */}
+								<View style={[styles.warningsCard, { backgroundColor: theme.colors.danger + '10', borderColor: theme.colors.danger + '30' }]}>
+									<View style={styles.warningsHeader}>
+										<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.danger} iconStyle="solid" />
+										<Text style={[textStyles.h6, { color: theme.colors.danger, marginLeft: 8 }]}>Importante</Text>
+									</View>
+									<View style={styles.warningsList}>
+										<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
+											{'\u2022'} No envíe cripto a otra dirección
+										</Text>
+										<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
+											{'\u2022'} Complete el pago en 30 minutos
+										</Text>
+										<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
+											{'\u2022'} Envíe exactamente la cantidad indicada
+										</Text>
+										<Text style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
+											{'\u2022'} No use una red/token diferente
+										</Text>
+									</View>
+								</View>
+							</>
+						)}
 
 					</ScrollView>
 				</SafeAreaView>

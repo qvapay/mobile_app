@@ -10,17 +10,9 @@ export const userApi = {
 	searchUser: async (search) => {
 		try {
 			const response = await apiClient.post(`/user/search`, { query: search })
-			return {
-				success: true,
-				data: response.data,
-				status: response.status
-			}
+			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
-			return {
-				success: false,
-				error: error.message,
-				status: error.response?.status
-			}
+			return { success: false, error: error.message, status: error.response?.status }
 		}
 	},
 
@@ -416,11 +408,12 @@ export const userApi = {
 	},
 
 	/**
-	 * Upload user avatar
+	 * Upload user avatar or cover photo
 	 * @param {{ uri: string, name?: string, type?: string }} file - The image file
+	 * @param {'avatar'|'cover'} uploadType - The type of image to upload
 	 * @returns {Promise<Object>} Upload result with { url, path }
 	 */
-	uploadAvatar: async ({ file }) => {
+	uploadAvatar: async ({ file, uploadType = 'avatar' }) => {
 		try {
 			const formData = new FormData()
 			formData.append('file', {
@@ -428,7 +421,7 @@ export const userApi = {
 				name: file.name || 'avatar.jpg',
 				type: file.type || 'image/jpeg'
 			})
-			formData.append('type', 'avatar')
+			formData.append('type', uploadType)
 			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
 			const response = await apiClient.post('/user/avatar', formData, config)
 			return { success: true, data: response.data, status: response.status }

@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }) => {
 					setIsAuthenticated(true)
 					const userData = await userApi.getUserProfile()
 					if (userData.success && userData.data) {
+						if (userData.data.cover && !userData.data.cover_photo_url) { userData.data.cover_photo_url = `https://media.qvapay.com/${userData.data.cover}` }
 						setUser(userData.data)
 						// Re-register with OneSignal on app restart
 						OneSignal.login(userData.data.uuid)
@@ -114,7 +115,7 @@ export const AuthProvider = ({ children }) => {
 				golden_check: me.golden_check,
 				golden_expire: me.golden_expire,
 				p2p_enabled: me.p2p_enabled,
-				cover_photo_url: me.cover_photo_url,
+				cover_photo_url: me.cover ? `https://media.qvapay.com/${me.cover}` : null,
 				image: me.image,
 				average_rating: me.average_rating,
 				role: me.role,

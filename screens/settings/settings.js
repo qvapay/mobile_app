@@ -104,7 +104,7 @@ const settings = {
         title: 'NOTIFICACIONES',
         options: [
             {
-                title: 'Configuración de notificaciones',
+                title: 'Envío de notificaciones',
                 screen: ROUTES.NOTIFICATIONS,
                 enabled: true,
                 notifications: 0,

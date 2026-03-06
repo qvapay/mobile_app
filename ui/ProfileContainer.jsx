@@ -1,4 +1,7 @@
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import LinearGradient from 'react-native-linear-gradient'
+import FastImage from '@d11/react-native-fast-image'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -10,12 +13,20 @@ import QPAvatar from './particles/QPAvatar'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+const COVER_VISIBLE_HEIGHT = 200
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 56
+
 // Profile Container Component
-const ProfileContainer = ({ user = {}, onEditAvatar }) => {
+const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 
 	// Contexts
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
+	const insets = useSafeAreaInsets()
+
+	// Total offset to pull cover behind header + status bar + container padding
+	const topOffset = insets.top + HEADER_HEIGHT
+	const totalCoverHeight = COVER_VISIBLE_HEIGHT + topOffset
 
 	// Qvapay Logo based on theme
 	const qvapayLogo = theme.isDark ? require('../assets/images/ui/qvapay-logo-white.png') : require('../assets/images/ui/logo-qvapay.png')
@@ -25,31 +36,66 @@ const ProfileContainer = ({ user = {}, onEditAvatar }) => {
 	const rating = user.p2p_average_rating || 0
 	const trustScore = user.trustscore || 0
 
+	const hasCover = !!user.cover_photo_url
+
 	return (
-		<View style={{ alignItems: 'center', marginVertical: 10 }}>
-			<Pressable onPress={onEditAvatar} disabled={!onEditAvatar}>
-				<View style={{ position: 'relative' }}>
-					<QPAvatar size={120} user={user} />
-					{onEditAvatar && (
-						<View style={{
-							position: 'absolute',
-							bottom: 4,
-							right: 4,
-							width: 28,
-							height: 28,
-							borderRadius: 14,
-							backgroundColor: theme.colors.primary,
-							alignItems: 'center',
-							justifyContent: 'center',
-							borderWidth: 2,
-							borderColor: theme.colors.background,
-						}}>
-							<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
-						</View>
-					)}
-				</View>
-			</Pressable>
-			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 15 }}>
+		<View style={{ alignItems: 'center' }}>
+
+			{/* Cover Image Area - extends behind header + status bar */}
+			<View style={[styles.coverContainer, { backgroundColor: theme.colors.surface, height: totalCoverHeight, marginTop: -topOffset }]}>
+				{hasCover ? (
+					<FastImage
+						source={{ uri: user.cover_photo_url, priority: FastImage.priority.high }}
+						style={StyleSheet.absoluteFill}
+						resizeMode={FastImage.resizeMode.cover}
+					/>
+				) : (
+					<View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+						<FontAwesome6 name="image" size={40} color={theme.colors.elevation} iconStyle="solid" />
+					</View>
+				)}
+				{/* Gradient fade at the bottom */}
+				<LinearGradient
+					colors={['transparent', theme.colors.background]}
+					start={{ x: 0.5, y: 0.6 }}
+					end={{ x: 0.5, y: 1 }}
+					style={StyleSheet.absoluteFill}
+				/>
+				{/* Cover edit button */}
+				{onEditCover && (
+					<Pressable onPress={onEditCover} style={[styles.coverEditButton, { backgroundColor: theme.colors.primary }]}>
+						<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
+					</Pressable>
+				)}
+			</View>
+
+			{/* Avatar overlapping the cover */}
+			<View style={styles.avatarWrapper}>
+				<Pressable onPress={onEditAvatar} disabled={!onEditAvatar}>
+					<View style={{ position: 'relative' }}>
+						<QPAvatar size={120} user={user} />
+						{onEditAvatar && (
+							<View style={{
+								position: 'absolute',
+								bottom: 4,
+								right: 4,
+								width: 28,
+								height: 28,
+								borderRadius: 14,
+								backgroundColor: theme.colors.primary,
+								alignItems: 'center',
+								justifyContent: 'center',
+								borderWidth: 2,
+								borderColor: theme.colors.background,
+							}}>
+								<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
+							</View>
+						)}
+					</View>
+				</Pressable>
+			</View>
+
+			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 }}>
 				{user.name && (<Text style={[textStyles.h1, { marginVertical: 0, paddingVertical: 0 }]}>{user.name || ''}</Text>)}
 				{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 20, height: 20 }} />)}
 				{user.golden_check && (<FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" />)}
@@ -82,6 +128,25 @@ const ProfileContainer = ({ user = {}, onEditAvatar }) => {
 }
 
 const styles = StyleSheet.create({
+	coverContainer: {
+		marginHorizontal: -16,
+		alignSelf: 'stretch',
+		overflow: 'hidden',
+	},
+	coverEditButton: {
+		position: 'absolute',
+		bottom: 40,
+		right: 12,
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	avatarWrapper: {
+		marginTop: -60,
+		alignItems: 'center',
+	},
 	statsCard: {
 		flexDirection: 'row',
 		alignItems: 'center',

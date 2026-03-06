@@ -1,11 +1,6 @@
-import { Platform, Pressable } from 'react-native'
-
 // Navigation
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
-
-// FontAwesome6
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -59,34 +54,7 @@ const SettingsStack = ({ navigation }) => {
 			<Stack.Screen
 				name={ROUTES.SETTINGS_MENU}
 				component={SettingsMenu}
-				options={{
-					// Android fallback
-					headerLeft: () => (
-						<Pressable onPress={() => navigation.goBack()} hitSlop={10}>
-							<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
-					headerRight: () => (
-						<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })}>
-							<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					),
-					// iOS native header items (liquid glass compatible)
-					...(Platform.OS === 'ios' && {
-						unstable_headerLeftItems: () => [{
-							type: 'button',
-							label: 'Cerrar',
-							icon: { type: 'sfSymbol', name: 'xmark' },
-							onPress: () => navigation.goBack(),
-						}],
-						unstable_headerRightItems: () => [{
-							type: 'button',
-							label: 'QR',
-							icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
-							onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' }),
-						}],
-					}),
-				}}
+				options={{ headerShown: false }}
 			/>
 
 			<Stack.Screen name={ROUTES.GOLD_CHECK} component={GoldCheck} />
