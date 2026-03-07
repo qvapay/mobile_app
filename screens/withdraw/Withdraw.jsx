@@ -28,7 +28,7 @@ import { useAuth } from '../../auth/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Quick coin pills for withdraw
 const DEFAULT_WITHDRAW_COINS = [
@@ -286,19 +286,19 @@ const Withdraw = ({ navigation }) => {
 			setSendingPin(true)
 			const result = await withdrawApi.requestPin()
 			if (result.success) {
-				Toast.show({ type: 'success', text1: 'PIN enviado', text2: 'Revisa tu correo electrónico' })
+				toast.success('PIN enviado', { description: 'Revisa tu correo electrónico' })
 			} else {
-				Toast.show({ type: 'error', text1: result.error || 'No se pudo enviar el PIN' })
+				toast.error(result.error || 'No se pudo enviar el PIN')
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al solicitar el PIN' })
+			toast.error('Error al solicitar el PIN')
 		} finally { setSendingPin(false) }
 	}
 
 	// Submit withdraw with PIN
 	const handleWithdraw = async () => {
 		if (!pin || pin.length !== codeLength) {
-			Toast.show({ type: 'error', text1: twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos' })
+			toast.error(twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos')
 			return
 		}
 
@@ -313,7 +313,7 @@ const Withdraw = ({ navigation }) => {
 			const result = await withdrawApi.withdraw(amountQUSD, selectedCoin.tick, details, pin)
 
 			if (result.success) {
-				Toast.show({ type: 'success', text1: 'Extracción procesada', text2: `Se han extraído $${amountQUSD} QUSD` })
+				toast.success('Extracción procesada', { description: `Se han extraído $${amountQUSD} QUSD` })
 				setShowPinStep(false)
 				setPin('')
 				setAmountQUSD('')
@@ -322,10 +322,10 @@ const Withdraw = ({ navigation }) => {
 				setWorkingForm({})
 				navigation.goBack()
 			} else {
-				Toast.show({ type: 'error', text1: result.error || 'No se pudo completar la extracción' })
+				toast.error(result.error || 'No se pudo completar la extracción')
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al procesar la extracción' })
+			toast.error('Error al procesar la extracción')
 		} finally { setSendingWithdraw(false) }
 	}
 

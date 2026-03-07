@@ -25,7 +25,7 @@ import FaceIDIcon from '../../ui/particles/FaceIDIcon'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -137,7 +137,9 @@ const LoginScreen = ({ navigation }) => {
 
 	// Biometric login handler
 	const handleBiometricLogin = async () => {
+
 		try {
+
 			const credentials = await getBiometricCredentials()
 			if (!credentials) return // user cancelled
 
@@ -152,15 +154,12 @@ const LoginScreen = ({ navigation }) => {
 					await removeBiometricCredentials()
 					setHasBiometrics(false)
 					await updateSettings('security', { biometricsEnabled: false })
-					Toast.show({ type: 'error', text1: 'Credenciales inválidas', text2: 'Inicia sesión manualmente' })
-				} else {
-					Toast.show({ type: 'error', text1: result.error })
-				}
+					toast.error('Credenciales inválidas', { description: 'Inicia sesión manualmente' })
+				} else { toast.error(result.error) }
 			}
 
-			if (result.success && result.security_warning) {
-				setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count })
-			}
+			// If login is successful and there is a security warning, show the leaked password modal
+			if (result.success && result.security_warning) { setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count }) }
 
 			if (result.status === 202) {
 				setEmail(credentials.email)
@@ -171,10 +170,8 @@ const LoginScreen = ({ navigation }) => {
 				setShowPin(true)
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al acceder con biometría' })
-		} finally {
-			setIsLoading(false)
-		}
+			toast.error('Error al acceder con biometría')
+		} finally { setIsLoading(false) }
 	}
 
 	// Prompt biometric enrollment after successful login
@@ -196,7 +193,7 @@ const LoginScreen = ({ navigation }) => {
 						const saved = await setBiometricCredentials(loginEmail, loginPassword)
 						if (saved) {
 							await updateSettings('security', { biometricsEnabled: true })
-							Toast.show({ type: 'success', text1: `${biometricLabel} activado` })
+							toast.success(`${biometricLabel} activado`)
 						}
 					}
 				}
@@ -209,7 +206,7 @@ const LoginScreen = ({ navigation }) => {
 	// If login is not successful (HTTP response 401), we set the loading to false and show an error message
 	const handlePreLogin = async () => {
 
-		if (!email || !password) { Toast.show({ type: 'error', text1: 'Por favor completa todos los campos' }); return }
+		if (!email || !password) { toast.error('Por favor completa todos los campos'); return }
 
 		try {
 			clearError()
@@ -220,7 +217,7 @@ const LoginScreen = ({ navigation }) => {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
 				} else {
-					Toast.show({ type: 'error', text1: result.error })
+					toast.error(result.error)
 				}
 				if (result.status === 401) { setFailedAttempts(failedAttempts + 1) }
 			}
@@ -239,7 +236,7 @@ const LoginScreen = ({ navigation }) => {
 					promptBiometricEnrollment(email, password)
 				}
 			}
-		} catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión' }) }
+		} catch (error) { toast.error('Ha ocurrido un error durante el inicio de sesión') }
 
 		finally { setIsLoading(false) }
 	}
@@ -248,7 +245,7 @@ const LoginScreen = ({ navigation }) => {
 	const handleLogin = async () => {
 
 		if (!email || !password || !twoFactorCode || twoFactorCode.length !== expectedCodeLength) {
-			Toast.show({ type: 'error', text1: 'No es posible iniciar sesión sin completar todos los campos' })
+			toast.error('No es posible iniciar sesión sin completar todos los campos')
 			return
 		}
 
@@ -260,7 +257,7 @@ const LoginScreen = ({ navigation }) => {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
 				} else {
-					Toast.show({ type: 'error', text1: result.error, text2: result.details })
+					toast.error(result.error, { description: result.details })
 				}
 				if (result.status === 401) {
 					setFailedAttempts(failedAttempts + 1)
@@ -274,7 +271,7 @@ const LoginScreen = ({ navigation }) => {
 					promptBiometricEnrollment(email, password)
 				}
 			}
-		} catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente' }) }
+		} catch (error) { toast.error('Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente') }
 		finally { setIsLoading(false) }
 	}
 
@@ -283,13 +280,13 @@ const LoginScreen = ({ navigation }) => {
 		try {
 			setRequestingPIN(true)
 			const result = await requestPin({ email, password })
-			if (!result.success) { Toast.show({ type: 'error', text1: result.error }) }
+			if (!result.success) { toast.error(result.error) }
 			if (result.success) {
 				setCountdown(60)
 				setIsButtonDisabled(true)
 				setRequestPINLabel('01:00')
 			}
-		} catch (error) { Toast.show({ type: 'error', text1: 'Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente' }) }
+		} catch (error) { toast.error('Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente') }
 		finally { setRequestingPIN(false) }
 	}
 

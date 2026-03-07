@@ -25,7 +25,7 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 import { getShortDateTime, statusText, copyTextToClipboard, getFirstChunk } from '../../helpers'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Status colors (same pattern as Transaction.jsx)
 const getStatusColor = (status, theme) => {
@@ -77,10 +77,10 @@ const PurchaseDetail = ({ route, navigation }) => {
 			if (response.success) {
 				setPurchase(response.data)
 			} else {
-				Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudo obtener el detalle' })
+				toast.error('Error', { description: response.error || 'No se pudo obtener el detalle' })
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo conectar con el servidor' })
+			toast.error('Error', { description: 'No se pudo conectar con el servidor' })
 		} finally {
 			setIsLoading(false)
 		}

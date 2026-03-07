@@ -18,7 +18,7 @@ import { removeBiometricCredentials, hasBiometricCredentials } from '../../../ap
 import { useSettings } from '../../../settings/SettingsContext'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -53,16 +53,16 @@ const Password = () => {
 				setCurrentPassword('')
 				setPassword('')
 				setConfirmPassword('')
-				Toast.show({ type: 'success', text1: 'Contraseña cambiada correctamente' })
+				toast.success('Contraseña cambiada correctamente')
 				// Invalidate biometric credentials since password changed
 				const has = await hasBiometricCredentials()
 				if (has) {
 					await removeBiometricCredentials()
 					await updateSettings('security', { biometricsEnabled: false })
-					Toast.show({ type: 'info', text1: 'Biometría desactivada', text2: 'Actívala de nuevo en tu próximo inicio de sesión' })
+					toast.info('Biometría desactivada', { description: 'Actívala de nuevo en tu próximo inicio de sesión' })
 				}
 			}
-		} catch (error) { Toast.show({ type: 'error', text1: 'Error al cambiar la contraseña', text2: error.message }) }
+		} catch (error) { toast.error('Error al cambiar la contraseña', { description: error.message }) }
 		finally { setIsLoading(false) }
 	}
 

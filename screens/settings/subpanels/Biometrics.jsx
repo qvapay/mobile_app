@@ -16,7 +16,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import FaceIDIcon from '../../../ui/particles/FaceIDIcon'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // UI
 import QPLoader from '../../../ui/particles/QPLoader'
@@ -64,7 +64,7 @@ const Biometrics = () => {
                             await removeBiometricCredentials()
                             await updateSettings('security', { biometricsEnabled: false })
                             setBiometricsActive(false)
-                            Toast.show({ type: 'success', text1: `${biometricLabel} desactivado` })
+                            toast.success(`${biometricLabel} desactivado`)
                         }
                     }
                 ]

@@ -12,7 +12,7 @@ import { userApi } from '../../../api/userApi'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // OneSignal Push Notifications
 import { OneSignal } from 'react-native-onesignal'
@@ -105,7 +105,7 @@ const Notifications = () => {
 					if (previous) { OneSignal.User.pushSubscription.optIn() }
 					else { OneSignal.User.pushSubscription.optOut() }
 				}
-				Toast.show({ type: 'error', text1: 'No se pudo actualizar la configuración' })
+				toast.error('No se pudo actualizar la configuración')
 			}
 		} catch (error) {
 			setSettings(prev => ({ ...prev, [key]: previous }))
@@ -114,7 +114,7 @@ const Notifications = () => {
 				if (previous) { OneSignal.User.pushSubscription.optIn() }
 				else { OneSignal.User.pushSubscription.optOut() }
 			}
-			Toast.show({ type: 'error', text1: 'Error de conexión' })
+			toast.error('Error de conexión')
 		}
 	}
 

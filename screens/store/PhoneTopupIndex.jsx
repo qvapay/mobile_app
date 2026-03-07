@@ -20,7 +20,7 @@ import { ROUTES } from '../../routes'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // PhoneTopupIndex component
 const PhoneTopupIndex = ({ navigation, route }) => {
@@ -57,9 +57,9 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 				setPhonePackages(response.data || [])
 				setFilteredPackages(response.data || [])
 			}
-			else { Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudieron obtener las recargas telefónicas' }) }
+			else { toast.error('Error', { description: response.error || 'No se pudieron obtener las recargas telefónicas' }) }
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las recargas' })
+			toast.error('Error', { description: 'Ha ocurrido un error al cargar las recargas' })
 		} finally {
 			setIsLoading(false)
 			setIsRefreshing(false)

@@ -15,7 +15,7 @@ import QPKeyboardView from '../../../ui/QPKeyboardView'
 import { userApi } from '../../../api/userApi'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
@@ -63,7 +63,7 @@ const TwoFactor = () => {
                 setIs2FAEnabled(result.data.two_factor_secret === '***')
             }
         } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error al cargar datos', text2: error.message })
+            toast.error('Error al cargar datos', { description: error.message })
         } finally {
             setIsLoadingData(false)
         }
@@ -79,12 +79,12 @@ const TwoFactor = () => {
                 setSecret(result.data.secret)
                 setOtpauthUrl(result.data.otpauth_url)
                 setIsSettingUp(true)
-                Toast.show({ type: 'success', text1: 'Secreto generado', text2: 'Escanea el código QR con tu app de autenticación' })
+                toast.success('Secreto generado', { description: 'Escanea el código QR con tu app de autenticación' })
             } else {
-                Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'No se pudo generar el código 2FA' })
+                toast.error('Error', { description: result.error || 'No se pudo generar el código 2FA' })
             }
         } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error', text2: error.message })
+            toast.error('Error', { description: error.message })
         } finally {
             setIsLoading(false)
         }
@@ -93,7 +93,7 @@ const TwoFactor = () => {
     // Activate 2FA
     const handleActivate2FA = async () => {
         if (!verificationCode || verificationCode.length !== 6) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'Ingresa un código de 6 dígitos' })
+            toast.error('Error', { description: 'Ingresa un código de 6 dígitos' })
             return
         }
 
@@ -113,12 +113,12 @@ const TwoFactor = () => {
                     updateUser({ two_factor_secret: '***' })
                 }
 
-                Toast.show({ type: 'success', text1: '2FA Activado', text2: 'Tu cuenta ahora está protegida con autenticación de dos factores' })
+                toast.success('2FA Activado', { description: 'Tu cuenta ahora está protegida con autenticación de dos factores' })
             } else {
-                Toast.show({ type: 'error', text1: 'Código inválido', text2: result.error || 'El código ingresado no es válido' })
+                toast.error('Código inválido', { description: result.error || 'El código ingresado no es válido' })
             }
         } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error', text2: error.message })
+            toast.error('Error', { description: error.message })
         } finally {
             setIsLoading(false)
         }
@@ -147,12 +147,12 @@ const TwoFactor = () => {
                                     updateUser({ two_factor_secret: null })
                                 }
 
-                                Toast.show({ type: 'success', text1: '2FA Desactivado', text2: 'La autenticación de dos factores ha sido desactivada' })
+                                toast.success('2FA Desactivado', { description: 'La autenticación de dos factores ha sido desactivada' })
                             } else {
-                                Toast.show({ type: 'error', text1: 'Error', text2: result.error || 'No se pudo desactivar el 2FA' })
+                                toast.error('Error', { description: result.error || 'No se pudo desactivar el 2FA' })
                             }
                         } catch (error) {
-                            Toast.show({ type: 'error', text1: 'Error', text2: error.message })
+                            toast.error('Error', { description: error.message })
                         } finally {
                             setIsLoading(false)
                         }
@@ -173,7 +173,7 @@ const TwoFactor = () => {
     // Copy secret to clipboard
     const handleCopySecret = () => {
         copyTextToClipboard(secret)
-        Toast.show({ type: 'success', text1: 'Copiado', text2: 'Secreto copiado al portapapeles' })
+        toast.success('Copiado', { description: 'Secreto copiado al portapapeles' })
     }
 
     // Loading state

@@ -33,7 +33,7 @@ import QRCodeStyled from 'react-native-qrcode-styled'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Add money into the platform
 const Add = ({ navigation }) => {
@@ -65,7 +65,7 @@ const Add = ({ navigation }) => {
 		setDepositStatus(newStatus)
 		if (newStatus === 'paid') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
-			Toast.show({ type: 'success', text1: 'Pago confirmado', text2: 'Tu depósito ha sido procesado exitosamente' })
+			toast.success('Pago confirmado', { description: 'Tu depósito ha sido procesado exitosamente' })
 			// Close modal and refresh balance after a brief delay
 			setTimeout(() => {
 				setShowDepositModal(false)
@@ -112,9 +112,9 @@ const Add = ({ navigation }) => {
 	// Handle topup request
 	const handleTopup = async () => {
 		const amountValue = parseFloat(amount)
-		if (isNaN(amountValue) || amountValue <= 0) { Toast.show({ type: 'error', text1: 'Por favor ingresa un monto válido' }); return }
-		if (!selectedCoin || !amount) { Toast.show({ type: 'error', text1: 'Por favor selecciona una moneda e ingresa un monto' }); return }
-		if (amountValue < parseFloat(selectedCoin.min_in)) { Toast.show({ type: 'error', text1: `El monto mínimo para ${selectedCoin.name} es ${selectedCoin.min_in}` }); return }
+		if (isNaN(amountValue) || amountValue <= 0) { toast.error('Por favor ingresa un monto válido'); return }
+		if (!selectedCoin || !amount) { toast.error('Por favor selecciona una moneda e ingresa un monto'); return }
+		if (amountValue < parseFloat(selectedCoin.min_in)) { toast.error(`El monto mínimo para ${selectedCoin.name} es ${selectedCoin.min_in}`); return }
 		try {
 			setIsLoading(true)
 			setError(null)
@@ -126,7 +126,7 @@ const Add = ({ navigation }) => {
 				if (data?.redirect_url) {
 					Linking.openURL(data.redirect_url)
 				}
-			} else { Toast.show({ type: 'error', text1: 'Error al crear la solicitud de depósito' }) }
+			} else { toast.error('Error al crear la solicitud de depósito') }
 		} catch (error) { setError('Error al crear la solicitud de depósito, intente nuevamente en unos minutos') }
 		finally { setIsLoading(false) }
 	}

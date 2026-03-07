@@ -20,7 +20,7 @@ import ProfileContainerHorizontal from '../../../ui/ProfileContainerHorizontal'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Helpers
 import { copyTextToClipboard } from '../../../helpers'
@@ -58,7 +58,7 @@ const Referals = () => {
 				setTotalReferrals(data.totalReferrals || 0)
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al cargar los referidos' })
+			toast.error('Error al cargar los referidos')
 		} finally {
 			setLoading(false)
 		}
@@ -79,7 +79,7 @@ const Referals = () => {
 	// Copy referral link
 	const handleCopyLink = () => {
 		copyTextToClipboard(referralLink)
-		Toast.show({ type: 'success', text1: 'Enlace copiado al portapapeles' })
+		toast.success('Enlace copiado al portapapeles')
 	}
 
 	// Share message

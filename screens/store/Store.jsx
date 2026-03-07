@@ -22,7 +22,7 @@ import { storeApi } from '../../api/storeApi'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Store component
 const Store = ({ navigation }) => {
@@ -63,17 +63,17 @@ const Store = ({ navigation }) => {
 				const all = topupResponse.data || []
 				setExternalPlans(all.filter((p) => p.external === true))
 				setMicroPlans(all.filter((p) => p.external === false))
-			} else { Toast.show({ type: 'error', text1: 'Recargas', text2: topupResponse.error || 'No se pudieron cargar las recargas' }) }
+			} else { toast.error('Recargas', { description: topupResponse.error || 'No se pudieron cargar las recargas' }) }
 
 			if (giftCardResponse.success) {
 				const cards = Array.isArray(giftCardResponse.data) ? giftCardResponse.data : []
 				setGiftCards(cards)
-			} else { Toast.show({ type: 'error', text1: 'Tarjetas', text2: giftCardResponse.error || 'No se pudieron cargar las tarjetas de regalo' }) }
+			} else { toast.error('Tarjetas', { description: giftCardResponse.error || 'No se pudieron cargar las tarjetas de regalo' }) }
 
 			if (purchasesResponse.success) { setMyPurchases(purchasesResponse.data || []) }
 
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo conectar con el servidor' })
+			toast.error('Error', { description: 'No se pudo conectar con el servidor' })
 		} finally {
 			setIsLoading(false)
 			setIsRefreshing(false)

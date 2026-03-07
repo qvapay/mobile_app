@@ -26,7 +26,7 @@ import { useAuth } from "../../auth/AuthContext"
 import { p2pApi } from "../../api/p2pApi"
 
 // Toast
-import Toast from "react-native-toast-message"
+import { toast } from "sonner-native"
 
 // Helpers
 import { getShortDateTime, reduceStringInside, copyTextToClipboard } from "../../helpers"
@@ -198,7 +198,7 @@ const P2POffer = ({ route }) => {
 			}
 		} catch (error) {
 			setChatError(error.message)
-			Toast.show({ type: "error", text1: "Error", text2: error.message })
+			toast.error("Error", { description: error.message })
 		} finally { setChatLoading(false) }
 	}
 
@@ -294,10 +294,10 @@ const P2POffer = ({ route }) => {
 						setLoadingCancel(true)
 						const res = await p2pApi.cancel(p2p.uuid)
 						if (res.success) {
-							Toast.show({ type: "success", text1: "Oferta cancelada" })
+							toast.success("Oferta cancelada")
 							refetchP2P()
-						} else { Toast.show({ type: "error", text1: "No se pudo cancelar", text2: String(res.error || "") }) }
-					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+						} else { toast.error("No se pudo cancelar", { description: String(res.error || "") }) }
+					} catch (e) { toast.error("Error", { description: e.message }) }
 					finally { setLoadingCancel(false) }
 				}
 			}
@@ -316,10 +316,10 @@ const P2POffer = ({ route }) => {
 						setLoadingMarkPaid(true)
 						const res = await p2pApi.markPaid(p2p.uuid, txIdInput)
 						if (res.success) {
-							Toast.show({ type: "success", text1: "Pago marcado como realizado" })
+							toast.success("Pago marcado como realizado")
 							refetchP2P()
-						} else { Toast.show({ type: "error", text1: "No se pudo marcar pago", text2: String(res.error || "") }) }
-					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+						} else { toast.error("No se pudo marcar pago", { description: String(res.error || "") }) }
+					} catch (e) { toast.error("Error", { description: e.message }) }
 					finally { setLoadingMarkPaid(false) }
 				}
 			}
@@ -337,10 +337,10 @@ const P2POffer = ({ route }) => {
 						setLoadingReceived(true)
 						const res = await p2pApi.confirmReceived(p2p.uuid)
 						if (res.success) {
-							Toast.show({ type: "success", text1: "Pago recibido. Fondos liberados" })
+							toast.success("Pago recibido. Fondos liberados")
 							refetchP2P()
-						} else { Toast.show({ type: "error", text1: "No se pudo confirmar", text2: String(res.error || "") }) }
-					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+						} else { toast.error("No se pudo confirmar", { description: String(res.error || "") }) }
+					} catch (e) { toast.error("Error", { description: e.message }) }
 					finally { setLoadingReceived(false) }
 				}
 			}
@@ -358,10 +358,10 @@ const P2POffer = ({ route }) => {
 						setLoadingApply(true)
 						const res = await p2pApi.apply(p2p.uuid)
 						if (res.success) {
-							Toast.show({ type: "success", text1: "Aplicado" })
+							toast.success("Aplicado")
 							refetchP2P()
-						} else { Toast.show({ type: "error", text1: "No se pudo aplicar", text2: String(res.error || "") }) }
-					} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+						} else { toast.error("No se pudo aplicar", { description: String(res.error || "") }) }
+					} catch (e) { toast.error("Error", { description: e.message }) }
 					finally { setLoadingApply(false) }
 				}
 			}
@@ -380,12 +380,12 @@ const P2POffer = ({ route }) => {
 			})
 
 			if (result.action === Share.sharedAction) {
-				Toast.show({ type: "success", text1: "Oferta compartida" })
+				toast.success("Oferta compartida")
 			} else if (result.action === Share.dismissedAction) {
-				Toast.show({ type: "info", text1: "Compartir cancelado" })
+				toast.info("Compartir cancelado")
 			}
 		} catch (error) {
-			Toast.show({ type: "error", text1: "No se pudo compartir", text2: String(error?.message || error) })
+			toast.error("No se pudo compartir", { description: String(error?.message || error) })
 		}
 	}
 
@@ -405,11 +405,11 @@ const P2POffer = ({ route }) => {
 		const rcv = parseFloat(editReceive)
 
 		if (isNaN(amt) || amt < 0.1 || amt > 100000) {
-			Toast.show({ type: "error", text1: "Monto inválido", text2: "El monto debe ser entre 0.1 y 100,000" })
+			toast.error("Monto inválido", { description: "El monto debe ser entre 0.1 y 100,000" })
 			return
 		}
 		if (isNaN(rcv) || rcv <= 0) {
-			Toast.show({ type: "error", text1: "Valor inválido", text2: "El valor a recibir debe ser mayor a 0" })
+			toast.error("Valor inválido", { description: "El valor a recibir debe ser mayor a 0" })
 			return
 		}
 
@@ -417,7 +417,7 @@ const P2POffer = ({ route }) => {
 		if (p2p.type === "sell") {
 			const amountIncrease = amt - parseFloat(p2p.amount || 0)
 			if (amountIncrease > 0 && amountIncrease > parseFloat(user?.balance || 0)) {
-				Toast.show({ type: "error", text1: "Balance insuficiente", text2: "No tienes suficiente balance para aumentar el monto" })
+				toast.error("Balance insuficiente", { description: "No tienes suficiente balance para aumentar el monto" })
 				return
 			}
 		}
@@ -432,14 +432,14 @@ const P2POffer = ({ route }) => {
 			}
 			const res = await p2pApi.edit(p2p.uuid, payload)
 			if (res.success) {
-				Toast.show({ type: "success", text1: "Oferta actualizada" })
+				toast.success("Oferta actualizada")
 				setShowEditModal(false)
 				refetchP2P()
 			} else {
-				Toast.show({ type: "error", text1: "No se pudo editar", text2: String(res.error || "") })
+				toast.error("No se pudo editar", { description: String(res.error || "") })
 			}
 		} catch (e) {
-			Toast.show({ type: "error", text1: "Error", text2: e.message })
+			toast.error("Error", { description: e.message })
 		} finally {
 			setEditLoading(false)
 		}
@@ -451,14 +451,14 @@ const P2POffer = ({ route }) => {
 			setRating(newRating)
 			const res = await p2pApi.rateOffer(p2p_uuid, { rating: newRating })
 			if (res.success) {
-				Toast.show({ type: "success", text1: "Oferta calificada" })
+				toast.success("Oferta calificada")
 				refetchP2P()
 			} else {
-				Toast.show({ type: "error", text1: "No se pudo calificar", text2: String(res.error.error || "") })
+				toast.error("No se pudo calificar", { description: String(res.error.error || "") })
 				setRating(p2p?.rating || 0)
 			}
 		} catch (error) {
-			Toast.show({ type: "error", text1: "Error", text2: error.message })
+			toast.error("Error", { description: error.message })
 			setRating(p2p?.rating || 0)
 		}
 	}
@@ -474,8 +474,8 @@ const P2POffer = ({ route }) => {
 				await fetchChat()
 				chatScrollRef.current?.scrollToEnd({ animated: true })
 			}
-			else { Toast.show({ type: "error", text1: "No se pudo enviar", text2: String(res.error || "") }) }
-		} catch (e) { Toast.show({ type: "error", text1: "Error", text2: e.message }) }
+			else { toast.error("No se pudo enviar", { description: String(res.error || "") }) }
+		} catch (e) { toast.error("Error", { description: e.message }) }
 	}
 
 	// Open image picker
@@ -491,13 +491,13 @@ const P2POffer = ({ route }) => {
 			if (!asset) return
 			// Validate file size (max 10MB)
 			if (asset.fileSize && asset.fileSize > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-				Toast.show({ type: "error", text1: "Imagen muy grande", text2: `El máximo es ${MAX_IMAGE_SIZE_MB}MB` })
+				toast.error("Imagen muy grande", { description: `El máximo es ${MAX_IMAGE_SIZE_MB}MB` })
 				return
 			}
 			// Validate file type
 			const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg']
 			if (asset.type && !validTypes.includes(asset.type.toLowerCase())) {
-				Toast.show({ type: "error", text1: "Formato no soportado", text2: "Solo JPG, PNG y GIF" })
+				toast.error("Formato no soportado", { description: "Solo JPG, PNG y GIF" })
 				return
 			}
 			setSelectedImage(asset)
@@ -523,10 +523,10 @@ const P2POffer = ({ route }) => {
 				await fetchChat()
 				chatScrollRef.current?.scrollToEnd({ animated: true })
 			} else {
-				Toast.show({ type: "error", text1: "No se pudo enviar", text2: String(res.error || "") })
+				toast.error("No se pudo enviar", { description: String(res.error || "") })
 			}
 		} catch (e) {
-			Toast.show({ type: "error", text1: "Error", text2: e.message })
+			toast.error("Error", { description: e.message })
 		} finally {
 			setSendingImage(false)
 		}
@@ -541,10 +541,10 @@ const P2POffer = ({ route }) => {
 				await fetchChat()
 				chatScrollRef.current?.scrollToEnd({ animated: true })
 			} else {
-				Toast.show({ type: "error", text1: "No se pudo enviar", text2: String(res.error || "") })
+				toast.error("No se pudo enviar", { description: String(res.error || "") })
 			}
 		} catch (e) {
-			Toast.show({ type: "error", text1: "Error", text2: e.message })
+			toast.error("Error", { description: e.message })
 		}
 	}
 

@@ -20,7 +20,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { userApi } from '../../../api/userApi'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
@@ -195,8 +195,8 @@ const Contacts = ({ navigation }) => {
 			if (res.success) {
 				const list = Array.isArray(res.data) ? res.data : (res.data?.contacts || [])
 				setContacts(list)
-			} else { Toast.show({ type: 'error', text1: res.error || 'No se pudieron cargar los contactos' }) }
-		} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
+			} else { toast.error(res.error || 'No se pudieron cargar los contactos') }
+		} catch (e) { toast.error(e.message || 'Error de red') }
 		finally { setRefreshing(false) }
 	}, [])
 
@@ -208,14 +208,14 @@ const Contacts = ({ navigation }) => {
 			const res = await userApi.toggleFavoriteContact(id)
 			if (res.success) {
 				setContacts((prev) => prev.map((c) => c.id === id ? { ...c, favorite: res.data.favorite } : c))
-			} else { Toast.show({ type: 'error', text1: res.error || 'No se pudo actualizar' }) }
-		} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
+			} else { toast.error(res.error || 'No se pudo actualizar') }
+		} catch (e) { toast.error(e.message || 'Error de red') }
 	}, [])
 
 	// Handle delete contact
 	const handleDelete = useCallback((contact) => {
 		const id = contact?.id || contact?.uuid || contact?.Contact?.uuid
-		if (!id) { Toast.show({ type: 'error', text1: 'ID de contacto inválido' }); return }
+		if (!id) { toast.error('ID de contacto inválido'); return }
 		Alert.alert(
 			'Eliminar contacto',
 			'¿Seguro que deseas eliminar este contacto?',
@@ -225,9 +225,9 @@ const Contacts = ({ navigation }) => {
 					text: 'Eliminar', style: 'destructive', onPress: async () => {
 						try {
 							const res = await userApi.deleteContact(id)
-							if (res.success) { Toast.show({ type: 'success', text1: 'Contacto eliminado' }); refresh() }
-							else { Toast.show({ type: 'error', text1: res.error || 'No se pudo eliminar' }) }
-						} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
+							if (res.success) { toast.success('Contacto eliminado'); refresh() }
+							else { toast.error(res.error || 'No se pudo eliminar') }
+						} catch (e) { toast.error(e.message || 'Error de red') }
 					}
 				}
 			]
@@ -247,11 +247,11 @@ const Contacts = ({ navigation }) => {
 				setSearchResults(result.data || [])
 			} else {
 				setSearchResults([])
-				Toast.show({ type: 'error', text1: result.error || 'Error en la busqueda' })
+				toast.error(result.error || 'Error en la busqueda')
 			}
 		} catch (e) {
 			setSearchResults([])
-			Toast.show({ type: 'error', text1: e.message || 'Error de red' })
+			toast.error(e.message || 'Error de red')
 		} finally { setIsSearching(false) }
 	}
 
@@ -260,13 +260,13 @@ const Contacts = ({ navigation }) => {
 		try {
 			const res = await userApi.addContact(selectedUser.uuid, selectedUser.name)
 			if (res.success) {
-				Toast.show({ type: 'success', text1: 'Contacto agregado' })
+				toast.success('Contacto agregado')
 				setShowAddModal(false)
 				setUserSearch('')
 				setSearchResults([])
 				refresh()
-			} else { Toast.show({ type: 'error', text1: res.error || 'No se pudo agregar el contacto' }) }
-		} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
+			} else { toast.error(res.error || 'No se pudo agregar el contacto') }
+		} catch (e) { toast.error(e.message || 'Error de red') }
 	}
 
 	// Filter contacts locally

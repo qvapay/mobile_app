@@ -16,7 +16,7 @@ import { userApi } from '../../../api/userApi'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Auth
 import { useAuth } from '../../../auth/AuthContext'
@@ -68,12 +68,12 @@ const TransferPin = () => {
                             setIsSendingPin(true)
                             const result = await userApi.resetPin()
                             if (result.success) {
-                                Toast.show({ type: 'success', text1: 'PIN enviado', text2: 'Revisa tu correo electrónico' })
+                                toast.success('PIN enviado', { description: 'Revisa tu correo electrónico' })
                             } else {
-                                Toast.show({ type: 'error', text1: result.error || 'No se pudo enviar el PIN' })
+                                toast.error(result.error || 'No se pudo enviar el PIN')
                             }
                         } catch (error) {
-                            Toast.show({ type: 'error', text1: 'Error al solicitar el PIN' })
+                            toast.error('Error al solicitar el PIN')
                         } finally {
                             setIsSendingPin(false)
                         }
@@ -86,7 +86,7 @@ const TransferPin = () => {
     // Change PIN
     const handleChangePin = async () => {
         if (newPin !== confirmPin) {
-            Toast.show({ type: 'error', text1: 'Los PINs no coinciden' })
+            toast.error('Los PINs no coinciden')
             return
         }
 
@@ -98,14 +98,14 @@ const TransferPin = () => {
             })
 
             if (result.success) {
-                Toast.show({ type: 'success', text1: 'PIN actualizado correctamente' })
+                toast.success('PIN actualizado correctamente')
                 resetForm()
                 setMode('info')
             } else {
-                Toast.show({ type: 'error', text1: result.error || 'No se pudo cambiar el PIN' })
+                toast.error(result.error || 'No se pudo cambiar el PIN')
             }
         } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error al cambiar el PIN' })
+            toast.error('Error al cambiar el PIN')
         } finally {
             setIsLoading(false)
         }

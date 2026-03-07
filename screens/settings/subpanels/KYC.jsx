@@ -19,7 +19,7 @@ import LottieView from 'lottie-react-native'
 import { useAuth } from '../../../auth/AuthContext'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -67,10 +67,10 @@ const KYC = () => {
 			if (resp.success && resp.data) {
 				await Linking.openURL(resp.data)
 			} else {
-				Toast.show({ type: 'error', text1: 'Error', text2: resp.error || 'No se pudo obtener la sesión de verificación' })
+				toast.error('Error', { description: resp.error || 'No se pudo obtener la sesión de verificación' })
 			}
 		} catch (e) {
-			Toast.show({ type: 'error', text1: 'Error', text2: e.message || 'Ha ocurrido un error' })
+			toast.error('Error', { description: e.message || 'Ha ocurrido un error' })
 		} finally {
 			setRequesting(false)
 		}

@@ -39,7 +39,7 @@ import { ROUTES } from '../../routes'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Constants
 import DeviceInfo from 'react-native-device-info'
@@ -83,20 +83,20 @@ const SettingsMenu = ({ navigation }) => {
 		if (!asset) return
 
 		const label = uploadType === 'cover' ? 'portada' : 'foto'
-		Toast.show({ type: 'info', text1: `Subiendo ${label}...`, autoHide: false })
+		const toastId = toast.info(`Subiendo ${label}...`, { duration: Infinity })
 		const result = await userApi.uploadAvatar({
 			file: { uri: asset.uri, type: asset.type || 'image/jpeg', name: asset.fileName || `${uploadType}.jpg` },
 			uploadType
 		})
-		Toast.hide()
+		toast.dismiss(toastId)
 
 		if (result.success) {
 			const updateField = uploadType === 'cover'
 				? { cover_photo_url: result.data?.data?.url }
 				: { image: result.data?.data?.path }
 			updateUser(updateField)
-			Toast.show({ type: 'success', text1: `${label.charAt(0).toUpperCase() + label.slice(1)} actualizada` })
-		} else { Toast.show({ type: 'error', text1: 'Error', text2: result.error || `No se pudo subir la ${label}` }) }
+			toast.success(`${label.charAt(0).toUpperCase() + label.slice(1)} actualizada`)
+		} else { toast.error('Error', { description: result.error || `No se pudo subir la ${label}` }) }
 	}
 
 	// Show action sheet for image selection

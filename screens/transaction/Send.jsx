@@ -22,7 +22,7 @@ import { userApi } from '../../api/userApi'
 import { transferApi } from '../../api/transferApi'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -147,11 +147,11 @@ const Send = ({ navigation, route }) => {
 				setSearchResults(result.data || [])
 			} else {
 				setSearchResults([])
-				Toast.show({ type: 'error', text1: 'Error', text2: result.error })
+				toast.error('Error', { description: result.error })
 			}
 		} catch (error) {
 			setSearchResults([])
-			Toast.show({ type: 'error', text1: 'Error', text2: error.message })
+			toast.error('Error', { description: error.message })
 		} finally { setIsSearching(false) }
 	}
 
@@ -173,7 +173,7 @@ const Send = ({ navigation, route }) => {
 				description: description
 			})
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: error.message })
+			toast.error('Error', { description: error.message })
 		} finally { setIsLoading(false) }
 	}
 

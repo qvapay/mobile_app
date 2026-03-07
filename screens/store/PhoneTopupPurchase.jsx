@@ -20,7 +20,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -54,12 +54,12 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 	const handlePurchase = async () => {
 
 		if (!packageItem || !packageItem.id) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Paquete no válido' })
+			toast.error('Error', { description: 'Paquete no válido' })
 			return
 		}
 
 		if (!isPhoneValid) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Por favor ingresa un número de teléfono válido' })
+			toast.error('Error', { description: 'Por favor ingresa un número de teléfono válido' })
 			return
 		}
 
@@ -83,15 +83,15 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 							})
 
 							if (response.success) {
-								Toast.show({ type: 'success', text1: '¡Compra exitosa!', text2: 'La recarga se ha procesado correctamente' })
+								toast.success('¡Compra exitosa!', { description: 'La recarga se ha procesado correctamente' })
 								// Navigate back after a short delay
 								setTimeout(() => {
 									navigation.goBack()
 								}, 1500)
 							}
-							else { Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudo realizar la compra' }) }
+							else { toast.error('Error', { description: response.error || 'No se pudo realizar la compra' }) }
 						} catch (error) {
-		Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Ha ocurrido un error al procesar la compra' })
+		toast.error('Error', { description: error.message || 'Ha ocurrido un error al procesar la compra' })
 						} finally { setIsPurchasing(false) }
 					},
 				},

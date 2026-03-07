@@ -18,7 +18,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -53,10 +53,10 @@ const GiftCardDetail = ({ navigation, route }) => {
 					setCard(response.data)
 					navigation.setOptions({ headerTitle: response.data.name || '' })
 				} else {
-					Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudo cargar la tarjeta de regalo' })
+					toast.error('Error', { description: response.error || 'No se pudo cargar la tarjeta de regalo' })
 				}
 			} catch (error) {
-		Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar el detalle' })
+		toast.error('Error', { description: 'Ha ocurrido un error al cargar el detalle' })
 			} finally {
 				setIsLoading(false)
 			}
@@ -126,13 +126,13 @@ const GiftCardDetail = ({ navigation, route }) => {
 							const response = await storeApi.purchaseGiftCard(uuid, body)
 
 							if (response.success) {
-								Toast.show({ type: 'success', text1: '¡Compra exitosa!', text2: 'Tu tarjeta de regalo se está procesando' })
+								toast.success('¡Compra exitosa!', { description: 'Tu tarjeta de regalo se está procesando' })
 								setTimeout(() => { navigation.goBack() }, 1500)
 							} else {
-								Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudo realizar la compra' })
+								toast.error('Error', { description: response.error || 'No se pudo realizar la compra' })
 							}
 						} catch (error) {
-		Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Ha ocurrido un error al procesar la compra' })
+		toast.error('Error', { description: error.message || 'Ha ocurrido un error al procesar la compra' })
 						} finally {
 							setIsPurchasing(false)
 						}

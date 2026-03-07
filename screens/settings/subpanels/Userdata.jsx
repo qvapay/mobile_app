@@ -17,7 +17,7 @@ import QPLoader from '../../../ui/particles/QPLoader'
 import { userApi } from '../../../api/userApi'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // User AuthContext
 import { useAuth } from '../../../auth/AuthContext'
@@ -86,24 +86,24 @@ const Userdata = () => {
 					telegram_id: userData.telegram_id || '',
 					createdAt: userData.createdAt || ''
 				})
-			} else { Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario' }) }
+			} else { toast.error('Error al cargar datos del usuario') }
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al cargar datos del usuario' })
+			toast.error('Error al cargar datos del usuario')
 		} finally { setIsLoadingData(false) }
 	}
 
 	// Handle form submission
 	const handleSubmit = async () => {
 		if (!name || !lastname) {
-			Toast.show({ type: 'error', text1: 'Completa al menos el nombre y apellido' })
+			toast.error('Completa al menos el nombre y apellido')
 			return
 		}
 		if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-			Toast.show({ type: 'error', text1: 'Formato de correo electrónico inválido' })
+			toast.error('Formato de correo electrónico inválido')
 			return
 		}
 		if (country && country.length !== 2) {
-			Toast.show({ type: 'error', text1: 'El código de país debe tener 2 caracteres (ej: US, ES)' })
+			toast.error('El código de país debe tener 2 caracteres (ej: US, ES)')
 			return
 		}
 
@@ -120,16 +120,16 @@ const Userdata = () => {
 			}
 			const result = await userApi.updateUser(updateData)
 			if (result.success && result.data) {
-				Toast.show({ type: 'success', text1: 'Datos actualizados correctamente' })
+				toast.success('Datos actualizados correctamente')
 				const userData = result.data
 				setUsername(userData.username || username)
 				setName(userData.name || name)
 				setLastname(userData.lastname || lastname)
 				setBio(userData.bio || bio)
 				updateUser({ name: userData.name || name, lastname: userData.lastname || lastname })
-			} else { Toast.show({ type: 'error', text1: result.error || 'Error al actualizar' }) }
+			} else { toast.error(result.error || 'Error al actualizar') }
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al actualizar' })
+			toast.error('Error al actualizar')
 		} finally { setIsLoading(false) }
 	}
 

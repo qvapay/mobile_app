@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { Alert, Platform, Linking, PermissionsAndroid } from 'react-native'
 import Contacts from 'react-native-contacts'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 import { userApi } from '../api/userApi'
 
 const STORAGE_KEYS = {
@@ -223,7 +223,7 @@ const useDeviceContacts = () => {
 			const permStatus = await checkPermission()
 			if (permStatus !== 'authorized' && permStatus !== 'limited') {
 				setError('Permiso de contactos no concedido')
-				Toast.show({ type: 'error', text1: 'Permiso de contactos no concedido' })
+				toast.error('Permiso de contactos no concedido')
 				return
 			}
 
@@ -248,7 +248,7 @@ const useDeviceContacts = () => {
 				setMatchedContacts([])
 				await AsyncStorage.setItem(STORAGE_KEYS.MATCHED, JSON.stringify([]))
 				await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, String(Date.now()))
-				Toast.show({ type: 'info', text1: 'No se encontraron números de teléfono en tus contactos' })
+				toast.info('No se encontraron números de teléfono en tus contactos')
 				return
 			}
 
@@ -282,18 +282,18 @@ const useDeviceContacts = () => {
 			setMatchedContacts(merged)
 
 			if (totalAutoAdded > 0) {
-				Toast.show({ type: 'success', text1: `${totalAutoAdded} contacto${totalAutoAdded > 1 ? 's' : ''} agregado${totalAutoAdded > 1 ? 's' : ''} automáticamente` })
+				toast.success(`${totalAutoAdded} contacto${totalAutoAdded > 1 ? 's' : ''} agregado${totalAutoAdded > 1 ? 's' : ''} automáticamente`)
 			} else if (merged.length > 0) {
-				Toast.show({ type: 'success', text1: 'Contactos sincronizados' })
+				toast.success('Contactos sincronizados')
 			} else {
-				Toast.show({ type: 'info', text1: 'Ninguno de tus contactos usa QvaPay aún' })
+				toast.info('Ninguno de tus contactos usa QvaPay aún')
 			}
 
 			onSyncComplete?.()
 
 		} catch (e) {
 			setError(e.message || 'Error al sincronizar contactos')
-			Toast.show({ type: 'error', text1: 'Error al sincronizar', text2: e.message })
+			toast.error('Error al sincronizar', { description: e.message })
 			await loadCachedMatches()
 		} finally {
 			setIsSyncing(false)

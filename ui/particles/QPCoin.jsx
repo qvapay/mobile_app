@@ -12,7 +12,7 @@ const QPCoin = ({ coin, size = 32 }) => {
     const { theme } = useTheme()
 
     // Coin image path
-    const coin_image_path = `https://www.qvapay.com/img/coins/${(coin || '').toLowerCase()}.svg`
+    const coin_image_path = `https://media.qvapay.com/coins/${(coin || '').toLowerCase()}.svg`
 
     return (
         <View style={[styles.container, { width: size, height: size }]}>

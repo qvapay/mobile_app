@@ -15,7 +15,7 @@ import QPCoin from '../../../ui/particles/QPCoin'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // API
 import coinsApi from '../../../api/coinsApi'
@@ -93,8 +93,8 @@ const PaymentMethods = ({ navigation }) => {
 			setRefreshing(true)
 			const res = await userApi.getPaymentMethods()
 			if (res.success) { setMethods(Array.isArray(res.data) ? res.data : (res.data?.methods || [])) }
-			else { Toast.show({ type: 'error', text1: res.error || 'No se pudieron cargar los métodos de pago' }) }
-		} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }) }
+			else { toast.error(res.error || 'No se pudieron cargar los métodos de pago') }
+		} catch (e) { toast.error(e.message || 'Error de red') }
 		finally { setRefreshing(false) }
 	}
 
@@ -126,14 +126,14 @@ const PaymentMethods = ({ navigation }) => {
 	const handleCreate = async () => {
 
 		if (!selectedCoin) {
-			Toast.show({ type: 'error', text1: 'Selecciona una moneda' })
+			toast.error('Selecciona una moneda')
 			return
 		}
 
 		if ((workingFields || []).length > 0) {
 			const allFilled = workingFields.every((field) => ((workingForm[keyFromFieldName(field.name)] ?? '').toString().trim()).length > 0)
 			if (!allFilled) {
-				Toast.show({ type: 'error', text1: 'Faltan datos', text2: 'Completa los campos requeridos' })
+				toast.error('Faltan datos', { description: 'Completa los campos requeridos' })
 				return
 			}
 		}
@@ -153,19 +153,19 @@ const PaymentMethods = ({ navigation }) => {
 			const res = await userApi.createPaymentMethod(payload)
 
 			if (res.success) {
-				Toast.show({ type: 'success', text1: 'Método creado' })
+				toast.success('Método creado')
 				await refresh()
 				closeCreate()
-			} else { Toast.show({ type: 'error', text1: res.error || 'No se pudo crear el método' }) }
+			} else { toast.error(res.error || 'No se pudo crear el método') }
 		} catch (e) {
-			Toast.show({ type: 'error', text1: e.message || 'Error de red' })
+			toast.error(e.message || 'Error de red')
 		} finally { setCreating(false) }
 	}
 
 	// Handle delete method
 	const handleDelete = (method) => {
 		const id = method?.id || method?.uuid || method?.ID || method?.Id
-		if (!id) { Toast.show({ type: 'error', text1: 'ID de método inválido' }); return }
+		if (!id) { toast.error('ID de método inválido'); return }
 		Alert.alert(
 			'Eliminar método',
 			'¿Seguro que deseas eliminar este método de pago?',
@@ -176,9 +176,9 @@ const PaymentMethods = ({ navigation }) => {
 						setMethods(prev => prev.filter(m => (m.id || m.uuid) !== id))
 						try {
 							const res = await userApi.deletePaymentMethod(id)
-							if (res.success) { Toast.show({ type: 'success', text1: 'Método eliminado' }) }
-							else { Toast.show({ type: 'error', text1: res.error || 'No se pudo eliminar' }); refresh() }
-						} catch (e) { Toast.show({ type: 'error', text1: e.message || 'Error de red' }); refresh() }
+							if (res.success) { toast.success('Método eliminado') }
+							else { toast.error(res.error || 'No se pudo eliminar'); refresh() }
+						} catch (e) { toast.error(e.message || 'Error de red'); refresh() }
 					}
 				}
 			]

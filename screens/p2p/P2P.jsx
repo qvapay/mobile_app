@@ -26,7 +26,7 @@ import QPCoin from "../../ui/particles/QPCoin"
 import QPCoinRow from "../../ui/QPCoinRow"
 
 // Toast
-import Toast from "react-native-toast-message"
+import { toast } from "sonner-native"
 
 // Lottie
 import LottieView from "lottie-react-native"
@@ -274,12 +274,12 @@ const P2P = ({ navigation, route }) => {
 				setPage(pageNum)
 			} else {
 				setError(response.error || "Error al cargar las ofertas P2P")
-				Toast.show({ type: "error", text1: response.error || "Error al cargar las ofertas P2P" })
+				toast.error(response.error || "Error al cargar las ofertas P2P")
 			}
 		} catch (err) {
 			const errorMessage = "Error de conexión"
 			setError(errorMessage)
-			Toast.show({ type: "error", text1: errorMessage })
+			toast.error(errorMessage)
 		} finally {
 			setIsLoadingData(false)
 			setIsLoading(false)

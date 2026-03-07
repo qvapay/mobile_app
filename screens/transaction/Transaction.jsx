@@ -29,7 +29,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { ROUTES } from '../../routes'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 import QPButton from '../../ui/particles/QPButton'
 import QPCoin from '../../ui/particles/QPCoin'
 import ProfileContainer from '../../ui/ProfileContainer'
@@ -134,7 +134,7 @@ const Transaction = ({ route, navigation }) => {
 		try {
 			const token = await getAuthToken()
 			if (!token) {
-				Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo obtener el token de autenticación' })
+				toast.error('Error', { description: 'No se pudo obtener el token de autenticación' })
 				return
 			}
 
@@ -156,12 +156,12 @@ const Transaction = ({ route, navigation }) => {
 				} else {
 					ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf')
 				}
-				Toast.show({ type: 'success', text1: 'Éxito', text2: 'PDF descargado correctamente' })
+				toast.success('Éxito', { description: 'PDF descargado correctamente' })
 			} else {
-				Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' })
+				toast.error('Error', { description: 'No se pudo descargar el PDF' })
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo descargar el PDF' })
+			toast.error('Error', { description: 'No se pudo descargar el PDF' })
 		} finally {
 			setDownloading(false)
 		}

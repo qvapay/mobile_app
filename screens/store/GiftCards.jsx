@@ -20,7 +20,7 @@ import { ROUTES } from '../../routes'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // GiftCards component
 const GiftCards = ({ navigation }) => {
@@ -51,9 +51,9 @@ const GiftCards = ({ navigation }) => {
 				setGiftCards(cards)
 				setFilteredCards(cards)
 			}
-			else { Toast.show({ type: 'error', text1: 'Error', text2: response.error || 'No se pudieron obtener las tarjetas de regalo' }) }
+			else { toast.error('Error', { description: response.error || 'No se pudieron obtener las tarjetas de regalo' }) }
 		} catch (error) {
-		Toast.show({ type: 'error', text1: 'Error', text2: 'Ha ocurrido un error al cargar las tarjetas de regalo' })
+		toast.error('Error', { description: 'Ha ocurrido un error al cargar las tarjetas de regalo' })
 		} finally {
 			setIsLoading(false)
 			setIsRefreshing(false)

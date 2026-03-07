@@ -20,7 +20,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { userApi } from '../../../api/userApi'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Plans
 const plans = {
@@ -86,7 +86,7 @@ const GoldCheck = ({ navigation }) => {
     const handleSubscribe = async () => {
 
         if (!user?.uuid) {
-            Toast.show({ type: 'error', text1: 'No se pudo obtener la información del usuario' })
+            toast.error('No se pudo obtener la información del usuario')
             return
         }
 
@@ -121,12 +121,12 @@ const GoldCheck = ({ navigation }) => {
                                 setGoldCheckStatus(true)
                                 setGoldCheckExpire(result.data.golden_expire)
                                 updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
-                                Toast.show({ type: 'success', text1: 'Suscripción exitosa' })
-                            } else { Toast.show({ type: 'error', text1: result.error || 'No se pudo procesar la suscripción' }) }
+                                toast.success('Suscripción exitosa')
+                            } else { toast.error(result.error || 'No se pudo procesar la suscripción') }
 
                         } catch (error) {
                             // error purchasing gold
-                            Toast.show({ type: 'error', text1: 'Ocurrió un error al procesar la suscripción' })
+                            toast.error('Ocurrió un error al procesar la suscripción')
                         }
                         finally {
                             setIsPurchasing(false)

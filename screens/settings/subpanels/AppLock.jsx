@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { View, Text, ScrollView, TextInput, Alert, Pressable, StyleSheet } from 'react-native'
 import LottieView from 'lottie-react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
@@ -66,7 +66,7 @@ const AppLock = () => {
 	// Handle enable app lock
 	const handleEnable = async () => {
 		if (pin.length !== 4) {
-			Toast.show({ type: 'error', text1: 'Ingresa un PIN de 4 d\u00edgitos' })
+			toast.error('Ingresa un PIN de 4 dígitos')
 			return
 		}
 		if (mode === 'setup') {
@@ -75,7 +75,7 @@ const AppLock = () => {
 			return
 		}
 		if (pin !== confirmPin) {
-			Toast.show({ type: 'error', text1: 'Los PIN no coinciden' })
+			toast.error('Los PIN no coinciden')
 			setConfirmPin('')
 			setTimeout(() => confirmPinRefs.current[0]?.focus(), 100)
 			return
@@ -84,10 +84,10 @@ const AppLock = () => {
 		const result = await enableAppLock(pin)
 		setIsLoading(false)
 		if (result.success) {
-			Toast.show({ type: 'success', text1: 'Bloqueo activado', text2: 'Tu app está protegida' })
+			toast.success('Bloqueo activado', { description: 'Tu app está protegida' })
 			resetForm()
 		} else {
-			Toast.show({ type: 'error', text1: result.error })
+			toast.error(result.error)
 		}
 	}
 
@@ -103,7 +103,7 @@ const AppLock = () => {
 					style: 'destructive',
 					onPress: async () => {
 						await disableAppLock()
-						Toast.show({ type: 'success', text1: 'Bloqueo desactivado' })
+						toast.success('Bloqueo desactivado')
 						resetForm()
 					}
 				}
@@ -114,11 +114,11 @@ const AppLock = () => {
 	// Handle change PIN
 	const handleChangePin = async () => {
 		if (oldPin.length !== 4 || pin.length !== 4 || confirmPin.length !== 4) {
-			Toast.show({ type: 'error', text1: 'Completa todos los campos' })
+			toast.error('Completa todos los campos')
 			return
 		}
 		if (pin !== confirmPin) {
-			Toast.show({ type: 'error', text1: 'Los PIN nuevos no coinciden' })
+			toast.error('Los PIN nuevos no coinciden')
 			setConfirmPin('')
 			setTimeout(() => confirmPinRefs.current[0]?.focus(), 100)
 			return
@@ -127,10 +127,10 @@ const AppLock = () => {
 		const result = await changeAppLockPin(oldPin, pin)
 		setIsLoading(false)
 		if (result.success) {
-			Toast.show({ type: 'success', text1: 'PIN actualizado' })
+			toast.success('PIN actualizado')
 			resetForm()
 		} else {
-			Toast.show({ type: 'error', text1: result.error })
+			toast.error(result.error)
 		}
 	}
 

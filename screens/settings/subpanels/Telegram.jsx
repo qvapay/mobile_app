@@ -8,7 +8,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // UI Particles
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -49,11 +49,11 @@ const Telegram = () => {
                 if (link) {
                     await Linking.openURL(link)
                 } else {
-                    Toast.show({ type: 'error', text1: 'No se pudo obtener el enlace de verificación' })
+                    toast.error('No se pudo obtener el enlace de verificación')
                 }
-            } else { Toast.show({ type: 'error', text1: result.error || 'Error al verificar Telegram' }) }
+            } else { toast.error(result.error || 'Error al verificar Telegram') }
         } catch (error) {
-            Toast.show({ type: 'error', text1: 'Error al verificar Telegram' })
+            toast.error('Error al verificar Telegram')
         } finally { setIsLoading(false) }
     }
 
@@ -75,10 +75,10 @@ const Telegram = () => {
                                 setTelegram('')
                                 setTelegramId('')
                                 if (updateUser) { updateUser({ telegram: null, telegram_id: null, telegram_chat_id: null }) }
-                                Toast.show({ type: 'success', text1: 'Telegram desvinculado correctamente' })
-                            } else { Toast.show({ type: 'error', text1: result.error || 'Error al desvincular Telegram' }) }
+                                toast.success('Telegram desvinculado correctamente')
+                            } else { toast.error(result.error || 'Error al desvincular Telegram') }
                         } catch (error) {
-                            Toast.show({ type: 'error', text1: 'Error al desvincular Telegram' })
+                            toast.error('Error al desvincular Telegram')
                         } finally { setIsLoading(false) }
                     }
                 }

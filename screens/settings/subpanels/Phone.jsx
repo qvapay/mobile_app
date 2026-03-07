@@ -18,7 +18,7 @@ import { userApi } from '../../../api/userApi'
 import { useAuth } from '../../../auth/AuthContext'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // FontAwesome6
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -100,12 +100,12 @@ const Phone = () => {
 								setPin('')
 								setShowPinInput(false)
 								if (updateUser) { updateUser({ phone: null, phone_verified: false }) }
-								Toast.show({ type: 'success', text1: 'Número de teléfono eliminado correctamente' })
+								toast.success('Número de teléfono eliminado correctamente')
 							} else {
-								Toast.show({ type: 'error', text1: result.error || 'Error al eliminar el número de teléfono' })
+								toast.error(result.error || 'Error al eliminar el número de teléfono')
 							}
 						} catch (error) {
-							Toast.show({ type: 'error', text1: 'Error al eliminar el número de teléfono' })
+							toast.error('Error al eliminar el número de teléfono')
 						} finally { setIsLoading(false) }
 					}
 				}
@@ -116,11 +116,11 @@ const Phone = () => {
 	// Send code to phone
 	const handleSendCode = async () => {
 		if (!phone.trim()) {
-			Toast.show({ type: 'error', text1: 'Por favor ingresa un número de teléfono' })
+			toast.error('Por favor ingresa un número de teléfono')
 			return
 		}
 		if (phone.trim().length < 7) {
-			Toast.show({ type: 'error', text1: 'El número debe tener al menos 7 dígitos' })
+			toast.error('El número debe tener al menos 7 dígitos')
 			return
 		}
 
@@ -129,20 +129,20 @@ const Phone = () => {
 			const result = await userApi.verifyPhone({ phone: phone.trim(), country, verify: false })
 			if (result.success) {
 				setShowPinInput(true)
-				Toast.show({ type: 'success', text1: 'PIN de verificación enviado' })
+				toast.success('PIN de verificación enviado')
 			} else {
 				const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al enviar el código'
-				Toast.show({ type: 'error', text1: String(errorMsg) })
+				toast.error(String(errorMsg))
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al enviar el código' })
+			toast.error('Error al enviar el código')
 		} finally { setIsLoading(false) }
 	}
 
 	// Verify phone
 	const handleVerifyPhone = async () => {
 		if (!pin.trim() || pin.trim().length !== 6) {
-			Toast.show({ type: 'error', text1: 'Ingresa un PIN válido de 6 dígitos' })
+			toast.error('Ingresa un PIN válido de 6 dígitos')
 			return
 		}
 
@@ -157,13 +157,13 @@ const Phone = () => {
 				setShowPinInput(false)
 				setPin('')
 				setPhone('')
-				Toast.show({ type: 'success', text1: 'Teléfono verificado correctamente' })
+				toast.success('Teléfono verificado correctamente')
 			} else {
 				const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al verificar el teléfono'
-				Toast.show({ type: 'error', text1: String(errorMsg) })
+				toast.error(String(errorMsg))
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al verificar el teléfono' })
+			toast.error('Error al verificar el teléfono')
 		} finally { setIsVerifying(false) }
 	}
 

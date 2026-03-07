@@ -26,7 +26,7 @@ import QPSwitch from "../../ui/particles/QPSwitch"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 // Toast
-import Toast from "react-native-toast-message"
+import { toast } from "sonner-native"
 
 // API & Helpers
 import coinsApi from "../../api/coinsApi"
@@ -129,24 +129,24 @@ const P2PCreate = ({ navigation }) => {
 	const handlePublish = async () => {
 
 		if (type != "buy" && type != "sell") {
-			Toast.show({ type: "error", text1: "Datos incompletos", text2: "Debes seleccionar una opción" })
+			toast.error("Datos incompletos", { description: "Debes seleccionar una opción" })
 			return
 		}
 
 		if (!selectedCoin) {
-			Toast.show({ type: "error", text1: "Datos incompletos", text2: "Debes seleccionar una moneda" })
+			toast.error("Datos incompletos", { description: "Debes seleccionar una moneda" })
 			return
 		}
 
 		// Basic validation
 		if (!amount || !receive) {
-			Toast.show({ type: "error", text1: "Datos incompletos", text2: "Debes completar los montos de comprar y vender" })
+			toast.error("Datos incompletos", { description: "Debes completar los montos de comprar y vender" })
 			return
 		}
 		const amt = parseFloat(normalizeNumber(amount))
 		const rcv = parseFloat(normalizeNumber(receive))
 		if (isNaN(amt) || isNaN(rcv) || amt <= 0 || rcv <= 0) {
-			Toast.show({ type: "error", text1: "Montos inválidos", text2: "Introduce valores numéricos mayores que 0 para comprar y vender" })
+			toast.error("Montos inválidos", { description: "Introduce valores numéricos mayores que 0 para comprar y vender" })
 			return
 		}
 		// Working data required if coin has fields
@@ -157,7 +157,7 @@ const P2PCreate = ({ navigation }) => {
 				return value.length > 0
 			})
 			if (!allFilled) {
-				Toast.show({ type: "error", text1: "Faltan datos", text2: "Completa los datos de su cuenta para la moneda seleccionada para comprar y vender" })
+				toast.error("Faltan datos", { description: "Completa los datos de su cuenta para la moneda seleccionada para comprar y vender" })
 				return
 			}
 		}
@@ -180,22 +180,22 @@ const P2PCreate = ({ navigation }) => {
 			const res = await p2pApi.create(payload)
 
 			if (res.status === 201) {
-				Toast.show({ type: "success", text1: "Listo", text2: "Tu oferta se ha creado correctamente" })
+				toast.success("Listo", { description: "Tu oferta se ha creado correctamente" })
 				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: res.data.p2p.uuid })
 			} else {
 				const errMsg = res?.error || "No se pudo crear la oferta P2P"
-				Toast.show({ type: "error", text1: "Error al crear la oferta", text2: errMsg })
+				toast.error("Error al crear la oferta", { description: errMsg })
 			}
 
 		} catch (error) {
-			Toast.show({ type: "error", text1: "Error al crear la oferta", text2: error.message })
+			toast.error("Error al crear la oferta", { description: error.message })
 		} finally { setIsSending(false) }
 	}
 
 	// Handle launch saved payment methods
 	const lauchSavedPaymentMethods = () => {
 		if (!selectedCoin) {
-			Toast.show({ type: "error", text1: "Selecciona una moneda" })
+			toast.error("Selecciona una moneda")
 			return
 		}
 		setSavedMethodsLoading(true)
@@ -209,9 +209,9 @@ const P2PCreate = ({ navigation }) => {
 					})
 					setSavedMethods(filtered)
 					setShowSavedMethods(true)
-				} else { Toast.show({ type: "error", text1: res.error || "No se pudieron cargar los métodos" }) }
+				} else { toast.error(res.error || "No se pudieron cargar los métodos") }
 			})
-			.catch((e) => { Toast.show({ type: "error", text1: e.message || "Error de red" }) })
+			.catch((e) => { toast.error(e.message || "Error de red") })
 			.finally(() => setSavedMethodsLoading(false))
 	}
 
@@ -231,7 +231,7 @@ const P2PCreate = ({ navigation }) => {
 			})
 			setWorkingForm(nextForm)
 			setShowSavedMethods(false)
-		} catch (e) { Toast.show({ type: "error", text1: e.message || "No se pudo aplicar el método" }) }
+		} catch (e) { toast.error(e.message || "No se pudo aplicar el método") }
 	}
 
 	if (!p2pEnabled) {

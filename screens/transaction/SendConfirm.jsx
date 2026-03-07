@@ -21,7 +21,7 @@ import { withdrawApi } from '../../api/withdrawApi'
 import { ROUTES } from '../../routes'
 
 // Toast
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -66,11 +66,11 @@ const SendConfirm = ({ navigation, route }) => {
 				if (result.success && result.data.length > 0) {
 					setRecipientUser(result.data[0])
 				} else {
-					Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo encontrar el usuario destinatario' })
+					toast.error('Error', { description: 'No se pudo encontrar el usuario destinatario' })
 					navigation.goBack()
 				}
 			} catch (error) {
-				Toast.show({ type: 'error', text1: 'Error', text2: 'Error al cargar los datos del destinatario' })
+				toast.error('Error', { description: 'Error al cargar los datos del destinatario' })
 				navigation.goBack()
 			} finally { setIsLoadingUser(false) }
 		}
@@ -83,12 +83,12 @@ const SendConfirm = ({ navigation, route }) => {
 			setSendingPin(true)
 			const result = await withdrawApi.requestPin()
 			if (result.success) {
-				Toast.show({ type: 'success', text1: 'PIN enviado', text2: 'Revisa tu correo electrónico' })
+				toast.success('PIN enviado', { description: 'Revisa tu correo electrónico' })
 			} else {
-				Toast.show({ type: 'error', text1: result.error || 'No se pudo enviar el PIN' })
+				toast.error(result.error || 'No se pudo enviar el PIN')
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error al solicitar el PIN' })
+			toast.error('Error al solicitar el PIN')
 		} finally { setSendingPin(false) }
 	}
 
@@ -153,7 +153,7 @@ const SendConfirm = ({ navigation, route }) => {
 	const executeTransaction = async () => {
 
 		if (!pin || pin.length !== codeLength) {
-			Toast.show({ type: 'error', text1: twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos' })
+			toast.error(twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos')
 			return
 		}
 
@@ -169,10 +169,10 @@ const SendConfirm = ({ navigation, route }) => {
 			if (result.success) {
 				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser, description: description })
 			} else {
-				Toast.show({ type: 'error', text1: 'Error en la transacción', text2: result.error || 'No se pudo completar la transacción' })
+				toast.error('Error en la transacción', { description: result.error || 'No se pudo completar la transacción' })
 			}
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Error inesperado al procesar la transacción' })
+			toast.error('Error', { description: error.message || 'Error inesperado al procesar la transacción' })
 		} finally { setIsLoading(false) }
 	}
 

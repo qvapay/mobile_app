@@ -158,9 +158,7 @@ const Scan = ({ navigation, route }) => {
 	})
 
 	// QR URL
-	const qrUrl = user?.username
-		? `https://www.qvapay.com/payme/${user.username}`
-		: `https://www.qvapay.com/payme/${user?.uuid || ''}`
+	const qrUrl = user?.username ? `https://www.qvapay.com/payme/${user.username}` : `https://www.qvapay.com/payme/${user?.uuid || ''}`
 
 	// Check if has permission (only when scanning)
 	if (viewMode === 'scan' && !hasPermission) {

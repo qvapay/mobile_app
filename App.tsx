@@ -8,6 +8,7 @@ import { OneSignal } from 'react-native-onesignal'
 // Navigation Components
 import { NavigationContainer, useNavigation, DefaultTheme, DarkTheme } from '@react-navigation/native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 const Stack = createNativeStackNavigator()
 
@@ -79,7 +80,7 @@ import PurchaseDetail from './screens/store/PurchaseDetail'
 import SettingsStack from './screens/settings/SettingsStack'
 
 // Notifications
-import Toast from 'react-native-toast-message'
+import { Toaster, toast } from 'sonner-native'
 
 // Sound
 import playSound from './helpers/playSound'
@@ -165,7 +166,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				Linking.getInitialURL().then((url) => {
 					if (url && parseP2PUuid(url)) {
 						pendingDeepLinkRef.current = url
-						Toast.show({ type: 'info', text1: 'Inicia sesión para ver la oferta P2P' })
+						toast.info('Inicia sesión para ver la oferta P2P')
 					}
 				})
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
@@ -179,7 +180,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 		const subscription = Linking.addEventListener('url', ({ url }) => {
 			if (!isAuthenticated && url && parseP2PUuid(url)) {
 				pendingDeepLinkRef.current = url
-				Toast.show({ type: 'info', text1: 'Inicia sesión para ver la oferta P2P' })
+				toast.info('Inicia sesión para ver la oferta P2P')
 			}
 		})
 		return () => subscription.remove()
@@ -201,11 +202,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 					playSound('notification')
 				}
 			}
-			Toast.show({
-				type: 'info',
-				text1: notification.title || 'QvaPay',
-				text2: notification.body || '',
-			})
+			toast.info(notification.title || 'QvaPay', { description: notification.body || undefined })
 			notification.display()
 		}
 
@@ -488,28 +485,30 @@ function App() {
 	const pendingDeepLinkRef = useRef<string | null>(null)
 
 	return (
-		<ErrorBoundary>
-			<SafeAreaProvider>
-				<LoadingProvider>
-					<AuthProvider>
-						<SettingsProvider>
-							<ThemeProviderWithSettings>
-								<LoadingBridge>
-									<AppLockProvider>
-										<NavigationWrapper>
-											<GlobalLoadingBar />
-											<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-											<Toast position="top" topOffset={40} />
-										</NavigationWrapper>
-										<LockScreen />
-									</AppLockProvider>
-								</LoadingBridge>
-							</ThemeProviderWithSettings>
-						</SettingsProvider>
-					</AuthProvider>
-				</LoadingProvider>
-			</SafeAreaProvider>
-		</ErrorBoundary>
+		<GestureHandlerRootView style={{ flex: 1 }}>
+			<ErrorBoundary>
+				<SafeAreaProvider>
+					<LoadingProvider>
+						<AuthProvider>
+							<SettingsProvider>
+								<ThemeProviderWithSettings>
+									<LoadingBridge>
+										<AppLockProvider>
+											<NavigationWrapper>
+												<GlobalLoadingBar />
+												<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+												<Toaster position="top-center" />
+											</NavigationWrapper>
+											<LockScreen />
+										</AppLockProvider>
+									</LoadingBridge>
+								</ThemeProviderWithSettings>
+							</SettingsProvider>
+						</AuthProvider>
+					</LoadingProvider>
+				</SafeAreaProvider>
+			</ErrorBoundary>
+		</GestureHandlerRootView>
 	)
 }
 

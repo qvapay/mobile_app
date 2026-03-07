@@ -26,8 +26,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../../routes'
 
-// Toast 
-import Toast from 'react-native-toast-message'
+// Toast
+import { toast } from 'sonner-native'
 
 // Constants
 const MAX_AMOUNT_LENGTH = 5
@@ -174,12 +174,12 @@ export default function Keypad({ navigation }) {
 		const numericAmount = parseFloat(amount)
 
 		if (numericAmount <= 0) {
-			Toast.show({ type: 'error', text1: 'Monto inválido', text2: 'El monto debe ser mayor a 0' })
+			toast.error('Monto inválido', { description: 'El monto debe ser mayor a 0' })
 			return
 		}
 
 		if (user?.balance && numericAmount > user.balance) {
-			Toast.show({ type: 'error', text1: 'Saldo insuficiente', text2: 'El monto no puede exceder tu saldo disponible' })
+			toast.error('Saldo insuficiente', { description: 'El monto no puede exceder tu saldo disponible' })
 			return
 		}
 
@@ -188,7 +188,7 @@ export default function Keypad({ navigation }) {
 		try {
 			navigation.navigate(ROUTES.SEND, { send_amount: numericAmount.toString() })
 		} catch (error) {
-			Toast.show({ type: 'error', text1: 'Error', text2: 'Error al procesar la solicitud de envío' })
+			toast.error('Error', { description: 'Error al procesar la solicitud de envío' })
 		} finally { setIsProcessing(false) }
 
 	}, [amount, user?.balance, isProcessing, navigation])

@@ -1,4 +1,4 @@
-import Toast from 'react-native-toast-message'
+import { toast } from 'sonner-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 
@@ -231,13 +231,7 @@ const shuffleArray = (array) => {
 const copyTextToClipboard = (text) => {
 	Clipboard.setString(text)
 	ReactNativeHapticFeedback.trigger('notificationSuccess', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
-	Toast.show({
-		type: 'success',
-		text1: 'Copiado al portapapeles',
-		position: 'bottom',
-		bottomOffset: 10,
-		visibilityTime: 1500,
-	})
+	toast.success('Copiado al portapapeles', { duration: 1500 })
 }
 
 // take am uuid and return the fir chunk of it
