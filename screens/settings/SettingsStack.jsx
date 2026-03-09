@@ -29,6 +29,7 @@ import Notifications from './subpanels/Notifications'
 import PaymentMethods from './subpanels/PaymentMethods'
 import Contacts from './subpanels/Contacts'
 import AppLock from './subpanels/AppLock'
+import Roundup from './subpanels/Roundup'
 
 // Settings Stack
 const SettingsStack = ({ navigation }) => {
@@ -74,6 +75,7 @@ const SettingsStack = ({ navigation }) => {
 			<Stack.Screen name={ROUTES.PAYMENT_METHODS} component={PaymentMethods} />
 			<Stack.Screen name={ROUTES.CONTACTS} component={Contacts} />
 			<Stack.Screen name={ROUTES.APP_LOCK} component={AppLock} />
+			<Stack.Screen name={ROUTES.ROUNDUP} component={Roundup} />
 
 		</Stack.Navigator>
 	)

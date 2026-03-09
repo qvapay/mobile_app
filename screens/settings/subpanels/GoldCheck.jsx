@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, ScrollView, Pressable, Image, Alert } from 'react-native'
+import React, { useState, useEffect, useCallback } from 'react'
+import { View, Text, ScrollView, Pressable, Image, Alert, Platform, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import LottieView from 'lottie-react-native'
 
@@ -21,6 +21,10 @@ import { userApi } from '../../../api/userApi'
 
 // Toast
 import { toast } from 'sonner-native'
+
+// IAP
+import { useIAP } from 'react-native-iap'
+import { IAP_SKUS, getProductId, getAndroidOfferToken, getIAPErrorMessage } from '../../../helpers/iap'
 
 // Plans
 const plans = {
@@ -66,7 +70,56 @@ const GoldCheck = ({ navigation }) => {
     const [goldCheckExpire, setGoldCheckExpire] = useState('2025-09-08')
     const [isLoading, setIsLoading] = useState(false)
     const [isPurchasing, setIsPurchasing] = useState(false)
+    const [isPurchasingIAP, setIsPurchasingIAP] = useState(false)
+    const [isRestoringPurchases, setIsRestoringPurchases] = useState(false)
 
+    // IAP hook with callbacks
+    const {
+        connected,
+        subscriptions,
+        fetchProducts,
+        requestPurchase,
+        finishTransaction,
+    } = useIAP({
+        onPurchaseSuccess: async (purchase) => {
+            try {
+                const receipt = Platform.OS === 'ios'
+                    ? purchase.transactionReceipt
+                    : purchase.purchaseToken
+
+                if (!receipt) return
+
+                const result = await userApi.validateGoldReceipt({
+                    receipt,
+                    platform: Platform.OS,
+                    productId: purchase.productId,
+                    transactionId: purchase.transactionId,
+                })
+
+                if (result.success) {
+                    const { finishTransaction: finish } = require('react-native-iap')
+                    await finish({ purchase })
+                    setGoldCheckStatus(true)
+                    setGoldCheckExpire(result.data.golden_expire)
+                    updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
+                    toast.success('Suscripción Gold activada')
+                } else {
+                    toast.error(result.error || 'No se pudo validar la compra')
+                }
+            } catch (error) {
+                toast.error('Error al validar la compra')
+            } finally {
+                setIsPurchasingIAP(false)
+            }
+        },
+        onPurchaseError: (error) => {
+            setIsPurchasingIAP(false)
+            const message = getIAPErrorMessage(error)
+            if (message) toast.error(message)
+        },
+    })
+
+    // Fetch gold status
     useEffect(() => {
         const getGoldCheckStatus = async () => {
             setIsLoading(true)
@@ -82,7 +135,14 @@ const GoldCheck = ({ navigation }) => {
         getGoldCheckStatus()
     }, [goldCheckStatus])
 
-    // Handle Subscribe
+    // Fetch IAP subscription products when connected
+    useEffect(() => {
+        if (connected && IAP_SKUS?.length) {
+            fetchProducts({ skus: IAP_SKUS, type: 'subs' })
+        }
+    }, [connected])
+
+    // Handle Subscribe with QvaPay balance (existing flow)
     const handleSubscribe = async () => {
 
         if (!user?.uuid) {
@@ -102,7 +162,8 @@ const GoldCheck = ({ navigation }) => {
             [
                 {
                     text: 'Cancelar',
-                    style: 'cancel'
+                    style: 'cancel',
+                    onPress: () => setIsLoading(false)
                 },
                 {
                     text: `Pagar $${plan.value}`,
@@ -125,7 +186,6 @@ const GoldCheck = ({ navigation }) => {
                             } else { toast.error(result.error || 'No se pudo procesar la suscripción') }
 
                         } catch (error) {
-                            // error purchasing gold
                             toast.error('Ocurrió un error al procesar la suscripción')
                         }
                         finally {
@@ -137,6 +197,76 @@ const GoldCheck = ({ navigation }) => {
             ]
         )
     }
+
+    // Handle Subscribe with IAP (native payment sheet)
+    const handleSubscribeIAP = useCallback(async () => {
+        const productId = getProductId(selectedPlan)
+        const offerToken = getAndroidOfferToken(selectedPlan, subscriptions)
+
+        setIsPurchasingIAP(true)
+
+        try {
+            const purchaseRequest = {
+                type: 'subs',
+                request: Platform.OS === 'ios'
+                    ? { apple: { sku: productId } }
+                    : {
+                        google: {
+                            skus: [productId],
+                            ...(offerToken && {
+                                subscriptionOffers: [{ sku: productId, offerToken }],
+                            }),
+                        },
+                    },
+            }
+            await requestPurchase(purchaseRequest)
+        } catch (error) {
+            setIsPurchasingIAP(false)
+            const message = getIAPErrorMessage(error)
+            if (message) toast.error(message)
+        }
+    }, [selectedPlan, subscriptions, requestPurchase])
+
+    // Handle Restore Purchases
+    const handleRestore = useCallback(async () => {
+        setIsRestoringPurchases(true)
+        try {
+            // getAvailablePurchases from the hook updates internal state and returns void
+            // We need to use the top-level function for a direct result
+            const { getAvailablePurchases: getAvailablePurchasesDirect } = require('react-native-iap')
+            const purchases = await getAvailablePurchasesDirect()
+            if (!purchases?.length) {
+                toast.info('No se encontraron compras anteriores')
+                return
+            }
+
+            // Send the most recent purchase to backend for validation
+            const latest = purchases[purchases.length - 1]
+            const receipt = Platform.OS === 'ios'
+                ? latest.transactionReceipt
+                : latest.purchaseToken
+
+            const result = await userApi.validateGoldReceipt({
+                receipt,
+                platform: Platform.OS,
+                productId: latest.productId,
+                transactionId: latest.transactionId,
+            })
+
+            if (result.success) {
+                setGoldCheckStatus(true)
+                setGoldCheckExpire(result.data.golden_expire)
+                updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
+                toast.success('Suscripción restaurada')
+            } else {
+                toast.error(result.error || 'No se pudo restaurar la suscripción')
+            }
+        } catch (error) {
+            toast.error('Error al restaurar compras')
+        } finally {
+            setIsRestoringPurchases(false)
+        }
+    }, [user, updateUser])
 
     return (
         <ScrollView style={[containerStyles.container, { paddingHorizontal: theme.spacing.md }]}>
@@ -248,19 +378,58 @@ const GoldCheck = ({ navigation }) => {
                     ))}
                 </View>
 
-                {/* Subscribe Button */}
-                {!goldCheckStatus && (
-                    <View style={containerStyles.bottomButtonContainer}>
+                {/* Subscribe Buttons */}
+                <View style={{ gap: theme.spacing.md }}>
+                        {/* Pay with QvaPay balance */}
                         <QPButton
-                            title={isPurchasing ? "Procesando..." : "Suscribirme ahora"}
+                            title={isPurchasing ? "Procesando..." : `Pagar con saldo QvaPay $${plans[selectedPlan].value}`}
                             onPress={handleSubscribe}
-                            disabled={isPurchasing || isLoading}
-                            loading={isLoading}
-                            style={{ backgroundColor: theme.colors.gold }}
-                            loadingColor={theme.colors.almostBlack}
+                            disabled={isPurchasing || isLoading || isPurchasingIAP}
+                            loading={isPurchasing}
                         />
+
+                        {/* Pay with App Store / Play Store */}
+                        {subscriptions?.length > 0 ? (
+                            <QPButton
+                                icon={Platform.OS === 'ios' ? 'apple' : 'google-play'}
+                                iconStyle="brand"
+                                iconColor={theme.colors.primaryText}
+                                title={isPurchasingIAP
+                                    ? "Procesando..."
+                                    : `Pagar con ${Platform.OS === 'ios' ? 'App Store' : 'Play Store'}${(() => {
+                                        const productId = getProductId(selectedPlan)
+                                        const sub = subscriptions.find(s => s.productId === productId)
+                                        if (Platform.OS === 'ios') {
+                                            return sub?.localizedPrice ? ` ${sub.localizedPrice}` : ''
+                                        }
+                                        const offerToken = getAndroidOfferToken(selectedPlan, subscriptions)
+                                        const offer = sub?.subscriptionOfferDetails?.find(o => o.offerToken === offerToken)
+                                        const price = offer?.pricingPhases?.pricingPhaseList?.[0]?.formattedPrice
+                                        return price ? ` ${price}` : ''
+                                    })()}`
+                                }
+                                onPress={handleSubscribeIAP}
+                                disabled={isPurchasingIAP || isPurchasing || isLoading}
+                                loading={isPurchasingIAP}
+                                style={{ backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.border }}
+                                textStyle={{ color: theme.colors.primaryText }}
+                            />
+                        ) : connected ? (
+                            <View style={{ alignItems: 'center', paddingVertical: theme.spacing.sm }}>
+                                <ActivityIndicator size="small" color={theme.colors.secondaryText} />
+                                <Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4 }]}>
+                                    Cargando precios de la tienda...
+                                </Text>
+                            </View>
+                        ) : null}
+
+                        {/* Restore Purchases */}
+                        <Pressable onPress={handleRestore} disabled={isRestoringPurchases} style={{ alignItems: 'center', paddingVertical: theme.spacing.sm }}>
+                            <Text style={[textStyles.text, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm }]}>
+                                {isRestoringPurchases ? 'Restaurando...' : 'Restaurar compras'}
+                            </Text>
+                        </Pressable>
                     </View>
-                )}
 
                 {/* Disclaimer */}
                 <Text style={[textStyles.caption, { textAlign: 'center', marginTop: theme.spacing.sm, marginBottom: insets.bottom + theme.spacing.sm, color: theme.colors.secondaryText, lineHeight: 18 }]}>

@@ -20,7 +20,8 @@ const STORAGE_KEYS = {
     TRANSACTION_HISTORY: 'transaction_history_settings',
     P2P_SETTINGS: 'p2p_settings',
     INVESTMENT_SETTINGS: 'investment_settings',
-    STORE_SETTINGS: 'store_settings'
+    STORE_SETTINGS: 'store_settings',
+    ROUNDUP_SETTINGS: 'roundup_settings'
 }
 
 // Default settings
@@ -124,6 +125,12 @@ const DEFAULT_SETTINGS = {
         showOutOfStock: false
     },
 
+    // Roundup (micro pagos) settings
+    roundup: {
+        enabled: false,
+        destination: null, // 'savings' or 'donations'
+    },
+
     // Sound and haptic settings
     sounds: {
         enabled: true,
@@ -196,7 +203,8 @@ export const SettingsProvider = ({ children }) => {
                 investment,
                 store,
                 sounds,
-                vibration
+                vibration,
+                roundup
             ] = await Promise.all([
                 AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATIONS),
                 AsyncStorage.getItem(STORAGE_KEYS.SECURITY),
@@ -208,7 +216,8 @@ export const SettingsProvider = ({ children }) => {
                 AsyncStorage.getItem(STORAGE_KEYS.INVESTMENT_SETTINGS),
                 AsyncStorage.getItem(STORAGE_KEYS.STORE_SETTINGS),
                 AsyncStorage.getItem(STORAGE_KEYS.SOUNDS),
-                AsyncStorage.getItem(STORAGE_KEYS.VIBRATION)
+                AsyncStorage.getItem(STORAGE_KEYS.VIBRATION),
+                AsyncStorage.getItem(STORAGE_KEYS.ROUNDUP_SETTINGS)
             ])
 
             return {
@@ -222,7 +231,8 @@ export const SettingsProvider = ({ children }) => {
                 investment: investment ? JSON.parse(investment) : null,
                 store: store ? JSON.parse(store) : null,
                 sounds: sounds ? JSON.parse(sounds) : null,
-                vibration: vibration ? JSON.parse(vibration) : null
+                vibration: vibration ? JSON.parse(vibration) : null,
+                roundup: roundup ? JSON.parse(roundup) : null
             }
 
         } catch (error) { return {} }
@@ -393,7 +403,8 @@ export const SettingsProvider = ({ children }) => {
                 AsyncStorage.setItem(STORAGE_KEYS.INVESTMENT_SETTINGS, JSON.stringify(mergedSettings.investment)),
                 AsyncStorage.setItem(STORAGE_KEYS.STORE_SETTINGS, JSON.stringify(mergedSettings.store)),
                 AsyncStorage.setItem(STORAGE_KEYS.SOUNDS, JSON.stringify(mergedSettings.sounds)),
-                AsyncStorage.setItem(STORAGE_KEYS.VIBRATION, JSON.stringify(mergedSettings.vibration))
+                AsyncStorage.setItem(STORAGE_KEYS.VIBRATION, JSON.stringify(mergedSettings.vibration)),
+                AsyncStorage.setItem(STORAGE_KEYS.ROUNDUP_SETTINGS, JSON.stringify(mergedSettings.roundup))
             ])
 
             return { success: true }
@@ -449,7 +460,8 @@ export const SettingsProvider = ({ children }) => {
         investment: settings.investment,
         store: settings.store,
         sounds: settings.sounds,
-        vibration: settings.vibration
+        vibration: settings.vibration,
+        roundup: settings.roundup
     }
 
     return (

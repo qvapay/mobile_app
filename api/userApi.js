@@ -408,6 +408,28 @@ export const userApi = {
 	},
 
 	/**
+	 * Validate an IAP receipt for Gold Check subscription
+	 * @param {Object} receiptData - The receipt data
+	 * @param {string} receiptData.receipt - The purchase receipt/token
+	 * @param {string} receiptData.platform - 'ios' or 'android'
+	 * @param {string} receiptData.productId - The product ID
+	 * @param {string} receiptData.transactionId - The transaction ID
+	 * @returns {Promise<Object>} The validation result with golden_expire
+	 */
+	validateGoldReceipt: async (receiptData) => {
+		try {
+			const response = await apiClient.post(`/user/gold/validate-receipt`, receiptData)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo validar la compra', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Upload user avatar or cover photo
 	 * @param {{ uri: string, name?: string, type?: string }} file - The image file
 	 * @param {'avatar'|'cover'} uploadType - The type of image to upload
@@ -453,6 +475,18 @@ export const userApi = {
 	updateNotificationSettings: async (settings) => {
 		try {
 			const response = await apiClient.post('/user/notifications', settings)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+	},
+
+	/**
+	 * Update roundup (micro pagos) settings
+	 * @param {Object} settings - { enabled, destination: 'savings' | 'donations' | null }
+	 * @returns {Promise<Object>}
+	 */
+	updateRoundupSettings: async (settings) => {
+		try {
+			const response = await apiClient.post('/user/roundup', settings)
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
 	},

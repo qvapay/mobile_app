@@ -74,6 +74,7 @@ export const ROUTES = {
     PAYMENT_METHODS: "PaymentMethods",
     CONTACTS: "Contacts",
     APP_LOCK: "AppLock",
+    ROUNDUP: "Roundup",
 
     // Invest Screens
     SAVINGS_SCREEN: "Savings",

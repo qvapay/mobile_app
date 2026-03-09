@@ -126,6 +126,12 @@ const settings = {
                 enabled: true,
                 notifications: 0,
             },
+            {
+                title: 'Micro pagos',
+                screen: ROUTES.ROUNDUP,
+                enabled: true,
+                notifications: 0,
+            },
         ],
     },
 }
