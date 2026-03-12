@@ -3,9 +3,7 @@ import { View, Text, StyleSheet, Modal, Pressable, Switch, ScrollView, Platform,
 import { FlashList } from "@shopify/flash-list"
 
 // Reanimated
-import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, withTiming, interpolate } from "react-native-reanimated"
-
-const AnimatedFlashList = Animated.createAnimatedComponent(FlashList)
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate } from "react-native-reanimated"
 
 // Theme Context
 import { useTheme } from "../../theme/ThemeContext"
@@ -124,39 +122,37 @@ const P2P = ({ navigation, route }) => {
 	const scrollDirection = useSharedValue(0)
 	const accumulatedDelta = useSharedValue(0)
 
-	const scrollHandler = useAnimatedScrollHandler({
-		onScroll: (event) => {
-			const currentY = event.contentOffset.y
-			const diff = currentY - lastScrollY.value
+	const handleScroll = useCallback((event) => {
+		const currentY = event.nativeEvent.contentOffset.y
+		const diff = currentY - lastScrollY.value
 
-			if (currentY <= 0) {
-				filterBarVisible.value = withTiming(1, { duration: 250 })
-				bottomBarVisible.value = withTiming(1, { duration: 250 })
-				accumulatedDelta.value = 0
-			} else {
-				const dir = diff > 0 ? 1 : diff < 0 ? -1 : 0
-				if (dir !== 0) {
-					if (dir === scrollDirection.value) {
-						accumulatedDelta.value += Math.abs(diff)
-					} else {
-						accumulatedDelta.value = Math.abs(diff)
-						scrollDirection.value = dir
-					}
-					if (accumulatedDelta.value > 20) {
-						if (dir === 1 && filterBarVisible.value !== 0) {
-							filterBarVisible.value = withTiming(0, { duration: 250 })
-							bottomBarVisible.value = withTiming(0, { duration: 250 })
-						} else if (dir === -1 && filterBarVisible.value !== 1) {
-							filterBarVisible.value = withTiming(1, { duration: 250 })
-							bottomBarVisible.value = withTiming(1, { duration: 250 })
-						}
+		if (currentY <= 0) {
+			filterBarVisible.value = withTiming(1, { duration: 250 })
+			bottomBarVisible.value = withTiming(1, { duration: 250 })
+			accumulatedDelta.value = 0
+		} else {
+			const dir = diff > 0 ? 1 : diff < 0 ? -1 : 0
+			if (dir !== 0) {
+				if (dir === scrollDirection.value) {
+					accumulatedDelta.value += Math.abs(diff)
+				} else {
+					accumulatedDelta.value = Math.abs(diff)
+					scrollDirection.value = dir
+				}
+				if (accumulatedDelta.value > 20) {
+					if (dir === 1 && filterBarVisible.value !== 0) {
+						filterBarVisible.value = withTiming(0, { duration: 250 })
+						bottomBarVisible.value = withTiming(0, { duration: 250 })
+					} else if (dir === -1 && filterBarVisible.value !== 1) {
+						filterBarVisible.value = withTiming(1, { duration: 250 })
+						bottomBarVisible.value = withTiming(1, { duration: 250 })
 					}
 				}
 			}
+		}
 
-			lastScrollY.value = currentY
-		},
-	})
+		lastScrollY.value = currentY
+	}, [lastScrollY, filterBarVisible, bottomBarVisible, accumulatedDelta, scrollDirection])
 
 	const filterBarStyle = useAnimatedStyle(() => ({
 		transform: [{ translateY: interpolate(filterBarVisible.value, [0, 1], [-filterBarHeight.value, 0]) }],
@@ -488,11 +484,11 @@ const P2P = ({ navigation, route }) => {
 						)}
 					</Animated.View>
 
-					<AnimatedFlashList
+					<FlashList
 						data={p2pOffers}
 						renderItem={renderOffer}
 						keyExtractor={(item) => item.uuid}
-						onScroll={scrollHandler}
+						onScroll={handleScroll}
 						scrollEventThrottle={16}
 						refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 						showsVerticalScrollIndicator={false}

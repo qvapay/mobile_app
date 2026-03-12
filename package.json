@@ -1,6 +1,6 @@
 {
   "name": "QvaPay",
-  "version": "1.4.8",
+  "version": "1.4.10",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -50,9 +50,9 @@
     "react-native-onesignal": "^5.3.1",
     "react-native-qrcode-scanner": "^1.5.5",
     "react-native-qrcode-styled": "^0.4.0",
-    "react-native-reanimated": "^4.2.1",
-    "react-native-safe-area-context": "^5.5.2",
-    "react-native-screens": "^4.20.0",
+    "react-native-reanimated": "^4.2.2",
+    "react-native-safe-area-context": "^5.7.0",
+    "react-native-screens": "^4.24.0",
     "react-native-sound": "^0.13.0",
     "react-native-sse": "^1.2.1",
     "react-native-svg": "^15.15.1",

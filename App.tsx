@@ -6,10 +6,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { OneSignal } from 'react-native-onesignal'
 
 // Navigation Components
-import { NavigationContainer, useNavigation, DefaultTheme, DarkTheme } from '@react-navigation/native'
+import { enableFreeze } from 'react-native-screens'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { NavigationContainer, useNavigation, DefaultTheme, DarkTheme } from '@react-navigation/native'
+
+enableFreeze(true)
+
 const Stack = createNativeStackNavigator()
 
 // Auth Context
