@@ -5,7 +5,7 @@ import config from '../config'
 
 const version = DeviceInfo.getVersion()
 const buildNumber = DeviceInfo.getBuildNumber()
-const deviceName = DeviceInfo.getDeviceName()
+const deviceName = DeviceInfo.getDeviceNameSync()
 
 const API_BASE_URL = config.API_BASE_URL
 const API_TIMEOUT = config.API_TIMEOUT
@@ -37,9 +37,9 @@ const apiClient = axios.create({
 		'Accept': 'application/json',
 		"X-QvaPay-Client": "QvaPayAPP",
 		"User-Agent": "QvaPayClient",
-		"X-QvaPay-Client-Version": { version },
-		"X-QvaPay-Client-Platform": { deviceName },
-		"X-QvaPay-Client-Platform-Version": { buildNumber },
+		"X-QvaPay-Client-Version": version,
+		"X-QvaPay-Client-Platform": deviceName,
+		"X-QvaPay-Client-Platform-Version": buildNumber,
 	},
 })
 

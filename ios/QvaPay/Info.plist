@@ -48,12 +48,12 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Para poder escanear QRs, $(PRODUCT_NAME) necesita permiso.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>QvaPay necesita acceso a tus contactos para encontrar amigos que ya usan la app y facilitar los envios de dinero.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>QvaPay utiliza Face ID para acceder a tu cuenta de forma segura.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>QvaPay necesita tu ubicación para brindarte peers cerca de tu ubicación.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>QvaPay necesita acceso a tus contactos para encontrar amigos que ya usan la app y facilitar los envios de dinero.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>QvaPay necesita acceso a tu galería de fotos para cambiar tu foto de perfil y subir comprobantes de pago.</string>
 	<key>RCTNewArchEnabled</key>
