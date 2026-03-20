@@ -16,9 +16,9 @@ import { useAuth } from '../../auth/AuthContext'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPCoin from '../../ui/particles/QPCoin'
 import QPButton from '../../ui/particles/QPButton'
-import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
 import QPCoinRow from '../../ui/QPCoinRow'
+import QPCoinPicker from '../../ui/QPCoinPicker'
 
 // API
 import apiClient from '../../api/client'
@@ -56,8 +56,6 @@ const Add = ({ navigation }) => {
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 	const [showDepositModal, setShowDepositModal] = useState(false)
 	const [topupData, setTopupData] = useState(null)
-	const [coinSearch, setCoinSearch] = useState('')
-	const [showCoinSearch, setShowCoinSearch] = useState(false)
 	const [depositStatus, setDepositStatus] = useState('pending')
 
 	// SSE connection for real-time deposit status updates
@@ -608,60 +606,16 @@ const Add = ({ navigation }) => {
 			</Modal>
 
 			{/* Coin Picker Modal */}
-			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
-				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-
-					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
-						<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-							<Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
-								<FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-							<Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-						</View>
-					</View>
-
-					{showCoinSearch && (
-						<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
-							<QPInput
-								value={coinSearch}
-								onChangeText={setCoinSearch}
-								placeholder="Buscar moneda..."
-								prefixIconName="magnifying-glass"
-								style={styles.searchInput}
-							/>
-						</View>
-					)}
-
-					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-
-						{isLoading ? (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
-							</View>
-						) : availableCoins.length > 0 ? (availableCoins
-							.filter((coin) =>
-								coin.name.toLowerCase().includes(coinSearch.toLowerCase()) ||
-								coin.tick.toLowerCase().includes(coinSearch.toLowerCase())
-							)
-							.map((coin) => (
-								<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.elevation }]} onPress={() => handleCoinSelect(coin)} >
-									<QPCoinRow coin={coin} amount={amount} direction="in" />
-								</Pressable>
-							))
-						) : (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>
-									No hay monedas disponibles
-								</Text>
-							</View>
-						)}
-
-					</ScrollView>
-				</SafeAreaView>
-			</Modal>
+			<QPCoinPicker
+				visible={showCoinPicker}
+				onClose={() => setShowCoinPicker(false)}
+				onSelect={handleCoinSelect}
+				coins={availableCoins}
+				selectedCoin={selectedCoin}
+				isLoading={isLoading}
+				amount={amount}
+				direction="in"
+			/>
 
 		</>
 	)
@@ -722,37 +676,11 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		marginBottom: 16,
 	},
-	coinList: {
-		flex: 1,
-	},
-	coinListContent: {
-		padding: 20,
-		paddingBottom: 40,
-	},
-	coinItem: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 12,
-		borderRadius: 12,
-		marginBottom: 10,
-		borderWidth: 1,
-	},
-	networkBadge: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
-		marginLeft: 8,
-	},
 	networkBadgeSmall: {
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 10,
 		marginLeft: 10,
-	},
-	loadingContainer: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		padding: 40,
 	},
 	// Deposit Modal Styles
 	modalContent: {

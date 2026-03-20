@@ -16,9 +16,10 @@ const QPKeyboardView = ({
 	const [keyboardHeight, setKeyboardHeight] = useState(0)
 
 	useEffect(() => {
-		if (Platform.OS !== 'ios') return
-		const showSub = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardHeight(e.endCoordinates.height))
-		const hideSub = Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0))
+		const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+		const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+		const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height))
+		const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0))
 		return () => { showSub.remove(); hideSub.remove() }
 	}, [])
 

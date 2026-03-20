@@ -10,6 +10,7 @@ import QPButton from '../../../ui/particles/QPButton'
 import QPInput from '../../../ui/particles/QPInput'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPCoin from '../../../ui/particles/QPCoin'
+import QPCoinPicker from '../../../ui/QPCoinPicker'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -55,7 +56,6 @@ const PaymentMethods = ({ navigation }) => {
 	// Create flow state
 	const [showCreate, setShowCreate] = useState(false)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
-	const [coinSearch, setCoinSearch] = useState('')
 	const [selectedCoin, setSelectedCoin] = useState(null)
 	const [workingForm, setWorkingForm] = useState({})
 	const [paymentMethodName, setPaymentMethodName] = useState('')
@@ -112,7 +112,6 @@ const PaymentMethods = ({ navigation }) => {
 		setSelectedCoin(null)
 		setWorkingForm({})
 		setShowCoinPicker(false)
-		setCoinSearch('')
 	}
 
 	// Handle coin select
@@ -312,34 +311,14 @@ const PaymentMethods = ({ navigation }) => {
 						</View>
 
 						{/* Coin Picker Modal */}
-						<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
-							<View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-								<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-									<Text style={textStyles.h4}>Seleccionar Moneda</Text>
-									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-										<Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-											<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-										</Pressable>
-									</View>
-								</View>
-								<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
-									<QPInput value={coinSearch} onChangeText={setCoinSearch} placeholder="Buscar moneda..." prefixIconName="magnifying-glass" style={styles.searchInput} />
-								</View>
-								<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-									{(availableCoins || [])
-										.filter((coin) => (coin.name || '').toLowerCase().includes(coinSearch.toLowerCase()) || (coin.tick || '').toLowerCase().includes(coinSearch.toLowerCase()))
-										.map((coin) => (
-											<Pressable key={coin.id || coin.tick} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleCoinSelect(coin)}>
-												<QPCoin coin={coin.logo} size={40} />
-												<View style={{ marginLeft: 12, flex: 1 }}>
-													<Text style={textStyles.h4}>{coin.name}</Text>
-													<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Ticker: {coin.tick}</Text>
-												</View>
-											</Pressable>
-										))}
-								</ScrollView>
-							</View>
-						</Modal>
+						<QPCoinPicker
+							visible={showCoinPicker}
+							onClose={() => setShowCoinPicker(false)}
+							onSelect={handleCoinSelect}
+							coins={availableCoins}
+							selectedCoin={selectedCoin}
+							showFees={false}
+						/>
 
 					</View>
 				</TouchableWithoutFeedback>
@@ -368,18 +347,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'space-between',
 	},
-	coinList: { flex: 1 },
-	coinListContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
-	coinItem: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 15,
-		borderRadius: 10,
-		marginBottom: 10,
-		borderWidth: 0.5,
-		borderColor: 'rgba(255, 255, 255, 0.2)'
-	},
-	searchInput: { marginVertical: 0 },
 })
 
 export default PaymentMethods

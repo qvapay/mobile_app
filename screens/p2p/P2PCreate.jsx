@@ -21,6 +21,7 @@ import QPCoin from "../../ui/particles/QPCoin"
 import QPInput from "../../ui/particles/QPInput"
 import QPButton from "../../ui/particles/QPButton"
 import QPSwitch from "../../ui/particles/QPSwitch"
+import QPCoinPicker from "../../ui/QPCoinPicker"
 
 // Icons
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
@@ -31,7 +32,6 @@ import { toast } from "sonner-native"
 // API & Helpers
 import coinsApi from "../../api/coinsApi"
 import p2pApi from "../../api/p2pApi"
-import { adjustNumber } from "../../helpers"
 import { userApi } from "../../api/userApi"
 
 // User context
@@ -71,8 +71,6 @@ const P2PCreate = ({ navigation }) => {
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
 	const [isSending, setIsSending] = useState(false)
-	const [coinSearch, setCoinSearch] = useState("")
-	const [showCoinSearch, setShowCoinSearch] = useState(false)
 	const [workingForm, setWorkingForm] = useState({})
 	const [showSavedMethods, setShowSavedMethods] = useState(false)
 	const [savedMethods, setSavedMethods] = useState([])
@@ -465,81 +463,22 @@ const P2PCreate = ({ navigation }) => {
 
 			</QPKeyboardView>
 
-			{/* Coin Picker Modal (same UX as Withdraw) */}
-			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
-				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
-						<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-							<Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
-								<FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-							<Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-						</View>
-					</View>
-
-					{showCoinSearch && (
-						<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
-							<QPInput
-								value={coinSearch}
-								onChangeText={setCoinSearch}
-								placeholder="Buscar moneda..."
-								prefixIconName="magnifying-glass"
-								style={styles.searchInput}
-							/>
-						</View>
-					)}
-
-					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-						{isLoading ? (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
-							</View>
-						) : availableCoins.length > 0 ? (
-							availableCoins
-								.filter(
-									(coin) =>
-										coin.name.toLowerCase().includes(coinSearch.toLowerCase()) ||
-										coin.tick.toLowerCase().includes(coinSearch.toLowerCase())
-								)
-								.map((coin) => (
-									<Pressable
-										key={coin.id}
-										style={[
-											styles.coinItem,
-											{
-												backgroundColor: theme.colors.surface,
-												borderColor: theme.colors.primary,
-											},
-										]}
-										onPress={() => handleCoinSelect(coin)}
-									>
-										<QPCoin coin={coin.logo} size={40} />
-										<View style={{ marginLeft: 12, flex: 1 }}>
-											<Text style={textStyles.h4}>{coin.name}</Text>
-											<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-												Mín: ${adjustNumber(coin.min_out)} | Precio: ${adjustNumber(coin.price)}
-											</Text>
-										</View>
-										<View style={{ alignItems: "flex-end", gap: 4 }}>
-											{coin.network && (
-												<View style={[styles.networkBadge, { backgroundColor: theme.colors.primary }]}>
-													<Text style={[textStyles.h7, { color: theme.colors.buttonText }]}>{coin.network}</Text>
-												</View>
-											)}
-										</View>
-									</Pressable>
-								))
-						) : (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
-							</View>
-						)}
-					</ScrollView>
-				</SafeAreaView>
-			</Modal>
+			{/* Coin Picker Modal */}
+			<QPCoinPicker
+				visible={showCoinPicker}
+				onClose={() => setShowCoinPicker(false)}
+				onSelect={handleCoinSelect}
+				coins={availableCoins}
+				selectedCoin={selectedCoin}
+				isLoading={isLoading}
+				showFees={false}
+				recentKey="qp_recent_p2p_create_coins"
+				defaultCoins={[
+					{ tick: 'BANK_CUP', label: 'CUP' },
+					{ tick: 'BANK_MLC', label: 'MLC' },
+					{ tick: 'CLASICA', label: 'Clásica' },
+				]}
+			/>
 
 			{/* Saved Payment Methods Modal */}
 			<Modal visible={showSavedMethods} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowSavedMethods(false)}>
@@ -596,12 +535,6 @@ const P2PCreate = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-	card: {
-		borderRadius: 12,
-		padding: 12,
-		marginVertical: 6,
-	},
-	// Modal styles (mirroring Withdraw)
 	modalContainer: { flex: 1 },
 	modalHeader: {
 		flexDirection: "row",
@@ -617,22 +550,20 @@ const styles = StyleSheet.create({
 	coinItem: {
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 15,
-		borderRadius: 10,
-		marginBottom: 10,
-		borderWidth: 0.5,
-		borderColor: "rgba(255, 255, 255, 0.2)",
-	},
-	networkBadge: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
+		padding: 12,
 		borderRadius: 12,
-		marginLeft: 8,
+		marginBottom: 4,
+		borderWidth: 1,
 	},
 	loadingContainer: {
 		alignItems: "center",
 		justifyContent: "center",
 		padding: 40,
+	},
+	card: {
+		borderRadius: 12,
+		padding: 12,
+		marginVertical: 6,
 	},
 	currencyButton: {
 		paddingHorizontal: 16,

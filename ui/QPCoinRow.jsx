@@ -3,7 +3,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 import QPCoin from './particles/QPCoin'
 
-const QPCoinRow = ({ coin, amount = '', direction = 'in' }) => {
+const QPCoinRow = ({ coin, amount = '', direction = 'in', showFees = true }) => {
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -32,31 +32,37 @@ const QPCoinRow = ({ coin, amount = '', direction = 'in' }) => {
 					)}
 				</View>
 				<View style={styles.stats}>
-					<View style={styles.stat}>
-						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>${min}</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{minLabel}</Text>
-					</View>
-					<View style={styles.stat}>
-						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>{fee}%</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{feeLabel}</Text>
-					</View>
+					{showFees && (
+						<>
+							<View style={styles.stat}>
+								<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>${min}</Text>
+								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{minLabel}</Text>
+							</View>
+							<View style={styles.stat}>
+								<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>{fee}%</Text>
+								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{feeLabel}</Text>
+							</View>
+						</>
+					)}
 					<View style={styles.stat}>
 						<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={1}>${Number(coin.price).toFixed(4)}</Text>
 						<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Precio</Text>
 					</View>
-					<View style={styles.statAprox}>
-						{amountNum > 0 ? (
-							<>
-								<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]} numberOfLines={1}>{aprox.toFixed(5)}</Text>
-								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Aprox.</Text>
-							</>
-						) : (
-							<>
-								<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{'\u2014'}</Text>
-								<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Aprox.</Text>
-							</>
-						)}
-					</View>
+					{showFees && (
+						<View style={styles.statAprox}>
+							{amountNum > 0 ? (
+								<>
+									<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]} numberOfLines={1}>{aprox.toFixed(5)}</Text>
+									<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Aprox.</Text>
+								</>
+							) : (
+								<>
+									<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{'\u2014'}</Text>
+									<Text style={[styles.statLabel, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Aprox.</Text>
+								</>
+							)}
+						</View>
+					)}
 				</View>
 			</View>
 		</View>

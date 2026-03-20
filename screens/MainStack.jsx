@@ -64,7 +64,8 @@ const MainStack = ({ navigation }) => {
 	// Contexts
 	const { user, isAuthenticated } = useAuth()
 	const { theme } = useTheme()
-	const { appearance } = useSettings()
+	const { appearance, getSetting } = useSettings()
+	const showBalance = getSetting('privacy', 'showBalance', true)
 	const showLabels = appearance.bottomBarLabels
 	const insets = useSafeAreaInsets()
 	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
@@ -173,7 +174,44 @@ const MainStack = ({ navigation }) => {
 				hidesSharedBackground: true,
 			}],
 		}),
-	}), [showLabels, containerStyles, textStyles, theme, user, navigation])
+		// Android fallback
+		headerRight: () => (
+			<View style={containerStyles.headerRight}>
+				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 16 }}>
+					<FontAwesome6 name="bolt" size={14} color="#F7931A" iconStyle="solid" />
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+						{showBalance ? (user.satoshis || 0).toLocaleString() : '***'}
+					</Text>
+				</View>
+				<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
+					<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+				</Pressable>
+			</View>
+		),
+		// iOS 26+ native header items (liquid glass compatible)
+		...(supportsLiquidGlass && {
+			unstable_headerRightItems: () => [
+				{
+					type: 'custom',
+					element: (
+						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+							<FontAwesome6 name="bolt" size={14} color="#F7931A" iconStyle="solid" />
+							<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+								{showBalance ? (user.satoshis || 0).toLocaleString() : '***'}
+							</Text>
+						</View>
+					),
+					hidesSharedBackground: true,
+				},
+				{
+					type: 'button',
+					label: 'Escanear',
+					icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
+					onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
+				},
+			],
+		}),
+	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation])
 
 	const investOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? 'Invertir' : '',

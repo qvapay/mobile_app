@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
-import { StyleSheet, Text, View, Pressable, Modal, ScrollView, TextInput } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -12,7 +11,7 @@ import QPButton from '../../ui/particles/QPButton'
 import QPSwitch from '../../ui/particles/QPSwitch'
 import QPCoin from '../../ui/particles/QPCoin'
 import QPInput from '../../ui/particles/QPInput'
-import QPCoinRow from '../../ui/QPCoinRow'
+import QPCoinPicker from '../../ui/QPCoinPicker'
 
 // API
 import apiClient from '../../api/client'
@@ -24,8 +23,6 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // User Context
 import { useAuth } from '../../auth/AuthContext'
 
-// AsyncStorage
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Toast
 import { toast } from 'sonner-native'
@@ -38,7 +35,6 @@ const DEFAULT_WITHDRAW_COINS = [
 	{ tick: 'ETECSA', label: 'ETECSA' },
 ]
 const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
-const MAX_QUICK_PILLS = 3
 
 // Withdraw balance to certain coin
 const Withdraw = ({ navigation }) => {
@@ -57,51 +53,10 @@ const Withdraw = ({ navigation }) => {
 	const [selectedCoin, setSelectedCoin] = useState(null)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
-	const [coinSearch, setCoinSearch] = useState('')
 	const [workingForm, setWorkingForm] = useState({})
-	const [showCoinSearch, setShowCoinSearch] = useState(false)
 	const [balance, setBalance] = useState(user?.balance || 0)
 	const [currency, setCurrency] = useState('QUSD')
 
-	// Recent coins for quick pills
-	const [recentCoins, setRecentCoins] = useState([])
-
-	useEffect(() => {
-		AsyncStorage.getItem(RECENT_WITHDRAW_KEY).then((stored) => {
-			if (stored) {
-				try {
-					const parsed = JSON.parse(stored)
-					if (Array.isArray(parsed)) { setRecentCoins(parsed.slice(0, MAX_QUICK_PILLS)) }
-				} catch (e) { /* ignore */ }
-			}
-		})
-	}, [])
-
-	const saveRecentCoin = useCallback((coinTick) => {
-		setRecentCoins((prev) => {
-			const updated = [coinTick, ...prev.filter((t) => t !== coinTick)].slice(0, MAX_QUICK_PILLS)
-			AsyncStorage.setItem(RECENT_WITHDRAW_KEY, JSON.stringify(updated))
-			return updated
-		})
-	}, [])
-
-	const quickCoinPills = useMemo(() => {
-		if (!availableCoins.length) return []
-		const pills = []
-		for (const tick of recentCoins) {
-			if (pills.length >= MAX_QUICK_PILLS) break
-			const coinData = availableCoins.find((c) => c.tick === tick)
-			if (coinData) { pills.push({ tick, label: coinData.name, coinData }) }
-		}
-		for (const pc of DEFAULT_WITHDRAW_COINS) {
-			if (pills.length >= MAX_QUICK_PILLS) break
-			if (!pills.some((p) => p.tick === pc.tick)) {
-				const coinData = availableCoins.find((c) => c.tick === pc.tick)
-				if (coinData) { pills.push({ tick: pc.tick, label: pc.label, coinData }) }
-			}
-		}
-		return pills
-	}, [recentCoins, availableCoins])
 
 	// PIN/OTP step
 	const [showPinStep, setShowPinStep] = useState(false)
@@ -255,7 +210,6 @@ const Withdraw = ({ navigation }) => {
 	}, [selectedCoin, amountQUSD, workingFields, workingForm])
 
 	const handleCoinSelect = (coin) => {
-		saveRecentCoin(coin.tick)
 		setSelectedCoin(coin)
 		setShowCoinPicker(false)
 		if (amountQUSD) {
@@ -599,74 +553,18 @@ const Withdraw = ({ navigation }) => {
 				</View>
 			</QPKeyboardView>
 
-			<Modal visible={showCoinPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCoinPicker(false)}>
-				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-
-					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-						<Text style={textStyles.h4}>Seleccionar Moneda</Text>
-						<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-							<Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
-								<FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-							<Pressable onPress={() => setShowCoinPicker(false)} style={styles.closeButton}>
-								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-						</View>
-					</View>
-
-					{showCoinSearch && (
-						<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
-							<QPInput
-								value={coinSearch}
-								onChangeText={setCoinSearch}
-								placeholder="Buscar moneda..."
-								prefixIconName="magnifying-glass"
-								style={styles.searchInput}
-							/>
-						</View>
-					)}
-
-					{quickCoinPills.length > 0 && (
-						<View style={styles.quickCoinPills}>
-							{quickCoinPills.map((pill) => (
-								<Pressable
-									key={pill.tick}
-									style={[styles.quickCoinPill, {
-										backgroundColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.surface,
-										borderColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.border,
-									}]}
-									onPress={() => handleCoinSelect(pill.coinData)}
-								>
-									<QPCoin coin={pill.coinData.logo} size={16} />
-									<Text style={[textStyles.caption, { fontWeight: '600', color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText, }]}>{pill.label}</Text>
-								</Pressable>
-							))}
-						</View>
-					)}
-
-					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-						{isLoading ? (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
-							</View>
-						) : availableCoins.length > 0 ? (availableCoins
-							.filter((coin) =>
-								coin.name.toLowerCase().includes(coinSearch.toLowerCase()) ||
-								coin.tick.toLowerCase().includes(coinSearch.toLowerCase())
-							)
-							.map((coin) => (
-								<Pressable key={coin.id} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.elevation }]} onPress={() => handleCoinSelect(coin)}>
-									<QPCoinRow coin={coin} amount={amountQUSD} direction="out" />
-								</Pressable>
-							))
-						) : (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
-							</View>
-						)}
-					</ScrollView>
-				</SafeAreaView>
-			</Modal>
+			<QPCoinPicker
+				visible={showCoinPicker}
+				onClose={() => setShowCoinPicker(false)}
+				onSelect={handleCoinSelect}
+				coins={availableCoins}
+				selectedCoin={selectedCoin}
+				isLoading={isLoading}
+				amount={amountQUSD}
+				direction="out"
+				recentKey={RECENT_WITHDRAW_KEY}
+				defaultCoins={DEFAULT_WITHDRAW_COINS}
+			/>
 		</>
 	)
 }
@@ -677,50 +575,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		borderRadius: 20,
 		borderWidth: 0.5
-	},
-	// Quick coin pills
-	quickCoinPills: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		gap: 8,
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		justifyContent: 'center',
-	},
-	quickCoinPill: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 6,
-		paddingHorizontal: 12,
-		paddingVertical: 4,
-		borderRadius: 16,
-		borderWidth: 0.5,
-	},
-	// Modal styles
-	modalContainer: { flex: 1 },
-	modalHeader: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		paddingHorizontal: 20,
-		paddingVertical: 15,
-		borderBottomWidth: 0.5
-	},
-	closeButton: { padding: 5 },
-	coinList: { flex: 1 },
-	coinListContent: { paddingHorizontal: 10, paddingBottom: 20 },
-	coinItem: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 12,
-		borderRadius: 12,
-		marginBottom: 4,
-		borderWidth: 1,
-	},
-	loadingContainer: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		padding: 40,
 	},
 	requestPinButton: {
 		flexDirection: 'row',
