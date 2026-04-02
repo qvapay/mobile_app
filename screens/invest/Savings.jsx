@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native'
 
 // Theme
@@ -21,16 +22,15 @@ import { ROUTES } from '../../routes'
 // Helpers
 import { timeAgo } from '../../helpers'
 
-const Savings = ({ route }) => {
+const Savings = ({ navigation }) => {
 
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	// Use params if passed from Invest, otherwise fetch
-	const [savings, setSavings] = useState(route.params?.savings || null)
+	const [savings, setSavings] = useState(null)
 	const [transactions, setTransactions] = useState([])
-	const [isLoading, setIsLoading] = useState(!route.params?.savings)
+	const [isLoading, setIsLoading] = useState(true)
 
 	const fetchSavings = useCallback(async () => {
 		setIsLoading(true)
@@ -46,14 +46,9 @@ const Savings = ({ route }) => {
 		} finally { setIsLoading(false) }
 	}, [])
 
-	useEffect(() => {
-		if (!route.params?.savings) {
-			fetchSavings()
-		} else {
-			// Still fetch transactions even if summary was passed
-			savingApi.getTransactions(20).then(res => { if (res.success && Array.isArray(res.data)) setTransactions(res.data) })
-		}
-	}, [route.params?.savings, fetchSavings])
+	useFocusEffect(
+		useCallback(() => { fetchSavings() }, [fetchSavings])
+	)
 
 	if (isLoading) return <QPLoader />
 
@@ -86,16 +81,17 @@ const Savings = ({ route }) => {
 					<QPButton
 						title="Depositar"
 						icon="arrow-down"
-						onPress={() => { }}
+						onPress={() => navigation.navigate(ROUTES.SAVINGS_DEPOSIT, { mode: 'savings_deposit' })}
 						style={styles.actionButton}
 					/>
 					<QPButton
 						title="Retirar"
 						icon="arrow-up"
-						onPress={() => { }}
+						onPress={() => navigation.navigate(ROUTES.SAVINGS_WITHDRAW, { mode: 'savings_withdraw', savingsBalance: Number(balance) })}
 						style={styles.actionButton}
 						outlined
 						danger={false}
+						disabled={Number(balance) === 0}
 					/>
 				</View>
 

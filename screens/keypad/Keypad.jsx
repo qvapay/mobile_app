@@ -26,6 +26,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../../routes'
 
+// API
+import { savingApi } from '../../api/savingApi'
+
 // Toast
 import { toast } from 'sonner-native'
 
@@ -38,12 +41,18 @@ const FONT_SIZE_DECREASE_FACTOR = 4
 const ANIMATION_DURATION = 150
 const VIBRATION_DURATION = 50
 
-export default function Keypad({ navigation }) {
+export default function Keypad({ navigation, route }) {
 
 	// Contexts
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const insets = useSafeAreaInsets()
+
+	// Savings mode params
+	const mode = route?.params?.mode  // 'savings_deposit' | 'savings_withdraw' | undefined
+	const savingsBalance = route?.params?.savingsBalance
+	const isSavingsMode = mode === 'savings_deposit' || mode === 'savings_withdraw'
+	const displayBalance = mode === 'savings_withdraw' ? savingsBalance : user?.balance
 
 	// State
 	const [amount, setAmount] = useState('0')
@@ -155,8 +164,8 @@ export default function Keypad({ navigation }) {
 	// Set maximum balance
 	const setMaxBalance = useCallback(() => {
 
-		if (!user?.balance) return
-		const maxAmount = user.balance.toString()
+		if (!displayBalance) return
+		const maxAmount = displayBalance.toString()
 		setAmount(maxAmount)
 		const newFontSize = calculateFontSize(maxAmount)
 		animateFontSize(newFontSize)
@@ -165,7 +174,7 @@ export default function Keypad({ navigation }) {
 		// Announce to screen reader
 		AccessibilityInfo.announceForAccessibility(`Set to maximum balance: $${maxAmount}`)
 
-	}, [user?.balance, calculateFontSize, animateFontSize, triggerHapticFeedback])
+	}, [displayBalance, calculateFontSize, animateFontSize, triggerHapticFeedback])
 
 	// Send amount
 	const handleSendAmount = useCallback(async () => {
@@ -192,6 +201,40 @@ export default function Keypad({ navigation }) {
 		} finally { setIsProcessing(false) }
 
 	}, [amount, user?.balance, isProcessing, navigation])
+
+	// Savings deposit or withdraw
+	const handleSavingsAction = useCallback(async () => {
+
+		if (isProcessing) return
+		const numericAmount = parseFloat(amount)
+
+		if (numericAmount <= 0) {
+			toast.error('Monto inválido', { description: 'El monto debe ser mayor a 0' })
+			return
+		}
+
+		if (displayBalance !== undefined && numericAmount > displayBalance) {
+			toast.error('Saldo insuficiente', { description: 'El monto supera tu saldo disponible' })
+			return
+		}
+
+		setIsProcessing(true)
+		try {
+			const result = mode === 'savings_deposit'
+				? await savingApi.deposit(numericAmount)
+				: await savingApi.withdraw(numericAmount)
+
+			if (result.success) {
+				toast.success(mode === 'savings_deposit' ? 'Depósito exitoso' : 'Retiro exitoso')
+				navigation.goBack()
+			} else {
+				toast.error(result.error || 'Error al procesar')
+			}
+		} catch {
+			toast.error('Error inesperado')
+		} finally { setIsProcessing(false) }
+
+	}, [amount, displayBalance, mode, isProcessing, navigation])
 
 	// Receive amount
 	const handleReceiveAmount = useCallback(() => {
@@ -251,11 +294,11 @@ export default function Keypad({ navigation }) {
 					style={[styles.balanceContainer, { backgroundColor: theme.colors.elevation }]}
 					onPress={setMaxBalance}
 					accessibilityRole="button"
-					accessibilityLabel={`Current balance: $${user?.balance || 0}`}
+					accessibilityLabel={`Current balance: $${displayBalance ?? user?.balance ?? 0}`}
 					accessibilityHint="Double tap to set amount to maximum balance"
 				>
 					<Text style={[styles.balanceText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
-						${user?.balance || 0}
+						${displayBalance ?? user?.balance ?? 0}
 					</Text>
 				</Pressable>
 			</View>
@@ -271,27 +314,54 @@ export default function Keypad({ navigation }) {
 
 			{/* Action Buttons */}
 			<View style={styles.actionSection}>
-				<QPButton
-					title="Recibir"
-					onPress={handleReceiveAmount}
-					disabled={isProcessing}
-					icon="arrow-down"
-					style={[styles.actionButton, { backgroundColor: theme.colors.elevation }, isProcessing && styles.actionButtonDisabled]}
-					iconColor={theme.colors.contrast}
-					textStyle={{ color: theme.colors.contrast }}
-					iconStyle="solid"
-				/>
-				<View style={styles.actionButtonSpacer} />
-				<QPButton
-					title={'Enviar'}
-					onPress={handleSendAmount}
-					disabled={isProcessing}
-					icon="arrow-up"
-					style={[styles.actionButton, { backgroundColor: theme.colors.primary }, isProcessing && styles.actionButtonDisabled]}
-					iconColor={theme.colors.almostWhite}
-					textStyle={{ color: theme.colors.almostWhite }}
-					iconStyle="solid"
-				/>
+				{isSavingsMode ? (
+					<>
+						<QPButton
+							title="Cancelar"
+							onPress={navigation.goBack}
+							disabled={isProcessing}
+							style={[styles.actionButton, { backgroundColor: theme.colors.elevation }, isProcessing && styles.actionButtonDisabled]}
+							iconColor={theme.colors.contrast}
+							textStyle={{ color: theme.colors.contrast }}
+						/>
+						<View style={styles.actionButtonSpacer} />
+						<QPButton
+							title={mode === 'savings_deposit' ? 'Depositar' : 'Retirar'}
+							onPress={handleSavingsAction}
+							loading={isProcessing}
+							disabled={isProcessing}
+							icon={mode === 'savings_deposit' ? 'arrow-down' : 'arrow-up'}
+							style={[styles.actionButton, { backgroundColor: theme.colors.primary }, isProcessing && styles.actionButtonDisabled]}
+							iconColor={theme.colors.almostWhite}
+							textStyle={{ color: theme.colors.almostWhite }}
+							iconStyle="solid"
+						/>
+					</>
+				) : (
+					<>
+						<QPButton
+							title="Recibir"
+							onPress={handleReceiveAmount}
+							disabled={isProcessing}
+							icon="arrow-down"
+							style={[styles.actionButton, { backgroundColor: theme.colors.elevation }, isProcessing && styles.actionButtonDisabled]}
+							iconColor={theme.colors.contrast}
+							textStyle={{ color: theme.colors.contrast }}
+							iconStyle="solid"
+						/>
+						<View style={styles.actionButtonSpacer} />
+						<QPButton
+							title={'Enviar'}
+							onPress={handleSendAmount}
+							disabled={isProcessing}
+							icon="arrow-up"
+							style={[styles.actionButton, { backgroundColor: theme.colors.primary }, isProcessing && styles.actionButtonDisabled]}
+							iconColor={theme.colors.almostWhite}
+							textStyle={{ color: theme.colors.almostWhite }}
+							iconStyle="solid"
+						/>
+					</>
+				)}
 			</View>
 		</View>
 	)

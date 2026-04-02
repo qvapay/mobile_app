@@ -78,6 +78,8 @@ export const ROUTES = {
 
     // Invest Screens
     SAVINGS_SCREEN: "Savings",
+    SAVINGS_DEPOSIT: "SavingsDeposit",
+    SAVINGS_WITHDRAW: "SavingsWithdraw",
     STOCK_DETAIL_SCREEN: "StockDetail",
 
     // Help Screens

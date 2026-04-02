@@ -67,6 +67,7 @@ import Scan from './screens/scan/Scan'
 // Invest Screens
 import Savings from './screens/invest/Savings'
 import StockDetail from './screens/invest/StockDetail'
+import SavingsKeypad from './screens/invest/SavingsKeypad'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -350,6 +351,16 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				name={ROUTES.SAVINGS_SCREEN}
 				component={Savings}
 				options={getHeaderOptions('Ahorros')}
+			/>
+			<Stack.Screen
+				name={ROUTES.SAVINGS_DEPOSIT}
+				component={SavingsKeypad}
+				options={getHeaderOptions('Depositar en ahorros')}
+			/>
+			<Stack.Screen
+				name={ROUTES.SAVINGS_WITHDRAW}
+				component={SavingsKeypad}
+				options={getHeaderOptions('Retirar de ahorros')}
 			/>
 
 			{/* Stock Detail Screen */}
