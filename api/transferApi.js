@@ -41,7 +41,7 @@ export const transferApi = {
             // Return error response
             return {
                 success: false,
-                error: error.response?.data || error.message,
+                error: error.response?.data?.error || error.response?.data?.message || error.message,
                 status: error.response?.status
             }
         }
@@ -63,7 +63,7 @@ export const transferApi = {
         } catch (error) {
             return {
                 success: false,
-                error: error.response?.data || error.message,
+                error: error.response?.data?.error || error.response?.data?.message || error.message,
                 status: error.response?.status
             }
         }
@@ -108,7 +108,7 @@ export const transferApi = {
 
             return {
                 success: false,
-                error: error.response?.data || error.message,
+                error: error.response?.data?.error || error.response?.data?.message || error.message,
                 status: error.response?.status
             }
         }
@@ -135,7 +135,7 @@ export const transferApi = {
 
             return {
                 success: false,
-                error: error.response?.data || error.message,
+                error: error.response?.data?.error || error.response?.data?.message || error.message,
                 status: error.response?.status
             }
         }
@@ -158,7 +158,7 @@ export const transferApi = {
         } catch (error) {
             return {
                 success: false,
-                error: error.response?.data || error.message,
+                error: error.response?.data?.error || error.response?.data?.message || error.message,
                 status: error.response?.status
             }
         }

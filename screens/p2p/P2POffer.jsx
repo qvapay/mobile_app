@@ -515,7 +515,7 @@ const P2POffer = ({ route }) => {
 				toast.success("Oferta calificada")
 				refetchP2P()
 			} else {
-				toast.error("No se pudo calificar", { description: String(res.error.error || "") })
+				toast.error("No se pudo calificar", { description: String(res.error || "") })
 				setRating(p2p?.rating || 0)
 			}
 		} catch (error) {

@@ -139,7 +139,7 @@ export const p2pApi = {
 			const response = await apiClient.get(`/p2p/${p2p_uuid}`)
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
-			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
 	},
 
@@ -152,7 +152,7 @@ export const p2pApi = {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/cancel`)
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
-			return { success: false, error: error.response?.data || error.message, status: error.response?.status }
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
 	},
 
@@ -164,7 +164,7 @@ export const p2pApi = {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/paid`, { tx_id })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
 	},
 
 	/**
@@ -175,7 +175,7 @@ export const p2pApi = {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/received`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
 	},
 
 	/**
@@ -186,7 +186,7 @@ export const p2pApi = {
 		try {
 			const response = await apiClient.get(`/p2p/${p2p_uuid}/chat`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
 	},
 
 	/**
@@ -214,7 +214,7 @@ export const p2pApi = {
 			}
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/chat`, payload)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
 	},
 
 	/**
@@ -289,7 +289,7 @@ export const p2pApi = {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/rate`, payload)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
 	},
 
 	/**
@@ -318,7 +318,7 @@ export const p2pApi = {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/apply`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data || error.message, status: error.response?.status } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
 	},
 }
 
