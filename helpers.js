@@ -260,6 +260,38 @@ const formatCryptoAmount = (value, maxDecimals = 8) => {
 	return trimmed
 }
 
+// Detect copyable patterns in text (phone numbers, card numbers, emails)
+// Returns array of { type, value, start, end } or empty array
+const COPYABLE_PATTERNS = [
+	{ type: 'email', regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g },
+	{ type: 'card', regex: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g },
+	{ type: 'phone', regex: /(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{2,4}/g },
+]
+
+const detectCopyableText = (text) => {
+	if (!text || typeof text !== 'string') return []
+	const all = []
+	for (const { type, regex } of COPYABLE_PATTERNS) {
+		const re = new RegExp(regex.source, regex.flags)
+		let match
+		while ((match = re.exec(text)) !== null) {
+			all.push({ type, value: match[0], start: match.index, end: match.index + match[0].length })
+		}
+	}
+	// Sort by start, then prefer longer matches
+	all.sort((a, b) => a.start - b.start || b.end - a.end)
+	// Remove overlapping matches — keep the longer/earlier one
+	const filtered = []
+	let lastEnd = 0
+	for (const m of all) {
+		if (m.start >= lastEnd) {
+			filtered.push(m)
+			lastEnd = m.end
+		}
+	}
+	return filtered
+}
+
 // export helpers
 export {
 	timeSince,
@@ -279,5 +311,6 @@ export {
 	getTypeText,
 	getTypeColor,
 	reduceStringInside,
-	formatCryptoAmount
+	formatCryptoAmount,
+	detectCopyableText
 }

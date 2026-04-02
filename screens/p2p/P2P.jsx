@@ -99,10 +99,18 @@ const P2P = ({ navigation, route }) => {
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 	const [showSortMenu, setShowSortMenu] = useState(false)
 
-	// Quick filter states
+	// Quick filter states — accept initial coin from navigation params
 	const [typeFilter, setTypeFilter] = useState(null)
-	const [selectedCoin, setSelectedCoin] = useState(null)
+	const [selectedCoin, setSelectedCoin] = useState(route?.params?.coin ? { tick: route.params.coin, name: route.params.coinName || route.params.coin, logo: route.params.coin } : null)
 	const [sortIndex, setSortIndex] = useState(0)
+
+	// Update coin filter when navigating back with different params
+	useEffect(() => {
+		if (route?.params?.coin) {
+			const tick = route.params.coin
+			setSelectedCoin({ tick, name: route.params.coinName || tick, logo: tick })
+		}
+	}, [route?.params?.coin, route?.params?.coinName])
 
 	// Modal filter states
 	const [showMine, setShowMine] = useState(false)

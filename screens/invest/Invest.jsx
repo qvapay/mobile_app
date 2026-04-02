@@ -304,7 +304,9 @@ const Invest = ({ navigation }) => {
 				{/* P2P Mercado */}
 				<SectionCard title="Mercado P2P" icon="scale-balanced" theme={theme} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)}>
 					{p2pData.length > 0 ? p2pData.map((pair, i) => (
-						<P2PRow key={pair.tick} pair={pair} theme={theme} textStyles={textStyles} isLast={i === p2pData.length - 1} />
+						<Pressable key={pair.tick} onPress={() => navigation.navigate(ROUTES.P2P_SCREEN, { coin: pair.tick, coinName: pair.name })}>
+							<P2PRow pair={pair} theme={theme} textStyles={textStyles} isLast={i === p2pData.length - 1} />
+						</Pressable>
 					)) : (
 						<Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Sin datos</Text>
 					)}

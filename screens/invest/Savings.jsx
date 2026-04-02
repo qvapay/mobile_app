@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Linking, Modal, Pressable, TextInput, useWindowDimensions } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -15,6 +15,12 @@ import QPLoader from '../../ui/particles/QPLoader'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// User context
+import { useAuth } from '../../auth/AuthContext'
+
+// Toast
+import { toast } from 'sonner-native'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -26,11 +32,18 @@ const Savings = ({ route }) => {
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
+	const { user, updateUser } = useAuth()
+	const { height: windowHeight } = useWindowDimensions()
 
 	// Use params if passed from Invest, otherwise fetch
 	const [savings, setSavings] = useState(route.params?.savings || null)
 	const [transactions, setTransactions] = useState([])
 	const [isLoading, setIsLoading] = useState(!route.params?.savings)
+
+	// Modal state
+	const [modalType, setModalType] = useState(null) // 'deposit' | 'withdraw' | null
+	const [modalAmount, setModalAmount] = useState('')
+	const [modalLoading, setModalLoading] = useState(false)
 
 	const fetchSavings = useCallback(async () => {
 		setIsLoading(true)
@@ -54,6 +67,49 @@ const Savings = ({ route }) => {
 			savingApi.getTransactions(20).then(res => { if (res.success && Array.isArray(res.data)) setTransactions(res.data) })
 		}
 	}, [route.params?.savings, fetchSavings])
+
+	const checkingBalance = Number(user?.balance || 0)
+	const savingsBalance = Number(savings?.balance || 0)
+
+	const openModal = (type) => {
+		setModalAmount('')
+		setModalType(type)
+	}
+
+	const handleModalSubmit = async () => {
+		const amount = parseFloat(modalAmount)
+		if (!amount || amount < 1) {
+			toast.error('El monto mínimo es $1.00')
+			return
+		}
+		if (modalType === 'deposit' && amount > checkingBalance) {
+			toast.error('Balance insuficiente')
+			return
+		}
+		if (modalType === 'withdraw' && amount > savingsBalance) {
+			toast.error('Balance de ahorros insuficiente')
+			return
+		}
+
+		setModalLoading(true)
+		try {
+			const res = modalType === 'deposit'
+				? await savingApi.deposit(amount)
+				: await savingApi.withdraw(amount)
+			if (res.success) {
+				toast.success(modalType === 'deposit' ? 'Depósito realizado' : 'Retiro realizado')
+				setModalType(null)
+				fetchSavings()
+				updateUser()
+			} else {
+				toast.error(res.error || 'Error en la operación')
+			}
+		} catch (e) {
+			toast.error(e.message || 'Error de red')
+		} finally {
+			setModalLoading(false)
+		}
+	}
 
 	if (isLoading) return <QPLoader />
 
@@ -86,13 +142,13 @@ const Savings = ({ route }) => {
 					<QPButton
 						title="Depositar"
 						icon="arrow-down"
-						onPress={() => { }}
+						onPress={() => openModal('deposit')}
 						style={styles.actionButton}
 					/>
 					<QPButton
 						title="Retirar"
 						icon="arrow-up"
-						onPress={() => { }}
+						onPress={() => openModal('withdraw')}
 						style={styles.actionButton}
 						outlined
 						danger={false}
@@ -145,6 +201,77 @@ const Savings = ({ route }) => {
 					</Text>
 				</View>
 			</ScrollView>
+
+			{/* Deposit / Withdraw Modal */}
+			<Modal visible={!!modalType} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !modalLoading && setModalType(null)}>
+				<Pressable style={styles.modalOverlay} onPress={() => !modalLoading && setModalType(null)}>
+					<Pressable onPress={() => {}} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 24, margin: 20 }]}>
+
+						{/* Header */}
+						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
+								{modalType === 'deposit' ? 'Depositar' : 'Retirar'}
+							</Text>
+							<Pressable onPress={() => !modalLoading && setModalType(null)} hitSlop={8}>
+								<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+							</Pressable>
+						</View>
+
+						{/* Available balance hint */}
+						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular, textAlign: 'center', marginBottom: 8 }}>
+							{modalType === 'deposit'
+								? `Disponible: $${checkingBalance.toFixed(2)}`
+								: `En ahorros: $${savingsBalance.toFixed(2)}`
+							}
+						</Text>
+
+						{/* Amount input */}
+						<View style={{ alignItems: 'center', marginBottom: 24 }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+								<Text style={{ color: theme.colors.primaryText, fontSize: 40, fontFamily: theme.typography.fontFamily.bold }}>$</Text>
+								<TextInput
+									value={modalAmount}
+									onChangeText={setModalAmount}
+									placeholder="0.00"
+									placeholderTextColor={theme.colors.tertiaryText}
+									keyboardType="decimal-pad"
+									autoFocus
+									style={{
+										color: theme.colors.primaryText,
+										fontSize: 40,
+										fontFamily: theme.typography.fontFamily.bold,
+										minWidth: 80,
+										textAlign: 'center',
+										padding: 0,
+									}}
+								/>
+							</View>
+						</View>
+
+						{/* Max button */}
+						<Pressable
+							onPress={() => setModalAmount(
+								modalType === 'deposit'
+									? checkingBalance.toFixed(2)
+									: savingsBalance.toFixed(2)
+							)}
+							style={{ alignSelf: 'center', marginBottom: 24 }}
+						>
+							<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>Usar máximo</Text>
+						</Pressable>
+
+						{/* Submit */}
+						<QPButton
+							title={modalType === 'deposit' ? 'Depositar' : 'Retirar'}
+							icon={modalType === 'deposit' ? 'arrow-down' : 'arrow-up'}
+							onPress={handleModalSubmit}
+							loading={modalLoading}
+							disabled={modalLoading || !modalAmount || parseFloat(modalAmount) < 1}
+						/>
+
+					</Pressable>
+				</Pressable>
+			</Modal>
 		</View>
 	)
 }
@@ -294,6 +421,13 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 	},
 	disclaimerLink: {},
+	// Modal
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.5)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
 })
 
 export default Savings

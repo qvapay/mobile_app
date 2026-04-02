@@ -29,7 +29,10 @@ import { p2pApi } from "../../api/p2pApi"
 import { toast } from "sonner-native"
 
 // Helpers
-import { getShortDateTime, reduceStringInside, copyTextToClipboard } from "../../helpers"
+import { getShortDateTime, reduceStringInside, copyTextToClipboard, detectCopyableText } from "../../helpers"
+
+// Haptic
+import ReactNativeHapticFeedback from "react-native-haptic-feedback"
 
 // Pull-to-refresh
 import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
@@ -54,6 +57,44 @@ const P2P_STICKERS = [
 const STICKER_BASE_URL = "https://media.qvapay.com/qvi/"
 const CHAT_MEDIA_BASE_URL = "https://media.qvapay.com/"
 const MAX_IMAGE_SIZE_MB = 10
+
+// Chat message text with tappable patterns (phones, cards, emails)
+const ChatMessageText = ({ text, textStyle, highlightColor }) => {
+	const matches = detectCopyableText(text)
+	if (matches.length === 0) return <Text style={textStyle}>{text}</Text>
+
+	const parts = []
+	let cursor = 0
+	for (const m of matches) {
+		if (m.start > cursor) parts.push({ text: text.slice(cursor, m.start), copyable: false })
+		parts.push({ text: m.value, copyable: true, type: m.type })
+		cursor = m.end
+	}
+	if (cursor < text.length) parts.push({ text: text.slice(cursor), copyable: false })
+
+	return (
+		<Text style={textStyle}>
+			{parts.map((p, i) =>
+				p.copyable ? (
+					<Text
+						key={i}
+						style={{ textDecorationLine: 'underline', color: highlightColor }}
+						onPress={() => {
+							ReactNativeHapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
+							// For emails keep original, for phones/cards strip spaces and dashes
+							const cleaned = p.type === 'email' ? p.text : p.text.replace(/[\s-]/g, '')
+							copyTextToClipboard(cleaned)
+						}}
+					>
+						{p.text}
+					</Text>
+				) : (
+					<Text key={i}>{p.text}</Text>
+				)
+			)}
+		</Text>
+	)
+}
 
 // Cache key prefix for P2P offers
 const P2P_CACHE_KEY = "p2p_cache_"
@@ -807,9 +848,17 @@ const P2POffer = ({ route }) => {
 													{isLastInGroup ? <QPAvatar user={sender} size={16} /> : null}
 												</View>
 
-												{/* Message Bubble - Touchable */}
+												{/* Message Bubble - Tap for timestamp, Long press to copy */}
 												<TouchableOpacity
-													onPress={() => m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7}
+													onPress={() => m.created_at && toggleTimestamp(m.id)}
+													onLongPress={() => {
+														if (messageText) {
+															ReactNativeHapticFeedback.trigger('impactMedium', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
+															copyTextToClipboard(messageText)
+														}
+													}}
+													delayLongPress={400}
+													activeOpacity={0.7}
 													style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, borderTopRightRadius: mine ? isConsecutive ? 4 : 18 : 18, overflow: 'hidden' }]}>
 
 													{/* Image in message */}
@@ -823,17 +872,19 @@ const P2POffer = ({ route }) => {
 														</Pressable>
 													)}
 
-													{/* Text content */}
+													{/* Text content with tappable patterns */}
 													{messageText ? (
-														<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}>
-															{messageText}
-														</Text>
+														<ChatMessageText
+															text={messageText}
+															textStyle={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}
+															highlightColor={theme.colors.almostWhite}
+														/>
 													) : null}
 
 													{/* Show timestamp only when manually toggled */}
 													{showTimestamp && m.created_at && (
 														<Animated.View style={{ opacity: messageAnimations.current[m.id] || new Animated.Value(0), transform: [{ translateY: (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-															<Text style={[textStyles.h7, { fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostBlack, marginTop: 4, opacity: 0.4, textAlign: mine ? "right" : "left" }]}>
+															<Text style={[{ fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostWhite, marginTop: 4, opacity: 0.6, textAlign: mine ? "right" : "left" }]}>
 																{getShortDateTime(m.created_at)}
 															</Text>
 														</Animated.View>
