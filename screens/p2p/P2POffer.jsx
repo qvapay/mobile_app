@@ -43,6 +43,9 @@ import { launchImageLibrary } from "react-native-image-picker"
 // FastImage for chat images and sticker GIFs
 import FastImage from "@d11/react-native-fast-image"
 
+// Bouncy Checkbox for apply warning modal
+import BouncyCheckbox from "react-native-bouncy-checkbox"
+
 // Stickers list (GOLD exclusive)
 const P2P_STICKERS = [
 	"angry", "bro", "clown", "cry", "cuba", "facepalm", "finger", "guest", "hum", "joy",
@@ -106,6 +109,10 @@ const P2POffer = ({ route }) => {
 	const [editOnlyVip, setEditOnlyVip] = useState(false)
 	const [editLoading, setEditLoading] = useState(false)
 	const { height: windowHeight } = useWindowDimensions()
+
+	// Apply warning modal state (30-min limit for sell offers)
+	const [showApplyWarning, setShowApplyWarning] = useState(false)
+	const [applyWarningAccepted, setApplyWarningAccepted] = useState(false)
 
 	// TX ID input for markPaid
 	const [txIdInput, setTxIdInput] = useState("")
@@ -348,25 +355,37 @@ const P2POffer = ({ route }) => {
 		])
 	}
 
-	// Apply
-	const handleApply = async () => {
-		Alert.alert("Aplicar", "¿Estás seguro de que quieres aplicar a esta oferta?", [
-			{ text: "No", style: "cancel" },
-			{
-				text: "Sí, aplicar", style: "default",
-				onPress: async () => {
-					try {
-						setLoadingApply(true)
-						const res = await p2pApi.apply(p2p.uuid)
-						if (res.success) {
-							toast.success("Aplicado")
-							refetchP2P()
-						} else { toast.error("No se pudo aplicar", { description: String(res.error || "") }) }
-					} catch (e) { toast.error("Error", { description: e.message }) }
-					finally { setLoadingApply(false) }
-				}
-			}
-		])
+	// Apply - core logic
+	const doApply = async () => {
+		try {
+			setLoadingApply(true)
+			const res = await p2pApi.apply(p2p.uuid)
+			if (res.success) {
+				toast.success("Aplicado")
+				refetchP2P()
+			} else { toast.error("No se pudo aplicar", { description: String(res.error || "") }) }
+		} catch (e) { toast.error("Error", { description: e.message }) }
+		finally { setLoadingApply(false) }
+	}
+
+	// Apply - sell offers show 30-min warning modal, buy offers use simple Alert
+	const handleApply = () => {
+		if (p2p?.type === "sell") {
+			setApplyWarningAccepted(false)
+			setShowApplyWarning(true)
+		} else {
+			Alert.alert("Aplicar", "¿Estás seguro de que quieres aplicar a esta oferta?", [
+				{ text: "No", style: "cancel" },
+				{ text: "Sí, aplicar", style: "default", onPress: doApply }
+			])
+		}
+	}
+
+	// Confirm apply from warning modal
+	const handleApplyWarningConfirm = () => {
+		setShowApplyWarning(false)
+		setApplyWarningAccepted(false)
+		doApply()
 	}
 
 	// Share Offer
@@ -989,6 +1008,80 @@ const P2POffer = ({ route }) => {
 								/>
 
 							</ScrollView>
+						</Pressable>
+					</Pressable>
+				</Modal>
+
+				{/* Apply Warning Modal - 30 min time limit for sell offers */}
+				<Modal visible={showApplyWarning} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowApplyWarning(false)}>
+					<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setShowApplyWarning(false)}>
+						<Pressable onPress={() => {}} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
+
+							{/* Header */}
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+								<FontAwesome6 name="clock" size={24} color={theme.colors.warning} iconStyle="solid" />
+								<Text style={[textStyles.h4, { color: theme.colors.primaryText, flex: 1 }]}>Tiempo límite de 30 minutos</Text>
+							</View>
+
+							{/* Warning box */}
+							<View style={{ backgroundColor: theme.colors.warning + '15', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+								<Text style={[textStyles.h6, { color: theme.colors.warning, lineHeight: 20 }]}>
+									Al aplicar a esta oferta de venta, te comprometes a completar el pago en un plazo máximo de <Text style={{ fontFamily: 'Rubik-Bold' }}>30 minutos</Text>. Si no realizas el pago o no te comunicas con el vendedor en ese tiempo, serás expulsado automáticamente de la oferta.
+								</Text>
+							</View>
+
+							{/* Instructions */}
+							<View style={{ marginBottom: 16, gap: 6 }}>
+								{[
+									"Realiza el pago lo antes posible después de aplicar.",
+									"Comunícate con el vendedor a través del chat.",
+									"Ingresa el ID de confirmación de tu pago.",
+									"Si no completas estos pasos, perderás tu lugar en la oferta."
+								].map((text, i) => (
+									<View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+										<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 1 }]}>•</Text>
+										<Text style={[textStyles.h6, { color: theme.colors.secondaryText, flex: 1 }]}>{text}</Text>
+									</View>
+								))}
+							</View>
+
+							{/* Checkbox */}
+							<View style={{ marginBottom: 18 }}>
+								<BouncyCheckbox
+									size={22}
+									fillColor={theme.colors.primary}
+									unFillColor={theme.colors.secondaryText}
+									text="Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta."
+									iconStyle={{ borderColor: theme.colors.primary }}
+									innerIconStyle={{ borderWidth: 2 }}
+									textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none', fontSize: 13 }}
+									isChecked={applyWarningAccepted}
+									onPress={(checked) => setApplyWarningAccepted(checked)}
+								/>
+							</View>
+
+							{/* Buttons */}
+							<View style={{ flexDirection: 'row', gap: 10 }}>
+								<QPButton
+									title="Cancelar"
+									onPress={() => setShowApplyWarning(false)}
+									style={{ flex: 1, backgroundColor: theme.colors.surface }}
+									textStyle={{ color: theme.colors.primaryText }}
+									disabled={loadingApply}
+								/>
+								<QPButton
+									title="Aplicar"
+									onPress={handleApplyWarningConfirm}
+									style={{ flex: 1, backgroundColor: theme.colors.primary }}
+									textStyle={{ color: theme.colors.buttonText }}
+									icon="check"
+									iconColor={theme.colors.buttonText}
+									iconStyle="solid"
+									loading={loadingApply}
+									disabled={!applyWarningAccepted || loadingApply}
+								/>
+							</View>
+
 						</Pressable>
 					</Pressable>
 				</Modal>

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { View, Text, StyleSheet, Dimensions, Linking, Image, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LinearGradient from 'react-native-linear-gradient'
+import DeviceInfo from 'react-native-device-info'
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,
@@ -296,6 +297,11 @@ const WelcomeScreen = ({ navigation }) => {
 							</Text>
 						</Text>
 					</Animated.View>
+
+					{/* App version */}
+					<Text style={{ color: theme.colors.tertiaryText + '40', fontSize: 9, textAlign: 'center', fontFamily: theme.typography.fontFamily.regular, paddingBottom: 4 }}>
+						v{DeviceInfo.getVersion()}
+					</Text>
 
 				</View>
 			</SafeAreaView>

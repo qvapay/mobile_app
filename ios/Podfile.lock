@@ -57,7 +57,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - NitroIap (14.7.17):
+  - NitroIap (14.7.19):
     - boost
     - DoubleConversion
     - fast_float
@@ -2134,7 +2134,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-onesignal (5.4.0):
+  - react-native-onesignal (5.4.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2250,7 +2250,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-vector-icons-fontawesome6 (12.3.3)
+  - react-native-vector-icons-fontawesome6 (12.4.0)
   - React-NativeModulesApple (0.83.1):
     - boost
     - DoubleConversion
@@ -2900,7 +2900,7 @@ PODS:
     - SDWebImageWebPCoder (~> 0.14)
     - SocketRocket
     - Yoga
-  - RNGestureHandler (2.30.0):
+  - RNGestureHandler (2.30.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -3668,7 +3668,7 @@ SPEC CHECKSUMS:
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
   lottie-react-native: a2e73ead497511a11d9b5dc520e79343f17529ed
-  NitroIap: c61e2053f6b344679b316730963b4d3370273dda
+  NitroIap: b6ee0426a35ead235cb12fd30858885c4f775fb5
   NitroModules: 8aaaa18f208ecb3d49c87b6035957abc977d5d7d
   OneSignalXCFramework: 943852e7d70d719f73e9669d48620aeec1b93022
   openiap: 2825d732c9d081fd5a5d0d09b2f67c2d655f4ed4
@@ -3712,9 +3712,9 @@ SPEC CHECKSUMS:
   react-native-contacts: 3bdfbd683dfb21c4c21c12df8173a771f88e8625
   react-native-device-brightness: 886cfbfb49a32b6de4ccfc1f720776dc5f381d24
   react-native-image-picker: b99d9c1f2ddbef491eb49e1103e5c2ce78b9ab37
-  react-native-onesignal: 4f30e16258d7c269a813824a4fbb7cca8f8dbeeb
+  react-native-onesignal: 6c1b465d5d9bb4e996eb8b80fb62f6e9b9478367
   react-native-safe-area-context: 7e0ba374906d8f5009aaf96cd19d4866d8de342b
-  react-native-vector-icons-fontawesome6: 02ba7fae6ee853356158bd43406e2e97ba168698
+  react-native-vector-icons-fontawesome6: 4818cfee1b9283e57f5476778b21bdb490a08941
   React-NativeModulesApple: dfce21d2c4b7eab44db0af861fcb8998d0b8ad16
   React-networking: 26355121d0bf86d974dff5a3cc11f8aeb9f28a22
   React-oscompat: 80166b66da22e7af7fad94474e9997bd52d4c8c6
@@ -3752,7 +3752,7 @@ SPEC CHECKSUMS:
   RNCClipboard: 4eea71d801c880175c12f6ab14332ca86fed935f
   RNDeviceInfo: d79872e11c8e9c4de0d65b0ee6e0cee719f37fea
   RNFastImage: 94681302bfbe8076b0163450183ae2121b45e525
-  RNGestureHandler: 1f7ac76fa9d6ffedfdde38ce781442ffadac8880
+  RNGestureHandler: e7f3de6bb187705b88b64286e32ecb55d4804da0
   RNKeychain: d0bdaca4688ae123909b137de08491f49a6cf6b1
   RNReactNativeHapticFeedback: f86671382ee3010153a6e1ee6def6fca99f218a6
   RNReanimated: 0c6fc598ffe57483839d5ca2a7c50ff4f80eb194
@@ -3768,6 +3768,6 @@ SPEC CHECKSUMS:
   VisionCamera: 3ea10c46a5c612f5f89fb46a54bef4a0de8b58a7
   Yoga: b6cd6b017b2fb1ae4e59cf1d102911f572efdcb7
 
-PODFILE CHECKSUM: 05baf90b045276bb481ec2efe2e035a9a58427f5
+PODFILE CHECKSUM: 605cbaab694dab323a0233c1a7071a3b342a3e60
 
 COCOAPODS: 1.15.2

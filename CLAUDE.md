@@ -10,15 +10,25 @@ QvaPay is a React Native mobile fintech app (v0.83.1, React 19.2.4) providing a 
 
 ```bash
 # Development
-npm run android          # Run on Android
-npm run ios              # Run on iOS
-npm run ios:build        # Build iOS (iPhone 16 simulator)
-npm run pods             # Install CocoaPods (required for iOS)
+npm run android          # Run on Android (auto-syncs version first)
+npm run ios              # Run on iOS (auto-syncs version first)
+npm run ios:build        # Build iOS (iPhone 16 simulator, auto-syncs version)
+npm run pods             # Install CocoaPods (required after native dep changes)
 npm run start            # Start Metro bundler
 
 # Quality
-npm run lint             # Run ESLint
-npm run test             # Run Jest tests
+npm run lint             # Run ESLint (@react-native config)
+npm run test             # Run Jest tests (react-native preset)
+npx jest --testPathPattern="path/to/test"  # Run a single test file
+
+# Release (Android)
+npm run android:bundle   # Bundle release AAB
+npm run android:apk      # Build release APK
+npm run android:release  # Bundle + APK
+npm run android:apk:release  # Full release script (scripts/release-android.sh)
+
+# Utilities
+npm run version:sync     # Sync version across platforms (runs auto before ios/android)
 ```
 
 **Node.js requirement**: >= 20
