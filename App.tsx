@@ -83,6 +83,7 @@ import PurchaseDetail from './screens/store/PurchaseDetail'
 
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
+import Contacts from './screens/settings/subpanels/Contacts'
 
 // Notifications
 import { Toaster, toast } from 'sonner-native'
@@ -323,6 +324,13 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				options={{
 					animation: 'slide_from_bottom'
 				}}
+			/>
+
+			{/* Contacts (accessible from Send) */}
+			<Stack.Screen
+				name={ROUTES.CONTACTS}
+				component={Contacts}
+				options={getHeaderOptions('Contactos')}
 			/>
 
 			{/* Send, Receive and Send Success Screens */}

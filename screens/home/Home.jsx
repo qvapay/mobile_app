@@ -221,7 +221,7 @@ const Home = ({ navigation }) => {
 				)}
 
 				<View style={styles.section}>
-					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PAYMENT_METHODS)} />
+					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.SEND)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 							<Pressable onPress={() => navigation.navigate(ROUTES.SEND)}>

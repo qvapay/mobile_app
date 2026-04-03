@@ -201,10 +201,10 @@ const Send = ({ navigation, route }) => {
 
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Enviar a:</Text>
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+						<Pressable onPress={() => navigation.navigate(ROUTES.CONTACTS)} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
 							<Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todos</Text>
 							<FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
-						</View>
+						</Pressable>
 					</View>
 
 					{userFound ? (
