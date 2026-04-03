@@ -46,10 +46,7 @@ const DEFAULT_SETTINGS = {
     // Security settings
     security: {
         biometricsEnabled: false,
-        pinEnabled: true,
         autoLockTimeout: 5, // minutes
-        requirePinForTransactions: true,
-        requirePinForSettings: false,
         sessionTimeout: 30, // minutes
         twoFactorEnabled: false,
         loginNotifications: true,

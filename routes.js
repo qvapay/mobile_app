@@ -66,7 +66,6 @@ export const ROUTES = {
     PHONE: "Phone",
     TELEGRAM: "Telegram",
     PASSWORD: "Password",
-    TRANSFER_PIN: "TransferPin",
     TWO_FACTOR: "TwoFactor",
     BIOMETRICS: "Biometrics",
     KYC: "KYC",

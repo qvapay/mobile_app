@@ -411,7 +411,7 @@ const P2POffer = ({ route }) => {
 
 	// Apply - sell offers show 30-min warning modal, buy offers use simple Alert
 	const handleApply = () => {
-		if (p2p?.type === "sell") {
+		if (p2p?.type === "sell" && !user?.vip) {
 			setApplyWarningAccepted(false)
 			setShowApplyWarning(true)
 		} else {
@@ -991,7 +991,7 @@ const P2POffer = ({ route }) => {
 				{/* Edit Offer Modal */}
 				<Modal visible={showEditModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowEditModal(false)}>
 					<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setShowEditModal(false)}>
-						<Pressable onPress={() => {}} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
+						<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
 							<ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
 								{/* Header */}
@@ -1066,7 +1066,7 @@ const P2POffer = ({ route }) => {
 				{/* Apply Warning Modal - 30 min time limit for sell offers */}
 				<Modal visible={showApplyWarning} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowApplyWarning(false)}>
 					<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setShowApplyWarning(false)}>
-						<Pressable onPress={() => {}} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
+						<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
 
 							{/* Header */}
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>

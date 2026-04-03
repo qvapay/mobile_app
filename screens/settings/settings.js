@@ -69,12 +69,6 @@ const settings = {
                 notifications: 0,
             },
             {
-                title: 'PIN de seguridad',
-                screen: ROUTES.TRANSFER_PIN,
-                enabled: true,
-                notifications: 0,
-            },
-            {
                 title: 'Face ID / Touch ID',
                 screen: ROUTES.BIOMETRICS,
                 enabled: true,
