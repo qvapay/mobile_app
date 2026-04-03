@@ -71,6 +71,7 @@ import StockDetail from './screens/invest/StockDetail'
 // InOut Screens
 import Add from './screens/add/Add'
 import Withdraw from './screens/withdraw/Withdraw'
+import CashDelivery from './screens/withdraw/CashDelivery'
 
 // Store Screens
 import PhoneTopupIndex from './screens/store/PhoneTopupIndex'
@@ -278,6 +279,11 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				name={ROUTES.WITHDRAW}
 				component={Withdraw}
 				options={getHeaderOptions('Extraer')}
+			/>
+			<Stack.Screen
+				name={ROUTES.CASH_DELIVERY}
+				component={CashDelivery}
+				options={getHeaderOptions('Envío de efectivo')}
 			/>
 
 			{/* P2P Create Screen */}

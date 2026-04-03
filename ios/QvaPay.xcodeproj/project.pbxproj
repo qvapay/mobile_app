@@ -723,6 +723,7 @@
 				CURRENT_PROJECT_VERSION = 1413;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "QvaPay Widgets";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -753,6 +754,7 @@
 				CURRENT_PROJECT_VERSION = 1413;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "QvaPay Widgets";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

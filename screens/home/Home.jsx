@@ -25,6 +25,7 @@ import BlogPostCard from '../../ui/BlogPostCard'
 import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 import WatchlistCard from '../../ui/WatchlistCard'
 import PromoBanner from '../../ui/PromoBanner'
+import CashDeliveryCard from '../../ui/CashDeliveryCard'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -238,13 +239,25 @@ const Home = ({ navigation }) => {
 				</View>
 
 				<View style={styles.section}>
-					<QPSectionHeader title="Últimas transacciones" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} />
+					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Últimas transacciones</Text>
+						<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS, { showSearch: true })} hitSlop={8}>
+							<FontAwesome6 name="magnifying-glass" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
+						</Pressable>
+					</View>
 					<View>
 						{latestTransactions.map((transaction, index) => (
 							<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
 						))}
 					</View>
+					<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} >
+						<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>Ver todas</Text>
+						<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
+					</Pressable>
 				</View>
+
+				{/* Cash Delivery Card - only show when balance >= 200 */}
+				{Number(user.balance) >= 200 && (<CashDeliveryCard navigation={navigation} />)}
 
 				{/* Service Cards */}
 				<View style={styles.section}>

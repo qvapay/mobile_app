@@ -92,7 +92,7 @@ const Chip = ({ label, selected, onPress, theme }) => (
 )
 
 // Transactions Screen
-const Transactions = ({ navigation }) => {
+const Transactions = ({ navigation, route }) => {
 
 	// States
 	const [transactions, setTransactions] = useState([])
@@ -104,6 +104,10 @@ const Transactions = ({ navigation }) => {
 	// Filter state
 	const [filters, setFilters] = useState({})
 	const [showFilters, setShowFilters] = useState(false)
+
+	// Search state
+	const [showSearch, setShowSearch] = useState(route?.params?.showSearch ?? false)
+	const [searchText, setSearchText] = useState('')
 
 	// Draft filter state (only applied on "Aplicar")
 	const [draftFilters, setDraftFilters] = useState({})
@@ -126,26 +130,61 @@ const Transactions = ({ navigation }) => {
 		setShowFilters(true)
 	}, [filters, selectedPeriod])
 
-	// Header filter button
+	// Toggle search
+	const toggleSearch = useCallback(() => {
+		setShowSearch(prev => {
+			if (prev && searchText) {
+				// Closing search — clear search text and re-fetch without search filter
+				setSearchText('')
+				const newFilters = { ...filters }
+				delete newFilters.search
+				setFilters(newFilters)
+				setPage(1)
+				setTransactions([])
+				setHasMore(true)
+				fetchTransactions(1, false, newFilters)
+			}
+			return !prev
+		})
+	}, [searchText, filters, fetchTransactions])
+
+	// Header buttons (search + filter)
 	useLayoutEffect(() => {
 		const filterColor = hasActiveFilters ? theme.colors.primary : theme.colors.primaryText
+		const searchColor = showSearch ? theme.colors.primary : theme.colors.primaryText
 		navigation.setOptions({
+			// Android fallback
 			headerRight: () => (
-				<Pressable style={containerStyles.headerRight} onPress={openFilters}>
-					<FontAwesome6 name="filter" size={20} color={filterColor} iconStyle="solid" />
-				</Pressable>
+				<View style={[containerStyles.headerRight, { gap: 18 }]}>
+					<Pressable onPress={toggleSearch} hitSlop={8}>
+						<FontAwesome6 name="magnifying-glass" size={18} color={searchColor} iconStyle="solid" />
+					</Pressable>
+					<Pressable onPress={openFilters} hitSlop={8}>
+						<FontAwesome6 name="filter" size={18} color={filterColor} iconStyle="solid" />
+					</Pressable>
+				</View>
 			),
+			// iOS native header items
 			...(Platform.OS === 'ios' && {
-				unstable_headerRightItems: () => [{
-					type: 'button',
-					label: 'Filtrar',
-					icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease' },
-					tintColor: hasActiveFilters ? theme.colors.primary : undefined,
-					onPress: openFilters,
-				}],
+				unstable_headerRightItems: () => [
+					{
+						type: 'button',
+						label: 'Buscar',
+						icon: { type: 'sfSymbol', name: 'magnifyingglass' },
+						tintColor: showSearch ? theme.colors.primary : undefined,
+						onPress: toggleSearch,
+					},
+					{
+						type: 'button',
+						label: 'Filtrar',
+						icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease' },
+						tintColor: hasActiveFilters ? theme.colors.primary : undefined,
+						onPress: openFilters,
+					},
+				],
 			}),
 		})
-	}, [hasActiveFilters, theme, navigation, containerStyles.headerRight, openFilters])
+	}, [hasActiveFilters, showSearch, theme, navigation, containerStyles.headerRight, openFilters, toggleSearch])
 
 	// Fetch transactions with current filters
 	const fetchTransactions = useCallback(async (pageNum = 1, refresh = false, activeFilters = filters) => {
@@ -234,8 +273,39 @@ const Transactions = ({ navigation }) => {
 		)
 	}
 
+	// Handle search submit
+	const handleSearch = useCallback((text) => {
+		const newFilters = { ...filters }
+		if (text.trim()) {
+			newFilters.search = text.trim()
+		} else {
+			delete newFilters.search
+		}
+		setFilters(newFilters)
+		setPage(1)
+		setTransactions([])
+		setHasMore(true)
+		fetchTransactions(1, false, newFilters)
+	}, [filters, fetchTransactions])
+
 	return (
 		<View style={containerStyles.subContainer}>
+			{showSearch && (
+				<View style={{ paddingHorizontal: 0, paddingBottom: 8 }}>
+					<QPInput
+						placeholder="Buscar por descripción o UUID"
+						value={searchText}
+						onChangeText={setSearchText}
+						onSubmitEditing={() => handleSearch(searchText)}
+						returnKeyType="search"
+						autoCapitalize="none"
+						autoCorrect={false}
+						autoFocus={true}
+						prefixIconName="magnifying-glass"
+						style={{ marginVertical: 0 }}
+					/>
+				</View>
+			)}
 			<FlashList
 				data={transactions}
 				renderItem={({ item, index }) => <QPTransaction transaction={item} navigation={navigation} index={index} totalItems={transactions.length} />}
