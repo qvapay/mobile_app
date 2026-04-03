@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#FF0E0E1C">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Tasas P2P"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--:--"
+            android:textColor="#4DFFFFFF"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- Column Headers -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="Moneda"
+            android:textColor="#66FFFFFF"
+            android:textSize="10sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="Compra"
+            android:textColor="#66FFFFFF"
+            android:textSize="10sp"
+            android:gravity="end" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="Venta"
+            android:textColor="#66FFFFFF"
+            android:textSize="10sp"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Row 0 -->
+    <LinearLayout
+        android:id="@+id/row_0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_0_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="CUP"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/row_0_buy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FF7BFFB1"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+
+        <TextView
+            android:id="@+id/row_0_sell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FFDB253E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Row 1 -->
+    <LinearLayout
+        android:id="@+id/row_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_1_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="MLC"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/row_1_buy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FF7BFFB1"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+
+        <TextView
+            android:id="@+id/row_1_sell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FFDB253E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Row 2 -->
+    <LinearLayout
+        android:id="@+id/row_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_2_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="Clásica"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/row_2_buy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FF7BFFB1"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+
+        <TextView
+            android:id="@+id/row_2_sell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FFDB253E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Row 3 -->
+    <LinearLayout
+        android:id="@+id/row_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_3_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="Bandec"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/row_3_buy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FF7BFFB1"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+
+        <TextView
+            android:id="@+id/row_3_sell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FFDB253E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Row 4 -->
+    <LinearLayout
+        android:id="@+id/row_4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_4_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="ETECSA"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/row_4_buy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FF7BFFB1"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+
+        <TextView
+            android:id="@+id/row_4_sell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FFDB253E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+    </LinearLayout>
+
+    <!-- Row 5 -->
+    <LinearLayout
+        android:id="@+id/row_5"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_5_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="TropiPay"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/row_5_buy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FF7BFFB1"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+
+        <TextView
+            android:id="@+id/row_5_sell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="—"
+            android:textColor="#FFDB253E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:gravity="end" />
+    </LinearLayout>
+
+</LinearLayout>

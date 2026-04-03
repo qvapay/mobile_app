@@ -16,6 +16,9 @@ import { useAuth } from "../../auth/AuthContext"
 import { p2pApi } from "../../api/p2pApi"
 import coinsApi from "../../api/coinsApi"
 
+// Widget Bridge
+import { updateWidgetP2POffers, reloadWidgets } from "../../helpers/widgetBridge"
+
 // UI
 import P2POffer from "../../ui/P2POfferItem"
 import QPInput from "../../ui/particles/QPInput"
@@ -219,6 +222,11 @@ const P2P = ({ navigation, route }) => {
 				const newData = response.offers || []
 				if (isRefresh || pageNum === 1) {
 					setP2pOffers(newData)
+					// Update widget with user's own active offers
+					if (apiFilters.my && newData.length > 0) {
+						updateWidgetP2POffers(newData)
+						reloadWidgets()
+					}
 				} else {
 					setP2pOffers(prev => [...prev, ...newData])
 				}

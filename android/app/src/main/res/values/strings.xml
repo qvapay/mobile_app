@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">QvaPay</string>
+    <string name="widget_p2p_rates_description">Tasas de compra y venta del P2P de QvaPay</string>
+    <string name="widget_balance_description">Tu balance de QvaPay con acciones rápidas</string>
+    <string name="widget_p2p_offers_description">Tus ofertas activas en el P2P de QvaPay</string>
 </resources>

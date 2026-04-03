@@ -10,6 +10,9 @@ import { setAuthToken, removeAuthToken, getAuthToken } from '../api/client'
 // OneSignal Push Notifications
 import { OneSignal } from 'react-native-onesignal'
 
+// Widget Bridge
+import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
+
 // Create the Auth Context
 const AuthContext = createContext()
 
@@ -54,6 +57,9 @@ export const AuthProvider = ({ children }) => {
 					if (userData.success && userData.data) {
 						if (userData.data.cover && !userData.data.cover_photo_url) { userData.data.cover_photo_url = `https://media.qvapay.com/${userData.data.cover}` }
 						setUser(userData.data)
+						// Update home screen widgets with latest balance
+						updateWidgetBalance(userData.data.balance, userData.data.username)
+						reloadWidgets()
 						// Re-register with OneSignal on app restart
 						OneSignal.login(userData.data.uuid)
 					} else {
@@ -283,6 +289,9 @@ export const AuthProvider = ({ children }) => {
 			const updatedUser = { ...user, ...newUserData }
 			await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
 			setUser(updatedUser)
+			// Update home screen widgets with latest balance
+			updateWidgetBalance(updatedUser.balance, updatedUser.username)
+			reloadWidgets()
 			return { success: true }
 		} catch (error) {
 			setError('Failed to update user data')

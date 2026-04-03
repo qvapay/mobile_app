@@ -51,5 +51,41 @@
             <data android:scheme="qvapay" />
         </intent-filter>
       </activity>
+
+      <!-- Balance Widget -->
+      <receiver
+          android:name=".widget.BalanceWidget"
+          android:exported="true">
+          <intent-filter>
+              <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+          </intent-filter>
+          <meta-data
+              android:name="android.appwidget.provider"
+              android:resource="@xml/balance_widget_info" />
+      </receiver>
+
+      <!-- P2P Offers Widget -->
+      <receiver
+          android:name=".widget.P2POffersWidget"
+          android:exported="true">
+          <intent-filter>
+              <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+          </intent-filter>
+          <meta-data
+              android:name="android.appwidget.provider"
+              android:resource="@xml/p2p_offers_widget_info" />
+      </receiver>
+
+      <!-- P2P Rates Widget -->
+      <receiver
+          android:name=".widget.P2PRatesWidget"
+          android:exported="true">
+          <intent-filter>
+              <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+          </intent-filter>
+          <meta-data
+              android:name="android.appwidget.provider"
+              android:resource="@xml/p2p_rates_widget_info" />
+      </receiver>
     </application>
 </manifest>
