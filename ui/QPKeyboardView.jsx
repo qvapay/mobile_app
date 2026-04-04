@@ -9,6 +9,7 @@ const QPKeyboardView = ({
 	actions = null,
 	scrollViewProps = {},
 	actionsContainerStyle = {},
+	scrollViewRef = null,
 }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
@@ -30,6 +31,7 @@ const QPKeyboardView = ({
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
 				<View style={{ flex: 1 }}>
 					<ScrollView
+						ref={scrollViewRef}
 						contentContainerStyle={containerStyles.scrollContainer}
 						showsVerticalScrollIndicator={false}
 						keyboardShouldPersistTaps="handled"

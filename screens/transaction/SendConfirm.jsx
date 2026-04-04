@@ -52,6 +52,7 @@ const SendConfirm = ({ navigation, route }) => {
 	const [pin, setPin] = useState('')
 	const pinInputsRef = useRef([])
 	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
+	const scrollViewRef = useRef(null)
 
 	// Fetch recipient user data
 	useState(() => {
@@ -129,8 +130,21 @@ const SendConfirm = ({ navigation, route }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [pin])
 
+	// Auto-scroll to PIN section when it appears
+	useEffect(() => {
+		if (showPinStep) {
+			setTimeout(() => {
+				scrollViewRef.current?.scrollToEnd({ animated: true })
+				pinInputsRef.current[0]?.focus()
+			}, 100)
+		}
+	}, [showPinStep])
+
 	// Handle PIN input focus/blur
-	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
+	const handlePinFocus = (index) => {
+		setFocusedInputIndex(index)
+		setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)
+	}
 	const handlePinBlur = () => { setFocusedInputIndex(null) }
 
 	// Handle PIN backspace
@@ -202,31 +216,44 @@ const SendConfirm = ({ navigation, route }) => {
 
 	return (
 		<QPKeyboardView
+			scrollViewRef={scrollViewRef}
+			actionsContainerStyle={{ flexDirection: 'row', gap: 8 }}
 			actions={
 				<>
+					<QPButton
+						title=""
+						onPress={() => navigation.goBack()}
+						disabled={isLoading}
+						style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, backgroundColor: theme.colors.danger }}
+						textStyle={{ color: theme.colors.primaryText }}
+						icon="xmark"
+						iconColor={theme.colors.primaryText}
+						iconStyle="solid"
+					/>
+
 					{showPinStep ? (
 						<QPButton
 							title="Confirmar Envío"
 							onPress={executeTransaction}
 							loading={isLoading}
 							disabled={isLoading || !pin || pin.length < codeLength}
+							style={{ flex: 1, minHeight: 56 }}
 							textStyle={{ color: theme.colors.buttonText }}
+							icon="check"
+							iconColor={theme.colors.buttonText}
+							iconStyle="solid"
 						/>
 					) : (
 						<QPButton
 							title="Continuar"
 							onPress={() => { setShowPinStep(true); setPin('') }}
+							style={{ flex: 1, minHeight: 56 }}
 							textStyle={{ color: theme.colors.buttonText }}
+							icon="arrow-right"
+							iconColor={theme.colors.buttonText}
+							iconStyle="solid"
 						/>
 					)}
-
-					<QPButton
-						title="Cancelar"
-						onPress={() => navigation.goBack()}
-						disabled={isLoading}
-						style={{ backgroundColor: theme.colors.danger }}
-						textStyle={{ color: theme.colors.primaryText }}
-					/>
 				</>
 			}
 		>
@@ -236,14 +263,8 @@ const SendConfirm = ({ navigation, route }) => {
 				{/* Amount Card */}
 				<View style={containerStyles.card}>
 					<View style={{ alignItems: 'center' }}>
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
-							Monto a enviar
-						</Text>
 						<Text style={textStyles.amount}>
 							${send_amount}
-						</Text>
-						<Text style={[textStyles.h6, { color: theme.colors.primary, marginTop: 4 }]}>
-							QUSD
 						</Text>
 					</View>
 				</View>
@@ -300,7 +321,22 @@ const SendConfirm = ({ navigation, route }) => {
 
 				{/* PIN/OTP Step */}
 				{showPinStep && (
-					<View style={{ marginTop: 10 }}>
+					<View style={[containerStyles.card, { marginTop: 0 }]}>
+
+						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+								{twoFactorMethod === 'pin' ? 'Ingresa tu PIN' : 'Ingresa el código OTP'}
+							</Text>
+							{twoFactorMethod === 'pin' && (
+								<Text
+									onPress={handleRequestPin}
+									style={[textStyles.h6, { color: theme.colors.primary, opacity: sendingPin ? 0.5 : 1 }]}
+									disabled={sendingPin}
+								>
+									{sendingPin ? 'Enviando...' : 'Solicitar PIN'}
+								</Text>
+							)}
+						</View>
 
 						{/* PIN/OTP Toggle - only show if user has OTP */}
 						{hasOTP && (
