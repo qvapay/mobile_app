@@ -152,6 +152,17 @@ export const userApi = {
 	},
 
 	/**
+	 * Track a share attempt for analytics
+	 * @param {string} channel - The share channel (sms, telegram, x, facebook, link)
+	 */
+	trackShareAttempt: async (channel) => {
+		try {
+			const response = await apiClient.post(`/user/referrals/share`, { channel })
+			return { success: true, data: response.data }
+		} catch (error) { return { success: false } }
+	},
+
+	/**
 	 * Get gold check status
 	 * @returns {Promise<Object>} The gold check status
 	 */

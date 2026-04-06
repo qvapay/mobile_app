@@ -41,6 +41,8 @@ const Referals = () => {
 	// State
 	const [referrals, setReferrals] = useState([])
 	const [totalReferrals, setTotalReferrals] = useState(0)
+	const [smsEarnings, setSmsEarnings] = useState(0)
+	const [smsBudgetRemaining, setSmsBudgetRemaining] = useState(5)
 	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
 
@@ -56,6 +58,8 @@ const Referals = () => {
 				const data = response.data
 				setReferrals(data.referrals || [])
 				setTotalReferrals(data.totalReferrals || 0)
+				setSmsEarnings(data.smsEarningsThisMonth || 0)
+				setSmsBudgetRemaining(data.smsBudgetRemaining ?? 5)
 			}
 		} catch (error) {
 			toast.error('Error al cargar los referidos')
@@ -82,30 +86,35 @@ const Referals = () => {
 		toast.success('Enlace copiado al portapapeles')
 	}
 
-	// Share message
-	const shareMessage = `Únete a QvaPay usando mi enlace de referido: ${referralLink}`
+	// Share with source tracking
+	const shareWithTracking = (channel, openUrl) => {
+		openUrl()
+		userApi.trackShareAttempt(channel).catch(() => {})
+	}
 
 	// Social share handlers
-	const shareToX = () => {
-		const url = `https://x.com/intent/tweet?text=${encodeURIComponent(shareMessage)}`
-		Linking.openURL(url)
-	}
+	const shareToX = () => shareWithTracking('x', () => {
+		const link = `${referralLink}?source=x`
+		const msg = `Únete a QvaPay usando mi enlace de referido: ${link}`
+		Linking.openURL(`https://x.com/intent/tweet?text=${encodeURIComponent(msg)}`)
+	})
 
-	const shareToFacebook = () => {
-		const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`
-		Linking.openURL(url)
-	}
+	const shareToFacebook = () => shareWithTracking('facebook', () => {
+		const link = `${referralLink}?source=facebook`
+		Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`)
+	})
 
-	const shareToTelegram = () => {
-		const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Únete a QvaPay usando mi enlace de referido')}`
-		Linking.openURL(url)
-	}
+	const shareToTelegram = () => shareWithTracking('telegram', () => {
+		const link = `${referralLink}?source=telegram`
+		Linking.openURL(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Únete a QvaPay usando mi enlace de referido')}`)
+	})
 
-	const shareToSMS = () => {
+	const shareToSMS = () => shareWithTracking('sms', () => {
+		const link = `${referralLink}?source=sms`
+		const msg = `Únete a QvaPay usando mi enlace de referido: ${link}`
 		const separator = Platform.OS === 'ios' ? '&' : '?'
-		const url = `sms:${separator}body=${encodeURIComponent(shareMessage)}`
-		Linking.openURL(url)
-	}
+		Linking.openURL(`sms:${separator}body=${encodeURIComponent(msg)}`)
+	})
 
 	// Derived stats
 	const verifiedCount = referrals.filter(r => r.kyc).length
@@ -145,6 +154,23 @@ const Referals = () => {
 					</View>
 				</View>
 
+				{/* SMS Earnings Card */}
+				<View style={[styles.statsCard, { backgroundColor: theme.colors.surface, marginTop: 12 }]}>
+					<View style={styles.statItem}>
+						<Text style={[styles.statValue, { color: theme.colors.success, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>
+							${smsEarnings.toFixed(2)}
+						</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Ganado este mes</Text>
+					</View>
+					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
+					<View style={styles.statItem}>
+						<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>
+							${smsBudgetRemaining.toFixed(2)}
+						</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Disponible</Text>
+					</View>
+				</View>
+
 				{/* Share Card */}
 				<View style={[styles.shareCard, { backgroundColor: theme.colors.surface }]}>
 					<Text style={[styles.shareTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Tu enlace de referido</Text>
@@ -169,9 +195,9 @@ const Referals = () => {
 						<FontAwesome6 name="lightbulb" size={14} color={theme.colors.warning} iconStyle="solid" />
 						{'  '}Cómo funciona
 					</Text>
-					<Step number="1" text="Comparte tu enlace con amigos" theme={theme} />
-					<Step number="2" text="Tu amigo se registra en QvaPay" theme={theme} />
-					<Step number="3" text="Ambos reciben recompensas al verificarse" theme={theme} />
+					<Step number="1" text="Comparte tu enlace por SMS u otras redes" theme={theme} />
+					<Step number="2" text="Tu amigo se registra y confirma su correo" theme={theme} />
+					<Step number="3" text="Recibes $0.01 por cada registro vía SMS (hasta $5/mes)" theme={theme} />
 				</View>
 
 				{/* Referrals List */}

@@ -128,6 +128,7 @@ export const authApi = {
 				email: credentials.email,
 				password: credentials.password,
 				invite: credentials.invite || undefined,
+				source: credentials.source || undefined,
 				terms: credentials.terms || true
 			})
 			return { success: true, data: response.data, message: response.data.message, user: response.data.user }
