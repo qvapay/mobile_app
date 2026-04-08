@@ -76,6 +76,22 @@ const Transaction = ({ route, navigation }) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 
+	// Determine the other user early so we can configure the header
+	const user_uuid_early = user?.uuid || ''
+	const paid_by_uuid_early = transactionDetails.paid_by?.uuid || ''
+	const otherUserEarly = (user_uuid_early === paid_by_uuid_early) ? transactionDetails.user : transactionDetails.paid_by
+
+	// Make header transparent when cover image is shown (otherUser exists)
+	useEffect(() => {
+		if (otherUserEarly) {
+			navigation.setOptions({
+				headerTransparent: true,
+				headerStyle: { backgroundColor: 'transparent' },
+				headerTintColor: theme.colors.almostWhite,
+			})
+		}
+	}, [otherUserEarly, navigation, theme])
+
 	// Fetch transaction details from API and update cache
 	const fetchTransaction = useCallback(async () => {
 		const cacheKey = `${TRANSACTION_CACHE_KEY}${transaction.uuid}`
@@ -92,7 +108,7 @@ const Transaction = ({ route, navigation }) => {
 				}
 			}
 		} catch (error) {
-			} finally { setLoading(false) }
+		} finally { setLoading(false) }
 	}, [transaction.uuid])
 
 	// Load cached data first, then fetch fresh data from server
@@ -101,9 +117,7 @@ const Transaction = ({ route, navigation }) => {
 			const cacheKey = `${TRANSACTION_CACHE_KEY}${transaction.uuid}`
 			try {
 				const cachedData = await AsyncStorage.getItem(cacheKey)
-				if (cachedData) {
-					setTransactionDetails(JSON.parse(cachedData))
-				}
+				if (cachedData) { setTransactionDetails(JSON.parse(cachedData)) }
 			} catch (error) {
 				// error loading cached transaction
 			}
@@ -132,6 +146,7 @@ const Transaction = ({ route, navigation }) => {
 		if (downloading) return
 		setDownloading(true)
 		try {
+
 			const token = await getAuthToken()
 			if (!token) {
 				toast.error('Error', { description: 'No se pudo obtener el token de autenticación' })
@@ -153,18 +168,12 @@ const Transaction = ({ route, navigation }) => {
 				const path = res.path()
 				if (Platform.OS === 'ios') {
 					ReactNativeBlobUtil.ios.openDocument(path)
-				} else {
-					ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf')
-				}
+				} else { ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf') }
 				toast.success('Éxito', { description: 'PDF descargado correctamente' })
-			} else {
-				toast.error('Error', { description: 'No se pudo descargar el PDF' })
-			}
+			} else { toast.error('Error', { description: 'No se pudo descargar el PDF' }) }
 		} catch (error) {
 			toast.error('Error', { description: 'No se pudo descargar el PDF' })
-		} finally {
-			setDownloading(false)
-		}
+		} finally { setDownloading(false) }
 	}
 
 	// Shared detail row component
@@ -193,8 +202,8 @@ const Transaction = ({ route, navigation }) => {
 	)
 
 	return (
-		<View style={containerStyles.subContainer}>
-			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction)}>
+		<View style={containerStyles.container}>
+			<ScrollView style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction)} contentInsetAdjustmentBehavior="never">
 
 				{/* Profile Container */}
 				{otherUser && <ProfileContainer user={otherUser} />}

@@ -260,13 +260,11 @@ const SendConfirm = ({ navigation, route }) => {
 
 			<View>
 
-				{/* Amount Card */}
-				<View style={containerStyles.card}>
-					<View style={{ alignItems: 'center' }}>
-						<Text style={textStyles.amount}>
-							${send_amount}
-						</Text>
-					</View>
+				{/* Amount */}
+				<View style={{ alignItems: 'center', paddingVertical: 20 }}>
+					<Text style={[textStyles.amount, { fontSize: theme.typography.fontSize.display }]}>
+						${send_amount}
+					</Text>
 				</View>
 
 				{/* Recipient Card */}
