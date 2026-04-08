@@ -44,7 +44,7 @@ const CashDeliveryCard = ({ navigation }) => {
 				Envío de efectivo
 			</Text>
 
-			<Pressable onPress={() => navigation.navigate(ROUTES.CASH_DELIVERY)} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+			<Pressable onPress={() => navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
 
 				{/* Map background area */}
 				<View style={styles.mapArea}>

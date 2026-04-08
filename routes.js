@@ -41,7 +41,7 @@ export const ROUTES = {
     // InOut Screens
     ADD: "Add",
     WITHDRAW: "Withdraw",
-    CASH_DELIVERY: "CashDelivery",
+
     SCAN_SCREEN: "Scan",
 
     // Send, Receive and Confirm Screens

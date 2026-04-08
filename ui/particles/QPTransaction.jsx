@@ -52,7 +52,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const amountFixed = amountFloat.toFixed(2)
 
     // Wallet coin (deposits) or Withdraw payment_method (withdrawals)
-    const wallet_coin = wallet?.wallet_type || withdraw?.payment_method || ''
+    const wallet_coin = wallet?.Coin?.logo || wallet?.Coin?.tick || wallet?.wallet_type || withdraw?.payment_method || ''
 
     // My user is the owner of the transaction
     const user_uuid = user?.uuid || ''

@@ -37,7 +37,7 @@ const DEFAULT_WITHDRAW_COINS = [
 const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
 
 // Withdraw balance to certain coin
-const Withdraw = ({ navigation }) => {
+const Withdraw = ({ navigation, route }) => {
 
 	// Contexts
 	const { user } = useAuth()
@@ -69,6 +69,9 @@ const Withdraw = ({ navigation }) => {
 	const pinInputsRef = useRef([])
 	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
 
+	// Pre-selected coin from navigation params (e.g., USDCASH from CashDeliveryCard)
+	const preselectedCoin = route?.params?.preselectedCoin
+
 	// Fetch available coins enabled_out
 	useEffect(() => {
 		const fetchCoins = async () => {
@@ -76,6 +79,10 @@ const Withdraw = ({ navigation }) => {
 				setIsLoading(true)
 				const response = await apiClient.get('/coins/v2?enabled_out=true')
 				setAvailableCoins(response.data)
+				if (preselectedCoin) {
+					const coin = response.data.find(c => c.tick === preselectedCoin)
+					if (coin) setSelectedCoin(coin)
+				}
 			} catch (err) { /* error fetching coins */ }
 			finally { setIsLoading(false) }
 		}
