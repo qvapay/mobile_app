@@ -88,12 +88,11 @@ const P2P = ({ navigation, route }) => {
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
-	const [isLoadingData, setIsLoadingData] = useState(true)
+	const [, setIsLoadingData] = useState(true)
 	const [p2pOffers, setP2pOffers] = useState([])
 	const [refreshing, setRefreshing] = useState(false)
 	const [error, setError] = useState(null)
-	const lastFetchRef = useRef(0)
-	const [p2pEnabled, setP2pEnabled] = useState(user.p2p_enabled)
+	const [p2pEnabled] = useState(user.p2p_enabled)
 	const [page, setPage] = useState(1)
 	const [hasMore, setHasMore] = useState(true)
 

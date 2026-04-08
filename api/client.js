@@ -45,13 +45,13 @@ const apiClient = axios.create({
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
-	async (config) => {
-		if (!config.silent && _loadingStart) { _loadingStart() }
+	async (reqConfig) => {
+		if (!reqConfig.silent && _loadingStart) { _loadingStart() }
 		try {
 			const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
-			if (credentials) { config.headers.Authorization = `Bearer ${credentials.password}` }
-		} catch (error) { /* token retrieval failed */ }
-		return config
+			if (credentials) { reqConfig.headers.Authorization = `Bearer ${credentials.password}` }
+		} catch (err) { /* token retrieval failed */ }
+		return reqConfig
 	},
 	(error) => {
 		if (!error.config?.silent && _loadingStop) { _loadingStop() }
@@ -69,7 +69,7 @@ apiClient.interceptors.response.use(
 		if (!error.config?.silent && _loadingStop) { _loadingStop() }
 		// Handle common errors
 		if (error.response) {
-			const { status, data } = error.response
+			const { status } = error.response
 			switch (status) {
 				case 403:
 					try {

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Dimensions, Animated, Linking, Pressable } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
@@ -57,8 +56,6 @@ const OVERLAY_PATH = [
 const QR_SIZE = Math.min(screenWidth - 80, 240)
 
 // Top bar layout
-const TOP_BAR_Y = 60
-const CONTENT_TOP = TOP_BAR_Y + 40 + 16 // bar Y + button height + gap
 
 // Scan Screen
 const Scan = ({ navigation, route }) => {
@@ -70,7 +67,6 @@ const Scan = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
-	const insets = useSafeAreaInsets()
 
 	// Camera
 	const device = useCameraDevice('back')

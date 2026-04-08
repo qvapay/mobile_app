@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, Pressable } from 'react-native'
+import { View, Text, Pressable } from 'react-native'
 
 // Helpers
 import { timeSince, reduceString } from '../../helpers'
@@ -46,7 +46,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     }
 
     // Transaction data
-    const { uuid, amount, description, User: owner = {}, PaidBy: paid_by = {}, Wallet: wallet = {}, Withdraw: withdraw = {}, App: app = null, BuyedService: buyedService = null, updated_at, status } = transaction
+    const { amount, description, User: owner = {}, PaidBy: paid_by = {}, Wallet: wallet = {}, Withdraw: withdraw = {}, App: app = null, BuyedService: buyedService = null, updated_at } = transaction
 
     const amountFloat = parseFloat(amount)
     const amountFixed = amountFloat.toFixed(2)
@@ -57,7 +57,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     // My user is the owner of the transaction
     const user_uuid = user?.uuid || ''
     const paid_by_uuid = paid_by?.uuid || ''
-    const isPaidByMe = user_uuid == paid_by_uuid
+    const isPaidByMe = user_uuid === paid_by_uuid
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
 
@@ -92,9 +92,5 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
         </Pressable>
     )
 }
-
-const styles = StyleSheet.create({
-
-})
 
 export default QPTransaction

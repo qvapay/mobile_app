@@ -1,9 +1,6 @@
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 
-// Theme Context
-import { useTheme } from '../../theme/ThemeContext'
-
 // Imagecomponents
 import FastImage from "@d11/react-native-fast-image"
 
@@ -32,7 +29,7 @@ const VipHalo = ({ size }) => {
 			-1,
 			false
 		)
-	}, [])
+	}, [rotation])
 
 	const animatedStyle = useAnimatedStyle(() => ({
 		transform: [{ rotate: `${rotation.value}deg` }],
@@ -72,9 +69,6 @@ const VipHalo = ({ size }) => {
 
 // QvaPay Avatar Component
 const QPAvatar = ({ user = {}, size = 32 }) => {
-
-	// Contexts
-	const { theme } = useTheme()
 
 	// Optional properties
 	const vip = user?.vip || false

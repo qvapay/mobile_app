@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
 				setIsAuthenticated(false)
 			}
 
-		} catch (error) { setError('Failed to initialize authentication') }
+		} catch (err) { setError('Failed to initialize authentication') }
 		finally { setIsLoading(false) }
 	}
 
@@ -148,9 +148,9 @@ export const AuthProvider = ({ children }) => {
 
 			return { success: true, security_warning: apiResponse.security_warning || null }
 
-		} catch (error) {
+		} catch (err) {
 			setError('Login failed. Please try again.')
-			return { success: false, error: error.message, details: error.details }
+			return { success: false, error: err.message, details: err.details }
 		} finally { setIsLoading(false) }
 	}
 
@@ -170,9 +170,9 @@ export const AuthProvider = ({ children }) => {
 				return { success: false, error: apiResponse.error }
 			}
 		}
-		catch (error) {
+		catch (err) {
 			setError('Failed to request PIN')
-			return { success: false, error: error.message }
+			return { success: false, error: err.message }
 		} finally { setIsLoading(false) }
 	}
 
@@ -200,9 +200,9 @@ export const AuthProvider = ({ children }) => {
 
 			return { success: true }
 
-		} catch (error) {
+		} catch (err) {
 			setError('Logout failed. Please try again.')
-			return { success: false, error: error.message }
+			return { success: false, error: err.message }
 		} finally { setIsLoading(false) }
 	}
 
@@ -233,7 +233,7 @@ export const AuthProvider = ({ children }) => {
 				}
 			}
 
-		} catch (error) {
+		} catch (err) {
 			setError('Registration failed. Please try again.')
 			return {
 				success: false,
@@ -257,11 +257,11 @@ export const AuthProvider = ({ children }) => {
 				}
 			}
 		}
-		catch (error) {
+		catch (err) {
 			setError('Failed to confirm registration')
 			return {
 				success: false,
-				error: error.message || 'Failed to confirm registration',
+				error: err.message || 'Failed to confirm registration',
 				details: {}
 			}
 		} finally { setIsLoading(false) }
@@ -280,7 +280,7 @@ export const AuthProvider = ({ children }) => {
 					'device_contacts_consent',
 				]),
 			])
-		} catch (error) { /* error clearing auth data */ }
+		} catch (err) { /* error clearing auth data */ }
 	}
 
 	// Update user data in storage
@@ -293,9 +293,9 @@ export const AuthProvider = ({ children }) => {
 			updateWidgetBalance(updatedUser.balance, updatedUser.username)
 			reloadWidgets()
 			return { success: true }
-		} catch (error) {
+		} catch (err) {
 			setError('Failed to update user data')
-			return { success: false, error: error.message }
+			return { success: false, error: err.message }
 		}
 	}
 

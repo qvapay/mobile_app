@@ -6,9 +6,6 @@ import FastImage from '@d11/react-native-fast-image'
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
-// UI Particles
-import QPButton from '../../ui/particles/QPButton'
-
 // Routes
 import { ROUTES } from '../../routes'
 

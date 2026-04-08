@@ -78,9 +78,8 @@ const Home = ({ navigation }) => {
 	const { shouldShowBanner, enablePush, dismissBanner } = usePushPrompt()
 
 	// State
-	const [isLoading, setIsLoading] = useState(false)
+	const [, setIsLoading] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
-	const [error, setError] = useState(null)
 	const [latestTransactions, setLatestTransactions] = useState([])
 	const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
 	const [latestBlogPosts, setLatestBlogPosts] = useState([])
@@ -104,7 +103,7 @@ const Home = ({ navigation }) => {
 			setIsLoading(true)
 			const result = await userApi.getUserProfile()
 			if (result.success && result.data) { updateUser(result.data) }
-		} catch (error) { /* error loading user data */ }
+		} catch (err) { /* error loading user data */ }
 		finally { setIsLoading(false) }
 	}
 
@@ -115,7 +114,7 @@ const Home = ({ navigation }) => {
 			if (result.success) {
 				setLatestTransactions(result.data)
 			}
-		} catch (error) { /* error fetching transactions */ }
+		} catch (err) { /* error fetching transactions */ }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
@@ -125,10 +124,10 @@ const Home = ({ navigation }) => {
 			const result = await transferApi.getLatestSentTransfers(10)
 			if (result.success) {
 				// filter out users with no image
-				const users = result.data.filter(user => user.image)
+				const users = result.data.filter(u => u.image)
 				setLatestSentTransfersUsers(users)
 			}
-		} catch (error) { /* error fetching sent transfers */ }
+		} catch (err) { /* error fetching sent transfers */ }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
@@ -137,7 +136,7 @@ const Home = ({ navigation }) => {
 			if (!skipLoading) setIsLoading(true)
 			const result = await blogApi.getLatestPosts(Platform.isPad ? 4 : 3)
 			if (result.success) { setLatestBlogPosts(result.data) }
-		} catch (error) { /* error fetching blog posts */ }
+		} catch (err) { /* error fetching blog posts */ }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
@@ -186,7 +185,7 @@ const Home = ({ navigation }) => {
 			await fetchWatchlist()
 			// Refresh promo
 			await fetchPromo()
-		} catch (error) { /* error refreshing data */ }
+		} catch (err) { /* error refreshing data */ }
 		finally { setRefreshing(false) }
 	}
 
@@ -229,9 +228,9 @@ const Home = ({ navigation }) => {
 									<FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />
 								</View>
 							</Pressable>
-							{latestSentTransfersUsers.map((user, index) => (
-								<Pressable key={index} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: user.uuid, send_amount: '0.00' })}>
-									<QPAvatar key={index} user={user} size={56} />
+							{latestSentTransfersUsers.map((transferUser, index) => (
+								<Pressable key={index} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: transferUser.uuid, send_amount: '0.00' })}>
+									<QPAvatar key={index} user={transferUser} size={56} />
 								</Pressable>
 							))}
 						</View>

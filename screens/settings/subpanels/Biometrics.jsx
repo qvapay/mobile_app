@@ -47,7 +47,6 @@ const Biometrics = () => {
     }, [])
 
     const biometricLabel = biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella Digital'
-    const biometricIcon = biometryType === 'FaceID' ? 'face-smile' : 'fingerprint'
 
     // Toggle biometrics
     const handleToggle = async (value) => {
@@ -124,7 +123,7 @@ const Biometrics = () => {
                         {biometryType === 'FaceID' ? (
                             <View style={{ marginRight: 12 }}><FaceIDIcon size={20} color={theme.colors.primary} /></View>
                         ) : (
-                            <FontAwesome6 name="fingerprint" size={18} style={{ color: theme.colors.primary, marginRight: 12 }} />
+                            <FontAwesome6 name="fingerprint" size={18} style={{ color: theme.colors.primary, marginRight: 12 }} iconStyle="solid" />
                         )}
                         <Text style={[textStyles.h4, { marginBottom: 0 }]}>Acceder con {biometricLabel}</Text>
                     </View>

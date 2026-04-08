@@ -1,8 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
 
-// Routes
-import { ROUTES } from '../../routes'
-
 const HelpScreen = ({ navigation }) => {
 
     return (

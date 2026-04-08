@@ -19,7 +19,7 @@ const PromoBanner = ({ promo }) => {
 			height.value = withDelay(500, withTiming(BANNER_HEIGHT, { duration: 300, easing: Easing.out(Easing.ease) }))
 			opacity.value = withDelay(200, withTiming(1, { duration: 400 }))
 		}
-	}, [promo?.text])
+	}, [promo?.text, height, opacity])
 
 	const animatedContainerStyle = useAnimatedStyle(() => ({
 		height: height.value,

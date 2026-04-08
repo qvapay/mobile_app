@@ -72,11 +72,6 @@ const MainStack = ({ navigation }) => {
 	const textStyles = useMemo(() => createTextStyles(theme), [theme])
 	const qvapayLogo = theme.isDark ? require('../assets/images/ui/qvapay-logo-white.png') : require('../assets/images/ui/logo-qvapay.png')
 
-	// Add safety check for user data
-	// If user is not authenticated or user data is missing,
-	// this will trigger the navigation logic in App.tsx to redirect to welcome/login
-	if (!isAuthenticated || !user) { return null }
-
 	// Memoized screen options to prevent liquid glass flash on iOS
 	// TopBar height: 56 + insets.top
 	const screenOptions = useMemo(() => ({
@@ -132,7 +127,7 @@ const MainStack = ({ navigation }) => {
 				fontSize: theme.typography.fontSize.xs,
 			},
 		}),
-	}), [theme, showLabels, insets.bottom, user, containerStyles, navigation])
+	}), [theme, showLabels, insets.top, insets.bottom, user, containerStyles, navigation])
 
 	// Memoized per-screen options
 	const homeOptions = useMemo(() => ({
@@ -211,7 +206,7 @@ const MainStack = ({ navigation }) => {
 				},
 			],
 		}),
-	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation])
+	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, qvapayLogo])
 
 	const investOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? 'Invertir' : '',
@@ -250,6 +245,9 @@ const MainStack = ({ navigation }) => {
 			}],
 		}),
 	}), [showLabels, containerStyles, theme, navigation])
+
+	// Safety check for user data (after all hooks)
+	if (!isAuthenticated || !user) { return null }
 
 	return (
 		<BottomBarProvider>

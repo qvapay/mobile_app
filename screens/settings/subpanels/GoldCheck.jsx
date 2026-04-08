@@ -79,7 +79,6 @@ const GoldCheck = ({ navigation }) => {
         subscriptions,
         fetchProducts,
         requestPurchase,
-        finishTransaction,
     } = useIAP({
         onPurchaseSuccess: async (purchase) => {
             try {
@@ -140,7 +139,7 @@ const GoldCheck = ({ navigation }) => {
         if (connected && IAP_SKUS?.length) {
             fetchProducts({ skus: IAP_SKUS, type: 'subs' })
         }
-    }, [connected])
+    }, [connected, fetchProducts])
 
     // Handle Subscribe with QvaPay balance (existing flow)
     const handleSubscribe = async () => {

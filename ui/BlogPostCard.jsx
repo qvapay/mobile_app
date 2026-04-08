@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Pressable, Image, Linking, useWindowDimensions 
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../theme/themeUtils'
+import { useTextStyles } from '../theme/themeUtils'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -11,7 +11,6 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 
 	const { theme } = useTheme()
-	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 	const { width: screenWidth } = useWindowDimensions()
 	const cardWidth = iPad ? (screenWidth - 32 - 12) / 2 : undefined

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { View, Text, TextInput, Pressable, Modal, StyleSheet, Animated, StatusBar } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import LottieView from 'lottie-react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useTheme } from '../theme/ThemeContext'
@@ -178,7 +177,7 @@ const LockScreen = () => {
 					{Array.from({ length: 4 }, (_, index) => (
 						<TextInput
 							key={`lock-pin-${index}`}
-							ref={(ref) => pinInputsRef.current[index] = ref}
+							ref={(ref) => { pinInputsRef.current[index] = ref }}
 							style={[styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
 							value={pin[index] || ''}
 							onChangeText={(text) => handlePinChange(text, index)}

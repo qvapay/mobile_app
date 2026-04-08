@@ -39,12 +39,11 @@ const Send = ({ navigation, route }) => {
 	const { send_amount, user_uuid = null } = route.params || {}
 
 	// States
+	const currency = 'QUSD'
 	const [amount, setAmount] = useState(send_amount || '')
-	const [currency, setCurrency] = useState('QUSD')
 	const [userSearch, setUserSearch] = useState('')
 	const [description, setDescription] = useState('')
 	const [userFound, setUserFound] = useState(null)
-	const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
 	const [carouselUsers, setCarouselUsers] = useState([])
 	const [incomingUserUuid, setIncomingUserUuid] = useState(user_uuid || null)
 
@@ -55,9 +54,7 @@ const Send = ({ navigation, route }) => {
 
 	// Errors and Loading
 	const [sendEnabled, setSendEnabled] = useState(false)
-	const [error, setError] = useState(null)
 	const [isLoading, setIsLoading] = useState(false)
-	const [isLoadingUser, setIsLoadingUser] = useState(false)
 
 	// Update send enabled state based on amount and user found
 	useEffect(() => {
@@ -77,7 +74,6 @@ const Send = ({ navigation, route }) => {
 				const sentResult = await transferApi.getLatestSentTransfers(10)
 				if (sentResult.success) {
 					const users = (sentResult.data || []).filter(u => u.image)
-					setLatestSentTransfersUsers(users)
 					for (const u of users) {
 						if (u.uuid && !seen.has(u.uuid)) {
 							seen.add(u.uuid)
@@ -100,25 +96,22 @@ const Send = ({ navigation, route }) => {
 				}
 
 				setCarouselUsers(combined)
-			} catch (error) { /* error fetching carousel users */ }
+			} catch (err) { /* error fetching carousel users */ }
 			finally { setIsLoading(false) }
 		}
 		fetchCarouselUsers()
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// If user uuid is provided in the route, try to fetch user data
 	useEffect(() => {
 		if (incomingUserUuid) {
-			try {
-				setIsLoadingUser(true)
-				const fetchUserData = async () => {
+			const fetchUserData = async () => {
+				try {
 					const result = await userApi.searchUser(incomingUserUuid)
 					if (result.success && result.data?.length > 0) { setUserFound(result.data[0]) }
-				}
-				fetchUserData()
-			} catch (error) { /* error fetching user data */ }
-			finally { setIsLoadingUser(false) }
+				} catch (err) { /* error fetching user data */ }
+			}
+			fetchUserData()
 		}
 	}, [incomingUserUuid])
 
@@ -149,9 +142,9 @@ const Send = ({ navigation, route }) => {
 				setSearchResults([])
 				toast.error('Error', { description: result.error })
 			}
-		} catch (error) {
+		} catch (err) {
 			setSearchResults([])
-			toast.error('Error', { description: error.message })
+			toast.error('Error', { description: err.message })
 		} finally { setIsSearching(false) }
 	}
 
@@ -172,8 +165,8 @@ const Send = ({ navigation, route }) => {
 				send_amount: amount,
 				description: description
 			})
-		} catch (error) {
-			toast.error('Error', { description: error.message })
+		} catch (err) {
+			toast.error('Error', { description: err.message })
 		} finally { setIsLoading(false) }
 	}
 
@@ -233,9 +226,9 @@ const Send = ({ navigation, route }) => {
 								<TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
 									<FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
 								</TouchableOpacity>
-								{carouselUsers.map((user, index) => (
-									<Pressable key={user.uuid || index} onPress={() => setIncomingUserUuid(user.uuid)}>
-										<QPAvatar user={user} size={56} />
+								{carouselUsers.map((carouselUser, index) => (
+									<Pressable key={carouselUser.uuid || index} onPress={() => setIncomingUserUuid(carouselUser.uuid)}>
+										<QPAvatar user={carouselUser} size={56} />
 									</Pressable>
 								))}
 							</View>

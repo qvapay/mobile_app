@@ -172,7 +172,7 @@ const AppLock = () => {
 				{[0, 1, 2, 3].map((index) => (
 					<TextInput
 						key={`${fieldName}-${index}`}
-						ref={(ref) => refs.current[index] = ref}
+						ref={(ref) => { refs.current[index] = ref }}
 						style={[styles.pinInput, {
 							backgroundColor: theme.colors.surface,
 							color: theme.colors.primaryText,
@@ -201,7 +201,7 @@ const AppLock = () => {
 	// Enabled view - show settings
 	if (appLockEnabled && mode === 'info') {
 		return (
-			<View style={containerStyles.subContainer}>
+			<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
 					<Text style={textStyles.h1}>Bloqueo de app</Text>
@@ -266,14 +266,16 @@ const AppLock = () => {
 						</View>
 					)}
 
-					{/* Actions */}
+				</ScrollView>
+
+				{/* Actions */}
+				<View style={containerStyles.bottomButtonContainer}>
 					<QPButton
 						title="Cambiar PIN de bloqueo"
 						onPress={() => {
 							setMode('changePin')
 							setTimeout(() => oldPinRefs.current[0]?.focus(), 100)
 						}}
-						style={{ marginTop: 8 }}
 					/>
 					<QPButton
 						title="Desactivar bloqueo"
@@ -281,8 +283,7 @@ const AppLock = () => {
 						style={{ marginTop: 12 }}
 						danger
 					/>
-
-				</ScrollView>
+				</View>
 			</View>
 		)
 	}
@@ -290,7 +291,7 @@ const AppLock = () => {
 	// Change PIN view
 	if (mode === 'changePin') {
 		return (
-			<View style={containerStyles.subContainer}>
+			<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
 					<Text style={textStyles.h1}>Cambiar PIN</Text>
@@ -302,30 +303,30 @@ const AppLock = () => {
 					{renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', confirmPinRefs)}
 					{renderPinRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
 
-					<View style={{ marginTop: 32 }}>
-						<QPButton
-							title="Actualizar PIN"
-							onPress={handleChangePin}
-							loading={isLoading}
-							disabled={oldPin.length !== 4 || pin.length !== 4 || confirmPin.length !== 4}
-						/>
-						<QPButton
-							title="Cancelar"
-							onPress={resetForm}
-							style={{ marginTop: 12 }}
-							danger
-							outlined
-						/>
-					</View>
-
 				</ScrollView>
+
+				<View style={containerStyles.bottomButtonContainer}>
+					<QPButton
+						title="Actualizar PIN"
+						onPress={handleChangePin}
+						loading={isLoading}
+						disabled={oldPin.length !== 4 || pin.length !== 4 || confirmPin.length !== 4}
+					/>
+					<QPButton
+						title="Cancelar"
+						onPress={resetForm}
+						style={{ marginTop: 12 }}
+						danger
+						outlined
+					/>
+				</View>
 			</View>
 		)
 	}
 
 	// Setup / Disabled view
 	return (
-		<View style={containerStyles.subContainer}>
+		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
 				{mode === 'info' && (
@@ -366,14 +367,6 @@ const AppLock = () => {
 								</Text>
 							</View>
 						</View>
-
-						<QPButton
-							title="Activar bloqueo"
-							onPress={() => {
-								setMode('setup')
-								setTimeout(() => pinRefs.current[0]?.focus(), 100)
-							}}
-						/>
 					</>
 				)}
 
@@ -385,21 +378,6 @@ const AppLock = () => {
 						</Text>
 
 						{renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', null)}
-
-						<View style={{ marginTop: 32 }}>
-							<QPButton
-								title="Continuar"
-								onPress={handleEnable}
-								disabled={pin.length !== 4}
-							/>
-							<QPButton
-								title="Cancelar"
-								onPress={resetForm}
-								style={{ marginTop: 12 }}
-								danger
-								outlined
-							/>
-						</View>
 					</>
 				)}
 
@@ -411,27 +389,58 @@ const AppLock = () => {
 						</Text>
 
 						{renderPinRow('Confirmar PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
-
-						<View style={{ marginTop: 32 }}>
-							<QPButton
-								title="Activar bloqueo"
-								textStyle={{ color: theme.colors.buttonText }}
-								onPress={handleEnable}
-								loading={isLoading}
-								disabled={confirmPin.length !== 4}
-							/>
-							<QPButton
-								title="Cancelar"
-								onPress={resetForm}
-								style={{ marginTop: 12 }}
-								danger
-								outlined
-							/>
-						</View>
 					</>
 				)}
 
 			</ScrollView>
+
+			<View style={containerStyles.bottomButtonContainer}>
+				{mode === 'info' && (
+					<QPButton
+						title="Activar bloqueo"
+						onPress={() => {
+							setMode('setup')
+							setTimeout(() => pinRefs.current[0]?.focus(), 100)
+						}}
+					/>
+				)}
+
+				{mode === 'setup' && (
+					<>
+						<QPButton
+							title="Continuar"
+							onPress={handleEnable}
+							disabled={pin.length !== 4}
+						/>
+						<QPButton
+							title="Cancelar"
+							onPress={resetForm}
+							style={{ marginTop: 12 }}
+							danger
+							outlined
+						/>
+					</>
+				)}
+
+				{mode === 'confirm' && (
+					<>
+						<QPButton
+							title="Activar bloqueo"
+							textStyle={{ color: theme.colors.buttonText }}
+							onPress={handleEnable}
+							loading={isLoading}
+							disabled={confirmPin.length !== 4}
+						/>
+						<QPButton
+							title="Cancelar"
+							onPress={resetForm}
+							style={{ marginTop: 12 }}
+							danger
+							outlined
+						/>
+					</>
+				)}
+			</View>
 		</View>
 	)
 }

@@ -41,7 +41,7 @@ const Store = ({ navigation }) => {
 	const [externalPlans, setExternalPlans] = useState([])
 	const [microPlans, setMicroPlans] = useState([])
 	const [giftCards, setGiftCards] = useState([])
-	const [myPurchases, setMyPurchases] = useState([])
+	const [, setMyPurchases] = useState([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [isRefreshing, setIsRefreshing] = useState(false)
 

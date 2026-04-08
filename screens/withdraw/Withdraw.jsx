@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native'
 
 // Theme
@@ -54,8 +54,8 @@ const Withdraw = ({ navigation }) => {
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
 	const [workingForm, setWorkingForm] = useState({})
-	const [balance, setBalance] = useState(user?.balance || 0)
-	const [currency, setCurrency] = useState('QUSD')
+	const [balance] = useState(user?.balance || 0)
+	const currency = 'QUSD'
 
 
 	// PIN/OTP step
@@ -76,7 +76,7 @@ const Withdraw = ({ navigation }) => {
 				setIsLoading(true)
 				const response = await apiClient.get('/coins/v2?enabled_out=true')
 				setAvailableCoins(response.data)
-			} catch (error) { /* error fetching coins */ }
+			} catch (err) { /* error fetching coins */ }
 			finally { setIsLoading(false) }
 		}
 		fetchCoins()
@@ -88,26 +88,6 @@ const Withdraw = ({ navigation }) => {
 		const price = Number(selectedCoin.price)
 		return isNaN(price) ? null : price
 	}, [selectedCoin])
-
-	// Calculate fee amount
-	const feeAmount = useMemo(() => {
-		if (!selectedCoin || !amountQUSD) return 0
-		const amount = Number(amountQUSD)
-		if (isNaN(amount)) return 0
-		const feePercent = Number(selectedCoin.fee_out) || 0
-		let feeFixed = 0
-		let useFixedFee = false
-		if (Array.isArray(selectedCoin.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
-			const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
-			const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
-			if (amount < threshold) {
-				feeFixed = fixedAmount
-				useFixedFee = true
-			}
-		} else { feeFixed = Number(selectedCoin.fee_out_fixed) || 0 }
-		if (useFixedFee) { return feeFixed }
-		else { return (amount * feePercent) / 100 }
-	}, [selectedCoin, amountQUSD])
 
 	// Helper function to calculate fee
 	const calculateFee = (amount, coin) => {
@@ -229,9 +209,9 @@ const Withdraw = ({ navigation }) => {
 	}
 
 	// Format balance for display
-	const formatBalance = (balance) => {
-		if (!balance) return '0.00'
-		return parseFloat(balance).toFixed(2)
+	const formatBalance = (val) => {
+		if (!val) return '0.00'
+		return parseFloat(val).toFixed(2)
 	}
 
 	// Request PIN via email
@@ -244,7 +224,7 @@ const Withdraw = ({ navigation }) => {
 			} else {
 				toast.error(result.error || 'No se pudo enviar el PIN')
 			}
-		} catch (error) {
+		} catch (err) {
 			toast.error('Error al solicitar el PIN')
 		} finally { setSendingPin(false) }
 	}
@@ -278,7 +258,7 @@ const Withdraw = ({ navigation }) => {
 			} else {
 				toast.error(result.error || 'No se pudo completar la extracción')
 			}
-		} catch (error) {
+		} catch (err) {
 			toast.error('Error al procesar la extracción')
 		} finally { setSendingWithdraw(false) }
 	}
@@ -458,7 +438,7 @@ const Withdraw = ({ navigation }) => {
 							</View>
 							{selectedCoin && amountCoin && !selectedCoin.stable && (
 								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}></Text>
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]} />
 									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
 										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
 											Aproximado:
@@ -530,7 +510,7 @@ const Withdraw = ({ navigation }) => {
 								{Array.from({ length: codeLength }, (_, index) => (
 									<TextInput
 										key={`${twoFactorMethod}-${index}`}
-										ref={(ref) => pinInputsRef.current[index] = ref}
+										ref={(ref) => { pinInputsRef.current[index] = ref }}
 										style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold, backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
 										value={pin[index] || ''}
 										onChangeText={(text) => handlePinChange(text, index)}

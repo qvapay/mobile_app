@@ -57,7 +57,6 @@ const P2PCreate = ({ navigation }) => {
 	const [type, setType] = useState("buy") // 'buy' | 'sell'
 	const [amount, setAmount] = useState("")
 	const [receive, setReceive] = useState("")
-	const [details, setDetails] = useState("")
 	const [message, setMessage] = useState("")
 	const [advancedOpen, setAdvancedOpen] = useState(false)
 
@@ -75,7 +74,7 @@ const P2PCreate = ({ navigation }) => {
 	const [showSavedMethods, setShowSavedMethods] = useState(false)
 	const [savedMethods, setSavedMethods] = useState([])
 	const [savedMethodsLoading, setSavedMethodsLoading] = useState(false)
-	const [p2pEnabled, setP2pEnabled] = useState(user.p2p_enabled)
+	const [p2pEnabled] = useState(user.p2p_enabled)
 
 	// Button Text State with Type and Amount values
 	const [buttonText, setButtonText] = useState("")
@@ -90,7 +89,7 @@ const P2PCreate = ({ navigation }) => {
 				setIsLoading(true)
 				const response = await coinsApi.index({ enabled_p2p: true })
 				setAvailableCoins(response.data)
-			} catch (error) {
+			} catch (err) {
 				// error fetching coins
 			} finally { setIsLoading(false) }
 		}
@@ -126,7 +125,7 @@ const P2PCreate = ({ navigation }) => {
 	// Handle publish
 	const handlePublish = async () => {
 
-		if (type != "buy" && type != "sell") {
+		if (type !== "buy" && type !== "sell") {
 			toast.error("Datos incompletos", { description: "Debes seleccionar una opción" })
 			return
 		}
@@ -185,8 +184,8 @@ const P2PCreate = ({ navigation }) => {
 				toast.error("Error al crear la oferta", { description: errMsg })
 			}
 
-		} catch (error) {
-			toast.error("Error al crear la oferta", { description: error.message })
+		} catch (err) {
+			toast.error("Error al crear la oferta", { description: err.message })
 		} finally { setIsSending(false) }
 	}
 
@@ -499,7 +498,7 @@ const P2PCreate = ({ navigation }) => {
 							(savedMethods || []).map((method) => {
 								const name = method?.name || method?.coin?.name || "Método"
 								const rawDetails = (method && (method.details || method.Details)) || null
-								const details = Array.isArray(rawDetails)
+								const methodDetails = Array.isArray(rawDetails)
 									? rawDetails
 									: rawDetails && typeof rawDetails === "object"
 										? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") }))
@@ -508,9 +507,9 @@ const P2PCreate = ({ navigation }) => {
 									<Pressable key={method.id || method.uuid || JSON.stringify(method)} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleSelectSavedMethod(method)}>
 										<View style={{ flex: 1 }}>
 											<Text style={textStyles.h4}>{name}</Text>
-											{details.length > 0 && (
+											{methodDetails.length > 0 && (
 												<View style={{ marginTop: 6, gap: 4 }}>
-													{details.slice(0, 4).map((d, idx) => (
+													{methodDetails.slice(0, 4).map((d, idx) => (
 														<View key={idx} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
 															<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
 															<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600", marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>

@@ -6,7 +6,7 @@ import { useAuth } from '../AuthContext'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
+import { createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
@@ -21,12 +21,11 @@ import { toast } from 'sonner-native'
 const RegisterScreen = ({ navigation }) => {
 
 	// Auth Context
-	const { register, clearError, error, confirmRegistration } = useAuth()
+	const { register, clearError, confirmRegistration } = useAuth()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
-	const containerStyles = createContainerStyles(theme)
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
@@ -41,7 +40,6 @@ const RegisterScreen = ({ navigation }) => {
 
 	// Pin State
 	const [pinEnabled, setPinEnabled] = useState(false)
-	const [pinError, setPinError] = useState(false)
 	const [pin, setPin] = useState('')
 	const [requestPin, setRequestPin] = useState(false)
 
@@ -95,7 +93,7 @@ const RegisterScreen = ({ navigation }) => {
 			}
 			if (!result.success) { toast.error(result.error || 'No se pudo completar el registro') }
 
-		} catch (error) {
+		} catch (err) {
 			toast.error('Error de conexión, por favor intenta de nuevo')
 		} finally { setIsLoading(false) }
 	}
@@ -127,7 +125,7 @@ const RegisterScreen = ({ navigation }) => {
 				toast.error(result.error || 'Error al verificar el PIN')
 			}
 
-		} catch (error) {
+		} catch (err) {
 			toast.error('Error de conexión durante la verificación')
 		} finally { setIsLoading(false) }
 	}

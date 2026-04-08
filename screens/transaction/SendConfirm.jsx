@@ -354,7 +354,7 @@ const SendConfirm = ({ navigation, route }) => {
 							{Array.from({ length: codeLength }, (_, index) => (
 								<TextInput
 									key={`${twoFactorMethod}-${index}`}
-									ref={(ref) => pinInputsRef.current[index] = ref}
+									ref={(ref) => { pinInputsRef.current[index] = ref }}
 									style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5, fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
 									value={pin[index] || ''}
 									onChangeText={(text) => handlePinChange(text, index)}

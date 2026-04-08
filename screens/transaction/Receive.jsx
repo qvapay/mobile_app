@@ -43,7 +43,7 @@ const Receive = ({ route }) => {
 	}
 
 	return (
-		<View style={containerStyles.subContainer}>
+		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 			<ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
 				{/* Profile */}
@@ -85,29 +85,29 @@ const Receive = ({ route }) => {
 					</Text>
 				</View>
 
-				{/* Action Buttons */}
-				<View style={styles.actions}>
-					<QPButton
-						title="Compartir"
-						icon="share-nodes"
-						iconColor="white"
-						onPress={handleShare}
-						style={{ backgroundColor: theme.colors.primary }}
-						textStyle={{ color: theme.colors.almostWhite }}
-						iconStyle="solid"
-					/>
-					<QPButton
-						title="Copiar enlace"
-						icon="copy"
-						iconColor={theme.colors.contrast}
-						onPress={() => copyTextToClipboard(qrUrl)}
-						style={{ backgroundColor: theme.colors.elevation, marginTop: 10 }}
-						textStyle={{ color: theme.colors.contrast }}
-						iconStyle="solid"
-					/>
-				</View>
-
 			</ScrollView>
+
+			{/* Action Buttons */}
+			<View style={[styles.actions, containerStyles.bottomButtonContainer]}>
+				<QPButton
+					title="Compartir"
+					icon="share-nodes"
+					iconColor="white"
+					onPress={handleShare}
+					style={{ backgroundColor: theme.colors.primary }}
+					textStyle={{ color: theme.colors.almostWhite }}
+					iconStyle="solid"
+				/>
+				<QPButton
+					title="Copiar enlace"
+					icon="copy"
+					iconColor={theme.colors.contrast}
+					onPress={() => copyTextToClipboard(qrUrl)}
+					style={{ backgroundColor: theme.colors.elevation, marginTop: 10 }}
+					textStyle={{ color: theme.colors.contrast }}
+					iconStyle="solid"
+				/>
+			</View>
 		</View>
 	)
 }

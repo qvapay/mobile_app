@@ -11,8 +11,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 const QPInput = forwardRef((props, ref) => {
 
 	const { style, multiline, prelabel } = props
-	const hasPrefix = props.prefixIconName !== undefined
-	const hasSuffix = props.suffixIconName !== undefined
+	const hasPrefix = !!props.prefixIconName
+	const hasSuffix = !!props.suffixIconName
 
 	// States
 	const [isSecure, setIsSecure] = useState(props.secureTextEntry)

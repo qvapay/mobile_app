@@ -4,8 +4,6 @@ import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 import {
 	getBiometricCredentials,
-	hasBiometricCredentials,
-	getSupportedBiometryType,
 	getAppLockPin,
 	setAppLockPin,
 	hasAppLockPin,

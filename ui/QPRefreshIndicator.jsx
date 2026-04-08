@@ -35,7 +35,7 @@ export default function QPRefreshIndicator({ refreshing }) {
             cancelAnimation(opacity)
             opacity.value = withTiming(0, { duration: 300 })
         }
-    }, [refreshing])
+    }, [refreshing, opacity])
 
     const animatedStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,

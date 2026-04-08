@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
 
 // Theme
@@ -51,7 +51,7 @@ const PaymentMethods = ({ navigation }) => {
 	const [methods, setMethods] = useState([])
 	const [availableCoins, setAvailableCoins] = useState([])
 	const [error, setError] = useState(null)
-	const [refreshing, setRefreshing] = useState(false)
+	const [, setRefreshing] = useState(false)
 
 	// Create flow state
 	const [showCreate, setShowCreate] = useState(false)
@@ -228,7 +228,7 @@ const PaymentMethods = ({ navigation }) => {
 											{details.slice(0, 4).map((d, idx) => (
 												<View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-													{d.name == "Wallet" ? (
+													{d.name === "Wallet" ? (
 														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{reduceStringInside(d.value || d.val, 8)}</Text>
 													) : (
 														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>

@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react'
+import { forwardRef } from 'react'
 import { StyleSheet, View, TextInput } from 'react-native'
 
 // Theme

@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
-import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
+import { createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
@@ -54,7 +54,6 @@ export default function Keypad({ navigation }) {
 	const hapticFeedbackEnabled = useRef(true)
 
 	// Memoized values
-	const textStyles = useMemo(() => createTextStyles(theme), [theme])
 	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
 
 	// Keypad layout
@@ -187,7 +186,7 @@ export default function Keypad({ navigation }) {
 
 		try {
 			navigation.navigate(ROUTES.SEND, { send_amount: numericAmount.toString() })
-		} catch (error) {
+		} catch (err) {
 			toast.error('Error', { description: 'Error al procesar la solicitud de envío' })
 		} finally { setIsProcessing(false) }
 

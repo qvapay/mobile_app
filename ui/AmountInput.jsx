@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-nativ
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
-import { createTextStyles, createContainerStyles } from '../theme/themeUtils'
+import { createTextStyles } from '../theme/themeUtils'
 
 // UI Particles
 import QPCoin from './particles/QPCoin'
@@ -19,15 +19,14 @@ const AmountInput = ({
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
-	const containerStyles = createContainerStyles(theme)
 
 	// Common amounts for quick selection
 	const commonAmounts = [25, 50, 75, 100, 125, 150]
 
 	// Format balance for display
-	const formatBalance = (balance) => {
-		if (!balance) return '0.00'
-		return parseFloat(balance).toFixed(2)
+	const formatBalance = (val) => {
+		if (!val) return '0.00'
+		return parseFloat(val).toFixed(2)
 	}
 
 	// Handle amount selection from badges

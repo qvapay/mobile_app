@@ -44,7 +44,7 @@ const SendSuccess = ({ navigation }) => {
 		if (sounds.enabled && sounds.transactionSound) {
 			playSound('money_out')
 		}
-	}, [])
+	}, [sounds.enabled, sounds.transactionSound])
 
 	// Show push prompt with delay after mount
 	useEffect(() => {

@@ -1,5 +1,4 @@
-import { useMemo } from 'react'
-import { StyleSheet, Text, View, Pressable } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'

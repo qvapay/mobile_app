@@ -35,6 +35,14 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Toast
 import { toast } from 'sonner-native'
 
+// Quick coin pills for deposit
+const DEFAULT_DEPOSIT_COINS = [
+	{ tick: 'USDT', label: 'USDT' },
+	{ tick: 'BTC', label: 'BTC' },
+	{ tick: 'USDTBSC', label: 'USDT BSC' },
+]
+const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
+
 // Add money into the platform
 const Add = ({ navigation }) => {
 
@@ -51,8 +59,6 @@ const Add = ({ navigation }) => {
 	const [amount, setAmount] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState(null)
-	const [success, setSuccess] = useState(null)
-	const [showInstructions, setShowInstructions] = useState(false)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 	const [showDepositModal, setShowDepositModal] = useState(false)
 	const [topupData, setTopupData] = useState(null)
@@ -75,7 +81,7 @@ const Add = ({ navigation }) => {
 		} else if (newStatus === 'failed') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 		}
-	}, [])
+	}, [updateUser])
 
 	const { isConnected: sseConnected } = useTransactionSSE(
 		showDepositModal ? topupData?.transaction_uuid : null,
@@ -94,7 +100,7 @@ const Add = ({ navigation }) => {
 				setIsLoading(true)
 				const response = await apiClient.get('/coins/v2?enabled_in=true')
 				setAvailableCoins(response.data)
-			} catch (error) {
+			} catch (err) {
 				setError('Error al cargar las monedas disponibles')
 			} finally { setIsLoading(false) }
 		}
@@ -125,7 +131,7 @@ const Add = ({ navigation }) => {
 					Linking.openURL(data.redirect_url)
 				}
 			} else { toast.error('Error al crear la solicitud de depósito') }
-		} catch (error) { setError('Error al crear la solicitud de depósito, intente nuevamente en unos minutos') }
+		} catch (err) { setError('Error al crear la solicitud de depósito, intente nuevamente en unos minutos') }
 		finally { setIsLoading(false) }
 	}
 
@@ -226,11 +232,6 @@ const Add = ({ navigation }) => {
 					</View>
 				)}
 
-				{success && (
-					<View style={[containerStyles.card, { backgroundColor: theme.colors.success + '20', marginVertical: 10 }]}>
-						<Text style={[textStyles.caption, { color: theme.colors.success }]}>{success}</Text>
-					</View>
-				)}
 
 			</QPKeyboardView>
 
@@ -615,6 +616,8 @@ const Add = ({ navigation }) => {
 				isLoading={isLoading}
 				amount={amount}
 				direction="in"
+				recentKey={RECENT_DEPOSIT_KEY}
+				defaultCoins={DEFAULT_DEPOSIT_COINS}
 			/>
 
 		</>

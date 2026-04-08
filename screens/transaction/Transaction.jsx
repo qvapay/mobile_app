@@ -115,7 +115,7 @@ const Transaction = ({ route, navigation }) => {
 	// Determine transaction type and colors
 	const user_uuid = user?.uuid || ''
 	const paid_by_uuid = transactionDetails.paid_by?.uuid || ''
-	const isPaidByMe = user_uuid == paid_by_uuid
+	const isPaidByMe = user_uuid === paid_by_uuid
 	const transactionSign = isPaidByMe ? '-' : '+'
 	const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
 

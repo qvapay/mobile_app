@@ -22,9 +22,6 @@ import { userApi } from '../../../api/userApi'
 // Toast
 import { toast } from 'sonner-native'
 
-// User AuthContext
-import { useAuth } from '../../../auth/AuthContext'
-
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
@@ -39,9 +36,6 @@ import { ROUTES } from '../../../routes'
 
 // Contacts Component
 const Contacts = ({ navigation }) => {
-
-	// User
-	const { user } = useAuth()
 
 	// Theme
 	const { theme } = useTheme()
@@ -157,17 +151,17 @@ const Contacts = ({ navigation }) => {
 
 	// Map API contact to user
 	const mapApiContactToUser = useCallback((contact) => {
-		const user = contact?.Contact || {}
+		const contactUser = contact?.Contact || {}
 		return {
-			uuid: user.uuid,
-			name: user.name || contact?.name,
-			image: user.image,
-			username: user.username,
-			kyc: !!user.kyc,
-			vip: !!user.vip,
-			golden_check: !!user.golden_check,
-			phone_verified: !!user.phone_verified,
-			telegram_verified: !!user.telegram_verified,
+			uuid: contactUser.uuid,
+			name: contactUser.name || contact?.name,
+			image: contactUser.image,
+			username: contactUser.username,
+			kyc: !!contactUser.kyc,
+			vip: !!contactUser.vip,
+			golden_check: !!contactUser.golden_check,
+			phone_verified: !!contactUser.phone_verified,
+			telegram_verified: !!contactUser.telegram_verified,
 		}
 	}, [])
 

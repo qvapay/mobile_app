@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
+import { createTextStyles } from '../../theme/themeUtils'
 
 // Routes
 // import { ROUTES } from '../../routes'
@@ -24,7 +24,6 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
     // Theme variables, dark and light modes
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
-    const containerStyles = createContainerStyles(theme)
 
     // States
     const [email, setEmail] = useState(route.params.email || '')
@@ -35,9 +34,9 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
     const [isLoading, setIsLoading] = useState(false)
 
     // Email validation function
-    const validateEmail = (email) => {
+    const validateEmail = (value) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        return emailRegex.test(email)
+        return emailRegex.test(value)
     }
 
     // Handle restore password
@@ -67,7 +66,7 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
                 setSuccessMessage('Se ha enviado un correo electrónico con las instrucciones para restablecer tu contraseña. Por favor revisa tu bandeja de entrada.')
             } else { setEmailError(result.error || 'Ha ocurrido un error al solicitar el restablecimiento de contraseña') }
 
-        } catch (error) {
+        } catch (err) {
             setEmailError('Ha ocurrido un error inesperado')
         } finally { setIsLoading(false) }
     }

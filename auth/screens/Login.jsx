@@ -9,7 +9,7 @@ import { useSettings } from '../../settings/SettingsContext'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
+import { createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
@@ -39,10 +39,9 @@ const LoginScreen = ({ navigation }) => {
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
-	const containerStyles = createContainerStyles(theme)
 
 	// Auth Context
-	const { login, requestPin, error, clearError } = useAuth()
+	const { login, requestPin, clearError } = useAuth()
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
@@ -128,7 +127,7 @@ const LoginScreen = ({ navigation }) => {
 				const has = await hasBiometricCredentials()
 				setBiometryType(type)
 				setHasBiometrics(has)
-			} catch (error) {
+			} catch (err) {
 				// Biometric detection failed silently
 			}
 		}
@@ -169,7 +168,7 @@ const LoginScreen = ({ navigation }) => {
 				await updateSettings('appearance', { firstTime: false })
 				setShowPin(true)
 			}
-		} catch (error) {
+		} catch (err) {
 			toast.error('Error al acceder con biometría')
 		} finally { setIsLoading(false) }
 	}
@@ -236,7 +235,7 @@ const LoginScreen = ({ navigation }) => {
 					promptBiometricEnrollment(email, password)
 				}
 			}
-		} catch (error) { toast.error('Ha ocurrido un error durante el inicio de sesión') }
+		} catch (err) { toast.error('Ha ocurrido un error durante el inicio de sesión') }
 
 		finally { setIsLoading(false) }
 	}
@@ -271,7 +270,7 @@ const LoginScreen = ({ navigation }) => {
 					promptBiometricEnrollment(email, password)
 				}
 			}
-		} catch (error) { toast.error('Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente') }
+		} catch (err) { toast.error('Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente') }
 		finally { setIsLoading(false) }
 	}
 
@@ -286,7 +285,7 @@ const LoginScreen = ({ navigation }) => {
 				setIsButtonDisabled(true)
 				setRequestPINLabel('01:00')
 			}
-		} catch (error) { toast.error('Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente') }
+		} catch (err) { toast.error('Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente') }
 		finally { setRequestingPIN(false) }
 	}
 
@@ -399,7 +398,7 @@ const LoginScreen = ({ navigation }) => {
 									{Array.from({ length: expectedCodeLength }).map((_, index) => (
 										<TextInput
 											key={`${twoFactorMethod}-${index}`}
-											ref={(ref) => pinInputsRef.current[index] = ref}
+											ref={(ref) => { pinInputsRef.current[index] = ref }}
 											style={[twoFactorMethod === 'otp' ? styles.pinInputSmall : styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: twoFactorMethod === 'otp' ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
 											value={twoFactorCode[index] || ''}
 											onChangeText={(text) => handlePinChange(text, index)}

@@ -10,23 +10,23 @@ const timeSince = (date) => {
 	const secondsPast = (now - desiredDate) / 1000
 
 	if (secondsPast < 60) {
-		const seconds = parseInt(secondsPast)
+		const seconds = parseInt(secondsPast, 10)
 		return `${seconds} segundo${seconds > 1 ? 's' : ''}`
 	}
 	if (secondsPast < 3600) {
-		const minutes = parseInt(secondsPast / 60)
+		const minutes = parseInt(secondsPast / 60, 10)
 		return `${minutes} minuto${minutes > 1 ? 's' : ''}`
 	}
 	if (secondsPast <= 86400) {
-		const hours = parseInt(secondsPast / 3600)
+		const hours = parseInt(secondsPast / 3600, 10)
 		return `${hours} hora${hours > 1 ? 's' : ''}`
 	}
 	if (secondsPast > 86400) {
-		const day = parseInt(secondsPast / 86400)
+		const day = parseInt(secondsPast / 86400, 10)
 		return `${day} dia${day > 1 ? 's' : ''}`
 	}
 	if (secondsPast > 604800) {
-		const week = parseInt(secondsPast / 604800)
+		const week = parseInt(secondsPast / 604800, 10)
 		return `${week} semana${week > 1 ? 's' : ''}`
 	}
 }
@@ -83,11 +83,11 @@ const parseQRData = (data) => {
 	const pathOnly = raw.split('?')[0].split('#')[0]
 
 	// Typed patterns
-	const reUsernameTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/username\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
-	const reUuidTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/uuid\/([0-9a-fA-F-]{8,})(?:\/([^\/?#]+))?\/?$/i
+	const reUsernameTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/username\/([^/?#]+)(?:\/([^/?#]+))?\/?$/i
+	const reUuidTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/uuid\/([0-9a-fA-F-]{8,})(?:\/([^/?#]+))?\/?$/i
 
 	// Untyped pattern (identifier could be username or uuid)
-	const reUntyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/([^\/?#]+)(?:\/([^\/?#]+))?\/?$/i
+	const reUntyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/([^/?#]+)(?:\/([^/?#]+))?\/?$/i
 
 	let match
 
@@ -144,7 +144,7 @@ const filterCoins = ({ coins, in_out_p2p = "IN", amount = 0 }) => {
 	}
 
 	const filterCategoryCoins = (categoryName) => {
-		const category = coins.find((category) => category.name === categoryName)
+		const category = coins.find((cat) => cat.name === categoryName)
 		if (category) {
 			const filteredCoins = category.coins.filter(filterByInOut)
 			if (amount > 0) {

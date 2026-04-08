@@ -202,7 +202,7 @@ const P2POffer = ({ route }) => {
 				setP2p(parsed)
 				setRating(parsed?.rating || 0)
 			}
-		} catch (error) {
+		} catch (err) {
 			// error loading cached P2P
 		}
 
@@ -230,8 +230,8 @@ const P2POffer = ({ route }) => {
 			} else {
 				setError(response.error)
 			}
-		} catch (error) {
-			setError(error.message)
+		} catch (err) {
+			setError(err.message)
 		} finally { setIsLoading(false) }
 	}
 
@@ -245,9 +245,9 @@ const P2POffer = ({ route }) => {
 				const raw = response.data?.chat || response.data
 				setChatMessages(sortMessagesAscending(raw))
 			}
-		} catch (error) {
-			setChatError(error.message)
-			toast.error("Error", { description: error.message })
+		} catch (err) {
+			setChatError(err.message)
+			toast.error("Error", { description: err.message })
 		} finally { setChatLoading(false) }
 	}
 
@@ -326,7 +326,7 @@ const P2POffer = ({ route }) => {
 		setRefreshing(true)
 		try {
 			await Promise.all([refetchP2P(), fetchChat()])
-		} catch (error) {
+		} catch (err) {
 			// Error handling is done in individual fetch functions
 		} finally { setRefreshing(false) }
 	}
@@ -445,7 +445,7 @@ const P2POffer = ({ route }) => {
 			} else if (result.action === Share.dismissedAction) {
 				toast.info("Compartir cancelado")
 			}
-		} catch (error) {
+		} catch (err) {
 			toast.error("No se pudo compartir", { description: String(error?.message || error) })
 		}
 	}
@@ -518,8 +518,8 @@ const P2POffer = ({ route }) => {
 				toast.error("No se pudo calificar", { description: String(res.error || "") })
 				setRating(p2p?.rating || 0)
 			}
-		} catch (error) {
-			toast.error("Error", { description: error.message })
+		} catch (err) {
+			toast.error("Error", { description: err.message })
 			setRating(p2p?.rating || 0)
 		}
 	}

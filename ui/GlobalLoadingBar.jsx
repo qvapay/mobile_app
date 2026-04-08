@@ -34,7 +34,7 @@ export default function GlobalLoadingBar() {
 			cancelAnimation(translateX)
 			opacity.value = withTiming(0, { duration: 300 })
 		}
-	}, [isLoading])
+	}, [isLoading, opacity, translateX])
 
 	const containerStyle = useAnimatedStyle(() => ({
 		opacity: opacity.value,

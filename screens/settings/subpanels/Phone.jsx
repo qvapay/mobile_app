@@ -129,7 +129,7 @@ const Phone = () => {
 			const result = await userApi.verifyPhone({ phone: phone.trim(), country, verify: false })
 			if (result.success) {
 				setShowPinInput(true)
-				toast.success('PIN de verificación enviado')
+				toast.success('PIN enviado a tu Telegram')
 			} else {
 				const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al enviar el código'
 				toast.error(String(errorMsg))
@@ -173,7 +173,7 @@ const Phone = () => {
 	// Verified state
 	if (userPhoneVerified) {
 		return (
-			<View style={containerStyles.subContainer}>
+			<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
 					<Text style={textStyles.h1}>Teléfono</Text>
@@ -208,18 +208,18 @@ const Phone = () => {
 						</View>
 					</View>
 
-					<View style={containerStyles.bottomButtonContainer}>
-						<QPButton
-							title="Eliminar número"
-							onPress={handleRemovePhone}
-							loading={isLoading}
-							disabled={isLoading}
-							style={{ backgroundColor: theme.colors.danger }}
-							textStyle={{ color: theme.colors.almostWhite }}
-						/>
-					</View>
-
 				</ScrollView>
+
+				<View style={containerStyles.bottomButtonContainer}>
+					<QPButton
+						title="Eliminar número"
+						onPress={handleRemovePhone}
+						loading={isLoading}
+						disabled={isLoading}
+						style={{ backgroundColor: theme.colors.danger }}
+						textStyle={{ color: theme.colors.almostWhite }}
+					/>
+				</View>
 			</View>
 		)
 	}
@@ -260,7 +260,7 @@ const Phone = () => {
 			>
 
 				<Text style={textStyles.h1}>Verificar Teléfono</Text>
-				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para recibir un código de verificación</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para verificarlo vía Telegram</Text>
 
 				{/* Status icon */}
 				<View style={{ alignItems: 'center', paddingVertical: 24 }}>
@@ -325,7 +325,7 @@ const Phone = () => {
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-							Verificar tu teléfono te permite recibir notificaciones SMS y añade una capa extra de seguridad a tu cuenta.
+							El código de verificación se enviará a tu cuenta de Telegram asociada a este número. Revisa tus mensajes de Telegram para obtener el PIN.
 						</Text>
 					</View>
 				</View>

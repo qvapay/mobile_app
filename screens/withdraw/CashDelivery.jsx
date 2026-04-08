@@ -472,7 +472,7 @@ const CashDelivery = ({ navigation }) => {
 							{Array.from({ length: codeLength }, (_, index) => (
 								<TextInput
 									key={`${twoFactorMethod}-${index}`}
-									ref={(ref) => pinInputsRef.current[index] = ref}
+									ref={(ref) => { pinInputsRef.current[index] = ref }}
 									style={[
 										styles.pinInput,
 										codeLength === 6 && styles.pinInputSmall,

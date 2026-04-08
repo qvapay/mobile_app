@@ -103,7 +103,7 @@ const Telegram = () => {
     if (isLoadingData) { return (<QPLoader />) }
 
     return (
-        <View style={containerStyles.subContainer}>
+        <View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
             <ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
                 <Text style={textStyles.h1}>Telegram</Text>
@@ -185,28 +185,28 @@ const Telegram = () => {
                     </>
                 )}
 
-                <View style={containerStyles.bottomButtonContainer}>
-                    {telegram_id ? (
-                        <QPButton
-                            title="Desvincular Telegram"
-                            onPress={handleRemoveTelegram}
-                            loading={isLoading}
-                            disabled={isLoading}
-                            style={{ backgroundColor: theme.colors.danger }}
-                            textStyle={{ color: theme.colors.almostWhite }}
-                        />
-                    ) : (
-                        <QPButton
-                            title="Vincular Telegram"
-                            onPress={handleVerifyTelegram}
-                            loading={isLoading}
-                            disabled={isLoading}
-                            textStyle={{ color: theme.colors.buttonText }}
-                        />
-                    )}
-                </View>
-
             </ScrollView>
+
+            <View style={containerStyles.bottomButtonContainer}>
+                {telegram_id ? (
+                    <QPButton
+                        title="Desvincular Telegram"
+                        onPress={handleRemoveTelegram}
+                        loading={isLoading}
+                        disabled={isLoading}
+                        style={{ backgroundColor: theme.colors.danger }}
+                        textStyle={{ color: theme.colors.almostWhite }}
+                    />
+                ) : (
+                    <QPButton
+                        title="Vincular Telegram"
+                        onPress={handleVerifyTelegram}
+                        loading={isLoading}
+                        disabled={isLoading}
+                        textStyle={{ color: theme.colors.buttonText }}
+                    />
+                )}
+            </View>
         </View>
     )
 }
