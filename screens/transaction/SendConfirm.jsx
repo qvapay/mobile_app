@@ -380,14 +380,6 @@ const SendConfirm = ({ navigation, route }) => {
 }
 
 const styles = StyleSheet.create({
-	requestPinButton: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		padding: 14,
-		borderRadius: 12,
-		borderWidth: 1,
-	},
 	pinContainer: {
 		flexDirection: 'row',
 		marginVertical: 20,

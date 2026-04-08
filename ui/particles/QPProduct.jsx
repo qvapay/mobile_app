@@ -27,7 +27,7 @@ const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo
 
 			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]}>
 				{logoImage ? (
-					<FastImage source={{ uri: logoImage, priority: FastImage.priority.normal }} style={styles.topupImage} resizeMode={FastImage.resizeMode.cover} />
+					<FastImage source={{ uri: logoImage, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.topupImage} resizeMode={FastImage.resizeMode.cover} />
 				) : null}
 			</View>
 

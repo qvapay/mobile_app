@@ -515,17 +515,6 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		padding: 20,
 	},
-	header: {
-		alignItems: 'center',
-		marginBottom: 20,
-	},
-	headerIcon: {
-		width: 56,
-		height: 56,
-		borderRadius: 28,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
 	swapCard: {
 		borderRadius: 16,
 		paddingHorizontal: 20,

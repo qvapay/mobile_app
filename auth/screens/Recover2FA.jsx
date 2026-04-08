@@ -21,12 +21,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         justifyContent: 'center',
     },
-    imageLogo: {
-        width: 200,
-        height: 200,
-        alignSelf: 'center',
-        resizeMode: 'contain',
-    },
 })
 
 export default Recover2FAScreen

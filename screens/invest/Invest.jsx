@@ -405,20 +405,6 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 	},
 	chipText: {},
-	trendRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'flex-end',
-		gap: 3,
-		marginTop: 1,
-	},
-	exploreAllBtn: {
-		alignItems: 'center',
-		paddingVertical: 12,
-		borderRadius: 25,
-		marginTop: 10,
-	},
-	exploreAllText: {},
 	// P2P
 	p2pInfo: {
 		flex: 1,
@@ -433,14 +419,6 @@ const styles = StyleSheet.create({
 		gap: 4,
 	},
 	p2pPrice: {},
-	spreadBadge: {
-		width: 42,
-		paddingVertical: 2,
-		paddingHorizontal: 4,
-		borderRadius: 6,
-		alignItems: 'center',
-	},
-	spreadText: {},
 	priceCol: {
 		width: 100,
 		alignItems: 'flex-end',
@@ -452,9 +430,6 @@ const styles = StyleSheet.create({
 		borderRadius: 18,
 		justifyContent: 'center',
 		alignItems: 'center',
-	},
-	changeText: {
-		marginTop: 1,
 	},
 	sparklineContainer: {
 		width: 60,
@@ -477,10 +452,6 @@ const styles = StyleSheet.create({
 	emptyText: {
 		textAlign: 'center',
 		paddingVertical: 16,
-	},
-	disclaimer: {
-		textAlign: 'center',
-		marginTop: 6,
 	},
 })
 

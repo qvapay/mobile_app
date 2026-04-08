@@ -356,14 +356,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 16,
 		minHeight: 56,
 	},
-	receiveButton: {
-		borderTopLeftRadius: 12,
-		borderBottomLeftRadius: 12,
-	},
-	sendButton: {
-		borderTopRightRadius: 12,
-		borderBottomRightRadius: 12,
-	},
 	actionButtonDisabled: {
 		opacity: 0.6,
 	},

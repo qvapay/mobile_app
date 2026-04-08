@@ -390,17 +390,8 @@ const styles = StyleSheet.create({
 	primaryButton: {
 		height: 56,
 	},
-	primaryButtonText: {
-		
-		
-		color: '#FFFFFF',
-	},
 	secondaryButton: {
 		height: 56,
-	},
-	secondaryButtonText: {
-		
-		
 	},
 	// Terms
 	terms: {

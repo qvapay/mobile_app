@@ -52,9 +52,7 @@ const MyPurchases = ({ navigation }) => {
 			const response = await storeApi.getMyPurchases()
 			if (response.success) {
 				setPurchases(response.data || [])
-			} else {
-				toast.error('Error', { description: response.error || 'No se pudieron cargar tus compras' })
-			}
+			} else { toast.error('Error', { description: response.error || 'No se pudieron cargar tus compras' }) }
 		} catch (error) {
 			toast.error('Error', { description: 'No se pudo conectar con el servidor' })
 		} finally {
@@ -67,9 +65,7 @@ const MyPurchases = ({ navigation }) => {
 	useEffect(() => { fetchPurchases() }, [fetchPurchases])
 
 	// Handle purchase tap - navigate to PurchaseDetail
-	const handlePurchasePress = (purchase) => {
-		navigation.navigate(ROUTES.PURCHASE_DETAIL, { purchaseId: purchase.id })
-	}
+	const handlePurchasePress = (purchase) => { navigation.navigate(ROUTES.PURCHASE_DETAIL, { purchaseId: purchase.id }) }
 
 	// Get logo URL (same pattern as QPProduct)
 	const getLogoUrl = (logo) => {
@@ -79,6 +75,7 @@ const MyPurchases = ({ navigation }) => {
 
 	// Render purchase item
 	const renderItem = ({ item }) => {
+		
 		const logoUrl = getLogoUrl(item.service_logo)
 		const color = getStatusColor(item.status, theme)
 
@@ -86,7 +83,7 @@ const MyPurchases = ({ navigation }) => {
 			<Pressable style={[styles.purchaseItem, { backgroundColor: theme.colors.surface }]} onPress={() => handlePurchasePress(item)} >
 				<View style={[styles.logoContainer, { backgroundColor: theme.colors.elevationLight }]}>
 					{logoUrl ? (
-						<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
+						<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
 					) : null}
 				</View>
 				<View style={styles.itemContent}>

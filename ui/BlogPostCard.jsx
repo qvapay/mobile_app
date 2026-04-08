@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Pressable, Image, Linking, useWindowDimensions } from 'react-native'
+import FastImage from '@d11/react-native-fast-image'
+import { View, Text, StyleSheet, Pressable, Linking, useWindowDimensions } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -38,7 +39,7 @@ const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 	return (
 		<Pressable style={[styles.card, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, marginBottom: iPad ? 0 : (index < totalItems - 1 ? 12 : 0), width: cardWidth }]} onPress={handlePress} >
 			<View style={styles.imageContainer}>
-				<Image source={{ uri: post.featuredImage }} style={styles.featuredImage} resizeMode="cover" />
+				<FastImage source={{ uri: post.featuredImage, cache: FastImage.cacheControl.immutable }} style={styles.featuredImage} resizeMode={FastImage.resizeMode.cover} />
 			</View>
 			<View style={styles.contentContainer}>
 				<View style={styles.metaContainer}>
@@ -49,7 +50,7 @@ const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 						<View style={[styles.dot, { backgroundColor: theme.colors.secondaryText }]} />
 					</View>
 					<View style={styles.authorContainer}>
-						<Image source={{ uri: 'https://www.qvapay.com/assets/qvapay-logo-white.png' }} style={styles.authorAvatar} />
+						<FastImage source={{ uri: 'https://www.qvapay.com/assets/qvapay-logo-white.png', cache: FastImage.cacheControl.immutable }} style={styles.authorAvatar} resizeMode={FastImage.resizeMode.cover} />
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
 							{post.author}
 						</Text>
@@ -77,13 +78,6 @@ const styles = StyleSheet.create({
 	featuredImage: {
 		width: '100%',
 		height: '100%',
-	},
-	imageOverlay: {
-		position: 'absolute',
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
 	},
 	contentContainer: {
 		padding: 16,

@@ -1,7 +1,7 @@
-import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import LinearGradient from 'react-native-linear-gradient'
 import FastImage from '@d11/react-native-fast-image'
+import LinearGradient from 'react-native-linear-gradient'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -44,11 +44,7 @@ const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 			{/* Cover Image Area - extends behind header + status bar */}
 			<View style={[styles.coverContainer, { backgroundColor: theme.colors.surface, height: totalCoverHeight, marginTop: -topOffset }]}>
 				{hasCover ? (
-					<FastImage
-						source={{ uri: user.cover_photo_url, priority: FastImage.priority.high }}
-						style={StyleSheet.absoluteFill}
-						resizeMode={FastImage.resizeMode.cover}
-					/>
+					<FastImage source={{ uri: user.cover_photo_url, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />
 				) : (
 					<View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
 						<FontAwesome6 name="image" size={40} color={theme.colors.elevation} iconStyle="solid" />

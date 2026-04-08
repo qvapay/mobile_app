@@ -226,12 +226,6 @@ const styles = StyleSheet.create({
 	},
 	filterInputStyle: {
 	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		minHeight: 200,
-	},
 	packagesContainer: {
 		flex: 1,
 	},

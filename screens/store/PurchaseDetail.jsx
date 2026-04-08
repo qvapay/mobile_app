@@ -158,7 +158,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 				<View style={styles.serviceHeader}>
 					{logoUrl ? (
 						<View style={[styles.logoContainer, { backgroundColor: theme.colors.elevationLight }]}>
-							<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
+							<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
 						</View>
 					) : null}
 					<Text style={[textStyles.h3, { textAlign: 'center' }]}>{purchase.service?.name}</Text>

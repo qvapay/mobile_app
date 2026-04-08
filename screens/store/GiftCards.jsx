@@ -154,12 +154,6 @@ const styles = StyleSheet.create({
 	searchInput: {
 		marginBottom: 16,
 	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		minHeight: 200,
-	},
 	cardsContainer: {
 		flex: 1,
 	},

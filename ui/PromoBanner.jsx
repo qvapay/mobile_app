@@ -35,7 +35,7 @@ const PromoBanner = ({ promo }) => {
 		<Animated.View style={animatedContainerStyle}>
 			<Pressable onPress={handlePress} style={({ pressed }) => [styles.container, { backgroundColor: theme.colors.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
 				{promo.logo ? (
-					<FastImage source={{ uri: promo.logo }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
+					<FastImage source={{ uri: promo.logo, cache: FastImage.cacheControl.web }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
 				) : null}
 				<View style={styles.textContainer}>
 					<Text style={[styles.title, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]} numberOfLines={1}>

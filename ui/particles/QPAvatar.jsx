@@ -12,6 +12,8 @@ import Svg, { Path } from 'react-native-svg'
 
 const AnimatedSvg = Animated.createAnimatedComponent(Svg)
 
+const LOCAL_FALLBACK = require('../../assets/images/ui/logo-qvapay.png')
+
 // Colors matching qpweb: pink (#ec4899) → yellow (#fde68a) → purple (#7e22ce) → pink
 const HALO_COLORS = [
 	'#ec4899', '#f472b6', '#fbbf24', '#fde68a',
@@ -76,15 +78,17 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
 
 	// Variables
 	const borderVip = size / 25
-	const profile_picture = image ? `https://media.qvapay.com/${image}` : 'https://qvapay.com/android-chrome-512x512.png'
 	const hasImage = !!image
+	const source = hasImage
+		? { uri: `https://media.qvapay.com/${image}`, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }
+		: LOCAL_FALLBACK
 
 	return (
 		<View style={[styles.container, { width: size, height: size, borderRadius: size / 2 }]}>
 			{vip && <VipHalo size={size} />}
 			<View style={[styles.avatarContainer, { width: size - (borderVip * 2), height: size - (borderVip * 2), top: borderVip, left: borderVip }]}>
 				<FastImage style={{ width: '100%', height: '100%', borderRadius: (size - (borderVip * 2)) / 2, backgroundColor: vip && !hasImage ? '#ffffff' : 'transparent' }}
-					source={{ uri: profile_picture, priority: FastImage.priority.normal }} resizeMode={FastImage.resizeMode.cover}
+					source={source} resizeMode={FastImage.resizeMode.cover}
 				/>
 			</View>
 		</View>

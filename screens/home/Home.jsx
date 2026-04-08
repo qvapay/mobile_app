@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
+import FastImage from '@d11/react-native-fast-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -113,6 +114,12 @@ const Home = ({ navigation }) => {
 			const result = await transferApi.getLatestTransactions({ take: 6 })
 			if (result.success) {
 				setLatestTransactions(result.data)
+				// Preload avatar images for instant rendering
+				const avatarUrls = result.data
+					.map(t => (t.paid_by_user || t.user)?.image)
+					.filter(Boolean)
+					.map(img => ({ uri: `https://media.qvapay.com/${img}` }))
+				if (avatarUrls.length > 0) FastImage.preload(avatarUrls)
 			}
 		} catch (err) { /* error fetching transactions */ }
 		finally { if (!skipLoading) setIsLoading(false) }

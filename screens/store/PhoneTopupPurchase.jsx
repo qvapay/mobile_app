@@ -194,9 +194,6 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 }
 
 const styles = StyleSheet.create({
-	scrollView: {
-		flex: 1,
-	},
 	errorContainer: {
 		justifyContent: 'center',
 		alignItems: 'center',
@@ -215,8 +212,6 @@ const styles = StyleSheet.create({
 	},
 	inputSection: {
 		marginBottom: 24,
-	},
-	phoneInput: {
 	},
 	balanceInfo: {
 		flexDirection: 'row',
