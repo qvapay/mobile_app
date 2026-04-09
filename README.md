@@ -1,5 +1,7 @@
 # QvaPay Mobile App
 
+![QvaPay App Preview](preview.jpg)
+
 **QvaPay** is a decentralized fintech platform that offers a non-custodial wallet, P2P marketplace, crypto payment gateway, and seamless integration with real-world financial services — all in one mobile app.
 
 > "Building financial technologies that are free and accessible for everyone."
