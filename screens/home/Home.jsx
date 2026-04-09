@@ -215,7 +215,7 @@ const Home = ({ navigation }) => {
 
 				<PromoBanner promo={promo} />
 
-				<BalanceCard balance={user.balance} />
+				<BalanceCard balance={user.balance} navigation={navigation} />
 
 				<ActionButtons navigation={navigation} />
 
