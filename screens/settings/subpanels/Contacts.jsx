@@ -28,6 +28,9 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 // Device Contacts Hook
 import useDeviceContacts from '../../../hooks/useDeviceContacts'
 
+// Online Status
+import { useOnlineStatus } from '../../../hooks/OnlineStatusContext'
+
 // Prominent Disclosure Modal
 import ContactsDisclosureModal from '../../../ui/ContactsDisclosureModal'
 
@@ -42,6 +45,9 @@ const Contacts = ({ navigation }) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
+	// Online status
+	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
+
 	// State
 	const [loading, setLoading] = useState(true)
 	const [contacts, setContacts] = useState([])
@@ -50,6 +56,20 @@ const Contacts = ({ navigation }) => {
 
 	// Local filter
 	const [filterQuery, setFilterQuery] = useState('')
+
+	// Track contacts for online status
+	useEffect(() => {
+		const ids = contacts.map(c => c?.Contact?.uuid).filter(Boolean)
+		if (ids.length) trackUsers(ids)
+		return () => { if (ids.length) untrackUsers(ids) }
+	}, [contacts, trackUsers, untrackUsers])
+
+	// Track search results for online status
+	useEffect(() => {
+		const ids = searchResults.map(u => u.uuid).filter(Boolean)
+		if (ids.length) trackUsers(ids)
+		return () => { if (ids.length) untrackUsers(ids) }
+	}, [searchResults, trackUsers, untrackUsers])
 
 	// Add modal states
 	const [showAddModal, setShowAddModal] = useState(false)
@@ -295,7 +315,7 @@ const Contacts = ({ navigation }) => {
 		return (
 			<View style={cardStyle}>
 				<View style={{ flex: 1 }}>
-					<ProfileContainerHorizontal user={mapApiContactToUser(contact)} size={52} />
+					<ProfileContainerHorizontal user={mapApiContactToUser(contact)} size={52} isOnline={isUserOnline(contact?.Contact?.uuid)} />
 				</View>
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
 					<Pressable onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: contact?.Contact?.uuid })} hitSlop={8}>
@@ -310,7 +330,7 @@ const Contacts = ({ navigation }) => {
 				</View>
 			</View>
 		)
-	}, [containerStyles.card, mapApiContactToUser, handleToggleFavorite, handleDelete, theme, filteredContacts.length, navigation])
+	}, [containerStyles.card, mapApiContactToUser, handleToggleFavorite, handleDelete, theme, filteredContacts.length, navigation, isUserOnline])
 
 	const keyExtractor = useCallback((item) => String(item.id || item.uuid), [])
 
@@ -507,7 +527,7 @@ const Contacts = ({ navigation }) => {
 										alignItems: 'center',
 										gap: 12
 									}}>
-										<QPAvatar user={item} size={48} />
+										<QPAvatar user={item} size={48} isOnline={isUserOnline(item.uuid)} />
 										<View style={{ flex: 1 }}>
 											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 												{item.name} {item.lastname}

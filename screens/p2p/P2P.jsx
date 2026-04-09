@@ -42,6 +42,9 @@ import { useFocusEffect } from "@react-navigation/native"
 // Pull-to-refresh
 import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
+// Online Status
+import { useOnlineStatus } from "../../hooks/OnlineStatusContext"
+
 // Bottom bar hide on scroll (Android only)
 import { useBottomBar } from "../../ui/BottomBarContext"
 
@@ -76,6 +79,9 @@ const P2P = ({ navigation, route }) => {
 	const insets = useSafeAreaInsets()
 	const { height: windowHeight } = useWindowDimensions()
 
+	// Online status
+	const { trackUsers, untrackUsers } = useOnlineStatus()
+
 	// Bottom bar (Android scroll-hide)
 	const { bottomBarVisible } = useBottomBar()
 
@@ -90,6 +96,14 @@ const P2P = ({ navigation, route }) => {
 	const [isLoading, setIsLoading] = useState(false)
 	const [, setIsLoadingData] = useState(true)
 	const [p2pOffers, setP2pOffers] = useState([])
+
+	// Track P2P offer users for online status
+	useEffect(() => {
+		const ids = p2pOffers.flatMap(o => [o.User?.uuid, o.Peer?.uuid]).filter(Boolean)
+		const unique = [...new Set(ids)]
+		if (unique.length) trackUsers(unique)
+		return () => { if (unique.length) untrackUsers(unique) }
+	}, [p2pOffers, trackUsers, untrackUsers])
 	const [refreshing, setRefreshing] = useState(false)
 	const [error, setError] = useState(null)
 	const [p2pEnabled] = useState(user.p2p_enabled)

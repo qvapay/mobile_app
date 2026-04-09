@@ -12,7 +12,7 @@ import QPAvatar from './particles/QPAvatar'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Profile Container Horizontal Component
-const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true }) => {
+const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true, isOnline }) => {
 
 	// Contexts
 	const { theme } = useTheme()
@@ -24,7 +24,7 @@ const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true 
 
 	return (
 		<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-			<QPAvatar size={size} user={user} />
+			<QPAvatar size={size} user={user} isOnline={isOnline} />
 			<View>
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
 					<Text style={textStyles.h5}>{user.name || ''}</Text>

@@ -34,6 +34,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Online Status
+import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
+
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
@@ -78,6 +81,9 @@ const Home = ({ navigation }) => {
 	// Push prompt
 	const { shouldShowBanner, enablePush, dismissBanner } = usePushPrompt()
 
+	// Online status
+	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
+
 	// State
 	const [, setIsLoading] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
@@ -86,6 +92,13 @@ const Home = ({ navigation }) => {
 	const [latestBlogPosts, setLatestBlogPosts] = useState([])
 	const [watchlistData, setWatchlistData] = useState([])
 	const [promo, setPromo] = useState(null)
+
+	// Track quick-pay users for online status
+	useEffect(() => {
+		const ids = latestSentTransfersUsers.map(u => u.uuid).filter(Boolean)
+		if (ids.length) trackUsers(ids)
+		return () => { if (ids.length) untrackUsers(ids) }
+	}, [latestSentTransfersUsers, trackUsers, untrackUsers])
 
 	// Load user data
 	useEffect(() => {
@@ -237,7 +250,7 @@ const Home = ({ navigation }) => {
 							</Pressable>
 							{latestSentTransfersUsers.map((transferUser, index) => (
 								<Pressable key={index} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: transferUser.uuid, send_amount: '0.00' })}>
-									<QPAvatar key={index} user={transferUser} size={56} />
+									<QPAvatar key={index} user={transferUser} size={56} isOnline={isUserOnline(transferUser.uuid)} />
 								</Pressable>
 							))}
 						</View>

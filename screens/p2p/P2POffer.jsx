@@ -28,6 +28,9 @@ import { p2pApi } from "../../api/p2pApi"
 // Toast
 import { toast } from "sonner-native"
 
+// Online Status
+import { useOnlineStatus } from "../../hooks/OnlineStatusContext"
+
 // Helpers
 import { getShortDateTime, reduceStringInside, copyTextToClipboard, detectCopyableText } from "../../helpers"
 
@@ -110,6 +113,9 @@ const P2POffer = ({ route }) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
+
+	// Online status
+	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
 	// States
 	const [p2p, setP2p] = useState(null)
@@ -278,6 +284,13 @@ const P2POffer = ({ route }) => {
 	const payerIsOwner = useMemo(() => (p2p?.type === "buy"), [p2p?.type])
 	const isPayer = useMemo(() => (payerIsOwner ? isOwner : isPeer), [payerIsOwner, isOwner, isPeer])
 	const isReceiver = useMemo(() => (!isPayer && (isOwner || isPeer)), [isPayer, isOwner, isPeer])
+
+	// Track P2P users for online status
+	useEffect(() => {
+		const ids = [p2p?.User?.uuid, p2p?.Peer?.uuid].filter(Boolean)
+		if (ids.length) trackUsers(ids)
+		return () => { if (ids.length) untrackUsers(ids) }
+	}, [p2p?.User?.uuid, p2p?.Peer?.uuid, trackUsers, untrackUsers])
 
 	// Offer Status dynamics
 	const status = p2p?.status || "open"
@@ -741,7 +754,7 @@ const P2POffer = ({ route }) => {
 							<>
 								{p2p?.User && (
 									<View style={[containerStyles.card, { paddingVertical: 6, paddingHorizontal: 8 }]}>
-										<ProfileContainerHorizontal user={p2p.User} size={40} showUsername={false} />
+										<ProfileContainerHorizontal user={p2p.User} size={40} showUsername={false} isOnline={isUserOnline(p2p.User?.uuid)} />
 									</View>
 								)}
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
@@ -754,7 +767,7 @@ const P2POffer = ({ route }) => {
 
 							{counterparty && (
 								<View style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
-									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} />
+									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} isOnline={isUserOnline(counterparty?.uuid)} />
 								</View>
 							)}
 

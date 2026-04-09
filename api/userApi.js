@@ -3,6 +3,19 @@ import { apiClient } from './client'
 export const userApi = {
 
 	/**
+	 * Heartbeat: marks current user as online + fetches tracked users' online statuses
+	 * @param {string[]} trackedUserIds - Array of user UUIDs to check (max 100)
+	 * @returns {Promise<Object>} { success, data: { statuses: { uuid: boolean } } }
+	 */
+	heartbeat: async (trackedUserIds = []) => {
+		try {
+			const body = trackedUserIds.length > 0 ? { trackedUserIds } : {}
+			const response = await apiClient.post('/user/heartbeat', body, { silent: true })
+			return { success: true, data: response.data }
+		} catch (error) { return { success: false, error: error.message } }
+	},
+
+	/**
 	 * Search for a user based on its uuid, username, email or verified phone number
 	 * @param {string} search - The uuid, username, email or verified phone number of the user to search for
 	 * @returns {Promise<Object>} The user data
@@ -11,9 +24,7 @@ export const userApi = {
 		try {
 			const response = await apiClient.post(`/user/search`, { query: search })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
-			return { success: false, error: error.message, status: error.response?.status }
-		}
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
 	},
 
 	/**
@@ -85,11 +96,7 @@ export const userApi = {
 				status: response.status
 			}
 		} catch (error) {
-			return {
-				success: false,
-				error: error.message,
-				status: error.response?.status
-			}
+			return { success: false, error: error.message, status: error.response?.status }
 		}
 	},
 

@@ -26,6 +26,9 @@ import { SettingsProvider, useSettings } from './settings/SettingsContext'
 import { AppLockProvider } from './lock/AppLockContext'
 import LockScreen from './lock/LockScreen'
 
+// Online Status
+import { OnlineStatusProvider } from './hooks/OnlineStatusContext'
+
 // Loading
 import { LoadingProvider, useLoading } from './loading/LoadingContext'
 import { registerLoadingCallbacks, unregisterLoadingCallbacks } from './api/client'
@@ -504,6 +507,7 @@ function App() {
 				<SafeAreaProvider>
 					<LoadingProvider>
 						<AuthProvider>
+							<OnlineStatusProvider>
 							<SettingsProvider>
 								<ThemeProviderWithSettings>
 									<LoadingBridge>
@@ -518,6 +522,7 @@ function App() {
 									</LoadingBridge>
 								</ThemeProviderWithSettings>
 							</SettingsProvider>
+							</OnlineStatusProvider>
 						</AuthProvider>
 					</LoadingProvider>
 				</SafeAreaProvider>

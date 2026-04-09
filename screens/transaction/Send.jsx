@@ -27,6 +27,9 @@ import { toast } from 'sonner-native'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Online Status
+import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
+
 // Send Screen, search user, send money and show success message
 const Send = ({ navigation, route }) => {
 
@@ -52,9 +55,26 @@ const Send = ({ navigation, route }) => {
 	const [searchResults, setSearchResults] = useState([])
 	const [isSearching, setIsSearching] = useState(false)
 
+	// Online status
+	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
+
 	// Errors and Loading
 	const [sendEnabled, setSendEnabled] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
+
+	// Track carousel users for online status
+	useEffect(() => {
+		const ids = carouselUsers.map(u => u.uuid).filter(Boolean)
+		if (ids.length) trackUsers(ids)
+		return () => { if (ids.length) untrackUsers(ids) }
+	}, [carouselUsers, trackUsers, untrackUsers])
+
+	// Track search results for online status
+	useEffect(() => {
+		const ids = searchResults.map(u => u.uuid).filter(Boolean)
+		if (ids.length) trackUsers(ids)
+		return () => { if (ids.length) untrackUsers(ids) }
+	}, [searchResults, trackUsers, untrackUsers])
 
 	// Update send enabled state based on amount and user found
 	useEffect(() => {
@@ -203,7 +223,7 @@ const Send = ({ navigation, route }) => {
 					{userFound ? (
 						<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}>
 							<View style={{ flex: 1, marginRight: 10 }}>
-								<ProfileContainerHorizontal user={userFound} />
+								<ProfileContainerHorizontal user={userFound} isOnline={isUserOnline(userFound?.uuid)} />
 							</View>
 							<TouchableOpacity
 								onPress={() => setUserFound(null)}
@@ -228,7 +248,7 @@ const Send = ({ navigation, route }) => {
 								</TouchableOpacity>
 								{carouselUsers.map((carouselUser, index) => (
 									<Pressable key={carouselUser.uuid || index} onPress={() => setIncomingUserUuid(carouselUser.uuid)}>
-										<QPAvatar user={carouselUser} size={56} />
+										<QPAvatar user={carouselUser} size={56} isOnline={isUserOnline(carouselUser.uuid)} />
 									</Pressable>
 								))}
 							</View>
@@ -349,7 +369,7 @@ const Send = ({ navigation, route }) => {
 														...(index === merged.length - 1 && { borderBottomLeftRadius: radius, borderBottomRightRadius: radius }),
 													}]}
 												>
-													<QPAvatar user={item} size={48} />
+													<QPAvatar user={item} size={48} isOnline={isUserOnline(item.uuid)} />
 													<View style={{ flex: 1 }}>
 														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 															{item.name} {item.lastname}

@@ -26,6 +26,9 @@ import { toast } from 'sonner-native'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Online Status
+import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
+
 // Confirm Screen for Send instructions
 // Shows transaction details and allows user to confirm before sending
 const SendConfirm = ({ navigation, route }) => {
@@ -37,6 +40,9 @@ const SendConfirm = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	// Params from route
 	const { send_amount, user_uuid, description = '' } = route.params || {}
+
+	// Online status
+	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
 	// States
 	const [recipientUser, setRecipientUser] = useState(null)
@@ -53,6 +59,13 @@ const SendConfirm = ({ navigation, route }) => {
 	const pinInputsRef = useRef([])
 	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
 	const scrollViewRef = useRef(null)
+
+	// Track recipient for online status
+	useEffect(() => {
+		const id = recipientUser?.uuid
+		if (id) trackUsers(id)
+		return () => { if (id) untrackUsers(id) }
+	}, [recipientUser?.uuid, trackUsers, untrackUsers])
 
 	// Fetch recipient user data
 	useState(() => {
@@ -274,7 +287,7 @@ const SendConfirm = ({ navigation, route }) => {
 					</Text>
 
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-						<ProfileContainerHorizontal user={recipientUser} />
+						<ProfileContainerHorizontal user={recipientUser} isOnline={isUserOnline(recipientUser?.uuid)} />
 					</View>
 				</View>
 

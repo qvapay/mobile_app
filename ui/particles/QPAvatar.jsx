@@ -70,7 +70,7 @@ const VipHalo = ({ size }) => {
 }
 
 // QvaPay Avatar Component
-const QPAvatar = ({ user = {}, size = 32 }) => {
+const QPAvatar = ({ user = {}, size = 32, isOnline }) => {
 
 	// Optional properties
 	const vip = user?.vip || false
@@ -91,6 +91,19 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
 					source={source} resizeMode={FastImage.resizeMode.cover}
 				/>
 			</View>
+			{isOnline && size >= 24 && (
+				<View style={{
+					position: 'absolute',
+					bottom: size * 0.02,
+					right: size * 0.02,
+					width: size * 0.28,
+					height: size * 0.28,
+					borderRadius: size * 0.14,
+					backgroundColor: '#22c55e',
+					borderWidth: size * 0.04,
+					borderColor: '#ffffff',
+				}} />
+			)}
 		</View>
 	)
 }
@@ -98,7 +111,6 @@ const QPAvatar = ({ user = {}, size = 32 }) => {
 const styles = StyleSheet.create({
 	container: {
 		position: 'relative',
-		overflow: 'hidden',
 	},
 	avatarContainer: {
 		position: 'absolute',

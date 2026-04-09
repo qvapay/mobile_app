@@ -25,6 +25,9 @@ import { toast } from 'sonner-native'
 // Helpers
 import { copyTextToClipboard } from '../../../helpers'
 
+// Online Status
+import { useOnlineStatus } from '../../../hooks/OnlineStatusContext'
+
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
@@ -37,6 +40,9 @@ const Referals = () => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
+
+	// Online status
+	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
 	// State
 	const [referrals, setReferrals] = useState([])
@@ -74,6 +80,13 @@ const Referals = () => {
 		await loadReferralData()
 		setRefreshing(false)
 	}
+
+	// Track referrals for online status
+	useEffect(() => {
+		const ids = referrals.map(r => r.uuid).filter(Boolean)
+		if (ids.length) trackUsers(ids)
+		return () => { if (ids.length) untrackUsers(ids) }
+	}, [referrals, trackUsers, untrackUsers])
 
 	// Load data on mount
 	useEffect(() => {
@@ -219,7 +232,7 @@ const Referals = () => {
 					) : (
 						referrals.map((referral) => (
 							<View key={referral.uuid} style={[styles.referralRow, { backgroundColor: theme.colors.surface }]}>
-								<ProfileContainerHorizontal user={referral} size={40} />
+								<ProfileContainerHorizontal user={referral} size={40} isOnline={isUserOnline(referral.uuid)} />
 								{referral.kyc ? (
 									<View style={[styles.badge, { backgroundColor: theme.colors.success + '20' }]}>
 										<FontAwesome6 name="circle-check" size={10} color={theme.colors.success} iconStyle="solid" />

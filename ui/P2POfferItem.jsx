@@ -15,6 +15,9 @@ import ProfileContainerHorizontal from './ProfileContainerHorizontal'
 // User context
 import { useAuth } from '../auth/AuthContext'
 
+// Online Status
+import { useOnlineStatus } from '../hooks/OnlineStatusContext'
+
 // Routes
 import { ROUTES } from '../routes'
 
@@ -47,6 +50,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 
 	// User context
 	const { user } = useAuth()
+	const { isUserOnline } = useOnlineStatus()
 
 	// Contexts
 	const { theme } = useTheme()
@@ -97,7 +101,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 					{/* User Info */}
 					{show_user && (
 						<View style={{ marginVertical: 2 }}>
-							{offer.Peer && offer.Peer.uuid ? (<ProfileContainerHorizontal user={offer.Peer} size={36} showUsername={false} />) : (<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} />)}
+							{offer.Peer && offer.Peer.uuid ? (<ProfileContainerHorizontal user={offer.Peer} size={36} showUsername={false} isOnline={isUserOnline(offer.Peer.uuid)} />) : (<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} isOnline={isUserOnline(offer.User?.uuid)} />)}
 						</View>
 					)}
 				</View>
