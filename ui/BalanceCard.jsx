@@ -123,19 +123,7 @@ const BalanceCard = ({ balance, navigation }) => {
 
 			{/* Pagination Dots */}
 			<View style={styles.dotsContainer}>
-				{[0, 1].map((i) => (
-					<View
-						key={i}
-						style={[
-							styles.dot,
-							{
-								backgroundColor: activeIndex === i
-									? theme.colors.primaryText
-									: theme.colors.tertiaryText + '40',
-							},
-						]}
-					/>
-				))}
+				{[0, 1].map((i) => (<View key={i} style={[styles.dot, { backgroundColor: activeIndex === i ? theme.colors.primaryText : theme.colors.tertiaryText + '40', }]} />))}
 			</View>
 		</View>
 	)

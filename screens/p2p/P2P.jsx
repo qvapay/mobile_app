@@ -485,6 +485,7 @@ const P2P = ({ navigation, route }) => {
 				</>
 			) : (
 				<ScrollView contentContainerStyle={styles.requirementsContainer} showsVerticalScrollIndicator={false}>
+
 					<FontAwesome6 name="triangle-exclamation" size={40} color={theme.colors.warning} iconStyle="solid" />
 					<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 16 }]}>Requisitos para P2P</Text>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center", marginTop: 6, marginBottom: 24 }]}>
@@ -668,8 +669,7 @@ const styles = StyleSheet.create({
 	},
 	requirementsContainer: {
 		alignItems: "center",
-		paddingVertical: 30,
-		paddingHorizontal: 20,
+		paddingVertical: 30
 	},
 	requirementCard: {
 		flexDirection: "row",
