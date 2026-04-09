@@ -4,11 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="12dp"
-    android:gravity="center"
+    android:padding="14dp"
     android:background="#FF0E0E1C">
 
-    <!-- Header -->
+    <!-- Header: QvaPay + QUSD pill -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -21,74 +20,106 @@
             android:layout_weight="1"
             android:text="QvaPay"
             android:textColor="#FFFFFFFF"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/balance_timestamp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="--:--"
-            android:textColor="#4DFFFFFF"
-            android:textSize="9sp" />
+            android:text="QUSD"
+            android:textColor="#B3FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:background="@drawable/pill_qusd" />
     </LinearLayout>
+
+    <!-- Spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <!-- Balance -->
     <TextView
         android:id="@+id/balance_amount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
         android:text="$0.00"
         android:textColor="#FFFFFFFF"
         android:textSize="28sp"
         android:textStyle="bold" />
 
-    <!-- Username -->
+    <!-- Label -->
     <TextView
-        android:id="@+id/balance_username"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text=""
-        android:textColor="#66FFFFFF"
+        android:text="Balance actual"
+        android:textColor="#73FFFFFF"
         android:textSize="11sp" />
 
-    <!-- Action Buttons -->
+    <!-- Hidden fields for Kotlin compatibility -->
+    <TextView
+        android:id="@+id/balance_username"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/balance_timestamp"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <!-- Spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Circular action buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="12dp"
-        android:gravity="center">
+        android:gravity="start|center_vertical">
 
-        <TextView
+        <FrameLayout
             android:id="@+id/btn_deposit"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="+ Depositar"
-            android:textColor="#FFFFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:padding="8dp"
-            android:background="#407BFFB1" />
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/circle_deposit">
 
-        <TextView
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="+"
+                android:textColor="#FF7BFFB1"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/btn_withdraw"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:text="- Extraer"
-            android:textColor="#FFFFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:padding="8dp"
-            android:background="#40DB253E" />
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/circle_withdraw">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="−"
+                android:textColor="#FFDB253E"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+        </FrameLayout>
     </LinearLayout>
 
 </LinearLayout>

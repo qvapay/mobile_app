@@ -154,7 +154,7 @@ const LoginScreen = ({ navigation }) => {
 					setHasBiometrics(false)
 					await updateSettings('security', { biometricsEnabled: false })
 					toast.error('Credenciales inválidas', { description: 'Inicia sesión manualmente' })
-				} else { toast.error(result.error) }
+				} else { toast.error(String(result.error || 'Error al iniciar sesión')) }
 			}
 
 			// If login is successful and there is a security warning, show the leaked password modal
@@ -216,7 +216,7 @@ const LoginScreen = ({ navigation }) => {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
 				} else {
-					toast.error(result.error)
+					toast.error(String(result.error || 'Error al iniciar sesión'))
 				}
 				if (result.status === 401) { setFailedAttempts(failedAttempts + 1) }
 			}
@@ -256,7 +256,7 @@ const LoginScreen = ({ navigation }) => {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
 				} else {
-					toast.error(result.error, { description: result.details })
+					toast.error(String(result.error || 'Error al iniciar sesión'), { description: typeof result.details === 'string' ? result.details : undefined })
 				}
 				if (result.status === 401) {
 					setFailedAttempts(failedAttempts + 1)
@@ -279,7 +279,7 @@ const LoginScreen = ({ navigation }) => {
 		try {
 			setRequestingPIN(true)
 			const result = await requestPin({ email, password })
-			if (!result.success) { toast.error(result.error) }
+			if (!result.success) { toast.error(String(result.error || 'Error al solicitar PIN')) }
 			if (result.success) {
 				setCountdown(60)
 				setIsButtonDisabled(true)

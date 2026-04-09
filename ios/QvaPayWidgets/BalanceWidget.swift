@@ -29,7 +29,6 @@ struct BalanceProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<BalanceEntry>) -> Void) {
         let entry = readFromStorage()
-        // Refresh every 30 minutes (actual data comes from the app writing to shared storage)
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
@@ -58,67 +57,67 @@ struct BalanceWidgetView: View {
     let entry: BalanceEntry
 
     var body: some View {
-        VStack(spacing: 6) {
-            // Header
+        VStack(alignment: .leading, spacing: 0) {
+            // Header: QvaPay label + QUSD pill
             HStack {
-                Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#6759EF"))
                 Text("QvaPay")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.white)
                 Spacer()
+                Text("QUSD")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.15))
+                    .cornerRadius(10)
             }
 
             Spacer()
 
             // Balance
             Text(String(format: "$%.2f", entry.balance))
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
 
-            if !entry.username.isEmpty {
-                Text("@\(entry.username)")
-                    .font(.system(size: 10))
-                    .foregroundColor(Color.white.opacity(0.4))
-            }
+            // Label
+            Text("Balance actual")
+                .font(.system(size: 11))
+                .foregroundColor(Color.white.opacity(0.45))
+                .padding(.top, 2)
 
             Spacer()
 
-            // Action buttons
-            HStack(spacing: 8) {
+            // Action buttons: circular + and -
+            HStack(spacing: 12) {
                 Link(destination: URL(string: "qvapay://add")!) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 11))
-                        Text("Depositar")
-                            .font(.system(size: 11, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                    .background(Color(hex: "#7BFFB1").opacity(0.25))
-                    .cornerRadius(8)
+                    Circle()
+                        .fill(Color(hex: "#7BFFB1").opacity(0.25))
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Image(systemName: "plus")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(Color(hex: "#7BFFB1"))
+                        )
                 }
 
                 Link(destination: URL(string: "qvapay://withdraw")!) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 11))
-                        Text("Extraer")
-                            .font(.system(size: 11, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                    .background(Color(hex: "#DB253E").opacity(0.25))
-                    .cornerRadius(8)
+                    Circle()
+                        .fill(Color(hex: "#DB253E").opacity(0.25))
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Image(systemName: "minus")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(Color(hex: "#DB253E"))
+                        )
                 }
+
+                Spacer()
             }
         }
-        .padding(12)
+        .padding(14)
         .containerBackground(for: .widget) {
             Color(hex: "#0E0E1C")
         }
@@ -146,6 +145,6 @@ struct BalanceWidget: Widget {
 #Preview("Balance", as: .systemSmall) {
     BalanceWidget()
 } timeline: {
-    BalanceEntry(date: Date(), balance: 1234.56, username: "erich", isPlaceholder: false)
+    BalanceEntry(date: Date(), balance: 1964.45, username: "erich", isPlaceholder: false)
 }
 #endif
