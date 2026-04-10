@@ -4,7 +4,6 @@ import {
 	Text,
 	View,
 	Pressable,
-	Animated,
 	AccessibilityInfo,
 	Vibration,
 	Platform
@@ -50,7 +49,7 @@ export default function Keypad({ navigation }) {
 	const [isProcessing, setIsProcessing] = useState(false)
 
 	// Refs
-	const fontSize = useRef(new Animated.Value(MAX_FONT_SIZE)).current
+	const [fontSize, setFontSize] = useState(MAX_FONT_SIZE)
 	const hapticFeedbackEnabled = useRef(true)
 
 	// Memoized values
@@ -79,14 +78,10 @@ export default function Keypad({ navigation }) {
 		return Math.max(newSize, MIN_FONT_SIZE)
 	}, [])
 
-	// Animate font size change
+	// Update font size
 	const animateFontSize = useCallback((newSize) => {
-		Animated.timing(fontSize, {
-			toValue: newSize,
-			duration: ANIMATION_DURATION,
-			useNativeDriver: false,
-		}).start()
-	}, [fontSize])
+		setFontSize(newSize)
+	}, [])
 
 	// Validate amount input
 	const validateAmount = useCallback((newAmount, key) => {
@@ -97,7 +92,7 @@ export default function Keypad({ navigation }) {
 		// Check decimal places - only for numeric keys, not for decimal point itself
 		if (key !== '.' && key !== 'backspace' && newAmount.includes('.')) {
 			const [, decimalPart] = newAmount.split('.')
-			if (decimalPart && decimalPart.length >= MAX_DECIMAL_PLACES) { return false }
+			if (decimalPart && decimalPart.length > MAX_DECIMAL_PLACES) { return false }
 		}
 
 		// Check total length - exclude decimal point from length calculation for validation

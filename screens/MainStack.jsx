@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Pressable, View, Text, Image, Platform } from 'react-native'
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Liquid glass requires iOS 26+
@@ -246,6 +247,10 @@ const MainStack = ({ navigation }) => {
 		}),
 	}), [showLabels, containerStyles, theme, navigation])
 
+	const hapticTabListeners = useMemo(() => ({
+		tabPress: () => ReactNativeHapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false }),
+	}), [])
+
 	// Safety check for user data (after all hooks)
 	if (!isAuthenticated || !user) { return null }
 
@@ -256,37 +261,42 @@ const MainStack = ({ navigation }) => {
 					initialRouteName={ROUTES.HOME_SCREEN}
 					backBehavior='initialRoute'
 					screenOptions={screenOptions}
-					{...(Platform.OS === 'android' ? { tabBar: (props) => <AnimatedTabBar {...props} /> } : {})}
+						{...(Platform.OS === 'android' ? { tabBar: (props) => <AnimatedTabBar {...props} /> } : {})}
 				>
 
 					<Tab.Screen
 						name={ROUTES.HOME_SCREEN}
 						component={Home}
 						options={homeOptions}
+						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.INVEST_SCREEN}
 						component={Invest}
 						options={investOptions}
+						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.KEYPAD_SCREEN}
 						component={Keypad}
 						options={keypadOptions}
+						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.P2P_SCREEN}
 						component={P2P}
 						options={p2pOptions}
+						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.STORE_SCREEN}
 						component={Store}
 						options={storeOptions}
+						listeners={hapticTabListeners}
 					/>
 
 				</Tab.Navigator>
