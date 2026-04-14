@@ -41,7 +41,7 @@ const LoginScreen = ({ navigation }) => {
 	const textStyles = createTextStyles(theme)
 
 	// Auth Context
-	const { login, requestPin, clearError } = useAuth()
+	const { login, loginWithPasskey, requestPin, clearError } = useAuth()
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
@@ -289,6 +289,20 @@ const LoginScreen = ({ navigation }) => {
 		finally { setRequestingPIN(false) }
 	}
 
+	// Handle passkey login
+	const handlePasskeyLogin = async () => {
+		try {
+			setIsLoading(true)
+			clearError()
+			const result = await loginWithPasskey()
+			if (!result.success && result.error) {
+				toast.error(String(result.error))
+			}
+		} catch (err) {
+			toast.error('Error al iniciar con Passkey')
+		} finally { setIsLoading(false) }
+	}
+
 	// Handle restore password
 	const handleRestorePassword = () => { navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email }) }
 
@@ -462,23 +476,37 @@ const LoginScreen = ({ navigation }) => {
 					}
 				</View>
 
-				{!showPin && hasBiometrics && biometryType && (
-					<Pressable
-						onPress={handleBiometricLogin}
-						disabled={isLoading}
-						style={({ pressed }) => [
-							styles.biometricButton,
-							{ backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : isLoading ? 0.5 : 1 }
-						]}
-					>
-						{isLoading ? (
-							<ActivityIndicator size="small" color={theme.colors.primary} />
-						) : biometryType === 'FaceID' ? (
-							<FaceIDIcon size={30} color={theme.colors.primary} />
-						) : (
-							<FontAwesome6 name="fingerprint" size={28} color={theme.colors.primary} iconStyle="solid" />
+				{!showPin && (
+					<View style={styles.quickLoginRow}>
+						{hasBiometrics && biometryType && (
+							<Pressable
+								onPress={handleBiometricLogin}
+								disabled={isLoading}
+								style={({ pressed }) => [
+									styles.biometricButton,
+									{ backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : isLoading ? 0.5 : 1 }
+								]}
+							>
+								{isLoading ? (
+									<ActivityIndicator size="small" color={theme.colors.primary} />
+								) : biometryType === 'FaceID' ? (
+									<FaceIDIcon size={30} color={theme.colors.primary} />
+								) : (
+									<FontAwesome6 name="fingerprint" size={28} color={theme.colors.primary} iconStyle="solid" />
+								)}
+							</Pressable>
 						)}
-					</Pressable>
+						<Pressable
+							onPress={handlePasskeyLogin}
+							disabled={isLoading}
+							style={({ pressed }) => [
+								styles.biometricButton,
+								{ backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : isLoading ? 0.5 : 1 }
+							]}
+						>
+							<FontAwesome6 name="key" size={24} color={theme.colors.primary} iconStyle="solid" />
+						</Pressable>
+					</View>
 				)}
 
 				{failedAttempts > 5 && <Text style={[textStyles.h4, { color: theme.colors.danger, textAlign: 'center' }]}>Demasiados intentos, por favor espera 1 minuto para intentar nuevamente</Text>}
@@ -547,13 +575,17 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		textAlign: 'center'
 	},
+	quickLoginRow: {
+		flexDirection: 'row',
+		justifyContent: 'center',
+		gap: 16,
+	},
 	biometricButton: {
 		width: 56,
 		height: 56,
 		borderRadius: 28,
 		alignItems: 'center',
 		justifyContent: 'center',
-		alignSelf: 'center',
 	},
 	modalOverlay: {
 		flex: 1,

@@ -169,6 +169,82 @@ export const authApi = {
 		}
 	},
 
+	// ── Passkeys (WebAuthn) ──────────────────────────────────────────
+
+	/**
+	 * List user's registered passkeys (requires auth)
+	 */
+	getPasskeys: async () => {
+		try {
+			const response = await apiClient.get('/auth/passkey/list')
+			return { success: true, data: response.data.passkeys }
+		} catch (error) {
+			return { success: false, error: error.response?.data?.error || 'Error al obtener passkeys' }
+		}
+	},
+
+	/**
+	 * Delete a passkey by ID (requires auth)
+	 */
+	deletePasskey: async (id) => {
+		try {
+			const response = await apiClient.post('/auth/passkey/delete', { id })
+			return { success: true }
+		} catch (error) {
+			return { success: false, error: error.response?.data?.error || 'Error al eliminar passkey' }
+		}
+	},
+
+	/**
+	 * Get registration options for a new passkey (requires auth)
+	 */
+	getPasskeyRegisterOptions: async (name) => {
+		try {
+			const response = await apiClient.post('/auth/passkey/register-options', { name })
+			return { success: true, data: response.data }
+		} catch (error) {
+			return { success: false, error: error.response?.data?.error || 'Error al generar opciones de registro' }
+		}
+	},
+
+	/**
+	 * Verify and save a new passkey registration (requires auth)
+	 */
+	verifyPasskeyRegistration: async (attestation) => {
+		try {
+			const response = await apiClient.post('/auth/passkey/register-verify', attestation)
+			return { success: true, data: response.data }
+		} catch (error) {
+			return { success: false, error: error.response?.data?.error || 'Error al verificar el registro' }
+		}
+	},
+
+	/**
+	 * Get authentication options for passkey login (no auth required)
+	 */
+	getPasskeyLoginOptions: async () => {
+		try {
+			const response = await apiClient.post('/auth/passkey/login-options')
+			return { success: true, data: response.data }
+		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al generar opciones de autenticación' } }
+	},
+
+	/**
+	 * Verify passkey authentication and login (no auth required)
+	 */
+	verifyPasskeyLogin: async (assertion) => {
+		try {
+			const response = await apiClient.post('/auth/passkey/login-verify', assertion)
+			return {
+				success: true,
+				data: response.data,
+				accessToken: response.data.accessToken,
+				tokenType: response.data.token_type,
+				me: response.data.me,
+			}
+		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al verificar la autenticación' } }
+	},
+
 	/**
 	 * Request password reset
 	 * @param {Object} credentials - Reset password credentials

@@ -155,6 +155,80 @@ export const AuthProvider = ({ children }) => {
 	}
 
 
+	// Login with Passkey (WebAuthn)
+	const loginWithPasskey = async () => {
+
+		try {
+
+			setError(null)
+
+			// 1. Get authentication options from server
+			const optionsResult = await authApi.getPasskeyLoginOptions()
+			if (!optionsResult.success) { return { success: false, error: optionsResult.error } }
+
+			const { sessionId, ...options } = optionsResult.data
+
+			// 2. Authenticate with device passkey
+			const { Passkey } = require('react-native-passkey')
+			const assertion = await Passkey.get(options)
+
+			// 3. Verify with server
+			const verifyResult = await authApi.verifyPasskeyLogin({ sessionId, ...assertion })
+			if (!verifyResult.success) { return { success: false, error: verifyResult.error } }
+
+			// 4. Store credentials (same as regular login)
+			const { accessToken, me } = verifyResult
+			const userData = {
+				uuid: me.uuid,
+				email: me.email,
+				username: me.username,
+				name: me.name,
+				lastname: me.lastname,
+				two_factor_secret: me.two_factor_secret,
+				bio: me.bio,
+				balance: me.balance,
+				satoshis: me.satoshis,
+				phone: me.phone,
+				phone_verified: me.phone_verified,
+				kyc: me.kyc,
+				vip: me.vip,
+				golden_check: me.golden_check,
+				golden_expire: me.golden_expire,
+				p2p_enabled: me.p2p_enabled,
+				cover_photo_url: me.cover ? `https://media.qvapay.com/${me.cover}` : null,
+				image: me.image,
+				average_rating: me.average_rating,
+				role: me.role,
+			}
+
+			await Promise.all([
+				AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
+				setAuthToken(accessToken),
+			])
+
+			setUser(userData)
+			setToken(accessToken)
+			setIsAuthenticated(true)
+
+			OneSignal.login(userData.uuid)
+			OneSignal.User.addTags({
+				kyc: userData.kyc ? 'true' : 'false',
+				vip: userData.vip ? 'true' : 'false',
+				golden_check: userData.golden_check ? 'true' : 'false',
+			})
+
+			return { success: true }
+
+		} catch (err) {
+			// User cancelled or passkey not available
+			if (err?.message?.includes('cancel') || err?.code === 'ERR_PASSKEY_CANCELLED') {
+				return { success: false, error: null } // silent cancel
+			}
+			setError('Error al iniciar sesión con Passkey')
+			return { success: false, error: err.message || 'Error al iniciar sesión con Passkey' }
+		} finally { setIsLoading(false) }
+	}
+
 	// Request PIN function, we call the API to request a PIN
 	const requestPin = async (credentials) => {
 
@@ -313,6 +387,7 @@ export const AuthProvider = ({ children }) => {
 
 		// Functions
 		login,
+		loginWithPasskey,
 		logout,
 		register,
 		updateUser,

@@ -80,7 +80,7 @@ const DeleteAccount = () => {
 				</View>
 
 				{/* Support info */}
-				<View style={[containerStyles.card, { marginBottom: 20 }]}>
+				<View style={containerStyles.card}>
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="headset" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
@@ -89,16 +89,16 @@ const DeleteAccount = () => {
 					</View>
 				</View>
 
-				<View style={containerStyles.bottomButtonContainer}>
-					<QPButton
-						title="Contactar soporte"
-						onPress={handleOpenSupport}
-						style={{ backgroundColor: theme.colors.danger }}
-						textStyle={{ color: theme.colors.almostWhite }}
-					/>
-				</View>
-
 			</ScrollView>
+
+			<View style={containerStyles.bottomButtonContainer}>
+				<QPButton
+					title="Contactar soporte"
+					onPress={handleOpenSupport}
+					style={{ backgroundColor: theme.colors.danger }}
+					textStyle={{ color: theme.colors.almostWhite }}
+				/>
+			</View>
 		</View>
 	)
 }

@@ -81,10 +81,12 @@ const KYC = () => {
 	// Verified state
 	if (isVerified) {
 		return (
-			<View style={[containerStyles.subContainer, styles.center]}>
-				<LottieView source={require('../../../assets/lotties/verified.json')} autoPlay loop={false} style={{ width: 200, height: 200 }} />
-				<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 10 }]}>¡Identidad verificada!</Text>
-				<Text style={[textStyles.h5, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>Gracias por completar la verificación. Ya puedes disfrutar de todos los beneficios.</Text>
+			<View style={containerStyles.subContainer}>
+				<View style={styles.center}>
+					<LottieView source={require('../../../assets/lotties/verified.json')} autoPlay loop={false} style={{ width: 200, height: 200 }} />
+					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 10, textAlign: 'center' }]}>¡Identidad verificada!</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>Gracias por completar la verificación. Ya puedes disfrutar de todos los beneficios.</Text>
+				</View>
 			</View>
 		)
 	}
@@ -96,8 +98,8 @@ const KYC = () => {
 			<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
 				<LottieView source={require('../../../assets/lotties/looking.json')} autoPlay loop style={{ width: 200, height: 200 }} />
 
-				<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 10 }]}>Verificación de identidad</Text>
-				<Text style={[textStyles.h5, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6, marginBottom: 24 }]}>
+				<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 10 }]}>Verificación de identidad</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6, marginBottom: 24 }]}>
 					Verifica tu identidad para acceder a todos los beneficios de QvaPay.
 				</Text>
 
@@ -133,7 +135,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
-		paddingHorizontal: 20,
+		paddingBottom: 80,
 	},
 })
 

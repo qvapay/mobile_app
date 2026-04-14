@@ -84,8 +84,8 @@ const Biometrics = () => {
                         <View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.warning + '20' }}>
                             <FontAwesome6 name="fingerprint" size={48} color={theme.colors.warning} iconStyle="solid" />
                         </View>
-                        <Text style={[textStyles.h2, { color: theme.colors.warning, marginTop: 20 }]}>No disponible</Text>
-                        <Text style={[textStyles.h4, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
+                        <Text style={[textStyles.h1, { color: theme.colors.warning, marginTop: 20 }]}>No disponible</Text>
+                        <Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
                             Tu dispositivo no soporta autenticación biométrica
                         </Text>
                     </View>

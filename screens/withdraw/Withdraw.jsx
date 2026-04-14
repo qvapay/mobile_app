@@ -48,7 +48,6 @@ const Withdraw = ({ navigation, route }) => {
 	// States
 	const [amountQUSD, setAmountQUSD] = useState('')
 	const [amountCoin, setAmountCoin] = useState('')
-	const [netAmount, setNetAmount] = useState('')
 	const [availableCoins, setAvailableCoins] = useState([])
 	const [selectedCoin, setSelectedCoin] = useState(null)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
@@ -89,12 +88,27 @@ const Withdraw = ({ navigation, route }) => {
 		fetchCoins()
 	}, [])
 
-	// Price helpers
-	const coinPrice = useMemo(() => {
-		if (!selectedCoin) { return null }
-		const price = Number(selectedCoin.price)
-		return isNaN(price) ? null : price
+	// Decimals to render for the coin amount input
+	const coinDecimals = useMemo(() => {
+		const d = Number(selectedCoin?.decimals)
+		return Number.isFinite(d) && d >= 0 ? d : 2
 	}, [selectedCoin])
+
+	// USD (neto) -> cantidad en coin
+	const usdToCoin = (usdNet, coin) => {
+		if (!coin) return 0
+		const price = Number(coin.price)
+		if (!coin.stable && price > 0) return usdNet / price
+		return usdNet
+	}
+
+	// Cantidad en coin -> USD (neto)
+	const coinToUsd = (coinAmount, coin) => {
+		if (!coin) return 0
+		const price = Number(coin.price)
+		if (!coin.stable && price > 0) return coinAmount * price
+		return coinAmount
+	}
 
 	// Helper function to calculate fee
 	const calculateFee = (amount, coin) => {
@@ -120,53 +134,44 @@ const Withdraw = ({ navigation, route }) => {
 	}
 
 	// Handlers for amount changes (bidirectional)
+	// QUSD bruto -> cantidad en coin (descontando fee)
 	const handleChangeQUSD = (value) => {
 		setAmountQUSD(value)
 		const num = Number(value)
-		if (coinPrice && !isNaN(num) && selectedCoin) {
+		if (selectedCoin && !isNaN(num) && num > 0) {
 			const totalFee = calculateFee(num, selectedCoin)
-			const calculatedNetAmount = num - totalFee
-			setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
-			const converted = calculatedNetAmount / coinPrice
-			const nearestInteger = Math.round(converted)
-			const difference = Math.abs(converted - nearestInteger)
-			const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
-			setAmountCoin(finalAmount ? String(finalAmount) : '')
+			const netUsd = num - totalFee
+			const netInCoin = usdToCoin(netUsd, selectedCoin)
+			setAmountCoin(netInCoin > 0 ? netInCoin.toFixed(coinDecimals) : '')
 		} else {
-			setNetAmount('')
 			setAmountCoin('')
 		}
 	}
 
-	// Handle change net amount (user wants to receive this net amount in dollars)
-	const handleChangeNetAmount = (value) => {
-		setNetAmount(value)
-		const num = Number(value)
-		if (coinPrice && !isNaN(num) && selectedCoin) {
+	// Cantidad en coin -> QUSD bruto requerido (sumando fee)
+	const handleChangeAmountCoin = (value) => {
+		setAmountCoin(value)
+		const coinAmt = Number(value)
+		if (selectedCoin && !isNaN(coinAmt) && coinAmt > 0) {
+			const netUsd = coinToUsd(coinAmt, selectedCoin)
 			const feePercent = Number(selectedCoin?.fee_out) || 0
 			let requiredQUSD
 
 			if (Array.isArray(selectedCoin?.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
 				const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
 				const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
-				const withPercentageFee = num / (1 - feePercent / 100)
+				const withPercentageFee = feePercent > 0 ? netUsd / (1 - feePercent / 100) : netUsd
 				if (withPercentageFee >= threshold) { requiredQUSD = withPercentageFee }
-				else { requiredQUSD = num + fixedAmount }
+				else { requiredQUSD = netUsd + fixedAmount }
 			} else {
 				const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
-				if (feePercent > 0) { requiredQUSD = (num + feeFixed) / (1 - feePercent / 100) }
-				else { requiredQUSD = num + feeFixed }
+				if (feePercent > 0) { requiredQUSD = (netUsd + feeFixed) / (1 - feePercent / 100) }
+				else { requiredQUSD = netUsd + feeFixed }
 			}
 
-			setAmountQUSD(requiredQUSD ? String(Math.round(requiredQUSD * 100) / 100) : '')
-			const converted = num / coinPrice
-			const nearestInteger = Math.round(converted)
-			const difference = Math.abs(converted - nearestInteger)
-			const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
-			setAmountCoin(finalAmount ? String(finalAmount) : '')
+			setAmountQUSD(requiredQUSD > 0 ? String(Math.round(requiredQUSD * 100) / 100) : '')
 		} else {
 			setAmountQUSD('')
-			setAmountCoin('')
 		}
 	}
 
@@ -200,16 +205,13 @@ const Withdraw = ({ navigation, route }) => {
 		setSelectedCoin(coin)
 		setShowCoinPicker(false)
 		if (amountQUSD) {
-			const price = Number(coin.price)
-			if (!isNaN(price)) {
-				const totalFee = calculateFee(Number(amountQUSD), coin)
-				const calculatedNetAmount = Number(amountQUSD) - totalFee
-				setNetAmount(calculatedNetAmount ? String(Math.round(calculatedNetAmount * 100) / 100) : '')
-				const converted = calculatedNetAmount / price
-				const nearestInteger = Math.round(converted)
-				const difference = Math.abs(converted - nearestInteger)
-				const finalAmount = difference <= 0.01 ? nearestInteger : Math.round(converted * 1000000) / 1000000
-				setAmountCoin(finalAmount ? String(finalAmount) : '')
+			const num = Number(amountQUSD)
+			if (!isNaN(num) && num > 0) {
+				const totalFee = calculateFee(num, coin)
+				const netUsd = num - totalFee
+				const netInCoin = usdToCoin(netUsd, coin)
+				const decimals = Number.isFinite(Number(coin?.decimals)) && Number(coin?.decimals) >= 0 ? Number(coin.decimals) : 2
+				setAmountCoin(netInCoin > 0 ? netInCoin.toFixed(decimals) : '')
 			}
 		}
 		setWorkingForm({})
@@ -418,8 +420,8 @@ const Withdraw = ({ navigation, route }) => {
 								{/* Left side - Amount and available balance */}
 								<View style={{ flex: 1 }}>
 									<TextInput
-										value={netAmount}
-										onChangeText={handleChangeNetAmount}
+										value={amountCoin}
+										onChangeText={handleChangeAmountCoin}
 										placeholder="0.00"
 										placeholderTextColor={theme.colors.placeholder}
 										keyboardType="numeric"
@@ -443,19 +445,6 @@ const Withdraw = ({ navigation, route }) => {
 									)}
 								</Pressable>
 							</View>
-							{selectedCoin && amountCoin && !selectedCoin.stable && (
-								<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]} />
-									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-										<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
-											Aproximado:
-										</Text>
-										<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
-											{formatBalance(amountCoin)} {selectedCoin.tick}
-										</Text>
-									</View>
-								</View>
-							)}
 						</View>
 					</View>
 

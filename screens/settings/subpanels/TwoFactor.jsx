@@ -206,7 +206,7 @@ const TwoFactor = () => {
                         2FA Activo
                     </Text>
 
-                    <Text style={[textStyles.h4, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
+                    <Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
                         Tu cuenta está protegida con autenticación de dos factores
                     </Text>
                 </View>
@@ -250,7 +250,7 @@ const TwoFactor = () => {
             >
 
                 <Text style={textStyles.h1}>Configurar 2FA</Text>
-                <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
+                <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
                     Escanea el código QR con tu app de autenticación (Google Authenticator, Authy, etc.)
                 </Text>
 
@@ -317,7 +317,7 @@ const TwoFactor = () => {
         >
 
             <Text style={textStyles.h1}>Autenticación de Dos Factores</Text>
-            <Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
+            <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
                 Añade una capa extra de seguridad a tu cuenta
             </Text>
 
