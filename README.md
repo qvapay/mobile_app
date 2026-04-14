@@ -19,19 +19,23 @@ QvaPay enables individuals and businesses—especially in underbanked regions li
 
 ## About This App
 
-This mobile application is the primary gateway to QvaPay. Built with **React Native 0.83** and **React 19**, it delivers a fast, native experience on both iOS and Android.
+This mobile application is the primary gateway to QvaPay. Built with **React Native 0.83** and **React 19**, it delivers a fast, native experience on both iOS and Android. Current version: **1.5.0**.
 
 ### Core Features
 
-- Custodial crypto wallet with multi-coin support
+- Non-custodial crypto wallet with multi-coin support
 - USD-equivalent digital balance (QUSD)
-- P2P marketplace with real-time chat, ratings, and editable offers
+- P2P marketplace with real-time chat, ratings, online presence, and editable offers
 - Deposits and withdrawals via 40+ crypto networks and fiat rails
-- KYC verification, 2FA (PIN + TOTP), and biometric authentication
+- Savings account with Roundup (spare-change auto-deposits) and earnings dashboard
+- KYC verification, 2FA (PIN + TOTP), biometric authentication, and **passkey login** (WebAuthn)
 - Transaction history with PDF receipt downloads
-- Phone top-ups and gift card purchases
-- Push notifications for payments and P2P activity
-- Contact list with quick-send shortcuts
+- Phone top-ups and gift cards
+- Push notifications for payments and P2P activity (OneSignal)
+- Contacts screen with quick-send shortcuts and recent recipients
+- Home-screen **widgets** for balance, P2P offers, and crypto rates (iOS + Android)
+- Haptic feedback across navigation and key interactions
+- Edge-to-edge immersive display
 - Light and dark theme with system auto-detection
 
 ## Tech Stack
@@ -45,8 +49,11 @@ This mobile application is the primary gateway to QvaPay. Built with **React Nat
 | Lists | FlashList (Shopify) |
 | Animations | Reanimated 4 |
 | Camera | Vision Camera (QR scanning) |
-| Storage | AsyncStorage |
-| Backend | Next.js API + Prisma + MySQL + Redis |
+| Storage | AsyncStorage + Keychain (secure tokens) |
+| Notifications | OneSignal |
+| Haptics | react-native-haptic-feedback |
+| Auth | Bearer tokens + Passkeys (WebAuthn) |
+| Backend | Next.js 16 API + Prisma + MySQL + Redis |
 
 ## Architecture Overview
 
@@ -94,16 +101,24 @@ npm run android       # Run on Android emulator
 
 - [x] KYC verification flow
 - [x] Biometric login (Face ID / fingerprint)
+- [x] Passkey authentication (WebAuthn) — v1.5.0
 - [x] P2P marketplace with full lifecycle (create, apply, chat, pay, confirm, rate)
 - [x] P2P offer editing for open offers
+- [x] P2P access requirements screen (KYC / VIP gating)
+- [x] Online status tracking for P2P peers and chats
 - [x] Crypto wallet integration (multi-coin deposits and withdrawals)
+- [x] Savings account with Roundup spare-change deposits
+- [x] Home-screen widgets: balance, P2P offers, crypto rates
 - [x] Push notifications (payment alerts, P2P activity)
 - [x] Transaction PDF receipt downloads
 - [x] Phone top-ups and gift cards
+- [x] Referral sharing with dynamic link generation
+- [x] Contacts screen with quick-send
 - [x] PIN + OTP paste support across all auth flows
 - [x] FlashList migration for high-performance lists
+- [x] Haptic feedback across tab navigation and key actions
+- [x] Edge-to-edge immersive display
 - [x] Light/dark theme with system auto-detection
-- [x] Contact list with quick-send
 - [x] Privacy mode (hide balance and transaction amounts)
 - [x] Pull-to-refresh across all screens
 
@@ -111,21 +126,18 @@ npm run android       # Run on Android emulator
 
 - [ ] TypeScript migration (~3% coverage, expanding)
 - [ ] Environment-based API configuration (replace hardcoded dev IP)
-- [ ] Migrate token storage from AsyncStorage to react-native-keychain
+- [ ] Full migration of token storage to `react-native-keychain`
 
 ### Planned
 
 - [ ] Multi-language support (EN/ES)
-- [ ] Savings account UI (deposit, withdraw, earnings dashboard)
 - [ ] P2P dispute resolution flow (revision status)
 - [ ] In-app support chat with ticket system
 - [ ] Merchant dashboard (invoice creation, payment links)
 - [ ] Deep linking for P2P offers and payment requests
 - [ ] Offline mode with transaction queue
-- [ ] Widget for balance display (iOS/Android)
 - [ ] Accessibility improvements (VoiceOver, TalkBack)
 - [ ] End-to-end encryption for P2P chat messages
-- [ ] Referral program UI with stats and rewards
 - [ ] Advanced P2P analytics (volume charts, price history)
 
 ## Contributions

@@ -292,6 +292,19 @@ const detectCopyableText = (text) => {
 	return filtered
 }
 
+// Compact number formatter (mirrors web sidebar tinyfiNumber)
+// > 1000 -> "1.23K" (< 10K) or "9.9K" (>= 10K), no decimals under 1000
+const tinyfiNumber = (number) => {
+	const n = Number(number) || 0
+	if (n >= 1000000) { return `${(n / 1000000).toFixed(1)}M` }
+	if (n > 1000) {
+		if (n < 10000) { return `${(n / 1000).toFixed(2)}K` }
+		return `${(n / 1000).toFixed(1)}K`
+	}
+	if (n < 1000) { return Math.floor(n).toString() }
+	return n.toString()
+}
+
 // export helpers
 export {
 	timeSince,
@@ -312,5 +325,6 @@ export {
 	getTypeColor,
 	reduceStringInside,
 	formatCryptoAmount,
-	detectCopyableText
+	detectCopyableText,
+	tinyfiNumber
 }

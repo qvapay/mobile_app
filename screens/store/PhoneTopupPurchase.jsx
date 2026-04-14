@@ -1,5 +1,12 @@
-import { useState } from 'react'
-import { View, Text, StyleSheet, Alert } from 'react-native'
+import { useState, useLayoutEffect } from 'react'
+import { View, Text, StyleSheet, Alert, Platform } from 'react-native'
+import FastImage from '@d11/react-native-fast-image'
+
+// Helpers
+import { tinyfiNumber } from '../../helpers'
+
+// Liquid glass requires iOS 26+ (same check as MainStack)
+const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -7,7 +14,6 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
-import QPProduct from '../../ui/particles/QPProduct'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 
 // Phone Input
@@ -49,6 +55,34 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 
 	// Check if purchase button should be enabled
 	const isPurchaseEnabled = () => isPhoneValid && !isPurchasing
+
+	// Show balance in the top-right of the native header (plain text, no bubble)
+	useLayoutEffect(() => {
+		const raw = parseFloat(user?.balance || 0)
+		if (Number.isNaN(raw)) { return }
+		const label = `$${tinyfiNumber(raw)}`
+
+		const balanceNode = (
+			<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+				{label}
+			</Text>
+		)
+
+		navigation.setOptions({
+			// Android / older iOS fallback
+			headerRight: () => (
+				<View style={{ marginRight: 16 }}>{balanceNode}</View>
+			),
+			// iOS 26+ liquid glass — render as plain text without the pill background
+			...(supportsLiquidGlass && {
+				unstable_headerRightItems: () => [{
+					type: 'custom',
+					element: balanceNode,
+					hidesSharedBackground: true,
+				}],
+			}),
+		})
+	}, [navigation, user?.balance, theme])
 
 	// Handle purchase
 	const handlePurchase = async () => {
@@ -125,70 +159,153 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 			}
 	
 		>
-			{/* Package Details Card */}
-			<View style={styles.packageContainer}>
-				<QPProduct
-					name={packageItem.name || 'Recarga telefónica'}
-					price={packageItem.price}
-					details={packageItem.details || [
-						packageItem.operator,
-						packageItem.country,
-						packageItem.amount ? `${packageItem.amount} ${packageItem.currency || 'QUSD'}` : null,
-					].filter(Boolean)}
-					logo={packageItem.logo}
-					image={packageItem.image}
-					onPress={() => { }} // Disabled in purchase screen
-					style={styles.packageCard}
-				/>
+			{/* Package Summary (compact) */}
+			<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+				<View style={[styles.summaryThumb, { backgroundColor: theme.colors.elevationLight }]}>
+					{(packageItem.logo || packageItem.image) ? (
+						<FastImage
+							source={{
+								uri: (packageItem.logo || packageItem.image).startsWith('http')
+									? (packageItem.logo || packageItem.image)
+									: `https://media.qvapay.com/${packageItem.logo || packageItem.image}`,
+								priority: FastImage.priority.normal,
+								cache: FastImage.cacheControl.immutable,
+							}}
+							style={styles.summaryThumbImage}
+							resizeMode={FastImage.resizeMode.cover}
+						/>
+					) : null}
+				</View>
+				<View style={styles.summaryContent}>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+						{packageItem.operator || 'Operador'}
+					</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>
+						{packageItem.name || 'Recarga telefónica'}
+					</Text>
+				</View>
+				<Text style={[textStyles.h4, { color: theme.colors.primary, fontWeight: '700' }]}>
+					${Number(packageItem.price || 0).toFixed(2)}
+				</Text>
 			</View>
 
-			{/* Phone Number Input */}
+			{/* Hero: Phone Number Input */}
 			<View style={styles.inputSection}>
-				<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginBottom: 12 }]}>
-					Número de teléfono
+				<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '700', marginBottom: 6 }]}>
+					¿A qué número?
 				</Text>
+				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 20 }]}>
+					Selecciona el país y escribe el número del destinatario.
+				</Text>
+
 				<PhoneInput
 					value={phoneNumber}
 					onChangePhoneNumber={setPhoneNumber}
 					selectedCountry={selectedCountry}
 					onChangeSelectedCountry={setSelectedCountry}
 					defaultCountry="CU"
-					placeholder="Número de teléfono"
-					language="es"
+					placeholder="000 000 000"
+					language="spa"
 					theme={theme.mode === 'light' ? 'light' : 'dark'}
 					phoneInputStyles={{
-						container: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12 },
-						input: { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular },
-						flagContainer: { backgroundColor: theme.colors.elevation, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-						callingCode: { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm },
-						caret: { color: theme.colors.secondaryText },
+						container: {
+							backgroundColor: theme.colors.surface,
+							borderColor: isPhoneValid ? theme.colors.primary : theme.colors.border,
+							borderWidth: 1.5,
+							borderRadius: 16,
+							height: 68,
+							paddingHorizontal: 4,
+						},
+						flagContainer: {
+							backgroundColor: theme.colors.elevation,
+							borderTopLeftRadius: 12,
+							borderBottomLeftRadius: 12,
+							paddingHorizontal: 12,
+							marginVertical: 6,
+							marginLeft: 2,
+						},
+						flag: { fontSize: 26 },
+						callingCode: { width: 0, marginLeft: 0, fontSize: 0, color: 'transparent' },
+						caret: { color: theme.colors.primary, fontSize: 14, marginLeft: 4 },
+						divider: { backgroundColor: theme.colors.border },
+						input: {
+							color: theme.colors.primaryText,
+							fontSize: theme.typography.fontSize.xxl || 22,
+							fontFamily: theme.typography.fontFamily.medium || theme.typography.fontFamily.regular,
+							fontWeight: '600',
+							letterSpacing: 0.5,
+							paddingLeft: 12,
+						},
 					}}
-					modalStyles={{
-						modal: { backgroundColor: theme.colors.background },
-						searchInput: { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: theme.colors.border },
-						countryButton: { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-						callingCode: { color: theme.colors.primaryText },
-						countryName: { color: theme.colors.primaryText },
-					}}
+					showModalAlphabetFilter={false}
+					popularCountries={['CU', 'US', 'ES', 'MX', 'CO', 'VE', 'AR', 'DO']}
+					modalPopularCountriesTitle="Populares"
+					modalAllCountriesTitle="Todos los países"
+					modalNotFoundCountryMessage="No se encontró ningún país"
 					modalSearchInputPlaceholder="Buscar país..."
 					modalSearchInputPlaceholderTextColor={theme.colors.placeholder}
+					modalStyles={{
+						content: { backgroundColor: theme.colors.surface },
+						dragHandleIndicator: { backgroundColor: theme.colors.border },
+						searchInput: {
+							backgroundColor: theme.colors.background,
+							color: theme.colors.primaryText,
+							borderColor: 'transparent',
+							borderWidth: 0,
+						},
+						sectionTitle: {
+							color: theme.colors.tertiaryText,
+							fontSize: theme.typography.fontSize.sm,
+							fontWeight: '600',
+							textTransform: 'uppercase',
+							letterSpacing: 0.8,
+						},
+						countryItem: {
+							backgroundColor: theme.colors.background,
+							borderColor: 'transparent',
+							borderWidth: 0,
+						},
+						flag: { color: theme.colors.primaryText },
+						countryName: {
+							color: theme.colors.primaryText,
+							fontFamily: theme.typography.fontFamily.medium || theme.typography.fontFamily.regular,
+							fontWeight: '600',
+						},
+						callingCode: { color: theme.colors.secondaryText },
+						closeButton: {
+							backgroundColor: theme.colors.background,
+							borderColor: 'transparent',
+							borderWidth: 0,
+						},
+						closeButtonText: { color: theme.colors.primaryText },
+						countryNotFoundMessage: { color: theme.colors.secondaryText },
+					}}
 				/>
-				{phoneNumber.trim().length > 0 && !isPhoneValid && (
-					<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-						Por favor ingresa un número de teléfono válido
-					</Text>
+
+				{phoneNumber.trim().length > 0 && !isPhoneValid ? (
+					<View style={styles.hintRow}>
+						<FontAwesome6 name="circle-exclamation" size={12} color={theme.colors.danger} iconStyle="solid" />
+						<Text style={[textStyles.caption, { color: theme.colors.danger, marginLeft: 6 }]}>
+							Número no válido para el país seleccionado
+						</Text>
+					</View>
+				) : isPhoneValid ? (
+					<View style={styles.hintRow}>
+						<FontAwesome6 name="circle-check" size={12} color={theme.colors.success} iconStyle="solid" />
+						<Text style={[textStyles.caption, { color: theme.colors.success, marginLeft: 6 }]}>
+							Enviaremos la recarga a {fullPhoneNumber}
+						</Text>
+					</View>
+				) : (
+					<View style={styles.hintRow}>
+						<FontAwesome6 name="circle-info" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginLeft: 6 }]}>
+							Toca la bandera para cambiar de país
+						</Text>
+					</View>
 				)}
 			</View>
 
-			{/* Balance Info */}
-			{user?.balance && (
-				<View style={[styles.balanceInfo, { backgroundColor: theme.colors.elevation }]}>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Balance disponible:</Text>
-					<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>
-						${parseFloat(user.balance).toFixed(2)} QUSD
-					</Text>
-				</View>
-			)}
 		</QPKeyboardView>
 	)
 }
@@ -199,27 +316,36 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		padding: 20,
 	},
-	packageContainer: {
+	summaryCard: {
+		flexDirection: 'row',
 		alignItems: 'center',
-		marginBottom: 24,
+		padding: 10,
+		borderRadius: 14,
+		borderWidth: 0.5,
+		marginBottom: 28,
 	},
-	packageCard: {
+	summaryThumb: {
+		width: 52,
+		height: 52,
+		borderRadius: 10,
+		overflow: 'hidden',
+	},
+	summaryThumbImage: {
 		width: '100%',
-		marginRight: 0,
-		imagePlaceholder: {
-			height: 160,
-		}
+		height: '100%',
+	},
+	summaryContent: {
+		flex: 1,
+		paddingHorizontal: 12,
 	},
 	inputSection: {
 		marginBottom: 24,
 	},
-	balanceInfo: {
+	hintRow: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
 		alignItems: 'center',
-		padding: 16,
-		borderRadius: 12,
-		marginBottom: 20,
+		marginTop: 10,
+		paddingHorizontal: 4,
 	},
 })
 

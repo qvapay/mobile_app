@@ -1081,51 +1081,53 @@ const P2POffer = ({ route }) => {
 					<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setShowApplyWarning(false)}>
 						<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
 
-							{/* Header */}
-							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-								<FontAwesome6 name="clock" size={24} color={theme.colors.warning} iconStyle="solid" />
-								<Text style={[textStyles.h4, { color: theme.colors.primaryText, flex: 1 }]}>Tiempo límite de 30 minutos</Text>
-							</View>
+							<ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 4 }} style={{ flexShrink: 1 }}>
+								{/* Header */}
+								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+									<FontAwesome6 name="clock" size={24} color={theme.colors.warning} iconStyle="solid" />
+									<Text style={[textStyles.h4, { color: theme.colors.primaryText, flex: 1 }]}>Tiempo límite de 30 minutos</Text>
+								</View>
 
-							{/* Warning box */}
-							<View style={{ backgroundColor: theme.colors.warning + '15', borderRadius: 10, padding: 14, marginBottom: 14 }}>
-								<Text style={[textStyles.h6, { color: theme.colors.warning, lineHeight: 20 }]}>
-									Al aplicar a esta oferta de venta, te comprometes a completar el pago en un plazo máximo de <Text style={{ fontFamily: 'Rubik-Bold' }}>30 minutos</Text>. Si no realizas el pago o no te comunicas con el vendedor en ese tiempo, serás expulsado automáticamente de la oferta.
-								</Text>
-							</View>
+								{/* Warning box */}
+								<View style={{ backgroundColor: theme.colors.warning + '15', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+									<Text style={[textStyles.h6, { color: theme.colors.warning, lineHeight: 20 }]}>
+										Al aplicar a esta oferta de venta, te comprometes a completar el pago en un plazo máximo de <Text style={{ fontFamily: 'Rubik-Bold' }}>30 minutos</Text>. Si no realizas el pago o no te comunicas con el vendedor en ese tiempo, serás expulsado automáticamente de la oferta.
+									</Text>
+								</View>
 
-							{/* Instructions */}
-							<View style={{ marginBottom: 16, gap: 6 }}>
-								{[
-									"Realiza el pago lo antes posible después de aplicar.",
-									"Comunícate con el vendedor a través del chat.",
-									"Ingresa el ID de confirmación de tu pago.",
-									"Si no completas estos pasos, perderás tu lugar en la oferta."
-								].map((text, i) => (
-									<View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-										<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 1 }]}>•</Text>
-										<Text style={[textStyles.h6, { color: theme.colors.secondaryText, flex: 1 }]}>{text}</Text>
-									</View>
-								))}
-							</View>
+								{/* Instructions */}
+								<View style={{ marginBottom: 16, gap: 6 }}>
+									{[
+										"Realiza el pago lo antes posible después de aplicar.",
+										"Comunícate con el vendedor a través del chat.",
+										"Ingresa el ID de confirmación de tu pago.",
+										"Si no completas estos pasos, perderás tu lugar en la oferta."
+									].map((text, i) => (
+										<View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+											<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 1 }]}>•</Text>
+											<Text style={[textStyles.h6, { color: theme.colors.secondaryText, flex: 1 }]}>{text}</Text>
+										</View>
+									))}
+								</View>
 
-							{/* Checkbox */}
-							<View style={{ marginBottom: 18 }}>
-								<BouncyCheckbox
-									size={22}
-									fillColor={theme.colors.primary}
-									unFillColor={theme.colors.secondaryText}
-									text="Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta."
-									iconStyle={{ borderColor: theme.colors.primary }}
-									innerIconStyle={{ borderWidth: 2 }}
-									textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none', fontSize: 13 }}
-									isChecked={applyWarningAccepted}
-									onPress={(checked) => setApplyWarningAccepted(checked)}
-								/>
-							</View>
+								{/* Checkbox */}
+								<View style={{ marginBottom: 4 }}>
+									<BouncyCheckbox
+										size={22}
+										fillColor={theme.colors.primary}
+										unFillColor={theme.colors.secondaryText}
+										text="Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta."
+										iconStyle={{ borderColor: theme.colors.primary }}
+										innerIconStyle={{ borderWidth: 2 }}
+										textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none', fontSize: 13 }}
+										isChecked={applyWarningAccepted}
+										onPress={(checked) => setApplyWarningAccepted(checked)}
+									/>
+								</View>
+							</ScrollView>
 
-							{/* Buttons */}
-							<View style={{ flexDirection: 'row', gap: 10 }}>
+							{/* Buttons - fijos al fondo, fuera del ScrollView */}
+							<View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
 								<QPButton
 									title="Cancelar"
 									onPress={() => setShowApplyWarning(false)}
