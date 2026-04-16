@@ -32,6 +32,7 @@ import { toast } from "sonner-native"
 import { useOnlineStatus } from "../../hooks/OnlineStatusContext"
 
 // Helpers
+import { maybeRequestReview } from "../../helpers/inAppReview"
 import { getShortDateTime, reduceStringInside, copyTextToClipboard, detectCopyableText } from "../../helpers"
 
 // Haptic
@@ -443,7 +444,6 @@ const P2POffer = ({ route }) => {
 	}
 
 	// Share Offer
-	// TODO: Check if this is a good idea for link sharing
 	const handleShareIntent = async () => {
 		try {
 			const result = await Share.share({
@@ -455,12 +455,8 @@ const P2POffer = ({ route }) => {
 
 			if (result.action === Share.sharedAction) {
 				toast.success("Oferta compartida")
-			} else if (result.action === Share.dismissedAction) {
-				toast.info("Compartir cancelado")
-			}
-		} catch (err) {
-			toast.error("No se pudo compartir", { description: String(error?.message || error) })
-		}
+			} else if (result.action === Share.dismissedAction) { toast.info("Compartir cancelado") }
+		} catch (err) { toast.error("No se pudo compartir", { description: String(error?.message || error) }) }
 	}
 
 	// Open edit modal and populate fields from current offer
@@ -475,6 +471,7 @@ const P2POffer = ({ route }) => {
 
 	// Submit edit
 	const handleEdit = async () => {
+
 		const amt = parseFloat(editAmount)
 		const rcv = parseFloat(editReceive)
 
@@ -509,14 +506,11 @@ const P2POffer = ({ route }) => {
 				toast.success("Oferta actualizada")
 				setShowEditModal(false)
 				refetchP2P()
-			} else {
-				toast.error("No se pudo editar", { description: String(res.error || "") })
-			}
+			} else { toast.error("No se pudo editar", { description: String(res.error || "") }) }
+
 		} catch (e) {
 			toast.error("Error", { description: e.message })
-		} finally {
-			setEditLoading(false)
-		}
+		} finally { setEditLoading(false) }
 	}
 
 	// Rate peer
@@ -527,6 +521,7 @@ const P2POffer = ({ route }) => {
 			if (res.success) {
 				toast.success("Oferta calificada")
 				refetchP2P()
+				if (newRating === 5) { setTimeout(() => { maybeRequestReview() }, 1500) }
 			} else {
 				toast.error("No se pudo calificar", { description: String(res.error || "") })
 				setRating(p2p?.rating || 0)

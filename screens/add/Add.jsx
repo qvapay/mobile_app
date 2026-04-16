@@ -26,6 +26,9 @@ import apiClient from '../../api/client'
 // Hooks
 import useTransactionSSE from '../../hooks/useTransactionSSE'
 
+// In-app review
+import { maybeRequestReview } from '../../helpers/inAppReview'
+
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
 
@@ -75,6 +78,8 @@ const Add = ({ navigation }) => {
 				setShowDepositModal(false)
 				updateUser()
 			}, 2000)
+			// Ask for app review after modal closes
+			setTimeout(() => { maybeRequestReview() }, 3500)
 		} else if (newStatus === 'expired') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			setCountdown(0)

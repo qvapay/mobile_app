@@ -25,6 +25,9 @@ import { ROUTES } from '../../routes'
 import usePushPrompt from '../../hooks/usePushPrompt'
 import PushPromptModal from '../../ui/PushPromptModal'
 
+// In-app review
+import { maybeRequestReview } from '../../helpers/inAppReview'
+
 // Show a success message with a button to go back to the home screen
 const SendSuccess = ({ navigation }) => {
 
@@ -50,6 +53,13 @@ const SendSuccess = ({ navigation }) => {
 	useEffect(() => {
 		if (!shouldShowPostTxPrompt) return
 		const timer = setTimeout(() => setShowPushPrompt(true), 1500)
+		return () => clearTimeout(timer)
+	}, [shouldShowPostTxPrompt])
+
+	// Request in-app review — only if push prompt isn't taking this slot
+	useEffect(() => {
+		if (shouldShowPostTxPrompt) return
+		const timer = setTimeout(() => { maybeRequestReview() }, 2500)
 		return () => clearTimeout(timer)
 	}, [shouldShowPostTxPrompt])
 
