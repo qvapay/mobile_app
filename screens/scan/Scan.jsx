@@ -124,7 +124,9 @@ const Scan = ({ navigation, route }) => {
 
 		const parsedData = parseQRData(data)
 
-		if (parsedData?.type === 'payme') {
+		if (parsedData?.type === 'pay' && parsedData?.uuid) {
+			navigation.replace(ROUTES.PAY_SCREEN, { uuid: parsedData.uuid })
+		} else if (parsedData?.type === 'payme') {
 			if (parsedData?.username && !parsedData?.amount) {
 				navigation.navigate(ROUTES.SEND, { user_uuid: parsedData.username })
 			} else if (parsedData?.uuid && !parsedData?.amount) {

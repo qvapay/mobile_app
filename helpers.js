@@ -74,6 +74,8 @@ const timeAgo = (date) => {
 // 1) https://[www.]qvapay.com/payme/username/<name>[/<amount>]
 // 2) https://[www.]qvapay.com/payme/uuid/<uuid>[/<amount>]
 // 3) https://[www.]qvapay.com/payme/<identifier>[/<amount>] (auto-detects uuid vs username)
+// 4) https://[www.]qvapay.com/pay/<uuid> — merchant invoice deep link
+// 5) qvapay://pay/<uuid> — custom scheme invoice deep link
 const parseQRData = (data) => {
 
 	if (typeof data !== 'string') { return null }
@@ -82,14 +84,21 @@ const parseQRData = (data) => {
 	const raw = data.trim()
 	const pathOnly = raw.split('?')[0].split('#')[0]
 
-	// Typed patterns
+	// Pay (invoice) patterns — https (prod + local dev hosts) and custom scheme
+	const rePayHttps = /^https?:\/\/(?:www\.)?qvapay\.com\/pay\/([0-9a-fA-F-]{8,})\/?$/i
+	const rePayDev = /^https?:\/\/(?:localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?\/pay\/([0-9a-fA-F-]{8,})\/?$/i
+	const rePayScheme = /^qvapay:\/\/pay\/([0-9a-fA-F-]{8,})\/?$/i
+
+	// Payme patterns
 	const reUsernameTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/username\/([^/?#]+)(?:\/([^/?#]+))?\/?$/i
 	const reUuidTyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/uuid\/([0-9a-fA-F-]{8,})(?:\/([^/?#]+))?\/?$/i
-
-	// Untyped pattern (identifier could be username or uuid)
 	const reUntyped = /^https?:\/\/(?:www\.)?qvapay\.com\/payme\/([^/?#]+)(?:\/([^/?#]+))?\/?$/i
 
 	let match
+
+	// 0) Pay invoice (merchant QR)
+	match = pathOnly.match(rePayHttps) || pathOnly.match(rePayDev) || pathOnly.match(rePayScheme)
+	if (match) { return { type: 'pay', uuid: match[1] } }
 
 	// 1) Explicit username route
 	match = pathOnly.match(reUsernameTyped)

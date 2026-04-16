@@ -9,6 +9,7 @@ const linking = {
 	config: {
 		screens: {
 			[ROUTES.P2P_OFFER_SCREEN]: 'p2p/:p2p_uuid',
+			[ROUTES.PAY_SCREEN]: 'pay/:uuid',
 			[ROUTES.MAIN_STACK]: {
 				screens: {
 					[ROUTES.HOME_SCREEN]: 'home',

@@ -30,13 +30,13 @@ import LockScreen from './lock/LockScreen'
 import { OnlineStatusProvider } from './hooks/OnlineStatusContext'
 
 // Loading
+import GlobalLoadingBar from './ui/GlobalLoadingBar'
 import { LoadingProvider, useLoading } from './loading/LoadingContext'
 import { registerLoadingCallbacks, unregisterLoadingCallbacks } from './api/client'
-import GlobalLoadingBar from './ui/GlobalLoadingBar'
 
 // Theme Provider
-import { ThemeProvider } from './theme/ThemeContext'
 import { useTheme } from './theme/ThemeContext'
+import { ThemeProvider } from './theme/ThemeContext'
 import { createContainerStyles } from './theme/themeUtils'
 
 // Routes
@@ -46,13 +46,13 @@ import { ROUTES } from './routes'
 import linking from './linking'
 
 // Screens without auth
-import SplashScreen from './screens/splash/Splash'
-import WelcomeScreen from './screens/welcome/Welcome'
 import HelpScreen from './screens/help/Help'
 import LoginScreen from './auth/screens/Login'
+import SplashScreen from './screens/splash/Splash'
+import WelcomeScreen from './screens/welcome/Welcome'
 import RegisterScreen from './auth/screens/Register'
-import RecoverPasswordScreen from './auth/screens/RecoverPassword'
 import Recover2FAScreen from './auth/screens/Recover2FA'
+import RecoverPasswordScreen from './auth/screens/RecoverPassword'
 
 // Screens with auth
 import Onboard from './screens/onboard/Onboard'
@@ -63,6 +63,7 @@ import SendSuccess from './screens/transaction/SendSuccess'
 import Receive from './screens/transaction/Receive'
 import Transaction from './screens/transaction/Transaction'
 import Transactions from './screens/transaction/Transactions'
+import Pay from './screens/transaction/Pay'
 import P2PCreate from './screens/p2p/P2PCreate'
 import P2POffer from './screens/p2p/P2POffer'
 import Scan from './screens/scan/Scan'
@@ -103,6 +104,15 @@ const parseP2PUuid = (url: string): string | null => {
 	const match = url.match(/\/p2p\/([^/?#]+)/)
 	if (match) return match[1]
 	const schemeMatch = url.match(/qvapay:\/\/p2p\/([^/?#]+)/)
+	if (schemeMatch) return schemeMatch[1]
+	return null
+}
+
+// Parse Pay UUID from a deep link URL (e.g. https://qvapay.com/pay/<uuid> or qvapay://pay/<uuid>)
+const parsePayUuid = (url: string): string | null => {
+	const match = url.match(/\/pay\/([^/?#]+)/)
+	if (match) return match[1]
+	const schemeMatch = url.match(/qvapay:\/\/pay\/([^/?#]+)/)
 	if (schemeMatch) return schemeMatch[1]
 	return null
 }
@@ -157,13 +167,24 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				const pendingUrl = pendingDeepLinkRef.current
 				if (pendingUrl) {
 					pendingDeepLinkRef.current = null
-					const uuid = parseP2PUuid(pendingUrl)
-					if (uuid) {
+					const payUuid = parsePayUuid(pendingUrl)
+					if (payUuid) {
 						navigation.reset({
 							index: 1,
 							routes: [
 								{ name: ROUTES.MAIN_STACK as never },
-								{ name: ROUTES.P2P_OFFER_SCREEN as never, params: { p2p_uuid: uuid } as never },
+								{ name: ROUTES.PAY_SCREEN as never, params: { uuid: payUuid } as never },
+							],
+						})
+						return
+					}
+					const p2pUuid = parseP2PUuid(pendingUrl)
+					if (p2pUuid) {
+						navigation.reset({
+							index: 1,
+							routes: [
+								{ name: ROUTES.MAIN_STACK as never },
+								{ name: ROUTES.P2P_OFFER_SCREEN as never, params: { p2p_uuid: p2pUuid } as never },
 							],
 						})
 						return
@@ -173,7 +194,11 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 			} else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
 				// Capture the current deep link URL before resetting to Welcome
 				Linking.getInitialURL().then((url) => {
-					if (url && parseP2PUuid(url)) {
+					if (!url) return
+					if (parsePayUuid(url)) {
+						pendingDeepLinkRef.current = url
+						toast.info('Inicia sesión para pagar la factura')
+					} else if (parseP2PUuid(url)) {
 						pendingDeepLinkRef.current = url
 						toast.info('Inicia sesión para ver la oferta P2P')
 					}
@@ -187,9 +212,14 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 	// Listen for foreground deep links while unauthenticated
 	useEffect(() => {
 		const subscription = Linking.addEventListener('url', ({ url }) => {
-			if (!isAuthenticated && url && parseP2PUuid(url)) {
-				pendingDeepLinkRef.current = url
-				toast.info('Inicia sesión para ver la oferta P2P')
+			if (!isAuthenticated && url) {
+				if (parsePayUuid(url)) {
+					pendingDeepLinkRef.current = url
+					toast.info('Inicia sesión para pagar la factura')
+				} else if (parseP2PUuid(url)) {
+					pendingDeepLinkRef.current = url
+					toast.info('Inicia sesión para ver la oferta P2P')
+				}
 			}
 		})
 		return () => subscription.remove()
@@ -356,6 +386,18 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				name={ROUTES.TRANSACTION}
 				component={Transaction}
 				options={getHeaderOptions('')}
+			/>
+
+			{/* Pay Screen — bottom-sheet style, slides from bottom, transparent backdrop */}
+			<Stack.Screen
+				name={ROUTES.PAY_SCREEN}
+				component={Pay}
+				options={{
+					headerShown: false,
+					animation: 'slide_from_bottom',
+					presentation: 'transparentModal',
+					contentStyle: { backgroundColor: 'transparent' },
+				}}
 			/>
 
 			{/* Savings Screen */}

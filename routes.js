@@ -53,6 +53,7 @@ export const ROUTES = {
     // In out Screens
     TRANSACTION: "Transaction",
     TRANSACTIONS: "Transactions",
+    PAY_SCREEN: "Pay",
 
     // Profile & Settings Routes
     SETTINGS_MENU: "SettingsMenu",
