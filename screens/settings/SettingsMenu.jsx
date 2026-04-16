@@ -32,6 +32,9 @@ import settings from './settings'
 // Push prompt
 import usePushPrompt from '../../hooks/usePushPrompt'
 
+// In-app review
+import { requestReview } from '../../helpers/inAppReview'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -197,6 +200,12 @@ const SettingsMenu = ({ navigation }) => {
 					<Pressable onPress={() => Linking.openURL('https://support.qvapay.com')}>
 						<FontAwesome6 name="headset" size={24} style={{ color: theme.colors.contrast }} iconStyle="solid" />
 					</Pressable>
+					<Pressable onPress={async () => {
+						const result = await requestReview()
+						if (!result.shown) toast.info('Valoración no disponible en este momento')
+					}}>
+						<FontAwesome6 name="star" size={24} style={{ color: theme.colors.contrast }} iconStyle="solid" />
+					</Pressable>
 					<Pressable onPress={() => Linking.openURL('https://t.me/qvapay')}>
 						<FontAwesome6 name="telegram" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
 					</Pressable>
@@ -223,20 +232,13 @@ const SettingsMenu = ({ navigation }) => {
 			</ScrollView>
 
 			{/* Floating header buttons */}
-			<Pressable
-				onPress={() => navigation.goBack()}
-				hitSlop={10}
-				style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}
-			>
+			<Pressable onPress={() => navigation.goBack()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="xmark" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
-			<Pressable
-				onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })}
-				hitSlop={10}
-				style={{ position: 'absolute', top: insets.top + 8, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}
-			>
+			<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="qrcode" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
+			
 		</View>
 	)
 }

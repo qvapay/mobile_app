@@ -156,7 +156,7 @@ const Home = ({ navigation }) => {
 			if (!skipLoading) setIsLoading(true)
 			const result = await blogApi.getLatestPosts(Platform.isPad ? 4 : 3)
 			if (result.success) { setLatestBlogPosts(result.data) }
-		} catch (err) { /* error fetching blog posts */ }
+		} catch (err) { console.error('[Home] blog fetch threw', err) }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
 
