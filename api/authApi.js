@@ -202,9 +202,7 @@ export const authApi = {
 		try {
 			const response = await apiClient.post('/auth/passkey/register-options', { name })
 			return { success: true, data: response.data }
-		} catch (error) {
-			return { success: false, error: error.response?.data?.error || 'Error al generar opciones de registro' }
-		}
+		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al generar opciones de registro' } }
 	},
 
 	/**
@@ -214,9 +212,7 @@ export const authApi = {
 		try {
 			const response = await apiClient.post('/auth/passkey/register-verify', attestation)
 			return { success: true, data: response.data }
-		} catch (error) {
-			return { success: false, error: error.response?.data?.error || 'Error al verificar el registro' }
-		}
+		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al verificar el registro' } }
 	},
 
 	/**
