@@ -1,7 +1,8 @@
+import { SystemBars } from 'react-native-edge-to-edge'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { View, Text, TextInput, Pressable, Modal, StyleSheet, Animated, StatusBar } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { View, Text, TextInput, Pressable, Modal, StyleSheet, Animated } from 'react-native'
 
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
@@ -143,7 +144,7 @@ const LockScreen = () => {
 			statusBarTranslucent
 			onRequestClose={() => { }}
 		>
-			<StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} />
+			<SystemBars style={theme.isDark ? 'light' : 'dark'} />
 			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
 
 				{/* Title */}

@@ -98,6 +98,10 @@ import playSound from './helpers/playSound'
 // UI Components
 import QPAvatar from './ui/particles/QPAvatar'
 import ErrorBoundary from './ui/ErrorBoundary'
+import UpdatePromptModal from './ui/UpdatePromptModal'
+
+// Version Check
+import { maybePromptUpdate } from './helpers/versionCheck'
 
 // Parse P2P UUID from a deep link URL
 const parseP2PUuid = (url: string): string | null => {
@@ -140,6 +144,9 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
 
+	// Update prompt state
+	const [updateInfo, setUpdateInfo] = useState<{ needsUpdate: boolean; currentVersion?: string; latestVersion?: string; storeUrl?: string } | null>(null)
+
 	// Check if this is the first time using the app
 	const { appearance, sounds, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
@@ -155,6 +162,14 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 			setSplashReady(true)
 		}, 2000)
 		return () => clearTimeout(timer)
+	}, [])
+
+	// Check for store update on app launch
+	useEffect(() => {
+		(async () => {
+			const info = await maybePromptUpdate()
+			if (info?.needsUpdate) setUpdateInfo(info)
+		})()
 	}, [])
 
 	// Navigation handler for auth state changes
@@ -284,210 +299,217 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 
 	// Show unauthenticated screens (welcome, login, register)
 	return (
-		<Stack.Navigator
-			initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN}
-			screenOptions={stackScreenOptions}
-		>
-			{/* Onboard Screen */}
-			<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
+		<>
+			<Stack.Navigator initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN} screenOptions={stackScreenOptions}>
+				{/* Onboard Screen */}
+				<Stack.Screen name={ROUTES.ONBOARD_SCREEN} component={Onboard} />
 
-			{/* Welcome Screen */}
-			<Stack.Screen
-				name={ROUTES.WELCOME_SCREEN}
-				component={WelcomeScreen}
-				options={{
-					animation: 'none'
-				}}
-			/>
+				{/* Welcome Screen */}
+				<Stack.Screen
+					name={ROUTES.WELCOME_SCREEN}
+					component={WelcomeScreen}
+					options={{
+						animation: 'none'
+					}}
+				/>
 
-			{/* Main Stack */}
-			<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
+				{/* Main Stack */}
+				<Stack.Screen name={ROUTES.MAIN_STACK} component={MainStack} />
 
-			{/* Add and Withdraw Screens */}
-			<Stack.Screen
-				name={ROUTES.ADD}
-				component={Add}
-				options={getHeaderOptions('Depositar')}
-			/>
-			<Stack.Screen
-				name={ROUTES.WITHDRAW}
-				component={Withdraw}
-				options={getHeaderOptions('Extraer')}
-			/>
+				{/* Add and Withdraw Screens */}
+				<Stack.Screen
+					name={ROUTES.ADD}
+					component={Add}
+					options={getHeaderOptions('Depositar')}
+				/>
+				<Stack.Screen
+					name={ROUTES.WITHDRAW}
+					component={Withdraw}
+					options={getHeaderOptions('Extraer')}
+				/>
 
 
-			{/* P2P Create Screen */}
-			<Stack.Screen
-				name={ROUTES.P2P_CREATE_SCREEN}
-				component={P2PCreate}
-				options={getHeaderOptions('', { animation: 'slide_from_bottom' })}
-			/>
+				{/* P2P Create Screen */}
+				<Stack.Screen
+					name={ROUTES.P2P_CREATE_SCREEN}
+					component={P2PCreate}
+					options={getHeaderOptions('', { animation: 'slide_from_bottom' })}
+				/>
 
-			{/* P2P Offer Screen */}
-			<Stack.Screen
-				name={ROUTES.P2P_OFFER_SCREEN}
-				component={P2POffer}
-				options={{
-					...getHeaderOptions(''),
-					// Android fallback
-					headerRight: () => (
-						<Pressable style={containerStyles.headerRight} onPress={() => { }}>
-							<QPAvatar user={user} size={32} />
-						</Pressable>
-					),
-					// iOS native header items (liquid glass compatible)
-					...(Platform.OS === 'ios' && {
-						unstable_headerRightItems: () => [{
-							type: 'custom' as const,
-							element: <QPAvatar user={user} size={28} />,
-							hidesSharedBackground: true,
-						}],
-					}),
-				}}
-			/>
+				{/* P2P Offer Screen */}
+				<Stack.Screen
+					name={ROUTES.P2P_OFFER_SCREEN}
+					component={P2POffer}
+					options={{
+						...getHeaderOptions(''),
+						// Android fallback
+						headerRight: () => (
+							<Pressable style={containerStyles.headerRight} onPress={() => { }}>
+								<QPAvatar user={user} size={32} />
+							</Pressable>
+						),
+						// iOS native header items (liquid glass compatible)
+						...(Platform.OS === 'ios' && {
+							unstable_headerRightItems: () => [{
+								type: 'custom' as const,
+								element: <QPAvatar user={user} size={28} />,
+								hidesSharedBackground: true,
+							}],
+						}),
+					}}
+				/>
 
-			{/* Settings Stack */}
-			<Stack.Screen
-				name={ROUTES.SETTINGS_STACK}
-				component={SettingsStack}
-				options={{
-					animation: 'slide_from_bottom'
-				}}
-			/>
+				{/* Settings Stack */}
+				<Stack.Screen
+					name={ROUTES.SETTINGS_STACK}
+					component={SettingsStack}
+					options={{
+						animation: 'slide_from_bottom'
+					}}
+				/>
 
-			{/* Contacts (accessible from Send) */}
-			<Stack.Screen
-				name={ROUTES.CONTACTS}
-				component={Contacts}
-				options={getHeaderOptions('Contactos')}
-			/>
+				{/* Contacts (accessible from Send) */}
+				<Stack.Screen
+					name={ROUTES.CONTACTS}
+					component={Contacts}
+					options={getHeaderOptions('Contactos')}
+				/>
 
-			{/* Send, Receive and Send Success Screens */}
-			<Stack.Screen
-				name={ROUTES.SEND}
-				component={Send}
-				options={getHeaderOptions('Enviar QUSD')}
-			/>
-			<Stack.Screen
-				name={ROUTES.SEND_CONFIRM}
-				component={SendConfirm}
-				options={getHeaderOptions('Confirmar pago')}
-			/>
-			<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
-			<Stack.Screen name={ROUTES.RECEIVE} component={Receive} options={getHeaderOptions('Recibir')} />
+				{/* Send, Receive and Send Success Screens */}
+				<Stack.Screen
+					name={ROUTES.SEND}
+					component={Send}
+					options={getHeaderOptions('Enviar QUSD')}
+				/>
+				<Stack.Screen
+					name={ROUTES.SEND_CONFIRM}
+					component={SendConfirm}
+					options={getHeaderOptions('Confirmar pago')}
+				/>
+				<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
+				<Stack.Screen name={ROUTES.RECEIVE} component={Receive} options={getHeaderOptions('Recibir')} />
 
-			{/* Transaction Screen */}
-			<Stack.Screen
-				name={ROUTES.TRANSACTIONS}
-				component={Transactions}
-				options={getHeaderOptions('Transacciones')}
-			/>
-			<Stack.Screen
-				name={ROUTES.TRANSACTION}
-				component={Transaction}
-				options={getHeaderOptions('')}
-			/>
+				{/* Transaction Screen */}
+				<Stack.Screen
+					name={ROUTES.TRANSACTIONS}
+					component={Transactions}
+					options={getHeaderOptions('Transacciones')}
+				/>
+				<Stack.Screen
+					name={ROUTES.TRANSACTION}
+					component={Transaction}
+					options={getHeaderOptions('')}
+				/>
 
-			{/* Pay Screen — bottom-sheet style, slides from bottom, transparent backdrop */}
-			<Stack.Screen
-				name={ROUTES.PAY_SCREEN}
-				component={Pay}
-				options={{
-					headerShown: false,
-					animation: 'slide_from_bottom',
-					presentation: 'transparentModal',
-					contentStyle: { backgroundColor: 'transparent' },
-				}}
-			/>
+				{/* Pay Screen — bottom-sheet style, slides from bottom, transparent backdrop */}
+				<Stack.Screen
+					name={ROUTES.PAY_SCREEN}
+					component={Pay}
+					options={{
+						headerShown: false,
+						animation: 'slide_from_bottom',
+						presentation: 'transparentModal',
+						contentStyle: { backgroundColor: 'transparent' },
+					}}
+				/>
 
-			{/* Savings Screen */}
-			<Stack.Screen
-				name={ROUTES.SAVINGS_SCREEN}
-				component={Savings}
-				options={getHeaderOptions('Ahorros')}
-			/>
+				{/* Savings Screen */}
+				<Stack.Screen
+					name={ROUTES.SAVINGS_SCREEN}
+					component={Savings}
+					options={getHeaderOptions('Ahorros')}
+				/>
 
-			{/* Stock Detail Screen */}
-			<Stack.Screen
-				name={ROUTES.STOCK_DETAIL_SCREEN}
-				component={StockDetail}
-				options={({ route }) => getHeaderOptions(route.params?.name || '')}
-			/>
+				{/* Stock Detail Screen */}
+				<Stack.Screen
+					name={ROUTES.STOCK_DETAIL_SCREEN}
+					component={StockDetail}
+					options={({ route }) => getHeaderOptions(route.params?.name || '')}
+				/>
 
-			{/* QR Scan Screen */}
-			<Stack.Screen
-				name={ROUTES.SCAN_SCREEN}
-				component={Scan}
-				options={{
-					animation: 'slide_from_bottom',
-					headerShown: false,
-				}}
-			/>
+				{/* QR Scan Screen */}
+				<Stack.Screen
+					name={ROUTES.SCAN_SCREEN}
+					component={Scan}
+					options={{
+						animation: 'slide_from_bottom',
+						headerShown: false,
+					}}
+				/>
 
-			{/* Login and Register Screens */}
-			<Stack.Screen
-				name={ROUTES.LOGIN_SCREEN}
-				component={LoginScreen}
-				options={getHeaderOptions('')}
-			/>
-			<Stack.Screen
-				name={ROUTES.REGISTER_SCREEN}
-				component={RegisterScreen}
-				options={getHeaderOptions('')}
-			/>
+				{/* Login and Register Screens */}
+				<Stack.Screen
+					name={ROUTES.LOGIN_SCREEN}
+					component={LoginScreen}
+					options={getHeaderOptions('')}
+				/>
+				<Stack.Screen
+					name={ROUTES.REGISTER_SCREEN}
+					component={RegisterScreen}
+					options={getHeaderOptions('')}
+				/>
 
-			{/* Recover Password Screen */}
-			<Stack.Screen
-				name={ROUTES.RECOVER_PASSWORD_SCREEN}
-				component={RecoverPasswordScreen}
-				options={getHeaderOptions('')}
-			/>
-			<Stack.Screen
-				name={ROUTES.RECOVER_2FA_SCREEN}
-				component={Recover2FAScreen}
-				options={getHeaderOptions('')}
-			/>
+				{/* Recover Password Screen */}
+				<Stack.Screen
+					name={ROUTES.RECOVER_PASSWORD_SCREEN}
+					component={RecoverPasswordScreen}
+					options={getHeaderOptions('')}
+				/>
+				<Stack.Screen
+					name={ROUTES.RECOVER_2FA_SCREEN}
+					component={Recover2FAScreen}
+					options={getHeaderOptions('')}
+				/>
 
-			{/* Phone Topup Screens */}
-			<Stack.Screen
-				name={ROUTES.PHONE_TOPUP_INDEX}
-				component={PhoneTopupIndex}
-				options={({ route }) => getHeaderOptions(route.params?.external === true ? 'Recargas del exterior' : route.params?.external === false ? 'Microrecargas' : 'Recargas telefónicas')}
-			/>
-			<Stack.Screen
-				name={ROUTES.PHONE_TOPUP_PURCHASE}
-				component={PhoneTopupPurchase}
-				options={getHeaderOptions('Comprar recarga')}
-			/>
+				{/* Phone Topup Screens */}
+				<Stack.Screen
+					name={ROUTES.PHONE_TOPUP_INDEX}
+					component={PhoneTopupIndex}
+					options={({ route }) => getHeaderOptions(route.params?.external === true ? 'Recargas del exterior' : route.params?.external === false ? 'Microrecargas' : 'Recargas telefónicas')}
+				/>
+				<Stack.Screen
+					name={ROUTES.PHONE_TOPUP_PURCHASE}
+					component={PhoneTopupPurchase}
+					options={getHeaderOptions('Comprar recarga')}
+				/>
 
-			{/* Gift Card Screens */}
-			<Stack.Screen
-				name={ROUTES.GIFT_CARDS}
-				component={GiftCards}
-				options={getHeaderOptions('Tarjetas de regalo')}
-			/>
-			<Stack.Screen
-				name={ROUTES.GIFT_CARD_DETAIL}
-				component={GiftCardDetail}
-				options={getHeaderOptions('')}
-			/>
+				{/* Gift Card Screens */}
+				<Stack.Screen
+					name={ROUTES.GIFT_CARDS}
+					component={GiftCards}
+					options={getHeaderOptions('Tarjetas de regalo')}
+				/>
+				<Stack.Screen
+					name={ROUTES.GIFT_CARD_DETAIL}
+					component={GiftCardDetail}
+					options={getHeaderOptions('')}
+				/>
 
-			{/* My Purchases Screens */}
-			<Stack.Screen
-				name={ROUTES.MY_PURCHASES}
-				component={MyPurchases}
-				options={getHeaderOptions('Mis Compras')}
-			/>
-			<Stack.Screen
-				name={ROUTES.PURCHASE_DETAIL}
-				component={PurchaseDetail}
-				options={getHeaderOptions('')}
-			/>
+				{/* My Purchases Screens */}
+				<Stack.Screen
+					name={ROUTES.MY_PURCHASES}
+					component={MyPurchases}
+					options={getHeaderOptions('Mis Compras')}
+				/>
+				<Stack.Screen
+					name={ROUTES.PURCHASE_DETAIL}
+					component={PurchaseDetail}
+					options={getHeaderOptions('')}
+				/>
 
-			{/* Accesible Screens */}
-			<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
+				{/* Accesible Screens */}
+				<Stack.Screen name={ROUTES.HELP_SCREEN} component={HelpScreen} />
 
-		</Stack.Navigator>
+			</Stack.Navigator>
+
+			<UpdatePromptModal
+				visible={!!updateInfo?.needsUpdate}
+				currentVersion={updateInfo?.currentVersion}
+				latestVersion={updateInfo?.latestVersion}
+				storeUrl={updateInfo?.storeUrl}
+				onDismiss={() => setUpdateInfo(null)}
+			/>
+		</>
 	)
 }
 
@@ -550,20 +572,20 @@ function App() {
 					<LoadingProvider>
 						<AuthProvider>
 							<OnlineStatusProvider>
-							<SettingsProvider>
-								<ThemeProviderWithSettings>
-									<LoadingBridge>
-										<AppLockProvider>
-											<NavigationWrapper>
-												<GlobalLoadingBar />
-												<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-												<Toaster position="top-center" />
-											</NavigationWrapper>
-											<LockScreen />
-										</AppLockProvider>
-									</LoadingBridge>
-								</ThemeProviderWithSettings>
-							</SettingsProvider>
+								<SettingsProvider>
+									<ThemeProviderWithSettings>
+										<LoadingBridge>
+											<AppLockProvider>
+												<NavigationWrapper>
+													<GlobalLoadingBar />
+													<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+													<Toaster position="top-center" />
+												</NavigationWrapper>
+												<LockScreen />
+											</AppLockProvider>
+										</LoadingBridge>
+									</ThemeProviderWithSettings>
+								</SettingsProvider>
 							</OnlineStatusProvider>
 						</AuthProvider>
 					</LoadingProvider>

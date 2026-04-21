@@ -23,31 +23,21 @@ const HALO_COLORS = [
 
 // Animated rotating conic gradient halo for VIP users
 const VipHalo = ({ size }) => {
+
 	const rotation = useSharedValue(0)
 
 	useEffect(() => {
-		rotation.value = withRepeat(
-			withTiming(360, { duration: 3000, easing: Easing.linear }),
-			-1,
-			false
-		)
+		rotation.value = withRepeat(withTiming(360, { duration: 3000, easing: Easing.linear }), -1, false)
 	}, [rotation])
 
-	const animatedStyle = useAnimatedStyle(() => ({
-		transform: [{ rotate: `${rotation.value}deg` }],
-	}))
+	const animatedStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }))
 
 	const center = size / 2
 	const r = size / 2
 	const sliceAngle = 360 / HALO_COLORS.length
 
 	return (
-		<AnimatedSvg
-			width={size}
-			height={size}
-			viewBox={`0 0 ${size} ${size}`}
-			style={[{ position: 'absolute', top: 0, left: 0 }, animatedStyle]}
-		>
+		<AnimatedSvg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={[{ position: 'absolute', top: 0, left: 0 }, animatedStyle]} >
 			{HALO_COLORS.map((color, i) => {
 				const startDeg = i * sliceAngle - 90
 				const endDeg = (i + 1) * sliceAngle - 90
@@ -57,13 +47,7 @@ const VipHalo = ({ size }) => {
 				const y1 = center + r * Math.sin(startRad)
 				const x2 = center + r * Math.cos(endRad)
 				const y2 = center + r * Math.sin(endRad)
-				return (
-					<Path
-						key={i}
-						d={`M ${center} ${center} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`}
-						fill={color}
-					/>
-				)
+				return (<Path key={i} d={`M ${center} ${center} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`} fill={color} />)
 			})}
 		</AnimatedSvg>
 	)
@@ -79,17 +63,13 @@ const QPAvatar = ({ user = {}, size = 32, isOnline }) => {
 	// Variables
 	const borderVip = size / 25
 	const hasImage = !!image
-	const source = hasImage
-		? { uri: `https://media.qvapay.com/${image}`, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }
-		: LOCAL_FALLBACK
+	const source = hasImage ? { uri: `https://media.qvapay.com/${image}`, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : LOCAL_FALLBACK
 
 	return (
 		<View style={[styles.container, { width: size, height: size, borderRadius: size / 2 }]}>
 			{vip && <VipHalo size={size} />}
 			<View style={[styles.avatarContainer, { width: size - (borderVip * 2), height: size - (borderVip * 2), top: borderVip, left: borderVip }]}>
-				<FastImage style={{ width: '100%', height: '100%', borderRadius: (size - (borderVip * 2)) / 2, backgroundColor: vip && !hasImage ? '#ffffff' : 'transparent' }}
-					source={source} resizeMode={FastImage.resizeMode.cover}
-				/>
+				<FastImage style={{ width: '100%', height: '100%', borderRadius: (size - (borderVip * 2)) / 2, backgroundColor: vip && !hasImage ? '#ffffff' : 'transparent' }} source={source} resizeMode={FastImage.resizeMode.cover} />
 			</View>
 			{isOnline && size >= 24 && (
 				<View style={{

@@ -43,6 +43,10 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 // Push prompt
 import usePushPrompt from '../../hooks/usePushPrompt'
 
+// Update prompt
+import UpdatePromptModal from '../../ui/UpdatePromptModal'
+import { maybePromptUpdate } from '../../helpers/versionCheck'
+
 // Service Card Component
 const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
 	<Pressable
@@ -92,6 +96,7 @@ const Home = ({ navigation }) => {
 	const [latestBlogPosts, setLatestBlogPosts] = useState([])
 	const [watchlistData, setWatchlistData] = useState([])
 	const [promo, setPromo] = useState(null)
+	const [updateInfo, setUpdateInfo] = useState(null)
 
 	// Track quick-pay users for online status
 	useEffect(() => {
@@ -205,6 +210,9 @@ const Home = ({ navigation }) => {
 			await fetchWatchlist()
 			// Refresh promo
 			await fetchPromo()
+			// Check for store update
+			const info = await maybePromptUpdate()
+			if (info?.needsUpdate) setUpdateInfo(info)
 		} catch (err) { /* error refreshing data */ }
 		finally { setRefreshing(false) }
 	}
@@ -334,6 +342,14 @@ const Home = ({ navigation }) => {
 				</View>
 
 			</ScrollView>
+
+			<UpdatePromptModal
+				visible={!!updateInfo?.needsUpdate}
+				currentVersion={updateInfo?.currentVersion}
+				latestVersion={updateInfo?.latestVersion}
+				storeUrl={updateInfo?.storeUrl}
+				onDismiss={() => setUpdateInfo(null)}
+			/>
 		</View>
 	)
 }
