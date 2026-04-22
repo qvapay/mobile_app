@@ -12,7 +12,7 @@ export const checkForUpdate = async () => {
 		const provider = Platform.OS === 'ios' ? 'appStore' : 'playStore'
 		const [currentVersion, latestVersion, storeUrl] = await Promise.all([
 			Promise.resolve(VersionCheck.getCurrentVersion()),
-			VersionCheck.getLatestVersion({ provider, packageName: BUNDLE_ID, bundleId: BUNDLE_ID, ignoreErrors: true }),
+			VersionCheck.getLatestVersion({ provider, packageName: BUNDLE_ID, bundleId: BUNDLE_ID }),
 			VersionCheck.getStoreUrl({ appID: BUNDLE_ID, packageName: BUNDLE_ID }),
 		])
 		if (!latestVersion) return { needsUpdate: false, reason: 'no-latest' }

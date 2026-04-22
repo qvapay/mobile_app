@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react"
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share, Platform } from "react-native"
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share } from "react-native"
 import FastImage from "@d11/react-native-fast-image"
+import LinearGradient from "react-native-linear-gradient"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -24,7 +26,7 @@ import { toast } from "sonner-native"
 // Routes
 import { ROUTES } from "../../routes"
 
-const COVER_HEIGHT = 160
+const COVER_VISIBLE_HEIGHT = 220
 const DEFAULT_COVER = "https://media.qvapay.com/covers/timeline.jpg"
 const MEDIA_BASE = "https://media.qvapay.com/"
 
@@ -68,6 +70,11 @@ const P2PUser = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
+
+	// Cover extends behind the status bar (header is disabled for this screen).
+	const topOverlay = insets.top
+	const totalCoverHeight = COVER_VISIBLE_HEIGHT + topOverlay
 
 	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
@@ -130,31 +137,10 @@ const P2PUser = ({ navigation, route }) => {
 		} catch (_) { /* cancelled */ }
 	}, [uuid, user?.username])
 
-	// Setup header
-	useEffect(() => {
-		navigation.setOptions({
-			title: user?.username ? `@${user.username}` : "Perfil P2P",
-			headerRight: user ? () => (
-				<Pressable style={containerStyles.headerRight} onPress={handleShare} hitSlop={8}>
-					<FontAwesome6 name="share-nodes" size={18} color={theme.colors.primaryText} iconStyle="solid" />
-				</Pressable>
-			) : undefined,
-			// iOS native header items (liquid glass compatible on iOS 26+)
-			...(Platform.OS === "ios" && user && {
-				unstable_headerRightItems: () => [{
-					type: "button",
-					label: "Compartir",
-					icon: { type: "sfSymbol", name: "square.and.arrow.up" },
-					onPress: handleShare,
-					tintColor: theme.colors.primaryText,
-				}],
-			}),
-		})
-	}, [navigation, user, handleShare, theme, containerStyles.headerRight])
-
 	if (loading && !data) {
 		return (
 			<View style={[containerStyles.container, { justifyContent: "center", alignItems: "center" }]}>
+				<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} />
 				<ActivityIndicator size="large" color={theme.colors.primary} />
 			</View>
 		)
@@ -163,6 +149,7 @@ const P2PUser = ({ navigation, route }) => {
 	if (error && !data) {
 		return (
 			<View style={[containerStyles.subContainer, { justifyContent: "center", alignItems: "center" }]}>
+				<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} />
 				<FontAwesome6 name="circle-exclamation" size={40} color={theme.colors.danger} iconStyle="solid" />
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginTop: 12 }]}>Perfil no disponible</Text>
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 4, textAlign: "center" }]}>{String(error)}</Text>
@@ -179,11 +166,25 @@ const P2PUser = ({ navigation, route }) => {
 				contentContainerStyle={{ paddingBottom: 32 }}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 				showsVerticalScrollIndicator={false}
+				contentInsetAdjustmentBehavior="never"
 			>
-				{/* Cover + Avatar */}
-				<View style={{ height: COVER_HEIGHT, backgroundColor: theme.colors.surface }}>
-					<FastImage source={{ uri: coverUri }} style={{ width: "100%", height: "100%" }} resizeMode={FastImage.resizeMode.cover} />
-					<View style={styles.coverOverlay} />
+				{/* Cover + Avatar — extends under the transparent header and status bar */}
+				<View style={{ height: totalCoverHeight, backgroundColor: theme.colors.surface }}>
+					<FastImage source={{ uri: coverUri }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />
+					{/* Top gradient: darkens area behind status bar + header for back/share button legibility */}
+					<LinearGradient
+						colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.15)", "transparent"]}
+						start={{ x: 0.5, y: 0 }}
+						end={{ x: 0.5, y: 1 }}
+						style={{ position: "absolute", top: 0, left: 0, right: 0, height: topOverlay + 20 }}
+					/>
+					{/* Bottom fade into the page background */}
+					<LinearGradient
+						colors={["transparent", theme.colors.background]}
+						start={{ x: 0.5, y: 0.55 }}
+						end={{ x: 0.5, y: 1 }}
+						style={StyleSheet.absoluteFill}
+					/>
 					<View style={styles.avatarWrap}>
 						<View style={[styles.avatarRing, { borderColor: theme.colors.background }]}>
 							<QPAvatar user={user} size={92} />
@@ -345,11 +346,27 @@ const P2PUser = ({ navigation, route }) => {
 					)}
 				</View>
 			</ScrollView>
+
+			<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} onShare={user ? handleShare : undefined} />
 		</View>
 	)
 }
 
 // ---------- Subcomponents ----------
+
+// Floating back + share buttons overlaid on the cover (Scan-style top controls)
+const FloatingTopBar = ({ insets, theme, onBack, onShare }) => (
+	<View style={[styles.floatingTopBar, { top: insets.top + 6 }]} pointerEvents="box-none">
+		<Pressable onPress={onBack} style={styles.floatingBtn} hitSlop={10}>
+			<FontAwesome6 name="arrow-left" size={18} color="white" iconStyle="solid" />
+		</Pressable>
+		{onShare ? (
+			<Pressable onPress={onShare} style={styles.floatingBtn} hitSlop={10}>
+				<FontAwesome6 name="share-nodes" size={18} color="white" iconStyle="solid" />
+			</Pressable>
+		) : <View style={{ width: 40 }} />}
+	</View>
+)
 
 const VerifChip = ({ theme, icon, brand, label }) => (
 	<View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }}>
@@ -721,14 +738,6 @@ const MiniCard = ({ theme, textStyles, label, value, icon, color }) => (
 )
 
 const styles = StyleSheet.create({
-	coverOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: "rgba(0,0,0,0.25)",
-	},
 	avatarWrap: {
 		position: "absolute",
 		bottom: -46,
@@ -820,6 +829,22 @@ const styles = StyleSheet.create({
 		paddingVertical: 6,
 		borderRadius: 16,
 		borderWidth: 0.5,
+	},
+	floatingTopBar: {
+		position: "absolute",
+		left: 16,
+		right: 16,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
+	floatingBtn: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: "rgba(0,0,0,0.4)",
+		justifyContent: "center",
+		alignItems: "center",
 	},
 })
 

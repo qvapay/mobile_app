@@ -361,11 +361,13 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 					}}
 				/>
 
-				{/* P2P User Profile Screen */}
+				{/* P2P User Profile Screen — no header so cover extends to the status bar (Scan/Profile look) */}
 				<Stack.Screen
 					name={ROUTES.P2P_USER_SCREEN}
 					component={P2PUser}
-					options={getHeaderOptions('Perfil P2P')}
+					options={{
+						headerShown: false,
+					}}
 				/>
 
 				{/* GoldCheck — also reachable from SettingsStack, but registered here so
