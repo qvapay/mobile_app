@@ -320,6 +320,24 @@ export const p2pApi = {
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
 	},
+
+	/**
+	 * Get the P2P peer profile dashboard payload (user, stats, offers, ratings, top coins).
+	 * The viewer_gold flag in the response tells the UI whether to unlock GOLD-only panels.
+	 * @param {string} uuid - Target user's UUID
+	 */
+	peerProfile: async (uuid) => {
+		try {
+			const response = await apiClient.get(`/p2p/user/${uuid}`, { silent: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			return {
+				success: false,
+				error: error.response?.data?.error || error.response?.data?.message || error.message || 'No se pudo obtener el perfil',
+				status: error.response?.status,
+			}
+		}
+	},
 }
 
 // Export the apiClient for other API calls

@@ -66,6 +66,8 @@ import Transactions from './screens/transaction/Transactions'
 import Pay from './screens/transaction/Pay'
 import P2PCreate from './screens/p2p/P2PCreate'
 import P2POffer from './screens/p2p/P2POffer'
+import P2PUser from './screens/p2p/P2PUser'
+import GoldCheck from './screens/settings/subpanels/GoldCheck'
 import Scan from './screens/scan/Scan'
 
 // Invest Screens
@@ -357,6 +359,21 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 							}],
 						}),
 					}}
+				/>
+
+				{/* P2P User Profile Screen */}
+				<Stack.Screen
+					name={ROUTES.P2P_USER_SCREEN}
+					component={P2PUser}
+					options={getHeaderOptions('Perfil P2P')}
+				/>
+
+				{/* GoldCheck — also reachable from SettingsStack, but registered here so
+				    peer profile and other screens can push it directly with a back button */}
+				<Stack.Screen
+					name={ROUTES.GOLD_CHECK}
+					component={GoldCheck}
+					options={getHeaderOptions('Hazte GOLD')}
 				/>
 
 				{/* Settings Stack */}

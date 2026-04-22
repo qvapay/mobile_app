@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -98,12 +98,25 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 						</View>
 					</View>
 
-					{/* User Info */}
-					{show_user && (
-						<View style={{ marginVertical: 2 }}>
-							{offer.Peer && offer.Peer.uuid ? (<ProfileContainerHorizontal user={offer.Peer} size={36} showUsername={false} isOnline={isUserOnline(offer.Peer.uuid)} />) : (<ProfileContainerHorizontal user={offer.User} size={36} showUsername={false} isOnline={isUserOnline(offer.User?.uuid)} />)}
-						</View>
-					)}
+					{/* User Info - tap to open peer profile */}
+					{show_user && (() => {
+						const profileUser = offer.Peer && offer.Peer.uuid ? offer.Peer : offer.User
+						const isSelf = profileUser?.uuid === user?.uuid
+						const goToProfile = () => {
+							if (!profileUser?.uuid || isSelf || !navigation) return
+							navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: profileUser.uuid })
+						}
+						return (
+							<Pressable
+								onPress={goToProfile}
+								disabled={isSelf || !profileUser?.uuid}
+								style={{ marginVertical: 2, alignSelf: 'flex-start' }}
+								hitSlop={4}
+							>
+								<ProfileContainerHorizontal user={profileUser} size={36} showUsername={false} isOnline={isUserOnline(profileUser?.uuid)} />
+							</Pressable>
+						)
+					})()}
 				</View>
 
 				{/* Right column: date + badges + button */}

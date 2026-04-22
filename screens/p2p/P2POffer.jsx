@@ -2,6 +2,10 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { View, Text, StyleSheet, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, FlatList, Linking, Switch, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { useNavigation } from "@react-navigation/native"
+
+// Routes
+import { ROUTES } from "../../routes"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -108,6 +112,15 @@ const P2POffer = ({ route }) => {
 
 	// User context
 	const { user } = useAuth()
+
+	// Navigation (nav is not provided as prop by every caller)
+	const navigation = useNavigation()
+
+	// Open peer profile screen, skipping self-taps
+	const openPeerProfile = useCallback((u) => {
+		if (!u?.uuid || u.uuid === user?.uuid) return
+		navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: u.uuid })
+	}, [navigation, user?.uuid])
 
 	// Contexts
 	const { theme } = useTheme()
@@ -748,9 +761,9 @@ const P2POffer = ({ route }) => {
 						) : (
 							<>
 								{p2p?.User && (
-									<View style={[containerStyles.card, { paddingVertical: 6, paddingHorizontal: 8 }]}>
+									<Pressable onPress={() => openPeerProfile(p2p.User)} style={[containerStyles.card, { paddingVertical: 6, paddingHorizontal: 8 }]}>
 										<ProfileContainerHorizontal user={p2p.User} size={40} showUsername={false} isOnline={isUserOnline(p2p.User?.uuid)} />
-									</View>
+									</Pressable>
 								)}
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
@@ -761,9 +774,9 @@ const P2POffer = ({ route }) => {
 						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 4 }]}>
 
 							{counterparty && (
-								<View style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
+								<Pressable onPress={() => openPeerProfile(counterparty)} style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
 									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} isOnline={isUserOnline(counterparty?.uuid)} />
-								</View>
+								</Pressable>
 							)}
 
 							{chatError && (
