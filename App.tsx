@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 // OneSignal Push Notifications
 import { OneSignal } from 'react-native-onesignal'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Navigation Components
 import { enableFreeze } from 'react-native-screens'
@@ -578,37 +579,40 @@ const LoadingBridge = ({ children }: { children: React.ReactNode }) => {
 
 // Initialize OneSignal (must be called outside component, before render)
 OneSignal.initialize('8f69c017-b7e7-40b2-903b-11ce7ac5cc81')
+const queryClient = new QueryClient()
 
 function App() {
 	const pendingDeepLinkRef = useRef<string | null>(null)
 
 	return (
-		<GestureHandlerRootView style={{ flex: 1 }}>
-			<ErrorBoundary>
-				<SafeAreaProvider>
-					<LoadingProvider>
-						<AuthProvider>
-							<OnlineStatusProvider>
-								<SettingsProvider>
-									<ThemeProviderWithSettings>
-										<LoadingBridge>
-											<AppLockProvider>
-												<NavigationWrapper>
-													<GlobalLoadingBar />
-													<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-													<Toaster position="top-center" />
-												</NavigationWrapper>
-												<LockScreen />
-											</AppLockProvider>
-										</LoadingBridge>
-									</ThemeProviderWithSettings>
-								</SettingsProvider>
-							</OnlineStatusProvider>
-						</AuthProvider>
-					</LoadingProvider>
-				</SafeAreaProvider>
-			</ErrorBoundary>
-		</GestureHandlerRootView>
+		<QueryClientProvider client={queryClient}>
+			<GestureHandlerRootView style={{ flex: 1 }}>
+				<ErrorBoundary>
+					<SafeAreaProvider>
+						<LoadingProvider>
+							<AuthProvider>
+								<OnlineStatusProvider>
+									<SettingsProvider>
+										<ThemeProviderWithSettings>
+											<LoadingBridge>
+												<AppLockProvider>
+													<NavigationWrapper>
+														<GlobalLoadingBar />
+														<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+														<Toaster position="top-center" />
+													</NavigationWrapper>
+													<LockScreen />
+												</AppLockProvider>
+											</LoadingBridge>
+										</ThemeProviderWithSettings>
+									</SettingsProvider>
+								</OnlineStatusProvider>
+							</AuthProvider>
+						</LoadingProvider>
+					</SafeAreaProvider>
+				</ErrorBoundary>
+			</GestureHandlerRootView>
+		</QueryClientProvider>
 	)
 }
 
