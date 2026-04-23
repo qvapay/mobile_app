@@ -68,6 +68,7 @@ const MAX_IMAGE_SIZE_MB = 10
 
 // Chat message text with tappable patterns (phones, cards, emails)
 const ChatMessageText = ({ text, textStyle, highlightColor }) => {
+
 	const matches = detectCopyableText(text)
 	if (matches.length === 0) return <Text style={textStyle}>{text}</Text>
 
@@ -84,21 +85,16 @@ const ChatMessageText = ({ text, textStyle, highlightColor }) => {
 		<Text style={textStyle}>
 			{parts.map((p, i) =>
 				p.copyable ? (
-					<Text
-						key={i}
-						style={{ textDecorationLine: 'underline', color: highlightColor }}
+					<Text key={i} style={{ textDecorationLine: 'underline', color: highlightColor }}
 						onPress={() => {
 							ReactNativeHapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
 							// For emails keep original, for phones/cards strip spaces and dashes
 							const cleaned = p.type === 'email' ? p.text : p.text.replace(/[\s-]/g, '')
 							copyTextToClipboard(cleaned)
-						}}
-					>
+						}}>
 						{p.text}
 					</Text>
-				) : (
-					<Text key={i}>{p.text}</Text>
-				)
+				) : (<Text key={i}>{p.text}</Text>)
 			)}
 		</Text>
 	)
@@ -212,6 +208,7 @@ const P2POffer = ({ route }) => {
 
 	// Load P2P data with cache-first strategy
 	const loadP2PData = async () => {
+
 		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
 
 		// Step 1: Try to load from cache first (instant display)
@@ -222,9 +219,7 @@ const P2POffer = ({ route }) => {
 				setP2p(parsed)
 				setRating(parsed?.rating || 0)
 			}
-		} catch (err) {
-			// error loading cached P2P
-		}
+		} catch { /* ignore */ }
 
 		// Step 2: Fetch fresh data from server
 		await fetchP2P()
@@ -244,12 +239,9 @@ const P2POffer = ({ route }) => {
 				// Step 3: Save fresh data to cache
 				try {
 					await AsyncStorage.setItem(cacheKey, JSON.stringify(payload))
-				} catch (cacheError) {
-					// error caching P2P
-				}
-			} else {
-				setError(response.error)
-			}
+				} catch { /* ignore */ }
+				
+			} else { setError(response.error) }
 		} catch (err) {
 			setError(err.message)
 		} finally { setIsLoading(false) }

@@ -346,18 +346,12 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 						...getHeaderOptions(''),
 						// Android fallback
 						headerRight: () => (
-							<Pressable style={containerStyles.headerRight} onPress={() => { }}>
+							<Pressable onPress={() => { }}>
 								<QPAvatar user={user} size={32} />
 							</Pressable>
 						),
 						// iOS native header items (liquid glass compatible)
-						...(Platform.OS === 'ios' && {
-							unstable_headerRightItems: () => [{
-								type: 'custom' as const,
-								element: <QPAvatar user={user} size={28} />,
-								hidesSharedBackground: true,
-							}],
-						}),
+						...(Platform.OS === 'ios' && { unstable_headerRightItems: () => [{ type: 'custom' as const, element: <QPAvatar user={user} size={28} />, hidesSharedBackground: true }] }),
 					}}
 				/>
 
