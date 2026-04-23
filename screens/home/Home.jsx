@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, StyleSheet, ScrollView } from 'react-native'
 
@@ -47,21 +47,19 @@ const Home = ({ navigation }) => {
 	const insets = useSafeAreaInsets()
 
 	// State
-	const [refreshing, setRefreshing] = useState(false)
 	const [updateInfo, setUpdateInfo] = useState(null)
+	const refreshing = useIsFetching({ queryKey: ['home'] }) > 0
 
 	useHomeProfile(updateUser)
 
 	// Refresh handler for pull-to-refresh
 	const onRefresh = async () => {
-		setRefreshing(true)
 		try {
 			await queryClient.refetchQueries({ queryKey: ['home'] })
 			// Check for store update
 			const info = await maybePromptUpdate()
 			if (info?.needsUpdate) setUpdateInfo(info)
 		} catch (err) { /* error refreshing data */ }
-		finally { setRefreshing(false) }
 	}
 
 	return (
