@@ -82,7 +82,7 @@ const PhoneTopupPurchase = ({ navigation, route }) => {
 				}],
 			}),
 		})
-	}, [navigation, user?.balance, theme])
+	}, [navigation, user?.balance, theme, textStyles.h5])
 
 	// Handle purchase
 	const handlePurchase = async () => {

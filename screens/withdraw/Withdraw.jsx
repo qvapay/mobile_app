@@ -86,7 +86,7 @@ const Withdraw = ({ navigation, route }) => {
 			finally { setIsLoading(false) }
 		}
 		fetchCoins()
-	}, [])
+	}, [preselectedCoin])
 
 	// Decimals to render for the coin amount input
 	const coinDecimals = useMemo(() => {
@@ -261,7 +261,6 @@ const Withdraw = ({ navigation, route }) => {
 				setPin('')
 				setAmountQUSD('')
 				setAmountCoin('')
-				setNetAmount('')
 				setWorkingForm({})
 				navigation.goBack()
 			} else {
