@@ -37,7 +37,6 @@ import { registerLoadingCallbacks, unregisterLoadingCallbacks } from './api/clie
 // Theme Provider
 import { useTheme } from './theme/ThemeContext'
 import { ThemeProvider } from './theme/ThemeContext'
-import { createContainerStyles } from './theme/themeUtils'
 
 // Routes
 import { ROUTES } from './routes'
@@ -128,7 +127,6 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
-	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
 
 	// Consistent header options using native back button (works with iOS liquid glass)
 	const getHeaderOptions = useMemo(() => (title: string, options?: {
@@ -346,12 +344,22 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 						...getHeaderOptions(''),
 						// Android fallback
 						headerRight: () => (
-							<Pressable onPress={() => { }}>
+							<Pressable onPress={() => (navigation as any).navigate(ROUTES.P2P_USER_SCREEN, { uuid: user.uuid })}>
 								<QPAvatar user={user} size={32} />
 							</Pressable>
 						),
 						// iOS native header items (liquid glass compatible)
-						...(Platform.OS === 'ios' && { unstable_headerRightItems: () => [{ type: 'custom' as const, element: <QPAvatar user={user} size={28} />, hidesSharedBackground: true }] }),
+						...(Platform.OS === 'ios' && {
+							unstable_headerRightItems: () => [{
+								type: 'custom' as const,
+								element: (
+									<Pressable onPress={() => (navigation as any).navigate(ROUTES.P2P_USER_SCREEN, { uuid: user.uuid })}>
+										<QPAvatar user={user} size={28} />
+									</Pressable>
+								),
+								hidesSharedBackground: true,
+							}],
+						}),
 					}}
 				/>
 

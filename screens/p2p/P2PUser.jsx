@@ -110,6 +110,7 @@ const P2PUser = ({ navigation, route }) => {
 	// Source of truth is the server. Never trust a locally-cached flag
 	// (AsyncStorage may keep stringy/stale values that bypass the gate).
 	const viewerGold = data?.viewer_gold === true
+	const isSelf = data?.is_self === true
 	const user = data?.user
 	const stats = data?.stats || {}
 	const ranking = data?.ranking
@@ -325,10 +326,9 @@ const P2PUser = ({ navigation, route }) => {
 							received={received}
 							sent={sent}
 							averageRating={stats.averageRating || 0}
-							viewerGold={viewerGold}
+							isSelf={isSelf}
 							mode={reviewMode}
 							setMode={setReviewMode}
-							onPressUnlock={() => navigation.navigate(ROUTES.GOLD_CHECK)}
 							onPressUser={(u) => navigation.push(ROUTES.P2P_USER_SCREEN, { uuid: u.uuid })}
 						/>
 					)}
@@ -572,7 +572,7 @@ const RatingRow = ({ theme, textStyles, rating, date, user, onPress }) => (
 	</Pressable>
 )
 
-const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, viewerGold, mode, setMode, onPressUnlock, onPressUser }) => {
+const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, mode, setMode, onPressUser }) => {
 
 	const avg = Number(averageRating) || 0
 
@@ -614,63 +614,62 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, viewerGo
 						</View>
 					)}
 
-					<GoldWall
-						theme={theme}
-						textStyles={textStyles}
-						unlocked={viewerGold}
-						message="Desglose de calificadores solo para GOLD"
-						sublabel="Ve quién ha calificado a este trader"
-						onPress={onPressUnlock}
-						minHeight={260}
-					>
-						<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>Últimas calificaciones</Text>
-							<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-								Las calificaciones P2P solo contienen puntuación.
-							</Text>
-							<View style={{ marginTop: 6 }}>
-								{received.items?.length > 0 ? (
-									received.items.map((r) => (
-										<View key={r.id} style={{ borderTopWidth: 0.5, borderTopColor: theme.colors.border }}>
-											<RatingRow theme={theme} textStyles={textStyles} rating={r.rating} date={r.created_at} user={viewerGold ? r.rater : null} onPress={onPressUser} />
-										</View>
-									))
-								) : (
-									<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>Sin calificaciones para mostrar.</Text>
-								)}
-							</View>
-						</View>
-					</GoldWall>
-				</>
-			) : (
-				<GoldWall
-					theme={theme}
-					textStyles={textStyles}
-					unlocked={viewerGold}
-					message="Calificaciones enviadas solo para GOLD"
-					sublabel="Ve a quién ha calificado este trader"
-					onPress={onPressUnlock}
-					minHeight={260}
-				>
 					<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>Calificaciones enviadas</Text>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>Últimas calificaciones</Text>
+						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
+							Las calificaciones P2P solo contienen puntuación.
+						</Text>
 						<View style={{ marginTop: 6 }}>
-							{sent.items?.length > 0 ? (
-								sent.items.map((r) => (
+							{received.items?.length > 0 ? (
+								received.items.map((r) => (
 									<View key={r.id} style={{ borderTopWidth: 0.5, borderTopColor: theme.colors.border }}>
-										<RatingRow theme={theme} textStyles={textStyles} rating={r.rating} date={r.created_at} user={viewerGold ? r.rated : null} onPress={onPressUser} />
+										{isSelf
+											? <RatingRow theme={theme} textStyles={textStyles} rating={r.rating} date={r.created_at} user={r.rater} onPress={onPressUser} />
+											: <AnonymousRatingRow theme={theme} textStyles={textStyles} rating={r.rating} date={r.created_at} />}
 									</View>
 								))
 							) : (
-								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>No ha calificado a nadie.</Text>
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>Sin calificaciones para mostrar.</Text>
 							)}
 						</View>
 					</View>
-				</GoldWall>
+				</>
+			) : (
+				<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>Calificaciones enviadas</Text>
+					<View style={{ marginTop: 6 }}>
+						{sent.items?.length > 0 ? (
+							sent.items.map((r) => (
+								<View key={r.id} style={{ borderTopWidth: 0.5, borderTopColor: theme.colors.border }}>
+									{isSelf
+										? <RatingRow theme={theme} textStyles={textStyles} rating={r.rating} date={r.created_at} user={r.rated} onPress={onPressUser} />
+										: <AnonymousRatingRow theme={theme} textStyles={textStyles} rating={r.rating} date={r.created_at} />}
+								</View>
+							))
+						) : (
+							<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>No ha calificado a nadie.</Text>
+						)}
+					</View>
+				</View>
 			)}
 		</View>
 	)
 }
+
+const AnonymousRatingRow = ({ theme, textStyles, rating, date }) => (
+	<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 }}>
+		<View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+			<View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, alignItems: "center", justifyContent: "center" }}>
+				<FontAwesome6 name="lock" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+			</View>
+			<Text style={[textStyles.h7, { color: theme.colors.secondaryText, fontStyle: "italic" }]}>Usuario privado</Text>
+		</View>
+		<View style={{ alignItems: "flex-end" }}>
+			<Stars value={rating} size={12} />
+			<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: 10 }]}>{formatRatingDate(date)}</Text>
+		</View>
+	</View>
+)
 
 const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onPressUnlock }) => {
 

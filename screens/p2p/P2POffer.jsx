@@ -1111,19 +1111,25 @@ const P2POffer = ({ route }) => {
 								</View>
 
 								{/* Checkbox */}
-								<View style={{ marginBottom: 4 }}>
+								<Pressable
+									onPress={() => setApplyWarningAccepted(prev => !prev)}
+									style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, paddingVertical: 6 }}
+								>
 									<BouncyCheckbox
-										size={22}
+										key={`apply-warning-${showApplyWarning}`}
+										size={24}
 										fillColor={theme.colors.primary}
-										unFillColor={theme.colors.secondaryText}
-										text="Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta."
-										iconStyle={{ borderColor: theme.colors.primary }}
-										innerIconStyle={{ borderWidth: 2 }}
-										textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none', fontSize: 13 }}
+										unFillColor="transparent"
+										iconStyle={{ borderColor: theme.colors.primary, borderRadius: 6 }}
+										innerIconStyle={{ borderWidth: 2, borderRadius: 6 }}
 										isChecked={applyWarningAccepted}
-										onPress={(checked) => setApplyWarningAccepted(checked)}
+										disableBuiltInState
+										onPress={() => setApplyWarningAccepted(prev => !prev)}
 									/>
-								</View>
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText, flex: 1, fontSize: 13, lineHeight: 18, marginLeft: 8 }]}>
+										Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta.
+									</Text>
+								</Pressable>
 							</ScrollView>
 
 							{/* Buttons - fijos al fondo, fuera del ScrollView */}
