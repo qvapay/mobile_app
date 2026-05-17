@@ -93,23 +93,6 @@ export const authApi = {
 	},
 
 	/**
-	 * Check if token is valid
-	 * @param {string} token - Token to check
-	 * @returns {Promise<Object>} Check token response
-	 */
-	checkToken: async () => {
-		try {
-			const response = await apiClient.post('/auth/check', null, { silent: true })
-			if (response.data && response.data.success === 'Acceso permitido') {
-				return { success: true, data: response.data }
-			} else { return { success: false, error: response.data?.error || 'No se pudo verificar su sesión', data: response.data } }
-		} catch (error) {
-			if (error.response && error.response.data) { return { success: false, error: error.response.data.error || 'No se pudo verificar su sesión', status: error.response.status, data: error.response.data } }
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', isNetworkError: true }
-		}
-	},
-
-	/**
 	 * Register a new user
 	 * @param {Object} credentials - Registration credentials
 	 * @param {string} credentials.name - User's first name

@@ -17,9 +17,7 @@ import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
 const AuthContext = createContext()
 
 // Storage keys
-const STORAGE_KEYS = {
-	USER_DATA: 'user_data'
-}
+const STORAGE_KEYS = { USER_DATA: 'user_data' }
 
 // Auth Provider Component
 export const AuthProvider = ({ children }) => {
@@ -38,8 +36,9 @@ export const AuthProvider = ({ children }) => {
 	}, [])
 
 	// Initialize authentication state from storage
-	// Migrates legacy AsyncStorage token to Keychain on first run
-	// If token is found, validates against API
+	// Optimistic: trust the Keychain token + cached user on cold start.
+	// Only force logout on definitive auth failures (401/403) from a real request;
+	// network errors, rate limits and 5xx must not kick the user to the login screen.
 	const initializeAuth = async () => {
 
 		try {
@@ -47,37 +46,51 @@ export const AuthProvider = ({ children }) => {
 			setIsLoading(true)
 			const saved_token = await getAuthToken()
 
-			if (saved_token) {
+			if (!saved_token) {
+				await clearAuthData()
+				setUser(null)
+				setToken(null)
+				setIsAuthenticated(false)
+				return
+			}
 
-				const apiResponse = await authApi.checkToken()
-				if (apiResponse.success) {
-					setToken(saved_token)
-					setIsAuthenticated(true)
-					const userData = await userApi.getUserProfile()
-					if (userData.success && userData.data) {
-						if (userData.data.cover && !userData.data.cover_photo_url) { userData.data.cover_photo_url = `https://media.qvapay.com/${userData.data.cover}` }
-						setUser(userData.data)
-						// Update home screen widgets with latest balance
-						updateWidgetBalance(userData.data.balance, userData.data.username)
-						reloadWidgets()
-						// Re-register with OneSignal on app restart
-						OneSignal.login(userData.data.uuid)
-					} else {
-						await clearAuthData()
-						setUser(null)
-						setToken(null)
-						setIsAuthenticated(false)
-					}
-				} else { setIsAuthenticated(false) }
+			// Hydrate from cache so the UI can render immediately
+			let cachedUser = null
+			try {
+				const raw = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA)
+				if (raw) { cachedUser = JSON.parse(raw) }
+			} catch (_) { /* corrupt cache — ignore */ }
 
-			} else {
+			setToken(saved_token)
+			setIsAuthenticated(true)
+			if (cachedUser) {
+				setUser(cachedUser)
+				if (cachedUser.uuid) { OneSignal.login(cachedUser.uuid) }
+				if (cachedUser.balance != null && cachedUser.username) {
+					updateWidgetBalance(cachedUser.balance, cachedUser.username)
+					reloadWidgets()
+				}
+			}
+
+			// Refresh profile in the background. Only logout on real auth rejection.
+			const userData = await userApi.getUserProfile()
+			if (userData.success && userData.data) {
+				if (userData.data.cover && !userData.data.cover_photo_url) { userData.data.cover_photo_url = `https://media.qvapay.com/${userData.data.cover}` }
+				try { await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData.data)) } catch (_) { /* cache write failed */ }
+				setUser(userData.data)
+				updateWidgetBalance(userData.data.balance, userData.data.username)
+				reloadWidgets()
+				if (userData.data.uuid) { OneSignal.login(userData.data.uuid) }
+			} else if (userData.status === 401 || userData.status === 403) {
+				// Token genuinely revoked/invalid — clear and require re-login
 				await clearAuthData()
 				setUser(null)
 				setToken(null)
 				setIsAuthenticated(false)
 			}
+			// Any other failure (network, 429, 5xx): keep the cached session intact.
 
-		} catch (err) { setError('Failed to initialize authentication') }
+		} catch (err) { /* Non-auth bootstrap error — keep cached session */ }
 		finally { setIsLoading(false) }
 	}
 
