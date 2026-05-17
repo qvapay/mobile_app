@@ -167,7 +167,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 		)
 
 		navigation.setOptions({
-			headerTitle: brand || '',
+			headerTitle: '',
 			headerRight: () => balanceNode,
 			...(supportsLiquidGlass && {
 				unstable_headerRightItems: () => [{
