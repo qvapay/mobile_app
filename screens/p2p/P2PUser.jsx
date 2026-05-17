@@ -678,7 +678,7 @@ const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onP
 	return (
 		<View style={{ gap: 12 }}>
 
-			<View style={styles.cardsGrid}>
+			<View style={[styles.cardsGrid, { paddingHorizontal: 0, marginTop: 0 }]}>
 				<MiniCard theme={theme} textStyles={textStyles} label="Pares únicos" value={Number(ranking?.unique_peers || 0).toLocaleString("es-ES")} icon="users" />
 				<MiniCard theme={theme} textStyles={textStyles} label="Cierre medio" value={formatMinutes(ranking?.avg_completion_time)} icon="stopwatch" />
 				<MiniCard theme={theme} textStyles={textStyles} label="Ops. 30 días" value={Number(stats.operations30d || 0).toLocaleString("es-ES")} icon="chart-line" />
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
 	tabsRow: {
 		flexDirection: "row",
 		marginTop: 18,
-		paddingHorizontal: 12,
+		marginHorizontal: 12,
 		borderBottomWidth: 0.5,
 	},
 	tabButton: {

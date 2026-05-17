@@ -1,90 +1,117 @@
-import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Linking, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { toast } from 'sonner-native'
 
-// Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
-// UI Particles
-import QPInput from '../../ui/particles/QPInput'
-import QPProduct from '../../ui/particles/QPProduct'
-import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 import QPLoader from '../../ui/particles/QPLoader'
-
-// Routes
-import { ROUTES } from '../../routes'
-
-// API
-import { storeApi } from '../../api/storeApi'
-
-// Pull-to-refresh
+import BrandTile from '../../ui/store/BrandTile'
+import CountryPicker from '../../ui/store/CountryPicker'
+import OperatorAvatar from '../../ui/store/OperatorAvatar'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
-// Toast
-import { toast } from 'sonner-native'
+import { storeApi } from '../../api/storeApi'
+import { ROUTES } from '../../routes'
 
-// Store component
+const DEFAULT_TOPUP_COUNTRY = 'CU'
+// Compliance with App Store Guideline 3.1.1 — vouchers hidden on iOS.
+const SHOW_GIFT_CARDS = Platform.OS !== 'ios'
+
+const formatPriceRange = (min, max) => {
+	if (min == null && max == null) return null
+	if (min == null) return `Hasta $${Number(max).toFixed(2)}`
+	if (max == null || max === min) return `$${Number(min).toFixed(2)}`
+	return `$${Number(min).toFixed(2)} – $${Number(max).toFixed(2)}`
+}
+
 const Store = ({ navigation }) => {
 
-	// Contexts
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
-	const { width: screenWidth } = useWindowDimensions()
-	const numColumns = screenWidth >= 1024 ? 4 : screenWidth >= 768 ? 3 : 2
-	const itemWidth = numColumns === 4 ? '23.5%' : numColumns === 3 ? '31.5%' : '48%'
+	const { width } = useWindowDimensions()
+	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
-	// States
-	const [search, setSearch] = useState('')
-	const [externalPlans, setExternalPlans] = useState([])
-	const [microPlans, setMicroPlans] = useState([])
-	const [giftCards, setGiftCards] = useState([])
-	const [, setMyPurchases] = useState([])
-	const [isLoading, setIsLoading] = useState(true)
-	const [isRefreshing, setIsRefreshing] = useState(false)
+	const [favorites, setFavorites] = useState([])
+	const [featured, setFeatured] = useState([])
+	const [categories, setCategories] = useState([])
+	const [topupCountries, setTopupCountries] = useState([])
+	const [topupSelected, setTopupSelected] = useState(null)
+	const [topupBrands, setTopupBrands] = useState([])
+	const [loading, setLoading] = useState(true)
+	const [refreshing, setRefreshing] = useState(false)
 
-	// Fetch store data
-	const fetchData = useCallback(async (refresh = false) => {
-
-		if (refresh) { setIsRefreshing(true) }
-		else { setIsLoading(true) }
-
-		try {
-
-			const [topupResponse, giftCardResponse, purchasesResponse] = await Promise.all([
-				storeApi.phonePackages(),
-				storeApi.getGiftCards({ featured: true, take: 6 }),
-				storeApi.getMyPurchases(),
-			])
-
-			if (topupResponse.success) {
-				const all = topupResponse.data || []
-				setExternalPlans(all.filter((p) => p.external === true))
-				setMicroPlans(all.filter((p) => p.external === false))
-			} else { toast.error('Recargas', { description: topupResponse.error || 'No se pudieron cargar las recargas' }) }
-
-			if (giftCardResponse.success) {
-				const cards = Array.isArray(giftCardResponse.data) ? giftCardResponse.data : []
-				setGiftCards(cards)
-			} else { toast.error('Tarjetas', { description: giftCardResponse.error || 'No se pudieron cargar las tarjetas de regalo' }) }
-
-			if (purchasesResponse.success) { setMyPurchases(purchasesResponse.data || []) }
-
-		} catch (error) {
-			toast.error('Error', { description: 'No se pudo conectar con el servidor' })
-		} finally {
-			setIsLoading(false)
-			setIsRefreshing(false)
+	const fetchInitial = useCallback(async () => {
+		const requests = [
+			storeApi.getTopupCatalog({ countries: true }),
+		]
+		if (SHOW_GIFT_CARDS) {
+			requests.push(
+				storeApi.getVoucherCatalog({ favorites: true }),
+				storeApi.getVoucherCatalog({ featured: true }),
+				storeApi.getVoucherCatalog({ categories: true }),
+			)
 		}
+		const results = await Promise.all(requests)
+		const [countriesRes, favRes, featRes, catsRes] = results
+
+		if (countriesRes.success) {
+			const list = countriesRes.data?.countries || []
+			setTopupCountries(list)
+			const pick = list.find(c => c.code === DEFAULT_TOPUP_COUNTRY) || list[0]
+			if (pick && !topupSelected) setTopupSelected(pick)
+		}
+		if (SHOW_GIFT_CARDS) {
+			if (favRes?.success) setFavorites(favRes.data?.favorites || [])
+			if (featRes?.success) setFeatured((featRes.data?.featured || []).slice(0, 6))
+			if (catsRes?.success) setCategories((catsRes.data?.categories || []).slice(0, 6))
+		}
+
+		setLoading(false)
+	}, [topupSelected])
+
+	useEffect(() => { fetchInitial() }, [fetchInitial])
+
+	const fetchTopupBrands = useCallback(async (code) => {
+		if (!code) return
+		const res = await storeApi.getTopupCatalog({ country: code })
+		if (res.success) setTopupBrands(res.data?.brands || [])
+		else { toast.error('Operadores', { description: res.error }); setTopupBrands([]) }
 	}, [])
 
-	// Initial load
-	useEffect(() => { fetchData() }, [fetchData])
+	useEffect(() => {
+		if (topupSelected?.code) fetchTopupBrands(topupSelected.code)
+	}, [topupSelected?.code, fetchTopupBrands])
 
-	// Loading state
-	if (isLoading) {
+	const onRefresh = useCallback(async () => {
+		setRefreshing(true)
+		await fetchInitial()
+		if (topupSelected?.code) await fetchTopupBrands(topupSelected.code)
+		setRefreshing(false)
+	}, [fetchInitial, fetchTopupBrands, topupSelected?.code])
+
+	const goToVoucherBrand = useCallback((b) => {
+		navigation.navigate(ROUTES.GIFT_CARD_BRAND, {
+			country: { code: b.country, ...(b.country_meta || {}) },
+			countryCode: b.country,
+			brandSlug: b.slug || b.brand,
+		})
+	}, [navigation])
+
+	const goToTopupBrand = useCallback((b) => {
+		navigation.navigate(ROUTES.PHONE_TOPUP_BRAND, {
+			country: topupSelected,
+			countryCode: topupSelected?.code,
+			brandSlug: b.slug || b.brand,
+		})
+	}, [navigation, topupSelected])
+
+	const featuredRows = useMemo(() => featured, [featured])
+
+	if (loading) {
 		return (
 			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
 				<QPLoader />
@@ -93,103 +120,298 @@ const Store = ({ navigation }) => {
 	}
 
 	return (
-		<View style={[containerStyles.subContainer]}>
+		<View style={containerStyles.subContainer}>
 			<ScrollView
-				style={styles.scrollView}
-				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+				contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
 				showsVerticalScrollIndicator={false}
-				refreshControl={createHiddenRefreshControl(isRefreshing, () => fetchData(true))}
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 			>
 
-				{/* Search bar */}
-				<QPInput value={search} onChangeText={setSearch} placeholder="Buscar en la tienda" prefixIconName="magnifying-glass" style={[styles.searchInput, { fontSize: theme.typography.fontSize.md }]} />
-
-				{/* Microrecargas */}
-				<View style={[styles.section, { marginTop: 10, gap: 5 }]}>
-					<QPSectionHeader title="Microrecargas" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { external: false })} />
-					{microPlans.length > 0 ? (
-						Platform.OS === 'ios' ? (
-							<View style={styles.grid}>
-								{microPlans.map((plan) => (
-									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: itemWidth, marginRight: 0 }} />
-								))}
-							</View>
-						) : (
-							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-								{microPlans.map((plan) => (
-									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
-								))}
-							</ScrollView>
-						)
-					) : (
-						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
-							No hay microrecargas disponibles
+				{/* Hero */}
+				<View style={styles.heroRow}>
+					<View style={{ flex: 1 }}>
+						<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: '800' }]}>Tienda</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
+							Recargas móviles y tarjetas de regalo
 						</Text>
-					)}
+					</View>
 				</View>
 
-				{/* Recargas del exterior */}
-				<View style={[styles.section, { gap: 5 }]}>
-					<QPSectionHeader title="Recargas del exterior" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { external: true })} />
-					{externalPlans.length > 0 ? (
-						Platform.OS === 'ios' ? (
-							<View style={styles.grid}>
-								{externalPlans.map((plan) => (
-									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} style={{ width: itemWidth, marginRight: 0 }} />
-								))}
-							</View>
-						) : (
-							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-								{externalPlans.map((plan) => (
-									<QPProduct key={plan.id} name={plan.name} price={plan.price} goldPrice={plan.gold_price} details={plan.details} logo={plan.logo} onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: plan })} />
-								))}
-							</ScrollView>
-						)
-					) : (
-						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
-							No hay recargas del exterior disponibles
-						</Text>
-					)}
-				</View>
-
-				{/* Gift cards (hidden on iOS per App Store Guideline 3.1.1) */}
-				{Platform.OS !== 'ios' && (
-					<View style={[styles.section, { gap: 5 }]}>
-						<QPSectionHeader title="Tarjetas de regalo" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)} />
-						{giftCards.length > 0 ? (
-							<View style={styles.grid}>
-								{giftCards.map((card) => (
-									<QPProduct key={card.uuid || card.id} name={card.name} price={null} details={[card.lead || card.category].filter(Boolean)} logo={card.logo} onPress={() => navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid })} style={{ width: itemWidth, marginRight: 0 }} />
-								))}
-							</View>
-						) : (
-							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center', paddingVertical: 20 }]}>
-								No hay tarjetas disponibles
+				{/* iOS: banner informativo (sin CTA transaccional, cumple Guideline 3.1.1) */}
+				{!SHOW_GIFT_CARDS && (
+					<Pressable
+						onPress={() => Linking.openURL('https://qvapay.com/shop/giftcards')}
+						style={[styles.iosInfoBanner, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+					>
+						<Text style={{ fontSize: 26 }}>🎁</Text>
+						<View style={{ flex: 1, marginHorizontal: 12 }}>
+							<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+								¿Buscas tarjetas de regalo?
 							</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
+								Amazon, Steam, Apple, Google Play y más en qvapay.com
+							</Text>
+						</View>
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>›</Text>
+					</Pressable>
+				)}
+
+				{/* Tarjetas de regalo — entry point siempre presente en Android */}
+				{SHOW_GIFT_CARDS && (
+					<View style={styles.section}>
+						<SectionHeader
+							title="Tarjetas de regalo"
+							hint="Amazon, Steam, Apple, Google Play y más"
+							actionLabel="Ver todas"
+							onAction={() => navigation.navigate(ROUTES.GIFT_CARDS)}
+							theme={theme}
+							textStyles={textStyles}
+						/>
+
+						{/* Favoritos del usuario */}
+						{favorites.length > 0 && (
+							<View style={{ marginBottom: 14 }}>
+								<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+									Tus marcas favoritas
+								</Text>
+								<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 10 }}>
+									{favorites.map(b => (
+										<View key={`fav-${b.country}-${b.brand}`} style={{ width: 150 }}>
+											<BrandTile
+												brand={b}
+												country={{ code: b.country, ...(b.country_meta || {}) }}
+												onPress={() => goToVoucherBrand(b)}
+											/>
+										</View>
+									))}
+								</ScrollView>
+							</View>
+						)}
+
+						{/* Populares */}
+						{featuredRows.length > 0 && (
+							<View style={{ marginBottom: 14 }}>
+								<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+									⚡ Populares
+								</Text>
+								<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 10 }}>
+									{featuredRows.map(b => (
+										<View key={`feat-${b.country}-${b.brand}`} style={{ width: 150 }}>
+											<BrandTile
+												brand={b}
+												country={{ code: b.country, ...(b.country_meta || {}) }}
+												onPress={() => goToVoucherBrand(b)}
+											/>
+										</View>
+									))}
+								</ScrollView>
+							</View>
+						)}
+
+						{/* Categorías */}
+						{categories.length > 0 && (
+							<View>
+								<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+									Explora por categoría
+								</Text>
+								<View style={styles.catGrid}>
+									{categories.map(c => (
+										<Pressable
+											key={c.key}
+											onPress={() => navigation.navigate(ROUTES.GIFT_CARDS, { category: c.key })}
+											style={[
+												styles.catCard,
+												{ backgroundColor: theme.colors.surface, width: numColumns === 2 ? '48%' : numColumns === 3 ? '31.5%' : '23%' },
+												theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+											]}
+										>
+											<Text style={{ fontSize: 26 }}>{c.emoji}</Text>
+											<View style={{ flex: 1, marginLeft: 10 }}>
+												<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '700' }]} numberOfLines={1}>
+													{c.label}
+												</Text>
+												<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+													{c.count} {c.count === 1 ? 'marca' : 'marcas'}
+												</Text>
+											</View>
+										</Pressable>
+									))}
+								</View>
+							</View>
+						)}
+
+						{/* Empty state: aún sin featured/favorites/categorías → CTA único */}
+						{favorites.length === 0 && featuredRows.length === 0 && categories.length === 0 && (
+							<Pressable
+								onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)}
+								style={[styles.giftCardCta, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+							>
+								<Text style={{ fontSize: 36 }}>🎁</Text>
+								<View style={{ flex: 1, marginLeft: 14 }}>
+									<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+										Explora tarjetas de regalo
+									</Text>
+									<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
+										Cientos de marcas en 11 países
+									</Text>
+								</View>
+								<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '700' }]}>›</Text>
+							</Pressable>
 						)}
 					</View>
 				)}
 
+				{/* Recargas móviles */}
+				<View style={styles.section}>
+					<View style={styles.recargasHeader}>
+						<View style={{ flex: 1 }}>
+							<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '800' }]}>Recargas móviles</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
+								{topupSelected?.code === 'CU'
+									? 'Cubacel local — tarifa P2P sin recargo.'
+									: 'Recarga el móvil de cualquier persona en LATAM.'}
+							</Text>
+						</View>
+						<Pressable
+							onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { country: topupSelected?.code })}
+							style={[styles.miniCta, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+						>
+							<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '700' }]}>Ver todas</Text>
+						</Pressable>
+					</View>
+
+					{/* Country picker */}
+					<View style={{ marginBottom: 12 }}>
+						<CountryPicker
+							countries={topupCountries}
+							value={topupSelected}
+							onChange={setTopupSelected}
+							placeholder="Selecciona país"
+						/>
+					</View>
+
+					{/* Brands grid (top 6) */}
+					<View style={styles.brandGrid}>
+						{topupBrands.slice(0, 6).map(b => {
+							const price = formatPriceRange(b.price_min, b.price_max)
+							return (
+								<Pressable
+									key={`${topupSelected?.code}-${b.brand}`}
+									onPress={() => goToTopupBrand(b)}
+									style={[
+										styles.brandCell,
+										{
+											backgroundColor: theme.colors.surface,
+											width: numColumns === 2 ? '48%' : numColumns === 3 ? '31.5%' : '23%',
+										},
+										theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+									]}
+								>
+									<OperatorAvatar brand={b.brand} logoUrl={b.logo_url} size="md" />
+									<View style={{ flex: 1, marginLeft: 10 }}>
+										<Text numberOfLines={1} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+											{b.brand}
+										</Text>
+										<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+											{price || `${b.offer_count || 0} planes`}
+										</Text>
+									</View>
+								</Pressable>
+							)
+						})}
+						{topupBrands.length === 0 && (
+							<View style={[styles.empty, { backgroundColor: theme.colors.surface, width: '100%' }]}>
+								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
+									No hay operadores disponibles
+								</Text>
+							</View>
+						)}
+					</View>
+				</View>
 			</ScrollView>
 		</View>
 	)
 }
 
+const SectionHeader = ({ title, hint, actionLabel, onAction, theme, textStyles }) => (
+	<View style={styles.sectionHeader}>
+		<View style={{ flex: 1 }}>
+			<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>{title}</Text>
+			{hint && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>{hint}</Text>}
+		</View>
+		{actionLabel && onAction && (
+			<Pressable onPress={onAction} hitSlop={8}>
+				<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '700' }]}>
+					{actionLabel} ›
+				</Text>
+			</Pressable>
+		)}
+	</View>
+)
+
 const styles = StyleSheet.create({
-	scrollView: {
-		flex: 1,
+	heroRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 22,
 	},
-	section: {
-		marginBottom: 24,
+	miniCta: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 999,
 	},
-	horizontalList: {
-		paddingRight: 8,
+	section: { marginBottom: 24 },
+	sectionHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 10,
 	},
-	grid: {
+	catGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
-		justifyContent: 'space-between',
-		rowGap: 16,
+		gap: 10,
+	},
+	catCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 12,
+		borderRadius: 14,
+	},
+	giftCardCta: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 18,
+		borderRadius: 16,
+	},
+	iosInfoBanner: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 14,
+		borderRadius: 14,
+		marginBottom: 22,
+	},
+	recargasHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 14,
+	},
+	brandGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 10,
+	},
+	brandCell: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 12,
+		borderRadius: 14,
+	},
+	empty: {
+		padding: 30,
+		borderRadius: 14,
+		alignItems: 'center',
 	},
 })
 

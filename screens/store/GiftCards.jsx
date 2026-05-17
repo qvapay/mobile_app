@@ -1,142 +1,218 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, FlatList } from 'react-native'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { FlashList } from '@shopify/flash-list'
 
-// Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
-// UI Particles
 import QPInput from '../../ui/particles/QPInput'
-import QPProduct from '../../ui/particles/QPProduct'
-
-// API
-import { storeApi } from '../../api/storeApi'
-
-// Routes
-import { ROUTES } from '../../routes'
-
-// Pull-to-refresh
+import QPLoader from '../../ui/particles/QPLoader'
+import CountryPicker from '../../ui/store/CountryPicker'
+import CategoryPill from '../../ui/store/CategoryPill'
+import BrandTile from '../../ui/store/BrandTile'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
-// Toast
+import { storeApi } from '../../api/storeApi'
+import { ROUTES } from '../../routes'
+
 import { toast } from 'sonner-native'
 
-// GiftCards component
-const GiftCards = ({ navigation }) => {
+const DEFAULT_COUNTRY = 'US'
+const PAGE_SIZE = 24
 
-	// Contexts
+const GiftCards = ({ navigation, route }) => {
+
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
+	const { width } = useWindowDimensions()
+	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
-	// States
+	const initialCategory = (route?.params?.category || 'ALL').toUpperCase()
+
+	const [countries, setCountries] = useState([])
+	const [selectedCountry, setSelectedCountry] = useState(null)
+	const [brands, setBrands] = useState([])
+	const [categories, setCategories] = useState([])
+	const [activeCategory, setActiveCategory] = useState(initialCategory)
 	const [search, setSearch] = useState('')
-	const [giftCards, setGiftCards] = useState([])
-	const [filteredCards, setFilteredCards] = useState([])
-	const [isLoading, setIsLoading] = useState(false)
-	const [isRefreshing, setIsRefreshing] = useState(false)
+	const [page, setPage] = useState(1)
+	const [loadingShell, setLoadingShell] = useState(true)
+	const [loadingBrands, setLoadingBrands] = useState(false)
+	const [refreshing, setRefreshing] = useState(false)
 
-	// Fetch gift cards
-	const fetchGiftCards = async (refresh = false) => {
-
-		if (refresh) { setIsRefreshing(true) }
-		else { setIsLoading(true) }
-
-		try {
-			const response = await storeApi.getGiftCards()
-			if (response.success) {
-				const cards = Array.isArray(response.data) ? response.data : []
-				setGiftCards(cards)
-				setFilteredCards(cards)
-			}
-			else { toast.error('Error', { description: response.error || 'No se pudieron obtener las tarjetas de regalo' }) }
-		} catch (error) {
-		toast.error('Error', { description: 'Ha ocurrido un error al cargar las tarjetas de regalo' })
-		} finally {
-			setIsLoading(false)
-			setIsRefreshing(false)
+	const fetchShell = useCallback(async () => {
+		const res = await storeApi.getVoucherCatalog({ countries: true })
+		if (!res.success) {
+			toast.error('Países', { description: res.error })
+			setLoadingShell(false)
+			return
 		}
-	}
+		const list = res.data?.countries || []
+		setCountries(list)
+		const pick = list.find(c => c.code === DEFAULT_COUNTRY) || list[0]
+		if (pick && !selectedCountry) setSelectedCountry(pick)
+		setLoadingShell(false)
+	}, [selectedCountry])
 
-	// Initial load
-	useEffect(() => {
-		fetchGiftCards()
+	useEffect(() => { fetchShell() }, [fetchShell])
+
+	const fetchCountryData = useCallback(async (code) => {
+		if (!code) return
+		setLoadingBrands(true)
+		const [brandsRes, catsRes] = await Promise.all([
+			storeApi.getVoucherCatalog({ country: code }),
+			storeApi.getVoucherCatalog({ categories: true, country: code }),
+		])
+		if (brandsRes.success) setBrands(brandsRes.data?.brands || [])
+		else { toast.error('Marcas', { description: brandsRes.error }); setBrands([]) }
+		if (catsRes.success) setCategories(catsRes.data?.categories || [])
+		else setCategories([])
+		setLoadingBrands(false)
 	}, [])
 
-	// Filter cards when search changes
 	useEffect(() => {
-		if (search.trim()) {
-			const searchLower = search.toLowerCase()
-			setFilteredCards(giftCards.filter((card) =>
-				card.name?.toLowerCase().includes(searchLower) ||
-				card.category?.toLowerCase().includes(searchLower)
-			))
-		} else {
-			setFilteredCards(giftCards)
-		}
-	}, [search, giftCards])
+		if (!selectedCountry?.code) return
+		setSearch('')
+		setPage(1)
+		fetchCountryData(selectedCountry.code)
+	}, [selectedCountry?.code, fetchCountryData])
 
-	// Handle card selection
-	const handleCardSelect = (card) => { navigation.navigate(ROUTES.GIFT_CARD_DETAIL, { uuid: card.uuid }) }
+	const filteredBrands = useMemo(() => {
+		const q = search.trim().toLowerCase()
+		return brands
+			.filter(b => activeCategory === 'ALL' || b.category === activeCategory)
+			.filter(b => !q || (b.brand || '').toLowerCase().includes(q))
+	}, [brands, search, activeCategory])
 
-	// Handle refresh
-	const handleRefresh = () => { fetchGiftCards(true) }
+	useEffect(() => { setPage(1) }, [search, activeCategory])
+
+	const totalPages = Math.max(1, Math.ceil(filteredBrands.length / PAGE_SIZE))
+	const safePage = Math.min(page, totalPages)
+	const pagedBrands = useMemo(
+		() => filteredBrands.slice(0, safePage * PAGE_SIZE),
+		[filteredBrands, safePage],
+	)
+
+	const goToBrand = useCallback((brand) => {
+		navigation.navigate(ROUTES.GIFT_CARD_BRAND, {
+			country: selectedCountry,
+			countryCode: selectedCountry?.code,
+			brandSlug: brand.slug || brand.brand,
+		})
+	}, [navigation, selectedCountry])
+
+	const onRefresh = useCallback(async () => {
+		setRefreshing(true)
+		await fetchShell()
+		if (selectedCountry?.code) await fetchCountryData(selectedCountry.code)
+		setRefreshing(false)
+	}, [fetchShell, fetchCountryData, selectedCountry?.code])
+
+	if (loadingShell) {
+		return (
+			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+				<QPLoader />
+			</View>
+		)
+	}
+
+	const renderBrand = ({ item }) => (
+		<View style={{ flex: 1 / numColumns, padding: 5 }}>
+			<BrandTile brand={item} country={selectedCountry} onPress={() => goToBrand(item)} />
+		</View>
+	)
 
 	return (
-		<View style={[containerStyles.subContainer]}>
+		<View style={containerStyles.subContainer}>
 			<ScrollView
-				style={styles.scrollView}
-				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+				contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
 				showsVerticalScrollIndicator={false}
-				refreshControl={createHiddenRefreshControl(isRefreshing, handleRefresh)}
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 			>
-				{/* Search bar */}
-				<QPInput
-					value={search}
-					onChangeText={setSearch}
-					placeholder="Buscar tarjeta de regalo..."
-					prefixIconName="magnifying-glass"
-					style={[styles.searchInput, { fontSize: theme.typography.fontSize.md }]}
-				/>
+				{/* Search + Country */}
+				<View style={styles.controls}>
+					<View style={{ flex: 1 }}>
+						<QPInput
+							value={search}
+							onChangeText={setSearch}
+							placeholder="Buscar marca: Amazon, Steam…"
+							prefixIconName="magnifying-glass"
+							style={{ fontSize: theme.typography.fontSize.md }}
+						/>
+					</View>
+				</View>
 
-				{/* Cards list */}
-				{!isLoading && (
-					<View style={styles.cardsContainer}>
-						{filteredCards.length > 0 ? (
-							<>
-								<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 16 }]}>
-									{filteredCards.length} tarjeta{filteredCards.length !== 1 ? 's' : ''} disponible{filteredCards.length !== 1 ? 's' : ''}
-								</Text>
-								<FlatList
-									data={filteredCards}
-									keyExtractor={(item) => item.uuid || item.id?.toString()}
-									renderItem={({ item }) => (
-										<QPProduct
-											name={item.name}
-											price={null}
-											details={[item.lead || item.category].filter(Boolean)}
-											logo={item.logo}
-											onPress={() => handleCardSelect(item)}
-											style={styles.cardItem}
-										/>
-									)}
-									numColumns={2}
-									columnWrapperStyle={styles.row}
-									scrollEnabled={false}
-									contentContainerStyle={styles.listContent}
-								/>
-							</>
-						) : (
-							<View style={styles.emptyContainer}>
-								<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-									No se encontraron tarjetas de regalo
-								</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
-									{search.trim()
-										? 'Intenta con otros términos de búsqueda'
-										: 'No hay tarjetas disponibles en este momento'}
+				<View style={{ marginBottom: 14 }}>
+					<CountryPicker
+						countries={countries}
+						value={selectedCountry}
+						onChange={setSelectedCountry}
+					/>
+				</View>
+
+				{/* Category pills */}
+				{categories.length > 0 && (
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4, marginBottom: 12 }}>
+						<CategoryPill
+							active={activeCategory === 'ALL'}
+							onPress={() => setActiveCategory('ALL')}
+							emoji="✨"
+							label="Todas"
+							count={brands.length}
+						/>
+						{categories.map(c => (
+							<CategoryPill
+								key={c.key}
+								active={activeCategory === c.key}
+								onPress={() => setActiveCategory(activeCategory === c.key ? 'ALL' : c.key)}
+								emoji={c.emoji}
+								label={c.label}
+								count={c.count}
+							/>
+						))}
+					</ScrollView>
+				)}
+
+				{/* Brands grid */}
+				<View style={styles.gridHeader}>
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+						{selectedCountry?.flag} Marcas en {selectedCountry?.name}
+					</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+						{filteredBrands.length} {filteredBrands.length === 1 ? 'marca' : 'marcas'}
+					</Text>
+				</View>
+
+				{loadingBrands ? (
+					<View style={{ paddingVertical: 30, alignItems: 'center' }}>
+						<QPLoader />
+					</View>
+				) : filteredBrands.length === 0 ? (
+					<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
+						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
+							{search ? `Sin resultados para "${search}"` : 'No hay marcas en esta categoría'}
+						</Text>
+					</View>
+				) : (
+					<View style={{ marginHorizontal: -5 }}>
+						<FlashList
+							data={pagedBrands}
+							keyExtractor={(item) => `${selectedCountry?.code}-${item.brand}`}
+							renderItem={renderBrand}
+							numColumns={numColumns}
+							key={numColumns}
+							scrollEnabled={false}
+						/>
+						{safePage < totalPages && (
+							<View style={{ alignItems: 'center', marginTop: 14 }}>
+								<Text
+									onPress={() => setPage(safePage + 1)}
+									style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '700', paddingVertical: 10, paddingHorizontal: 24 }]}
+								>
+									Cargar más
 								</Text>
 							</View>
 						)}
@@ -148,30 +224,22 @@ const GiftCards = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-	scrollView: {
-		flex: 1,
+	controls: {
+		flexDirection: 'row',
+		gap: 10,
+		marginBottom: 10,
 	},
-	searchInput: {
-		marginBottom: 16,
-	},
-	cardsContainer: {
-		flex: 1,
-	},
-	listContent: {
-		paddingBottom: 20,
-	},
-	row: {
-		justifyContent: 'space-between',
-		marginBottom: 12,
-	},
-	cardItem: {
-		width: '48%',
-	},
-	emptyContainer: {
-		flex: 1,
-		justifyContent: 'center',
+	gridHeader: {
+		flexDirection: 'row',
 		alignItems: 'center',
-		paddingVertical: 60,
+		justifyContent: 'space-between',
+		marginBottom: 10,
+		paddingHorizontal: 5,
+	},
+	empty: {
+		padding: 40,
+		borderRadius: 14,
+		alignItems: 'center',
 	},
 })
 

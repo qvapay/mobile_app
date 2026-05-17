@@ -51,7 +51,7 @@ const MyPurchases = ({ navigation }) => {
 		try {
 			const response = await storeApi.getMyPurchases()
 			if (response.success) {
-				setPurchases(response.data || [])
+				setPurchases(response.data?.data || [])
 			} else { toast.error('Error', { description: response.error || 'No se pudieron cargar tus compras' }) }
 		} catch (error) {
 			toast.error('Error', { description: 'No se pudo conectar con el servidor' })

@@ -1,249 +1,279 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, FlatList, useWindowDimensions } from 'react-native'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { FlashList } from '@shopify/flash-list'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
-// UI Particles
 import QPInput from '../../ui/particles/QPInput'
-import QPProduct from '../../ui/particles/QPProduct'
-
-// API
-import { storeApi } from '../../api/storeApi'
-
-// Routes
-import { ROUTES } from '../../routes'
-
-// Pull-to-refresh
+import QPLoader from '../../ui/particles/QPLoader'
+import CountryPicker from '../../ui/store/CountryPicker'
+import OperatorAvatar from '../../ui/store/OperatorAvatar'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
-// Toast
+import { storeApi } from '../../api/storeApi'
+import { ROUTES } from '../../routes'
+
 import { toast } from 'sonner-native'
 
-// PhoneTopupIndex component
+const DEFAULT_COUNTRY = 'CU'
+
+const formatPriceRange = (min, max) => {
+	if (min == null && max == null) return null
+	if (min == null) return `Hasta $${Number(max).toFixed(2)}`
+	if (max == null || max === min) return `$${Number(min).toFixed(2)}`
+	return `$${Number(min).toFixed(2)} – $${Number(max).toFixed(2)}`
+}
+
 const PhoneTopupIndex = ({ navigation, route }) => {
 
-	// External filter from route params
-	const external = route.params?.external
-
-	// Contexts
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
-	const { width: screenWidth } = useWindowDimensions()
-	const numColumns = screenWidth >= 1024 ? 4 : screenWidth >= 768 ? 3 : 2
-	const itemWidth = numColumns === 4 ? '23.5%' : numColumns === 3 ? '31.5%' : '48%'
+	const { width } = useWindowDimensions()
+	const numColumns = width >= 768 ? 3 : 2
 
-	// States
+	const initialCountry = (route?.params?.country || '').toUpperCase()
+
+	const [countries, setCountries] = useState([])
+	const [featured, setFeatured] = useState([])
+	const [selectedCountry, setSelectedCountry] = useState(null)
+	const [brands, setBrands] = useState([])
 	const [search, setSearch] = useState('')
-	const [phonePackages, setPhonePackages] = useState([])
-	const [filteredPackages, setFilteredPackages] = useState([])
-	const [isLoading, setIsLoading] = useState(false)
-	const [isRefreshing, setIsRefreshing] = useState(false)
-	const [filters, setFilters] = useState({ country: '', operator: '' })
+	const [loadingCountries, setLoadingCountries] = useState(true)
+	const [loadingBrands, setLoadingBrands] = useState(false)
+	const [refreshing, setRefreshing] = useState(false)
 
-	// Fetch phone packages
-	const fetchPhonePackages = async (refresh = false) => {
-
-		if (refresh) { setIsRefreshing(true) }
-		else { setIsLoading(true) }
-
-		try {
-			const response = await storeApi.phonePackages(filters)
-			if (response.success) {
-				setPhonePackages(response.data || [])
-				setFilteredPackages(response.data || [])
-			}
-			else { toast.error('Error', { description: response.error || 'No se pudieron obtener las recargas telefónicas' }) }
-		} catch (error) {
-			toast.error('Error', { description: 'Ha ocurrido un error al cargar las recargas' })
-		} finally {
-			setIsLoading(false)
-			setIsRefreshing(false)
+	const fetchCountries = useCallback(async () => {
+		const [countriesRes, featuredRes] = await Promise.all([
+			storeApi.getTopupCatalog({ countries: true }),
+			storeApi.getTopupCatalog({ featured: true }),
+		])
+		if (countriesRes.success) {
+			const list = countriesRes.data?.countries || []
+			setCountries(list)
+			const pick = list.find(c => c.code === (initialCountry || DEFAULT_COUNTRY)) || list[0]
+			if (pick && !selectedCountry) setSelectedCountry(pick)
+		} else {
+			toast.error('Países', { description: countriesRes.error })
 		}
-	}
+		if (featuredRes.success) {
+			setFeatured((featuredRes.data?.featured || []).slice(0, 6))
+		}
+		setLoadingCountries(false)
+	}, [initialCountry, selectedCountry])
 
-	// Initial load
-	useEffect(() => {
-		fetchPhonePackages()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+	useEffect(() => { fetchCountries() }, [fetchCountries])
+
+	const fetchBrands = useCallback(async (countryCode) => {
+		if (!countryCode) return
+		setLoadingBrands(true)
+		const res = await storeApi.getTopupCatalog({ country: countryCode })
+		if (res.success) setBrands(res.data?.brands || [])
+		else { toast.error('Operadores', { description: res.error }); setBrands([]) }
+		setLoadingBrands(false)
 	}, [])
 
-	// Filter packages by external param and search (client-side filtering)
 	useEffect(() => {
-		let filtered = phonePackages
+		setSearch('')
+		if (selectedCountry?.code) fetchBrands(selectedCountry.code)
+	}, [selectedCountry?.code, fetchBrands])
 
-		// Apply external filter from route params
-		if (external !== undefined) { filtered = filtered.filter((pkg) => pkg.external === external) }
+	const filteredBrands = useMemo(() => {
+		const q = search.trim().toLowerCase()
+		if (!q) return brands
+		return brands.filter(b => (b.brand || '').toLowerCase().includes(q))
+	}, [brands, search])
 
-		// Apply search filter
-		if (search.trim()) {
-			const searchLower = search.toLowerCase()
-			filtered = filtered.filter((pkg) =>
-				pkg.name?.toLowerCase().includes(searchLower) ||
-				pkg.operator?.toLowerCase().includes(searchLower) ||
-				pkg.country?.toLowerCase().includes(searchLower)
-			)
-		}
+	const goToBrand = useCallback((brand) => {
+		navigation.navigate(ROUTES.PHONE_TOPUP_BRAND, {
+			country: selectedCountry,
+			countryCode: selectedCountry?.code,
+			brandSlug: brand.slug || brand.brand,
+		})
+	}, [navigation, selectedCountry])
 
-		setFilteredPackages(filtered)
-	}, [search, phonePackages, external])
+	const renderBrand = ({ item }) => {
+		const price = formatPriceRange(item.price_min, item.price_max)
+		return (
+			<Pressable
+				onPress={() => goToBrand(item)}
+				style={[
+					styles.brandCard,
+					{ backgroundColor: theme.colors.surface },
+					theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+				]}
+			>
+				<OperatorAvatar brand={item.brand} logoUrl={item.logo_url} size="md" />
+				<View style={{ flex: 1, marginLeft: 12 }}>
+					<Text numberOfLines={1} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
+						{item.brand}
+					</Text>
+					<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+						{price || `${item.offer_count || 0} planes`}
+					</Text>
+				</View>
+				<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
+			</Pressable>
+		)
+	}
 
-	// Refetch when country or operator filters change (server-side filtering)
-	useEffect(() => {
-		// Debounce to avoid too many requests when filters change
-		const timeoutId = setTimeout(() => {
-			// Only refetch if filters are actually set
-			if (filters.country || filters.operator) { fetchPhonePackages() }
-		}, 500)
-		return () => clearTimeout(timeoutId)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters.country, filters.operator])
+	const onRefresh = useCallback(async () => {
+		setRefreshing(true)
+		await fetchCountries()
+		if (selectedCountry?.code) await fetchBrands(selectedCountry.code)
+		setRefreshing(false)
+	}, [fetchCountries, fetchBrands, selectedCountry?.code])
 
-	// Handle package selection
-	const handlePackageSelect = (packageItem) => { navigation.navigate(ROUTES.PHONE_TOPUP_PURCHASE, { package: packageItem }) }
-
-	// Handle refresh
-	const handleRefresh = () => { fetchPhonePackages(true) }
+	if (loadingCountries) {
+		return (
+			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+				<QPLoader />
+			</View>
+		)
+	}
 
 	return (
-		<View style={[containerStyles.subContainer]}>
+		<View style={containerStyles.subContainer}>
 			<ScrollView
 				style={styles.scrollView}
-				contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+				contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
 				showsVerticalScrollIndicator={false}
-				refreshControl={createHiddenRefreshControl(isRefreshing, handleRefresh)}
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 			>
-				{/* Search bar */}
-				<QPInput
-					value={search}
-					onChangeText={setSearch}
-					placeholder="Buscar recarga..."
-					prefixIconName="magnifying-glass"
-					style={[styles.searchInput, { fontSize: theme.typography.fontSize.md }]}
-				/>
-
-				{/* Filters section */}
-				<View style={styles.filtersContainer}>
-					<View style={styles.filterRow}>
-						<View style={[styles.filterInput, { flex: 1, marginRight: 8 }]}>
-							<QPInput
-								value={filters.country}
-								onChangeText={(value) => setFilters({ ...filters, country: value })}
-								placeholder="País (ej: CU)"
-								prefixIconName="globe"
-								style={[styles.filterInputStyle, { fontSize: theme.typography.fontSize.sm }]}
-							/>
-						</View>
-						<View style={[styles.filterInput, { flex: 1, marginLeft: 8 }]}>
-							<QPInput
-								value={filters.operator}
-								onChangeText={(value) => setFilters({ ...filters, operator: value })}
-								placeholder="Operador (ej: ETECSA)"
-								prefixIconName="tower-broadcast"
-								style={[styles.filterInputStyle, { fontSize: theme.typography.fontSize.sm }]}
-							/>
-						</View>
-					</View>
+				{/* Hero card: country picker */}
+				<View style={[styles.heroCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+						País del destinatario
+					</Text>
+					<CountryPicker
+						countries={countries}
+						value={selectedCountry}
+						onChange={setSelectedCountry}
+						placeholder="Selecciona país"
+					/>
+					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 8 }]}>
+						{selectedCountry?.code === 'CU'
+							? 'Cubacel local — sin cargo del exterior.'
+							: 'Recarga el móvil de cualquier persona en LATAM.'}
+					</Text>
 				</View>
 
-				{/* Packages list */}
-				{!isLoading && (
-					<View style={styles.packagesContainer}>
-						{filteredPackages.length > 0 ? (
-							<>
-								<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 16 }]}>
-									{filteredPackages.length} recarga{filteredPackages.length !== 1 ? 's' : ''} disponible{filteredPackages.length !== 1 ? 's' : ''}
-								</Text>
-								<FlatList
-									data={filteredPackages}
-									keyExtractor={(item) => item.id?.toString() || item.uuid?.toString() || Math.random().toString()}
-									renderItem={({ item }) => {
-										// Build details array - use item.details if available, otherwise construct from available fields
-										const details = item.details || [
-											item.operator,
-											item.country,
-											item.amount ? `${item.amount} ${item.currency || 'QUSD'}` : null,
-										].filter(Boolean)
-
-										return (
-											<QPProduct
-												name={item.name || 'Recarga'}
-												price={item.price}
-												details={details}
-												logo={item.logo}
-												image={item.image}
-												onPress={() => handlePackageSelect(item)}
-												style={[styles.packageCard, { width: itemWidth }]}
-											/>
-										)
-									}}
-									numColumns={numColumns}
-									key={numColumns}
-									columnWrapperStyle={styles.row}
-									scrollEnabled={false}
-									contentContainerStyle={styles.listContent}
-								/>
-							</>
-						) : (
-							<View style={styles.emptyContainer}>
-								<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-									No se encontraron recargas
-								</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
-									{search.trim() || filters.country || filters.operator
-										? 'Intenta con otros filtros de búsqueda'
-										: 'No hay recargas disponibles en este momento'}
-								</Text>
-							</View>
-						)}
+				{/* Featured */}
+				{featured.length > 0 && !search && (
+					<View style={styles.section}>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700', marginBottom: 10 }]}>
+							⚡ Operadores populares
+						</Text>
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 12, gap: 10 }}>
+							{featured.map(f => (
+								<Pressable
+									key={`${f.country}-${f.brand}`}
+									onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_BRAND, {
+										country: { code: f.country, ...f.country_meta },
+										countryCode: f.country,
+										brandSlug: f.slug || f.brand,
+									})}
+									style={[styles.featuredItem, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+								>
+									<OperatorAvatar brand={f.brand} logoUrl={f.logo_url} size="md" />
+									<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 6, maxWidth: 90, textAlign: 'center' }]}>
+										{f.brand}
+									</Text>
+									<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: 10 }]}>
+										{f.country_meta?.flag} {f.country_meta?.name}
+									</Text>
+								</Pressable>
+							))}
+						</ScrollView>
 					</View>
 				)}
+
+				{/* Search */}
+				{brands.length > 6 && (
+					<View style={{ marginBottom: 12 }}>
+						<QPInput
+							value={search}
+							onChangeText={setSearch}
+							placeholder={`Filtrar operador en ${selectedCountry?.name || ''}…`}
+							prefixIconName="magnifying-glass"
+							style={{ fontSize: theme.typography.fontSize.md }}
+						/>
+					</View>
+				)}
+
+				{/* Brands grid */}
+				<View style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+							{selectedCountry?.flag} Operadores en {selectedCountry?.name}
+						</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+							{filteredBrands.length} {filteredBrands.length === 1 ? 'operador' : 'operadores'}
+						</Text>
+					</View>
+
+					{loadingBrands ? (
+						<View style={{ paddingVertical: 30, alignItems: 'center' }}>
+							<QPLoader />
+						</View>
+					) : filteredBrands.length === 0 ? (
+						<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
+							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
+								{search ? `Sin resultados para "${search}"` : 'No hay operadores disponibles'}
+							</Text>
+						</View>
+					) : (
+						<FlashList
+							data={filteredBrands}
+							keyExtractor={(item) => `${selectedCountry?.code}-${item.brand}`}
+							renderItem={renderBrand}
+							numColumns={1}
+							scrollEnabled={false}
+							ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+							key={numColumns}
+						/>
+					)}
+				</View>
 			</ScrollView>
 		</View>
 	)
 }
 
 const styles = StyleSheet.create({
-	scrollView: {
-		flex: 1,
+	scrollView: { flex: 1 },
+	heroCard: {
+		padding: 14,
+		borderRadius: 16,
+		marginBottom: 18,
 	},
-	searchInput: {
-		marginBottom: 16,
-	},
-	filtersContainer: {
-		marginBottom: 20,
-	},
-	filterRow: {
+	section: { marginBottom: 22 },
+	sectionHeader: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
-	},
-	filterInput: {
-		flex: 1,
-	},
-	filterInputStyle: {
-	},
-	packagesContainer: {
-		flex: 1,
-	},
-	listContent: {
-		paddingBottom: 20,
-	},
-	row: {
-		justifyContent: 'space-between',
-		marginBottom: 12,
-	},
-	packageCard: {
-		width: '48%',
-	},
-	emptyContainer: {
-		flex: 1,
-		justifyContent: 'center',
 		alignItems: 'center',
-		paddingVertical: 60,
+		justifyContent: 'space-between',
+		marginBottom: 10,
+	},
+	featuredItem: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		padding: 12,
+		borderRadius: 14,
+		width: 110,
+	},
+	brandCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 14,
+		borderRadius: 14,
+	},
+	empty: {
+		padding: 40,
+		borderRadius: 14,
+		alignItems: 'center',
 	},
 })
 

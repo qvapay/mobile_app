@@ -75,7 +75,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 		try {
 			const response = await storeApi.getPurchaseDetail(purchaseId)
 			if (response.success) {
-				setPurchase(response.data)
+				setPurchase(response.data?.data || response.data)
 			} else {
 				toast.error('Error', { description: response.error || 'No se pudo obtener el detalle' })
 			}

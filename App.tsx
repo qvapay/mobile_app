@@ -80,9 +80,9 @@ import Withdraw from './screens/withdraw/Withdraw'
 
 // Store Screens
 import PhoneTopupIndex from './screens/store/PhoneTopupIndex'
-import PhoneTopupPurchase from './screens/store/PhoneTopupPurchase'
+import PhoneTopupBrand from './screens/store/PhoneTopupBrand'
 import GiftCards from './screens/store/GiftCards'
-import GiftCardDetail from './screens/store/GiftCardDetail'
+import GiftCardBrand from './screens/store/GiftCardBrand'
 import MyPurchases from './screens/store/MyPurchases'
 import PurchaseDetail from './screens/store/PurchaseDetail'
 
@@ -486,12 +486,12 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				<Stack.Screen
 					name={ROUTES.PHONE_TOPUP_INDEX}
 					component={PhoneTopupIndex}
-					options={({ route }) => getHeaderOptions(route.params?.external === true ? 'Recargas del exterior' : route.params?.external === false ? 'Microrecargas' : 'Recargas telefónicas')}
+					options={getHeaderOptions('Recargas móviles')}
 				/>
 				<Stack.Screen
-					name={ROUTES.PHONE_TOPUP_PURCHASE}
-					component={PhoneTopupPurchase}
-					options={getHeaderOptions('Comprar recarga')}
+					name={ROUTES.PHONE_TOPUP_BRAND}
+					component={PhoneTopupBrand}
+					options={getHeaderOptions('')}
 				/>
 
 				{/* Gift Card Screens */}
@@ -501,8 +501,8 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 					options={getHeaderOptions('Tarjetas de regalo')}
 				/>
 				<Stack.Screen
-					name={ROUTES.GIFT_CARD_DETAIL}
-					component={GiftCardDetail}
+					name={ROUTES.GIFT_CARD_BRAND}
+					component={GiftCardBrand}
 					options={getHeaderOptions('')}
 				/>
 
