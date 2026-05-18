@@ -33,6 +33,10 @@ import { toast } from 'sonner-native'
 import QPButton from '../../ui/particles/QPButton'
 import QPCoin from '../../ui/particles/QPCoin'
 import ProfileContainer from '../../ui/ProfileContainer'
+import TransactionSticker from '../../ui/particles/TransactionSticker'
+
+// Stickers
+import { parseTransactionDescription } from '../../helpers/stickers'
 
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
@@ -239,12 +243,19 @@ const Transaction = ({ route, navigation }) => {
 						</View>
 					</DetailRow>
 
-					{transactionDetails.description && (
-						<View style={[styles.detailRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Nota:</Text>
-							<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{transactionDetails.description}</Text>
-						</View>
-					)}
+					{transactionDetails.description && (() => {
+						const parsed = parseTransactionDescription(transactionDetails.description)
+						return (
+							<View style={[styles.detailRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Nota:</Text>
+								{parsed.type === 'sticker' ? (
+									<TransactionSticker name={parsed.sticker} size={96} />
+								) : (
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{transactionDetails.description}</Text>
+								)}
+							</View>
+						)
+					})()}
 
 					<DetailRow label="Fecha:" value={getShortDateTime(transactionDetails.created_at)} last />
 

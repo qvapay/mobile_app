@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList, Pressable } from 'react-native'
+import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList, Pressable, StyleSheet } from 'react-native'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -13,6 +13,10 @@ import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 import QPKeyboardView from '../../ui/QPKeyboardView'
+import TransactionSticker from '../../ui/particles/TransactionSticker'
+
+// Stickers
+import { QVAPAY_STICKERS, parseTransactionDescription, buildStickerDescription } from '../../helpers/stickers'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -54,6 +58,12 @@ const Send = ({ navigation, route }) => {
 	const [isSearchModalVisible, setIsSearchModalVisible] = useState(false)
 	const [searchResults, setSearchResults] = useState([])
 	const [isSearching, setIsSearching] = useState(false)
+
+	// Sticker picker
+	const [isStickerPickerVisible, setIsStickerPickerVisible] = useState(false)
+	const parsedDescription = useMemo(() => parseTransactionDescription(description), [description])
+	const isStickerSelected = parsedDescription.type === 'sticker'
+	const isGold = !!user?.golden_check
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
@@ -257,12 +267,37 @@ const Send = ({ navigation, route }) => {
 				</View>
 
 				{userFound && (
-					<QPInput
-						placeholder={`Deja un mensaje para ${userFound.name} ...`}
-						value={description}
-						onChangeText={setDescription}
-						prefixIconName="comment"
-					/>
+					isStickerSelected ? (
+						<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }]}>
+							<TransactionSticker name={parsedDescription.sticker} size={56} />
+							<View style={{ flex: 1 }}>
+								<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>Sticker seleccionado</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{parsedDescription.sticker.replace('.webm', '')}</Text>
+							</View>
+							<TouchableOpacity onPress={() => setDescription('')} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }} accessibilityLabel="Quitar sticker">
+								<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
+							</TouchableOpacity>
+						</View>
+					) : (
+						<View style={{ position: 'relative' }}>
+							<QPInput
+								placeholder={`Deja un mensaje para ${userFound.name} ...`}
+								value={description}
+								onChangeText={setDescription}
+								prefixIconName="comment"
+								style={{ paddingRight: 50 }}
+							/>
+							<Pressable
+								onPress={() => setIsStickerPickerVisible(true)}
+								style={{ position: 'absolute', right: 12, top: 0, bottom: 0, width: 40, justifyContent: 'center', alignItems: 'center' }}
+								accessibilityLabel={isGold ? 'Enviar sticker' : 'Stickers disponibles para usuarios GOLD'}
+							>
+								<View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, justifyContent: 'center', alignItems: 'center' }}>
+									<TransactionSticker name="ok.webm" size={24} />
+								</View>
+							</Pressable>
+						</View>
+					)
 				)}
 
 			</QPKeyboardView>
@@ -413,8 +448,92 @@ const Send = ({ navigation, route }) => {
 				</View>
 			</Modal>
 
+			{/* Sticker Picker Modal */}
+			<Modal
+				visible={isStickerPickerVisible}
+				transparent
+				animationType="fade"
+				statusBarTranslucent
+				onRequestClose={() => setIsStickerPickerVisible(false)}
+			>
+				<Pressable style={stickerStyles.overlay} onPress={() => setIsStickerPickerVisible(false)}>
+					<Pressable style={[stickerStyles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => {}}>
+						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Stickers</Text>
+							<TouchableOpacity onPress={() => setIsStickerPickerVisible(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }}>
+								<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
+							</TouchableOpacity>
+						</View>
+
+						<View>
+							<ScrollView showsVerticalScrollIndicator={false} bounces={false} style={{ maxHeight: 360 }}>
+								<View style={stickerStyles.grid}>
+									{QVAPAY_STICKERS.map((sticker) => (
+										<TouchableOpacity
+											key={sticker}
+											disabled={!isGold}
+											onPress={() => {
+												setDescription(buildStickerDescription(sticker))
+												setIsStickerPickerVisible(false)
+											}}
+											style={[stickerStyles.gridItem, { backgroundColor: theme.colors.surface }]}
+											accessibilityLabel={sticker.replace('.webm', '')}
+										>
+											<TransactionSticker name={sticker} size={52} />
+										</TouchableOpacity>
+									))}
+								</View>
+							</ScrollView>
+
+							{!isGold && (
+								<View style={[stickerStyles.lockOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
+									<FontAwesome6 name="crown" size={28} color={theme.colors.gold} iconStyle="solid" />
+									<Text style={[textStyles.h5, { color: theme.colors.almostWhite, marginTop: 12, textAlign: 'center' }]}>GOLD requerido</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.almostWhite, opacity: 0.8, marginTop: 4, textAlign: 'center' }]}>Necesitas ser usuario GOLD para enviar stickers</Text>
+								</View>
+							)}
+						</View>
+					</Pressable>
+				</Pressable>
+			</Modal>
+
 		</>
 	)
 }
+
+const stickerStyles = StyleSheet.create({
+	overlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.6)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 24,
+	},
+	card: {
+		width: '100%',
+		borderRadius: 16,
+		padding: 16,
+	},
+	grid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+		justifyContent: 'flex-start',
+	},
+	gridItem: {
+		width: '18%',
+		aspectRatio: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderRadius: 12,
+	},
+	lockOverlay: {
+		...StyleSheet.absoluteFillObject,
+		borderRadius: 12,
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 24,
+	},
+})
 
 export default Send

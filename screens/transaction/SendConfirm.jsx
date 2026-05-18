@@ -11,6 +11,10 @@ import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPButton from '../../ui/particles/QPButton'
 import QPSwitch from '../../ui/particles/QPSwitch'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
+import TransactionSticker from '../../ui/particles/TransactionSticker'
+
+// Stickers
+import { parseTransactionDescription } from '../../helpers/stickers'
 
 // API
 import { userApi } from '../../api/userApi'
@@ -40,6 +44,8 @@ const SendConfirm = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	// Params from route
 	const { send_amount, user_uuid, description = '' } = route.params || {}
+	const parsedDescription = parseTransactionDescription(description)
+	const isStickerDescription = parsedDescription.type === 'sticker'
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
@@ -297,9 +303,18 @@ const SendConfirm = ({ navigation, route }) => {
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 10 }]}>
 							Mensaje
 						</Text>
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>
-							"{description}"
-						</Text>
+						{isStickerDescription ? (
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+								<TransactionSticker name={parsedDescription.sticker} size={72} />
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+									{parsedDescription.sticker.replace('.webm', '')}
+								</Text>
+							</View>
+						) : (
+							<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>
+								"{description}"
+							</Text>
+						)}
 					</View>
 				)}
 

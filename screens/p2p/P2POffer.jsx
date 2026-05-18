@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { View, Text, StyleSheet, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, FlatList, Linking, Switch, useWindowDimensions } from "react-native"
+import { View, Text, StyleSheet, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, TextInput, Pressable, Animated, TouchableOpacity, Alert, Share, Modal, Linking, Switch, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useNavigation } from "@react-navigation/native"
@@ -838,11 +838,15 @@ const P2POffer = ({ route }) => {
 														{isLastInGroup ? <QPAvatar user={sender} size={16} /> : null}
 													</View>
 													<TouchableOpacity onPress={() => m.created_at && toggleTimestamp(m.id)} activeOpacity={0.7}>
-														<FastImage
-															source={{ uri: `${STICKER_BASE_URL}${stickerName}.gif` }}
-															style={{ width: 96, height: 96 }}
-															resizeMode={FastImage.resizeMode.contain}
-														/>
+														<View style={{ width: 96, height: 96, backgroundColor: theme.colors.background }}>
+															<View style={{ width: 96, height: 96, mixBlendMode: 'screen' }}>
+																<FastImage
+																	source={{ uri: `${STICKER_BASE_URL}${stickerName}.gif` }}
+																	style={{ width: 96, height: 96 }}
+																	resizeMode={FastImage.resizeMode.contain}
+																/>
+															</View>
+														</View>
 														{showTimestamp && m.created_at && (
 															<Text style={[textStyles.h7, { fontSize: theme.typography.fontSize.xs, color: theme.colors.secondaryText, marginTop: 2, textAlign: mine ? "right" : "left" }]}>
 																{getShortDateTime(m.created_at)}
@@ -968,21 +972,21 @@ const P2POffer = ({ route }) => {
 										</View>
 
 										{user?.golden_check ? (
-											<FlatList
-												data={P2P_STICKERS}
-												numColumns={4}
-												keyExtractor={(item) => item}
-												contentContainerStyle={{ paddingVertical: 8 }}
-												renderItem={({ item }) => (
-													<TouchableOpacity onPress={() => handleSendSticker(item)} style={styles.stickerItem}>
-														<FastImage
-															source={{ uri: `${STICKER_BASE_URL}${item}.gif` }}
-															style={{ width: 64, height: 64 }}
-															resizeMode={FastImage.resizeMode.contain}
-														/>
-													</TouchableOpacity>
-												)}
-											/>
+											<ScrollView contentContainerStyle={{ paddingVertical: 8 }} showsVerticalScrollIndicator={false}>
+												<View style={styles.stickerGrid}>
+													{P2P_STICKERS.map((item) => (
+														<TouchableOpacity key={item} onPress={() => handleSendSticker(item)} style={[styles.stickerItem, { backgroundColor: theme.colors.background }]}>
+															<View style={{ width: 64, height: 64, mixBlendMode: 'screen' }}>
+																<FastImage
+																	source={{ uri: `${STICKER_BASE_URL}${item}.gif` }}
+																	style={{ width: 64, height: 64 }}
+																	resizeMode={FastImage.resizeMode.contain}
+																/>
+															</View>
+														</TouchableOpacity>
+													))}
+												</View>
+											</ScrollView>
 										) : (
 											<View style={styles.stickerLockedContainer}>
 												<FontAwesome6 name="crown" size={40} color={theme.colors.gold} iconStyle="solid" />
@@ -1096,7 +1100,7 @@ const P2POffer = ({ route }) => {
 								</View>
 
 								{/* Instructions */}
-								<View style={{ marginBottom: 16, gap: 6 }}>
+								<View style={{ gap: 6 }}>
 									{[
 										"Realiza el pago lo antes posible después de aplicar.",
 										"Comunícate con el vendedor a través del chat.",
@@ -1109,35 +1113,35 @@ const P2POffer = ({ route }) => {
 										</View>
 									))}
 								</View>
-
-								{/* Checkbox */}
-								<Pressable
-									onPress={() => setApplyWarningAccepted(prev => !prev)}
-									style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, paddingVertical: 6 }}
-								>
-									<BouncyCheckbox
-										key={`apply-warning-${showApplyWarning}`}
-										size={24}
-										fillColor={theme.colors.primary}
-										unFillColor="transparent"
-										iconStyle={{ borderColor: theme.colors.primary, borderRadius: 6 }}
-										innerIconStyle={{ borderWidth: 2, borderRadius: 6 }}
-										isChecked={applyWarningAccepted}
-										disableBuiltInState
-										onPress={() => setApplyWarningAccepted(prev => !prev)}
-									/>
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, flex: 1, fontSize: 13, lineHeight: 18, marginLeft: 8 }]}>
-										Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta.
-									</Text>
-								</Pressable>
 							</ScrollView>
 
+							{/* Checkbox - fijo fuera del ScrollView para que siempre sea visible */}
+							<Pressable
+								onPress={() => setApplyWarningAccepted(prev => !prev)}
+								style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, marginTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.border }}
+							>
+								<BouncyCheckbox
+									key={`apply-warning-${showApplyWarning}`}
+									size={24}
+									fillColor={theme.colors.primary}
+									unFillColor="transparent"
+									iconStyle={{ borderColor: theme.colors.primary, borderRadius: 6 }}
+									innerIconStyle={{ borderWidth: 2, borderRadius: 6 }}
+									isChecked={applyWarningAccepted}
+									disableBuiltInState
+									onPress={() => setApplyWarningAccepted(prev => !prev)}
+								/>
+								<Text style={[textStyles.h6, { color: theme.colors.primaryText, flex: 1, fontSize: 13, lineHeight: 18, marginLeft: 8 }]}>
+									Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta.
+								</Text>
+							</Pressable>
+
 							{/* Buttons - fijos al fondo, fuera del ScrollView */}
-							<View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+							<View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
 								<QPButton
 									title="Cancelar"
 									onPress={() => setShowApplyWarning(false)}
-									style={{ flex: 1, backgroundColor: theme.colors.surface }}
+									style={{ flex: 1, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.border }}
 									textStyle={{ color: theme.colors.primaryText }}
 									disabled={loadingApply}
 								/>
@@ -1437,11 +1441,14 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		paddingVertical: 14,
 	},
+	stickerGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+	},
 	stickerItem: {
-		flex: 1,
+		width: '25%',
 		alignItems: 'center',
 		paddingVertical: 8,
-		maxWidth: '25%',
 	},
 	stickerLockedContainer: {
 		alignItems: 'center',

@@ -14,6 +14,10 @@ import { useSettings } from '../../settings/SettingsContext'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
+import TransactionSticker from '../../ui/particles/TransactionSticker'
+
+// Stickers
+import { parseTransactionDescription } from '../../helpers/stickers'
 
 // Sound
 import playSound from '../../helpers/playSound'
@@ -29,7 +33,10 @@ import PushPromptModal from '../../ui/PushPromptModal'
 import { maybeRequestReview } from '../../helpers/inAppReview'
 
 // Show a success message with a button to go back to the home screen
-const SendSuccess = ({ navigation }) => {
+const SendSuccess = ({ navigation, route }) => {
+
+	const { description = '' } = route?.params || {}
+	const parsedDescription = parseTransactionDescription(description)
 
 	// Contexts
 	const { theme } = useTheme()
@@ -73,6 +80,11 @@ const SendSuccess = ({ navigation }) => {
 				<Text style={[textStyles.h6, { textAlign: 'center', paddingHorizontal: 20, color: theme.colors.secondaryText }]}>
 					Hemos procesado este pago y estará en su destino en pocos segundos.
 				</Text>
+				{parsedDescription.type === 'sticker' && (
+					<View style={{ marginTop: 20 }}>
+						<TransactionSticker name={parsedDescription.sticker} size={96} />
+					</View>
+				)}
 			</View>
 
 			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>

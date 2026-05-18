@@ -19,6 +19,10 @@ import { ROUTES } from '../../routes'
 // Particles
 import QPCoin from './QPCoin'
 import QPAvatar from './QPAvatar'
+import TransactionSticker from './TransactionSticker'
+
+// Stickers
+import { parseTransactionDescription } from '../../helpers/stickers'
 
 // QPTransaction component
 const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) => {
@@ -61,6 +65,11 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const transactionSign = isPaidByMe ? '-' : '+'
     const transactionColor = isPaidByMe ? theme.colors.danger : theme.colors.successText
 
+    // Sticker descriptions (e.g. ":sticker:lol.webm") render as animated chip,
+    // not text. Fall back to the smart-text label only when there's no sticker.
+    const parsedDescription = parseTransactionDescription(description)
+    const isStickerDescription = parsedDescription.type === 'sticker'
+
     // Display description with smart fallback
     const displayDescription = (description && description.trim())
         ? reduceString(description, 16)
@@ -81,7 +90,16 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
                     {wallet_coin ? (<QPCoin coin={wallet_coin} size={48} />) : (<QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />)}
                     <View style={{ flexDirection: 'column' }}>
-                        <Text style={textStyles.h4}>{displayDescription}</Text>
+                        {isStickerDescription ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <TransactionSticker name={parsedDescription.sticker} size={28} />
+                                <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+                                    {isPaidByMe ? `→ @${reduceString(owner?.username || '', 12)}` : `← @${reduceString(paid_by?.username || '', 12)}`}
+                                </Text>
+                            </View>
+                        ) : (
+                            <Text style={textStyles.h4}>{displayDescription}</Text>
+                        )}
                         <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{timeSince(updated_at)}</Text>
                     </View>
                 </View>
