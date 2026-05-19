@@ -66,7 +66,7 @@ function formatRatingDate(date) {
 
 const P2PUser = ({ navigation, route }) => {
 
-	const { uuid } = route.params
+	const { uuid, initialTab } = route.params
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -80,7 +80,7 @@ const P2PUser = ({ navigation, route }) => {
 	const [refreshing, setRefreshing] = useState(false)
 	const [error, setError] = useState(null)
 	const [data, setData] = useState(null)
-	const [activeTab, setActiveTab] = useState("offers")
+	const [activeTab, setActiveTab] = useState(initialTab === "reviews" || initialTab === "stats" ? initialTab : "offers")
 	const [reviewMode, setReviewMode] = useState("received")
 
 	const fetchProfile = useCallback(async (isRefresh = false) => {

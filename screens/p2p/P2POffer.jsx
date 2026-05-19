@@ -18,7 +18,6 @@ import QPAvatar from "../../ui/particles/QPAvatar"
 import QPInput from "../../ui/particles/QPInput"
 import QPLoader from "../../ui/particles/QPLoader"
 import QPRate from "../../ui/particles/QPRate"
-import ProfileContainerHorizontal from "../../ui/ProfileContainerHorizontal"
 
 // Icons
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
@@ -38,6 +37,20 @@ import { useOnlineStatus } from "../../hooks/OnlineStatusContext"
 // Helpers
 import { maybeRequestReview } from "../../helpers/inAppReview"
 import { getShortDateTime, reduceStringInside, copyTextToClipboard, detectCopyableText } from "../../helpers"
+
+// Detect the icon to render for a P2P offer details field by its label
+const getDetailIcon = (name) => {
+	const key = String(name || "").toLowerCase()
+	if (key.includes("wallet") || key.includes("dirección") || key.includes("direccion") || key.includes("address")) return "wallet"
+	if (key.includes("tarjeta") || key.includes("card")) return "credit-card"
+	if (key.includes("banco") || key.includes("bank") || key.includes("cuenta") || key.includes("account")) return "building-columns"
+	if (key.includes("teléfono") || key.includes("telefono") || key.includes("phone") || key.includes("móvil") || key.includes("movil") || key.includes("mobile")) return "phone"
+	if (key.includes("email") || key.includes("correo") || key.includes("e-mail")) return "envelope"
+	if (key.includes("nombre") || key.includes("name") || key.includes("titular") || key.includes("holder")) return "user"
+	if (key.includes("memo") || key.includes("tag") || key.includes("nota") || key.includes("note")) return "note-sticky"
+	if (key.includes("usdt") || key.includes("tron") || key.includes("trx") || key.includes("eth") || key.includes("btc")) return "coins"
+	return "circle-info"
+}
 
 // Haptic
 import ReactNativeHapticFeedback from "react-native-haptic-feedback"
@@ -174,6 +187,9 @@ const P2POffer = ({ route }) => {
 	// TX ID input for markPaid
 	const [txIdInput, setTxIdInput] = useState("")
 
+	// Peer profile data (rating, completion %, ops, recent review) — fetched once we know who to display
+	const [peerProfile, setPeerProfile] = useState(null)
+
 	// Keyboard height tracking
 	const [keyboardHeight, setKeyboardHeight] = useState(0)
 	useEffect(() => {
@@ -297,6 +313,32 @@ const P2POffer = ({ route }) => {
 		if (ids.length) trackUsers(ids)
 		return () => { if (ids.length) untrackUsers(ids) }
 	}, [p2p?.User?.uuid, p2p?.Peer?.uuid, trackUsers, untrackUsers])
+
+	// Decide which user's stats to surface inline:
+	// — on open offers, the viewer is evaluating the creator (p2p.User)
+	// — on active offers, the viewer cares about the counterparty
+	const displayedUserUuid = useMemo(() => {
+		if (!p2p) return null
+		if (p2p.status === "open" && !isOwner && !isPeer) return p2p?.User?.uuid || null
+		if (isOwner) return p2p?.Peer?.uuid || null
+		return p2p?.User?.uuid || null
+	}, [p2p, isOwner, isPeer])
+
+	// Fetch peer profile (rating/completion/ops/recent review) for the displayed user
+	useEffect(() => {
+		if (!displayedUserUuid) return
+		let cancelled = false
+		;(async () => {
+			try {
+				const res = await p2pApi.peerProfile(displayedUserUuid)
+				if (!cancelled && res.success) setPeerProfile(res.data)
+			} catch { /* ignore — block hides itself when data is missing */ }
+		})()
+		return () => { cancelled = true }
+	}, [displayedUserUuid])
+
+	const peerStats = peerProfile?.stats || null
+	const peerReviewsCount = peerProfile?.receivedRatings?.total || 0
 
 	// Offer Status dynamics
 	const status = p2p?.status || "open"
@@ -645,6 +687,45 @@ const P2POffer = ({ route }) => {
 		})
 	}
 
+	// Single-row peer block: tappable avatar + name with stats inline
+	const peerRow = (targetUser, wrapStyle) => {
+		if (!targetUser) return null
+		return (
+			<View style={[{ flexDirection: 'row', alignItems: 'center', gap: 10 }, wrapStyle]}>
+				<Pressable onPress={() => openPeerProfile(targetUser)} hitSlop={6}>
+					<QPAvatar size={40} user={targetUser} isOnline={isUserOnline(targetUser?.uuid)} />
+				</Pressable>
+				<View style={{ flex: 1 }}>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+						<Text style={textStyles.h5} numberOfLines={1}>{targetUser.name || ''}</Text>
+						{targetUser.kyc && <FontAwesome6 name="circle-check" size={12} color={theme.colors.primary} iconStyle="solid" />}
+						{targetUser.golden_check && <FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />}
+					</View>
+					{peerStats ? (
+						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+								<FontAwesome6 name="star" size={10} color={theme.colors.warning} iconStyle="solid" />
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>
+									{Number(peerStats.averageRating || 0).toFixed(1)} ({peerReviewsCount})
+								</Text>
+							</View>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+								<FontAwesome6 name="circle-check" size={10} color={theme.colors.success} iconStyle="solid" />
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{Number(peerStats.completionRate || 0)}%</Text>
+							</View>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+								<FontAwesome6 name="handshake" size={10} color={theme.colors.primary} iconStyle="solid" />
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{Number(peerStats.completedP2P || 0)}</Text>
+							</View>
+						</View>
+					) : (
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]} numberOfLines={1}>@{targetUser.username || ''}</Text>
+					)}
+				</View>
+			</View>
+		)
+	}
+
 	// Loading state check - only show loader if no cached data
 	if (isLoading && !p2p) { return (<QPLoader />) }
 	if (error) {
@@ -668,42 +749,48 @@ const P2POffer = ({ route }) => {
 					{p2p && (
 						<>
 							<P2POfferItem offer={p2p} show_buttons={false} show_user={false} />
-							{p2p.details && (
-								<View style={[containerStyles.card, { marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 }]}>
-									{(() => {
-										const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
-										const details = Array.isArray(rawDetails)
-											? rawDetails
-											: (rawDetails && typeof rawDetails === "object") ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) : []
+							{p2p.details && (() => {
+								const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
+								const details = Array.isArray(rawDetails)
+									? rawDetails
+									: (rawDetails && typeof rawDetails === "object") ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) : []
 
-										if (!details || details.length === 0) { return null }
+								if (!details || details.length === 0) return null
 
-										return (
-											<View style={{ gap: 6 }}>
-												{details.slice(0, 4).map((d, idx) => {
-													const fullValue = d.value || d.val || ""
-													const isWallet = d.name === "Wallet" || d.key === "Wallet"
-													return (
-														<View key={idx} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 20 }}>
-															<View style={{ flex: 1, marginRight: 8 }}>
-																<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-															</View>
-															<View style={{ flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-																<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
-																	{isWallet ? reduceStringInside(fullValue, 8) : fullValue}
-																</Text>
-																<Pressable onPress={() => copyTextToClipboard(fullValue)} hitSlop={8}>
-																	<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
-																</Pressable>
-															</View>
+								return (
+									<View style={[containerStyles.card, { marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 }]}>
+										<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+											<FontAwesome6 name="list-check" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+											<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>Datos de Pago</Text>
+										</View>
+										<View style={{ gap: 8 }}>
+											{details.slice(0, 4).map((d, idx) => {
+												const fullValue = d.value || d.val || ""
+												const fieldName = d.name || d.key
+												const isWallet = fieldName === "Wallet" || d.key === "Wallet"
+												return (
+													<View key={idx} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 24 }}>
+														<View style={{ width: 22, alignItems: 'center', marginRight: 6 }}>
+															<FontAwesome6 name={getDetailIcon(fieldName)} size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 														</View>
-													)
-												})}
-											</View>
-										)
-									})()}
-								</View>
-							)}
+														<View style={{ flex: 1, marginRight: 8 }}>
+															<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{fieldName}</Text>
+														</View>
+														<View style={{ flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+															<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+																{isWallet ? reduceStringInside(fullValue, 8) : fullValue}
+															</Text>
+															<Pressable onPress={() => copyTextToClipboard(fullValue)} hitSlop={8}>
+																<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
+															</Pressable>
+														</View>
+													</View>
+												)
+											})}
+										</View>
+									</View>
+								)
+							})()}
 						</>
 					)}
 
@@ -724,11 +811,11 @@ const P2POffer = ({ route }) => {
 						</View>
 					) : null}
 
-					{/* Status Message */}
+					{/* Status Message — prominent card with colored left border */}
 					{statusMessage && (
-						<View style={[containerStyles.card, { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 }]}>
+						<View style={[containerStyles.card, { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 4, paddingVertical: 12, paddingHorizontal: 12, borderLeftWidth: 3, borderLeftColor: statusMessage.color }]}>
 							<FontAwesome6 name={statusMessage.icon} size={16} color={statusMessage.color} iconStyle="solid" />
-							<Text style={[textStyles.h6, { color: statusMessage.color, flex: 1 }]}>{statusMessage.text}</Text>
+							<Text style={[textStyles.h6, { color: statusMessage.color, flex: 1, fontWeight: '600' }]}>{statusMessage.text}</Text>
 						</View>
 					)}
 
@@ -752,11 +839,7 @@ const P2POffer = ({ route }) => {
 							</View>
 						) : (
 							<>
-								{p2p?.User && (
-									<Pressable onPress={() => openPeerProfile(p2p.User)} style={[containerStyles.card, { paddingVertical: 6, paddingHorizontal: 8 }]}>
-										<ProfileContainerHorizontal user={p2p.User} size={40} showUsername={false} isOnline={isUserOnline(p2p.User?.uuid)} />
-									</Pressable>
-								)}
+								{p2p?.User && peerRow(p2p.User, [containerStyles.card, { paddingVertical: 8, paddingHorizontal: 12 }])}
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
 								</View>
@@ -765,11 +848,7 @@ const P2POffer = ({ route }) => {
 					) : (
 						<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 4 }]}>
 
-							{counterparty && (
-								<Pressable onPress={() => openPeerProfile(counterparty)} style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
-									<ProfileContainerHorizontal user={counterparty} size={40} showUsername={false} isOnline={isUserOnline(counterparty?.uuid)} />
-								</Pressable>
-							)}
+							{counterparty && peerRow(counterparty, { paddingVertical: 8, paddingHorizontal: 12 })}
 
 							{chatError && (
 								<View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
