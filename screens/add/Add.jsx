@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, ScrollView, Pressable, Modal, Linking } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Helpers
+import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
 import { getFirstChunk, truncateWalletAddress, copyTextToClipboard, formatCryptoAmount } from '../../helpers'
 
 // Theme
@@ -19,6 +20,7 @@ import QPButton from '../../ui/particles/QPButton'
 import AmountInput from '../../ui/AmountInput'
 import QPCoinRow from '../../ui/QPCoinRow'
 import QPCoinPicker from '../../ui/QPCoinPicker'
+import WalletPickerSheet from '../../ui/WalletPickerSheet'
 
 // API
 import apiClient from '../../api/client'
@@ -66,6 +68,8 @@ const Add = ({ navigation }) => {
 	const [showDepositModal, setShowDepositModal] = useState(false)
 	const [topupData, setTopupData] = useState(null)
 	const [depositStatus, setDepositStatus] = useState('pending')
+	const [installedWallets, setInstalledWallets] = useState([])
+	const [showWalletPicker, setShowWalletPicker] = useState(false)
 
 	// SSE connection for real-time deposit status updates
 	const handleDepositStatusChange = useCallback((newStatus) => {
@@ -97,6 +101,18 @@ const Add = ({ navigation }) => {
 	useEffect(() => {
 		if (showDepositModal) setDepositStatus('pending')
 	}, [showDepositModal])
+
+	// Detect installed wallets compatible with the issued deposit address.
+	// Only relevant for the crypto flow (no redirect_url like PayPal).
+	useEffect(() => {
+		if (!topupData?.wallet || topupData?.redirect_url) { setInstalledWallets([]); return }
+		let cancelled = false
+		;(async () => {
+			const wallets = await detectInstalledWallets(topupData.coin, topupData.network || selectedCoin?.network)
+			if (!cancelled) setInstalledWallets(wallets)
+		})()
+		return () => { cancelled = true }
+	}, [topupData?.wallet, topupData?.coin, topupData?.network, topupData?.redirect_url, selectedCoin?.network])
 
 	// Get Available Coins for enabled_in
 	useEffect(() => {
@@ -446,6 +462,19 @@ const Add = ({ navigation }) => {
 									</Text>
 								</View>
 
+								{/* Open in installed wallet — only visible when at least one compatible wallet is detected */}
+								{installedWallets.length > 0 && (
+									<QPButton
+										title="Abrir en mi wallet"
+										onPress={() => setShowWalletPicker(true)}
+										icon="wallet"
+										iconStyle="solid"
+										iconColor={theme.colors.almostWhite}
+										textStyle={{ color: theme.colors.almostWhite }}
+										style={{ marginBottom: 16 }}
+									/>
+								)}
+
 								{/* Deposit Details Card */}
 								<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
 
@@ -623,6 +652,20 @@ const Add = ({ navigation }) => {
 				direction="in"
 				recentKey={RECENT_DEPOSIT_KEY}
 				defaultCoins={DEFAULT_DEPOSIT_COINS}
+			/>
+
+			{/* Wallet Picker Sheet — opens installed wallet pre-filled */}
+			<WalletPickerSheet
+				visible={showWalletPicker}
+				wallets={installedWallets}
+				ctx={{
+					address: topupData?.wallet,
+					amount: topupData?.value,
+					memo: topupData?.memo,
+					coin: topupData?.coin,
+					network: topupData?.network || selectedCoin?.network,
+				}}
+				onClose={() => setShowWalletPicker(false)}
 			/>
 
 		</>
