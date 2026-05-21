@@ -205,13 +205,17 @@ const GoldCheck = ({ navigation }) => {
         setIsPurchasingIAP(true)
 
         try {
+            // Bind the purchase to the QvaPay user so RTDN events can map back to the right account
+            // when the IAPTransaction row doesn't exist yet (race between client validate and Google's webhook).
+            const accountId = user?.uuid
             const purchaseRequest = {
                 type: 'subs',
                 request: Platform.OS === 'ios'
-                    ? { apple: { sku: productId } }
+                    ? { apple: { sku: productId, ...(accountId && { appAccountToken: accountId }) } }
                     : {
                         google: {
                             skus: [productId],
+                            ...(accountId && { obfuscatedAccountId: accountId }),
                             ...(offerToken && {
                                 subscriptionOffers: [{ sku: productId, offerToken }],
                             }),
@@ -224,7 +228,7 @@ const GoldCheck = ({ navigation }) => {
             const message = getIAPErrorMessage(error)
             if (message) toast.error(message)
         }
-    }, [selectedPlan, subscriptions, requestPurchase])
+    }, [selectedPlan, subscriptions, requestPurchase, user?.uuid])
 
     // Handle Restore Purchases
     const handleRestore = useCallback(async () => {
