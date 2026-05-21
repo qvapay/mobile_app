@@ -1,6 +1,20 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: "com.github.triplet.play"
+
+play {
+    // Service account JSON key — keep this file out of git
+    serviceAccountCredentials = file("../play-publisher.json")
+    // Default to internal testing track; override per-invocation with --track production|alpha|beta
+    track = "internal"
+    // Always upload .aab (Google Play prefers it over .apk for distribution)
+    defaultToAppBundles = true
+    // 'draft' parks the release in Play Console for manual rollout; flip to 'completed' once you trust the pipeline.
+    releaseStatus = "draft"
+    // Skip the upload entirely if the service account JSON isn't present locally (e.g. fresh clone)
+    enabled = file("../play-publisher.json").exists()
+}
 
 // Load keystore properties
 def keystorePropertiesFile = rootProject.file("keystore.properties")

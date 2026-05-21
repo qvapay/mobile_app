@@ -36,6 +36,10 @@ local.properties
 keystore.properties
 .kotlin/
 
+# Google Play service account credentials (used by gradle-play-publisher)
+play-publisher.json
+**/play-publisher.json
+
 # node.js
 #
 node_modules/
