@@ -28,17 +28,17 @@ const usePushPrompt = () => {
 				const hasPermission = await OneSignal.Notifications.getPermissionAsync()
 				setIsPushEnabled(hasPermission)
 
-				const [ptx, bdc, bld, obs] = await AsyncStorage.multiGet([
+				const values = await AsyncStorage.getMany([
 					STORAGE_KEYS.POST_TX_SHOWN,
 					STORAGE_KEYS.BANNER_DISMISS_COUNT,
 					STORAGE_KEYS.BANNER_LAST_DISMISS,
 					STORAGE_KEYS.ONBOARD_PROMPT_SHOWN,
 				])
 
-				setPostTxShown(ptx[1] === 'true')
-				setBannerDismissCount(parseInt(bdc[1] || '0', 10))
-				setBannerLastDismiss(parseInt(bld[1] || '0', 10))
-				setOnboardShown(obs[1] === 'true')
+				setPostTxShown(values[STORAGE_KEYS.POST_TX_SHOWN] === 'true')
+				setBannerDismissCount(parseInt(values[STORAGE_KEYS.BANNER_DISMISS_COUNT] || '0', 10))
+				setBannerLastDismiss(parseInt(values[STORAGE_KEYS.BANNER_LAST_DISMISS] || '0', 10))
+				setOnboardShown(values[STORAGE_KEYS.ONBOARD_PROMPT_SHOWN] === 'true')
 			} catch { /* storage read failed */ }
 			finally { setReady(true) }
 		}
@@ -72,10 +72,10 @@ const usePushPrompt = () => {
 		const now = Date.now()
 		setBannerDismissCount(newCount)
 		setBannerLastDismiss(now)
-		await AsyncStorage.multiSet([
-			[STORAGE_KEYS.BANNER_DISMISS_COUNT, String(newCount)],
-			[STORAGE_KEYS.BANNER_LAST_DISMISS, String(now)],
-		])
+		await AsyncStorage.setMany({
+			[STORAGE_KEYS.BANNER_DISMISS_COUNT]: String(newCount),
+			[STORAGE_KEYS.BANNER_LAST_DISMISS]: String(now),
+		})
 	}, [bannerDismissCount])
 
 	const dismissOnboardPrompt = useCallback(async () => {

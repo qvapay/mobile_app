@@ -361,7 +361,7 @@ export const AuthProvider = ({ children }) => {
 			await Promise.all([
 				removeAuthToken(), // Use API client's token removal
 				AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
-				AsyncStorage.multiRemove([
+				AsyncStorage.removeMany([
 					'device_contacts_matched',
 					'device_contacts_last_sync',
 					'device_contacts_consent',

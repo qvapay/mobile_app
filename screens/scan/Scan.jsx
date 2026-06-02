@@ -6,7 +6,8 @@ import Svg, { Path } from 'react-native-svg'
 import QRCodeStyled from 'react-native-qrcode-styled'
 
 // camera
-import { Camera, useCameraDevice, useCodeScanner, useCameraPermission } from 'react-native-vision-camera'
+import { useBarcodeScannerOutput } from 'react-native-vision-camera-barcode-scanner'
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -145,14 +146,16 @@ const Scan = ({ navigation, route }) => {
 		}, 2000)
 	}
 
-	// Code scanner — uses ref to avoid stale closure issues
-	const codeScanner = useCodeScanner({
-		codeTypes: ['qr', 'ean-13'],
-		onCodeScanned: (codes) => {
-			if (codes.length > 0 && isScanningRef.current) {
-				handleBarcodeScanned(codes[0].value)
+	// Barcode scanner output (VisionCamera 5 — scanning moved to the barcode-scanner package)
+	// Uses ref to avoid stale closure issues
+	const scannerOutput = useBarcodeScannerOutput({
+		barcodeFormats: ['qr-code', 'ean-13'],
+		onBarcodeScanned: (barcodes) => {
+			if (barcodes.length > 0 && isScanningRef.current) {
+				handleBarcodeScanned(barcodes[0].rawValue ?? barcodes[0].displayValue)
 			}
 		},
+		onError: () => { /* barcode scan error */ },
 	})
 
 	// QR URL
@@ -190,7 +193,7 @@ const Scan = ({ navigation, route }) => {
 							style={StyleSheet.absoluteFillObject}
 							device={device}
 							isActive={isScanning}
-							codeScanner={codeScanner}
+							outputs={[scannerOutput]}
 							torch={isTorchEnabled ? 'on' : 'off'}
 						/>
 					)}

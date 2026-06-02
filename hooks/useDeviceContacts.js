@@ -192,7 +192,7 @@ const useDeviceContacts = () => {
 	// Clear all synced data (used on logout)
 	const clearSyncedData = useCallback(async () => {
 		try {
-			await AsyncStorage.multiRemove([
+			await AsyncStorage.removeMany([
 				STORAGE_KEYS.MATCHED,
 				STORAGE_KEYS.LAST_SYNC,
 				STORAGE_KEYS.CONSENT,

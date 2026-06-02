@@ -5,7 +5,10 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+# Pinned to 15.5 (>= RN's min_ios_version_supported) because
+# GoogleMLKit/BarcodeScanning 8.0.0 (react-native-vision-camera-barcode-scanner)
+# requires iOS 15.5 for spec resolution.
+platform :ios, '15.5'
 prepare_react_native_project!
 
 # Use static frameworks to support Swift pods like VisionCamera and avoid non-modular includes
@@ -51,9 +54,10 @@ target 'QvaPay' do
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         config.build_settings['SWIFT_VERSION'] = '5.9'
-        # Ensure minimum deployment target of 15.1 for Xcode 26 compatibility
-        if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.1
-          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        # Minimum deployment target 15.5 (GoogleMLKit/BarcodeScanning 8.0.0,
+        # pulled by react-native-vision-camera-barcode-scanner, requires iOS 15.5)
+        if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.5
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
         end
         # Normalize REACT_NATIVE_PATH to an absolute path to avoid script resolution issues
         config.build_settings['REACT_NATIVE_PATH'] = File.join(Pod::Config.instance.installation_root, '..', 'node_modules', 'react-native')

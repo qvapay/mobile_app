@@ -67,9 +67,6 @@ import { launchImageLibrary } from "react-native-image-picker"
 // FastImage for chat images and sticker GIFs
 import FastImage from "@d11/react-native-fast-image"
 
-// Bouncy Checkbox for apply warning modal
-import BouncyCheckbox from "react-native-bouncy-checkbox"
-
 // Stickers list (GOLD exclusive)
 const P2P_STICKERS = [
 	"angry", "bro", "clown", "cry", "cuba", "facepalm", "finger", "guest", "hum", "joy",
@@ -171,6 +168,9 @@ const P2POffer = ({ route }) => {
 	// Sticker panel state
 	const [showStickerPanel, setShowStickerPanel] = useState(false)
 
+	// Apply confirmation modal state
+	const [showApplyConfirm, setShowApplyConfirm] = useState(false)
+
 	// Edit modal state
 	const [showEditModal, setShowEditModal] = useState(false)
 	const [editAmount, setEditAmount] = useState("")
@@ -180,9 +180,6 @@ const P2POffer = ({ route }) => {
 	const [editLoading, setEditLoading] = useState(false)
 	const { height: windowHeight } = useWindowDimensions()
 
-	// Apply warning modal state (30-min limit for sell offers)
-	const [showApplyWarning, setShowApplyWarning] = useState(false)
-	const [applyWarningAccepted, setApplyWarningAccepted] = useState(false)
 
 	// TX ID input for markPaid
 	const [txIdInput, setTxIdInput] = useState("")
@@ -256,7 +253,7 @@ const P2POffer = ({ route }) => {
 				try {
 					await AsyncStorage.setItem(cacheKey, JSON.stringify(payload))
 				} catch { /* ignore */ }
-				
+
 			} else { setError(response.error) }
 		} catch (err) {
 			setError(err.message)
@@ -328,12 +325,12 @@ const P2POffer = ({ route }) => {
 	useEffect(() => {
 		if (!displayedUserUuid) return
 		let cancelled = false
-		;(async () => {
-			try {
-				const res = await p2pApi.peerProfile(displayedUserUuid)
-				if (!cancelled && res.success) setPeerProfile(res.data)
-			} catch { /* ignore — block hides itself when data is missing */ }
-		})()
+			; (async () => {
+				try {
+					const res = await p2pApi.peerProfile(displayedUserUuid)
+					if (!cancelled && res.success) setPeerProfile(res.data)
+				} catch { /* ignore — block hides itself when data is missing */ }
+			})()
 		return () => { cancelled = true }
 	}, [displayedUserUuid])
 
@@ -470,36 +467,26 @@ const P2POffer = ({ route }) => {
 		finally { setLoadingApply(false) }
 	}
 
-	// Apply - sell offers show 30-min warning modal, buy offers use simple Alert
+	// Apply - opens our own confirmation modal (prevents accidental taps)
 	const handleApply = () => {
-		if (p2p?.type === "sell" && !user?.vip) {
-			setApplyWarningAccepted(false)
-			setShowApplyWarning(true)
-		} else {
-			Alert.alert("Aplicar", "¿Estás seguro de que quieres aplicar a esta oferta?", [
-				{ text: "No", style: "cancel" },
-				{ text: "Sí, aplicar", style: "default", onPress: doApply }
-			])
-		}
+		setShowApplyConfirm(true)
 	}
 
-	// Confirm apply from warning modal
-	const handleApplyWarningConfirm = () => {
-		setShowApplyWarning(false)
-		setApplyWarningAccepted(false)
-		doApply()
+	// Confirm apply from our modal
+	const handleApplyConfirm = async () => {
+		await doApply()
+		setShowApplyConfirm(false)
 	}
 
 	// Share Offer
 	const handleShareIntent = async () => {
 		try {
 			const result = await Share.share({
-				url: `https://qvapay.com/p2p/${p2p_uuid}`,
+				url: `https://www.qvapay.com/p2p/${p2p_uuid}`,
 				title: "Oferta P2P",
-				message: `Mira esta oferta en QvaPay: https://qvapay.com/p2p/${p2p_uuid}`,
+				message: `Mira esta oferta en QvaPay: https://www.qvapay.com/p2p/${p2p_uuid}`,
 				subject: "Mira esta oferta P2P en QvaPay 🔥"
 			})
-
 			if (result.action === Share.sharedAction) {
 				toast.success("Oferta compartida")
 			} else if (result.action === Share.dismissedAction) { toast.info("Compartir cancelado") }
@@ -1159,81 +1146,38 @@ const P2POffer = ({ route }) => {
 					</Pressable>
 				</Modal>
 
-				{/* Apply Warning Modal - 30 min time limit for sell offers */}
-				<Modal visible={showApplyWarning} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowApplyWarning(false)}>
-					<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => setShowApplyWarning(false)}>
-						<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
+				{/* Apply Confirmation Modal */}
+				<Modal visible={showApplyConfirm} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowApplyConfirm(false)}>
+					<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => !loadingApply && setShowApplyConfirm(false)}>
+						<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', borderRadius: 16, padding: 24 }]}>
 
-							<ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 4 }} style={{ flexShrink: 1 }}>
-								{/* Header */}
-								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-									<FontAwesome6 name="clock" size={24} color={theme.colors.warning} iconStyle="solid" />
-									<Text style={[textStyles.h4, { color: theme.colors.primaryText, flex: 1 }]}>Tiempo límite de 30 minutos</Text>
-								</View>
+							<FontAwesome6 name="handshake" size={40} color={theme.colors.primary} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 
-								{/* Warning box */}
-								<View style={{ backgroundColor: theme.colors.warning + '15', borderRadius: 10, padding: 14, marginBottom: 14 }}>
-									<Text style={[textStyles.h6, { color: theme.colors.warning, lineHeight: 20 }]}>
-										Al aplicar a esta oferta de venta, te comprometes a completar el pago en un plazo máximo de <Text style={{ fontFamily: 'Rubik-Bold' }}>30 minutos</Text>. Si no realizas el pago o no te comunicas con el vendedor en ese tiempo, serás expulsado automáticamente de la oferta.
-									</Text>
-								</View>
+							<Text style={[textStyles.h3, { color: theme.colors.primaryText, textAlign: 'center', marginBottom: 8 }]}>
+								Aplicar a la oferta
+							</Text>
+							<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: 22, marginBottom: 20 }]}>
+								¿Estás seguro de que quieres aplicar a esta oferta?
+							</Text>
 
-								{/* Instructions */}
-								<View style={{ gap: 6 }}>
-									{[
-										"Realiza el pago lo antes posible después de aplicar.",
-										"Comunícate con el vendedor a través del chat.",
-										"Ingresa el ID de confirmación de tu pago.",
-										"Si no completas estos pasos, perderás tu lugar en la oferta."
-									].map((text, i) => (
-										<View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-											<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 1 }]}>•</Text>
-											<Text style={[textStyles.h6, { color: theme.colors.secondaryText, flex: 1 }]}>{text}</Text>
-										</View>
-									))}
-								</View>
-							</ScrollView>
-
-							{/* Checkbox - fijo fuera del ScrollView para que siempre sea visible */}
-							<Pressable
-								onPress={() => setApplyWarningAccepted(prev => !prev)}
-								style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, marginTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.border }}
-							>
-								<BouncyCheckbox
-									key={`apply-warning-${showApplyWarning}`}
-									size={24}
-									fillColor={theme.colors.primary}
-									unFillColor="transparent"
-									iconStyle={{ borderColor: theme.colors.primary, borderRadius: 6 }}
-									innerIconStyle={{ borderWidth: 2, borderRadius: 6 }}
-									isChecked={applyWarningAccepted}
-									disableBuiltInState
-									onPress={() => setApplyWarningAccepted(prev => !prev)}
-								/>
-								<Text style={[textStyles.h6, { color: theme.colors.primaryText, flex: 1, fontSize: 13, lineHeight: 18, marginLeft: 8 }]}>
-									Entiendo que tengo 30 minutos para completar esta operación o seré expulsado de la oferta.
-								</Text>
-							</Pressable>
-
-							{/* Buttons - fijos al fondo, fuera del ScrollView */}
-							<View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+							<View style={{ flexDirection: 'row', gap: 10 }}>
 								<QPButton
 									title="Cancelar"
-									onPress={() => setShowApplyWarning(false)}
+									onPress={() => setShowApplyConfirm(false)}
 									style={{ flex: 1, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.border }}
 									textStyle={{ color: theme.colors.primaryText }}
 									disabled={loadingApply}
 								/>
 								<QPButton
 									title="Aplicar"
-									onPress={handleApplyWarningConfirm}
+									onPress={handleApplyConfirm}
 									style={{ flex: 1, backgroundColor: theme.colors.primary }}
 									textStyle={{ color: theme.colors.buttonText }}
 									icon="check"
 									iconColor={theme.colors.buttonText}
 									iconStyle="solid"
 									loading={loadingApply}
-									disabled={!applyWarningAccepted || loadingApply}
+									disabled={loadingApply}
 								/>
 							</View>
 
