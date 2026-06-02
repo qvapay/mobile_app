@@ -71,13 +71,19 @@ apiClient.interceptors.response.use(
 		if (error.response) {
 			const { status } = error.response
 			switch (status) {
-				case 403:
+				case 401:
+					// Token inválido/expirado/revocado (autenticación). El backend SOLO usa 401
+					// para esto. Limpiamos el token: en el próximo arranque initializeAuth verá
+					// token nulo y llevará a Welcome (mismo mecanismo de deslogueo que ya existe).
 					try {
 						await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
 					} catch (clearError) { /* token clear failed */ }
 					break
-				case 401:
+				case 403:
 				case 422:
+					// 403 = sin permiso sobre el recurso (oferta privada/bloqueo), NO es fallo
+					// de auth. NO tocar el token: borrarlo desincroniza el estado (token fuera,
+					// isAuthenticated=true) y desloguea en el próximo cold start. Lo maneja la pantalla.
 					break
 				case 500:
 					return Promise.reject({ message: "Ha ocurrido un error, contacte a soporte" })
