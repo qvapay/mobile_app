@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo, useLayoutEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+// Toast
 import { toast } from 'sonner-native'
 
 const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
@@ -94,6 +96,28 @@ const SummaryRow = ({ label, value, bold, highlight, theme, textStyles }) => (
 	</View>
 )
 
+// Fetched brand data and the purchase-wizard selection are two cohesive units
+function dataReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
+function purchaseReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		case 'selectOffer':
+			// Picking a non-range offer clears any typed range amount
+			return { ...state, selectedOffer: action.offer, rangeAmount: action.offer.price_type !== 'RANGE' ? '' : state.rangeAmount }
+		default:
+			return state
+	}
+}
+
 const GiftCardBrand = ({ navigation, route }) => {
 
 	const { country: initCountry, countryCode, brandSlug } = route.params || {}
@@ -104,13 +128,10 @@ const GiftCardBrand = ({ navigation, route }) => {
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
 
-	const [country, setCountry] = useState(initCountry || null)
-	const [brand, setBrand] = useState('')
-	const [brandLogo, setBrandLogo] = useState(null)
-	const [offers, setOffers] = useState([])
-	const [selectedOffer, setSelectedOffer] = useState(null)
-	const [rangeAmount, setRangeAmount] = useState('')
-	const [step, setStep] = useState(1)
+	const [data, dispatchData] = useReducer(dataReducer, { country: initCountry || null, brand: '', brandLogo: null, offers: [] })
+	const { country, brand, brandLogo, offers } = data
+	const [purchase, dispatchPurchase] = useReducer(purchaseReducer, { selectedOffer: null, rangeAmount: '', step: 1 })
+	const { selectedOffer, rangeAmount, step } = purchase
 	const [loading, setLoading] = useState(true)
 	const [submitting, setSubmitting] = useState(false)
 
@@ -142,13 +163,11 @@ const GiftCardBrand = ({ navigation, route }) => {
 			setLoading(true)
 			const res = await storeApi.getVoucherCatalog({ country: countryCode, brand: brandSlug })
 			if (res.success) {
-				setOffers(res.data?.offers || [])
-				setBrand(res.data?.brand || brandSlug)
-				setBrandLogo(res.data?.brand_logo_url || null)
-				if (res.data?.country && !country) setCountry(res.data.country)
-			} else {
-				toast.error('Tarjeta', { description: res.error || 'No se pudo cargar la tarjeta' })
-			}
+				dispatchData({ type: 'set', field: 'offers', value: res.data?.offers || [] })
+				dispatchData({ type: 'set', field: 'brand', value: res.data?.brand || brandSlug })
+				dispatchData({ type: 'set', field: 'brandLogo', value: res.data?.brand_logo_url || null })
+				if (res.data?.country && !country) dispatchData({ type: 'set', field: 'country', value: res.data.country })
+			} else { toast.error('Tarjeta', { description: res.error || 'No se pudo cargar la tarjeta' }) }
 			setLoading(false)
 		})()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,7 +191,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 			const amt = parseFloat(rangeAmount)
 			if (!amt || amt < min || amt > max) { toast.error(`Monto entre $${min} y $${max}`); return }
 		}
-		setStep(2)
+		dispatchPurchase({ type: 'set', field: 'step', value: 2 })
 	}, [selectedOffer, rangeAmount])
 
 	const handleConfirm = useCallback(async () => {
@@ -243,7 +262,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 									selected={selectedOffer === offer}
 									theme={theme}
 									textStyles={textStyles}
-									onSelect={() => { setSelectedOffer(offer); if (offer.price_type !== 'RANGE') setRangeAmount('') }}
+									onSelect={() => dispatchPurchase({ type: 'selectOffer', offer })}
 								/>
 							))}
 						</View>
@@ -255,7 +274,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 								</Text>
 								<TextInput
 									value={rangeAmount}
-									onChangeText={setRangeAmount}
+									onChangeText={(v) => dispatchPurchase({ type: 'set', field: 'rangeAmount', value: v })}
 									keyboardType="decimal-pad"
 									placeholder={`${selectedOffer.price_min}`}
 									placeholderTextColor={theme.colors.placeholder}
@@ -302,7 +321,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 					) : (
 						<View style={{ flexDirection: 'row', gap: 10 }}>
 							<View style={{ flex: 1 }}>
-								<QPButton title="Atrás" onPress={() => setStep(1)} disabled={submitting} />
+								<QPButton title="Atrás" onPress={() => dispatchPurchase({ type: 'set', field: 'step', value: 1 })} disabled={submitting} />
 							</View>
 							<View style={{ flex: 2 }}>
 								<QPButton

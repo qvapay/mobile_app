@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
 import { Text, View } from 'react-native'
+import { useState, useReducer } from 'react'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -23,6 +23,20 @@ import { toast } from 'sonner-native'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// The three password inputs form one logical unit
+const initialForm = { currentPassword: '', newPassword: '', confirmPassword: '' }
+
+function formReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		case 'reset':
+			return initialForm
+		default:
+			return state
+	}
+}
+
 // Password Change Component
 const Password = () => {
 
@@ -32,27 +46,25 @@ const Password = () => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 
-	// States
-	const [password, setPassword] = useState('')
-	const [confirmPassword, setConfirmPassword] = useState('')
-	const [currentPassword, setCurrentPassword] = useState('')
+	// Password form state
+	const [form, dispatch] = useReducer(formReducer, initialForm)
 
 	// Loading state
 	const [isLoading, setIsLoading] = useState(false)
-	const [isButtonDisabled, setIsButtonDisabled] = useState(true)
+
+	// Button is enabled once both new passwords are filled and match — derive it, don't store it
+	const canSubmit = form.newPassword && form.confirmPassword && form.newPassword === form.confirmPassword
 
 	// Handle submit
 	const handleSubmit = async () => {
 		try {
 			setIsLoading(true)
 			const result = await userApi.changePassword({
-				old_password: currentPassword,
-				new_password: password
+				old_password: form.currentPassword,
+				new_password: form.newPassword
 			})
 			if (result.success) {
-				setCurrentPassword('')
-				setPassword('')
-				setConfirmPassword('')
+				dispatch({ type: 'reset' })
 				toast.success('Contraseña cambiada correctamente')
 				// Invalidate biometric credentials since password changed
 				const has = await hasBiometricCredentials()
@@ -66,20 +78,14 @@ const Password = () => {
 		finally { setIsLoading(false) }
 	}
 
-	// useEffect to disable QPButton until both new passwords are filled and match
-	useEffect(() => {
-		if (password && confirmPassword && password === confirmPassword) { setIsButtonDisabled(false) }
-		else { setIsButtonDisabled(true) }
-	}, [password, confirmPassword])
-
 	return (
 		<QPKeyboardView
 			actions={
 				<QPButton
 					title="Cambiar contraseña"
 					onPress={handleSubmit}
-					disabled={isButtonDisabled || isLoading}
-					style={{ backgroundColor: isButtonDisabled ? theme.colors.secondaryText : theme.colors.primary }}
+					disabled={!canSubmit || isLoading}
+					style={{ backgroundColor: !canSubmit ? theme.colors.secondaryText : theme.colors.primary }}
 					textStyle={{ color: theme.colors.almostWhite }}
 					loading={isLoading}
 				/>
@@ -94,8 +100,8 @@ const Password = () => {
 				{/* Current Password */}
 				<QPInput
 					placeholder="Contraseña actual"
-					value={currentPassword}
-					onChangeText={setCurrentPassword}
+					value={form.currentPassword}
+					onChangeText={(value) => dispatch({ type: 'set', field: 'currentPassword', value })}
 					prefixIconName="lock"
 					autoCapitalize="none"
 					secureTextEntry
@@ -104,8 +110,8 @@ const Password = () => {
 				{/* New Password */}
 				<QPInput
 					placeholder="Nueva contraseña"
-					value={password}
-					onChangeText={setPassword}
+					value={form.newPassword}
+					onChangeText={(value) => dispatch({ type: 'set', field: 'newPassword', value })}
 					prefixIconName="lock"
 					autoCapitalize="none"
 					secureTextEntry
@@ -114,8 +120,8 @@ const Password = () => {
 				{/* Confirm New Password */}
 				<QPInput
 					placeholder="Confirmar nueva contraseña"
-					value={confirmPassword}
-					onChangeText={setConfirmPassword}
+					value={form.confirmPassword}
+					onChangeText={(value) => dispatch({ type: 'set', field: 'confirmPassword', value })}
 					prefixIconName="lock"
 					autoCapitalize="none"
 					secureTextEntry

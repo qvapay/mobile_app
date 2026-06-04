@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FlashList } from '@shopify/flash-list'
@@ -21,6 +21,27 @@ import { toast } from 'sonner-native'
 const DEFAULT_COUNTRY = 'US'
 const PAGE_SIZE = 24
 
+// Catalog data (the voucher resource) and the list filters are two cohesive units
+const initialCatalog = { countries: [], brands: [], categories: [] }
+
+function catalogReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
+function filtersReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
 const GiftCards = ({ navigation, route }) => {
 
 	const { theme } = useTheme()
@@ -32,13 +53,10 @@ const GiftCards = ({ navigation, route }) => {
 
 	const initialCategory = (route?.params?.category || 'ALL').toUpperCase()
 
-	const [countries, setCountries] = useState([])
-	const [selectedCountry, setSelectedCountry] = useState(null)
-	const [brands, setBrands] = useState([])
-	const [categories, setCategories] = useState([])
-	const [activeCategory, setActiveCategory] = useState(initialCategory)
-	const [search, setSearch] = useState('')
-	const [page, setPage] = useState(1)
+	const [catalog, dispatchCatalog] = useReducer(catalogReducer, initialCatalog)
+	const { countries, brands, categories } = catalog
+	const [filters, dispatchFilters] = useReducer(filtersReducer, { selectedCountry: null, activeCategory: initialCategory, search: '', page: 1 })
+	const { selectedCountry, activeCategory, search, page } = filters
 	const [loadingShell, setLoadingShell] = useState(true)
 	const [loadingBrands, setLoadingBrands] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
@@ -51,9 +69,9 @@ const GiftCards = ({ navigation, route }) => {
 			return
 		}
 		const list = res.data?.countries || []
-		setCountries(list)
+		dispatchCatalog({ type: 'set', field: 'countries', value: list })
 		const pick = list.find(c => c.code === DEFAULT_COUNTRY) || list[0]
-		if (pick && !selectedCountry) setSelectedCountry(pick)
+		if (pick && !selectedCountry) dispatchFilters({ type: 'set', field: 'selectedCountry', value: pick })
 		setLoadingShell(false)
 	}, [selectedCountry])
 
@@ -66,17 +84,17 @@ const GiftCards = ({ navigation, route }) => {
 			storeApi.getVoucherCatalog({ country: code }),
 			storeApi.getVoucherCatalog({ categories: true, country: code }),
 		])
-		if (brandsRes.success) setBrands(brandsRes.data?.brands || [])
-		else { toast.error('Marcas', { description: brandsRes.error }); setBrands([]) }
-		if (catsRes.success) setCategories(catsRes.data?.categories || [])
-		else setCategories([])
+		if (brandsRes.success) dispatchCatalog({ type: 'set', field: 'brands', value: brandsRes.data?.brands || [] })
+		else { toast.error('Marcas', { description: brandsRes.error }); dispatchCatalog({ type: 'set', field: 'brands', value: [] }) }
+		if (catsRes.success) dispatchCatalog({ type: 'set', field: 'categories', value: catsRes.data?.categories || [] })
+		else dispatchCatalog({ type: 'set', field: 'categories', value: [] })
 		setLoadingBrands(false)
 	}, [])
 
 	useEffect(() => {
 		if (!selectedCountry?.code) return
-		setSearch('')
-		setPage(1)
+		dispatchFilters({ type: 'set', field: 'search', value: '' })
+		dispatchFilters({ type: 'set', field: 'page', value: 1 })
 		fetchCountryData(selectedCountry.code)
 	}, [selectedCountry?.code, fetchCountryData])
 
@@ -87,7 +105,7 @@ const GiftCards = ({ navigation, route }) => {
 			.filter(b => !q || (b.brand || '').toLowerCase().includes(q))
 	}, [brands, search, activeCategory])
 
-	useEffect(() => { setPage(1) }, [search, activeCategory])
+	useEffect(() => { dispatchFilters({ type: 'set', field: 'page', value: 1 }) }, [search, activeCategory])
 
 	const totalPages = Math.max(1, Math.ceil(filteredBrands.length / PAGE_SIZE))
 	const safePage = Math.min(page, totalPages)
@@ -137,7 +155,7 @@ const GiftCards = ({ navigation, route }) => {
 					<View style={{ flex: 1 }}>
 						<QPInput
 							value={search}
-							onChangeText={setSearch}
+							onChangeText={(v) => dispatchFilters({ type: 'set', field: 'search', value: v })}
 							placeholder="Buscar marca: Amazon, Steam…"
 							prefixIconName="magnifying-glass"
 							style={{ fontSize: theme.typography.fontSize.md }}
@@ -149,7 +167,7 @@ const GiftCards = ({ navigation, route }) => {
 					<CountryPicker
 						countries={countries}
 						value={selectedCountry}
-						onChange={setSelectedCountry}
+						onChange={(c) => dispatchFilters({ type: 'set', field: 'selectedCountry', value: c })}
 					/>
 				</View>
 
@@ -158,7 +176,7 @@ const GiftCards = ({ navigation, route }) => {
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4, marginBottom: 12 }}>
 						<CategoryPill
 							active={activeCategory === 'ALL'}
-							onPress={() => setActiveCategory('ALL')}
+							onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: 'ALL' })}
 							emoji="✨"
 							label="Todas"
 							count={brands.length}
@@ -167,7 +185,7 @@ const GiftCards = ({ navigation, route }) => {
 							<CategoryPill
 								key={c.key}
 								active={activeCategory === c.key}
-								onPress={() => setActiveCategory(activeCategory === c.key ? 'ALL' : c.key)}
+								onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: activeCategory === c.key ? 'ALL' : c.key })}
 								emoji={c.emoji}
 								label={c.label}
 								count={c.count}
@@ -209,7 +227,7 @@ const GiftCards = ({ navigation, route }) => {
 						{safePage < totalPages && (
 							<View style={{ alignItems: 'center', marginTop: 14 }}>
 								<Text
-									onPress={() => setPage(safePage + 1)}
+									onPress={() => dispatchFilters({ type: 'set', field: 'page', value: safePage + 1 })}
 									style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '700', paddingVertical: 10, paddingHorizontal: 24 }]}
 								>
 									Cargar más

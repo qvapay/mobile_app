@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { View, Text, Alert, ScrollView, Pressable, Linking, Platform, ActionSheetIOS } from 'react-native'
+import { useEffect, useRef } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, Alert, ScrollView, Pressable, Linking, Platform, ActionSheetIOS } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -63,14 +63,12 @@ const SettingsMenu = ({ navigation }) => {
 	// Push prompt
 	const { shouldShowRedDot } = usePushPrompt()
 
-	// Biometric state for logout flow
-	const [biometricsActive, setBiometricsActive] = useState(false)
+	// Biometric availability for the logout flow — read only inside handleLogout,
+	// never rendered, so a ref avoids re-rendering the whole menu when it resolves.
+	const biometricsActiveRef = useRef(false)
 
 	useEffect(() => {
-		const checkBiometrics = async () => {
-			const has = await hasBiometricCredentials()
-			setBiometricsActive(has)
-		}
+		const checkBiometrics = async () => { biometricsActiveRef.current = await hasBiometricCredentials() }
 		checkBiometrics()
 	}, [])
 
@@ -104,6 +102,7 @@ const SettingsMenu = ({ navigation }) => {
 
 	// Show action sheet for image selection
 	const showImagePicker = (pickerOptions, uploadType, title) => {
+
 		const options = ['Tomar foto', 'Elegir de galería', 'Cancelar']
 		const cancelButtonIndex = 2
 		const handler = (response) => processImageUpload(response, uploadType)
@@ -133,7 +132,8 @@ const SettingsMenu = ({ navigation }) => {
 
 	// Logout function
 	const handleLogout = async () => {
-		if (biometricsActive) {
+
+		if (biometricsActiveRef.current) {
 			Alert.alert(
 				'Cerrar sesión',
 				'¿Deseas mantener el acceso biométrico para la próxima vez?',
@@ -160,6 +160,7 @@ const SettingsMenu = ({ navigation }) => {
 					}
 				]
 			)
+
 		} else {
 			Alert.alert(
 				'Cerrar sesión',
@@ -238,7 +239,7 @@ const SettingsMenu = ({ navigation }) => {
 			<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="qrcode" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
-			
+
 		</View>
 	)
 }

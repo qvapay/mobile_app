@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FlashList } from '@shopify/flash-list'
@@ -27,6 +27,27 @@ const formatPriceRange = (min, max) => {
 	return `$${Number(min).toFixed(2)} – $${Number(max).toFixed(2)}`
 }
 
+// Catalog data + list filters are two cohesive units (same shape as GiftCards)
+const initialCatalog = { countries: [], featured: [], brands: [] }
+
+function catalogReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
+function filtersReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
 const PhoneTopupIndex = ({ navigation, route }) => {
 
 	const { theme } = useTheme()
@@ -38,11 +59,10 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 
 	const initialCountry = (route?.params?.country || '').toUpperCase()
 
-	const [countries, setCountries] = useState([])
-	const [featured, setFeatured] = useState([])
-	const [selectedCountry, setSelectedCountry] = useState(null)
-	const [brands, setBrands] = useState([])
-	const [search, setSearch] = useState('')
+	const [catalog, dispatchCatalog] = useReducer(catalogReducer, initialCatalog)
+	const { countries, featured, brands } = catalog
+	const [filters, dispatchFilters] = useReducer(filtersReducer, { selectedCountry: null, search: '' })
+	const { selectedCountry, search } = filters
 	const [loadingCountries, setLoadingCountries] = useState(true)
 	const [loadingBrands, setLoadingBrands] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
@@ -54,14 +74,12 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 		])
 		if (countriesRes.success) {
 			const list = countriesRes.data?.countries || []
-			setCountries(list)
+			dispatchCatalog({ type: 'set', field: 'countries', value: list })
 			const pick = list.find(c => c.code === (initialCountry || DEFAULT_COUNTRY)) || list[0]
-			if (pick && !selectedCountry) setSelectedCountry(pick)
-		} else {
-			toast.error('Países', { description: countriesRes.error })
-		}
+			if (pick && !selectedCountry) dispatchFilters({ type: 'set', field: 'selectedCountry', value: pick })
+		} else { toast.error('Países', { description: countriesRes.error }) }
 		if (featuredRes.success) {
-			setFeatured((featuredRes.data?.featured || []).slice(0, 6))
+			dispatchCatalog({ type: 'set', field: 'featured', value: (featuredRes.data?.featured || []).slice(0, 6) })
 		}
 		setLoadingCountries(false)
 	}, [initialCountry, selectedCountry])
@@ -72,13 +90,13 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 		if (!countryCode) return
 		setLoadingBrands(true)
 		const res = await storeApi.getTopupCatalog({ country: countryCode })
-		if (res.success) setBrands(res.data?.brands || [])
-		else { toast.error('Operadores', { description: res.error }); setBrands([]) }
+		if (res.success) dispatchCatalog({ type: 'set', field: 'brands', value: res.data?.brands || [] })
+		else { toast.error('Operadores', { description: res.error }); dispatchCatalog({ type: 'set', field: 'brands', value: [] }) }
 		setLoadingBrands(false)
 	}, [])
 
 	useEffect(() => {
-		setSearch('')
+		dispatchFilters({ type: 'set', field: 'search', value: '' })
 		if (selectedCountry?.code) fetchBrands(selectedCountry.code)
 	}, [selectedCountry?.code, fetchBrands])
 
@@ -152,7 +170,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 					<CountryPicker
 						countries={countries}
 						value={selectedCountry}
-						onChange={setSelectedCountry}
+						onChange={(c) => dispatchFilters({ type: 'set', field: 'selectedCountry', value: c })}
 						placeholder="Selecciona país"
 					/>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 8 }]}>
@@ -197,7 +215,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 					<View style={{ marginBottom: 12 }}>
 						<QPInput
 							value={search}
-							onChangeText={setSearch}
+							onChangeText={(v) => dispatchFilters({ type: 'set', field: 'search', value: v })}
 							placeholder={`Filtrar operador en ${selectedCountry?.name || ''}…`}
 							prefixIconName="magnifying-glass"
 							style={{ fontSize: theme.typography.fontSize.md }}

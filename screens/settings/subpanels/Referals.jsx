@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, Pressable, Linking, Platform } from 'react-native'
+import { useState, useEffect, useReducer } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { StyleSheet, Text, View, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../../theme/ThemeContext'
@@ -31,6 +31,23 @@ import { useOnlineStatus } from '../../../hooks/OnlineStatusContext'
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
+// Referral stats all arrive together from one API call — keep them as one unit
+const initialData = { referrals: [], totalReferrals: 0, smsEarnings: 0, smsBudgetRemaining: 5 }
+
+function dataReducer(state, action) {
+	switch (action.type) {
+		case 'loaded':
+			return {
+				referrals: action.data.referrals || [],
+				totalReferrals: action.data.totalReferrals || 0,
+				smsEarnings: action.data.smsEarningsThisMonth || 0,
+				smsBudgetRemaining: action.data.smsBudgetRemaining ?? 5,
+			}
+		default:
+			return state
+	}
+}
+
 // Referals Component
 const Referals = () => {
 
@@ -45,10 +62,8 @@ const Referals = () => {
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
 	// State
-	const [referrals, setReferrals] = useState([])
-	const [totalReferrals, setTotalReferrals] = useState(0)
-	const [smsEarnings, setSmsEarnings] = useState(0)
-	const [smsBudgetRemaining, setSmsBudgetRemaining] = useState(5)
+	const [data, dispatch] = useReducer(dataReducer, initialData)
+	const { referrals, totalReferrals, smsEarnings, smsBudgetRemaining } = data
 	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
 
@@ -60,18 +75,10 @@ const Referals = () => {
 		try {
 			setLoading(true)
 			const response = await userApi.getReferrals()
-			if (response.success && response.data) {
-				const data = response.data
-				setReferrals(data.referrals || [])
-				setTotalReferrals(data.totalReferrals || 0)
-				setSmsEarnings(data.smsEarningsThisMonth || 0)
-				setSmsBudgetRemaining(data.smsBudgetRemaining ?? 5)
-			}
+			if (response.success && response.data) { dispatch({ type: 'loaded', data: response.data }) }
 		} catch (error) {
 			toast.error('Error al cargar los referidos')
-		} finally {
-			setLoading(false)
-		}
+		} finally { setLoading(false) }
 	}
 
 	// Refresh data
@@ -102,7 +109,7 @@ const Referals = () => {
 	// Share with source tracking
 	const shareWithTracking = (channel, openUrl) => {
 		openUrl()
-		userApi.trackShareAttempt(channel).catch(() => {})
+		userApi.trackShareAttempt(channel).catch(() => { })
 	}
 
 	// Social share handlers

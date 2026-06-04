@@ -1,5 +1,5 @@
 import { SystemBars } from 'react-native-edge-to-edge'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { View, Text, TextInput, Pressable, Modal, StyleSheet, Animated } from 'react-native'
@@ -11,6 +11,18 @@ import { useAppLock } from './AppLockContext'
 import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
 import FaceIDIcon from '../ui/particles/FaceIDIcon'
 
+// Biometric type + availability are detected together in one effect
+const initialBiometrics = { type: null, available: false }
+
+function biometricsReducer(state, action) {
+	switch (action.type) {
+		case 'detected':
+			return { type: action.biometryType, available: action.available }
+		default:
+			return state
+	}
+}
+
 const LockScreen = () => {
 
 	const { theme } = useTheme()
@@ -21,8 +33,8 @@ const LockScreen = () => {
 
 	const [pin, setPin] = useState('')
 	const [error, setError] = useState('')
-	const [biometryType, setBiometryType] = useState(null)
-	const [biometricsAvailable, setBiometricsAvailable] = useState(false)
+	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
+	const { type: biometryType, available: biometricsAvailable } = biometrics
 	const pinInputsRef = useRef([])
 	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
 	const shakeAnim = useRef(new Animated.Value(0)).current
@@ -33,8 +45,7 @@ const LockScreen = () => {
 		const checkBiometrics = async () => {
 			const type = await getSupportedBiometryType()
 			const hasCredentials = await hasBiometricCredentials()
-			setBiometryType(type)
-			setBiometricsAvailable(!!type && hasCredentials && security.biometricsEnabled)
+			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && hasCredentials && security.biometricsEnabled })
 		}
 		checkBiometrics()
 	}, [isLocked, security.biometricsEnabled])

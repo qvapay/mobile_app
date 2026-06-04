@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useLayoutEffect, useMemo } from 'react'
-import { View, Text, ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native'
+import { useState, useEffect, useCallback, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
+import { View, Text, ActivityIndicator, Pressable, Platform, useWindowDimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 
 // Contexts
@@ -12,6 +12,7 @@ import { transferApi } from '../../api/transferApi'
 // UI
 import QPTransaction from '../../ui/particles/QPTransaction'
 import QPInput from '../../ui/particles/QPInput'
+import TransactionFilterModal from './TransactionFilterModal'
 
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
@@ -21,87 +22,67 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 const PAGE_SIZE = 20
 
-// Status options for filter chips
-const STATUS_OPTIONS = [
-	{ label: 'Pagadas', value: 'paid' },
-	{ label: 'Pendientes', value: 'pending' },
-	{ label: 'Procesando', value: 'processing' },
-	{ label: 'Canceladas', value: 'cancelled' },
-]
+// The fetched list (items + its two loading flags) moves together as one unit
+const initialList = { transactions: [], isLoading: false, isRefreshing: false }
 
-// Period preset helpers
-const getStartOfDay = () => {
-	const d = new Date()
-	d.setHours(0, 0, 0, 0)
-	return d.toISOString()
+function listReducer(state, action) {
+	switch (action.type) {
+		case 'start':
+			return { ...state, isLoading: !action.refresh, isRefreshing: !!action.refresh }
+		case 'setItems':
+			return { ...state, transactions: action.items }
+		case 'appendItems':
+			return { ...state, transactions: [...state.transactions, ...action.items] }
+		case 'clear':
+			return { ...state, transactions: [] }
+		case 'finish':
+			return { ...state, isLoading: false, isRefreshing: false }
+		default:
+			return state
+	}
 }
 
-const getStartOfWeek = () => {
-	const d = new Date()
-	d.setDate(d.getDate() - d.getDay() + 1) // Monday
-	d.setHours(0, 0, 0, 0)
-	return d.toISOString()
+// The filter-modal draft (pending filters + selected period preset) is one unit
+const initialDraft = { filters: {}, period: null }
+
+function draftReducer(state, action) {
+	switch (action.type) {
+		case 'seed':
+			return { filters: { ...action.filters }, period: action.period }
+		case 'updateFilter': {
+			const next = { ...state.filters }
+			if (action.value === undefined || action.value === null || action.value === '') { delete next[action.key] }
+			else { next[action.key] = action.value }
+			return { ...state, filters: next }
+		}
+		case 'setPeriod':
+			return { filters: { ...state.filters, date_from: action.range.date_from, date_to: action.range.date_to }, period: action.idx }
+		case 'clearPeriod': {
+			const next = { ...state.filters }
+			delete next.date_from
+			delete next.date_to
+			return { period: null, filters: next }
+		}
+		case 'clearAll':
+			return { filters: {}, period: null }
+		default:
+			return state
+	}
 }
-
-const getStartOfMonth = () => {
-	const d = new Date()
-	d.setDate(1)
-	d.setHours(0, 0, 0, 0)
-	return d.toISOString()
-}
-
-const getStartOfLastMonth = () => {
-	const d = new Date()
-	d.setMonth(d.getMonth() - 1)
-	d.setDate(1)
-	d.setHours(0, 0, 0, 0)
-	return d.toISOString()
-}
-
-const getEndOfLastMonth = () => {
-	const d = new Date()
-	d.setDate(0) // last day of previous month
-	d.setHours(23, 59, 59, 999)
-	return d.toISOString()
-}
-
-const PERIOD_OPTIONS = [
-	{ label: 'Hoy', getRange: () => ({ date_from: getStartOfDay(), date_to: new Date().toISOString() }) },
-	{ label: 'Esta semana', getRange: () => ({ date_from: getStartOfWeek(), date_to: new Date().toISOString() }) },
-	{ label: 'Este mes', getRange: () => ({ date_from: getStartOfMonth(), date_to: new Date().toISOString() }) },
-	{ label: 'Último mes', getRange: () => ({ date_from: getStartOfLastMonth(), date_to: getEndOfLastMonth() }) },
-]
-
-const SORT_FIELD_OPTIONS = [
-	{ label: 'Fecha', value: 'created_at' },
-	{ label: 'Monto', value: 'amount' },
-]
-
-const SORT_DIR_OPTIONS = [
-	{ label: 'Recientes', value: 'desc' },
-	{ label: 'Antiguos', value: 'asc' },
-]
-
-// Chip component
-const Chip = ({ label, selected, onPress, theme }) => (
-	<Pressable onPress={onPress} style={[styles.chip, selected ? { backgroundColor: theme.colors.primary } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]}>
-		<Text style={[styles.chipText, { color: selected ? '#FFFFFF' : theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
-			{label}
-		</Text>
-	</Pressable>
-)
 
 // Transactions Screen
 const Transactions = ({ navigation, route }) => {
 
-	// States
-	const [transactions, setTransactions] = useState([])
-	const [page, setPage] = useState(1)
-	const [hasMore, setHasMore] = useState(true)
-	const [isLoading, setIsLoading] = useState(false)
-	const [isRefreshing, setIsRefreshing] = useState(false)
+	// Fetched list state
+	const [list, dispatchList] = useReducer(listReducer, initialList)
+	const { transactions, isLoading, isRefreshing } = list
 
-	// Filter state
+	// Pagination cursors — read only inside fetch/load-more handlers, never rendered,
+	// so refs avoid re-rendering the whole list on every page/hasMore change.
+	const pageRef = useRef(1)
+	const hasMoreRef = useRef(true)
+
+	// Applied filter state
 	const [filters, setFilters] = useState({})
 	const [showFilters, setShowFilters] = useState(false)
 
@@ -110,9 +91,9 @@ const Transactions = ({ navigation, route }) => {
 	const [searchText, setSearchText] = useState('')
 
 	// Draft filter state (only applied on "Aplicar")
-	const [draftFilters, setDraftFilters] = useState({})
-	const [selectedPeriod, setSelectedPeriod] = useState(null)
-	const [draftPeriod, setDraftPeriod] = useState(null)
+	const [draft, dispatchDraft] = useReducer(draftReducer, initialDraft)
+	// Currently-applied period preset — only read when seeding the draft, never rendered
+	const selectedPeriodRef = useRef(null)
 
 	// Contexts
 	const { theme } = useTheme()
@@ -123,12 +104,41 @@ const Transactions = ({ navigation, route }) => {
 	// Check if any filters are active
 	const hasActiveFilters = useMemo(() => Object.keys(filters).length > 0, [filters])
 
+	// Fetch transactions with current filters
+	const fetchTransactions = useCallback(async (pageNum = 1, refresh = false, activeFilters = filters) => {
+
+		if (isLoading) return
+
+		try {
+
+			dispatchList({ type: 'start', refresh })
+
+			const result = await transferApi.getLatestTransactions({
+				page: pageNum,
+				take: PAGE_SIZE,
+				...activeFilters,
+			})
+
+			if (result.success) {
+				const newData = result.data || []
+				if (refresh || pageNum === 1) { dispatchList({ type: 'setItems', items: newData }) }
+				else { dispatchList({ type: 'appendItems', items: newData }) }
+				hasMoreRef.current = newData.length >= PAGE_SIZE
+				pageRef.current = pageNum
+			}
+		} catch (error) {
+			// Silent fail - list stays as is
+		} finally {
+			dispatchList({ type: 'finish' })
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filters])
+
 	// Open filter modal with current filters as draft
 	const openFilters = useCallback(() => {
-		setDraftFilters({ ...filters })
-		setDraftPeriod(selectedPeriod)
+		dispatchDraft({ type: 'seed', filters, period: selectedPeriodRef.current })
 		setShowFilters(true)
-	}, [filters, selectedPeriod])
+	}, [filters])
 
 	// Toggle search
 	const toggleSearch = useCallback(() => {
@@ -139,9 +149,9 @@ const Transactions = ({ navigation, route }) => {
 				const newFilters = { ...filters }
 				delete newFilters.search
 				setFilters(newFilters)
-				setPage(1)
-				setTransactions([])
-				setHasMore(true)
+				pageRef.current = 1
+				hasMoreRef.current = true
+				dispatchList({ type: 'clear' })
 				fetchTransactions(1, false, newFilters)
 			}
 			return !prev
@@ -186,38 +196,6 @@ const Transactions = ({ navigation, route }) => {
 		})
 	}, [hasActiveFilters, showSearch, theme, navigation, containerStyles.headerRight, openFilters, toggleSearch])
 
-	// Fetch transactions with current filters
-	const fetchTransactions = useCallback(async (pageNum = 1, refresh = false, activeFilters = filters) => {
-
-		if (isLoading) return
-
-		try {
-
-			if (refresh) { setIsRefreshing(true) }
-			else { setIsLoading(true) }
-
-			const result = await transferApi.getLatestTransactions({
-				page: pageNum,
-				take: PAGE_SIZE,
-				...activeFilters,
-			})
-
-			if (result.success) {
-				const newData = result.data || []
-				if (refresh || pageNum === 1) { setTransactions(newData) }
-				else { setTransactions(prev => [...prev, ...newData]) }
-				setHasMore(newData.length >= PAGE_SIZE)
-				setPage(pageNum)
-			}
-		} catch (error) {
-			// Silent fail - list stays as is
-		} finally {
-			setIsLoading(false)
-			setIsRefreshing(false)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters])
-
 	// Initial load
 	useEffect(() => {
 		fetchTransactions(1)
@@ -225,42 +203,31 @@ const Transactions = ({ navigation, route }) => {
 
 	// Load more on scroll end
 	const handleLoadMore = useCallback(() => {
-		if (!isLoading && hasMore) {
-			fetchTransactions(page + 1)
+		if (!isLoading && hasMoreRef.current) {
+			fetchTransactions(pageRef.current + 1)
 		}
-	}, [isLoading, hasMore, page, fetchTransactions])
+	}, [isLoading, fetchTransactions])
 
 	// Pull to refresh
 	const handleRefresh = useCallback(() => {
-		setHasMore(true)
+		hasMoreRef.current = true
 		fetchTransactions(1, true)
 	}, [fetchTransactions])
 
 	// Apply filters from modal
 	const applyFilters = () => {
-		setFilters(draftFilters)
-		setSelectedPeriod(draftPeriod)
+		setFilters(draft.filters)
+		selectedPeriodRef.current = draft.period
 		setShowFilters(false)
-		setPage(1)
-		setTransactions([])
-		setHasMore(true)
-		fetchTransactions(1, false, draftFilters)
+		pageRef.current = 1
+		hasMoreRef.current = true
+		dispatchList({ type: 'clear' })
+		fetchTransactions(1, false, draft.filters)
 	}
 
-	// Clear all filters
+	// Clear all draft filters
 	const clearFilters = () => {
-		setDraftFilters({})
-		setDraftPeriod(null)
-	}
-
-	// Update a single draft filter value
-	const updateDraft = (key, value) => {
-		setDraftFilters(prev => {
-			const next = { ...prev }
-			if (value === undefined || value === null || value === '') { delete next[key] }
-			else { next[key] = value }
-			return next
-		})
+		dispatchDraft({ type: 'clearAll' })
 	}
 
 	// Footer loader
@@ -282,9 +249,9 @@ const Transactions = ({ navigation, route }) => {
 			delete newFilters.search
 		}
 		setFilters(newFilters)
-		setPage(1)
-		setTransactions([])
-		setHasMore(true)
+		pageRef.current = 1
+		hasMoreRef.current = true
+		dispatchList({ type: 'clear' })
 		fetchTransactions(1, false, newFilters)
 	}, [filters, fetchTransactions])
 
@@ -319,194 +286,22 @@ const Transactions = ({ navigation, route }) => {
 				estimatedItemSize={70}
 			/>
 
-			{/* Filter Modal */}
-			<Modal visible={showFilters} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowFilters(false)} >
-				<Pressable style={styles.overlay} onPress={() => setShowFilters(false)}>
-					<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
-
-						{/* Header */}
-						<View style={styles.modalHeader}>
-							<FontAwesome6 name="filter" size={20} color={theme.colors.primary} iconStyle="solid" />
-							<Text style={[textStyles.h3, { flex: 1, marginLeft: 12 }]}>Filtrar</Text>
-							<Pressable onPress={() => setShowFilters(false)} hitSlop={12}>
-								<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
-							</Pressable>
-						</View>
-
-						<ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-
-							{/* Status */}
-							<Text style={[textStyles.h6, styles.sectionLabel]}>Estado</Text>
-							<View style={styles.chipRow}>
-								{STATUS_OPTIONS.map(opt => (
-									<Chip
-										key={opt.value}
-										label={opt.label}
-										selected={draftFilters.status === opt.value}
-										onPress={() => updateDraft('status', draftFilters.status === opt.value ? undefined : opt.value)}
-										theme={theme}
-									/>
-								))}
-							</View>
-
-							{/* Search */}
-							<Text style={[textStyles.h6, styles.sectionLabel]}>Buscar</Text>
-							<QPInput
-								placeholder="Descripción o UUID"
-								value={draftFilters.search || ''}
-								onChangeText={v => updateDraft('search', v)}
-								autoCapitalize="none"
-								autoCorrect={false}
-								prefixIconName="magnifying-glass"
-								style={{ marginVertical: 0 }}
-							/>
-
-							{/* Period */}
-							<Text style={[textStyles.h6, styles.sectionLabel]}>Período</Text>
-							<View style={styles.chipRow}>
-								{PERIOD_OPTIONS.map((opt, idx) => (
-									<Chip
-										key={opt.label}
-										label={opt.label}
-										selected={draftPeriod === idx}
-										onPress={() => {
-											if (draftPeriod === idx) {
-												setDraftPeriod(null)
-												updateDraft('date_from', undefined)
-												updateDraft('date_to', undefined)
-											} else {
-												setDraftPeriod(idx)
-												const range = opt.getRange()
-												setDraftFilters(prev => ({ ...prev, date_from: range.date_from, date_to: range.date_to }))
-											}
-										}}
-										theme={theme}
-									/>
-								))}
-							</View>
-
-							{/* Amount Range */}
-							<Text style={[textStyles.h6, styles.sectionLabel]}>Monto</Text>
-							<View style={styles.amountRow}>
-								<View style={{ flex: 1 }}>
-									<QPInput
-										placeholder="Mínimo"
-										value={draftFilters.min_amount || ''}
-										onChangeText={v => updateDraft('min_amount', v.replace(/[^0-9.]/g, ''))}
-										keyboardType="decimal-pad"
-										style={{ marginVertical: 0 }}
-									/>
-								</View>
-								<Text style={[textStyles.caption, { marginHorizontal: 8 }]}>—</Text>
-								<View style={{ flex: 1 }}>
-									<QPInput
-										placeholder="Máximo"
-										value={draftFilters.max_amount || ''}
-										onChangeText={v => updateDraft('max_amount', v.replace(/[^0-9.]/g, ''))}
-										keyboardType="decimal-pad"
-										style={{ marginVertical: 0 }}
-									/>
-								</View>
-							</View>
-
-							{/* Sort */}
-							<Text style={[textStyles.h6, styles.sectionLabel]}>Ordenar por</Text>
-							<View style={styles.chipRow}>
-								{SORT_FIELD_OPTIONS.map(opt => (
-									<Chip
-										key={opt.value}
-										label={opt.label}
-										selected={draftFilters.orderBy === opt.value}
-										onPress={() => updateDraft('orderBy', draftFilters.orderBy === opt.value ? undefined : opt.value)}
-										theme={theme}
-									/>
-								))}
-							</View>
-
-							<Text style={[textStyles.h6, styles.sectionLabel]}>Dirección</Text>
-							<View style={styles.chipRow}>
-								{SORT_DIR_OPTIONS.map(opt => (
-									<Chip
-										key={opt.value}
-										label={opt.label}
-										selected={draftFilters.order === opt.value}
-										onPress={() => updateDraft('order', draftFilters.order === opt.value ? undefined : opt.value)}
-										theme={theme}
-									/>
-								))}
-							</View>
-
-						</ScrollView>
-
-						{/* Action buttons */}
-						<View style={styles.actions}>
-							<Pressable onPress={clearFilters} style={[styles.actionButton, { backgroundColor: theme.colors.elevation }]} >
-								<Text style={[styles.actionText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Limpiar</Text>
-							</Pressable>
-							<Pressable onPress={applyFilters} style={[styles.actionButton, { backgroundColor: theme.colors.primary, flex: 1 }]} >
-								<Text style={[styles.actionText, { color: '#FFFFFF', fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Aplicar</Text>
-							</Pressable>
-						</View>
-
-					</Pressable>
-				</Pressable>
-			</Modal>
+			<TransactionFilterModal
+				visible={showFilters}
+				draftFilters={draft.filters}
+				draftPeriod={draft.period}
+				onUpdateDraft={(key, value) => dispatchDraft({ type: 'updateFilter', key, value })}
+				onSetPeriod={(idx, range) => dispatchDraft({ type: 'setPeriod', idx, range })}
+				onClearPeriod={() => dispatchDraft({ type: 'clearPeriod' })}
+				onClear={clearFilters}
+				onApply={applyFilters}
+				onClose={() => setShowFilters(false)}
+				theme={theme}
+				textStyles={textStyles}
+				windowHeight={windowHeight}
+			/>
 		</View>
 	)
 }
-
-const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	modalCard: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 24,
-	},
-	modalHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginBottom: 8,
-	},
-	sectionLabel: {
-		marginTop: 16,
-		marginBottom: 8,
-	},
-	chipRow: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		gap: 8,
-	},
-	chip: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	chipText: {
-	},
-	amountRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-	},
-	actions: {
-		flexDirection: 'row',
-		gap: 12,
-		marginTop: 16,
-	},
-	actionButton: {
-		paddingVertical: 14,
-		paddingHorizontal: 24,
-		borderRadius: 25,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	actionText: {
-	},
-})
 
 export default Transactions

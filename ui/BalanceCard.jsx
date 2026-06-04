@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
 import { Text, Pressable, View, ScrollView, StyleSheet, Dimensions } from 'react-native'
 
 // Theme Context
@@ -17,6 +17,18 @@ import QPBalance from './particles/QPBalance'
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_WIDTH = SCREEN_WIDTH - 32 // match container padding
 
+// Savings summary (balance + rate) is fetched and updated as a single unit
+const initialSavings = { balance: null, rate: 3.75 }
+
+function savingsReducer(state, action) {
+	switch (action.type) {
+		case 'loaded':
+			return { balance: action.balance, rate: action.rate ?? state.rate }
+		default:
+			return state
+	}
+}
+
 const BalanceCard = ({ balance, navigation }) => {
 
 	// Theme variables, dark and light modes
@@ -30,8 +42,7 @@ const BalanceCard = ({ balance, navigation }) => {
 	const [showBalance, setShowBalance] = useState(true)
 	const [animatedBalance, setAnimatedBalance] = useState(balance || 0)
 	const [activeIndex, setActiveIndex] = useState(0)
-	const [savingsBalance, setSavingsBalance] = useState(null)
-	const [savingsRate, setSavingsRate] = useState(3.75)
+	const [savings, dispatchSavings] = useReducer(savingsReducer, initialSavings)
 	const scrollRef = useRef(null)
 
 	// Load balance visibility setting on component mount
@@ -52,8 +63,7 @@ const BalanceCard = ({ balance, navigation }) => {
 		const fetchSavings = async () => {
 			const result = await savingApi.getSummary()
 			if (result.success && result.data) {
-				setSavingsBalance(result.data.balance ?? 0)
-				if (result.data.rate) setSavingsRate(result.data.rate)
+				dispatchSavings({ type: 'loaded', balance: result.data.balance ?? 0, rate: result.data.rate })
 			}
 		}
 		fetchSavings()
@@ -108,9 +118,9 @@ const BalanceCard = ({ balance, navigation }) => {
 				<Pressable onPress={() => navigation?.navigate('Savings')} style={[styles.page, { width: CARD_WIDTH }]} >
 					{showBalance ? (
 						<View style={styles.savingsContent}>
-							<QPBalance formattedAmount={Number(savingsBalance ?? 0).toFixed(2)} fontSize={60} theme={theme} />
+							<QPBalance formattedAmount={Number(savings.balance ?? 0).toFixed(2)} fontSize={60} theme={theme} />
 							<Text style={[styles.rateLabel, { color: theme.colors.success, fontFamily: theme.typography.fontFamily.medium }]}>
-								{savingsRate}%
+								{savings.rate}%
 							</Text>
 						</View>
 					) : (

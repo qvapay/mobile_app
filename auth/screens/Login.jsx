@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, TextInput, Alert, Pressable, ActivityIndicator, Modal } from 'react-native'
+import { useReducer, useState, useEffect, useRef } from 'react'
+import { View, Text, Alert } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -11,24 +11,46 @@ import { useSettings } from '../../settings/SettingsContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
-// UI Particles
-import QPInput from '../../ui/particles/QPInput'
+// UI
 import QPButton from '../../ui/particles/QPButton'
-import QPSwitch from '../../ui/particles/QPSwitch'
+import QPKeyboardView from '../../ui/QPKeyboardView'
+
+// Login subcomponents + hooks
+import CredentialsForm from './login/CredentialsForm'
+import TwoFactorEntry from './login/TwoFactorEntry'
+import QuickLoginRow from './login/QuickLoginRow'
+import LeakedPasswordModal from './login/LeakedPasswordModal'
+import useBiometricSupport from '../hooks/useBiometricSupport'
 
 // Biometric utilities
 import { getSupportedBiometryType, hasBiometricCredentials, getBiometricCredentials, setBiometricCredentials, removeBiometricCredentials } from '../../api/client'
-
-// Icons
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import FaceIDIcon from '../../ui/particles/FaceIDIcon'
-import QPKeyboardView from '../../ui/QPKeyboardView'
 
 // Notifications
 import { toast } from 'sonner-native'
 
 // Routes
 import { ROUTES } from '../../routes'
+
+// The login screen is a small state machine (enter credentials → enter 2FA → done).
+// Grouping those fields in one reducer keeps the multi-field transitions atomic —
+// e.g. moving to the 2FA step flips showPin, hasOtp, method and clears the code together.
+const initialForm = { email: '', password: '', showPin: false, hasOtp: false, method: 'pin', code: '' }
+
+function formReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		case 'setMethod':
+			// Switching method resets the entered code
+			return { ...state, method: action.method, code: '' }
+		case 'enterTwoFactor':
+			return { ...state, showPin: true, hasOtp: action.hasOtp, method: 'pin', code: '' }
+		case 'enterTwoFactorWithCreds':
+			return { ...state, email: action.email, password: action.password, showPin: true, hasOtp: action.hasOtp, method: 'pin', code: '' }
+		default:
+			return state
+	}
+}
 
 // Login Screen
 const LoginScreen = ({ navigation }) => {
@@ -43,102 +65,36 @@ const LoginScreen = ({ navigation }) => {
 	// Auth Context
 	const { login, loginWithPasskey, requestPin, clearError } = useAuth()
 
-	// States
+	// Login flow state machine
+	const [form, dispatch] = useReducer(formReducer, initialForm)
+	const expectedCodeLength = form.method === 'otp' ? 6 : 4
+
+	// Independent state slices
 	const [isLoading, setIsLoading] = useState(false)
-	const [email, setEmail] = useState('')
-	const [password, setPassword] = useState('')
-	const [twoFactorCode, setTwoFactorCode] = useState('')
 	const [failedAttempts, setFailedAttempts] = useState(0)
-
-	// PIN inputs refs
-	const pinInputsRef = useRef([])
-	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
-
-	// Show PIN Input
-	const [showPin, setShowPin] = useState(false)
-	const [requestPINLabel, setRequestPINLabel] = useState('Solicitar PIN')
-	const [requestingPIN, setRequestingPIN] = useState(false)
-
-	// OTP/PIN toggle
-	const [hasOtp, setHasOtp] = useState(false)
-	const [twoFactorMethod, setTwoFactorMethod] = useState('pin') // 'pin' | 'otp'
-	const expectedCodeLength = twoFactorMethod === 'otp' ? 6 : 4
-
-	// Biometric states
-	const [biometryType, setBiometryType] = useState(null)
-	const [hasBiometrics, setHasBiometrics] = useState(false)
-
-	// Leaked password modal states
 	const [leakedModal, setLeakedModal] = useState({ visible: false, blocked: false, message: '', count: 0 })
 
-	// Countdown timer states
-	const [countdown, setCountdown] = useState(0)
-	const [isButtonDisabled, setIsButtonDisabled] = useState(false)
-	const countdownRef = useRef(null)
+	// Biometric support detection
+	const { biometryType, hasBiometrics, setHasBiometrics } = useBiometricSupport()
 
-	// Clear failed attempts
+	// Reset failed attempts after a 1-minute lockout
+	const failedAttemptsTimerRef = useRef(null)
 	useEffect(() => {
 		if (failedAttempts > 5) {
-			// If a timer is already running, clear it first
-			if (countdownRef.current) { clearTimeout(countdownRef.current) }
-			// Set a timer to reset failedAttempts after 1 minute (60000 ms)
-			countdownRef.current = setTimeout(() => {
-				setFailedAttempts(0)
-			}, 60000)
+			if (failedAttemptsTimerRef.current) { clearTimeout(failedAttemptsTimerRef.current) }
+			failedAttemptsTimerRef.current = setTimeout(() => { setFailedAttempts(0) }, 60000)
 		}
+		return () => { if (failedAttemptsTimerRef.current) { clearTimeout(failedAttemptsTimerRef.current) } }
 	}, [failedAttempts])
-
-	// Countdown timer effect
-	useEffect(() => {
-		if (countdown > 0) {
-			countdownRef.current = setTimeout(() => { setCountdown(prev => prev - 1) }, 1000)
-			// Update button label with formatted time
-			const minutes = Math.floor(countdown / 60)
-			const seconds = countdown % 60
-			const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-			setRequestPINLabel(timeString)
-		} else if (countdown === 0 && isButtonDisabled) {
-			setIsButtonDisabled(false)
-			setRequestPINLabel('Solicitar PIN')
-		}
-		return () => { if (countdownRef.current) { clearTimeout(countdownRef.current) } }
-	}, [countdown, isButtonDisabled])
-
-	// Reset PIN/OTP inputs when switching method
-	const resetPinInputs = () => {
-		setTwoFactorCode('')
-		setFocusedInputIndex(null)
-		pinInputsRef.current = []
-	}
 
 	const handleMethodToggle = (side) => {
 		const newMethod = side === 'left' ? 'pin' : side === 'right' ? 'otp' : 'pin'
-		if (newMethod !== twoFactorMethod) {
-			setTwoFactorMethod(newMethod)
-			resetPinInputs()
-		}
+		if (newMethod !== form.method) { dispatch({ type: 'setMethod', method: newMethod }) }
 	}
-
-	// Detect biometric support on mount
-	useEffect(() => {
-		const checkBiometrics = async () => {
-			try {
-				const type = await getSupportedBiometryType()
-				const has = await hasBiometricCredentials()
-				setBiometryType(type)
-				setHasBiometrics(has)
-			} catch (err) {
-				// Biometric detection failed silently
-			}
-		}
-		checkBiometrics()
-	}, [])
 
 	// Biometric login handler
 	const handleBiometricLogin = async () => {
-
 		try {
-
 			const credentials = await getBiometricCredentials()
 			if (!credentials) return // user cancelled
 
@@ -161,12 +117,8 @@ const LoginScreen = ({ navigation }) => {
 			if (result.success && result.security_warning) { setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count }) }
 
 			if (result.status === 202) {
-				setEmail(credentials.email)
-				setPassword(credentials.password)
-				setHasOtp(result.has_otp || false)
-				setTwoFactorMethod('pin')
 				await updateSettings('appearance', { firstTime: false })
-				setShowPin(true)
+				dispatch({ type: 'enterTwoFactorWithCreds', email: credentials.email, password: credentials.password, hasOtp: result.has_otp || false })
 			}
 		} catch (err) {
 			toast.error('Error al acceder con biometría')
@@ -175,6 +127,7 @@ const LoginScreen = ({ navigation }) => {
 
 	// Prompt biometric enrollment after successful login
 	const promptBiometricEnrollment = async (loginEmail, loginPassword) => {
+
 		const type = await getSupportedBiometryType()
 		if (!type) return
 		const has = await hasBiometricCredentials()
@@ -200,17 +153,14 @@ const LoginScreen = ({ navigation }) => {
 		)
 	}
 
-	// Handle pre-login, we set the loading to true, clear the error and call the login function
-	// If login is successful (HTTP response 202), we set the loading to false and show the PIN Input
-	// If login is not successful (HTTP response 401), we set the loading to false and show an error message
+	// Handle pre-login: validate credentials, then either show the PIN step (202) or finish.
 	const handlePreLogin = async () => {
-
-		if (!email || !password) { toast.error('Por favor completa todos los campos'); return }
+		if (!form.email || !form.password) { toast.error('Por favor completa todos los campos'); return }
 
 		try {
 			clearError()
 			setIsLoading(true)
-			const result = await login({ email, password })
+			const result = await login({ email: form.email, password: form.password })
 			if (!result.success) {
 				// Contraseña comprometida — bloqueado (403 + action: reset_password)
 				if (result.status === 403 && result.action === 'reset_password') {
@@ -222,28 +172,24 @@ const LoginScreen = ({ navigation }) => {
 			}
 			// Si el prelogin es exitoso (HTTP 202), muestra el PIN Input
 			if (result.status === 202) {
-				setHasOtp(result.has_otp || false)
-				setTwoFactorMethod('pin')
 				await updateSettings('appearance', { firstTime: false })
-				setShowPin(true)
+				dispatch({ type: 'enterTwoFactor', hasOtp: result.has_otp || false })
 			}
 			// Login directo exitoso (sin 2FA) — ofrecer biometría y verificar security_warning
 			if (result.success && result.status !== 202) {
 				if (result.security_warning) {
 					setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count })
 				} else {
-					promptBiometricEnrollment(email, password)
+					promptBiometricEnrollment(form.email, form.password)
 				}
 			}
 		} catch (err) { toast.error('Ha ocurrido un error durante el inicio de sesión') }
-
 		finally { setIsLoading(false) }
 	}
 
-	// Send all credentials to login
+	// Send all credentials (+ 2FA code) to login
 	const handleLogin = async () => {
-
-		if (!email || !password || !twoFactorCode || twoFactorCode.length !== expectedCodeLength) {
+		if (!form.email || !form.password || !form.code || form.code.length !== expectedCodeLength) {
 			toast.error('No es posible iniciar sesión sin completar todos los campos')
 			return
 		}
@@ -251,42 +197,35 @@ const LoginScreen = ({ navigation }) => {
 		try {
 			clearError()
 			setIsLoading(true)
-			const result = await login({ email, password, two_factor_code: twoFactorCode })
+			const result = await login({ email: form.email, password: form.password, two_factor_code: form.code })
 			if (!result.success) {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
-				} else {
-					toast.error(String(result.error || 'Error al iniciar sesión'), { description: typeof result.details === 'string' ? result.details : undefined })
-				}
-				if (result.status === 401) {
-					setFailedAttempts(failedAttempts + 1)
-				}
+				} else { toast.error(String(result.error || 'Error al iniciar sesión'), { description: typeof result.details === 'string' ? result.details : undefined }) }
+				if (result.status === 401) { setFailedAttempts(failedAttempts + 1) }
 			}
 			if (result.success) {
 				setFailedAttempts(0)
 				if (result.security_warning) {
 					setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count })
 				} else {
-					promptBiometricEnrollment(email, password)
+					promptBiometricEnrollment(form.email, form.password)
 				}
 			}
 		} catch (err) { toast.error('Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente') }
 		finally { setIsLoading(false) }
 	}
 
-	// Send a PIN request to email
+	// Send a PIN request to email — returns the result so TwoFactorEntry can start its cooldown
 	const handleRequestPin = async () => {
 		try {
-			setRequestingPIN(true)
-			const result = await requestPin({ email, password })
+			const result = await requestPin({ email: form.email, password: form.password })
 			if (!result.success) { toast.error(String(result.error || 'Error al solicitar PIN')) }
-			if (result.success) {
-				setCountdown(60)
-				setIsButtonDisabled(true)
-				setRequestPINLabel('01:00')
-			}
-		} catch (err) { toast.error('Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente') }
-		finally { setRequestingPIN(false) }
+			return result
+		} catch (err) {
+			toast.error('Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente')
+			return { success: false }
+		}
 	}
 
 	// Handle passkey login
@@ -304,77 +243,36 @@ const LoginScreen = ({ navigation }) => {
 	}
 
 	// Handle restore password
-	const handleRestorePassword = () => { navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email }) }
+	const handleRestorePassword = () => { navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email: form.email }) }
 
 	// Dismiss leaked password modal
 	const dismissLeakedModal = () => {
 		const wasBlocked = leakedModal.blocked
 		setLeakedModal({ visible: false, blocked: false, message: '', count: 0 })
-		if (!wasBlocked) { promptBiometricEnrollment(email, password) }
+		if (!wasBlocked) { promptBiometricEnrollment(form.email, form.password) }
 	}
 
-	// Handle PIN input change (supports paste of full code)
-	const handlePinChange = (text, index) => {
-		const numericText = text.replace(/[^0-9]/g, '')
-
-		// Paste: multiple digits received at once
-		if (numericText.length > 1) {
-			const digits = numericText.slice(0, expectedCodeLength).split('')
-			const newPin = twoFactorCode.split('')
-			digits.forEach((d, i) => { if (index + i < expectedCodeLength) newPin[index + i] = d })
-			setTwoFactorCode(newPin.join(''))
-			const focusIdx = Math.min(index + digits.length, expectedCodeLength - 1)
-			pinInputsRef.current[focusIdx]?.focus()
-			return
-		}
-
-		// Single digit
-		const newPin = twoFactorCode.split('')
-		newPin[index] = numericText
-		setTwoFactorCode(newPin.join(''))
-
-		if (numericText && index < expectedCodeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
+	// Reset password from the leaked modal
+	const resetFromLeakedModal = () => {
+		setLeakedModal({ visible: false, blocked: false, message: '', count: 0 })
+		navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email: form.email })
 	}
 
 	// Auto-submit when all digits entered
 	useEffect(() => {
-		if (showPin && twoFactorCode.length === expectedCodeLength && !isLoading) { handleLogin() }
+		if (form.showPin && form.code.length === expectedCodeLength && !isLoading) { handleLogin() }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [twoFactorCode])
-
-	// Handle PIN input focus
-	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
-
-	// Handle PIN input blur
-	const handlePinBlur = () => { setFocusedInputIndex(null) }
-
-	// Handle PIN backspace
-	const handlePinKeyPress = (e, index) => {
-		if (e.nativeEvent.key === 'Backspace') {
-			if (twoFactorCode[index]) {
-				// If current input has content, clear it
-				const newPin = twoFactorCode.split('')
-				newPin[index] = ''
-				setTwoFactorCode(newPin.join(''))
-			} else if (index > 0) {
-				// If current input is empty, go to previous input and clear it
-				const newPin = twoFactorCode.split('')
-				newPin[index - 1] = ''
-				setTwoFactorCode(newPin.join(''))
-				pinInputsRef.current[index - 1]?.focus()
-			}
-		}
-	}
+	}, [form.code])
 
 	return (
 		<>
 			<QPKeyboardView
 				actions={
-					showPin ? (
+					form.showPin ? (
 						<QPButton
 							title="Acceder"
 							onPress={handleLogin}
-							disabled={!email || !password || !twoFactorCode || twoFactorCode.length !== expectedCodeLength || failedAttempts > 5}
+							disabled={!form.email || !form.password || form.code.length !== expectedCodeLength || failedAttempts > 5}
 							textStyle={{ color: theme.colors.almostWhite }}
 							loading={isLoading}
 						/>
@@ -382,7 +280,7 @@ const LoginScreen = ({ navigation }) => {
 						<QPButton
 							title="Acceder"
 							onPress={handlePreLogin}
-							disabled={!email || !password || failedAttempts > 5}
+							disabled={!form.email || !form.password || failedAttempts > 5}
 							textStyle={{ color: theme.colors.almostWhite }}
 							loading={isLoading}
 						/>
@@ -391,214 +289,55 @@ const LoginScreen = ({ navigation }) => {
 			>
 
 				<Text style={textStyles.h1}>Acceder a tu cuenta</Text>
-				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{showPin ? (twoFactorMethod === 'otp' ? "Ingresa el código de tu aplicación de autenticación" : "Coloca tu PIN para acceder a tu cuenta") : "Ingresa tu correo electrónico y contraseña para acceder a tu cuenta"}</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{form.showPin ? (form.method === 'otp' ? "Ingresa el código de tu aplicación de autenticación" : "Coloca tu PIN para acceder a tu cuenta") : "Ingresa tu correo electrónico y contraseña para acceder a tu cuenta"}</Text>
 
-				<View style={styles.formContainer}>
-					{
-						showPin ? (
-							<>
-								{hasOtp && (
-									<QPSwitch
-										value={twoFactorMethod === 'pin' ? 'left' : twoFactorMethod === 'otp' ? 'right' : null}
-										leftText="PIN"
-										rightText="OTP"
-										leftColor={theme.colors.primary}
-										rightColor={theme.colors.primary}
-										onChange={handleMethodToggle}
-										style={{ marginBottom: 20 }}
-									/>
-								)}
-								<View style={styles.pinContainer}>
-									{Array.from({ length: expectedCodeLength }).map((_, index) => (
-										<TextInput
-											key={`${twoFactorMethod}-${index}`}
-											ref={(ref) => { pinInputsRef.current[index] = ref }}
-											style={[twoFactorMethod === 'otp' ? styles.pinInputSmall : styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: twoFactorMethod === 'otp' ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
-											value={twoFactorCode[index] || ''}
-											onChangeText={(text) => handlePinChange(text, index)}
-											onFocus={() => handlePinFocus(index)}
-											onBlur={handlePinBlur}
-											onKeyPress={(e) => handlePinKeyPress(e, index)}
-											keyboardType="numeric"
-											secureTextEntry
-											textAlign="center"
-											selectTextOnFocus
-											textContentType="oneTimeCode"
-											autoComplete="sms-otp"
-											placeholder={focusedInputIndex === index ? "" : "0"}
-											placeholderTextColor={theme.colors.tertiaryText}
-										/>
-									))}
-								</View>
-								{twoFactorMethod === 'pin' && (
-									<QPButton
-										title={requestPINLabel}
-										onPress={handleRequestPin}
-										loading={requestingPIN}
-										disabled={isButtonDisabled}
-										style={{ backgroundColor: null }}
-										textStyle={{ color: theme.colors.primary }}
-									/>
-								)}
-							</>
-						) : (
-							<>
-								<QPInput
-									placeholder="tucorreo@gmail.com"
-									value={email}
-									onChangeText={setEmail}
-									keyboardType="email-address"
-									autoCapitalize="none"
-									prefixIconName="envelope"
-									textContentType="emailAddress"
-									autoComplete="email"
-								/>
-
-								<QPInput
-									placeholder="Contraseña"
-									value={password}
-									onChangeText={setPassword}
-									secureTextEntry
-									prefixIconName="lock"
-									suffixIconName="eye"
-									textContentType="password"
-									autoComplete="password"
-								/>
-
-								<QPButton
-									title="Restablecer contraseña"
-									style={{ backgroundColor: null }}
-									textStyle={{ color: theme.colors.primary }}
-									onPress={handleRestorePassword}
-								/>
-							</>
-						)
-					}
+				<View style={{ flex: 1, marginVertical: 20 }}>
+					{form.showPin ? (
+						<TwoFactorEntry
+							method={form.method}
+							expectedCodeLength={expectedCodeLength}
+							code={form.code}
+							onChangeCode={(value) => dispatch({ type: 'set', field: 'code', value })}
+							hasOtp={form.hasOtp}
+							onMethodToggle={handleMethodToggle}
+							onRequestPin={handleRequestPin}
+							theme={theme}
+						/>
+					) : (
+						<CredentialsForm
+							email={form.email}
+							password={form.password}
+							onChangeEmail={(value) => dispatch({ type: 'set', field: 'email', value })}
+							onChangePassword={(value) => dispatch({ type: 'set', field: 'password', value })}
+							onRestorePassword={handleRestorePassword}
+							theme={theme}
+						/>
+					)}
 				</View>
 
-				{!showPin && (
-					<View style={styles.quickLoginRow}>
-						{hasBiometrics && biometryType && (
-							<Pressable
-								onPress={handleBiometricLogin}
-								disabled={isLoading}
-								style={({ pressed }) => [
-									styles.biometricButton,
-									{ backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : isLoading ? 0.5 : 1 }
-								]}
-							>
-								{isLoading ? (
-									<ActivityIndicator size="small" color={theme.colors.primary} />
-								) : biometryType === 'FaceID' ? (
-									<FaceIDIcon size={30} color={theme.colors.primary} />
-								) : (
-									<FontAwesome6 name="fingerprint" size={28} color={theme.colors.primary} iconStyle="solid" />
-								)}
-							</Pressable>
-						)}
-						<Pressable
-							onPress={handlePasskeyLogin}
-							disabled={isLoading}
-							style={({ pressed }) => [
-								styles.biometricButton,
-								{ backgroundColor: theme.colors.surface, opacity: pressed ? 0.7 : isLoading ? 0.5 : 1 }
-							]}
-						>
-							<FontAwesome6 name="key" size={24} color={theme.colors.primary} iconStyle="solid" />
-						</Pressable>
-					</View>
+				{!form.showPin && (
+					<QuickLoginRow
+						hasBiometrics={hasBiometrics}
+						biometryType={biometryType}
+						isLoading={isLoading}
+						onBiometricLogin={handleBiometricLogin}
+						onPasskeyLogin={handlePasskeyLogin}
+						theme={theme}
+					/>
 				)}
 
 				{failedAttempts > 5 && <Text style={[textStyles.h4, { color: theme.colors.danger, textAlign: 'center' }]}>Demasiados intentos, por favor espera 1 minuto para intentar nuevamente</Text>}
 
 			</QPKeyboardView>
 
-			{/* Leaked Password Modal */}
-			<Modal visible={leakedModal.visible} transparent animationType="fade" onRequestClose={leakedModal.blocked ? undefined : dismissLeakedModal}>
-				<View style={styles.modalOverlay}>
-					<View style={[styles.leakedModalContainer, { backgroundColor: theme.colors.surface }]}>
-						<FontAwesome6 name="shield-halved" size={40} color={leakedModal.blocked ? theme.colors.danger : theme.colors.warning} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
-						<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
-							{leakedModal.blocked ? 'Contraseña Comprometida' : 'Alerta de Seguridad'}
-						</Text>
-						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 8 }]}>
-							{leakedModal.message}
-						</Text>
-						{leakedModal.count > 0 && (
-							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textAlign: 'center', marginBottom: 16 }]}>
-								Esta contraseña ha sido vista en {leakedModal.count.toLocaleString()} filtración{leakedModal.count > 1 ? 'es' : ''} de datos.
-							</Text>
-						)}
-						<QPButton
-							title={leakedModal.blocked ? 'Restablecer Contraseña' : 'Cambiar contraseña'}
-							onPress={() => {
-								setLeakedModal({ visible: false, blocked: false, message: '', count: 0 })
-								navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email })
-							}}
-							style={{ backgroundColor: leakedModal.blocked ? theme.colors.danger : theme.colors.primary, marginBottom: 8 }}
-							textStyle={{ color: theme.colors.almostWhite }}
-						/>
-						{!leakedModal.blocked && (
-							<QPButton
-								title="Ahora no"
-								onPress={dismissLeakedModal}
-								style={{ backgroundColor: 'transparent' }}
-								textStyle={{ color: theme.colors.secondaryText }}
-							/>
-						)}
-					</View>
-				</View>
-			</Modal>
+			<LeakedPasswordModal
+				state={leakedModal}
+				theme={theme}
+				onReset={resetFromLeakedModal}
+				onDismiss={dismissLeakedModal}
+			/>
 		</>
 	)
 }
-
-const styles = StyleSheet.create({
-	formContainer: {
-		flex: 1,
-		marginVertical: 20
-	},
-	pinContainer: {
-		flexDirection: 'row',
-		gap: 8,
-		marginBottom: 20,
-	},
-	pinInput: {
-		flex: 1,
-		height: 60,
-		borderRadius: 12,
-		textAlign: 'center'
-	},
-	pinInputSmall: {
-		flex: 1,
-		height: 46,
-		borderRadius: 10,
-		textAlign: 'center'
-	},
-	quickLoginRow: {
-		flexDirection: 'row',
-		justifyContent: 'center',
-		gap: 16,
-	},
-	biometricButton: {
-		width: 56,
-		height: 56,
-		borderRadius: 28,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	leakedModalContainer: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 24,
-	}
-})
 
 export default LoginScreen

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useReducer } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
 
 // Theme
@@ -28,6 +28,39 @@ import { reduceStringInside } from '../../../helpers'
 // Helpers
 const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 
+// Fetched resource (methods + coins + error) and the create-method wizard are two cohesive units
+function dataReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
+const initialCreate = { showCreate: false, showCoinPicker: false, selectedCoin: null, workingForm: {}, paymentMethodName: '', creating: false }
+
+function createReducer(state, action) {
+	switch (action.type) {
+		case 'open':
+			return { ...initialCreate, showCreate: true }
+		case 'close':
+			return initialCreate
+		case 'selectCoin':
+			return { ...state, selectedCoin: action.coin, showCoinPicker: false, workingForm: {} }
+		case 'showCoinPicker':
+			return { ...state, showCoinPicker: action.value }
+		case 'setField':
+			return { ...state, workingForm: { ...state.workingForm, [action.key]: action.value } }
+		case 'setName':
+			return { ...state, paymentMethodName: action.value }
+		case 'setCreating':
+			return { ...state, creating: action.value }
+		default:
+			return state
+	}
+}
+
 const PaymentMethods = ({ navigation }) => {
 
 	// Theme
@@ -48,18 +81,13 @@ const PaymentMethods = ({ navigation }) => {
 
 	// State
 	const [loading, setLoading] = useState(true)
-	const [methods, setMethods] = useState([])
-	const [availableCoins, setAvailableCoins] = useState([])
-	const [error, setError] = useState(null)
+	const [data, dispatchData] = useReducer(dataReducer, { methods: [], availableCoins: [], error: null })
+	const { methods, availableCoins, error } = data
 	const [, setRefreshing] = useState(false)
 
 	// Create flow state
-	const [showCreate, setShowCreate] = useState(false)
-	const [showCoinPicker, setShowCoinPicker] = useState(false)
-	const [selectedCoin, setSelectedCoin] = useState(null)
-	const [workingForm, setWorkingForm] = useState({})
-	const [paymentMethodName, setPaymentMethodName] = useState('')
-	const [creating, setCreating] = useState(false)
+	const [create, dispatchCreate] = useReducer(createReducer, initialCreate)
+	const { showCreate, showCoinPicker, selectedCoin, workingForm, paymentMethodName, creating } = create
 
 	// Derived working fields from selected coin
 	const workingFields = useMemo(() => {
@@ -75,13 +103,13 @@ const PaymentMethods = ({ navigation }) => {
 		const load = async () => {
 			try {
 				setLoading(true)
-				setError(null)
+				dispatchData({ type: 'set', field: 'error', value: null })
 				const [coinsRes, methodsRes] = await Promise.all([coinsApi.index(), userApi.getPaymentMethods()])
-				if (coinsRes?.success && Array.isArray(coinsRes.data)) { setAvailableCoins(coinsRes.data) }
-				if (methodsRes?.success) { setMethods(Array.isArray(methodsRes.data) ? methodsRes.data : (methodsRes.data?.methods || [])) }
-				else { setError(methodsRes?.error || 'No se pudieron cargar los métodos de pago') }
+				if (coinsRes?.success && Array.isArray(coinsRes.data)) { dispatchData({ type: 'set', field: 'availableCoins', value: coinsRes.data }) }
+				if (methodsRes?.success) { dispatchData({ type: 'set', field: 'methods', value: Array.isArray(methodsRes.data) ? methodsRes.data : (methodsRes.data?.methods || []) }) }
+				else { dispatchData({ type: 'set', field: 'error', value: methodsRes?.error || 'No se pudieron cargar los métodos de pago' }) }
 			} catch (e) {
-				setError(e.message || 'Error de red')
+				dispatchData({ type: 'set', field: 'error', value: e.message || 'Error de red' })
 			} finally { setLoading(false) }
 		}
 		load()
@@ -92,7 +120,7 @@ const PaymentMethods = ({ navigation }) => {
 		try {
 			setRefreshing(true)
 			const res = await userApi.getPaymentMethods()
-			if (res.success) { setMethods(Array.isArray(res.data) ? res.data : (res.data?.methods || [])) }
+			if (res.success) { dispatchData({ type: 'set', field: 'methods', value: Array.isArray(res.data) ? res.data : (res.data?.methods || []) }) }
 			else { toast.error(res.error || 'No se pudieron cargar los métodos de pago') }
 		} catch (e) { toast.error(e.message || 'Error de red') }
 		finally { setRefreshing(false) }
@@ -100,26 +128,17 @@ const PaymentMethods = ({ navigation }) => {
 
 	// Open create modal
 	const openCreate = () => {
-		setShowCreate(true)
-		setSelectedCoin(null)
-		setWorkingForm({})
+		dispatchCreate({ type: 'open' })
 	}
 
 	// Close create modal
 	const closeCreate = () => {
 		if (creating) return
-		setShowCreate(false)
-		setSelectedCoin(null)
-		setWorkingForm({})
-		setShowCoinPicker(false)
+		dispatchCreate({ type: 'close' })
 	}
 
 	// Handle coin select
-	const handleCoinSelect = (coin) => {
-		setSelectedCoin(coin)
-		setShowCoinPicker(false)
-		setWorkingForm({})
-	}
+	const handleCoinSelect = (coin) => { dispatchCreate({ type: 'selectCoin', coin }) }
 
 	// Handle create method
 	const handleCreate = async () => {
@@ -139,7 +158,7 @@ const PaymentMethods = ({ navigation }) => {
 
 		try {
 
-			setCreating(true)
+			dispatchCreate({ type: 'setCreating', value: true })
 			// Build details as an object keyed by field name to match API response shape
 			const detailsObject = (workingFields || []).reduce((acc, field) => {
 				const key = keyFromFieldName(field.name)
@@ -158,7 +177,7 @@ const PaymentMethods = ({ navigation }) => {
 			} else { toast.error(res.error || 'No se pudo crear el método') }
 		} catch (e) {
 			toast.error(e.message || 'Error de red')
-		} finally { setCreating(false) }
+		} finally { dispatchCreate({ type: 'setCreating', value: false }) }
 	}
 
 	// Handle delete method
@@ -172,7 +191,7 @@ const PaymentMethods = ({ navigation }) => {
 				{ text: 'Cancelar', style: 'cancel' },
 				{
 					text: 'Eliminar', style: 'destructive', onPress: async () => {
-						setMethods(prev => prev.filter(m => (m.id || m.uuid) !== id))
+						dispatchData({ type: 'set', field: 'methods', value: methods.filter(m => (m.id || m.uuid) !== id) })
 						try {
 							const res = await userApi.deletePaymentMethod(id)
 							if (res.success) { toast.success('Método eliminado') }
@@ -260,11 +279,11 @@ const PaymentMethods = ({ navigation }) => {
 
 							{/* Name */}
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>Nombre</Text>
-							<QPInput value={paymentMethodName} onChangeText={setPaymentMethodName} placeholder="Nombre del método" style={{ marginVertical: 6 }} />
+							<QPInput value={paymentMethodName} onChangeText={(v) => dispatchCreate({ type: 'setName', value: v })} placeholder="Nombre del método" style={{ marginVertical: 6 }} />
 
 							{/* Coin selector */}
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>Moneda</Text>
-							<Pressable style={[styles.selector, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => setShowCoinPicker(true)}>
+							<Pressable style={[styles.selector, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => dispatchCreate({ type: 'showCoinPicker', value: true })}>
 								{selectedCoin ? (
 									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 										<QPCoin coin={selectedCoin.logo} size={20} />
@@ -286,7 +305,7 @@ const PaymentMethods = ({ navigation }) => {
 											<QPInput
 												key={key}
 												value={workingForm[key] || ''}
-												onChangeText={(text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
+												onChangeText={(text) => dispatchCreate({ type: 'setField', key, value: text })}
 												placeholder={field.name}
 												keyboardType={field.type === 'number' ? 'numeric' : 'default'}
 												style={{ marginVertical: 6 }}
@@ -313,7 +332,7 @@ const PaymentMethods = ({ navigation }) => {
 						{/* Coin Picker Modal */}
 						<QPCoinPicker
 							visible={showCoinPicker}
-							onClose={() => setShowCoinPicker(false)}
+							onClose={() => dispatchCreate({ type: 'showCoinPicker', value: false })}
 							onSelect={handleCoinSelect}
 							coins={availableCoins}
 							selectedCoin={selectedCoin}

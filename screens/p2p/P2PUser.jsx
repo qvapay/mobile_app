@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useReducer } from "react"
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share } from "react-native"
 import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from "react-native-linear-gradient"
@@ -64,6 +64,22 @@ function formatRatingDate(date) {
 	return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
 }
 
+// Async fetch state (loading / refreshing / error / data) moves together as one unit
+const initialFetch = { loading: true, refreshing: false, error: null, data: null }
+
+function fetchReducer(state, action) {
+	switch (action.type) {
+		case 'start':
+			return { ...state, loading: !action.isRefresh, refreshing: action.isRefresh, error: null }
+		case 'success':
+			return { ...state, loading: false, refreshing: false, data: action.data }
+		case 'error':
+			return { ...state, loading: false, refreshing: false, error: action.error }
+		default:
+			return state
+	}
+}
+
 const P2PUser = ({ navigation, route }) => {
 
 	const { uuid, initialTab } = route.params
@@ -76,30 +92,23 @@ const P2PUser = ({ navigation, route }) => {
 	const topOverlay = insets.top
 	const totalCoverHeight = COVER_VISIBLE_HEIGHT + topOverlay
 
-	const [loading, setLoading] = useState(true)
-	const [refreshing, setRefreshing] = useState(false)
-	const [error, setError] = useState(null)
-	const [data, setData] = useState(null)
+	const [fetchState, dispatchFetch] = useReducer(fetchReducer, initialFetch)
+	const { loading, refreshing, error, data } = fetchState
 	const [activeTab, setActiveTab] = useState(initialTab === "reviews" || initialTab === "stats" ? initialTab : "offers")
 	const [reviewMode, setReviewMode] = useState("received")
 
 	const fetchProfile = useCallback(async (isRefresh = false) => {
 		try {
-			if (isRefresh) setRefreshing(true)
-			else setLoading(true)
-			setError(null)
+			dispatchFetch({ type: 'start', isRefresh })
 			const res = await p2pApi.peerProfile(uuid)
 			if (res.success) {
-				setData(res.data)
+				dispatchFetch({ type: 'success', data: res.data })
 			} else {
-				setError(res.error)
+				dispatchFetch({ type: 'error', error: res.error })
 				if (isRefresh) toast.error(res.error)
 			}
 		} catch (e) {
-			setError(e.message)
-		} finally {
-			setLoading(false)
-			setRefreshing(false)
+			dispatchFetch({ type: 'error', error: e.message })
 		}
 	}, [uuid])
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef, useReducer } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 
 // Auth Context
@@ -17,6 +17,18 @@ import BouncyCheckbox from 'react-native-bouncy-checkbox'
 // Notifications
 import { toast } from 'sonner-native'
 
+// The account-creation fields are one logical form
+const initialForm = { name: '', lastname: '', email: '', password: '', confirmPassword: '', termsAccepted: false, invite: '' }
+
+function formReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
 // Register Screen
 const RegisterScreen = ({ navigation }) => {
 
@@ -29,19 +41,17 @@ const RegisterScreen = ({ navigation }) => {
 
 	// States
 	const [isLoading, setIsLoading] = useState(false)
-	const [uuid, setUuid] = useState('')
-	const [name, setName] = useState('')
-	const [lastname, setLastname] = useState('')
-	const [email, setEmail] = useState('')
-	const [password, setPassword] = useState('')
-	const [confirmPassword, setConfirmPassword] = useState('')
-	const [termsAccepted, setTermsAccepted] = useState(false)
-	const [invite, setInvite] = useState('')
+	// Registration uuid is returned by the register call and consumed only when
+	// confirming the PIN — never rendered — so a ref avoids a needless re-render.
+	const uuidRef = useRef('')
+	const [form, dispatch] = useReducer(formReducer, initialForm)
+	const { name, lastname, email, password, confirmPassword, termsAccepted, invite } = form
 
 	// Pin State
-	const [pinEnabled, setPinEnabled] = useState(false)
 	const [pin, setPin] = useState('')
 	const [requestPin, setRequestPin] = useState(false)
+	// Button is enabled once the 4-digit PIN is filled — derive it, don't store it
+	const pinEnabled = pin.length === 4
 
 	// Handle registration
 	const handleRegister = async () => {
@@ -88,7 +98,7 @@ const RegisterScreen = ({ navigation }) => {
 			})
 
 			if (result.success) {
-				setUuid(result.user.uuid)
+				uuidRef.current = result.user.uuid
 				setRequestPin(true)
 			}
 			if (!result.success) { toast.error(result.error || 'No se pudo completar el registro') }
@@ -98,32 +108,21 @@ const RegisterScreen = ({ navigation }) => {
 		} finally { setIsLoading(false) }
 	}
 
-	// Handle PIN input
-	useEffect(() => {
-		if (pin.length === 4) {
-			setPinEnabled(true)
-		} else {
-			setPinEnabled(false)
-		}
-	}, [pin])
-
 	// Verify PIN
 	const handleVerifyPin = async () => {
 
-		if (!uuid || !pin || !email) {
+		if (!uuidRef.current || !pin || !email) {
 			toast.error('Por favor completa todos los campos')
 			return
 		}
 
 		try {
 			setIsLoading(true)
-			const result = await confirmRegistration({ uuid, pin, email })
+			const result = await confirmRegistration({ uuid: uuidRef.current, pin, email })
 
 			if (result.success) {
 				navigation.navigate('Login')
-			} else {
-				toast.error(result.error || 'Error al verificar el PIN')
-			}
+			} else { toast.error(result.error || 'Error al verificar el PIN') }
 
 		} catch (err) {
 			toast.error('Error de conexión durante la verificación')
@@ -178,7 +177,7 @@ const RegisterScreen = ({ navigation }) => {
 						<QPInput
 							placeholder="Nombre"
 							value={name}
-							onChangeText={setName}
+							onChangeText={(value) => dispatch({ type: 'set', field: 'name', value })}
 							autoCapitalize="words"
 							prefixIconName="user"
 							textContentType="givenName"
@@ -188,7 +187,7 @@ const RegisterScreen = ({ navigation }) => {
 						<QPInput
 							placeholder="Apellidos"
 							value={lastname}
-							onChangeText={setLastname}
+							onChangeText={(value) => dispatch({ type: 'set', field: 'lastname', value })}
 							autoCapitalize="words"
 							prefixIconName="user"
 							textContentType="familyName"
@@ -198,7 +197,7 @@ const RegisterScreen = ({ navigation }) => {
 						<QPInput
 							placeholder="tucorreo@gmail.com"
 							value={email}
-							onChangeText={setEmail}
+							onChangeText={(value) => dispatch({ type: 'set', field: 'email', value })}
 							keyboardType="email-address"
 							autoCapitalize="none"
 							prefixIconName="envelope"
@@ -209,7 +208,7 @@ const RegisterScreen = ({ navigation }) => {
 						<QPInput
 							placeholder="Código de referido (opcional)"
 							value={invite}
-							onChangeText={setInvite}
+							onChangeText={(value) => dispatch({ type: 'set', field: 'invite', value })}
 							autoCapitalize="none"
 							prefixIconName="gift"
 						/>
@@ -217,7 +216,7 @@ const RegisterScreen = ({ navigation }) => {
 						<QPInput
 							placeholder="Contraseña"
 							value={password}
-							onChangeText={setPassword}
+							onChangeText={(value) => dispatch({ type: 'set', field: 'password', value })}
 							secureTextEntry
 							prefixIconName="lock"
 							suffixIconName="eye"
@@ -228,7 +227,7 @@ const RegisterScreen = ({ navigation }) => {
 						<QPInput
 							placeholder="Confirmar contraseña"
 							value={confirmPassword}
-							onChangeText={setConfirmPassword}
+							onChangeText={(value) => dispatch({ type: 'set', field: 'confirmPassword', value })}
 							secureTextEntry
 							prefixIconName="lock"
 							suffixIconName="eye"
@@ -246,7 +245,7 @@ const RegisterScreen = ({ navigation }) => {
 								iconStyle={{ borderColor: theme.colors.primary }}
 								innerIconStyle={{ borderWidth: 2 }}
 								textStyle={{ color: theme.colors.secondaryText, textDecorationLine: 'none' }}
-								onPress={() => setTermsAccepted(!termsAccepted)}
+								onPress={() => dispatch({ type: 'set', field: 'termsAccepted', value: !termsAccepted })}
 							/>
 						</View>
 					</>

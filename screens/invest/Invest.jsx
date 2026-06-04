@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme
@@ -157,6 +157,24 @@ const P2PRow = ({ pair, theme, textStyles, isLast }) => (
 
 // --- Main Component ---
 
+// The Invest dashboard loads four data slices in one pass — keep them as one unit
+const initialData = { savings: null, coins: [], stocks: [], p2pData: [] }
+
+function dataReducer(state, action) {
+	switch (action.type) {
+		case 'setSavings':
+			return { ...state, savings: action.savings }
+		case 'setCoins':
+			return { ...state, coins: action.coins }
+		case 'setStocks':
+			return { ...state, stocks: action.stocks }
+		case 'setP2p':
+			return { ...state, p2pData: action.p2pData }
+		default:
+			return state
+	}
+}
+
 const Invest = ({ navigation }) => {
 
 	const { theme } = useTheme()
@@ -165,11 +183,9 @@ const Invest = ({ navigation }) => {
 
 	const [isLoading, setIsLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
-	const [savings, setSavings] = useState(null)
-	const [coins, setCoins] = useState([])
-	const [stocks, setStocks] = useState([])
+	const [data, dispatchData] = useReducer(dataReducer, initialData)
+	const { savings, coins, stocks, p2pData } = data
 	const [exploreTab, setExploreTab] = useState('popular')
-	const [p2pData, setP2pData] = useState([])
 
 	const fetchData = useCallback(async (showLoader = true) => {
 		if (showLoader) setIsLoading(true)
@@ -180,7 +196,7 @@ const Invest = ({ navigation }) => {
 				p2pApi.getAverages(),
 				stocksApi.index(),
 			])
-			if (savingsRes.success) setSavings(savingsRes.data)
+			if (savingsRes.success) dispatchData({ type: 'setSavings', savings: savingsRes.data })
 			if (p2pRes.success && p2pRes.data) {
 				const averages = p2pRes.data
 				const pairs = P2P_COINS
@@ -189,10 +205,10 @@ const Invest = ({ navigation }) => {
 						const d = averages[tick]
 						return { tick, name: d.name || tick, buy: d.average_buy || 0, sell: d.average_sell || 0, count: d.count || 0 }
 					})
-				setP2pData(pairs)
+				dispatchData({ type: 'setP2p', p2pData: pairs })
 			}
 			if (stocksRes.success && Array.isArray(stocksRes.data)) {
-				setStocks(stocksRes.data.map(s => ({
+				dispatchData({ type: 'setStocks', stocks: stocksRes.data.map(s => ({
 					tick: s.symbol,
 					name: s.name,
 					icon: s.icon,
@@ -201,7 +217,7 @@ const Invest = ({ navigation }) => {
 					price: s.price,
 					change: s.change,
 					changeDollar: s.changeDollar,
-				})))
+				})) })
 			}
 			if (coinsRes.success && coinsRes.data?.length) {
 				const rawCoins = coinsRes.data
@@ -222,7 +238,7 @@ const Invest = ({ navigation }) => {
 					const changeDollar = last - first
 					return { ...coin, price: last, change, changeDollar, priceHistory: history }
 				})
-				setCoins(enriched)
+				dispatchData({ type: 'setCoins', coins: enriched })
 			}
 		} catch {
 			// silently handle

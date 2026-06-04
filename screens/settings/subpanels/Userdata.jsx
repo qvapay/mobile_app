@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useReducer } from 'react'
 import { Text, View } from 'react-native'
 
 // Theme
@@ -25,6 +25,31 @@ import { useAuth } from '../../../auth/AuthContext'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// The editable profile fields are one logical form
+const initialForm = { username: '', name: '', lastname: '', email: '', phone: '', telegram: '', twitter: '', address: '', country: '', bio: '' }
+
+function formReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		case 'loaded':
+			return {
+				username: action.data.username || '',
+				name: action.data.name || '',
+				lastname: action.data.lastname || '',
+				email: action.data.email || '',
+				phone: action.data.phone || '',
+				telegram: action.data.telegram || '',
+				twitter: action.data.twitter || '',
+				address: action.data.address || '',
+				bio: action.data.bio || '',
+				country: action.data.KYC?.country || '',
+			}
+		default:
+			return state
+	}
+}
+
 // User Data Settings Component
 const Userdata = () => {
 
@@ -39,16 +64,8 @@ const Userdata = () => {
 	const [isLoadingData, setIsLoadingData] = useState(true)
 
 	// Form fields
-	const [username, setUsername] = useState('')
-	const [name, setName] = useState('')
-	const [lastname, setLastname] = useState('')
-	const [email, setEmail] = useState('')
-	const [phone, setPhone] = useState('')
-	const [telegram, setTelegram] = useState('')
-	const [twitter, setTwitter] = useState('')
-	const [address, setAddress] = useState('')
-	const [country, setCountry] = useState('')
-	const [bio, setBio] = useState('')
+	const [form, dispatchForm] = useReducer(formReducer, initialForm)
+	const { username, name, lastname, email, phone, telegram, twitter, address, country, bio } = form
 
 	// User status fields
 	const [userStatus, setUserStatus] = useState({
@@ -70,16 +87,7 @@ const Userdata = () => {
 			const result = await userApi.getUserProfile()
 			if (result.success && result.data) {
 				const userData = result.data
-				setUsername(userData.username || '')
-				setName(userData.name || '')
-				setLastname(userData.lastname || '')
-				setEmail(userData.email || '')
-				setPhone(userData.phone || '')
-				setTelegram(userData.telegram || '')
-				setTwitter(userData.twitter || '')
-				setAddress(userData.address || '')
-				setBio(userData.bio || '')
-				setCountry(userData.KYC?.country || '')
+				dispatchForm({ type: 'loaded', data: userData })
 				setUserStatus({
 					kyc: userData.kyc || false,
 					phone_verified: userData.phone_verified || false,
@@ -122,10 +130,10 @@ const Userdata = () => {
 			if (result.success && result.data) {
 				toast.success('Datos actualizados correctamente')
 				const userData = result.data
-				setUsername(userData.username || username)
-				setName(userData.name || name)
-				setLastname(userData.lastname || lastname)
-				setBio(userData.bio || bio)
+				dispatchForm({ type: 'set', field: 'username', value: userData.username || username })
+				dispatchForm({ type: 'set', field: 'name', value: userData.name || name })
+				dispatchForm({ type: 'set', field: 'lastname', value: userData.lastname || lastname })
+				dispatchForm({ type: 'set', field: 'bio', value: userData.bio || bio })
 				updateUser({ name: userData.name || name, lastname: userData.lastname || lastname })
 			} else { toast.error(result.error || 'Error al actualizar') }
 		} catch (error) {
@@ -166,7 +174,7 @@ const Userdata = () => {
 				<QPInput
 					placeholder="Nombre de usuario"
 					value={username}
-					onChangeText={setUsername}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'username', value })}
 					editable={false}
 					prefixIconName="user"
 					style={{ opacity: 0.6 }}
@@ -175,7 +183,7 @@ const Userdata = () => {
 				<QPInput
 					placeholder="Correo electrónico"
 					value={email}
-					onChangeText={setEmail}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'email', value })}
 					keyboardType="email-address"
 					autoCapitalize="none"
 					editable={false}
@@ -190,21 +198,21 @@ const Userdata = () => {
 				<QPInput
 					placeholder="Nombre"
 					value={name}
-					onChangeText={setName}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'name', value })}
 					prefixIconName="user"
 					autoCapitalize="words"
 				/>
 				<QPInput
 					placeholder="Apellido"
 					value={lastname}
-					onChangeText={setLastname}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'lastname', value })}
 					prefixIconName="user"
 					autoCapitalize="words"
 				/>
 				<QPInput
 					placeholder="Biografía o descripción"
 					value={bio}
-					onChangeText={setBio}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'bio', value })}
 					multiline
 					numberOfLines={4}
 					prefixIconName="user-pen"
@@ -218,7 +226,7 @@ const Userdata = () => {
 				<QPInput
 					placeholder="Teléfono"
 					value={phone}
-					onChangeText={setPhone}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'phone', value })}
 					keyboardType="phone-pad"
 					prefixIconName="phone-volume"
 					suffixIconName={userStatus.phone_verified ? 'circle-check' : ''}
@@ -228,7 +236,7 @@ const Userdata = () => {
 				<QPInput
 					placeholder="@usuario_telegram"
 					value={telegram}
-					onChangeText={setTelegram}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'telegram', value })}
 					autoCapitalize="none"
 					prefixIconName="telegram"
 					iconStyle="brand"
@@ -237,7 +245,7 @@ const Userdata = () => {
 				<QPInput
 					placeholder="@usuario_twitter"
 					value={twitter}
-					onChangeText={setTwitter}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'twitter', value })}
 					autoCapitalize="none"
 					prefixIconName="x-twitter"
 					iconStyle="brand"
@@ -250,14 +258,14 @@ const Userdata = () => {
 				<QPInput
 					placeholder="Dirección"
 					value={address}
-					onChangeText={setAddress}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'address', value })}
 					autoCapitalize="sentences"
 					prefixIconName="location-dot"
 				/>
 				<QPInput
 					placeholder="País (ej: US, ES, MX)"
 					value={country}
-					onChangeText={setCountry}
+					onChangeText={(value) => dispatchForm({ type: 'set', field: 'country', value })}
 					autoCapitalize="characters"
 					maxLength={2}
 					prefixIconName="globe"

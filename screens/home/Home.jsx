@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
 import FastImage from '@d11/react-native-fast-image'
+import { useState, useEffect, useReducer } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
@@ -70,6 +70,18 @@ const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
 	</Pressable>
 )
 
+// The home feed is a bag of independently-fetched sections — one reducer keeps them together
+const initialFeed = { latestTransactions: [], latestSentTransfersUsers: [], latestBlogPosts: [], watchlistData: [], promo: null, updateInfo: null }
+
+function feedReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
 // Home Screen
 const Home = ({ navigation }) => {
 
@@ -91,12 +103,8 @@ const Home = ({ navigation }) => {
 	// State
 	const [, setIsLoading] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
-	const [latestTransactions, setLatestTransactions] = useState([])
-	const [latestSentTransfersUsers, setLatestSentTransfersUsers] = useState([])
-	const [latestBlogPosts, setLatestBlogPosts] = useState([])
-	const [watchlistData, setWatchlistData] = useState([])
-	const [promo, setPromo] = useState(null)
-	const [updateInfo, setUpdateInfo] = useState(null)
+	const [feed, dispatchFeed] = useReducer(feedReducer, initialFeed)
+	const { latestTransactions, latestSentTransfersUsers, latestBlogPosts, watchlistData, promo, updateInfo } = feed
 
 	// Track quick-pay users for online status
 	useEffect(() => {
@@ -131,7 +139,7 @@ const Home = ({ navigation }) => {
 			if (!skipLoading) setIsLoading(true)
 			const result = await transferApi.getLatestTransactions({ take: 6 })
 			if (result.success) {
-				setLatestTransactions(result.data)
+				dispatchFeed({ type: 'set', field: 'latestTransactions', value: result.data })
 				// Preload avatar images for instant rendering
 				const avatarUrls = result.data
 					.map(t => (t.paid_by_user || t.user)?.image)
@@ -150,7 +158,7 @@ const Home = ({ navigation }) => {
 			if (result.success) {
 				// filter out users with no image
 				const users = result.data.filter(u => u.image)
-				setLatestSentTransfersUsers(users)
+				dispatchFeed({ type: 'set', field: 'latestSentTransfersUsers', value: users })
 			}
 		} catch (err) { /* error fetching sent transfers */ }
 		finally { if (!skipLoading) setIsLoading(false) }
@@ -160,7 +168,7 @@ const Home = ({ navigation }) => {
 		try {
 			if (!skipLoading) setIsLoading(true)
 			const result = await blogApi.getLatestPosts(Platform.isPad ? 4 : 3)
-			if (result.success) { setLatestBlogPosts(result.data) }
+			if (result.success) { dispatchFeed({ type: 'set', field: 'latestBlogPosts', value: result.data }) }
 		} catch (err) { console.error('[Home] blog fetch threw', err) }
 		finally { if (!skipLoading) setIsLoading(false) }
 	}
@@ -183,14 +191,14 @@ const Home = ({ navigation }) => {
 				const change = first > 0 ? ((last - first) / first) * 100 : 0
 				return { tick, price: last, change, priceHistory: history }
 			})
-			setWatchlistData(data)
+			dispatchFeed({ type: 'set', field: 'watchlistData', value: data })
 		} catch { /* error fetching watchlist */ }
 	}
 
 	const fetchPromo = async () => {
 		try {
 			const result = await promoApi.getPromo()
-			if (result.success && result.data) { setPromo(result.data) }
+			if (result.success && result.data) { dispatchFeed({ type: 'set', field: 'promo', value: result.data }) }
 		} catch { /* no promo available */ }
 	}
 
@@ -212,7 +220,7 @@ const Home = ({ navigation }) => {
 			await fetchPromo()
 			// Check for store update
 			const info = await maybePromptUpdate()
-			if (info?.needsUpdate) setUpdateInfo(info)
+			if (info?.needsUpdate) dispatchFeed({ type: 'set', field: 'updateInfo', value: info })
 		} catch (err) { /* error refreshing data */ }
 		finally { setRefreshing(false) }
 	}
@@ -348,7 +356,7 @@ const Home = ({ navigation }) => {
 				currentVersion={updateInfo?.currentVersion}
 				latestVersion={updateInfo?.latestVersion}
 				storeUrl={updateInfo?.storeUrl}
-				onDismiss={() => setUpdateInfo(null)}
+				onDismiss={() => dispatchFeed({ type: 'set', field: 'updateInfo', value: null })}
 			/>
 		</View>
 	)

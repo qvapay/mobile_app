@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Linking, Modal, Pressable, TextInput, useWindowDimensions } from 'react-native'
 
 // Theme
@@ -27,6 +27,24 @@ import { ROUTES } from '../../routes'
 // Helpers
 import { timeAgo } from '../../helpers'
 
+// The deposit/withdraw modal is one piece of state: which operation, the amount, and its loading flag
+const initialModal = { type: null, amount: '', loading: false }
+
+function modalReducer(state, action) {
+	switch (action.type) {
+		case 'open':
+			return { type: action.modalType, amount: '', loading: false }
+		case 'close':
+			return { ...state, type: null }
+		case 'setAmount':
+			return { ...state, amount: action.amount }
+		case 'setLoading':
+			return { ...state, loading: action.loading }
+		default:
+			return state
+	}
+}
+
 const Savings = ({ route }) => {
 
 	const { theme } = useTheme()
@@ -41,9 +59,8 @@ const Savings = ({ route }) => {
 	const [isLoading, setIsLoading] = useState(!route.params?.savings)
 
 	// Modal state
-	const [modalType, setModalType] = useState(null) // 'deposit' | 'withdraw' | null
-	const [modalAmount, setModalAmount] = useState('')
-	const [modalLoading, setModalLoading] = useState(false)
+	const [modal, dispatchModal] = useReducer(modalReducer, initialModal)
+	const { type: modalType, amount: modalAmount, loading: modalLoading } = modal
 
 	const fetchSavings = useCallback(async () => {
 		setIsLoading(true)
@@ -72,8 +89,7 @@ const Savings = ({ route }) => {
 	const savingsBalance = Number(savings?.balance || 0)
 
 	const openModal = (type) => {
-		setModalAmount('')
-		setModalType(type)
+		dispatchModal({ type: 'open', modalType: type })
 	}
 
 	const handleModalSubmit = async () => {
@@ -91,14 +107,14 @@ const Savings = ({ route }) => {
 			return
 		}
 
-		setModalLoading(true)
+		dispatchModal({ type: 'setLoading', loading: true })
 		try {
 			const res = modalType === 'deposit'
 				? await savingApi.deposit(amount)
 				: await savingApi.withdraw(amount)
 			if (res.success) {
 				toast.success(modalType === 'deposit' ? 'Depósito realizado' : 'Retiro realizado')
-				setModalType(null)
+				dispatchModal({ type: 'close' })
 				fetchSavings()
 				updateUser()
 			} else {
@@ -106,9 +122,7 @@ const Savings = ({ route }) => {
 			}
 		} catch (e) {
 			toast.error(e.message || 'Error de red')
-		} finally {
-			setModalLoading(false)
-		}
+		} finally { dispatchModal({ type: 'setLoading', loading: false }) }
 	}
 
 	if (isLoading) return <QPLoader />
@@ -203,16 +217,16 @@ const Savings = ({ route }) => {
 			</ScrollView>
 
 			{/* Deposit / Withdraw Modal */}
-			<Modal visible={!!modalType} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !modalLoading && setModalType(null)}>
-				<Pressable style={styles.modalOverlay} onPress={() => !modalLoading && setModalType(null)}>
-					<Pressable onPress={() => {}} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 24, margin: 20 }]}>
+			<Modal visible={!!modalType} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !modalLoading && dispatchModal({ type: 'close' })}>
+				<Pressable style={styles.modalOverlay} onPress={() => !modalLoading && dispatchModal({ type: 'close' })}>
+					<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 24, margin: 20 }]}>
 
 						{/* Header */}
 						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
 							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
 								{modalType === 'deposit' ? 'Depositar' : 'Retirar'}
 							</Text>
-							<Pressable onPress={() => !modalLoading && setModalType(null)} hitSlop={8}>
+							<Pressable onPress={() => !modalLoading && dispatchModal({ type: 'close' })} hitSlop={8}>
 								<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 							</Pressable>
 						</View>
@@ -231,7 +245,7 @@ const Savings = ({ route }) => {
 								<Text style={{ color: theme.colors.primaryText, fontSize: 40, fontFamily: theme.typography.fontFamily.bold }}>$</Text>
 								<TextInput
 									value={modalAmount}
-									onChangeText={setModalAmount}
+									onChangeText={(amount) => dispatchModal({ type: 'setAmount', amount })}
 									placeholder="0.00"
 									placeholderTextColor={theme.colors.tertiaryText}
 									keyboardType="decimal-pad"
@@ -250,11 +264,12 @@ const Savings = ({ route }) => {
 
 						{/* Max button */}
 						<Pressable
-							onPress={() => setModalAmount(
-								modalType === 'deposit'
+							onPress={() => dispatchModal({
+								type: 'setAmount',
+								amount: modalType === 'deposit'
 									? checkingBalance.toFixed(2)
 									: savingsBalance.toFixed(2)
-							)}
+							})}
 							style={{ alignSelf: 'center', marginBottom: 24 }}
 						>
 							<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>Usar máximo</Text>

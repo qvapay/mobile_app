@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
 
 // Async Storage
@@ -144,11 +144,12 @@ const Transaction = ({ route, navigation }) => {
 	const amountFloat = parseFloat(transactionDetails.amount)
 	const amountFixed = amountFloat.toFixed(2)
 
-	// Handle PDF download
-	const [downloading, setDownloading] = useState(false)
+	// Handle PDF download — `downloading` is a re-entrancy guard only (never shown in
+	// the UI), so a ref prevents the whole detail screen re-rendering on each toggle.
+	const downloadingRef = useRef(false)
 	const handleDownloadPDF = async () => {
-		if (downloading) return
-		setDownloading(true)
+		if (downloadingRef.current) return
+		downloadingRef.current = true
 		try {
 
 			const token = await getAuthToken()
@@ -177,7 +178,7 @@ const Transaction = ({ route, navigation }) => {
 			} else { toast.error('Error', { description: 'No se pudo descargar el PDF' }) }
 		} catch (error) {
 			toast.error('Error', { description: 'No se pudo descargar el PDF' })
-		} finally { setDownloading(false) }
+		} finally { downloadingRef.current = false }
 	}
 
 	// Shared detail row component
