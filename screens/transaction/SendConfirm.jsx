@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { View, Text, TextInput, StyleSheet } from 'react-native'
+import { useState, useRef, useEffect, useReducer } from 'react'
+import { View, Text } from 'react-native'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -7,14 +7,10 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
-import QPKeyboardView from '../../ui/QPKeyboardView'
+import PinConfirmStep from './PinConfirmStep'
 import QPButton from '../../ui/particles/QPButton'
-import QPSwitch from '../../ui/particles/QPSwitch'
-import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
-import TransactionSticker from '../../ui/particles/TransactionSticker'
-
-// Stickers
-import { parseTransactionDescription } from '../../helpers/stickers'
+import QPKeyboardView from '../../ui/QPKeyboardView'
+import TransferSummaryCards from './TransferSummaryCards'
 
 // API
 import { userApi } from '../../api/userApi'
@@ -33,6 +29,17 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Online Status
 import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 
+// PIN/OTP entry sub-flow state — one cohesive unit
+function pinFlowReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+const initialPinFlow = { showPinStep: false, sendingPin: false, twoFactorMethod: 'pin', pin: '', focusedInputIndex: null }
+
 // Confirm Screen for Send instructions
 // Shows transaction details and allows user to confirm before sending
 const SendConfirm = ({ navigation, route }) => {
@@ -44,8 +51,6 @@ const SendConfirm = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	// Params from route
 	const { send_amount, user_uuid, description = '' } = route.params || {}
-	const parsedDescription = parseTransactionDescription(description)
-	const isStickerDescription = parsedDescription.type === 'sticker'
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
@@ -55,15 +60,18 @@ const SendConfirm = ({ navigation, route }) => {
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingUser, setIsLoadingUser] = useState(true)
 
-	// PIN/OTP states
-	const [showPinStep, setShowPinStep] = useState(false)
-	const [sendingPin, setSendingPin] = useState(false)
-	const [twoFactorMethod, setTwoFactorMethod] = useState('pin')
+	// PIN/OTP flow (same-named setters keep every call site unchanged)
+	const [pinFlow, dispatchPin] = useReducer(pinFlowReducer, initialPinFlow)
+	const { showPinStep, sendingPin, twoFactorMethod, pin, focusedInputIndex } = pinFlow
+	const setShowPinStep = (value) => dispatchPin({ type: 'set', field: 'showPinStep', value })
+	const setSendingPin = (value) => dispatchPin({ type: 'set', field: 'sendingPin', value })
+	const setTwoFactorMethod = (value) => dispatchPin({ type: 'set', field: 'twoFactorMethod', value })
+	const setPin = (value) => dispatchPin({ type: 'set', field: 'pin', value })
+	const setFocusedInputIndex = (value) => dispatchPin({ type: 'set', field: 'focusedInputIndex', value })
+
 	const hasOTP = !!user?.two_factor_secret
 	const codeLength = twoFactorMethod === 'pin' ? 4 : 6
-	const [pin, setPin] = useState('')
 	const pinInputsRef = useRef([])
-	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
 	const scrollViewRef = useRef(null)
 
 	// Track recipient for online status
@@ -74,7 +82,8 @@ const SendConfirm = ({ navigation, route }) => {
 	}, [recipientUser?.uuid, trackUsers, untrackUsers])
 
 	// Fetch recipient user data
-	useState(() => {
+	useEffect(() => {
+		let cancelled = false
 		const fetchRecipientUser = async () => {
 			if (!user_uuid) {
 				setIsLoadingUser(false)
@@ -83,6 +92,7 @@ const SendConfirm = ({ navigation, route }) => {
 			try {
 				setIsLoadingUser(true)
 				const result = await userApi.searchUser(user_uuid)
+				if (cancelled) return
 				if (result.success && result.data.length > 0) {
 					setRecipientUser(result.data[0])
 				} else {
@@ -90,11 +100,13 @@ const SendConfirm = ({ navigation, route }) => {
 					navigation.goBack()
 				}
 			} catch (error) {
+				if (cancelled) return
 				toast.error('Error', { description: 'Error al cargar los datos del destinatario' })
 				navigation.goBack()
-			} finally { setIsLoadingUser(false) }
+			} finally { if (!cancelled) setIsLoadingUser(false) }
 		}
 		fetchRecipientUser()
+		return () => { cancelled = true }
 	}, [user_uuid, navigation])
 
 	// Request PIN via email
@@ -279,126 +291,36 @@ const SendConfirm = ({ navigation, route }) => {
 
 			<View>
 
-				{/* Amount */}
-				<View style={{ alignItems: 'center', paddingVertical: 20 }}>
-					<Text style={[textStyles.amount, { fontSize: theme.typography.fontSize.display }]}>
-						${send_amount}
-					</Text>
-				</View>
-
-				{/* Recipient Card */}
-				<View style={containerStyles.card}>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 15 }]}>
-						Destinatario
-					</Text>
-
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-						<ProfileContainerHorizontal user={recipientUser} isOnline={isUserOnline(recipientUser?.uuid)} />
-					</View>
-				</View>
-
-				{/* Message Card */}
-				{description && (
-					<View style={containerStyles.card}>
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 10 }]}>
-							Mensaje
-						</Text>
-						{isStickerDescription ? (
-							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-								<TransactionSticker name={parsedDescription.sticker} size={72} />
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-									{parsedDescription.sticker.replace('.webm', '')}
-								</Text>
-							</View>
-						) : (
-							<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>
-								"{description}"
-							</Text>
-						)}
-					</View>
-				)}
-
-				{/* Transaction Details */}
-				<View style={containerStyles.card}>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 15 }]}>
-						Detalles de la transacción
-					</Text>
-
-					<View style={{ gap: 12 }}>
-						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-								Comisión
-							</Text>
-							<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
-								$0.00 QUSD
-							</Text>
-						</View>
-
-						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-								Total a enviar
-							</Text>
-							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-								${send_amount} QUSD
-							</Text>
-						</View>
-					</View>
-				</View>
+				<TransferSummaryCards
+					recipientUser={recipientUser}
+					sendAmount={send_amount}
+					description={description}
+					isUserOnline={isUserOnline}
+					theme={theme}
+					textStyles={textStyles}
+					containerStyles={containerStyles}
+				/>
 
 				{/* PIN/OTP Step */}
 				{showPinStep && (
-					<View style={[containerStyles.card, { marginTop: 0 }]}>
-
-						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-								{twoFactorMethod === 'pin' ? 'Ingresa tu PIN' : 'Ingresa el código OTP'}
-							</Text>
-							{twoFactorMethod === 'pin' && (
-								<Text
-									onPress={handleRequestPin}
-									style={[textStyles.h6, { color: theme.colors.primary, opacity: sendingPin ? 0.5 : 1 }]}
-									disabled={sendingPin}
-								>
-									{sendingPin ? 'Enviando...' : 'Solicitar PIN'}
-								</Text>
-							)}
-						</View>
-
-						{/* PIN/OTP Toggle - only show if user has OTP */}
-						{hasOTP && (
-							<QPSwitch
-								value={twoFactorMethod === 'pin' ? 'left' : 'right'}
-								leftText="PIN"
-								rightText="OTP"
-								leftColor={theme.colors.primary}
-								rightColor={theme.colors.primary}
-								onChange={handleMethodToggle}
-							/>
-						)}
-
-						<View style={styles.pinContainer}>
-							{Array.from({ length: codeLength }, (_, index) => (
-								<TextInput
-									key={`${twoFactorMethod}-${index}`}
-									ref={(ref) => { pinInputsRef.current[index] = ref }}
-									style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5, fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
-									value={pin[index] || ''}
-									onChangeText={(text) => handlePinChange(text, index)}
-									onFocus={() => handlePinFocus(index)}
-									onBlur={handlePinBlur}
-									onKeyPress={(e) => handlePinKeyPress(e, index)}
-									keyboardType="numeric"
-									secureTextEntry
-									textAlign="center"
-									selectTextOnFocus
-									textContentType="oneTimeCode"
-									autoComplete="sms-otp"
-									placeholder={focusedInputIndex === index ? "" : "0"}
-									placeholderTextColor={theme.colors.tertiaryText}
-								/>
-							))}
-						</View>
-					</View>
+					<PinConfirmStep
+						pin={pin}
+						codeLength={codeLength}
+						twoFactorMethod={twoFactorMethod}
+						hasOTP={hasOTP}
+						sendingPin={sendingPin}
+						focusedInputIndex={focusedInputIndex}
+						pinInputsRef={pinInputsRef}
+						onPinChange={handlePinChange}
+						onKeyPress={handlePinKeyPress}
+						onFocus={handlePinFocus}
+						onBlur={handlePinBlur}
+						onMethodToggle={handleMethodToggle}
+						onRequestPin={handleRequestPin}
+						theme={theme}
+						textStyles={textStyles}
+						containerStyles={containerStyles}
+					/>
 				)}
 
 			</View>
@@ -406,24 +328,5 @@ const SendConfirm = ({ navigation, route }) => {
 		</QPKeyboardView>
 	)
 }
-
-const styles = StyleSheet.create({
-	pinContainer: {
-		flexDirection: 'row',
-		marginVertical: 20,
-		gap: 8,
-	},
-	pinInput: {
-		flex: 1,
-		height: 60,
-		borderRadius: 12,
-		borderWidth: 1,
-		textAlign: 'center',
-	},
-	pinInputSmall: {
-		height: 54,
-		borderRadius: 10,
-	},
-})
 
 export default SendConfirm

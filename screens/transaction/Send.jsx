@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { View, Text, ScrollView, Modal, TouchableOpacity, FlatList, Pressable, StyleSheet } from 'react-native'
+import { useState, useEffect, useReducer } from 'react'
+import { View, Text, ScrollView, TouchableOpacity, Pressable } from 'react-native'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -14,9 +14,11 @@ import AmountInput from '../../ui/AmountInput'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import TransactionSticker from '../../ui/particles/TransactionSticker'
+import SendUserSearchModal from './SendUserSearchModal'
+import StickerPickerModal from './StickerPickerModal'
 
 // Stickers
-import { QVAPAY_STICKERS, parseTransactionDescription, buildStickerDescription } from '../../helpers/stickers'
+import { parseTransactionDescription, buildStickerDescription } from '../../helpers/stickers'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -34,6 +36,16 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Online Status
 import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 
+// Generic field setter for the related-state slices below
+function setFieldReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
 // Send Screen, search user, send money and show success message
 const Send = ({ navigation, route }) => {
 
@@ -45,32 +57,35 @@ const Send = ({ navigation, route }) => {
 	// Params from route
 	const { send_amount, user_uuid = null } = route.params || {}
 
-	// States
 	const currency = 'QUSD'
-	const [amount, setAmount] = useState(send_amount || '')
-	const [userSearch, setUserSearch] = useState('')
-	const [description, setDescription] = useState('')
-	const [userFound, setUserFound] = useState(null)
-	const [carouselUsers, setCarouselUsers] = useState([])
-	const [incomingUserUuid, setIncomingUserUuid] = useState(user_uuid || null)
 
-	// Modal states
+	// Transfer form (amount + message) — same-named setters keep call sites unchanged
+	const [form, dispatchForm] = useReducer(setFieldReducer, { amount: send_amount || '', description: '' })
+	const { amount, description } = form
+	const setAmount = (value) => dispatchForm({ type: 'set', field: 'amount', value })
+	const setDescription = (value) => dispatchForm({ type: 'set', field: 'description', value })
+
+	// Recipient selection (resolved user + incoming uuid + carousel of recent/contacts)
+	const [recipient, dispatchRecipient] = useReducer(setFieldReducer, { userFound: null, incomingUserUuid: user_uuid || null, carouselUsers: [] })
+	const { userFound, incomingUserUuid, carouselUsers } = recipient
+	const setUserFound = (value) => dispatchRecipient({ type: 'set', field: 'userFound', value })
+	const setIncomingUserUuid = (value) => dispatchRecipient({ type: 'set', field: 'incomingUserUuid', value })
+	const setCarouselUsers = (value) => dispatchRecipient({ type: 'set', field: 'carouselUsers', value })
+
+	// Modals + loading
 	const [isSearchModalVisible, setIsSearchModalVisible] = useState(false)
-	const [searchResults, setSearchResults] = useState([])
-	const [isSearching, setIsSearching] = useState(false)
-
-	// Sticker picker
 	const [isStickerPickerVisible, setIsStickerPickerVisible] = useState(false)
-	const parsedDescription = useMemo(() => parseTransactionDescription(description), [description])
+	const [isLoading, setIsLoading] = useState(false)
+
+	// Sticker / derived
+	const parsedDescription = parseTransactionDescription(description)
 	const isStickerSelected = parsedDescription.type === 'sticker'
 	const isGold = !!user?.golden_check
+	// Enabled once there's a positive amount and a selected recipient — derive it, don't store it
+	const sendEnabled = !!(amount && parseFloat(amount) > 0 && userFound !== null)
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
-
-	// Errors and Loading
-	const [sendEnabled, setSendEnabled] = useState(false)
-	const [isLoading, setIsLoading] = useState(false)
 
 	// Track carousel users for online status
 	useEffect(() => {
@@ -78,20 +93,6 @@ const Send = ({ navigation, route }) => {
 		if (ids.length) trackUsers(ids)
 		return () => { if (ids.length) untrackUsers(ids) }
 	}, [carouselUsers, trackUsers, untrackUsers])
-
-	// Track search results for online status
-	useEffect(() => {
-		const ids = searchResults.map(u => u.uuid).filter(Boolean)
-		if (ids.length) trackUsers(ids)
-		return () => { if (ids.length) untrackUsers(ids) }
-	}, [searchResults, trackUsers, untrackUsers])
-
-	// Update send enabled state based on amount and user found
-	useEffect(() => {
-		const hasValidAmount = amount && parseFloat(amount) > 0
-		const hasUserFound = userFound !== null
-		setSendEnabled(hasValidAmount && hasUserFound)
-	}, [amount, userFound])
 
 	// Get latest sent transfers users, saved contacts, and synced contacts
 	useEffect(() => {
@@ -130,6 +131,7 @@ const Send = ({ navigation, route }) => {
 			finally { setIsLoading(false) }
 		}
 		fetchCarouselUsers()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	// If user uuid is provided in the route, try to fetch user data
@@ -143,48 +145,8 @@ const Send = ({ navigation, route }) => {
 			}
 			fetchUserData()
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [incomingUserUuid])
-
-	// Live filter carousel users by search query
-	const filteredCarouselUsers = useMemo(() => {
-		const q = userSearch.trim().toLowerCase()
-		if (!q) return carouselUsers
-		return carouselUsers.filter((u) => {
-			const name = (u.name || '').toLowerCase()
-			const lastname = (u.lastname || '').toLowerCase()
-			const username = (u.username || '').toLowerCase()
-			return name.includes(q) || lastname.includes(q) || username.includes(q)
-		})
-	}, [carouselUsers, userSearch])
-
-	// Handle Search in Modal
-	const handleSearch = async () => {
-		if (!userSearch.trim()) {
-			setSearchResults([])
-			return
-		}
-		try {
-			setIsSearching(true)
-			const result = await userApi.searchUser(userSearch)
-			if (result.success) {
-				setSearchResults(result.data || [])
-			} else {
-				setSearchResults([])
-				toast.error('Error', { description: result.error })
-			}
-		} catch (err) {
-			setSearchResults([])
-			toast.error('Error', { description: err.message })
-		} finally { setIsSearching(false) }
-	}
-
-	// Handle User Selection from Search Results
-	const handleUserSelect = (selectedUser) => {
-		setUserFound(selectedUser)
-		setIsSearchModalVisible(false)
-		setUserSearch('')
-		setSearchResults([])
-	}
 
 	// Handle Send
 	const handleSendConfirm = async () => {
@@ -213,7 +175,6 @@ const Send = ({ navigation, route }) => {
 						textStyle={{ color: theme.colors.buttonText }}
 					/>
 				}
-	
 			>
 
 				{/* Amount Input Component */}
@@ -237,14 +198,7 @@ const Send = ({ navigation, route }) => {
 							</View>
 							<TouchableOpacity
 								onPress={() => setUserFound(null)}
-								style={{
-									backgroundColor: theme.colors.elevation,
-									borderRadius: 16,
-									width: 32,
-									height: 32,
-									justifyContent: 'center',
-									alignItems: 'center',
-								}}
+								style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }}
 								accessibilityLabel="Eliminar usuario seleccionado"
 							>
 								<FontAwesome6 name="xmark" size={18} color={theme.colors.primaryText} iconStyle="solid" />
@@ -303,237 +257,23 @@ const Send = ({ navigation, route }) => {
 			</QPKeyboardView>
 
 			{/* Search Modal */}
-			<Modal visible={isSearchModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsSearchModalVisible(false)} >
-
-				<View style={[containerStyles.subContainer, { flex: 1, backgroundColor: theme.colors.background, paddingTop: 20, paddingHorizontal: 0 }]}>
-
-					{/* Modal Header */}
-					<View style={{
-						flexDirection: 'row',
-						alignItems: 'center',
-						justifyContent: 'space-between',
-						marginBottom: 20,
-						paddingHorizontal: 20
-					}}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
-							Buscar Usuario
-						</Text>
-						<TouchableOpacity
-							onPress={() => setIsSearchModalVisible(false)}
-							style={{
-								backgroundColor: theme.colors.elevation,
-								width: 32,
-								height: 32,
-								borderRadius: 16,
-								justifyContent: 'center',
-								alignItems: 'center'
-							}}
-						>
-							<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-						</TouchableOpacity>
-					</View>
-
-					{/* Search Input */}
-					<View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
-
-						<View style={{ flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.primary, backgroundColor: theme.colors.surface, alignItems: 'center', height: 50 }}>
-							<View style={{ flex: 1 }}>
-								<QPInput
-									placeholder="Buscar usuario ..."
-									value={userSearch}
-									onChangeText={setUserSearch}
-									disabled={isSearching}
-									autoCapitalize="none"
-									prefixIconName="user"
-									style={{
-										borderTopRightRadius: 0,
-										borderBottomRightRadius: 0,
-										borderWidth: 0,
-										marginVertical: 0,
-										height: '100%',
-									}}
-								/>
-							</View>
-
-							<QPButton
-								title=""
-								onPress={handleSearch}
-								disabled={isSearching}
-								loading={isSearching}
-								textStyle={{ color: theme.colors.almostWhite }}
-								icon="magnifying-glass"
-								iconStyle="solid"
-								iconColor={theme.colors.almostWhite}
-								style={{
-									width: 50,
-									height: '100%',
-									borderRadius: 0,
-									marginVertical: 0,
-								}}
-							/>
-						</View>
-					</View>
-
-					{/* Search Results / Contacts list */}
-					<View style={{ flex: 1, paddingHorizontal: 20 }}>
-						{(() => {
-							// Merge: local filtered contacts first, then API results (no duplicates)
-							const localUuids = new Set(filteredCarouselUsers.map(u => u.uuid))
-							const apiOnly = searchResults.filter(u => !localUuids.has(u.uuid))
-							const merged = [...filteredCarouselUsers, ...apiOnly]
-							const hasQuery = userSearch.trim().length > 0
-
-							if (merged.length > 0) {
-								return (
-									<FlatList
-										data={merged}
-										keyExtractor={(item) => item.uuid}
-										showsVerticalScrollIndicator={false}
-										renderItem={({ item, index }) => {
-											const radius = theme.borderRadius?.md ?? 12
-											return (
-												<TouchableOpacity
-													onPress={() => handleUserSelect(item)}
-													style={[containerStyles.card, {
-														flexDirection: 'row',
-														alignItems: 'center',
-														gap: 12,
-														marginVertical: 0,
-														borderRadius: 0,
-														...(index === 0 && { borderTopLeftRadius: radius, borderTopRightRadius: radius }),
-														...(index === merged.length - 1 && { borderBottomLeftRadius: radius, borderBottomRightRadius: radius }),
-													}]}
-												>
-													<QPAvatar user={item} size={48} isOnline={isUserOnline(item.uuid)} />
-													<View style={{ flex: 1 }}>
-														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-															{item.name} {item.lastname}
-														</Text>
-														<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-															@{item.username}
-														</Text>
-													</View>
-													<FontAwesome6 name="chevron-right" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
-												</TouchableOpacity>
-											)
-										}}
-									/>
-								)
-							}
-
-							if (hasQuery && !isSearching) {
-								return (
-									<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
-										<FontAwesome6 name="user-slash" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
-										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-											No se encontraron usuarios
-										</Text>
-										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8, textAlign: 'center' }]}>
-											Intenta con otro nombre o username
-										</Text>
-									</View>
-								)
-							}
-
-							return (
-								<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
-									<FontAwesome6 name="magnifying-glass" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-										Busca por nombre, username o email
-									</Text>
-								</View>
-							)
-						})()}
-					</View>
-				</View>
-			</Modal>
+			<SendUserSearchModal
+				visible={isSearchModalVisible}
+				onClose={() => setIsSearchModalVisible(false)}
+				carouselUsers={carouselUsers}
+				onSelect={(selectedUser) => { setUserFound(selectedUser); setIsSearchModalVisible(false) }}
+			/>
 
 			{/* Sticker Picker Modal */}
-			<Modal
+			<StickerPickerModal
 				visible={isStickerPickerVisible}
-				transparent
-				animationType="fade"
-				statusBarTranslucent
-				onRequestClose={() => setIsStickerPickerVisible(false)}
-			>
-				<Pressable style={stickerStyles.overlay} onPress={() => setIsStickerPickerVisible(false)}>
-					<Pressable style={[stickerStyles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => {}}>
-						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Stickers</Text>
-							<TouchableOpacity onPress={() => setIsStickerPickerVisible(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }}>
-								<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-							</TouchableOpacity>
-						</View>
-
-						<View>
-							<ScrollView showsVerticalScrollIndicator={false} bounces={false} style={{ maxHeight: 360 }}>
-								<View style={stickerStyles.grid}>
-									{QVAPAY_STICKERS.map((sticker) => (
-										<TouchableOpacity
-											key={sticker}
-											disabled={!isGold}
-											onPress={() => {
-												setDescription(buildStickerDescription(sticker))
-												setIsStickerPickerVisible(false)
-											}}
-											style={[stickerStyles.gridItem, { backgroundColor: theme.colors.surface }]}
-											accessibilityLabel={sticker.replace('.webm', '')}
-										>
-											<TransactionSticker name={sticker} size={52} />
-										</TouchableOpacity>
-									))}
-								</View>
-							</ScrollView>
-
-							{!isGold && (
-								<View style={[stickerStyles.lockOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
-									<FontAwesome6 name="crown" size={28} color={theme.colors.gold} iconStyle="solid" />
-									<Text style={[textStyles.h5, { color: theme.colors.almostWhite, marginTop: 12, textAlign: 'center' }]}>GOLD requerido</Text>
-									<Text style={[textStyles.h6, { color: theme.colors.almostWhite, opacity: 0.8, marginTop: 4, textAlign: 'center' }]}>Necesitas ser usuario GOLD para enviar stickers</Text>
-								</View>
-							)}
-						</View>
-					</Pressable>
-				</Pressable>
-			</Modal>
+				onClose={() => setIsStickerPickerVisible(false)}
+				onSelect={(sticker) => { setDescription(buildStickerDescription(sticker)); setIsStickerPickerVisible(false) }}
+				isGold={isGold}
+			/>
 
 		</>
 	)
 }
-
-const stickerStyles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	card: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 16,
-	},
-	grid: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		gap: 8,
-		justifyContent: 'flex-start',
-	},
-	gridItem: {
-		width: '18%',
-		aspectRatio: 1,
-		alignItems: 'center',
-		justifyContent: 'center',
-		borderRadius: 12,
-	},
-	lockOverlay: {
-		...StyleSheet.absoluteFillObject,
-		borderRadius: 12,
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-})
 
 export default Send
