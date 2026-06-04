@@ -305,13 +305,15 @@ const Home = ({ navigation }) => {
 							onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)}
 							theme={theme}
 						/>
-						<ServiceCard
-							icon="gift"
-							title="Gift Cards"
-							iconColor="#8B5CF6"
-							onPress={() => navigation.navigate(ROUTES.STORE_SCREEN)}
-							theme={theme}
-						/>
+						{Platform.OS !== 'ios' && (
+							<ServiceCard
+								icon="gift"
+								title="Gift Cards"
+								iconColor="#8B5CF6"
+								onPress={() => navigation.navigate(ROUTES.STORE_SCREEN)}
+								theme={theme}
+							/>
+						)}
 						<ServiceCard
 							icon="chart-line"
 							title="Invest"
