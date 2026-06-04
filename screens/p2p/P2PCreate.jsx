@@ -1,15 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
-import {
-	View,
-	Text,
-	ScrollView,
-	Pressable,
-	TextInput,
-	StyleSheet,
-	Switch,
-	Modal,
-} from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
+import { useState, useEffect, useMemo, useReducer } from "react"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -17,14 +6,11 @@ import { createTextStyles, createContainerStyles } from "../../theme/themeUtils"
 
 // UI
 import QPKeyboardView from "../../ui/QPKeyboardView"
-import QPCoin from "../../ui/particles/QPCoin"
-import QPInput from "../../ui/particles/QPInput"
 import QPButton from "../../ui/particles/QPButton"
-import QPSwitch from "../../ui/particles/QPSwitch"
 import QPCoinPicker from "../../ui/QPCoinPicker"
-
-// Icons
-import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import P2PCreateForm from "./P2PCreateForm"
+import SavedMethodsModal from "./SavedMethodsModal"
+import P2PRequirementsGate from "./P2PRequirementsGate"
 
 // Toast
 import { toast } from "sonner-native"
@@ -40,8 +26,18 @@ import { useAuth } from "../../auth/AuthContext"
 // Routes
 import { ROUTES } from "../../routes"
 
-// Lottie
-import LottieView from "lottie-react-native"
+const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")
+const normalizeNumber = (val) => val.replace(",", ".")
+
+// Generic field setter for the related-state slices below
+function setFieldReducer(state, action) {
+	switch (action.type) {
+		case "set":
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
 
 // P2P Create component
 const P2PCreate = ({ navigation }) => {
@@ -53,34 +49,33 @@ const P2PCreate = ({ navigation }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
-	// Form State
-	const [type, setType] = useState("buy") // 'buy' | 'sell'
-	const [amount, setAmount] = useState("")
-	const [receive, setReceive] = useState("")
-	const [message, setMessage] = useState("")
-	const [advancedOpen, setAdvancedOpen] = useState(false)
 
-	// Advanced P2P Settings
-	const [onlyVIP, setOnlyVIP] = useState(false)
-	const [privateOffer, setPrivateOffer] = useState(false)
+	// Offer form
+	const [form, dispatchForm] = useReducer(setFieldReducer, { type: "buy", amount: "", receive: "", message: "", advancedOpen: false, onlyVIP: false, privateOffer: false })
+	const { type, amount, receive, message, onlyVIP, privateOffer } = form
+	const setFormField = (field, value) => dispatchForm({ type: "set", field, value })
 
-	// Coins selector state (mirrors Withdraw)
-	const [availableCoins, setAvailableCoins] = useState([])
-	const [selectedCoin, setSelectedCoin] = useState(null)
-	const [showCoinPicker, setShowCoinPicker] = useState(false)
+	// Coins selector (same-named setters keep call sites unchanged)
+	const [coin, dispatchCoin] = useReducer(setFieldReducer, { availableCoins: [], selectedCoin: null, showCoinPicker: false })
+	const { availableCoins, selectedCoin, showCoinPicker } = coin
+	const setAvailableCoins = (value) => dispatchCoin({ type: "set", field: "availableCoins", value })
+	const setSelectedCoin = (value) => dispatchCoin({ type: "set", field: "selectedCoin", value })
+	const setShowCoinPicker = (value) => dispatchCoin({ type: "set", field: "showCoinPicker", value })
+
+	// Saved payment methods picker
+	const [saved, dispatchSaved] = useReducer(setFieldReducer, { showSavedMethods: false, savedMethods: [], savedMethodsLoading: false })
+	const { showSavedMethods, savedMethods, savedMethodsLoading } = saved
+	const setShowSavedMethods = (value) => dispatchSaved({ type: "set", field: "showSavedMethods", value })
+	const setSavedMethods = (value) => dispatchSaved({ type: "set", field: "savedMethods", value })
+	const setSavedMethodsLoading = (value) => dispatchSaved({ type: "set", field: "savedMethodsLoading", value })
+
 	const [isLoading, setIsLoading] = useState(false)
 	const [isSending, setIsSending] = useState(false)
 	const [workingForm, setWorkingForm] = useState({})
-	const [showSavedMethods, setShowSavedMethods] = useState(false)
-	const [savedMethods, setSavedMethods] = useState([])
-	const [savedMethodsLoading, setSavedMethodsLoading] = useState(false)
 	const [p2pEnabled] = useState(user.p2p_enabled)
 
-	// Button Text State with Type and Amount values
-	const [buttonText, setButtonText] = useState("")
-	useEffect(() => {
-		type === "buy" ? setButtonText(`Comprar ${amount > 0 ? "$" + amount : ""}`) : setButtonText(`Vender ${amount > 0 ? "$" + amount : ""}`)
-	}, [type, amount])
+	// Button label derived from type + amount
+	const buttonText = type === "buy" ? `Comprar ${amount > 0 ? "$" + amount : ""}` : `Vender ${amount > 0 ? "$" + amount : ""}`
 
 	// Fetch available coins (enabled_p2p like Withdraw)
 	useEffect(() => {
@@ -97,8 +92,8 @@ const P2PCreate = ({ navigation }) => {
 	}, [])
 
 	// Handle coin selection
-	const handleCoinSelect = (coin) => {
-		setSelectedCoin(coin)
+	const handleCoinSelect = (selected) => {
+		setSelectedCoin(selected)
 		setShowCoinPicker(false)
 		setWorkingForm({})
 	}
@@ -112,15 +107,6 @@ const P2PCreate = ({ navigation }) => {
 			return []
 		} catch (e) { return [] }
 	}, [selectedCoin])
-
-	// Helpers
-	const keyFromFieldName = (name) =>
-		name
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "_")
-			.replace(/^_|_$/g, "")
-	const isNumber = (val) => /^\d*(?:[.,]?\d*)$/.test(val)
-	const normalizeNumber = (val) => val.replace(",", ".")
 
 	// Handle publish
 	const handlePublish = async () => {
@@ -232,46 +218,7 @@ const P2PCreate = ({ navigation }) => {
 	}
 
 	if (!p2pEnabled) {
-		return (
-			<View style={containerStyles.subContainer}>
-				<ScrollView contentContainerStyle={styles.requirementsContainer} showsVerticalScrollIndicator={false}>
-					<FontAwesome6 name="triangle-exclamation" size={40} color={theme.colors.warning} iconStyle="solid" />
-					<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 16 }]}>Requisitos para P2P</Text>
-					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center", marginTop: 6, marginBottom: 24 }]}>
-						Completa los siguientes pasos para acceder al mercado P2P ({[user.kyc, user.phone_verified, user.telegram_id].filter(Boolean).length}/3)
-					</Text>
-
-					{[
-						{ key: "kyc", label: "Verificación de identidad", description: "Completa la verificación de identidad para operar en P2P", icon: "shield-halved", passed: !!user.kyc, route: ROUTES.KYC },
-						{ key: "phone", label: "Teléfono verificado", description: "Verifica tu número de teléfono para mayor seguridad", icon: "phone", passed: !!user.phone_verified, route: ROUTES.PHONE },
-						{ key: "telegram", label: "Telegram vinculado", description: "Vincula tu cuenta de Telegram para recibir notificaciones P2P", icon: "telegram", iconStyle: "brand", passed: !!user.telegram_id, route: ROUTES.TELEGRAM },
-					].map((req) => (
-						<Pressable
-							key={req.key}
-							style={[styles.requirementCard, { backgroundColor: req.passed ? theme.colors.success + "15" : theme.colors.surface, borderColor: req.passed ? theme.colors.success + "40" : theme.colors.border }]}
-							onPress={() => !req.passed && navigation.navigate(ROUTES.SETTINGS_STACK, { screen: req.route })}
-							disabled={req.passed}
-						>
-							<FontAwesome6
-								name={req.passed ? "circle-check" : req.icon}
-								size={20}
-								color={req.passed ? theme.colors.success : theme.colors.secondaryText}
-								iconStyle={req.passed ? "solid" : (req.iconStyle || "solid")}
-							/>
-							<View style={{ flex: 1 }}>
-								<Text style={[textStyles.h5, { color: req.passed ? theme.colors.success : theme.colors.primaryText }]}>{req.label}</Text>
-								{!req.passed && (
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]}>{req.description}</Text>
-								)}
-							</View>
-							{!req.passed && (
-								<FontAwesome6 name="chevron-right" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
-							)}
-						</Pressable>
-					))}
-				</ScrollView>
-			</View>
-		)
+		return <P2PRequirementsGate user={user} navigation={navigation} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
 	}
 
 	return (
@@ -283,215 +230,27 @@ const P2PCreate = ({ navigation }) => {
 						onPress={handlePublish}
 						disabled={selectedCoin === null || amount === "" || receive === "" || isSending}
 						loading={isSending}
-						style={{
-							backgroundColor: type === "buy" ? theme.colors.success : theme.colors.danger,
-						}}
-						textStyle={{
-							color: type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite,
-						}}
+						style={{ backgroundColor: type === "buy" ? theme.colors.success : theme.colors.danger }}
+						textStyle={{ color: type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite }}
 						iconColor={type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite}
 						loadingColor={type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite}
 					/>
 				}
-	
 			>
-
-				{/* Type Selector */}
-				<QPSwitch
-					value={type === "buy" ? "left" : "right"}
-					onChange={(side) => setType(side === "left" ? "buy" : "sell")}
-					leftText="Comprar"
-					rightText="Vender"
-					leftColor={theme.colors.danger}
-					rightColor={theme.colors.success}
-					rightTextColor={theme.colors.almostBlack}
+				<P2PCreateForm
+					form={form}
+					onField={setFormField}
+					selectedCoin={selectedCoin}
+					workingFields={workingFields}
+					workingForm={workingForm}
+					onChangeWorkingField={(key, value) => setWorkingForm((prev) => ({ ...prev, [key]: value }))}
+					onOpenCoinPicker={() => setShowCoinPicker(true)}
+					onLaunchSavedMethods={lauchSavedPaymentMethods}
+					user={user}
+					theme={theme}
+					textStyles={textStyles}
+					containerStyles={containerStyles}
 				/>
-
-				{/* Swap Card (Vender / Recibir) */}
-				<View style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 6, borderWidth: 2, borderColor: theme.colors.primary }} >
-
-					{/* Vender amount input */}
-					<View style={{ paddingVertical: 2 }}>
-
-						<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-								{type === "buy" ? "Comprar" : "Vender"}
-							</Text>
-							<Pressable onPress={() => { if (type === "sell") setAmount(String(user?.balance || 0)) }}>
-								<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-									Balance: <Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: "600" }]}>${user?.balance || 0}</Text>
-								</Text>
-							</Pressable>
-						</View>
-
-						{/* Single row container */}
-						<View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-
-							{/* Left side - Amount input */}
-							<View style={{ flex: 1 }}>
-								<TextInput
-									value={amount}
-									onChangeText={(v) => { if (isNumber(v)) setAmount(v) }}
-									placeholder="0.00"
-									placeholderTextColor={theme.colors.placeholder}
-									keyboardType="decimal-pad"
-									style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontWeight: "600", padding: 0, margin: 0 }]}
-								/>
-							</View>
-
-							{/* Right side - Static QUSD pill */}
-							<View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-								<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-									<QPCoin coin="qusd" size={20} />
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]}>QUSD</Text>
-								</View>
-							</View>
-						</View>
-					</View>
-
-					{/* Recibir amount input */}
-					<View style={{ paddingTop: 2 }}>
-
-						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-							{type === "buy" ? "Enviar" : "Recibir"}
-						</Text>
-
-						{/* Single row container */}
-						<View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-
-							{/* Left side - Amount input */}
-							<View style={{ flex: 1 }}>
-								<TextInput
-									value={receive}
-									onChangeText={(v) => { if (isNumber(v)) setReceive(v) }}
-									placeholder="0.00"
-									placeholderTextColor={theme.colors.placeholder}
-									keyboardType="decimal-pad"
-									style={[
-										textStyles.h2,
-										{
-											color: theme.colors.primaryText,
-											fontSize: theme.typography.fontSize.xxxl,
-											fontWeight: "600",
-											padding: 0,
-											margin: 0,
-										},
-									]}
-								/>
-							</View>
-							{/* Right side - Currency selector button */}
-							<Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, }]} onPress={() => setShowCoinPicker(true)}>
-								{selectedCoin ? (
-									<View
-										style={{
-											flexDirection: "row",
-											alignItems: "center",
-											gap: 8,
-										}}
-									>
-										<QPCoin coin={selectedCoin.logo} size={20} />
-										<Text
-											style={[
-												textStyles.h6,
-												{
-													color: theme.colors.primaryText,
-													fontWeight: "600",
-												},
-											]}
-										>
-											{selectedCoin.tick}
-										</Text>
-										<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-									</View>
-								) : (
-									<View
-										style={{
-											flexDirection: "row",
-											alignItems: "center",
-											gap: 8,
-										}}
-									>
-										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Moneda</Text>
-										<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-									</View>
-								)}
-							</Pressable>
-						</View>
-					</View>
-				</View>
-
-				{/* Live Ratio Display */}
-				{selectedCoin && parseFloat(amount) > 0 && parseFloat(receive) > 0 && (
-					<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 }}>
-						<FontAwesome6 name="money-bill-transfer" size={14} color={theme.colors.primary} iconStyle="solid" />
-						<Text style={[textStyles.h6, { color: theme.colors.primary, fontWeight: "600" }]}>
-							1 QUSD = {(parseFloat(receive) / parseFloat(amount)).toFixed(4)} {selectedCoin.tick}
-						</Text>
-					</View>
-				)}
-
-				{/* Details: Coin working data (same UX as Withdraw) */}
-				{selectedCoin && workingFields.length > 0 && (
-					<View style={{ marginTop: 12, marginBottom: 6 }}>
-						<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }} >
-							<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 6 }]}>Detalles adicionales:</Text>
-							<Pressable onPress={() => { lauchSavedPaymentMethods() }}>
-								<FontAwesome6 name="book" size={16} color={theme.colors.primary} iconStyle="solid" />
-							</Pressable>
-						</View>
-
-						{workingFields.map((field) => {
-							const key = keyFromFieldName(field.name)
-							return (
-								<QPInput
-									key={key}
-									value={workingForm[key] || ""}
-									onChangeText={(text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
-									placeholder={field.name}
-									keyboardType={field.type === "number" ? "numeric" : "default"}
-									style={{ marginVertical: 6 }}
-								/>
-							)
-						})}
-					</View>
-				)}
-
-				{/* Advanced */}
-				<View style={containerStyles.card}>
-					<Pressable onPress={() => setAdvancedOpen(!advancedOpen)} style={[styles.advancedHeader]}>
-						<View style={{ flexDirection: "row", alignItems: "center" }}>
-							<FontAwesome6 name="sliders" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-							<Text style={[textStyles.h5, { marginLeft: 8 }]}>Opciones avanzadas</Text>
-						</View>
-						<FontAwesome6 name={advancedOpen ? "angle-up" : "angle-down"} size={18} color={theme.colors.primaryText} iconStyle="solid" />
-					</Pressable>
-
-					{advancedOpen && (
-						<View style={{ marginTop: 10, gap: 10 }}>
-							<View style={[styles.switchRow, { marginTop: 12 }]}>
-								<Text style={[textStyles.h6]}>Solo usuarios VIP</Text>
-								<Switch value={onlyVIP} onValueChange={setOnlyVIP} trackColor={{ true: theme.colors.primary }} />
-							</View>
-							<View style={styles.switchRow}>
-								<Text style={[textStyles.h6]}>Oferta Privada</Text>
-								<Switch value={privateOffer} onValueChange={setPrivateOffer} trackColor={{ true: theme.colors.primary }} />
-							</View>
-						</View>
-					)}
-				</View>
-
-				{
-					user.golden_check && (
-						<QPInput
-							value={message}
-							onChangeText={setMessage}
-							placeholder="Mensaje personalizado"
-							keyboardType="default"
-							style={{ marginVertical: 6 }}
-						/>
-					)
-				}
-
 			</QPKeyboardView>
 
 			{/* Coin Picker Modal */}
@@ -512,117 +271,17 @@ const P2PCreate = ({ navigation }) => {
 			/>
 
 			{/* Saved Payment Methods Modal */}
-			<Modal visible={showSavedMethods} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowSavedMethods(false)}>
-				<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-					<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-						<Text style={textStyles.h4}>Seleccionar método guardado</Text>
-						<Pressable onPress={() => setShowSavedMethods(false)} style={styles.closeButton}>
-							<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					</View>
-
-					<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-						{savedMethodsLoading ? (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando métodos...</Text>
-							</View>
-						) : (savedMethods || []).length > 0 ? (
-							(savedMethods || []).map((method) => {
-								const name = method?.name || method?.coin?.name || "Método"
-								const rawDetails = (method && (method.details || method.Details)) || null
-								const methodDetails = Array.isArray(rawDetails)
-									? rawDetails
-									: rawDetails && typeof rawDetails === "object"
-										? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") }))
-										: []
-								return (
-									<Pressable key={method.id || method.uuid || JSON.stringify(method)} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => handleSelectSavedMethod(method)}>
-										<View style={{ flex: 1 }}>
-											<Text style={textStyles.h4}>{name}</Text>
-											{methodDetails.length > 0 && (
-												<View style={{ marginTop: 6, gap: 4 }}>
-													{methodDetails.slice(0, 4).map((d, idx) => (
-														<View key={idx} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-															<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-															<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600", marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
-														</View>
-													))}
-												</View>
-											)}
-										</View>
-									</Pressable>
-								)
-							})
-						) : (
-							<View style={styles.loadingContainer}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay métodos guardados para esta moneda</Text>
-							</View>
-						)}
-					</ScrollView>
-				</SafeAreaView>
-			</Modal>
+			<SavedMethodsModal
+				visible={showSavedMethods}
+				onClose={() => setShowSavedMethods(false)}
+				loading={savedMethodsLoading}
+				methods={savedMethods}
+				onSelect={handleSelectSavedMethod}
+				theme={theme}
+				textStyles={textStyles}
+			/>
 		</>
 	)
 }
-
-const styles = StyleSheet.create({
-	modalContainer: { flex: 1 },
-	modalHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingHorizontal: 20,
-		paddingVertical: 15,
-		borderBottomWidth: 0.5,
-	},
-	closeButton: { padding: 5 },
-	coinList: { flex: 1 },
-	coinListContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
-	coinItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 12,
-		borderRadius: 12,
-		marginBottom: 4,
-		borderWidth: 1,
-	},
-	loadingContainer: {
-		alignItems: "center",
-		justifyContent: "center",
-		padding: 40,
-	},
-	currencyButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 20,
-		borderWidth: 0.5,
-	},
-	advancedHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	switchRow: {
-		paddingVertical: 4,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	requirementsContainer: {
-		alignItems: "center",
-		paddingVertical: 30,
-		paddingHorizontal: 20,
-	},
-	requirementCard: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		padding: 16,
-		borderRadius: 12,
-		borderWidth: 1,
-		marginBottom: 10,
-		width: "100%",
-	},
-})
 
 export default P2PCreate
