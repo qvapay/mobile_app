@@ -27,7 +27,7 @@ const VipHalo = ({ size }) => {
 	const rotation = useSharedValue(0)
 
 	useEffect(() => {
-		rotation.value = withRepeat(withTiming(360, { duration: 3000, easing: Easing.linear }), -1, false)
+		rotation.value = withRepeat(withTiming(360, { duration: 10000, easing: Easing.linear }), -1, false)
 	}, [rotation])
 
 	const animatedStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }))
