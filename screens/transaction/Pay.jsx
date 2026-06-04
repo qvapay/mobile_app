@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme
@@ -62,6 +62,16 @@ const getStatusColor = (status, theme) => {
 	}
 }
 
+// Generic field setter for the two related-state slices below
+function setFieldReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
 // Pay Screen — shown from the bottom, handles invoice pay/cancel (deep-linked from pay/:uuid)
 const Pay = ({ route, navigation }) => {
 
@@ -73,13 +83,20 @@ const Pay = ({ route, navigation }) => {
 	const textStyles = useTextStyles(theme)
 	const insets = useSafeAreaInsets()
 
-	// State
-	const [transaction, setTransaction] = useState(null)
-	const [loading, setLoading] = useState(true)
-	const [loadError, setLoadError] = useState(null)
-	const [paying, setPaying] = useState(false)
-	const [payError, setPayError] = useState(null)
-	const [success, setSuccess] = useState(false)
+	// Invoice load state (same-named setters keep every call site unchanged)
+	const [loadState, dispatchLoad] = useReducer(setFieldReducer, { transaction: null, loading: true, loadError: null })
+	const { transaction, loading, loadError } = loadState
+	const setTransaction = (value) => dispatchLoad({ type: 'set', field: 'transaction', value })
+	const setLoading = (value) => dispatchLoad({ type: 'set', field: 'loading', value })
+	const setLoadError = (value) => dispatchLoad({ type: 'set', field: 'loadError', value })
+
+	// Pay-action state
+	const [payState, dispatchPay] = useReducer(setFieldReducer, { paying: false, payError: null, success: false })
+	const { paying, payError, success } = payState
+	const setPaying = (value) => dispatchPay({ type: 'set', field: 'paying', value })
+	const setPayError = (value) => dispatchPay({ type: 'set', field: 'payError', value })
+	const setSuccess = (value) => dispatchPay({ type: 'set', field: 'success', value })
+
 	const [selectedMood, setSelectedMood] = useState('')
 
 	// Fetch transaction

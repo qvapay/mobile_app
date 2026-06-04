@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native'
+import { useState, useEffect, useReducer } from 'react'
+import { Text, View, TouchableOpacity, Alert } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -10,6 +10,8 @@ import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPKeyboardView from '../../../ui/QPKeyboardView'
+import CountryPickerModal from './CountryPickerModal'
+import PhoneVerifiedView from './PhoneVerifiedView'
 
 // API
 import { userApi } from '../../../api/userApi'
@@ -26,6 +28,16 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Common country codes with dial codes
 import { countries } from '../../../labels/countries'
 
+// Generic field setter — used for the three related-state slices below
+function setFieldReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		default:
+			return state
+	}
+}
+
 // Phone Component
 const Phone = () => {
 
@@ -37,18 +49,28 @@ const Phone = () => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
-	// States
-	const [phone, setPhone] = useState('')
-	const [country, setCountry] = useState('US')
-	const [pin, setPin] = useState('')
-	const [isVerifying, setIsVerifying] = useState(false)
-	const [showPinInput, setShowPinInput] = useState(false)
-	const [userPhoneVerified, setUserPhoneVerified] = useState(false)
-	const [userPhone, setUserPhone] = useState('')
-	const [showCountryPicker, setShowCountryPicker] = useState(false)
-	const [countrySearch, setCountrySearch] = useState('')
+	// Verification form state (same-named setters keep every call site unchanged)
+	const [form, dispatchForm] = useReducer(setFieldReducer, { phone: '', country: 'US', pin: '', showPinInput: false })
+	const { phone, country, pin, showPinInput } = form
+	const setPhone = (value) => dispatchForm({ type: 'set', field: 'phone', value })
+	const setCountry = (value) => dispatchForm({ type: 'set', field: 'country', value })
+	const setPin = (value) => dispatchForm({ type: 'set', field: 'pin', value })
+	const setShowPinInput = (value) => dispatchForm({ type: 'set', field: 'showPinInput', value })
+
+	// Saved-phone status
+	const [status, dispatchStatus] = useReducer(setFieldReducer, { userPhoneVerified: false, userPhone: '' })
+	const { userPhoneVerified, userPhone } = status
+	const setUserPhoneVerified = (value) => dispatchStatus({ type: 'set', field: 'userPhoneVerified', value })
+	const setUserPhone = (value) => dispatchStatus({ type: 'set', field: 'userPhone', value })
+
+	// Country picker modal
+	const [picker, dispatchPicker] = useReducer(setFieldReducer, { showCountryPicker: false, countrySearch: '' })
+	const { showCountryPicker, countrySearch } = picker
+	const setShowCountryPicker = (value) => dispatchPicker({ type: 'set', field: 'showCountryPicker', value })
+	const setCountrySearch = (value) => dispatchPicker({ type: 'set', field: 'countrySearch', value })
 
 	// Loading States
+	const [isVerifying, setIsVerifying] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingData, setIsLoadingData] = useState(true)
 
@@ -173,54 +195,14 @@ const Phone = () => {
 	// Verified state
 	if (userPhoneVerified) {
 		return (
-			<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-					<Text style={textStyles.h1}>Teléfono</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-						Tu número está verificado
-					</Text>
-
-					{/* Status icon */}
-					<View style={{ alignItems: 'center', paddingVertical: 30 }}>
-						<View style={{
-							width: 100,
-							height: 100,
-							borderRadius: 50,
-							alignItems: 'center',
-							justifyContent: 'center',
-							backgroundColor: theme.colors.success + '20',
-						}}>
-							<FontAwesome6 name="phone" size={48} color={theme.colors.success} iconStyle="solid" />
-						</View>
-						<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 16 }]}>
-							{userPhone}
-						</Text>
-					</View>
-
-					{/* Info card */}
-					<View style={containerStyles.card}>
-						<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-							<FontAwesome6 name="circle-check" size={16} color={theme.colors.success} iconStyle="solid" />
-							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-								Tu número verificado te permite recibir códigos de seguridad por SMS y recuperar acceso a tu cuenta.
-							</Text>
-						</View>
-					</View>
-
-				</ScrollView>
-
-				<View style={containerStyles.bottomButtonContainer}>
-					<QPButton
-						title="Eliminar número"
-						onPress={handleRemovePhone}
-						loading={isLoading}
-						disabled={isLoading}
-						style={{ backgroundColor: theme.colors.danger }}
-						textStyle={{ color: theme.colors.almostWhite }}
-					/>
-				</View>
-			</View>
+			<PhoneVerifiedView
+				userPhone={userPhone}
+				onRemove={handleRemovePhone}
+				isLoading={isLoading}
+				theme={theme}
+				textStyles={textStyles}
+				containerStyles={containerStyles}
+			/>
 		)
 	}
 
@@ -333,74 +315,18 @@ const Phone = () => {
 			</QPKeyboardView>
 
 			{/* Country Picker Modal */}
-			<Modal
+			<CountryPickerModal
 				visible={showCountryPicker}
-				transparent={true}
-				animationType="slide"
-				onRequestClose={() => { setShowCountryPicker(false); setCountrySearch('') }}
-			>
-				<View style={styles.modalOverlay}>
-					<View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-						<View style={styles.modalHeader}>
-							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Seleccionar país</Text>
-							<TouchableOpacity onPress={() => { setShowCountryPicker(false); setCountrySearch('') }}>
-								<FontAwesome6 name="circle-xmark" size={24} color={theme.colors.secondaryText} />
-							</TouchableOpacity>
-						</View>
-						<QPInput
-							value={countrySearch}
-							onChangeText={setCountrySearch}
-							placeholder="Buscar país..."
-							prefixIconName="magnifying-glass"
-							style={{ marginVertical: 0 }}
-						/>
-						<ScrollView style={{ maxHeight: 400 }}>
-							{countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).map((c) => (
-								<TouchableOpacity
-									key={`${c.code}-${c.dial_code}`}
-									style={[styles.countryItem, { backgroundColor: country === c.code ? theme.colors.primary : theme.colors.background }]}
-									onPress={() => { setCountry(c.code); setShowCountryPicker(false); setCountrySearch('') }}
-								>
-									<Text style={[styles.countryItemText, { color: country === c.code ? theme.colors.buttonText : theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular }]}>
-										{c.name} ({c.dial_code})
-									</Text>
-								</TouchableOpacity>
-							))}
-						</ScrollView>
-					</View>
-				</View>
-			</Modal>
+				country={country}
+				countrySearch={countrySearch}
+				onChangeSearch={setCountrySearch}
+				onSelect={(code) => { setCountry(code); setShowCountryPicker(false); setCountrySearch('') }}
+				onClose={() => { setShowCountryPicker(false); setCountrySearch('') }}
+				theme={theme}
+				textStyles={textStyles}
+			/>
 		</>
 	)
 }
-
-const styles = StyleSheet.create({
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
-	modalContent: {
-		width: '90%',
-		maxHeight: '80%',
-		borderRadius: 16,
-		padding: 20,
-	},
-	modalHeader: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		marginBottom: 10,
-	},
-	countryItem: {
-		paddingVertical: 15,
-		paddingHorizontal: 20,
-		borderRadius: 10,
-		marginBottom: 8,
-	},
-	countryItemText: {
-	},
-})
 
 export default Phone

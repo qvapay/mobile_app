@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { View, Text, ScrollView, TextInput, Alert, Pressable, StyleSheet } from 'react-native'
-import LottieView from 'lottie-react-native'
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { useState, useEffect, useRef, useReducer } from 'react'
+import { View, Text, TextInput, Alert, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { useTheme } from '../../../theme/ThemeContext'
@@ -9,17 +7,37 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 import { useSettings } from '../../../settings/SettingsContext'
 import { useAppLock } from '../../../lock/AppLockContext'
 import { getSupportedBiometryType, hasBiometricCredentials } from '../../../api/client'
-import QPButton from '../../../ui/particles/QPButton'
-import FaceIDIcon from '../../../ui/particles/FaceIDIcon'
 
-const TIMEOUT_OPTIONS = [
-	{ label: '1 min', value: 1 },
-	{ label: '2 min', value: 2 },
-	{ label: '5 min', value: 5 },
-	{ label: '10 min', value: 10 },
-	{ label: '15 min', value: 15 },
-	{ label: '30 min', value: 30 },
-]
+// lock subcomponents
+import AppLockEnabledView from './applock/AppLockEnabledView'
+import AppLockChangePinView from './applock/AppLockChangePinView'
+import AppLockSetupView from './applock/AppLockSetupView'
+
+// The three PIN fields form one logical unit
+const initialForm = { pin: '', confirmPin: '', oldPin: '' }
+
+function formReducer(state, action) {
+	switch (action.type) {
+		case 'set':
+			return { ...state, [action.field]: action.value }
+		case 'reset':
+			return initialForm
+		default:
+			return state
+	}
+}
+
+// Biometric type + availability are detected together
+const initialBiometrics = { type: null, available: false }
+
+function biometricsReducer(state, action) {
+	switch (action.type) {
+		case 'detected':
+			return { type: action.biometryType, available: action.available }
+		default:
+			return state
+	}
+}
 
 const AppLock = () => {
 
@@ -31,14 +49,17 @@ const AppLock = () => {
 
 	// Setup flow states
 	const [mode, setMode] = useState('info') // info | setup | confirm | changePin
-	const [pin, setPin] = useState('')
-	const [confirmPin, setConfirmPin] = useState('')
-	const [oldPin, setOldPin] = useState('')
+	const [form, dispatchForm] = useReducer(formReducer, initialForm)
+	const { pin, confirmPin, oldPin } = form
+	// Same-named setters keep every call site (renderPinRow, resetForm, handlers) unchanged
+	const setPin = (value) => dispatchForm({ type: 'set', field: 'pin', value })
+	const setConfirmPin = (value) => dispatchForm({ type: 'set', field: 'confirmPin', value })
+	const setOldPin = (value) => dispatchForm({ type: 'set', field: 'oldPin', value })
 	const [isLoading, setIsLoading] = useState(false)
 	const [focusedField, setFocusedField] = useState(null)
 	const [focusedIndex, setFocusedIndex] = useState(null)
-	const [biometryType, setBiometryType] = useState(null)
-	const [biometricsAvailable, setBiometricsAvailable] = useState(false)
+	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
+	const { type: biometryType, available: biometricsAvailable } = biometrics
 
 	const pinRefs = useRef([])
 	const confirmPinRefs = useRef([])
@@ -48,8 +69,7 @@ const AppLock = () => {
 		const checkBiometrics = async () => {
 			const type = await getSupportedBiometryType()
 			const hasCredentials = await hasBiometricCredentials()
-			setBiometryType(type)
-			setBiometricsAvailable(!!type && hasCredentials)
+			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && hasCredentials })
 		}
 		checkBiometrics()
 	}, [])
@@ -201,247 +221,61 @@ const AppLock = () => {
 	// Enabled view - show settings
 	if (appLockEnabled && mode === 'info') {
 		return (
-			<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-					<Text style={textStyles.h1}>Bloqueo de app</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-						Tu app está protegida
-					</Text>
-
-					{/* Status icon */}
-					<View style={{ alignItems: 'center', paddingVertical: 30 }}>
-						<View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.success + '20' }}>
-							<FontAwesome6 name="lock" size={40} color={theme.colors.success} iconStyle="solid" />
-						</View>
-						<Text style={[textStyles.h2, { color: theme.colors.success, marginTop: 20 }]}>Activo</Text>
-					</View>
-
-					{/* Auto-lock timeout */}
-					<View style={[containerStyles.card, { marginBottom: 16 }]}>
-						<Text style={[textStyles.h4, { marginBottom: 12 }]}>Tiempo de bloqueo</Text>
-						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginBottom: 16 }]}>
-							La app se bloqueará después de este tiempo en segundo plano
-						</Text>
-						<View style={styles.timeoutGrid}>
-							{TIMEOUT_OPTIONS.map((option) => (
-								<Pressable
-									key={option.value}
-									style={[styles.timeoutChip, {
-										backgroundColor: security.autoLockTimeout === option.value
-											? theme.colors.primary : theme.colors.surface,
-										borderColor: security.autoLockTimeout === option.value
-											? theme.colors.primary : theme.colors.border,
-									}]}
-									onPress={() => updateAutoLockTimeout(option.value)}
-								>
-									<Text style={[textStyles.h6, {
-										color: security.autoLockTimeout === option.value
-											? '#FFFFFF' : theme.colors.secondaryText,
-									}]}>
-										{option.label}
-									</Text>
-								</Pressable>
-							))}
-						</View>
-					</View>
-
-					{/* Biometric unlock info */}
-					{biometricsAvailable && (
-						<View style={[containerStyles.card, { marginBottom: 16 }]}>
-							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-								{biometryType === 'FaceID' ? (
-									<View style={{ marginRight: 12 }}><FaceIDIcon size={20} color={theme.colors.primary} /></View>
-								) : (
-									<FontAwesome6 name="fingerprint" size={18} style={{ color: theme.colors.primary, marginRight: 12 }} iconStyle="solid" />
-								)}
-								<Text style={[textStyles.h4, { flex: 1, marginBottom: 0 }]}>
-									{biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella Digital'} activado
-								</Text>
-								<FontAwesome6 name="circle-check" size={20} color={theme.colors.success} iconStyle="solid" />
-							</View>
-							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginTop: 8 }]}>
-								Puedes desbloquear con biometría o PIN
-							</Text>
-						</View>
-					)}
-
-				</ScrollView>
-
-				{/* Actions */}
-				<View style={containerStyles.bottomButtonContainer}>
-					<QPButton
-						title="Cambiar PIN de bloqueo"
-						onPress={() => {
-							setMode('changePin')
-							setTimeout(() => oldPinRefs.current[0]?.focus(), 100)
-						}}
-					/>
-					<QPButton
-						title="Desactivar bloqueo"
-						onPress={handleDisable}
-						style={{ marginTop: 12 }}
-						danger
-					/>
-				</View>
-			</View>
+			<AppLockEnabledView
+				security={security}
+				biometricsAvailable={biometricsAvailable}
+				biometryType={biometryType}
+				onTimeoutSelect={updateAutoLockTimeout}
+				onChangePin={() => {
+					setMode('changePin')
+					setTimeout(() => oldPinRefs.current[0]?.focus(), 100)
+				}}
+				onDisable={handleDisable}
+				theme={theme}
+				textStyles={textStyles}
+				containerStyles={containerStyles}
+			/>
 		)
 	}
 
 	// Change PIN view
 	if (mode === 'changePin') {
 		return (
-			<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-				<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-					<Text style={textStyles.h1}>Cambiar PIN</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-						Ingresa tu PIN actual y el nuevo
-					</Text>
-
-					{renderPinRow('PIN actual', oldPin, setOldPin, oldPinRefs, 'old', pinRefs)}
-					{renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', confirmPinRefs)}
-					{renderPinRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
-
-				</ScrollView>
-
-				<View style={containerStyles.bottomButtonContainer}>
-					<QPButton
-						title="Actualizar PIN"
-						onPress={handleChangePin}
-						loading={isLoading}
-						disabled={oldPin.length !== 4 || pin.length !== 4 || confirmPin.length !== 4}
-					/>
-					<QPButton
-						title="Cancelar"
-						onPress={resetForm}
-						style={{ marginTop: 12 }}
-						danger
-						outlined
-					/>
-				</View>
-			</View>
+			<AppLockChangePinView
+				oldPinRow={renderPinRow('PIN actual', oldPin, setOldPin, oldPinRefs, 'old', pinRefs)}
+				newPinRow={renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', confirmPinRefs)}
+				confirmRow={renderPinRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
+				onSubmit={handleChangePin}
+				onCancel={resetForm}
+				isLoading={isLoading}
+				disabled={oldPin.length !== 4 || pin.length !== 4 || confirmPin.length !== 4}
+				theme={theme}
+				textStyles={textStyles}
+				containerStyles={containerStyles}
+			/>
 		)
 	}
 
-	// Setup / Disabled view
+	// Setup / Disabled view (info | setup | confirm)
 	return (
-		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-				{mode === 'info' && (
-					<>
-						<Text style={textStyles.h1}>Bloqueo de app</Text>
-						<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-							Protege tu app con PIN y biometría
-						</Text>
-
-						{/* Status icon */}
-						<View style={{ alignItems: 'center', paddingVertical: 30 }}>
-							<LottieView
-								style={{ width: 120, height: 120 }}
-								source={require('../../../assets/lotties/security.json')}
-								autoPlay
-								loop={false}
-							/>
-						</View>
-
-						{/* Info card */}
-						<View style={[containerStyles.card, { marginBottom: 24 }]}>
-							<View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
-								<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-									Bloquea la app automáticamente después de {security.autoLockTimeout || 5} minutos en segundo plano
-								</Text>
-							</View>
-							<View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
-								<FontAwesome6 name="fingerprint" size={16} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-									Desbloquea con Face ID, Touch ID o Huella Digital o tu PIN de 4 dígitos
-								</Text>
-							</View>
-							<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-								<FontAwesome6 name="lock" size={16} color={theme.colors.primary} iconStyle="solid" />
-								<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-									Toda la verificación es local, no se envían datos al servidor
-								</Text>
-							</View>
-						</View>
-					</>
-				)}
-
-				{mode === 'setup' && (
-					<>
-						<Text style={textStyles.h1}>Crear PIN</Text>
-						<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-							Elige un PIN de 4 dígitos para bloquear tu app
-						</Text>
-
-						{renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', null)}
-					</>
-				)}
-
-				{mode === 'confirm' && (
-					<>
-						<Text style={textStyles.h1}>Confirmar PIN</Text>
-						<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-							Ingresa el PIN nuevamente para confirmar
-						</Text>
-
-						{renderPinRow('Confirmar PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
-					</>
-				)}
-
-			</ScrollView>
-
-			<View style={containerStyles.bottomButtonContainer}>
-				{mode === 'info' && (
-					<QPButton
-						title="Activar bloqueo"
-						onPress={() => {
-							setMode('setup')
-							setTimeout(() => pinRefs.current[0]?.focus(), 100)
-						}}
-					/>
-				)}
-
-				{mode === 'setup' && (
-					<>
-						<QPButton
-							title="Continuar"
-							onPress={handleEnable}
-							disabled={pin.length !== 4}
-						/>
-						<QPButton
-							title="Cancelar"
-							onPress={resetForm}
-							style={{ marginTop: 12 }}
-							danger
-							outlined
-						/>
-					</>
-				)}
-
-				{mode === 'confirm' && (
-					<>
-						<QPButton
-							title="Activar bloqueo"
-							textStyle={{ color: theme.colors.buttonText }}
-							onPress={handleEnable}
-							loading={isLoading}
-							disabled={confirmPin.length !== 4}
-						/>
-						<QPButton
-							title="Cancelar"
-							onPress={resetForm}
-							style={{ marginTop: 12 }}
-							danger
-							outlined
-						/>
-					</>
-				)}
-			</View>
-		</View>
+		<AppLockSetupView
+			mode={mode}
+			security={security}
+			setupRow={renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', null)}
+			confirmRow={renderPinRow('Confirmar PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
+			onActivate={() => {
+				setMode('setup')
+				setTimeout(() => pinRefs.current[0]?.focus(), 100)
+			}}
+			onSubmit={handleEnable}
+			onCancel={resetForm}
+			isLoading={isLoading}
+			pinComplete={pin.length === 4}
+			confirmComplete={confirmPin.length === 4}
+			theme={theme}
+			textStyles={textStyles}
+			containerStyles={containerStyles}
+		/>
 	)
 }
 
@@ -455,17 +289,6 @@ const styles = StyleSheet.create({
 		height: 60,
 		borderRadius: 12,
 		textAlign: 'center',
-	},
-	timeoutGrid: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		gap: 8,
-	},
-	timeoutChip: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 20,
-		borderWidth: 1,
 	},
 })
 
