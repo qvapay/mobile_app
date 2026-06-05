@@ -1,4 +1,5 @@
-import { View, Text, Modal, TouchableOpacity, Pressable, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native'
+import QPPressable from '../../ui/particles/QPPressable'
 
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
@@ -20,16 +21,16 @@ const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 				<Pressable style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { }}>
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
 						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Stickers</Text>
-						<TouchableOpacity onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }}>
+						<QPPressable onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }}>
 							<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-						</TouchableOpacity>
+						</QPPressable>
 					</View>
 
 					<View>
 						<ScrollView showsVerticalScrollIndicator={false} bounces={false} style={{ maxHeight: 360 }}>
 							<View style={styles.grid}>
 								{QVAPAY_STICKERS.map((sticker) => (
-									<TouchableOpacity
+									<QPPressable
 										key={sticker}
 										disabled={!isGold}
 										onPress={() => onSelect(sticker)}
@@ -37,7 +38,7 @@ const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 										accessibilityLabel={sticker.replace('.webm', '')}
 									>
 										<TransactionSticker name={sticker} size={52} />
-									</TouchableOpacity>
+									</QPPressable>
 								))}
 							</View>
 						</ScrollView>

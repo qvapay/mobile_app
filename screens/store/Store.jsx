@@ -114,7 +114,7 @@ const Store = ({ navigation }) => {
 				{/* Hero */}
 				<View style={styles.heroRow}>
 					<View style={{ flex: 1 }}>
-						<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: '800' }]}>Tienda</Text>
+						<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: '600' }]}>Tienda</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
 							{SHOW_GIFT_CARDS ? 'Recargas móviles y tarjetas de regalo' : 'Recargas móviles'}
 						</Text>

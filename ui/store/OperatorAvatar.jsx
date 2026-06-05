@@ -31,7 +31,7 @@ const OperatorAvatar = ({ brand = '', logoUrl = null, size = 'md', bgColor = nul
 					resizeMode={FastImage.resizeMode.contain}
 				/>
 			) : (
-				<Text style={{ color: theme.colors.primaryText, fontSize: dim * 0.4, fontWeight: '700' }}>{initial}</Text>
+				<Text style={{ color: theme.colors.primaryText, fontSize: dim * 0.4, fontWeight: '600' }}>{initial}</Text>
 			)}
 		</View>
 	)

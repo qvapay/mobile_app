@@ -51,7 +51,7 @@ const WatchlistCard = memo(({ coin, onPress }) => {
 					<FontAwesome6 name={isPositive ? 'caret-up' : 'caret-down'} size={12} color={changeColor} iconStyle="solid" />
 					<Text style={[styles.change, { color: changeColor, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{formattedChange}</Text>
 				</View>
-				<Text style={[styles.price, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.bold }]}>{formattedPrice}</Text>
+				<Text style={[styles.price, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{formattedPrice}</Text>
 			</View>
 		</Pressable>
 	)

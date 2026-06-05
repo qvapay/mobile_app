@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { View, TouchableOpacity } from 'react-native'
+import { View } from 'react-native'
+import QPPressable from './QPPressable'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -52,19 +53,18 @@ const QPRate = ({
 		const starColor = (isActive || isHovered) ? activeColor : inactiveColorFinal
 
 		return (
-			<TouchableOpacity
+			<QPPressable
 				key={index}
 				onPress={() => handleStarPress(index)}
 				onPressIn={() => !readOnly && setHoveredStar(index)}
 				onPressOut={() => !readOnly && setHoveredStar(null)}
-				activeOpacity={readOnly ? 1 : 0.7}
 				style={{
 					marginRight: index < maxRating - 1 ? spacing : 0,
 				}}
 				disabled={readOnly}
 			>
 				<FontAwesome6 name="star" size={size} color={starColor} iconStyle={(isActive || isHovered) ? "solid" : "regular"} />
-			</TouchableOpacity>
+			</QPPressable>
 		);
 	};
 

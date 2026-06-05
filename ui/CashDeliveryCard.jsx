@@ -148,7 +148,7 @@ const CashDeliveryCard = ({ navigation }) => {
 
 					{/* Title overlay */}
 					<View style={styles.titleOverlay}>
-						<Text style={[styles.cardTitle, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxl }]}>
+						<Text style={[styles.cardTitle, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xxl }]}>
 							USD CASH
 						</Text>
 						<Text style={[styles.cardSubtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>

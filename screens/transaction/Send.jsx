@@ -1,5 +1,5 @@
 import { useState, useEffect, useReducer } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Pressable } from 'react-native'
+import { View, Text, ScrollView, Pressable } from 'react-native'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -7,13 +7,16 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
-import QPButton from '../../ui/particles/QPButton'
-import QPAvatar from '../../ui/particles/QPAvatar'
-import QPInput from '../../ui/particles/QPInput'
 import AmountInput from '../../ui/AmountInput'
+import QPInput from '../../ui/particles/QPInput'
+import QPAvatar from '../../ui/particles/QPAvatar'
+import QPButton from '../../ui/particles/QPButton'
+import QPPressable from '../../ui/particles/QPPressable'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import TransactionSticker from '../../ui/particles/TransactionSticker'
+
+
 import SendUserSearchModal from './SendUserSearchModal'
 import StickerPickerModal from './StickerPickerModal'
 
@@ -56,8 +59,6 @@ const Send = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	// Params from route
 	const { send_amount, user_uuid = null } = route.params || {}
-
-	const currency = 'QUSD'
 
 	// Transfer form (amount + message) — same-named setters keep call sites unchanged
 	const [form, dispatchForm] = useReducer(setFieldReducer, { amount: send_amount || '', description: '' })
@@ -168,7 +169,7 @@ const Send = ({ navigation, route }) => {
 			<QPKeyboardView
 				actions={
 					<QPButton
-						title={`Enviar $${amount || '0'} ${currency}`}
+						title={`Enviar $${amount || '0'}`}
 						onPress={handleSendConfirm}
 						disabled={!sendEnabled}
 						loading={isLoading}
@@ -178,7 +179,7 @@ const Send = ({ navigation, route }) => {
 			>
 
 				{/* Amount Input Component */}
-				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} currency={currency} placeholder={incomingUserUuid ? 'Monto a enviar' : 'Monto a enviar a ...'} />
+				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} placeholder={incomingUserUuid ? 'Monto a enviar' : 'Monto a enviar a ...'} />
 
 				{/** Latest sent transfers users */}
 				<View style={{ marginVertical: 20, gap: 10 }}>
@@ -196,20 +197,20 @@ const Send = ({ navigation, route }) => {
 							<View style={{ flex: 1, marginRight: 10 }}>
 								<ProfileContainerHorizontal user={userFound} isOnline={isUserOnline(userFound?.uuid)} />
 							</View>
-							<TouchableOpacity
+							<QPPressable
 								onPress={() => setUserFound(null)}
 								style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }}
 								accessibilityLabel="Eliminar usuario seleccionado"
 							>
 								<FontAwesome6 name="xmark" size={18} color={theme.colors.primaryText} iconStyle="solid" />
-							</TouchableOpacity>
+							</QPPressable>
 						</View>
 					) : (
 						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }} style={{ marginVertical: 5 }} >
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-								<TouchableOpacity style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
+								<QPPressable style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
 									<FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
-								</TouchableOpacity>
+								</QPPressable>
 								{carouselUsers.map((carouselUser, index) => (
 									<Pressable key={carouselUser.uuid || index} onPress={() => setIncomingUserUuid(carouselUser.uuid)}>
 										<QPAvatar user={carouselUser} size={56} isOnline={isUserOnline(carouselUser.uuid)} />
@@ -228,9 +229,9 @@ const Send = ({ navigation, route }) => {
 								<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>Sticker seleccionado</Text>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{parsedDescription.sticker.replace('.webm', '')}</Text>
 							</View>
-							<TouchableOpacity onPress={() => setDescription('')} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }} accessibilityLabel="Quitar sticker">
+							<QPPressable onPress={() => setDescription('')} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }} accessibilityLabel="Quitar sticker">
 								<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-							</TouchableOpacity>
+							</QPPressable>
 						</View>
 					) : (
 						<View style={{ position: 'relative' }}>

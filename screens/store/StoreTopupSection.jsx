@@ -26,7 +26,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 		<View style={styles.section}>
 			<View style={styles.recargasHeader}>
 				<View style={{ flex: 1 }}>
-					<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '800' }]}>Recargas móviles</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600' }]}>Recargas móviles</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
 						{topupSelected?.code === 'CU'
 							? 'Cubacel local — tarifa P2P sin recargo.'
@@ -37,7 +37,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 					onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { country: topupSelected?.code })}
 					style={[styles.miniCta, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 				>
-					<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '700' }]}>Ver todas</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>Ver todas</Text>
 				</Pressable>
 			</View>
 
@@ -70,7 +70,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 						>
 							<OperatorAvatar brand={b.brand} logoUrl={b.logo_url} size="md" />
 							<View style={{ flex: 1, marginLeft: 10 }}>
-								<Text numberOfLines={1} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+								<Text numberOfLines={1} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 									{b.brand}
 								</Text>
 								<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
@@ -109,6 +109,7 @@ const styles = StyleSheet.create({
 	brandGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
+		justifyContent: 'space-between',
 		gap: 10,
 	},
 	brandCell: {

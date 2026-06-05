@@ -198,7 +198,7 @@ const AppLock = () => {
 							color: theme.colors.primaryText,
 							borderColor: focusedField === fieldName && focusedIndex === index
 								? theme.colors.primary : theme.colors.surface,
-							borderWidth: 1.5, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold,
+							borderWidth: 1.5, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.semiBold,
 						}]}
 						value={value[index] || ''}
 						onChangeText={(text) => handlePinInput(text, index, value, setValue, refs, nextRefs)}

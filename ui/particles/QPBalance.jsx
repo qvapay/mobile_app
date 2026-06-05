@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 const QPBalance = ({ formattedAmount, fontSize, theme }) => {
     return (
         <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
-            <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.bold }]}>$</Text>
+            <Text style={[styles.currencySymbol, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold }]}>$</Text>
             <Text style={[styles.amountText, { fontSize: fontSize, color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.black }]} accessibilityRole="text" accessibilityLabel={`Amount: $${formattedAmount}`}>
                 {formattedAmount}
             </Text>

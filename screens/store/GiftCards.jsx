@@ -196,7 +196,7 @@ const GiftCards = ({ navigation, route }) => {
 
 				{/* Brands grid */}
 				<View style={styles.gridHeader}>
-					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 						{selectedCountry?.flag} Marcas en {selectedCountry?.name}
 					</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
@@ -228,7 +228,7 @@ const GiftCards = ({ navigation, route }) => {
 							<View style={{ alignItems: 'center', marginTop: 14 }}>
 								<Text
 									onPress={() => dispatchFilters({ type: 'set', field: 'page', value: safePage + 1 })}
-									style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '700', paddingVertical: 10, paddingHorizontal: 24 }]}
+									style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600', paddingVertical: 10, paddingHorizontal: 24 }]}
 								>
 									Cargar más
 								</Text>

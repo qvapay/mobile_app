@@ -1,5 +1,5 @@
 import { useState, useEffect, useReducer } from 'react'
-import { Text, View, TouchableOpacity, Alert } from 'react-native'
+import { Text, View, Alert } from 'react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -10,6 +10,9 @@ import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPKeyboardView from '../../../ui/QPKeyboardView'
+import QPPressable from '../../../ui/particles/QPPressable'
+
+// Components
 import CountryPickerModal from './CountryPickerModal'
 import PhoneVerifiedView from './PhoneVerifiedView'
 
@@ -260,7 +263,7 @@ const Phone = () => {
 
 				<View style={{ flex: 1 }}>
 					{/* Country Selection */}
-					<TouchableOpacity
+					<QPPressable
 						style={{
 							flexDirection: 'row',
 							alignItems: 'center',
@@ -279,7 +282,7 @@ const Phone = () => {
 							</Text>
 						</View>
 						<FontAwesome6 name="chevron-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
-					</TouchableOpacity>
+					</QPPressable>
 
 					{/* Phone Input */}
 					<QPInput

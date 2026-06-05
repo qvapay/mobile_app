@@ -183,7 +183,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 				{/* Featured */}
 				{featured.length > 0 && !search && (
 					<View style={styles.section}>
-						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700', marginBottom: 10 }]}>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 10 }]}>
 							⚡ Operadores populares
 						</Text>
 						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 12, gap: 10 }}>
@@ -226,7 +226,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 				{/* Brands grid */}
 				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 							{selectedCountry?.flag} Operadores en {selectedCountry?.name}
 						</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>

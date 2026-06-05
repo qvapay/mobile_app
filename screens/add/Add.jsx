@@ -215,7 +215,6 @@ const Add = ({ navigation }) => {
 					onAmountChange={setAmount}
 					placeholder="Monto a depositar"
 					style={{ marginTop: 0 }}
-					currency={selectedCoin?.tick}
 					balance={user.balance}
 				/>
 

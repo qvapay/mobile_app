@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native'
+import { View, Text, TextInput, StyleSheet } from 'react-native'
+import QPPressable from './particles/QPPressable'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -12,7 +13,6 @@ const AmountInput = ({
 	amount,
 	onAmountChange,
 	balance,
-	currency = 'QUSD',
 	placeholder = 'Enter Amount',
 	style = {}
 }) => {
@@ -77,7 +77,7 @@ const AmountInput = ({
 				{/* First Row */}
 				<View style={{ flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
 					{commonAmounts.slice(0, 3).map((commonAmount) => (
-						<TouchableOpacity
+						<QPPressable
 							key={commonAmount}
 							onPress={() => handleAmountSelect(commonAmount)}
 							style={{
@@ -98,14 +98,14 @@ const AmountInput = ({
 							<Text style={[textStyles.h6, { color: amount === commonAmount.toString() ? theme.colors.buttonText : theme.colors.primaryText, fontWeight: '600' }]}>
 								${commonAmount}.00
 							</Text>
-						</TouchableOpacity>
+						</QPPressable>
 					))}
 				</View>
 
 				{/* Second Row */}
 				<View style={{ flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
 					{commonAmounts.slice(3, 6).map((commonAmount) => (
-						<TouchableOpacity
+						<QPPressable
 							key={commonAmount}
 							onPress={() => handleAmountSelect(commonAmount)}
 							style={{
@@ -126,7 +126,7 @@ const AmountInput = ({
 							<Text style={[textStyles.h6, { color: amount === commonAmount.toString() ? theme.colors.buttonText : theme.colors.primaryText, fontWeight: '600' }]}>
 								${commonAmount}.00
 							</Text>
-						</TouchableOpacity>
+						</QPPressable>
 					))}
 				</View>
 			</View>

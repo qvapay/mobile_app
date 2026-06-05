@@ -92,9 +92,9 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 							</View>
 						</View>
 						<View style={[styles.amountRow, { marginLeft: 2 }]}>
-							<Text style={[textStyles.h3, { color: theme.colors.primary, fontWeight: '800' }]}>${offer.amount}</Text>
+							<Text style={[textStyles.h3, { color: theme.colors.primary, fontWeight: '600' }]}>${offer.amount}</Text>
 							<Text style={[textStyles.h7, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
-							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '800' }]}>{offer.receive}</Text>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '600' }]}>{offer.receive}</Text>
 						</View>
 					</View>
 

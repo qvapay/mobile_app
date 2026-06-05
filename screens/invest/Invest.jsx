@@ -44,7 +44,7 @@ const SavingsCard = ({ savings, theme, textStyles, onPress }) => {
 				<View style={styles.savingsInfo}>
 					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>Ahorros</Text>
 					<Text style={[textStyles.h1, styles.savingsBalance]}>${balance}</Text>
-					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.bold }}>{rate}%</Text> anual</Text>
+					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> anual</Text>
 				</View>
 				<View style={[styles.savingsIcon, { backgroundColor: theme.colors.primary + '15' }]}>
 					<FontAwesome6 name="vault" size={24} color={theme.colors.primary} iconStyle="solid" />

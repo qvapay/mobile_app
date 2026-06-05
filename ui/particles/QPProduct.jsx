@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
 		alignItems: 'flex-start',
 	},
 	topupPrice: {
-		fontWeight: '700',
+		fontWeight: '600',
 	},
 	priceColumn: {
 		alignItems: 'flex-end',
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
 		textDecorationLine: 'line-through',
 	},
 	goldPrice: {
-		fontWeight: '700',
+		fontWeight: '600',
 	},
 	topupTitle: {
 		marginBottom: 2,

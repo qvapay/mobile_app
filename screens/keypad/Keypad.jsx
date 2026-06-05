@@ -28,13 +28,13 @@ import { ROUTES } from '../../routes'
 // Toast
 import { toast } from 'sonner-native'
 
+// Amount input logic (pure, unit-tested in keypadAmount.test.js)
+import { applyKeypadKey } from './keypadAmount'
+
 // Constants
-const MAX_AMOUNT_LENGTH = 5
-const MAX_DECIMAL_PLACES = 2
 const MIN_FONT_SIZE = 40
 const MAX_FONT_SIZE = 80
 const FONT_SIZE_DECREASE_FACTOR = 4
-const ANIMATION_DURATION = 150
 const VIBRATION_DURATION = 50
 
 export default function Keypad({ navigation }) {
@@ -83,58 +83,15 @@ export default function Keypad({ navigation }) {
 		setFontSize(newSize)
 	}, [])
 
-	// Validate amount input
-	const validateAmount = useCallback((newAmount, key) => {
-
-		// Prevent leading zeros (except for decimal numbers)
-		if (newAmount === '0' && key !== '.' && key !== 'backspace') { return false }
-
-		// Check decimal places - only for numeric keys, not for decimal point itself
-		if (key !== '.' && key !== 'backspace' && newAmount.includes('.')) {
-			const [, decimalPart] = newAmount.split('.')
-			if (decimalPart && decimalPart.length > MAX_DECIMAL_PLACES) { return false }
-		}
-
-		// Check total length - exclude decimal point from length calculation for validation
-		const lengthToCheck = newAmount.replace('.', '').length
-		if (lengthToCheck > MAX_AMOUNT_LENGTH) { return false }
-
-		return true
-	}, [])
-
 	// Handle key press
 	const handleKeyPress = useCallback((key) => {
 
 		triggerHapticFeedback()
 
-		let newAmount = amount
+		const newAmount = applyKeypadKey(amount, key)
 
-		if (key === 'backspace') {
-			newAmount = amount.slice(0, -1) || '0'
-		} else if (key === '.') {
-			// Prevent multiple decimal points
-			if (amount.includes('.')) { return }
-			newAmount = amount === '0' ? '0.' : amount + '.'
-			// For decimal, we don't need to validate length since we're just adding a decimal point
-			setAmount(newAmount)
-			const newFontSize = calculateFontSize(newAmount)
-			animateFontSize(newFontSize)
-
-			// Announce to screen reader
-			AccessibilityInfo.announceForAccessibility(`Amount: $${newAmount}`)
-
-			return
-		} else {
-			// Handle numeric keys
-			if (amount === '0') {
-				newAmount = key
-			} else {
-				newAmount = amount + key
-			}
-		}
-
-		// Validate the new amount
-		if (!validateAmount(newAmount, key)) { return }
+		// Key was rejected (invalid / no-op) — nothing changed.
+		if (newAmount === amount) { return }
 
 		// Update amount and animate font size
 		setAmount(newAmount)
@@ -144,7 +101,7 @@ export default function Keypad({ navigation }) {
 		// Announce to screen reader
 		AccessibilityInfo.announceForAccessibility(`Amount: $${newAmount}`)
 
-	}, [amount, validateAmount, calculateFontSize, animateFontSize, triggerHapticFeedback])
+	}, [amount, calculateFontSize, animateFontSize, triggerHapticFeedback])
 
 	// Set maximum balance
 	const setMaxBalance = useCallback(() => {

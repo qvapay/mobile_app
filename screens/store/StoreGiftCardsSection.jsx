@@ -6,12 +6,12 @@ import { ROUTES } from '../../routes'
 const SectionHeader = ({ title, hint, actionLabel, onAction, theme, textStyles }) => (
 	<View style={styles.sectionHeader}>
 		<View style={{ flex: 1 }}>
-			<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>{title}</Text>
+			<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>{title}</Text>
 			{hint && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>{hint}</Text>}
 		</View>
 		{actionLabel && onAction && (
 			<Pressable onPress={onAction} hitSlop={8}>
-				<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '700' }]}>
+				<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>
 					{actionLabel} ›
 				</Text>
 			</Pressable>
@@ -100,7 +100,7 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 							>
 								<Text style={{ fontSize: 26 }}>{c.emoji}</Text>
 								<View style={{ flex: 1, marginLeft: 10 }}>
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '700' }]} numberOfLines={1}>
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>
 										{c.label}
 									</Text>
 									<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
@@ -121,14 +121,14 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 				>
 					<Text style={{ fontSize: 36 }}>🎁</Text>
 					<View style={{ flex: 1, marginLeft: 14 }}>
-						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 							Explora tarjetas de regalo
 						</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
 							Cientos de marcas en 11 países
 						</Text>
 					</View>
-					<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '700' }]}>›</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>›</Text>
 				</Pressable>
 			)}
 		</View>
@@ -145,6 +145,7 @@ const styles = StyleSheet.create({
 	catGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
+		justifyContent: 'space-between',
 		gap: 10,
 	},
 	catCard: {

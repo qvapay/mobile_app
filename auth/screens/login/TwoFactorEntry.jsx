@@ -81,7 +81,7 @@ const TwoFactorEntry = ({ method, expectedCodeLength, code, onChangeCode, hasOtp
 					<TextInput
 						key={`${method}-${index}`}
 						ref={(ref) => { inputsRef.current[index] = ref }}
-						style={[method === 'otp' ? styles.pinInputSmall : styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: method === 'otp' ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
+						style={[method === 'otp' ? styles.pinInputSmall : styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: method === 'otp' ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.semiBold }]}
 						value={code[index] || ''}
 						onChangeText={(text) => handleChange(text, index)}
 						onFocus={() => setFocusedIndex(index)}

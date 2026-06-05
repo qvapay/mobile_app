@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react'
 import { FlashList } from '@shopify/flash-list'
-import { Text, View, Modal, TouchableOpacity } from 'react-native'
+import { Text, View, Modal } from 'react-native'
 
+// UI Particles
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPAvatar from '../../../ui/particles/QPAvatar'
+import QPPressable from '../../../ui/particles/QPPressable'
+
+// Fonts
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// API
 import { userApi } from '../../../api/userApi'
+
+// Notifications
 import { toast } from 'sonner-native'
 import { useOnlineStatus } from '../../../hooks/OnlineStatusContext'
 
@@ -78,7 +85,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 					<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
 						Agregar Contacto
 					</Text>
-					<TouchableOpacity
+					<QPPressable
 						onPress={onClose}
 						style={{
 							backgroundColor: theme.colors.elevation,
@@ -90,7 +97,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 						}}
 					>
 						<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-					</TouchableOpacity>
+					</QPPressable>
 				</View>
 
 				{/* Search Input */}
@@ -146,8 +153,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 									borderRadius: 12,
 									padding: 16,
 									marginBottom: 8,
-									borderWidth: 1,
-									borderColor: theme.colors.border,
+									...(theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }),
 									flexDirection: 'row',
 									alignItems: 'center',
 									gap: 12
@@ -161,7 +167,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 											@{item.username}
 										</Text>
 									</View>
-									<TouchableOpacity
+									<QPPressable
 										onPress={() => handleAddContact(item)}
 										style={{
 											backgroundColor: theme.colors.primary,
@@ -171,7 +177,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 										}}
 									>
 										<Text style={[textStyles.h6, { color: theme.colors.almostWhite, fontWeight: '600' }]}>Agregar</Text>
-									</TouchableOpacity>
+									</QPPressable>
 								</View>
 							)}
 						/>

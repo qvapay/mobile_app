@@ -96,7 +96,7 @@ const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }) => {
 				)}
 			</View>
 			<View style={{ alignItems: 'flex-end', marginLeft: 10 }}>
-				<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700' }]}>{priceMain}</Text>
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>{priceMain}</Text>
 				{priceSub && (
 					<Text style={[textStyles.caption, {
 						color: theme.colors.tertiaryText,
@@ -144,7 +144,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneFocused, phoneValid, onCha
 				]}>
 					<View style={[styles.dialBadge, { backgroundColor: theme.colors.elevation }]}>
 						<Text style={styles.flagEmoji}>{country?.flag}</Text>
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 							{country?.dial}
 						</Text>
 					</View>

@@ -241,12 +241,12 @@ const WelcomeScreen = ({ navigation }) => {
 					{/* Title section */}
 					<Animated.View style={[styles.titleContainer, titleAnimatedStyle]}>
 						<Pressable onLongPress={handleTitleLongPress} delayLongPress={3000}>
-							<Text style={[styles.title, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.bold, fontSize: 42 }]}>
+							<Text style={[styles.title, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: 42 }]}>
 								Tu cuenta digital
 							</Text>
-							<Text style={[styles.title, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.bold, fontSize: 42 }]}>
+							<Text style={[styles.title, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: 42 }]}>
 								en{' '}
-								<Text style={[styles.titleGradient, { fontFamily: theme.typography.fontFamily.bold, fontSize: 42 }]}>
+								<Text style={[styles.titleGradient, { fontFamily: theme.typography.fontFamily.semiBold, fontSize: 42 }]}>
 									DÓLARES
 								</Text>
 							</Text>

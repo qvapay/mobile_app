@@ -37,7 +37,7 @@ const WithdrawPinStep = ({ pin, codeLength, twoFactorMethod, hasOTP, sendingPin,
 				<TextInput
 					key={`${twoFactorMethod}-${index}`}
 					ref={(ref) => { pinInputsRef.current[index] = ref }}
-					style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold, backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
+					style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.semiBold, backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5 }]}
 					value={pin[index] || ''}
 					onChangeText={(text) => onPinChange(text, index)}
 					onFocus={() => onFocus(index)}

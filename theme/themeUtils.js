@@ -10,7 +10,7 @@ export const createTextStyles = (theme) => StyleSheet.create({
 	},
 	title: {
 		fontSize: theme.typography.fontSize.xl,
-		fontFamily: theme.typography.fontFamily.bold,
+		fontFamily: theme.typography.fontFamily.semiBold,
 		color: theme.colors.primaryText,
 	},
 	subtitle: {
@@ -26,12 +26,12 @@ export const createTextStyles = (theme) => StyleSheet.create({
 	},
 	h1: {
 		fontSize: theme.typography.fontSize.xxxl,
-		fontFamily: theme.typography.fontFamily.bold,
+		fontFamily: theme.typography.fontFamily.semiBold,
 		color: theme.colors.primaryText,
 	},
 	h2: {
 		fontSize: theme.typography.fontSize.xxl,
-		fontFamily: theme.typography.fontFamily.semiBold,
+		fontFamily: theme.typography.fontFamily.medium,
 		color: theme.colors.primaryText,
 	},
 	h3: {

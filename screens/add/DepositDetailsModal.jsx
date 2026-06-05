@@ -57,7 +57,7 @@ const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme,
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
 				Monto a depositar
 			</Text>
-			<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.bold }]}>
+			<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.semiBold }]}>
 				${amount} QUSD
 			</Text>
 		</View>
@@ -124,7 +124,7 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 				Total a pagar
 			</Text>
 			<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-				<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.bold }]}>
+				<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.semiBold }]}>
 					{formatCryptoAmount(topupData?.value)}
 				</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.primary, marginLeft: 8 }]}>

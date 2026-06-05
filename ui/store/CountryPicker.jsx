@@ -100,7 +100,7 @@ const CountryPicker = ({ countries = [], value = null, onChange = () => {}, plac
 						onPress={(e) => e.stopPropagation()}
 					>
 						<View style={[styles.header, theme.mode === 'light' && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}>
-							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 								Selecciona país
 							</Text>
 							<Pressable onPress={() => setOpen(false)} hitSlop={8}>

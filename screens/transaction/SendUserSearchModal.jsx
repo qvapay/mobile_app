@@ -1,15 +1,25 @@
 import { useState, useEffect, useMemo } from 'react'
-import { View, Text, Modal, TouchableOpacity, FlatList } from 'react-native'
+import { View, Text, Modal, FlatList } from 'react-native'
 
+// Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
+
+// Particles
+import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
 import QPAvatar from '../../ui/particles/QPAvatar'
-import QPInput from '../../ui/particles/QPInput'
+import QPPressable from '../../ui/particles/QPPressable'
+
+// Font Awesome
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// API
 import { userApi } from '../../api/userApi'
-import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
+
+// Notifications
 import { toast } from 'sonner-native'
+import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 
 // Self-contained "send to" user search: live-filters the carousel + queries the API.
 const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
@@ -80,12 +90,12 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 				{/* Modal Header */}
 				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingHorizontal: 20 }}>
 					<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Buscar Usuario</Text>
-					<TouchableOpacity
+					<QPPressable
 						onPress={onClose}
 						style={{ backgroundColor: theme.colors.elevation, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' }}
 					>
 						<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-					</TouchableOpacity>
+					</QPPressable>
 				</View>
 
 				{/* Search Input */}
@@ -126,7 +136,8 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 							renderItem={({ item, index }) => {
 								const radius = theme.borderRadius?.md ?? 12
 								return (
-									<TouchableOpacity
+									<QPPressable
+										variant="opacity"
 										onPress={() => handleSelect(item)}
 										style={[containerStyles.card, {
 											flexDirection: 'row',
@@ -148,7 +159,7 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 											</Text>
 										</View>
 										<FontAwesome6 name="chevron-right" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
-									</TouchableOpacity>
+									</QPPressable>
 								)
 							}}
 						/>

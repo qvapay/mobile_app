@@ -188,7 +188,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	if (offers.length === 0) {
 		return (
 			<View style={[containerStyles.subContainer, { padding: 24 }]}>
-				<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '700' }]}>
+				<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 					{brand} · {country?.name}
 				</Text>
 				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8 }]}>
@@ -206,7 +206,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 				<View style={styles.header}>
 					<OperatorAvatar brand={brand} logoUrl={brandLogo} size="lg" />
 					<View style={{ flex: 1, marginLeft: 12 }}>
-						<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '700' }]} numberOfLines={1}>{brand}</Text>
+						<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>{brand}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
 							{country?.flag} {country?.name} · {offers.length} {offers.length === 1 ? 'plan' : 'planes'}
 						</Text>
@@ -238,7 +238,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 				{step === 2 && selectedOffer && (
 					<View style={styles.section}>
 						<View style={[styles.summary, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
-							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '700', marginBottom: 12 }]}>
+							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 12 }]}>
 								Confirmar recarga
 							</Text>
 							<SummaryRow theme={theme} textStyles={textStyles} label="Operador" value={`${brand} (${country?.name})`} />

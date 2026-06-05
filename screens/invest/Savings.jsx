@@ -147,7 +147,7 @@ const Savings = ({ route }) => {
 					</View>
 					<Text style={[textStyles.amount, styles.heroBalance]}>${balance}</Text>
 					<Text style={[styles.heroRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
-						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.bold }}>{rate}%</Text> anual
+						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> anual
 					</Text>
 				</View>
 
@@ -242,7 +242,7 @@ const Savings = ({ route }) => {
 						{/* Amount input */}
 						<View style={{ alignItems: 'center', marginBottom: 24 }}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-								<Text style={{ color: theme.colors.primaryText, fontSize: 40, fontFamily: theme.typography.fontFamily.bold }}>$</Text>
+								<Text style={{ color: theme.colors.primaryText, fontSize: 40, fontFamily: theme.typography.fontFamily.semiBold }}>$</Text>
 								<TextInput
 									value={modalAmount}
 									onChangeText={(amount) => dispatchModal({ type: 'setAmount', amount })}
@@ -253,7 +253,7 @@ const Savings = ({ route }) => {
 									style={{
 										color: theme.colors.primaryText,
 										fontSize: 40,
-										fontFamily: theme.typography.fontFamily.bold,
+										fontFamily: theme.typography.fontFamily.semiBold,
 										minWidth: 80,
 										textAlign: 'center',
 										padding: 0,
