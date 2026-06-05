@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Share, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, Share, ScrollView, Pressable, Dimensions } from 'react-native'
 
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
@@ -10,14 +10,19 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
 
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
 // UI
-import QPButton from '../../ui/particles/QPButton'
 import ProfileContainer from '../../ui/ProfileContainer'
 
 // Helpers
 import { copyTextToClipboard } from '../../helpers'
 
-const Receive = ({ route }) => {
+const { width: screenWidth } = Dimensions.get('window')
+const QR_SIZE = Math.min(screenWidth - 80, 240)
+
+const Receive = ({ navigation, route }) => {
 
 	const { receive_amount } = route.params || {}
 	const { user } = useAuth()
@@ -43,11 +48,13 @@ const Receive = ({ route }) => {
 	}
 
 	return (
-		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
-			<ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+		<View style={containerStyles.container}>
 
-				{/* Profile */}
-				<ProfileContainer user={user || {}} />
+			<ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+				{/* Profile + Stats (cover extends behind the floating top bar) */}
+				<View style={{ paddingHorizontal: theme.spacing.md }}>
+					<ProfileContainer user={user || {}} />
+				</View>
 
 				{/* Amount */}
 				{amount > 0 && (
@@ -58,20 +65,19 @@ const Receive = ({ route }) => {
 					</View>
 				)}
 
-				{/* QR Code */}
+				{/* QR Code — tap to copy link */}
 				<View style={styles.qrSection}>
-					<View style={[styles.qrCard, { backgroundColor: theme.colors.surface }]}>
+					<Pressable onPress={() => copyTextToClipboard(qrUrl)} style={({ pressed }) => [styles.qrCard, { opacity: pressed ? 0.85 : 1 }]}>
 						<QRCodeStyled
 							data={qrUrl}
-							style={[styles.svg, { backgroundColor: '#FFFFFF' }]}
-							size={280}
-							padding={12}
-							pieceSize={8}
+							style={styles.qrInner}
+							size={QR_SIZE}
+							padding={8}
+							pieceSize={7}
 							isPiecesGlued
 							pieceBorderRadius={2}
 							pieceCornerType={'cut'}
 							errorCorrectionLevel={'H'}
-							preserveAspectRatio="none"
 							backgroundColor={'#FFFFFF'}
 							color={'#000000'}
 							outerEyesOptions={{
@@ -79,34 +85,29 @@ const Receive = ({ route }) => {
 								color: theme.colors.primary,
 							}}
 						/>
-					</View>
+					</Pressable>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 12 }]}>
-						Escanea este QR para enviar el pago
+						Toca el QR para copiar el enlace
 					</Text>
 				</View>
-
 			</ScrollView>
 
-			{/* Action Buttons */}
-			<View style={[styles.actions, containerStyles.bottomButtonContainer]}>
-				<QPButton
-					title="Compartir"
-					icon="share-nodes"
-					iconColor="white"
+			{/* Floating top bar — back + share, sit over the cover (like the Scan screen) */}
+			<View style={styles.topControls}>
+				<Pressable
+					onPress={() => navigation.goBack()}
+					style={[styles.topButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+					hitSlop={10}
+				>
+					<FontAwesome6 name="arrow-left" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+				</Pressable>
+				<Pressable
 					onPress={handleShare}
-					style={{ backgroundColor: theme.colors.primary }}
-					textStyle={{ color: theme.colors.almostWhite }}
-					iconStyle="solid"
-				/>
-				<QPButton
-					title="Copiar enlace"
-					icon="copy"
-					iconColor={theme.colors.contrast}
-					onPress={() => copyTextToClipboard(qrUrl)}
-					style={{ backgroundColor: theme.colors.elevation, marginTop: 10 }}
-					textStyle={{ color: theme.colors.contrast }}
-					iconStyle="solid"
-				/>
+					style={[styles.topButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+					hitSlop={10}
+				>
+					<FontAwesome6 name="share-nodes" size={20} color={theme.colors.primaryText} iconStyle="solid" />
+				</Pressable>
 			</View>
 		</View>
 	)
@@ -118,6 +119,7 @@ const styles = StyleSheet.create({
 	},
 	amountSection: {
 		alignItems: 'center',
+		marginTop: 8,
 		marginBottom: 8,
 	},
 	qrSection: {
@@ -125,17 +127,30 @@ const styles = StyleSheet.create({
 		marginTop: 10,
 	},
 	qrCard: {
-		padding: 16,
-		borderRadius: 20,
+		borderRadius: 16,
+		padding: 10,
+		overflow: 'hidden',
+		backgroundColor: '#FFFFFF',
+	},
+	qrInner: {
+		backgroundColor: '#FFFFFF',
+	},
+	topControls: {
+		position: 'absolute',
+		top: 60,
+		left: 16,
+		right: 16,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
 		alignItems: 'center',
 	},
-	svg: {
-		borderRadius: 12,
-		overflow: 'hidden',
-	},
-	actions: {
-		marginTop: 24,
-		paddingHorizontal: 16,
+	topButton: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		justifyContent: 'center',
+		alignItems: 'center',
+		borderWidth: 1,
 	},
 })
 

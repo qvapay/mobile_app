@@ -408,7 +408,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 					options={getHeaderOptions('Confirmar pago')}
 				/>
 				<Stack.Screen name={ROUTES.SEND_SUCCESS} component={SendSuccess} />
-				<Stack.Screen name={ROUTES.RECEIVE} component={Receive} options={getHeaderOptions('Recibir')} />
+				<Stack.Screen name={ROUTES.RECEIVE} component={Receive} options={{ headerShown: false, animation: 'slide_from_bottom' }} />
 
 				{/* Transaction Screen */}
 				<Stack.Screen
@@ -589,29 +589,29 @@ function App() {
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<ErrorBoundary>
-				<SafeAreaProvider>
-					<LoadingProvider>
-						<AuthProvider>
-							<OnlineStatusProvider>
-								<SettingsProvider>
-									<ThemeProviderWithSettings>
-										<LoadingBridge>
-											<AppLockProvider>
-												<NavigationWrapper>
-													<GlobalLoadingBar />
-													<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-													<Toaster position="top-center" />
-												</NavigationWrapper>
-												<LockScreen />
-											</AppLockProvider>
-										</LoadingBridge>
-									</ThemeProviderWithSettings>
-								</SettingsProvider>
-							</OnlineStatusProvider>
-						</AuthProvider>
-					</LoadingProvider>
-				</SafeAreaProvider>
-			</ErrorBoundary>
+					<SafeAreaProvider>
+						<LoadingProvider>
+							<AuthProvider>
+								<OnlineStatusProvider>
+									<SettingsProvider>
+										<ThemeProviderWithSettings>
+											<LoadingBridge>
+												<AppLockProvider>
+													<NavigationWrapper>
+														<GlobalLoadingBar />
+														<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+														<Toaster position="top-center" />
+													</NavigationWrapper>
+													<LockScreen />
+												</AppLockProvider>
+											</LoadingBridge>
+										</ThemeProviderWithSettings>
+									</SettingsProvider>
+								</OnlineStatusProvider>
+							</AuthProvider>
+						</LoadingProvider>
+					</SafeAreaProvider>
+				</ErrorBoundary>
 		</GestureHandlerRootView>
 	)
 }

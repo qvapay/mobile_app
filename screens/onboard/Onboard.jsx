@@ -32,7 +32,7 @@ const onboard_steps = [
     {
         asset: 'trade',
         title: "Bienvenido a QvaPay",
-        description: "Tu plataforma de pagos digitales segura y confiable"
+        description: "Tu plataforma de pagos digitales en USD"
     },
     {
         asset: 'bot',

@@ -1,7 +1,10 @@
-import { Text, Pressable, ActivityIndicator } from 'react-native'
+import { Text, ActivityIndicator } from 'react-native'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
+
+// Press animation wrapper (Reanimated)
+import QPPressable from './QPPressable'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -11,11 +14,6 @@ const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid',
 
     // Contexts
     const { theme } = useTheme()
-
-    const handlePress = () => {
-        if (disabled) return
-        onPress && onPress()
-    }
 
     const isDangerOutlined = danger && outlined
 
@@ -27,13 +25,13 @@ const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid',
     const textColor = isDangerOutlined ? (disabled ? theme.colors.secondaryText : theme.colors.danger) : theme.colors.buttonText
 
     return (
-        <Pressable
-            onPress={handlePress}
-            style={({ pressed }) => [
+        <QPPressable
+            onPress={onPress}
+            disabled={disabled || loading}
+            style={[
                 styles.container,
                 { backgroundColor: bgColor },
                 { borderWidth, borderColor },
-                { transform: [{ scale: pressed ? 0.99 : 1 }] },
                 { opacity: disabled ? 0.5 : 1 },
                 style
             ]}>
@@ -43,7 +41,7 @@ const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid',
                     {title && <Text style={[{ fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold, color: textColor }, textStyle, { marginLeft: icon ? 8 : 0 }]}>{title}</Text>}
                 </>
             )}
-        </Pressable>
+        </QPPressable>
     )
 }
 
