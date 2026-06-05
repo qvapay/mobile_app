@@ -1,4 +1,7 @@
-import { StyleSheet, View, Pressable, Text } from 'react-native'
+import { StyleSheet, View, Text } from 'react-native'
+
+// Press animation wrapper
+import QPPressable from './particles/QPPressable'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -45,7 +48,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
                 }
 
                 return (
-                    <Pressable
+                    <QPPressable
                         key={route.key}
                         onPress={onPress}
                         style={styles.pressableArea}
@@ -61,7 +64,7 @@ export default function BottomBar({ state, descriptors, navigation }) {
                                 </Text>
                             )}
                         </View>
-                    </Pressable>
+                    </QPPressable>
                 )
             })}
         </View>

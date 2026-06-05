@@ -1,4 +1,7 @@
-import { View, Text, Pressable } from 'react-native'
+import { View, Text } from 'react-native'
+
+// Press animation wrapper
+import QPPressable from './QPPressable'
 
 // Contexts
 import { useTheme } from '../../theme/ThemeContext'
@@ -36,13 +39,13 @@ const SettingsItem = ({ title, icon, screen, index, totalItems, navigation, disa
     }
 
     return (
-        <Pressable style={[containerStyles.box, containerStyle]} onPress={() => !disabled && navigation.navigate(screen)}>
+        <QPPressable disabled={disabled} style={[containerStyles.box, containerStyle]} onPress={() => navigation.navigate(screen)}>
             <Text style={[textStyles.h4, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular }]}>{title}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {showBadge && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.danger }} />}
                 <FontAwesome6 name="angle-right" size={16} style={{ color: theme.colors.secondaryText }} iconStyle="solid" />
             </View>
-        </Pressable>
+        </QPPressable>
     )
 }
 

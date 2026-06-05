@@ -1,5 +1,8 @@
 import FastImage from "@d11/react-native-fast-image"
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+
+// Press animation wrapper
+import QPPressable from './QPPressable'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -23,7 +26,7 @@ const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo
 	const logoImage = imageSource ? (imageSource.startsWith('http') ? imageSource : `https://media.qvapay.com/${imageSource}`) : ''
 
 	return (
-		<Pressable style={[styles.topupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]} onPress={onPress}>
+		<QPPressable style={[styles.topupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]} onPress={onPress}>
 
 			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]}>
 				{logoImage ? (
@@ -49,7 +52,7 @@ const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs }]}>{details.join(' • ')}</Text>
 				)}
 			</View>
-		</Pressable>
+		</QPPressable>
 	)
 }
 
