@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 import { useSharedValue } from 'react-native-reanimated'
 
 const BottomBarContext = createContext()
@@ -13,7 +13,7 @@ export const BottomBarProvider = ({ children }) => {
 }
 
 export const useBottomBar = () => {
-	const context = useContext(BottomBarContext)
+	const context = use(BottomBarContext)
 	if (!context) { throw new Error('useBottomBar must be used within a BottomBarProvider') }
 	return context
 }

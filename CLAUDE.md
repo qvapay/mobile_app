@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-QvaPay is a React Native mobile fintech app (RN 0.83.1, React 19.2.4) providing a non-custodial wallet, P2P marketplace, crypto payment gateway, savings (with Roundup), phone top-ups and gift cards for underbanked regions in Latin America and the Caribbean. Current version: **1.5.16**. The backend API lives at `~/webs/qpweb` (Next.js 16).
+QvaPay is a React Native mobile fintech app (RN 0.84.1, React 19.2.3) providing a non-custodial wallet, P2P marketplace, crypto payment gateway, savings (with Roundup), phone top-ups and gift cards for underbanked regions in Latin America and the Caribbean. The version lives in `package.json` (currently **1.7.6**) and is synced everywhere else by `npm run version:sync`. The backend API lives at `~/webs/qpweb` (Next.js 16).
 
 ## Common Commands
 
@@ -19,19 +19,22 @@ npm run start            # Start Metro bundler
 # Quality
 npm run lint             # Run ESLint (@react-native config)
 npm run test             # Run Jest tests (react-native preset)
-npx jest --testPathPattern="path/to/test"  # Run a single test file
+npx jest screens/keypad/keypadAmount.test.js  # Run a single test file
 
 # Release (Android)
 npm run android:bundle      # Bundle release AAB
 npm run android:apk         # Build release APK
 npm run android:release     # Bundle + APK
 npm run android:apk:release # Full release script (scripts/release-android.sh)
+npm run android:publish[:internal|:production]  # gradle publishBundle to Play tracks
 
 # Utilities
 npm run version:sync     # Sync version across iOS/Android/app.json (auto-runs before ios/android)
 ```
 
-**Node.js requirement**: >= 20. CocoaPods required for iOS. `npm run version:sync` reads `package.json` version and writes it across `ios/QvaPay.xcodeproj/project.pbxproj`, `android/app/build.gradle`, and `app.json` — all version bumps go through `package.json`.
+**Node.js requirement**: >= 22.11. CocoaPods required for iOS. `npm run version:sync` reads `package.json` version and writes it across `ios/QvaPay.xcodeproj/project.pbxproj`, `android/app/build.gradle`, and `app.json` — all version bumps go through `package.json`.
+
+**Testing gotcha**: devDeps use jest 30 but the `react-native` preset bundles jest 29 packages — they clash in the default environment. Pattern: extract pure logic into a plain module and test it with a `@jest-environment node` docblock (see `screens/keypad/keypadAmount.js` + `.test.js`).
 
 ## Architecture
 
@@ -56,11 +59,11 @@ GestureHandlerRootView
                     LockScreen
 ```
 
-`OneSignal.initialize(...)` is called at module scope **outside** the component tree.
+`OneSignal.initialize(...)` is called at module scope **outside** the component tree. `AppNavigator` also owns OneSignal foreground/click listeners (toast + navigate) and the `UpdatePromptModal` flow via `helpers/versionCheck`.
 
 ### State Management (Context API)
-- **AuthContext** (`/auth/AuthContext.js`): auth state, periodic token validation. State: `isAuthenticated`, `user`, `token`, `isLoading`, `error`. Functions: `login()` (handles 202 2FA + 200 success), `logout()`, `register()`, `confirmRegistration()`, `requestPin()`, `updateUser()`, `checkToken()`, `initializeAuth()`. Throttle: 60s lockout after 5 failed logins.
-- **SettingsContext** (`/settings/SettingsContext.js`): app-wide settings (notifications, security, privacy, appearance, language, transactions, p2p, sounds). Granular AsyncStorage keys; supports import/export.
+- **AuthContext** (`/auth/AuthContext.js`, state extracted to `useAuthState.js`): auth state, periodic token validation. State: `isAuthenticated`, `user`, `token`, `isLoading`, `error`. Functions: `login()` (handles 202 2FA + 200 success), `logout()`, `register()`, `confirmRegistration()`, `requestPin()`, `updateUser()`, `checkToken()`, `initializeAuth()`. Throttle: 60s lockout after 5 failed logins. Helpers in `/auth/hooks/`: `useBiometricSupport`, `usePinCountdown`.
+- **SettingsContext** (`/settings/SettingsContext.js`, + `useSettingsState.js`, `settingsConstants.js`): app-wide settings (notifications, security, privacy, appearance, language, transactions, p2p, sounds). Granular AsyncStorage keys; supports import/export.
 - **ThemeContext** (`/theme/ThemeContext.js`): light/dark/auto theme, memoized styles via `useTextStyles()` / `useContainerStyles()`. Listens to system appearance.
 - **AppLockContext** (`/lock/AppLockContext.js`): PIN-protected app lock, gates the UI behind `LockScreen` when armed.
 - **OnlineStatusContext** (`/hooks/OnlineStatusContext.js`): heartbeat/online presence for P2P peers and chats.
@@ -76,12 +79,12 @@ AppNavigator (Stack)
   MainStack (authenticated) → Bottom Tabs: Home | Invest | Keypad | P2P | Store
   Feature screens: Add, Withdraw, Send/SendConfirm/SendSuccess, Receive,
     Transaction(s), Pay, P2PCreate, P2POffer, P2PUser, Scan,
-    Savings, StockDetail, PhoneTopupIndex/Purchase, GiftCards/Detail, MyPurchases/Detail,
-    GoldCheck, Contacts, SettingsStack, Help
+    Savings, StockDetail, PhoneTopupIndex/PhoneTopupBrand, GiftCards/GiftCardBrand,
+    MyPurchases/PurchaseDetail, GoldCheck, Contacts, SettingsStack, Help
   Auth: Login, Register, RecoverPassword, Recover2FA
 ```
 
-iOS-specific: `P2POffer` uses `unstable_headerRightItems` for liquid-glass compatibility (Android falls back to `headerRight`). `Pay` is presented as `transparentModal` with `slide_from_bottom`. `enableFreeze(true)` is called at top level.
+iOS-specific: `P2POffer` uses `unstable_headerRightItems` for liquid-glass compatibility (Android falls back to `headerRight`). `Pay` is presented as `transparentModal` with `slide_from_bottom`. `enableFreeze(true)` is called at top level. Header options come from a shared memoized `getHeaderOptions()` helper in `App.tsx`.
 
 ### Deep Linking (`/linking.js`)
 Prefixes: `https://qvapay.com`, `https://www.qvapay.com`, `qvapay://`. Routes:
@@ -115,7 +118,7 @@ The client also owns three Keychain services and exports their helpers:
 - `payApi.js`: merchant invoice viewing and payment (Pay screen)
 - `savingApi.js`: deposits, withdrawals, balance, earnings, Roundup config
 - `stocksApi.js`: stocks/watchlist data for Invest screen
-- `storeApi.js`: phone packages, gift cards, purchases
+- `storeApi.js`: unified Zendit-backed catalogs. `getVoucherCatalog` (`/store/voucher-catalog`, mode params: `countries` | `featured` | `favorites` | `categories` | `country`/`brand`), `purchaseVoucher` (`/store/voucher/purchase`), topup catalog (`/store/topup-catalog`, same mode-param style; Cuba = `cubacel` source, rest = Zendit), `/store/topup`, `/store/phone_package` (Cubacel), purchases (`/store/my`, `/store/my/{id}`)
 - `coinsApi.js`: enabled coins (in/out filters)
 - `promoApi.js`: promo banners shown across the app
 - `blogApi.js`: WordPress REST API (uses native `fetch`, not axios)
@@ -130,24 +133,31 @@ Colors: primary `#6759EF`, success `#7BFFB1`, danger `#DB253E`, warning `#ff9f43
 Dark (default): bg `#0E0E1C`, surface `#1E2039`. Font: Rubik family.
 `NavigationWrapper` mirrors the theme into React Navigation's `theme` to prevent iOS native flashes during transitions.
 
+UI conventions:
+- Prefer lighter font weights — medium/semiBold for emphasis; reserve bold/black for hero numbers.
+- Surface cards must not show borders in dark mode: `theme.mode === 'light' && { borderWidth, borderColor }` inline.
+- Press feedback uses `QPPressable` (own component: `Pressable` + inner Reanimated `Animated.View`). **Never** `Animated.createAnimatedComponent(Pressable)` on Fabric — it SIGSEGVs.
+- Modals: centered card overlay (`transparent`, `animationType="fade"`, `statusBarTranslucent`, Pressable backdrop dismiss) — see `ContactsDisclosureModal`.
+
 ### Key Directories
-- `/screens/`: 40+ screens by domain — `home/`, `invest/` (Invest, Savings, StockDetail), `keypad/`, `p2p/` (P2P, P2PCreate, P2POffer, P2PUser), `transaction/` (incl. Pay), `store/` (Store, PhoneTopup*, GiftCards*, MyPurchases, PurchaseDetail), `settings/` (+ 17 subpanels), `add/`, `withdraw/`, `scan/`, `splash/`, `welcome/`, `onboard/`, `help/`
-- `/ui/`: composite (BottomBar, BalanceCard, P2POfferItem, AmountInput, WatchlistCard, Sparkline, UpdatePromptModal, PushPromptModal, ContactsDisclosureModal, GlobalLoadingBar, ErrorBoundary, …)
-- `/ui/particles/`: atomic (QPButton, QPInput, QPAvatar, QPBalance, QPCoin, QPTransaction, QPRate, QPPill, QPLoader, QPSwitch, QPMoneyInput, QPProduct, QPSectionHeader, SettingsItem, FaceIDIcon)
-- `/auth/`: AuthContext + Login/Register/Recover screens
+- `/screens/`: 40+ screens by domain — `home/`, `invest/` (Invest, Savings, StockDetail), `keypad/`, `p2p/` (P2P, P2PCreate, P2POffer, P2PUser), `transaction/` (incl. Pay), `store/` (Store + StoreGiftCardsSection/StoreTopupSection, PhoneTopupIndex/Brand/Step1, GiftCards, GiftCardBrand, MyPurchases, PurchaseDetail), `settings/` (+ 17 subpanels), `add/`, `withdraw/`, `scan/`, `splash/`, `welcome/`, `onboard/`, `help/`
+- `/ui/`: composite (BottomBar + BottomBarContext, AnimatedTabBar, BalanceCard, P2POfferItem, AmountInput, QPCoinPicker/QPCoinRow, WalletPickerSheet, CashDeliveryCard, QPKeyboardView, QPRefreshIndicator, WatchlistCard, Sparkline, BlogPostCard, PromoBanner, UpdatePromptModal, PushPromptModal, ContactsDisclosureModal, GlobalLoadingBar, ErrorBoundary, …)
+- `/ui/particles/`: atomic (QPButton, QPPressable, QPInput, QPAvatar, QPBalance, QPCoin, QPTransaction, QPRate, QPPill, QPLoader, QPSwitch, QPMoneyInput, QPProduct, QPSectionHeader, SettingsItem, TransactionSticker, FaceIDIcon)
+- `/ui/store/`: store-specific particles (BrandTile, CategoryPill, CountryPicker, OperatorAvatar)
+- `/auth/`: AuthContext + `useAuthState` + `hooks/` + Login/Register/Recover screens
 - `/api/`: 13 modules + `client.js`
 - `/theme/`: ThemeContext + themeUtils
-- `/settings/`: SettingsContext
+- `/settings/`: SettingsContext + useSettingsState + settingsConstants
 - `/lock/`: AppLockContext + LockScreen
 - `/loading/`: LoadingContext (bridged to axios for `GlobalLoadingBar`)
-- `/hooks/`: `OnlineStatusContext`, `useDeviceContacts`, `usePushPrompt`, `useTransactionSSE` (real-time transaction stream via `react-native-sse`)
-- `/helpers/`: `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `versionCheck.js` (drives `UpdatePromptModal`), `widgetBridge.js` (iOS/Android home-screen widgets)
+- `/hooks/`: `OnlineStatusContext`, `useDeviceContacts`, `usePinEntry` (multi-box PIN/OTP input mechanics), `usePushPrompt`, `useTransactionSSE` (real-time transaction stream via `react-native-sse`)
+- `/helpers/`: `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `stickers.js` (QvaPay sticker catalog), `versionCheck.js` (drives `UpdatePromptModal`), `walletDeeplinks.js` (Trust Wallet & co. universal links for deposits), `widgetBridge.js` (iOS/Android home-screen widgets)
 - `/helpers.js`: legacy utilities (timeAgo, parseQRData, dates — Spanish locale)
 - `/assets/`: images, Rubik fonts, Lottie animations
 - `/scripts/`: `release-android.sh`, `sync-version.js`
 
 ### Key Dependencies
-React Native 0.83.1, React 19.2.4, React Navigation 7 (`native-stack` + `bottom-tabs`), Axios 1.14, `@shopify/flash-list` 2, AsyncStorage 2, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4 + `react-native-worklets`, `react-native-nitro-modules`, Vision Camera 4 (QR), Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 14, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, TypeScript 5.9.3 (~3% adoption).
+React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
 
 OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc81`.
 
@@ -155,7 +165,7 @@ OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc8
 
 ## Backend API Reference (`~/webs/qpweb`)
 
-**Stack:** Next.js 16.0.10 | Prisma 6 + MySQL | Redis (ioredis) | Node >= 22
+**Stack:** Next.js 16.2.x | Prisma 6 + MySQL | Redis (ioredis) | Node >= 22
 **Validation:** Zod v4 | **Rate Limiting:** ArcJet | **Email:** Resend + React Email
 **Monitoring:** Sentry | **Auth:** bcrypt + speakeasy (TOTP) + HIBP password check
 
@@ -185,7 +195,9 @@ OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc8
 
 **Transactions** (`/api/transaction/`): GET `/transaction`, POST `/transaction/transfer` (amount, to, pin, description), GET `/transaction/{uuid}`, GET `/transaction/{uuid}/pdf`, GET `/transaction/latestusers`
 
-**Other**: POST `/withdraw`, POST `/topup`, GET/POST `/store/phone_package`, GET `/store/giftcards`, GET `/coins/v2`, POST `/saving/deposit`, POST `/saving/withdraw`, GET `/pay/{uuid}`, POST `/pay/{uuid}`
+**Store** (`/api/store/`): GET `/store/voucher-catalog` (mode params: `countries`/`featured`/`favorites`/`categories`/`country`+`brand`), POST `/store/voucher/purchase`, GET `/store/topup-catalog`, POST `/store/topup`, POST `/store/phone_package` (Cubacel), GET `/store/my`, GET `/store/my/{id}`, GET `/store/giftcards`
+
+**Other**: POST `/withdraw`, POST `/topup`, GET `/coins/v2`, POST `/saving/deposit`, POST `/saving/withdraw`, GET `/pay/{uuid}`, POST `/pay/{uuid}`
 
 **Merchant API** (`/api/v2/`): balance, create_invoice, modify_invoice, charge, transactions, authorize_payments
 
@@ -231,11 +243,11 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 | User update  | PUT `/user/update`              | POST `/user/update`                  |
 | Withdraw     | 2-step (preWithdraw + withdraw) | Single endpoint with PIN             |
 
-**Working well:** P2P full lifecycle, transactions, transfer, coins, phone packages, user search, auth login with 2FA, passkeys, savings, pay invoices, SSE transaction stream.
+**Working well:** P2P full lifecycle, transactions, transfer, coins, store catalogs (vouchers + topups), user search, auth login with 2FA, passkeys, savings, pay invoices, SSE transaction stream.
 
 ## Development Notes
 
-- `.jsx` ~97% / `.tsx` ~3% — TypeScript migration is early; `App.tsx` is one of the few `.tsx` files
+- `.jsx` everywhere (~140 files); `App.tsx` is the only TypeScript file — migration not really started
 - Functional components + hooks only (no class components beyond `ErrorBoundary`)
 - UI strings hardcoded in Spanish (i18n on roadmap)
 - Token lives in Keychain (`com.qvapay.auth`) — AsyncStorage is only used for non-secret settings
@@ -243,6 +255,7 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 - Lists should use `@shopify/flash-list` — preferred over `FlatList` for new code
 - Toasts use `sonner-native` (`import { toast } from 'sonner-native'`) — not `react-native-toast-message`
 - Real-time transactions stream over SSE via `useTransactionSSE` (`react-native-sse`)
+- Stickers: persisted in transaction descriptions as `:sticker:<name>.webm` (catalog in `helpers/stickers.js`); render the `.gif` variant from `media.qvapay.com/qvi` via FastImage (iOS can't decode webm)
 - iOS 26 liquid-glass headers: use `unstable_headerRightItems` for header items that need to play nicely with the native blur; provide an `headerRight` fallback for Android
 - `enableFreeze(true)` is on — be aware that off-screen routes pause rendering
 - Requests can pass `{ silent: true }` to suppress the global loading bar

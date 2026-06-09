@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { createContext, use, useState, useEffect, useCallback, useRef } from 'react'
 import { AppState } from 'react-native'
 import { useAuth } from '../auth/AuthContext'
 import { userApi } from '../api/userApi'
@@ -100,14 +100,14 @@ export function OnlineStatusProvider({ children }) {
 }
 
 export function useOnlineStatus() {
-	const context = useContext(OnlineStatusContext)
+	const context = use(OnlineStatusContext)
 	if (!context) {
 		return {
 			statuses: {},
-			trackUsers: () => {},
-			untrackUsers: () => {},
+			trackUsers: () => { },
+			untrackUsers: () => { },
 			isUserOnline: () => false,
-			refreshStatuses: () => {},
+			refreshStatuses: () => { },
 		}
 	}
 	return context

@@ -74,12 +74,13 @@ const Scan = ({ navigation, route }) => {
 	const { hasPermission, requestPermission } = useCameraPermission()
 
 	// State
-	const [isScanning, setIsScanning] = useState(true)
+	const initialMode = route.params?.view || 'scan'
+	const [isScanning, setIsScanning] = useState(initialMode === 'scan')
 	const [isTorchEnabled, setIsTorchEnabled] = useState(false)
-	const [viewMode, setViewMode] = useState(route.params?.view || 'scan') // 'scan' | 'show'
+	const [viewMode, setViewMode] = useState(initialMode) // 'scan' | 'show'
 
 	// Ref to avoid stale closure in onCodeScanned callback
-	const isScanningRef = useRef(true)
+	const isScanningRef = useRef(initialMode === 'scan')
 
 	// Animation
 	const scanLineAnimation = useRef(new Animated.Value(0)).current
@@ -96,13 +97,15 @@ const Scan = ({ navigation, route }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isScanning])
 
-	// Toggle camera based on mode
-	useEffect(() => {
-		const scanning = viewMode === 'scan'
+	// Toggle camera based on mode — all setters at the call site so React batches one render
+	const handleViewModeChange = (side) => {
+		const mode = side === 'left' ? 'scan' : 'show'
+		const scanning = mode === 'scan'
 		isScanningRef.current = scanning
+		setViewMode(mode)
 		setIsScanning(scanning)
-		if (viewMode !== 'scan') { setIsTorchEnabled(false) }
-	}, [viewMode])
+		if (!scanning) { setIsTorchEnabled(false) }
+	}
 
 	// Start scanning animation
 	const startScanAnimation = () => {
@@ -263,7 +266,7 @@ const Scan = ({ navigation, route }) => {
 				<View style={styles.topSwitchWrapper}>
 					<QPSwitch
 						value={viewMode === 'scan' ? 'left' : 'right'}
-						onChange={(side) => setViewMode(side === 'left' ? 'scan' : 'show')}
+						onChange={handleViewModeChange}
 						leftText="Scan QR"
 						rightText="Mi QR"
 						leftColor={theme.colors.primary}
@@ -274,9 +277,7 @@ const Scan = ({ navigation, route }) => {
 					<Pressable onPress={() => setIsTorchEnabled((prev) => !prev)} style={styles.topButton} hitSlop={10}>
 						<FontAwesome6 name="lightbulb" size={20} color={'white'} iconStyle="solid" />
 					</Pressable>
-				) : (
-					<View style={{ width: 40 }} />
-				)}
+				) : (<View style={{ width: 40 }} />)}
 			</View>
 
 		</View>

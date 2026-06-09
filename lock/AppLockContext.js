@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import { createContext, use, useState, useEffect, useRef, useCallback } from 'react'
 import { AppState } from 'react-native'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
@@ -19,8 +19,8 @@ export const AppLockProvider = ({ children }) => {
 
 	const [isLocked, setIsLocked] = useState(false)
 	const [appLockEnabled, setAppLockEnabled] = useState(false)
-	const [isInitialized, setIsInitialized] = useState(false)
 
+	const isInitializedRef = useRef(false)
 	const appStateRef = useRef(AppState.currentState)
 	const backgroundTimestampRef = useRef(null)
 
@@ -32,27 +32,19 @@ export const AppLockProvider = ({ children }) => {
 			setAppLockEnabled(hasPIN)
 
 			// Cold start: lock immediately if authenticated and app lock is enabled
-			if (isAuthenticated && hasPIN) {
-				setIsLocked(true)
-			}
-			setIsInitialized(true)
+			if (isAuthenticated && hasPIN) { setIsLocked(true) }
+			else if (!hasPIN) { setIsLocked(false) }
+			isInitializedRef.current = true
 		}
 		init()
 	}, [authLoading, settingsLoading, isAuthenticated])
 
-	// Unlock when user logs out
-	useEffect(() => {
-		if (!isAuthenticated && isInitialized) {
-			setIsLocked(false)
-		}
-	}, [isAuthenticated, isInitialized])
-
 	// AppState listener for background/foreground transitions
 	useEffect(() => {
-		if (!isInitialized) return
-
 		const subscription = AppState.addEventListener('change', (nextAppState) => {
 			const prevState = appStateRef.current
+			appStateRef.current = nextAppState
+			if (!isInitializedRef.current) return
 
 			// Going to background: record timestamp
 			if (prevState === 'active' && (nextAppState === 'background' || nextAppState === 'inactive')) {
@@ -70,12 +62,10 @@ export const AppLockProvider = ({ children }) => {
 				}
 				backgroundTimestampRef.current = null
 			}
-
-			appStateRef.current = nextAppState
 		})
 
 		return () => subscription.remove()
-	}, [isInitialized, isAuthenticated, appLockEnabled, security.autoLockTimeout])
+	}, [isAuthenticated, appLockEnabled, security.autoLockTimeout])
 
 	// Unlock with biometrics
 	const unlockWithBiometrics = useCallback(async () => {
@@ -149,7 +139,7 @@ export const AppLockProvider = ({ children }) => {
 	}, [updateSetting])
 
 	const value = {
-		isLocked,
+		isLocked: isLocked && isAuthenticated, // derived: logging out clears the lock
 		appLockEnabled,
 		unlockWithBiometrics,
 		unlockWithPin,
@@ -168,7 +158,7 @@ export const AppLockProvider = ({ children }) => {
 }
 
 export const useAppLock = () => {
-	const context = useContext(AppLockContext)
+	const context = use(AppLockContext)
 	if (!context) { throw new Error('useAppLock must be used within an AppLockProvider') }
 	return context
 }

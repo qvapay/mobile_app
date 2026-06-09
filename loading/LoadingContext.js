@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef, useCallback } from 'react'
+import { createContext, use, useState, useRef, useCallback } from 'react'
 
 const LoadingContext = createContext()
 
@@ -59,7 +59,7 @@ export const LoadingProvider = ({ children }) => {
 }
 
 export const useLoading = () => {
-	const context = useContext(LoadingContext)
+	const context = use(LoadingContext)
 	if (!context) { throw new Error('useLoading must be used within a LoadingProvider') }
 	return context
 }

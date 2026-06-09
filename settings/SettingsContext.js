@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 
 import useSettingsState from './useSettingsState'
 
@@ -19,7 +19,7 @@ export const SettingsProvider = ({ children }) => {
 
 // Custom hook to use the settings context
 export const useSettings = () => {
-	const context = useContext(SettingsContext)
+	const context = use(SettingsContext)
 	if (!context) { throw new Error('useSettings must be used within a SettingsProvider') }
 	return context
 }

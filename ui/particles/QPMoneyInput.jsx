@@ -1,4 +1,3 @@
-import { forwardRef } from 'react'
 import { StyleSheet, View, TextInput } from 'react-native'
 
 // Theme
@@ -7,7 +6,8 @@ import { useTheme } from '../../theme/ThemeContext'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-const QPInput = forwardRef((props, ref) => {
+// React 19: ref arrives as a regular prop
+const QPInput = ({ ref, ...props }) => {
 
     // Theme variables, dark and light modes
     const { theme } = useTheme()
@@ -37,7 +37,7 @@ const QPInput = forwardRef((props, ref) => {
             />
         </View>
     )
-})
+}
 
 const styles = StyleSheet.create({
     container: {

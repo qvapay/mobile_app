@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet, View, TextInput, Pressable, Text } from 'react-native'
 
 // Theme
@@ -7,8 +7,8 @@ import { useTheme } from '../../theme/ThemeContext'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Custom Input Component
-const QPInput = forwardRef((props, ref) => {
+// Custom Input Component — React 19: ref arrives as a regular prop
+const QPInput = ({ ref, ...props }) => {
 
 	const { style, multiline, prelabel } = props
 	const hasPrefix = !!props.prefixIconName
@@ -82,7 +82,7 @@ const QPInput = forwardRef((props, ref) => {
 
 		</View>
 	)
-})
+}
 
 const styles = StyleSheet.create({
 	container: {

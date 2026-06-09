@@ -1,6 +1,6 @@
 import { Appearance } from 'react-native'
 import { useTextStyles, useContainerStyles } from './themeUtils'
-import { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react'
+import { createContext, use, useEffect, useState, useMemo, useRef } from 'react'
 
 // Define your color palette
 const colors = {
@@ -238,7 +238,7 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
 
 // Custom hook to use theme
 export const useTheme = () => {
-    const context = useContext(ThemeContext)
+    const context = use(ThemeContext)
     if (!context) { throw new Error('useTheme must be used within a ThemeProvider') }
     return context
 }
