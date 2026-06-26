@@ -7,7 +7,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate } f
 
 // Theme Context
 import { useTheme } from "../../theme/ThemeContext"
-import { createTextStyles, createContainerStyles } from "../../theme/themeUtils"
+import { useTextStyles, useContainerStyles } from "../../theme/themeUtils"
 
 // User Context
 import { useAuth } from "../../auth/AuthContext"
@@ -64,8 +64,8 @@ const P2P = ({ navigation, route }) => {
 
 	// Theme Context
 	const { theme } = useTheme()
-	const textStyles = createTextStyles(theme)
-	const containerStyles = createContainerStyles(theme)
+	const textStyles = useTextStyles(theme)
+	const containerStyles = useContainerStyles(theme)
 	const insets = useSafeAreaInsets()
 	const { height: windowHeight } = useWindowDimensions()
 
@@ -115,8 +115,7 @@ const P2P = ({ navigation, route }) => {
 			const tick = route.params.coin
 			setFilter("selectedCoin", { tick, name: route.params.coinName || tick, logo: tick })
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [route?.params?.coin, route?.params?.coinName])
+	}, [route?.params?.coin, route?.params?.coinName, setFilter])
 
 	// Scroll-hide filter bar (Twitter-style)
 	const lastScrollY = useSharedValue(0)
@@ -166,8 +165,7 @@ const P2P = ({ navigation, route }) => {
 	// Toggle my offers filter
 	const toggleMyOffers = useCallback(() => {
 		setFilter("showMine", !showMine)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [showMine])
+	}, [showMine, setFilter])
 
 	// Configure header buttons locally to avoid non-serializable params
 	useEffect(() => {
@@ -193,8 +191,7 @@ const P2P = ({ navigation, route }) => {
 				],
 			}),
 		})
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [navigation, theme, hasActiveFilters, showMine, toggleMyOffers])
+	}, [navigation, theme, hasActiveFilters, showMine, toggleMyOffers, containerStyles])
 
 	// Remove a filter badge and re-fetch
 	const handleRemoveBadge = (badge) => {

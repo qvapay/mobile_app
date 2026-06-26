@@ -166,12 +166,12 @@ const GiftCardBrand = ({ navigation, route }) => {
 				dispatchData({ type: 'set', field: 'offers', value: res.data?.offers || [] })
 				dispatchData({ type: 'set', field: 'brand', value: res.data?.brand || brandSlug })
 				dispatchData({ type: 'set', field: 'brandLogo', value: res.data?.brand_logo_url || null })
-				if (res.data?.country && !country) dispatchData({ type: 'set', field: 'country', value: res.data.country })
+				// Only fall back to the fetched country when the route didn't supply one
+				if (res.data?.country && !initCountry) dispatchData({ type: 'set', field: 'country', value: res.data.country })
 			} else { toast.error('Tarjeta', { description: res.error || 'No se pudo cargar la tarjeta' }) }
 			setLoading(false)
 		})()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [countryCode, brandSlug])
+	}, [countryCode, brandSlug, initCountry])
 
 	const offerPrice = useMemo(() => {
 		if (!selectedOffer) return 0

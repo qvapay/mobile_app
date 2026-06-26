@@ -100,14 +100,14 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 				setOffers(res.data?.offers || [])
 				setBrand(res.data?.brand || brandSlug)
 				setBrandLogo(res.data?.brand_logo_url || null)
-				if (res.data?.country && !country) setCountry(res.data.country)
+				// Only fall back to the fetched country when the route didn't supply one
+				if (res.data?.country && !initCountry) setCountry(res.data.country)
 			} else {
 				toast.error('Operador', { description: res.error || 'No se pudo cargar el operador' })
 			}
 			setLoading(false)
 		})()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [countryCode, brandSlug])
+	}, [countryCode, brandSlug, initCountry])
 
 	// País bloqueado al del brand — el wizard de un operador no debería permitir
 	// cambiar el destino (Cubacel = CU, Telcel = MX, etc.). Construimos el E.164

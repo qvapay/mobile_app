@@ -81,6 +81,8 @@ const Transactions = ({ navigation, route }) => {
 	// so refs avoid re-rendering the whole list on every page/hasMore change.
 	const pageRef = useRef(1)
 	const hasMoreRef = useRef(true)
+	// In-flight guard kept in a ref so fetchTransactions needn't capture isLoading state
+	const inFlightRef = useRef(false)
 
 	// Applied filter state
 	const [filters, setFilters] = useState({})
@@ -107,7 +109,8 @@ const Transactions = ({ navigation, route }) => {
 	// Fetch transactions with current filters
 	const fetchTransactions = useCallback(async (pageNum = 1, refresh = false, activeFilters = filters) => {
 
-		if (isLoading) return
+		if (inFlightRef.current) return
+		inFlightRef.current = true
 
 		try {
 
@@ -129,9 +132,9 @@ const Transactions = ({ navigation, route }) => {
 		} catch (error) {
 			// Silent fail - list stays as is
 		} finally {
+			inFlightRef.current = false
 			dispatchList({ type: 'finish' })
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [filters])
 
 	// Open filter modal with current filters as draft

@@ -5,6 +5,10 @@ import { View, Text, Pressable, Animated, StyleSheet } from 'react-native'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
+// Pill animation target per side; everything else sits at the neutral midpoint.
+const POSITION_OFFSET = { left: 0, right: 1 }
+const NEUTRAL_OFFSET = 0.5
+
 // Reusable animated segmented switch (left/right)
 // Supports controlled (value/position) and uncontrolled (defaultValue) usage
 const QPSwitch = ({
@@ -36,35 +40,23 @@ const QPSwitch = ({
 	const controlledValue = value !== undefined ? value : (position !== undefined ? position : undefined)
 	const hasValue = controlledValue !== undefined && controlledValue !== null
 	const initialValue = hasValue ? controlledValue : defaultValue
-	const getInitialTranslateValue = () => {
-		if (initialValue === 'left') return 0
-		if (initialValue === 'right') return 1
-		return 0.5 // Neutral position
-	}
-	const translate = useRef(new Animated.Value(getInitialTranslateValue())).current
+	const translate = useRef(new Animated.Value(POSITION_OFFSET[initialValue] ?? NEUTRAL_OFFSET)).current
 	const [containerWidth, setContainerWidth] = useState(0)
-	const [internalValue, setInternalValue] = useState(hasValue ? controlledValue : defaultValue)
+	// Uncontrolled state only; when controlled, the value is derived from props so
+	// there is no second copy to keep in sync.
+	const [uncontrolledValue, setUncontrolledValue] = useState(initialValue)
+	const currentValue = hasValue ? controlledValue : uncontrolledValue
 
-	// Keep internal value in sync when controlled
+	// Animate the pill whenever the selected value changes (from a press here or
+	// from a controlled prop update by the parent).
 	useEffect(() => {
-		if (controlledValue !== undefined) {
-			setInternalValue(controlledValue)
-		}
-	}, [controlledValue])
-
-	useEffect(() => {
-		let targetValue = 0.5 // Default to neutral
-		if (internalValue === 'left') targetValue = 0
-		else if (internalValue === 'right') targetValue = 1
-
 		Animated.spring(translate, {
-			toValue: targetValue,
+			toValue: POSITION_OFFSET[currentValue] ?? NEUTRAL_OFFSET,
 			useNativeDriver: true,
 			friction: 12,
 			tension: 120
 		}).start()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [internalValue])
+	}, [currentValue, translate])
 
 	const halfWidth = Math.max(0, containerWidth / 2)
 	const pillWidth = Math.max(0, halfWidth - 4) // 2px inset on each side within half
@@ -77,15 +69,13 @@ const QPSwitch = ({
 	})
 
 	const handlePress = (next) => {
-		
+
 		if (disabled) return
-		const isControlled = controlledValue !== undefined
 
 		// If clicking on the already selected option, deselect it (toggle off)
-		const currentValue = isControlled ? controlledValue : internalValue
 		const newValue = currentValue === next ? null : next
 
-		if (!isControlled) { setInternalValue(newValue) }
+		if (!hasValue) { setUncontrolledValue(newValue) }
 		onChange && onChange(newValue)
 		if (newValue === 'left') { onLeftPress && onLeftPress() }
 		else if (newValue === 'right') { onRightPress && onRightPress() }
@@ -98,16 +88,16 @@ const QPSwitch = ({
 				style={[styles.segmentedPill, {
 					left: 0,
 					width: pillWidth,
-					backgroundColor: internalValue === 'left' ? leftColor : internalValue === 'right' ? rightColor : 'transparent',
+					backgroundColor: currentValue === 'left' ? leftColor : currentValue === 'right' ? rightColor : 'transparent',
 					transform: [{ translateX: pillTranslateX }],
-					opacity: internalValue !== null && internalValue !== undefined ? 1 : 0
+					opacity: currentValue !== null && currentValue !== undefined ? 1 : 0
 				}]}
 			/>
 			<Pressable style={styles.segmentedOption} onPress={() => handlePress('left')} disabled={disabled}>
-				<Text style={[textStyles.h6, { color: internalValue === 'left' ? (leftTextColor || theme.colors.almostWhite) : theme.colors.primaryText }]}>{leftText}</Text>
+				<Text style={[textStyles.h6, { color: currentValue === 'left' ? (leftTextColor || theme.colors.almostWhite) : theme.colors.primaryText }]}>{leftText}</Text>
 			</Pressable>
 			<Pressable style={styles.segmentedOption} onPress={() => handlePress('right')} disabled={disabled}>
-				<Text style={[textStyles.h6, { color: internalValue === 'right' ? (rightTextColor || theme.colors.almostWhite) : theme.colors.primaryText }]}>{rightText}</Text>
+				<Text style={[textStyles.h6, { color: currentValue === 'right' ? (rightTextColor || theme.colors.almostWhite) : theme.colors.primaryText }]}>{rightText}</Text>
 			</Pressable>
 		</View>
 	)

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, Dimensions, Animated, Linking, Pressable } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 
@@ -85,17 +85,26 @@ const Scan = ({ navigation, route }) => {
 	// Animation
 	const scanLineAnimation = useRef(new Animated.Value(0)).current
 
+	// Start scanning animation (stable identity so the effect below can depend on it)
+	const startScanAnimation = useCallback(() => {
+		Animated.loop(
+			Animated.sequence([
+				Animated.timing(scanLineAnimation, { toValue: 1, duration: 2000, useNativeDriver: true }),
+				Animated.timing(scanLineAnimation, { toValue: 0, duration: 2000, useNativeDriver: true })
+			])
+		).start()
+	}, [scanLineAnimation])
+
 	// Request permission
 	useEffect(() => {
 		requestPermission()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
+	}, [requestPermission])
 
-	// Start scanning animation
+	// Start scanning animation — runs on mount when opened in scan mode and whenever
+	// scanning resumes (after a scan, or via the mode toggle).
 	useEffect(() => {
 		if (isScanning) { startScanAnimation() }
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isScanning])
+	}, [isScanning, startScanAnimation])
 
 	// Toggle camera based on mode — all setters at the call site so React batches one render
 	const handleViewModeChange = (side) => {
@@ -105,16 +114,6 @@ const Scan = ({ navigation, route }) => {
 		setViewMode(mode)
 		setIsScanning(scanning)
 		if (!scanning) { setIsTorchEnabled(false) }
-	}
-
-	// Start scanning animation
-	const startScanAnimation = () => {
-		Animated.loop(
-			Animated.sequence([
-				Animated.timing(scanLineAnimation, { toValue: 1, duration: 2000, useNativeDriver: true }),
-				Animated.timing(scanLineAnimation, { toValue: 0, duration: 2000, useNativeDriver: true })
-			])
-		).start()
 	}
 
 	// Handle barcode scanned

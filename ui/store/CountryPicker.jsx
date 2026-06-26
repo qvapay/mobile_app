@@ -7,8 +7,11 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
+// Stable no-op default so `onChange` doesn't change identity every render.
+const noop = () => {}
+
 // Trigger button + modal list. `countries` is the response from /api/store/*-catalog?countries.
-const CountryPicker = ({ countries = [], value = null, onChange = () => {}, placeholder = 'Seleccionar país' }) => {
+const CountryPicker = ({ countries = [], value = null, onChange = noop, placeholder = 'Seleccionar país' }) => {
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)

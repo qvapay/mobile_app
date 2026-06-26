@@ -2989,7 +2989,7 @@ SPEC CHECKSUMS:
   GoogleToolboxForMac: d1a2cbf009c453f4d6ded37c105e2f67a32206d8
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
-  hermes-engine: f8323d6179af462af35107dd71f47802cf7e85f7
+  hermes-engine: 03d2c750a59c9cee534ad710bf47b5b82808d130
   libavif: 84bbb62fb232c3018d6f1bab79beea87e35de7b7
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
@@ -3014,7 +3014,7 @@ SPEC CHECKSUMS:
   React: 1ba7d364ade7d883a1ec055bfc3606f35fdee17b
   React-callinvoker: bc2a26f8d84fb01f003fc6de6c9337b64715f95b
   React-Core: bdaa87b276ca31877632a982ecf7c36f8c826414
-  React-Core-prebuilt: c561e6c44aea85d115f7ba6144aabbd672ac2e13
+  React-Core-prebuilt: effce8c4c3c1e56faaddb4757f77063b3b6b547a
   React-CoreModules: b24989f62d56390ae08ca4f65e6f38fe6802de42
   React-cxxreact: 1a2dfcbc18a6b610664dba152adf327f063a0d12
   React-debug: d196e6df0599d78360b3211367e28c5583054133
@@ -3085,7 +3085,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 26bbf1e26768d08dd965a2b5e372e53f67b21fee
   ReactCodegen: 0e0907edc20b929e55e45572f6650ef92f927302
   ReactCommon: 309419492d417c4cbb87af06f67735afa40ecb9d
-  ReactNativeDependencies: 18a1f4096524de356d9e5e10a7182612248c88d6
+  ReactNativeDependencies: 34b0e94aa531dc00f2b841e93a43afef538bd6a6
   RNCClipboard: dc7658a25bbad5a30a32eb721f49375e54ac3c6c
   RNDeviceInfo: d79872e11c8e9c4de0d65b0ee6e0cee719f37fea
   RNFastImage: fa037b847a06a7119ea5c7af2a742dcec69fbc8e
@@ -3107,4 +3107,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: b7ff1384150397de514a53ba853d8506f4cef418
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

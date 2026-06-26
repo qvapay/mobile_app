@@ -95,19 +95,24 @@ const GoldCheck = ({ navigation }) => {
                 const result = await userApi.validateGoldReceipt({
                     receipt,
                     platform: Platform.OS,
+                    // Android's orderId (transactionId) is absent on free trials / intro offers — fall back
+                    // to the always-present purchase id / token so the backend never rejects for a missing id.
                     productId: purchase.productId,
-                    transactionId: purchase.transactionId,
+                    transactionId: purchase.transactionId || purchase.id || purchase.purchaseToken,
                 })
 
-                if (result.success) {
+                if (result.success && result.data?.success) {
                     const { finishTransaction: finish } = require('react-native-iap')
                     await finish({ purchase })
                     setGoldCheckStatus(true)
                     setGoldCheckExpire(result.data.golden_expire)
                     updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
                     toast.success('Suscripción Gold activada')
+                } else if (result.data?.pending || result.status === 202) {
+                    // Deferred payment (cash/carrier) not yet settled — do NOT finish; the store re-notifies on settle.
+                    toast.info('Tu pago está pendiente de confirmación. Tu Gold se activará al completarse.')
                 } else {
-                    toast.error(result.error || 'No se pudo validar la compra')
+                    toast.error(result.error || result.data?.error || 'No se pudo validar la compra')
                 }
             } catch (error) {
                 toast.error('Error al validar la compra')
@@ -257,16 +262,18 @@ const GoldCheck = ({ navigation }) => {
                 receipt,
                 platform: Platform.OS,
                 productId: latest.productId,
-                transactionId: latest.transactionId,
+                transactionId: latest.transactionId || latest.id || latest.purchaseToken,
             })
 
-            if (result.success) {
+            if (result.success && result.data?.success) {
                 setGoldCheckStatus(true)
                 setGoldCheckExpire(result.data.golden_expire)
                 updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
                 toast.success('Suscripción restaurada')
+            } else if (result.data?.pending || result.status === 202) {
+                toast.info('Tu pago está pendiente de confirmación.')
             } else {
-                toast.error(result.error || 'No se pudo restaurar la suscripción')
+                toast.error(result.error || result.data?.error || 'No se pudo restaurar la suscripción')
             }
         } catch (error) {
             toast.error('Error al restaurar compras')

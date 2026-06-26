@@ -39,13 +39,21 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	const pageRef = useRef(1)
 	const hasMoreRef = useRef(true)
 
+	// Latest apiFilters + in-flight flag kept in refs so fetchP2POffers can have a
+	// stable identity (empty deps) — letting the effects below depend on it honestly.
+	const apiFiltersRef = useRef(apiFilters)
+	apiFiltersRef.current = apiFilters
+	const inFlightRef = useRef(false)
+
 	// Coins for the picker
 	const [availableCoins, setAvailableCoins] = useState([])
 	const [loadingCoins, setLoadingCoins] = useState(false)
 
 	// Get the Latest P2P Offers
 	const fetchP2POffers = useCallback(async (pageNum = 1, isRefresh = false) => {
-		if (isLoading) return
+		if (inFlightRef.current) return
+		inFlightRef.current = true
+		const apiFilters = apiFiltersRef.current
 		try {
 			dispatchList({ type: "start", kind: isRefresh ? "refresh" : pageNum === 1 ? "initial" : "more" })
 			const response = await p2pApi.index({ ...apiFilters, page: pageNum })
@@ -71,16 +79,15 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 			dispatchList({ type: "error", error: "Error de conexión" })
 			toast.error("Error de conexión")
 		} finally {
+			inFlightRef.current = false
 			dispatchList({ type: "finish" })
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [apiFilters])
+	}, [])
 
-	// Load data on mount
+	// Load data on mount (and if P2P becomes enabled)
 	useEffect(() => {
 		if (p2pEnabled) { fetchP2POffers(1) }
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
+	}, [p2pEnabled, fetchP2POffers])
 
 	// Auto-fetch when quick filters change (type, coin, sort, showMine)
 	const isFirstRender = useRef(true)
@@ -90,8 +97,7 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 			return
 		}
 		if (p2pEnabled) { fetchP2POffers(1, true) }
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [quickKey])
+	}, [quickKey, p2pEnabled, fetchP2POffers])
 
 	// Load coins for coin picker (once on mount)
 	useEffect(() => {

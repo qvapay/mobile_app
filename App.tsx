@@ -1,6 +1,6 @@
 // React Components
-import { Linking, Platform, Pressable } from 'react-native'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Platform, Pressable } from 'react-native'
+import React, { useEffect, useMemo, useRef } from 'react'
 
 // OneSignal Push Notifications
 import { OneSignal } from 'react-native-onesignal'
@@ -10,14 +10,14 @@ import { enableFreeze } from 'react-native-screens'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { NavigationContainer, useNavigation, DefaultTheme, DarkTheme } from '@react-navigation/native'
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'
 
 enableFreeze(true)
 
 const Stack = createNativeStackNavigator()
 
 // Auth Context
-import { AuthProvider, useAuth } from './auth/AuthContext'
+import { AuthProvider } from './auth/AuthContext'
 
 // Settings Context
 import { SettingsProvider, useSettings } from './settings/SettingsContext'
@@ -91,36 +91,15 @@ import SettingsStack from './screens/settings/SettingsStack'
 import Contacts from './screens/settings/subpanels/Contacts'
 
 // Notifications
-import { Toaster, toast } from 'sonner-native'
-
-// Sound
-import playSound from './helpers/playSound'
+import { Toaster } from 'sonner-native'
 
 // UI Components
 import QPAvatar from './ui/particles/QPAvatar'
 import ErrorBoundary from './ui/ErrorBoundary'
 import UpdatePromptModal from './ui/UpdatePromptModal'
 
-// Version Check
-import { maybePromptUpdate } from './helpers/versionCheck'
-
-// Parse P2P UUID from a deep link URL
-const parseP2PUuid = (url: string): string | null => {
-	const match = url.match(/\/p2p\/([^/?#]+)/)
-	if (match) return match[1]
-	const schemeMatch = url.match(/qvapay:\/\/p2p\/([^/?#]+)/)
-	if (schemeMatch) return schemeMatch[1]
-	return null
-}
-
-// Parse Pay UUID from a deep link URL (e.g. https://qvapay.com/pay/<uuid> or qvapay://pay/<uuid>)
-const parsePayUuid = (url: string): string | null => {
-	const match = url.match(/\/pay\/([^/?#]+)/)
-	if (match) return match[1]
-	const schemeMatch = url.match(/qvapay:\/\/pay\/([^/?#]+)/)
-	if (schemeMatch) return schemeMatch[1]
-	return null
-}
+// App-root navigation side effects (splash, deep links, OneSignal, auth routing)
+import { useAppNavigation } from './hooks/useAppNavigation'
 
 // Main App Navigator Component
 const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObject<string | null> }) => {
@@ -141,148 +120,18 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 		...(options?.headerRight && { headerRight: options.headerRight }),
 	}), [])
 
-	// State to control minimum splash screen time
-	const [splashReady, setSplashReady] = useState(false)
-
-	// Update prompt state
-	const [updateInfo, setUpdateInfo] = useState<{ needsUpdate: boolean; currentVersion?: string; latestVersion?: string; storeUrl?: string } | null>(null)
-
-	// Check if this is the first time using the app
-	const { appearance, sounds, isLoading: settingsLoading } = useSettings()
-	const firstTime = appearance.firstTime
-
-	// Navigation
-	const navigation = useNavigation()
-
-	// Auth Context
-	const { user } = useAuth()
-	const { isAuthenticated, isLoading: authLoading } = useAuth()
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			setSplashReady(true)
-		}, 2000)
-		return () => clearTimeout(timer)
-	}, [])
-
-	// Check for store update on app launch
-	useEffect(() => {
-		(async () => {
-			const info = await maybePromptUpdate()
-			if (info?.needsUpdate) setUpdateInfo(info)
-		})()
-	}, [])
-
-	// Navigation handler for auth state changes
-	// Only re-run when auth state actually changes, not on settings/theme changes
-	useEffect(() => {
-		if (splashReady && !authLoading && !settingsLoading) {
-			const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
-			if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
-				// Check for a pending deep link after login
-				const pendingUrl = pendingDeepLinkRef.current
-				if (pendingUrl) {
-					pendingDeepLinkRef.current = null
-					const payUuid = parsePayUuid(pendingUrl)
-					if (payUuid) {
-						navigation.reset({
-							index: 1,
-							routes: [
-								{ name: ROUTES.MAIN_STACK as never },
-								{ name: ROUTES.PAY_SCREEN as never, params: { uuid: payUuid } as never },
-							],
-						})
-						return
-					}
-					const p2pUuid = parseP2PUuid(pendingUrl)
-					if (p2pUuid) {
-						navigation.reset({
-							index: 1,
-							routes: [
-								{ name: ROUTES.MAIN_STACK as never },
-								{ name: ROUTES.P2P_OFFER_SCREEN as never, params: { p2p_uuid: p2pUuid } as never },
-							],
-						})
-						return
-					}
-				}
-				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK as never }] })
-			} else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
-				// Capture the current deep link URL before resetting to Welcome
-				Linking.getInitialURL().then((url) => {
-					if (!url) return
-					if (parsePayUuid(url)) {
-						pendingDeepLinkRef.current = url
-						toast.info('Inicia sesión para pagar la factura')
-					} else if (parseP2PUuid(url)) {
-						pendingDeepLinkRef.current = url
-						toast.info('Inicia sesión para ver la oferta P2P')
-					}
-				})
-				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN as never }] })
-			}
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [splashReady, authLoading, settingsLoading, isAuthenticated, firstTime])
-
-	// Listen for foreground deep links while unauthenticated
-	useEffect(() => {
-		const subscription = Linking.addEventListener('url', ({ url }) => {
-			if (!isAuthenticated && url) {
-				if (parsePayUuid(url)) {
-					pendingDeepLinkRef.current = url
-					toast.info('Inicia sesión para pagar la factura')
-				} else if (parseP2PUuid(url)) {
-					pendingDeepLinkRef.current = url
-					toast.info('Inicia sesión para ver la oferta P2P')
-				}
-			}
-		})
-		return () => subscription.remove()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isAuthenticated])
-
-	// OneSignal notification listeners
-	useEffect(() => {
-		// Foreground notification: show as toast
-		const onForeground = (event: any) => {
-			event.preventDefault()
-			const notification = event.getNotification()
-			const data = notification.additionalData
-			// Play sound based on notification type
-			if (sounds?.enabled) {
-				if (sounds?.transactionSound && (data?.type === 'transaction' || data?.type === 'transfer')) {
-					playSound('money_in')
-				} else {
-					playSound('notification')
-				}
-			}
-			toast.info(notification.title || 'QvaPay', { description: notification.body || undefined })
-			notification.display()
-		}
-
-		// Notification tapped: navigate to the right screen
-		const onClicked = (event: any) => {
-			const data = event.notification?.additionalData
-			if (!data?.type || !isAuthenticated) return
-
-			if (data.type === 'transaction' && data.uuid) {
-				(navigation as any).navigate(ROUTES.TRANSACTION, { uuid: data.uuid })
-			} else if (data.type === 'p2p' && data.uuid) {
-				(navigation as any).navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: data.uuid })
-			} else if (data.type === 'transfer') {
-				(navigation as any).navigate(ROUTES.TRANSACTIONS)
-			}
-		}
-
-		OneSignal.Notifications.addEventListener('foregroundWillDisplay', onForeground)
-		OneSignal.Notifications.addEventListener('click', onClicked)
-
-		return () => {
-			OneSignal.Notifications.removeEventListener('foregroundWillDisplay', onForeground)
-			OneSignal.Notifications.removeEventListener('click', onClicked)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isAuthenticated])
+	// Splash timing, store-update prompt, auth routing and deep-link handling
+	const {
+		navigation,
+		user,
+		isAuthenticated,
+		authLoading,
+		settingsLoading,
+		firstTime,
+		splashReady,
+		updateInfo,
+		dismissUpdate,
+	} = useAppNavigation(pendingDeepLinkRef)
 
 	// Memoized screen options to prevent re-renders that cause liquid glass flash on iOS
 	const stackScreenOptions = useMemo(() => ({
@@ -528,7 +377,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				currentVersion={updateInfo?.currentVersion}
 				latestVersion={updateInfo?.latestVersion}
 				storeUrl={updateInfo?.storeUrl}
-				onDismiss={() => setUpdateInfo(null)}
+				onDismiss={dismissUpdate}
 			/>
 		</>
 	)

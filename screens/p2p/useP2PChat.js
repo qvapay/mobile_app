@@ -75,11 +75,10 @@ export default function useP2PChat({ p2p_uuid }) {
 		} finally { set("loading", false) }
 	}, [p2p_uuid, set])
 
-	// Load chat on mount
+	// Load chat on mount (and reload if the offer being viewed changes)
 	useEffect(() => {
 		fetchChat()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
+	}, [fetchChat])
 
 	// Auto-scroll to bottom when messages change (only if the user is parked at the bottom)
 	useEffect(() => {

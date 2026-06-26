@@ -181,8 +181,7 @@ export default function Keypad({ navigation }) {
 				)}
 			</Pressable>
 		)
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [handleKeyPress, isProcessing, theme.colors.primaryText])
+	}, [handleKeyPress, isProcessing, theme])
 
 	// Format amount for display
 	const formattedAmount = useMemo(() => {

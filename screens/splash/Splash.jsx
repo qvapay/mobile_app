@@ -50,8 +50,7 @@ const SplashScreen = () => {
             ]).start()
         }, 800)
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [opacityAnim, scaleAnim])
 
     return (
         <View style={[containerStyles.subContainer, { backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }]}>

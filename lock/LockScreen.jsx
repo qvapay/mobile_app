@@ -50,6 +50,11 @@ const LockScreen = () => {
 		checkBiometrics()
 	}, [isLocked, security.biometricsEnabled])
 
+	const handleBiometricUnlock = useCallback(async () => {
+		setError('')
+		await unlockWithBiometrics()
+	}, [unlockWithBiometrics])
+
 	// Auto-prompt biometrics when lock screen appears
 	useEffect(() => {
 		if (!isLocked || !biometricsAvailable) return
@@ -57,8 +62,7 @@ const LockScreen = () => {
 			handleBiometricUnlock()
 		}, 500)
 		return () => clearTimeout(timer)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isLocked, biometricsAvailable])
+	}, [isLocked, biometricsAvailable, handleBiometricUnlock])
 
 	// Reset state when lock screen is shown/hidden
 	useEffect(() => {
@@ -79,26 +83,17 @@ const LockScreen = () => {
 		]).start()
 	}, [shakeAnim])
 
-	// Auto-submit when 4 digits entered
-	useEffect(() => {
-		if (pin.length === 4) {
-			const verify = async () => {
-				const result = await unlockWithPin(pin)
-				if (!result.success) {
-					setError('PIN incorrecto')
-					setPin('')
-					triggerShake()
-					setTimeout(() => pinInputsRef.current[0]?.focus(), 300)
-				}
-			}
-			verify()
+	// Verify the entered PIN — called directly from the input handler the moment the
+	// 4th digit lands (no state round-trip through an effect).
+	const verifyPin = async (code) => {
+		const result = await unlockWithPin(code)
+		if (!result.success) {
+			setError('PIN incorrecto')
+			setPin('')
+			triggerShake()
+			setTimeout(() => pinInputsRef.current[0]?.focus(), 300)
 		}
-	}, [pin, unlockWithPin, triggerShake])
-
-	const handleBiometricUnlock = useCallback(async () => {
-		setError('')
-		await unlockWithBiometrics()
-	}, [unlockWithBiometrics])
+	}
 
 	// PIN input handlers (same pattern as SendConfirm.jsx)
 	const handlePinChange = (text, index) => {
@@ -109,6 +104,7 @@ const LockScreen = () => {
 		setPin(updatedPin)
 		setError('')
 		if (numericText && index < 3) { pinInputsRef.current[index + 1]?.focus() }
+		if (updatedPin.length === 4) { verifyPin(updatedPin) }
 	}
 
 	const handlePinFocus = (index) => { setFocusedInputIndex(index) }

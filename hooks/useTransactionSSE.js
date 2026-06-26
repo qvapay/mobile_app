@@ -19,7 +19,6 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 	const [status, setStatus] = useState('pending')
 	const [error, setError] = useState(null)
 	const [isConnected, setIsConnected] = useState(false)
-	const eventSourceRef = useRef(null)
 	const retriesRef = useRef(0)
 	const onStatusChangeRef = useRef(onStatusChange)
 
@@ -49,7 +48,6 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 						...(token ? { Authorization: `Bearer ${token}` } : {}),
 					},
 				})
-				eventSourceRef.current = es
 
 				es.addEventListener('open', () => {
 					setError(null)
@@ -76,7 +74,6 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 
 						if (TERMINAL_STATUSES.includes(newStatus)) {
 							es.close()
-							eventSourceRef.current = null
 							setIsConnected(false)
 						}
 					} catch (err) {
@@ -91,7 +88,6 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 					if (retriesRef.current >= RETRY_LIMIT) {
 						setError('Se perdió la conexión con el servidor')
 						es.close()
-						eventSourceRef.current = null
 					}
 				})
 
@@ -103,11 +99,9 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 
 		connect()
 
+		// Close the connection THIS effect opened (captured in `es`).
 		return () => {
-			if (eventSourceRef.current) {
-				eventSourceRef.current.close()
-				eventSourceRef.current = null
-			}
+			es?.close()
 			setIsConnected(false)
 		}
 	}, [transactionUuid])

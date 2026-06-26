@@ -1,4 +1,4 @@
-import { useReducer, useMemo } from "react"
+import { useReducer, useMemo, useCallback } from "react"
 
 const PAGE_SIZE = 30
 
@@ -38,8 +38,9 @@ function filtersReducer(state, action) {
 export default function useP2PFilters(initialCoin) {
 
 	const [filters, dispatch] = useReducer(filtersReducer, { ...initialFilters, selectedCoin: initialCoin })
-	const setFilter = (field, value) => dispatch({ type: "set", field, value })
-	const resetFilters = () => dispatch({ type: "reset" })
+	// Stable identities (dispatch is stable) so consumers can list them in deps safely.
+	const setFilter = useCallback((field, value) => dispatch({ type: "set", field, value }), [])
+	const resetFilters = useCallback(() => dispatch({ type: "reset" }), [])
 
 	const { typeFilter, selectedCoin, sortIndex, showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip } = filters
 
@@ -88,7 +89,7 @@ export default function useP2PFilters(initialCoin) {
 		if (ratioMax !== "") badges.push({ key: "ratioMax", label: `Ratio ≤ ${ratioMax}`, onRemove: () => setFilter("ratioMax", "") })
 		if (onlyVip) badges.push({ key: "onlyVip", label: "Solo VIP", onRemove: () => setFilter("onlyVip", false) })
 		return badges
-	}, [showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip])
+	}, [showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip, setFilter])
 
 	return { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges }
 }

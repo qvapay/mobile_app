@@ -1,4 +1,4 @@
-import { useReducer, useState, useEffect, useMemo } from "react"
+import { useReducer, useState, useEffect, useMemo, useCallback } from "react"
 import { Alert, Share } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
@@ -58,8 +58,9 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 
 	const [offer, dispatchOffer] = useReducer(offerReducer, initialOffer)
 	const { p2p, isLoading, error, refreshing, rating } = offer
-	const setP2p = (v) => dispatchOffer({ type: "set", field: "p2p", value: v })
-	const setRating = (v) => dispatchOffer({ type: "set", field: "rating", value: v })
+	// Stable setters (dispatch is stable) so the fetch helpers below can be memoized.
+	const setP2p = useCallback((v) => dispatchOffer({ type: "set", field: "p2p", value: v }), [])
+	const setRating = useCallback((v) => dispatchOffer({ type: "set", field: "rating", value: v }), [])
 
 	const [loading, dispatchLoading] = useReducer(loadingReducer, initialLoading)
 	const setLoading = (field, value) => dispatchLoading({ type: "set", field, value })
@@ -78,7 +79,7 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 	}
 
 	// Fetch P2P from server and cache
-	const fetchP2P = async () => {
+	const fetchP2P = useCallback(async () => {
 		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
 		try {
 			dispatchOffer({ type: "set", field: "isLoading", value: true })
@@ -93,10 +94,10 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		} catch (err) {
 			dispatchOffer({ type: "set", field: "error", value: err.message })
 		} finally { dispatchOffer({ type: "set", field: "isLoading", value: false }) }
-	}
+	}, [p2p_uuid, setP2p, setRating])
 
 	// Load P2P data with cache-first strategy
-	const loadP2PData = async () => {
+	const loadP2PData = useCallback(async () => {
 		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
 		// Step 1: Try to load from cache first (instant display)
 		try {
@@ -109,16 +110,15 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		} catch { /* ignore */ }
 		// Step 2: Fetch fresh data from server
 		await fetchP2P()
-	}
+	}, [p2p_uuid, fetchP2P, setP2p, setRating])
 
-	// Load on mount
+	// Load on mount (and reload if the offer being viewed changes)
 	useEffect(() => {
 		loadP2PData()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
+	}, [loadP2PData])
 
 	// Refetch and update cache (no loader)
-	const refetchP2P = async () => {
+	const refetchP2P = useCallback(async () => {
 		const cacheKey = `${P2P_CACHE_KEY}${p2p_uuid}`
 		try {
 			const response = await p2pApi.show(p2p_uuid)
@@ -128,7 +128,7 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 				try { await AsyncStorage.setItem(cacheKey, JSON.stringify(payload)) } catch { /* ignore */ }
 			}
 		} catch (e) { /* ignore */ }
-	}
+	}, [p2p_uuid, setP2p])
 
 	// Auto-polling every 5s for active statuses
 	useEffect(() => {
@@ -139,8 +139,7 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			fetchChat()
 		}, 5000)
 		return () => clearInterval(interval)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [p2p?.status, p2p_uuid])
+	}, [p2p, p2p_uuid, refetchP2P, fetchChat])
 
 	// Derived booleans
 	const isOwner = useMemo(() => !!(user?.uuid && p2p?.User?.uuid && user.uuid === p2p.User.uuid), [user?.uuid, p2p?.User?.uuid])

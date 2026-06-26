@@ -40,7 +40,6 @@ const BalanceCard = ({ balance, navigation }) => {
 
 	// State
 	const [showBalance, setShowBalance] = useState(true)
-	const [animatedBalance, setAnimatedBalance] = useState(balance || 0)
 	const [activeIndex, setActiveIndex] = useState(0)
 	const [savings, dispatchSavings] = useReducer(savingsReducer, initialSavings)
 	const scrollRef = useRef(null)
@@ -50,13 +49,6 @@ const BalanceCard = ({ balance, navigation }) => {
 		const balanceVisibility = getSetting('privacy', 'showBalance', true)
 		setShowBalance(balanceVisibility)
 	}, [getSetting])
-
-	// useEffect with balance dependency to animate the balance
-	useEffect(() => {
-		if (balance !== undefined && balance !== null) {
-			setAnimatedBalance(balance)
-		}
-	}, [balance])
 
 	// Fetch savings data
 	useEffect(() => {
@@ -106,7 +98,7 @@ const BalanceCard = ({ balance, navigation }) => {
 				{/* Page 1: Main Balance */}
 				<Pressable onPress={toggleShowBalance} style={[styles.page, { width: CARD_WIDTH }]}>
 					{showBalance ? (
-						<QPBalance formattedAmount={Number(animatedBalance).toFixed(2)} fontSize={60} theme={theme} />
+						<QPBalance formattedAmount={Number(balance || 0).toFixed(2)} fontSize={60} theme={theme} />
 					) : (
 						<Text style={[textStyles.amount, { color: theme.colors.primaryText }]}>
 							{getHiddenBalance()}
