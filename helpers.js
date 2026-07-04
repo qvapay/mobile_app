@@ -314,6 +314,14 @@ const tinyfiNumber = (number) => {
 	return n.toString()
 }
 
+// Money formatter with the sign BEFORE the symbol: "$12.50" / "-$12.50".
+// Los balances de ahorro pueden ser negativos (deudas gestionadas desde admin);
+// el color rojo lo decide cada pantalla con `Number(value) < 0`.
+const formatMoney = (value) => {
+	const n = Number(value) || 0
+	return `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`
+}
+
 // export helpers
 export {
 	timeSince,
@@ -335,5 +343,6 @@ export {
 	reduceStringInside,
 	formatCryptoAmount,
 	detectCopyableText,
-	tinyfiNumber
+	tinyfiNumber,
+	formatMoney
 }

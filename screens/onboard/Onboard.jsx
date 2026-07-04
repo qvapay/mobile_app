@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Text, View, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Animated, {
@@ -11,7 +11,6 @@ import Animated, {
 	interpolateColor,
 	useAnimatedStyle,
 	useSharedValue,
-	withDelay,
 	withRepeat,
 	withSequence,
 	withSpring,
@@ -24,6 +23,9 @@ import { useSettings } from '../../settings/SettingsContext'
 // Push prompt
 import usePushPrompt from '../../hooks/usePushPrompt'
 import PushPromptModal from '../../ui/PushPromptModal'
+
+// Step transitions (direction-aware, shared with Register)
+import useStepTransitions from '../../hooks/useStepTransitions'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -83,22 +85,16 @@ const onboard_steps = [
 	}
 ]
 
-// Spring compartido de las transiciones de step
-const STEP_SPRING = { mass: 0.8, damping: 18, stiffness: 170 }
-
 // Dot del indicador: el activo se estira a píldora con color primario
 const StepDot = ({ active, theme }) => {
 	const progress = useSharedValue(active ? 1 : 0)
-
 	useEffect(() => {
 		progress.value = withSpring(active ? 1 : 0, { mass: 0.6, damping: 16, stiffness: 200 })
 	}, [active, progress])
-
 	const animatedStyle = useAnimatedStyle(() => ({
 		width: 8 + progress.value * 16,
 		backgroundColor: interpolateColor(progress.value, [0, 1], [theme.colors.border, theme.colors.primary]),
 	}))
-
 	return <Animated.View style={[{ height: 8, borderRadius: 4, marginHorizontal: 4 }, animatedStyle]} />
 }
 
@@ -132,9 +128,8 @@ const Onboard = ({ navigation }) => {
 	const [currentStep, setCurrentStep] = useState(0)
 	const [showPushModal, setShowPushModal] = useState(false)
 
-	// Dirección del último cambio de step (1 = adelante, -1 = atrás), leída
-	// dentro de los worklets de enter/exit en el momento exacto de la animación
-	const direction = useSharedValue(1)
+	// Transiciones direccionales de step (compartidas con el wizard de registro)
+	const { direction, makeStepEnter, stepExit } = useStepTransitions()
 
 	// Theme Context
 	const { theme } = useTheme()
@@ -181,44 +176,6 @@ const Onboard = ({ navigation }) => {
 			setCurrentStep(currentStep - 1)
 		}
 	}
-
-	// Animaciones custom conscientes de la dirección. La entrada se aplica
-	// escalonada a imagen/título/descripción (cascada); la salida al bloque completo.
-	const { stepExit, makeStepEnter } = useMemo(() => {
-		const makeEnter = (delay) => (values) => {
-			'worklet'
-			return {
-				initialValues: {
-					opacity: 0,
-					transform: [{ translateX: direction.value * 90 }, { scale: 0.96 }],
-				},
-				animations: {
-					opacity: withDelay(delay, withTiming(1, { duration: 320 })),
-					transform: [
-						{ translateX: withDelay(delay, withSpring(0, STEP_SPRING)) },
-						{ scale: withDelay(delay, withSpring(1, STEP_SPRING)) },
-					],
-				},
-			}
-		}
-		const exit = (values) => {
-			'worklet'
-			return {
-				initialValues: {
-					opacity: 1,
-					transform: [{ translateX: 0 }, { scale: 1 }],
-				},
-				animations: {
-					opacity: withTiming(0, { duration: 180 }),
-					transform: [
-						{ translateX: withTiming(-direction.value * 60, { duration: 220, easing: Easing.out(Easing.quad) }) },
-						{ scale: withTiming(0.98, { duration: 220 }) },
-					],
-				},
-			}
-		}
-		return { stepExit: exit, makeStepEnter: makeEnter }
-	}, [direction])
 
 	const isLastStep = currentStep === onboard_steps.length - 1
 	const currentStepData = onboard_steps[currentStep]

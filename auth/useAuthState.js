@@ -130,6 +130,34 @@ export default function useAuthState() {
 		finally { setIsLoading(false) }
 	}
 
+	// Establish a full session from a successful auth API response: persist the
+	// token + user, flip auth state and link OneSignal. Shared by login,
+	// loginWithPasskey and the registration wizard (which authenticates silently
+	// and completes the session only after its optional phone-verification step).
+	const completeSession = async ({ accessToken, me, email }) => {
+
+		const userData = mapMeToUser(me, email || me.email)
+
+		await Promise.all([
+			AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
+			setAuthToken(accessToken),
+		])
+
+		setUser(userData)
+		setToken(accessToken)
+		setIsAuthenticated(true)
+
+		// Register user with OneSignal for targeted push notifications
+		OneSignal.login(userData.uuid)
+		OneSignal.User.addTags({
+			kyc: userData.kyc ? 'true' : 'false',
+			vip: userData.vip ? 'true' : 'false',
+			golden_check: userData.golden_check ? 'true' : 'false',
+		})
+
+		return userData
+	}
+
 	// Login function, we ask to the API for authentication
 	// If authentication is successful, we store the token and user data in storage and state
 	const login = async (credentials) => {
@@ -149,30 +177,9 @@ export default function useAuthState() {
 			// If Prelogin is successful, we return the status and success
 			if (apiResponse.status === 202) { return { success: true, status: apiResponse.status, notified: apiResponse.notified, has_otp: apiResponse.has_otp } }
 
-			// Extract data from API response
+			// Extract data from API response and establish the session
 			const { accessToken, me } = apiResponse
-
-			// Map user data from API response
-			const userData = mapMeToUser(me, credentials.email)
-
-			// Store user data and auth status
-			await Promise.all([
-				AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
-				setAuthToken(accessToken), // Use API client's token storage
-			])
-
-			// Update state
-			setUser(userData)
-			setToken(accessToken)
-			setIsAuthenticated(true)
-
-			// Register user with OneSignal for targeted push notifications
-			OneSignal.login(userData.uuid)
-			OneSignal.User.addTags({
-				kyc: userData.kyc ? 'true' : 'false',
-				vip: userData.vip ? 'true' : 'false',
-				golden_check: userData.golden_check ? 'true' : 'false',
-			})
+			await completeSession({ accessToken, me, email: credentials.email })
 
 			return { success: true, security_warning: apiResponse.security_warning || null }
 
@@ -206,23 +213,7 @@ export default function useAuthState() {
 
 			// 4. Store credentials (same as regular login)
 			const { accessToken, me } = verifyResult
-			const userData = mapMeToUser(me, me.email)
-
-			await Promise.all([
-				AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
-				setAuthToken(accessToken),
-			])
-
-			setUser(userData)
-			setToken(accessToken)
-			setIsAuthenticated(true)
-
-			OneSignal.login(userData.uuid)
-			OneSignal.User.addTags({
-				kyc: userData.kyc ? 'true' : 'false',
-				vip: userData.vip ? 'true' : 'false',
-				golden_check: userData.golden_check ? 'true' : 'false',
-			})
+			await completeSession({ accessToken, me, email: me.email })
 
 			return { success: true }
 
@@ -399,6 +390,7 @@ export default function useAuthState() {
 		updateUser,
 		clearError,
 		requestPin,
-		confirmRegistration
+		confirmRegistration,
+		completeSession
 	}
 }

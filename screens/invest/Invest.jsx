@@ -14,6 +14,9 @@ import { stocksApi } from '../../api/stocksApi'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Helpers
+import { formatMoney } from '../../helpers'
+
 // UI
 import QPLoader from '../../ui/particles/QPLoader'
 import QPCoin from '../../ui/particles/QPCoin'
@@ -36,14 +39,16 @@ const P2P_COINS = ['BANK_CUP', 'BANK_MLC', 'CLASICA', 'BANDECPREPAGO', 'ETECSA',
 // --- Sub-components ---
 
 const SavingsCard = ({ savings, theme, textStyles, onPress }) => {
-	const balance = Number(savings?.balance || 0).toFixed(2)
+	// El balance puede ser negativo (deuda gestionada desde admin): danger + signo
+	const isDebt = Number(savings?.balance || 0) < 0
+	const balance = formatMoney(savings?.balance)
 	const rate = savings?.currentRate || 0
 	return (
 		<Pressable onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme), { opacity: pressed ? 0.85 : 1 }]}>
 			<View style={styles.savingsRow}>
 				<View style={styles.savingsInfo}>
 					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>Ahorros</Text>
-					<Text style={[textStyles.h1, styles.savingsBalance]}>${balance}</Text>
+					<Text style={[textStyles.h1, styles.savingsBalance, isDebt && { color: theme.colors.danger }]}>{balance}</Text>
 					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> anual</Text>
 				</View>
 				<View style={[styles.savingsIcon, { backgroundColor: theme.colors.primary + '15' }]}>
