@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-QvaPay is a React Native mobile fintech app (RN 0.84.1, React 19.2.3) providing a non-custodial wallet, P2P marketplace, crypto payment gateway, savings (with Roundup), phone top-ups and gift cards for underbanked regions in Latin America and the Caribbean. The version lives in `package.json` (currently **1.7.6**) and is synced everywhere else by `npm run version:sync`. The backend API lives at `~/webs/qpweb` (Next.js 16).
+QvaPay is a React Native mobile fintech app (RN 0.84.1, React 19.2.3) providing a non-custodial wallet, P2P marketplace, crypto payment gateway, savings (with Roundup), phone top-ups and gift cards for underbanked regions in Latin America and the Caribbean. The version lives in `package.json` (currently **1.8.0**) and is synced everywhere else by `npm run version:sync`. The backend API lives at `~/webs/qpweb` (Next.js 16).
 
 ## Common Commands
 
@@ -20,6 +20,7 @@ npm run start            # Start Metro bundler
 npm run lint             # Run ESLint (@react-native config)
 npm run test             # Run Jest tests (react-native preset)
 npx jest screens/keypad/keypadAmount.test.js  # Run a single test file
+npm run doctor           # react-doctor diagnostics (also runs in CI: .github/workflows/react-doctor.yml)
 
 # Release (Android)
 npm run android:bundle      # Bundle release AAB
@@ -150,7 +151,7 @@ UI conventions:
 - `/settings/`: SettingsContext + useSettingsState + settingsConstants
 - `/lock/`: AppLockContext + LockScreen
 - `/loading/`: LoadingContext (bridged to axios for `GlobalLoadingBar`)
-- `/hooks/`: `OnlineStatusContext`, `useDeviceContacts`, `usePinEntry` (multi-box PIN/OTP input mechanics), `usePushPrompt`, `useTransactionSSE` (real-time transaction stream via `react-native-sse`)
+- `/hooks/`: `OnlineStatusContext`, `useAppNavigation`, `useDeviceContacts`, `usePinEntry` (multi-box PIN/OTP input mechanics), `usePushPrompt`, `useTransactionSSE` (real-time transaction stream via `react-native-sse`)
 - `/helpers/`: `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `stickers.js` (QvaPay sticker catalog), `versionCheck.js` (drives `UpdatePromptModal`), `walletDeeplinks.js` (Trust Wallet & co. universal links for deposits), `widgetBridge.js` (iOS/Android home-screen widgets)
 - `/helpers.js`: legacy utilities (timeAgo, parseQRData, dates — Spanish locale)
 - `/assets/`: images, Rubik fonts, Lottie animations
