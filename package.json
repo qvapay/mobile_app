@@ -1,11 +1,12 @@
 {
   "name": "QvaPay",
-  "version": "1.8.0",
+  "version": "1.8.2",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
     "ios:build": "cd ios && xcodebuild -workspace QvaPay.xcworkspace -scheme QvaPay -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build",
     "ios": "react-native run-ios",
+    "ios:device": "react-native run-ios --udid 00008150-00110C693E08401C",
     "pods": "cd ios && pod install",
     "lint": "eslint .",
     "start": "react-native start",
@@ -19,6 +20,7 @@
     "android:publish:production": "cd android && ./gradlew publishBundle --track production",
     "version:sync": "node scripts/sync-version.js",
     "preios": "node scripts/sync-version.js",
+    "preios:device": "node scripts/sync-version.js",
     "preios:build": "node scripts/sync-version.js",
     "preandroid": "node scripts/sync-version.js",
     "doctor": "npx react-doctor@latest"
