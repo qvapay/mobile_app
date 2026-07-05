@@ -27,6 +27,8 @@ import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 import WatchlistCard from '../../ui/WatchlistCard'
 import PromoBanner from '../../ui/PromoBanner'
 import CashDeliveryCard from '../../ui/CashDeliveryCard'
+import TransactionSkeleton from '../../ui/TransactionSkeleton'
+import EmptyTransactions from '../../ui/EmptyTransactions'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -102,6 +104,7 @@ const Home = ({ navigation }) => {
 
 	// State
 	const [, setIsLoading] = useState(false)
+	const [txLoading, setTxLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
 	const [feed, dispatchFeed] = useReducer(feedReducer, initialFeed)
 	const { latestTransactions, latestSentTransfersUsers, latestBlogPosts, watchlistData, promo, updateInfo } = feed
@@ -148,7 +151,10 @@ const Home = ({ navigation }) => {
 				if (avatarUrls.length > 0) FastImage.preload(avatarUrls)
 			}
 		} catch (err) { /* error fetching transactions */ }
-		finally { if (!skipLoading) setIsLoading(false) }
+		finally {
+			if (!skipLoading) setIsLoading(false)
+			setTxLoading(false)
+		}
 	}
 
 	const fetchLatestSentTransfersUsers = async (skipLoading = false) => {
@@ -259,10 +265,13 @@ const Home = ({ navigation }) => {
 					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.SEND)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-							<Pressable onPress={() => navigation.navigate(ROUTES.SEND)}>
+							<Pressable onPress={() => navigation.navigate(ROUTES.SEND)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 								<View style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}>
 									<FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />
 								</View>
+								{latestSentTransfersUsers.length === 0 && (
+									<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>Envía tu primer pago</Text>
+								)}
 							</Pressable>
 							{latestSentTransfersUsers.map((transferUser, index) => (
 								<Pressable key={index} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: transferUser.uuid, send_amount: '0.00' })}>
@@ -276,19 +285,33 @@ const Home = ({ navigation }) => {
 				<View style={styles.section}>
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Últimas transacciones</Text>
-						<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS, { showSearch: true })} hitSlop={8}>
-							<FontAwesome6 name="magnifying-glass" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
-						</Pressable>
+						{latestTransactions.length > 0 && (
+							<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS, { showSearch: true })} hitSlop={8}>
+								<FontAwesome6 name="magnifying-glass" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
+							</Pressable>
+						)}
 					</View>
-					<View>
-						{latestTransactions.map((transaction, index) => (
-							<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
-						))}
-					</View>
-					<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} >
-						<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>Ver todas</Text>
-						<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
-					</Pressable>
+					{latestTransactions.length > 0 ? (
+						<>
+							<View>
+								{latestTransactions.map((transaction, index) => (
+									<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation} index={index} totalItems={latestTransactions.length} />
+								))}
+							</View>
+							<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} >
+								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>Ver todas</Text>
+								<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
+							</Pressable>
+						</>
+					) : txLoading ? (
+						<View>
+							{[0, 1, 2].map(i => (
+								<TransactionSkeleton key={i} index={i} totalItems={3} />
+							))}
+						</View>
+					) : (
+						<EmptyTransactions navigation={navigation} />
+					)}
 				</View>
 
 				{/* Cash Delivery Card - only show when balance >= 200 */}

@@ -55,10 +55,13 @@ const usePushPrompt = () => {
 
 	const enablePush = useCallback(async () => {
 		try {
-			OneSignal.Notifications.requestPermission(true)
+			// Con fallbackToSettings la promesa resuelve al volver de Ajustes —
+			// esperar aquí evita seguir el flow con la app en background
+			const granted = await OneSignal.Notifications.requestPermission(true)
 			OneSignal.User.pushSubscription.optIn()
-			await userApi.updateNotificationSettings({ push_enabled: true })
-			setIsPushEnabled(true)
+			// Fire-and-forget: el flag del backend no debe bloquear la navegación
+			userApi.updateNotificationSettings({ push_enabled: true })
+			setIsPushEnabled(granted !== false)
 		} catch { /* push enable failed */ }
 	}, [])
 

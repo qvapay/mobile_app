@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useReducer } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import { usePreventRemove } from '@react-navigation/native'
 import Animated, {
 	interpolateColor,
 	useAnimatedStyle,
@@ -28,6 +29,9 @@ import { createTextStyles } from '../../theme/themeUtils'
 // Step transitions (direction-aware, shared with Onboard)
 import useStepTransitions from '../../hooks/useStepTransitions'
 
+// Push notifications (OneSignal permission + flags de prompts)
+import usePushPrompt from '../../hooks/usePushPrompt'
+
 // UI Particles
 import QPInput from '../../ui/particles/QPInput'
 import QPButton from '../../ui/particles/QPButton'
@@ -35,8 +39,8 @@ import QPCodeInput from '../../ui/particles/QPCodeInput'
 import QPPressable from '../../ui/particles/QPPressable'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 
-// Country picker (mismo del panel de teléfono en Settings)
-import CountryPickerModal from '../../screens/settings/subpanels/CountryPickerModal'
+// Phone input (chip de país + input, compartido con Settings y recargas)
+import QPPhoneInput from '../../ui/QPPhoneInput'
 import { countries } from '../../labels/countries'
 
 // Icons
@@ -46,7 +50,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { toast } from 'sonner-native'
 
 // Un dato por pantalla, estilo fintech: el orden es el del flow
-const STEPS = ['name', 'email', 'password', 'emailPin', 'phone', 'phoneCode']
+const STEPS = ['name', 'email', 'password', 'emailPin', 'phone', 'phoneCode', 'push']
 
 // Email validation
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -125,9 +129,8 @@ const RegisterScreen = ({ navigation }) => {
 
 	// UI state
 	const [isLoading, setIsLoading] = useState(false)
+	const [finishing, setFinishing] = useState(false)
 	const [showInvite, setShowInvite] = useState(false)
-	const [showCountryPicker, setShowCountryPicker] = useState(false)
-	const [countrySearch, setCountrySearch] = useState('')
 
 	// La sesión silenciosa (accessToken + me) vive aquí entre la verificación del
 	// email y el final del flow — nunca se renderiza
@@ -138,6 +141,9 @@ const RegisterScreen = ({ navigation }) => {
 
 	// Resend countdown for the phone code
 	const { label: countdownLabel, isDisabled: resendDisabled, start: startCountdown } = usePinCountdown()
+
+	// Push notifications — si el permiso ya está concedido el paso se omite
+	const { isPushEnabled, enablePush, dismissOnboardPrompt } = usePushPrompt()
 
 	// Derived validation
 	const nameValid = name.trim().length >= 2 && lastname.trim().length >= 2
@@ -160,24 +166,16 @@ const RegisterScreen = ({ navigation }) => {
 	// El chevron nativo del header (y el swipe/hardware back) navega DENTRO del
 	// wizard: email/password retroceden un paso, phoneCode vuelve al teléfono y
 	// phone (ya autenticado) entra a la app. En name y emailPin se permite salir.
-	useEffect(() => {
-		const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-			const type = e.data.action.type
-			if (type !== 'POP' && type !== 'GO_BACK') return
-			if (stepKey === 'email' || stepKey === 'password') {
-				e.preventDefault()
-				goTo(step - 1)
-			} else if (stepKey === 'phone') {
-				e.preventDefault()
-				finish()
-			} else if (stepKey === 'phoneCode') {
-				e.preventDefault()
-				goTo(STEPS.indexOf('phone'))
-			}
-		})
-		return unsubscribe
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [navigation, step])
+	// beforeRemove + preventDefault desincroniza el stack en native-stack (la
+	// pantalla ya salió nativamente) — usePreventRemove bloquea el pop nativo.
+	// finishing libera el bloqueo para que el flip a MainStack pueda desmontar la pantalla
+	const backIntercepted = !finishing && ['email', 'password', 'phone', 'phoneCode', 'push'].includes(stepKey)
+	usePreventRemove(backIntercepted, () => {
+		if (stepKey === 'email' || stepKey === 'password') goTo(step - 1)
+		else if (stepKey === 'phone') goToPushOrFinish()
+		else if (stepKey === 'phoneCode') goTo(STEPS.indexOf('phone'))
+		else if (stepKey === 'push') finish()
+	})
 
 	// Crear la cuenta (fin del tramo de datos)
 	const handleRegister = async () => {
@@ -258,7 +256,7 @@ const RegisterScreen = ({ navigation }) => {
 			const result = await userApi.verifyPhone({ phone: phone.trim(), country, code: phoneCode, verify: true })
 			if (result.success) {
 				toast.success('Teléfono verificado correctamente')
-				finish()
+				goToPushOrFinish()
 			} else {
 				const errorMsg = result.error?.error || result.error?.message || result.error || 'Código incorrecto'
 				toast.error(String(errorMsg))
@@ -272,16 +270,48 @@ const RegisterScreen = ({ navigation }) => {
 		}
 	}
 
+	// Tras el teléfono (verificado u omitido) viene la invitación a las push;
+	// si el permiso ya está concedido no hay nada que pedir y se entra directo
+	const goToPushOrFinish = () => {
+		if (isPushEnabled) { finish() } else { goTo(STEPS.indexOf('push')) }
+	}
+
+	// Activar las push y entrar — dismissOnboardPrompt evita que Onboard u otros
+	// flows vuelvan a mostrar la misma invitación
+	const handleEnablePush = async () => {
+		setIsLoading(true)
+		try {
+			await enablePush()
+			await dismissOnboardPrompt()
+		} catch { /* push enable failed */ }
+		finish()
+	}
+
+	// Declinar la invitación — se marca como mostrada y se entra a la app
+	const handleSkipPush = async () => {
+		try { await dismissOnboardPrompt() } catch { /* storage write failed */ }
+		finish()
+	}
+
 	// Completar la sesión guardada → isAuthenticated flipea y la app entra sola
 	// a MainStack (useAppNavigation reconcilia). Sin sesión, fallback a Login.
 	const finish = async () => {
 		if (finishingRef.current) return
 		finishingRef.current = true
-		if (sessionRef.current) {
-			setIsLoading(true)
-			await completeSession({ ...sessionRef.current, email: email.trim() })
-		} else {
+		if (!sessionRef.current) {
 			navigation.navigate(ROUTES.LOGIN_SCREEN)
+			return
+		}
+		setFinishing(true)
+		setIsLoading(true)
+		try {
+			await completeSession({ ...sessionRef.current, email: email.trim() })
+		} catch {
+			// No dejar la pantalla muerta: liberar el lock para poder reintentar
+			finishingRef.current = false
+			setFinishing(false)
+			setIsLoading(false)
+			toast.error('No se pudo completar el registro, intenta de nuevo')
 		}
 	}
 
@@ -353,7 +383,7 @@ const RegisterScreen = ({ navigation }) => {
 							loading={isLoading}
 							textStyle={{ color: theme.colors.buttonText }}
 						/>
-						<QPPressable variant="opacity" onPress={finish} style={styles.skipLink}>
+						<QPPressable variant="opacity" onPress={goToPushOrFinish} style={styles.skipLink}>
 							<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
 								Ahora no
 							</Text>
@@ -377,9 +407,25 @@ const RegisterScreen = ({ navigation }) => {
 							style={{ backgroundColor: theme.colors.surface }}
 							textStyle={{ color: theme.colors.primaryText }}
 						/>
-						<QPPressable variant="opacity" onPress={finish} style={styles.skipLink}>
+						<QPPressable variant="opacity" onPress={goToPushOrFinish} style={styles.skipLink}>
 							<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
 								Omitir por ahora
+							</Text>
+						</QPPressable>
+					</>
+				)
+			case 'push':
+				return (
+					<>
+						<QPButton
+							title="Activar notificaciones"
+							onPress={handleEnablePush}
+							loading={isLoading}
+							textStyle={{ color: theme.colors.buttonText }}
+						/>
+						<QPPressable variant="opacity" onPress={handleSkipPush} style={styles.skipLink}>
+							<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
+								Ahora no
 							</Text>
 						</QPPressable>
 					</>
@@ -553,34 +599,18 @@ const RegisterScreen = ({ navigation }) => {
 							<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Opcional — te ayuda a recuperar tu cuenta y a que tus contactos te encuentren</Text>
 						</Animated.View>
 						<Animated.View entering={makeStepEnter(110)} style={styles.fieldsBlock}>
-							<View style={styles.phoneRow}>
-								<QPPressable
-									style={[styles.countryChip, { backgroundColor: theme.colors.surface }]}
-									onPress={() => setShowCountryPicker(true)}
-								>
-									<Text style={{ color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }}>
-										{countryData?.dial_code || '+53'}
-									</Text>
-									<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-								</QPPressable>
-								<View style={styles.phoneInputWrap}>
-									<QPInput
-										placeholder="Número de teléfono"
-										value={phone}
-										onChangeText={setField('phone')}
-										keyboardType="phone-pad"
-										textContentType="telephoneNumber"
-										autoComplete="tel"
-										autoFocus
-										style={{ marginVertical: 0 }}
-									/>
-								</View>
-							</View>
+							<QPPhoneInput
+								country={country}
+								onChangeCountry={setField('country')}
+								value={phone}
+								onChangeText={setField('phone')}
+								autoFocus
+							/>
 						</Animated.View>
 						<Animated.View entering={makeStepEnter(170)} style={styles.infoRow}>
 							<FontAwesome6 name="paper-plane" size={14} color={theme.colors.primary} iconStyle="solid" />
 							<Text style={{ flex: 1, color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>
-								El código de verificación llegará por Telegram al número que indiques
+								Te enviaremos el código de verificación por Telegram o WhatsApp
 							</Text>
 						</Animated.View>
 					</View>
@@ -595,7 +625,7 @@ const RegisterScreen = ({ navigation }) => {
 							</View>
 						</Animated.View>
 						<Animated.View entering={makeStepEnter(50)}>
-							<Text style={[textStyles.h1, styles.centeredText]}>Revisa tu Telegram</Text>
+							<Text style={[textStyles.h1, styles.centeredText]}>Revisa Telegram o WhatsApp</Text>
 						</Animated.View>
 						<Animated.View entering={makeStepEnter(100)}>
 							<Text style={[textStyles.h3, styles.centeredText, { color: theme.colors.secondaryText }]}>
@@ -609,24 +639,37 @@ const RegisterScreen = ({ navigation }) => {
 					</View>
 				)}
 
-			</QPKeyboardView>
+				{/* Invitación a las notificaciones push */}
+				{stepKey === 'push' && (
+					<View key="step-push" style={styles.stepContainer}>
+						<Animated.View entering={makeStepEnter(0)} style={styles.iconBlock}>
+							<View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '20' }]}>
+								<FontAwesome6 name="bell" size={34} color={theme.colors.primary} iconStyle="solid" />
+							</View>
+						</Animated.View>
+						<Animated.View entering={makeStepEnter(50)}>
+							<Text style={[textStyles.h1, styles.centeredText]}>No te pierdas ningún pago</Text>
+						</Animated.View>
+						<Animated.View entering={makeStepEnter(100)}>
+							<Text style={[textStyles.h3, styles.centeredText, { color: theme.colors.secondaryText }]}>
+								Activa las notificaciones para saber al instante cuando recibes dinero, cuando tus ofertas P2P tienen respuesta y más
+							</Text>
+						</Animated.View>
+					</View>
+				)}
 
-			{/* Country Picker Modal */}
-			<CountryPickerModal
-				visible={showCountryPicker}
-				country={country}
-				countrySearch={countrySearch}
-				onChangeSearch={setCountrySearch}
-				onSelect={(code) => { dispatch({ type: 'set', field: 'country', value: code }); setShowCountryPicker(false); setCountrySearch('') }}
-				onClose={() => { setShowCountryPicker(false); setCountrySearch('') }}
-				theme={theme}
-				textStyles={textStyles}
-			/>
+			</QPKeyboardView>
 		</>
 	)
 }
 
 const styles = StyleSheet.create({
+	infoRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		marginTop: 8,
+	},
 	progressTrack: {
 		height: 4,
 		borderRadius: 2,
@@ -674,22 +717,6 @@ const styles = StyleSheet.create({
 	},
 	centeredText: {
 		textAlign: 'center',
-	},
-	phoneRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8,
-	},
-	countryChip: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 6,
-		height: 50,
-		paddingHorizontal: 14,
-		borderRadius: 10,
-	},
-	phoneInputWrap: {
-		flex: 1,
 	},
 	inviteLink: {
 		alignSelf: 'flex-start',

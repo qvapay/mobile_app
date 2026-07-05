@@ -10,10 +10,9 @@ import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPKeyboardView from '../../../ui/QPKeyboardView'
-import QPPressable from '../../../ui/particles/QPPressable'
+import QPPhoneInput from '../../../ui/QPPhoneInput'
 
 // Components
-import CountryPickerModal from './CountryPickerModal'
 import PhoneVerifiedView from './PhoneVerifiedView'
 
 // API
@@ -65,12 +64,6 @@ const Phone = () => {
 	const { userPhoneVerified, userPhone } = status
 	const setUserPhoneVerified = (value) => dispatchStatus({ type: 'set', field: 'userPhoneVerified', value })
 	const setUserPhone = (value) => dispatchStatus({ type: 'set', field: 'userPhone', value })
-
-	// Country picker modal
-	const [picker, dispatchPicker] = useReducer(setFieldReducer, { showCountryPicker: false, countrySearch: '' })
-	const { showCountryPicker, countrySearch } = picker
-	const setShowCountryPicker = (value) => dispatchPicker({ type: 'set', field: 'showCountryPicker', value })
-	const setCountrySearch = (value) => dispatchPicker({ type: 'set', field: 'countrySearch', value })
 
 	// Loading States
 	const [isVerifying, setIsVerifying] = useState(false)
@@ -154,7 +147,7 @@ const Phone = () => {
 			const result = await userApi.verifyPhone({ phone: phone.trim(), country, verify: false })
 			if (result.success) {
 				setShowPinInput(true)
-				toast.success('PIN enviado a tu Telegram')
+				toast.success('PIN enviado por Telegram o WhatsApp')
 			} else {
 				const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al enviar el código'
 				toast.error(String(errorMsg))
@@ -245,7 +238,7 @@ const Phone = () => {
 			>
 
 				<Text style={textStyles.h1}>Verificar Teléfono</Text>
-				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para verificarlo vía Telegram</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para verificarlo vía Telegram o WhatsApp</Text>
 
 				{/* Status icon */}
 				<View style={{ alignItems: 'center', paddingVertical: 24 }}>
@@ -262,35 +255,12 @@ const Phone = () => {
 				</View>
 
 				<View style={{ flex: 1 }}>
-					{/* Country Selection */}
-					<QPPressable
-						style={{
-							flexDirection: 'row',
-							alignItems: 'center',
-							justifyContent: 'space-between',
-							backgroundColor: theme.colors.surface,
-							borderRadius: 12,
-							padding: 16,
-							marginBottom: 12,
-						}}
-						onPress={() => setShowCountryPicker(true)}
-					>
-						<View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-							<FontAwesome6 name="globe" size={18} color={theme.colors.primary} iconStyle="solid" />
-							<Text style={[textStyles.body, { color: theme.colors.primaryText, marginLeft: 12 }]}>
-								{countries.find(c => c.code === country)?.name} ({countries.find(c => c.code === country)?.dial_code})
-							</Text>
-						</View>
-						<FontAwesome6 name="chevron-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
-					</QPPressable>
-
-					{/* Phone Input */}
-					<QPInput
+					{/* Country + Phone Input */}
+					<QPPhoneInput
+						country={country}
+						onChangeCountry={setCountry}
 						value={phone}
 						onChangeText={setPhone}
-						placeholder="Número de teléfono"
-						keyboardType="phone-pad"
-						prefixIconName="phone-volume"
 					/>
 
 					{showPinInput && (
@@ -301,6 +271,7 @@ const Phone = () => {
 							keyboardType="numeric"
 							maxLength={6}
 							prefixIconName="key"
+							style={{ marginTop: 12 }}
 						/>
 					)}
 				</View>
@@ -310,24 +281,12 @@ const Phone = () => {
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-							El código de verificación se enviará a tu cuenta de Telegram asociada a este número. Revisa tus mensajes de Telegram para obtener el PIN.
+							El código de verificación se enviará por Telegram o WhatsApp al número que ingreses. Revisa tus mensajes en ambas apps para obtener el PIN.
 						</Text>
 					</View>
 				</View>
 
 			</QPKeyboardView>
-
-			{/* Country Picker Modal */}
-			<CountryPickerModal
-				visible={showCountryPicker}
-				country={country}
-				countrySearch={countrySearch}
-				onChangeSearch={setCountrySearch}
-				onSelect={(code) => { setCountry(code); setShowCountryPicker(false); setCountrySearch('') }}
-				onClose={() => { setShowCountryPicker(false); setCountrySearch('') }}
-				theme={theme}
-				textStyles={textStyles}
-			/>
 		</>
 	)
 }

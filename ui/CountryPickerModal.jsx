@@ -1,9 +1,9 @@
 import { Text, View, ScrollView, Modal, StyleSheet } from 'react-native'
-import QPPressable from '../../../ui/particles/QPPressable'
+import QPPressable from './particles/QPPressable'
 
-import QPInput from '../../../ui/particles/QPInput'
+import QPInput from './particles/QPInput'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import { countries } from '../../../labels/countries'
+import { countries } from '../labels/countries'
 
 // Searchable country picker modal used by the phone-verification form.
 const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, onSelect, onClose, theme, textStyles }) => (

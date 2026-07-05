@@ -11,6 +11,9 @@ import { createTextStyles } from '../../theme/themeUtils'
 // Auth
 import { useAuth } from '../../auth/AuthContext'
 
+// CDN helper
+import { mediaUrl } from '../../helpers/mediaUrl'
+
 const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo = '', image = '', onPress = () => { }, style = {} }) => {
 
 	// Contexts
@@ -23,7 +26,7 @@ const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo
 
 	// Support both 'logo' and 'image' props, logo takes precedence
 	const imageSource = logo || image
-	const logoImage = imageSource ? (imageSource.startsWith('http') ? imageSource : `https://media.qvapay.com/${imageSource}`) : ''
+	const logoImage = mediaUrl(imageSource) || ''
 
 	return (
 		<QPPressable style={[styles.topupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]} onPress={onPress}>

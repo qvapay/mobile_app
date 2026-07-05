@@ -22,6 +22,7 @@ import QPAvatar from '../../ui/particles/QPAvatar'
 
 // Helpers
 import { getShortDateTime, getFirstChunk, statusText, copyTextToClipboard } from '../../helpers'
+import { mediaUrl } from '../../helpers/mediaUrl'
 
 // Toast & haptics
 import { toast } from 'sonner-native'
@@ -194,7 +195,7 @@ const Pay = ({ route, navigation }) => {
 	// Merchant (app) data
 	const app = transaction.app
 	const merchantName = app?.name || transaction.user?.name || 'QvaPay'
-	const merchantLogo = app?.logo ? { uri: app.logo.startsWith('http') ? app.logo : `https://media.qvapay.com/${app.logo}` } : null
+	const merchantLogo = app?.logo ? { uri: mediaUrl(app.logo) } : null
 
 	return (
 		<View style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>

@@ -48,10 +48,9 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	const setOffers = (value) => dispatchData({ type: 'set', field: 'offers', value })
 
 	// Purchase wizard selection
-	const [purchase, dispatchPurchase] = useReducer(setFieldReducer, { phoneNumber: '', phoneFocused: false, selectedOffer: null, rangeAmount: '', activeTab: 'ALL', step: 1 })
-	const { phoneNumber, phoneFocused, selectedOffer, rangeAmount, activeTab, step } = purchase
+	const [purchase, dispatchPurchase] = useReducer(setFieldReducer, { phoneNumber: '', selectedOffer: null, rangeAmount: '', activeTab: 'ALL', step: 1 })
+	const { phoneNumber, selectedOffer, rangeAmount, activeTab, step } = purchase
 	const setPhoneNumber = (value) => dispatchPurchase({ type: 'set', field: 'phoneNumber', value })
-	const setPhoneFocused = (value) => dispatchPurchase({ type: 'set', field: 'phoneFocused', value })
 	const setSelectedOffer = (value) => dispatchPurchase({ type: 'set', field: 'selectedOffer', value })
 	const setRangeAmount = (value) => dispatchPurchase({ type: 'set', field: 'rangeAmount', value })
 	const setActiveTab = (value) => dispatchPurchase({ type: 'set', field: 'activeTab', value })
@@ -217,11 +216,8 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 					<PhoneTopupStep1
 						country={country}
 						phoneNumber={phoneNumber}
-						phoneFocused={phoneFocused}
 						phoneValid={phoneValid}
 						onChangePhone={setPhoneNumber}
-						onFocusPhone={() => setPhoneFocused(true)}
-						onBlurPhone={() => setPhoneFocused(false)}
 						offers={offers}
 						activeTab={activeTab}
 						onSelectTab={setActiveTab}

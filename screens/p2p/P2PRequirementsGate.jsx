@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { ROUTES } from '../../routes'
+import QPPressable from '../../ui/particles/QPPressable'
 
 // Shown when the user hasn't met the P2P requirements (KYC + phone + telegram).
 // Shared by the P2P marketplace and the create-offer screens.
@@ -23,10 +24,14 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 				</Text>
 
 				{requirements.map((req) => (
-					<Pressable
+					<QPPressable
 						key={req.key}
-						style={[styles.requirementCard, { backgroundColor: req.passed ? theme.colors.success + '15' : theme.colors.surface, borderColor: req.passed ? theme.colors.success + '40' : theme.colors.border }]}
-						onPress={() => !req.passed && navigation.navigate(ROUTES.SETTINGS_STACK, { screen: req.route })}
+						style={[
+							styles.requirementCard,
+							{ backgroundColor: req.passed ? theme.colors.success + '15' : theme.colors.surface },
+							theme.mode === 'light' && { borderWidth: 1, borderColor: req.passed ? theme.colors.success + '40' : theme.colors.border },
+						]}
+						onPress={() => !req.passed && navigation.navigate(ROUTES.SETTINGS_STACK, { screen: req.route, initial: false })}
 						disabled={req.passed}
 					>
 						<FontAwesome6
@@ -44,7 +49,7 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 						{!req.passed && (
 							<FontAwesome6 name="chevron-right" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 						)}
-					</Pressable>
+					</QPPressable>
 				))}
 			</ScrollView>
 		</View>
@@ -55,7 +60,6 @@ const styles = StyleSheet.create({
 	requirementsContainer: {
 		alignItems: 'center',
 		paddingVertical: 30,
-		paddingHorizontal: 20,
 	},
 	requirementCard: {
 		flexDirection: 'row',
@@ -63,7 +67,6 @@ const styles = StyleSheet.create({
 		gap: 12,
 		padding: 16,
 		borderRadius: 12,
-		borderWidth: 1,
 		marginBottom: 10,
 		width: '100%',
 	},

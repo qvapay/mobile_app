@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import FastImage from '@d11/react-native-fast-image'
 
 import { useTheme } from '../../theme/ThemeContext'
+import { mediaUrl } from '../../helpers/mediaUrl'
 
 const SIZES = { sm: 32, md: 44, lg: 64 }
 
@@ -10,7 +11,7 @@ const OperatorAvatar = ({ brand = '', logoUrl = null, size = 'md', bgColor = nul
 	const { theme } = useTheme()
 	const dim = SIZES[size] || SIZES.md
 	const initial = (brand?.[0] || '?').toUpperCase()
-	const uri = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : `https://media.qvapay.com/${logoUrl}`) : null
+	const uri = mediaUrl(logoUrl)
 
 	return (
 		<View

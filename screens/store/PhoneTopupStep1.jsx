@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+import QPPhoneInput from '../../ui/QPPhoneInput'
+
 const SUB_TYPE_LABEL = {
 	MOBILE: 'Saldo',
 	DATA: 'Datos',
@@ -109,7 +111,7 @@ const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }) => {
 }
 
 // Step 1 of the top-up wizard: recipient phone, plan-type tabs, plan list + range amount.
-const PhoneTopupStep1 = ({ country, phoneNumber, phoneFocused, phoneValid, onChangePhone, onFocusPhone, onBlurPhone, offers, activeTab, onSelectTab, selectedOffer, rangeAmount, onSelectOffer, onChangeRange, isGold, theme, textStyles }) => {
+const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offers, activeTab, onSelectTab, selectedOffer, rangeAmount, onSelectOffer, onChangeRange, isGold, theme, textStyles }) => {
 
 	const availableSubTypes = useMemo(() => {
 		const set = new Set(offers.map(o => (o.sub_type || 'MOBILE').toUpperCase()))
@@ -129,39 +131,13 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneFocused, phoneValid, onCha
 					<FontAwesome6 name="phone" size={12} color={theme.colors.primaryText} iconStyle="solid" />  Número del destinatario
 				</Text>
 
-				<View style={[
-					styles.phoneRow,
-					{
-						backgroundColor: theme.colors.surface,
-						borderColor: phoneValid
-							? theme.colors.primary
-							: phoneFocused
-								? theme.colors.primary + '55'
-								: theme.mode === 'light'
-									? theme.colors.border
-									: 'transparent',
-					},
-				]}>
-					<View style={[styles.dialBadge, { backgroundColor: theme.colors.elevation }]}>
-						<Text style={styles.flagEmoji}>{country?.flag}</Text>
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-							{country?.dial}
-						</Text>
-					</View>
-					<TextInput
-						value={phoneNumber}
-						onChangeText={onChangePhone}
-						onFocus={onFocusPhone}
-						onBlur={onBlurPhone}
-						placeholder="Número local"
-						placeholderTextColor={theme.colors.placeholder}
-						keyboardType="phone-pad"
-						style={[styles.phoneInput, { color: theme.colors.primaryText }]}
-					/>
-					{phoneValid && (
-						<FontAwesome6 name="circle-check" size={18} color={theme.colors.success} iconStyle="solid" />
-					)}
-				</View>
+				<QPPhoneInput
+					lockedCountry={{ flag: country?.flag, dial: country?.dial }}
+					valid={phoneValid}
+					value={phoneNumber}
+					onChangeText={onChangePhone}
+					placeholder="Número local"
+				/>
 
 				{!phoneValid && phoneNumber.length > 0 ? (
 					<View style={styles.hintRow}>
@@ -244,30 +220,6 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneFocused, phoneValid, onCha
 
 const styles = StyleSheet.create({
 	section: { marginBottom: 18 },
-	phoneRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 6,
-		paddingRight: 14,
-		borderRadius: 14,
-		borderWidth: 1.5,
-		gap: 12,
-	},
-	dialBadge: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		paddingHorizontal: 12,
-		paddingVertical: 10,
-		borderRadius: 10,
-		gap: 8,
-	},
-	flagEmoji: { fontSize: 20 },
-	phoneInput: {
-		flex: 1,
-		fontSize: 18,
-		fontWeight: '600',
-		letterSpacing: 0.3,
-	},
 	hintRow: {
 		flexDirection: 'row',
 		alignItems: 'center',

@@ -316,7 +316,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				<Stack.Screen
 					name={ROUTES.REGISTER_SCREEN}
 					component={RegisterScreen}
-					options={getHeaderOptions('')}
+					options={{ ...getHeaderOptions(''), headerBackButtonMenuEnabled: false }}
 				/>
 
 				{/* Recover Password Screen */}

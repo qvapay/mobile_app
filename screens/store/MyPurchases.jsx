@@ -17,6 +17,7 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Helpers
 import { getShortDateTime, statusText } from '../../helpers'
+import { mediaUrl } from '../../helpers/mediaUrl'
 
 // Toast
 import { toast } from 'sonner-native'
@@ -67,16 +68,10 @@ const MyPurchases = ({ navigation }) => {
 	// Handle purchase tap - navigate to PurchaseDetail
 	const handlePurchasePress = (purchase) => { navigation.navigate(ROUTES.PURCHASE_DETAIL, { purchaseId: purchase.id }) }
 
-	// Get logo URL (same pattern as QPProduct)
-	const getLogoUrl = (logo) => {
-		if (!logo) return ''
-		return logo.startsWith('http') ? logo : `https://media.qvapay.com/${logo}`
-	}
-
 	// Render purchase item
 	const renderItem = ({ item }) => {
-		
-		const logoUrl = getLogoUrl(item.service_logo)
+
+		const logoUrl = mediaUrl(item.service_logo) || ''
 		const color = getStatusColor(item.status, theme)
 
 		return (

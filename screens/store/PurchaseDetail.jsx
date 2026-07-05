@@ -18,6 +18,9 @@ import { ROUTES } from '../../routes'
 // API
 import { storeApi } from '../../api/storeApi'
 
+// CDN helper
+import { mediaUrl } from '../../helpers/mediaUrl'
+
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
@@ -38,10 +41,7 @@ const getStatusColor = (status, theme) => {
 }
 
 // Get logo URL (same pattern as QPProduct)
-const getLogoUrl = (logo) => {
-	if (!logo) return ''
-	return logo.startsWith('http') ? logo : `https://media.qvapay.com/${logo}`
-}
+const getLogoUrl = (logo) => mediaUrl(logo) || ''
 
 // Human-readable labels for receipt fields
 const receiptLabels = {
