@@ -124,11 +124,6 @@ export const removeAuthToken = async () => {
 	}
 }
 
-// Helper function to create auth header
-export const createAuthHeader = (token) => ({
-	'Authorization': `Bearer ${token}`,
-})
-
 // Biometric authentication helpers
 export const getSupportedBiometryType = async () => {
 	try {
@@ -168,7 +163,7 @@ export const getBiometricCredentials = async () => {
 		return null
 	} catch (error) {
 		// If reading fails (e.g. access control mismatch), clean up corrupted entry
-		try { await Keychain.resetGenericPassword({ service: BIOMETRIC_SERVICE }) } catch (_) {}
+		try { await Keychain.resetGenericPassword({ service: BIOMETRIC_SERVICE }) } catch (_) { }
 		return null
 	}
 }

@@ -463,15 +463,4 @@ export const userApi = {
 		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
 	},
 
-	/**
-	 * Update roundup (micro pagos) settings
-	 * @param {Object} settings - { enabled, destination: 'savings' | 'donations' | null }
-	 * @returns {Promise<Object>}
-	 */
-	updateRoundupSettings: async (settings) => {
-		try {
-			const response = await apiClient.post('/user/roundup', settings)
-			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
-	},
 }

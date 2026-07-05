@@ -67,6 +67,3 @@ export const withdrawApi = {
 		}
 	},
 }
-
-// Export default for convenience
-export default withdrawApi

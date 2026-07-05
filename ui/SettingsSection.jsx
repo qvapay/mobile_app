@@ -18,17 +18,19 @@ const SettingsSection = ({ title, items, navigation }) => {
 	// Styles
 	const textStyles = createTextStyles(theme)
 
+	const enabledItems = items.filter(item => item.enabled !== false)
+
 	return (
 		<View style={{ marginTop: 10 }}>
 			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>{title}</Text>
-			{items.filter(item => item.enabled !== false).map((item, index, filtered) => (
+			{enabledItems.map((item, index) => (
 				<SettingsItem
 					key={index}
 					title={item.title}
 					icon={item.icon}
 					screen={item.screen}
 					index={index}
-					totalItems={filtered.length}
+					totalItems={enabledItems.length}
 					navigation={navigation}
 					showBadge={item.showBadge}
 				/>

@@ -2,7 +2,7 @@
 const BLOG_BASE_URL = 'https://qvapay.blog/wp-json/wp/v2'
 
 // Get latest blog posts
-export const getLatestPosts = async (amount = 6) => {
+const getLatestPosts = async (amount = 6) => {
 
 	const url = `${BLOG_BASE_URL}/posts?per_page=${amount}&_embed`
 
@@ -31,7 +31,7 @@ export const getLatestPosts = async (amount = 6) => {
 }
 
 // Get single blog post by ID
-export const getPostById = async (postId) => {
+const getPostById = async (postId) => {
 
 	try {
 

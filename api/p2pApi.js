@@ -340,8 +340,5 @@ export const p2pApi = {
 	},
 }
 
-// Export the apiClient for other API calls
-export { apiClient }
-
 // Export default for convenience
 export default p2pApi

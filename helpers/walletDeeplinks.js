@@ -139,7 +139,7 @@ const WALLETS = [
 ]
 
 // Returns the list of wallets that declare support for the given coin/network combo.
-export const getWalletsForCoin = (coin, network) => {
+const getWalletsForCoin = (coin, network) => {
 	const c = String(coin || '').toUpperCase()
 	const n = String(network || '').toUpperCase()
 	const tick = c + (n && !c.endsWith(n) ? n : '')

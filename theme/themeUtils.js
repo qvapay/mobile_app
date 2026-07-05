@@ -148,6 +148,3 @@ export const createContainerStyles = (theme) => StyleSheet.create({
 // Memoized hook versions (must be called from React components)
 export const useTextStyles = (theme) => { return useMemo(() => createTextStyles(theme), [theme]) }
 export const useContainerStyles = (theme) => { return useMemo(() => createContainerStyles(theme), [theme]) }
-
-// Combined hook for both text and container styles
-export const useThemeStyles = (theme) => { return useMemo(() => ({ text: createTextStyles(theme), container: createContainerStyles(theme) }), [theme]) }

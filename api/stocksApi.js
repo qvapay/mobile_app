@@ -46,5 +46,3 @@ export const stocksApi = {
 		}
 	},
 }
-
-export default stocksApi

@@ -6,8 +6,8 @@
 //      rejected by the length check, so it couldn't be deleted.
 // Keep this file dependency-free (no React Native imports) so the tests stay fast.
 
-export const MAX_AMOUNT_LENGTH = 5    // max digits allowed in the INTEGER part
-export const MAX_DECIMAL_PLACES = 2   // currency → 2 decimals
+const MAX_AMOUNT_LENGTH = 5    // max digits allowed in the INTEGER part
+const MAX_DECIMAL_PLACES = 2   // currency → 2 decimals
 
 // Is `next` (the candidate amount after pressing a digit key) acceptable?
 export function isValidNumericAmount(next) {

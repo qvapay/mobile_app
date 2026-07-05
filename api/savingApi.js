@@ -19,6 +19,24 @@ export const savingApi = {
 	},
 
 	/**
+	 * Toggle the automatic roundup (micro pagos) setting
+	 * @param {boolean} enabled - Whether roundup is active
+	 * @returns {Promise<Object>}
+	 */
+	updateRoundup: async (enabled) => {
+		try {
+			const response = await apiClient.post('/saving/roundup', { enabled })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo actualizar el ajuste de redondeo', details: errorData, status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Deposit funds into savings account
 	 * @param {number} amount - Amount to deposit
 	 * @param {string} description - Optional description
@@ -94,5 +112,3 @@ export const savingApi = {
 		}
 	},
 }
-
-export default savingApi

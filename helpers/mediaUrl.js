@@ -4,7 +4,7 @@
 // generadas por resolveBrandLogo en qpweb): concatenarlas a la base produce doble
 // slash y S3 responde 403 — por eso se normaliza aquí. Las URLs ya absolutas
 // (http/https) pasan intactas.
-export const MEDIA_BASE_URL = 'https://media.qvapay.com'
+const MEDIA_BASE_URL = 'https://media.qvapay.com'
 
 export function mediaUrl(path) {
 	if (!path) return null

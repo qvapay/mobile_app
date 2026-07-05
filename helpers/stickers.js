@@ -3,8 +3,8 @@
 // `:sticker:<name>.webm`; we render the matching `.gif` because iOS AVPlayer
 // can't decode webm and FastImage already animates GIFs on both platforms.
 
-export const STICKER_MEDIA_BASE_URL = 'https://media.qvapay.com/qvi'
-export const STICKER_PREFIX = ':sticker:'
+const STICKER_MEDIA_BASE_URL = 'https://media.qvapay.com/qvi'
+const STICKER_PREFIX = ':sticker:'
 
 export const QVAPAY_STICKERS = [
 	'angry.webm',
@@ -31,7 +31,7 @@ export const QVAPAY_STICKERS = [
 
 const QVAPAY_STICKERS_SET = new Set(QVAPAY_STICKERS)
 
-export function isValidStickerName(name) { return typeof name === 'string' && QVAPAY_STICKERS_SET.has(name) }
+function isValidStickerName(name) { return typeof name === 'string' && QVAPAY_STICKERS_SET.has(name) }
 
 // Web uses webm; we swap to gif for the mobile render only.
 export function getStickerMediaUrl(name) {
@@ -46,14 +46,6 @@ export function parseTransactionDescription(description) {
 		if (isValidStickerName(name)) { return { type: 'sticker', text: '', sticker: name } }
 	}
 	return { type: 'text', text: description, sticker: null }
-}
-
-export function isStickerDescription(description) { return parseTransactionDescription(description).type === 'sticker' }
-
-export function getPlainDescription(description, { fallback = '🎟️ Sticker' } = {}) {
-	const parsed = parseTransactionDescription(description)
-	if (parsed.type === 'sticker') return fallback
-	return parsed.text
 }
 
 export function buildStickerDescription(name) { return `${STICKER_PREFIX}${name}` }

@@ -8,5 +8,3 @@ export const promoApi = {
 		} catch (error) { return { success: false, error: error.message || 'No se pudo obtener la promoción', data: null } }
 	},
 }
-
-export default promoApi

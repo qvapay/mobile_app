@@ -253,9 +253,3 @@ export const authApi = {
 		}
 	}
 }
-
-// Export the apiClient for other API calls
-export { apiClient }
-
-// Export default for convenience
-export default authApi

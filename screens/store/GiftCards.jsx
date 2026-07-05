@@ -100,9 +100,10 @@ const GiftCards = ({ navigation, route }) => {
 
 	const filteredBrands = useMemo(() => {
 		const q = search.trim().toLowerCase()
-		return brands
-			.filter(b => activeCategory === 'ALL' || b.category === activeCategory)
-			.filter(b => !q || (b.brand || '').toLowerCase().includes(q))
+		return brands.filter(b =>
+			(activeCategory === 'ALL' || b.category === activeCategory) &&
+			(!q || (b.brand || '').toLowerCase().includes(q))
+		)
 	}, [brands, search, activeCategory])
 
 	useEffect(() => { dispatchFilters({ type: 'set', field: 'page', value: 1 }) }, [search, activeCategory])

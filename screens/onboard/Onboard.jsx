@@ -166,14 +166,14 @@ const Onboard = ({ navigation }) => {
 	const handleNextStep = () => {
 		if (currentStep < onboard_steps.length - 1) {
 			direction.value = 1
-			setCurrentStep(currentStep + 1)
+			setCurrentStep(prev => Math.min(prev + 1, onboard_steps.length - 1))
 		}
 	}
 
 	const handlePreviousStep = () => {
 		if (currentStep > 0) {
 			direction.value = -1
-			setCurrentStep(currentStep - 1)
+			setCurrentStep(prev => Math.max(prev - 1, 0))
 		}
 	}
 

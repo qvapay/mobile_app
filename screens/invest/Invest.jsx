@@ -204,25 +204,26 @@ const Invest = ({ navigation }) => {
 			if (savingsRes.success) dispatchData({ type: 'setSavings', savings: savingsRes.data })
 			if (p2pRes.success && p2pRes.data) {
 				const averages = p2pRes.data
-				const pairs = P2P_COINS
-					.filter(tick => averages[tick])
-					.map(tick => {
-						const d = averages[tick]
-						return { tick, name: d.name || tick, buy: d.average_buy || 0, sell: d.average_sell || 0, count: d.count || 0 }
-					})
+				const pairs = P2P_COINS.flatMap(tick => {
+					const d = averages[tick]
+					if (!d) return []
+					return [{ tick, name: d.name || tick, buy: d.average_buy || 0, sell: d.average_sell || 0, count: d.count || 0 }]
+				})
 				dispatchData({ type: 'setP2p', p2pData: pairs })
 			}
 			if (stocksRes.success && Array.isArray(stocksRes.data)) {
-				dispatchData({ type: 'setStocks', stocks: stocksRes.data.map(s => ({
-					tick: s.symbol,
-					name: s.name,
-					icon: s.icon,
-					iconStyle: s.iconStyle,
-					image: s.image || null,
-					price: s.price,
-					change: s.change,
-					changeDollar: s.changeDollar,
-				})) })
+				dispatchData({
+					type: 'setStocks', stocks: stocksRes.data.map(s => ({
+						tick: s.symbol,
+						name: s.name,
+						icon: s.icon,
+						iconStyle: s.iconStyle,
+						image: s.image || null,
+						price: s.price,
+						change: s.change,
+						changeDollar: s.changeDollar,
+					}))
+				})
 			}
 			if (coinsRes.success && coinsRes.data?.length) {
 				const rawCoins = coinsRes.data

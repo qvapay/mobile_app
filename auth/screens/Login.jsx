@@ -168,7 +168,7 @@ const LoginScreen = ({ navigation }) => {
 				} else {
 					toast.error(String(result.error || 'Error al iniciar sesión'))
 				}
-				if (result.status === 401) { setFailedAttempts(failedAttempts + 1) }
+				if (result.status === 401) { setFailedAttempts(prev => prev + 1) }
 			}
 			// Si el prelogin es exitoso (HTTP 202), muestra el PIN Input
 			if (result.status === 202) {
@@ -202,7 +202,7 @@ const LoginScreen = ({ navigation }) => {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
 				} else { toast.error(String(result.error || 'Error al iniciar sesión'), { description: typeof result.details === 'string' ? result.details : undefined }) }
-				if (result.status === 401) { setFailedAttempts(failedAttempts + 1) }
+				if (result.status === 401) { setFailedAttempts(prev => prev + 1) }
 			}
 			if (result.success) {
 				setFailedAttempts(0)

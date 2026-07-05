@@ -87,6 +87,3 @@ export const storeApi = {
 
 	getPurchaseDetail: async (id) => wrap(() => apiClient.get(`/store/my/${id}`), 'No se pudo obtener el detalle'),
 }
-
-export { apiClient }
-export default storeApi

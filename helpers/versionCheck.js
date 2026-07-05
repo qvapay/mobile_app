@@ -7,7 +7,7 @@ const COOLDOWN_DAYS = 3
 
 const BUNDLE_ID = 'com.qvapay'
 
-export const checkForUpdate = async () => {
+const checkForUpdate = async () => {
 	try {
 		const provider = Platform.OS === 'ios' ? 'appStore' : 'playStore'
 		const [currentVersion, latestVersion, storeUrl] = await Promise.all([
