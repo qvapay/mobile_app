@@ -9,6 +9,14 @@ import QPButton from './particles/QPButton'
 // Routes
 import { ROUTES } from '../routes'
 
+/**
+ * Renders the Home screen's side-by-side "Depositar" / "Extraer" action buttons.
+ * Navigates to the Add (deposit) and Withdraw flows via `ROUTES`; buttons sit on
+ * the theme's elevation color so they read as quiet secondary actions.
+ *
+ * @param {object} props
+ * @param {object} props.navigation - React Navigation object used for `navigate()`.
+ */
 const ActionButtons = ({ navigation }) => {
 
 	// Theme variables, dark and light modes with memoized styles

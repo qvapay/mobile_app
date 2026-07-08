@@ -14,6 +14,20 @@ import { useAuth } from '../../auth/AuthContext'
 // CDN helper
 import { mediaUrl } from '../../helpers/mediaUrl'
 
+/**
+ * Store catalog product card (gift cards, top-ups): a 168px tile with banner
+ * artwork, name, price and detail bullets, wrapped in QPPressable. Gold members
+ * (`user.golden_check`) with a distinct `goldPrice` see the regular price struck
+ * through and the gold price highlighted in the theme's gold. Artwork accepts
+ * either `logo` or `image` (logo wins) and resolves through the mediaUrl CDN helper.
+ *
+ * @param {object} props
+ * @param {string} props.name - Product name (2-line clamp).
+ * @param {number|string} props.price - Regular price in USD.
+ * @param {number} [props.goldPrice] - Gold-tier price; shown only when set and different.
+ * @param {string[]} [props.details] - Extra info bullets, joined with " • ".
+ * @param {function} props.onPress - Tap handler.
+ */
 const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo = '', image = '', onPress = () => { }, style = {} }) => {
 
 	// Contexts

@@ -2,8 +2,10 @@ import { apiClient } from './client'
 
 export const savingApi = {
 	/**
-	 * Get savings account summary
-	 * @returns {Promise<Object>} Savings summary with balance, totals, rate, etc.
+	 * Gets the savings account summary (`GET /saving`).
+	 * Unwraps `response.data.data` when the payload is nested.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` holds balance, totals (deposited/withdrawn/earned), rate and Roundup state
 	 */
 	getSummary: async () => {
 		try {
@@ -19,9 +21,11 @@ export const savingApi = {
 	},
 
 	/**
-	 * Toggle the automatic roundup (micro pagos) setting
+	 * Toggles automatic Roundup (`POST /saving/roundup`) — when enabled,
+	 * payments are rounded up and the spare change lands in savings.
+	 *
 	 * @param {boolean} enabled - Whether roundup is active
-	 * @returns {Promise<Object>}
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
 	updateRoundup: async (enabled) => {
 		try {
@@ -37,10 +41,11 @@ export const savingApi = {
 	},
 
 	/**
-	 * Deposit funds into savings account
+	 * Moves funds from the main balance into savings (`POST /saving/deposit`).
+	 *
 	 * @param {number} amount - Amount to deposit
-	 * @param {string} description - Optional description
-	 * @returns {Promise<Object>} Deposit result
+	 * @param {string} [description] - Optional description
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
 	deposit: async (amount, description = '') => {
 		try {
@@ -56,10 +61,11 @@ export const savingApi = {
 	},
 
 	/**
-	 * Withdraw funds from savings account
+	 * Moves funds from savings back to the main balance (`POST /saving/withdraw`).
+	 *
 	 * @param {number} amount - Amount to withdraw
-	 * @param {string} description - Optional description
-	 * @returns {Promise<Object>} Withdrawal result
+	 * @param {string} [description] - Optional description
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
 	withdraw: async (amount, description = '') => {
 		try {
@@ -75,10 +81,12 @@ export const savingApi = {
 	},
 
 	/**
-	 * Get savings transactions history
-	 * @param {number} limit - Max results (default 50)
-	 * @param {number} offset - Offset for pagination (default 0)
-	 * @returns {Promise<Object>} Transactions list
+	 * Gets the savings movement history — deposits, withdrawals, roundups,
+	 * earnings (`GET /saving/transactions`).
+	 *
+	 * @param {number} [limit=50] - Max results
+	 * @param {number} [offset=0] - Offset for pagination
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the transactions list
 	 */
 	getTransactions: async (limit = 50, offset = 0) => {
 		try {
@@ -94,10 +102,12 @@ export const savingApi = {
 	},
 
 	/**
-	 * Get savings earnings history
-	 * @param {number} limit - Max results (default 12)
-	 * @param {number} offset - Offset for pagination (default 0)
-	 * @returns {Promise<Object>} Earnings list
+	 * Gets the interest earnings history, credited by the savings-earnings
+	 * cron (`GET /saving/earnings`).
+	 *
+	 * @param {number} [limit=12] - Max results
+	 * @param {number} [offset=0] - Offset for pagination
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the earnings list
 	 */
 	getEarnings: async (limit = 12, offset = 0) => {
 		try {

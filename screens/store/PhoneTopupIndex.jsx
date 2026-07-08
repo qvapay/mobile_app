@@ -48,6 +48,12 @@ function filtersReducer(state, action) {
 	}
 }
 
+/**
+ * Phone top-up catalog: pick a destination country, then an operator.
+ * Accepts `route.params.country` (ISO code) to preselect a country; defaults to Cuba.
+ * Countries, featured operators and per-country brands all come from
+ * `GET /store/topup-catalog` mode params; operator tiles navigate to PhoneTopupBrand.
+ */
 const PhoneTopupIndex = ({ navigation, route }) => {
 
 	const { theme } = useTheme()

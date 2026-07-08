@@ -7,7 +7,17 @@ import { useContainerStyles } from '../theme/themeUtils'
 // Particles
 import QPSkeleton from './particles/QPSkeleton'
 
-// Skeleton row mirroring QPTransaction's layout (avatar + two lines + amount)
+/**
+ * Loading skeleton row mirroring QPTransaction's layout (avatar + two text
+ * lines + amount), shown on Home while the transaction list loads. Applies
+ * the same position-based corner rounding as the real rows — only the first
+ * row rounds its top corners and only the last rounds the bottom — so the
+ * skeleton group reads as one card.
+ *
+ * @param {object} props
+ * @param {number} [props.index=0] - Row position within the skeleton group.
+ * @param {number} [props.totalItems=0] - Total skeleton rows rendered.
+ */
 const TransactionSkeleton = ({ index = 0, totalItems = 0 }) => {
 
 	// Context

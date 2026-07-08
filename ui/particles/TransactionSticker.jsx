@@ -3,9 +3,17 @@ import FastImage from '@d11/react-native-fast-image'
 
 import { getStickerMediaUrl } from '../../helpers/stickers'
 
-// Inline animated sticker used in the transfer flow and transaction views.
-// `size` is the rendered square in px. The CDN exposes `.gif` siblings of
-// each `.webm` sticker so iOS doesn't need a webm decoder.
+/**
+ * Inline animated QvaPay sticker used in the transfer flow and transaction views.
+ * Stickers persist in transaction descriptions as `:sticker:<name>.webm`
+ * (catalog in helpers/stickers.js), but this renders the CDN's `.gif` sibling
+ * from `media.qvapay.com/qvi` via FastImage — iOS can't decode webm. See the
+ * inline note below for how the gif's black background is keyed out.
+ *
+ * @param {object} props
+ * @param {string} props.name - Sticker name parsed from the description.
+ * @param {number} [props.size=48] - Rendered square in px.
+ */
 const TransactionSticker = ({ name, size = 48, style }) => {
 
 	if (!name) return null

@@ -18,7 +18,12 @@ import QPInput from '../../ui/particles/QPInput'
 // API
 import { authApi } from '../../api/authApi'
 
-// Recover Password Screen
+/**
+ * Password recovery: requests a reset email via `POST /auth/reset-password`.
+ * Expects `route.params.email` to prefill the field from the login form.
+ * On success the action button swaps to a "back to login" one — the actual
+ * reset happens through the link in the email, not in the app.
+ */
 const RecoverPasswordScreen = ({ navigation, route }) => {
 
     // Theme variables, dark and light modes

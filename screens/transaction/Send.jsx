@@ -49,7 +49,14 @@ function setFieldReducer(state, action) {
 	}
 }
 
-// Send Screen, search user, send money and show success message
+/**
+ * Send-money screen: pick a recipient, amount and an optional note or sticker.
+ * Route params: `send_amount` (from Keypad) and `user_uuid` (from QR scan / deep links).
+ * The recipient carousel merges latest sent transfers, saved contacts and synced device
+ * contacts (deduped, with live online status); users are searched via `userApi.searchUser`.
+ * Stickers persist inside the description as `:sticker:<name>` (helpers/stickers).
+ * No money moves here — it hands off to SendConfirm with amount, uuid and description.
+ */
 const Send = ({ navigation, route }) => {
 
 	// Context

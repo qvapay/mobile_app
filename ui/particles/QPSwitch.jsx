@@ -9,8 +9,21 @@ import { createTextStyles } from '../../theme/themeUtils'
 const POSITION_OFFSET = { left: 0, right: 1 }
 const NEUTRAL_OFFSET = 0.5
 
-// Reusable animated segmented switch (left/right)
-// Supports controlled (value/position) and uncontrolled (defaultValue) usage
+/**
+ * Animated two-option segmented switch with a sliding pill; the house standard
+ * for left/right toggles (e.g. PIN vs OTP). Supports controlled (`value`, or the
+ * legacy `position` alias) and uncontrolled (`defaultValue`) usage — when
+ * controlled there is no internal copy to drift out of sync. Tapping the
+ * selected side deselects it (`onChange(null)`): the pill fades out and parks at
+ * the neutral midpoint. The pill slides with a native-driver spring.
+ *
+ * @param {object} props
+ * @param {'left'|'right'|null} [props.value] - Controlled value (preferred over `position`).
+ * @param {'left'|'right'} [props.defaultValue='left'] - Uncontrolled initial value.
+ * @param {string} props.leftText - Left label (colors via leftColor/leftTextColor).
+ * @param {string} props.rightText - Right label (colors via rightColor/rightTextColor).
+ * @param {function} [props.onChange] - Receives 'left' | 'right' | null on every change.
+ */
 const QPSwitch = ({
 	// Controlled value (preferred). If omitted, falls back to `position`, then internal state
 	value,

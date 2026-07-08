@@ -56,6 +56,12 @@ const receiptLabels = {
 	instructions: 'Instrucciones',
 }
 
+/**
+ * Receipt view for a single store purchase (top-up or gift card).
+ * Expects `route.params.purchaseId` and fetches `GET /store/my/{id}`.
+ * Renders provider receipt fields (voucher ID, ePIN, confirmation, redemption URL…)
+ * with copy-to-clipboard on sensitive values.
+ */
 const PurchaseDetail = ({ route, navigation }) => {
 
 	const { purchaseId } = route.params

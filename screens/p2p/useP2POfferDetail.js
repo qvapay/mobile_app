@@ -47,11 +47,42 @@ function editReducer(state, action) {
 	}
 }
 
-// Owns the P2P offer lifecycle: cache-first load, 5s polling on active statuses,
-// derived role/permission flags, the counterparty profile, and every trade action
-// (apply, cancel, mark-paid, confirm-received, edit, rate, share). `fetchChat` is
-// injected so polling and pull-to-refresh keep the chat in sync.
-export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchChat }) {
+/**
+ * Owns the P2P offer lifecycle for the P2POffer screen: cache-first load, 5s polling
+ * on active statuses, derived role/permission flags, the counterparty profile, and
+ * every trade action (apply, cancel, mark-paid, confirm-received, edit, rate, share).
+ *
+ * Loading is cache-first: the AsyncStorage snapshot (`p2p_cache_{uuid}`) renders
+ * instantly, then `GET /p2p/{uuid}` (p2pApi.show) refreshes it and rewrites the cache.
+ * While the offer status is open/processing/paid, a 5s interval:
+ * - always refetches the offer silently (offer status has no SSE — polling is the
+ *   only status transport), and
+ * - calls the injected `fetchChat` ONLY when `chatStreamLiveRef.current` is false.
+ *   That ref is the `connectedRef` handed to useP2PChatSSE, which mirrors the stream
+ *   state into it; reading a ref (not state) lets the interval skip the chat fetch
+ *   without re-creating itself on every connect/disconnect.
+ * Pull-to-refresh (`onRefresh`) refetches offer + chat unconditionally. The peer
+ * profile (`GET /p2p/user/{uuid}` via p2pApi.peerProfile) is fetched for whichever
+ * user the viewer is evaluating (creator on open offers, counterparty otherwise).
+ *
+ * @param {object} params
+ * @param {string} params.p2p_uuid - Offer UUID (from the route / deep link).
+ * @param {object} params.user - Authenticated user (uuid + balance) for role flags and edit validation.
+ * @param {object} params.navigation - React Navigation object (peer profile pushes).
+ * @param {function} params.fetchChat - From useP2PChat: full chat refetch, used by the 5s poll and pull-to-refresh.
+ * @param {object} params.chatStreamLiveRef - Ref mirroring the SSE connected state (shared with useP2PChatSSE as `connectedRef`).
+ * @returns {object} Offer API for the screen:
+ *   state — `p2p`, `isLoading`, `error`, `refreshing`, `rating`;
+ *   derived — `isOwner`, `isPeer`, `isPayer`, `isReceiver`, `status`, `counterparty`,
+ *   `canCancel`, `canMarkPaid`, `canConfirmReceived`, `canRatePeer`, `markedAsPaid`,
+ *   `canApply`, `statusMessage`, `peerStats`, `peerReviewsCount`, `isUserOnline`;
+ *   per-action `loading` flags; `txIdInput`/`setTxIdInput` (mark-paid tx id);
+ *   `showApplyConfirm`/`setShowApplyConfirm` and `edit`/`setEdit` modal state;
+ *   actions — `onRefresh`, `openPeerProfile`, `handleCancel`, `handleMarkPaid`,
+ *   `handleConfirmReceived`, `handleApply`, `handleApplyConfirm`, `handleShareIntent`,
+ *   `openEditModal`, `handleEdit`, `handleRate`.
+ */
+export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchChat, chatStreamLiveRef }) {
 
 	const { theme } = useTheme()
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
@@ -135,11 +166,11 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		const activeStatuses = ["open", "processing", "paid"]
 		if (!p2p || !activeStatuses.includes(p2p.status)) return
 		const interval = setInterval(() => {
-			refetchP2P()
-			fetchChat()
+			refetchP2P() // offer status has no SSE — always poll
+			if (!chatStreamLiveRef?.current) fetchChat()
 		}, 5000)
 		return () => clearInterval(interval)
-	}, [p2p, p2p_uuid, refetchP2P, fetchChat])
+	}, [p2p, p2p_uuid, refetchP2P, fetchChat, chatStreamLiveRef])
 
 	// Derived booleans
 	const isOwner = useMemo(() => !!(user?.uuid && p2p?.User?.uuid && user.uuid === p2p.User.uuid), [user?.uuid, p2p?.User?.uuid])

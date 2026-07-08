@@ -24,7 +24,15 @@ const navLabels = {
 // Settings Context
 import { useSettings } from '../settings/SettingsContext'
 
-// Bottom Bar for Main Stack
+/**
+ * Fully custom bottom tab bar for the Main Stack (drop-in for React
+ * Navigation's `tabBar` prop). Renders one QPPressable per route with a
+ * FontAwesome icon from `navItems` and an optional Spanish label, gated by the
+ * `appearance.bottomBarLabels` setting. The focused tab gets a larger icon and
+ * primary text color; presses emit `tabPress` so screens can intercept them.
+ *
+ * @param {object} props - React Navigation tab bar props (`state`, `descriptors`, `navigation`).
+ */
 export default function BottomBar({ state, descriptors, navigation }) {
 
     // Theme Contexts

@@ -139,7 +139,13 @@ const GradientOrb = ({ colors, size, x, y, duration, delay }) => {
 	)
 }
 
-// Welcome Screen
+/**
+ * Unauthenticated landing screen with animated floating coins and gradient orbs
+ * (Reanimated staggered entrance). Routes to Login and Register and links to the
+ * terms and conditions — no API calls.
+ * Hidden gesture: long-pressing the title re-arms onboarding by setting
+ * `appearance.firstTime` and resetting navigation to Onboard.
+ */
 const WelcomeScreen = ({ navigation }) => {
 
 	// Theme

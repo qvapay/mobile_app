@@ -78,7 +78,15 @@ function setFieldReducer(state, action) {
 }
 const initialPinFlow = { showPinStep: false, sendingPin: false, sendingWithdraw: false }
 
-// Withdraw balance to certain coin
+/**
+ * Withdraw balance into a payout coin/method — two steps: form, then PIN/OTP confirm.
+ * Coins come from `GET /coins/v2?enabled_out=true`; each coin's `working_data` JSON
+ * drives the dynamic account fields, and fees (`fee_out` / `fee_out_fixed`) are
+ * computed client-side alongside a live USD↔coin amount converter.
+ * Accepts `route.params.preselectedCoin` (e.g. USDCASH from CashDeliveryCard).
+ * Confirmation uses an emailed PIN (`withdrawApi.requestPin`) or a 6-digit TOTP,
+ * then submits `POST /withdraw`.
+ */
 const Withdraw = ({ navigation, route }) => {
 
 	// Contexts

@@ -3,10 +3,14 @@ import { apiClient } from './client'
 export const payApi = {
 
 	/**
-	 * Pay a pending invoice/transaction created by another user (merchant app)
-	 * @param {string} uuid - Transaction uuid
+	 * Pays a pending invoice/transaction created by a merchant or another user
+	 * (`POST /transaction/{uuid}/pay`, requires auth). Debits the payer's
+	 * balance and settles the transaction; typically reached via the Pay
+	 * screen from a `qvapay.com/pay/{uuid}` deep link or QR scan.
+	 *
+	 * @param {string} uuid - Transaction UUID
 	 * @param {string} [comment] - Optional reaction/mood ('loved' | 'happy' | 'sad' | 'thumbsy' | '')
-	 * @returns {Promise<Object>} { success, data?, error?, status? }
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the paid transaction
 	 *
 	 * Example request body: { "comment": "loved" }
 	 */

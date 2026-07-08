@@ -27,9 +27,31 @@ function listReducer(state, action) {
 	}
 }
 
-// Owns the offers list, pagination cursors (refs — never rendered) and the fetch +
-// coin-catalog loading. `quickKey` is a string that changes when quick filters change,
-// triggering an auto-refresh (modal filters apply via the explicit fetch call).
+/**
+ * Owns the P2P marketplace offers list: fetching, pull-to-refresh, infinite-scroll
+ * pagination, and the coin catalog for the picker.
+ *
+ * Offers come from `GET /p2p/index` (p2pApi.index) in pages of PAGE_SIZE (30);
+ * `hasMore` is inferred from a full page coming back. Pagination cursors and the
+ * in-flight guard live in refs (never rendered), and the latest `apiFilters` is
+ * mirrored into a ref so `fetchP2POffers` keeps a stable identity (empty deps) —
+ * concurrent fetches are dropped, not queued. Coins load once on mount via
+ * `GET /coins/v2` (coinsApi.index, `enabled_p2p` only). When refreshing with the
+ * `my` filter active, the user's own offers are pushed to the home-screen widget
+ * (helpers/widgetBridge).
+ *
+ * @param {object} params
+ * @param {object} params.apiFilters - Query params from useP2PFilters; read through a ref, so a changed
+ *   object alone does NOT refetch — refreshes are driven by `quickKey` or explicit calls.
+ * @param {boolean} params.p2pEnabled - Gate from user settings; nothing is fetched while false.
+ * @param {string} params.quickKey - Key derived from the quick filters (type, coin, sort, showMine);
+ *   a change auto-refreshes page 1 (skipped on first render — the mount effect covers it).
+ * @returns {object} List API:
+ *   `p2pOffers`, `isLoading` (initial/load-more), `error`, `refreshing`,
+ *   `availableCoins` + `loadingCoins` (coin picker),
+ *   `fetchP2POffers(pageNum, isRefresh)` (used by the screen to apply modal filters),
+ *   `onRefresh` (pull-to-refresh) and `handleLoadMore` (list end reached).
+ */
 export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 
 	const [list, dispatchList] = useReducer(listReducer, initialList)

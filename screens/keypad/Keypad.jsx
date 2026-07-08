@@ -37,6 +37,14 @@ const MAX_FONT_SIZE = 80
 const FONT_SIZE_DECREASE_FACTOR = 4
 const VIBRATION_DURATION = 50
 
+/**
+ * Calculator-style amount pad (center bottom tab) used to start a payment.
+ * Pure key handling lives in `keypadAmount.js` (unit-tested); this screen only
+ * validates the amount against the user's balance and routes to Send
+ * (`ROUTES.SEND`, param `send_amount`) or Receive (`ROUTES.RECEIVE`, param
+ * `receive_amount`) — it performs no API calls itself.
+ * The amount font shrinks as digits grow; key presses vibrate on iOS only.
+ */
 export default function Keypad({ navigation }) {
 
 	// Contexts

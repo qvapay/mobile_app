@@ -1,7 +1,18 @@
-// Blog API functions
+// Blog API functions.
+// The only API module that does NOT use the shared axios client: it talks to
+// the WordPress REST API at qvapay.blog with native `fetch`, so requests are
+// unauthenticated and never touch the bearer token, interceptors or the
+// global loading bar.
 const BLOG_BASE_URL = 'https://qvapay.blog/wp-json/wp/v2'
 
-// Get latest blog posts
+/**
+ * Fetches the latest blog posts (`GET {BLOG_BASE_URL}/posts?per_page=N&_embed`).
+ * WordPress payloads are flattened to the fields the UI needs; posts without
+ * a featured image fall back to the QvaPay logo, and missing authors to "QvaPay".
+ *
+ * @param {number} [amount=6] - Number of posts to fetch.
+ * @returns {Promise<Object>} `{ success, data, error? }` — `data` is an array of `{ id, title, excerpt, content, link, date, featuredImage, author, categories }` (empty on failure)
+ */
 const getLatestPosts = async (amount = 6) => {
 
 	const url = `${BLOG_BASE_URL}/posts?per_page=${amount}&_embed`
@@ -30,7 +41,13 @@ const getLatestPosts = async (amount = 6) => {
 	} catch (error) { return { success: false, error: error.message, data: [] } }
 }
 
-// Get single blog post by ID
+/**
+ * Fetches a single blog post by ID (`GET {BLOG_BASE_URL}/posts/{id}?_embed`),
+ * transformed to the same flattened shape as `getLatestPosts`.
+ *
+ * @param {number|string} postId - WordPress post ID.
+ * @returns {Promise<Object>} `{ success, data, error? }` — `data` is the transformed post, or null on failure
+ */
 const getPostById = async (postId) => {
 
 	try {

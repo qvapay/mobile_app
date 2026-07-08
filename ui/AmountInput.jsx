@@ -8,7 +8,18 @@ import { createTextStyles } from '../theme/themeUtils'
 // UI Particles
 import QPCoin from './particles/QPCoin'
 
-// Amount Input Component
+/**
+ * QUSD amount entry card: numeric input with balance readout plus a 3x2 grid of
+ * quick-amount badges ($25–$150). Used by the Send and Add (deposit) flows.
+ * Controlled component — quick badges call `onAmountChange` with the amount as a
+ * string, so selection highlighting compares against the string value.
+ *
+ * @param {object} props
+ * @param {string} props.amount - Current amount (string, as typed).
+ * @param {(amount: string) => void} props.onAmountChange - Change handler for both typing and badge taps.
+ * @param {number|string} props.balance - User's QUSD balance, shown formatted to 2 decimals.
+ * @param {string} [props.placeholder='Enter Amount'] - Label above the input.
+ */
 const AmountInput = ({
 	amount,
 	onAmountChange,

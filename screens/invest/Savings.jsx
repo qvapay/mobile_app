@@ -45,6 +45,14 @@ function modalReducer(state, action) {
 	}
 }
 
+/**
+ * Savings account screen: balance, earnings history and deposit/withdraw operations.
+ * Accepts an optional pre-fetched summary in `route.params.savings` (from Invest) to
+ * render instantly; otherwise loads `savingApi.getSummary` plus the last 20 movements.
+ * Deposits/withdrawals post to `/saving/deposit` and `/saving/withdraw` (min $1) from a
+ * centered card modal, then refresh both the savings summary and the wallet balance.
+ * The balance can be negative (admin-managed debt) — rendered in danger color.
+ */
 const Savings = ({ route }) => {
 
 	const { theme } = useTheme()

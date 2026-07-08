@@ -7,6 +7,18 @@ import { createTextStyles } from '../../theme/themeUtils'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+/**
+ * Section header row: muted title on the left, optional action link on the right
+ * ("Ver más" pattern — subtitle text plus a small icon, both in the primary color).
+ * The action Pressable always renders; it only becomes meaningful when `subtitle`
+ * and `onPress` are provided.
+ *
+ * @param {object} props
+ * @param {string} props.title - Section title.
+ * @param {string} [props.subtitle] - Action label shown next to the icon.
+ * @param {string} [props.iconName='arrow-right'] - FontAwesome6 icon for the action.
+ * @param {function} [props.onPress] - Action tap handler.
+ */
 const QPSectionHeader = ({ title, subtitle, iconName = 'arrow-right', onPress }) => {
 
 	// Contexts

@@ -1,114 +1,126 @@
+/**
+ * Route-name constants for React Navigation. Always reference screens through
+ * ROUTES.* — the string values are what navigation.navigate(), linking.js and
+ * the OneSignal notification routing bind to, so changing a value is a
+ * breaking change for deep links and push navigation.
+ *
+ * Note: TERMS_AND_CONDITIONS is a plain external URL, not a screen name.
+ */
 export const ROUTES = {
 
-    // Onboard Screens
-    ONBOARD_SCREEN: "Onboard",
+	// Onboard Screens
+	ONBOARD_SCREEN: "Onboard",
 
-    // Initial Screens
-    SPLASH_SCREEN: "Splash",
-    WELCOME_SCREEN: "Welcome",
+	// Initial Screens
+	SPLASH_SCREEN: "Splash",
+	WELCOME_SCREEN: "Welcome",
 
-    // Stacks
-    AUTH_STACK: "AuthStack",
-    MAIN_STACK: "MainStack",
-    P2P_STACK: "P2PStack",
-    SETTINGS_STACK: "SettingsStack",
-    TRANSACTION_STACK: "TransactionStack",
+	// Stacks
+	AUTH_STACK: "AuthStack",
+	MAIN_STACK: "MainStack",
+	P2P_STACK: "P2PStack",
+	SETTINGS_STACK: "SettingsStack",
+	TRANSACTION_STACK: "TransactionStack",
 
-    // Shop Stack
-    SHOP_STACK: "ShopStack",
+	// Shop Stack
+	SHOP_STACK: "ShopStack",
 
-    // Auth Screens
-    LOGIN_SCREEN: "Login",
-    REGISTER_SCREEN: "Register",
-    RECOVER_PASSWORD_SCREEN: "RecoverPassword",
-    RECOVER_2FA_SCREEN: "Recover2FA",
+	// Auth Screens
+	LOGIN_SCREEN: "Login",
+	REGISTER_SCREEN: "Register",
+	RECOVER_PASSWORD_SCREEN: "RecoverPassword",
+	RECOVER_2FA_SCREEN: "Recover2FA",
 
-    // Home Screens
-    HOME_SCREEN: "Home",
-    INVEST_SCREEN: "Invest",
-    KEYPAD_SCREEN: "Keypad",
-    STORE_SCREEN: "Store",
-    PHONE_TOPUP_INDEX: "PhoneTopupIndex",
-    PHONE_TOPUP_BRAND: "PhoneTopupBrand",
-    GIFT_CARDS: "GiftCards",
-    GIFT_CARD_BRAND: "GiftCardBrand",
-    MY_PURCHASES: "MyPurchases",
-    PURCHASE_DETAIL: "PurchaseDetail",
-    P2P_SCREEN: "P2P",
-    P2P_CREATE_SCREEN: "P2PCreate",
+	// Home Screens
+	HOME_SCREEN: "Home",
+	INVEST_SCREEN: "Invest",
+	KEYPAD_SCREEN: "Keypad",
+	STORE_SCREEN: "Store",
+	PHONE_TOPUP_INDEX: "PhoneTopupIndex",
+	PHONE_TOPUP_BRAND: "PhoneTopupBrand",
+	GIFT_CARDS: "GiftCards",
+	GIFT_CARD_BRAND: "GiftCardBrand",
+	MY_PURCHASES: "MyPurchases",
+	PURCHASE_DETAIL: "PurchaseDetail",
+	P2P_SCREEN: "P2P",
+	P2P_CREATE_SCREEN: "P2PCreate",
 	P2P_OFFER_SCREEN: "P2POffer",
 	P2P_USER_SCREEN: "P2PUser",
 
-    // InOut Screens
-    ADD: "Add",
-    WITHDRAW: "Withdraw",
+	// InOut Screens
+	ADD: "Add",
+	WITHDRAW: "Withdraw",
 
-    SCAN_SCREEN: "Scan",
+	SCAN_SCREEN: "Scan",
 
-    // Send, Receive and Confirm Screens
-    SEND: "Send",
-    SEND_CONFIRM: "SendConfirm",
-    SEND_SUCCESS: "SendSuccess",
-    RECEIVE: "Receive",
+	// Send, Receive and Confirm Screens
+	SEND: "Send",
+	SEND_CONFIRM: "SendConfirm",
+	SEND_SUCCESS: "SendSuccess",
+	RECEIVE: "Receive",
 
-    // In out Screens
-    TRANSACTION: "Transaction",
-    TRANSACTIONS: "Transactions",
-    PAY_SCREEN: "Pay",
+	// In out Screens
+	TRANSACTION: "Transaction",
+	TRANSACTIONS: "Transactions",
+	PAY_SCREEN: "Pay",
 
-    // Profile & Settings Routes
-    SETTINGS_MENU: "SettingsMenu",
+	// Profile & Settings Routes
+	SETTINGS_MENU: "SettingsMenu",
 
-    // Settings Subpanels
-    GOLD_CHECK: "GoldCheck",
-    REFERALS: "Referals",
-    THEME: "Theme",
-    FONT_SIZE: "FontSize",
-    USERDATA: "Userdata",
-    PHONE: "Phone",
-    TELEGRAM: "Telegram",
-    PASSWORD: "Password",
-    TWO_FACTOR: "TwoFactor",
-    BIOMETRICS: "Biometrics",
-    KYC: "KYC",
-    DELETE_ACCOUNT: "DeleteAccount",
-    NOTIFICATIONS: "Notifications",
-    PAYMENT_METHODS: "PaymentMethods",
-    CONTACTS: "Contacts",
-    APP_LOCK: "AppLock",
-    PASSKEYS: "Passkeys",
-    ROUNDUP: "Roundup",
+	// Settings Subpanels
+	GOLD_CHECK: "GoldCheck",
+	REFERALS: "Referals",
+	THEME: "Theme",
+	FONT_SIZE: "FontSize",
+	USERDATA: "Userdata",
+	PHONE: "Phone",
+	TELEGRAM: "Telegram",
+	PASSWORD: "Password",
+	TWO_FACTOR: "TwoFactor",
+	BIOMETRICS: "Biometrics",
+	KYC: "KYC",
+	DELETE_ACCOUNT: "DeleteAccount",
+	NOTIFICATIONS: "Notifications",
+	PAYMENT_METHODS: "PaymentMethods",
+	CONTACTS: "Contacts",
+	APP_LOCK: "AppLock",
+	PASSKEYS: "Passkeys",
+	ROUNDUP: "Roundup",
 
-    // Invest Screens
-    SAVINGS_SCREEN: "Savings",
-    STOCK_DETAIL_SCREEN: "StockDetail",
+	// Invest Screens
+	SAVINGS_SCREEN: "Savings",
+	STOCK_DETAIL_SCREEN: "StockDetail",
 
-    // Help Screens
-    HELP_SCREEN: "Help",
+	// Help Screens
+	HELP_SCREEN: "Help",
 
-    // Terms and Conditions
-    TERMS_AND_CONDITIONS: "https://www.qvapay.com/terms"
+	// Terms and Conditions
+	TERMS_AND_CONDITIONS: "https://www.qvapay.com/terms"
 }
 
+/**
+ * Bottom-tab definitions consumed by ui/BottomBar: `key` is the tab's route
+ * name inside MainStack, `name` its FontAwesome6 (solid) icon.
+ */
 export const navItems = [
-    {
-        key: 'Home',
-        name: 'wallet'
-    },
-    {
-        key: 'Invest',
-        name: 'bitcoin-sign'
-    },
-    {
-        key: 'Keypad',
-        name: 'dollar-sign'
-    },
-    {
-        key: 'P2P',
-        name: 'users'
-    },
-    {
-        key: 'Store',
-        name: 'store'
-    },
+	{
+		key: 'Home',
+		name: 'wallet'
+	},
+	{
+		key: 'Invest',
+		name: 'bitcoin-sign'
+	},
+	{
+		key: 'Keypad',
+		name: 'dollar-sign'
+	},
+	{
+		key: 'P2P',
+		name: 'users'
+	},
+	{
+		key: 'Store',
+		name: 'store'
+	},
 ]

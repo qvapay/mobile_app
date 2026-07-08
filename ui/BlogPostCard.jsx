@@ -8,7 +8,19 @@ import { useTextStyles } from '../theme/themeUtils'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Blog Post Card
+/**
+ * Card for a WordPress blog post (featured image, date, author, title, excerpt)
+ * shown in the Home feed; tapping opens the post in the external browser.
+ * Excerpt HTML is stripped client-side; dates are formatted in Spanish locale.
+ * On iPad the cards render two-up, so width is computed from the window width
+ * and the bottom margin is dropped.
+ *
+ * @param {object} props
+ * @param {object} props.post - WP REST post: `{ title, excerpt, link, date, author, featuredImage }`.
+ * @param {number} props.index - Position in the list (controls bottom spacing on phones).
+ * @param {number} props.totalItems - Total posts rendered (last card gets no margin).
+ * @param {boolean} props.iPad - Enables the two-column iPad layout.
+ */
 const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 
 	const { theme } = useTheme()

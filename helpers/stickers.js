@@ -33,12 +33,25 @@ const QVAPAY_STICKERS_SET = new Set(QVAPAY_STICKERS)
 
 function isValidStickerName(name) { return typeof name === 'string' && QVAPAY_STICKERS_SET.has(name) }
 
-// Web uses webm; we swap to gif for the mobile render only.
+/**
+ * CDN URL for a sticker's mobile render. Web plays the `.webm`; mobile swaps
+ * the extension to `.gif` because iOS can't decode webm and FastImage already
+ * animates GIFs on both platforms.
+ * @param {string} name - Wire name from QVAPAY_STICKERS, e.g. 'joy.webm'.
+ * @returns {string} `https://media.qvapay.com/qvi/<name>.gif`
+ */
 export function getStickerMediaUrl(name) {
 	const gifName = typeof name === 'string' ? name.replace(/\.webm$/i, '.gif') : ''
 	return `${STICKER_MEDIA_BASE_URL}/${gifName}`
 }
 
+/**
+ * Classifies a transaction description as sticker or plain text.
+ * Only an exact `:sticker:<name>` payload whose name exists in the catalog
+ * counts as a sticker — unknown names degrade gracefully to plain text.
+ * @param {string} description - Raw description as persisted by the backend.
+ * @returns {{ type: 'text'|'sticker', text: string, sticker: string|null }}
+ */
 export function parseTransactionDescription(description) {
 	if (typeof description !== 'string' || description.length === 0) { return { type: 'text', text: '', sticker: null } }
 	if (description.startsWith(STICKER_PREFIX)) {
@@ -48,4 +61,9 @@ export function parseTransactionDescription(description) {
 	return { type: 'text', text: description, sticker: null }
 }
 
+/**
+ * Builds the wire-format description persisted for a sticker transaction.
+ * @param {string} name - Wire name from QVAPAY_STICKERS, e.g. 'joy.webm'.
+ * @returns {string} `:sticker:<name>`
+ */
 export function buildStickerDescription(name) { return `${STICKER_PREFIX}${name}` }

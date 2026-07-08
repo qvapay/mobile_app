@@ -7,7 +7,19 @@ import { useTheme } from '../../theme/ThemeContext'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Custom Input Component — React 19: ref arrives as a regular prop
+/**
+ * Themed text input with optional prelabel and prefix/suffix FontAwesome6 icons.
+ * Passing `suffixIconName` as 'eye'/'eye-slash' turns the suffix into a password
+ * visibility toggle that flips `secureTextEntry`. Light mode adds a hairline
+ * primary border; dark surfaces stay borderless per house style. React 19: `ref`
+ * arrives as a regular prop and is forwarded straight to the TextInput (no
+ * forwardRef). All unrecognized props pass through to the TextInput.
+ *
+ * @param {object} props
+ * @param {string} [props.prelabel] - Small muted label rendered above the field.
+ * @param {string} [props.prefixIconName] - FontAwesome6 icon on the left.
+ * @param {string} [props.suffixIconName] - FontAwesome6 icon on the right ('eye' enables the toggle).
+ */
 const QPInput = ({ ref, ...props }) => {
 
 	const { style, multiline, prelabel } = props

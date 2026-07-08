@@ -62,7 +62,15 @@ const fontScaleMap = {
     extraLarge: 1.3,
 }
 
-// Create theme objects
+/**
+ * Builds a complete theme object for one mode: brand colors + the light/dark
+ * palette, spacing, border radii and Rubik typography with every font size
+ * pre-multiplied by the user's font scale. Pure — exported for tests.
+ *
+ * @param {boolean} isDark - Whether to use the dark palette.
+ * @param {number} [fontScale=1.0] - Multiplier from `fontScaleMap`.
+ * @returns {{ isDark: boolean, colors: Object, spacing: Object, borderRadius: Object, typography: Object }}
+ */
 const createTheme = (isDark, fontScale = 1.0) => ({
     isDark,
     colors: {
@@ -115,7 +123,23 @@ const createTheme = (isDark, fontScale = 1.0) => ({
 // Create context
 const ThemeContext = createContext()
 
-// Theme provider component
+/**
+ * Provides the app theme (light / dark / auto) and memoized shared styles.
+ *
+ * - Mode + font size come from `settings.appearance` and are written back
+ *   through `updateSettings('appearance', ...)` when changed here (App.tsx
+ *   wires this up as `ThemeProviderWithSettings`). Persistence itself lives
+ *   in SettingsContext (AsyncStorage) — this provider holds no storage.
+ * - Subscribes to the system `Appearance` listener, but only reacts to it
+ *   while in 'auto' mode.
+ * - The context value is memoized and includes `styles.text` /
+ *   `styles.container` (StyleSheets rebuilt only when the theme object changes).
+ *
+ * @param {Object} props
+ * @param {React.ReactNode} props.children
+ * @param {Object|null} [props.settings] - Settings object from SettingsContext.
+ * @param {Function|null} [props.updateSettings] - Setter used to persist appearance changes.
+ */
 export const ThemeProvider = ({ children, settings = null, updateSettings = null }) => {
 
     // Get theme mode from settings or default to dark
@@ -236,7 +260,20 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
     )
 }
 
-// Custom hook to use theme
+/**
+ * Consumes the theme context. Throws if used outside a `ThemeProvider`.
+ *
+ * @returns {{
+ *   theme: Object,
+ *   isDark: boolean,
+ *   themeMode: 'light'|'dark'|'auto',
+ *   fontSizeKey: string,
+ *   toggleTheme: () => void,
+ *   setThemeMode: (mode: 'light'|'dark'|'auto') => Promise<void>,
+ *   setFontSize: (size: string) => Promise<void>,
+ *   styles: { text: Object, container: Object },
+ * }}
+ */
 export const useTheme = () => {
     const context = use(ThemeContext)
     if (!context) { throw new Error('useTheme must be used within a ThemeProvider') }

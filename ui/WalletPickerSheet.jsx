@@ -7,6 +7,20 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { openInWallet } from '../helpers/walletDeeplinks'
 
+/**
+ * "Open in your wallet" picker for crypto deposits (Add screen): lists the
+ * installed wallets detected by `helpers/walletDeeplinks` and launches the
+ * chosen one via its universal link with the deposit context (address, amount,
+ * memo). Shows a warning strip when the coin requires a memo, since deep links
+ * can't always carry it. Centered-card overlay; backdrop tap dismisses.
+ *
+ * @param {object} props
+ * @param {boolean} props.visible - Controls modal visibility.
+ * @param {{id: string, name: string}[]} props.wallets - Installed compatible wallets (empty state if none).
+ * @param {object} props.ctx - Deposit context forwarded to `openInWallet` (includes optional `memo`).
+ * @param {() => void} [props.onClose] - Dismiss handler.
+ * @param {(wallet: object, ok: boolean) => void} [props.onOpened] - Fired after a launch attempt with its result.
+ */
 const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 
 	const { theme } = useTheme()

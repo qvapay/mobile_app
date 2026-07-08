@@ -58,7 +58,15 @@ const QR_SIZE = Math.min(screenWidth - 80, 240)
 
 // Top bar layout
 
-// Scan Screen
+/**
+ * QR scanner and personal payment QR, toggleable in one screen (Vision Camera 5 +
+ * vision-camera-barcode-scanner).
+ * Accepts `route.params.view` ("scan" | "show") to choose the initial mode.
+ * Scanned codes go through `parseQRData`: pay invoices replace to the Pay sheet,
+ * payme user codes go to Send, and payme codes with an amount jump straight to
+ * SendConfirm. Scanning locks via ref after each hit and re-arms after 2s to
+ * avoid rapid-fire duplicates. The "show" mode renders qvapay.com/payme/{username}.
+ */
 const Scan = ({ navigation, route }) => {
 
 	// User

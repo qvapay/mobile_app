@@ -1,5 +1,7 @@
 // Pure amount-input logic for the Keypad screen, extracted so it can be unit-tested in
-// isolation. Two input bugs lived here:
+// isolation: keypadAmount.test.js runs under a `@jest-environment node` docblock, which
+// sidesteps the jest 30 (devDeps) vs jest 29 (react-native preset) clash. Two input
+// bugs lived here:
 //   1. Decimals were blocked because the length limit counted integer + decimal digits
 //      together (so "1234.56" = 6 digits > 5 was rejected).
 //   2. An over-limit amount set via "max balance" got stuck — backspace was also
@@ -9,7 +11,13 @@
 const MAX_AMOUNT_LENGTH = 5    // max digits allowed in the INTEGER part
 const MAX_DECIMAL_PLACES = 2   // currency → 2 decimals
 
-// Is `next` (the candidate amount after pressing a digit key) acceptable?
+/**
+ * Is `next` (the candidate amount after pressing a digit key) acceptable?
+ * Enforces the digit limit on the INTEGER part only and at most 2 decimals;
+ * rejects a bare "0" so a digit press can't produce "00".
+ * @param {string} next - Candidate amount string, e.g. "123.4".
+ * @returns {boolean}
+ */
 export function isValidNumericAmount(next) {
 
 	// Reject a bare "0" — prevents "00" and staying at zero via a digit press.
@@ -27,8 +35,13 @@ export function isValidNumericAmount(next) {
 	return true
 }
 
-// Given the current amount string and a pressed key ('0'-'9' | '.' | 'backspace'),
-// return the next amount string. Returns the amount UNCHANGED when the key is rejected.
+/**
+ * Given the current amount string and a pressed key, returns the next amount
+ * string. Returns the amount UNCHANGED when the key is rejected.
+ * @param {string} amount - Current amount; "0" represents empty.
+ * @param {string} key - '0'-'9' | '.' | 'backspace'.
+ * @returns {string}
+ */
 export function applyKeypadKey(amount, key) {
 
 	// Backspace only ever shortens — never blocked. Falls back to "0" when emptied.

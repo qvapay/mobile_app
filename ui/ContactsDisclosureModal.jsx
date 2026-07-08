@@ -12,6 +12,19 @@ import QPButton from './particles/QPButton'
 
 const PRIVACY_URL = 'https://qvapay.com/privacy'
 
+/**
+ * Pre-permission disclosure modal shown before requesting device-contacts
+ * access (Settings > Contacts screen). Explains that phone numbers are
+ * uploaded only to match friends already on QvaPay, links to the privacy
+ * policy, and offers accept/decline. This is the app's reference
+ * centered-card modal pattern: transparent + fade, dark overlay, card on the
+ * theme surface. Android back button triggers `onDecline`.
+ *
+ * @param {object} props
+ * @param {boolean} props.visible - Controls modal visibility.
+ * @param {() => void} props.onAccept - User consented; proceed to the OS permission prompt.
+ * @param {() => void} props.onDecline - User declined (also fired by back button).
+ */
 const ContactsDisclosureModal = ({ visible, onAccept, onDecline }) => {
 
 	const { theme } = useTheme()

@@ -3,6 +3,19 @@ import { Pressable, Text, StyleSheet } from 'react-native'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
+/**
+ * Selectable filter chip for store category rows, following the house chip
+ * pattern: selected = primary background + white text; unselected = transparent
+ * with a border in light mode, or a borderless surface in dark mode (dark
+ * surfaces never show borders). Optional emoji prefix and count suffix.
+ *
+ * @param {object} props
+ * @param {boolean} props.active - Selected state.
+ * @param {string} props.label - Chip text.
+ * @param {string} [props.emoji] - Emoji rendered before the label.
+ * @param {number} [props.count] - Item count rendered after the label.
+ * @param {function} props.onPress - Tap handler.
+ */
 const CategoryPill = ({ active, onPress, emoji, label, count }) => {
 
 	const { theme } = useTheme()

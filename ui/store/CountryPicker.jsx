@@ -10,7 +10,20 @@ import { createTextStyles } from '../../theme/themeUtils'
 // Stable no-op default so `onChange` doesn't change identity every render.
 const noop = () => {}
 
-// Trigger button + modal list. `countries` is the response from /api/store/*-catalog?countries.
+/**
+ * Country selector: a trigger button that opens a searchable, centered-card
+ * modal list. `countries` is the response from `/api/store/*-catalog?countries`
+ * (code, name, flag, offer_count). Search matches name substrings or code
+ * prefixes. Follows the house modal pattern: transparent fade,
+ * `statusBarTranslucent`, backdrop-tap dismiss, max height 75% of the window.
+ * Selecting a row calls `onChange`, closes the modal and clears the query.
+ *
+ * @param {object} props
+ * @param {Array} props.countries - Catalog country list.
+ * @param {object|null} props.value - Currently selected country (matched by `code`).
+ * @param {function} props.onChange - Receives the picked country object.
+ * @param {string} [props.placeholder='Seleccionar país'] - Trigger text when nothing is selected.
+ */
 const CountryPicker = ({ countries = [], value = null, onChange = noop, placeholder = 'Seleccionar país' }) => {
 
 	const { theme } = useTheme()

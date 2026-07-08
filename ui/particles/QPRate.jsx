@@ -9,16 +9,20 @@ import { useTheme } from '../../theme/ThemeContext'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 /**
- * Componente de rating con estrellas FontAwesome6
- * @param {Object} props - Las propiedades del componente
- * @param {number} props.value - Valor del rating (0-5)
- * @param {Function} props.onRate - Función callback que se ejecuta cuando se selecciona una estrella
- * @param {boolean} props.readOnly - Si es true, no permite interacción (solo muestra el rating)
- * @param {number} props.size - Tamaño de las estrellas (default: 20)
- * @param {string} props.color - Color de las estrellas activas (default: gold del tema)
- * @param {string} props.inactiveColor - Color de las estrellas inactivas (default: border del tema)
- * @param {number} props.spacing - Espaciado entre estrellas (default: 4)
- * @param {number} props.maxRating - Número máximo de estrellas (default: 5)
+ * FontAwesome6 star rating row, used both as display and input (P2P offer rating).
+ * Press-and-hold previews the selection: `onPressIn` lights every star up to the
+ * touched one before `onRate` commits on release. Active/previewed stars render
+ * solid, the rest as regular outlines. `readOnly` freezes it into a pure display.
+ *
+ * @param {object} props
+ * @param {number} props.value - Current rating (0 to maxRating).
+ * @param {function} props.onRate - Called with the selected rating (1-based).
+ * @param {boolean} [props.readOnly=false] - Display-only; disables interaction.
+ * @param {number} [props.size=20] - Star size in px.
+ * @param {string} [props.color] - Active star color (default: theme gold).
+ * @param {string} [props.inactiveColor] - Inactive star color (default: theme border).
+ * @param {number} [props.spacing=4] - Gap between stars in px.
+ * @param {number} [props.maxRating=5] - Number of stars.
  */
 const QPRate = ({
 	value = 0,

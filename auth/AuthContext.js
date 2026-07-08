@@ -4,7 +4,16 @@ import useAuthState from './useAuthState'
 // Create the Auth Context
 const AuthContext = createContext()
 
-// Auth Provider Component — state + actions live in the useAuthState hook
+/**
+ * Provides authentication state to the whole app.
+ * A thin shell: all state and actions live in the `useAuthState` hook —
+ * this component only mounts it once and exposes its return value.
+ *
+ * Sits near the top of the provider stack (see App.tsx), so anything that
+ * needs `isAuthenticated` / `user` / `token` can call `useAuth()`.
+ *
+ * @param {{ children: React.ReactNode }} props
+ */
 export const AuthProvider = ({ children }) => {
 	const value = useAuthState()
 	return (
@@ -14,7 +23,14 @@ export const AuthProvider = ({ children }) => {
 	)
 }
 
-// Custom hook to use the auth context
+/**
+ * Consumes the auth context. Throws if used outside an `AuthProvider`.
+ *
+ * @returns {ReturnType<import('./useAuthState').default>} Session state
+ *   (`isAuthenticated`, `user`, `token`, `isLoading`, `error`) and actions
+ *   (`login`, `loginWithPasskey`, `logout`, `register`, `confirmRegistration`,
+ *   `requestPin`, `updateUser`, `clearError`, `completeSession`).
+ */
 export const useAuth = () => {
 	const context = use(AuthContext)
 	if (!context) { throw new Error('useAuth must be used within an AuthProvider') }

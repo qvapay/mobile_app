@@ -7,29 +7,30 @@ import Animated, {
 } from 'react-native-reanimated'
 
 /**
- * QPPressable — wrapper central de animaciones de press, sobre `react-native-reanimated`.
+ * QPPressable — the app's central press-feedback wrapper, built on `react-native-reanimated`.
+ * It backs QPButton and press animations across ~50 screens.
  *
- * Es UN SOLO elemento: un `Animated.View` que lleva el `style` completo (layout idéntico
- * al original, sin wrappers que descuadren) y el transform animado. La detección de toque
- * usa el Responder system nativo de RN — NO un `Pressable` envolvente ni
- * `Animated.createAnimatedComponent(Pressable)` (este último corrompe el commit de Fabric:
- * SIGSEGV en MountingCoordinator::pullTransaction).
+ * Exists because `Animated.createAnimatedComponent(Pressable)` corrupts the Fabric
+ * commit on RN 0.84 (SIGSEGV in MountingCoordinator::pullTransaction). So this is
+ * ONE element only: a single `Animated.View` that carries both the full `style`
+ * (layout identical to the original — no extra wrappers to break it) and the
+ * animated transform. Touch detection uses RN's native Responder system directly,
+ * NOT a wrapping `Pressable`. The scale/opacity spring runs on the UI thread
+ * via `withSpring`.
  *
- * El scale corre en el UI thread con `withSpring`.
+ * @param {object} props
+ * @param {'scale'|'opacity'|'none'} [props.variant='scale'] - Press feedback style.
+ * @param {boolean} [props.disabled=false] - Disables press handling and animation.
+ * @param {function} [props.onPress] - Press handler; `onPressIn` / `onPressOut` also supported.
+ * @param {object|Array} [props.style] - Style object/array (NOT the `({ pressed }) => ...` function form).
  *
- * API:
- *   - `variant`: 'scale' (default) | 'opacity' | 'none'
- *   - `disabled`: deshabilita press y animación
- *   - `onPress` / `onPressIn` / `onPressOut`: handlers de press
- *   - `style`: objeto o array de estilos (no la forma función `({ pressed }) => ...`)
- *
- * Tuning del spring y valores activos: aquí, en un solo lugar.
+ * Spring tuning and pressed-state values live below, in one place.
  */
 
-// Spring del press: snappy con un toque de rebote al soltar.
+// Press spring: snappy, with a hint of bounce on release.
 const PRESS_SPRING = { mass: 0.6, damping: 14, stiffness: 220 }
 
-// Valores en estado presionado.
+// Pressed-state values.
 const ACTIVE_SCALE = 0.95
 const ACTIVE_OPACITY = 0.6
 

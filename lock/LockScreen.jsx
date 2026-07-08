@@ -23,6 +23,14 @@ function biometricsReducer(state, action) {
 	}
 }
 
+/**
+ * Full-screen app-lock overlay: 4-digit PIN entry with optional biometric unlock.
+ * Rendered by AppLockProvider above the NavigationContainer whenever the app is
+ * locked — it is not a navigation route and takes no props.
+ * The PIN verifies against the Keychain (`com.qvapay.applock`) via `unlockWithPin`;
+ * biometrics auto-prompt ~500ms after the screen appears when enabled in settings.
+ * A wrong PIN shakes the input boxes, clears them and refocuses the first one.
+ */
 const LockScreen = () => {
 
 	const { theme } = useTheme()

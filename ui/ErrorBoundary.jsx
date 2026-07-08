@@ -2,6 +2,16 @@ import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+/**
+ * App-wide error boundary — the codebase's only class component (error
+ * boundaries require one). Wraps the entire provider tree in `App.tsx` and
+ * swaps in a Spanish full-screen fallback with a "Reintentar" button when a
+ * descendant throws during render. Colors/fonts are hardcoded to the dark
+ * palette because it may render before ThemeContext exists.
+ *
+ * @param {object} props
+ * @param {() => void} [props.onReset] - Called after the retry button clears the error state.
+ */
 class ErrorBoundary extends React.Component {
 
 	constructor(props) {

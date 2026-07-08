@@ -1,9 +1,12 @@
 import { apiClient } from './client'
 
+// Market data for the Invest screen. Quotes are proxied (and cached) by the
+// QvaPay backend, so no third-party market API keys live in the app.
 export const stocksApi = {
 	/**
-	 * Get current quotes for all tracked stocks
-	 * @returns {Promise<Object>} Array of { symbol, name, icon, iconStyle, price, change, changeDollar, volume, timestamp }
+	 * Gets current quotes for all tracked stocks (`GET /stocks/index`).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is an array of `{ symbol, name, icon, iconStyle, price, change, changeDollar, volume, timestamp }`
 	 */
 	index: async () => {
 		try {
@@ -16,9 +19,11 @@ export const stocksApi = {
 	},
 
 	/**
-	 * Get extended quote + profile for a stock
+	 * Gets an extended quote + company profile for one stock
+	 * (`GET /stocks/{tick}?type=quote`).
+	 *
 	 * @param {string} tick - Stock ticker (e.g., 'AAPL')
-	 * @returns {Promise<Object>} { symbol, name, price, change, changeDollar, open, high, low, previousClose, volume, fiftyTwoWeekHigh, fiftyTwoWeekLow, exchange, type, description, sector, industry, ceo }
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ symbol, name, price, change, changeDollar, open, high, low, previousClose, volume, fiftyTwoWeekHigh, fiftyTwoWeekLow, exchange, type, description, sector, industry, ceo }`
 	 */
 	show: async (tick) => {
 		try {
@@ -31,10 +36,12 @@ export const stocksApi = {
 	},
 
 	/**
-	 * Get price history for a stock
+	 * Gets price history for a stock, used by the sparkline/detail charts
+	 * (`GET /stocks/{tick}?timeframe=...`).
+	 *
 	 * @param {string} tick - Stock ticker (e.g., 'AAPL', 'GOOGL')
-	 * @param {string} timeframe - Timeframe: '1H', '24H', '1W', '1M', '1Y'
-	 * @returns {Promise<Object>} Array of { time, value }
+	 * @param {string} [timeframe='24H'] - Timeframe: '1H', '24H', '1W', '1M', '1Y'
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is an array of `{ time, value }` points
 	 */
 	priceHistory: async (tick, timeframe = '24H') => {
 		try {

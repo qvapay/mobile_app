@@ -56,7 +56,14 @@ function modalsReducer(state, action) {
 	}
 }
 
-// P2P component
+/**
+ * P2P marketplace tab: paginated FlashList of buy/sell offers with filters.
+ * Offers load via `GET /p2p/index` (useP2POffers) filtered by type, coin, sort and
+ * "mine"; accepts `route.params.coin`/`coinName` (e.g. from Invest) to pre-select
+ * the coin filter. Access is gated by `user.p2p_enabled` (P2PRequirementsGate).
+ * Offer creators/peers are tracked for live online presence, and the filter bar
+ * hides on scroll (Twitter-style) along with the Android bottom bar.
+ */
 const P2P = ({ navigation, route }) => {
 
 	// User

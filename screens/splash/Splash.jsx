@@ -5,7 +5,12 @@ import { useEffect, useRef } from 'react'
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles } from '../../theme/themeUtils'
 
-// Splash Screen
+/**
+ * Animated splash: logo fade-in followed by a bounce, over the brand purple.
+ * Purely presentational — no navigation or API calls. App.tsx renders it while
+ * auth/settings state initializes (and a minimum display time elapses) before
+ * choosing between the authenticated and unauthenticated stacks.
+ */
 const SplashScreen = () => {
 
     // theme

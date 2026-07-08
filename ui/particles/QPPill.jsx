@@ -4,6 +4,15 @@ import { Pressable, Text, StyleSheet } from 'react-native'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
+/**
+ * Small rounded tag chip: surface background, hairline border, xs caption text.
+ * Read-mostly — there is no selected state and `onPress` is optional; for
+ * selectable filter chips see CategoryPill in `ui/store/`.
+ *
+ * @param {object} props
+ * @param {string} props.title - Pill label.
+ * @param {function} [props.onPress] - Optional tap handler.
+ */
 const QPPill = ({ title, onPress, style }) => {
 
 	// Contexts

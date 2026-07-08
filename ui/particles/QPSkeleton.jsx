@@ -4,7 +4,17 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } fr
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 
-// Pulsing placeholder block — loading states only, never as permanent empty-state filler
+/**
+ * Pulsing skeleton placeholder block — loading states only, never as permanent
+ * empty-state filler. Opacity breathes 0.15 → 0.35 on an infinite 700ms
+ * Reanimated loop (UI thread) over the theme's elevationLight, so it reads
+ * correctly in both light and dark modes.
+ *
+ * @param {object} props
+ * @param {number|string} props.width - Block width.
+ * @param {number|string} props.height - Block height.
+ * @param {number} [props.borderRadius=8] - Corner radius.
+ */
 const QPSkeleton = ({ width, height, borderRadius = 8, style }) => {
 
 	// Context

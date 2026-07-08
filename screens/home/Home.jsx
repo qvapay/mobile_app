@@ -84,7 +84,15 @@ function feedReducer(state, action) {
 	}
 }
 
-// Home Screen
+/**
+ * Home Screen — main dashboard with balance, quick actions and a personalized feed.
+ * Fans out independent fetches on mount: profile (`GET /user/extended`), latest
+ * transactions and quick-pay recipients (`transferApi`), blog posts (WordPress REST),
+ * a 24h crypto watchlist (BTC/ETH/LTC/SOL sparklines) and promo banners.
+ * Quick-pay users are tracked for live online status (OnlineStatusContext), and
+ * pull-to-refresh re-runs everything plus the store-update check (`helpers/versionCheck`),
+ * which can surface `UpdatePromptModal`.
+ */
 const Home = ({ navigation }) => {
 
 	// User Context

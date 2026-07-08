@@ -12,7 +12,20 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Settings Item
+/**
+ * Settings menu row: title, right chevron and an optional red alert dot, wrapped
+ * in QPPressable for press feedback. Rows stack into one visual card —
+ * `index`/`totalItems` round only the first row's top and the last row's bottom
+ * corners. Pressing navigates to `screen`; `disabled` dims the row to 50% and
+ * blocks the press.
+ *
+ * @param {object} props
+ * @param {string} props.title - Row label.
+ * @param {string} props.screen - Route name pushed on press.
+ * @param {number} props.index - Position within the group (corner rounding).
+ * @param {number} props.totalItems - Group length (corner rounding).
+ * @param {boolean} [props.showBadge=false] - Shows the red dot next to the chevron.
+ */
 const SettingsItem = ({ title, icon, screen, index, totalItems, navigation, disabled, showBadge = false }) => {
 
     // Contexts

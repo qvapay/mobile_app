@@ -1,6 +1,15 @@
 import Svg, { Path } from 'react-native-svg'
 
-// Apple Face ID icon (SF Symbol "faceid" equivalent)
+/**
+ * Draws Apple's Face ID glyph (SF Symbol "faceid" equivalent) as hand-traced SVG strokes.
+ * Exists because the real SF Symbol isn't available cross-platform — this renders
+ * identically on Android and accepts any stroke color, so biometric login buttons
+ * can match the surrounding theme.
+ *
+ * @param {object} props
+ * @param {number} [props.size=24] - Square dimension in px.
+ * @param {string} [props.color='#000'] - Stroke color; pass a theme color to blend in.
+ */
 const FaceIDIcon = ({ size = 24, color = '#000' }) => (
 	<Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
 		{/* Top-left corner */}

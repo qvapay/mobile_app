@@ -28,6 +28,15 @@ function setFieldReducer(state, action) {
 	}
 }
 
+/**
+ * Top-up purchase wizard for one operator: phone number + plan, then confirm.
+ * Route params: `countryCode`, `brandSlug` and optionally the `country` object.
+ * Offers load from `GET /store/topup-catalog?country&brand`; Cuba (Cubacel) plans buy
+ * via `POST /store/phone_package` (with gold pricing), all others via `POST /store/topup`.
+ * The destination country is locked to the brand's — numbers are built as E.164 from the
+ * catalog dial code and validated against the catalog regex. Balance (USD + sats) shows
+ * in the header: iOS 26 liquid-glass `unstable_headerRightItems`, `headerRight` on Android.
+ */
 const PhoneTopupBrand = ({ navigation, route }) => {
 
 	const { country: initCountry, countryCode, brandSlug } = route.params || {}

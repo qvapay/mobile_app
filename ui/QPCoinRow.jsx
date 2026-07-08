@@ -3,6 +3,19 @@ import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 import QPCoin from './particles/QPCoin'
 
+/**
+ * Single coin row (logo, name, network badge, stats) rendered inside
+ * QPCoinPicker and the Add screen. Stats show min amount and fee for the
+ * given direction, the coin price, and — when an `amount` is provided — the
+ * approximate coin quantity (`amount / price`); otherwise an em dash.
+ * Purely presentational: press handling belongs to the parent.
+ *
+ * @param {object} props
+ * @param {object} props.coin - Coin from `coinsApi` (name, logo, price, network, fee_in/out, min_in/out).
+ * @param {string} [props.amount] - Fiat amount to convert for the "Aprox." column.
+ * @param {'in'|'out'} [props.direction='in'] - Selects fee_in/min_in vs fee_out/min_out.
+ * @param {boolean} [props.showFees=true] - Hide fee/min/approx columns, leaving only price.
+ */
 const QPCoinRow = ({ coin, amount = '', direction = 'in', showFees = true }) => {
 
 	const { theme } = useTheme()

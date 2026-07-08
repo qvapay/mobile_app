@@ -9,7 +9,16 @@ import { createTextStyles } from '../theme/themeUtils'
 // Particles
 import SettingsItem from './particles/SettingsItem'
 
-// Settings Item
+/**
+ * Titled group of SettingsItem rows on the Settings menu. Items with
+ * `enabled: false` are filtered out before rendering, and each row receives
+ * its index/total so SettingsItem can round only the group's outer corners.
+ *
+ * @param {object} props
+ * @param {string} props.title - Section heading.
+ * @param {{title: string, icon: string, screen: string, enabled?: boolean, showBadge?: boolean}[]} props.items - Row definitions.
+ * @param {object} props.navigation - React Navigation object forwarded to each row.
+ */
 const SettingsSection = ({ title, items, navigation }) => {
 
 	// Contexts

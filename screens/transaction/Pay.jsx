@@ -73,7 +73,15 @@ function setFieldReducer(state, action) {
 	}
 }
 
-// Pay Screen — shown from the bottom, handles invoice pay/cancel (deep-linked from pay/:uuid)
+/**
+ * Merchant invoice payment sheet — presented as a transparentModal sliding from the
+ * bottom, deep-linked from qvapay.com/pay/:uuid (works pre-login via the pending
+ * deep-link flow in AppNavigator).
+ * Expects `route.params.uuid`; loads the invoice via `GET /transaction/{uuid}` and pays
+ * with `POST /pay/{uuid}` including an optional mood reaction. Own or already-paid
+ * invoices are view-only. If it can't go back (cold-start deep link) closing resets
+ * navigation to MainStack.
+ */
 const Pay = ({ route, navigation }) => {
 
 	const { uuid } = route.params || {}

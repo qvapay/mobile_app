@@ -21,7 +21,12 @@ import { useOnlineStatus } from '../hooks/OnlineStatusContext'
 // Routes
 import { ROUTES } from '../routes'
 
-// Status button config helper
+/**
+ * Maps an offer status to its action-button config (label, colors, radius).
+ * Terminal states (completed/paid/revision/cancelled) render pill-shaped
+ * status chips; open offers render "Editar" for the owner or an inverse
+ * action for peers ("Vender" on a buy offer, "Comprar" on a sell offer).
+ */
 const getStatusButton = (status, isOwner, offerType, theme) => {
 	switch (status) {
 		case 'completed':
@@ -45,7 +50,19 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
 	}
 }
 
-// P2P Offer Component
+/**
+ * List card for a P2P offer, used in the P2P marketplace list, user profiles
+ * and the offer detail header. Shows coin, rate, amount x receive, KYC/VIP/
+ * private badges, an optional counterparty row (with online dot, tap to open
+ * their P2P profile — disabled for yourself) and a status/action button that
+ * navigates to the offer. Left border is green for buy offers, red for sell.
+ *
+ * @param {object} props
+ * @param {object} props.offer - P2P offer from the API (with `Coin`, `User`, optional `Peer`).
+ * @param {object} [props.navigation] - React Navigation object; required for button/profile taps.
+ * @param {boolean} [props.show_buttons=true] - Render the status/action button (off in the offer detail header).
+ * @param {boolean} [props.show_user=true] - Render the counterparty profile row.
+ */
 const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true }) => {
 
 	// User context

@@ -1,4 +1,9 @@
-// Storage keys for settings
+/**
+ * AsyncStorage keys — one per settings category, so each category is read,
+ * written and reset independently (granular persistence). `SETTINGS` is the
+ * generic fallback key used when a category has no dedicated constant.
+ * These hold non-secret preferences only; secrets live in the Keychain.
+ */
 export const STORAGE_KEYS = {
 	SETTINGS: 'app_settings',
 	NOTIFICATIONS: 'notification_settings',
@@ -18,7 +23,12 @@ export const STORAGE_KEYS = {
 	ROUNDUP_SETTINGS: 'roundup_settings'
 }
 
-// Default settings
+/**
+ * Default value for every settings category. Stored settings are merged OVER
+ * this object on load, so adding a new key here is enough to roll it out to
+ * existing installs. Notable defaults: dark theme, Spanish locale, QUSD
+ * currency, `appearance.firstTime: true` (gates the onboarding flow).
+ */
 export const DEFAULT_SETTINGS = {
 	// Notification settings
 	notifications: {

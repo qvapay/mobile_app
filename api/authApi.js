@@ -3,12 +3,19 @@ import { apiClient } from './client'
 // Authentication API functions
 export const authApi = {
 	/**
-	 * Login user with email, password and 2FA code
+	 * Logs a user in (`POST /auth/login`). Two-phase flow:
+	 * - 202 = prelogin accepted, a 2FA challenge is pending → returns
+	 *   `{ status: 202, success: true, notified, has_otp }` (`has_otp` true when
+	 *   the user has TOTP configured; otherwise a 4-digit PIN was emailed).
+	 * - 200 = fully authenticated → returns `accessToken`, `tokenType` and `me`
+	 *   (the caller is responsible for persisting the token via `setAuthToken`).
+	 * Always sends `remember: true` for a long-lived session.
+	 *
 	 * @param {Object} credentials - Login credentials
 	 * @param {string} credentials.email - User email
 	 * @param {string} credentials.password - User password
-	 * @param {string} credentials.two_factor_code - 2FA code
-	 * @returns {Promise<Object>} Login response with accessToken and user data
+	 * @param {string} [credentials.two_factor_code] - 2FA code (email PIN or 6-digit TOTP); empty on the first call
+	 * @returns {Promise<Object>} `{ success, status?, data?, accessToken?, tokenType?, me?, security_warning?, error?, details?, action? }`
 	 */
 	login: async (credentials) => {
 
@@ -59,11 +66,13 @@ export const authApi = {
 	},
 
 	/**
-	 * Request PIN
+	 * Requests (or re-sends) the 2FA login PIN by email (`POST /auth/request-pin`).
+	 * Used when the user did not receive the PIN from the initial 202 prelogin.
+	 *
 	 * @param {Object} credentials - Request PIN credentials
 	 * @param {string} credentials.email - User email
 	 * @param {string} credentials.password - User password
-	 * @returns {Promise<Object>} Request PIN response
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` echoes the backend confirmation message
 	 */
 	requestPin: async (credentials) => {
 		try {
@@ -82,8 +91,11 @@ export const authApi = {
 	},
 
 	/**
-	 * Logout user (if API supports it)
-	 * @returns {Promise<Object>} Logout response
+	 * Revokes the current session server-side (`POST /auth/logout`, requires auth).
+	 * Best-effort: resolves `success: true` even when the request fails, so local
+	 * logout (clearing the Keychain token) always proceeds.
+	 *
+	 * @returns {Promise<Object>} `{ success: true, data?, error?, status? }`
 	 */
 	logout: async () => {
 		try {
@@ -93,15 +105,19 @@ export const authApi = {
 	},
 
 	/**
-	 * Register a new user
+	 * Registers a new account (`POST /auth/register`, no auth).
+	 * The account starts unverified — the backend emails a PIN that must be
+	 * confirmed via `confirmRegistration` (or consumed by the login flow).
+	 *
 	 * @param {Object} credentials - Registration credentials
 	 * @param {string} credentials.name - User's first name
 	 * @param {string} credentials.lastname - User's last name
 	 * @param {string} credentials.email - User's email address
 	 * @param {string} credentials.password - User's password
-	 * @param {string} credentials.invite - Optional referral username
-	 * @param {boolean} credentials.terms - Terms acceptance
-	 * @returns {Promise<Object>} Registration response with user data
+	 * @param {string} [credentials.invite] - Optional referral username
+	 * @param {string} [credentials.source] - Optional acquisition source tag
+	 * @param {boolean} [credentials.terms] - Terms acceptance (defaults to true)
+	 * @returns {Promise<Object>} `{ success, data?, message?, user?, error?, details? }` — `user` holds the created profile (incl. `uuid` for confirmation)
 	 */
 	register: async (credentials) => {
 		try {
@@ -125,11 +141,14 @@ export const authApi = {
 	},
 
 	/**
-	 * Confirm registration
+	 * Confirms a fresh registration with the emailed PIN
+	 * (`POST /auth/confirm-registration`, no auth). Marks the email as verified.
+	 *
 	 * @param {Object} credentials - Confirmation credentials
-	 * @param {string} credentials.uuid - User UUID
-	 * @param {string} credentials.pin - User PIN
-	 * @returns {Promise<Object>} Confirmation response
+	 * @param {string} credentials.uuid - UUID returned by `register`
+	 * @param {string} credentials.email - The registered email
+	 * @param {string} credentials.pin - PIN received by email
+	 * @returns {Promise<Object>} `{ success, data?, message?, error?, details? }`
 	 */
 	confirmRegistration: async (credentials) => {
 		try {
@@ -155,7 +174,9 @@ export const authApi = {
 	// ── Passkeys (WebAuthn) ──────────────────────────────────────────
 
 	/**
-	 * List user's registered passkeys (requires auth)
+	 * Lists the user's registered passkeys (`GET /auth/passkey/list`, requires auth).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data` is the array of passkeys (id, name, created_at, ...)
 	 */
 	getPasskeys: async () => {
 		try {
@@ -167,7 +188,10 @@ export const authApi = {
 	},
 
 	/**
-	 * Delete a passkey by ID (requires auth)
+	 * Deletes a passkey by ID (`POST /auth/passkey/delete`, requires auth).
+	 *
+	 * @param {string|number} id - Passkey identifier from `getPasskeys`.
+	 * @returns {Promise<Object>} `{ success, error? }`
 	 */
 	deletePasskey: async (id) => {
 		try {
@@ -179,7 +203,12 @@ export const authApi = {
 	},
 
 	/**
-	 * Get registration options for a new passkey (requires auth)
+	 * Fetches WebAuthn creation options for enrolling a new passkey
+	 * (`POST /auth/passkey/register-options`, requires auth). The options are
+	 * handed to `react-native-passkey` to run the platform ceremony.
+	 *
+	 * @param {string} name - Display name for the new passkey (e.g. device name).
+	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data` is the WebAuthn `PublicKeyCredentialCreationOptions`
 	 */
 	getPasskeyRegisterOptions: async (name) => {
 		try {
@@ -189,7 +218,11 @@ export const authApi = {
 	},
 
 	/**
-	 * Verify and save a new passkey registration (requires auth)
+	 * Verifies the attestation from the platform ceremony and persists the new
+	 * passkey (`POST /auth/passkey/register-verify`, requires auth).
+	 *
+	 * @param {Object} attestation - Attestation response produced by `react-native-passkey`.
+	 * @returns {Promise<Object>} `{ success, data?, error? }`
 	 */
 	verifyPasskeyRegistration: async (attestation) => {
 		try {
@@ -199,7 +232,10 @@ export const authApi = {
 	},
 
 	/**
-	 * Get authentication options for passkey login (no auth required)
+	 * Fetches WebAuthn request options for passkey login
+	 * (`POST /auth/passkey/login-options`, no auth required).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data` is the WebAuthn `PublicKeyCredentialRequestOptions`
 	 */
 	getPasskeyLoginOptions: async () => {
 		try {
@@ -209,7 +245,13 @@ export const authApi = {
 	},
 
 	/**
-	 * Verify passkey authentication and login (no auth required)
+	 * Verifies the passkey assertion and completes login
+	 * (`POST /auth/passkey/login-verify`, no auth required). On success the
+	 * response mirrors a 200 `login`: `accessToken`, `tokenType` and `me`.
+	 * Skips the password/2FA flow entirely.
+	 *
+	 * @param {Object} assertion - Assertion response produced by `react-native-passkey`.
+	 * @returns {Promise<Object>} `{ success, data?, accessToken?, tokenType?, me?, error? }`
 	 */
 	verifyPasskeyLogin: async (assertion) => {
 		try {
@@ -225,10 +267,12 @@ export const authApi = {
 	},
 
 	/**
-	 * Request password reset
+	 * Requests a password reset email (`POST /auth/reset-password`, no auth).
+	 * The backend responds generically whether or not the email exists.
+	 *
 	 * @param {Object} credentials - Reset password credentials
 	 * @param {string} credentials.email - User email
-	 * @returns {Promise<Object>} Reset password response
+	 * @returns {Promise<Object>} `{ success, data?, message?, error?, details? }`
 	 */
 	resetPassword: async (credentials) => {
 		try {

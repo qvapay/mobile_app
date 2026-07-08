@@ -1,3 +1,7 @@
+// Deep links into external crypto wallets for deposits: builds pre-filled
+// "send" URIs (Trust Wallet / MetaMask universal links, BIP21, EIP-681,
+// solana:, tonkeeper:) and detects which supported wallets are installed.
+// Consumed by ui/WalletPickerSheet on the Add (deposit) flow.
 import { Linking } from 'react-native'
 
 const enc = encodeURIComponent
@@ -138,7 +142,14 @@ const WALLETS = [
 	},
 ]
 
-// Returns the list of wallets that declare support for the given coin/network combo.
+/**
+ * Returns the wallets that declare support for the given coin/network combo.
+ * Matches both the bare ticker ('USDT') and the combined form ('USDTTRC20'),
+ * since QvaPay coin ticks encode the network for stablecoins.
+ * @param {string} coin - Ticker, e.g. 'BTC', 'USDT', 'USDTTRC20'.
+ * @param {string} [network] - e.g. 'TRC20', 'BSC', 'SOL'.
+ * @returns {Array<object>} Matching entries from the WALLETS registry.
+ */
 const getWalletsForCoin = (coin, network) => {
 	const c = String(coin || '').toUpperCase()
 	const n = String(network || '').toUpperCase()
@@ -146,8 +157,15 @@ const getWalletsForCoin = (coin, network) => {
 	return WALLETS.filter((w) => w.coins.includes(c) || w.coins.includes(tick))
 }
 
-// Filters supported wallets to only those installed on the device.
-// Uses Linking.canOpenURL — requires the scheme to be declared natively (iOS Info.plist / Android queries).
+/**
+ * Filters the supported wallets down to those installed on the device.
+ * Uses Linking.canOpenURL — each wallet's scheme must be declared natively
+ * (iOS Info.plist LSApplicationQueriesSchemes / Android manifest <queries>)
+ * or detection silently reports "not installed".
+ * @param {string} coin - Ticker, e.g. 'BTC' or 'USDT'.
+ * @param {string} [network] - e.g. 'TRC20', 'BSC'.
+ * @returns {Promise<Array<{ id: string, name: string, scheme: string, coins: string[], buildUri: function }>>}
+ */
 export const detectInstalledWallets = async (coin, network) => {
 	const candidates = getWalletsForCoin(coin, network)
 	const results = await Promise.all(
@@ -161,7 +179,12 @@ export const detectInstalledWallets = async (coin, network) => {
 	return results.filter(Boolean)
 }
 
-// Returns true if the URI was opened, false otherwise. Errors are swallowed.
+/**
+ * Opens the wallet app on a pre-filled send screen for the deposit context.
+ * @param {object} wallet - Registry entry, as returned by detectInstalledWallets.
+ * @param {{ address: string, amount?: string|number, memo?: string, coin: string, network?: string }} ctx
+ * @returns {Promise<boolean>} true if a URI was built and opened; errors are swallowed.
+ */
 export const openInWallet = async (wallet, ctx) => {
 	try {
 		const uri = wallet.buildUri(ctx)

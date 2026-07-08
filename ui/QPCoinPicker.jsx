@@ -11,6 +11,26 @@ import QPCoinRow from './QPCoinRow'
 
 const MAX_QUICK_PILLS = 3
 
+/**
+ * Full-screen coin picker modal (iOS `pageSheet`) used by the Add, Withdraw
+ * and PaymentMethods flows. Features a toggleable name/tick search, quick
+ * pills (up to 3: recently used coins persisted in AsyncStorage under
+ * `recentKey`, padded with `defaultCoins`), and a QPCoinRow list showing
+ * fees/min/price and the approximate coin amount for the entered fiat amount.
+ * Selecting a coin records it as recent before calling `onSelect`.
+ *
+ * @param {object} props
+ * @param {boolean} props.visible - Controls modal visibility.
+ * @param {() => void} props.onClose - Dismiss handler (caller also closes after select).
+ * @param {(coin: object) => void} props.onSelect - Called with the chosen coin object.
+ * @param {object[]} [props.coins] - Enabled coins from `coinsApi`.
+ * @param {object} [props.selectedCoin] - Currently selected coin (highlights its quick pill).
+ * @param {string} [props.amount] - Fiat amount used for the per-coin approximation.
+ * @param {'in'|'out'} [props.direction='out'] - Which fee/min set to display.
+ * @param {string} [props.recentKey] - AsyncStorage key for recents; omit to disable persistence.
+ * @param {{tick: string, label: string}[]} [props.defaultCoins] - Fallback quick pills.
+ * @param {boolean} [props.showFees=true] - Toggle fee/min/approx columns in rows.
+ */
 const QPCoinPicker = ({
 	visible,
 	onClose,

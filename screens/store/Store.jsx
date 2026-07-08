@@ -31,6 +31,13 @@ function catalogReducer(state, action) {
 	}
 }
 
+/**
+ * Store tab landing: mobile top-ups plus (Android-only) the gift-card storefront.
+ * Vouchers are hidden on iOS to comply with App Store Guideline 3.1.1.
+ * Loads Zendit-backed catalogs from `GET /store/topup-catalog` and
+ * `GET /store/voucher-catalog` using mode params (countries / favorites / featured /
+ * categories / country); the top-up country defaults to Cuba (CU).
+ */
 const Store = ({ navigation }) => {
 
 	const { theme } = useTheme()

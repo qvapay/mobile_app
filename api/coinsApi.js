@@ -3,9 +3,12 @@ import { apiClient } from './client'
 // Coins API functions
 export const coinsApi = {
 	/**
-	 * Get coins with optional filters
-	 * @param {Object} filters - Optional filters (e.g., { enabled_p2p: true })
-	 * @returns {Promise<Object>} Coins response
+	 * Lists the coins/payment rails the platform supports (`GET /coins/v2`).
+	 * Filter by capability with flags like `{ enabled_in: true }` (deposits),
+	 * `{ enabled_out: true }` (withdrawals) or `{ enabled_p2p: true }` (P2P offers).
+	 *
+	 * @param {Object} [filters] - Optional query filters, appended as-is to the query string
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the coins list (tick, name, price, fees, logo, working_data)
 	 */
 	index: async (filters = {}) => {
 
@@ -35,10 +38,12 @@ export const coinsApi = {
 	},
 
 	/**
-	 * Get price history for a coin
+	 * Gets price history for a coin (`GET /coins/price-history/{tick}`),
+	 * used by the sparkline charts.
+	 *
 	 * @param {string} tick - Coin ticker (e.g., 'BTC', 'ETH')
-	 * @param {string} timeframe - Timeframe for history (e.g., '24H', '7D', '30D')
-	 * @returns {Promise<Object>} Price history response with array of { time, value }
+	 * @param {string} [timeframe='24H'] - Timeframe for history (e.g., '24H', '7D', '30D')
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is an array of `{ time, value }` points
 	 */
 	priceHistory: async (tick, timeframe = '24H') => {
 		try {

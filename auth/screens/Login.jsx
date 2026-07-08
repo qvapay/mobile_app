@@ -52,7 +52,15 @@ function formReducer(state, action) {
 	}
 }
 
-// Login Screen
+/**
+ * Login screen: credentials → optional 2FA step (emailed PIN or 6-digit TOTP) → session.
+ * Drives `POST /auth/login` through AuthContext — a 202 response opens the 2FA step
+ * (`requestPin` re-sends the email PIN). Also supports passkey login and biometric
+ * quick login with credentials from Keychain `com.qvapay.biometrics`; enrollment is
+ * offered after a successful manual login.
+ * Client-side throttle mirrors the backend: 60s lockout after 5 failed attempts.
+ * HIBP leaked-password results (warning or forced reset) surface in LeakedPasswordModal.
+ */
 const LoginScreen = ({ navigation }) => {
 
 	// Settings Context

@@ -6,6 +6,19 @@ import { mediaUrl } from '../../helpers/mediaUrl'
 
 const SIZES = { sm: 32, md: 44, lg: 64 }
 
+/**
+ * Squircle brand/operator logo with a lettered fallback.
+ * Renders the CDN logo (resolved through the mediaUrl helper) via FastImage
+ * with immutable cache; without a logo it shows the brand's first letter.
+ * Named sizes map to px (sm 32 / md 44 / lg 64) and the corner radius stays
+ * proportional (`dim / 4`).
+ *
+ * @param {object} props
+ * @param {string} props.brand - Brand name; its first letter is the fallback glyph.
+ * @param {string} [props.logoUrl] - CDN path or URL for the logo.
+ * @param {'sm'|'md'|'lg'} [props.size='md'] - Named size.
+ * @param {string} [props.bgColor] - Background override (default: theme elevationLight).
+ */
 const OperatorAvatar = ({ brand = '', logoUrl = null, size = 'md', bgColor = null }) => {
 
 	const { theme } = useTheme()

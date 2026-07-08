@@ -12,6 +12,25 @@ import {
 
 const AppLockContext = createContext()
 
+/**
+ * PIN-based app lock that gates the UI behind `LockScreen` (rendered by
+ * App.tsx whenever `isLocked` is true).
+ *
+ * - The PIN lives in the Keychain (service `com.qvapay.applock`), never in
+ *   AsyncStorage; only `security.autoLockTimeout` (minutes) comes from settings.
+ * - Cold start: locks immediately when authenticated and a PIN exists.
+ * - Background/foreground: an AppState listener timestamps the moment the app
+ *   leaves 'active' and re-locks on return only if the elapsed time reaches
+ *   `autoLockTimeout` (default 5 min) — brief app switches don't lock.
+ * - Unlock paths: `unlockWithPin` (compared against the Keychain value) or
+ *   `unlockWithBiometrics`, which reads the login credentials from the
+ *   `com.qvapay.biometrics` Keychain entry and thereby triggers the OS
+ *   Face ID / Touch ID prompt.
+ * - `isLocked` is exposed AND-ed with `isAuthenticated`, so logging out
+ *   dismisses the lock screen automatically.
+ *
+ * @param {{ children: React.ReactNode }} props
+ */
 export const AppLockProvider = ({ children }) => {
 
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
@@ -67,7 +86,12 @@ export const AppLockProvider = ({ children }) => {
 		return () => subscription.remove()
 	}, [isAuthenticated, appLockEnabled, security.autoLockTimeout])
 
-	// Unlock with biometrics
+	/**
+	 * Unlocks via Face ID / Touch ID. Success = the biometric-protected Keychain
+	 * entry could be read (the OS prompt IS the authentication).
+	 *
+	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 */
 	const unlockWithBiometrics = useCallback(async () => {
 		try {
 			const credentials = await getBiometricCredentials()
@@ -81,7 +105,12 @@ export const AppLockProvider = ({ children }) => {
 		}
 	}, [])
 
-	// Unlock with PIN
+	/**
+	 * Unlocks by comparing the entered PIN with the one stored in the Keychain.
+	 *
+	 * @param {string} enteredPin
+	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 */
 	const unlockWithPin = useCallback(async (enteredPin) => {
 		try {
 			const storedPin = await getAppLockPin()
@@ -102,7 +131,13 @@ export const AppLockProvider = ({ children }) => {
 		}
 	}, [isAuthenticated, appLockEnabled])
 
-	// Enable app lock with a new PIN
+	/**
+	 * Enables app lock by storing a new PIN in the Keychain. Does not lock
+	 * immediately — the lock arms on the next timeout/cold start (or via `lock`).
+	 *
+	 * @param {string} pin
+	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 */
 	const enableAppLock = useCallback(async (pin) => {
 		const stored = await setAppLockPin(pin)
 		if (stored) {
@@ -120,7 +155,13 @@ export const AppLockProvider = ({ children }) => {
 		return { success: true }
 	}, [])
 
-	// Change app lock PIN
+	/**
+	 * Changes the app-lock PIN after verifying the current one.
+	 *
+	 * @param {string} oldPin - Current PIN (must match the stored value).
+	 * @param {string} newPin - Replacement PIN.
+	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 */
 	const changeAppLockPin = useCallback(async (oldPin, newPin) => {
 		const storedPin = await getAppLockPin()
 		if (storedPin !== oldPin) {
@@ -157,6 +198,21 @@ export const AppLockProvider = ({ children }) => {
 	)
 }
 
+/**
+ * Consumes the app-lock context. Throws if used outside an `AppLockProvider`.
+ *
+ * @returns {{
+ *   isLocked: boolean,
+ *   appLockEnabled: boolean,
+ *   unlockWithBiometrics: Function,
+ *   unlockWithPin: Function,
+ *   lock: () => void,
+ *   enableAppLock: Function,
+ *   disableAppLock: Function,
+ *   changeAppLockPin: Function,
+ *   updateAutoLockTimeout: (minutes: number) => Promise<void>,
+ * }}
+ */
 export const useAppLock = () => {
 	const context = use(AppLockContext)
 	if (!context) { throw new Error('useAppLock must be used within an AppLockProvider') }

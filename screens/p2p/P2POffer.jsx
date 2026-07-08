@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react"
-import { View, Text, Platform, ScrollView, Keyboard, useWindowDimensions } from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { useState, useEffect, useRef } from "react"
 import { useNavigation } from "@react-navigation/native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { View, Text, Platform, ScrollView, Keyboard, useWindowDimensions } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -23,6 +23,7 @@ import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
 // Hooks + sections
 import useP2PChat from "./useP2PChat"
+import useP2PChatSSE from "./useP2PChatSSE"
 import useP2POfferDetail from "./useP2POfferDetail"
 import P2POfferDetailsCard from "./P2POfferDetailsCard"
 import P2PChatPanel from "./P2PChatPanel"
@@ -31,8 +32,16 @@ import P2PEditModal from "./P2PEditModal"
 import P2PApplyModal from "./P2PApplyModal"
 import P2PActionBar from "./P2PActionBar"
 
-// P2P Offer Component — orchestrates the offer-detail hook, the chat hook and the
-// presentational sections (details / chat / modals / action bar).
+/**
+ * P2P offer detail + trade room — orchestrates the offer-detail hook, the chat hook
+ * and the presentational sections (details / chat / modals / action bar).
+ * Expects `route.params.p2p_uuid`; also deep-linked from qvapay.com/p2p/:p2p_uuid.
+ * The offer polls `GET /p2p/{uuid}` every 5s while active (status has no SSE); chat is
+ * real-time over SSE (`useP2PChatSSE`) with a polling fallback, and trade actions drive
+ * `/p2p/{uuid}/apply|paid|received|cancel|rate`.
+ * The share header item is configured in App.tsx — iOS 26 liquid-glass via
+ * `unstable_headerRightItems`, `headerRight` fallback on Android.
+ */
 const P2POffer = ({ route }) => {
 
 	const { user } = useAuth()
@@ -49,8 +58,21 @@ const P2POffer = ({ route }) => {
 	// Chat (messages, composer, stickers, auto-scroll ref)
 	const chat = useP2PChat({ p2p_uuid })
 
+	// Shared ref breaking the hook cycle: SSE needs the offer status, the offer's 5s
+	// interval needs to know whether the chat stream is live (to skip its chat fetch)
+	const chatStreamLiveRef = useRef(false)
+
 	// Offer lifecycle, derived flags and trade actions (chat fetch injected for polling/refresh)
-	const offer = useP2POfferDetail({ p2p_uuid, user, navigation, fetchChat: chat.fetchChat })
+	const offer = useP2POfferDetail({ p2p_uuid, user, navigation, fetchChat: chat.fetchChat, chatStreamLiveRef })
+
+	// Real-time chat over SSE while the trade is active; falls back to polling if the stream drops
+	useP2PChatSSE({
+		p2p_uuid,
+		status: offer.p2p?.status,
+		appendMessage: chat.appendMessage,
+		fetchChat: chat.fetchChat,
+		connectedRef: chatStreamLiveRef,
+	})
 	const {
 		p2p, isLoading, error, refreshing, rating,
 		isOwner, isPayer, isReceiver, status, counterparty,

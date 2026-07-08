@@ -1,6 +1,18 @@
 import { memo } from 'react'
 import Svg, { Polyline, Defs, LinearGradient, Stop, Polygon } from 'react-native-svg'
 
+/**
+ * Tiny SVG price sparkline with a gradient fill under the line, used by
+ * WatchlistCard and the Invest/StockDetail screens. Values are normalized to
+ * the series' own min/max, so it shows shape, not scale. Memoized (many render
+ * at once in the watchlist grid) and renders nothing with fewer than 2 points.
+ *
+ * @param {object} props
+ * @param {{value: number}[]} props.data - Ordered series of data points.
+ * @param {number} [props.width=80] - SVG width in px.
+ * @param {number} [props.height=32] - SVG height in px.
+ * @param {string} [props.color='#7BFFB1'] - Stroke and fill color (green = up, red = down by convention).
+ */
 const Sparkline = memo(({ data, width = 80, height = 32, color = '#7BFFB1' }) => {
 
 	if (!data || data.length < 2) return null

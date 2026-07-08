@@ -24,7 +24,23 @@ import TransactionSticker from './TransactionSticker'
 // Stickers
 import { parseTransactionDescription } from '../../helpers/stickers'
 
-// QPTransaction component
+/**
+ * Transaction list row: coin logo or peer avatar, smart description, relative
+ * time and a signed amount. Sign and color derive from whether the logged-in
+ * user is the payer (red "-") or the receiver (green "+"). Descriptions stored
+ * as `:sticker:<name>.webm` render as an animated TransactionSticker chip with
+ * a directional "@user" label instead of text; empty descriptions fall back to
+ * a derived label (deposit coin, withdraw method, app name, transfer peer…).
+ * The amount honors the privacy `showBalance` setting ("***" when hidden), and
+ * `index`/`totalItems` round only the group's outer corners so consecutive rows
+ * read as a single card. Pressing navigates to the Transaction detail.
+ *
+ * @param {object} props
+ * @param {object} props.transaction - Transaction with User/PaidBy/Wallet/Withdraw/App relations.
+ * @param {object} props.navigation - React Navigation object for the detail push.
+ * @param {number} [props.index=0] - Position in the list (corner rounding).
+ * @param {number} [props.totalItems=0] - List length (corner rounding).
+ */
 const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) => {
 
     // My user

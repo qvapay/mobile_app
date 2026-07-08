@@ -3,18 +3,25 @@ import { apiClient } from './client'
 // P2P API functions
 export const p2pApi = {
 	/**
-	 * Get P2P offers with optional filters
+	 * Lists P2P marketplace offers with optional filters (`GET /p2p/index`).
+	 * Returns a paginated envelope; the offers themselves live in `offers`
+	 * (alias of `data.data`).
+	 *
 	 * @param {Object} filters - Optional filters for P2P offers
-	 * @param {number} filters.page - Page number (default: 1)
-	 * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: 'desc')
-	 * @param {number} filters.take - Number of items per page (default: 50)
-	 * @param {string} filters.type - Offer type: 'buy' or 'sell'
-	 * @param {number} filters.min - Minimum amount filter (default: 0)
-	 * @param {number} filters.max - Maximum amount filter (default: 1000000)
-	 * @param {number} filters.ratio_min - Minimum ratio filter (default: 0)
-	 * @param {number} filters.ratio_max - Maximum ratio filter (default: 0)
-	 * @param {string} filters.coin - Coin ticker to filter by (e.g., 'ETECSA', 'BANK_CUP', 'CLASICA')
-	 * @returns {Promise<Object>} P2P offers response with pagination
+	 * @param {number} [filters.page] - Page number (default: 1)
+	 * @param {string} [filters.order] - Sort order: 'asc' or 'desc' (default: 'desc')
+	 * @param {number} [filters.take] - Number of items per page (default: 50)
+	 * @param {string} [filters.type] - Offer type: 'buy' or 'sell'
+	 * @param {boolean} [filters.my] - Only the current user's offers
+	 * @param {boolean} [filters.only_kyc] - Only offers restricted to KYC users
+	 * @param {boolean} [filters.only_vip] - Only offers restricted to VIP users
+	 * @param {number} [filters.min] - Minimum amount filter (default: 0)
+	 * @param {number} [filters.max] - Maximum amount filter (default: 1000000)
+	 * @param {number} [filters.ratio_min] - Minimum ratio filter (default: 0)
+	 * @param {number} [filters.ratio_max] - Maximum ratio filter (default: 0)
+	 * @param {string} [filters.coin] - Coin ticker to filter by (e.g., 'ETECSA', 'BANK_CUP', 'CLASICA')
+	 * @param {string} [filters.orderBy] - Column to sort by
+	 * @returns {Promise<Object>} `{ success, data?, current_page?, per_page?, total?, offers?, error?, details?, status? }`
 	 */
 	index: async (filters = {}) => {
 
@@ -134,6 +141,14 @@ export const p2pApi = {
 		return p2pApi.index({ ...additionalFilters, page, take: perPage })
 	},
 
+	/**
+	 * Gets the full detail of a single P2P offer (`GET /p2p/{uuid}`).
+	 * Private offers return 403 for anyone but the involved parties — the
+	 * client interceptor leaves that for the screen to handle.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the offer (owner, peer, status, details, ...)
+	 */
 	show: async (p2p_uuid) => {
 		try {
 			const response = await apiClient.get(`/p2p/${p2p_uuid}`)
@@ -144,8 +159,11 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Cancel an existing P2P offer/escrow
-	 * @param {string} p2p_uuid - The P2P UUID
+	 * Cancels a P2P offer/escrow (`POST /p2p/{uuid}/cancel`).
+	 * Moves the offer to `cancelled` and releases any locked funds.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	cancel: async (p2p_uuid) => {
 		try {
@@ -157,8 +175,13 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Mark escrow as paid by the payer
-	 * @param {string} p2p_uuid - The P2P UUID
+	 * Marks the escrow as paid by the payer (`POST /p2p/{uuid}/paid`).
+	 * Moves the offer from `processing` to `paid`; the counterpart must then
+	 * confirm via `confirmReceived`.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {string} [tx_id] - Optional external payment reference/transaction id
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	markPaid: async (p2p_uuid, tx_id = '') => {
 		try {
@@ -168,8 +191,12 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Confirm payment received and release escrow
-	 * @param {string} p2p_uuid - The P2P UUID
+	 * Confirms payment received and releases the escrow (`POST /p2p/{uuid}/received`).
+	 * Final, irreversible step of the trade: moves the offer to `completed`
+	 * and settles balances.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	confirmReceived: async (p2p_uuid) => {
 		try {
@@ -179,8 +206,12 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Get chat messages for a P2P offer
-	 * @param {string} p2p_uuid - The P2P UUID
+	 * Gets the chat history for a P2P offer (`GET /p2p/{uuid}/chat`).
+	 * Loads the full history; live updates arrive separately over SSE
+	 * (see `useP2PChatSSE`), which only pushes new messages.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the messages array
 	 */
 	getChat: async (p2p_uuid) => {
 		try {
@@ -190,10 +221,14 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Send a chat message for a P2P offer
-	 * Supports text messages, stickers (`:sticker:name.webm`), and image uploads
-	 * @param {string} p2p_uuid - The P2P UUID
-	 * @param {{ message?: string, image?: object }} payload - Message payload. image should be { uri, type, fileName }
+	 * Sends a chat message on a P2P offer (`POST /p2p/{uuid}/chat`).
+	 * Supports plain text, stickers (encoded in the text as `:sticker:name.webm`)
+	 * and image uploads — with an image the request switches to
+	 * multipart/form-data (`file` + optional `message` fields).
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {{ message?: string, image?: { uri: string, type?: string, fileName?: string } }} payload - Message payload
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the stored message
 	 */
 	sendChat: async (p2p_uuid, payload) => {
 		try {
@@ -218,9 +253,13 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Create a new P2P offer
-	 * @param {Object} data - The P2P offer data
-	 * @returns {Promise<Object>} The P2P offer response
+	 * Creates a new P2P offer (`POST /p2p/create`).
+	 * Only a 201 counts as success — any other 2xx is treated as a failure.
+	 * How many open offers a user may hold depends on their role
+	 * (regular 1, KYC 3, VIP 5, Gold 10, ...); the backend enforces it.
+	 *
+	 * @param {Object} data - The offer payload: type ('buy'|'sell'), coin, amount, receive, details, flags (only_kyc, only_vip, private), ...
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the created offer
 	 */
 	create: async data => {
 		try {
@@ -258,10 +297,12 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Edit an open P2P offer (owner only)
-	 * @param {string} p2p_uuid - The P2P UUID
+	 * Edits an open P2P offer (`POST /p2p/{uuid}/edit`, owner only).
+	 * Only works while the offer is still `open` (no peer yet).
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @param {Object} data - Editable fields: amount, receive, only_vip, message
-	 * @returns {Promise<Object>} The updated P2P offer response
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the updated offer
 	 */
 	edit: async (p2p_uuid, data) => {
 		try {
@@ -280,10 +321,12 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Rate a P2P offer
-	 * @param {string} p2p_uuid - The P2P UUID
-	 * @param {Object} payload - The rating payload
-	 * @returns {Promise<Object>} The P2P offer rating response
+	 * Rates the counterpart after a completed trade (`POST /p2p/{uuid}/rate`).
+	 * Ratings feed the peer's trust score shown on their P2P profile.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {Object} payload - The rating payload (star rating, optional comment)
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	rateOffer: async (p2p_uuid, payload) => {
 		try {
@@ -293,8 +336,10 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Get P2P averages per coin (cached endpoint)
-	 * @returns {Promise<Object>} Averages by coin: { BANK_CUP: { name, average, average_buy, average_sell, count }, ... }
+	 * Gets market average rates per coin (`GET /p2p/averages`, server-cached).
+	 * Used to suggest fair ratios when creating offers.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` maps ticks to `{ name, average, average_buy, average_sell, count }`
 	 */
 	getAverages: async () => {
 		try {
@@ -310,9 +355,11 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Apply to a P2P offer
-	 * @param {string} p2p_uuid - The P2P UUID
-	 * @returns {Promise<Object>} The P2P offer apply response
+	 * Applies to someone else's P2P offer (`POST /p2p/{uuid}/apply`).
+	 * The caller becomes the peer and the offer moves from `open` to `processing`.
+	 *
+	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	apply: async (p2p_uuid) => {
 		try {
@@ -322,9 +369,14 @@ export const p2pApi = {
 	},
 
 	/**
-	 * Get the P2P peer profile dashboard payload (user, stats, offers, ratings, top coins).
-	 * The viewer_gold flag in the response tells the UI whether to unlock GOLD-only panels.
+	 * Gets the P2P peer profile dashboard payload — user, stats, offers,
+	 * ratings and top coins (`GET /p2p/user/{uuid}`, sent silently so it
+	 * never flashes the global loading bar).
+	 * The `viewer_gold` flag in the response tells the UI whether to unlock
+	 * GOLD-only panels.
+	 *
 	 * @param {string} uuid - Target user's UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	peerProfile: async (uuid) => {
 		try {

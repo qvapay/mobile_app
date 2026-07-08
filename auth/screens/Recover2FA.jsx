@@ -3,7 +3,11 @@ import { View, Text, StyleSheet, Button } from 'react-native'
 // Routes
 import { ROUTES } from '../../routes'
 
-// Login Screen
+/**
+ * Placeholder for the 2FA-recovery flow — not implemented yet.
+ * Currently only renders a stub with a button back to Login; the backend
+ * endpoint (`POST /auth/reset-2fa`) is not wired up from mobile.
+ */
 const Recover2FAScreen = ({ navigation }) => {
 
     return (

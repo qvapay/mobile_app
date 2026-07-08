@@ -4,13 +4,21 @@ import { View, TextInput, StyleSheet } from 'react-native'
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 
-// Input de código de verificación multi-caja (PIN de email, código SMS/Telegram).
-// Mecánica calcada de TwoFactorEntry: paste del código completo, backspace que
-// retrocede y auto-avance de foco. El dígito es visible (no secure) — es un
-// código de un solo uso, verlo ayuda a transcribirlo.
-//
-// `autoFocus` retrasa el foco ~380ms para no pelear con la animación de entrada
-// del step (el teclado subiría a mitad del slide).
+/**
+ * Multi-box one-time-code input (email PIN, SMS/Telegram verification codes).
+ * Mechanics mirror TwoFactorEntry: pasting the full code spreads it across the
+ * boxes, backspace clears then steps back, and focus auto-advances. Digits stay
+ * visible (not secure) — it's a single-use code, seeing it helps transcription.
+ * `autoFocus` delays focus ~380ms so the keyboard doesn't fight the step's
+ * entrance animation (it would slide up mid-transition). OS autofill is wired
+ * via `textContentType="oneTimeCode"` / `autoComplete="sms-otp"`.
+ *
+ * @param {object} props
+ * @param {number} [props.length=4] - Box count; more than 4 uses the compact box size.
+ * @param {string} props.code - Controlled code value.
+ * @param {function} props.onChangeCode - Receives the full updated code string.
+ * @param {boolean} [props.autoFocus=false] - Focus the first box after the ~380ms delay.
+ */
 const QPCodeInput = ({ length = 4, code, onChangeCode, autoFocus = false, disabled = false }) => {
 
 	const { theme } = useTheme()

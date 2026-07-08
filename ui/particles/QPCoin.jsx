@@ -10,6 +10,18 @@ import { useTheme } from '../../theme/ThemeContext'
 
 const SVG_CACHE_PREFIX = 'svg_cache_'
 
+/**
+ * Circular coin / payment-method logo, fetched as SVG from
+ * `media.qvapay.com/coins/{tick}.svg`. The raw SVG XML is cached in AsyncStorage
+ * (`svg_cache_` prefix) so repeat renders never touch the network; while the
+ * first fetch is in flight, SvgUri streams the same URL as a stopgap. A missing
+ * tick or failed/invalid fetch degrades to a lettered placeholder showing the
+ * first 3 characters of the tick.
+ *
+ * @param {object} props
+ * @param {string} props.coin - Coin tick or payment-method key (case-insensitive).
+ * @param {number} [props.size=32] - Diameter in px.
+ */
 const QPCoin = ({ coin, size = 32 }) => {
 
 	const { theme } = useTheme()

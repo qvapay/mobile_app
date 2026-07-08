@@ -11,7 +11,19 @@ import QPAvatar from './particles/QPAvatar'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Profile Container Horizontal Component
+/**
+ * Compact horizontal user row: avatar + name with KYC/gold/admin badges,
+ * memoized for list use (P2P offer cards, Send search results, contacts,
+ * referrals). Second line is either the @username or, when `showUsername` is
+ * false, a P2P trust strip: verified phone/Telegram/X icons, completed
+ * operations count (creator + peer sides) and average rating.
+ *
+ * @param {object} props
+ * @param {object} props.user - User object (name, username, kyc, golden_check, role, `_count`, rating_avg, ...).
+ * @param {number} [props.size=56] - Avatar diameter in px.
+ * @param {boolean} [props.showUsername=true] - Toggle between @username and the P2P trust strip.
+ * @param {boolean} [props.isOnline] - Shows the online presence dot on the avatar.
+ */
 const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true, isOnline }) => {
 
 	// Contexts

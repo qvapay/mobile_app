@@ -37,6 +37,17 @@ const ISO_DIRECTIONS = [
 	{ dx: 0.85,  dy: -0.5, scaleX: -1, scaleY: -1 }, // NE (both mirrors)
 ]
 
+/**
+ * One looping delivery-vehicle sprite: fades in, glides 70–130px along its iso
+ * direction over 22–32s, fades out, and repeats forever (randomized start delay
+ * desynchronizes the fleet). Mirroring (`scaleX`/`scaleY`) comes from the
+ * direction, since rotating the SVG would break the isometric perspective.
+ *
+ * @param {object} props
+ * @param {React.ComponentType} props.Component - Imported delivery SVG.
+ * @param {{top: string, left: string}} props.position - Random start position (percent offsets).
+ * @param {{dx: number, dy: number, scaleX: number, scaleY: number}} props.direction - One of ISO_DIRECTIONS.
+ */
 const AnimatedDelivery = ({ Component, position, direction }) => {
 
 	const translateX = useSharedValue(0)
@@ -99,6 +110,17 @@ const AnimatedDelivery = ({ Component, position, direction }) => {
 	)
 }
 
+/**
+ * Home screen promo card for the USD CASH delivery service (cash delivered in
+ * Havana within 48h). Shows a Havana map with three randomly chosen animated
+ * delivery vehicles drifting across it; tapping opens the Withdraw flow with
+ * `USDCASH` preselected. Border only appears in light mode (house rule: no
+ * borders on dark surfaces); the bottom LinearGradient fades the map into the
+ * card surface so the action row blends in.
+ *
+ * @param {object} props
+ * @param {object} props.navigation - React Navigation object used for `navigate()`.
+ */
 const CashDeliveryCard = ({ navigation }) => {
 
 	const { theme } = useTheme()

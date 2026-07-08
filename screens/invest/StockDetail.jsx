@@ -38,6 +38,14 @@ const StatRow = ({ label, value, theme, isLast }) => (
 )
 
 // --- Main Component ---
+
+/**
+ * Stock quote detail with a timeframe-switchable price chart.
+ * Route params: `symbol` (required) plus optional `initialData`, `icon`/`iconStyle`
+ * and `image` so the header paints instantly while the extended quote loads
+ * (`stocksApi.show` + `stocksApi.priceHistory`).
+ * Timeframe pills (1H–1Y) refetch only the price history, not the quote.
+ */
 const StockDetail = ({ route }) => {
 
 	const { symbol, icon, iconStyle, initialData, image } = route.params

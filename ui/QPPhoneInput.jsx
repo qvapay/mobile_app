@@ -14,15 +14,24 @@ import CountryPickerModal from './CountryPickerModal'
 // Countries
 import { countries } from '../labels/countries'
 
-// QPPhoneInput — fila de teléfono estilo wizard de registro: chip de país + input.
-//
-// Dos modos:
-//   - Seleccionable: pasa `country` (código ISO, ej. 'CU') + `onChangeCountry(code)`.
-//     El chip abre el CountryPickerModal con búsqueda.
-//   - Bloqueado: pasa `lockedCountry` ({ dial, flag? }) — chip estático sin selector
-//     (ej. recargas, donde el país lo fija el operador).
-//
-// `valid` muestra un check de éxito dentro del input. El resto de props van al QPInput.
+/**
+ * Phone-number row in the registration-wizard style: country dial-code chip +
+ * phone input. Used by Register, Settings > Phone and PhoneTopupStep1.
+ *
+ * Two modes:
+ * - Selectable: pass `country` (ISO code, e.g. 'CU') + `onChangeCountry(code)`.
+ *   The chip opens the searchable CountryPickerModal, whose open/search state
+ *   is managed internally so call sites don't have to.
+ * - Locked: pass `lockedCountry` (`{ dial, flag? }`) — static chip, no picker
+ *   (e.g. top-ups, where the operator fixes the country).
+ *
+ * @param {object} props
+ * @param {string} [props.country] - Selected ISO country code (selectable mode).
+ * @param {(code: string) => void} [props.onChangeCountry] - Country selection handler.
+ * @param {{dial: string, flag?: string}} [props.lockedCountry] - Fixed dial code (locked mode).
+ * @param {boolean} [props.valid] - Shows a success check inside the input.
+ * @param {...*} props.inputProps - Remaining props are spread onto the underlying QPInput.
+ */
 const QPPhoneInput = ({ country, onChangeCountry, lockedCountry, valid, ...inputProps }) => {
 
 	const { theme } = useTheme()

@@ -1,10 +1,17 @@
+// Bridge to the custom `SharedStorage` native module backing the home-screen
+// widgets. iOS writes JSON into the App Group UserDefaults (group.com.qvapay)
+// read by the WidgetKit extension; Android writes SharedPreferences and
+// refreshes the matching AppWidgets immediately from the native side.
+// Every call is a silent no-op when the module isn't available.
 import { NativeModules, Platform } from 'react-native'
 
 const { SharedStorage } = NativeModules
 
 /**
- * Update widget with latest balance data.
- * Called from AuthContext after profile fetch.
+ * Pushes the latest balance snapshot to the home-screen widgets.
+ * Called from AuthContext after each profile fetch. Non-critical: fails silently.
+ * @param {number} balance - Current USD balance (defaults to 0).
+ * @param {string} username - Owner's username, shown by the widget.
  */
 export const updateWidgetBalance = async (balance, username) => {
 	try {
@@ -24,8 +31,10 @@ export const updateWidgetBalance = async (balance, username) => {
 }
 
 /**
- * Update widget with latest P2P offers data.
- * Called from P2P screen after fetching user's offers.
+ * Pushes a trimmed summary of the user's P2P offers to the home-screen widgets
+ * (first 5 offers, key fields only, plus the total count).
+ * Called from the P2P screen after fetching the user's offers. Non-critical: fails silently.
+ * @param {Array<object>} offers - Full offer objects; reduced to uuid/type/coin/amount/receive/status.
  */
 export const updateWidgetP2POffers = async (offers) => {
 	try {
@@ -53,8 +62,8 @@ export const updateWidgetP2POffers = async (offers) => {
 }
 
 /**
- * Reload widget timelines (iOS only).
- * Forces widgets to refresh their display.
+ * Forces the widgets to refresh their display (WidgetCenter.reloadAllTimelines).
+ * iOS only — on Android setWidgetData already triggers the widget update natively.
  */
 export const reloadWidgets = async () => {
 	try {

@@ -4,6 +4,18 @@ import OperatorAvatar from './OperatorAvatar'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
+/**
+ * Store catalog tile for a brand: a colored banner with the operator logo on
+ * top, brand name and a price hint below. The banner uses the brand's own
+ * `bg_color` when the catalog provides one. The price label prefers a
+ * "$min – $max" range, falls back to "desde $min", then to the offer count.
+ * Light mode adds a hairline border; dark surfaces stay borderless (house style).
+ *
+ * @param {object} props
+ * @param {object} props.brand - Catalog brand: brand, logo_url, bg_color, price_min/max, offer_count.
+ * @param {object} [props.country] - Prepends the country's flag emoji to the price label.
+ * @param {function} props.onPress - Tap handler.
+ */
 const BrandTile = ({ brand, country, onPress, style }) => {
 
 	const { theme } = useTheme()

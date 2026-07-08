@@ -70,7 +70,14 @@ function draftReducer(state, action) {
 	}
 }
 
-// Transactions Screen
+/**
+ * Full transaction history with search, filters and infinite scroll (FlashList).
+ * Pages through `GET /transaction` (20 per page); accepts `route.params.showSearch`
+ * to open with the search bar already visible.
+ * Header search/filter buttons use iOS native `unstable_headerRightItems`
+ * (SF Symbols, liquid-glass) with a `headerRight` fallback on Android.
+ * The filter modal edits a draft that only takes effect on "Aplicar".
+ */
 const Transactions = ({ navigation, route }) => {
 
 	// Fetched list state

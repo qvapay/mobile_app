@@ -16,7 +16,20 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 const COVER_VISIBLE_HEIGHT = 200
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 56
 
-// Profile Container Component
+/**
+ * Full profile header: cover photo pulled up behind the navigation header and
+ * status bar (negative top margin sized from safe-area insets + platform
+ * header height), overlapping avatar, name with KYC/gold/admin badges, and a
+ * P2P stats card (operations / rating / TrustScore). Used on the Settings
+ * menu (own profile, with edit buttons) and on Transaction/Receive/Scan for
+ * viewing other users. Edit pencils only render when their callbacks are
+ * passed; a bottom gradient fades the cover into the screen background.
+ *
+ * @param {object} props
+ * @param {object} props.user - User profile (name, username, kyc, golden_check, cover_photo_url, trustscore, ...).
+ * @param {() => void} [props.onEditAvatar] - Shows the avatar edit pencil and enables tapping it.
+ * @param {() => void} [props.onEditCover] - Shows the cover edit pencil.
+ */
 const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 
 	// Contexts

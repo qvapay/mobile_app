@@ -8,6 +8,15 @@ import FastImage from '@d11/react-native-fast-image'
 
 const BANNER_HEIGHT = 70
 
+/**
+ * Dismissless promo banner on the Home screen, fed by `promoApi`. Renders
+ * nothing until a promo with text arrives, then expands from 0 to 70px height
+ * with a staggered fade (Reanimated), avoiding layout jump on load. Tapping
+ * opens `promo.url` externally; border only in light mode.
+ *
+ * @param {object} props
+ * @param {{text: string, description?: string, logo?: string, url?: string}} [props.promo] - Promo payload from the API.
+ */
 const PromoBanner = ({ promo }) => {
 
 	const { theme } = useTheme()

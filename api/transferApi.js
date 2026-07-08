@@ -3,16 +3,18 @@ import { apiClient } from './client'
 export const transferApi = {
 
 	/**
-	 * 
-	 * @param {*} filters 
-	 * @param {string} filters.user_id
-	 * @param {string} filters.type
-	 * @param {string} filters.status
-	 * @param {string} filters.start_date
-	 * @param {string} filters.end_date
-	 * @param {string} filters.page
-	 * @param {string} filters.take
-	 * @returns {Promise<Object>} Latest transactions data
+	 * Lists the authenticated user's latest transactions (`GET /transaction`).
+	 * Filters are serialized to the query string; empty/null values are skipped.
+	 *
+	 * @param {Object} [filters] - Optional query filters
+	 * @param {string} [filters.user_id] - Only transactions with this counterpart
+	 * @param {string} [filters.type] - Transaction type filter
+	 * @param {string} [filters.status] - Status filter (paid, pending, processing, received, cancelled)
+	 * @param {string} [filters.start_date] - Range start
+	 * @param {string} [filters.end_date] - Range end
+	 * @param {string|number} [filters.page] - Page number
+	 * @param {string|number} [filters.take] - Items per page
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the paginated transactions payload
 	 */
 	getLatestTransactions: async (filters) => {
 
@@ -47,9 +49,11 @@ export const transferApi = {
 	},
 
 	/**
-	 * 
-	 * @param {*} filters 
-	 * @returns 
+	 * Gets the users the account most recently sent money to
+	 * (`GET /transaction/latestusers`) — powers the quick-send avatar row.
+	 *
+	 * @param {number} [take=10] - Maximum number of recent recipients to return
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the recent recipients list
 	 */
 	getLatestSentTransfers: async (take = 10) => {
 		try {
@@ -70,14 +74,17 @@ export const transferApi = {
 	},
 
 	/**
-	/**
-	 * Transfer money to another user
+	 * Transfers balance to another user (`POST /transaction/transfer`).
+	 * Requires the account PIN; `amount` and `pin` are stringified before
+	 * sending. Sticker attachments travel inside the description as
+	 * `:sticker:<name>.webm`.
+	 *
 	 * @param {Object} data
 	 * @param {string|number} data.amount - Amount to transfer (e.g., "0.2")
 	 * @param {string} data.description - Description of the transfer
-	 * @param {string} data.to - Recipient's email or user identifier
+	 * @param {string} data.to - Recipient's email, username, uuid or verified phone
 	 * @param {string|number} data.pin - User's PIN for authorization
-	 * @returns {Promise<Object>} Transfer response data
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the created transaction
 	 *
 	 * Example request body:
 	 * {
@@ -115,9 +122,10 @@ export const transferApi = {
 
 
 	/**
-	 * Get transaction details by uuid
-	 * @param {string} uuid
-	 * @returns {Promise<Object>} Transaction details
+	 * Gets the full detail of a transaction (`GET /transaction/{uuid}`).
+	 *
+	 * @param {string} uuid - Transaction UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the transaction with owner/paid_by info
 	 */
 	getTransactionDetails: async (uuid) => {
 		try {
@@ -142,9 +150,10 @@ export const transferApi = {
 
 
 	/**
-	 * Get a transaction data as PDF
-	 * @param {string} uuid
-	 * @returns {Promise<Object>} Transaction PDF data
+	 * Gets the printable receipt for a transaction (`GET /transaction/{uuid}/pdf`).
+	 *
+	 * @param {string} uuid - Transaction UUID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the PDF payload for sharing/exporting
 	 */
 	getTransactionPDF: async (uuid) => {
 		try {

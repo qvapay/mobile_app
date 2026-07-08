@@ -2,7 +2,7 @@ import { useReducer, useMemo, useCallback } from "react"
 
 const PAGE_SIZE = 30
 
-// Sort options for cycling
+/** Sort options the P2P screen cycles through; `sortIndex` indexes into this array. */
 export const SORT_OPTIONS = [
 	{ label: "Reciente", orderBy: "updated_at", orderType: "desc" },
 	{ label: "Monto ↓", orderBy: "amount", orderType: "desc" },
@@ -34,7 +34,25 @@ function filtersReducer(state, action) {
 	}
 }
 
-// Owns the P2P marketplace filter state + derived API filters, active state and badges.
+/**
+ * Owns the P2P marketplace filter state plus everything derived from it: the query
+ * params for `GET /p2p/index`, the "any filter active" flag and the removable badges.
+ *
+ * Pure state — no requests happen here. The screen feeds `apiFilters` into
+ * useP2POffers, which refetches when its `quickKey` (built from the quick filters)
+ * changes; modal filters only apply when the screen calls fetch explicitly.
+ * Numeric fields (`minAmount`, `maxAmount`, `ratioMin`, `ratioMax`) are kept as
+ * strings for the inputs and only parsed into `apiFilters` when they hold a number.
+ *
+ * @param {object|null} initialCoin - Preselected coin (e.g. from navigation params); only `tick` is read.
+ * @returns {object} Filter API:
+ *   `filters` (raw state), `setFilter(field, value)` / `resetFilters()` (stable identities),
+ *   `orderBy` + `orderType` (from the active SORT_OPTIONS entry),
+ *   `hasActiveFilters` (any non-default filter set),
+ *   `apiFilters` (memoized params for p2pApi.index: take, order, orderBy, type,
+ *   my, coin, min, max, ratio_min, ratio_max, only_vip),
+ *   `activeFilterBadges` (modal-filter chips, each with `label` + `onRemove`).
+ */
 export default function useP2PFilters(initialCoin) {
 
 	const [filters, dispatch] = useReducer(filtersReducer, { ...initialFilters, selectedCoin: initialCoin })

@@ -14,7 +14,12 @@ import { ROUTES } from '../routes'
 import playSound from '../helpers/playSound'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 
-// Parse P2P UUID from a deep link URL
+/**
+ * Parses the P2P offer UUID out of a deep link URL.
+ * Matches both https paths and the qvapay:// custom scheme.
+ * @param {string} url - e.g. https://qvapay.com/p2p/<uuid> or qvapay://p2p/<uuid>
+ * @returns {string|null} The UUID, or null when the URL is not a P2P link.
+ */
 const parseP2PUuid = (url) => {
 	const match = url.match(/\/p2p\/([^/?#]+)/)
 	if (match) return match[1]
@@ -23,7 +28,11 @@ const parseP2PUuid = (url) => {
 	return null
 }
 
-// Parse Pay UUID from a deep link URL (e.g. https://qvapay.com/pay/<uuid> or qvapay://pay/<uuid>)
+/**
+ * Parses the merchant-invoice UUID out of a Pay deep link URL.
+ * @param {string} url - e.g. https://qvapay.com/pay/<uuid> or qvapay://pay/<uuid>
+ * @returns {string|null} The UUID, or null when the URL is not a Pay link.
+ */
 const parsePayUuid = (url) => {
 	const match = url.match(/\/pay\/([^/?#]+)/)
 	if (match) return match[1]
@@ -32,8 +41,22 @@ const parsePayUuid = (url) => {
 	return null
 }
 
-// Drives the app-root navigation flow. Returns the state AppNavigator needs to
-// render the splash gate, the initial route and the update modal.
+/**
+ * Drives the app-root navigation flow: minimum 2s splash, store-update check
+ * (helpers/versionCheck → UpdatePromptModal), auth ↔ navigation reconciliation,
+ * deep-link capture while unauthenticated, and OneSignal foreground/click
+ * listeners (toast + optional sound; tap navigates to the right screen).
+ *
+ * Deep links (/pay/:uuid, /p2p/:p2p_uuid) that arrive while logged out are
+ * stashed in `pendingDeepLinkRef` with a Spanish "log in first" toast; once
+ * authenticated the stack is reset to MainStack + the target screen, so back
+ * lands on Home instead of exiting.
+ *
+ * @param {{ current: string|null }} pendingDeepLinkRef - App-root ref holding a deep link URL captured pre-auth.
+ * @returns {object} State AppNavigator needs to render the splash gate, the
+ *   initial route and the update modal: `{ navigation, user, isAuthenticated,
+ *   authLoading, settingsLoading, firstTime, splashReady, updateInfo, dismissUpdate }`.
+ */
 export function useAppNavigation(pendingDeepLinkRef) {
 	const navigation = useNavigation()
 	const { user, isAuthenticated, isLoading: authLoading } = useAuth()

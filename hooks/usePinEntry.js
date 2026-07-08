@@ -1,9 +1,19 @@
 import { useState, useRef } from 'react'
 
-// Owns the mechanics of a multi-box PIN/OTP input: the entered code, the focused box,
-// the PIN↔OTP method toggle, the input refs and the digit/backspace/paste handlers.
-// The consuming screen keeps the auto-submit effect (so it can guard against re-entry)
-// and reads `pin` / `codeLength` for its footer button.
+/**
+ * Owns the mechanics of a multi-box PIN/OTP input: the entered code, the
+ * focused box, the PIN ↔ OTP method toggle, the input refs and the
+ * digit/backspace/paste handlers. Code length follows the method: 4 boxes for
+ * the email PIN, 6 for the TOTP code.
+ *
+ * The consuming screen keeps the auto-submit effect (so it can guard against
+ * re-entry) and reads `pin` / `codeLength` for its footer button.
+ *
+ * @returns {object} `{ pin, setPin, twoFactorMethod, codeLength,
+ *   focusedInputIndex, pinInputsRef, handlePinChange, handleKeyPress,
+ *   handleFocus, handleBlur, handleMethodToggle }` — wire the handlers and
+ *   `pinInputsRef.current[index]` into one TextInput per box.
+ */
 export default function usePinEntry() {
 	
 	const [twoFactorMethod, setTwoFactorMethod] = useState('pin')
@@ -49,7 +59,8 @@ export default function usePinEntry() {
 	const handleFocus = (index) => { setFocusedInputIndex(index) }
 	const handleBlur = () => { setFocusedInputIndex(null) }
 
-	// Switch between PIN and OTP — resets the entered code + refocuses
+	// Switch between PIN and OTP — resets the entered code + refocuses.
+	// `side` matches QPSwitch: 'left' = pin, anything else = otp.
 	const handleMethodToggle = (side) => {
 		const method = side === 'left' ? 'pin' : 'otp'
 		if (method !== twoFactorMethod) {

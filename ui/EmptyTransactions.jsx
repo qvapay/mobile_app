@@ -12,8 +12,15 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../routes'
 
-// First-use empty state for the transactions section: educate + CTA to the
-// action that generates the first transaction (adding balance)
+/**
+ * First-use empty state for the Home transactions section: educates the new
+ * user and CTAs to the action that generates the first transaction (adding
+ * balance, via `ROUTES.ADD`). Card border only shows in light mode, per the
+ * house dark-surface rule.
+ *
+ * @param {object} props
+ * @param {object} props.navigation - React Navigation object used for the CTA.
+ */
 const EmptyTransactions = ({ navigation }) => {
 
 	// Context

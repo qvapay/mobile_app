@@ -103,7 +103,15 @@ const PasswordRule = ({ ok, label, theme }) => {
 	)
 }
 
-// Register Screen — wizard paso a paso
+/**
+ * Register Screen — step-by-step wizard, one field per screen (name → email → password →
+ * email PIN → phone → phone code → push prompt), with direction-aware transitions.
+ * Verifying the emailed PIN via login opens a *silent* session: the token goes to the
+ * Keychain without flipping `isAuthenticated`, so later steps (phone verification) can
+ * call authenticated endpoints before `completeSession()` finishes the flow into MainStack.
+ * The phone verification code arrives via Telegram, not SMS.
+ * Back-navigation is intercepted with `usePreventRemove` to step backwards instead of exiting.
+ */
 const RegisterScreen = ({ navigation }) => {
 
 	// Auth Context

@@ -1,7 +1,15 @@
 import { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
 
-// Common text styles that adapt to theme
+/**
+ * Builds the shared text StyleSheet for a theme: `text`, `title`, `subtitle`,
+ * `amount` (hero numbers), `h1`–`h7`, `body`, `caption`, `error`. Font sizes
+ * already carry the user's font scale (baked into `theme.typography`).
+ * Prefer the memoized `useTextStyles` inside components.
+ *
+ * @param {Object} theme - Theme object from `createTheme`.
+ * @returns {Object} StyleSheet of text styles.
+ */
 export const createTextStyles = (theme) => StyleSheet.create({
 	text: {
 		color: theme.colors.primaryText,
@@ -76,7 +84,15 @@ export const createTextStyles = (theme) => StyleSheet.create({
 	},
 })
 
-// Common container styles
+/**
+ * Builds the shared layout StyleSheet for a theme: screen containers, `card`
+ * (border + shadow only in LIGHT mode — dark surfaces must stay borderless),
+ * `box`, `row`, `center` and header slots. Prefer the memoized
+ * `useContainerStyles` inside components.
+ *
+ * @param {Object} theme - Theme object from `createTheme`.
+ * @returns {Object} StyleSheet of container styles.
+ */
 export const createContainerStyles = (theme) => StyleSheet.create({
 	container: {
 		flex: 1,
@@ -145,6 +161,14 @@ export const createContainerStyles = (theme) => StyleSheet.create({
 	}
 })
 
-// Memoized hook versions (must be called from React components)
+/**
+ * Memoized hook versions (must be called from React components) — the
+ * StyleSheets are rebuilt only when the `theme` object identity changes.
+ * ThemeProvider calls these once and exposes them as `styles.text` /
+ * `styles.container`, so screens rarely need to call them directly.
+ *
+ * @param {Object} theme - Theme object from `createTheme`.
+ * @returns {Object} Memoized StyleSheet.
+ */
 export const useTextStyles = (theme) => { return useMemo(() => createTextStyles(theme), [theme]) }
 export const useContainerStyles = (theme) => { return useMemo(() => createContainerStyles(theme), [theme]) }

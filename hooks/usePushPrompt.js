@@ -13,6 +13,22 @@ const STORAGE_KEYS = {
 const MAX_BANNER_DISMISSALS = 3
 const BANNER_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000 // 1 week
 
+/**
+ * Decides when to prompt the user to enable push notifications and performs
+ * the OneSignal opt-in.
+ *
+ * Exposes independent prompt surfaces: a one-time post-transaction prompt, a
+ * dismissible banner (gone for good after 3 dismissals, 1-week cooldown
+ * between shows), a one-time onboarding prompt, and a persistent red dot.
+ * Every flag defaults to "already shown" until AsyncStorage and the OneSignal
+ * permission load (`ready`), so nothing flashes on first render.
+ *
+ * @returns {object} `{ isPushEnabled, shouldShowPostTxPrompt, shouldShowBanner,
+ *   shouldShowRedDot, shouldShowOnboardPrompt, enablePush, dismissPostTxPrompt,
+ *   dismissBanner, dismissOnboardPrompt }` — `enablePush` requests the OS
+ *   permission (falling back to the system Settings screen when previously
+ *   denied), opts the device into OneSignal and flags the backend fire-and-forget.
+ */
 const usePushPrompt = () => {
 	
 	const [isPushEnabled, setIsPushEnabled] = useState(true)

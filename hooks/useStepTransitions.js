@@ -1,20 +1,28 @@
 import { useMemo } from 'react'
 import { Easing, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
 
-// Spring compartido de las transiciones de step
+// Spring shared by every step transition
 const STEP_SPRING = { mass: 0.8, damping: 18, stiffness: 170 }
 
-// Transiciones de wizard/onboard conscientes de la dirección. `direction` es un
-// shared value (1 = adelante, -1 = atrás) que el consumidor setea ANTES de cambiar
-// de step; los worklets lo leen en el momento exacto de animar, así que entrada y
-// salida siempre apuntan al lado correcto aunque el usuario alterne next/prev.
-//
-// Uso:
-//   const { direction, makeStepEnter, stepExit } = useStepTransitions()
-//   direction.value = 1; setStep(s => s + 1)
-//   <Animated.View key={step} entering={makeStepEnter(0)} exiting={stepExit}>
-//
-// `makeStepEnter(delay)` permite cascadas escalonadas (imagen → título → texto).
+/**
+ * Direction-aware wizard/onboard step transitions for Reanimated
+ * (used by the Register wizard and Onboard screens).
+ *
+ * `direction` is a shared value (1 = forward, -1 = back) the consumer sets
+ * BEFORE switching steps; the worklets read it at the exact moment they
+ * animate, so enter and exit always slide toward the correct side even when
+ * the user alternates next/prev.
+ *
+ * Usage:
+ *   const { direction, makeStepEnter, stepExit } = useStepTransitions()
+ *   direction.value = 1; setStep(s => s + 1)
+ *   <Animated.View key={step} entering={makeStepEnter(0)} exiting={stepExit}>
+ *
+ * @returns {{ direction: object, makeStepEnter: function, stepExit: function }}
+ *   `makeStepEnter(delay)` builds an entering worklet with an optional ms delay
+ *   for staggered cascades (image → title → text); `stepExit` is the shared
+ *   exiting worklet.
+ */
 export default function useStepTransitions() {
 
 	const direction = useSharedValue(1)

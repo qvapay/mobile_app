@@ -40,8 +40,14 @@ function pinFlowReducer(state, action) {
 }
 const initialPinFlow = { showPinStep: false, sendingPin: false, twoFactorMethod: 'pin', pin: '', focusedInputIndex: null }
 
-// Confirm Screen for Send instructions
-// Shows transaction details and allows user to confirm before sending
+/**
+ * Transfer confirmation: shows recipient + amount, then a PIN/OTP step before sending.
+ * Route params: `send_amount`, `user_uuid` and optional `description` (may be a sticker).
+ * Resolves the recipient via `userApi.searchUser`, requests the emailed 4-digit PIN
+ * through `withdrawApi.requestPin` (or accepts a 6-digit TOTP when 2FA is enrolled),
+ * and executes the transfer with `POST /transaction/transfer`.
+ * On success it navigates to SendSuccess with the transfer summary.
+ */
 const SendConfirm = ({ navigation, route }) => {
 
 	// Contexts

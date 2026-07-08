@@ -42,6 +42,13 @@ function filtersReducer(state, action) {
 	}
 }
 
+/**
+ * Gift-card catalog browser with country, category and search filters.
+ * Accepts `route.params.category` to preselect a category pill.
+ * Brands/categories come from `GET /store/voucher-catalog` (countries, country and
+ * categories modes); the FlashList grid paginates client-side (24 per page) and each
+ * tile navigates to GiftCardBrand with the country + brand slug.
+ */
 const GiftCards = ({ navigation, route }) => {
 
 	const { theme } = useTheme()

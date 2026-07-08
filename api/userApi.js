@@ -3,9 +3,12 @@ import { apiClient } from './client'
 export const userApi = {
 
 	/**
-	 * Heartbeat: marks current user as online + fetches tracked users' online statuses
+	 * Heartbeat (`POST /user/heartbeat`): marks the current user as online and
+	 * fetches the online status of tracked users (P2P peers/chats). Sent with
+	 * `silent: true` so the periodic ping never flashes the global loading bar.
+	 *
 	 * @param {string[]} trackedUserIds - Array of user UUIDs to check (max 100)
-	 * @returns {Promise<Object>} { success, data: { statuses: { uuid: boolean } } }
+	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data.statuses` maps uuid → online boolean
 	 */
 	heartbeat: async (trackedUserIds = []) => {
 		try {
@@ -16,9 +19,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Search for a user based on its uuid, username, email or verified phone number
-	 * @param {string} search - The uuid, username, email or verified phone number of the user to search for
-	 * @returns {Promise<Object>} The user data
+	 * Searches for a user by uuid, username, email or verified phone number
+	 * (`POST /user/search`). Used to resolve transfer recipients.
+	 *
+	 * @param {string} search - The uuid, username, email or verified phone number to look up
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the matched public profile
 	 */
 	searchUser: async (search) => {
 		try {
@@ -28,8 +33,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Request a KYC verification session URL from DIDIT provider
-	 * @returns {Promise<Object>} { success, data: string (verification URL) }
+	 * Requests a KYC verification session from the DIDIT provider (`POST /user/kyc`).
+	 * Unwraps `response.data.data`, so `data` is the hosted verification URL to open.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the verification URL string
 	 */
 	requestKYCSession: async () => {
 		try {
@@ -45,8 +52,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Get KYC status for the current user
-	 * @returns {Promise<Object>} KYC data { uuid, KYC: { result, country, birthday, document_url, selfie_url } }
+	 * Gets the current user's KYC status (`GET /user/kyc`).
+	 * `result` is one of: started, processing, passed, failed.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, raw?, error?, status? }` — `data` is `{ uuid, KYC: { result, country, birthday, document_url, selfie_url } }`, `raw` the unwrapped response body
 	 */
 	getKYCStatus: async () => {
 		try {
@@ -56,8 +65,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Get current user profile data
-	 * @returns {Promise<Object>} The user profile data
+	 * Gets the current user's extended profile (`GET /user/extended`) —
+	 * the full account payload used across Home and Settings.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the extended profile
 	 */
 	getUserProfile: async () => {
 		try {
@@ -67,9 +78,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Update current user data
-	 * @param {Object} userData - The user data to update
-	 * @returns {Promise<Object>} The updated user data
+	 * Updates the current user's profile fields (`POST /user/update`).
+	 *
+	 * @param {Object} userData - Partial profile fields to update (name, bio, username, ...)
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the updated profile
 	 */
 	updateUser: async (userData) => {
 		try {
@@ -79,13 +91,16 @@ export const userApi = {
 	},
 
 	/**
-	 * Verify phone number
+	 * Starts or completes phone verification (`POST /user/verify/phone`).
+	 * Two-step flow: first call sends the code (delivered via Telegram, not SMS),
+	 * second call passes `code` + `verify` to confirm it.
+	 *
 	 * @param {Object} phoneData - The phone verification data
 	 * @param {string} phoneData.phone - The phone number
 	 * @param {string} phoneData.country - The country code
-	 * @param {string} phoneData.code - The verification code (optional, for verification step)
-	 * @param {boolean} phoneData.verify - Whether this is a verification step
-	 * @returns {Promise<Object>} The verification result
+	 * @param {string} [phoneData.code] - The verification code (verification step only)
+	 * @param {boolean} [phoneData.verify] - Whether this is the verification step
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	verifyPhone: async (phoneData) => {
 		try {
@@ -101,8 +116,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Remove phone number from user account
-	 * @returns {Promise<Object>} The removal result
+	 * Removes the verified phone number from the account.
+	 * Gotcha: removal is `PUT /user/verify/phone` (same path as verification,
+	 * different method) — there is no DELETE route.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	removePhone: async () => {
 		try {
@@ -112,8 +130,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Get Telegram verification link
-	 * @returns {Promise<Object>} The verification link
+	 * Gets a one-time deep link to the QvaPay Telegram bot that binds the
+	 * user's Telegram account (`GET /user/verify/telegram`).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` contains the verification link
 	 */
 	getTelegramVerificationLink: async () => {
 		try {
@@ -123,8 +143,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Remove Telegram account from user account
-	 * @returns {Promise<Object>} The removal result
+	 * Unlinks the Telegram account (`PUT /user/verify/telegram` — PUT means
+	 * "remove" here, mirroring `removePhone`).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	removeTelegram: async () => {
 		try {
@@ -134,11 +156,13 @@ export const userApi = {
 	},
 
 	/**
-	 * Change password
+	 * Changes the account password (`PUT /user/update/password`).
+	 * Requires the current password. Existing sessions stay valid.
+	 *
 	 * @param {Object} passwordData - The password data
-	 * @param {string} passwordData.current_password - The current password
-	 * @param {string} passwordData.new_password - The new password
-	 * @returns {Promise<Object>} The password change result
+	 * @param {string} passwordData.old_password - The current password
+	 * @param {string} passwordData.new_password - The new password (min 8 chars)
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	changePassword: async (passwordData) => {
 		try {
@@ -148,8 +172,9 @@ export const userApi = {
 	},
 
 	/**
-	 * Get referral data including referrals list and earnings
-	 * @returns {Promise<Object>} The referral data
+	 * Gets referral data — invited users list and earnings (`GET /user/referrals`).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	getReferrals: async () => {
 		try {
@@ -159,8 +184,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Track a share attempt for analytics
+	 * Tracks a referral-share attempt for analytics (`POST /user/referrals/share`).
+	 * Fire-and-forget: failures resolve to `{ success: false }` with no error detail.
+	 *
 	 * @param {string} channel - The share channel (sms, telegram, x, facebook, link)
+	 * @returns {Promise<Object>} `{ success, data? }`
 	 */
 	trackShareAttempt: async (channel) => {
 		try {
@@ -170,8 +198,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Get gold check status
-	 * @returns {Promise<Object>} The gold check status
+	 * Gets the Gold Check subscription status (`GET /user/gold`).
+	 * Unwraps `response.data.user`, so `data` is the user object with
+	 * `golden_check` / expiration fields.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	getGoldCheckStatus: async () => {
 		try {
@@ -181,11 +212,14 @@ export const userApi = {
 	},
 
 	/**
-	 * Purchase gold check for a user
+	 * Purchases a Gold Check with QvaPay balance (`POST /user/gold`).
+	 * Can gift it to another user via `uuid`. For App Store / Play purchases
+	 * see `validateGoldReceipt` instead.
+	 *
 	 * @param {Object} purchaseData - The purchase data
 	 * @param {string} purchaseData.uuid - The target user's UUID
 	 * @param {string} purchaseData.duration - The subscription duration
-	 * @returns {Promise<Object>} The purchase result
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	purchaseGold: async (purchaseData) => {
 		try {
@@ -195,8 +229,9 @@ export const userApi = {
 	},
 
 	/**
-	 * Get user's saved payment methods
-	 * @returns {Promise<Object>} The list of payment methods
+	 * Gets the user's saved payment methods for P2P offers (`GET /user/payment-methods`).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the list of payment methods
 	 */
 	getPaymentMethods: async () => {
 		try {
@@ -212,9 +247,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Create a new payment method
-	 * @param {{ coin: string, details: Object }} payload
-	 * @returns {Promise<Object>} The created payment method
+	 * Creates a new payment method (`POST /user/payment-methods`).
+	 * `success` is only true on a 200/201 response.
+	 *
+	 * @param {{ coin: string, details: Object }} payload - Coin tick plus the coin-specific form fields
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the created payment method
 	 */
 	createPaymentMethod: async (payload) => {
 		try {
@@ -230,9 +267,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Delete an existing payment method
-	 * @param {string|number} idOrUuid - The identifier of the payment method
-	 * @returns {Promise<Object>} The deletion result
+	 * Deletes a payment method (`DELETE /user/payment-methods` with `{ id }` in the request body).
+	 *
+	 * @param {string|number} id - The payment method identifier
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	deletePaymentMethod: async (id) => {
 		try {
@@ -248,8 +286,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Get user's saved contacts
-	 * @returns {Promise<Object>} The contacts list
+	 * Gets the user's saved QvaPay contacts (`GET /user/contact`).
+	 * Unwraps `response.data.contacts`; `data` is always an array (empty on odd payloads).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the contacts array
 	 */
 	getContacts: async () => {
 		try {
@@ -265,10 +305,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Add a contact
+	 * Adds another QvaPay user as a contact (`POST /user/contact`).
+	 *
 	 * @param {string} contact_uuid - The UUID of the user to add as contact
 	 * @param {string} name - The display name for the contact
-	 * @returns {Promise<Object>} The created contact
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the created contact
 	 */
 	addContact: async (contact_uuid, name) => {
 		try {
@@ -284,9 +325,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Toggle favorite status for a contact
+	 * Toggles the favorite flag on a contact (`PATCH /user/contact`).
+	 *
 	 * @param {number} contact_id - The contact ID
-	 * @returns {Promise<Object>} { favorite: boolean }
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data.favorite` is the new boolean state
 	 */
 	toggleFavoriteContact: async (contact_id) => {
 		try {
@@ -302,9 +344,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Delete a contact by id/uuid
-	 * @param {string|number} idOrUuid - The contact identifier
-	 * @returns {Promise<Object>} The deletion result
+	 * Deletes a contact (`DELETE /user/contact` with `{ contact_id }` in the request body).
+	 *
+	 * @param {string|number} contactId - The contact ID
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	deleteContact: async (contactId) => {
 		try {
@@ -320,9 +363,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Sync device contacts phone numbers with the backend to find matching QvaPay users
+	 * Matches device contacts against QvaPay users (`POST /user/contacts/sync`).
+	 * Only sends phone numbers the user consented to share (see ContactsDisclosureModal).
+	 *
 	 * @param {string[]} phoneNumbers - Array of normalized phone numbers
-	 * @returns {Promise<Object>} The matched contacts { matches: [{ phone, user }] }
+	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data.matches` is `[{ phone, user }]`
 	 */
 	syncContacts: async (phoneNumbers) => {
 		try {
@@ -337,8 +382,11 @@ export const userApi = {
 	},
 
 	/**
-	 * Generate a new 2FA secret and QR code
-	 * @returns {Promise<Object>} The 2FA secret and otpauth_url for QR code
+	 * Generates a new TOTP secret for 2FA enrollment (`POST /auth/create-2fa`
+	 * with an empty body, requires auth). Nothing is persisted yet — the secret
+	 * only sticks after `activate2FA` verifies a code against it.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` holds `secret` and `otpauth_url` (for the QR code)
 	 */
 	generate2FA: async () => {
 		try {
@@ -354,11 +402,14 @@ export const userApi = {
 	},
 
 	/**
-	 * Activate 2FA by verifying the code and saving the secret
+	 * Activates 2FA (`POST /auth/create-2fa` with `code` + `secret`).
+	 * The backend verifies the TOTP code against the secret from `generate2FA`
+	 * and saves it; from then on login requires a 6-digit TOTP instead of the email PIN.
+	 *
 	 * @param {Object} data - The 2FA activation data
-	 * @param {string} data.code - The 6-digit TOTP code from authenticator app
-	 * @param {string} data.secret - The secret to save
-	 * @returns {Promise<Object>} The activation result
+	 * @param {string} data.code - The 6-digit TOTP code from the authenticator app
+	 * @param {string} data.secret - The secret returned by `generate2FA`
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	activate2FA: async ({ code, secret }) => {
 		try {
@@ -374,8 +425,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Deactivate 2FA for the current user
-	 * @returns {Promise<Object>} The deactivation result
+	 * Deactivates TOTP 2FA for the current user (`POST /auth/reset-2fa`, requires auth).
+	 * Login falls back to the emailed 4-digit PIN afterwards.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
 	deactivate2FA: async () => {
 		try {
@@ -392,13 +445,17 @@ export const userApi = {
 
 
 	/**
-	 * Validate an IAP receipt for Gold Check subscription
+	 * Validates an in-app-purchase receipt for the Gold Check subscription
+	 * (`POST /user/gold/validate-receipt`). The backend verifies the receipt
+	 * with Apple/Google and activates Gold server-side — the source of truth
+	 * is the returned `golden_expire`, never the local IAP state.
+	 *
 	 * @param {Object} receiptData - The receipt data
 	 * @param {string} receiptData.receipt - The purchase receipt/token
 	 * @param {string} receiptData.platform - 'ios' or 'android'
 	 * @param {string} receiptData.productId - The product ID
 	 * @param {string} receiptData.transactionId - The transaction ID
-	 * @returns {Promise<Object>} The validation result with golden_expire
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` includes `golden_expire`
 	 */
 	validateGoldReceipt: async (receiptData) => {
 		try {
@@ -414,10 +471,13 @@ export const userApi = {
 	},
 
 	/**
-	 * Upload user avatar or cover photo
-	 * @param {{ uri: string, name?: string, type?: string }} file - The image file
-	 * @param {'avatar'|'cover'} uploadType - The type of image to upload
-	 * @returns {Promise<Object>} Upload result with { url, path }
+	 * Uploads the user's avatar or cover photo (`POST /user/avatar`,
+	 * multipart/form-data with `file` + `type` fields).
+	 *
+	 * @param {Object} params
+	 * @param {{ uri: string, name?: string, type?: string }} params.file - The local image file
+	 * @param {'avatar'|'cover'} [params.uploadType='avatar'] - Which image slot to replace
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` includes the new `url` and `path`
 	 */
 	uploadAvatar: async ({ file, uploadType = 'avatar' }) => {
 		try {
@@ -441,8 +501,9 @@ export const userApi = {
 	},
 
 	/**
-	 * Get notification settings
-	 * @returns {Promise<Object>} The notification settings
+	 * Gets server-side notification preferences (`GET /user/notifications`).
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` maps notification channels to booleans
 	 */
 	getNotificationSettings: async () => {
 		try {
@@ -452,9 +513,10 @@ export const userApi = {
 	},
 
 	/**
-	 * Update notification settings
+	 * Updates server-side notification preferences (`POST /user/notifications`).
+	 *
 	 * @param {Object} settings - The notification settings to update
-	 * @returns {Promise<Object>} The updated notification settings
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the saved settings
 	 */
 	updateNotificationSettings: async (settings) => {
 		try {

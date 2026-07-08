@@ -7,6 +7,18 @@ const HEARTBEAT_INTERVAL = 60000 // 60 seconds
 
 const OnlineStatusContext = createContext(null)
 
+/**
+ * Online presence for P2P peers and chats, driven by a 60s heartbeat.
+ *
+ * Each beat is a silent `POST /user/heartbeat` that both reports "I'm online"
+ * and asks for the status of every tracked peer (screens register peers with
+ * `trackUsers`; adding a NEW id fires an immediate extra beat so their dot
+ * doesn't wait a full minute). The interval pauses while the app is
+ * backgrounded (AppState listener), resumes on foreground, and only runs
+ * while authenticated — logout stops it and clears all statuses.
+ *
+ * @param {{ children: React.ReactNode }} props
+ */
 export function OnlineStatusProvider({ children }) {
 
 	const { isAuthenticated } = useAuth()
@@ -64,6 +76,13 @@ export function OnlineStatusProvider({ children }) {
 		return () => stopHeartbeat()
 	}, [isAuthenticated, startHeartbeat, stopHeartbeat])
 
+	/**
+	 * Starts tracking one or more user ids (kept in a ref Set — surviving
+	 * re-renders without restarting the interval). New ids trigger an
+	 * immediate heartbeat so their status shows up right away.
+	 *
+	 * @param {string|string[]} userIds - Single id or array of ids.
+	 */
 	const trackUsers = useCallback((userIds) => {
 		if (!userIds) return
 		const ids = Array.isArray(userIds) ? userIds : [userIds]
@@ -77,6 +96,13 @@ export function OnlineStatusProvider({ children }) {
 		if (hasNew) sendHeartbeat()
 	}, [sendHeartbeat])
 
+	/**
+	 * Stops tracking user ids (call on screen unmount to keep the
+	 * heartbeat payload small). Their last known status is kept until
+	 * the next beat replaces the map.
+	 *
+	 * @param {string|string[]} userIds - Single id or array of ids.
+	 */
 	const untrackUsers = useCallback((userIds) => {
 		if (!userIds) return
 		const ids = Array.isArray(userIds) ? userIds : [userIds]
@@ -85,6 +111,12 @@ export function OnlineStatusProvider({ children }) {
 		})
 	}, [])
 
+	/**
+	 * Whether a user was online as of the last heartbeat.
+	 *
+	 * @param {string} userId
+	 * @returns {boolean}
+	 */
 	const isUserOnline = useCallback((userId) => {
 		if (!userId) return false
 		return statuses[userId] === true
@@ -99,6 +131,19 @@ export function OnlineStatusProvider({ children }) {
 	)
 }
 
+/**
+ * Consumes the online-status context. Unlike the other context hooks, this one
+ * does NOT throw outside its provider — it returns inert no-ops instead, so
+ * shared components (avatars, chat rows) can render anywhere safely.
+ *
+ * @returns {{
+ *   statuses: Object<string, boolean>,
+ *   trackUsers: (userIds: string|string[]) => void,
+ *   untrackUsers: (userIds: string|string[]) => void,
+ *   isUserOnline: (userId: string) => boolean,
+ *   refreshStatuses: () => Promise<void>,
+ * }}
+ */
 export function useOnlineStatus() {
 	const context = use(OnlineStatusContext)
 	if (!context) {

@@ -80,6 +80,14 @@ function fetchReducer(state, action) {
 	}
 }
 
+/**
+ * Public P2P trader profile: cover photo, stats, active offers and reviews in tabs.
+ * Route params: `uuid` (required) and optional `initialTab` ("offers" | "reviews" | "stats").
+ * Everything loads in one call via `p2pApi.peerProfile(uuid)` — user, stats, ranking,
+ * active offers, received/sent ratings; gold-gated sections trust the server's
+ * `viewer_gold` flag rather than any locally-cached value.
+ * The native header is disabled: the cover image extends behind the status bar.
+ */
 const P2PUser = ({ navigation, route }) => {
 
 	const { uuid, initialTab } = route.params

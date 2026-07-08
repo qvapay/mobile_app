@@ -16,7 +16,11 @@ const SYNC_COOLDOWN_MS = 15 * 60 * 1000
 const CONTACTS_CHECK_TIMEOUT_MS = 2000
 
 /**
- * Normalize a phone number for matching.
+ * Normalizes a phone number to a loose E.164-like form for matching:
+ * strips formatting characters, converts a leading "00" to "+", prefixes "+"
+ * when missing, and rejects anything with fewer than 5 digits.
+ * @param {string} raw - Number as stored in the device contact.
+ * @returns {string|null} Normalized number, or null when unusable.
  */
 const normalizePhone = (raw) => {
 	if (!raw || typeof raw !== 'string') return null
@@ -33,8 +37,24 @@ const normalizePhone = (raw) => {
 }
 
 /**
- * Hook for reading device contacts, syncing phone numbers with the backend,
- * and caching matched QvaPay users.
+ * Reads device contacts, syncs their phone numbers with the backend and caches
+ * the matched QvaPay users in AsyncStorage.
+ *
+ * Permission flow: an in-app "prominent disclosure" modal (Play Store policy)
+ * must be accepted once before the OS permission is requested; consent is then
+ * persisted so later requests skip straight to the OS dialog. iOS
+ * `Contacts.checkPermission()` can hang on iOS 18+, so every check races a 2s
+ * timeout. Syncs are throttled to one per 15 minutes unless `force` is passed,
+ * and phone numbers are uploaded in batches of 2000. Android checks permission
+ * via PermissionsAndroid; iOS treats 'limited' access as authorized.
+ * All toasts/errors are user-facing Spanish strings.
+ *
+ * @returns {object} `{ matchedContacts, permissionStatus, isSyncing, error,
+ *   showDisclosure, checkPermission, requestPermission, acceptDisclosure,
+ *   declineDisclosure, syncContacts, loadCachedMatches, clearSyncedData, openSettings }`
+ *   — `requestPermission` resolves 'authorized' | 'denied' (waiting on the
+ *   disclosure modal when consent is missing); `syncContacts` accepts
+ *   `{ force, onSyncComplete }`; `clearSyncedData` wipes cache + consent on logout.
  */
 const useDeviceContacts = () => {
 

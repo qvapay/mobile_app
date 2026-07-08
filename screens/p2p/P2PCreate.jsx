@@ -39,7 +39,14 @@ function setFieldReducer(state, action) {
 	}
 }
 
-// P2P Create component
+/**
+ * Form to publish a new P2P buy/sell offer (`POST /p2p/create`).
+ * Coins come from `coinsApi.index({ enabled_p2p: true })`; the selected coin's
+ * `working_data` JSON drives the dynamic payment-details fields (same pattern as
+ * Withdraw), which can be pre-filled from saved payment methods
+ * (`GET /user/payment-methods`). Gated by `user.p2p_enabled` (P2PRequirementsGate);
+ * on 201 it navigates straight to the created offer (P2POffer).
+ */
 const P2PCreate = ({ navigation }) => {
 
 	// User context

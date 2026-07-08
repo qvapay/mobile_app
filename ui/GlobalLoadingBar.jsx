@@ -15,6 +15,14 @@ const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient)
 
 const BAR_HEIGHT = 3
 
+/**
+ * Slim (3px) indeterminate progress bar pinned to the very top of the app,
+ * rendered above the navigator in `App.tsx`. Driven by LoadingContext, which
+ * `LoadingBridge` wires into the axios client — any in-flight request shows it
+ * unless the request opts out with `{ silent: true }`. A gradient "shimmer"
+ * sweeps left-to-right on repeat while loading; opacity fades in/out on
+ * start/stop and `pointerEvents="none"` keeps it from blocking touches.
+ */
 export default function GlobalLoadingBar() {
 	const { theme } = useTheme()
 	const { isLoading } = useLoading()

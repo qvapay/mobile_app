@@ -32,6 +32,12 @@ const getStatusColor = (status, theme) => {
 	}
 }
 
+/**
+ * List of the user's store purchases (top-ups, gift cards) with status badges.
+ * Loads once from `GET /store/my` with pull-to-refresh; each row navigates to
+ * PurchaseDetail passing `purchaseId`. The initial load shows no spinner —
+ * the global loading bar covers it.
+ */
 const MyPurchases = ({ navigation }) => {
 
 	// Contexts

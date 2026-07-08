@@ -58,6 +58,15 @@ const normalizeTransaction = (tx) => ({
 	service: tx.service ?? tx.BuyedService ?? null,
 })
 
+/**
+ * Transaction detail / receipt screen.
+ * Expects `route.params.transaction` (list-item shape, normalized from PascalCase) and
+ * renders it instantly, then hydrates from the AsyncStorage cache and finally from
+ * `GET /transaction/{uuid}`. Can download the PDF receipt via
+ * `GET /transaction/{uuid}/pdf` (blob-util with the Keychain bearer token).
+ * The header goes transparent when the counterparty's cover image is shown;
+ * sticker descriptions (`:sticker:<name>`) render their animation.
+ */
 const Transaction = ({ route, navigation }) => {
 
 	const { transaction } = route.params

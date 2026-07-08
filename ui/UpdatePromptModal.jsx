@@ -15,6 +15,21 @@ import { openStore, markPromptShown } from '../helpers/versionCheck'
 
 const { height: windowHeight } = Dimensions.get('window')
 
+/**
+ * "New version available" modal driven by `helpers/versionCheck` from
+ * AppNavigator/Home. Standard centered-card overlay (transparent + fade +
+ * statusBarTranslucent, backdrop tap dismisses; inner Pressable swallows
+ * taps). Both paths — update and "Ahora no" — call `markPromptShown()` so the
+ * prompt respects its cooldown; updating then deep-links to the App Store or
+ * Google Play via `openStore`.
+ *
+ * @param {object} props
+ * @param {boolean} props.visible - Controls modal visibility.
+ * @param {string} props.currentVersion - Installed app version.
+ * @param {string} props.latestVersion - Store version being offered.
+ * @param {string} props.storeUrl - Platform store URL passed to `openStore`.
+ * @param {() => void} props.onDismiss - Hides the modal (called on both paths).
+ */
 const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, onDismiss }) => {
 
 	const { theme } = useTheme()

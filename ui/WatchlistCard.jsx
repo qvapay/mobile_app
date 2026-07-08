@@ -11,6 +11,17 @@ import Sparkline from './Sparkline'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+/**
+ * Grid tile for a watchlist asset on the Home screen: coin logo, price
+ * sparkline, ticker, percent change (green/red with caret) and price
+ * (>= $1 gets thousands separators, sub-dollar shows 4 decimals). Memoized —
+ * many tiles render per grid. Sizes itself via flexBasis: 2-up on phones,
+ * 4-up on iPad. Scale-down press feedback; border only in light mode.
+ *
+ * @param {object} props
+ * @param {{tick: string, price: number, change: number, priceHistory: {value: number}[]}} props.coin - Asset data.
+ * @param {() => void} props.onPress - Opens the asset detail (StockDetail).
+ */
 const WatchlistCard = memo(({ coin, onPress }) => {
 
 	const { theme } = useTheme()

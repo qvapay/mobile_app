@@ -1,6 +1,9 @@
+// Gold Check subscription helpers for react-native-iap (StoreKit / Play Billing).
+// Store setup differs per platform: iOS uses two separate App Store products,
+// Android a single Play subscription ('gold_check') with two base plans.
 import { Platform } from 'react-native'
 
-// Product IDs por plataforma
+// Product IDs per platform
 const IAP_SKUS_IOS = [
 	'com.qvapay.goldcheck.monthly',
 	'com.qvapay.goldcheck.yearly',
@@ -8,18 +11,35 @@ const IAP_SKUS_IOS = [
 
 const IAP_SKUS_ANDROID = ['gold_check']
 
+/**
+ * Subscription SKUs to fetch from the store on the current platform.
+ * @type {string[]}
+ */
 export const IAP_SKUS = Platform.select({
 	ios: IAP_SKUS_IOS,
 	android: IAP_SKUS_ANDROID,
 })
 
-// Mapea plan name al product ID correcto
+/**
+ * Maps a Gold Check plan name to the store product ID.
+ * On Android both plans live under the single 'gold_check' subscription — the
+ * plan is selected via its base-plan offer token instead (see getAndroidOfferToken).
+ * @param {'monthly'|'yearly'} plan
+ * @returns {string} Store product ID for the current platform.
+ */
 export const getProductId = (plan) => {
 	if (Platform.OS === 'ios') { return plan === 'yearly' ? 'com.qvapay.goldcheck.yearly' : 'com.qvapay.goldcheck.monthly' }
 	return 'gold_check'
 }
 
-// Extrae el offerToken del basePlan correcto (requerido por Android)
+/**
+ * Extracts the offerToken of the matching base plan ('gold-check-monthly' /
+ * 'gold-check-yearly') from the fetched Play subscription details. Play
+ * Billing requires this token when purchasing an Android subscription.
+ * @param {'monthly'|'yearly'} plan
+ * @param {Array<object>} subscriptions - Result of react-native-iap's getSubscriptions().
+ * @returns {string|undefined} The offerToken, or undefined on iOS / when the offer is missing.
+ */
 export const getAndroidOfferToken = (plan, subscriptions) => {
 	if (Platform.OS !== 'android' || !subscriptions?.length) return undefined
 	const sub = subscriptions.find((s) => s.productId === 'gold_check')
@@ -29,7 +49,11 @@ export const getAndroidOfferToken = (plan, subscriptions) => {
 	return offer?.offerToken
 }
 
-// Mapea errores de react-native-iap a mensajes en español
+/**
+ * Maps a react-native-iap error to a Spanish user-facing message.
+ * @param {object|null} error - IAP error carrying `code` (or `responseCode`).
+ * @returns {string|null} Message to toast, or null for E_USER_CANCELLED (silenced on purpose).
+ */
 export const getIAPErrorMessage = (error) => {
 	if (!error) return 'Error desconocido'
 	const code = error.code || error.responseCode

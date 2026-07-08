@@ -29,6 +29,18 @@ function savingsReducer(state, action) {
 	}
 }
 
+/**
+ * Home screen hero: a horizontally paged balance display (page 1 = main QUSD
+ * balance, page 2 = savings balance + APY rate) with pagination dots.
+ * Tapping the main balance toggles visibility (persisted via the
+ * `privacy.showBalance` setting, hidden balances render as asterisks);
+ * tapping the savings page navigates to the Savings screen.
+ * Savings summary is fetched from `savingApi.getSummary()` on mount.
+ *
+ * @param {object} props
+ * @param {number|string} props.balance - Main account balance in QUSD.
+ * @param {object} props.navigation - React Navigation object (for the Savings shortcut).
+ */
 const BalanceCard = ({ balance, navigation }) => {
 
 	// Theme variables, dark and light modes

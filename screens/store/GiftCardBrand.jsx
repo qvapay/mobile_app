@@ -118,6 +118,14 @@ function purchaseReducer(state, action) {
 	}
 }
 
+/**
+ * Gift-card purchase wizard for one brand: pick a denomination, then confirm.
+ * Route params: `countryCode`, `brandSlug` and optionally the `country` object.
+ * Offers load from `GET /store/voucher-catalog?country&brand`; the purchase posts to
+ * `POST /store/voucher/purchase` (RANGE offers add a user-typed `amount` + service fee).
+ * The user's balance renders in the header — iOS 26 liquid-glass via
+ * `unstable_headerRightItems`, with a `headerRight` fallback for Android.
+ */
 const GiftCardBrand = ({ navigation, route }) => {
 
 	const { country: initCountry, countryCode, brandSlug } = route.params || {}

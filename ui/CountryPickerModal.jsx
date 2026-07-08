@@ -5,7 +5,22 @@ import QPInput from './particles/QPInput'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { countries } from '../labels/countries'
 
-// Searchable country picker modal used by the phone-verification form.
+/**
+ * Searchable country picker modal used by phone-entry forms (embedded by
+ * QPPhoneInput). Filters the static `labels/countries` list by name or ISO
+ * code as the user types; the selected row is highlighted in the primary
+ * color. Fully controlled — search text and selection live in the caller
+ * (QPPhoneInput manages both internally). Slides up over a dimmed backdrop.
+ * `theme`/`textStyles` are injected by the caller instead of read from context.
+ *
+ * @param {object} props
+ * @param {boolean} props.visible - Controls modal visibility.
+ * @param {string} props.country - Currently selected ISO country code (e.g. 'CU').
+ * @param {string} props.countrySearch - Current search query.
+ * @param {(text: string) => void} props.onChangeSearch - Search input handler.
+ * @param {(code: string) => void} props.onSelect - Called with the ISO code of the tapped country.
+ * @param {() => void} props.onClose - Dismiss handler (close button / back button).
+ */
 const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, onSelect, onClose, theme, textStyles }) => {
 
 	const query = countrySearch.toLowerCase()

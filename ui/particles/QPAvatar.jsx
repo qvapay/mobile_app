@@ -21,7 +21,12 @@ const HALO_COLORS = [
 	'#c084fc', '#fde68a', '#fbbf24', '#f472b6',
 ]
 
-// Animated rotating conic gradient halo for VIP users
+/**
+ * Animated rotating "conic gradient" halo shown behind VIP avatars.
+ * SVG has no conic-gradient primitive, so the wheel is faked with 12 pie-slice
+ * paths whose colors mirror qpweb's CSS gradient, spun by an infinite 10s
+ * linear Reanimated rotation on the UI thread.
+ */
 const VipHalo = ({ size }) => {
 
 	const rotation = useSharedValue(0)
@@ -53,7 +58,18 @@ const VipHalo = ({ size }) => {
 	)
 }
 
-// QvaPay Avatar Component
+/**
+ * User avatar with optional VIP halo and online-presence dot.
+ * Loads `https://media.qvapay.com/{user.image}` through FastImage (immutable cache),
+ * falling back to the QvaPay logo. For VIPs the photo is inset by `size / 25` px per
+ * side so the rotating halo peeks out as a ring. The green presence dot (P2P/chat)
+ * only renders at `size >= 24` — smaller than that it reads as noise.
+ *
+ * @param {object} props
+ * @param {object} props.user - Reads `image` (CDN path) and `vip`.
+ * @param {number} [props.size=32] - Outer diameter in px.
+ * @param {boolean} [props.isOnline] - Shows the green presence dot.
+ */
 const QPAvatar = ({ user = {}, size = 32, isOnline }) => {
 
 	// Optional properties

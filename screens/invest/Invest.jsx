@@ -180,6 +180,13 @@ function dataReducer(state, action) {
 	}
 }
 
+/**
+ * Invest tab dashboard: savings summary, popular crypto, stocks and P2P market averages.
+ * One parallel fetch pass — `savingApi.getSummary`, `coinsApi.index` (enriched with 24h
+ * price histories for sparklines), `p2pApi.getAverages` and `stocksApi.index`.
+ * Rows navigate to Savings (passing the already-fetched summary), StockDetail (with
+ * `initialData` for instant paint) or the P2P tab pre-filtered by coin.
+ */
 const Invest = ({ navigation }) => {
 
 	const { theme } = useTheme()

@@ -9,7 +9,21 @@ import QPPressable from './QPPressable'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// QPButton component
+/**
+ * The app's primary action button, used across ~50 screens. Builds on QPPressable
+ * for Fabric-safe press-scale feedback. Variants derive from flags: default
+ * (primary bg), `danger` (red bg), `danger + outlined` (transparent bg, red
+ * border/text). `loading` swaps the content for an ActivityIndicator and blocks
+ * presses; `disabled` also dims the button to 50% opacity.
+ *
+ * @param {object} props
+ * @param {string} props.title - Button label.
+ * @param {function} props.onPress - Press handler.
+ * @param {string} [props.icon] - FontAwesome6 icon name rendered before the title.
+ * @param {boolean} [props.loading=false] - Shows a spinner and disables presses.
+ * @param {boolean} [props.danger=false] - Destructive styling.
+ * @param {boolean} [props.outlined=false] - With `danger`, renders the outlined variant.
+ */
 const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid', iconColor, disabled = false, loading = false, loadingColor, danger = false, outlined = false }) => {
 
     // Contexts

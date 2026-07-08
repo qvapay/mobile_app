@@ -53,7 +53,15 @@ const DEFAULT_DEPOSIT_COINS = [
 ]
 const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
 
-// Add money into the platform
+/**
+ * Deposit ("Add money") screen: pick a coin, enter an amount, get a payment address.
+ * Coins come from `GET /coins/v2?enabled_in=true`; the deposit is created via
+ * `POST /topup`. The resulting invoice modal follows the transaction in real time
+ * over SSE (`useTransactionSSE`) for paid/expired/failed status and refreshes the
+ * balance (and may request an in-app review) once confirmed.
+ * Crypto deposits detect installed wallets (Trust Wallet & co.) and can open them
+ * pre-filled via universal links (`helpers/walletDeeplinks`).
+ */
 const Add = ({ navigation }) => {
 
 	// User Context

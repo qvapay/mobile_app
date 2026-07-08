@@ -121,7 +121,13 @@ const FloatingImage = ({ source }) => {
 	)
 }
 
-// Onboard Screen
+/**
+ * First-launch onboarding carousel (7 feature slides), shown while
+ * `appearance.firstTime` is true.
+ * Uses the same direction-aware step transitions as the Register wizard
+ * (`useStepTransitions`). Completing or skipping it clears the firstTime flag,
+ * optionally shows the OneSignal push-permission prompt, then navigates to Welcome.
+ */
 const Onboard = ({ navigation }) => {
 
 	// States

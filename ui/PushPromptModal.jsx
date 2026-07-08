@@ -10,6 +10,17 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // UI
 import QPButton from './particles/QPButton'
 
+/**
+ * Soft pre-permission prompt for push notifications, shown at high-intent
+ * moments (after onboarding, after a successful send) via `usePushPrompt`
+ * before the real OneSignal/OS permission dialog. Standard centered-card
+ * overlay (transparent + fade). Android back button counts as a dismiss.
+ *
+ * @param {object} props
+ * @param {boolean} props.visible - Controls modal visibility.
+ * @param {() => void} props.onAccept - Proceed to the native notification permission request.
+ * @param {() => void} props.onDismiss - "Ahora no" / back button handler.
+ */
 const PushPromptModal = ({ visible, onAccept, onDismiss }) => {
 
 	const { theme } = useTheme()

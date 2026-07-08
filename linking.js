@@ -1,5 +1,18 @@
 import { ROUTES } from './routes'
 
+/**
+ * React Navigation linking config, wired into NavigationContainer in App.tsx.
+ *
+ * Handles https://qvapay.com, https://www.qvapay.com and the qvapay:// custom
+ * scheme:
+ *   /p2p/:p2p_uuid → P2POffer (offer detail)
+ *   /pay/:uuid     → Pay (merchant invoice)
+ *   /home, /p2p    → tabs inside MainStack
+ *
+ * Links that arrive while unauthenticated are NOT resolved here — App.tsx's
+ * `pendingDeepLinkRef` stashes the URL (see hooks/useAppNavigation) and
+ * replays it with navigation.reset() right after login.
+ */
 const linking = {
 	prefixes: [
 		'https://qvapay.com',

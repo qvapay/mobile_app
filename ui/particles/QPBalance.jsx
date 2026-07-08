@@ -1,7 +1,15 @@
 import { View, Text, StyleSheet } from 'react-native'
 
-// Los balances de ahorro pueden ser negativos (deudas gestionadas desde admin):
-// el signo va ANTES del símbolo ("-$12.50") y todo el monto se pinta en danger.
+/**
+ * Hero balance figure: "$" symbol plus the amount in the theme's black weight.
+ * Savings balances can go negative (admin-managed debts): the sign renders
+ * BEFORE the symbol ("-$12.50") and the whole figure switches to the danger color.
+ *
+ * @param {object} props
+ * @param {string} props.formattedAmount - Pre-formatted amount; may start with "-".
+ * @param {number} props.fontSize - Digit size (the symbol stays at xxxl).
+ * @param {object} props.theme - Theme object passed in explicitly (no context read).
+ */
 const QPBalance = ({ formattedAmount, fontSize, theme }) => {
     const isNegative = String(formattedAmount).startsWith('-')
     const displayAmount = isNegative ? String(formattedAmount).slice(1) : formattedAmount

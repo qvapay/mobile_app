@@ -32,7 +32,14 @@ import PushPromptModal from '../../ui/PushPromptModal'
 // In-app review
 import { maybeRequestReview } from '../../helpers/inAppReview'
 
-// Show a success message with a button to go back to the home screen
+/**
+ * Post-transfer success screen (Lottie check + optional sticker echo) with a button
+ * back to the home screen.
+ * Route params: `amount`, `recipient`, `description` — sticker descriptions render
+ * their animation. Plays the "money out" sound when enabled in settings, and uses
+ * the single post-transaction slot for either the push-notification prompt or an
+ * in-app review request — never both.
+ */
 const SendSuccess = ({ navigation, route }) => {
 
 	const { description = '' } = route?.params || {}
