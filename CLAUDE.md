@@ -82,7 +82,9 @@ AppNavigator (Stack)
   Feature screens: Add, Withdraw, Send/SendConfirm/SendSuccess, Receive,
     Transaction(s), Pay, P2PCreate, P2POffer, P2PUser, Scan,
     Savings, StockDetail, PhoneTopupIndex/PhoneTopupBrand, GiftCards/GiftCardBrand,
-    MyPurchases/PurchaseDetail, GoldCheck, Contacts, SettingsStack, Help
+    MyPurchases/PurchaseDetail, AssistedShopping/AssistedProduct/AssistedCart/
+    AssistedCheckout/AssistedOrders/AssistedOrderDetail (screens/store/assisted/),
+    GoldCheck, Contacts, SettingsStack, Help
   Auth: Login, Register, RecoverPassword, Recover2FA
 ```
 
@@ -111,7 +113,7 @@ The client also owns three Keychain services and exports their helpers:
 | `com.qvapay.biometrics` | Face ID / Touch ID login creds (email + password)          |
 | `com.qvapay.applock`    | App-lock PIN                                               |
 
-**API modules** (13 total):
+**API modules** (14 total):
 - `authApi.js`: login (with 2FA), register, confirmRegistration, requestPin, logout, resetPassword, passkey register/verify
 - `userApi.js`: searchUser, getUserProfile (`/user/extended`), updateUser, KYC, verifyPhone/Telegram, password, deletion, payment methods, contacts, referrals, gold, avatar
 - `p2pApi.js`: index, show, create, cancel, markPaid, confirmReceived, getChat, sendChat, rateOffer, user profile
@@ -121,6 +123,7 @@ The client also owns three Keychain services and exports their helpers:
 - `savingApi.js`: deposits, withdrawals, balance, earnings, Roundup config
 - `stocksApi.js`: stocks/watchlist data for Invest screen
 - `storeApi.js`: unified Zendit-backed catalogs. `getVoucherCatalog` (`/store/voucher-catalog`, mode params: `countries` | `featured` | `favorites` | `categories` | `country`/`brand`), `purchaseVoucher` (`/store/voucher/purchase`), topup catalog (`/store/topup-catalog`, same mode-param style; Cuba = `cubacel` source, rest = Zendit), `/store/topup`, `/store/phone_package` (Cubacel), purchases (`/store/my`, `/store/my/{id}`)
+- `shopApi.js`: assisted shopping (Personal Shopper) — parse store URL (`POST /shop/assisted-shopping/product`), product by uuid, recent shelf, cart (GET/POST + DELETE `/cart/product/{uuid}`; quantity encoded by repetition server-side), tax quote (`POST /checkout/quote` — state tax rates live server-side only), checkout, orders (`GET /orders`, `/orders/{id}`), shipping addresses CRUD (`/user/shipping-addresses`). Amazon fee 0% / eBay +1%; US-only shipping; $20 minimum
 - `coinsApi.js`: enabled coins (in/out filters)
 - `promoApi.js`: promo banners shown across the app
 - `blogApi.js`: WordPress REST API (uses native `fetch`, not axios)

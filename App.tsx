@@ -86,6 +86,14 @@ import GiftCardBrand from './screens/store/GiftCardBrand'
 import MyPurchases from './screens/store/MyPurchases'
 import PurchaseDetail from './screens/store/PurchaseDetail'
 
+// Assisted Shopping Screens
+import AssistedShopping from './screens/store/assisted/AssistedShopping'
+import AssistedProduct from './screens/store/assisted/AssistedProduct'
+import AssistedCart from './screens/store/assisted/AssistedCart'
+import AssistedCheckout from './screens/store/assisted/AssistedCheckout'
+import AssistedOrders from './screens/store/assisted/AssistedOrders'
+import AssistedOrderDetail from './screens/store/assisted/AssistedOrderDetail'
+
 // Settings Stack
 import SettingsStack from './screens/settings/SettingsStack'
 import Contacts from './screens/settings/subpanels/Contacts'
@@ -365,6 +373,38 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 					name={ROUTES.PURCHASE_DETAIL}
 					component={PurchaseDetail}
 					options={getHeaderOptions('')}
+				/>
+
+				{/* Assisted Shopping (Personal Shopper) Screens */}
+				<Stack.Screen
+					name={ROUTES.ASSISTED_SHOPPING}
+					component={AssistedShopping}
+					options={getHeaderOptions('Compras asistidas')}
+				/>
+				<Stack.Screen
+					name={ROUTES.ASSISTED_PRODUCT}
+					component={AssistedProduct}
+					options={getHeaderOptions('')}
+				/>
+				<Stack.Screen
+					name={ROUTES.ASSISTED_CART}
+					component={AssistedCart}
+					options={getHeaderOptions('Mi carrito')}
+				/>
+				<Stack.Screen
+					name={ROUTES.ASSISTED_CHECKOUT}
+					component={AssistedCheckout}
+					options={getHeaderOptions('Confirmar compra')}
+				/>
+				<Stack.Screen
+					name={ROUTES.ASSISTED_ORDERS}
+					component={AssistedOrders}
+					options={getHeaderOptions('Mis pedidos')}
+				/>
+				<Stack.Screen
+					name={ROUTES.ASSISTED_ORDER_DETAIL}
+					component={AssistedOrderDetail}
+					options={({ route }: any) => getHeaderOptions(route.params?.id ? `Pedido #${route.params.id}` : '')}
 				/>
 
 				{/* Accesible Screens */}

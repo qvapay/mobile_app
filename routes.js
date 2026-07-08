@@ -91,6 +91,14 @@ export const ROUTES = {
 	SAVINGS_SCREEN: "Savings",
 	STOCK_DETAIL_SCREEN: "StockDetail",
 
+	// Assisted Shopping (Personal Shopper) Screens
+	ASSISTED_SHOPPING: "AssistedShopping",
+	ASSISTED_PRODUCT: "AssistedProduct",
+	ASSISTED_CART: "AssistedCart",
+	ASSISTED_CHECKOUT: "AssistedCheckout",
+	ASSISTED_ORDERS: "AssistedOrders",
+	ASSISTED_ORDER_DETAIL: "AssistedOrderDetail",
+
 	// Help Screens
 	HELP_SCREEN: "Help",
 
