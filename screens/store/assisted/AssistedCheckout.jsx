@@ -21,6 +21,7 @@ import { shopApi } from '../../../api/shopApi'
 
 // Constants
 import { money, US_STATES } from './assistedConstants'
+import AddressAutocomplete from './AddressAutocomplete'
 
 const EMPTY_FORM = { recipient_name: '', phone: '', line1: '', line2: '', city: '', state: '', postal_code: '' }
 const ZIP_REGEX = /^\d{5}(-\d{4})?$/
@@ -224,6 +225,15 @@ const AssistedCheckout = ({ navigation }) => {
 				{/* New address form */}
 				{useNewAddress && (
 					<View style={{ marginTop: 14, gap: 10 }}>
+						<AddressAutocomplete
+							onSelect={(address) => setForm(f => ({
+								...f,
+								line1: address.line1 || f.line1,
+								city: address.city || f.city,
+								state: US_STATES.some(s => s.code === address.state) ? address.state : f.state,
+								postal_code: address.postal_code || f.postal_code,
+							}))}
+						/>
 						<QPInput prelabel="Nombre de quien recibe" placeholder="John Doe" value={form.recipient_name} onChangeText={setField('recipient_name')} autoCapitalize="words" />
 						<QPInput prelabel="Teléfono (opcional)" placeholder="+1 305 555 0100" value={form.phone} onChangeText={setField('phone')} keyboardType="phone-pad" />
 						<QPInput prelabel="Dirección (línea 1)" placeholder="123 Main St" value={form.line1} onChangeText={setField('line1')} />

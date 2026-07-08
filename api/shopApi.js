@@ -166,6 +166,27 @@ export const shopApi = {
 	createShippingAddress: async (body) => wrap(() => apiClient.post('/user/shipping-addresses', body), 'No se pudo guardar la dirección'),
 
 	/**
+	 * Autocompletes a partial US address (`POST /user/shipping-addresses/autocomplete`).
+	 * Proxied through the backend so the Google Places key never ships in the
+	 * app. Debounce calls (~300ms) and reuse the same `session` token for the
+	 * whole typing session — Google bills autocomplete + details as one session.
+	 * Rate limited: ~5 req / 5s per user.
+	 *
+	 * @param {{ q: string, session: string }} body - Partial address (min 3 chars) + session token.
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.suggestions` = `[{ place_id, text }]`
+	 */
+	autocompleteAddress: async (body) => wrap(() => apiClient.post('/user/shipping-addresses/autocomplete', body, { silent: true }), 'No se pudo buscar la dirección'),
+
+	/**
+	 * Resolves a Places suggestion into structured address fields
+	 * (`POST /user/shipping-addresses/place-details`).
+	 *
+	 * @param {{ place_id: string, session: string }} body - Suggestion id + the same session token used to autocomplete.
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` = `{ address: { line1, city, state, postal_code, country }, formatted }`
+	 */
+	getPlaceDetails: async (body) => wrap(() => apiClient.post('/user/shipping-addresses/place-details', body, { silent: true }), 'No se pudo obtener la dirección'),
+
+	/**
 	 * Deletes (soft) a saved shipping address (`DELETE /user/shipping-addresses/{uuid}`).
 	 *
 	 * @param {string} uuid - Address uuid.
