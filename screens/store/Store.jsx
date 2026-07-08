@@ -137,7 +137,7 @@ const Store = ({ navigation }) => {
 						icon="basket-shopping"
 						color="#10B981"
 						title="Compras asistidas"
-						subtitle="Compra en Amazon y eBay con tu saldo · Pronto: Walmart, BestBuy, TEMU y AliExpress"
+						subtitle="Compra en Amazon y eBay con QUSD"
 						theme={theme}
 						textStyles={textStyles}
 						onPress={() => navigation.navigate(ROUTES.ASSISTED_SHOPPING)}
