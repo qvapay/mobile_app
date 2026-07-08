@@ -92,12 +92,6 @@ const AssistedShopping = ({ navigation }) => {
 			>
 
 				{/* Hero */}
-				<View style={[styles.pill, { backgroundColor: `${theme.colors.primary}1A` }]}>
-					<FontAwesome6 name="bolt" size={12} color={theme.colors.primary} iconStyle="solid" />
-					<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }]}>
-						QvaPay Personal Shopper
-					</Text>
-				</View>
 				<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 12 }]}>
 					Pega el enlace y lo compramos por ti
 				</Text>
@@ -240,16 +234,6 @@ const AssistedShopping = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-	pill: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		alignSelf: 'flex-start',
-		gap: 6,
-		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: 20,
-		marginTop: 10,
-	},
 	storesRow: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
