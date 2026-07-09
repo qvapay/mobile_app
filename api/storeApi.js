@@ -27,9 +27,9 @@ const wrap = async (request, fallbackError) => {
 }
 
 /**
- * Serializes catalog params to a query string. `true` becomes a bare flag
- * (`?countries` instead of `?countries=true`), matching the backend's
- * mode-param style; false/null/undefined/'' are dropped.
+ * Serializes catalog params to a query string. `true` becomes `?countries=true`
+ * — the API in producción rechaza flags sin valor (`?countries=`) con 400;
+ * false/null/undefined/'' are dropped.
  *
  * @param {Object} params - Query parameters.
  * @returns {string} URL-encoded query string (may be empty).
@@ -37,7 +37,7 @@ const wrap = async (request, fallbackError) => {
 const buildQuery = (params) => {
 	const qs = new URLSearchParams()
 	Object.entries(params || {}).forEach(([k, v]) => {
-		if (v === true) qs.append(k, '')
+		if (v === true) qs.append(k, 'true')
 		else if (v !== undefined && v !== null && v !== false && v !== '') qs.append(k, String(v))
 	})
 	return qs.toString()
