@@ -26,6 +26,9 @@ import { toast } from "sonner-native"
 // Routes
 import { ROUTES } from "../../routes"
 
+// Helpers
+import { displayName } from "../../helpers/displayName"
+
 const COVER_VISIBLE_HEIGHT = 220
 const DEFAULT_COVER = "https://media.qvapay.com/covers/timeline.jpg"
 const MEDIA_BASE = "https://media.qvapay.com/"
@@ -213,7 +216,7 @@ const P2PUser = ({ navigation, route }) => {
 				{/* Name + verification badges */}
 				<View style={{ alignItems: "center", paddingHorizontal: 16, marginTop: 54 }}>
 					<View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-						<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: "700" }]}>{user?.name}</Text>
+						<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: "700" }]}>{displayName(user)}</Text>
 						{user?.kyc && <FontAwesome6 name="circle-check" size={16} color={theme.colors.primary} iconStyle="solid" />}
 						{user?.golden_check && <FontAwesome6 name="crown" size={14} color={theme.colors.gold} iconStyle="solid" />}
 						{user?.vip && <FontAwesome6 name="gem" size={14} color={theme.colors.primary} iconStyle="solid" />}
@@ -571,7 +574,7 @@ const RatingRow = ({ theme, textStyles, rating, date, user, onPress }) => (
 				<>
 					<QPAvatar user={user} size={32} />
 					<View style={{ flex: 1 }}>
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1}>{user.name}</Text>
+						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1}>{displayName(user)}</Text>
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]} numberOfLines={1}>@{user.username}</Text>
 					</View>
 				</>

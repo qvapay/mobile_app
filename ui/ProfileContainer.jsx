@@ -10,6 +10,9 @@ import { useTextStyles } from '../theme/themeUtils'
 // UI Particles
 import QPAvatar from './particles/QPAvatar'
 
+// Helpers
+import { displayName } from '../helpers/displayName'
+
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -105,7 +108,7 @@ const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 			</View>
 
 			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 }}>
-				{user.name && (<Text style={[textStyles.h1, { marginVertical: 0, paddingVertical: 0 }]}>{user.name || ''}</Text>)}
+				{user.name && (<Text style={[textStyles.h1, { marginVertical: 0, paddingVertical: 0 }]}>{displayName(user)}</Text>)}
 				{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 20, height: 20 }} />)}
 				{user.golden_check && (<FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" />)}
 				{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 20, height: 20 }} />)}

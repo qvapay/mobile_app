@@ -8,6 +8,9 @@ import { useTextStyles } from '../theme/themeUtils'
 // UI Particles
 import QPAvatar from './particles/QPAvatar'
 
+// Helpers
+import { displayName } from '../helpers/displayName'
+
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -39,7 +42,7 @@ const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true,
 			<QPAvatar size={size} user={user} isOnline={isOnline} />
 			<View>
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-					<Text style={textStyles.h5}>{user.name || ''}</Text>
+					<Text style={textStyles.h5}>{displayName(user)}</Text>
 					{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 16, height: 16 }} />)}
 					{user.golden_check && (<FontAwesome6 name="crown" size={14} color={theme.colors.gold} iconStyle="solid" />)}
 					{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 16, height: 16 }} />)}

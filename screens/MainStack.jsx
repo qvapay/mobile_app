@@ -14,6 +14,9 @@ const Tab = supportsLiquidGlass ? createNativeBottomTabNavigator() : createBotto
 // Routes
 import { ROUTES } from '../routes'
 
+// Helpers
+import { displayName } from '../helpers/displayName'
+
 // Tab Screens
 import Home from './home/Home'
 import Invest from './invest/Invest'
@@ -140,7 +143,7 @@ const MainStack = ({ navigation }) => {
 				<QPAvatar user={user} size={36} />
 				<View style={{ marginLeft: 10 }}>
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-						<Text style={textStyles.h4}>{user.name}</Text>
+						<Text style={textStyles.h4}>{displayName(user)}</Text>
 						{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 16, height: 16 }} />)}
 						{user.golden_check && (<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />)}
 						{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 16, height: 16 }} />)}
@@ -158,7 +161,7 @@ const MainStack = ({ navigation }) => {
 						<QPAvatar user={user} size={36} />
 						<View style={{ marginLeft: 8 }}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-								<Text style={textStyles.h4}>{user.name}</Text>
+								<Text style={textStyles.h4}>{displayName(user)}</Text>
 								{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 14, height: 14 }} />)}
 								{user.golden_check && (<FontAwesome6 name="crown" size={11} color={theme.colors.gold} iconStyle="solid" />)}
 								{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 14, height: 14 }} />)}

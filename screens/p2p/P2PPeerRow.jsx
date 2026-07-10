@@ -2,6 +2,7 @@ import { View, Text, Pressable } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import QPAvatar from "../../ui/particles/QPAvatar"
+import { displayName } from "../../helpers/displayName"
 
 // Single-row peer block: tappable avatar + name with stats inline.
 // When peerStats is available it surfaces rating / completion / completed ops,
@@ -17,7 +18,7 @@ const P2PPeerRow = ({ targetUser, wrapStyle, peerStats, peerReviewsCount, isOnli
 			</Pressable>
 			<View style={{ flex: 1 }}>
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-					<Text style={textStyles.h5} numberOfLines={1}>{targetUser.name || ''}</Text>
+					<Text style={textStyles.h5} numberOfLines={1}>{displayName(targetUser)}</Text>
 					{targetUser.kyc && <FontAwesome6 name="circle-check" size={12} color={theme.colors.primary} iconStyle="solid" />}
 					{targetUser.golden_check && <FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />}
 				</View>

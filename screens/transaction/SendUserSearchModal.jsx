@@ -21,6 +21,9 @@ import { userApi } from '../../api/userApi'
 import { toast } from 'sonner-native'
 import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 
+// Helpers
+import { displayFullName } from '../../helpers/displayName'
+
 // Self-contained "send to" user search: live-filters the carousel + queries the API.
 const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 
@@ -152,7 +155,7 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 										<QPAvatar user={item} size={48} isOnline={isUserOnline(item.uuid)} />
 										<View style={{ flex: 1 }}>
 											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-												{item.name} {item.lastname}
+												{displayFullName(item)}
 											</Text>
 											<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
 												@{item.username}

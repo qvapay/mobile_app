@@ -23,6 +23,9 @@ import StickerPickerModal from './StickerPickerModal'
 // Stickers
 import { parseTransactionDescription, buildStickerDescription } from '../../helpers/stickers'
 
+// Helpers
+import { displayName } from '../../helpers/displayName'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -243,7 +246,7 @@ const Send = ({ navigation, route }) => {
 					) : (
 						<View style={{ position: 'relative' }}>
 							<QPInput
-								placeholder={`Deja un mensaje para ${userFound.name} ...`}
+								placeholder={`Deja un mensaje para ${displayName(userFound)} ...`}
 								value={description}
 								onChangeText={setDescription}
 								prefixIconName="comment"

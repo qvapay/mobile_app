@@ -32,26 +32,26 @@ describe('getVoucherCatalog', () => {
 	test('serializes the countries mode as a bare flag', async () => {
 		apiClient.get.mockResolvedValueOnce(ok([]))
 		await storeApi.getVoucherCatalog({ countries: true })
-		// true flags keep URLSearchParams' trailing '=' (key= instead of key=true)
-		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?countries=')
+		// true flags serialize as key=true — the Vercel proxy rewrite drops bare/empty flags in prod
+		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?countries=true')
 	})
 
 	test('serializes the featured mode', async () => {
 		apiClient.get.mockResolvedValueOnce(ok([]))
 		await storeApi.getVoucherCatalog({ featured: true })
-		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?featured=')
+		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?featured=true')
 	})
 
 	test('serializes the favorites mode', async () => {
 		apiClient.get.mockResolvedValueOnce(ok([]))
 		await storeApi.getVoucherCatalog({ favorites: true })
-		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?favorites=')
+		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?favorites=true')
 	})
 
 	test('serializes the categories mode with an optional country', async () => {
 		apiClient.get.mockResolvedValueOnce(ok([]))
 		await storeApi.getVoucherCatalog({ categories: true, country: 'US' })
-		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?categories=&country=US')
+		expect(apiClient.get).toHaveBeenCalledWith('/store/voucher-catalog?categories=true&country=US')
 	})
 
 	test('serializes the country mode (brands for one country)', async () => {
@@ -151,13 +151,13 @@ describe('getTopupCatalog', () => {
 	test('serializes the countries mode as a bare flag', async () => {
 		apiClient.get.mockResolvedValueOnce(ok([]))
 		await storeApi.getTopupCatalog({ countries: true })
-		expect(apiClient.get).toHaveBeenCalledWith('/store/topup-catalog?countries=')
+		expect(apiClient.get).toHaveBeenCalledWith('/store/topup-catalog?countries=true')
 	})
 
 	test('serializes the featured mode', async () => {
 		apiClient.get.mockResolvedValueOnce(ok([]))
 		await storeApi.getTopupCatalog({ featured: true })
-		expect(apiClient.get).toHaveBeenCalledWith('/store/topup-catalog?featured=')
+		expect(apiClient.get).toHaveBeenCalledWith('/store/topup-catalog?featured=true')
 	})
 
 	test('serializes the country mode (Cuba resolves to Cubacel server-side)', async () => {

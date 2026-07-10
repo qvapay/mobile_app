@@ -18,6 +18,9 @@ import { userApi } from '../../../api/userApi'
 import { toast } from 'sonner-native'
 import { useOnlineStatus } from '../../../hooks/OnlineStatusContext'
 
+// Helpers
+import { displayFullName } from '../../../helpers/displayName'
+
 // Self-contained "add contact" modal: user search + add. Reports success via onAdded.
 const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, containerStyles }) => {
 
@@ -161,7 +164,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 									<QPAvatar user={item} size={48} isOnline={isUserOnline(item.uuid)} />
 									<View style={{ flex: 1 }}>
 										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-											{item.name} {item.lastname}
+											{displayFullName(item)}
 										</Text>
 										<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
 											@{item.username}

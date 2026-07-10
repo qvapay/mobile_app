@@ -12,7 +12,7 @@ jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('./particles/QPAvatar', () => 'QPAvatar')
 
 import React from 'react'
-import { Image } from 'react-native'
+import { Image, Text } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import ProfileContainerHorizontal from './ProfileContainerHorizontal'
 
@@ -70,4 +70,17 @@ test('KYC, gold and admin badges appear when earned', () => {
 	const decorated = renderRow({ ...USER, kyc: 1, golden_check: 1, role: 'admin' })
 	expect(decorated.root.findAllByType(Image)).toHaveLength(2) // blue badge + qvapay logo
 	expect(iconNames(decorated)).toContain('crown')
+})
+
+const renderedTexts = (tree) => tree.root.findAllByType(Text).map(t => [].concat(t.props.children).join(''))
+
+test('strips emojis from the name for non-gold users', () => {
+	const texts = renderedTexts(renderRow({ name: 'Osmany 💰🙏', username: 'osmany' }))
+	expect(texts).toContain('Osmany')
+	expect(texts.join(' ')).not.toContain('💰')
+})
+
+test('keeps emojis in the name for golden_check users', () => {
+	const texts = renderedTexts(renderRow({ name: 'Osmany 💰🙏', username: 'osmany', golden_check: 1 }))
+	expect(texts).toContain('Osmany 💰🙏')
 })
