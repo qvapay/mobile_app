@@ -10,9 +10,6 @@ import Animated, { makeMutable, useAnimatedStyle, withRepeat, withTiming, Easing
 // SVG for conic gradient halo
 import Svg, { Path } from 'react-native-svg'
 
-// Theme
-import { useTheme } from '../../theme/ThemeContext'
-
 const LOCAL_FALLBACK = require('../../assets/images/ui/logo-qvapay.png')
 
 // Colors matching qpweb: pink (#ec4899) → yellow (#fde68a) → purple (#7e22ce) → pink
@@ -97,8 +94,6 @@ const VipHalo = ({ size }) => {
  */
 const QPAvatar = ({ user = {}, size = 32, isOnline }) => {
 
-	const { theme } = useTheme()
-
 	// Optional properties
 	const vip = user?.vip || false
 	const image = user?.image || ''
@@ -108,9 +103,9 @@ const QPAvatar = ({ user = {}, size = 32, isOnline }) => {
 	const hasImage = !!image
 	const source = hasImage ? { uri: `https://media.qvapay.com/${image}`, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable } : LOCAL_FALLBACK
 
-	// VIPs need an opaque backfill: the halo is a full spinning disc, so any
-	// transparency in the avatar (PNG alpha) would let it bleed through the photo
-	const backfill = vip ? theme.colors.surface : 'transparent'
+	// Opaque white backfill: transparent PNG avatars would otherwise blend into
+	// the dark background (and for VIPs the spinning halo would bleed through)
+	const backfill = 'white'
 
 	return (
 		<View style={[styles.container, { width: size, height: size, borderRadius: size / 2 }]}>
