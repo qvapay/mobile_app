@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, Text, Alert, ScrollView, Pressable, Linking, Platform, ActionSheetIOS } from 'react-native'
 
@@ -13,7 +13,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Components
-import QPButton from '../../ui/particles/QPButton'
+import AlertDrawer from '../../ui/AlertDrawer'
 import SettingsSection from '../../ui/SettingsSection'
 import ProfileContainer from '../../ui/ProfileContainer'
 
@@ -63,9 +63,12 @@ const SettingsMenu = ({ navigation }) => {
 	// Push prompt
 	const { shouldShowRedDot } = usePushPrompt()
 
-	// Biometric availability for the logout flow — read only inside handleLogout,
-	// never rendered, so a ref avoids re-rendering the whole menu when it resolves.
+	// Biometric availability for the logout flow — read only when the logout
+	// drawer expands, so a ref avoids re-rendering the whole menu when it resolves.
 	const biometricsActiveRef = useRef(false)
+
+	// Snapshot of the ref taken as the drawer expands; picks the drawer copy/actions.
+	const [logoutKeepsBiometrics, setLogoutKeepsBiometrics] = useState(false)
 
 	useEffect(() => {
 		const checkBiometrics = async () => { biometricsActiveRef.current = await hasBiometricCredentials() }
@@ -130,55 +133,15 @@ const SettingsMenu = ({ navigation }) => {
 	// Edit cover handler
 	const handleEditCover = () => showImagePicker(coverPickerOptions, 'cover', 'Cambiar foto de portada')
 
-	// Logout function
-	const handleLogout = async () => {
-
-		if (biometricsActiveRef.current) {
-			Alert.alert(
-				'Cerrar sesión',
-				'¿Deseas mantener el acceso biométrico para la próxima vez?',
-				[
-					{ text: 'Cancelar', style: 'cancel' },
-					{
-						text: 'Mantener biometría',
-						onPress: async () => {
-							const result = await logout()
-							navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
-							if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión.') }
-						}
-					},
-					{
-						text: 'Eliminar todo',
-						style: 'destructive',
-						onPress: async () => {
-							await removeBiometricCredentials()
-							await updateSettings('security', { biometricsEnabled: false })
-							const result = await logout()
-							navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
-							if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión.') }
-						}
-					}
-				]
-			)
-
-		} else {
-			Alert.alert(
-				'Cerrar sesión',
-				'¿Estás seguro de querer cerrar sesión?',
-				[
-					{ text: 'Cancelar', style: 'cancel' },
-					{
-						text: 'Salir',
-						style: 'destructive',
-						onPress: async () => {
-							const result = await logout()
-							navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
-							if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
-						}
-					}
-				]
-			)
+	// Logout function — optionally wipes the biometric credentials first
+	const performLogout = async ({ removeBiometrics = false } = {}) => {
+		if (removeBiometrics) {
+			await removeBiometricCredentials()
+			await updateSettings('security', { biometricsEnabled: false })
 		}
+		const result = await logout()
+		navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
+		if (!result.success) { Alert.alert('Error', 'No se pudo cerrar sesión. Por favor, inténtalo de nuevo.') }
 	}
 
 	return (
@@ -194,7 +157,20 @@ const SettingsMenu = ({ navigation }) => {
 					return <SettingsSection key={categoryKey} title={category.title} items={items} navigation={navigation} />
 				})}
 
-				<QPButton title="Cerrar sesión" onPress={handleLogout} style={{ backgroundColor: theme.colors.danger, marginTop: 20 }} textStyle={{ color: theme.colors.almostWhite }} />
+				<AlertDrawer
+					buttonLabel="Cerrar sesión"
+					title="Cerrar sesión"
+					icon="right-from-bracket"
+					description={logoutKeepsBiometrics
+						? '¿Deseas mantener el acceso biométrico para la próxima vez?'
+						: '¿Estás seguro de querer cerrar sesión?'}
+					confirmLabel={logoutKeepsBiometrics ? 'Eliminar todo' : undefined}
+					onConfirm={() => performLogout({ removeBiometrics: logoutKeepsBiometrics })}
+					cancelLabel={logoutKeepsBiometrics ? 'Mantener biometría' : 'Cancelar'}
+					onCancel={logoutKeepsBiometrics ? () => performLogout() : undefined}
+					onBeforeExpand={() => setLogoutKeepsBiometrics(biometricsActiveRef.current)}
+					style={{ marginTop: 20 }}
+				/>
 
 				{/* Github, Twitter and Instagram accounts */}
 				<View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginVertical: 20 }}>

@@ -35,13 +35,15 @@ function savingsReducer(state, action) {
  * Tapping the main balance toggles visibility (persisted via the
  * `privacy.showBalance` setting, hidden balances render as asterisks);
  * tapping the savings page navigates to the Savings screen.
- * Savings summary is fetched from `savingApi.getSummary()` on mount.
+ * Savings summary is fetched from `savingApi.getSummary()` on mount and
+ * re-fetched on each pull-to-refresh (via the `refreshing` prop).
  *
  * @param {object} props
  * @param {number|string} props.balance - Main account balance in QUSD.
  * @param {object} props.navigation - React Navigation object (for the Savings shortcut).
+ * @param {boolean} [props.refreshing] - Home's pull-to-refresh state; a rising edge triggers a savings re-fetch.
  */
-const BalanceCard = ({ balance, navigation }) => {
+const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -62,16 +64,19 @@ const BalanceCard = ({ balance, navigation }) => {
 		setShowBalance(balanceVisibility)
 	}, [getSetting])
 
-	// Fetch savings data
+	// Fetch savings data on mount and on each pull-to-refresh
 	useEffect(() => {
+		if (!refreshing && savings.balance !== null) return
+		let cancelled = false
 		const fetchSavings = async () => {
 			const result = await savingApi.getSummary()
-			if (result.success && result.data) {
+			if (!cancelled && result.success && result.data) {
 				dispatchSavings({ type: 'loaded', balance: result.data.balance ?? 0, rate: result.data.rate })
 			}
 		}
 		fetchSavings()
-	}, [])
+		return () => { cancelled = true }
+	}, [refreshing]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Functions
 	const toggleShowBalance = async () => {
