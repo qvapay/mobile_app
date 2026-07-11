@@ -108,6 +108,30 @@ PODS:
     - GTMSessionFetcher/Core (< 4.0, >= 3.3.2)
     - MLImage (= 1.0.0-beta8)
     - MLKitCommon (~> 14.0)
+  - MunimBluetooth (0.4.4):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
     - nanopb/encode (= 3.30910.0)
@@ -2654,6 +2678,7 @@ DEPENDENCIES:
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - lottie-react-native (from `../node_modules/lottie-react-native`)
+  - MunimBluetooth (from `../node_modules/munim-bluetooth`)
   - NitroIap (from `../node_modules/react-native-iap`)
   - NitroImage (from `../node_modules/react-native-nitro-image`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
@@ -2789,6 +2814,8 @@ EXTERNAL SOURCES:
     :tag: hermes-v250829098.0.9
   lottie-react-native:
     :path: "../node_modules/lottie-react-native"
+  MunimBluetooth:
+    :path: "../node_modules/munim-bluetooth"
   NitroIap:
     :path: "../node_modules/react-native-iap"
   NitroImage:
@@ -3003,6 +3030,7 @@ SPEC CHECKSUMS:
   MLKitBarcodeScanning: 39de223e7b1b8a8fbf10816a536dd292d8a39343
   MLKitCommon: 47d47b50a031d00db62f1b0efe5a1d8b09a3b2e6
   MLKitVision: 39a5a812db83c4a0794445088e567f3631c11961
+  MunimBluetooth: 03d1fa4bef063ee60f86de469ea6ae6a7896de15
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   NitroIap: 31bb2f2af7b4f898d7f7812fdf1adfbb9b3b187e
   NitroImage: 742b7d57e43573518c05cf92acac1c43d5e22255

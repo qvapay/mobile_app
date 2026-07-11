@@ -68,6 +68,7 @@ import P2POffer from './screens/p2p/P2POffer'
 import P2PUser from './screens/p2p/P2PUser'
 import GoldCheck from './screens/settings/subpanels/GoldCheck'
 import Scan from './screens/scan/Scan'
+import NearbyPay from './screens/nearby/NearbyPay'
 
 // Invest Screens
 import Savings from './screens/invest/Savings'
@@ -309,6 +310,16 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 				<Stack.Screen
 					name={ROUTES.SCAN_SCREEN}
 					component={Scan}
+					options={{
+						animation: 'slide_from_bottom',
+						headerShown: false,
+					}}
+				/>
+
+				{/* Nearby Pay Screen — AirDrop-style proximity payments radar */}
+				<Stack.Screen
+					name={ROUTES.NEARBY_PAY}
+					component={NearbyPay}
 					options={{
 						animation: 'slide_from_bottom',
 						headerShown: false,

@@ -58,6 +58,7 @@ export const ROUTES = {
 	SEND_CONFIRM: "SendConfirm",
 	SEND_SUCCESS: "SendSuccess",
 	RECEIVE: "Receive",
+	NEARBY_PAY: "NearbyPay",
 
 	// In out Screens
 	TRANSACTION: "Transaction",

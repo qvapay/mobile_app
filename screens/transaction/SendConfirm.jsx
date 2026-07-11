@@ -29,6 +29,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Online Status
 import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 
+// Nearby session — payment ack to the chargee's radar (no-op outside NearbyPay)
+import { getActiveSession } from '../../nearby/session'
+
 // PIN/OTP entry sub-flow state — one cohesive unit
 function pinFlowReducer(state, action) {
 	switch (action.type) {
@@ -218,6 +221,7 @@ const SendConfirm = ({ navigation, route }) => {
 			})
 
 			if (result.success) {
+				getActiveSession()?.notifyPaymentSent({ toUuid: recipientUser.uuid, amount: send_amount, txUuid: result.data?.uuid })
 				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser, description: description })
 			} else {
 				toast.error('Error en la transacción', { description: result.error || 'No se pudo completar la transacción' })

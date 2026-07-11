@@ -158,6 +158,12 @@ export default function Keypad({ navigation }) {
 		navigation.navigate(ROUTES.RECEIVE, { receive_amount: numericAmount.toString() })
 	}, [amount, navigation])
 
+	// Nearby radar — any typed amount travels along as prefill
+	const handleNearby = useCallback(() => {
+		const numericAmount = parseFloat(amount)
+		navigation.navigate(ROUTES.NEARBY_PAY, numericAmount > 0 ? { prefill_amount: numericAmount.toString() } : {})
+	}, [amount, navigation])
+
 	// Render individual key
 	const renderKey = useCallback((key, index) => {
 
@@ -240,6 +246,21 @@ export default function Keypad({ navigation }) {
 					iconStyle="solid"
 				/>
 				<View style={styles.actionButtonSpacer} />
+				{/* Nearby radar — iOS only until BleTransport (phase 2) lands on Android */}
+				{Platform.OS === 'ios' && (
+					<>
+						<QPButton
+							title=""
+							onPress={handleNearby}
+							disabled={isProcessing}
+							icon="tower-broadcast"
+							style={[styles.nearbyButton, { backgroundColor: theme.colors.elevation }, isProcessing && styles.actionButtonDisabled]}
+							iconColor={theme.colors.contrast}
+							iconStyle="solid"
+						/>
+						<View style={styles.actionButtonSpacer} />
+					</>
+				)}
 				<QPButton
 					title={'Enviar'}
 					onPress={handleSendAmount}
@@ -320,5 +341,11 @@ const styles = StyleSheet.create({
 	},
 	actionButtonSpacer: {
 		width: 12,
-	}
+	},
+	nearbyButton: {
+		width: 56,
+		minHeight: 56,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
 })

@@ -68,12 +68,23 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>QvaPay usa Bluetooth para encontrar usuarios cercanos y enviarles pagos por proximidad.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>QvaPay usa Bluetooth para que otros usuarios cercanos puedan descubrirte y pagarte.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_qvapay-nearby._tcp</string>
+		<string>_qvapay-nearby._udp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Para poder escanear QRs, $(PRODUCT_NAME) necesita permiso.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>QvaPay necesita acceso a tus contactos para encontrar amigos que ya usan la app y facilitar los envios de dinero.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>QvaPay utiliza Face ID para acceder a tu cuenta de forma segura.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>QvaPay usa la red local para descubrir usuarios cercanos y habilitar pagos por proximidad.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>QvaPay necesita tu ubicación para brindarte peers cerca de tu ubicación.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

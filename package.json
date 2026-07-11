@@ -1,6 +1,6 @@
 {
   "name": "QvaPay",
-  "version": "1.8.9",
+  "version": "1.9.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -38,6 +38,7 @@
     "@shopify/flash-list": "^2.3.1",
     "axios": "^1.16.1",
     "lottie-react-native": "^7.3.8",
+    "munim-bluetooth": "^0.4.4",
     "react": "19.2.3",
     "react-native": "^0.84.1",
     "react-native-animated-numbers": "^0.6.3",
