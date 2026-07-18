@@ -184,6 +184,19 @@ const Store = ({ navigation }) => {
 						textStyles={textStyles}
 						onPress={() => navigation.navigate(ROUTES.ASSISTED_SHOPPING)}
 					/>
+					{/* Recargas por Google Play Billing — consumibles, solo Android por ahora */}
+					{Platform.OS === 'android' && (
+						<DepartmentCard
+							icon="google-play"
+							iconStyle="brand"
+							color="#34A853"
+							title="Recarga móvil con Google Play"
+							subtitle="Paga con tu tarjeta, sin saldo QvaPay"
+							theme={theme}
+							textStyles={textStyles}
+							onPress={() => navigation.navigate(ROUTES.TOPUP_SCREEN)}
+						/>
+					)}
 					<View style={styles.departmentsRow}>
 						<DepartmentCard
 							icon="mobile-screen-button"
@@ -244,7 +257,7 @@ const Store = ({ navigation }) => {
  * mobile version of the web shop hub's DepartmentCard. `compact` renders the
  * half-width variant used in the second row.
  */
-const DepartmentCard = ({ icon, color, title, subtitle, compact = false, theme, textStyles, onPress }) => (
+const DepartmentCard = ({ icon, iconStyle = 'solid', color, title, subtitle, compact = false, theme, textStyles, onPress }) => (
 	<Pressable
 		style={[
 			styles.departmentCard,
@@ -255,7 +268,7 @@ const DepartmentCard = ({ icon, color, title, subtitle, compact = false, theme, 
 		onPress={onPress}
 	>
 		<View style={[styles.departmentIcon, { backgroundColor: `${color}1A` }]}>
-			<FontAwesome6 name={icon} size={16} color={color} iconStyle="solid" />
+			<FontAwesome6 name={icon} size={16} color={color} iconStyle={iconStyle} />
 		</View>
 		<View style={styles.departmentContent}>
 			<Text style={[textStyles.h6, { fontWeight: '600' }]} numberOfLines={1}>{title}</Text>

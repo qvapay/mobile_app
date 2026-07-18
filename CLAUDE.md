@@ -113,7 +113,7 @@ The client also owns three Keychain services and exports their helpers:
 | `com.qvapay.biometrics` | Face ID / Touch ID login creds (email + password)          |
 | `com.qvapay.applock`    | App-lock PIN                                               |
 
-**API modules** (14 total):
+**API modules** (15 total):
 - `authApi.js`: login (with 2FA), register, confirmRegistration, requestPin, logout, resetPassword, passkey register/verify
 - `userApi.js`: searchUser, getUserProfile (`/user/extended`), updateUser, KYC, verifyPhone/Telegram, password, deletion, payment methods, contacts, referrals, gold, avatar
 - `p2pApi.js`: index, show, create, cancel, markPaid, confirmReceived, getChat, sendChat, rateOffer, user profile
@@ -124,6 +124,7 @@ The client also owns three Keychain services and exports their helpers:
 - `stocksApi.js`: stocks/watchlist data for Invest screen
 - `storeApi.js`: unified Zendit-backed catalogs. `getVoucherCatalog` (`/store/voucher-catalog`, mode params: `countries` | `featured` | `favorites` | `categories` | `country`/`brand`), `purchaseVoucher` (`/store/voucher/purchase`), topup catalog (`/store/topup-catalog`, same mode-param style; Cuba = `cubacel` source, rest = Zendit), `/store/topup`, `/store/phone_package` (Cubacel), purchases (`/store/my`, `/store/my/{id}`)
 - `shopApi.js`: assisted shopping (Personal Shopper) — parse store URL (`POST /shop/assisted-shopping/product`), product by uuid, recent shelf, cart (GET/POST + DELETE `/cart/product/{uuid}`; quantity encoded by repetition server-side), tax quote (`POST /checkout/quote` — state tax rates live server-side only), checkout, orders (`GET /orders`, `/orders/{id}`), shipping addresses CRUD (`/user/shipping-addresses`). Amazon fee 0% / eBay +1%; US-only shipping; $20 minimum
+- `topupApi.js`: store-billed mobile top-ups (Google Play / App Store consumable one-time products). `/topup/products` (backend availability), `/topup/validate-receipt` (backend verifies receipt + executes the top-up; only a `success` response lets the client consume via `finishTransaction({ purchase, isConsumable: true })` — `pending`/202 is consumed server-side), `/topup/history`, `/topup/{id}/status`. SKU catalog in `helpers/iap.js` (`TOPUP_SKUS`/`TOPUP_CATALOG`)
 - `coinsApi.js`: enabled coins (in/out filters)
 - `promoApi.js`: promo banners shown across the app
 - `blogApi.js`: WordPress REST API (uses native `fetch`, not axios)
@@ -145,12 +146,12 @@ UI conventions:
 - Modals: centered card overlay (`transparent`, `animationType="fade"`, `statusBarTranslucent`, Pressable backdrop dismiss) — see `ContactsDisclosureModal`.
 
 ### Key Directories
-- `/screens/`: 40+ screens by domain — `home/`, `invest/` (Invest, Savings, StockDetail), `keypad/`, `p2p/` (P2P, P2PCreate, P2POffer, P2PUser — P2POffer is decomposed into panels/modals: P2PChatPanel, P2PActionBar, P2PApplyModal, P2PEditModal, P2POfferDetailsCard, P2PRequirementsGate, SavedMethodsModal…; hooks `useP2PChat` + `useP2PChatSSE` for real-time chat), `transaction/` (incl. Pay), `store/` (Store + StoreGiftCardsSection/StoreTopupSection, PhoneTopupIndex/Brand/Step1, GiftCards, GiftCardBrand, MyPurchases, PurchaseDetail), `settings/` (+ 17 subpanels), `add/`, `withdraw/`, `scan/`, `splash/`, `welcome/`, `onboard/`, `help/`
+- `/screens/`: 40+ screens by domain — `home/`, `invest/` (Invest, Savings, StockDetail), `keypad/`, `p2p/` (P2P, P2PCreate, P2POffer, P2PUser — P2POffer is decomposed into panels/modals: P2PChatPanel, P2PActionBar, P2PApplyModal, P2PEditModal, P2POfferDetailsCard, P2PRequirementsGate, SavedMethodsModal…; hooks `useP2PChat` + `useP2PChatSSE` for real-time chat), `transaction/` (incl. Pay), `store/` (Store + StoreGiftCardsSection/StoreTopupSection, PhoneTopupIndex/Brand/Step1, GiftCards, GiftCardBrand, MyPurchases, PurchaseDetail), `topup/` (TopupScreen — store-billed consumable top-ups via Play Billing/StoreKit, + components/), `settings/` (+ 17 subpanels), `add/`, `withdraw/`, `scan/`, `splash/`, `welcome/`, `onboard/`, `help/`
 - `/ui/`: composite (BottomBar + BottomBarContext, AnimatedTabBar, BalanceCard, P2POfferItem, AmountInput, QPCoinPicker/QPCoinRow, WalletPickerSheet, CashDeliveryCard, QPKeyboardView, QPRefreshIndicator, WatchlistCard, Sparkline, BlogPostCard, PromoBanner, UpdatePromptModal, PushPromptModal, ContactsDisclosureModal, CountryPickerModal, QPPhoneInput, TransactionSkeleton, GlobalLoadingBar, ErrorBoundary, …)
 - `/ui/particles/`: atomic (QPButton, QPPressable, QPInput, QPAvatar, QPBalance, QPCoin, QPTransaction, QPRate, QPPill, QPLoader, QPSwitch, QPMoneyInput, QPCodeInput, QPSkeleton, QPProduct, QPSectionHeader, SettingsItem, TransactionSticker, FaceIDIcon)
 - `/ui/store/`: store-specific particles (BrandTile, CategoryPill, CountryPicker, OperatorAvatar)
 - `/auth/`: AuthContext + `useAuthState` + `hooks/` + Login/Register/Recover screens; Login subcomponents live in `auth/screens/login/` (CredentialsForm, TwoFactorEntry, QuickLoginRow, LeakedPasswordModal)
-- `/api/`: 13 modules + `client.js`
+- `/api/`: 15 modules + `client.js`
 - `/theme/`: ThemeContext + themeUtils
 - `/settings/`: SettingsContext + useSettingsState + settingsConstants
 - `/lock/`: AppLockContext + LockScreen

@@ -38,6 +38,7 @@ export const ROUTES = {
 	STORE_SCREEN: "Store",
 	PHONE_TOPUP_INDEX: "PhoneTopupIndex",
 	PHONE_TOPUP_BRAND: "PhoneTopupBrand",
+	TOPUP_SCREEN: "Topup",
 	GIFT_CARDS: "GiftCards",
 	GIFT_CARD_BRAND: "GiftCardBrand",
 	MY_PURCHASES: "MyPurchases",

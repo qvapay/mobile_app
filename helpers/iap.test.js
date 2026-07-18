@@ -11,7 +11,7 @@ jest.mock('react-native', () => ({
 }))
 
 import { Platform } from 'react-native'
-import { IAP_SKUS, getProductId, getAndroidOfferToken, getIAPErrorMessage } from './iap'
+import { IAP_SKUS, TOPUP_SKUS, TOPUP_CATALOG, getTopupInfo, getProductId, getAndroidOfferToken, getIAPErrorMessage } from './iap'
 
 afterEach(() => { Platform.OS = 'ios' })
 
@@ -21,6 +21,35 @@ describe('IAP_SKUS', () => {
 			'com.qvapay.goldcheck.monthly',
 			'com.qvapay.goldcheck.yearly',
 		])
+	})
+})
+
+describe('TOPUP_SKUS / TOPUP_CATALOG', () => {
+	test('resolve via Platform.select (iOS reverse-DNS SKUs)', () => {
+		expect(TOPUP_SKUS).toEqual(['com.qvapay.topup.100cup'])
+		expect(TOPUP_CATALOG).toEqual({
+			'com.qvapay.topup.100cup': { amountCUP: 100, label: '$100 CUP' },
+		})
+	})
+
+	test('every SKU has a catalog entry with amountCUP and label', () => {
+		for (const sku of TOPUP_SKUS) {
+			expect(TOPUP_CATALOG[sku]).toEqual(expect.objectContaining({
+				amountCUP: expect.any(Number),
+				label: expect.any(String),
+			}))
+		}
+	})
+})
+
+describe('getTopupInfo', () => {
+	test('returns the catalog entry for a known SKU', () => {
+		expect(getTopupInfo('com.qvapay.topup.100cup')).toEqual({ amountCUP: 100, label: '$100 CUP' })
+	})
+
+	test('null for unknown SKUs', () => {
+		expect(getTopupInfo('999cuptopup')).toBeNull()
+		expect(getTopupInfo(undefined)).toBeNull()
 	})
 })
 
@@ -67,17 +96,17 @@ describe('getAndroidOfferToken', () => {
 })
 
 describe('getIAPErrorMessage', () => {
-	test('LATENT BUG: E_USER_CANCELLED is meant to be silenced (null) but ?? skips the null map entry and falls through to the generic message', () => {
-		// Intended: null (silence the cancellation). Actual: `messages[code] ?? ...`
-		// treats the stored null as "missing" and returns the fallback chain.
-		expect(getIAPErrorMessage({ code: 'E_USER_CANCELLED' })).toBe('Error al procesar la compra')
-		expect(getIAPErrorMessage({ code: 'E_USER_CANCELLED', message: 'user cancelled' })).toBe('user cancelled')
+	test('E_USER_CANCELLED is silenced (null) so call sites skip the toast', () => {
+		// Fixed 2026-07-17: `?? ` treated the stored null as "missing" — now the
+		// map is checked with `in` so null survives as a valid "silence" value.
+		expect(getIAPErrorMessage({ code: 'E_USER_CANCELLED' })).toBeNull()
+		expect(getIAPErrorMessage({ code: 'E_USER_CANCELLED', message: 'user cancelled' })).toBeNull()
 	})
 
 	test('maps known codes to Spanish messages (code or responseCode)', () => {
 		expect(getIAPErrorMessage({ code: 'E_ITEM_UNAVAILABLE' })).toBe('Este producto no está disponible en tu región')
 		expect(getIAPErrorMessage({ responseCode: 'E_NETWORK_ERROR' })).toBe('Error de conexión. Verifica tu internet')
-		expect(getIAPErrorMessage({ code: 'E_ALREADY_OWNED' })).toBe('Ya tienes una suscripción activa')
+		expect(getIAPErrorMessage({ code: 'E_ALREADY_OWNED' })).toBe('Ya tienes una compra activa de este producto')
 	})
 
 	test('falls back to error.message, then to the generic message', () => {

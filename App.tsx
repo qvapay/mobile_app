@@ -82,6 +82,7 @@ import Withdraw from './screens/withdraw/Withdraw'
 // Store Screens
 import PhoneTopupIndex from './screens/store/PhoneTopupIndex'
 import PhoneTopupBrand from './screens/store/PhoneTopupBrand'
+import TopupScreen from './screens/topup/TopupScreen'
 import GiftCards from './screens/store/GiftCards'
 import GiftCardBrand from './screens/store/GiftCardBrand'
 import MyPurchases from './screens/store/MyPurchases'
@@ -203,6 +204,9 @@ const STATIC_SCREENS: ScreenConfig[] = [
 	// Phone Topup Screens
 	{ name: ROUTES.PHONE_TOPUP_INDEX, component: PhoneTopupIndex, options: getHeaderOptions('Recargas móviles') },
 	{ name: ROUTES.PHONE_TOPUP_BRAND, component: PhoneTopupBrand, options: getHeaderOptions('') },
+
+	// Store-billed Topup Screen (Google Play / App Store consumables)
+	{ name: ROUTES.TOPUP_SCREEN, component: TopupScreen, options: getHeaderOptions('Recarga móvil') },
 
 	// Gift Card Screens
 	{ name: ROUTES.GIFT_CARDS, component: GiftCards, options: getHeaderOptions('Tarjetas de regalo') },
