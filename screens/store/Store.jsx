@@ -17,6 +17,9 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 import { storeApi } from '../../api/storeApi'
 import { ROUTES } from '../../routes'
 
+// Stale-while-revalidate cache (instant cold-start / offline rendering)
+import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
+
 const DEFAULT_TOPUP_COUNTRY = 'CU'
 // Compliance with App Store Guideline 3.1.1 — vouchers hidden on iOS.
 const SHOW_GIFT_CARDS = Platform.OS !== 'ios'
@@ -28,6 +31,14 @@ function catalogReducer(state, action) {
 	switch (action.type) {
 		case 'set':
 			return { ...state, [action.field]: action.value }
+		case 'hydrate': {
+			// Fill only still-empty slices — cached data never clobbers a resolved fetch
+			const next = { ...state }
+			for (const [field, value] of Object.entries(action.values || {})) {
+				if (Array.isArray(next[field]) && next[field].length === 0 && value?.length) { next[field] = value }
+			}
+			return next
+		}
 		default:
 			return state
 	}
@@ -55,6 +66,19 @@ const Store = ({ navigation }) => {
 	const [topupSelected, setTopupSelected] = useState(null)
 	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
+
+	// Cold-start hydration: paint the cached catalog (and last selected country)
+	// immediately — the network pass below revalidates it
+	useEffect(() => {
+		readCache(CACHE_KEYS.STORE_CATALOG).then(cached => {
+			if (!cached) return
+			dispatchCatalog({ type: 'hydrate', values: cached.catalog })
+			if (cached.catalog?.topupCountries?.length) {
+				setTopupSelected(prev => prev || cached.topupSelected || null)
+				setLoading(false)
+			}
+		})
+	}, [])
 
 	const fetchInitial = useCallback(async () => {
 		const requests = [
@@ -87,11 +111,29 @@ const Store = ({ navigation }) => {
 
 	useEffect(() => { fetchInitial() }, [fetchInitial])
 
+	// Persist the catalog whenever it holds real data (covers every fetch path)
+	useEffect(() => {
+		if (!topupCountries.length) return
+		const { topupBrands: _brands, ...persistable } = catalog
+		writeCache(CACHE_KEYS.STORE_CATALOG, { catalog: persistable, topupSelected })
+	}, [catalog, topupSelected, topupCountries.length])
+
 	const fetchTopupBrands = useCallback(async (code) => {
 		if (!code) return
+		// Brands are cached per country: paint cached instantly, then revalidate;
+		// offline the cached list stays instead of wiping to empty + toast
+		const cacheKey = `${CACHE_KEYS.STORE_TOPUP_BRANDS}:${code}`
+		const cached = await readCache(cacheKey)
+		if (cached?.length) dispatchCatalog({ type: 'set', field: 'topupBrands', value: cached })
 		const res = await storeApi.getTopupCatalog({ country: code })
-		if (res.success) dispatchCatalog({ type: 'set', field: 'topupBrands', value: res.data?.brands || [] })
-		else { toast.error('Operadores', { description: res.error }); dispatchCatalog({ type: 'set', field: 'topupBrands', value: [] }) }
+		if (res.success) {
+			const brands = res.data?.brands || []
+			dispatchCatalog({ type: 'set', field: 'topupBrands', value: brands })
+			writeCache(cacheKey, brands)
+		} else if (!cached?.length) {
+			toast.error('Operadores', { description: res.error })
+			dispatchCatalog({ type: 'set', field: 'topupBrands', value: [] })
+		}
 	}, [])
 
 	useEffect(() => {

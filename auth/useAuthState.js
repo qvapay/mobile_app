@@ -13,6 +13,9 @@ import { OneSignal } from 'react-native-onesignal'
 // Widget Bridge
 import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
 
+// Cold-start data cache (transactions, quick-pay, catalogs…) — purged with the session
+import { clearDataCache } from '../helpers/dataCache'
+
 // Storage keys
 const STORAGE_KEYS = { USER_DATA: 'user_data' }
 
@@ -50,8 +53,9 @@ const mapMeToUser = (me, email) => ({
 
 /**
  * Clears all persisted authentication data: the Keychain token
- * (`com.qvapay.auth`), the cached user profile, and the synced
- * device-contacts keys (matches, last sync, consent).
+ * (`com.qvapay.auth`), the cached user profile, the synced
+ * device-contacts keys (matches, last sync, consent), and every
+ * `@qpcache:` cold-start slice (transactions, quick-pay, catalogs…).
  */
 const clearAuthData = async () => {
 	try {
@@ -63,6 +67,7 @@ const clearAuthData = async () => {
 				'device_contacts_last_sync',
 				'device_contacts_consent',
 			]),
+			clearDataCache(),
 		])
 	} catch (err) { /* error clearing auth data */ }
 }

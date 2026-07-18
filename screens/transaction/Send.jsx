@@ -33,6 +33,9 @@ import { ROUTES } from '../../routes'
 import { userApi } from '../../api/userApi'
 import { transferApi } from '../../api/transferApi'
 
+// Stale-while-revalidate cache (instant cold-start / offline rendering)
+import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
+
 // Toast
 import { toast } from 'sonner-native'
 
@@ -105,16 +108,26 @@ const Send = ({ navigation, route }) => {
 		return () => { if (ids.length) untrackUsers(ids) }
 	}, [carouselUsers, trackUsers, untrackUsers])
 
-	// Get latest sent transfers users, saved contacts, and synced contacts
+	// Get latest sent transfers users, saved contacts, and synced contacts.
+	// The last successful merge is cached so the carousel paints instantly on
+	// cold start and survives offline launches (stale-while-revalidate).
 	useEffect(() => {
+		let hasFreshData = false
+
+		readCache(CACHE_KEYS.SEND_CAROUSEL).then(cached => {
+			if (cached?.length && !hasFreshData) { setCarouselUsers(cached) }
+		})
+
 		const fetchCarouselUsers = async () => {
 			try {
 				const seen = new Set()
 				const combined = []
+				let anySuccess = false
 
 				// 1. Latest sent transfers
 				const sentResult = await transferApi.getLatestSentTransfers(10)
 				if (sentResult.success) {
+					anySuccess = true
 					const users = (sentResult.data || []).filter(u => u.image)
 					for (const u of users) {
 						if (u.uuid && !seen.has(u.uuid)) {
@@ -127,6 +140,7 @@ const Send = ({ navigation, route }) => {
 				// 2. Saved contacts
 				const contactsResult = await userApi.getContacts()
 				if (contactsResult.success) {
+					anySuccess = true
 					const list = Array.isArray(contactsResult.data) ? contactsResult.data : (contactsResult.data?.contacts || [])
 					for (const c of list) {
 						const cu = c?.Contact || {}
@@ -137,7 +151,12 @@ const Send = ({ navigation, route }) => {
 					}
 				}
 
-				setCarouselUsers(combined)
+				// Offline both requests fail — keep the cached carousel on screen
+				if (anySuccess) {
+					hasFreshData = true
+					setCarouselUsers(combined)
+					writeCache(CACHE_KEYS.SEND_CAROUSEL, combined)
+				}
 			} catch (err) { /* error fetching carousel users */ }
 			finally { setIsLoading(false) }
 		}

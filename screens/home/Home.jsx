@@ -121,6 +121,7 @@ const Home = ({ navigation }) => {
 		promo,
 		updateInfo,
 		txLoading,
+		txError,
 		refreshing,
 		onRefresh,
 		dismissUpdate,
@@ -187,7 +188,9 @@ const Home = ({ navigation }) => {
 								<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
 							</Pressable>
 						</>
-					) : txLoading ? (
+					) : txLoading || txError ? (
+						// txError sin datos (sin conexión y sin cache): skeletons en vez del
+						// empty state — "no tienes transacciones" sería mentira
 						<View>
 							{[0, 1, 2].map(i => (
 								<TransactionSkeleton key={i} index={i} totalItems={3} />

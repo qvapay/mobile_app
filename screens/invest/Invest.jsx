@@ -17,6 +17,9 @@ import { ROUTES } from '../../routes'
 // Helpers
 import { formatMoney } from '../../helpers'
 
+// Stale-while-revalidate cache (instant cold-start / offline rendering)
+import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
+
 // UI
 import QPLoader from '../../ui/particles/QPLoader'
 import QPCoin from '../../ui/particles/QPCoin'
@@ -175,6 +178,16 @@ function dataReducer(state, action) {
 			return { ...state, stocks: action.stocks }
 		case 'setP2p':
 			return { ...state, p2pData: action.p2pData }
+		case 'hydrate': {
+			// Fill only still-empty slices — cached data never clobbers a resolved fetch
+			const cached = action.data || {}
+			return {
+				savings: state.savings ?? cached.savings ?? null,
+				coins: state.coins.length ? state.coins : cached.coins || [],
+				stocks: state.stocks.length ? state.stocks : cached.stocks || [],
+				p2pData: state.p2pData.length ? state.p2pData : cached.p2pData || [],
+			}
+		}
 		default:
 			return state
 	}
@@ -257,6 +270,21 @@ const Invest = ({ navigation }) => {
 			// silently handle
 		} finally { setIsLoading(false) }
 	}, [])
+
+	// Cold-start hydration: paint the cached dashboard instantly (no full-screen
+	// loader) while fetchData revalidates in the background
+	useEffect(() => {
+		readCache(CACHE_KEYS.INVEST_DATA).then(cached => {
+			if (!cached) return
+			dispatchData({ type: 'hydrate', data: cached })
+			if (cached.coins?.length || cached.stocks?.length) setIsLoading(false)
+		})
+	}, [])
+
+	// Persist the dashboard whenever it holds real data (covers every fetch path)
+	useEffect(() => {
+		if (coins.length || stocks.length) writeCache(CACHE_KEYS.INVEST_DATA, data)
+	}, [data, coins.length, stocks.length])
 
 	useEffect(() => { fetchData() }, [fetchData])
 

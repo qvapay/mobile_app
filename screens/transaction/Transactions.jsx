@@ -9,6 +9,9 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 // API
 import { transferApi } from '../../api/transferApi'
 
+// Stale-while-revalidate cache (instant cold-start / offline rendering)
+import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
+
 // UI
 import QPTransaction from '../../ui/particles/QPTransaction'
 import QPInput from '../../ui/particles/QPInput'
@@ -31,6 +34,9 @@ function listReducer(state, action) {
 			return { ...state, isLoading: !action.refresh, isRefreshing: !!action.refresh }
 		case 'setItems':
 			return { ...state, transactions: action.items }
+		case 'hydrate':
+			// Cached first page — never clobber data a fetch already delivered
+			return state.transactions.length === 0 && action.items?.length ? { ...state, transactions: action.items } : state
 		case 'appendItems':
 			return { ...state, transactions: [...state.transactions, ...action.items] }
 		case 'clear':
@@ -90,6 +96,9 @@ const Transactions = ({ navigation, route }) => {
 	const hasMoreRef = useRef(true)
 	// In-flight guard kept in a ref so fetchTransactions needn't capture isLoading state
 	const inFlightRef = useRef(false)
+	// Flipped on the first successful fetch — blocks late cache hydration from
+	// overwriting fresh (possibly filtered or genuinely empty) results
+	const hasFreshDataRef = useRef(false)
 
 	// Applied filter state
 	const [filters, setFilters] = useState({})
@@ -130,11 +139,16 @@ const Transactions = ({ navigation, route }) => {
 			})
 
 			if (result.success) {
+				hasFreshDataRef.current = true
 				const newData = result.data || []
 				if (refresh || pageNum === 1) { dispatchList({ type: 'setItems', items: newData }) }
 				else { dispatchList({ type: 'appendItems', items: newData }) }
 				hasMoreRef.current = newData.length >= PAGE_SIZE
 				pageRef.current = pageNum
+				// Persist the unfiltered first page for instant cold-start rendering
+				if (pageNum === 1 && Object.keys(activeFilters).length === 0) {
+					writeCache(CACHE_KEYS.TRANSACTIONS_FIRST_PAGE, newData)
+				}
 			}
 		} catch (error) {
 			// Silent fail - list stays as is
@@ -205,6 +219,14 @@ const Transactions = ({ navigation, route }) => {
 			}),
 		})
 	}, [hasActiveFilters, showSearch, theme, navigation, containerStyles.headerRight, openFilters, toggleSearch])
+
+	// Cold-start hydration (mount only): paint the cached unfiltered first page
+	// while the network fetch revalidates; a resolved fetch always wins
+	useEffect(() => {
+		readCache(CACHE_KEYS.TRANSACTIONS_FIRST_PAGE).then(items => {
+			if (items && !hasFreshDataRef.current) dispatchList({ type: 'hydrate', items })
+		})
+	}, [])
 
 	// Initial load
 	useEffect(() => {

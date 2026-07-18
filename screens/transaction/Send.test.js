@@ -26,6 +26,11 @@ jest.mock('../../ui/particles/TransactionSticker', () => 'TransactionSticker')
 jest.mock('../../ui/ProfileContainerHorizontal', () => 'ProfileContainerHorizontal')
 jest.mock('./SendUserSearchModal', () => 'SendUserSearchModal')
 jest.mock('./StickerPickerModal', () => 'StickerPickerModal')
+jest.mock('../../helpers/dataCache', () => ({
+	CACHE_KEYS: { SEND_CAROUSEL: 'send_carousel' },
+	readCache: jest.fn(async () => null),
+	writeCache: jest.fn(),
+}))
 jest.mock('../../api/userApi', () => ({
 	userApi: { searchUser: jest.fn(), getContacts: jest.fn() },
 }))

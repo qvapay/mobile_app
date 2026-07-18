@@ -10,6 +10,11 @@ jest.mock('../theme/ThemeContext', () => {
 })
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
 jest.mock('../api/savingApi', () => ({ savingApi: { getSummary: jest.fn() } }))
+jest.mock('../helpers/dataCache', () => ({
+	CACHE_KEYS: { SAVINGS_SUMMARY: 'savings_summary' },
+	readCache: jest.fn(async () => null),
+	writeCache: jest.fn(),
+}))
 jest.mock('./particles/QPBalance', () => 'QPBalance')
 
 import React from 'react'

@@ -11,6 +11,11 @@ jest.mock('../../helpers/widgetBridge', () => ({
 	reloadWidgets: jest.fn(),
 }))
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
+jest.mock('../../helpers/dataCache', () => ({
+	CACHE_KEYS: { P2P_OFFERS: 'p2p_offers', P2P_COINS: 'p2p_coins' },
+	readCache: jest.fn(async () => null),
+	writeCache: jest.fn(),
+}))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'

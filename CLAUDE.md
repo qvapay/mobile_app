@@ -156,7 +156,7 @@ UI conventions:
 - `/lock/`: AppLockContext + LockScreen
 - `/loading/`: LoadingContext (bridged to axios for `GlobalLoadingBar`)
 - `/hooks/`: `OnlineStatusContext`, `useAppNavigation`, `useDeviceContacts`, `usePinEntry` (multi-box PIN/OTP input mechanics), `usePushPrompt`, `useStepTransitions` (animated multi-step wizard transitions, used by Register), `useTransactionSSE` (real-time transaction stream via `react-native-sse`)
-- `/helpers/`: `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `stickers.js` (QvaPay sticker catalog), `versionCheck.js` (drives `UpdatePromptModal`), `walletDeeplinks.js` (Trust Wallet & co. universal links for deposits), `widgetBridge.js` (iOS/Android home-screen widgets)
+- `/helpers/`: `dataCache.js` (stale-while-revalidate cold-start cache — see Development Notes), `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `stickers.js` (QvaPay sticker catalog), `versionCheck.js` (drives `UpdatePromptModal`), `walletDeeplinks.js` (Trust Wallet & co. universal links for deposits), `widgetBridge.js` (iOS/Android home-screen widgets)
 - `/helpers.js`: legacy utilities (timeAgo, parseQRData, formatMoney, dates — Spanish locale)
 - `/assets/`: images, Rubik fonts, Lottie animations
 - `/scripts/`: `release-android.sh`, `sync-version.js`
@@ -263,3 +263,4 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 - iOS 26 liquid-glass headers: use `unstable_headerRightItems` for header items that need to play nicely with the native blur; provide an `headerRight` fallback for Android
 - `enableFreeze(true)` is on — be aware that off-screen routes pause rendering
 - Requests can pass `{ silent: true }` to suppress the global loading bar
+- **Cold-start cache** (`helpers/dataCache.js`): stale-while-revalidate — screens hydrate instantly from AsyncStorage (`@qpcache:` prefix, versioned envelope) and revalidate over the network; a failed fetch keeps cached data on screen instead of an empty state. Wired into: Home feed (transactions, quick-pay, blog, watchlist, promo), Transactions (unfiltered first page), Send carousel, P2P (offers + coins), Store catalog (+ per-country topup brands), Invest dashboard and the savings summary in BalanceCard. Rules: hydration must never clobber a resolved fetch (guard via reducer `hydrate` actions or `hasFresh*` refs), only successful fetches write the cache, and `clearDataCache()` purges everything on logout (`clearAuthData`). User profile persists separately under `user_data` (auth/useAuthState.js)

@@ -11,6 +11,9 @@ import { useSettings } from '../settings/SettingsContext'
 // API
 import { savingApi } from '../api/savingApi'
 
+// Stale-while-revalidate cache (instant cold-start / offline rendering)
+import { CACHE_KEYS, readCache, writeCache } from '../helpers/dataCache'
+
 // Particles
 import QPBalance from './particles/QPBalance'
 
@@ -24,6 +27,9 @@ function savingsReducer(state, action) {
 	switch (action.type) {
 		case 'loaded':
 			return { balance: action.balance, rate: action.rate ?? state.rate }
+		case 'hydrate':
+			// Cached summary — never clobber a fetch that already resolved
+			return state.balance === null ? { balance: action.balance, rate: action.rate ?? state.rate } : state
 		default:
 			return state
 	}
@@ -64,6 +70,14 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 		setShowBalance(balanceVisibility)
 	}, [getSetting])
 
+	// Cold-start hydration: cached savings summary paints instantly; the reducer
+	// guard keeps it from overwriting an already-resolved fetch
+	useEffect(() => {
+		readCache(CACHE_KEYS.SAVINGS_SUMMARY).then(cached => {
+			if (cached) dispatchSavings({ type: 'hydrate', balance: cached.balance, rate: cached.rate })
+		})
+	}, [])
+
 	// Fetch savings data on mount and on each pull-to-refresh
 	useEffect(() => {
 		if (!refreshing && savings.balance !== null) return
@@ -72,6 +86,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 			const result = await savingApi.getSummary()
 			if (!cancelled && result.success && result.data) {
 				dispatchSavings({ type: 'loaded', balance: result.data.balance ?? 0, rate: result.data.rate })
+				writeCache(CACHE_KEYS.SAVINGS_SUMMARY, { balance: result.data.balance ?? 0, rate: result.data.rate })
 			}
 		}
 		fetchSavings()

@@ -3,6 +3,7 @@ import { useReducer, useEffect, useCallback, useRef, useState } from "react"
 import { p2pApi } from "../../api/p2pApi"
 import coinsApi from "../../api/coinsApi"
 import { updateWidgetP2POffers, reloadWidgets } from "../../helpers/widgetBridge"
+import { CACHE_KEYS, readCache, writeCache } from "../../helpers/dataCache"
 import { toast } from "sonner-native"
 
 const PAGE_SIZE = 30
@@ -16,6 +17,9 @@ function listReducer(state, action) {
 			return { ...state, refreshing: action.kind === "refresh", isLoading: action.kind === "more", error: null }
 		case "setOffers":
 			return { ...state, p2pOffers: action.offers }
+		case "hydrate":
+			// Cached offers paint the cold start — never clobber a resolved fetch
+			return state.p2pOffers.length === 0 && action.offers?.length ? { ...state, p2pOffers: action.offers } : state
 		case "appendOffers":
 			return { ...state, p2pOffers: [...state.p2pOffers, ...action.offers] }
 		case "error":
@@ -66,6 +70,8 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	const apiFiltersRef = useRef(apiFilters)
 	apiFiltersRef.current = apiFilters
 	const inFlightRef = useRef(false)
+	// Flipped on the first successful fetch — blocks late cache hydration
+	const hasFreshOffersRef = useRef(false)
 
 	// Coins for the picker
 	const [availableCoins, setAvailableCoins] = useState([])
@@ -80,9 +86,12 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 			dispatchList({ type: "start", kind: isRefresh ? "refresh" : pageNum === 1 ? "initial" : "more" })
 			const response = await p2pApi.index({ ...apiFilters, page: pageNum })
 			if (response.success) {
+				hasFreshOffersRef.current = true
 				const newData = response.offers || []
 				if (isRefresh || pageNum === 1) {
 					dispatchList({ type: "setOffers", offers: newData })
+					// Persist the default marketplace view for instant cold-start rendering
+					if (!apiFilters.my && newData.length > 0) { writeCache(CACHE_KEYS.P2P_OFFERS, newData) }
 					// Update widget with user's own active offers
 					if (apiFilters.my && newData.length > 0) {
 						updateWidgetP2POffers(newData)
@@ -106,6 +115,14 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 		}
 	}, [])
 
+	// Cold-start hydration: paint the cached marketplace while the fetch revalidates
+	useEffect(() => {
+		if (!p2pEnabled) return
+		readCache(CACHE_KEYS.P2P_OFFERS).then(offers => {
+			if (offers && !hasFreshOffersRef.current) { dispatchList({ type: "hydrate", offers }) }
+		})
+	}, [p2pEnabled])
+
 	// Load data on mount (and if P2P becomes enabled)
 	useEffect(() => {
 		if (p2pEnabled) { fetchP2POffers(1) }
@@ -121,14 +138,23 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 		if (p2pEnabled) { fetchP2POffers(1, true) }
 	}, [quickKey, p2pEnabled, fetchP2POffers])
 
-	// Load coins for coin picker (once on mount)
+	// Load coins for coin picker (once on mount) — cached so the picker is
+	// instantly usable on cold start and offline
 	useEffect(() => {
 		let mounted = true
+		let hasFreshCoins = false
+		readCache(CACHE_KEYS.P2P_COINS).then(coins => {
+			if (mounted && coins?.length && !hasFreshCoins) { setAvailableCoins(coins) }
+		})
 		const loadCoins = async () => {
 			try {
 				setLoadingCoins(true)
 				const res = await coinsApi.index({ enabled_p2p: true })
-				if (mounted && res.success) { setAvailableCoins(res.data || []) }
+				if (mounted && res.success) {
+					hasFreshCoins = true
+					setAvailableCoins(res.data || [])
+					writeCache(CACHE_KEYS.P2P_COINS, res.data || [])
+				}
 			} catch (e) { /* ignore */ }
 			finally { if (mounted) setLoadingCoins(false) }
 		}
