@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.CAMERA" />
@@ -6,6 +7,14 @@
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- munim-bluetooth (NearbyPay) merges these in, but the feature is iOS-only
+         (nearby/transports/index.js returns [] on Android) — strip them until
+         phase 2 ships BLE, so Play doesn't require foreground-service declarations -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" tools:node="remove" />
 
     <!-- Mark hardware features as optional so more devices are compatible -->
     <uses-feature android:name="android.hardware.biometrics" android:required="false" />
@@ -54,6 +63,11 @@
       android:theme="@style/AppTheme"
 	  android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
+
+      <!-- NearbyPay BLE foreground service (never started on Android — feature is iOS-only for now) -->
+      <service
+          android:name="com.munimbluetooth.MunimBluetoothBackgroundService"
+          tools:node="remove" />
 
       <!-- Android 16 opt-out: preserves portrait orientation on large screens until API 37 (Aug 2027) -->
       <property
