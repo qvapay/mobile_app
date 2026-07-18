@@ -17,7 +17,7 @@ enableFreeze(true)
 const Stack = createNativeStackNavigator()
 
 // Auth Context
-import { AuthProvider } from './auth/AuthContext'
+import { AuthProvider, useAuth } from './auth/AuthContext'
 
 // Settings Context
 import { SettingsProvider, useSettings } from './settings/SettingsContext'
@@ -309,8 +309,13 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 // Theme Provider with Settings Integration
 const ThemeProviderWithSettings = ({ children }: { children: React.ReactNode }) => {
 	const { settings, updateSettings } = useSettings()
+	const { user } = useAuth()
+	// Custom accent is a GOLD perk. While the profile is unknown (cold start,
+	// logged out) keep the stored accent to avoid a flash; once the profile
+	// resolves without golden_check the theme reverts to the brand accent.
+	const accentAllowed = !user || !!user.golden_check
 	return (
-		<ThemeProvider settings={settings} updateSettings={updateSettings}>
+		<ThemeProvider settings={settings} updateSettings={updateSettings} accentAllowed={accentAllowed}>
 			{children}
 		</ThemeProvider>
 	)

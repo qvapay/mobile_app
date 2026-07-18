@@ -2,6 +2,23 @@ import { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
 
 /**
+ * Converts a `#RRGGBB` hex color into an `rgba()` string. Needed for accent
+ * tints (backgrounds/borders at low opacity) now that `theme.colors.primary`
+ * is user-selectable and can no longer be hardcoded as rgba literals.
+ *
+ * @param {string} hex - Color in `#RRGGBB` format.
+ * @param {number} [alpha=1] - Opacity between 0 and 1.
+ * @returns {string} The `rgba(r, g, b, a)` string.
+ */
+export const hexToRgba = (hex, alpha = 1) => {
+	const h = hex.replace('#', '')
+	const r = parseInt(h.slice(0, 2), 16)
+	const g = parseInt(h.slice(2, 4), 16)
+	const b = parseInt(h.slice(4, 6), 16)
+	return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/**
  * Builds the shared text StyleSheet for a theme: `text`, `title`, `subtitle`,
  * `amount` (hero numbers), `h1`–`h7`, `body`, `caption`, `error`. Font sizes
  * already carry the user's font scale (baked into `theme.typography`).

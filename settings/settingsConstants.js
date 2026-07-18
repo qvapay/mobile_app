@@ -72,6 +72,7 @@ export const DEFAULT_SETTINGS = {
 	appearance: {
 		theme: 'dark', // light, dark, auto
 		fontSize: 'medium', // small, medium, large, extraLarge
+		accentColor: 'default', // id from ACCENT_COLORS (theme/ThemeContext.js) — applied only for GOLD users
 		reduceMotion: false,
 		highContrast: false,
 		boldText: false,
