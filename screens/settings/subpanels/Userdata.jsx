@@ -50,6 +50,14 @@ function formReducer(state, action) {
 	}
 }
 
+// Format date for display
+const formatDate = (dateString) => {
+	if (!dateString) return 'N/A'
+	try {
+		return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+	} catch (error) { return 'N/A' }
+}
+
 // User Data Settings Component
 const Userdata = () => {
 
@@ -139,14 +147,6 @@ const Userdata = () => {
 		} catch (error) {
 			toast.error('Error al actualizar')
 		} finally { setIsLoading(false) }
-	}
-
-	// Format date for display
-	const formatDate = (dateString) => {
-		if (!dateString) return 'N/A'
-		try {
-			return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
-		} catch (error) { return 'N/A' }
 	}
 
 	// Loading state

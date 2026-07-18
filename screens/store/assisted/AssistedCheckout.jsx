@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -26,6 +26,146 @@ import AddressAutocomplete from './AddressAutocomplete'
 const EMPTY_FORM = { recipient_name: '', phone: '', line1: '', line2: '', city: '', state: '', postal_code: '' }
 const ZIP_REGEX = /^\d{5}(-\d{4})?$/
 
+// One-line summary of a saved address for cards and the confirm modal
+const formatAddress = (a) => `${a.recipient_name} — ${a.line1}${a.line2 ? `, ${a.line2}` : ''}, ${a.city}, ${a.state} ${a.postal_code}`
+
+// Saved-address radio list + "new address" row
+const AddressPicker = ({ addresses, useNewAddress, selectedUuid, onSelectAddress, onNewAddress, theme, textStyles }) => (
+	<View style={{ marginTop: 12, gap: 8 }}>
+		{addresses.map(address => {
+			const selected = !useNewAddress && selectedUuid === address.uuid
+			return (
+				<Pressable
+					key={address.uuid}
+					style={[
+						styles.addressCard,
+						{ backgroundColor: theme.colors.surface },
+						theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
+						selected && { borderWidth: 1.5, borderColor: theme.colors.primary },
+					]}
+					onPress={() => onSelectAddress(address.uuid)}
+				>
+					<FontAwesome6
+						name={selected ? 'circle-check' : 'circle'}
+						size={16}
+						color={selected ? theme.colors.primary : theme.colors.secondaryText}
+						iconStyle={selected ? 'solid' : 'regular'}
+					/>
+					<View style={{ flex: 1 }}>
+						<Text style={[textStyles.h6, { fontWeight: '600' }]}>
+							{address.label || 'Dirección'}{address.is_default ? ' · Predeterminada' : ''}
+						</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]} numberOfLines={2}>
+							{formatAddress(address)}
+						</Text>
+					</View>
+				</Pressable>
+			)
+		})}
+
+		<Pressable
+			style={[
+				styles.addressCard,
+				{ backgroundColor: theme.colors.surface },
+				theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
+				useNewAddress && { borderWidth: 1.5, borderColor: theme.colors.primary },
+			]}
+			onPress={onNewAddress}
+		>
+			<FontAwesome6 name="plus" size={14} color={useNewAddress ? theme.colors.primary : theme.colors.secondaryText} iconStyle="solid" />
+			<Text style={[textStyles.h6, { fontWeight: '600', color: useNewAddress ? theme.colors.primary : theme.colors.primaryText }]}>
+				Nueva dirección
+			</Text>
+		</Pressable>
+	</View>
+)
+
+// Subtotal + tax + total card (server-side quote)
+const QuoteSummary = ({ quote, insufficient, balance, total, theme, textStyles }) => (
+	<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
+		<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>Resumen</Text>
+		{quote ? (
+			<>
+				<View style={styles.summaryRow}>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Subtotal ({quote.item_count} producto{quote.item_count === 1 ? '' : 's'})</Text>
+					<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(quote.subtotal)}</Text>
+				</View>
+				<View style={styles.summaryRow}>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
+						Tax {quote.state} ({(quote.tax_rate * 100).toFixed(2)}%)
+					</Text>
+					<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(quote.tax)}</Text>
+				</View>
+				<View style={[styles.summaryRow, styles.totalRow, { borderTopColor: `${theme.colors.secondaryText}33` }]}>
+					<Text style={[textStyles.h6, { fontWeight: '600' }]}>Total</Text>
+					<Text style={[textStyles.h5, { fontWeight: '600', color: theme.colors.primary }]}>{money(quote.total)}</Text>
+				</View>
+				{insufficient && (
+					<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
+						Saldo insuficiente — tienes {money(balance)} y necesitas {money(total)}.
+					</Text>
+				)}
+			</>
+		) : (
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
+				Selecciona el estado de destino para calcular el tax.
+			</Text>
+		)}
+	</View>
+)
+
+// US state picker — centered card modal
+const StatePickerModal = ({ visible, currentState, onSelect, onClose, theme, textStyles }) => {
+	const { height: windowHeight } = useWindowDimensions()
+	return (
+		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+			<Pressable style={styles.modalOverlay} onPress={onClose}>
+				<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
+					<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>Estado de destino</Text>
+					<ScrollView showsVerticalScrollIndicator={false}>
+						{US_STATES.map(state => (
+							<Pressable
+								key={state.code}
+								style={styles.stateRow}
+								onPress={() => onSelect(state.code)}
+							>
+								<Text style={[textStyles.h6, { color: currentState === state.code ? theme.colors.primary : theme.colors.primaryText, fontWeight: currentState === state.code ? '600' : '400' }]}>
+									{state.name}
+								</Text>
+								<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{state.code}</Text>
+							</Pressable>
+						))}
+					</ScrollView>
+				</Pressable>
+			</Pressable>
+		</Modal>
+	)
+}
+
+// Purchase confirmation — centered card modal
+const ConfirmPurchaseModal = ({ visible, paying, total, addressSummary, onPay, onClose, theme, textStyles }) => (
+	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !paying && onClose()}>
+		<Pressable style={styles.modalOverlay} onPress={() => !paying && onClose()}>
+			<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface }]} onPress={() => { }}>
+				<View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
+					<FontAwesome6 name="basket-shopping" size={22} color={theme.colors.primary} iconStyle="solid" />
+				</View>
+				<Text style={[textStyles.h4, { fontWeight: '600', textAlign: 'center', marginTop: 12 }]}>Confirmar compra</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
+					Se descontarán {money(total)} de tu balance. Enviaremos a:
+				</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 6, lineHeight: 18 }]} numberOfLines={3}>
+					{addressSummary}
+				</Text>
+				<QPButton title={`Pagar ${money(total)}`} onPress={onPay} loading={paying} style={{ marginTop: 18 }} />
+				<Pressable style={{ marginTop: 12, alignSelf: 'center' }} onPress={() => !paying && onClose()}>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Cancelar</Text>
+				</Pressable>
+			</Pressable>
+		</Pressable>
+	</Modal>
+)
+
 /**
  * Assisted-shopping checkout: pick a saved US shipping address or create a
  * new one, get the server-side tax quote for the destination state, and pay
@@ -39,7 +179,6 @@ const AssistedCheckout = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
-	const { height: windowHeight } = useWindowDimensions()
 
 	const [addresses, setAddresses] = useState([])
 	const [loading, setLoading] = useState(true)
@@ -153,9 +292,9 @@ const AssistedCheckout = ({ navigation }) => {
 	if (loading) { return <View style={containerStyles.subContainer} /> }
 
 	const addressSummary = useNewAddress
-		? `${form.recipient_name} — ${form.line1}${form.line2 ? `, ${form.line2}` : ''}, ${form.city}, ${form.state} ${form.postal_code}`
+		? formatAddress(form)
 		: selectedAddress
-			? `${selectedAddress.recipient_name} — ${selectedAddress.line1}${selectedAddress.line2 ? `, ${selectedAddress.line2}` : ''}, ${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.postal_code}`
+			? formatAddress(selectedAddress)
 			: ''
 
 	return (
@@ -173,53 +312,15 @@ const AssistedCheckout = ({ navigation }) => {
 				</Text>
 
 				{addresses.length > 0 && (
-					<View style={{ marginTop: 12, gap: 8 }}>
-						{addresses.map(address => {
-							const selected = !useNewAddress && selectedUuid === address.uuid
-							return (
-								<Pressable
-									key={address.uuid}
-									style={[
-										styles.addressCard,
-										{ backgroundColor: theme.colors.surface },
-										theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
-										selected && { borderWidth: 1.5, borderColor: theme.colors.primary },
-									]}
-									onPress={() => { setUseNewAddress(false); setSelectedUuid(address.uuid) }}
-								>
-									<FontAwesome6
-										name={selected ? 'circle-check' : 'circle'}
-										size={16}
-										color={selected ? theme.colors.primary : theme.colors.secondaryText}
-										iconStyle={selected ? 'solid' : 'regular'}
-									/>
-									<View style={{ flex: 1 }}>
-										<Text style={[textStyles.h6, { fontWeight: '600' }]}>
-											{address.label || 'Dirección'}{address.is_default ? ' · Predeterminada' : ''}
-										</Text>
-										<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]} numberOfLines={2}>
-											{address.recipient_name} — {address.line1}{address.line2 ? `, ${address.line2}` : ''}, {address.city}, {address.state} {address.postal_code}
-										</Text>
-									</View>
-								</Pressable>
-							)
-						})}
-
-						<Pressable
-							style={[
-								styles.addressCard,
-								{ backgroundColor: theme.colors.surface },
-								theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
-								useNewAddress && { borderWidth: 1.5, borderColor: theme.colors.primary },
-							]}
-							onPress={() => setUseNewAddress(true)}
-						>
-							<FontAwesome6 name="plus" size={14} color={useNewAddress ? theme.colors.primary : theme.colors.secondaryText} iconStyle="solid" />
-							<Text style={[textStyles.h6, { fontWeight: '600', color: useNewAddress ? theme.colors.primary : theme.colors.primaryText }]}>
-								Nueva dirección
-							</Text>
-						</Pressable>
-					</View>
+					<AddressPicker
+						addresses={addresses}
+						useNewAddress={useNewAddress}
+						selectedUuid={selectedUuid}
+						onSelectAddress={(uuid) => { setUseNewAddress(false); setSelectedUuid(uuid) }}
+						onNewAddress={() => setUseNewAddress(true)}
+						theme={theme}
+						textStyles={textStyles}
+					/>
 				)}
 
 				{/* New address form */}
@@ -261,36 +362,7 @@ const AssistedCheckout = ({ navigation }) => {
 				)}
 
 				{/* Quote */}
-				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
-					<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>Resumen</Text>
-					{quote ? (
-						<>
-							<View style={styles.summaryRow}>
-								<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Subtotal ({quote.item_count} producto{quote.item_count === 1 ? '' : 's'})</Text>
-								<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(quote.subtotal)}</Text>
-							</View>
-							<View style={styles.summaryRow}>
-								<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-									Tax {quote.state} ({(quote.tax_rate * 100).toFixed(2)}%)
-								</Text>
-								<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(quote.tax)}</Text>
-							</View>
-							<View style={[styles.summaryRow, styles.totalRow, { borderTopColor: `${theme.colors.secondaryText}33` }]}>
-								<Text style={[textStyles.h6, { fontWeight: '600' }]}>Total</Text>
-								<Text style={[textStyles.h5, { fontWeight: '600', color: theme.colors.primary }]}>{money(quote.total)}</Text>
-							</View>
-							{insufficient && (
-								<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-									Saldo insuficiente — tienes {money(balance)} y necesitas {money(total)}.
-								</Text>
-							)}
-						</>
-					) : (
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-							Selecciona el estado de destino para calcular el tax.
-						</Text>
-					)}
-				</View>
+				<QuoteSummary quote={quote} insufficient={insufficient} balance={balance} total={total} theme={theme} textStyles={textStyles} />
 
 				<QPButton
 					title={quote ? `Pagar ${money(quote.total)}` : 'Pagar'}
@@ -303,49 +375,26 @@ const AssistedCheckout = ({ navigation }) => {
 			</ScrollView>
 
 			{/* US state picker */}
-			<Modal visible={statePickerVisible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setStatePickerVisible(false)}>
-				<Pressable style={styles.modalOverlay} onPress={() => setStatePickerVisible(false)}>
-					<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
-						<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>Estado de destino</Text>
-						<ScrollView showsVerticalScrollIndicator={false}>
-							{US_STATES.map(state => (
-								<Pressable
-									key={state.code}
-									style={styles.stateRow}
-									onPress={() => { setField('state')(state.code); setStatePickerVisible(false) }}
-								>
-									<Text style={[textStyles.h6, { color: form.state === state.code ? theme.colors.primary : theme.colors.primaryText, fontWeight: form.state === state.code ? '600' : '400' }]}>
-										{state.name}
-									</Text>
-									<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{state.code}</Text>
-								</Pressable>
-							))}
-						</ScrollView>
-					</Pressable>
-				</Pressable>
-			</Modal>
+			<StatePickerModal
+				visible={statePickerVisible}
+				currentState={form.state}
+				onSelect={(code) => { setField('state')(code); setStatePickerVisible(false) }}
+				onClose={() => setStatePickerVisible(false)}
+				theme={theme}
+				textStyles={textStyles}
+			/>
 
 			{/* Purchase confirmation */}
-			<Modal visible={confirmVisible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !paying && setConfirmVisible(false)}>
-				<Pressable style={styles.modalOverlay} onPress={() => !paying && setConfirmVisible(false)}>
-					<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface }]} onPress={() => { }}>
-						<View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
-							<FontAwesome6 name="basket-shopping" size={22} color={theme.colors.primary} iconStyle="solid" />
-						</View>
-						<Text style={[textStyles.h4, { fontWeight: '600', textAlign: 'center', marginTop: 12 }]}>Confirmar compra</Text>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
-							Se descontarán {money(total)} de tu balance. Enviaremos a:
-						</Text>
-						<Text style={[textStyles.caption, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 6, lineHeight: 18 }]} numberOfLines={3}>
-							{addressSummary}
-						</Text>
-						<QPButton title={`Pagar ${money(total)}`} onPress={handlePay} loading={paying} style={{ marginTop: 18 }} />
-						<Pressable style={{ marginTop: 12, alignSelf: 'center' }} onPress={() => !paying && setConfirmVisible(false)}>
-							<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Cancelar</Text>
-						</Pressable>
-					</Pressable>
-				</Pressable>
-			</Modal>
+			<ConfirmPurchaseModal
+				visible={confirmVisible}
+				paying={paying}
+				total={total}
+				addressSummary={addressSummary}
+				onPay={handlePay}
+				onClose={() => setConfirmVisible(false)}
+				theme={theme}
+				textStyles={textStyles}
+			/>
 		</View>
 	)
 }

@@ -33,13 +33,13 @@ const CONSEQUENCES = [
 	},
 ]
 
+const handleOpenSupport = () => { Linking.openURL('https://support.qvapay.com') }
+
 const DeleteAccount = () => {
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
-
-	const handleOpenSupport = () => { Linking.openURL('https://support.qvapay.com') }
 
 	return (
 		<View style={containerStyles.subContainer}>

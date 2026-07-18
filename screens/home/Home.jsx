@@ -1,5 +1,4 @@
-import FastImage from '@d11/react-native-fast-image'
-import { useState, useEffect, useReducer } from 'react'
+import { useEffect } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
@@ -10,12 +9,8 @@ import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// APIs
-import { transferApi } from '../../api/transferApi'
-import { userApi } from '../../api/userApi'
-import { blogApi } from '../../api/blogApi'
-import { coinsApi } from '../../api/coinsApi'
-import { promoApi } from '../../api/promoApi'
+// Home feed data (profile, transactions, quick-pay, blog, watchlist, promo)
+import useHomeFeed from './useHomeFeed'
 
 // UI Particles
 import QPTransaction from '../../ui/particles/QPTransaction'
@@ -47,7 +42,6 @@ import usePushPrompt from '../../hooks/usePushPrompt'
 
 // Update prompt
 import UpdatePromptModal from '../../ui/UpdatePromptModal'
-import { maybePromptUpdate } from '../../helpers/versionCheck'
 
 // Service Card Component
 const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
@@ -72,31 +66,42 @@ const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
 	</Pressable>
 )
 
-// The home feed is a bag of independently-fetched sections — one reducer keeps them together
-const initialFeed = { latestTransactions: [], latestSentTransfersUsers: [], latestBlogPosts: [], watchlistData: [], promo: null, updateInfo: null }
-
-function feedReducer(state, action) {
-	switch (action.type) {
-		case 'set':
-			return { ...state, [action.field]: action.value }
-		default:
-			return state
-	}
+// Invitación a activar las push — se auto-oculta según usePushPrompt
+const PushPromptBanner = ({ theme }) => {
+	const { shouldShowBanner, enablePush, dismissBanner } = usePushPrompt()
+	if (!shouldShowBanner) return null
+	return (
+		<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+			<View style={[styles.pushBannerIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+				<FontAwesome6 name="bell" size={16} color={theme.colors.primary} iconStyle="solid" />
+			</View>
+			<View style={{ flex: 1 }}>
+				<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Recibe alertas de tus pagos al instante</Text>
+			</View>
+			<Pressable
+				onPress={() => { enablePush(); dismissBanner() }}
+				style={[styles.pushBannerButton, { backgroundColor: theme.colors.primary }]}
+			>
+				<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Activar</Text>
+			</Pressable>
+			<Pressable onPress={dismissBanner} hitSlop={8}>
+				<FontAwesome6 name="xmark" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
+			</Pressable>
+		</View>
+	)
 }
 
 /**
  * Home Screen — main dashboard with balance, quick actions and a personalized feed.
- * Fans out independent fetches on mount: profile (`GET /user/extended`), latest
- * transactions and quick-pay recipients (`transferApi`), blog posts (WordPress REST),
- * a 24h crypto watchlist (BTC/ETH/LTC/SOL sparklines) and promo banners.
- * Quick-pay users are tracked for live online status (OnlineStatusContext), and
- * pull-to-refresh re-runs everything plus the store-update check (`helpers/versionCheck`),
- * which can surface `UpdatePromptModal`.
+ * All data fetching lives in `useHomeFeed` (fans out independent fetches on mount,
+ * pull-to-refresh re-runs everything plus the store-update check, which can surface
+ * `UpdatePromptModal`). Quick-pay users are tracked for live online status
+ * (OnlineStatusContext).
  */
 const Home = ({ navigation }) => {
 
 	// User Context
-	const { user, updateUser } = useAuth()
+	const { user } = useAuth()
 
 	// Context
 	const { theme } = useTheme()
@@ -104,18 +109,22 @@ const Home = ({ navigation }) => {
 	const textStyles = useTextStyles(theme)
 	const insets = useSafeAreaInsets()
 
-	// Push prompt
-	const { shouldShowBanner, enablePush, dismissBanner } = usePushPrompt()
-
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
-	// State
-	const [, setIsLoading] = useState(false)
-	const [txLoading, setTxLoading] = useState(true)
-	const [refreshing, setRefreshing] = useState(false)
-	const [feed, dispatchFeed] = useReducer(feedReducer, initialFeed)
-	const { latestTransactions, latestSentTransfersUsers, latestBlogPosts, watchlistData, promo, updateInfo } = feed
+	// Feed data + refresh
+	const {
+		latestTransactions,
+		latestSentTransfersUsers,
+		latestBlogPosts,
+		watchlistData,
+		promo,
+		updateInfo,
+		txLoading,
+		refreshing,
+		onRefresh,
+		dismissUpdate,
+	} = useHomeFeed()
 
 	// Track quick-pay users for online status
 	useEffect(() => {
@@ -123,121 +132,6 @@ const Home = ({ navigation }) => {
 		if (ids.length) trackUsers(ids)
 		return () => { if (ids.length) untrackUsers(ids) }
 	}, [latestSentTransfersUsers, trackUsers, untrackUsers])
-
-	// Load user data
-	useEffect(() => {
-		loadUserData()
-		fetchLatestTransactions()
-		fetchLatestSentTransfersUsers()
-		fetchLatestBlogPosts()
-		fetchWatchlist()
-		fetchPromo()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
-
-	// Load user data from API
-	const loadUserData = async () => {
-		try {
-			setIsLoading(true)
-			const result = await userApi.getUserProfile()
-			if (result.success && result.data) { updateUser(result.data) }
-		} catch (err) { /* error loading user data */ }
-		finally { setIsLoading(false) }
-	}
-
-	const fetchLatestTransactions = async (skipLoading = false) => {
-		try {
-			if (!skipLoading) setIsLoading(true)
-			const result = await transferApi.getLatestTransactions({ take: 6 })
-			if (result.success) {
-				dispatchFeed({ type: 'set', field: 'latestTransactions', value: result.data })
-				// Preload avatar images for instant rendering
-				const avatarUrls = result.data
-					.map(t => (t.paid_by_user || t.user)?.image)
-					.filter(Boolean)
-					.map(img => ({ uri: `https://media.qvapay.com/${img}` }))
-				if (avatarUrls.length > 0) FastImage.preload(avatarUrls)
-			}
-		} catch (err) { /* error fetching transactions */ }
-		finally {
-			if (!skipLoading) setIsLoading(false)
-			setTxLoading(false)
-		}
-	}
-
-	const fetchLatestSentTransfersUsers = async (skipLoading = false) => {
-		try {
-			if (!skipLoading) setIsLoading(true)
-			const result = await transferApi.getLatestSentTransfers(10)
-			if (result.success) {
-				// filter out users with no image
-				const users = result.data.filter(u => u.image)
-				dispatchFeed({ type: 'set', field: 'latestSentTransfersUsers', value: users })
-			}
-		} catch (err) { /* error fetching sent transfers */ }
-		finally { if (!skipLoading) setIsLoading(false) }
-	}
-
-	const fetchLatestBlogPosts = async (skipLoading = false) => {
-		try {
-			if (!skipLoading) setIsLoading(true)
-			const result = await blogApi.getLatestPosts(Platform.isPad ? 4 : 3)
-			if (result.success) { dispatchFeed({ type: 'set', field: 'latestBlogPosts', value: result.data }) }
-		} catch (err) { console.error('[Home] blog fetch threw', err) }
-		finally { if (!skipLoading) setIsLoading(false) }
-	}
-
-	const WATCHLIST_COINS = ['BTC', 'ETH', 'LTC', 'SOL']
-
-	const fetchWatchlist = async () => {
-		try {
-			const results = await Promise.all(
-				WATCHLIST_COINS.map(tick => coinsApi.priceHistory(tick, '24H'))
-			)
-			const data = results.map((result, i) => {
-				const tick = WATCHLIST_COINS[i]
-				if (!result.success || !result.data?.length) {
-					return { tick, price: 0, change: 0, priceHistory: [] }
-				}
-				const history = result.data
-				const first = history[0].value
-				const last = history[history.length - 1].value
-				const change = first > 0 ? ((last - first) / first) * 100 : 0
-				return { tick, price: last, change, priceHistory: history }
-			})
-			dispatchFeed({ type: 'set', field: 'watchlistData', value: data })
-		} catch { /* error fetching watchlist */ }
-	}
-
-	const fetchPromo = async () => {
-		try {
-			const result = await promoApi.getPromo()
-			if (result.success && result.data) { dispatchFeed({ type: 'set', field: 'promo', value: result.data }) }
-		} catch { /* no promo available */ }
-	}
-
-	// Refresh handler for pull-to-refresh
-	const onRefresh = async () => {
-		setRefreshing(true)
-		try {
-			// Refresh user data
-			await loadUserData()
-			// Refresh latest transactions
-			await fetchLatestTransactions(true)
-			// Refresh latest sent transfers users
-			await fetchLatestSentTransfersUsers(true)
-			// Refresh latest blog posts
-			await fetchLatestBlogPosts(true)
-			// Refresh watchlist
-			await fetchWatchlist()
-			// Refresh promo
-			await fetchPromo()
-			// Check for store update
-			const info = await maybePromptUpdate()
-			if (info?.needsUpdate) dispatchFeed({ type: 'set', field: 'updateInfo', value: info })
-		} catch (err) { /* error refreshing data */ }
-		finally { setRefreshing(false) }
-	}
 
 	return (
 		<View style={[containerStyles.subContainer]}>
@@ -249,25 +143,7 @@ const Home = ({ navigation }) => {
 
 				<ActionButtons navigation={navigation} />
 
-				{shouldShowBanner && (
-					<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
-						<View style={[styles.pushBannerIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-							<FontAwesome6 name="bell" size={16} color={theme.colors.primary} iconStyle="solid" />
-						</View>
-						<View style={{ flex: 1 }}>
-							<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Recibe alertas de tus pagos al instante</Text>
-						</View>
-						<Pressable
-							onPress={() => { enablePush(); dismissBanner() }}
-							style={[styles.pushBannerButton, { backgroundColor: theme.colors.primary }]}
-						>
-							<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Activar</Text>
-						</Pressable>
-						<Pressable onPress={dismissBanner} hitSlop={8}>
-							<FontAwesome6 name="xmark" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
-						</Pressable>
-					</View>
-				)}
+				<PushPromptBanner theme={theme} />
 
 				<View style={styles.section}>
 					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.SEND)} />
@@ -389,7 +265,7 @@ const Home = ({ navigation }) => {
 				currentVersion={updateInfo?.currentVersion}
 				latestVersion={updateInfo?.latestVersion}
 				storeUrl={updateInfo?.storeUrl}
-				onDismiss={() => dispatchFeed({ type: 'set', field: 'updateInfo', value: null })}
+				onDismiss={dismissUpdate}
 			/>
 		</View>
 	)

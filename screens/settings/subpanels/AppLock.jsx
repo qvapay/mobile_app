@@ -39,6 +39,34 @@ function biometricsReducer(state, action) {
 	}
 }
 
+// Generic PIN input handler
+const handlePinInput = (text, index, currentPin, setPinFn, refs, nextRefs) => {
+	const numericText = text.replace(/[^0-9]/g, '')
+	const newPin = currentPin.split('')
+	newPin[index] = numericText
+	setPinFn(newPin.join(''))
+	if (numericText && index < 3) {
+		refs.current[index + 1]?.focus()
+	} else if (numericText && index === 3 && nextRefs) {
+		setTimeout(() => nextRefs.current[0]?.focus(), 100)
+	}
+}
+
+const handlePinKeyPress = (e, index, currentPin, setPinFn, refs) => {
+	if (e.nativeEvent.key === 'Backspace') {
+		if (currentPin[index]) {
+			const newPin = currentPin.split('')
+			newPin[index] = ''
+			setPinFn(newPin.join(''))
+		} else if (index > 0) {
+			const newPin = currentPin.split('')
+			newPin[index - 1] = ''
+			setPinFn(newPin.join(''))
+			refs.current[index - 1]?.focus()
+		}
+	}
+}
+
 const AppLock = () => {
 
 	const { theme } = useTheme()
@@ -151,34 +179,6 @@ const AppLock = () => {
 			resetForm()
 		} else {
 			toast.error(result.error)
-		}
-	}
-
-	// Generic PIN input handler
-	const handlePinInput = (text, index, currentPin, setPinFn, refs, nextRefs) => {
-		const numericText = text.replace(/[^0-9]/g, '')
-		const newPin = currentPin.split('')
-		newPin[index] = numericText
-		setPinFn(newPin.join(''))
-		if (numericText && index < 3) {
-			refs.current[index + 1]?.focus()
-		} else if (numericText && index === 3 && nextRefs) {
-			setTimeout(() => nextRefs.current[0]?.focus(), 100)
-		}
-	}
-
-	const handlePinKeyPress = (e, index, currentPin, setPinFn, refs) => {
-		if (e.nativeEvent.key === 'Backspace') {
-			if (currentPin[index]) {
-				const newPin = currentPin.split('')
-				newPin[index] = ''
-				setPinFn(newPin.join(''))
-			} else if (index > 0) {
-				const newPin = currentPin.split('')
-				newPin[index - 1] = ''
-				setPinFn(newPin.join(''))
-				refs.current[index - 1]?.focus()
-			}
 		}
 	}
 

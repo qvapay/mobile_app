@@ -48,6 +48,12 @@ function dataReducer(state, action) {
 	}
 }
 
+// Share with source tracking
+const shareWithTracking = (channel, openUrl) => {
+	openUrl()
+	userApi.trackShareAttempt(channel).catch(() => { })
+}
+
 // Referals Component
 const Referals = () => {
 
@@ -104,12 +110,6 @@ const Referals = () => {
 	const handleCopyLink = () => {
 		copyTextToClipboard(referralLink)
 		toast.success('Enlace copiado al portapapeles')
-	}
-
-	// Share with source tracking
-	const shareWithTracking = (channel, openUrl) => {
-		openUrl()
-		userApi.trackShareAttempt(channel).catch(() => { })
 	}
 
 	// Social share handlers

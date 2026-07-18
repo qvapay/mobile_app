@@ -48,6 +48,25 @@ const mapMeToUser = (me, email) => ({
 	role: me.role,
 })
 
+/**
+ * Clears all persisted authentication data: the Keychain token
+ * (`com.qvapay.auth`), the cached user profile, and the synced
+ * device-contacts keys (matches, last sync, consent).
+ */
+const clearAuthData = async () => {
+	try {
+		await Promise.all([
+			removeAuthToken(), // Use API client's token removal
+			AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
+			AsyncStorage.removeMany([
+				'device_contacts_matched',
+				'device_contacts_last_sync',
+				'device_contacts_consent',
+			]),
+		])
+	} catch (err) { /* error clearing auth data */ }
+}
+
 // isAuthenticated / user / token move together on login & logout — one session slice
 const initialSession = { isAuthenticated: false, user: null, token: null }
 
@@ -432,25 +451,6 @@ export default function useAuthState() {
 				details: {}
 			}
 		} finally { setIsLoading(false) }
-	}
-
-	/**
-	 * Clears all persisted authentication data: the Keychain token
-	 * (`com.qvapay.auth`), the cached user profile, and the synced
-	 * device-contacts keys (matches, last sync, consent).
-	 */
-	const clearAuthData = async () => {
-		try {
-			await Promise.all([
-				removeAuthToken(), // Use API client's token removal
-				AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
-				AsyncStorage.removeMany([
-					'device_contacts_matched',
-					'device_contacts_last_sync',
-					'device_contacts_consent',
-				]),
-			])
-		} catch (err) { /* error clearing auth data */ }
 	}
 
 	/**

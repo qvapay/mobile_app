@@ -21,6 +21,20 @@ const screenWidth = Dimensions.get('window').width
 
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y']
 
+// Format volume: 45230000 → "45.2M"
+const formatVolume = (vol) => {
+	if (!vol) return '—'
+	if (vol >= 1_000_000_000) return (vol / 1_000_000_000).toFixed(1) + 'B'
+	if (vol >= 1_000_000) return (vol / 1_000_000).toFixed(1) + 'M'
+	if (vol >= 1_000) return (vol / 1_000).toFixed(1) + 'K'
+	return vol.toString()
+}
+
+const formatPrice = (p) => {
+	if (!p) return '—'
+	return '$' + Number(p).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 // --- Sub-components ---
 const TimeframePill = ({ label, active, theme, onPress }) => (
 	<Pressable onPress={onPress} style={[styles.pill, active ? { backgroundColor: theme.colors.primary } : { backgroundColor: theme.colors.surface }]}>
@@ -93,20 +107,6 @@ const StockDetail = ({ route }) => {
 		setTimeframe(tf)
 		fetchHistory(tf)
 	}, [fetchHistory])
-
-	// Format volume: 45230000 → "45.2M"
-	const formatVolume = (vol) => {
-		if (!vol) return '—'
-		if (vol >= 1_000_000_000) return (vol / 1_000_000_000).toFixed(1) + 'B'
-		if (vol >= 1_000_000) return (vol / 1_000_000).toFixed(1) + 'M'
-		if (vol >= 1_000) return (vol / 1_000).toFixed(1) + 'K'
-		return vol.toString()
-	}
-
-	const formatPrice = (p) => {
-		if (!p) return '—'
-		return '$' + Number(p).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-	}
 
 	return (
 		<View style={containerStyles.subContainer}>

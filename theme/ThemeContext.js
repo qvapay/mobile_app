@@ -123,6 +123,9 @@ const createTheme = (isDark, fontScale = 1.0) => ({
 // Create context
 const ThemeContext = createContext()
 
+// Get current font scale from key
+const getFontScale = (key) => fontScaleMap[key] || 1.0
+
 /**
  * Provides the app theme (light / dark / auto) and memoized shared styles.
  *
@@ -153,9 +156,6 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
     // Memoized styles at context level
     const textStyles = useTextStyles(theme)
     const containerStyles = useContainerStyles(theme)
-
-    // Get current font scale from key
-    const getFontScale = (key) => fontScaleMap[key] || 1.0
 
     // Update theme based on mode and system appearance
     const updateTheme = (mode, fKey = fontSizeKey) => {

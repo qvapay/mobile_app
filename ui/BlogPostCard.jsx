@@ -8,6 +8,19 @@ import { useTextStyles } from '../theme/themeUtils'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Format date
+const formatDate = (dateString) => {
+	const date = new Date(dateString)
+	return date.toLocaleDateString('es-ES', {
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric'
+	})
+}
+
+// Strip HTML tags from excerpt
+const stripHtml = (html) => { return html.replace(/<[^>]*>/g, '').trim() }
+
 /**
  * Card for a WordPress blog post (featured image, date, author, title, excerpt)
  * shown in the Home feed; tapping opens the post in the external browser.
@@ -27,19 +40,6 @@ const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 	const textStyles = useTextStyles(theme)
 	const { width: screenWidth } = useWindowDimensions()
 	const cardWidth = iPad ? (screenWidth - 32 - 12) / 2 : undefined
-
-	// Format date
-	const formatDate = (dateString) => {
-		const date = new Date(dateString)
-		return date.toLocaleDateString('es-ES', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		})
-	}
-
-	// Strip HTML tags from excerpt
-	const stripHtml = (html) => { return html.replace(/<[^>]*>/g, '').trim() }
 
 	// Handle opening blog post in browser
 	const handlePress = async () => {
