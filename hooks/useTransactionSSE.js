@@ -45,6 +45,7 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 		}
 
 		let es = null
+		let cancelled = false
 		retriesRef.current = 0
 
 		const connect = async () => {
@@ -52,6 +53,8 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 			try {
 
 				const token = await getAuthToken()
+				// Unmounted while awaiting the token — don't open a connection nobody will close
+				if (cancelled) return
 				const url = `${config.API_BASE_URL}/callback/transaction?uuid=${transactionUuid}`
 
 				es = new EventSource(url, {
@@ -106,8 +109,10 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 
 		connect()
 
-		// Close the connection THIS effect opened (captured in `es`).
+		// Release the connection THIS effect opened (captured in `es`).
 		return () => {
+			cancelled = true
+			es?.removeAllEventListeners()
 			es?.close()
 			setIsConnected(false)
 		}

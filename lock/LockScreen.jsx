@@ -1,5 +1,5 @@
 import { SystemBars } from 'react-native-edge-to-edge'
-import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
+import { useState, useEffect, useEffectEvent, useRef, useCallback, useReducer } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { View, Text, TextInput, Pressable, Modal, StyleSheet, Animated } from 'react-native'
@@ -63,14 +63,17 @@ const LockScreen = () => {
 		await unlockWithBiometrics()
 	}, [unlockWithBiometrics])
 
+	// Effect Event: reads the latest unlock callback without re-arming the timer
+	const onBiometricAutoPrompt = useEffectEvent(() => { handleBiometricUnlock() })
+
 	// Auto-prompt biometrics when lock screen appears
 	useEffect(() => {
 		if (!isLocked || !biometricsAvailable) return
 		const timer = setTimeout(() => {
-			handleBiometricUnlock()
+			onBiometricAutoPrompt()
 		}, 500)
 		return () => clearTimeout(timer)
-	}, [isLocked, biometricsAvailable, handleBiometricUnlock])
+	}, [isLocked, biometricsAvailable])
 
 	// Reset state when lock screen is shown/hidden
 	useEffect(() => {

@@ -45,7 +45,10 @@ const AssistedOrders = ({ navigation }) => {
 		}
 	}, [])
 
-	useEffect(() => navigation.addListener('focus', fetchOrders), [navigation, fetchOrders])
+	useEffect(() => {
+		navigation.addListener('focus', fetchOrders)
+		return () => navigation.removeListener('focus', fetchOrders)
+	}, [navigation, fetchOrders])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)

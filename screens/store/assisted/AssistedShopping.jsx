@@ -55,7 +55,10 @@ const AssistedShopping = ({ navigation }) => {
 
 	// Refresh the cart badge every time the screen regains focus (items are
 	// added/removed from deeper screens in this same stack).
-	useEffect(() => navigation.addListener('focus', fetchData), [navigation, fetchData])
+	useEffect(() => {
+		navigation.addListener('focus', fetchData)
+		return () => navigation.removeListener('focus', fetchData)
+	}, [navigation, fetchData])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)

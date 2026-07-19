@@ -167,9 +167,7 @@ const TopupScreen = () => {
 				const orphaned = (purchases || []).filter((p) => topupSkus.has(p.productId || p.id))
 				if (!orphaned.length) return
 				const phone = await AsyncStorage.getItem(PENDING_PHONE_KEY)
-				for (const purchase of orphaned) {
-					await handleValidatedPurchase(purchase, phone)
-				}
+				await Promise.all(orphaned.map((purchase) => handleValidatedPurchase(purchase, phone)))
 			} catch (error) { /* la recuperación es best-effort; el backend consume via RTDN */ }
 		})()
 	}, [connected, handleValidatedPurchase])

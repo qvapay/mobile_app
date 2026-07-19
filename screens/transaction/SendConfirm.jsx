@@ -172,12 +172,12 @@ const SendConfirm = ({ navigation, route }) => {
 
 	// Auto-scroll to PIN section when it appears
 	useEffect(() => {
-		if (showPinStep) {
-			setTimeout(() => {
-				scrollViewRef.current?.scrollToEnd({ animated: true })
-				pinInputsRef.current[0]?.focus()
-			}, 100)
-		}
+		if (!showPinStep) return
+		const timer = setTimeout(() => {
+			scrollViewRef.current?.scrollToEnd({ animated: true })
+			pinInputsRef.current[0]?.focus()
+		}, 100)
+		return () => clearTimeout(timer)
 	}, [showPinStep])
 
 	// Handle PIN input focus/blur

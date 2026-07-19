@@ -1,4 +1,4 @@
-import { createContext, use, useState, useEffect, useCallback, useRef } from 'react'
+import { createContext, use, useState, useEffect, useEffectEvent, useCallback, useRef } from 'react'
 import { AppState } from 'react-native'
 import { useAuth } from '../auth/AuthContext'
 import { userApi } from '../api/userApi'
@@ -49,21 +49,25 @@ export function OnlineStatusProvider({ children }) {
 		}
 	}, [])
 
+	// Effect Event: always sees the latest start/stop callbacks without making
+	// the AppState effect re-subscribe when they change (e.g. on auth flips)
+	const onAppStateChange = useEffectEvent((nextState) => {
+		if (appStateRef.current !== 'active' && nextState === 'active') {
+			startHeartbeat()
+		} else if (appStateRef.current === 'active' && nextState !== 'active') {
+			stopHeartbeat()
+		}
+		appStateRef.current = nextState
+	})
+
 	// AppState: pause in background, resume on foreground
 	useEffect(() => {
-		const subscription = AppState.addEventListener('change', (nextState) => {
-			if (appStateRef.current !== 'active' && nextState === 'active') {
-				startHeartbeat()
-			} else if (appStateRef.current === 'active' && nextState !== 'active') {
-				stopHeartbeat()
-			}
-			appStateRef.current = nextState
-		})
+		const subscription = AppState.addEventListener('change', (nextState) => onAppStateChange(nextState))
 		return () => {
 			subscription.remove()
 			stopHeartbeat()
 		}
-	}, [startHeartbeat, stopHeartbeat])
+	}, [stopHeartbeat])
 
 	// Auth gating: start/stop heartbeat based on auth state
 	useEffect(() => {

@@ -130,10 +130,9 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }) => {
 			return
 		}
 
-		const available = []
-		for (const transport of getTransports()) {
-			if (await transport.isAvailable()) { available.push(transport) }
-		}
+		const transports = getTransports()
+		const availability = await Promise.all(transports.map(transport => transport.isAvailable()))
+		const available = transports.filter((_, i) => availability[i])
 		if (available.length === 0) {
 			setState('unavailable')
 			return

@@ -30,7 +30,7 @@ const SplashScreen = () => {
         }).start()
 
         // Bounce animation after fade in
-        setTimeout(() => {
+        const bounceTimer = setTimeout(() => {
             Animated.sequence([
                 Animated.timing(scaleAnim, {
                     toValue: 1.1,
@@ -54,6 +54,8 @@ const SplashScreen = () => {
                 }),
             ]).start()
         }, 800)
+
+        return () => clearTimeout(bounceTimer)
 
     }, [opacityAnim, scaleAnim])
 

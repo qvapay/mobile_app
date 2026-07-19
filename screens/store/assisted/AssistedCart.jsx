@@ -45,7 +45,10 @@ const AssistedCart = ({ navigation }) => {
 	}, [])
 
 	// Refetch on focus — items get added from the product screen.
-	useEffect(() => navigation.addListener('focus', fetchCart), [navigation, fetchCart])
+	useEffect(() => {
+		navigation.addListener('focus', fetchCart)
+		return () => navigation.removeListener('focus', fetchCart)
+	}, [navigation, fetchCart])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
