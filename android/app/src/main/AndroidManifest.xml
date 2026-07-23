@@ -21,6 +21,9 @@
     <uses-feature android:name="android.hardware.fingerprint" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <!-- munim-bluetooth declares this required="true", which makes Play filter out
+         every device without BLE — override it, NearbyPay is iOS-only anyway -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" tools:node="replace" />
 
     <!-- Android 11+ package visibility: required so canOpenURL can detect installed wallets -->
     <queries>
