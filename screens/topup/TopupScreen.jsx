@@ -22,7 +22,7 @@ import { topupApi } from '../../api/topupApi'
 
 // IAP
 import { useIAP } from 'react-native-iap'
-import { TOPUP_SKUS, TOPUP_CATALOG, getIAPErrorMessage } from '../../helpers/iap'
+import { TOPUP_SKUS, TOPUP_CATALOG, getIAPErrorMessage, isAlreadyOwnedError } from '../../helpers/iap'
 
 // Números móviles cubanos: empiezan con 5, 8 dígitos locales
 const CUBAN_MOBILE = /^5\d{7}$/
@@ -63,6 +63,8 @@ const TopupScreen = () => {
 	const pendingPhoneRef = useRef(null)
 	// La recuperación de compras sin consumir corre una sola vez por montaje
 	const recoveredRef = useRef(false)
+	// Evita recuperaciones concurrentes (mount + already-owned a la vez)
+	const recoveringRef = useRef(false)
 
 	const phoneDigits = phoneNumber.replace(/\D/g, '')
 	const phoneValid = CUBAN_MOBILE.test(phoneDigits)
@@ -115,6 +117,28 @@ const TopupScreen = () => {
 		}
 	}, [saveRecentNumber, loadHistory])
 
+	// Reintenta entregar y consumir compras huérfanas (compradas pero nunca
+	// consumidas): mientras exista una, Play Billing bloquea el SKU con
+	// "already owned". Re-validarlas es seguro — el backend es idempotente por
+	// transactionId. Devuelve cuántas encontró.
+	const recoverOrphanedPurchases = useCallback(async () => {
+		if (recoveringRef.current) return 0
+		recoveringRef.current = true
+		try {
+			const { getAvailablePurchases } = require('react-native-iap')
+			const purchases = await getAvailablePurchases()
+			const topupSkus = new Set(TOPUP_SKUS || [])
+			const orphaned = (purchases || []).filter((p) => topupSkus.has(p.productId || p.id))
+			if (!orphaned.length) return 0
+			const phone = pendingPhoneRef.current || await AsyncStorage.getItem(PENDING_PHONE_KEY)
+			// Secuencial: validate-receipt tiene rate limit de 1 req/10s por usuario
+			for (const purchase of orphaned) { await handleValidatedPurchase(purchase, phone) }
+			return orphaned.length
+		} finally {
+			recoveringRef.current = false
+		}
+	}, [handleValidatedPurchase])
+
 	const { connected, products, fetchProducts, requestPurchase } = useIAP({
 		onPurchaseSuccess: async (purchase) => {
 			try {
@@ -126,8 +150,23 @@ const TopupScreen = () => {
 				setIsPurchasing(false)
 			}
 		},
-		onPurchaseError: (error) => {
+		onPurchaseError: async (error) => {
 			setIsPurchasing(false)
+			if (isAlreadyOwnedError(error)) {
+				// Una compra anterior sin consumir bloquea el SKU: reintentar su entrega ya
+				toast.info('Tienes una compra anterior sin entregar', { description: 'Reintentando la entrega…' })
+				try {
+					const found = await recoverOrphanedPurchases()
+					if (!found) {
+						toast.error('Google Play reporta un pago aún pendiente', {
+							description: 'Espera a que se confirme el pago o cancélalo desde la app de Play Store.',
+						})
+					}
+				} catch (recoveryError) {
+					toast.error('No se pudo recuperar la compra anterior. Intenta de nuevo en unos minutos.')
+				}
+				return
+			}
 			const message = getIAPErrorMessage(error)
 			if (message) toast.error(message)
 		},
@@ -155,22 +194,12 @@ const TopupScreen = () => {
 	}, [loadHistory])
 
 	// Compras consumibles huérfanas (app cerrada entre compra y validación):
-	// re-validarlas es seguro — el backend es idempotente por transactionId
+	// re-validarlas al entrar; también corre bajo demanda desde onPurchaseError
 	useEffect(() => {
 		if (!connected || recoveredRef.current) return
-		recoveredRef.current = true;
-		(async () => {
-			try {
-				const { getAvailablePurchases } = require('react-native-iap')
-				const purchases = await getAvailablePurchases()
-				const topupSkus = new Set(TOPUP_SKUS || [])
-				const orphaned = (purchases || []).filter((p) => topupSkus.has(p.productId || p.id))
-				if (!orphaned.length) return
-				const phone = await AsyncStorage.getItem(PENDING_PHONE_KEY)
-				await Promise.all(orphaned.map((purchase) => handleValidatedPurchase(purchase, phone)))
-			} catch (error) { /* la recuperación es best-effort; el backend consume via RTDN */ }
-		})()
-	}, [connected, handleValidatedPurchase])
+		recoveredRef.current = true
+		recoverOrphanedPurchases().catch(() => { /* best-effort; el backend consume via RTDN */ })
+	}, [connected, recoverOrphanedPurchases])
 
 	// Precio localizado por SKU desde la tienda
 	const priceForSku = useCallback((sku) => {

@@ -112,6 +112,17 @@ export const getAndroidOfferToken = (plan, subscriptions) => {
 }
 
 /**
+ * Detects Play Billing's "you already own this item" — for consumables it means
+ * a previous purchase was never consumed and is blocking the SKU.
+ * @param {object|null} error - IAP error carrying `code` (or `responseCode`).
+ * @returns {boolean}
+ */
+export const isAlreadyOwnedError = (error) => {
+	const code = error?.code || error?.responseCode
+	return code === 'already-owned' || code === 'E_ALREADY_OWNED'
+}
+
+/**
  * Maps a react-native-iap error to a Spanish user-facing message.
  * @param {object|null} error - IAP error carrying `code` (or `responseCode`).
  * @returns {string|null} Message to toast, or null for E_USER_CANCELLED (silenced on purpose).
@@ -120,7 +131,18 @@ export const getIAPErrorMessage = (error) => {
 	if (!error) return 'Error desconocido'
 	const code = error.code || error.responseCode
 	const messages = {
-		E_USER_CANCELLED: null, // silenciar cancelacion del usuario
+		// Códigos OpenIAP de react-native-iap >= 14 (kebab-case)
+		'user-cancelled': null, // silenciar cancelacion del usuario
+		'item-unavailable': 'Este producto no está disponible en tu región',
+		'sku-not-found': 'Este producto no está disponible en tu región',
+		'network-error': 'Error de conexión. Verifica tu internet',
+		'service-error': 'El servicio de pagos no está disponible',
+		'billing-unavailable': 'El servicio de pagos no está disponible',
+		'developer-error': 'Error de configuración. Contacta soporte',
+		'already-owned': 'Ya tienes una compra activa de este producto',
+		'deferred-payment': 'El pago está pendiente de aprobación',
+		// Códigos E_* de versiones anteriores de la lib
+		E_USER_CANCELLED: null,
 		E_ITEM_UNAVAILABLE: 'Este producto no está disponible en tu región',
 		E_NETWORK_ERROR: 'Error de conexión. Verifica tu internet',
 		E_SERVICE_ERROR: 'El servicio de pagos no está disponible',

@@ -11,7 +11,7 @@ jest.mock('react-native', () => ({
 }))
 
 import { Platform } from 'react-native'
-import { IAP_SKUS, TOPUP_SKUS, TOPUP_CATALOG, getTopupInfo, getProductId, getAndroidOfferToken, getIAPErrorMessage } from './iap'
+import { IAP_SKUS, TOPUP_SKUS, TOPUP_CATALOG, getTopupInfo, getProductId, getAndroidOfferToken, getIAPErrorMessage, isAlreadyOwnedError } from './iap'
 
 afterEach(() => { Platform.OS = 'ios' })
 
@@ -26,10 +26,14 @@ describe('IAP_SKUS', () => {
 
 describe('TOPUP_SKUS / TOPUP_CATALOG', () => {
 	test('resolve via Platform.select (iOS reverse-DNS SKUs)', () => {
-		expect(TOPUP_SKUS).toEqual(['com.qvapay.topup.100cup'])
-		expect(TOPUP_CATALOG).toEqual({
-			'com.qvapay.topup.100cup': { amountCUP: 100, label: '$100 CUP' },
-		})
+		expect(TOPUP_SKUS).toEqual([
+			'com.qvapay.topup.100cup',
+			'com.qvapay.topup.250cup',
+			'com.qvapay.topup.500cup',
+			'com.qvapay.topup.1000cup',
+			'com.qvapay.topup.2000cup',
+		])
+		expect(Object.keys(TOPUP_CATALOG)).toEqual(TOPUP_SKUS)
 	})
 
 	test('every SKU has a catalog entry with amountCUP and label', () => {
@@ -96,11 +100,13 @@ describe('getAndroidOfferToken', () => {
 })
 
 describe('getIAPErrorMessage', () => {
-	test('E_USER_CANCELLED is silenced (null) so call sites skip the toast', () => {
+	test('user cancellation is silenced (null) so call sites skip the toast', () => {
 		// Fixed 2026-07-17: `?? ` treated the stored null as "missing" — now the
 		// map is checked with `in` so null survives as a valid "silence" value.
 		expect(getIAPErrorMessage({ code: 'E_USER_CANCELLED' })).toBeNull()
 		expect(getIAPErrorMessage({ code: 'E_USER_CANCELLED', message: 'user cancelled' })).toBeNull()
+		// react-native-iap >= 14 emits OpenIAP kebab-case codes
+		expect(getIAPErrorMessage({ code: 'user-cancelled' })).toBeNull()
 	})
 
 	test('maps known codes to Spanish messages (code or responseCode)', () => {
@@ -109,9 +115,31 @@ describe('getIAPErrorMessage', () => {
 		expect(getIAPErrorMessage({ code: 'E_ALREADY_OWNED' })).toBe('Ya tienes una compra activa de este producto')
 	})
 
+	test('maps OpenIAP kebab-case codes from react-native-iap >= 14', () => {
+		expect(getIAPErrorMessage({ code: 'already-owned' })).toBe('Ya tienes una compra activa de este producto')
+		expect(getIAPErrorMessage({ code: 'item-unavailable' })).toBe('Este producto no está disponible en tu región')
+		expect(getIAPErrorMessage({ responseCode: 'network-error' })).toBe('Error de conexión. Verifica tu internet')
+		expect(getIAPErrorMessage({ code: 'billing-unavailable' })).toBe('El servicio de pagos no está disponible')
+		expect(getIAPErrorMessage({ code: 'deferred-payment' })).toBe('El pago está pendiente de aprobación')
+	})
+
 	test('falls back to error.message, then to the generic message', () => {
 		expect(getIAPErrorMessage({ code: 'E_WEIRD', message: 'raw store error' })).toBe('raw store error')
 		expect(getIAPErrorMessage({ code: 'E_WEIRD' })).toBe('Error al procesar la compra')
 		expect(getIAPErrorMessage(null)).toBe('Error desconocido')
+	})
+})
+
+describe('isAlreadyOwnedError', () => {
+	test('detects both OpenIAP and legacy codes, via code or responseCode', () => {
+		expect(isAlreadyOwnedError({ code: 'already-owned' })).toBe(true)
+		expect(isAlreadyOwnedError({ code: 'E_ALREADY_OWNED' })).toBe(true)
+		expect(isAlreadyOwnedError({ responseCode: 'already-owned' })).toBe(true)
+	})
+
+	test('false for other errors and missing input', () => {
+		expect(isAlreadyOwnedError({ code: 'user-cancelled' })).toBe(false)
+		expect(isAlreadyOwnedError({})).toBe(false)
+		expect(isAlreadyOwnedError(null)).toBe(false)
 	})
 })
