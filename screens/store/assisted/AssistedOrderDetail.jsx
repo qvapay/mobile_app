@@ -28,7 +28,7 @@ import FulfillmentBadge from './FulfillmentBadge'
  */
 const AssistedOrderDetail = ({ route }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
@@ -68,7 +68,7 @@ const AssistedOrderDetail = ({ route }) => {
 			>
 
 				{/* Header */}
-				<View style={styles.headerRow}>
+				<View style={themeStyles.container.rowBetween}>
 					<View>
 						<Text style={[textStyles.h4, { fontWeight: '600' }]}>Pedido #{order.id}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]}>
@@ -84,7 +84,7 @@ const AssistedOrderDetail = ({ route }) => {
 						<View key={item.uuid} style={[styles.itemRow, index > 0 && { borderTopWidth: 1, borderTopColor: `${theme.colors.secondaryText}22` }]}>
 							<View style={styles.itemImageWrap}>
 								{item.main_image ? (
-									<FastImage source={{ uri: item.main_image }} style={styles.itemImage} resizeMode={FastImage.resizeMode.contain} />
+									<FastImage source={{ uri: item.main_image }} style={themeStyles.container.fill} resizeMode={FastImage.resizeMode.contain} />
 								) : null}
 							</View>
 							<View style={{ flex: 1, gap: 2 }}>
@@ -153,11 +153,6 @@ const AssistedOrderDetail = ({ route }) => {
 }
 
 const styles = StyleSheet.create({
-	headerRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-	},
 	card: {
 		padding: 14,
 		borderRadius: 14,
@@ -176,10 +171,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	itemImage: {
-		width: '100%',
-		height: '100%',
 	},
 	meta: {
 		fontSize: 11,

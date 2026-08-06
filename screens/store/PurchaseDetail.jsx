@@ -67,7 +67,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 	const { purchaseId } = route.params
 
 	// Contexts
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 
@@ -164,7 +164,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 				<View style={styles.serviceHeader}>
 					{logoUrl ? (
 						<View style={[styles.logoContainer, { backgroundColor: theme.colors.elevationLight }]}>
-							<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
+							<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={themeStyles.container.fill} resizeMode={FastImage.resizeMode.contain} />
 						</View>
 					) : null}
 					<Text style={[textStyles.h3, { textAlign: 'center' }]}>{purchase.service?.name}</Text>
@@ -269,10 +269,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	logo: {
-		width: '100%',
-		height: '100%',
 	},
 	amountSection: {
 		alignItems: 'center',

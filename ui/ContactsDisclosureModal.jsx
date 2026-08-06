@@ -27,13 +27,13 @@ const PRIVACY_URL = 'https://qvapay.com/privacy'
  */
 const ContactsDisclosureModal = ({ visible, onAccept, onDecline }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" onRequestClose={onDecline}>
-			<View style={styles.overlay}>
-				<View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+			<View style={themeStyles.container.modalOverlay}>
+				<View style={themeStyles.container.modalCard}>
 					<FontAwesome6 name="address-book" size={40} color={theme.colors.primary} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 					<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
 						Acceso a tus contactos
@@ -67,18 +67,6 @@ const ContactsDisclosureModal = ({ visible, onAccept, onDecline }) => {
 }
 
 const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	container: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 24,
-	},
 	scrollArea: {
 		maxHeight: 200,
 		marginBottom: 16,

@@ -104,7 +104,8 @@ export const createTextStyles = (theme) => StyleSheet.create({
 /**
  * Builds the shared layout StyleSheet for a theme: screen containers, `card`
  * (border + shadow only in LIGHT mode — dark surfaces must stay borderless),
- * `box`, `row`, `center` and header slots. Prefer the memoized
+ * `box`, `row`, `rowBetween`, `fill`, `center`, header slots and the centered
+ * modal pattern (`modalOverlay` + `modalCard`). Prefer the memoized
  * `useContainerStyles` inside components.
  *
  * @param {Object} theme - Theme object from `createTheme`.
@@ -156,6 +157,28 @@ export const createContainerStyles = (theme) => StyleSheet.create({
 	row: {
 		flexDirection: 'row',
 		alignItems: 'center',
+	},
+	rowBetween: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	fill: {
+		width: '100%',
+		height: '100%',
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.6)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 24,
+	},
+	modalCard: {
+		width: '100%',
+		borderRadius: 16,
+		padding: 24,
+		backgroundColor: theme.colors.surface,
 	},
 	center: {
 		justifyContent: 'center',

@@ -117,10 +117,11 @@ const QuoteSummary = ({ quote, insufficient, balance, total, theme, textStyles }
 // US state picker — centered card modal
 const StatePickerModal = ({ visible, currentState, onSelect, onClose, theme, textStyles }) => {
 	const { height: windowHeight } = useWindowDimensions()
+	const containerStyles = createContainerStyles(theme)
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-			<Pressable style={styles.modalOverlay} onPress={onClose}>
-				<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
+			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
+				<Pressable style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
 					<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>Estado de destino</Text>
 					<ScrollView showsVerticalScrollIndicator={false}>
 						{US_STATES.map(state => (
@@ -143,10 +144,14 @@ const StatePickerModal = ({ visible, currentState, onSelect, onClose, theme, tex
 }
 
 // Purchase confirmation — centered card modal
-const ConfirmPurchaseModal = ({ visible, paying, total, addressSummary, onPay, onClose, theme, textStyles }) => (
+const ConfirmPurchaseModal = ({ visible, paying, total, addressSummary, onPay, onClose, theme, textStyles }) => {
+
+	const containerStyles = createContainerStyles(theme)
+
+	return (
 	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !paying && onClose()}>
-		<Pressable style={styles.modalOverlay} onPress={() => !paying && onClose()}>
-			<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface }]} onPress={() => { }}>
+		<Pressable style={containerStyles.modalOverlay} onPress={() => !paying && onClose()}>
+			<Pressable style={containerStyles.modalCard} onPress={() => { }}>
 				<View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
 					<FontAwesome6 name="basket-shopping" size={22} color={theme.colors.primary} iconStyle="solid" />
 				</View>
@@ -164,7 +169,8 @@ const ConfirmPurchaseModal = ({ visible, paying, total, addressSummary, onPay, o
 			</Pressable>
 		</Pressable>
 	</Modal>
-)
+	)
+}
 
 /**
  * Assisted-shopping checkout: pick a saved US shipping address or create a
@@ -436,18 +442,6 @@ const styles = StyleSheet.create({
 		paddingTop: 8,
 		marginTop: 4,
 		marginBottom: 0,
-	},
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	modalCard: {
-		width: '100%',
-		borderRadius: 18,
-		padding: 20,
 	},
 	stateRow: {
 		flexDirection: 'row',

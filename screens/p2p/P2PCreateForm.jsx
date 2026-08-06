@@ -11,7 +11,7 @@ const isNumber = (val) => /^\d*(?:[.,]?\d*)$/.test(val)
 // Create-offer form body: type switch, QUSD⇄coin amounts, live ratio, per-coin
 // account fields, advanced options and the optional GOLD custom message.
 const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, user, theme, textStyles, containerStyles }) => {
-	
+
 	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer } = form
 
 	return (
@@ -136,7 +136,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 
 			{/* Advanced */}
 			<View style={containerStyles.card}>
-				<Pressable onPress={() => onField('advancedOpen', !advancedOpen)} style={styles.advancedHeader}>
+				<Pressable onPress={() => onField('advancedOpen', !advancedOpen)} style={containerStyles.rowBetween}>
 					<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 						<FontAwesome6 name="sliders" size={16} color={theme.colors.primaryText} iconStyle="solid" />
 						<Text style={[textStyles.h5, { marginLeft: 8 }]}>Opciones avanzadas</Text>
@@ -177,11 +177,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		borderRadius: 20,
 		borderWidth: 0.5,
-	},
-	advancedHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
 	},
 	switchRow: {
 		paddingVertical: 4,

@@ -1,7 +1,7 @@
-import { View, Text, Modal, StyleSheet } from 'react-native'
+import { View, Text, Modal } from 'react-native'
 
 import QPButton from '../../../ui/particles/QPButton'
-import { createTextStyles } from '../../../theme/themeUtils'
+import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Security-warning modal shown when the backend flags a leaked/compromised password.
@@ -9,11 +9,12 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 const LeakedPasswordModal = ({ state, theme, onReset, onDismiss }) => {
 
 	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
 
 	return (
 		<Modal visible={state.visible} transparent animationType="fade" onRequestClose={state.blocked ? undefined : onDismiss}>
-			<View style={styles.overlay}>
-				<View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+			<View style={containerStyles.modalOverlay}>
+				<View style={containerStyles.modalCard}>
 					<FontAwesome6 name="shield-halved" size={40} color={state.blocked ? theme.colors.danger : theme.colors.warning} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 					<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
 						{state.blocked ? 'Contraseña Comprometida' : 'Alerta de Seguridad'}
@@ -45,20 +46,5 @@ const LeakedPasswordModal = ({ state, theme, onReset, onDismiss }) => {
 		</Modal>
 	)
 }
-
-const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	container: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 24,
-	},
-})
 
 export default LeakedPasswordModal

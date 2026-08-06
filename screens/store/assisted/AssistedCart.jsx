@@ -29,7 +29,7 @@ import { money, providerLabel, MINIMUM_CART } from './assistedConstants'
  */
 const AssistedCart = ({ navigation }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
@@ -123,7 +123,7 @@ const AssistedCart = ({ navigation }) => {
 							>
 								<View style={styles.itemImageWrap}>
 									{item.main_image ? (
-										<FastImage source={{ uri: item.main_image }} style={styles.itemImage} resizeMode={FastImage.resizeMode.contain} />
+										<FastImage source={{ uri: item.main_image }} style={themeStyles.container.fill} resizeMode={FastImage.resizeMode.contain} />
 									) : null}
 								</View>
 								<View style={{ flex: 1, gap: 4 }}>
@@ -162,7 +162,7 @@ const AssistedCart = ({ navigation }) => {
 
 				{/* Summary */}
 				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
-					<View style={styles.summaryRow}>
+					<View style={themeStyles.container.rowBetween}>
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Subtotal</Text>
 						<Text style={[textStyles.h5, { fontWeight: '600' }]}>{money(subtotal)}</Text>
 					</View>
@@ -215,10 +215,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
-	itemImage: {
-		width: '100%',
-		height: '100%',
-	},
 	itemMeta: {
 		fontSize: 11,
 	},
@@ -248,11 +244,6 @@ const styles = StyleSheet.create({
 		padding: 14,
 		borderRadius: 14,
 		marginTop: 16,
-	},
-	summaryRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
 	},
 })
 

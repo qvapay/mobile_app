@@ -12,13 +12,13 @@ import { QVAPAY_STICKERS } from '../../helpers/stickers'
 // Sticker grid picker (GOLD-gated). Calls onSelect(stickerName) on tap.
 const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-			<Pressable style={styles.overlay} onPress={onClose}>
-				<Pressable style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { }}>
+			<Pressable style={themeStyles.container.modalOverlay} onPress={onClose}>
+				<Pressable style={[themeStyles.container.modalCard, { padding: 16 }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { }}>
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
 						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Stickers</Text>
 						<QPPressable onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }}>
@@ -58,18 +58,6 @@ const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 }
 
 const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	card: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 16,
-	},
 	grid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',

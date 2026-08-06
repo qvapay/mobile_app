@@ -36,7 +36,7 @@ const stripHtml = (html) => { return html.replace(/<[^>]*>/g, '').trim() }
  */
 const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const { width: screenWidth } = useWindowDimensions()
 	const cardWidth = iPad ? (screenWidth - 32 - 12) / 2 : undefined
@@ -51,7 +51,7 @@ const BlogPostCard = ({ post, index, totalItems, iPad }) => {
 	return (
 		<Pressable style={[styles.card, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, marginBottom: iPad ? 0 : (index < totalItems - 1 ? 12 : 0), width: cardWidth }]} onPress={handlePress} >
 			<View style={styles.imageContainer}>
-				<FastImage source={{ uri: post.featuredImage, cache: FastImage.cacheControl.immutable }} style={styles.featuredImage} resizeMode={FastImage.resizeMode.cover} />
+				<FastImage source={{ uri: post.featuredImage, cache: FastImage.cacheControl.immutable }} style={themeStyles.container.fill} resizeMode={FastImage.resizeMode.cover} />
 			</View>
 			<View style={styles.contentContainer}>
 				<View style={styles.metaContainer}>
@@ -86,10 +86,6 @@ const styles = StyleSheet.create({
 	imageContainer: {
 		position: 'relative',
 		height: 200,
-	},
-	featuredImage: {
-		width: '100%',
-		height: '100%',
 	},
 	contentContainer: {
 		padding: 16,

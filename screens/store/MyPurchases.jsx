@@ -41,7 +41,7 @@ const getStatusColor = (status, theme) => {
 const MyPurchases = ({ navigation }) => {
 
 	// Contexts
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 
@@ -84,7 +84,7 @@ const MyPurchases = ({ navigation }) => {
 			<Pressable style={[styles.purchaseItem, { backgroundColor: theme.colors.surface }]} onPress={() => handlePurchasePress(item)} >
 				<View style={[styles.logoContainer, { backgroundColor: theme.colors.elevationLight }]}>
 					{logoUrl ? (
-						<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
+						<FastImage source={{ uri: logoUrl, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={themeStyles.container.fill} resizeMode={FastImage.resizeMode.contain} />
 					) : null}
 				</View>
 				<View style={styles.itemContent}>
@@ -145,10 +145,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	logo: {
-		width: '100%',
-		height: '100%',
 	},
 	itemContent: {
 		flex: 1,

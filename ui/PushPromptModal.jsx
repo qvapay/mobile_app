@@ -1,4 +1,4 @@
-import { Modal, View, Text, StyleSheet } from 'react-native'
+import { Modal, View, Text } from 'react-native'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -23,13 +23,13 @@ import QPButton from './particles/QPButton'
  */
 const PushPromptModal = ({ visible, onAccept, onDismiss }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-			<View style={styles.overlay}>
-				<View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+			<View style={themeStyles.container.modalOverlay}>
+				<View style={themeStyles.container.modalCard}>
 					<FontAwesome6 name="bell" size={40} color={theme.colors.primary} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 					<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
 						No te pierdas ningún pago
@@ -54,20 +54,5 @@ const PushPromptModal = ({ visible, onAccept, onDismiss }) => {
 		</Modal>
 	)
 }
-
-const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	container: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 24,
-	},
-})
 
 export default PushPromptModal

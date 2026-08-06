@@ -31,7 +31,7 @@ const MAX_QUANTITY = 10
  */
 const AssistedProduct = ({ navigation, route }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
@@ -91,7 +91,7 @@ const AssistedProduct = ({ navigation, route }) => {
 					{selectedImage ? (
 						<FastImage
 							source={{ uri: selectedImage, priority: FastImage.priority.high }}
-							style={styles.mainImage}
+							style={themeStyles.container.fill}
 							resizeMode={FastImage.resizeMode.contain}
 						/>
 					) : (
@@ -106,7 +106,7 @@ const AssistedProduct = ({ navigation, route }) => {
 								onPress={() => setSelectedImage(img)}
 								style={[styles.thumb, selectedImage === img && { borderColor: theme.colors.primary, borderWidth: 2 }]}
 							>
-								<FastImage source={{ uri: img }} style={styles.thumbImage} resizeMode={FastImage.resizeMode.contain} />
+								<FastImage source={{ uri: img }} style={themeStyles.container.fill} resizeMode={FastImage.resizeMode.contain} />
 							</Pressable>
 						))}
 					</ScrollView>
@@ -193,10 +193,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		marginTop: 10,
 	},
-	mainImage: {
-		width: '100%',
-		height: '100%',
-	},
 	thumbsRow: {
 		gap: 8,
 		marginTop: 10,
@@ -207,10 +203,6 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		backgroundColor: '#FFFFFF',
 		overflow: 'hidden',
-	},
-	thumbImage: {
-		width: '100%',
-		height: '100%',
 	},
 	providerRow: {
 		flexDirection: 'row',

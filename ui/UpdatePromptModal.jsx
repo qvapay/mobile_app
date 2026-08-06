@@ -32,7 +32,7 @@ const { height: windowHeight } = Dimensions.get('window')
  */
 const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, onDismiss }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
 	const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play'
@@ -50,8 +50,8 @@ const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, o
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={handleDismiss}>
-			<Pressable style={styles.overlay} onPress={handleDismiss}>
-				<Pressable style={[styles.container, { backgroundColor: theme.colors.surface }]} onPress={() => { }}>
+			<Pressable style={themeStyles.container.modalOverlay} onPress={handleDismiss}>
+				<Pressable style={[themeStyles.container.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
 					<View style={[styles.iconWrap, { backgroundColor: theme.colors.primary + '20' }]}>
 						<FontAwesome6 name="circle-arrow-up" size={36} color={theme.colors.primary} iconStyle="solid" />
 					</View>
@@ -83,19 +83,6 @@ const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, o
 }
 
 const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	container: {
-		width: '100%',
-		maxHeight: windowHeight * 0.75,
-		borderRadius: 16,
-		padding: 24,
-	},
 	iconWrap: {
 		width: 72,
 		height: 72,

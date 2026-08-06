@@ -68,7 +68,7 @@ const AssistedOrders = ({ navigation }) => {
 			>
 				<View style={styles.thumbWrap}>
 					{firstImage ? (
-						<FastImage source={{ uri: firstImage }} style={styles.thumb} resizeMode={FastImage.resizeMode.contain} />
+						<FastImage source={{ uri: firstImage }} style={containerStyles.fill} resizeMode={FastImage.resizeMode.contain} />
 					) : (
 						<FontAwesome6 name="box-open" size={18} color={theme.colors.secondaryText} iconStyle="solid" />
 					)}
@@ -145,10 +145,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	thumb: {
-		width: '100%',
-		height: '100%',
 	},
 	titleRow: {
 		flexDirection: 'row',

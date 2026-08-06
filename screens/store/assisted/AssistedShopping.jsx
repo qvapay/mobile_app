@@ -31,7 +31,7 @@ import { STORES, money, providerLabel } from './assistedConstants'
  */
 const AssistedShopping = ({ navigation }) => {
 
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
@@ -202,7 +202,7 @@ const AssistedShopping = ({ navigation }) => {
 										{product.main_image ? (
 											<FastImage
 												source={{ uri: product.main_image, priority: FastImage.priority.normal }}
-												style={styles.productImage}
+												style={themeStyles.container.fill}
 												resizeMode={FastImage.resizeMode.contain}
 											/>
 										) : (
@@ -212,7 +212,7 @@ const AssistedShopping = ({ navigation }) => {
 									<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={2}>
 										{product.title}
 									</Text>
-									<View style={styles.productFooter}>
+									<View style={themeStyles.container.rowBetween}>
 										<Text style={[textStyles.h6, { fontWeight: '600', color: theme.colors.primary }]}>
 											{money(product.qp_price)}
 										</Text>
@@ -303,15 +303,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		overflow: 'hidden',
-	},
-	productImage: {
-		width: '100%',
-		height: '100%',
-	},
-	productFooter: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
 	},
 	providerTag: {
 		fontSize: 11,

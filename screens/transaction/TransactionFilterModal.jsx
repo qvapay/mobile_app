@@ -1,6 +1,7 @@
 import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native'
 
 import QPInput from '../../ui/particles/QPInput'
+import { createContainerStyles } from '../../theme/themeUtils'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Status options for filter chips
@@ -74,10 +75,14 @@ const Chip = ({ label, selected, onPress, theme }) => (
 )
 
 // Transaction filter modal — fully controlled by the parent's draft state.
-const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDraft, onSetPeriod, onClearPeriod, onClear, onApply, onClose, theme, textStyles, windowHeight }) => (
+const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDraft, onSetPeriod, onClearPeriod, onClear, onApply, onClose, theme, textStyles, windowHeight }) => {
+
+	const containerStyles = createContainerStyles(theme)
+
+	return (
 	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-		<Pressable style={styles.overlay} onPress={onClose}>
-			<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
+		<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
+			<Pressable style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
 
 				{/* Header */}
 				<View style={styles.modalHeader}>
@@ -199,21 +204,10 @@ const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDr
 			</Pressable>
 		</Pressable>
 	</Modal>
-)
+	)
+}
 
 const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 24,
-	},
-	modalCard: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 24,
-	},
 	modalHeader: {
 		flexDirection: 'row',
 		alignItems: 'center',

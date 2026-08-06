@@ -7,7 +7,9 @@
 jest.mock('react-native-reanimated') // manual mock in /__mocks__/react-native-reanimated.js
 jest.mock('../../theme/ThemeContext', () => {
 	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
-	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
+	const { createTextStyles, createContainerStyles } = jest.requireActual('../../theme/themeUtils')
+	const theme = createTheme(true)
+	return { createTheme, useTheme: () => ({ theme, styles: { text: createTextStyles(theme), container: createContainerStyles(theme) } }) }
 })
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('@d11/react-native-fast-image', () => {

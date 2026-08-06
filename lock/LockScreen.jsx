@@ -1,14 +1,19 @@
-import { SystemBars } from 'react-native-edge-to-edge'
 import { useState, useEffect, useEffectEvent, useRef, useCallback, useReducer } from 'react'
+import { SystemBars } from 'react-native-edge-to-edge'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// RN
 import { View, Text, TextInput, Pressable, Modal, StyleSheet, Animated } from 'react-native'
 
+// Context
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 import { useSettings } from '../settings/SettingsContext'
 import { useAppLock } from './AppLockContext'
 import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
+
+// Icons
 import FaceIDIcon from '../ui/particles/FaceIDIcon'
 
 // Biometric type + availability are detected together in one effect
@@ -236,16 +241,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		paddingHorizontal: 16,
-	},
-	animationContainer: {
-		width: 150,
-		height: 150,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	lottie: {
-		width: 150,
-		height: 150,
 	},
 	biometricSection: {
 		alignItems: 'center',

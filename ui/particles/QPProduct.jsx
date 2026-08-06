@@ -31,7 +31,7 @@ import { mediaUrl } from '../../helpers/mediaUrl'
 const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo = '', image = '', onPress = () => { }, style = {} }) => {
 
 	// Contexts
-	const { theme } = useTheme()
+	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const { user } = useAuth()
 
@@ -47,7 +47,7 @@ const QPProduct = ({ name = '', price = '', goldPrice = null, details = [], logo
 
 			<View style={[styles.topupImagePlaceholder, { backgroundColor: theme.colors.elevationLight }]}>
 				{logoImage ? (
-					<FastImage source={{ uri: logoImage, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.topupImage} resizeMode={FastImage.resizeMode.cover} />
+					<FastImage source={{ uri: logoImage, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={themeStyles.container.fill} resizeMode={FastImage.resizeMode.cover} />
 				) : null}
 			</View>
 
@@ -86,10 +86,6 @@ const styles = StyleSheet.create({
 	},
 	topupContent: {
 		padding: 8,
-	},
-	topupImage: {
-		width: '100%',
-		height: '100%',
 	},
 	infoRow: {
 		flexDirection: 'row',
