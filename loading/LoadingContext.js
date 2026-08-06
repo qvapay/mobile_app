@@ -1,4 +1,4 @@
-import { createContext, use, useState, useRef, useCallback } from 'react'
+import { createContext, use, useState, useRef, useCallback, useMemo } from 'react'
 
 const LoadingContext = createContext()
 
@@ -66,7 +66,7 @@ export const LoadingProvider = ({ children }) => {
 		setIsLoading(false)
 	}, [])
 
-	const value = { isLoading, startLoading, stopLoading, resetLoading }
+	const value = useMemo(() => ({ isLoading, startLoading, stopLoading, resetLoading }), [isLoading, startLoading, stopLoading, resetLoading])
 
 	return (
 		<LoadingContext.Provider value={value}>

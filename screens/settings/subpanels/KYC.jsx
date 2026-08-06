@@ -41,22 +41,25 @@ const KYC = () => {
 
 	// Check KYC status on mount
 	useEffect(() => {
+		let cancelled = false
 		const checkStatus = async () => {
 			try {
 				setLoading(true)
 				const resp = await userApi.getKYCStatus()
+				if (cancelled) return
 				if (resp.success && resp.data?.kyc) {
 					setIsVerified(true)
 				} else {
 					setIsVerified(user?.kyc === true)
 				}
 			} catch {
-				setIsVerified(user?.kyc === true)
+				if (!cancelled) setIsVerified(user?.kyc === true)
 			} finally {
-				setLoading(false)
+				if (!cancelled) setLoading(false)
 			}
 		}
 		checkStatus()
+		return () => { cancelled = true }
 	}, [user?.kyc])
 
 	// Request verification session URL and open in browser
@@ -66,14 +69,9 @@ const KYC = () => {
 			const resp = await userApi.requestKYCSession()
 			if (resp.success && resp.data) {
 				await Linking.openURL(resp.data)
-			} else {
-				toast.error('Error', { description: resp.error || 'No se pudo obtener la sesión de verificación' })
-			}
-		} catch (e) {
-			toast.error('Error', { description: e.message || 'Ha ocurrido un error' })
-		} finally {
-			setRequesting(false)
-		}
+			} else { toast.error('Error', { description: resp.error || 'No se pudo obtener la sesión de verificación' }) }
+		} catch (e) { toast.error('Error', { description: e.message || 'Ha ocurrido un error' }) }
+		finally { setRequesting(false) }
 	}, [])
 
 	if (loading) return <QPLoader />

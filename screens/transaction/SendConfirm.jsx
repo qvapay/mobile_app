@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useReducer } from 'react'
+import { useState, useRef, useEffect, useEffectEvent, useReducer } from 'react'
 import { View, Text } from 'react-native'
 
 // Context and Theme
@@ -162,13 +162,14 @@ const SendConfirm = ({ navigation, route }) => {
 		if (numericText && index < codeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
 	}
 
-	// Auto-submit when all digits entered
-	useEffect(() => {
+	// Auto-submit when all digits entered (Effect Event: reads the latest
+	// handler/flags without re-running the effect on every state change)
+	const onPinComplete = useEffectEvent(() => {
 		if (pin.length === codeLength && !isLoading) {
 			executeTransaction()
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [pin])
+	})
+	useEffect(() => { onPinComplete() }, [pin])
 
 	// Auto-scroll to PIN section when it appears
 	useEffect(() => {

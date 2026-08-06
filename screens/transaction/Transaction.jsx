@@ -116,17 +116,20 @@ const Transaction = ({ route, navigation }) => {
 
 	// Load cached data first, then fetch fresh data from server
 	useEffect(() => {
+		let cancelled = false
 		const loadCachedThenFetch = async () => {
 			const cacheKey = `${TRANSACTION_CACHE_KEY}${transaction.uuid}`
 			try {
 				const cachedData = await AsyncStorage.getItem(cacheKey)
+				if (cancelled) return
 				if (cachedData) { setTransactionDetails(JSON.parse(cachedData)) }
 			} catch (error) {
 				// error loading cached transaction
 			}
-			fetchTransaction()
+			if (!cancelled) fetchTransaction()
 		}
 		loadCachedThenFetch()
+		return () => { cancelled = true }
 	}, [transaction.uuid, fetchTransaction])
 
 	// Determine transaction type and colors

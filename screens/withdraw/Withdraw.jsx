@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useReducer } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState, useReducer } from 'react'
 import { View } from 'react-native'
 
 // Theme
@@ -131,20 +131,22 @@ const Withdraw = ({ navigation, route }) => {
 
 	// Fetch available coins enabled_out
 	useEffect(() => {
+		let cancelled = false
 		const fetchCoins = async () => {
 			try {
 				setIsLoading(true)
 				const response = await apiClient.get('/coins/v2?enabled_out=true')
+				if (cancelled) return
 				setAvailableCoins(response.data)
 				if (preselectedCoin) {
 					const coin = response.data.find(c => c.tick === preselectedCoin)
 					if (coin) setSelectedCoin(coin)
 				}
 			} catch (err) { /* error fetching coins */ }
-			finally { setIsLoading(false) }
+			finally { if (!cancelled) setIsLoading(false) }
 		}
 		fetchCoins()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		return () => { cancelled = true }
 	}, [preselectedCoin])
 
 	// Decimals to render for the coin amount input
@@ -280,13 +282,10 @@ const Withdraw = ({ navigation, route }) => {
 		} finally { setSendingWithdraw(false) }
 	}
 
-	// Auto-submit when all digits entered
-	useEffect(() => {
-		if (pin.length === codeLength && !sendingWithdraw) {
-			handleWithdraw()
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [pin])
+	// Auto-submit when all digits entered (Effect Event: reads the latest
+	// handler/flags without re-running the effect on every state change)
+	const onPinComplete = useEffectEvent(() => { if (pin.length === codeLength && !sendingWithdraw) { handleWithdraw() } })
+	useEffect(() => { onPinComplete() }, [pin])
 
 	return (
 		<>

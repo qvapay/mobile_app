@@ -18,6 +18,9 @@ jest.mock('react-native-sse', () => {
 			if (!this.listeners[type]) { this.listeners[type] = [] }
 			this.listeners[type].push(handler)
 		}
+		removeEventListener(type, handler) {
+			this.listeners[type] = (this.listeners[type] || []).filter((h) => h !== handler)
+		}
 		emit(type, event = {}) {
 			;(this.listeners[type] || []).forEach((handler) => handler(event))
 		}

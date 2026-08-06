@@ -48,6 +48,44 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 		let cancelled = false
 		retriesRef.current = 0
 
+		const onOpen = () => {
+			setError(null)
+			setIsConnected(true)
+			retriesRef.current = 0
+		}
+
+		// Named 'init' event from backend
+		const onInit = (event) => {
+			if (event.data) {
+				const newStatus = event.data
+				setStatus(newStatus)
+				onStatusChangeRef.current?.(newStatus)
+			}
+		}
+
+		// Unnamed messages (data: {status})
+		const onMessage = (event) => {
+			try {
+				const newStatus = event.data
+				if (!newStatus) return
+				setStatus(newStatus)
+				onStatusChangeRef.current?.(newStatus)
+				if (TERMINAL_STATUSES.includes(newStatus)) {
+					es.close()
+					setIsConnected(false)
+				}
+			} catch (err) { setError('Error al procesar actualización de pago') }
+		}
+
+		const onError = () => {
+			retriesRef.current += 1
+			setIsConnected(false)
+			if (retriesRef.current >= RETRY_LIMIT) {
+				setError('Se perdió la conexión con el servidor')
+				es.close()
+			}
+		}
+
 		const connect = async () => {
 
 			try {
@@ -63,45 +101,13 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 					},
 				})
 
-				es.addEventListener('open', () => {
-					setError(null)
-					setIsConnected(true)
-					retriesRef.current = 0
-				})
-
-				// Handle named 'init' event from backend
-				es.addEventListener('init', (event) => {
-					if (event.data) {
-						const newStatus = event.data
-						setStatus(newStatus)
-						onStatusChangeRef.current?.(newStatus)
-					}
-				})
-
-				// Handle unnamed messages (data: {status})
-				es.addEventListener('message', (event) => {
-					try {
-						const newStatus = event.data
-						if (!newStatus) return
-						setStatus(newStatus)
-						onStatusChangeRef.current?.(newStatus)
-						if (TERMINAL_STATUSES.includes(newStatus)) {
-							es.close()
-							setIsConnected(false)
-						}
-					} catch (err) { setError('Error al procesar actualización de pago') }
-				})
-
-				es.addEventListener('error', () => {
-					retriesRef.current += 1
-					setIsConnected(false)
-					if (retriesRef.current >= RETRY_LIMIT) {
-						setError('Se perdió la conexión con el servidor')
-						es.close()
-					}
-				})
+				es.addEventListener('open', onOpen)
+				es.addEventListener('init', onInit)
+				es.addEventListener('message', onMessage)
+				es.addEventListener('error', onError)
 
 			} catch (err) {
+				if (cancelled) return
 				setError('No se pudo establecer conexión de monitoreo')
 				setIsConnected(false)
 			}
@@ -112,7 +118,10 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 		// Release the connection THIS effect opened (captured in `es`).
 		return () => {
 			cancelled = true
-			es?.removeAllEventListeners()
+			es?.removeEventListener('open', onOpen)
+			es?.removeEventListener('init', onInit)
+			es?.removeEventListener('message', onMessage)
+			es?.removeEventListener('error', onError)
 			es?.close()
 			setIsConnected(false)
 		}

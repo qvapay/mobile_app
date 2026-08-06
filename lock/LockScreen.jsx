@@ -50,12 +50,15 @@ const LockScreen = () => {
 	// Check biometric availability when lock screen appears
 	useEffect(() => {
 		if (!isLocked) return
+		let cancelled = false
 		const checkBiometrics = async () => {
 			const type = await getSupportedBiometryType()
 			const hasCredentials = await hasBiometricCredentials()
+			if (cancelled) return
 			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && hasCredentials && security.biometricsEnabled })
 		}
 		checkBiometrics()
+		return () => { cancelled = true }
 	}, [isLocked, security.biometricsEnabled])
 
 	const handleBiometricUnlock = useCallback(async () => {

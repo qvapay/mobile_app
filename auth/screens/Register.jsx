@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useReducer } from 'react'
 import { usePreventRemove } from '@react-navigation/native'
+import { useState, useRef, useEffect, useEffectEvent, useReducer } from 'react'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -286,17 +286,14 @@ const RegisterScreen = ({ navigation }) => {
 		}
 	}
 
-	// Auto-submit del PIN de email al completar los 4 dígitos
-	useEffect(() => {
-		if (stepKey === 'emailPin' && emailPin.length === 4) { handleVerifyEmailPin() }
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [emailPin])
+	// Auto-submit del PIN de email al completar los 4 dígitos (Effect Event:
+	// lee el handler/step más recientes sin re-disparar el efecto)
+	const onEmailPinComplete = useEffectEvent(() => { if (stepKey === 'emailPin' && emailPin.length === 4) { handleVerifyEmailPin() } })
+	useEffect(() => { onEmailPinComplete() }, [emailPin])
 
 	// Auto-submit del código de teléfono al completar los 6 dígitos
-	useEffect(() => {
-		if (stepKey === 'phoneCode' && phoneCode.length === 6) { handleVerifyPhoneCode() }
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [phoneCode])
+	const onPhoneCodeComplete = useEffectEvent(() => { if (stepKey === 'phoneCode' && phoneCode.length === 6) { handleVerifyPhoneCode() } })
+	useEffect(() => { onPhoneCodeComplete() }, [phoneCode])
 
 	// Props que comparten todas las pantallas del wizard
 	const stepProps = { theme, textStyles, makeStepEnter }

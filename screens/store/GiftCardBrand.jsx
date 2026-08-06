@@ -167,18 +167,21 @@ const GiftCardBrand = ({ navigation, route }) => {
 	}, [navigation, user?.balance, theme, textStyles.h5, brand])
 
 	useEffect(() => {
-		(async () => {
-			setLoading(true)
-			const res = await storeApi.getVoucherCatalog({ country: countryCode, brand: brandSlug })
-			if (res.success) {
-				dispatchData({ type: 'set', field: 'offers', value: res.data?.offers || [] })
-				dispatchData({ type: 'set', field: 'brand', value: res.data?.brand || brandSlug })
-				dispatchData({ type: 'set', field: 'brandLogo', value: res.data?.brand_logo_url || null })
-				// Only fall back to the fetched country when the route didn't supply one
-				if (res.data?.country && !initCountry) dispatchData({ type: 'set', field: 'country', value: res.data.country })
-			} else { toast.error('Tarjeta', { description: res.error || 'No se pudo cargar la tarjeta' }) }
-			setLoading(false)
-		})()
+		let cancelled = false
+			; (async () => {
+				setLoading(true)
+				const res = await storeApi.getVoucherCatalog({ country: countryCode, brand: brandSlug })
+				if (cancelled) return
+				if (res.success) {
+					dispatchData({ type: 'set', field: 'offers', value: res.data?.offers || [] })
+					dispatchData({ type: 'set', field: 'brand', value: res.data?.brand || brandSlug })
+					dispatchData({ type: 'set', field: 'brandLogo', value: res.data?.brand_logo_url || null })
+					// Only fall back to the fetched country when the route didn't supply one
+					if (res.data?.country && !initCountry) dispatchData({ type: 'set', field: 'country', value: res.data.country })
+				} else { toast.error('Tarjeta', { description: res.error || 'No se pudo cargar la tarjeta' }) }
+				setLoading(false)
+			})()
+		return () => { cancelled = true }
 	}, [countryCode, brandSlug, initCountry])
 
 	const offerPrice = useMemo(() => {

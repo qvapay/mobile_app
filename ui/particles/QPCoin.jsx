@@ -41,7 +41,8 @@ const QPCoin = ({ coin, size = 32 }) => {
 			// Check cache first
 			try {
 				const cached = await AsyncStorage.getItem(cacheKey)
-				if (cached && !cancelled) {
+				if (cancelled) return
+				if (cached) {
 					setSvgXml(cached)
 					return
 				}
@@ -51,10 +52,11 @@ const QPCoin = ({ coin, size = 32 }) => {
 			try {
 				const response = await fetch(coin_image_path)
 				const xml = await response.text()
-				if (!cancelled && xml && xml.includes('<svg')) {
+				if (cancelled) return
+				if (xml && xml.includes('<svg')) {
 					setSvgXml(xml)
 					AsyncStorage.setItem(cacheKey, xml)
-				} else if (!cancelled) { setFailed(true) }
+				} else { setFailed(true) }
 			} catch { if (!cancelled) setFailed(true) }
 		}
 

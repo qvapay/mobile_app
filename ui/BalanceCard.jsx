@@ -84,7 +84,8 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 		let cancelled = false
 		const fetchSavings = async () => {
 			const result = await savingApi.getSummary()
-			if (!cancelled && result.success && result.data) {
+			if (cancelled) return
+			if (result.success && result.data) {
 				dispatchSavings({ type: 'loaded', balance: result.data.balance ?? 0, rate: result.data.rate })
 				writeCache(CACHE_KEYS.SAVINGS_SUMMARY, { balance: result.data.balance ?? 0, rate: result.data.rate })
 			}

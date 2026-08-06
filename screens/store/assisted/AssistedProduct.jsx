@@ -45,8 +45,10 @@ const AssistedProduct = ({ navigation, route }) => {
 	useEffect(() => {
 		const uuid = route.params?.uuid
 		if (product || !uuid) return
+		let cancelled = false
 		const fetchProduct = async () => {
 			const res = await shopApi.getProduct(uuid)
+			if (cancelled) return
 			if (res.success && res.data?.product) {
 				setProduct(res.data.product)
 				setSelectedImage(res.data.product.main_image)
@@ -56,6 +58,7 @@ const AssistedProduct = ({ navigation, route }) => {
 			}
 		}
 		fetchProduct()
+		return () => { cancelled = true }
 	}, [route.params?.uuid, product, navigation])
 
 	const gallery = useMemo(() => {
@@ -74,9 +77,7 @@ const AssistedProduct = ({ navigation, route }) => {
 		if (res.success) {
 			toast.success('Agregado al carrito', { description: `${quantity} × ${product.title.slice(0, 60)}` })
 			navigation.navigate(ROUTES.ASSISTED_CART)
-		} else {
-			toast.error('Carrito', { description: res.error })
-		}
+		} else { toast.error('Carrito', { description: res.error }) }
 	}
 
 	if (!product) { return <View style={containerStyles.subContainer} /> }

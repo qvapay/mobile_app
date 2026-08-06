@@ -13,6 +13,151 @@ const SSE_RETRY_MS = 60000 // how long to poll before attempting the stream agai
 const ACTIVE_STATUSES = ["open", "processing", "paid"]
 
 /**
+ * Imperative chat-stream manager: opens the SSE connection, owns every timer
+ * and listener of the reconnect/fallback state machine, and tears them all
+ * down in `dispose()`. Lives outside the hook so the effect owns a single
+ * resource with a single cleanup.
+ *
+ * @param {object} params
+ * @param {string} params.p2p_uuid - Offer UUID.
+ * @param {function} params.setConnected - Receives the stream-connected boolean.
+ * @param {function} params.fetchChat - Full history refetch (catch-up + fallback poll).
+ * @param {function} params.appendMessage - Appends one parsed message.
+ * @returns {{ dispose: () => void }}
+ */
+function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }) {
+
+	let es = null
+	let pollInterval = null
+	let initTimeout = null
+	let retryTimeout = null
+	let disposeTimer = null
+	let dyingEs = null
+	let disposed = false
+	let appActive = AppState.currentState === "active"
+
+	const emitConnected = (value) => {
+		if (!disposed) setConnected(value)
+	}
+
+	const startPolling = () => {
+		if (pollInterval) return
+		pollInterval = setInterval(() => { fetchChat() }, FALLBACK_POLL_MS)
+	}
+	const stopPolling = () => {
+		clearInterval(pollInterval)
+		pollInterval = null
+	}
+	const clearTimers = () => {
+		clearTimeout(initTimeout)
+		clearTimeout(retryTimeout)
+		initTimeout = null
+		retryTimeout = null
+	}
+	const disposeStream = (stream) => {
+		stream.removeAllEventListeners()
+		stream.close()
+	}
+	const closeStream = () => {
+		clearTimeout(initTimeout)
+		initTimeout = null
+		const dying = es
+		es = null
+		if (dying) {
+			// Deferred one tick: react-native-sse schedules its internal reconnect timer
+			// right AFTER dispatching 'error' (and the server's `retry: 10000` overrides our
+			// pollingInterval: 0). Closing synchronously inside the error listener would let
+			// that timer survive close() and spawn a zombie stream; a tick later, close()
+			// clears it for good. The timer is tracked in `disposeTimer` so dispose() can
+			// flush it synchronously (dispose never runs inside the error dispatch).
+			dyingEs = dying
+			disposeTimer = setTimeout(() => {
+				disposeTimer = null
+				if (dyingEs === dying) dyingEs = null
+				disposeStream(dying)
+			}, 0)
+		}
+		emitConnected(false)
+	}
+
+	// Stream is down: poll while waiting, retry the stream after a pause
+	const fallbackToPolling = () => {
+		closeStream()
+		if (disposed || !appActive) return
+		startPolling()
+		if (!retryTimeout) {
+			retryTimeout = setTimeout(() => {
+				retryTimeout = null
+				connectSSE()
+			}, SSE_RETRY_MS)
+		}
+	}
+
+	const onInit = () => {
+		clearTimeout(initTimeout)
+		initTimeout = null
+		stopPolling()
+		emitConnected(true)
+		// Catch up on anything sent between the history load / fallback window and now
+		fetchChat()
+	}
+
+	const onMessage = (event) => {
+		try { appendMessage(JSON.parse(event.data)) } catch { /* ignore malformed */ }
+	}
+
+	const connectSSE = async () => {
+		if (disposed || !appActive || es) return
+		const token = await getAuthToken()
+		if (disposed || !appActive || es) return
+
+		es = new EventSource(`${config.API_BASE_URL}/p2p/${p2p_uuid}/chat/stream`, {
+			headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+			pollingInterval: 0, // disable the library's auto-reconnect — retries are ours
+		})
+
+		initTimeout = setTimeout(fallbackToPolling, INIT_TIMEOUT_MS)
+
+		es.addEventListener("init", onInit)
+		es.addEventListener("message", onMessage)
+		es.addEventListener("error", fallbackToPolling)
+	}
+
+	connectSSE()
+
+	// Close the stream while backgrounded; catch up and reconnect on foreground
+	const appStateSub = AppState.addEventListener("change", (nextState) => {
+		if (nextState === "active" && !appActive) {
+			appActive = true
+			stopPolling()
+			clearTimers()
+			fetchChat()
+			connectSSE()
+		} else if (/inactive|background/.test(nextState) && appActive) {
+			appActive = false
+			closeStream()
+			stopPolling()
+			clearTimers()
+		}
+	})
+
+	const dispose = () => {
+		disposed = true
+		appStateSub.remove()
+		clearTimers()
+		stopPolling()
+		clearTimeout(disposeTimer)
+		disposeTimer = null
+		// dispose() never runs inside the stream's `error` dispatch, so the deferred-
+		// close dance isn't needed here — flush any dying stream synchronously.
+		if (dyingEs) { disposeStream(dyingEs); dyingEs = null }
+		if (es) { disposeStream(es); es = null }
+	}
+
+	return { dispose }
+}
+
+/**
  * Real-time P2P chat over SSE (`GET /p2p/{uuid}/chat/stream`, Redis-backed).
  * The stream only pushes NEW messages — history still loads via `getChat`.
  * Falls back to 10s polling when the stream is unavailable and retries it every 60s.
@@ -42,116 +187,19 @@ export default function useP2PChatSSE({ p2p_uuid, status, appendMessage, fetchCh
 	useEffect(() => {
 		if (!p2p_uuid || !isActive) return
 
-		let es = null
-		let pollInterval = null
-		let initTimeout = null
-		let retryTimeout = null
-		let cancelled = false
-		let appActive = AppState.currentState === "active"
-
-		const setConnected = (value) => {
-			if (connectedRef) connectedRef.current = value
-			if (!cancelled) setIsStreamConnected(value)
-		}
-
-		const startPolling = () => {
-			if (pollInterval) return
-			pollInterval = setInterval(() => { fetchChatRef.current?.() }, FALLBACK_POLL_MS)
-		}
-		const stopPolling = () => {
-			clearInterval(pollInterval)
-			pollInterval = null
-		}
-		const clearTimers = () => {
-			clearTimeout(initTimeout)
-			clearTimeout(retryTimeout)
-			initTimeout = null
-			retryTimeout = null
-		}
-		const closeStream = () => {
-			clearTimeout(initTimeout)
-			initTimeout = null
-			const dying = es
-			es = null
-			if (dying) {
-				// Deferred one tick: react-native-sse schedules its internal reconnect timer
-				// right AFTER dispatching 'error' (and the server's `retry: 10000` overrides our
-				// pollingInterval: 0). Closing synchronously inside the error listener would let
-				// that timer survive close() and spawn a zombie stream; a tick later, close()
-				// clears it for good.
-				setTimeout(() => {
-					dying.removeAllEventListeners()
-					dying.close()
-				}, 0)
-			}
-			setConnected(false)
-		}
-
-		// Stream is down: poll while waiting, retry the stream after a pause
-		const fallbackToPolling = () => {
-			closeStream()
-			if (cancelled || !appActive) return
-			startPolling()
-			if (!retryTimeout) {
-				retryTimeout = setTimeout(() => {
-					retryTimeout = null
-					connectSSE()
-				}, SSE_RETRY_MS)
-			}
-		}
-
-		const connectSSE = async () => {
-			if (cancelled || !appActive || es) return
-			const token = await getAuthToken()
-			if (cancelled || !appActive || es) return
-
-			es = new EventSource(`${config.API_BASE_URL}/p2p/${p2p_uuid}/chat/stream`, {
-				headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-				pollingInterval: 0, // disable the library's auto-reconnect — retries are ours
-			})
-
-			initTimeout = setTimeout(fallbackToPolling, INIT_TIMEOUT_MS)
-
-			es.addEventListener("init", () => {
-				clearTimeout(initTimeout)
-				initTimeout = null
-				stopPolling()
-				setConnected(true)
-				// Catch up on anything sent between the history load / fallback window and now
-				fetchChatRef.current?.()
-			})
-
-			es.addEventListener("message", (event) => {
-				try { appendMessageRef.current?.(JSON.parse(event.data)) } catch { /* ignore malformed */ }
-			})
-
-			es.addEventListener("error", fallbackToPolling)
-		}
-
-		connectSSE()
-
-		// Close the stream while backgrounded; catch up and reconnect on foreground
-		const appStateSub = AppState.addEventListener("change", (nextState) => {
-			if (nextState === "active" && !appActive) {
-				appActive = true
-				stopPolling()
-				clearTimers()
-				fetchChatRef.current?.()
-				connectSSE()
-			} else if (/inactive|background/.test(nextState) && appActive) {
-				appActive = false
-				closeStream()
-				stopPolling()
-				clearTimers()
-			}
+		const stream = openChatStream({
+			p2p_uuid,
+			setConnected: (value) => {
+				if (connectedRef) connectedRef.current = value
+				setIsStreamConnected(value)
+			},
+			fetchChat: () => { fetchChatRef.current?.() },
+			appendMessage: (message) => { appendMessageRef.current?.(message) },
 		})
 
 		return () => {
-			cancelled = true
-			appStateSub.remove()
-			clearTimers()
-			stopPolling()
-			closeStream()
+			stream.dispose()
+			if (connectedRef) connectedRef.current = false
 			setIsStreamConnected(false)
 		}
 	}, [p2p_uuid, isActive]) // eslint-disable-line react-hooks/exhaustive-deps

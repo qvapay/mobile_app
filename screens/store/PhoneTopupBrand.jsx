@@ -101,20 +101,21 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	}, [navigation, user?.balance, user?.satoshis, theme, textStyles.h5, textStyles.h6, brand])
 
 	useEffect(() => {
-		(async () => {
-			setLoading(true)
-			const res = await storeApi.getTopupCatalog({ country: countryCode, brand: brandSlug })
-			if (res.success) {
-				setOffers(res.data?.offers || [])
-				setBrand(res.data?.brand || brandSlug)
-				setBrandLogo(res.data?.brand_logo_url || null)
-				// Only fall back to the fetched country when the route didn't supply one
-				if (res.data?.country && !initCountry) setCountry(res.data.country)
-			} else {
-				toast.error('Operador', { description: res.error || 'No se pudo cargar el operador' })
-			}
-			setLoading(false)
-		})()
+		let cancelled = false
+			; (async () => {
+				setLoading(true)
+				const res = await storeApi.getTopupCatalog({ country: countryCode, brand: brandSlug })
+				if (cancelled) return
+				if (res.success) {
+					setOffers(res.data?.offers || [])
+					setBrand(res.data?.brand || brandSlug)
+					setBrandLogo(res.data?.brand_logo_url || null)
+					// Only fall back to the fetched country when the route didn't supply one
+					if (res.data?.country && !initCountry) setCountry(res.data.country)
+				} else { toast.error('Operador', { description: res.error || 'No se pudo cargar el operador' }) }
+				setLoading(false)
+			})()
+		return () => { cancelled = true }
 	}, [countryCode, brandSlug, initCountry])
 
 	// País bloqueado al del brand — el wizard de un operador no debería permitir

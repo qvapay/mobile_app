@@ -1,4 +1,4 @@
-import { createContext, use, useState, useEffect, useRef, useCallback } from 'react'
+import { createContext, use, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { AppState } from 'react-native'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
@@ -46,8 +46,10 @@ export const AppLockProvider = ({ children }) => {
 	// Initialize: check if app lock PIN exists
 	useEffect(() => {
 		if (authLoading || settingsLoading) return
+		let cancelled = false
 		const init = async () => {
 			const hasPIN = await hasAppLockPin()
+			if (cancelled) return
 			setAppLockEnabled(hasPIN)
 
 			// Cold start: lock immediately if authenticated and app lock is enabled
@@ -56,6 +58,7 @@ export const AppLockProvider = ({ children }) => {
 			isInitializedRef.current = true
 		}
 		init()
+		return () => { cancelled = true }
 	}, [authLoading, settingsLoading, isAuthenticated])
 
 	// AppState listener for background/foreground transitions
@@ -179,7 +182,7 @@ export const AppLockProvider = ({ children }) => {
 		await updateSetting('security', 'autoLockTimeout', minutes)
 	}, [updateSetting])
 
-	const value = {
+	const value = useMemo(() => ({
 		isLocked: isLocked && isAuthenticated, // derived: logging out clears the lock
 		appLockEnabled,
 		unlockWithBiometrics,
@@ -189,7 +192,7 @@ export const AppLockProvider = ({ children }) => {
 		disableAppLock,
 		changeAppLockPin,
 		updateAutoLockTimeout,
-	}
+	}), [isLocked, isAuthenticated, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout])
 
 	return (
 		<AppLockContext.Provider value={value}>

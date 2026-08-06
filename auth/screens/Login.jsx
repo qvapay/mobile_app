@@ -1,5 +1,5 @@
-import { useReducer, useState, useEffect, useRef } from 'react'
 import { View, Text, Alert } from 'react-native'
+import { useReducer, useState, useEffect, useEffectEvent, useRef } from 'react'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -266,11 +266,10 @@ const LoginScreen = ({ navigation }) => {
 		navigation.navigate(ROUTES.RECOVER_PASSWORD_SCREEN, { email: form.email })
 	}
 
-	// Auto-submit when all digits entered
-	useEffect(() => {
-		if (form.showPin && form.code.length === expectedCodeLength && !isLoading) { handleLogin() }
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [form.code])
+	// Auto-submit when all digits entered (Effect Event: reads the latest
+	// handler/flags without re-running the effect on every state change)
+	const onCodeComplete = useEffectEvent(() => { if (form.showPin && form.code.length === expectedCodeLength && !isLoading) { handleLogin() } })
+	useEffect(() => { onCodeComplete() }, [form.code])
 
 	return (
 		<>

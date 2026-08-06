@@ -1,4 +1,4 @@
-import { createContext, use, useState, useEffect, useEffectEvent, useCallback, useRef } from 'react'
+import { createContext, use, useState, useEffect, useEffectEvent, useCallback, useMemo, useRef } from 'react'
 import { AppState } from 'react-native'
 import { useAuth } from '../auth/AuthContext'
 import { userApi } from '../api/userApi'
@@ -126,7 +126,10 @@ export function OnlineStatusProvider({ children }) {
 		return statuses[userId] === true
 	}, [statuses])
 
-	const value = { statuses, trackUsers, untrackUsers, isUserOnline, refreshStatuses: sendHeartbeat }
+	const value = useMemo(
+		() => ({ statuses, trackUsers, untrackUsers, isUserOnline, refreshStatuses: sendHeartbeat }),
+		[statuses, trackUsers, untrackUsers, isUserOnline, sendHeartbeat],
+	)
 
 	return (
 		<OnlineStatusContext.Provider value={value}>

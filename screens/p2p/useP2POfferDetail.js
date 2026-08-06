@@ -203,7 +203,8 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			; (async () => {
 				try {
 					const res = await p2pApi.peerProfile(displayedUserUuid)
-					if (!cancelled && res.success) setPeerProfile(res.data)
+					if (cancelled) return
+					if (res.success) setPeerProfile(res.data)
 				} catch { /* ignore — block hides itself when data is missing */ }
 			})()
 		return () => { cancelled = true }
