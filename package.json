@@ -1,6 +1,6 @@
 {
   "name": "QvaPay",
-  "version": "1.9.16",
+  "version": "2.0.2",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -61,7 +61,7 @@
     "react-native-passkey": "^3.4.0",
     "react-native-qrcode-scanner": "^1.6.0",
     "react-native-qrcode-styled": "^0.4.0",
-    "react-native-reanimated": "4.4.0",
+    "react-native-reanimated": "^4.5.3",
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.25.2",
     "react-native-sound": "^0.13.0",
@@ -71,8 +71,8 @@
     "react-native-version-check": "^3.5.0",
     "react-native-vision-camera": "^5.0.11",
     "react-native-vision-camera-barcode-scanner": "^5.0.11",
-    "react-native-worklets": "0.9.1",
-    "sonner-native": "^0.25.1"
+    "react-native-worklets": "^0.11.3",
+    "sonner-native": "^0.26.4"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
@@ -100,7 +100,7 @@
     "eslint-plugin-react-native": "^5.0.0",
     "jest": "^30.4.2",
     "prettier": "^3.8.3",
-    "react-doctor": "^0.5.0",
+    "react-doctor": "^0.9.6",
     "react-native-svg-transformer": "^1.5.3",
     "react-test-renderer": "19.2.3",
     "typescript": "^6.0.3"

@@ -68,7 +68,7 @@ PODS:
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
   - lottie-ios (4.6.0)
-  - lottie-react-native (7.3.8):
+  - lottie-react-native (7.4.0):
     - hermes-engine
     - lottie-ios (= 4.6.0)
     - RCTRequired
@@ -108,7 +108,7 @@ PODS:
     - GTMSessionFetcher/Core (< 4.0, >= 3.3.2)
     - MLImage (= 1.0.0-beta8)
     - MLKitCommon (~> 14.0)
-  - MunimBluetooth (0.4.4):
+  - MunimBluetooth (0.4.5):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -137,10 +137,10 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
-  - NitroIap (15.3.6):
+  - NitroIap (15.6.2):
     - hermes-engine
     - NitroModules
-    - openiap (= 2.2.4)
+    - openiap (= 2.4.4)
     - RCTRequired
     - RCTTypeSafety
     - React-callinvoker
@@ -209,9 +209,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - OneSignalXCFramework (5.5.3):
-    - OneSignalXCFramework/OneSignalComplete (= 5.5.3)
-  - OneSignalXCFramework/OneSignal (5.5.3):
+  - OneSignalXCFramework (5.5.5):
+    - OneSignalXCFramework/OneSignalComplete (= 5.5.5)
+  - OneSignalXCFramework/OneSignal (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalLiveActivities
@@ -219,46 +219,46 @@ PODS:
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalComplete (5.5.3):
+  - OneSignalXCFramework/OneSignalComplete (5.5.5):
     - OneSignalXCFramework/OneSignal
     - OneSignalXCFramework/OneSignalInAppMessages
     - OneSignalXCFramework/OneSignalLocation
-  - OneSignalXCFramework/OneSignalCore (5.5.3)
-  - OneSignalXCFramework/OneSignalExtension (5.5.3):
+  - OneSignalXCFramework/OneSignalCore (5.5.5)
+  - OneSignalXCFramework/OneSignalExtension (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalInAppMessages (5.5.3):
+  - OneSignalXCFramework/OneSignalInAppMessages (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLiveActivities (5.5.3):
+  - OneSignalXCFramework/OneSignalLiveActivities (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLocation (5.5.3):
+  - OneSignalXCFramework/OneSignalLocation (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalNotifications (5.5.3):
+  - OneSignalXCFramework/OneSignalNotifications (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOSCore (5.5.3):
+  - OneSignalXCFramework/OneSignalOSCore (5.5.5):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalOutcomes (5.5.3):
+  - OneSignalXCFramework/OneSignalOutcomes (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
-  - OneSignalXCFramework/OneSignalUser (5.5.3):
+  - OneSignalXCFramework/OneSignalUser (5.5.5):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - openiap (2.2.4)
+  - openiap (2.4.4)
   - PromisesObjC (2.4.1)
   - RCTDeprecation (0.84.1)
   - RCTRequired (0.84.1)
@@ -1727,9 +1727,9 @@ PODS:
     - Yoga
   - react-native-in-app-review (4.4.2):
     - React-Core
-  - react-native-onesignal (5.5.3):
+  - react-native-onesignal (5.5.6):
     - hermes-engine
-    - OneSignalXCFramework (= 5.5.3)
+    - OneSignalXCFramework (= 5.5.5)
     - RCTRequired
     - RCTTypeSafety
     - React-Core
@@ -1750,53 +1750,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-passkey (3.5.0):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - react-native-safe-area-context (5.8.0):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - react-native-safe-area-context/common (= 5.8.0)
-    - react-native-safe-area-context/fabric (= 5.8.0)
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - react-native-safe-area-context/common (5.8.0):
+  - react-native-passkey (3.6.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1818,7 +1772,53 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-safe-area-context/fabric (5.8.0):
+  - react-native-safe-area-context (5.8.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - react-native-safe-area-context/common (= 5.8.1)
+    - react-native-safe-area-context/fabric (= 5.8.1)
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - react-native-safe-area-context/common (5.8.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - react-native-safe-area-context/fabric (5.8.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2281,7 +2281,7 @@ PODS:
     - SDWebImageSVGCoder (~> 1.7.0)
     - SDWebImageWebPCoder (~> 0.14)
     - Yoga
-  - RNGestureHandler (3.0.2):
+  - RNGestureHandler (3.1.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2348,7 +2348,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNReanimated (4.4.0):
+  - RNReanimated (4.5.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2370,35 +2370,12 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNReanimated/apple (= 4.4.0)
-    - RNReanimated/common (= 4.4.0)
+    - RNReanimated/apple (= 4.5.3)
+    - RNReanimated/common (= 4.5.3)
+    - RNReanimated/view (= 4.5.3)
     - RNWorklets
     - Yoga
-  - RNReanimated/apple (4.4.0):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - RNWorklets
-    - Yoga
-  - RNReanimated/common (4.4.0):
+  - RNReanimated/apple (4.5.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2422,7 +2399,55 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
-  - RNScreens (4.25.2):
+  - RNReanimated/common (4.5.3):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNWorklets
+    - Yoga
+  - RNReanimated/view (4.5.3):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNWorklets
+    - Yoga
+  - RNScreens (4.27.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2444,9 +2469,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNScreens/common (= 4.25.2)
+    - RNScreens/common (= 4.27.0)
     - Yoga
-  - RNScreens/common (4.25.2):
+  - RNScreens/common (4.27.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2536,7 +2561,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNWorklets (0.9.1):
+  - RNWorklets (0.11.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2558,10 +2583,10 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNWorklets/apple (= 0.9.1)
-    - RNWorklets/common (= 0.9.1)
+    - RNWorklets/apple (= 0.11.3)
+    - RNWorklets/common (= 0.11.3)
     - Yoga
-  - RNWorklets/apple (0.9.1):
+  - RNWorklets/apple (0.11.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2584,7 +2609,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNWorklets/common (0.9.1):
+  - RNWorklets/common (0.11.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2618,7 +2643,7 @@ PODS:
   - SDWebImageWebPCoder (0.15.0):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
-  - VisionCamera (5.1.0):
+  - VisionCamera (5.2.2):
     - hermes-engine
     - NitroImage
     - NitroModules
@@ -2643,7 +2668,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - VisionCameraBarcodeScanner (5.1.0):
+  - VisionCameraBarcodeScanner (5.2.2):
     - GoogleMLKit/BarcodeScanning (= 9.0.0)
     - hermes-engine
     - NitroImage
@@ -3025,18 +3050,18 @@ SPEC CHECKSUMS:
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
-  lottie-react-native: 9df5f829ef3320a209f5c7c4a2e07e3b8d789401
+  lottie-react-native: 1985948b12100633e60929e2856a550bc8fbc4c9
   MLImage: 0de5c6c2bf9e93b80ef752e2797f0836f03b58c0
   MLKitBarcodeScanning: 39de223e7b1b8a8fbf10816a536dd292d8a39343
   MLKitCommon: 47d47b50a031d00db62f1b0efe5a1d8b09a3b2e6
   MLKitVision: 39a5a812db83c4a0794445088e567f3631c11961
-  MunimBluetooth: 03d1fa4bef063ee60f86de469ea6ae6a7896de15
+  MunimBluetooth: b2949aee6cc8df60f360f1c9233364ba4da30c7d
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
-  NitroIap: 31bb2f2af7b4f898d7f7812fdf1adfbb9b3b187e
+  NitroIap: 8b2ce4ebbe4d8206d26097b264bb1249024d3801
   NitroImage: 742b7d57e43573518c05cf92acac1c43d5e22255
   NitroModules: 48bc5e0cf2f9cab79f82754c0404a046c6cb6ed6
-  OneSignalXCFramework: f4505256255ae5fccfd33ba2eb1871ba2d4ce2bb
-  openiap: 9dffe727dc566ff7577a45a2429834c4dddecdb0
+  OneSignalXCFramework: 48e5b7c5b51d4e67bab3405229f963efde1a3894
+  openiap: 15b2c855d1c670d1d7afb765bee781f6d638c18c
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
   RCTRequired: bb77b070f75f53398ce43c0aaaa58337cebe2bf6
@@ -3079,9 +3104,9 @@ SPEC CHECKSUMS:
   react-native-device-brightness: 1a997350d060c3df9f303b1df84a4f7c5cbeb924
   react-native-image-picker: 4123dc2b15a0b6fc2f027e6cf94ae5f48c9ae9b0
   react-native-in-app-review: 1516ba69d60d58053b7eb3aaaf8d2a5a74af8b57
-  react-native-onesignal: 2225178e4dfe2e66c7394fdb9e8ec3848a1668f4
-  react-native-passkey: d9292ab40aaec9513cc9db4e2b8626c7fd610001
-  react-native-safe-area-context: 5fa8e2c34247c529f6591b888075f8f26d30eaf0
+  react-native-onesignal: 3b6106b6bb12708911219bab744d7382ffba74bf
+  react-native-passkey: 74a7dceeb031136a779a42694c36701e99f6b1f8
+  react-native-safe-area-context: 19e65f4551fe75e6f3dfa9b85fd7547b27a5b3fe
   react-native-vector-icons-fontawesome6: 9014730aa0e219382da1f109d47d1a378215cbf8
   react-native-version-check: 842a3b0e7221798cbe8c6abaf24aab3ed0b485ce
   React-NativeModulesApple: 5ba0903927f6b8d335a091700e9fda143980f819
@@ -3121,22 +3146,22 @@ SPEC CHECKSUMS:
   RNCClipboard: fc456104340b49bdf812f68bd00e764abf360361
   RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
   RNFastImage: ce74b21051b7c1932fe93922781618eb509f232b
-  RNGestureHandler: afa27414fedf46f92240a81270711539de94d786
+  RNGestureHandler: 46d6932590c78953ffb986880915872a3670dc6b
   RNKeychain: ce2cee63eab83888c3da68684da50b9c83c33461
   RNReactNativeHapticFeedback: 52c9ac4deb817e0a158bcfb3e25f5b9e9e3448bb
-  RNReanimated: f4bcf9024a7c617dd28adbefdd578ac0c0f2bb73
-  RNScreens: d3b8e93072b0d3d790c7185a0f0d344870784d1c
+  RNReanimated: 9cc6c1fbe4400c9c07dcf2784ba39201e6047a45
+  RNScreens: c580e997926a29cd5607d9153daf0faf98cf3b36
   RNSound: 80a0630031e83dcf51c08b52b50c4aa88e97e681
   RNSVG: 47ec2fc15b17426d7c22ccf14b9f4d8c1f88acaa
-  RNWorklets: a6ebd7b1ae53f150d747986d70bfc34932d7ffb4
+  RNWorklets: 9052122d7f98de547d247e775ea2069839236d38
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
-  VisionCamera: 9e60e5b9f1b9026fa805eebdab30f0c6cc3f03f4
-  VisionCameraBarcodeScanner: 1eb39893c6e2c2f663ea8d7f77d176449ce775b0
+  VisionCamera: 9020b5099a0fbdc38ad19e85a65a6cc5fee0225d
+  VisionCameraBarcodeScanner: e23d138980bed11f0e717261b1a2d8ae471c1ebe
   Yoga: 846fbe6f595136be802ad81d05688ff748839764
 
-PODFILE CHECKSUM: b7ff1384150397de514a53ba853d8506f4cef418
+PODFILE CHECKSUM: f0d271e47d6fb817d162df364a4bbe3147db8391
 
 COCOAPODS: 1.16.2

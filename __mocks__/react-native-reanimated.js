@@ -25,6 +25,7 @@ module.exports = {
 	__esModule: true,
 	default: Animated,
 	useSharedValue: (initial) => ({ value: initial }),
+	makeMutable: (initial) => ({ value: initial }),
 	useDerivedValue: (fn) => ({ value: typeof fn === 'function' ? fn() : fn }),
 	useAnimatedStyle: () => ({}),
 	useAnimatedProps: () => ({}),
@@ -41,6 +42,7 @@ module.exports = {
 	interpolate: (_value, _input, output) => (output ? output[0] : 0),
 	interpolateColor: (_value, _input, output) => (output ? output[0] : 'transparent'),
 	Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
+	ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },
 	Easing: {
 		linear: (t) => t,
 		ease: (t) => t,

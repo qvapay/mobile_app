@@ -9,6 +9,7 @@ require Pod::Executable.execute_command('node', ['-p',
 # GoogleMLKit/BarcodeScanning 8.0.0 (react-native-vision-camera-barcode-scanner)
 # requires iOS 15.5 for spec resolution.
 platform :ios, '15.5'
+
 prepare_react_native_project!
 
 # Use static frameworks to support Swift pods like VisionCamera and avoid non-modular includes
@@ -63,6 +64,19 @@ target 'QvaPay' do
         config.build_settings['REACT_NATIVE_PATH'] = File.join(Pod::Config.instance.installation_root, '..', 'node_modules', 'react-native')
         # Allow non-modular includes to prevent build errors with static frameworks
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        # El core precompilado de RN 0.84 (React-Core-prebuilt) se construye sin
+        # RN_DEBUG_STRING_CONVERTIBLE incluso en su variante debug: no exporta
+        # Sealable/getDebugName/etc. Los pods Fabric de terceros (RNSVG,
+        # NitroImage, RNGestureHandler…) sí los referencian al compilar en
+        # Debug → "Undefined symbols" al linkear. Compilarlos también como
+        # REACT_NATIVE_PRODUCTION los alinea con el ABI del core precompilado.
+        # https://github.com/invertase/react-native-firebase/issues/8883
+        if config.name == 'Debug'
+          existing_cxx = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
+          unless existing_cxx.include?('REACT_NATIVE_PRODUCTION')
+            config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{existing_cxx} -DREACT_NATIVE_PRODUCTION"
+          end
+        end
       end
     end
 

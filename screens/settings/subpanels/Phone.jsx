@@ -72,30 +72,28 @@ const Phone = () => {
 
 	// Load user data on mount
 	useEffect(() => {
-		loadUserData()
-	}, [])
-
-	// Load user data from API
-	const loadUserData = async () => {
-		try {
-			setIsLoadingData(true)
-			const result = await userApi.getUserProfile()
-			if (result.success && result.data) {
-				setUserPhoneVerified(result.data.phone_verified || false)
-				setUserPhone(result.data.phone || '')
-				if (result.data.phone) {
-					// Extract country code from phone
-					const phoneWithCode = result.data.phone
-					const countryData = countries.find(c => phoneWithCode.startsWith(c.dial_code))
-					if (countryData) {
-						setCountry(countryData.code)
-						setPhone(phoneWithCode.replace(countryData.dial_code, ''))
+		const loadUserData = async () => {
+			try {
+				setIsLoadingData(true)
+				const result = await userApi.getUserProfile()
+				if (result.success && result.data) {
+					setUserPhoneVerified(result.data.phone_verified || false)
+					setUserPhone(result.data.phone || '')
+					if (result.data.phone) {
+						// Extract country code from phone
+						const phoneWithCode = result.data.phone
+						const countryData = countries.find(c => phoneWithCode.startsWith(c.dial_code))
+						if (countryData) {
+							setCountry(countryData.code)
+							setPhone(phoneWithCode.replace(countryData.dial_code, ''))
+						}
 					}
 				}
-			}
-		} catch (error) { /* error loading user data */ }
-		finally { setIsLoadingData(false) }
-	}
+			} catch (error) { /* error loading user data */ }
+			finally { setIsLoadingData(false) }
+		}
+		loadUserData()
+	}, [])
 
 	// Remove phone number
 	const handleRemovePhone = async () => {
