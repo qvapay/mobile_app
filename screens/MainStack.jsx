@@ -182,6 +182,11 @@ const MainStack = ({ navigation }) => {
 						{showBalance ? (user.satoshis || 0).toLocaleString() : '***'}
 					</Text>
 				</View>
+				{!user.golden_check && (
+					<Pressable style={{ marginRight: 16 }} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
+						<FontAwesome6 name="crown" size={20} color={theme.colors.gold} iconStyle="solid" />
+					</Pressable>
+				)}
 				<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
 					<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 				</Pressable>
@@ -202,6 +207,15 @@ const MainStack = ({ navigation }) => {
 					),
 					hidesSharedBackground: true,
 				},
+				...(!user.golden_check ? [{
+					type: 'custom',
+					element: (
+						<Pressable onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
+							<FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" />
+						</Pressable>
+					),
+					hidesSharedBackground: true,
+				}] : []),
 				{
 					type: 'button',
 					label: 'Escanear',
@@ -264,7 +278,7 @@ const MainStack = ({ navigation }) => {
 					initialRouteName={ROUTES.HOME_SCREEN}
 					backBehavior='initialRoute'
 					screenOptions={screenOptions}
-						{...(Platform.OS === 'android' ? { tabBar: (props) => <AnimatedTabBar {...props} /> } : {})}
+					{...(Platform.OS === 'android' ? { tabBar: (props) => <AnimatedTabBar {...props} /> } : {})}
 				>
 
 					<Tab.Screen

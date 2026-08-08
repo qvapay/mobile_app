@@ -10,6 +10,15 @@ require Pod::Executable.execute_command('node', ['-p',
 # requires iOS 15.5 for spec resolution.
 platform :ios, '15.5'
 
+# Compilar React core y dependencias desde fuente. El core precompilado de RN 0.84
+# (React-Core-prebuilt) se construye como release (sin REACT_NATIVE_DEBUG), con un
+# layout de Props/Sealable distinto al del código Fabric de terceros compilado en
+# Debug (nitro/VisionCamera/NitroImage) → EXC_BAD_ACCESS en Props::Props() al
+# registrar component descriptors en el arranque.
+# https://github.com/invertase/react-native-firebase/issues/8883
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
+ENV['RCT_USE_RN_DEP'] = '0'
+
 prepare_react_native_project!
 
 # Use static frameworks to support Swift pods like VisionCamera and avoid non-modular includes
@@ -64,18 +73,29 @@ target 'QvaPay' do
         config.build_settings['REACT_NATIVE_PATH'] = File.join(Pod::Config.instance.installation_root, '..', 'node_modules', 'react-native')
         # Allow non-modular includes to prevent build errors with static frameworks
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-        # El core precompilado de RN 0.84 (React-Core-prebuilt) se construye sin
-        # RN_DEBUG_STRING_CONVERTIBLE incluso en su variante debug: no exporta
-        # Sealable/getDebugName/etc. Los pods Fabric de terceros (RNSVG,
-        # NitroImage, RNGestureHandler…) sí los referencian al compilar en
-        # Debug → "Undefined symbols" al linkear. Compilarlos también como
-        # REACT_NATIVE_PRODUCTION los alinea con el ABI del core precompilado.
-        # https://github.com/invertase/react-native-firebase/issues/8883
-        if config.name == 'Debug'
-          existing_cxx = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
-          unless existing_cxx.include?('REACT_NATIVE_PRODUCTION')
-            config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{existing_cxx} -DREACT_NATIVE_PRODUCTION"
-          end
+        # Pods Swift que hacen `import React` (MunimBluetooth) construyen el módulo
+        # clang de React-Core en su propio contexto. Compilando el core desde fuente,
+        # RCTBridge+Inspector.h importa <jsinspector-modern/ReactCdp.h> y esos headers
+        # viven dentro de los frameworks estáticos de React-jsinspector*/JSITooling,
+        # cuyos paths React-Core.podspec solo se añade a sí mismo → "could not build
+        # Objective-C module 'React'". Se los damos a todos los pods.
+        react_module_headers = [
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspector/jsinspector_modern.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspectorcdp/jsinspector_moderncdp.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspectornetwork/jsinspector_modernnetwork.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspectortracing/jsinspector_moderntracing.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsitooling/JSITooling.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-runtimeexecutor/React_runtimeexecutor.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-runtimeexecutor/React_runtimeexecutor.framework/Headers/platform/ios"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-utils/React_utils.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-utils/React_utils.framework/Headers/react/utils/platform/ios"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-debug/React_debug.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/React-featureflags/React_featureflags.framework/Headers"',
+          '"${PODS_CONFIGURATION_BUILD_DIR}/RCTDeprecation/RCTDeprecation.framework/Headers"',
+        ]
+        existing_headers = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        unless existing_headers.include?('jsinspector_modern.framework')
+          config.build_settings['HEADER_SEARCH_PATHS'] = ([existing_headers] + react_module_headers).join(' ')
         end
       end
     end
