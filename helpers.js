@@ -98,6 +98,73 @@ const timeAgo = (date) => {
 }
 
 /**
+ * Extracts the amount (in satoshis) encoded in a BOLT11 invoice's human-readable
+ * part: `lnbc<value><multiplier>1...` where the multiplier is m (milli), u (micro),
+ * n (nano) or p (pico) BTC. Zero-amount invoices carry no digits and return null.
+ * Client-side hint only — the backend re-decodes the invoice authoritatively.
+ * @param {string} invoice - BOLT11 mainnet invoice (lnbc...).
+ * @returns {number|null} Amount in sats, or null for zero-amount invoices.
+ */
+const bolt11AmountSats = (invoice) => {
+	const match = invoice.toLowerCase().match(/^lnbc(\d+)?([munp])?1/)
+	if (!match || !match[1]) { return null }
+	const multiplier = { m: 1e-3, u: 1e-6, n: 1e-9, p: 1e-12 }[match[2]] ?? 1
+	const sats = Math.round(Number(match[1]) * multiplier * 1e8)
+	return sats > 0 ? sats : null
+}
+
+/**
+ * Parses Lightning Network payment targets out of a raw QR payload. Recognizes:
+ *   1) Bare BOLT11 mainnet invoices (lnbc..., case-insensitive)
+ *   2) lightning:/lnurl:/lnurlp: prefixed payloads (Phoenix, Muun, etc.)
+ *   3) BIP-21 bitcoin: URIs carrying a `lightning=` query param (BlueWallet, etc.)
+ *   4) LNURL-pay bech32 strings (lnurl1...)
+ *   5) Lightning Addresses (user@domain) — only when explicitly prefixed with
+ *      lightning:, so plain emails in arbitrary QRs never misfire as payments
+ * @param {string} raw - Raw QR payload.
+ * @returns {{ type: 'lightning', invoice: string, amountSats: number|null } | null}
+ */
+const parseLightningQR = (raw) => {
+
+	if (typeof raw !== 'string') { return null }
+	let target = raw.trim()
+	if (!target) { return null }
+
+	// BIP-21 bitcoin: URI — el pago LN viaja en el query param `lightning`
+	let hadLightningPrefix = false
+	if (/^bitcoin:/i.test(target)) {
+		const queryIndex = target.indexOf('?')
+		if (queryIndex === -1) { return null }
+		const lightningParam = target.slice(queryIndex + 1).split('&').find((param) => /^lightning=/i.test(param))
+		if (!lightningParam) { return null }
+		target = decodeURIComponent(lightningParam.slice('lightning='.length)).trim()
+		hadLightningPrefix = true
+	}
+
+	// Prefijos de wallets: lightning:, lnurl:, lnurlp: (con o sin //)
+	const withoutPrefix = target.replace(/^(lightning|lnurlp|lnurl):(\/\/)?/i, '')
+	if (withoutPrefix !== target) { hadLightningPrefix = true }
+	target = withoutPrefix.trim()
+
+	// BOLT11 mainnet (bech32: HRP + separador '1' + data)
+	if (/^lnbc[0-9a-z]*1[0-9a-z]+$/i.test(target)) {
+		return { type: 'lightning', invoice: target, amountSats: bolt11AmountSats(target) }
+	}
+
+	// LNURL-pay bech32
+	if (/^lnurl1[ac-hj-np-z02-9]+$/i.test(target)) {
+		return { type: 'lightning', invoice: target, amountSats: null }
+	}
+
+	// Lightning Address — solo con prefijo explícito (un email pelado no es un pago)
+	if (hadLightningPrefix && /^[a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(target)) {
+		return { type: 'lightning', invoice: target, amountSats: null }
+	}
+
+	return null
+}
+
+/**
  * Parses scanned QR payloads / deep link URLs into a payment intent using RegExp.
  * Supports (with or without www):
  *   1) https://[www.]qvapay.com/payme/username/<name>[/<amount>]
@@ -105,19 +172,27 @@ const timeAgo = (date) => {
  *   3) https://[www.]qvapay.com/payme/<identifier>[/<amount>] (auto-detects uuid vs username)
  *   4) https://[www.]qvapay.com/pay/<uuid> — merchant invoice deep link
  *   5) qvapay://pay/<uuid> — custom scheme invoice deep link
+ *   6) Lightning Network targets (BOLT11 / LNURL / bitcoin:?lightning=) via parseLightningQR
  * Invoice links also match local dev hosts (localhost / 127.0.0.1 / LAN IPs).
  * Query string and hash are stripped before matching.
  * @param {string} data - Raw QR payload.
  * @returns {{ type: 'pay', uuid: string }
  *   | { type: 'payme', username?: string, uuid?: string, amount?: string }
+ *   | { type: 'lightning', invoice: string, amountSats: number|null }
  *   | null} null when the payload matches none of the patterns.
  */
 const parseQRData = (data) => {
 
 	if (typeof data !== 'string') { return null }
 
-	// Strip query/hash parts to simplify matching
 	const raw = data.trim()
+
+	// Lightning primero y sobre el payload crudo: el split de query de abajo
+	// destruiría un URI bitcoin:...?lightning=<invoice>
+	const lightning = parseLightningQR(raw)
+	if (lightning) { return lightning }
+
+	// Strip query/hash parts to simplify matching
 	const pathOnly = raw.split('?')[0].split('#')[0]
 
 	// Pay (invoice) patterns — https (prod + local dev hosts) and custom scheme
@@ -437,6 +512,7 @@ export {
 	reduceString,
 	getShortDateTime,
 	parseQRData,
+	parseLightningQR,
 	isValidQRData,
 	filterCoins,
 	truncateWalletAddress,

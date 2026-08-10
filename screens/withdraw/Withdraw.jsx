@@ -1,17 +1,21 @@
-import { useEffect, useEffectEvent, useMemo, useState, useReducer } from 'react'
-import { View } from 'react-native'
+import { useEffect, useEffectEvent, useMemo, useRef, useState, useReducer } from 'react'
+import { View, Text } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { createTextStyles } from '../../theme/themeUtils'
+import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPButton from '../../ui/particles/QPButton'
+import QPSwitch from '../../ui/particles/QPSwitch'
 import QPCoinPicker from '../../ui/QPCoinPicker'
 import WithdrawAmountCard from './WithdrawAmountCard'
+import WithdrawSatsCard from './WithdrawSatsCard'
 import WithdrawAccountFields from './WithdrawAccountFields'
-import WithdrawPinStep from './WithdrawPinStep'
+import WithdrawDestinationSelector from './WithdrawDestinationSelector'
+import PinConfirmStep from '../transaction/PinConfirmStep'
+import { isCryptoCoin } from './withdrawDestination'
 import usePinEntry from '../../hooks/usePinEntry'
 
 // API
@@ -32,6 +36,9 @@ const DEFAULT_WITHDRAW_COINS = [
 	{ tick: 'ETECSA', label: 'ETECSA' },
 ]
 const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
+
+// Mínimo de sats por redención (espejo de MIN_SATS_REDEEM en el backend)
+const MIN_SATS_REDEEM = 100
 
 const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 
@@ -84,17 +91,28 @@ const initialPinFlow = { showPinStep: false, sendingPin: false, sendingWithdraw:
  * drives the dynamic account fields, and fees (`fee_out` / `fee_out_fixed`) are
  * computed client-side alongside a live USD↔coin amount converter.
  * Accepts `route.params.preselectedCoin` (e.g. USDCASH from CashDeliveryCard).
+ * Crypto coins gate the account fields behind a destination selector (own
+ * wallet vs third parties — third-party payouts are blocked), mirroring the
+ * web wizard's DestinationStep.
+ * Lightning (BTCLN): `route.params.lnInvoice` / `lnAmountSats` (from the QR scanner)
+ * prefill the destination and lock the amount to the invoice; a "Saldo | Satoshis"
+ * toggle lets the user redeem their cashback sats instead of debiting USD balance
+ * (`source: 'satoshis'`, no fee, minimum MIN_SATS_REDEEM).
  * Confirmation uses an emailed PIN (`withdrawApi.requestPin`) or a 6-digit TOTP,
  * then submits `POST /withdraw`.
  */
 const Withdraw = ({ navigation, route }) => {
 
 	// Contexts
-	const { user } = useAuth()
+	const { user, updateUser } = useAuth()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
+
+	// Scroll del form — el paso de PIN aparece debajo del fold y hay que llevarlo a la vista
+	const scrollViewRef = useRef(null)
 
 	// Amount swap (same-named setters keep every call site unchanged)
 	const [amountState, dispatchAmount] = useReducer(setFieldReducer, { amountQUSD: '', amountCoin: '' })
@@ -121,13 +139,32 @@ const Withdraw = ({ navigation, route }) => {
 	const setSendingPin = (value) => dispatchPin({ type: 'set', field: 'sendingPin', value })
 	const setSendingWithdraw = (value) => dispatchPin({ type: 'set', field: 'sendingWithdraw', value })
 
-	// PIN/OTP input mechanics (entered code, focus, method toggle, handlers)
-	const { pin, setPin, twoFactorMethod, codeLength, focusedInputIndex, pinInputsRef, handlePinChange, handleKeyPress, handleFocus, handleBlur, handleMethodToggle } = usePinEntry()
+	// PIN/OTP state (entered code, method toggle, code length) — box mechanics live in QPCodeInput
+	const { pin, setPin, twoFactorMethod, codeLength, codeInputRef, handleMethodToggle } = usePinEntry()
 
 	const hasOTP = !!user?.two_factor_secret
 
 	// Pre-selected coin from navigation params (e.g., USDCASH from CashDeliveryCard)
 	const preselectedCoin = route?.params?.preselectedCoin
+
+	// Lightning params from the QR scanner (Scan → parseLightningQR)
+	const lnInvoice = route?.params?.lnInvoice
+	const lnAmountSats = Number(route?.params?.lnAmountSats) || 0
+
+	// Origen de fondos para BTCLN: balance USD o redención de sats de cashback
+	const [source, setSource] = useState('balance')
+	const [amountSats, setAmountSats] = useState(lnAmountSats > 0 ? String(lnAmountSats) : '')
+	const [lnInfo, setLnInfo] = useState(null)
+
+	// Crypto destination gate (own wallet vs third parties)
+	const [destination, setDestination] = useState(null)
+	const isCrypto = isCryptoCoin(selectedCoin)
+
+	const isBTCLN = selectedCoin?.tick === 'BTCLN'
+	const sourceSats = isBTCLN && source === 'satoshis'
+	const availableSats = Number(user?.satoshis) || 0
+	// Una factura con monto fijo manda: ambos modos quedan bloqueados en ese monto
+	const amountLocked = isBTCLN && lnAmountSats > 0
 
 	// Fetch available coins enabled_out
 	useEffect(() => {
@@ -154,6 +191,19 @@ const Withdraw = ({ navigation, route }) => {
 		const d = Number(selectedCoin?.decimals)
 		return Number.isFinite(d) && d >= 0 ? d : 2
 	}, [selectedCoin])
+
+	// Prefill de la factura escaneada una vez que BTCLN resuelve del fetch de coins:
+	// destino al campo `wallet` del working_data, monto derivado de la factura (si trae),
+	// y decode informativo (descripción/expiración) con fallo silencioso.
+	const applyLnPrefill = useEffectEvent(() => {
+		const walletField = workingFields.find((field) => (field.name || '').toLowerCase() === 'wallet')
+		if (walletField) { setWorkingForm((prev) => ({ ...prev, [keyFromFieldName(walletField.name)]: lnInvoice })) }
+		if (lnAmountSats > 0) { handleChangeAmountCoin((lnAmountSats / 1e8).toFixed(8)) }
+		withdrawApi.decodeLightning(lnInvoice).then((res) => { if (res.success) { setLnInfo(res.data) } }).catch(() => { })
+	})
+	useEffect(() => {
+		if (lnInvoice && selectedCoin?.tick === 'BTCLN') { applyLnPrefill() }
+	}, [lnInvoice, selectedCoin])
 
 	// QUSD bruto -> cantidad en coin (descontando fee)
 	const handleChangeQUSD = (value) => {
@@ -209,18 +259,26 @@ const Withdraw = ({ navigation, route }) => {
 
 	const isFormValid = useMemo(() => {
 		if (!selectedCoin) { return false }
-		const amount = Number(amountQUSD)
-		if (!amount || isNaN(amount)) { return false }
+		if (isCrypto && destination !== 'personal') { return false }
+		if (sourceSats) {
+			const sats = Number(amountSats)
+			if (!Number.isInteger(sats) || sats < MIN_SATS_REDEEM || sats > availableSats) { return false }
+		} else {
+			const amount = Number(amountQUSD)
+			if (!amount || isNaN(amount)) { return false }
+		}
 		return workingFields.every((field) => {
 			const key = keyFromFieldName(field.name)
 			const value = (workingForm[key] ?? '').toString().trim()
 			return value.length > 0
 		})
-	}, [selectedCoin, amountQUSD, workingFields, workingForm])
+	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, workingFields, workingForm])
 
 	const handleCoinSelect = (coin) => {
 		setSelectedCoin(coin)
 		setShowCoinPicker(false)
+		setDestination(null)
+		if (coin?.tick !== 'BTCLN') { setSource('balance') }
 		if (amountQUSD) {
 			const num = Number(amountQUSD)
 			if (!isNaN(num) && num > 0) {
@@ -264,14 +322,29 @@ const Withdraw = ({ navigation, route }) => {
 				const key = keyFromFieldName(field.name)
 				details[field.name] = workingForm[key] || ''
 			}
-			const result = await withdrawApi.withdraw(amountQUSD, selectedCoin.tick, details, pin)
+			const result = await withdrawApi.withdraw({
+				amount: amountQUSD,
+				coin: selectedCoin.tick,
+				details,
+				pin,
+				...(sourceSats && { source: 'satoshis', amountSats: Number(amountSats) }),
+			})
 
 			if (result.success) {
-				toast.success('Extracción procesada', { description: `Se han extraído $${amountQUSD} QUSD` })
+				if (sourceSats) {
+					toast.success('Redención procesada', { description: `Se han redimido ${Number(amountSats).toLocaleString()} sats` })
+					// El backend devuelve los sats restantes fresh — reflejarlos sin refetch
+					const satoshisLeft = result.data?.data?.satoshis
+					if (typeof satoshisLeft === 'number') { updateUser({ satoshis: satoshisLeft }) }
+				} else {
+					toast.success('Extracción procesada', { description: `Se han extraído $${amountQUSD} QUSD` })
+					updateUser({ balance: Number(user?.balance || 0) - Number(amountQUSD) })
+				}
 				setShowPinStep(false)
 				setPin('')
 				setAmountQUSD('')
 				setAmountCoin('')
+				setAmountSats('')
 				setWorkingForm({})
 				navigation.goBack()
 			} else {
@@ -287,13 +360,30 @@ const Withdraw = ({ navigation, route }) => {
 	const onPinComplete = useEffectEvent(() => { if (pin.length === codeLength && !sendingWithdraw) { handleWithdraw() } })
 	useEffect(() => { onPinComplete() }, [pin])
 
+	// Auto-scroll to PIN section when it appears (mismo patrón que SendConfirm —
+	// sin esto el paso de PIN queda bajo el fold y el usuario no sabe que existe)
+	useEffect(() => {
+		if (!showPinStep) return
+		const timer = setTimeout(() => {
+			scrollViewRef.current?.scrollToEnd({ animated: true })
+			codeInputRef.current?.focus(0)
+		}, 100)
+		return () => clearTimeout(timer)
+	}, [showPinStep, codeInputRef])
+
+	// Re-scroll al enfocar una cajita: el teclado encoge el viewport y taparía el input
+	const handlePinBoxFocus = () => {
+		setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)
+	}
+
 	return (
 		<>
 			<QPKeyboardView
+				scrollViewRef={scrollViewRef}
 				actions={
 					showPinStep ? (
 						<QPButton
-							title={`Extraer $${amountQUSD} ${currency}`}
+							title={sourceSats ? `Redimir ${(Number(amountSats) || 0).toLocaleString()} sats` : `Extraer $${amountQUSD} ${currency}`}
 							onPress={handleWithdraw}
 							disabled={!isFormValid || !pin || pin.length < codeLength}
 							loading={sendingWithdraw}
@@ -317,49 +407,96 @@ const Withdraw = ({ navigation, route }) => {
 			>
 				<View style={{ flex: 1 }}>
 
-					<WithdrawAmountCard
-						amountQUSD={amountQUSD}
-						amountCoin={amountCoin}
-						onChangeQUSD={handleChangeQUSD}
-						onChangeAmountCoin={handleChangeAmountCoin}
-						selectedCoin={selectedCoin}
-						balance={balance}
-						currency={currency}
-						onOpenCoinPicker={() => setShowCoinPicker(true)}
-						theme={theme}
-						textStyles={textStyles}
-					/>
+					{/* Origen de fondos (solo BTCLN): balance USD o redención de sats */}
+					{isBTCLN && availableSats > 0 && (
+						<QPSwitch
+							value={source === 'satoshis' ? 'right' : 'left'}
+							leftText="Saldo"
+							rightText={`⚡ ${availableSats.toLocaleString()} sats`}
+							leftColor={theme.colors.primary}
+							rightColor="#F7931A"
+							onChange={(side) => setSource(side === 'right' ? 'satoshis' : 'balance')}
+							style={{ marginBottom: 12 }}
+						/>
+					)}
 
-					{/* Dynamic Working Data Inputs */}
-					{selectedCoin && workingFields.length > 0 && (
-						<WithdrawAccountFields
-							workingFields={workingFields}
-							workingForm={workingForm}
-							onChangeField={(key, text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
+					{sourceSats ? (
+						<WithdrawSatsCard
+							amountSats={amountSats}
+							onChangeAmountSats={(text) => setAmountSats(text.replace(/[^0-9]/g, ''))}
+							availableSats={availableSats}
+							btcPrice={Number(selectedCoin?.price) || 0}
+							minSats={MIN_SATS_REDEEM}
+							locked={amountLocked}
+							theme={theme}
+							textStyles={textStyles}
+						/>
+					) : (
+						<WithdrawAmountCard
+							amountQUSD={amountQUSD}
+							amountCoin={amountCoin}
+							onChangeQUSD={handleChangeQUSD}
+							onChangeAmountCoin={handleChangeAmountCoin}
+							selectedCoin={selectedCoin}
+							balance={balance}
+							currency={currency}
+							onOpenCoinPicker={() => setShowCoinPicker(true)}
+							locked={amountLocked}
+							lockedCaption={`Monto fijado por la factura ⚡ ${lnAmountSats.toLocaleString()} sats`}
 							theme={theme}
 							textStyles={textStyles}
 						/>
 					)}
 
-					{/* PIN/OTP Step */}
-					{showPinStep && (
-						<WithdrawPinStep
-							pin={pin}
-							codeLength={codeLength}
-							twoFactorMethod={twoFactorMethod}
-							hasOTP={hasOTP}
-							sendingPin={sendingPin}
-							focusedInputIndex={focusedInputIndex}
-							pinInputsRef={pinInputsRef}
-							onPinChange={handlePinChange}
-							onKeyPress={handleKeyPress}
-							onFocus={handleFocus}
-							onBlur={handleBlur}
-							onMethodToggle={handleMethodToggle}
-							onRequestPin={handleRequestPin}
+					{/* Destino de fondos (solo crypto): wallet propia o terceros (bloqueado) */}
+					{selectedCoin && isCrypto && (
+						<WithdrawDestinationSelector
+							destination={destination}
+							onSelect={setDestination}
 							theme={theme}
 							textStyles={textStyles}
 						/>
+					)}
+
+					{/* Dynamic Working Data Inputs */}
+					{selectedCoin && workingFields.length > 0 && (!isCrypto || destination === 'personal') && (
+						<WithdrawAccountFields
+							workingFields={workingFields}
+							workingForm={workingForm}
+							onChangeField={(key, text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
+							multilineKeys={isBTCLN ? ['wallet'] : []}
+							theme={theme}
+							textStyles={textStyles}
+						/>
+					)}
+
+					{/* Info autoritativa de la factura escaneada (decode del backend, no crítico) */}
+					{isBTCLN && lnInfo?.kind === 'bolt11' && (
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 6 }]}>
+							{lnInfo.description ? `“${lnInfo.description}”` : 'Factura Lightning'}
+							{lnInfo.expires_at ? ` · expira en ${Math.max(0, Math.round((lnInfo.expires_at - Date.now()) / 60000))} min` : ''}
+						</Text>
+					)}
+
+					{/* PIN/OTP Step — mismo card de confirmación que SendConfirm */}
+					{showPinStep && (
+						<View style={{ marginTop: 20 }}>
+							<PinConfirmStep
+								pin={pin}
+								onChangePin={setPin}
+								codeLength={codeLength}
+								twoFactorMethod={twoFactorMethod}
+								hasOTP={hasOTP}
+								sendingPin={sendingPin}
+								onMethodToggle={handleMethodToggle}
+								onRequestPin={handleRequestPin}
+								onBoxFocus={handlePinBoxFocus}
+								codeInputRef={codeInputRef}
+								theme={theme}
+								textStyles={textStyles}
+								containerStyles={containerStyles}
+							/>
+						</View>
 					)}
 				</View>
 			</QPKeyboardView>

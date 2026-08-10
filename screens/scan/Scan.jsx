@@ -147,6 +147,13 @@ const Scan = ({ navigation, route }) => {
 			} else if (parsedData?.uuid && parsedData?.amount) {
 				navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.uuid, send_amount: parsedData.amount })
 			}
+		} else if (parsedData?.type === 'lightning') {
+			// Factura/destino Lightning → extracción BTCLN con el destino prellenado
+			navigation.replace(ROUTES.WITHDRAW, {
+				preselectedCoin: 'BTCLN',
+				lnInvoice: parsedData.invoice,
+				lnAmountSats: parsedData.amountSats,
+			})
 		}
 
 		// Re-enable scanning after a short delay (allows navigation to complete)

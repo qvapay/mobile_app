@@ -1,10 +1,27 @@
-import { View, Text, TextInput, StyleSheet } from 'react-native'
+import { View, Text } from 'react-native'
 
 import QPSwitch from '../../ui/particles/QPSwitch'
+import QPCodeInput from '../../ui/particles/QPCodeInput'
 
-// PIN / OTP entry card for confirming a transfer. Controlled by the parent (which owns
-// the pin value, refs and handlers) so the footer button + auto-submit stay in sync.
-const PinConfirmStep = ({ pin, codeLength, twoFactorMethod, hasOTP, sendingPin, focusedInputIndex, pinInputsRef, onPinChange, onKeyPress, onFocus, onBlur, onMethodToggle, onRequestPin, theme, textStyles, containerStyles }) => (
+/**
+ * PIN / OTP entry card for confirming a money operation (transfer, withdraw).
+ * The parent owns the pin string + method toggle (see hooks/usePinEntry); the
+ * digit-box mechanics live in QPCodeInput (secure mode). Re-keys the code input
+ * by method so PIN ↔ OTP swaps rebuild the grid at the right length.
+ *
+ * @param {object} props
+ * @param {string} props.pin - Entered code (controlled by the parent).
+ * @param {function} props.onChangePin - Receives the full updated code string.
+ * @param {number} props.codeLength - 4 (email PIN) or 6 (TOTP).
+ * @param {'pin'|'otp'} props.twoFactorMethod - Active method.
+ * @param {boolean} props.hasOTP - Show the PIN ↔ OTP switch.
+ * @param {boolean} props.sendingPin - Disables the "Solicitar PIN" link while requesting.
+ * @param {function} props.onMethodToggle - QPSwitch side handler ('left' | 'right').
+ * @param {function} props.onRequestPin - Emails a fresh PIN (withdrawApi.requestPin).
+ * @param {function} [props.onBoxFocus] - Box focus callback (e.g. scroll-into-view).
+ * @param {object} [props.codeInputRef] - Ref to QPCodeInput ({ focus(index) }).
+ */
+const PinConfirmStep = ({ pin, onChangePin, codeLength, twoFactorMethod, hasOTP, sendingPin, onMethodToggle, onRequestPin, onBoxFocus, codeInputRef, theme, textStyles, containerStyles }) => (
 	<View style={[containerStyles.card, { marginTop: 0 }]}>
 
 		<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -30,48 +47,18 @@ const PinConfirmStep = ({ pin, codeLength, twoFactorMethod, hasOTP, sendingPin, 
 			/>
 		)}
 
-		<View style={styles.pinContainer}>
-			{Array.from({ length: codeLength }, (_, index) => (
-				<TextInput
-					key={`${twoFactorMethod}-${index}`}
-					ref={(ref) => { pinInputsRef.current[index] = ref }}
-					style={[styles.pinInput, codeLength === 6 && styles.pinInputSmall, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, borderColor: focusedInputIndex === index ? theme.colors.primary : theme.colors.border, borderWidth: 0.5, fontSize: codeLength === 6 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.semiBold }]}
-					value={pin[index] || ''}
-					onChangeText={(text) => onPinChange(text, index)}
-					onFocus={() => onFocus(index)}
-					onBlur={onBlur}
-					onKeyPress={(e) => onKeyPress(e, index)}
-					keyboardType="numeric"
-					secureTextEntry
-					textAlign="center"
-					selectTextOnFocus
-					textContentType="oneTimeCode"
-					autoComplete="sms-otp"
-					placeholder={focusedInputIndex === index ? "" : "0"}
-					placeholderTextColor={theme.colors.tertiaryText}
-				/>
-			))}
+		<View style={{ marginVertical: 20 }}>
+			<QPCodeInput
+				key={twoFactorMethod}
+				ref={codeInputRef}
+				length={codeLength}
+				code={pin}
+				onChangeCode={onChangePin}
+				secure
+				onBoxFocus={onBoxFocus}
+			/>
 		</View>
 	</View>
 )
-
-const styles = StyleSheet.create({
-	pinContainer: {
-		flexDirection: 'row',
-		marginVertical: 20,
-		gap: 8,
-	},
-	pinInput: {
-		flex: 1,
-		height: 60,
-		borderRadius: 12,
-		borderWidth: 1,
-		textAlign: 'center',
-	},
-	pinInputSmall: {
-		height: 54,
-		borderRadius: 10,
-	},
-})
 
 export default PinConfirmStep

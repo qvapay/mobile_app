@@ -83,4 +83,44 @@ describe('QPCodeInput', () => {
 		const tree = await render({ disabled: true })
 		getBoxes(tree).forEach(box => expect(box.props.editable).toBe(false))
 	})
+
+	test('secure hides the digits; default keeps them visible', async () => {
+		const secure = await render({ secure: true })
+		getBoxes(secure).forEach(box => expect(box.props.secureTextEntry).toBe(true))
+		const visible = await render()
+		getBoxes(visible).forEach(box => expect(box.props.secureTextEntry).toBe(false))
+	})
+
+	test('onFilled fires with the full code the moment the last box gets its digit', async () => {
+		const onFilled = jest.fn()
+		const tree = await render({ code: '123', onFilled })
+		await act(async () => { getBoxes(tree)[3].props.onChangeText('4') })
+		expect(onFilled).toHaveBeenCalledWith('1234')
+	})
+
+	test('onFilled fires on a full-code paste, but not on partial input', async () => {
+		const onFilled = jest.fn()
+		const tree = await render({ code: '', onFilled })
+		await act(async () => { getBoxes(tree)[0].props.onChangeText('9') })
+		expect(onFilled).not.toHaveBeenCalled()
+		await act(async () => { getBoxes(tree)[0].props.onChangeText('1234') })
+		expect(onFilled).toHaveBeenCalledWith('1234')
+	})
+
+	test('onBoxFocus reports the focused box index', async () => {
+		const onBoxFocus = jest.fn()
+		const tree = await render({ onBoxFocus })
+		await act(async () => { getBoxes(tree)[2].props.onFocus() })
+		expect(onBoxFocus).toHaveBeenCalledWith(2)
+	})
+
+	test('the imperative ref focuses any box (first by default)', async () => {
+		const ref = { current: null }
+		const tree = await render({ ref })
+		await act(async () => { ref.current.focus() })
+		expect(focusedBoxes()).toContain(getBoxes(tree)[0].instance)
+		focusMock.mockClear()
+		await act(async () => { ref.current.focus(2) })
+		expect(focusedBoxes()).toContain(getBoxes(tree)[2].instance)
+	})
 })

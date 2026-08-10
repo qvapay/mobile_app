@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // RN
-import { View, Text, TextInput, Pressable, Modal, StyleSheet, Animated } from 'react-native'
+import { View, Text, Pressable, Modal, StyleSheet, Animated } from 'react-native'
 
 // Context
 import { useTheme } from '../theme/ThemeContext'
@@ -15,6 +15,9 @@ import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client
 
 // Icons
 import FaceIDIcon from '../ui/particles/FaceIDIcon'
+
+// UI
+import QPCodeInput from '../ui/particles/QPCodeInput'
 
 // Biometric type + availability are detected together in one effect
 const initialBiometrics = { type: null, available: false }
@@ -48,8 +51,7 @@ const LockScreen = () => {
 	const [error, setError] = useState('')
 	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
 	const { type: biometryType, available: biometricsAvailable } = biometrics
-	const pinInputsRef = useRef([])
-	const [focusedInputIndex, setFocusedInputIndex] = useState(null)
+	const codeInputRef = useRef(null)
 	const shakeAnim = useRef(new Animated.Value(0)).current
 
 	// Check biometric availability when lock screen appears
@@ -88,7 +90,6 @@ const LockScreen = () => {
 		if (isLocked) {
 			setPin('')
 			setError('')
-			setFocusedInputIndex(null)
 		}
 	}, [isLocked])
 
@@ -102,46 +103,21 @@ const LockScreen = () => {
 		]).start()
 	}, [shakeAnim])
 
-	// Verify the entered PIN — called directly from the input handler the moment the
-	// 4th digit lands (no state round-trip through an effect).
+	// Verify the entered PIN — QPCodeInput's onFilled fires the moment the 4th digit
+	// lands (no state round-trip through an effect).
 	const verifyPin = async (code) => {
 		const result = await unlockWithPin(code)
 		if (!result.success) {
 			setError('PIN incorrecto')
 			setPin('')
 			triggerShake()
-			setTimeout(() => pinInputsRef.current[0]?.focus(), 300)
+			setTimeout(() => codeInputRef.current?.focus(0), 300)
 		}
 	}
 
-	// PIN input handlers (same pattern as SendConfirm.jsx)
-	const handlePinChange = (text, index) => {
-		const numericText = text.replace(/[^0-9]/g, '')
-		const newPin = pin.split('')
-		newPin[index] = numericText
-		const updatedPin = newPin.join('')
-		setPin(updatedPin)
+	const handleChangePin = (code) => {
+		setPin(code)
 		setError('')
-		if (numericText && index < 3) { pinInputsRef.current[index + 1]?.focus() }
-		if (updatedPin.length === 4) { verifyPin(updatedPin) }
-	}
-
-	const handlePinFocus = (index) => { setFocusedInputIndex(index) }
-	const handlePinBlur = () => { setFocusedInputIndex(null) }
-
-	const handlePinKeyPress = (e, index) => {
-		if (e.nativeEvent.key === 'Backspace') {
-			if (pin[index]) {
-				const newPin = pin.split('')
-				newPin[index] = ''
-				setPin(newPin.join(''))
-			} else if (index > 0) {
-				const newPin = pin.split('')
-				newPin[index - 1] = ''
-				setPin(newPin.join(''))
-				pinInputsRef.current[index - 1]?.focus()
-			}
-		}
 	}
 
 	const getBiometryLabel = () => {
@@ -199,28 +175,16 @@ const LockScreen = () => {
 					</View>
 				)}
 
-				{/* PIN input */}
+				{/* PIN input — QPCodeInput verifies vía onFilled al caer el 4to dígito */}
 				<Animated.View style={[styles.pinContainer, { transform: [{ translateX: shakeAnim }] }]}>
-					{Array.from({ length: 4 }, (_, index) => (
-						<TextInput
-							key={`lock-pin-${index}`}
-							ref={(ref) => { pinInputsRef.current[index] = ref }}
-							style={[styles.pinInput, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.bold }]}
-							value={pin[index] || ''}
-							onChangeText={(text) => handlePinChange(text, index)}
-							onFocus={() => handlePinFocus(index)}
-							onBlur={handlePinBlur}
-							onKeyPress={(e) => handlePinKeyPress(e, index)}
-							keyboardType="numeric"
-							secureTextEntry
-							textAlign="center"
-							selectTextOnFocus
-							textContentType="oneTimeCode"
-							autoComplete="sms-otp"
-							placeholder={focusedInputIndex === index ? '' : '0'}
-							placeholderTextColor={theme.colors.tertiaryText}
-						/>
-					))}
+					<QPCodeInput
+						ref={codeInputRef}
+						length={4}
+						code={pin}
+						onChangeCode={handleChangePin}
+						onFilled={verifyPin}
+						secure
+					/>
 				</Animated.View>
 
 				{/* Error message */}
@@ -263,16 +227,7 @@ const styles = StyleSheet.create({
 		height: 1,
 	},
 	pinContainer: {
-		flexDirection: 'row',
-		gap: 8,
 		marginTop: 24,
-	},
-	pinInput: {
-		flex: 1,
-		height: 60,
-		borderRadius: 12,
-		fontWeight: 'bold',
-		textAlign: 'center',
 	},
 })
 

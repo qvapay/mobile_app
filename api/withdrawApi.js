@@ -36,27 +36,34 @@ export const withdrawApi = {
 	 * verification code. The backend accepts either the 4-digit account PIN
 	 * (see `requestPin`) or a 6-digit TOTP code, and enforces coin min/max
 	 * limits plus KYC above certain amounts.
-	 * Gotcha: `pin` is sent as a `Number()`, so a code with leading zeros
-	 * loses digits. Emailed PINs are safe (always 1000–9999), but a 6-digit
-	 * TOTP starting with 0 gets mangled and rejected server-side.
+	 * With `source: 'satoshis'` (BTCLN only) the withdrawal redeems the user's
+	 * cashback sats: `amountSats` replaces `amount` and the backend debits
+	 * `User.satoshis` instead of the USD balance (fee 0).
+	 * `pin` travels as a string so TOTP codes with leading zeros stay intact
+	 * (the backend does `String(pin)` anyway).
 	 *
-	 * @param {number|string} amount - Amount to withdraw
-	 * @param {string} coin - Coin ticker (e.g., "BANK", "BTC", etc.)
-	 * @param {Object} details - Withdrawal details object (form fields)
-	 * @param {number|string} pin - User's 4-digit PIN or 6-digit OTP
-	 * @param {string} [payMethod] - Payment method (defaults to coin ticker if not provided)
-	 * @param {string} [note] - Optional personal note for the withdrawal
+	 * @param {Object} params
+	 * @param {number|string} [params.amount] - Amount in USD (ignored with source 'satoshis')
+	 * @param {string} params.coin - Coin ticker (e.g., "BANK", "BTCLN", etc.)
+	 * @param {Object} params.details - Withdrawal details object (form fields)
+	 * @param {number|string} params.pin - User's 4-digit PIN or 6-digit OTP
+	 * @param {string} [params.payMethod] - Payment method (defaults to coin ticker)
+	 * @param {string} [params.note] - Optional personal note for the withdrawal
+	 * @param {'balance'|'satoshis'} [params.source] - Funds origin (default balance)
+	 * @param {number} [params.amountSats] - Sats to redeem when source is 'satoshis'
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the created withdrawal + transaction
 	 */
-	withdraw: async (amount, coin, details, pin, payMethod, note) => {
+	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats }) => {
 
 		try {
 
 			const payload = {
 				pay_method: payMethod || coin,
-				amount: Number(amount),
 				details: details || {},
-				pin: Number(pin)
+				pin: String(pin),
+				...(source === 'satoshis'
+					? { source: 'satoshis', amount_sats: Number(amountSats) }
+					: { amount: Number(amount) }),
 			}
 
 			// Add note if provided
@@ -76,6 +83,27 @@ export const withdrawApi = {
 				}
 			}
 
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Decodes a Lightning destination (`POST /lightning/decode`, silent) so the
+	 * UI can show the authoritative amount, description and expiry of a BOLT11
+	 * invoice — or the min/max range of a Lightning Address — before submitting.
+	 * Purely informational: failures should never block the flow.
+	 *
+	 * @param {string} invoice - BOLT11 / Lightning Address / LNURL-pay target
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ kind, amount_sat?, description?, expires_at?, min_sat?, max_sat? }`
+	 */
+	decodeLightning: async (invoice) => {
+		try {
+			const response = await apiClient.post('/lightning/decode', { invoice }, { silent: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				return { success: false, error: error.response.data.error || 'Destino Lightning inválido', status: error.response.status }
+			}
 			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
 		}
 	},

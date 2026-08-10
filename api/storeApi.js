@@ -71,13 +71,11 @@ export const storeApi = {
 	 * (`POST /store/voucher/purchase`). Validates required fields client-side
 	 * and short-circuits with a local `status: 400` when any is missing.
 	 *
-	 * @param {{ offer_id: string, country: string, brand: string, amount?: number }} body - Purchase payload (`amount` only for variable-value offers).
+	 * @param {{ offer_id: string, country: string, brand: string, amount?: number, use_satoshis?: boolean }} body - Purchase payload (`amount` only for variable-value offers; `use_satoshis` applies the sats cashback as discount).
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the purchase with redemption info
 	 */
 	purchaseVoucher: async (body) => {
-		if (!body?.offer_id || !body?.country || !body?.brand) {
-			return { success: false, error: 'Faltan datos para la compra', status: 400 }
-		}
+		if (!body?.offer_id || !body?.country || !body?.brand) { return { success: false, error: 'Faltan datos para la compra', status: 400 } }
 		return wrap(() => apiClient.post('/store/voucher/purchase', body), 'No se pudo realizar la compra')
 	},
 
@@ -104,13 +102,11 @@ export const storeApi = {
 	 * Validates required fields client-side (local `status: 400` when missing).
 	 * For Cuban numbers use `purchasePhonePackage` instead.
 	 *
-	 * @param {{ offer_id: string, phone_number: string, country: string, amount?: number }} body - Top-up payload.
+	 * @param {{ offer_id: string, phone_number: string, country: string, amount?: number, use_satoshis?: boolean }} body - Top-up payload (`use_satoshis` applies the sats cashback as discount).
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
 	purchaseTopup: async (body) => {
-		if (!body?.offer_id || !body?.phone_number || !body?.country) {
-			return { success: false, error: 'Faltan datos para la recarga', status: 400 }
-		}
+		if (!body?.offer_id || !body?.phone_number || !body?.country) { return { success: false, error: 'Faltan datos para la recarga', status: 400 } }
 		return wrap(() => apiClient.post('/store/topup', body), 'No se pudo realizar la recarga')
 	},
 
@@ -118,13 +114,11 @@ export const storeApi = {
 	 * Purchases a Cubacel phone package for Cuba (`POST /store/phone_package`).
 	 * Validates required fields client-side (local `status: 400` when missing).
 	 *
-	 * @param {{ phone_package_id: string|number, phone_number: string }} body - Package payload.
+	 * @param {{ phone_package_id: string|number, phone_number: string, use_satoshis?: boolean }} body - Package payload (`use_satoshis` applies the sats cashback as discount).
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
 	purchasePhonePackage: async (body) => {
-		if (!body?.phone_package_id || !body?.phone_number) {
-			return { success: false, error: 'Faltan datos para la recarga', status: 400 }
-		}
+		if (!body?.phone_package_id || !body?.phone_number) { return { success: false, error: 'Faltan datos para la recarga', status: 400 } }
 		return wrap(() => apiClient.post('/store/phone_package', body), 'No se pudo realizar la recarga')
 	},
 

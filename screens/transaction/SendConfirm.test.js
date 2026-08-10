@@ -50,7 +50,7 @@ const renderConfirm = async (params = PARAMS) => {
 const buttonByTitle = (tree, title) => tree.root.findAllByType('QPButton').find(b => b.props.title === title)
 const pressContinuar = (tree) => act(async () => { buttonByTitle(tree, 'Continuar').props.onPress() })
 const pinStep = (tree) => tree.root.findByType('PinConfirmStep')
-const enterPin = (tree, code) => act(async () => { pinStep(tree).props.onPinChange(code, 0) })
+const enterPin = (tree, code) => act(async () => { pinStep(tree).props.onChangePin(code) })
 
 beforeEach(() => {
 	jest.clearAllMocks()

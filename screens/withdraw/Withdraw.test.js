@@ -17,16 +17,19 @@ jest.mock('../../ui/QPKeyboardView', () => {
 	return ({ children, actions }) => React.createElement(View, null, children, actions)
 })
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
+jest.mock('../../ui/particles/QPSwitch', () => 'QPSwitch')
 jest.mock('../../ui/QPCoinPicker', () => 'QPCoinPicker')
 jest.mock('./WithdrawAmountCard', () => 'WithdrawAmountCard')
+jest.mock('./WithdrawSatsCard', () => 'WithdrawSatsCard')
 jest.mock('./WithdrawAccountFields', () => 'WithdrawAccountFields')
-jest.mock('./WithdrawPinStep', () => 'WithdrawPinStep')
+jest.mock('./WithdrawDestinationSelector', () => 'WithdrawDestinationSelector')
+jest.mock('../transaction/PinConfirmStep', () => 'PinConfirmStep')
 jest.mock('../../api/client', () => ({
 	__esModule: true,
 	default: { get: jest.fn() },
 }))
 jest.mock('../../api/withdrawApi', () => ({
-	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn() },
+	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn() },
 }))
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
@@ -77,6 +80,32 @@ const THRESHOLD = {
 	logo: 'thr',
 	working_data: null,
 }
+// Crypto coin (category 1 + network): gated behind the destination selector
+const USDT = {
+	tick: 'USDT',
+	name: 'Tether',
+	coins_categories_id: 1,
+	network: 'TRC20',
+	price: '1',
+	stable: true,
+	fee_out: '1',
+	fee_out_fixed: 0,
+	decimals: 2,
+	logo: 'usdt',
+	working_data: JSON.stringify([{ name: 'Wallet Address', type: 'text' }]),
+}
+// Bitcoin Lightning: precio espejo de BTC, campo Wallet para la factura/destino
+const BTCLN = {
+	tick: 'BTCLN',
+	name: 'Bitcoin Lightning',
+	price: '60000',
+	stable: false,
+	fee_out: '0',
+	fee_out_fixed: 0,
+	decimals: 8,
+	logo: 'btcln',
+	working_data: JSON.stringify([{ name: 'Wallet', type: 'text' }]),
+}
 
 const navigation = { navigate: jest.fn(), goBack: jest.fn() }
 
@@ -102,16 +131,17 @@ const goToPinStep = async (tree) => {
 	await fillField(tree, 'card_number', '9224061799991234')
 	await fillField(tree, 'full_name', 'John Doe')
 	await pressFooter(tree)
-	return tree.root.findByType('WithdrawPinStep')
+	return tree.root.findByType('PinConfirmStep')
 }
 
 beforeEach(() => {
 	jest.clearAllMocks()
 	jest.useFakeTimers()
-	useAuth.mockReturnValue({ user: { balance: 150, two_factor_secret: null } })
-	apiClient.get.mockResolvedValue({ data: [CUP, USDCASH, THRESHOLD] })
+	useAuth.mockReturnValue({ user: { balance: 150, satoshis: 5000, two_factor_secret: null }, updateUser: jest.fn() })
+	apiClient.get.mockResolvedValue({ data: [CUP, USDCASH, THRESHOLD, BTCLN, USDT] })
 	withdrawApi.requestPin.mockResolvedValue({ success: true })
 	withdrawApi.withdraw.mockResolvedValue({ success: true, data: {} })
+	withdrawApi.decodeLightning.mockResolvedValue({ success: true, data: { kind: 'bolt11', amount_sat: 150000, description: 'test', expires_at: null } })
 })
 afterEach(() => { jest.useRealTimers() })
 
@@ -197,7 +227,7 @@ describe('form validation', () => {
 	test('Continuar opens the PIN step and the footer becomes the Extraer button', async () => {
 		const tree = await renderWithdraw()
 		await goToPinStep(tree)
-		expect(tree.root.findAllByType('WithdrawPinStep')).toHaveLength(1)
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(1)
 		expect(footerButton(tree).props.title).toBe('Extraer $100 QUSD')
 	})
 })
@@ -224,13 +254,13 @@ describe('withdraw submission', () => {
 	test('a complete PIN auto-submits with amount, coin, original field names and the pin', async () => {
 		const tree = await renderWithdraw()
 		const pinStep = await goToPinStep(tree)
-		await act(async () => { pinStep.props.onPinChange('1234', 0) })
-		expect(withdrawApi.withdraw).toHaveBeenCalledWith(
-			'100',
-			'BANK_CUP',
-			{ 'Card Number': '9224061799991234', 'Full Name': 'John Doe' },
-			'1234',
-		)
+		await act(async () => { pinStep.props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith({
+			amount: '100',
+			coin: 'BANK_CUP',
+			details: { 'Card Number': '9224061799991234', 'Full Name': 'John Doe' },
+			pin: '1234',
+		})
 		expect(toast.success).toHaveBeenCalledWith('Extracción procesada', { description: 'Se han extraído $100 QUSD' })
 		expect(navigation.goBack).toHaveBeenCalled()
 	})
@@ -238,7 +268,7 @@ describe('withdraw submission', () => {
 	test('an incomplete PIN pressed manually toasts a validation error and never calls the API', async () => {
 		const tree = await renderWithdraw()
 		const pinStep = await goToPinStep(tree)
-		await act(async () => { pinStep.props.onPinChange('1', 0) })
+		await act(async () => { pinStep.props.onChangePin('1') })
 		await pressFooter(tree)
 		expect(withdrawApi.withdraw).not.toHaveBeenCalled()
 		expect(toast.error).toHaveBeenCalledWith('Ingresa un PIN de 4 dígitos')
@@ -248,7 +278,7 @@ describe('withdraw submission', () => {
 		withdrawApi.withdraw.mockResolvedValue({ success: false, error: 'Fondos insuficientes' })
 		const tree = await renderWithdraw()
 		const pinStep = await goToPinStep(tree)
-		await act(async () => { pinStep.props.onPinChange('1234', 0) })
+		await act(async () => { pinStep.props.onChangePin('1234') })
 		expect(toast.error).toHaveBeenCalledWith('Fondos insuficientes')
 		expect(navigation.goBack).not.toHaveBeenCalled()
 	})
@@ -257,26 +287,126 @@ describe('withdraw submission', () => {
 		withdrawApi.withdraw.mockRejectedValue(new Error('network down'))
 		const tree = await renderWithdraw()
 		const pinStep = await goToPinStep(tree)
-		await act(async () => { pinStep.props.onPinChange('1234', 0) })
+		await act(async () => { pinStep.props.onChangePin('1234') })
 		expect(toast.error).toHaveBeenCalledWith('Error al procesar la extracción')
 	})
 })
 
 describe('OTP method (TOTP 2FA)', () => {
 	test('toggling to OTP expects 6 digits and the screen passes a leading-zero code intact', async () => {
-		useAuth.mockReturnValue({ user: { balance: 150, two_factor_secret: 'SECRET' } })
+		useAuth.mockReturnValue({ user: { balance: 150, satoshis: 0, two_factor_secret: 'SECRET' }, updateUser: jest.fn() })
 		const tree = await renderWithdraw()
 		let pinStep = await goToPinStep(tree)
 		expect(pinStep.props.hasOTP).toBe(true)
 		expect(pinStep.props.codeLength).toBe(4)
 		await act(async () => { pinStep.props.onMethodToggle('right') })
-		pinStep = tree.root.findByType('WithdrawPinStep')
+		pinStep = tree.root.findByType('PinConfirmStep')
 		expect(pinStep.props.twoFactorMethod).toBe('otp')
 		expect(pinStep.props.codeLength).toBe(6)
-		await act(async () => { pinStep.props.onPinChange('012345', 0) })
-		// The screen forwards the string '012345' untouched — the leading zero is
-		// lost later inside withdrawApi.withdraw via Number(pin) (known latent bug,
-		// documented in api/withdrawApi.test.js)
-		expect(withdrawApi.withdraw).toHaveBeenCalledWith('100', 'BANK_CUP', expect.any(Object), '012345')
+		await act(async () => { pinStep.props.onChangePin('012345') })
+		// The screen forwards the string '012345' untouched, and withdrawApi now
+		// serializes it as String(pin) — the leading zero survives to the server
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({
+			amount: '100', coin: 'BANK_CUP', pin: '012345',
+		}))
+	})
+})
+
+describe('crypto destination gate', () => {
+	const destinationSelector = (tree) => tree.root.findByType('WithdrawDestinationSelector')
+	const chooseDestination = (tree, value) => act(async () => { destinationSelector(tree).props.onSelect(value) })
+
+	test('a non-crypto coin never renders the destination selector', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		expect(tree.root.findAllByType('WithdrawDestinationSelector')).toHaveLength(0)
+	})
+
+	test('a crypto coin hides the account fields and blocks Continuar until the personal wallet is chosen', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, USDT)
+		await typeQUSD(tree, '100')
+		expect(destinationSelector(tree).props.destination).toBe(null)
+		expect(tree.root.findAllByType('WithdrawAccountFields')).toHaveLength(0)
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await chooseDestination(tree, 'personal')
+		await fillField(tree, 'wallet_address', 'TXYZabc123')
+		expect(footerButton(tree).props.disabled).toBe(false)
+	})
+
+	test('choosing third party keeps the fields hidden and Continuar disabled', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, USDT)
+		await typeQUSD(tree, '100')
+		await chooseDestination(tree, 'third_party')
+		expect(tree.root.findAllByType('WithdrawAccountFields')).toHaveLength(0)
+		expect(footerButton(tree).props.disabled).toBe(true)
+	})
+
+	test('switching coins resets the destination', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, USDT)
+		await chooseDestination(tree, 'personal')
+		expect(destinationSelector(tree).props.destination).toBe('personal')
+		await selectCoin(tree, CUP)
+		await selectCoin(tree, USDT)
+		expect(destinationSelector(tree).props.destination).toBe(null)
+	})
+})
+
+describe('Lightning (BTCLN)', () => {
+	const satsCard = (tree) => tree.root.findByType('WithdrawSatsCard')
+
+	test('lnInvoice + lnAmountSats params prefill the Wallet field and lock the invoice amount', async () => {
+		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN', lnInvoice: 'lnbc1500n1qqexample', lnAmountSats: 150000 })
+		const fields = tree.root.findByType('WithdrawAccountFields')
+		expect(fields.props.workingForm.wallet).toBe('lnbc1500n1qqexample')
+		expect(fields.props.multilineKeys).toEqual(['wallet'])
+		const card = amountCard(tree)
+		expect(card.props.locked).toBe(true)
+		expect(card.props.amountCoin).toBe('0.00150000') // 150000 sats en BTC
+		expect(withdrawApi.decodeLightning).toHaveBeenCalledWith('lnbc1500n1qqexample')
+	})
+
+	test('the source switch appears for BTCLN and swaps the amount card for the sats card', async () => {
+		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+		const sourceSwitch = tree.root.findByType('QPSwitch')
+		await act(async () => { sourceSwitch.props.onChange('right') })
+		expect(satsCard(tree).props.availableSats).toBe(5000)
+		expect(tree.root.findAllByType('WithdrawAmountCard')).toHaveLength(0)
+	})
+
+	test('redeeming sats submits source satoshis with the integer amount and updates the local user', async () => {
+		const updateUser = jest.fn()
+		useAuth.mockReturnValue({ user: { balance: 150, satoshis: 5000, two_factor_secret: null }, updateUser })
+		withdrawApi.withdraw.mockResolvedValue({ success: true, data: { result: 'OK', data: { satoshis: 3000 } } })
+		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+		await act(async () => { tree.root.findByType('QPSwitch').props.onChange('right') })
+		await act(async () => { satsCard(tree).props.onChangeAmountSats('2000') })
+		await fillField(tree, 'wallet', 'usuario@getalby.com')
+		await pressFooter(tree)
+		const pinStep = tree.root.findByType('PinConfirmStep')
+		await act(async () => { pinStep.props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith({
+			amount: '',
+			coin: 'BTCLN',
+			details: { Wallet: 'usuario@getalby.com' },
+			pin: '1234',
+			source: 'satoshis',
+			amountSats: 2000,
+		})
+		expect(updateUser).toHaveBeenCalledWith({ satoshis: 3000 })
+	})
+
+	test('sats below the minimum or above the available balance keep the form invalid', async () => {
+		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN' })
+		await act(async () => { tree.root.findByType('QPSwitch').props.onChange('right') })
+		await fillField(tree, 'wallet', 'usuario@getalby.com')
+		await act(async () => { satsCard(tree).props.onChangeAmountSats('50') }) // < 100
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await act(async () => { satsCard(tree).props.onChangeAmountSats('9000') }) // > 5000 disponibles
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await act(async () => { satsCard(tree).props.onChangeAmountSats('2000') })
+		expect(footerButton(tree).props.disabled).toBe(false)
 	})
 })

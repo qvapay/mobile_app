@@ -11,6 +11,7 @@ import PinConfirmStep from './PinConfirmStep'
 import QPButton from '../../ui/particles/QPButton'
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import TransferSummaryCards from './TransferSummaryCards'
+import usePinEntry from '../../hooks/usePinEntry'
 
 // API
 import { userApi } from '../../api/userApi'
@@ -41,7 +42,7 @@ function pinFlowReducer(state, action) {
 			return state
 	}
 }
-const initialPinFlow = { showPinStep: false, sendingPin: false, twoFactorMethod: 'pin', pin: '', focusedInputIndex: null }
+const initialPinFlow = { showPinStep: false, sendingPin: false }
 
 /**
  * Transfer confirmation: shows recipient + amount, then a PIN/OTP step before sending.
@@ -69,18 +70,16 @@ const SendConfirm = ({ navigation, route }) => {
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingUser, setIsLoadingUser] = useState(true)
 
-	// PIN/OTP flow (same-named setters keep every call site unchanged)
+	// PIN/OTP flow flags (same-named setters keep every call site unchanged)
 	const [pinFlow, dispatchPin] = useReducer(pinFlowReducer, initialPinFlow)
-	const { showPinStep, sendingPin, twoFactorMethod, pin, focusedInputIndex } = pinFlow
+	const { showPinStep, sendingPin } = pinFlow
 	const setShowPinStep = (value) => dispatchPin({ type: 'set', field: 'showPinStep', value })
 	const setSendingPin = (value) => dispatchPin({ type: 'set', field: 'sendingPin', value })
-	const setTwoFactorMethod = (value) => dispatchPin({ type: 'set', field: 'twoFactorMethod', value })
-	const setPin = (value) => dispatchPin({ type: 'set', field: 'pin', value })
-	const setFocusedInputIndex = (value) => dispatchPin({ type: 'set', field: 'focusedInputIndex', value })
+
+	// PIN/OTP state (entered code, method toggle, code length) — box mechanics live in QPCodeInput
+	const { pin, setPin, twoFactorMethod, codeLength, codeInputRef, handleMethodToggle } = usePinEntry()
 
 	const hasOTP = !!user?.two_factor_secret
-	const codeLength = twoFactorMethod === 'pin' ? 4 : 6
-	const pinInputsRef = useRef([])
 	const scrollViewRef = useRef(null)
 
 	// Track recipient for online status
@@ -133,35 +132,6 @@ const SendConfirm = ({ navigation, route }) => {
 		} finally { setSendingPin(false) }
 	}
 
-	// Switch between PIN and OTP
-	const handleMethodToggle = (side) => {
-		const method = side === 'left' ? 'pin' : 'otp'
-		if (method !== twoFactorMethod) {
-			setTwoFactorMethod(method)
-			setPin('')
-			pinInputsRef.current = new Array(method === 'pin' ? 4 : 6).fill(null)
-			setTimeout(() => { pinInputsRef.current[0]?.focus() }, 0)
-		}
-	}
-
-	// Handle PIN input change
-	const handlePinChange = (text, index) => {
-		const numericText = text.replace(/[^0-9]/g, '')
-		if (numericText.length > 1) {
-			const digits = numericText.slice(0, codeLength).split('')
-			const newPin = pin.split('')
-			digits.forEach((d, i) => { if (index + i < codeLength) newPin[index + i] = d })
-			setPin(newPin.join(''))
-			const focusIdx = Math.min(index + digits.length, codeLength - 1)
-			pinInputsRef.current[focusIdx]?.focus()
-			return
-		}
-		const newPin = pin.split('')
-		newPin[index] = numericText
-		setPin(newPin.join(''))
-		if (numericText && index < codeLength - 1) { pinInputsRef.current[index + 1]?.focus() }
-	}
-
 	// Auto-submit when all digits entered (Effect Event: reads the latest
 	// handler/flags without re-running the effect on every state change)
 	const onPinComplete = useEffectEvent(() => {
@@ -176,32 +146,14 @@ const SendConfirm = ({ navigation, route }) => {
 		if (!showPinStep) return
 		const timer = setTimeout(() => {
 			scrollViewRef.current?.scrollToEnd({ animated: true })
-			pinInputsRef.current[0]?.focus()
+			codeInputRef.current?.focus(0)
 		}, 100)
 		return () => clearTimeout(timer)
-	}, [showPinStep])
+	}, [showPinStep, codeInputRef])
 
-	// Handle PIN input focus/blur
-	const handlePinFocus = (index) => {
-		setFocusedInputIndex(index)
+	// Re-scroll al enfocar una cajita: el teclado encoge el viewport y taparía el input
+	const handlePinBoxFocus = () => {
 		setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)
-	}
-	const handlePinBlur = () => { setFocusedInputIndex(null) }
-
-	// Handle PIN backspace
-	const handlePinKeyPress = (e, index) => {
-		if (e.nativeEvent.key === 'Backspace') {
-			if (pin[index]) {
-				const newPin = pin.split('')
-				newPin[index] = ''
-				setPin(newPin.join(''))
-			} else if (index > 0) {
-				const newPin = pin.split('')
-				newPin[index - 1] = ''
-				setPin(newPin.join(''))
-				pinInputsRef.current[index - 1]?.focus()
-			}
-		}
 	}
 
 	// Execute the actual transaction
@@ -316,18 +268,15 @@ const SendConfirm = ({ navigation, route }) => {
 				{showPinStep && (
 					<PinConfirmStep
 						pin={pin}
+						onChangePin={setPin}
 						codeLength={codeLength}
 						twoFactorMethod={twoFactorMethod}
 						hasOTP={hasOTP}
 						sendingPin={sendingPin}
-						focusedInputIndex={focusedInputIndex}
-						pinInputsRef={pinInputsRef}
-						onPinChange={handlePinChange}
-						onKeyPress={handlePinKeyPress}
-						onFocus={handlePinFocus}
-						onBlur={handlePinBlur}
 						onMethodToggle={handleMethodToggle}
 						onRequestPin={handleRequestPin}
+						onBoxFocus={handlePinBoxFocus}
+						codeInputRef={codeInputRef}
 						theme={theme}
 						textStyles={textStyles}
 						containerStyles={containerStyles}

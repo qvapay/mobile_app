@@ -13,10 +13,13 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
 import OperatorAvatar from '../../ui/store/OperatorAvatar'
+import SatsDiscountRow from '../../ui/store/SatsDiscountRow'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
 import { tinyfiNumber } from '../../helpers'
+import useSatsDiscount from './useSatsDiscount'
 
 const cleanText = (text) => {
 	if (!text) return ''
@@ -146,11 +149,21 @@ const GiftCardBrand = ({ navigation, route }) => {
 	useLayoutEffect(() => {
 		const raw = parseFloat(user?.balance || 0)
 		if (Number.isNaN(raw)) return
+		const sats = Number(user?.satoshis || 0)
 
+		// Balance USD + sats de cashback (mismo pill bolt que PhoneTopupBrand)
 		const balanceNode = (
-			<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginRight: 12 }]}>
-				${tinyfiNumber(raw)}
-			</Text>
+			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 12 }}>
+				{sats > 0 && (
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+						<FontAwesome6 name="bolt" size={11} color="#F7931A" iconStyle="solid" />
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{sats.toLocaleString()}</Text>
+					</View>
+				)}
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+					${tinyfiNumber(raw)}
+				</Text>
+			</View>
 		)
 
 		navigation.setOptions({
@@ -164,7 +177,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 				}],
 			}),
 		})
-	}, [navigation, user?.balance, theme, textStyles.h5, brand])
+	}, [navigation, user?.balance, user?.satoshis, theme, textStyles.h5, textStyles.h6, brand])
 
 	useEffect(() => {
 		let cancelled = false
@@ -192,7 +205,10 @@ const GiftCardBrand = ({ navigation, route }) => {
 		return baseUsd + (baseUsd * fee) / 100
 	}, [selectedOffer, rangeAmount])
 
-	const hasBalance = user?.balance != null ? Number(user.balance) >= offerPrice : false
+	// Descuento en sats: estimado client-side, el server recalcula fresh en la compra.
+	// cashDue == offerPrice cuando el toggle está apagado.
+	const satsDiscount = useSatsDiscount(offerPrice)
+	const hasBalance = user?.balance != null ? Number(user.balance) >= satsDiscount.cashDue : false
 
 	const handleContinue = useCallback(() => {
 		if (!selectedOffer) { toast.error('Selecciona una denominación'); return }
@@ -215,15 +231,18 @@ const GiftCardBrand = ({ navigation, route }) => {
 			brand,
 		}
 		if (selectedOffer.price_type === 'RANGE') body.amount = parseFloat(rangeAmount)
+		if (satsDiscount.enabled) body.use_satoshis = true
 		const res = await storeApi.purchaseVoucher(body)
 		setSubmitting(false)
 		if (res.success) {
+			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
+			satsDiscount.applyPurchaseResult(res.data, offerPrice)
 			toast.success('¡Compra realizada!', { description: 'Tu tarjeta se está procesando' })
 			navigation.goBack()
 		} else {
 			toast.error('Error', { description: res.error })
 		}
-	}, [selectedOffer, hasBalance, countryCode, brand, rangeAmount, navigation])
+	}, [selectedOffer, hasBalance, countryCode, brand, rangeAmount, satsDiscount, offerPrice, navigation])
 
 	if (loading) {
 		return (
@@ -311,7 +330,23 @@ const GiftCardBrand = ({ navigation, route }) => {
 									? <SummaryRow theme={theme} textStyles={textStyles} label="Valor referencia" value={sendStr} />
 									: null
 							})()}
-							<SummaryRow theme={theme} textStyles={textStyles} label="Total" value={`$${offerPrice.toFixed(2)} USD`} bold />
+							<SummaryRow theme={theme} textStyles={textStyles} label="Total" value={`$${offerPrice.toFixed(2)} USD`} bold={!satsDiscount.enabled} />
+							{satsDiscount.available && (
+								<SatsDiscountRow
+									enabled={satsDiscount.enabled}
+									onToggle={satsDiscount.setEnabled}
+									sats={satsDiscount.sats}
+									satsUsd={satsDiscount.satsUsd}
+									theme={theme}
+									textStyles={textStyles}
+								/>
+							)}
+							{satsDiscount.enabled && (
+								<>
+									<SummaryRow theme={theme} textStyles={textStyles} label="Descuento satoshis" value={`≈ −$${satsDiscount.discountUsd.toFixed(2)}`} highlight />
+									<SummaryRow theme={theme} textStyles={textStyles} label="Pagas" value={`≈ $${satsDiscount.cashDue.toFixed(2)} USD`} bold />
+								</>
+							)}
 							<SummaryRow theme={theme} textStyles={textStyles} label="Tu saldo" value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
 						</View>
 						{!hasBalance && (

@@ -9,7 +9,9 @@ const formatBalance = (val) => {
 }
 
 // The QUSD ⇄ coin swap card: amount to withdraw, amount to receive, and coin selector.
-const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, theme, textStyles }) => (
+// `locked` freezes both inputs (e.g. a scanned BOLT11 invoice fixes the amount) and
+// `lockedCaption` explains why below the card.
+const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, locked, lockedCaption, theme, textStyles }) => (
 	<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
 
 		{/* QUSD amount input */}
@@ -32,6 +34,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 						placeholder="0.00"
 						placeholderTextColor={theme.colors.placeholder}
 						keyboardType="numeric"
+						editable={!locked}
 						style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, padding: 0, margin: 0 }]}
 					/>
 				</View>
@@ -63,7 +66,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 						placeholderTextColor={theme.colors.placeholder}
 						keyboardType="numeric"
 						style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, padding: 0, margin: 0 }]}
-						editable={!!selectedCoin}
+						editable={!!selectedCoin && !locked}
 					/>
 				</View>
 				<Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={onOpenCoinPicker} >
@@ -82,6 +85,11 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 				</Pressable>
 			</View>
 		</View>
+
+		{/* Locked amount explainer (e.g. invoice-fixed amounts) */}
+		{locked && !!lockedCaption && (
+			<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, paddingBottom: 6 }]}>{lockedCaption}</Text>
+		)}
 	</View>
 )
 

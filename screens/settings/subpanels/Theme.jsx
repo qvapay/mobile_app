@@ -113,7 +113,7 @@ const Theme = () => {
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personaliza la apariencia de la aplicación</Text>
 			</View>
 
-			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Apariencia</Text>
+			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 8, paddingHorizontal: 2 }]}>Apariencia</Text>
 			<View style={styles.optionsContainer}>
 				{themeOptions.map((option, index) => (
 					<ThemeOption
@@ -125,7 +125,7 @@ const Theme = () => {
 				))}
 			</View>
 
-			<View style={[styles.infoBox, { marginBottom: 20, backgroundColor: hexToRgba(theme.colors.primary, 0.05), borderColor: hexToRgba(theme.colors.primary, 0.1) }]}>
+			<View style={[styles.infoBox, { marginBottom: 24, backgroundColor: hexToRgba(theme.colors.primary, 0.05), borderColor: hexToRgba(theme.colors.primary, 0.1) }]}>
 				<FontAwesome6 name="circle-info" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginLeft: 8 }]}>
 					Los cambios se aplican inmediatamente
@@ -161,7 +161,7 @@ const Theme = () => {
 				</View>
 				<View style={styles.accentFooter}>
 					{!isGold && <FontAwesome6 name="lock" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />}
-					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+					<Text style={[textStyles.caption, styles.accentFooterText, { color: theme.colors.tertiaryText }]}>
 						{isGold ? `Color actual: ${currentAccent.name}` : 'Personaliza el color de la app con QvaPay GOLD'}
 					</Text>
 				</View>
@@ -171,7 +171,7 @@ const Theme = () => {
 			{/* <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Ícono</Text> */}
 
 			{/** Barra de navegación */}
-			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2, marginTop: 20 }]}>Barra de navegación</Text>
+			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 8, paddingHorizontal: 2 }]}>Barra de navegación</Text>
 			<View style={[containerStyles.box, styles.settingRow]}>
 				<View style={styles.settingContent}>
 					<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Mostrar texto</Text>
@@ -179,14 +179,12 @@ const Theme = () => {
 						Mostrar etiquetas en la barra de navegación
 					</Text>
 				</View>
-				<View style={{ width: 50, height: 30 }}>
-					<Switch
-						value={settings.appearance.bottomBarLabels}
-						onValueChange={handleBottomBarLabelsToggle}
-						trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-						thumbColor={settings.appearance.bottomBarLabels ? '#FFFFFF' : theme.colors.secondaryText}
-					/>
-				</View>
+				<Switch
+					value={settings.appearance.bottomBarLabels}
+					onValueChange={handleBottomBarLabelsToggle}
+					trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+					thumbColor={settings.appearance.bottomBarLabels ? '#FFFFFF' : theme.colors.secondaryText}
+				/>
 			</View>
 
 		</ScrollView>
@@ -234,7 +232,7 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 8,
-		marginBottom: 5,
+		marginBottom: 8,
 	},
 	goldBadge: {
 		flexDirection: 'row',
@@ -248,13 +246,16 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 	},
 	accentCard: {
-		padding: 16,
-		marginBottom: 20,
+		flexDirection: 'column',
+		alignItems: 'stretch',
+		paddingHorizontal: 20,
+		paddingVertical: 18,
+		marginBottom: 24,
 	},
 	swatchGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
-		gap: 8,
+		gap: 12,
 	},
 	swatchRing: {
 		width: 44,
@@ -279,17 +280,22 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 6,
-		marginTop: 12,
+		marginTop: 16,
+	},
+	accentFooterText: {
+		flexShrink: 1,
 	},
 	settingRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		padding: 16,
+		paddingHorizontal: 20,
+		paddingVertical: 16,
 		marginBottom: 12,
 	},
 	settingContent: {
 		flex: 1,
+		paddingRight: 12,
 	},
 })
 

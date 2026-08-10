@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useReducer } from 'react'
-import { View, Text, TextInput, Alert, StyleSheet } from 'react-native'
+import { View, Text, Alert } from 'react-native'
 import { toast } from 'sonner-native'
+
+import QPCodeInput from '../../../ui/particles/QPCodeInput'
 
 import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
@@ -39,34 +41,6 @@ function biometricsReducer(state, action) {
 	}
 }
 
-// Generic PIN input handler
-const handlePinInput = (text, index, currentPin, setPinFn, refs, nextRefs) => {
-	const numericText = text.replace(/[^0-9]/g, '')
-	const newPin = currentPin.split('')
-	newPin[index] = numericText
-	setPinFn(newPin.join(''))
-	if (numericText && index < 3) {
-		refs.current[index + 1]?.focus()
-	} else if (numericText && index === 3 && nextRefs) {
-		setTimeout(() => nextRefs.current[0]?.focus(), 100)
-	}
-}
-
-const handlePinKeyPress = (e, index, currentPin, setPinFn, refs) => {
-	if (e.nativeEvent.key === 'Backspace') {
-		if (currentPin[index]) {
-			const newPin = currentPin.split('')
-			newPin[index] = ''
-			setPinFn(newPin.join(''))
-		} else if (index > 0) {
-			const newPin = currentPin.split('')
-			newPin[index - 1] = ''
-			setPinFn(newPin.join(''))
-			refs.current[index - 1]?.focus()
-		}
-	}
-}
-
 const AppLock = () => {
 
 	const { theme } = useTheme()
@@ -84,14 +58,13 @@ const AppLock = () => {
 	const setConfirmPin = (value) => dispatchForm({ type: 'set', field: 'confirmPin', value })
 	const setOldPin = (value) => dispatchForm({ type: 'set', field: 'oldPin', value })
 	const [isLoading, setIsLoading] = useState(false)
-	const [focusedField, setFocusedField] = useState(null)
-	const [focusedIndex, setFocusedIndex] = useState(null)
 	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
 	const { type: biometryType, available: biometricsAvailable } = biometrics
 
-	const pinRefs = useRef([])
-	const confirmPinRefs = useRef([])
-	const oldPinRefs = useRef([])
+	// Refs imperativos a cada QPCodeInput ({ focus(index) }) para saltar entre filas
+	const pinRef = useRef(null)
+	const confirmPinRef = useRef(null)
+	const oldPinRef = useRef(null)
 
 	useEffect(() => {
 		const checkBiometrics = async () => {
@@ -107,8 +80,6 @@ const AppLock = () => {
 		setConfirmPin('')
 		setOldPin('')
 		setMode('info')
-		setFocusedField(null)
-		setFocusedIndex(null)
 	}
 
 	// Handle enable app lock
@@ -119,13 +90,13 @@ const AppLock = () => {
 		}
 		if (mode === 'setup') {
 			setMode('confirm')
-			setTimeout(() => confirmPinRefs.current[0]?.focus(), 100)
+			setTimeout(() => confirmPinRef.current?.focus(0), 100)
 			return
 		}
 		if (pin !== confirmPin) {
 			toast.error('Los PIN no coinciden')
 			setConfirmPin('')
-			setTimeout(() => confirmPinRefs.current[0]?.focus(), 100)
+			setTimeout(() => confirmPinRef.current?.focus(0), 100)
 			return
 		}
 		setIsLoading(true)
@@ -168,7 +139,7 @@ const AppLock = () => {
 		if (pin !== confirmPin) {
 			toast.error('Los PIN nuevos no coinciden')
 			setConfirmPin('')
-			setTimeout(() => confirmPinRefs.current[0]?.focus(), 100)
+			setTimeout(() => confirmPinRef.current?.focus(0), 100)
 			return
 		}
 		setIsLoading(true)
@@ -182,39 +153,20 @@ const AppLock = () => {
 		}
 	}
 
-	// Render PIN input row
-	const renderPinRow = (label, value, setValue, refs, fieldName, nextRefs) => (
+	// Render PIN input row — QPCodeInput (secure); al llenarse salta a la fila siguiente
+	const renderPinRow = (label, value, setValue, ref, nextRef) => (
 		<View style={{ marginTop: 16 }}>
 			<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
 				{label}
 			</Text>
-			<View style={styles.pinRow}>
-				{[0, 1, 2, 3].map((index) => (
-					<TextInput
-						key={`${fieldName}-${index}`}
-						ref={(ref) => { refs.current[index] = ref }}
-						style={[styles.pinInput, {
-							backgroundColor: theme.colors.surface,
-							color: theme.colors.primaryText,
-							borderColor: focusedField === fieldName && focusedIndex === index
-								? theme.colors.primary : theme.colors.surface,
-							borderWidth: 1.5, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.semiBold,
-						}]}
-						value={value[index] || ''}
-						onChangeText={(text) => handlePinInput(text, index, value, setValue, refs, nextRefs)}
-						onKeyPress={(e) => handlePinKeyPress(e, index, value, setValue, refs)}
-						onFocus={() => { setFocusedField(fieldName); setFocusedIndex(index) }}
-						onBlur={() => { setFocusedField(null); setFocusedIndex(null) }}
-						keyboardType="numeric"
-						maxLength={1}
-						secureTextEntry
-						textAlign="center"
-						selectTextOnFocus
-						placeholder={focusedField === fieldName && focusedIndex === index ? '' : '0'}
-						placeholderTextColor={theme.colors.tertiaryText}
-					/>
-				))}
-			</View>
+			<QPCodeInput
+				ref={ref}
+				length={4}
+				code={value}
+				onChangeCode={setValue}
+				secure
+				{...(nextRef && { onFilled: () => setTimeout(() => nextRef.current?.focus(0), 100) })}
+			/>
 		</View>
 	)
 
@@ -228,7 +180,7 @@ const AppLock = () => {
 				onTimeoutSelect={updateAutoLockTimeout}
 				onChangePin={() => {
 					setMode('changePin')
-					setTimeout(() => oldPinRefs.current[0]?.focus(), 100)
+					setTimeout(() => oldPinRef.current?.focus(0), 100)
 				}}
 				onDisable={handleDisable}
 				theme={theme}
@@ -242,9 +194,9 @@ const AppLock = () => {
 	if (mode === 'changePin') {
 		return (
 			<AppLockChangePinView
-				oldPinRow={renderPinRow('PIN actual', oldPin, setOldPin, oldPinRefs, 'old', pinRefs)}
-				newPinRow={renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', confirmPinRefs)}
-				confirmRow={renderPinRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
+				oldPinRow={renderPinRow('PIN actual', oldPin, setOldPin, oldPinRef, pinRef)}
+				newPinRow={renderPinRow('Nuevo PIN', pin, setPin, pinRef, confirmPinRef)}
+				confirmRow={renderPinRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRef, null)}
 				onSubmit={handleChangePin}
 				onCancel={resetForm}
 				isLoading={isLoading}
@@ -261,11 +213,11 @@ const AppLock = () => {
 		<AppLockSetupView
 			mode={mode}
 			security={security}
-			setupRow={renderPinRow('Nuevo PIN', pin, setPin, pinRefs, 'new', null)}
-			confirmRow={renderPinRow('Confirmar PIN', confirmPin, setConfirmPin, confirmPinRefs, 'confirm', null)}
+			setupRow={renderPinRow('Nuevo PIN', pin, setPin, pinRef, null)}
+			confirmRow={renderPinRow('Confirmar PIN', confirmPin, setConfirmPin, confirmPinRef, null)}
 			onActivate={() => {
 				setMode('setup')
-				setTimeout(() => pinRefs.current[0]?.focus(), 100)
+				setTimeout(() => pinRef.current?.focus(0), 100)
 			}}
 			onSubmit={handleEnable}
 			onCancel={resetForm}
@@ -278,18 +230,5 @@ const AppLock = () => {
 		/>
 	)
 }
-
-const styles = StyleSheet.create({
-	pinRow: {
-		flexDirection: 'row',
-		gap: 12,
-	},
-	pinInput: {
-		flex: 1,
-		height: 60,
-		borderRadius: 12,
-		textAlign: 'center',
-	},
-})
 
 export default AppLock

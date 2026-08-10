@@ -12,11 +12,13 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
 import OperatorAvatar from '../../ui/store/OperatorAvatar'
+import SatsDiscountRow from '../../ui/store/SatsDiscountRow'
 import PhoneTopupStep1 from './PhoneTopupStep1'
 
 import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
 import { tinyfiNumber } from '../../helpers'
+import useSatsDiscount from './useSatsDiscount'
 
 // Fetched brand data + the purchase wizard selection are two cohesive units
 function setFieldReducer(state, action) {
@@ -145,7 +147,10 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 		return baseUsd + (baseUsd * feePct) / 100
 	}, [selectedOffer, rangeAmount, isGold])
 
-	const hasBalance = user?.balance != null ? Number(user.balance) >= offerPrice : false
+	// Descuento en sats: estimado client-side, el server recalcula fresh en la compra.
+	// cashDue == offerPrice cuando el toggle está apagado.
+	const satsDiscount = useSatsDiscount(offerPrice)
+	const hasBalance = user?.balance != null ? Number(user.balance) >= satsDiscount.cashDue : false
 
 	const handleContinue = useCallback(() => {
 		if (!phoneValid || !selectedOffer) { toast.error('Selecciona un plan y un número válido'); return }
@@ -164,10 +169,12 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 		setSubmitting(true)
 		let res
 		if (selectedOffer.source === 'cuba') {
-			res = await storeApi.purchasePhonePackage({
+			const body = {
 				phone_package_id: Number(selectedOffer.phone_package_id),
 				phone_number: fullPhoneNumber,
-			})
+			}
+			if (satsDiscount.enabled) body.use_satoshis = true
+			res = await storeApi.purchasePhonePackage(body)
 		} else {
 			const body = {
 				offer_id: selectedOffer.offer_id,
@@ -175,16 +182,19 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 				country: countryCode,
 			}
 			if (selectedOffer.price_type === 'RANGE') body.amount = parseFloat(rangeAmount)
+			if (satsDiscount.enabled) body.use_satoshis = true
 			res = await storeApi.purchaseTopup(body)
 		}
 		setSubmitting(false)
 		if (res.success) {
+			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
+			satsDiscount.applyPurchaseResult(res.data, offerPrice)
 			toast.success('¡Recarga enviada!', { description: 'Tu recarga se está procesando' })
 			navigation.goBack()
 		} else {
 			toast.error('Error', { description: res.error })
 		}
-	}, [selectedOffer, fullPhoneNumber, hasBalance, countryCode, rangeAmount, navigation])
+	}, [selectedOffer, fullPhoneNumber, hasBalance, countryCode, rangeAmount, satsDiscount, offerPrice, navigation])
 
 	if (loading) {
 		return (
@@ -253,7 +263,23 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 							{selectedOffer.sent_benefits && (
 								<SummaryRow theme={theme} textStyles={textStyles} label="Beneficios" value={selectedOffer.sent_benefits} />
 							)}
-							<SummaryRow theme={theme} textStyles={textStyles} label="Total" value={`$${offerPrice.toFixed(2)} USD`} bold />
+							<SummaryRow theme={theme} textStyles={textStyles} label="Total" value={`$${offerPrice.toFixed(2)} USD`} bold={!satsDiscount.enabled} />
+							{satsDiscount.available && (
+								<SatsDiscountRow
+									enabled={satsDiscount.enabled}
+									onToggle={satsDiscount.setEnabled}
+									sats={satsDiscount.sats}
+									satsUsd={satsDiscount.satsUsd}
+									theme={theme}
+									textStyles={textStyles}
+								/>
+							)}
+							{satsDiscount.enabled && (
+								<>
+									<SummaryRow theme={theme} textStyles={textStyles} label="Descuento satoshis" value={`≈ −$${satsDiscount.discountUsd.toFixed(2)}`} highlight />
+									<SummaryRow theme={theme} textStyles={textStyles} label="Pagas" value={`≈ $${satsDiscount.cashDue.toFixed(2)} USD`} bold />
+								</>
+							)}
 							<SummaryRow theme={theme} textStyles={textStyles} label="Tu saldo" value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
 						</View>
 						{!hasBalance && (
@@ -292,9 +318,9 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	)
 }
 
-const SummaryRow = ({ label, value, bold, theme, textStyles }) => (
+const SummaryRow = ({ label, value, bold, highlight, theme, textStyles }) => (
 	<View style={styles.summaryRow}>
-		<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{label}</Text>
+		<Text style={[textStyles.caption, { color: highlight ? theme.colors.success : theme.colors.tertiaryText, fontWeight: highlight ? '700' : undefined }]}>{label}</Text>
 		<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: bold ? '700' : '500', flexShrink: 1, textAlign: 'right' }]} numberOfLines={2}>
 			{value}
 		</Text>

@@ -156,6 +156,55 @@ describe('parseQRData', () => {
 	})
 })
 
+describe('parseLightningQR (via parseQRData)', () => {
+	// Invoice real de estructura: lnbc + monto HRP + '1' + data bech32
+	const zeroAmount = 'lnbc1pjluzsdpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq'
+	const withAmount = 'lnbc1500n1pjluzsdpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqf'
+
+	test('bare BOLT11 invoice, case-insensitive', () => {
+		expect(parseQRData(zeroAmount)).toEqual({ type: 'lightning', invoice: zeroAmount, amountSats: null })
+		const upper = parseQRData(withAmount.toUpperCase())
+		expect(upper.type).toBe('lightning')
+		expect(upper.amountSats).toBe(150) // 1500n = 1500e-9 BTC = 150 sats
+	})
+
+	test('HRP amount multipliers (m/u/n)', () => {
+		expect(parseQRData(`lnbc20m1${'q'.repeat(40)}`).amountSats).toBe(2000000)   // 20 mBTC
+		expect(parseQRData(`lnbc250u1${'q'.repeat(40)}`).amountSats).toBe(25000)    // 250 uBTC
+		expect(parseQRData(`lnbc1500n1${'q'.repeat(40)}`).amountSats).toBe(150)
+	})
+
+	test('lightning: prefix (with and without //, any case)', () => {
+		expect(parseQRData(`lightning:${withAmount}`).type).toBe('lightning')
+		expect(parseQRData(`LIGHTNING://${withAmount}`).type).toBe('lightning')
+	})
+
+	test('BIP-21 bitcoin: URI carrying lightning= param', () => {
+		const uri = `bitcoin:bc1qxyzexampleaddr?amount=0.001&lightning=${withAmount}`
+		expect(parseQRData(uri)).toEqual({ type: 'lightning', invoice: withAmount, amountSats: 150 })
+	})
+
+	test('bitcoin: URI without lightning param is not a lightning intent', () => {
+		expect(parseQRData('bitcoin:bc1qxyzexampleaddr?amount=0.001')).toBeNull()
+	})
+
+	test('LNURL-pay bech32', () => {
+		const lnurl = `lnurl1${'d'.repeat(50)}`
+		expect(parseQRData(lnurl)).toEqual({ type: 'lightning', invoice: lnurl, amountSats: null })
+	})
+
+	test('lightning address only with explicit lightning: prefix (bare emails never misfire)', () => {
+		expect(parseQRData('lightning:erich@getalby.com'))
+			.toEqual({ type: 'lightning', invoice: 'erich@getalby.com', amountSats: null })
+		expect(parseQRData('erich@getalby.com')).toBeNull()
+	})
+
+	test('qvapay routes keep winning (regression)', () => {
+		expect(parseQRData('https://qvapay.com/payme/erich').type).toBe('payme')
+		expect(parseQRData('qvapay://pay/796a9e71-3d67-4a42-9dc2-02a5d069fa23').type).toBe('pay')
+	})
+})
+
 describe('isValidQRData', () => {
 	test('null is invalid', () => { expect(isValidQRData(null)).toBe(false) })
 
