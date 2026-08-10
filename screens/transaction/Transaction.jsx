@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
 
 // Async Storage
@@ -84,8 +84,11 @@ const Transaction = ({ route, navigation }) => {
 	const paid_by_uuid_early = transactionDetails.paid_by?.uuid || ''
 	const otherUserEarly = (user_uuid_early === paid_by_uuid_early) ? transactionDetails.user : transactionDetails.paid_by
 
-	// Make header transparent when cover image is shown (otherUser exists)
-	useEffect(() => {
+	// Make header transparent when cover image is shown (otherUser exists).
+	// The route options in App.tsx already predict this from the nav params so
+	// the first frame is correct; this layout effect (pre-paint) only covers
+	// shapes the route-level guess can't see. Never flips back to opaque.
+	useLayoutEffect(() => {
 		if (otherUserEarly) {
 			navigation.setOptions({
 				headerTransparent: true,

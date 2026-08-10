@@ -167,7 +167,26 @@ const STATIC_SCREENS: ScreenConfig[] = [
 
 	// Transaction Screens
 	{ name: ROUTES.TRANSACTIONS, component: Transactions, options: getHeaderOptions('Transacciones') },
-	{ name: ROUTES.TRANSACTION, component: Transaction, options: getHeaderOptions('') },
+	{
+		// Transaction detail: when both parties exist the screen shows the
+		// counterparty's cover behind the header, so the header must be
+		// transparent from the very first frame — flipping it after mount
+		// (setOptions in an effect) shifts the whole layout down and back up.
+		name: ROUTES.TRANSACTION,
+		component: Transaction,
+		options: ({ route }: any) => {
+			const t = route.params?.transaction ?? {}
+			const hasCounterparty = !!((t.user ?? t.User) && (t.paid_by ?? t.PaidBy))
+			return {
+				...getHeaderOptions(''),
+				...(hasCounterparty && {
+					headerTransparent: true,
+					headerStyle: { backgroundColor: 'transparent' },
+					headerTintColor: '#F7F7F7',
+				}),
+			}
+		},
+	},
 
 	// Pay Screen — bottom-sheet style, slides from bottom, transparent backdrop
 	{
