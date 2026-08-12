@@ -47,6 +47,20 @@ export const MARKET_SOCIAL_NETWORKS = {
 }
 
 /**
+ * Icono FontAwesome6 y color de marca por red (mismo lenguaje que los botones
+ * sociales de Settings/Referidos). `color: null` = usar un color del theme
+ * (X en negro y el globo del sitio web no funcionan en dark mode).
+ */
+export const MARKET_SOCIAL_ICONS = {
+	telegram: { icon: 'telegram', iconStyle: 'brand', color: '#26A5E4' },
+	whatsapp: { icon: 'whatsapp', iconStyle: 'brand', color: '#25D366' },
+	instagram: { icon: 'instagram', iconStyle: 'brand', color: '#E4405F' },
+	facebook: { icon: 'facebook', iconStyle: 'brand', color: '#1877F2' },
+	x: { icon: 'x-twitter', iconStyle: 'brand', color: null },
+	web: { icon: 'globe', iconStyle: 'solid', color: null },
+}
+
+/**
  * Estados de una orden del marketplace (market_order_status del backend).
  * `color` es una clave del theme (`theme.colors[color]`).
  */

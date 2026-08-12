@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useReducer } from "react"
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share } from "react-native"
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share, useWindowDimensions } from "react-native"
 import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from "react-native-linear-gradient"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -29,7 +29,8 @@ import { ROUTES } from "../../routes"
 // Helpers
 import { displayName } from "../../helpers/displayName"
 
-const COVER_VISIBLE_HEIGHT = 220
+// Cover total (status bar incluido) = 20% del alto de pantalla
+const COVER_HEIGHT_RATIO = 0.2
 const DEFAULT_COVER = "https://media.qvapay.com/covers/timeline.jpg"
 const MEDIA_BASE = "https://media.qvapay.com/"
 
@@ -100,8 +101,10 @@ const P2PUser = ({ navigation, route }) => {
 	const insets = useSafeAreaInsets()
 
 	// Cover extends behind the status bar (header is disabled for this screen).
+	// Proportional height: the status bar is part of the 20%.
+	const { height: windowHeight } = useWindowDimensions()
 	const topOverlay = insets.top
-	const totalCoverHeight = COVER_VISIBLE_HEIGHT + topOverlay
+	const totalCoverHeight = Math.round(windowHeight * COVER_HEIGHT_RATIO)
 
 	const [fetchState, dispatchFetch] = useReducer(fetchReducer, initialFetch)
 	const { loading, refreshing, error, data } = fetchState

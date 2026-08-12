@@ -247,7 +247,8 @@ const STATIC_SCREENS: ScreenConfig[] = [
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	{ name: ROUTES.MARKET_STORES, component: MarketStores, options: getHeaderOptions('Tiendas', { headerRight: () => <CartHeaderButton /> }) },
-	{ name: ROUTES.MARKET_STORE, component: MarketStore, options: getHeaderOptions('', { headerRight: () => <CartHeaderButton /> }) },
+	// MarketStore — no header so the store cover extends to the status bar (P2PUser/Profile look)
+	{ name: ROUTES.MARKET_STORE, component: MarketStore, options: { headerShown: false } },
 	{ name: ROUTES.MARKET_PRODUCT, component: MarketProduct, options: getHeaderOptions('', { headerRight: () => <CartHeaderButton /> }) },
 	{ name: ROUTES.MARKET_CART, component: MarketCart, options: getHeaderOptions('Mi carrito') },
 	{ name: ROUTES.MARKET_ORDERS, component: MarketOrders, options: getHeaderOptions('Mis compras') },

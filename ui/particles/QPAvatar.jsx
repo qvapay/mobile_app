@@ -39,12 +39,21 @@ const releaseHaloRotation = () => {
 }
 
 /**
- * Animated rotating "conic gradient" halo shown behind VIP avatars.
+ * Animated rotating "conic gradient" wheel shared by every halo in the app.
  * SVG has no conic-gradient primitive, so the wheel is faked with 12 pie-slice
  * paths whose colors mirror qpweb's CSS gradient, spun by an infinite 10s
  * linear Reanimated rotation on the UI thread (one shared animator for all halos).
+ *
+ * `overscan` scales the wheel beyond its container (centered): a circular
+ * wheel inscribed in a square leaves the corners uncovered, so squircle-
+ * clipped halos (featured stores) render it at ~1.5x and let the parent's
+ * `overflow: hidden` + borderRadius do the masking.
+ *
+ * @param {object} props
+ * @param {number} props.size - Container size in px.
+ * @param {number} [props.overscan=1] - Wheel diameter multiplier.
  */
-const VipHalo = ({ size }) => {
+export const ConicHaloWheel = ({ size, overscan = 1 }) => {
 
 	useEffect(() => {
 		retainHaloRotation()
@@ -53,17 +62,19 @@ const VipHalo = ({ size }) => {
 
 	const animatedStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${haloRotation.value}deg` }] }))
 
-	const center = size / 2
-	const r = size / 2
+	const wheel = size * overscan
+	const offset = (size - wheel) / 2
+	const center = wheel / 2
+	const r = wheel / 2
 	const sliceAngle = 360 / HALO_COLORS.length
 
 	return (
 		<Animated.View
-			style={[{ position: 'absolute', top: 0, left: 0, width: size, height: size }, animatedStyle]}
+			style={[{ position: 'absolute', top: offset, left: offset, width: wheel, height: wheel }, animatedStyle]}
 			shouldRasterizeIOS
 			renderToHardwareTextureAndroid
 		>
-			<Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+			<Svg width={wheel} height={wheel} viewBox={`0 0 ${wheel} ${wheel}`}>
 				{HALO_COLORS.map((color, i) => {
 					const startDeg = i * sliceAngle - 90
 					const endDeg = (i + 1) * sliceAngle - 90
@@ -79,6 +90,9 @@ const VipHalo = ({ size }) => {
 		</Animated.View>
 	)
 }
+
+// Circle-shaped VIP halo behind user avatars (wheel inscribed, no overscan).
+const VipHalo = ({ size }) => <ConicHaloWheel size={size} />
 
 /**
  * User avatar with optional VIP halo and online-presence dot.

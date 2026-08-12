@@ -41,6 +41,7 @@ const StoreTile = ({ store, onPress, style }) => {
 				style,
 			]}
 		>
+			{/* featured se señala con el halo del logo — sin badge */}
 			<View style={[styles.cover, { backgroundColor: theme.colors.elevationLight }]}>
 				{cover && (
 					<FastImage
@@ -49,15 +50,10 @@ const StoreTile = ({ store, onPress, style }) => {
 						resizeMode={FastImage.resizeMode.cover}
 					/>
 				)}
-				{store?.featured && (
-					<View style={[styles.featuredBadge, { backgroundColor: theme.colors.primary }]}>
-						<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontWeight: '600', fontSize: 10 }]}>Destacada</Text>
-					</View>
-				)}
 			</View>
 			<View style={styles.logoRow}>
 				<View style={[styles.logoRing, { backgroundColor: theme.colors.surface }]}>
-					<OperatorAvatar brand={store?.name} logoUrl={store?.logo} size="md" />
+					<OperatorAvatar brand={store?.name} logoUrl={store?.logo} size="md" featured={!!store?.featured} />
 				</View>
 			</View>
 			<View style={styles.body}>
@@ -79,14 +75,6 @@ const styles = StyleSheet.create({
 	},
 	cover: {
 		height: 74,
-	},
-	featuredBadge: {
-		position: 'absolute',
-		top: 8,
-		right: 8,
-		paddingHorizontal: 8,
-		paddingVertical: 3,
-		borderRadius: 8,
 	},
 	// El logo pisa el cover a mitad (estilo perfil): -22 = mitad del md (44).
 	logoRow: {

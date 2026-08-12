@@ -5,6 +5,8 @@ import {
 	MARKET_CATEGORIES,
 	MARKET_CATEGORY_EMOJIS,
 	MARKET_ORDER_STATUS,
+	MARKET_SOCIAL_NETWORKS,
+	MARKET_SOCIAL_ICONS,
 	KIND_LABELS,
 	socialHref,
 	formatPriceRange,
@@ -27,6 +29,14 @@ describe('marketConstants', () => {
 			expect(s.color).toBeTruthy()
 		})
 		expect(Object.keys(KIND_LABELS).sort()).toEqual(['digital', 'giftcard', 'physical', 'service'])
+	})
+
+	it('has an icon spec for every social network', () => {
+		expect(Object.keys(MARKET_SOCIAL_ICONS).sort()).toEqual(Object.keys(MARKET_SOCIAL_NETWORKS).sort())
+		Object.values(MARKET_SOCIAL_ICONS).forEach((s) => {
+			expect(s.icon).toBeTruthy()
+			expect(['brand', 'solid']).toContain(s.iconStyle)
+		})
 	})
 
 	describe('socialHref', () => {

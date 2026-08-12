@@ -3,6 +3,7 @@ import FastImage from '@d11/react-native-fast-image'
 
 import { useTheme } from '../../theme/ThemeContext'
 import { mediaUrl } from '../../helpers/mediaUrl'
+import { ConicHaloWheel } from '../particles/QPAvatar'
 
 const SIZES = { sm: 32, md: 44, lg: 64 }
 
@@ -13,18 +14,38 @@ const SIZES = { sm: 32, md: 44, lg: 64 }
  * Named sizes map to px (sm 32 / md 44 / lg 64) and the corner radius stays
  * proportional (`dim / 4`).
  *
+ * `featured` adds the rotating conic halo (same wheel as the VIP avatar,
+ * squircle-clipped) peeking out as a ring around the logo — used for
+ * marketplace stores flagged as destacadas.
+ *
  * @param {object} props
  * @param {string} props.brand - Brand name; its first letter is the fallback glyph.
  * @param {string} [props.logoUrl] - CDN path or URL for the logo.
  * @param {'sm'|'md'|'lg'} [props.size='md'] - Named size.
  * @param {string} [props.bgColor] - Background override (default: theme elevationLight).
+ * @param {boolean} [props.featured=false] - Shows the rotating featured halo ring.
  */
-const OperatorAvatar = ({ brand = '', logoUrl = null, size = 'md', bgColor = null }) => {
+const OperatorAvatar = ({ brand = '', logoUrl = null, size = 'md', bgColor = null, featured = false }) => {
 
 	const { theme } = useTheme()
 	const dim = SIZES[size] || SIZES.md
 	const initial = (brand?.[0] || '?').toUpperCase()
 	const uri = mediaUrl(logoUrl)
+
+	// Grosor del anillo destacado (proporcional, mínimo legible)
+	const ring = featured ? Math.max(2, Math.round(dim / 20)) : 0
+	const inner = dim - ring * 2
+	const background = bgColor || theme.colors.elevationLight
+
+	const logo = uri ? (
+		<FastImage
+			source={{ uri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+			style={{ width: '100%', height: '100%' }}
+			resizeMode={FastImage.resizeMode.contain}
+		/>
+	) : (
+		<Text style={{ color: theme.colors.primaryText, fontSize: inner * 0.4, fontWeight: '600' }}>{initial}</Text>
+	)
 
 	return (
 		<View
@@ -34,18 +55,31 @@ const OperatorAvatar = ({ brand = '', logoUrl = null, size = 'md', bgColor = nul
 					width: dim,
 					height: dim,
 					borderRadius: dim / 4,
-					backgroundColor: bgColor || theme.colors.elevationLight,
+					backgroundColor: background,
 				},
 			]}
 		>
-			{uri ? (
-				<FastImage
-					source={{ uri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-					style={{ width: '100%', height: '100%' }}
-					resizeMode={FastImage.resizeMode.contain}
-				/>
+			{featured && <ConicHaloWheel size={dim} overscan={1.5} />}
+			{featured ? (
+				// Contenedor interno opaco: deja asomar la rueda como anillo y evita
+				// que sangre a través de logos PNG transparentes
+				<View
+					style={[
+						styles.inner,
+						{
+							top: ring,
+							left: ring,
+							width: inner,
+							height: inner,
+							borderRadius: inner / 4,
+							backgroundColor: background,
+						},
+					]}
+				>
+					{logo}
+				</View>
 			) : (
-				<Text style={{ color: theme.colors.primaryText, fontSize: dim * 0.4, fontWeight: '600' }}>{initial}</Text>
+				logo
 			)}
 		</View>
 	)
@@ -53,6 +87,12 @@ const OperatorAvatar = ({ brand = '', logoUrl = null, size = 'md', bgColor = nul
 
 const styles = StyleSheet.create({
 	wrap: {
+		justifyContent: 'center',
+		alignItems: 'center',
+		overflow: 'hidden',
+	},
+	inner: {
+		position: 'absolute',
 		justifyContent: 'center',
 		alignItems: 'center',
 		overflow: 'hidden',

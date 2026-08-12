@@ -334,7 +334,7 @@ const MarketProduct = ({ navigation, route }) => {
 						onPress={() => navigation.navigate(ROUTES.MARKET_STORE, { slug: shop.slug })}
 						style={[styles.shopCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 					>
-						<OperatorAvatar brand={shop.name} logoUrl={shop.logo} size="md" />
+						<OperatorAvatar brand={shop.name} logoUrl={shop.logo} size="md" featured={!!shop.featured} />
 						<View style={{ flex: 1, marginLeft: 10 }}>
 							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>Vendido por</Text>
 							<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>
