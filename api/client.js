@@ -1,11 +1,17 @@
 import axios from 'axios'
+import { Platform } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 import * as Keychain from 'react-native-keychain'
 import config from '../config'
 
 const version = DeviceInfo.getVersion()
 const buildNumber = DeviceInfo.getBuildNumber()
-const deviceName = DeviceInfo.getDeviceNameSync()
+const osVersion = DeviceInfo.getSystemVersion()
+const deviceModel = DeviceInfo.getModel()
+// User-assigned name (may hold accents/emoji): NFD splits accents from letters
+// so stripping non-ASCII keeps "María" → "Maria" — raw non-ASCII header values
+// crash the native HTTP stacks. Falls back to the model if nothing survives.
+const deviceName = DeviceInfo.getDeviceNameSync().normalize('NFD').replace(/[^\x20-\x7E]/g, '').trim() || deviceModel
 
 const API_BASE_URL = config.API_BASE_URL
 const API_TIMEOUT = config.API_TIMEOUT
@@ -47,8 +53,10 @@ export const unregisterLoadingCallbacks = () => {
  * Shared axios instance for every QvaPay API module (except `blogApi`, which
  * uses native `fetch`). Base URL comes from `config.js`: a LAN IP in `__DEV__`,
  * `https://api.qvapay.com` in production. Timeout is 20s.
- * The `X-QvaPay-Client-*` headers report app version, device name and build
- * number so the backend can identify mobile clients.
+ * The `X-QvaPay-Client-*` headers identify the mobile client to the backend:
+ * `-Platform` MUST be `ios`/`android` — the register endpoint uses it to skip
+ * the Turnstile captcha, never the device name. Model travels in `-Device`;
+ * the user-assigned name (ASCII-sanitized) in `-Device-Name`.
  */
 const apiClient = axios.create({
 	baseURL: API_BASE_URL,
@@ -56,11 +64,14 @@ const apiClient = axios.create({
 	headers: {
 		'Content-Type': 'application/json',
 		'Accept': 'application/json',
-		"X-QvaPay-Client": "QvaPayAPP",
-		"User-Agent": "QvaPayClient",
-		"X-QvaPay-Client-Version": version,
-		"X-QvaPay-Client-Platform": deviceName,
-		"X-QvaPay-Client-Platform-Version": buildNumber,
+		'User-Agent': `QvaPayAPP/${version} (${Platform.OS} ${osVersion}; ${deviceModel})`,
+		'X-QvaPay-Client': 'QvaPayAPP',
+		'X-QvaPay-Client-Version': version,
+		'X-QvaPay-Client-Platform': Platform.OS,
+		'X-QvaPay-Client-Platform-Version': osVersion,
+		'X-QvaPay-Client-Build': buildNumber,
+		'X-QvaPay-Client-Device': deviceModel,
+		'X-QvaPay-Client-Device-Name': deviceName,
 	},
 })
 

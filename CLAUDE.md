@@ -101,7 +101,7 @@ If a deep link arrives while unauthenticated, the URL is stashed in `pendingDeep
 ### API Layer (`/api/`)
 **Axios client** (`client.js`):
 - Base URL from `/config.js`: dev `http://192.168.0.10:3000/api`, prod `https://api.qvapay.com`. Fallback constant: `https://www.qvapay.com/api` (not yet wired into retry logic).
-- Timeout 20s. Headers: `X-QvaPay-Client`, `User-Agent`, `X-QvaPay-Client-Version`, `-Platform`, `-Platform-Version`.
+- Timeout 20s. Headers: `X-QvaPay-Client: QvaPayAPP`, `X-QvaPay-Client-Version` (app version), `-Platform` (**`Platform.OS` — `ios`/`android`**, the backend register endpoint keys the Turnstile-captcha exemption on it), `-Platform-Version` (OS version), `-Build` (build number), `-Device` (device model), `-Device-Name` (user-assigned name, ASCII-sanitized — raw non-ASCII header values crash the native HTTP stacks), plus a real `User-Agent` (`QvaPayAPP/<version> (<os> <osVersion>; <model>)`).
 - Request interceptor pulls bearer token from **Keychain** (service `com.qvapay.auth`), not AsyncStorage. Triggers the global loading bar unless `silent: true`.
 - Response interceptor: 403 clears the keychain token; 500 returns `"Ha ocurrido un error, contacte a soporte"`; network errors return `"No se ha podido conectar con el servidor"`. All in Spanish.
 - All modules return `{ success, data, error?, status? }`.
@@ -163,7 +163,7 @@ UI conventions:
 - `/scripts/`: `release-android.sh`, `sync-version.js`
 
 ### Key Dependencies
-React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
+React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `@shopify/react-native-skia` 2 (only the aurora loading veil), `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
 
 OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc81`.
 

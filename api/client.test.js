@@ -15,10 +15,13 @@ jest.mock('axios', () => {
 	}
 	return { create: jest.fn(() => instance) }
 })
+jest.mock('react-native', () => ({ Platform: { OS: 'ios' } }))
 jest.mock('react-native-device-info', () => ({
 	getVersion: () => '1.8.5',
 	getBuildNumber: () => '1805',
-	getDeviceNameSync: () => 'TestPhone',
+	getSystemVersion: () => '18.5',
+	getModel: () => 'iPhone 16',
+	getDeviceNameSync: () => 'iPhone de María 📱',
 }))
 jest.mock('react-native-keychain', () => ({
 	getGenericPassword: jest.fn(),
@@ -72,10 +75,14 @@ describe('axios instance creation', () => {
 		expect(cfg.timeout).toBe(20000)
 		expect(cfg.headers).toMatchObject({
 			'X-QvaPay-Client': 'QvaPayAPP',
-			'User-Agent': 'QvaPayClient',
+			'User-Agent': 'QvaPayAPP/1.8.5 (ios 18.5; iPhone 16)',
 			'X-QvaPay-Client-Version': '1.8.5',
-			'X-QvaPay-Client-Platform': 'TestPhone',
-			'X-QvaPay-Client-Platform-Version': '1805',
+			'X-QvaPay-Client-Platform': 'ios',
+			'X-QvaPay-Client-Platform-Version': '18.5',
+			'X-QvaPay-Client-Build': '1805',
+			'X-QvaPay-Client-Device': 'iPhone 16',
+			// getDeviceNameSync sanitized: accents → ASCII, emoji stripped
+			'X-QvaPay-Client-Device-Name': 'iPhone de Maria',
 		})
 	})
 })

@@ -2421,6 +2421,36 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - react-native-skia (2.11.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React
+    - React-callinvoker
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - react-native-vector-icons-fontawesome6 (13.1.2)
   - react-native-version-check (3.5.0):
     - React-Core
@@ -3625,6 +3655,7 @@ DEPENDENCIES:
   - react-native-onesignal (from `../node_modules/react-native-onesignal`)
   - react-native-passkey (from `../node_modules/react-native-passkey`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - "react-native-skia (from `../node_modules/@shopify/react-native-skia`)"
   - "react-native-vector-icons-fontawesome6 (from `../node_modules/@react-native-vector-icons/fontawesome6`)"
   - react-native-version-check (from `../node_modules/react-native-version-check`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
@@ -3819,6 +3850,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-passkey"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-skia:
+    :path: "../node_modules/@shopify/react-native-skia"
   react-native-vector-icons-fontawesome6:
     :path: "../node_modules/@react-native-vector-icons/fontawesome6"
   react-native-version-check:
@@ -3994,6 +4027,7 @@ SPEC CHECKSUMS:
   react-native-onesignal: 6b27b4f9d8733165eaa166a304763d7ba7cbdedf
   react-native-passkey: 5a0bfc2b73a8f0d74fd00a12b631072eb9555031
   react-native-safe-area-context: 797130a93d99c8fcfaeeb514e81b9ed2ea0295f7
+  react-native-skia: 71dbdcb3c31e351c01b7c73d39c6e73bb1cad13d
   react-native-vector-icons-fontawesome6: 9014730aa0e219382da1f109d47d1a378215cbf8
   react-native-version-check: 842a3b0e7221798cbe8c6abaf24aab3ed0b485ce
   React-NativeModulesApple: bf8980b84edec8ec51e4bf0de2f207ee540394fc

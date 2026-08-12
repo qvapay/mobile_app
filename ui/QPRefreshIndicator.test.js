@@ -9,11 +9,14 @@ import { createHiddenRefreshControl } from './QPRefreshIndicator'
 
 afterEach(() => { jest.restoreAllMocks() })
 
-test('builds a RefreshControl wired to the given state and callback', () => {
+test('builds a RefreshControl wired to the callback, never showing as refreshing', () => {
 	const onRefresh = jest.fn()
 	const element = createHiddenRefreshControl(true, onRefresh)
 	expect(element.type).toBe(RefreshControl)
-	expect(element.props.refreshing).toBe(true)
+	// refreshing is hardcoded to false even when the caller passes true: an
+	// actively-refreshing RefreshControl reserves inset space on iOS, and
+	// progress is communicated by GlobalLoadingBar instead
+	expect(element.props.refreshing).toBe(false)
 	expect(element.props.onRefresh).toBe(onRefresh)
 })
 
