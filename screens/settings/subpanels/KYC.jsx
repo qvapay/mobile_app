@@ -81,6 +81,7 @@ const KYC = () => {
 		return (
 			<View style={containerStyles.subContainer}>
 				<View style={styles.center}>
+					{/* Android resuelve verified.android.json (sin capas de glow: lottie-android recorta el Gaussian Blur a los bounds de la capa) */}
 					<LottieView source={require('../../../assets/lotties/verified.json')} autoPlay loop={false} style={{ width: 200, height: 200 }} />
 					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 10, textAlign: 'center' }]}>¡Identidad verificada!</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>Gracias por completar la verificación. Ya puedes disfrutar de todos los beneficios.</Text>
