@@ -1,7 +1,7 @@
 /**
  * Render tests for the USD CASH delivery promo card — node environment with
- * theme, reanimated (manual mock), gradient, icons and the delivery SVGs
- * mocked (see keypadAmount.test.js for why).
+ * theme, reanimated (manual mock), icons and react-native-svg mocked
+ * (see keypadAmount.test.js for why).
  * @jest-environment node
  */
 let mockIsDark = true
@@ -10,18 +10,22 @@ jest.mock('../theme/ThemeContext', () => {
 	return { useTheme: () => ({ theme: { ...createTheme(mockIsDark), mode: mockIsDark ? 'dark' : 'light' } }) }
 })
 jest.mock('react-native-reanimated')
-jest.mock('react-native-linear-gradient', () => 'LinearGradient')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
-jest.mock('../assets/images/ui/delivery/1.svg', () => 'Delivery1')
-jest.mock('../assets/images/ui/delivery/2.svg', () => 'Delivery2')
-jest.mock('../assets/images/ui/delivery/3.svg', () => 'Delivery3')
-jest.mock('../assets/images/ui/delivery/4.svg', () => 'Delivery4')
-jest.mock('../assets/images/ui/delivery/5.svg', () => 'Delivery5')
-jest.mock('../assets/images/ui/delivery/6.svg', () => 'Delivery6')
-jest.mock('../assets/images/ui/delivery/7.svg', () => 'Delivery7')
-jest.mock('../assets/images/ui/delivery/8.svg', () => 'Delivery8')
+jest.mock('react-native-svg', () => ({
+	__esModule: true,
+	default: 'Svg',
+	Svg: 'Svg',
+	Path: 'Path',
+	Line: 'Line',
+	Circle: 'Circle',
+	G: 'G',
+	Defs: 'Defs',
+	ClipPath: 'ClipPath',
+	Rect: 'Rect',
+}))
 
 import React from 'react'
+import { Text } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { ROUTES } from '../routes'
 import CashDeliveryCard from './CashDeliveryCard'
@@ -52,20 +56,32 @@ test('tapping the card opens the Withdraw flow with USDCASH preselected', () => 
 	expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })
 })
 
-test('spawns exactly three animated delivery sprites over the map', () => {
+test('draws the vector map from real geography: sea, land and road network', () => {
 	const tree = renderCard()
-	const sprites = tree.root.findAll(node => typeof node.type === 'string' && node.type.startsWith('Delivery'))
-	expect(sprites).toHaveLength(3)
-	sprites.forEach(sprite => {
-		expect(sprite.props.width).toBe(25)
-		expect(sprite.props.height).toBe(25)
-	})
+	const svgs = tree.root.findAllByType('Svg')
+	expect(svgs).toHaveLength(4) // map + one route overlay per courier
+	expect(tree.root.findAllByType('Rect')).toHaveLength(1) // water
+	const land = tree.root.findAll(n => n.type === 'Path' && n.props.fill && n.props.fill !== 'none')
+	expect(land).toHaveLength(1) // real coastline silhouette
+	const roadNetworks = tree.root.findAll(n => n.type === 'Path' && n.props.fill === 'none' && n.props.d && n.props.d.length > 2000)
+	expect(roadNetworks.length).toBeGreaterThanOrEqual(2) // major + minor OSM networks
 })
 
-test('the map fades into the surface through the bottom gradient', () => {
+test('runs three simultaneous couriers, each with a "$" chip and dotted route', () => {
 	const tree = renderCard()
-	const gradient = tree.root.findByType('LinearGradient')
-	expect(gradient.props.colors[0]).toBe('transparent')
+	const dollars = tree.root.findAllByType(Text).filter(n => n.props.children === '$')
+	expect(dollars).toHaveLength(3)
+	const dottedRoutes = tree.root.findAll(n => n.type === 'Path' && n.props.strokeDasharray === '0.1, 7')
+	expect(dottedRoutes).toHaveLength(3)
+})
+
+test('map colors follow the theme mode (duotone light vs dark water)', () => {
+	const darkOut = JSON.stringify(renderCard().toJSON())
+	expect(darkOut).toContain('#17233F')
+	mockIsDark = false
+	const lightOut = JSON.stringify(renderCard().toJSON())
+	expect(lightOut).toContain('#D8E4F0')
+	expect(lightOut).not.toContain('#17233F')
 })
 
 test('card border only shows in light mode (house dark-surface rule)', () => {
