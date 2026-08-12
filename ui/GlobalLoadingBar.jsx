@@ -163,8 +163,8 @@ const AURORA_SHADER = Skia.RuntimeEffect.Make(AURORA_SKSL)
 // source's 0.2664 was fitted against a near-black backdrop, so these are a
 // taste call, not a derivation). Ceiling: text under the veil must stay
 // comfortably legible in both modes.
-const GAIN_DARK = 0.42
-const GAIN_LIGHT = 0.42
+const GAIN_DARK = 0.50
+const GAIN_LIGHT = 0.75
 
 // The two ends of the shader's tint ramp, per mode: the selected accent lifted
 // towards white by these amounts. STRONG carries the cast, WEAK is the same

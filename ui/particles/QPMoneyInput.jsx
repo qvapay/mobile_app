@@ -24,7 +24,7 @@ const QPInput = ({ ref, ...props }) => {
 
     const { style, prefixIconName, type } = props
     const hasPrefix = prefixIconName !== undefined
-    const color = type === 'add' ? theme.colors.success : theme.colors.danger
+    const color = type === 'add' ? theme.colors.successText : theme.colors.danger
 
     return (
         <View style={[styles.container]}>

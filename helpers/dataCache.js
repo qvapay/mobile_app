@@ -22,6 +22,9 @@ export const CACHE_KEYS = {
 	P2P_COINS: 'p2p_coins',
 	STORE_CATALOG: 'store_catalog',
 	STORE_TOPUP_BRANDS: 'store_topup_brands', // + ':<countryCode>'
+	MARKET_STORES: 'market_stores',
+	MARKET_SHOP: 'market_shop', // + ':<slug>'
+	MARKET_ORDERS: 'market_orders',
 	INVEST_DATA: 'invest_data',
 	SAVINGS_SUMMARY: 'savings_summary',
 }

@@ -303,7 +303,7 @@ const Pay = ({ route, navigation }) => {
 					{success && (
 						<View style={styles.successWrap}>
 							<LottieView source={require('../../assets/lotties/transfer_ok.json')} autoPlay loop={false} style={{ width: 140, height: 140 }} />
-							<Text style={[textStyles.h3, { color: theme.colors.success, marginTop: 8 }]}>Pago realizado</Text>
+							<Text style={[textStyles.h3, { color: theme.colors.successText, marginTop: 8 }]}>Pago realizado</Text>
 						</View>
 					)}
 

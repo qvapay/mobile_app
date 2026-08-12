@@ -162,7 +162,7 @@ const Referals = () => {
 					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 					<View style={styles.statItem}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-							<FontAwesome6 name="circle-check" size={14} color={theme.colors.success} iconStyle="solid" />
+							<FontAwesome6 name="circle-check" size={14} color={theme.colors.successText} iconStyle="solid" />
 							<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>{verifiedCount}</Text>
 						</View>
 						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Verificados</Text>
@@ -177,7 +177,7 @@ const Referals = () => {
 				{/* SMS Earnings Card */}
 				<View style={[styles.statsCard, { backgroundColor: theme.colors.surface, marginTop: 12 }]}>
 					<View style={styles.statItem}>
-						<Text style={[styles.statValue, { color: theme.colors.success, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>
+						<Text style={[styles.statValue, { color: theme.colors.successText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>
 							${smsEarnings.toFixed(2)}
 						</Text>
 						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Ganado este mes</Text>
@@ -205,7 +205,7 @@ const Referals = () => {
 						<SocialButton icon="x-twitter" label="X" color="#000" iconStyle="brand" onPress={shareToX} theme={theme} />
 						<SocialButton icon="facebook" label="Facebook" color="#1877F2" iconStyle="brand" onPress={shareToFacebook} theme={theme} />
 						<SocialButton icon="telegram" label="Telegram" color="#26A5E4" iconStyle="brand" onPress={shareToTelegram} theme={theme} />
-						<SocialButton icon="comment-sms" label="SMS" color={theme.colors.success} iconStyle="solid" onPress={shareToSMS} theme={theme} />
+						<SocialButton icon="comment-sms" label="SMS" color={theme.colors.successText} iconStyle="solid" onPress={shareToSMS} theme={theme} />
 					</View>
 				</View>
 
@@ -242,8 +242,8 @@ const Referals = () => {
 								<ProfileContainerHorizontal user={referral} size={40} isOnline={isUserOnline(referral.uuid)} />
 								{referral.kyc ? (
 									<View style={[styles.badge, { backgroundColor: theme.colors.success + '20' }]}>
-										<FontAwesome6 name="circle-check" size={10} color={theme.colors.success} iconStyle="solid" />
-										<Text style={[styles.badgeText, { color: theme.colors.success, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>KYC</Text>
+										<FontAwesome6 name="circle-check" size={10} color={theme.colors.successText} iconStyle="solid" />
+										<Text style={[styles.badgeText, { color: theme.colors.successText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>KYC</Text>
 									</View>
 								) : (
 									<View style={[styles.badge, { backgroundColor: theme.colors.warning + '20' }]}>

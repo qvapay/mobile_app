@@ -35,7 +35,9 @@ const colors = {
     // Light theme colors
     light: {
         contrast: "black",
-        successText: "#00471E",
+        // Verde vivo pero accesible sobre blanco (~5:1 AA); el #00471E anterior
+        // era tan oscuro que los montos "+" leían casi como texto negro
+        successText: "#15803D",
         background: "#FFFFFF",
         secondaryBackground: "#F5F5FB",
         surface: "#F0F1F7",

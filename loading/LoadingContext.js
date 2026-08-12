@@ -20,6 +20,7 @@ const MIN_DISPLAY_MS = 300
  * @param {{ children: React.ReactNode }} props
  */
 export const LoadingProvider = ({ children }) => {
+
 	const countRef = useRef(0)
 	const showTimeRef = useRef(null)
 	const hideTimerRef = useRef(null)
@@ -49,9 +50,7 @@ export const LoadingProvider = ({ children }) => {
 						setIsLoading(false)
 					}
 				}, remaining)
-			} else {
-				setIsLoading(false)
-			}
+			} else { setIsLoading(false) }
 		}
 	}, [])
 

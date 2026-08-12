@@ -63,6 +63,10 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
         borderBottomLeftRadius: isLast ? 10 : 0,
         borderBottomRightRadius: isLast ? 10 : 0,
         marginBottom: isLast ? 10 : 0,
+        // Aire vertical de la CAJA (no de cada fila): solo el borde superior de la
+        // primera fila y el inferior de la última. Espejado en TransactionSkeleton.
+        ...(isFirst && { paddingTop: 14 }),
+        ...(isLast && { paddingBottom: 14 }),
     }
 
     // Transaction data

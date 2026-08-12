@@ -7,6 +7,8 @@ import { ROUTES } from './routes'
  * scheme:
  *   /p2p/:p2p_uuid → P2POffer (offer detail)
  *   /pay/:uuid     → Pay (merchant invoice)
+ *   /store/:slug   → MarketStore (marketplace storefront)
+ *   /store/:slug/:uuid → MarketProduct (public product sheet)
  *   /home, /p2p    → tabs inside MainStack
  *
  * Links that arrive while unauthenticated are NOT resolved here — App.tsx's
@@ -24,6 +26,9 @@ const linking = {
 			[ROUTES.P2P_OFFER_SCREEN]: 'p2p/:p2p_uuid',
 			[ROUTES.PAY_SCREEN]: 'pay/:uuid',
 			[ROUTES.TOPUP_SCREEN]: 'topup',
+			// El patrón de producto (2 segmentos) va antes que el de tienda (1)
+			[ROUTES.MARKET_PRODUCT]: 'store/:slug/:uuid',
+			[ROUTES.MARKET_STORE]: 'store/:slug',
 			[ROUTES.MAIN_STACK]: {
 				screens: {
 					[ROUTES.HOME_SCREEN]: 'home',

@@ -31,7 +31,7 @@ const P2PPeerRow = ({ targetUser, wrapStyle, peerStats, peerReviewsCount, isOnli
 							</Text>
 						</View>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-							<FontAwesome6 name="circle-check" size={10} color={theme.colors.success} iconStyle="solid" />
+							<FontAwesome6 name="circle-check" size={10} color={theme.colors.successText} iconStyle="solid" />
 							<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{Number(peerStats.completionRate || 0)}%</Text>
 						</View>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>

@@ -125,7 +125,7 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 
 				{successMessage ? (
 					<View style={[styles.successContainer, { backgroundColor: theme.colors.success + '20', borderColor: theme.colors.success }]}>
-						<Text style={[textStyles.caption, { color: theme.colors.success, textAlign: 'center' }]}>
+						<Text style={[textStyles.caption, { color: theme.colors.successText, textAlign: 'center' }]}>
 							{successMessage}
 						</Text>
 					</View>

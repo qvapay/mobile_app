@@ -107,7 +107,7 @@ const Biometrics = () => {
                 <View style={{ alignItems: 'center', paddingVertical: 30 }}>
                     <View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: biometricsActive ? theme.colors.success + '20' : theme.colors.surface }}>
                         {biometryType === 'FaceID' ? (
-                            <FaceIDIcon size={48} color={biometricsActive ? theme.colors.success : theme.colors.tertiaryText} />
+                            <FaceIDIcon size={48} color={biometricsActive ? theme.colors.successText : theme.colors.tertiaryText} />
                         ) : (
                             <FontAwesome6 name="fingerprint" size={48} color={biometricsActive ? theme.colors.success : theme.colors.tertiaryText} iconStyle="solid" />
                         )}

@@ -12,9 +12,11 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPLoader from '../../ui/particles/QPLoader'
 import StoreTopupSection from './StoreTopupSection'
 import StoreGiftCardsSection from './StoreGiftCardsSection'
+import StoreMarketSection from './StoreMarketSection'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 import { storeApi } from '../../api/storeApi'
+import { marketApi } from '../../api/marketApi'
 import { ROUTES } from '../../routes'
 
 // Stale-while-revalidate cache (instant cold-start / offline rendering)
@@ -25,7 +27,7 @@ const DEFAULT_TOPUP_COUNTRY = 'CU'
 const SHOW_GIFT_CARDS = Platform.OS !== 'ios'
 
 // All Store catalog slices arrive from one fetch pass — keep them as one unit
-const initialCatalog = { favorites: [], featured: [], categories: [], topupCountries: [], topupBrands: [] }
+const initialCatalog = { favorites: [], featured: [], categories: [], topupCountries: [], topupBrands: [], marketStores: [] }
 
 function catalogReducer(state, action) {
 	switch (action.type) {
@@ -62,7 +64,7 @@ const Store = ({ navigation }) => {
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
 	const [catalog, dispatchCatalog] = useReducer(catalogReducer, initialCatalog)
-	const { favorites, featured, categories, topupCountries, topupBrands } = catalog
+	const { favorites, featured, categories, topupCountries, topupBrands, marketStores } = catalog
 	const [topupSelected, setTopupSelected] = useState(null)
 	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
@@ -83,6 +85,7 @@ const Store = ({ navigation }) => {
 	const fetchInitial = useCallback(async () => {
 		const requests = [
 			storeApi.getTopupCatalog({ countries: true }),
+			marketApi.getStores({ take: 8 }),
 		]
 		if (SHOW_GIFT_CARDS) {
 			requests.push(
@@ -92,7 +95,9 @@ const Store = ({ navigation }) => {
 			)
 		}
 		const results = await Promise.all(requests)
-		const [countriesRes, favRes, featRes, catsRes] = results
+		const [countriesRes, marketRes, favRes, featRes, catsRes] = results
+
+		if (marketRes.success) dispatchCatalog({ type: 'set', field: 'marketStores', value: marketRes.data?.stores || [] })
 
 		if (countriesRes.success) {
 			const list = countriesRes.data?.countries || []
@@ -176,6 +181,15 @@ const Store = ({ navigation }) => {
 				{/* Departamentos — entradas a cada vertical, como en la web */}
 				<View style={styles.departmentsBlock}>
 					<DepartmentCard
+						icon="shop"
+						color="#F59E0B"
+						title="Tiendas"
+						subtitle="Comercios verificados que aceptan QvaPay"
+						theme={theme}
+						textStyles={textStyles}
+						onPress={() => navigation.navigate(ROUTES.MARKET_STORES)}
+					/>
+					<DepartmentCard
 						icon="basket-shopping"
 						color="#10B981"
 						title="Compras asistidas"
@@ -222,6 +236,14 @@ const Store = ({ navigation }) => {
 						)}
 					</View>
 				</View>
+
+				{/* Tiendas del marketplace — oculta mientras no haya aprobadas */}
+				<StoreMarketSection
+					marketStores={marketStores}
+					theme={theme}
+					textStyles={textStyles}
+					navigation={navigation}
+				/>
 
 				{/* Tarjetas de regalo — entry point siempre presente en Android */}
 				{SHOW_GIFT_CARDS && (

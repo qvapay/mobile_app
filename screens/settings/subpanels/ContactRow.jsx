@@ -26,7 +26,7 @@ const ContactRow = ({ contact, user, isFirst, isLast, isOnline, theme, container
 			</View>
 			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
 				<Pressable onPress={onSend} hitSlop={8}>
-					<FontAwesome6 name="dollar-sign" size={18} color={theme.colors.success} iconStyle="solid" />
+					<FontAwesome6 name="dollar-sign" size={18} color={theme.colors.successText} iconStyle="solid" />
 				</Pressable>
 				<Pressable onPress={onToggleFavorite} hitSlop={8}>
 					<FontAwesome6 name="star" size={18} color={contact.favorite ? theme.colors.warning : theme.colors.tertiaryText} iconStyle={contact.favorite ? 'solid' : 'regular'} />

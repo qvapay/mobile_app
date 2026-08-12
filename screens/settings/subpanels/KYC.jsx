@@ -123,7 +123,7 @@ const KYC = () => {
 
 const BenefitItem = ({ icon, text, theme, textStyles }) => (
 	<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 }}>
-		<FontAwesome6 name={icon} size={16} color={theme.colors.success} iconStyle="solid" />
+		<FontAwesome6 name={icon} size={16} color={theme.colors.successText} iconStyle="solid" />
 		<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>{text}</Text>
 	</View>
 )

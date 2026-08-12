@@ -292,7 +292,7 @@ const P2PUser = ({ navigation, route }) => {
 						value={`${stats.completionRate || 0}%`}
 						sublabel={stats.total > 0 ? `${stats.completed}/${stats.total}` : "Sin ops"}
 						icon="circle-check"
-						color={theme.colors.success}
+						color={theme.colors.successText}
 					/>
 					<StatCard
 						theme={theme}

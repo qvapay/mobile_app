@@ -34,6 +34,9 @@ const TransactionSkeleton = ({ index = 0, totalItems = 0 }) => {
 		borderBottomLeftRadius: isLast ? 10 : 0,
 		borderBottomRightRadius: isLast ? 10 : 0,
 		marginBottom: isLast ? 10 : 0,
+		// Mismo aire de caja que QPTransaction para que no salte al hidratar
+		...(isFirst && { paddingTop: 14 }),
+		...(isLast && { paddingBottom: 14 }),
 	}
 
 	return (

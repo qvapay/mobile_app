@@ -23,7 +23,7 @@ const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, 
 					justifyContent: 'center',
 					backgroundColor: theme.colors.success + '20',
 				}}>
-					<FontAwesome6 name="phone" size={48} color={theme.colors.success} iconStyle="solid" />
+					<FontAwesome6 name="phone" size={48} color={theme.colors.successText} iconStyle="solid" />
 				</View>
 				<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 16 }]}>
 					{userPhone}
@@ -33,7 +33,7 @@ const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, 
 			{/* Info card */}
 			<View style={containerStyles.card}>
 				<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-					<FontAwesome6 name="circle-check" size={16} color={theme.colors.success} iconStyle="solid" />
+					<FontAwesome6 name="circle-check" size={16} color={theme.colors.successText} iconStyle="solid" />
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
 						Tu número verificado te permite recibir códigos de seguridad por SMS y recuperar acceso a tu cuenta.
 					</Text>

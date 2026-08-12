@@ -198,10 +198,10 @@ const TwoFactor = () => {
 
 				<View style={styles.statusContainer}>
 					<View style={[styles.statusIcon, { backgroundColor: theme.colors.success + '20' }]}>
-						<FontAwesome6 name="shield-halved" size={48} color={theme.colors.success} iconStyle="solid" />
+						<FontAwesome6 name="shield-halved" size={48} color={theme.colors.successText} iconStyle="solid" />
 					</View>
 
-					<Text style={[textStyles.h1, { color: theme.colors.success, marginTop: 20 }]}>
+					<Text style={[textStyles.h1, { color: theme.colors.successText, marginTop: 20 }]}>
 						2FA Activo
 					</Text>
 
@@ -212,7 +212,7 @@ const TwoFactor = () => {
 
 				<View style={[containerStyles.card, { marginTop: 30 }]}>
 					<View style={styles.infoRow}>
-						<FontAwesome6 name="circle-check" size={20} color={theme.colors.success} iconStyle="solid" />
+						<FontAwesome6 name="circle-check" size={20} color={theme.colors.successText} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.primaryText, marginLeft: 12, flex: 1 }]}>
 							Cada vez que inicies sesión, necesitarás un código de tu app de autenticación
 						</Text>

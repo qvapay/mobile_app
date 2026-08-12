@@ -144,7 +144,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 					{showBalance ? (
 						<View style={styles.savingsContent}>
 							<QPBalance formattedAmount={Number(savings.balance ?? 0).toFixed(2)} fontSize={60} theme={theme} />
-							<Text style={[styles.rateLabel, { color: theme.colors.success, fontFamily: theme.typography.fontFamily.medium }]}>
+							<Text style={[styles.rateLabel, { color: theme.colors.successText, fontFamily: theme.typography.fontFamily.medium }]}>
 								{savings.rate}%
 							</Text>
 						</View>

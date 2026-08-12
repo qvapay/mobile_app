@@ -26,9 +26,9 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 			{/* Status icon */}
 			<View style={{ alignItems: 'center', paddingVertical: 30 }}>
 				<View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.success + '20' }}>
-					<FontAwesome6 name="lock" size={40} color={theme.colors.success} iconStyle="solid" />
+					<FontAwesome6 name="lock" size={40} color={theme.colors.successText} iconStyle="solid" />
 				</View>
-				<Text style={[textStyles.h2, { color: theme.colors.success, marginTop: 20 }]}>Activo</Text>
+				<Text style={[textStyles.h2, { color: theme.colors.successText, marginTop: 20 }]}>Activo</Text>
 			</View>
 
 			{/* Auto-lock timeout */}
@@ -72,7 +72,7 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 						<Text style={[textStyles.h4, { flex: 1, marginBottom: 0 }]}>
 							{biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella Digital'} activado
 						</Text>
-						<FontAwesome6 name="circle-check" size={20} color={theme.colors.success} iconStyle="solid" />
+						<FontAwesome6 name="circle-check" size={20} color={theme.colors.successText} iconStyle="solid" />
 					</View>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginTop: 8 }]}>
 						Puedes desbloquear con biometría o PIN

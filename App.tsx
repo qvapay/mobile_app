@@ -88,6 +88,15 @@ import GiftCardBrand from './screens/store/GiftCardBrand'
 import MyPurchases from './screens/store/MyPurchases'
 import PurchaseDetail from './screens/store/PurchaseDetail'
 
+// Marketplace (tiendas de comercios aprobados) Screens
+import MarketStores from './screens/store/market/MarketStores'
+import MarketStore from './screens/store/market/MarketStore'
+import MarketProduct from './screens/store/market/MarketProduct'
+import MarketCart from './screens/store/market/MarketCart'
+import MarketOrders from './screens/store/market/MarketOrders'
+import MarketOrderDetail from './screens/store/market/MarketOrderDetail'
+import CartHeaderButton from './ui/store/CartHeaderButton'
+
 // Assisted Shopping Screens
 import AssistedShopping from './screens/store/assisted/AssistedShopping'
 import AssistedProduct from './screens/store/assisted/AssistedProduct'
@@ -169,9 +178,11 @@ const STATIC_SCREENS: ScreenConfig[] = [
 	{ name: ROUTES.TRANSACTIONS, component: Transactions, options: getHeaderOptions('Transacciones') },
 	{
 		// Transaction detail: when both parties exist the screen shows the
-		// counterparty's cover behind the header, so the header must be
-		// transparent from the very first frame — flipping it after mount
-		// (setOptions in an effect) shifts the whole layout down and back up.
+		// counterparty's profile header, so the header must be transparent from
+		// the very first frame — flipping it after mount (setOptions in an
+		// effect) shifts the whole layout down and back up. The tint stays on
+		// the theme default: the screen itself forces white (pre-paint) only
+		// when a cover photo actually renders behind the header.
 		name: ROUTES.TRANSACTION,
 		component: Transaction,
 		options: ({ route }: any) => {
@@ -182,7 +193,6 @@ const STATIC_SCREENS: ScreenConfig[] = [
 				...(hasCounterparty && {
 					headerTransparent: true,
 					headerStyle: { backgroundColor: 'transparent' },
-					headerTintColor: '#F7F7F7',
 				}),
 			}
 		},
@@ -234,6 +244,14 @@ const STATIC_SCREENS: ScreenConfig[] = [
 	// My Purchases Screens
 	{ name: ROUTES.MY_PURCHASES, component: MyPurchases, options: getHeaderOptions('Mis Compras') },
 	{ name: ROUTES.PURCHASE_DETAIL, component: PurchaseDetail, options: getHeaderOptions('') },
+
+	// Marketplace (tiendas de comercios aprobados) Screens
+	{ name: ROUTES.MARKET_STORES, component: MarketStores, options: getHeaderOptions('Tiendas', { headerRight: () => <CartHeaderButton /> }) },
+	{ name: ROUTES.MARKET_STORE, component: MarketStore, options: getHeaderOptions('', { headerRight: () => <CartHeaderButton /> }) },
+	{ name: ROUTES.MARKET_PRODUCT, component: MarketProduct, options: getHeaderOptions('', { headerRight: () => <CartHeaderButton /> }) },
+	{ name: ROUTES.MARKET_CART, component: MarketCart, options: getHeaderOptions('Mi carrito') },
+	{ name: ROUTES.MARKET_ORDERS, component: MarketOrders, options: getHeaderOptions('Mis compras') },
+	{ name: ROUTES.MARKET_ORDER_DETAIL, component: MarketOrderDetail, options: getHeaderOptions('Pedido') },
 
 	// Assisted Shopping (Personal Shopper) Screens
 	{ name: ROUTES.ASSISTED_SHOPPING, component: AssistedShopping, options: getHeaderOptions('Compras asistidas') },

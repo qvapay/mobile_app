@@ -124,7 +124,7 @@ const Telegram = () => {
                         <FontAwesome6
                             name="telegram"
                             size={48}
-                            color={telegram_id ? theme.colors.success : theme.colors.warning}
+                            color={telegram_id ? theme.colors.successText : theme.colors.warning}
                             iconStyle="brand"
                         />
                     </View>
@@ -146,7 +146,7 @@ const Telegram = () => {
                                 { icon: 'handshake', text: 'Actualizaciones de tus ofertas P2P' },
                             ].map((item, index) => (
                                 <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < 2 ? 10 : 0 }}>
-                                    <FontAwesome6 name={item.icon} size={14} color={theme.colors.success} iconStyle="solid" />
+                                    <FontAwesome6 name={item.icon} size={14} color={theme.colors.successText} iconStyle="solid" />
                                     <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
                                         {item.text}
                                     </Text>

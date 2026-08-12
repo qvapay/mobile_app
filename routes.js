@@ -93,6 +93,14 @@ export const ROUTES = {
 	SAVINGS_SCREEN: "Savings",
 	STOCK_DETAIL_SCREEN: "StockDetail",
 
+	// Marketplace (tiendas de comercios aprobados) Screens
+	MARKET_STORES: "MarketStores",
+	MARKET_STORE: "MarketStore",
+	MARKET_PRODUCT: "MarketProduct",
+	MARKET_CART: "MarketCart",
+	MARKET_ORDERS: "MarketOrders",
+	MARKET_ORDER_DETAIL: "MarketOrderDetail",
+
 	// Assisted Shopping (Personal Shopper) Screens
 	ASSISTED_SHOPPING: "AssistedShopping",
 	ASSISTED_PRODUCT: "AssistedProduct",

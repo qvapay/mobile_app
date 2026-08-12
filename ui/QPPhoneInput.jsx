@@ -75,7 +75,7 @@ const QPPhoneInput = ({ country, onChangeCountry, lockedCountry, valid, ...input
 					/>
 					{valid && (
 						<View style={styles.validBadge} pointerEvents="none">
-							<FontAwesome6 name="circle-check" size={18} color={theme.colors.success} iconStyle="solid" />
+							<FontAwesome6 name="circle-check" size={18} color={theme.colors.successText} iconStyle="solid" />
 						</View>
 					)}
 				</View>

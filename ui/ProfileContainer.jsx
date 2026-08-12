@@ -27,6 +27,9 @@ const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 56
  * menu (own profile, with edit buttons) and on Transaction/Receive/Scan for
  * viewing other users. Edit pencils only render when their callbacks are
  * passed; a bottom gradient fades the cover into the screen background.
+ * Without a cover the whole cover area collapses to a plain safe-area spacer —
+ * except when `onEditCover` is passed (Settings), where the placeholder stays
+ * so the user can tap the pencil to add one.
  *
  * @param {object} props
  * @param {object} props.user - User profile (name, username, kyc, golden_check, cover_photo_url, trustscore, ...).
@@ -53,36 +56,46 @@ const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 	const trustScore = user.trustscore || 0
 
 	const hasCover = !!user.cover_photo_url
+	// No cover and nothing to edit → skip the cover area entirely (a bare
+	// gradient over the background looks broken); keep the placeholder only
+	// when the pencil to add a cover is available (own profile in Settings).
+	const showCoverArea = hasCover || !!onEditCover
 
 	return (
 		<View style={{ alignItems: 'center' }}>
 
 			{/* Cover Image Area - extends behind header + status bar */}
-			<View style={[styles.coverContainer, { backgroundColor: theme.colors.surface, height: totalCoverHeight, marginTop: -topOffset }]}>
-				{hasCover ? (
-					<FastImage source={{ uri: user.cover_photo_url, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />
-				) : (
-					<View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-						<FontAwesome6 name="image" size={40} color={theme.colors.elevation} iconStyle="solid" />
-					</View>
-				)}
-				{/* Gradient fade at the bottom */}
-				<LinearGradient
-					colors={['transparent', theme.colors.background]}
-					start={{ x: 0.5, y: 0.6 }}
-					end={{ x: 0.5, y: 1 }}
-					style={StyleSheet.absoluteFill}
-				/>
-				{/* Cover edit button */}
-				{onEditCover && (
-					<Pressable onPress={onEditCover} style={[styles.coverEditButton, { backgroundColor: theme.colors.primary }]}>
-						<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
-					</Pressable>
-				)}
-			</View>
+			{showCoverArea ? (
+				<View style={[styles.coverContainer, { backgroundColor: theme.colors.surface, height: totalCoverHeight, marginTop: -topOffset }]}>
+					{hasCover ? (
+						<FastImage source={{ uri: user.cover_photo_url, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />
+					) : (
+						<View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+							<FontAwesome6 name="image" size={40} color={theme.colors.elevation} iconStyle="solid" />
+						</View>
+					)}
+					{/* Gradient fade at the bottom */}
+					<LinearGradient
+						colors={['transparent', theme.colors.background]}
+						start={{ x: 0.5, y: 0.6 }}
+						end={{ x: 0.5, y: 1 }}
+						style={StyleSheet.absoluteFill}
+					/>
+					{/* Cover edit button */}
+					{onEditCover && (
+						<Pressable onPress={onEditCover} style={[styles.coverEditButton, { backgroundColor: theme.colors.primary }]}>
+							<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
+						</Pressable>
+					)}
+				</View>
+			) : (
+				// These screens draw from the physical top of the screen (transparent
+				// header / floating controls), so clear the status bar + header height.
+				<View style={{ height: topOffset }} />
+			)}
 
-			{/* Avatar overlapping the cover */}
-			<View style={styles.avatarWrapper}>
+			{/* Avatar overlapping the cover (or sitting below the header spacer) */}
+			<View style={showCoverArea ? styles.avatarWrapper : styles.avatarWrapperNoCover}>
 				<Pressable onPress={onEditAvatar} disabled={!onEditAvatar}>
 					<View style={{ position: 'relative' }}>
 						<QPAvatar size={120} user={user} />
@@ -157,6 +170,10 @@ const styles = StyleSheet.create({
 	},
 	avatarWrapper: {
 		marginTop: -60,
+		alignItems: 'center',
+	},
+	avatarWrapperNoCover: {
+		marginTop: 12,
 		alignItems: 'center',
 	},
 	statsCard: {

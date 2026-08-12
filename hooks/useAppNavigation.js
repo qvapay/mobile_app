@@ -42,6 +42,19 @@ const parsePayUuid = (url) => {
 }
 
 /**
+ * Parses a marketplace storefront/product deep link.
+ * `/store/<slug>` → storefront; `/store/<slug>/<uuid>` → product sheet
+ * (same URLs the web publishes). Matches https paths and qvapay://.
+ * @param {string} url - e.g. https://qvapay.com/store/mi-tienda[/<uuid>]
+ * @returns {{ slug: string, uuid?: string }|null} Parsed segments, or null.
+ */
+const parseStoreLink = (url) => {
+	const match = url.match(/(?:\/|^qvapay:\/\/)store\/([^/?#]+)(?:\/([^/?#]+))?/)
+	if (!match) return null
+	return { slug: match[1], ...(match[2] ? { uuid: match[2] } : {}) }
+}
+
+/**
  * Drives the app-root navigation flow: minimum 2s splash, store-update check
  * (helpers/versionCheck → UpdatePromptModal), auth ↔ navigation reconciliation,
  * deep-link capture while unauthenticated, and OneSignal foreground/click
@@ -120,6 +133,19 @@ export function useAppNavigation(pendingDeepLinkRef) {
 						})
 						return
 					}
+					const storeLink = parseStoreLink(pendingUrl)
+					if (storeLink) {
+						navigation.reset({
+							index: 1,
+							routes: [
+								{ name: ROUTES.MAIN_STACK },
+								storeLink.uuid
+									? { name: ROUTES.MARKET_PRODUCT, params: { uuid: storeLink.uuid } }
+									: { name: ROUTES.MARKET_STORE, params: { slug: storeLink.slug } },
+							],
+						})
+						return
+					}
 				}
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK }] })
 			} else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
@@ -132,6 +158,9 @@ export function useAppNavigation(pendingDeepLinkRef) {
 					} else if (parseP2PUuid(url)) {
 						pendingDeepLinkRef.current = url
 						toast.info('Inicia sesión para ver la oferta P2P')
+					} else if (parseStoreLink(url)) {
+						pendingDeepLinkRef.current = url
+						toast.info('Inicia sesión para ver la tienda')
 					}
 				})
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
@@ -149,6 +178,9 @@ export function useAppNavigation(pendingDeepLinkRef) {
 				} else if (parseP2PUuid(url)) {
 					pendingDeepLinkRef.current = url
 					toast.info('Inicia sesión para ver la oferta P2P')
+				} else if (parseStoreLink(url)) {
+					pendingDeepLinkRef.current = url
+					toast.info('Inicia sesión para ver la tienda')
 				}
 			}
 		})

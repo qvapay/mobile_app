@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Async Storage
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -78,22 +79,25 @@ const Transaction = ({ route, navigation }) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	// Determine the other user early so we can configure the header
 	const user_uuid_early = user?.uuid || ''
 	const paid_by_uuid_early = transactionDetails.paid_by?.uuid || ''
 	const otherUserEarly = (user_uuid_early === paid_by_uuid_early) ? transactionDetails.user : transactionDetails.paid_by
 
-	// Make header transparent when cover image is shown (otherUser exists).
-	// The route options in App.tsx already predict this from the nav params so
-	// the first frame is correct; this layout effect (pre-paint) only covers
-	// shapes the route-level guess can't see. Never flips back to opaque.
+	// Make header transparent when the profile header is shown (otherUser
+	// exists). The route options in App.tsx already predict this from the nav
+	// params so the first frame is correct; this layout effect (pre-paint) only
+	// covers shapes the route-level guess can't see. Never flips back to opaque.
+	// The white tint is only forced when a cover photo actually sits behind the
+	// header — over the plain background the theme's default tint stays legible.
 	useLayoutEffect(() => {
 		if (otherUserEarly) {
 			navigation.setOptions({
 				headerTransparent: true,
 				headerStyle: { backgroundColor: 'transparent' },
-				headerTintColor: theme.colors.almostWhite,
+				...(otherUserEarly.cover_photo_url && { headerTintColor: theme.colors.almostWhite }),
 			})
 		}
 	}, [otherUserEarly, navigation, theme])
@@ -188,7 +192,7 @@ const Transaction = ({ route, navigation }) => {
 
 	return (
 		<View style={containerStyles.container}>
-			<ScrollView style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction)} contentInsetAdjustmentBehavior="never">
+			<ScrollView style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction)} contentInsetAdjustmentBehavior="never">
 
 				{/* Profile Container */}
 				{otherUser && <ProfileContainer user={otherUser} />}
@@ -244,9 +248,11 @@ const Transaction = ({ route, navigation }) => {
 
 				<RelatedTransactionCards t={transactionDetails} navigation={navigation} />
 
-				{/* Action Buttons - only for transfers between users or withdrawals */}
+				{/* Action Buttons - only for transfers between users or withdrawals.
+				    marginTop auto + flexGrow en el contentContainer: con espacio libre el
+				    botón baja al fondo (con safe area); con contenido largo fluye normal. */}
 				{((transactionDetails.user && transactionDetails.paid_by) || transactionDetails.withdraw) && (
-					<View style={containerStyles.bottomButtonContainer}>
+					<View style={[containerStyles.bottomButtonContainer, { marginTop: 'auto', paddingBottom: insets.bottom + 16 }]}>
 						<QPButton
 							title="Descargar"
 							icon="download"
@@ -267,6 +273,9 @@ const Transaction = ({ route, navigation }) => {
 const styles = StyleSheet.create({
 	scrollView: {
 		flex: 1,
+	},
+	scrollContent: {
+		flexGrow: 1,
 	},
 	amountSection: {
 		alignItems: 'center',

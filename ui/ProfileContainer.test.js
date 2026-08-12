@@ -71,7 +71,18 @@ test('renders the cover via FastImage only when a cover photo exists', () => {
 
 	const withoutCover = renderProfile()
 	expect(withoutCover.root.findAllByType(FastImage)).toHaveLength(0)
-	expect(withoutCover.root.findAllByType('FontAwesome6').some(i => i.props.name === 'image')).toBe(true)
+})
+
+test('view-only without cover collapses the whole cover area (no gradient, no placeholder)', () => {
+	const tree = renderProfile()
+	expect(tree.root.findAllByType('LinearGradient')).toHaveLength(0)
+	expect(tree.root.findAllByType('FontAwesome6').some(i => i.props.name === 'image')).toBe(false)
+})
+
+test('without cover the placeholder stays when onEditCover is passed (Settings)', () => {
+	const tree = renderProfile(USER, { onEditCover: jest.fn() })
+	expect(tree.root.findAllByType('LinearGradient')).toHaveLength(1)
+	expect(tree.root.findAllByType('FontAwesome6').some(i => i.props.name === 'image')).toBe(true)
 })
 
 test('edit pencils only render when their callbacks are passed', () => {

@@ -157,7 +157,7 @@ const RelatedTransactionCards = ({ t, navigation }) => {
 					<CardHeader
 						icon="cart-shopping"
 						title="Compra"
-						color={theme.colors.success}
+						color={theme.colors.successText}
 						badge={t.cart.cancelled ? 'Cancelado' : t.cart.delivered ? 'Entregado' : t.cart.purchased ? 'Comprado' : 'Pendiente'}
 						badgeColor={t.cart.cancelled ? theme.colors.danger : t.cart.delivered ? theme.colors.primary : t.cart.purchased ? theme.colors.success : theme.colors.warning}
 					/>

@@ -204,7 +204,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 						<CardHeader
 							icon="receipt"
 							title="Recibo"
-							color={theme.colors.success}
+							color={theme.colors.successText}
 						/>
 						{Object.entries(receipt).map(([key, val], index, arr) => {
 							// Skip empty values and internal fields
