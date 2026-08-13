@@ -10,7 +10,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // UI
 import QPButton from './particles/QPButton'
 
-const PRIVACY_URL = 'https://qvapay.com/privacy'
+const PRIVACY_URL = 'https://www.qvapay.com/privacy'
 
 /**
  * Pre-permission disclosure modal shown before requesting device-contacts

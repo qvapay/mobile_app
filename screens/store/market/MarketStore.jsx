@@ -157,7 +157,7 @@ const MarketStore = ({ navigation, route }) => {
 	// TODO(viralidad): añadir ?ref={username} a la URL cuando qpweb atribuya
 	// puntos al que comparte — decidido 2026-08-12, pendiente del backend.
 	const handleShare = useCallback(async () => {
-		const url = `https://qvapay.com/store/${slug}`
+		const url = `https://www.qvapay.com/store/${slug}`
 		try {
 			await Share.share({
 				url, // iOS uses this as the payload

@@ -73,5 +73,5 @@ test('the privacy link opens the policy in the browser', () => {
 	const tree = renderModal()
 	const link = tree.root.findAll(n => typeof n.props.onPress === 'function' && n.type !== 'QPButton')[0]
 	act(() => { link.props.onPress() })
-	expect(Linking.openURL).toHaveBeenCalledWith('https://qvapay.com/privacy')
+	expect(Linking.openURL).toHaveBeenCalledWith('https://www.qvapay.com/privacy')
 })

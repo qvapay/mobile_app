@@ -74,7 +74,7 @@ const Referals = () => {
 	const [refreshing, setRefreshing] = useState(false)
 
 	// Referral link
-	const referralLink = `https://qvapay.com/register/${user.username}`
+	const referralLink = `https://www.qvapay.com/register/${user.username}`
 
 	// Load referral data
 	const loadReferralData = async () => {
