@@ -22,6 +22,9 @@ import usePinEntry from '../../hooks/usePinEntry'
 import apiClient from '../../api/client'
 import { withdrawApi } from '../../api/withdrawApi'
 
+// Idempotencia: clave estable por intento — un reintento tras timeout no duplica el débito
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from '../../helpers/idempotency'
+
 // User Context
 import { useAuth } from '../../auth/AuthContext'
 
@@ -113,6 +116,12 @@ const Withdraw = ({ navigation, route }) => {
 
 	// Scroll del form — el paso de PIN aparece debajo del fold y hay que llevarlo a la vista
 	const scrollViewRef = useRef(null)
+
+	// Clave de idempotencia del intento: sobrevive a timeouts, 5xx y toques
+	// repetidos — solo rota tras éxito confirmado. Si un intento falla por
+	// validación (PIN malo, saldo), el servidor libera la clave y reintentar
+	// con datos corregidos procede normal.
+	const idempotencyKeyRef = useRef(makeIdempotencyKey())
 
 	// Amount swap (same-named setters keep every call site unchanged)
 	const [amountState, dispatchAmount] = useReducer(setFieldReducer, { amountQUSD: '', amountCoin: '' })
@@ -322,15 +331,18 @@ const Withdraw = ({ navigation, route }) => {
 				const key = keyFromFieldName(field.name)
 				details[field.name] = workingForm[key] || ''
 			}
-			const result = await withdrawApi.withdraw({
+			// Ante el 409 "en proceso" se espera y reintenta una vez con la MISMA clave
+			const result = await callWithDuplicateRetry(() => withdrawApi.withdraw({
 				amount: amountQUSD,
 				coin: selectedCoin.tick,
 				details,
 				pin,
 				...(sourceSats && { source: 'satoshis', amountSats: Number(amountSats) }),
-			})
+				idempotencyKey: idempotencyKeyRef.current,
+			}))
 
 			if (result.success) {
+				idempotencyKeyRef.current = makeIdempotencyKey()
 				if (sourceSats) {
 					toast.success('Redención procesada', { description: `Se han redimido ${Number(amountSats).toLocaleString()} sats` })
 					// El backend devuelve los sats restantes fresh — reflejarlos sin refetch
@@ -347,6 +359,8 @@ const Withdraw = ({ navigation, route }) => {
 				setAmountSats('')
 				setWorkingForm({})
 				navigation.goBack()
+			} else if (isNetworkFailure(result)) {
+				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${SAFE_RETRY_HINT}` })
 			} else {
 				toast.error(result.error || 'No se pudo completar la extracción')
 			}

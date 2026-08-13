@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useReducer } from "react"
+import { useState, useEffect, useMemo, useReducer, useRef } from "react"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -19,6 +19,9 @@ import { toast } from "sonner-native"
 import coinsApi from "../../api/coinsApi"
 import p2pApi from "../../api/p2pApi"
 import { userApi } from "../../api/userApi"
+
+// Idempotencia: clave estable por intento — un reintento tras timeout no duplica la oferta
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from "../../helpers/idempotency"
 
 // User context
 import { useAuth } from "../../auth/AuthContext"
@@ -80,6 +83,11 @@ const P2PCreate = ({ navigation }) => {
 	const [isSending, setIsSending] = useState(false)
 	const [workingForm, setWorkingForm] = useState({})
 	const [p2pEnabled] = useState(user.p2p_enabled)
+
+	// Clave de idempotencia del intento: sobrevive a timeouts, 5xx y toques
+	// repetidos — solo rota tras éxito confirmado (evita ofertas dobles y el
+	// doble débito de las ofertas sell)
+	const idempotencyKeyRef = useRef(makeIdempotencyKey())
 
 	// Button label derived from type + amount
 	const buttonText = type === "buy" ? `Comprar ${amount > 0 ? "$" + amount : ""}` : `Vender ${amount > 0 ? "$" + amount : ""}`
@@ -166,12 +174,21 @@ const P2PCreate = ({ navigation }) => {
 				only_vip: onlyVIP ? 1 : 0,
 				private: privateOffer ? 1 : 0,
 				message: message,
+				idempotency_key: idempotencyKeyRef.current,
 			}
-			const res = await p2pApi.create(payload)
+			// Ante el 409 "en proceso" se espera y reintenta una vez con la MISMA clave
+			const res = await callWithDuplicateRetry(() => p2pApi.create(payload))
 
-			if (res.status === 201) {
-				toast.success("Listo", { description: "Tu oferta se ha creado correctamente" })
+			if (res.success) {
+				idempotencyKeyRef.current = makeIdempotencyKey()
+				toast.success("Listo", {
+					description: res.data?.duplicate
+						? "Esta oferta ya se había creado — te llevamos a ella"
+						: "Tu oferta se ha creado correctamente",
+				})
 				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: res.data.p2p.uuid })
+			} else if (isNetworkFailure(res)) {
+				toast.error("Error de red", { description: `${res.error || "No se ha podido conectar con el servidor"}. ${SAFE_RETRY_HINT}` })
 			} else {
 				const errMsg = res?.error || "No se pudo crear la oferta P2P"
 				toast.error("Error al crear la oferta", { description: errMsg })

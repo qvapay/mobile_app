@@ -260,6 +260,7 @@ describe('withdraw submission', () => {
 			coin: 'BANK_CUP',
 			details: { 'Card Number': '9224061799991234', 'Full Name': 'John Doe' },
 			pin: '1234',
+			idempotencyKey: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/),
 		})
 		expect(toast.success).toHaveBeenCalledWith('Extracción procesada', { description: 'Se han extraído $100 QUSD' })
 		expect(navigation.goBack).toHaveBeenCalled()
@@ -275,12 +276,27 @@ describe('withdraw submission', () => {
 	})
 
 	test('an API failure surfaces the backend error and stays on the screen', async () => {
-		withdrawApi.withdraw.mockResolvedValue({ success: false, error: 'Fondos insuficientes' })
+		withdrawApi.withdraw.mockResolvedValue({ success: false, error: 'Fondos insuficientes', status: 422 })
 		const tree = await renderWithdraw()
 		const pinStep = await goToPinStep(tree)
 		await act(async () => { pinStep.props.onChangePin('1234') })
 		expect(toast.error).toHaveBeenCalledWith('Fondos insuficientes')
 		expect(navigation.goBack).not.toHaveBeenCalled()
+	})
+
+	test('a network failure (no HTTP status) promises a safe retry and keeps the SAME idempotency key', async () => {
+		withdrawApi.withdraw.mockResolvedValue({ success: false, error: 'No se ha podido conectar con el servidor' })
+		const tree = await renderWithdraw()
+		const pinStep = await goToPinStep(tree)
+		await act(async () => { pinStep.props.onChangePin('1234') })
+		expect(toast.error).toHaveBeenCalledWith('Error de red', {
+			description: 'No se ha podido conectar con el servidor. Puedes reintentar sin riesgo de duplicar la operación.',
+		})
+		// Retry the same attempt via the footer button: the key must not rotate on failure
+		await pressFooter(tree)
+		const keys = withdrawApi.withdraw.mock.calls.map(([args]) => args.idempotencyKey)
+		expect(keys).toHaveLength(2)
+		expect(keys[1]).toBe(keys[0])
 	})
 
 	test('a thrown error toasts the generic Spanish message', async () => {
@@ -394,6 +410,7 @@ describe('Lightning (BTCLN)', () => {
 			pin: '1234',
 			source: 'satoshis',
 			amountSats: 2000,
+			idempotencyKey: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/),
 		})
 		expect(updateUser).toHaveBeenCalledWith({ satoshis: 3000 })
 	})

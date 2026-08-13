@@ -254,17 +254,20 @@ export const p2pApi = {
 
 	/**
 	 * Creates a new P2P offer (`POST /p2p/create`).
-	 * Only a 201 counts as success — any other 2xx is treated as a failure.
+	 * Success is a 201 — or a 200 with `duplicate: true`, which is the
+	 * idempotent replay of an offer already created with the same
+	 * `idempotency_key` (the payload carries the ORIGINAL offer).
+	 * Any other 2xx is treated as a failure.
 	 * How many open offers a user may hold depends on their role
 	 * (regular 1, KYC 3, VIP 5, Gold 10, ...); the backend enforces it.
 	 *
-	 * @param {Object} data - The offer payload: type ('buy'|'sell'), coin, amount, receive, details, flags (only_kyc, only_vip, private), ...
+	 * @param {Object} data - The offer payload: type ('buy'|'sell'), coin, amount, receive, details, flags (only_kyc, only_vip, private), optional idempotency_key, ...
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the created offer
 	 */
 	create: async data => {
 		try {
 			const response = await apiClient.post('/p2p/create', data)
-			if (response.data && response.status === 201) {
+			if (response.data && (response.status === 201 || (response.status === 200 && response.data.duplicate))) {
 				return { success: true, data: response.data, status: response.status }
 			} else {
 				return {

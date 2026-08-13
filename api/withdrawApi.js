@@ -51,9 +51,13 @@ export const withdrawApi = {
 	 * @param {string} [params.note] - Optional personal note for the withdrawal
 	 * @param {'balance'|'satoshis'} [params.source] - Funds origin (default balance)
 	 * @param {number} [params.amountSats] - Sats to redeem when source is 'satoshis'
+	 * @param {string} [params.idempotencyKey] - Per-attempt key (`[A-Za-z0-9._-]{8,64}`);
+	 *   a retried request that already completed returns the ORIGINAL withdrawal with
+	 *   `duplicate: true`, and a retry while the original is in flight gets
+	 *   `409 { code: 'DUPLICATE_REQUEST' }` (see `helpers/idempotency.js`)
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the created withdrawal + transaction
 	 */
-	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats }) => {
+	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats, idempotencyKey }) => {
 
 		try {
 
@@ -64,6 +68,7 @@ export const withdrawApi = {
 				...(source === 'satoshis'
 					? { source: 'satoshis', amount_sats: Number(amountSats) }
 					: { amount: Number(amount) }),
+				...(idempotencyKey && { idempotency_key: idempotencyKey }),
 			}
 
 			// Add note if provided

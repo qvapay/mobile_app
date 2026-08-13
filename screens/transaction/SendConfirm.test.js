@@ -134,6 +134,7 @@ describe('transfer execution', () => {
 			description: 'para el café',
 			to: 'u-9',
 			pin: '1234',
+			idempotencyKey: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/),
 		})
 		expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.SEND_SUCCESS, {
 			amount: '25',
@@ -143,12 +144,28 @@ describe('transfer execution', () => {
 	})
 
 	test('a failed transfer surfaces the backend error and stays on the screen', async () => {
-		transferApi.transferMoney.mockResolvedValue({ success: false, error: 'Saldo insuficiente' })
+		transferApi.transferMoney.mockResolvedValue({ success: false, error: 'Saldo insuficiente', status: 422 })
 		const tree = await renderConfirm()
 		await pressContinuar(tree)
 		await enterPin(tree, '1234')
 		expect(toast.error).toHaveBeenCalledWith('Error en la transacción', { description: 'Saldo insuficiente' })
 		expect(navigation.navigate).not.toHaveBeenCalled()
+	})
+
+	test('a network failure (no HTTP status) promises a safe retry and keeps the SAME idempotency key', async () => {
+		transferApi.transferMoney.mockResolvedValue({ success: false, error: 'No se ha podido conectar con el servidor' })
+		const tree = await renderConfirm()
+		await pressContinuar(tree)
+		await enterPin(tree, '1234')
+		expect(toast.error).toHaveBeenCalledWith('Error de red', {
+			description: 'No se ha podido conectar con el servidor. Puedes reintentar sin riesgo de duplicar la operación.',
+		})
+		// Retry the same attempt (the pin state is unchanged, so submit via the
+		// button): the key must not rotate on failure
+		await act(async () => { buttonByTitle(tree, 'Confirmar Envío').props.onPress() })
+		const keys = transferApi.transferMoney.mock.calls.map(([args]) => args.idempotencyKey)
+		expect(keys).toHaveLength(2)
+		expect(keys[1]).toBe(keys[0])
 	})
 
 	test('a thrown transfer error toasts its message', async () => {

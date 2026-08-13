@@ -128,6 +128,33 @@ describe('withdrawApi.withdraw', () => {
 		expect(payload.pin).toBe('012345')
 	})
 
+	test('includes idempotency_key in the payload when idempotencyKey is passed', async () => {
+		apiClient.post.mockResolvedValue(successResponse)
+
+		await withdrawApi.withdraw({ amount: 10, coin: 'BANK', details: {}, pin: 1234, idempotencyKey: 'attempt-abc123' })
+
+		expect(apiClient.post).toHaveBeenCalledWith('/withdraw', expect.objectContaining({
+			idempotency_key: 'attempt-abc123',
+		}))
+	})
+
+	test('omits idempotency_key from the payload when no key is passed', async () => {
+		apiClient.post.mockResolvedValue(successResponse)
+
+		await withdrawApi.withdraw({ amount: 10, coin: 'BANK', details: {}, pin: 1234 })
+
+		expect(apiClient.post.mock.calls[0][1]).not.toHaveProperty('idempotency_key')
+	})
+
+	test('treats a duplicate replay (200 + duplicate: true) as a normal success', async () => {
+		const replay = { result: 'OK', duplicate: true, data: { withdraw_id: 1, transaction_id: 'tx-original' } }
+		apiClient.post.mockResolvedValue({ data: replay, status: 200 })
+
+		const result = await withdrawApi.withdraw({ amount: 10, coin: 'BANK', details: {}, pin: 1234, idempotencyKey: 'attempt-abc123' })
+
+		expect(result).toEqual({ success: true, data: replay, status: 200 })
+	})
+
 	test('source satoshis replaces amount with amount_sats in the payload', async () => {
 		apiClient.post.mockResolvedValue(successResponse)
 

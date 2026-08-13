@@ -84,7 +84,11 @@ export const transferApi = {
 	 * @param {string} data.description - Description of the transfer
 	 * @param {string} data.to - Recipient's email, username, uuid or verified phone
 	 * @param {string|number} data.pin - User's PIN for authorization
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the created transaction
+	 * @param {string} [data.idempotencyKey] - Per-attempt key (`[A-Za-z0-9._-]{8,64}`);
+	 *   a retried request that already completed returns the ORIGINAL transaction
+	 *   with `duplicate: true`, and a retry while the original is in flight gets
+	 *   `409 { code: 'DUPLICATE_REQUEST' }` (see `helpers/idempotency.js`)
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the created transaction
 	 *
 	 * Example request body:
 	 * {
@@ -94,14 +98,15 @@ export const transferApi = {
 	 *   "pin": "1111"
 	 * }
 	 */
-	transferMoney: async ({ amount, description, to, pin }) => {
+	transferMoney: async ({ amount, description, to, pin, idempotencyKey }) => {
 
 		try {
 			const response = await apiClient.post('/transaction/transfer', {
 				amount: amount.toString(),
 				description,
 				to,
-				pin: pin.toString()
+				pin: pin.toString(),
+				...(idempotencyKey && { idempotency_key: idempotencyKey })
 			})
 
 			return {
@@ -115,6 +120,7 @@ export const transferApi = {
 			return {
 				success: false,
 				error: error.response?.data?.error || error.response?.data?.message || error.message,
+				details: error.response?.data,
 				status: error.response?.status
 			}
 		}

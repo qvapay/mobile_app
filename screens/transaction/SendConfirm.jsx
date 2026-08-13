@@ -33,6 +33,9 @@ import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 // Nearby session — payment ack to the chargee's radar (no-op outside NearbyPay)
 import { getActiveSession } from '../../nearby/session'
 
+// Idempotencia: clave estable por intento — un reintento tras timeout no duplica el envío
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from '../../helpers/idempotency'
+
 // PIN/OTP entry sub-flow state — one cohesive unit
 function pinFlowReducer(state, action) {
 	switch (action.type) {
@@ -81,6 +84,10 @@ const SendConfirm = ({ navigation, route }) => {
 
 	const hasOTP = !!user?.two_factor_secret
 	const scrollViewRef = useRef(null)
+
+	// Clave de idempotencia del intento: nace con la pantalla de confirmación y
+	// sobrevive a timeouts, 5xx y toques repetidos — solo rota tras éxito confirmado
+	const idempotencyKeyRef = useRef(makeIdempotencyKey())
 
 	// Track recipient for online status
 	useEffect(() => {
@@ -166,16 +173,21 @@ const SendConfirm = ({ navigation, route }) => {
 
 		try {
 			setIsLoading(true)
-			const result = await transferApi.transferMoney({
+			// Ante el 409 "en proceso" se espera y reintenta una vez con la MISMA clave
+			const result = await callWithDuplicateRetry(() => transferApi.transferMoney({
 				amount: send_amount,
 				description: description,
 				to: recipientUser.uuid,
-				pin: pin
-			})
+				pin: pin,
+				idempotencyKey: idempotencyKeyRef.current
+			}))
 
 			if (result.success) {
+				idempotencyKeyRef.current = makeIdempotencyKey()
 				getActiveSession()?.notifyPaymentSent({ toUuid: recipientUser.uuid, amount: send_amount, txUuid: result.data?.uuid })
 				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser, description: description })
+			} else if (isNetworkFailure(result)) {
+				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${SAFE_RETRY_HINT}` })
 			} else {
 				toast.error('Error en la transacción', { description: result.error || 'No se pudo completar la transacción' })
 			}

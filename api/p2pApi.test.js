@@ -359,6 +359,15 @@ describe('p2pApi.create', () => {
 		})
 	})
 
+	test('accepts a 200 idempotent replay (duplicate: true) as success with the original offer', async () => {
+		const replay = { msg: 'ok', duplicate: true, p2p: { uuid: 'original-offer' } }
+		apiClient.post.mockResolvedValue({ data: replay, status: 200 })
+
+		const result = await p2pApi.create({ ...offerPayload, idempotency_key: 'attempt-abc123' })
+
+		expect(result).toEqual({ success: true, data: replay, status: 200 })
+	})
+
 	test('returns the API error with details on server error', async () => {
 		apiClient.post.mockRejectedValue(apiError(422, { error: 'Límite de ofertas alcanzado' }))
 

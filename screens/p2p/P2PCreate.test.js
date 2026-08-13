@@ -76,7 +76,7 @@ beforeEach(() => {
 	jest.clearAllMocks()
 	useAuth.mockReturnValue({ user: { p2p_enabled: true, kyc: 1 } })
 	coinsApi.index.mockResolvedValue({ data: [] })
-	p2pApi.create.mockResolvedValue({ status: 201, data: { p2p: { uuid: 'offer-1' } } })
+	p2pApi.create.mockResolvedValue({ success: true, status: 201, data: { p2p: { uuid: 'offer-1' } } })
 	userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [] })
 })
 
@@ -173,6 +173,7 @@ describe('offer creation', () => {
 			only_vip: 1,
 			private: 0,
 			message: 'Pago rápido',
+			idempotency_key: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/),
 		})
 		expect(toast.success).toHaveBeenCalledWith('Listo', { description: 'Tu oferta se ha creado correctamente' })
 		expect(navigation.navigate).toHaveBeenCalledWith('P2POffer', { p2p_uuid: 'offer-1' })
@@ -186,13 +187,37 @@ describe('offer creation', () => {
 	})
 
 	test('a non-201 response surfaces the API error and does not navigate', async () => {
-		p2pApi.create.mockResolvedValue({ status: 422, error: 'Ya tienes una oferta abierta' })
+		p2pApi.create.mockResolvedValue({ success: false, status: 422, error: 'Ya tienes una oferta abierta' })
 		const tree = await renderCreate()
 		await fillOffer(tree)
 		await pressPublish(tree)
 		expect(toast.error).toHaveBeenCalledWith('Error al crear la oferta', { description: 'Ya tienes una oferta abierta' })
 		expect(navigation.navigate).not.toHaveBeenCalled()
 		expect(publishButton(tree).props.loading).toBe(false)
+	})
+
+	test('an idempotent replay (duplicate: true) navigates to the ORIGINAL offer', async () => {
+		p2pApi.create.mockResolvedValue({ success: true, status: 200, data: { duplicate: true, p2p: { uuid: 'offer-original' } } })
+		const tree = await renderCreate()
+		await fillOffer(tree)
+		await pressPublish(tree)
+		expect(toast.success).toHaveBeenCalledWith('Listo', { description: 'Esta oferta ya se había creado — te llevamos a ella' })
+		expect(navigation.navigate).toHaveBeenCalledWith('P2POffer', { p2p_uuid: 'offer-original' })
+	})
+
+	test('a network failure (no HTTP status) promises a safe retry and keeps the SAME idempotency key', async () => {
+		p2pApi.create.mockResolvedValue({ success: false, error: 'No se ha podido conectar con el servidor' })
+		const tree = await renderCreate()
+		await fillOffer(tree)
+		await pressPublish(tree)
+		expect(toast.error).toHaveBeenCalledWith('Error de red', {
+			description: 'No se ha podido conectar con el servidor. Puedes reintentar sin riesgo de duplicar la operación.',
+		})
+		// Retry the same attempt: the key must not rotate on failure
+		await pressPublish(tree)
+		const keys = p2pApi.create.mock.calls.map(([payload]) => payload.idempotency_key)
+		expect(keys).toHaveLength(2)
+		expect(keys[1]).toBe(keys[0])
 	})
 
 	test('a thrown network error is toasted with its message', async () => {

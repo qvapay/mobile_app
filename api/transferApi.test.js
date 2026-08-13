@@ -163,7 +163,7 @@ describe('transferApi.transferMoney', () => {
 			pin: '1111',
 		})
 
-		expect(result).toEqual({ success: false, error: 'PIN incorrecto', status: 422 })
+		expect(result).toEqual({ success: false, error: 'PIN incorrecto', details: { error: 'PIN incorrecto' }, status: 422 })
 	})
 
 	test('falls back to the message field when the error body has no error field', async () => {
@@ -176,7 +176,7 @@ describe('transferApi.transferMoney', () => {
 			pin: '1111',
 		})
 
-		expect(result).toEqual({ success: false, error: 'Saldo insuficiente', status: 400 })
+		expect(result).toEqual({ success: false, error: 'Saldo insuficiente', details: { message: 'Saldo insuficiente' }, status: 400 })
 	})
 
 	test('returns a network error result when there is no response', async () => {
@@ -189,7 +189,44 @@ describe('transferApi.transferMoney', () => {
 			pin: '1111',
 		})
 
-		expect(result).toEqual({ success: false, error: 'Network Error', status: undefined })
+		expect(result).toEqual({ success: false, error: 'Network Error', details: undefined, status: undefined })
+	})
+
+	test('includes idempotency_key in the body when idempotencyKey is passed', async () => {
+		apiClient.post.mockResolvedValue({ data: {}, status: 200 })
+
+		await transferApi.transferMoney({
+			amount: 1,
+			description: 'x',
+			to: 'user',
+			pin: '1111',
+			idempotencyKey: 'attempt-abc123',
+		})
+
+		expect(apiClient.post).toHaveBeenCalledWith('/transaction/transfer', expect.objectContaining({ idempotency_key: 'attempt-abc123' }))
+	})
+
+	test('omits idempotency_key from the body when no key is passed', async () => {
+		apiClient.post.mockResolvedValue({ data: {}, status: 200 })
+
+		await transferApi.transferMoney({ amount: 1, description: 'x', to: 'user', pin: '1111' })
+
+		expect(apiClient.post.mock.calls[0][1]).not.toHaveProperty('idempotency_key')
+	})
+
+	test('treats a duplicate replay (200 + duplicate: true) as a normal success', async () => {
+		const replay = { success: true, message: 'Transferencia completada correctamente', transaction: 'uuid-original', duplicate: true }
+		apiClient.post.mockResolvedValue({ data: replay, status: 200 })
+
+		const result = await transferApi.transferMoney({
+			amount: 1,
+			description: 'x',
+			to: 'user',
+			pin: '1111',
+			idempotencyKey: 'attempt-abc123',
+		})
+
+		expect(result).toEqual({ success: true, data: replay, status: 200 })
 	})
 })
 
