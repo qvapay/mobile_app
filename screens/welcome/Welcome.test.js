@@ -44,13 +44,14 @@ jest.mock('react-native-reanimated', () => {
 	}
 })
 jest.mock('react-native-linear-gradient', () => 'LinearGradient')
-// Skia (BrandWordmark): useFont → null ejercita el fallback de texto plano
-jest.mock('@shopify/react-native-skia', () => ({
-	Canvas: 'Canvas',
-	Text: 'SkiaText',
-	LinearGradient: 'SkiaLinearGradient',
-	useFont: () => null,
-	vec: (x, y) => ({ x, y }),
+// react-native-svg (halo radial del BrandMark)
+jest.mock('react-native-svg', () => ({
+	__esModule: true,
+	default: 'Svg',
+	Circle: 'Circle',
+	Defs: 'Defs',
+	RadialGradient: 'RadialGradient',
+	Stop: 'Stop',
 }))
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }))
 jest.mock('react-native-device-info', () => ({ getVersion: () => '0.0.0' }))

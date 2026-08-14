@@ -17,8 +17,8 @@ import Animated, {
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 
-// Marca con destello Skia
-import BrandWordmark from './BrandWordmark'
+// Marca: isotipo + nombre plano con halo respirando detrás
+import BrandMark from './BrandMark'
 
 // SVG Coins
 import BtcIcon from '../../assets/images/coins/btc.svg'
@@ -116,8 +116,9 @@ const MarqueeColumn = ({ items, duration, reverse, theme, frozen }) => {
 }
 
 /**
- * Hero del WelcomeScreen ("Kinetic"): el wordmark QvaPay con destello Skia
- * arriba, tipografía editorial gigante con un verbo rotatorio a color
+ * Hero del WelcomeScreen ("Kinetic"): la marca arriba (isotipo con halo
+ * respirando detrás + nombre plano — BrandMark), tipografía editorial
+ * gigante con un verbo rotatorio a color
  * (Envíalo / Ahórralo / Inviértelo / Recíbelo) al estilo Revolut, sobre tres
  * columnas diagonales de marquesina infinita con pills de monedas y features
  * de la app. Un scrim de degradado mantiene legible el texto. Reduced-motion
@@ -165,9 +166,9 @@ const WelcomeKinetic = ({ navigation, onSecretLongPress, actions }) => {
 
 			<SafeAreaView style={styles.safeArea}>
 
-				{/* Marca — wordmark con glint periódico */}
+				{/* Marca — isotipo con halo/ping en el trasfondo + nombre plano */}
 				<Animated.View entering={FadeInDown.delay(100).duration(700)} style={styles.brandRow}>
-					<BrandWordmark />
+					<BrandMark />
 				</Animated.View>
 
 				<View style={styles.fill} />
