@@ -20,6 +20,8 @@ jest.mock('../../api/userApi', () => ({ userApi: { verifyPhone: jest.fn() } }))
 jest.mock('../../api/client', () => ({ setAuthToken: jest.fn() }))
 jest.mock('../../ui/particles/QPInput', () => 'QPInput')
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
+jest.mock('../../ui/particles/QPSplitButton', () => 'QPSplitButton')
+jest.mock('../../ui/particles/QPStepDots', () => 'QPStepDots')
 jest.mock('../../ui/particles/QPCodeInput', () => 'QPCodeInput')
 jest.mock('../../ui/particles/QPPressable', () => 'QPPressable')
 jest.mock('../../ui/QPPhoneInput', () => 'QPPhoneInput')
@@ -49,7 +51,7 @@ const completeSession = jest.fn()
 const startCountdown = jest.fn()
 const enablePush = jest.fn()
 const dismissOnboardPrompt = jest.fn()
-const navigation = { navigate: jest.fn() }
+const navigation = { navigate: jest.fn(), setOptions: jest.fn() }
 
 const renderRegister = () => {
 	let tree
@@ -60,8 +62,11 @@ const renderRegister = () => {
 const input = (tree, placeholder) =>
 	tree.root.findAllByType('QPInput').find((i) => i.props.placeholder === placeholder)
 
+// El primario de cada paso es el QPSplitButton persistente; los secundarios
+// (reenviar código) siguen siendo QPButton — se busca por title en ambos
 const button = (tree, title) =>
-	tree.root.findAllByType('QPButton').find((b) => b.props.title === title)
+	[...tree.root.findAllByType('QPSplitButton'), ...tree.root.findAllByType('QPButton')]
+		.find((b) => b.props.title === title)
 
 const press = (tree, title) => act(async () => { button(tree, title).props.onPress() })
 

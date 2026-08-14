@@ -5,7 +5,7 @@ module.exports = {
   // with jsx added, keeping the preset's asset transformer.
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
-    '^.+\\.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp)$': require.resolve(
+    '^.+\\.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp|ttf|otf)$': require.resolve(
       'react-native/jest/assetFileTransformer.js',
     ),
   },

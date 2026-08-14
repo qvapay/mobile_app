@@ -4,7 +4,6 @@ import Animated, {
 	interpolateColor,
 	useAnimatedStyle,
 	useSharedValue,
-	withSpring,
 	withTiming,
 } from 'react-native-reanimated'
 
@@ -13,26 +12,13 @@ import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPCodeInput from '../../../ui/particles/QPCodeInput'
 import QPPressable from '../../../ui/particles/QPPressable'
+import QPSplitButton from '../../../ui/particles/QPSplitButton'
 
 // Phone input (chip de país + input, compartido con Settings y recargas)
 import QPPhoneInput from '../../../ui/QPPhoneInput'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
-// Barra de progreso del wizard — el fill avanza con spring
-export const ProgressBar = ({ progress, theme }) => {
-	const fill = useSharedValue(progress)
-	useEffect(() => {
-		fill.value = withSpring(progress, { mass: 0.6, damping: 18, stiffness: 160 })
-	}, [progress, fill])
-	const animatedStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }))
-	return (
-		<View style={[styles.progressTrack, { backgroundColor: theme.colors.surface }]}>
-			<Animated.View style={[styles.progressFill, { backgroundColor: theme.colors.primary }, animatedStyle]} />
-		</View>
-	)
-}
 
 // Regla de contraseña con check animado
 const PasswordRule = ({ ok, label, theme }) => {
@@ -274,85 +260,59 @@ export const PushStep = ({ theme, textStyles, makeStepEnter }) => (
 
 // Botones de acción del paso actual (van al slot `actions` del QPKeyboardView).
 // `valid` agrupa las validaciones derivadas: { name, email, password }.
+// El QPSplitButton se renderiza UNA sola vez fuera del switch de extras: así
+// persiste entre pasos y la apertura/cierre del Atrás (y el fade del label)
+// se anima de verdad en vez de remontarse ya en su estado final.
 export const StepActions = ({
 	stepKey, theme, isLoading, valid,
 	emailPin, phone, phoneCode,
 	resendDisabled, countdownLabel,
+	canGoBack, onBack,
 	onNameNext, onEmailNext, onRegister, onVerifyEmailPin,
 	onSendPhoneCode, onVerifyPhoneCode, onSkipToPushOrFinish,
 	onEnablePush, onSkipPush,
 }) => {
-	switch (stepKey) {
-		case 'name':
-			return (
-				<QPButton
-					title="Continuar"
-					onPress={onNameNext}
-					disabled={!valid.name}
-					textStyle={{ color: theme.colors.buttonText }}
-				/>
-			)
-		case 'email':
-			return (
-				<QPButton
-					title="Continuar"
-					onPress={onEmailNext}
-					disabled={!valid.email}
-					textStyle={{ color: theme.colors.buttonText }}
-				/>
-			)
-		case 'password':
-			return (
+	// Config del botón primario por paso
+	const primary = {
+		name: { title: 'Continuar', onPress: onNameNext, disabled: !valid.name },
+		email: { title: 'Continuar', onPress: onEmailNext, disabled: !valid.email },
+		password: { title: 'Crear cuenta', onPress: onRegister, disabled: !valid.password, loading: isLoading },
+		emailPin: { title: 'Verificar', onPress: onVerifyEmailPin, disabled: emailPin.length !== 4, loading: isLoading },
+		phone: { title: 'Enviar código', onPress: () => onSendPhoneCode(false), disabled: phone.trim().length < 7, loading: isLoading },
+		phoneCode: { title: 'Verificar teléfono', onPress: onVerifyPhoneCode, disabled: phoneCode.length !== 6, loading: isLoading },
+		push: { title: 'Activar notificaciones', onPress: onEnablePush, loading: isLoading },
+	}[stepKey]
+
+	if (!primary) return null
+
+	const skipLinkText = { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }
+
+	return (
+		<>
+			{stepKey === 'password' && (
+				<Text style={[styles.legalText, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>
+					Al crear tu cuenta aceptas los Términos y Condiciones y la Política de Privacidad de QvaPay
+				</Text>
+			)}
+
+			<QPSplitButton
+				title={primary.title}
+				onPress={primary.onPress}
+				disabled={primary.disabled}
+				loading={primary.loading}
+				showBack={canGoBack}
+				onBack={onBack}
+				check={stepKey === 'push'}
+			/>
+
+			{stepKey === 'phone' && (
+				<QPPressable variant="opacity" onPress={onSkipToPushOrFinish} style={styles.skipLink}>
+					<Text style={skipLinkText}>Ahora no</Text>
+				</QPPressable>
+			)}
+
+			{stepKey === 'phoneCode' && (
 				<>
-					<Text style={[styles.legalText, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>
-						Al crear tu cuenta aceptas los Términos y Condiciones y la Política de Privacidad de QvaPay
-					</Text>
-					<QPButton
-						title="Crear cuenta"
-						onPress={onRegister}
-						disabled={!valid.password}
-						loading={isLoading}
-						textStyle={{ color: theme.colors.buttonText }}
-					/>
-				</>
-			)
-		case 'emailPin':
-			return (
-				<QPButton
-					title="Verificar"
-					onPress={onVerifyEmailPin}
-					disabled={emailPin.length !== 4}
-					loading={isLoading}
-					textStyle={{ color: theme.colors.buttonText }}
-				/>
-			)
-		case 'phone':
-			return (
-				<>
-					<QPButton
-						title="Enviar código"
-						onPress={() => onSendPhoneCode(false)}
-						disabled={phone.trim().length < 7}
-						loading={isLoading}
-						textStyle={{ color: theme.colors.buttonText }}
-					/>
-					<QPPressable variant="opacity" onPress={onSkipToPushOrFinish} style={styles.skipLink}>
-						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
-							Ahora no
-						</Text>
-					</QPPressable>
-				</>
-			)
-		case 'phoneCode':
-			return (
-				<>
-					<QPButton
-						title="Verificar teléfono"
-						onPress={onVerifyPhoneCode}
-						disabled={phoneCode.length !== 6}
-						loading={isLoading}
-						textStyle={{ color: theme.colors.buttonText }}
-					/>
 					<QPButton
 						title={resendDisabled ? countdownLabel : 'Reenviar código'}
 						onPress={() => onSendPhoneCode(true)}
@@ -361,31 +321,18 @@ export const StepActions = ({
 						textStyle={{ color: theme.colors.primaryText }}
 					/>
 					<QPPressable variant="opacity" onPress={onSkipToPushOrFinish} style={styles.skipLink}>
-						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
-							Omitir por ahora
-						</Text>
+						<Text style={skipLinkText}>Omitir por ahora</Text>
 					</QPPressable>
 				</>
-			)
-		case 'push':
-			return (
-				<>
-					<QPButton
-						title="Activar notificaciones"
-						onPress={onEnablePush}
-						loading={isLoading}
-						textStyle={{ color: theme.colors.buttonText }}
-					/>
-					<QPPressable variant="opacity" onPress={onSkipPush} style={styles.skipLink}>
-						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
-							Ahora no
-						</Text>
-					</QPPressable>
-				</>
-			)
-		default:
-			return null
-	}
+			)}
+
+			{stepKey === 'push' && (
+				<QPPressable variant="opacity" onPress={onSkipPush} style={styles.skipLink}>
+					<Text style={skipLinkText}>Ahora no</Text>
+				</QPPressable>
+			)}
+		</>
+	)
 }
 
 const styles = StyleSheet.create({
@@ -394,17 +341,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 8,
 		marginTop: 8,
-	},
-	progressTrack: {
-		height: 4,
-		borderRadius: 2,
-		overflow: 'hidden',
-		marginTop: 8,
-		marginBottom: 24,
-	},
-	progressFill: {
-		height: 4,
-		borderRadius: 2,
 	},
 	stepContainer: {
 		flex: 1,

@@ -1,5 +1,5 @@
 import { usePreventRemove } from '@react-navigation/native'
-import { useState, useRef, useEffect, useEffectEvent, useReducer } from 'react'
+import { useState, useRef, useEffect, useEffectEvent, useLayoutEffect, useReducer } from 'react'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -26,10 +26,10 @@ import usePushPrompt from '../../hooks/usePushPrompt'
 
 // UI
 import QPKeyboardView from '../../ui/QPKeyboardView'
+import QPStepDots from '../../ui/particles/QPStepDots'
 
 // Pantallas del wizard + acciones por paso
 import {
-	ProgressBar,
 	NameStep,
 	EmailStep,
 	PasswordStep,
@@ -89,6 +89,16 @@ const RegisterScreen = ({ navigation }) => {
 	const { direction, makeStepEnter } = useStepTransitions()
 	const stepKey = STEPS[step]
 
+	// Dots del wizard en el header nativo (mismo borde tope que Onboard).
+	// native-stack INVOCA headerTitle-como-función en vez de montarla como
+	// componente, así que el elemento QPStepDots conserva identidad entre
+	// setOptions y la píldora anima de paso a paso sin remontarse
+	useLayoutEffect(() => {
+		navigation.setOptions({
+			headerTitle: () => <QPStepDots count={STEPS.length} activeIndex={step} />,
+		})
+	}, [navigation, step])
+
 	// Form state
 	const [form, dispatch] = useReducer(formReducer, initialForm)
 	const { name, lastname, email, password, invite, phone, country } = form
@@ -147,6 +157,17 @@ const RegisterScreen = ({ navigation }) => {
 		else if (stepKey === 'phoneCode') goTo(STEPS.indexOf('phone'))
 		else if (stepKey === 'push') finish()
 	})
+
+	// Atrás visible del split-button (además del chevron del header) — solo en
+	// los pasos donde retroceder es realmente retroceder: email/password vuelven
+	// un paso y phoneCode vuelve al teléfono. En emailPin ya no hay vuelta atrás
+	// (la cuenta existe) y en phone/push el "atrás" del header es en realidad
+	// avanzar, así que el slot queda cerrado
+	const canGoBack = ['email', 'password', 'phoneCode'].includes(stepKey)
+	const wizardBack = () => {
+		if (stepKey === 'phoneCode') goTo(STEPS.indexOf('phone'))
+		else if (canGoBack) goTo(step - 1)
+	}
 
 	// Crear la cuenta (fin del tramo de datos)
 	const handleRegister = async () => {
@@ -300,6 +321,7 @@ const RegisterScreen = ({ navigation }) => {
 
 	return (
 		<QPKeyboardView
+			scrollViewProps={{ contentContainerStyle: { flexGrow: 1, paddingTop: 16 } }}
 			actions={
 				<StepActions
 					stepKey={stepKey}
@@ -311,6 +333,8 @@ const RegisterScreen = ({ navigation }) => {
 					phoneCode={phoneCode}
 					resendDisabled={resendDisabled}
 					countdownLabel={countdownLabel}
+					canGoBack={canGoBack}
+					onBack={wizardBack}
 					onNameNext={() => goTo(STEPS.indexOf('email'))}
 					onEmailNext={() => goTo(STEPS.indexOf('password'))}
 					onRegister={handleRegister}
@@ -323,9 +347,6 @@ const RegisterScreen = ({ navigation }) => {
 				/>
 			}
 		>
-
-			{/* Progreso del wizard */}
-			<ProgressBar progress={(step + 1) / STEPS.length} theme={theme} />
 
 			{/* ¿Cómo te llamas? */}
 			{stepKey === 'name' && (

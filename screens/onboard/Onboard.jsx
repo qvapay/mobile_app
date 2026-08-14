@@ -5,15 +5,10 @@ import Animated, {
 	Easing,
 	FadeIn,
 	FadeOut,
-	FadeOutLeft,
-	ZoomIn,
-	LinearTransition,
-	interpolateColor,
 	useAnimatedStyle,
 	useSharedValue,
 	withRepeat,
 	withSequence,
-	withSpring,
 	withTiming,
 } from 'react-native-reanimated'
 
@@ -32,8 +27,9 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 // UI Components
-import QPButton from '../../ui/particles/QPButton'
 import QPPressable from '../../ui/particles/QPPressable'
+import QPSplitButton from '../../ui/particles/QPSplitButton'
+import QPStepDots from '../../ui/particles/QPStepDots'
 
 // Static image mapping for React Native require
 const onboardImages = {
@@ -85,21 +81,9 @@ const onboard_steps = [
 	}
 ]
 
-// Dot del indicador: el activo se estira a píldora con color primario
-const StepDot = ({ active, theme }) => {
-	const progress = useSharedValue(active ? 1 : 0)
-	useEffect(() => {
-		progress.value = withSpring(active ? 1 : 0, { mass: 0.6, damping: 16, stiffness: 200 })
-	}, [active, progress])
-	const animatedStyle = useAnimatedStyle(() => ({
-		width: 8 + progress.value * 16,
-		backgroundColor: interpolateColor(progress.value, [0, 1], [theme.colors.border, theme.colors.primary]),
-	}))
-	return <Animated.View style={[{ height: 8, borderRadius: 4, marginHorizontal: 4 }, animatedStyle]} />
-}
-
 // Ilustración con flotación sutil en loop
 const FloatingImage = ({ source }) => {
+	
 	const floatY = useSharedValue(0)
 
 	useEffect(() => {
@@ -191,11 +175,7 @@ const Onboard = ({ navigation }) => {
 
 			{/* Step Indicator + Skip */}
 			<View style={{ width: '100%', minHeight: 32, justifyContent: 'center' }}>
-				<View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-					{onboard_steps.map((_, index) => (
-						<StepDot key={index} active={index === currentStep} theme={theme} />
-					))}
-				</View>
+				<QPStepDots count={onboard_steps.length} activeIndex={currentStep} />
 
 				{!isLastStep && (
 					<Animated.View
@@ -243,38 +223,14 @@ const Onboard = ({ navigation }) => {
 				</Animated.View>
 			</View>
 
-			{/* Navigation Buttons */}
-			<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-
-				{/* Previous Button */}
-				{currentStep > 0 && (
-					<Animated.View
-						entering={ZoomIn.duration(220)}
-						exiting={FadeOutLeft.duration(180)}>
-						<QPButton
-							icon="chevron-left"
-							onPress={handlePreviousStep}
-							style={{
-								width: 60,
-								borderRadius: 30,
-								paddingHorizontal: 0,
-								marginRight: 10,
-								backgroundColor: theme.colors.secondary
-							}}
-							textStyle={{ color: theme.colors.primaryText }}
-						/>
-					</Animated.View>
-				)}
-
-				{/* Next/Finish Button */}
-				<Animated.View layout={LinearTransition.springify().mass(0.7).damping(18)} style={{ flex: 1 }}>
-					<QPButton
-						title={isLastStep ? "Finalizar" : "Siguiente"}
-						onPress={isLastStep ? handleCompleteOnboarding : handleNextStep}
-						textStyle={{ color: theme.colors.primaryText }}
-					/>
-				</Animated.View>
-			</View>
+			{/* Navigation Buttons — split-button (patrón de reactiive.io/demos/steps) */}
+			<QPSplitButton
+				title={isLastStep ? 'Finalizar' : 'Siguiente'}
+				onPress={isLastStep ? handleCompleteOnboarding : handleNextStep}
+				showBack={currentStep > 0}
+				onBack={handlePreviousStep}
+				check={isLastStep}
+			/>
 			<PushPromptModal
 				visible={showPushModal}
 				onAccept={handlePushAccept}
