@@ -24,6 +24,13 @@ jest.mock('../../api/userApi', () => ({ userApi: { searchUser: jest.fn() } }))
 jest.mock('../../api/transferApi', () => ({ transferApi: { transferMoney: jest.fn() } }))
 jest.mock('../../api/withdrawApi', () => ({ withdrawApi: { requestPin: jest.fn() } }))
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
+// Gate de KYC en passthrough — su lógica se prueba en hooks/useKycGate.test.js
+jest.mock('../../hooks/useKycGate', () => ({
+	__esModule: true,
+	default: () => ({ requireKyc: () => true, gateVisible: false, gateMessage: null, closeGate: jest.fn() }),
+	KYC_TRANSFER_THRESHOLD: 500,
+}))
+jest.mock('../../ui/KycGateModal', () => 'KycGateModal')
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
 import React from 'react'

@@ -73,6 +73,7 @@ import NearbyPay from './screens/nearby/NearbyPay'
 // Invest Screens
 import Savings from './screens/invest/Savings'
 import StockDetail from './screens/invest/StockDetail'
+import CoinDetail from './screens/invest/CoinDetail'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -215,6 +216,7 @@ const STATIC_SCREENS: ScreenConfig[] = [
 
 	// Stock Detail Screen
 	{ name: ROUTES.STOCK_DETAIL_SCREEN, component: StockDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
+	{ name: ROUTES.COIN_DETAIL_SCREEN, component: CoinDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
 
 	// QR Scan Screen
 	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', headerShown: false } },

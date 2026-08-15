@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Image components
 import { SvgXml, SvgUri } from 'react-native-svg'
+
+// Caché de SVGs compartida (memoria + AsyncStorage + dedup)
+import { getCachedSvgSync, loadSvg } from '../../helpers/svgCache'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -12,11 +14,12 @@ const SVG_CACHE_PREFIX = 'svg_cache_'
 
 /**
  * Circular coin / payment-method logo, fetched as SVG from
- * `media.qvapay.com/coins/{tick}.svg`. The raw SVG XML is cached in AsyncStorage
- * (`svg_cache_` prefix) so repeat renders never touch the network; while the
- * first fetch is in flight, SvgUri streams the same URL as a stopgap. A missing
- * tick or failed/invalid fetch degrades to a lettered placeholder showing the
- * first 3 characters of the tick.
+ * `media.qvapay.com/coins/{tick}.svg`. The raw SVG XML goes through the shared
+ * svgCache (module memory → remounts paint synchronously without flicker,
+ * AsyncStorage `svg_cache_` prefix → cold starts, in-flight dedup → one fetch
+ * per URL); while the first fetch of the session is in flight, SvgUri streams
+ * the same URL as a stopgap. A missing tick or failed/invalid fetch degrades
+ * to a lettered placeholder showing the first 3 characters of the tick.
  *
  * @param {object} props
  * @param {string} props.coin - Coin tick or payment-method key (case-insensitive).
@@ -25,42 +28,26 @@ const SVG_CACHE_PREFIX = 'svg_cache_'
 const QPCoin = ({ coin, size = 32 }) => {
 
 	const { theme } = useTheme()
-	const [svgXml, setSvgXml] = useState(null)
-	const [failed, setFailed] = useState(false)
 
 	const coinKey = (coin || '').toLowerCase()
 	const coin_image_path = `https://media.qvapay.com/coins/${coinKey}.svg`
 
+	const [svgXml, setSvgXml] = useState(() => (coinKey ? getCachedSvgSync(coin_image_path) : null))
+	const [failed, setFailed] = useState(false)
+
 	useEffect(() => {
-
 		if (!coinKey) return
-		let cancelled = false
-		const cacheKey = `${SVG_CACHE_PREFIX}${coinKey}`
-
-		const loadSvg = async () => {
-			// Check cache first
-			try {
-				const cached = await AsyncStorage.getItem(cacheKey)
-				if (cancelled) return
-				if (cached) {
-					setSvgXml(cached)
-					return
-				}
-			} catch { /* cache miss */ }
-
-			// Fetch from network
-			try {
-				const response = await fetch(coin_image_path)
-				const xml = await response.text()
-				if (cancelled) return
-				if (xml && xml.includes('<svg')) {
-					setSvgXml(xml)
-					AsyncStorage.setItem(cacheKey, xml)
-				} else { setFailed(true) }
-			} catch { if (!cancelled) setFailed(true) }
+		const cached = getCachedSvgSync(coin_image_path)
+		if (cached) {
+			setSvgXml(cached)
+			return
 		}
-
-		loadSvg()
+		let cancelled = false
+		loadSvg(coin_image_path, `${SVG_CACHE_PREFIX}${coinKey}`).then((xml) => {
+			if (cancelled) return
+			if (xml) setSvgXml(xml)
+			else setFailed(true)
+		})
 		return () => { cancelled = true }
 	}, [coinKey, coin_image_path])
 

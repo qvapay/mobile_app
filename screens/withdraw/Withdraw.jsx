@@ -18,6 +18,10 @@ import PinConfirmStep from '../transaction/PinConfirmStep'
 import { isCryptoCoin } from './withdrawDestination'
 import usePinEntry from '../../hooks/usePinEntry'
 
+// Gate de KYC (retiros > $1000)
+import useKycGate, { KYC_WITHDRAW_THRESHOLD } from '../../hooks/useKycGate'
+import KycGateModal from '../../ui/KycGateModal'
+
 // API
 import apiClient from '../../api/client'
 import { withdrawApi } from '../../api/withdrawApi'
@@ -108,6 +112,9 @@ const Withdraw = ({ navigation, route }) => {
 
 	// Contexts
 	const { user, updateUser } = useAuth()
+
+	// Gate de KYC — intercepta antes del paso de PIN
+	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -409,7 +416,14 @@ const Withdraw = ({ navigation, route }) => {
 					) : (
 						<QPButton
 							title="Continuar"
-							onPress={() => { setShowPinStep(true); setPin('') }}
+							onPress={() => {
+								// Gate preventivo: el backend rechaza retiros > $1000 sin KYC
+								if (!requireKyc({
+									gated: Number(amountQUSD) > KYC_WITHDRAW_THRESHOLD,
+									message: `Los retiros de más de $${KYC_WITHDRAW_THRESHOLD} requieren tener tu identidad verificada. Es rápido y solo se hace una vez.`,
+								})) return
+								setShowPinStep(true); setPin('')
+							}}
 							disabled={!isFormValid}
 							icon="arrow-right"
 							iconStyle="solid"
@@ -527,6 +541,8 @@ const Withdraw = ({ navigation, route }) => {
 				recentKey={RECENT_WITHDRAW_KEY}
 				defaultCoins={DEFAULT_WITHDRAW_COINS}
 			/>
+
+			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
 		</>
 	)
 }

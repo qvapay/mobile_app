@@ -18,6 +18,10 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // User context
 import { useAuth } from '../../auth/AuthContext'
 
+// Gate de KYC (el ahorro requiere identidad verificada)
+import useKycGate from '../../hooks/useKycGate'
+import KycGateModal from '../../ui/KycGateModal'
+
 // Toast
 import { toast } from 'sonner-native'
 
@@ -96,7 +100,11 @@ const Savings = ({ route }) => {
 	const checkingBalance = Number(user?.balance || 0)
 	const savingsBalance = Number(savings?.balance || 0)
 
+	// Gate de KYC — el backend rechaza depósitos y retiros de ahorro sin KYC
+	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
+
 	const openModal = (type) => {
+		if (!requireKyc({ message: 'La cuenta de ahorro requiere tener tu identidad verificada. Es rápido y solo se hace una vez.' })) return
 		dispatchModal({ type: 'open', modalType: type })
 	}
 
@@ -298,6 +306,8 @@ const Savings = ({ route }) => {
 					</Pressable>
 				</Pressable>
 			</Modal>
+
+			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
 		</View>
 	)
 }

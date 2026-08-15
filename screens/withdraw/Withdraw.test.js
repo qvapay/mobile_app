@@ -32,6 +32,13 @@ jest.mock('../../api/withdrawApi', () => ({
 	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn() },
 }))
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
+// Gate de KYC en passthrough — su lógica se prueba en hooks/useKycGate.test.js
+jest.mock('../../hooks/useKycGate', () => ({
+	__esModule: true,
+	default: () => ({ requireKyc: () => true, gateVisible: false, gateMessage: null, closeGate: jest.fn() }),
+	KYC_WITHDRAW_THRESHOLD: 1000,
+}))
+jest.mock('../../ui/KycGateModal', () => 'KycGateModal')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'

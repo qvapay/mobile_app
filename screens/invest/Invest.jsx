@@ -25,7 +25,7 @@ import QPLoader from '../../ui/particles/QPLoader'
 import QPCoin from '../../ui/particles/QPCoin'
 import Sparkline from '../../ui/Sparkline'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
-import { SvgUri } from 'react-native-svg'
+import QPSvgUri from '../../ui/particles/QPSvgUri'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -105,7 +105,7 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }) => {
 				<QPCoin coin={item.tick} size={36} />
 			) : item.image ? (
 				<View style={[styles.stockIcon, { backgroundColor: theme.colors.primary + '12' }]}>
-					<SvgUri uri={item.image} width={22} height={22} color={theme.colors.primary} />
+					<QPSvgUri uri={item.image} width={22} height={22} color={theme.colors.primary} />
 				</View>
 			) : (
 				<View style={[styles.stockIcon, { backgroundColor: theme.colors.primary + '12' }]}>
@@ -352,7 +352,16 @@ const Invest = ({ navigation }) => {
 								<ExploreRow {...rowProps} />
 							</Pressable>
 						) : (
-							<ExploreRow key={item.tick} {...rowProps} />
+							<Pressable
+								key={item.tick}
+								onPress={() => navigation.navigate(ROUTES.COIN_DETAIL_SCREEN, {
+									tick: item.tick,
+									name: item.name,
+									initialData: item,
+								})}
+							>
+								<ExploreRow {...rowProps} />
+							</Pressable>
 						)
 					})}
 					{exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Sin datos</Text>}

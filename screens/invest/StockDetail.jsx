@@ -15,7 +15,7 @@ import Sparkline from '../../ui/Sparkline'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import { SvgUri } from 'react-native-svg'
+import QPSvgUri from '../../ui/particles/QPSvgUri'
 
 const screenWidth = Dimensions.get('window').width
 
@@ -115,7 +115,7 @@ const StockDetail = ({ route }) => {
 				<View style={styles.headerSection}>
 					<View style={[styles.iconLarge, { backgroundColor: theme.colors.primary + '15' }]}>
 						{image ? (
-							<SvgUri uri={image} width={32} height={32} color={theme.colors.primary} />
+							<QPSvgUri uri={image} width={32} height={32} color={theme.colors.primary} />
 						) : (
 							<FontAwesome6 name={icon || 'building'} size={28} color={theme.colors.primary} iconStyle={iconStyle || 'solid'} />
 						)}

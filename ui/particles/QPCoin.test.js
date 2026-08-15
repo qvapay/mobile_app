@@ -16,6 +16,7 @@ jest.mock('react-native-svg', () => ({ __esModule: true, SvgXml: 'SvgXml', SvgUr
 import { StyleSheet } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { clearSvgMemory } from '../../helpers/svgCache'
 import QPCoin from './QPCoin'
 
 const render = async (props) => {
@@ -25,6 +26,9 @@ const render = async (props) => {
 }
 
 beforeEach(() => {
+	// La caché compartida guarda memoria a nivel de módulo — limpiarla para que
+	// cada caso parta de cero (si no, un test contaminaría al siguiente)
+	clearSvgMemory()
 	AsyncStorage.getItem.mockReset().mockResolvedValue(null)
 	AsyncStorage.setItem.mockReset().mockResolvedValue()
 	global.fetch = jest.fn(() => new Promise(() => {})) // in flight forever by default

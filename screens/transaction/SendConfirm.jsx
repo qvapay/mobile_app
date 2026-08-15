@@ -13,6 +13,10 @@ import QPKeyboardView from '../../ui/QPKeyboardView'
 import TransferSummaryCards from './TransferSummaryCards'
 import usePinEntry from '../../hooks/usePinEntry'
 
+// Gate de KYC (envíos >= $500)
+import useKycGate, { KYC_TRANSFER_THRESHOLD } from '../../hooks/useKycGate'
+import KycGateModal from '../../ui/KycGateModal'
+
 // API
 import { userApi } from '../../api/userApi'
 import { transferApi } from '../../api/transferApi'
@@ -64,6 +68,9 @@ const SendConfirm = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	// Params from route
 	const { send_amount, user_uuid, description = '' } = route.params || {}
+
+	// Gate de KYC — intercepta antes del paso de PIN
+	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
@@ -252,7 +259,14 @@ const SendConfirm = ({ navigation, route }) => {
 					) : (
 						<QPButton
 							title="Continuar"
-							onPress={() => { setShowPinStep(true); setPin('') }}
+							onPress={() => {
+								// Gate preventivo: el backend rechaza envíos >= $500 sin KYC
+								if (!requireKyc({
+									gated: Number(send_amount) >= KYC_TRANSFER_THRESHOLD,
+									message: `Los envíos de $${KYC_TRANSFER_THRESHOLD} o más requieren tener tu identidad verificada. Es rápido y solo se hace una vez.`,
+								})) return
+								setShowPinStep(true); setPin('')
+							}}
 							style={{ flex: 1, minHeight: 56 }}
 							textStyle={{ color: theme.colors.buttonText }}
 							icon="arrow-right"
@@ -296,6 +310,8 @@ const SendConfirm = ({ navigation, route }) => {
 				)}
 
 			</View>
+
+			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
 
 		</QPKeyboardView>
 	)
