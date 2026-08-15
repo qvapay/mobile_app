@@ -42,6 +42,7 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 import { DetailRow } from './transactionDetailUi'
 import { getStatusColor } from './transactionStatus'
 import RelatedTransactionCards from './RelatedTransactionCards'
+import QPFitText from '../../ui/particles/QPFitText'
 
 // Cache key prefix for transactions
 const TRANSACTION_CACHE_KEY = 'transaction_cache_'
@@ -199,9 +200,9 @@ const Transaction = ({ route, navigation }) => {
 
 				{/* Amount Section */}
 				<View style={styles.amountSection}>
-					<Text style={[textStyles.amount, { color: transactionColor, fontSize: theme.typography.fontSize.display }]}>
+					<QPFitText style={[textStyles.amount, { color: transactionColor, fontSize: theme.typography.fontSize.display }]}>
 						{transactionSign}${amountFixed}
-					</Text>
+					</QPFitText>
 				</View>
 
 				{/* Transaction Details Card */}

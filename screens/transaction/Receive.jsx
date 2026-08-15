@@ -18,6 +18,7 @@ import ProfileContainer from '../../ui/ProfileContainer'
 
 // Helpers
 import { copyTextToClipboard } from '../../helpers'
+import QPFitText from '../../ui/particles/QPFitText'
 
 const { width: screenWidth } = Dimensions.get('window')
 const QR_SIZE = Math.min(screenWidth - 80, 240)
@@ -59,9 +60,9 @@ const Receive = ({ navigation, route }) => {
 				{/* Amount */}
 				{amount > 0 && (
 					<View style={styles.amountSection}>
-						<Text style={[textStyles.amount, { color: theme.colors.successText, fontSize: theme.typography.fontSize.display }]}>
+						<QPFitText style={[textStyles.amount, { color: theme.colors.successText, fontSize: theme.typography.fontSize.display }]}>
 							${amount.toFixed(2)}
-						</Text>
+						</QPFitText>
 					</View>
 				)}
 

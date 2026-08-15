@@ -36,6 +36,7 @@ import FastImage from '@d11/react-native-fast-image'
 
 // Lottie for success animation
 import LottieView from 'lottie-react-native'
+import QPFitText from '../../ui/particles/QPFitText'
 
 const MOODS = [
 	{ value: '', icon: 'face-meh-blank', label: 'Ninguna', color: '#9CA3AF' },
@@ -238,7 +239,7 @@ const Pay = ({ route, navigation }) => {
 
 					{/* Amount */}
 					<View style={styles.amountWrap}>
-						<Text style={[textStyles.amount, { fontSize: theme.typography.fontSize.display }]}>${amountFixed}</Text>
+						<QPFitText style={[textStyles.amount, { fontSize: theme.typography.fontSize.display }]}>${amountFixed}</QPFitText>
 						<View style={[styles.statusBadge, { backgroundColor: getStatusColor(transaction.status, theme) }]}>
 							<Text style={[textStyles.h7, { color: theme.colors.almostBlack, fontWeight: '600' }]}>{statusText(transaction.status)}</Text>
 						</View>

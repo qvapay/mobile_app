@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -11,19 +11,40 @@ import { coinsApi } from '../../api/coinsApi'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Auth (tier del gráfico: PRO solo GOLD)
+import { useAuth } from '../../auth/AuthContext'
+
 // UI
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
 import QPCoin from '../../ui/particles/QPCoin'
-import Sparkline from '../../ui/Sparkline'
+import QPPressable from '../../ui/particles/QPPressable'
+import PriceChart from '../../ui/charts/PriceChart'
+import PriceChartPro from '../../ui/charts/PriceChartPro'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import QPFitText from '../../ui/particles/QPFitText'
 
-const screenWidth = Dimensions.get('window').width
 
 // Whitelist del backend (/coins/price-history) — cualquier otro valor cae a 24H
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y', 'ALL']
+
+// Caché de sesión de historiales por tick:timeframe — el endpoint lleva un
+// rate limit agresivo (ráfaga 5, 3/10s) y tapear las pills lo agotaría; el
+// backend cachea 1h server-side así que repetir el fetch no aporta frescura
+const historyCache = new Map()
+
+const fetchHistoryCached = async (tick, tf) => {
+	const key = `${tick}:${tf}`
+	if (historyCache.has(key)) return historyCache.get(key)
+	const res = await coinsApi.priceHistory(tick, tf)
+	if (res.success && Array.isArray(res.data) && res.data.length > 1) {
+		historyCache.set(key, res.data)
+		return res.data
+	}
+	return null
+}
 
 const formatPrice = (p) => {
 	const n = Number(p || 0)
@@ -31,6 +52,15 @@ const formatPrice = (p) => {
 	return '$' + (n >= 1
 		? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 		: n.toFixed(4))
+}
+
+// Fecha/hora del punto bajo el dedo durante el scrubbing (time = unix seconds
+// del backend; defensivo con ms)
+const formatScrubTime = (t) => {
+	const ms = t > 1e12 ? t : t * 1000
+	const date = new Date(ms)
+	return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) +
+		', ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
 // --- Sub-components ---
@@ -70,10 +100,17 @@ const CoinDetail = ({ navigation, route }) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
+	// Tier del gráfico: PRO (scrubbing) solo para GOLD
+	const { user } = useAuth()
+	const isGold = !!user?.golden_check
+
 	const [coin, setCoin] = useState(initialData || null)
 	const [priceHistory, setPriceHistory] = useState(initialData?.priceHistory || [])
 	const [timeframe, setTimeframe] = useState('24H')
 	const [isLoading, setIsLoading] = useState(!initialData?.priceHistory?.length)
+	// Punto bajo el dedo durante el scrubbing PRO — el header muestra su
+	// precio/fecha en vez del precio live (estilo Robinhood)
+	const [scrub, setScrub] = useState(null)
 
 	// Derivados: precio del coin (o último punto del historial 24H) + cambio 24H
 	const price = Number(coin?.price || 0)
@@ -87,13 +124,12 @@ const CoinDetail = ({ navigation, route }) => {
 		let cancelled = false
 		const load = async () => {
 			const needsHistory = !initialData?.priceHistory?.length
-			const [historyRes, coinsRes] = await Promise.all([
-				needsHistory ? coinsApi.priceHistory(tick, '24H') : Promise.resolve(null),
+			const [history, coinsRes] = await Promise.all([
+				needsHistory ? fetchHistoryCached(tick, '24H') : Promise.resolve(null),
 				coinsApi.index({ category_id: 1, trade: 1 }),
 			])
 			if (cancelled) return
-			if (historyRes?.success && Array.isArray(historyRes.data) && historyRes.data.length > 1) {
-				const history = historyRes.data
+			if (history) {
 				const first = Number(history[0]?.value || 0)
 				const last = Number(history[history.length - 1]?.value || 0)
 				setPriceHistory(history)
@@ -120,8 +156,8 @@ const CoinDetail = ({ navigation, route }) => {
 	// Refetch del historial al cambiar timeframe (el header no cambia)
 	const handleTimeframeChange = useCallback(async (tf) => {
 		setTimeframe(tf)
-		const res = await coinsApi.priceHistory(tick, tf)
-		if (res.success && Array.isArray(res.data)) setPriceHistory(res.data)
+		const history = await fetchHistoryCached(tick, tf)
+		if (history) setPriceHistory(history)
 	}, [tick])
 
 	// Máx/mín del periodo visible
@@ -133,15 +169,25 @@ const CoinDetail = ({ navigation, route }) => {
 	const canP2P = coin?.enabled_p2p === undefined || !!coin?.enabled_p2p
 
 	return (
-		<View style={containerStyles.subContainer}>
+		// Sin padding horizontal en el layout raíz: el ScrollView clipea a sus
+		// bordes (los márgenes negativos no sangran) — cada sección pone su
+		// propio padding y el gráfico queda libre a ancho completo de pantalla
+		<View style={[containerStyles.subContainer, styles.noHPad]}>
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-				{/* Header: Coin + Price */}
+				{/* Header: Coin + Price (durante el scrubbing PRO muestra el punto activo) */}
 				<View style={styles.headerSection}>
 					<QPCoin coin={tick} size={56} />
 					<Text style={[styles.symbolText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{tick}</Text>
-					<Text style={[textStyles.amount]}>{formatPrice(price)}</Text>
-					{change !== 0 && (
+					<QPFitText style={[textStyles.amount]}>{formatPrice(scrub ? scrub.value : price)}</QPFitText>
+					{scrub ? (
+						<View style={[styles.changeBadge, { backgroundColor: theme.colors.surface }]}>
+							<FontAwesome6 name="clock" size={11} color={theme.colors.secondaryText} iconStyle="solid" />
+							<Text style={[styles.changeBadgeText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
+								{formatScrubTime(scrub.time)}
+							</Text>
+						</View>
+					) : change !== 0 && (
 						<View style={[styles.changeBadge, { backgroundColor: trendColor + '18' }]}>
 							<FontAwesome6 name={isPositive ? 'caret-up' : 'caret-down'} size={11} color={trendColor} iconStyle="solid" />
 							<Text style={[styles.changeBadgeText, { color: trendColor, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
@@ -151,16 +197,31 @@ const CoinDetail = ({ navigation, route }) => {
 					)}
 				</View>
 
-				{/* Chart */}
+				{/* Chart — básico para todos, PRO con scrubbing para GOLD */}
 				<View style={styles.chartContainer}>
 					{priceHistory.length > 1 ? (
-						<Sparkline data={priceHistory} width={screenWidth - 40} height={180} color={trendColor} />
+						isGold ? (
+							// Más alto que el básico: el eje de tiempo ocupa una franja abajo
+							<PriceChartPro data={priceHistory} trendColor={trendColor} onScrub={setScrub} height={230} />
+						) : (
+							<PriceChart data={priceHistory} trendColor={trendColor} height={200} />
+						)
 					) : (
-						<View style={[styles.chartPlaceholder, { height: 180 }]}>
+						<View style={[styles.chartPlaceholder, { height: 200 }]}>
 							{isLoading && <QPLoader />}
 						</View>
 					)}
 				</View>
+
+				{/* Upsell sutil del gráfico PRO (solo no-GOLD) */}
+				{!isGold && priceHistory.length > 1 && (
+					<QPPressable variant="opacity" onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)} style={styles.proUpsell}>
+						<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />
+						<Text style={[styles.proUpsellText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
+							Explora el precio punto a punto con GOLD
+						</Text>
+					</QPPressable>
+				)}
 
 				{/* Timeframe Pills */}
 				<View style={styles.pillRow}>
@@ -236,10 +297,14 @@ const styles = StyleSheet.create({
 		gap: 16,
 		paddingTop: 8,
 	},
+	noHPad: {
+		paddingHorizontal: 0,
+	},
 	headerSection: {
 		alignItems: 'center',
 		gap: 4,
 		paddingVertical: 8,
+		paddingHorizontal: 16,
 	},
 	symbolText: {
 		marginTop: 4,
@@ -254,10 +319,18 @@ const styles = StyleSheet.create({
 		marginTop: 4,
 	},
 	changeBadgeText: {},
+	// Full width real: sin padding del layout, el gráfico ES el ancho de pantalla
 	chartContainer: {
-		alignItems: 'center',
-		paddingHorizontal: 20,
+		alignItems: 'stretch',
 	},
+	proUpsell: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 6,
+		marginTop: -8,
+	},
+	proUpsellText: {},
 	chartPlaceholder: {
 		justifyContent: 'center',
 		alignItems: 'center',
@@ -277,7 +350,7 @@ const styles = StyleSheet.create({
 	buttonRow: {
 		flexDirection: 'row',
 		gap: 10,
-		paddingHorizontal: 4,
+		paddingHorizontal: 20,
 	},
 	actionButton: {
 		flex: 1,
@@ -285,6 +358,7 @@ const styles = StyleSheet.create({
 	card: {
 		borderRadius: 14,
 		padding: 12,
+		marginHorizontal: 16,
 	},
 	cardBorder: (theme) => ({
 		borderWidth: 1,

@@ -2,6 +2,7 @@ import { View, Text, Pressable, Image, Platform, ActivityIndicator } from 'react
 
 import QPButton from '../../../../ui/particles/QPButton'
 import { getProductId, getAndroidOfferToken } from '../../../../helpers/iap'
+import QPFitText from '../../../../ui/particles/QPFitText'
 
 // Benefits
 const benefits = [
@@ -62,9 +63,9 @@ const GoldUpsell = ({ plans, selectedPlan, onSelectPlan, subscriptions, connecte
 						</Text>
 
 						<View style={{ alignItems: 'center', justifyContent: 'center' }}>
-							<Text style={[textStyles.amount, { fontSize: theme.typography.fontSize.xxl, color: theme.colors.primaryText, marginBottom: 4 }]}>
+							<QPFitText style={[textStyles.amount, { fontSize: theme.typography.fontSize.xxl, color: theme.colors.primaryText, marginBottom: 4 }]}>
 								${plan.value}
-							</Text>
+							</QPFitText>
 							<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>
 								{plan.period}
 							</Text>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -11,13 +11,13 @@ import { stocksApi } from '../../api/stocksApi'
 // UI
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
-import Sparkline from '../../ui/Sparkline'
+import PriceChart from '../../ui/charts/PriceChart'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import QPSvgUri from '../../ui/particles/QPSvgUri'
+import QPFitText from '../../ui/particles/QPFitText'
 
-const screenWidth = Dimensions.get('window').width
 
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y']
 
@@ -109,7 +109,9 @@ const StockDetail = ({ route }) => {
 	}, [fetchHistory])
 
 	return (
-		<View style={containerStyles.subContainer}>
+		// Sin padding horizontal en el layout raíz (ver CoinDetail): el gráfico
+		// corre a ancho completo y cada sección pone su propio padding
+		<View style={[containerStyles.subContainer, styles.noHPad]}>
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} >
 				{/* Header: Icon + Price */}
 				<View style={styles.headerSection}>
@@ -121,9 +123,9 @@ const StockDetail = ({ route }) => {
 						)}
 					</View>
 					<Text style={[styles.symbolText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{symbol}</Text>
-					<Text style={[textStyles.amount]}>
+					<QPFitText style={[textStyles.amount]}>
 						${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-					</Text>
+					</QPFitText>
 					<View style={[styles.changeBadge, { backgroundColor: trendColor + '18' }]}>
 						<FontAwesome6 name={isPositive ? 'caret-up' : 'caret-down'} size={11} color={trendColor} iconStyle="solid" />
 						<Text style={[styles.changeBadgeText, { color: trendColor, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
@@ -135,9 +137,9 @@ const StockDetail = ({ route }) => {
 				{/* Chart */}
 				<View style={styles.chartContainer}>
 					{priceHistory.length > 1 ? (
-						<Sparkline data={priceHistory} width={screenWidth - 40} height={180} color={trendColor} />
+						<PriceChart data={priceHistory} trendColor={trendColor} height={200} />
 					) : (
-						<View style={[styles.chartPlaceholder, { height: 180 }]}>
+						<View style={[styles.chartPlaceholder, { height: 200 }]}>
 							{isLoading && <QPLoader />}
 						</View>
 					)}
@@ -200,11 +202,15 @@ const styles = StyleSheet.create({
 		gap: 16,
 		paddingTop: 8,
 	},
+	noHPad: {
+		paddingHorizontal: 0,
+	},
 	// Header
 	headerSection: {
 		alignItems: 'center',
 		gap: 4,
 		paddingVertical: 8,
+		paddingHorizontal: 16,
 	},
 	iconLarge: {
 		width: 56,
@@ -225,10 +231,9 @@ const styles = StyleSheet.create({
 		marginTop: 4,
 	},
 	changeBadgeText: {},
-	// Chart
+	// Chart — full width real (el layout raíz no lleva padding horizontal)
 	chartContainer: {
-		alignItems: 'center',
-		paddingHorizontal: 20,
+		alignItems: 'stretch',
 	},
 	chartPlaceholder: {
 		justifyContent: 'center',
@@ -251,7 +256,7 @@ const styles = StyleSheet.create({
 	buttonRow: {
 		flexDirection: 'row',
 		gap: 10,
-		paddingHorizontal: 4,
+		paddingHorizontal: 20,
 	},
 	actionButton: {
 		flex: 1,
@@ -260,6 +265,7 @@ const styles = StyleSheet.create({
 	card: {
 		borderRadius: 14,
 		padding: 12,
+		marginHorizontal: 16,
 	},
 	cardBorder: (theme) => ({
 		borderWidth: 1,

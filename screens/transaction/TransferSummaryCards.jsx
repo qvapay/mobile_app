@@ -3,6 +3,7 @@ import { View, Text } from 'react-native'
 import { parseTransactionDescription } from '../../helpers/stickers'
 import TransactionSticker from '../../ui/particles/TransactionSticker'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
+import QPFitText from '../../ui/particles/QPFitText'
 
 // Read-only transfer summary: amount, recipient, optional message, and fee/total.
 const TransferSummaryCards = ({ recipientUser, sendAmount, description, isUserOnline, theme, textStyles, containerStyles }) => {
@@ -14,9 +15,9 @@ const TransferSummaryCards = ({ recipientUser, sendAmount, description, isUserOn
 		<>
 			{/* Amount */}
 			<View style={{ alignItems: 'center', paddingVertical: 20 }}>
-				<Text style={[textStyles.amount, { fontSize: theme.typography.fontSize.display }]}>
+				<QPFitText style={[textStyles.amount, { fontSize: theme.typography.fontSize.display }]}>
 					${sendAmount}
-				</Text>
+				</QPFitText>
 			</View>
 
 			{/* Recipient Card */}

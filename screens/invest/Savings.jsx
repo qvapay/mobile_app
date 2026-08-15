@@ -30,6 +30,7 @@ import { ROUTES } from '../../routes'
 
 // Helpers
 import { timeAgo, formatMoney } from '../../helpers'
+import QPFitText from '../../ui/particles/QPFitText'
 
 // The deposit/withdraw modal is one piece of state: which operation, the amount, and its loading flag
 const initialModal = { type: null, amount: '', loading: false }
@@ -164,7 +165,7 @@ const Savings = ({ route }) => {
 					<View style={[styles.heroIcon, { backgroundColor: theme.colors.primary + '15' }]}>
 						<FontAwesome6 name="vault" size={28} color={theme.colors.primary} iconStyle="solid" />
 					</View>
-					<Text style={[textStyles.amount, styles.heroBalance, isDebt && { color: theme.colors.danger }]}>{balance}</Text>
+					<QPFitText style={[textStyles.amount, styles.heroBalance, isDebt && { color: theme.colors.danger }]}>{balance}</QPFitText>
 					<Text style={[styles.heroRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
 						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> anual
 					</Text>

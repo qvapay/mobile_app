@@ -16,6 +16,7 @@ import { CACHE_KEYS, readCache, writeCache } from '../helpers/dataCache'
 
 // Particles
 import QPBalance from './particles/QPBalance'
+import QPFitText from './particles/QPFitText'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_WIDTH = SCREEN_WIDTH - 32 // match container padding
@@ -133,9 +134,9 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 					{showBalance ? (
 						<QPBalance formattedAmount={Number(balance || 0).toFixed(2)} fontSize={60} theme={theme} />
 					) : (
-						<Text style={[textStyles.amount, { color: theme.colors.primaryText }]}>
+						<QPFitText style={[textStyles.amount, { color: theme.colors.primaryText }]}>
 							{getHiddenBalance()}
-						</Text>
+						</QPFitText>
 					)}
 				</Pressable>
 
@@ -149,9 +150,9 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 							</Text>
 						</View>
 					) : (
-						<Text style={[textStyles.amount, { color: theme.colors.primaryText }]}>
+						<QPFitText style={[textStyles.amount, { color: theme.colors.primaryText }]}>
 							{getHiddenBalance()}
-						</Text>
+						</QPFitText>
 					)}
 				</Pressable>
 			</ScrollView>

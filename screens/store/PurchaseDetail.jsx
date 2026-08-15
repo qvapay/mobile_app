@@ -29,6 +29,7 @@ import { getShortDateTime, statusText, copyTextToClipboard, getFirstChunk } from
 
 // Toast
 import { toast } from 'sonner-native'
+import QPFitText from '../../ui/particles/QPFitText'
 
 // Status colors (same pattern as Transaction.jsx)
 const getStatusColor = (status, theme) => {
@@ -177,9 +178,9 @@ const PurchaseDetail = ({ route, navigation }) => {
 
 				{/* Amount */}
 				<View style={styles.amountSection}>
-					<Text style={[textStyles.amount, { color: theme.colors.danger, fontSize: theme.typography.fontSize.display }]}>
+					<QPFitText style={[textStyles.amount, { color: theme.colors.danger, fontSize: theme.typography.fontSize.display }]}>
 						-${Number(purchase.amount).toFixed(2)}
-					</Text>
+					</QPFitText>
 				</View>
 
 				{/* Purchase Details Card */}

@@ -16,7 +16,15 @@ const QPBalance = ({ formattedAmount, fontSize, theme }) => {
     return (
         <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
             <Text style={[styles.currencySymbol, { color: isNegative ? theme.colors.danger : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold }]}>{isNegative ? '-$' : '$'}</Text>
-            <Text style={[styles.amountText, { fontSize: fontSize, color: isNegative ? theme.colors.danger : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.black }]} accessibilityRole="text" accessibilityLabel={`Amount: ${isNegative ? '-' : ''}$${displayAmount}`}>
+            {/* Red de seguridad de ancho: si aún con el shrink por longitud del
+                caller el número no cabe (pantallas estrechas), se auto-escala */}
+            <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.4}
+                style={[styles.amountText, { fontSize: fontSize, color: isNegative ? theme.colors.danger : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.black }]}
+                accessibilityRole="text"
+                accessibilityLabel={`Amount: ${isNegative ? '-' : ''}$${displayAmount}`}>
                 {displayAmount}
             </Text>
         </View>
@@ -36,6 +44,7 @@ const styles = StyleSheet.create({
     },
     amountText: {
         textAlign: 'center',
+        flexShrink: 1,
     },
 })
 
