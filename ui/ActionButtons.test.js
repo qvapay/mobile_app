@@ -1,18 +1,44 @@
 /**
- * Render tests for the Home "Depositar" / "Extraer" action row — node
- * environment with the theme and QPButton mocked (see keypadAmount.test.js).
+ * Render tests de la botonera del Home (dos filas sincronizadas con el pager
+ * del BalanceCard): los 4 tiles de la cuenta (Depositar/Extraer/Enviar/Pagar)
+ * y las 2 pills de ahorros que navegan a Savings con la acción pre-cargada —
+ * node environment con theme, reanimated y particles mockeados.
  * @jest-environment node
  */
 jest.mock('../theme/ThemeContext', () => {
 	const { createTheme } = jest.requireActual('../theme/ThemeContext')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
-jest.mock('./particles/QPButton', () => 'QPButton')
+jest.mock('react-native-reanimated', () => {
+	const { View } = require('react-native')
+	return {
+		__esModule: true,
+		default: { View },
+		useAnimatedStyle: () => ({}),
+		useAnimatedReaction: () => {},
+		useSharedValue: (v) => ({ value: v }),
+		runOnJS: (fn) => fn,
+	}
+})
+jest.mock('./particles/QPPressable', () => 'QPPressable')
+jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import { ROUTES } from '../routes'
 import ActionButtons from './ActionButtons'
+
+const labelsOf = (tree) =>
+	tree.root.findAllByType('QPPressable').map((p) =>
+		p.findAllByType('Text').map((t) => t.props.children).join('')
+	)
+
+const pressByLabel = (tree, label, nth = 0) => {
+	const matches = tree.root.findAllByType('QPPressable').filter((p) =>
+		p.findAllByType('Text').some((t) => t.props.children === label)
+	)
+	act(() => { matches[nth].props.onPress() })
+}
 
 const renderRow = (navigation = { navigate: jest.fn() }) => {
 	let tree
@@ -20,23 +46,29 @@ const renderRow = (navigation = { navigate: jest.fn() }) => {
 	return tree
 }
 
-test('renders the deposit and withdraw buttons with their solid icons', () => {
-	const buttons = renderRow().root.findAllByType('QPButton')
-	expect(buttons.map(b => b.props.title)).toEqual(['Depositar', 'Extraer'])
-	expect(buttons.map(b => b.props.icon)).toEqual(['plus', 'turn-up'])
-	expect(buttons.every(b => b.props.iconStyle === 'solid')).toBe(true)
+test('renderiza los 4 tiles de la cuenta y las 2 pills de ahorros', () => {
+	const tree = renderRow()
+	expect(labelsOf(tree)).toEqual(['Depositar', 'Extraer', 'Enviar', 'Pagar', 'Depositar', 'Retirar'])
 })
 
-test('Depositar navigates to the Add flow', () => {
+test('los tiles de la cuenta navegan a Add / Withdraw / Send / Scan', () => {
 	const navigation = { navigate: jest.fn() }
 	const tree = renderRow(navigation)
-	act(() => { tree.root.findAllByType('QPButton')[0].props.onPress() })
-	expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.ADD)
+	pressByLabel(tree, 'Extraer')
+	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.WITHDRAW)
+	pressByLabel(tree, 'Enviar')
+	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.SEND)
+	pressByLabel(tree, 'Pagar')
+	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.SCAN_SCREEN)
+	pressByLabel(tree, 'Depositar', 0)
+	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.ADD)
 })
 
-test('Extraer navigates to the Withdraw flow', () => {
+test('las pills de ahorros abren Savings con la acción pre-cargada', () => {
 	const navigation = { navigate: jest.fn() }
 	const tree = renderRow(navigation)
-	act(() => { tree.root.findAllByType('QPButton')[1].props.onPress() })
-	expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.WITHDRAW)
+	pressByLabel(tree, 'Depositar', 1) // la segunda "Depositar" es la de ahorros
+	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.SAVINGS_SCREEN, { action: 'deposit' })
+	pressByLabel(tree, 'Retirar')
+	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.SAVINGS_SCREEN, { action: 'withdraw' })
 })

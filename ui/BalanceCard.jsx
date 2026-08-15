@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
-import { Text, Pressable, View, ScrollView, StyleSheet, Dimensions } from 'react-native'
+import { useState, useEffect, useRef, useReducer } from 'react'
+import { Text, Pressable, View, StyleSheet, Dimensions } from 'react-native'
+import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -49,8 +50,9 @@ function savingsReducer(state, action) {
  * @param {number|string} props.balance - Main account balance in QUSD.
  * @param {object} props.navigation - React Navigation object (for the Savings shortcut).
  * @param {boolean} [props.refreshing] - Home's pull-to-refresh state; a rising edge triggers a savings re-fetch.
+ * @param {object} [props.pageProgress] - SharedValue que recibe el progreso continuo del pager (0 = cuenta, 1 = ahorros) — lo consume ActionButtons para morphear la botonera al ritmo del dedo.
  */
-const BalanceCard = ({ balance, navigation, refreshing = false }) => {
+const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }) => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -109,15 +111,23 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 		return '*'.repeat(Math.max(3, balanceStr.length))
 	}
 
-	const onScroll = useCallback((event) => {
-		const offsetX = event.nativeEvent.contentOffset.x
-		const index = Math.round(offsetX / CARD_WIDTH)
-		setActiveIndex(index)
-	}, [])
+	// Scroll en el UI thread: escribe el progreso continuo (0..1) para que
+	// ActionButtons siga el dedo frame a frame; los dots solo necesitan el
+	// índice discreto (runOnJS únicamente al cruzar de página)
+	const lastIndex = useSharedValue(0)
+	const onScroll = useAnimatedScrollHandler((event) => {
+		const progress = Math.min(Math.max(event.contentOffset.x / CARD_WIDTH, 0), 1)
+		if (pageProgress) pageProgress.value = progress
+		const index = progress > 0.5 ? 1 : 0
+		if (index !== lastIndex.value) {
+			lastIndex.value = index
+			runOnJS(setActiveIndex)(index)
+		}
+	})
 
 	return (
 		<View>
-			<ScrollView
+			<Animated.ScrollView
 				ref={scrollRef}
 				horizontal
 				pagingEnabled
@@ -155,7 +165,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false }) => {
 						</QPFitText>
 					)}
 				</Pressable>
-			</ScrollView>
+			</Animated.ScrollView>
 
 			{/* Pagination Dots */}
 			<View style={styles.dotsContainer}>

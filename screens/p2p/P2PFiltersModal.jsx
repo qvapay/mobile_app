@@ -5,15 +5,18 @@ import QPCoin from "../../ui/particles/QPCoin"
 import QPInput from "../../ui/particles/QPInput"
 import QPSwitch from "../../ui/particles/QPSwitch"
 
+import { createContainerStyles } from "../../theme/themeUtils"
+
 // Full filters modal (Contacts-style card): my offers, type, coin, min/max, ratio, VIP.
 const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicker, onClear, onApply, windowHeight, theme, textStyles }) => {
-	
+
 	const { typeFilter, selectedCoin, showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip } = filters
+	const containerStyles = createContainerStyles(theme)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-			<Pressable style={styles.overlay} onPress={onClose}>
-				<Pressable style={[styles.filterCard, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
+			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
+				<Pressable style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
 
 					{/* Header */}
 					<View style={styles.filterCardHeader}>
@@ -127,18 +130,6 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 }
 
 const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.6)",
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-	filterCard: {
-		width: "100%",
-		borderRadius: 16,
-		padding: 24,
-	},
 	filterCardHeader: {
 		flexDirection: "row",
 		alignItems: "center",

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
@@ -143,6 +144,11 @@ const Home = ({ navigation }) => {
 	// solo uno a la vez para no apilar avisos)
 	const kycPrompt = useKycPrompt()
 
+	// Progreso continuo del pager del BalanceCard (0 = cuenta, 1 = ahorros) —
+	// lo escribe el scroll del card y lo consume ActionButtons para morphear
+	// la botonera al ritmo del dedo
+	const balancePageProgress = useSharedValue(0)
+
 	// Feed data + refresh
 	const {
 		latestTransactions,
@@ -171,9 +177,9 @@ const Home = ({ navigation }) => {
 
 				<PromoBanner promo={promo} />
 
-				<BalanceCard balance={user.balance} navigation={navigation} refreshing={refreshing} />
+				<BalanceCard balance={user.balance} navigation={navigation} refreshing={refreshing} pageProgress={balancePageProgress} />
 
-				<ActionButtons navigation={navigation} />
+				<ActionButtons navigation={navigation} pageProgress={balancePageProgress} />
 
 				{kycPrompt.shouldShowBanner
 					? <KycPromptBanner theme={theme} navigation={navigation} prompt={kycPrompt} />

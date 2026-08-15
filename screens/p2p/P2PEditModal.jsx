@@ -7,8 +7,8 @@ import QPInput from "../../ui/particles/QPInput"
 // Edit-offer modal for the owner of an open offer (amount / receive / message / VIP).
 const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, windowHeight, theme, textStyles, containerStyles }) => (
 	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-		<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={onClose}>
-			<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 20 }]}>
+		<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
+			<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]}>
 				<ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
 					{/* Header */}

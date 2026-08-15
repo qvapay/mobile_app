@@ -1,7 +1,7 @@
 import { Modal, View, Text, ScrollView, Pressable, StyleSheet, useWindowDimensions } from 'react-native'
 
 import { useTheme } from '../theme/ThemeContext'
-import { createTextStyles } from '../theme/themeUtils'
+import { createContainerStyles, createTextStyles } from '../theme/themeUtils'
 
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -25,6 +25,7 @@ const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
 	const { height: windowHeight } = useWindowDimensions()
 
 	const handlePick = async (wallet) => {
@@ -37,8 +38,8 @@ const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-			<Pressable style={styles.overlay} onPress={onClose}>
-				<Pressable onPress={() => { }} style={[styles.container, { backgroundColor: theme.colors.surface, maxHeight: windowHeight * 0.75 }]} >
+			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
+				<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} >
 					<View style={styles.header}>
 						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Abre en tu wallet</Text>
 						<Pressable onPress={onClose} hitSlop={8}>
@@ -83,18 +84,6 @@ const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 }
 
 const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.5)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 20,
-	},
-	container: {
-		width: '100%',
-		borderRadius: 16,
-		padding: 20,
-	},
 	header: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',

@@ -4,6 +4,7 @@ import QPPressable from './particles/QPPressable'
 import QPInput from './particles/QPInput'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { countries } from '../labels/countries'
+import { createContainerStyles } from '../theme/themeUtils'
 
 /**
  * Searchable country picker modal used by phone-entry forms (embedded by
@@ -24,11 +25,12 @@ import { countries } from '../labels/countries'
 const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, onSelect, onClose, theme, textStyles }) => {
 
 	const query = countrySearch.toLowerCase()
+	const containerStyles = createContainerStyles(theme)
 
 	return (
 		<Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-			<View style={styles.modalOverlay}>
-				<View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+			<View style={containerStyles.modalOverlay}>
+				<View style={[containerStyles.modalCard, styles.modalContent]}>
 					<View style={styles.modalHeader}>
 						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Seleccionar país</Text>
 						<QPPressable onPress={onClose}>
@@ -63,17 +65,8 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 }
 
 const styles = StyleSheet.create({
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
 	modalContent: {
-		width: '90%',
 		maxHeight: '80%',
-		borderRadius: 16,
-		padding: 20,
 	},
 	modalHeader: {
 		flexDirection: 'row',

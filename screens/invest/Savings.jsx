@@ -109,6 +109,13 @@ const Savings = ({ route }) => {
 		dispatchModal({ type: 'open', modalType: type })
 	}
 
+	// Deep-action desde la botonera del Home ({ action: 'deposit'|'withdraw' }):
+	// abre el modal correspondiente al entrar (pasa por el gate de KYC igual)
+	const initialAction = route?.params?.action
+	useEffect(() => {
+		if (initialAction === 'deposit' || initialAction === 'withdraw') { openModal(initialAction) }
+	}, [initialAction]) // eslint-disable-line react-hooks/exhaustive-deps
+
 	const handleModalSubmit = async () => {
 		const amount = parseFloat(modalAmount)
 		if (!amount || amount < 1) {
@@ -238,8 +245,10 @@ const Savings = ({ route }) => {
 
 			{/* Deposit / Withdraw Modal */}
 			<Modal visible={!!modalType} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !modalLoading && dispatchModal({ type: 'close' })}>
-				<Pressable style={styles.modalOverlay} onPress={() => !modalLoading && dispatchModal({ type: 'close' })}>
-					<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', maxHeight: windowHeight * 0.75, borderRadius: 16, padding: 24, margin: 20 }]}>
+				{/* Overlay + card canónicos del theme (el overlay trae el padding
+				    horizontal que mantiene la card dentro de los márgenes) */}
+				<Pressable style={containerStyles.modalOverlay} onPress={() => !modalLoading && dispatchModal({ type: 'close' })}>
+					<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]}>
 
 						{/* Header */}
 						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -459,12 +468,6 @@ const styles = StyleSheet.create({
 	},
 	disclaimerLink: {},
 	// Modal
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.5)',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
 })
 
 export default Savings

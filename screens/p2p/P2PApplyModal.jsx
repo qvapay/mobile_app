@@ -6,8 +6,8 @@ import QPButton from "../../ui/particles/QPButton"
 // Confirmation modal before applying to an offer (prevents accidental taps).
 const P2PApplyModal = ({ visible, onClose, onConfirm, loading, theme, textStyles, containerStyles }) => (
 	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-		<Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} onPress={() => !loading && onClose()}>
-			<Pressable onPress={() => { }} style={[containerStyles.card, { width: '100%', borderRadius: 16, padding: 24 }]}>
+		<Pressable style={containerStyles.modalOverlay} onPress={() => !loading && onClose()}>
+			<Pressable onPress={() => { }} style={containerStyles.modalCard}>
 
 				<FontAwesome6 name="handshake" size={40} color={theme.colors.primary} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 
