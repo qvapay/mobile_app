@@ -18,8 +18,9 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
  * Compact horizontal user row: avatar + name with KYC/gold/admin badges,
  * memoized for list use (P2P offer cards, Send search results, contacts,
  * referrals). Second line is either the @username or, when `showUsername` is
- * false, a P2P trust strip: verified phone/Telegram/X icons, completed
- * operations count (creator + peer sides) and average rating.
+ * false, a P2P trust strip: completed operations count (creator + peer sides)
+ * and average rating — las verificaciones de teléfono/Telegram no se muestran
+ * porque son obligatorias para operar en P2P y las tiene todo el mundo.
  *
  * @param {object} props
  * @param {object} props.user - User object (name, username, kyc, golden_check, role, `_count`, rating_avg, ...).
@@ -50,9 +51,9 @@ const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true,
 				{showUsername && (<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>@{user.username}</Text>)}
 				{!showUsername && (
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-						{user.phone_verified && (<FontAwesome6 name="phone" size={theme.typography.fontSize.xs} color={theme.colors.secondaryText} iconStyle="solid" />)}
-						{user.telegram_verified && (<FontAwesome6 name="telegram" size={theme.typography.fontSize.xs} color={theme.colors.secondaryText} iconStyle="brand" />)}
-						{user.twitter_verified && (<FontAwesome6 name="x-twitter" size={theme.typography.fontSize.xs} color={theme.colors.secondaryText} iconStyle="solid" />)}
+						{/* Sin iconos de teléfono/Telegram: son obligatorios para operar
+						    en P2P — todos los tienen y no distinguen a nadie. La reputación
+						    la dan las operaciones completadas y el rating */}
 						{!!operations && (
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
 								<FontAwesome6 name="repeat" size={theme.typography.fontSize.xs} color={theme.colors.secondaryText} iconStyle="solid" />

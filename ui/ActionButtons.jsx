@@ -57,9 +57,9 @@ const SavingsPill = ({ icon, label, onPress, index, pageProgress, theme }) => {
 	})
 	return (
 		<Animated.View style={[styles.tileSlot, style]}>
-			<QPPressable onPress={onPress} style={[styles.pill, { backgroundColor: theme.colors.success }]}>
-				<FontAwesome6 name={icon} size={16} color={theme.colors.almostBlack} iconStyle="solid" />
-				<Text style={[styles.pillLabel, { color: theme.colors.almostBlack, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
+			<QPPressable onPress={onPress} style={[styles.pill, { backgroundColor: theme.colors.successFill }]}>
+				<FontAwesome6 name={icon} size={16} color={theme.colors.successFillText} iconStyle="solid" />
+				<Text style={[styles.pillLabel, { color: theme.colors.successFillText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
 					{label}
 				</Text>
 			</QPPressable>

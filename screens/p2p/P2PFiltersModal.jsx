@@ -4,6 +4,7 @@ import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import QPCoin from "../../ui/particles/QPCoin"
 import QPInput from "../../ui/particles/QPInput"
 import QPSwitch from "../../ui/particles/QPSwitch"
+import QPSplitButton from "../../ui/particles/QPSplitButton"
 
 import { createContainerStyles } from "../../theme/themeUtils"
 
@@ -12,6 +13,10 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 
 	const { typeFilter, selectedCoin, showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip } = filters
 	const containerStyles = createContainerStyles(theme)
+
+	// "Limpiar" solo existe cuando hay algo que limpiar — el slot se abre y
+	// cierra animado (mismo split-button del onboarding/registro)
+	const hasActiveFilters = !!(typeFilter || selectedCoin || showMine || minAmount || maxAmount || ratioMin || ratioMax || onlyVip)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
@@ -48,8 +53,8 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 								leftText="Comprar"
 								rightText="Vender"
 								leftColor={theme.colors.danger}
-								rightColor={theme.colors.success}
-								rightTextColor={theme.colors.almostBlack}
+								rightColor={theme.colors.successFill}
+								rightTextColor={theme.colors.successFillText}
 								style={{ width: 160, height: 30 }}
 							/>
 						</View>
@@ -113,14 +118,18 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 						</View>
 					</ScrollView>
 
-					{/* Action buttons */}
+					{/* Action buttons — "Limpiar" aparece animado con el primer filtro */}
 					<View style={styles.filterCardActions}>
-						<Pressable onPress={onClear} style={[styles.filterCardActionButton, { backgroundColor: theme.colors.elevation }]}>
-							<Text style={[styles.filterCardActionText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Limpiar</Text>
-						</Pressable>
-						<Pressable onPress={onApply} style={[styles.filterCardActionButton, { backgroundColor: theme.colors.primary, flex: 1 }]}>
-							<Text style={[styles.filterCardActionText, { color: "#FFFFFF", fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Aplicar</Text>
-						</Pressable>
+						<QPSplitButton
+							title="Aplicar"
+							onPress={onApply}
+							showBack={hasActiveFilters}
+							onBack={onClear}
+							backLabel="Limpiar"
+							backRatio={0.5}
+							backColor={theme.colors.elevation}
+							backTextColor={theme.colors.primaryText}
+						/>
 					</View>
 
 				</Pressable>
@@ -151,18 +160,8 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	filterCardActions: {
-		flexDirection: "row",
-		gap: 12,
 		marginTop: 16,
 	},
-	filterCardActionButton: {
-		paddingVertical: 14,
-		paddingHorizontal: 24,
-		borderRadius: 25,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	filterCardActionText: {},
 })
 
 export default P2PFiltersModal

@@ -192,7 +192,7 @@ const NearbyPay = ({ navigation, route }) => {
 					<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginTop: 12 }]}>
 						+${receivedOverlay.amount}
 					</Text>
-					<Text style={[textStyles.body, { color: receivedOverlay.confirmed ? theme.colors.success : theme.colors.secondaryText, marginTop: 6 }]}>
+					<Text style={[textStyles.body, { color: receivedOverlay.confirmed ? theme.colors.successText : theme.colors.secondaryText, marginTop: 6 }]}>
 						{receivedOverlay.confirmed ? 'Pago confirmado' : 'Confirmando…'}
 					</Text>
 					<QPButton

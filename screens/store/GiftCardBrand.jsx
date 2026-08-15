@@ -92,7 +92,7 @@ const OfferRow = ({ offer, selected, onSelect, theme, textStyles }) => {
 
 const SummaryRow = ({ label, value, bold, highlight, theme, textStyles }) => (
 	<View style={styles.summaryRow}>
-		<Text style={[textStyles.caption, { color: highlight ? theme.colors.success : theme.colors.tertiaryText, fontWeight: highlight ? '700' : '500' }]}>{label}</Text>
+		<Text style={[textStyles.caption, { color: highlight ? theme.colors.successText : theme.colors.tertiaryText, fontWeight: highlight ? '700' : '500' }]}>{label}</Text>
 		<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: bold ? '700' : '500', flexShrink: 1, textAlign: 'right' }]} numberOfLines={2}>
 			{value}
 		</Text>

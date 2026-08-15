@@ -105,14 +105,14 @@ const Biometrics = () => {
 
                 {/* Status icon */}
                 <View style={{ alignItems: 'center', paddingVertical: 30 }}>
-                    <View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: biometricsActive ? theme.colors.success + '20' : theme.colors.surface }}>
+                    <View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: biometricsActive ? theme.colors.successFill + '20' : theme.colors.surface }}>
                         {biometryType === 'FaceID' ? (
                             <FaceIDIcon size={48} color={biometricsActive ? theme.colors.successText : theme.colors.tertiaryText} />
                         ) : (
-                            <FontAwesome6 name="fingerprint" size={48} color={biometricsActive ? theme.colors.success : theme.colors.tertiaryText} iconStyle="solid" />
+                            <FontAwesome6 name="fingerprint" size={48} color={biometricsActive ? theme.colors.successText : theme.colors.tertiaryText} iconStyle="solid" />
                         )}
                     </View>
-                    <Text style={[textStyles.h2, { color: biometricsActive ? theme.colors.success : theme.colors.tertiaryText, marginTop: 20 }]}>
+                    <Text style={[textStyles.h2, { color: biometricsActive ? theme.colors.successText : theme.colors.tertiaryText, marginTop: 20 }]}>
                         {biometricsActive ? 'Activo' : 'Inactivo'}
                     </Text>
                 </View>

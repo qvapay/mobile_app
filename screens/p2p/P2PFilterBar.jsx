@@ -17,8 +17,8 @@ const P2PFilterBar = ({ typeFilter, selectedCoin, sortIndex, showSortMenu, activ
 				leftText="Comprar"
 				rightText="Vender"
 				leftColor={theme.colors.danger}
-				rightColor={theme.colors.success}
-				rightTextColor={theme.colors.almostBlack}
+				rightColor={theme.colors.successFill}
+				rightTextColor={theme.colors.successFillText}
 				style={{ width: 150, height: 32 }}
 			/>
 

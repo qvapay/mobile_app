@@ -119,7 +119,7 @@ const Telegram = () => {
                         borderRadius: 50,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: telegram_id ? theme.colors.success + '20' : theme.colors.warning + '20',
+                        backgroundColor: telegram_id ? theme.colors.successFill + '20' : theme.colors.warning + '20',
                     }}>
                         <FontAwesome6
                             name="telegram"

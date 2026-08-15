@@ -64,11 +64,12 @@ describe('rendered content', () => {
 		expect(out).toContain('0.95') // receive / amount
 	})
 
-	test('buy offers get the green left accent, sell offers the red one', () => {
+	test('la tarjeta es neutra: el tipo de oferta lo comunica solo el botón', () => {
+		// Sin franjas de color por tipo (como los P2P de la industria)
 		const buy = renderItem(makeOffer()).toJSON()
-		expect(JSON.stringify(buy.props.style)).toContain('#7BFFB1')
+		expect(JSON.stringify(buy.props.style)).not.toContain('borderLeft')
 		const sell = renderItem(makeOffer({ type: 'sell' })).toJSON()
-		expect(JSON.stringify(sell.props.style)).toContain('#DB253E')
+		expect(JSON.stringify(sell.props.style)).not.toContain('borderLeft')
 	})
 
 	test('renders the KYC / VIP / Privada badges only when flagged', () => {
@@ -94,6 +95,13 @@ describe('status / action button', () => {
 	test('a stranger sees the inverse action: Vender on buy, Comprar on sell', () => {
 		expect(buttonOf(renderItem(makeOffer())).props.title).toBe('Vender')
 		expect(buttonOf(renderItem(makeOffer({ type: 'sell' }))).props.title).toBe('Comprar')
+	})
+
+	test('el botón es el único que lleva el color semántico del tipo', () => {
+		const buy = buttonOf(renderItem(makeOffer()))
+		expect(JSON.stringify(buy.props.style)).toContain('#7BFFB1')
+		const sell = buttonOf(renderItem(makeOffer({ type: 'sell' })))
+		expect(JSON.stringify(sell.props.style)).toContain('#DB253E')
 	})
 
 	test('the owner sees Editar on open offers', () => {

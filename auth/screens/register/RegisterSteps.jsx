@@ -27,13 +27,13 @@ const PasswordRule = ({ ok, label, theme }) => {
 		progress.value = withTiming(ok ? 1 : 0, { duration: 220 })
 	}, [ok, progress])
 	const circleStyle = useAnimatedStyle(() => ({
-		backgroundColor: interpolateColor(progress.value, [0, 1], ['transparent', theme.colors.success]),
-		borderColor: interpolateColor(progress.value, [0, 1], [theme.colors.border, theme.colors.success]),
+		backgroundColor: interpolateColor(progress.value, [0, 1], ['transparent', theme.colors.successFill]),
+		borderColor: interpolateColor(progress.value, [0, 1], [theme.colors.border, theme.colors.successFill]),
 	}))
 	return (
 		<View style={styles.ruleRow}>
 			<Animated.View style={[styles.ruleCircle, circleStyle]}>
-				{ok && <FontAwesome6 name="check" size={10} color={theme.colors.background} iconStyle="solid" />}
+				{ok && <FontAwesome6 name="check" size={10} color={theme.colors.successFillText} iconStyle="solid" />}
 			</Animated.View>
 			<Text style={{ color: ok ? theme.colors.primaryText : theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>
 				{label}

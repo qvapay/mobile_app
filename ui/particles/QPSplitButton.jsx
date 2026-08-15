@@ -38,22 +38,25 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
  * @param {boolean} [props.check=false] - Desliza el check dentro del primario.
  * @param {boolean} [props.disabled=false] - Deshabilita y atenúa el primario.
  * @param {boolean} [props.loading=false] - Spinner en el primario, bloquea ambos.
+ * @param {number} [props.backRatio=0.25] - Fracción de la fila que ocupa el secundario (los modales de filtros usan 0.5 para repartir a partes iguales).
+ * @param {string} [props.backColor] - Fondo del secundario (default `theme.colors.secondary`).
+ * @param {string} [props.backTextColor] - Tinta del secundario (default `theme.colors.buttonText`).
  */
 
-const BACK_RATIO = 0.25
+const DEFAULT_BACK_RATIO = 0.25
 const GAP = 10
 const BUTTON_HEIGHT = 56
 const CHECK_WIDTH = 20
 const SPLIT_SPRING = { duration: 300, dampingRatio: 1.5 }
 
-const QPSplitButton = ({ title, onPress, showBack = false, onBack, backLabel = 'Atrás', check = false, disabled = false, loading = false }) => {
+const QPSplitButton = ({ title, onPress, showBack = false, onBack, backLabel = 'Atrás', check = false, disabled = false, loading = false, backRatio = DEFAULT_BACK_RATIO, backColor, backTextColor }) => {
 
 	// Contexts
 	const { theme } = useTheme()
 
 	// Ancho real de la fila (medido, no derivado de la ventana) → ancho del Atrás
 	const [rowWidth, setRowWidth] = useState(0)
-	const backWidth = rowWidth > 0 ? (rowWidth - GAP) * BACK_RATIO : 0
+	const backWidth = rowWidth > 0 ? (rowWidth - GAP) * backRatio : 0
 
 	const backProgress = useSharedValue(showBack ? 1 : 0)
 	const checkProgress = useSharedValue(check ? 1 : 0)
@@ -93,8 +96,8 @@ const QPSplitButton = ({ title, onPress, showBack = false, onBack, backLabel = '
 					onPress={onBack}
 					disabled={!showBack || loading}
 					accessibilityLabel={backLabel}
-					style={[styles.button, { width: backWidth, backgroundColor: theme.colors.secondary }]}>
-					<Text style={labelStyle}>{backLabel}</Text>
+					style={[styles.button, { width: backWidth, backgroundColor: backColor || theme.colors.secondary }]}>
+					<Text style={[labelStyle, backTextColor && { color: backTextColor }]}>{backLabel}</Text>
 				</QPPressable>
 			</Animated.View>
 

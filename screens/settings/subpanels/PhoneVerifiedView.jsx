@@ -21,7 +21,7 @@ const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, 
 					borderRadius: 50,
 					alignItems: 'center',
 					justifyContent: 'center',
-					backgroundColor: theme.colors.success + '20',
+					backgroundColor: theme.colors.successFill + '20',
 				}}>
 					<FontAwesome6 name="phone" size={48} color={theme.colors.successText} iconStyle="solid" />
 				</View>

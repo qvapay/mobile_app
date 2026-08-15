@@ -23,8 +23,8 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				leftText="Comprar"
 				rightText="Vender"
 				leftColor={theme.colors.danger}
-				rightColor={theme.colors.success}
-				rightTextColor={theme.colors.almostBlack}
+				rightColor={theme.colors.successFill}
+				rightTextColor={theme.colors.successFillText}
 			/>
 
 			{/* Swap Card (Vender / Recibir) */}

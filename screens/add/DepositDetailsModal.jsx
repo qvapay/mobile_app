@@ -198,7 +198,7 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 						<Text style={textStyles.h4}>Depositar ${amount} QUSD</Text>
 					</View>
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-						<View style={[styles.sseDot, { backgroundColor: sseConnected ? theme.colors.success : theme.colors.danger }]} />
+						<View style={[styles.sseDot, { backgroundColor: sseConnected ? theme.colors.successText : theme.colors.danger }]} />
 						<View style={[styles.countdownBadge, { backgroundColor: getCountdownColor(countdown) + '20', borderColor: getCountdownColor(countdown) }]}>
 							<FontAwesome6 name="clock" size={12} color={getCountdownColor(countdown)} iconStyle="solid" />
 							<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontFamily: theme.typography.fontFamily.medium, marginLeft: 4, fontVariant: ['tabular-nums'], minWidth: 42 }]}>

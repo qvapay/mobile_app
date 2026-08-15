@@ -38,6 +38,11 @@ const colors = {
         // Verde vivo pero accesible sobre blanco (~5:1 AA); el #00471E anterior
         // era tan oscuro que los montos "+" leían casi como texto negro
         successText: "#15803D",
+        // Relleno verde de botones/pills: en light el menta (#7BFFB1) es
+        // demasiado pálido sobre fondo claro, así que el sólido va oscuro con
+        // tinta blanca; en dark se mantiene el menta de marca con tinta negra
+        successFill: "#15803D",
+        successFillText: "#FFFFFF",
         background: "#FFFFFF",
         secondaryBackground: "#F5F5FB",
         surface: "#F0F1F7",
@@ -57,6 +62,8 @@ const colors = {
     dark: {
         contrast: "white",
         successText: "#7BFFB1",
+        successFill: "#7BFFB1",
+        successFillText: "#0E0E1C",
         background: "#0E0E1C",
         secondaryBackground: "#21415F",
         surface: "#1E2039",

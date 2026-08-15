@@ -25,7 +25,7 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 
 			{/* Status icon */}
 			<View style={{ alignItems: 'center', paddingVertical: 30 }}>
-				<View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.success + '20' }}>
+				<View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.successFill + '20' }}>
 					<FontAwesome6 name="lock" size={40} color={theme.colors.successText} iconStyle="solid" />
 				</View>
 				<Text style={[textStyles.h2, { color: theme.colors.successText, marginTop: 20 }]}>Activo</Text>

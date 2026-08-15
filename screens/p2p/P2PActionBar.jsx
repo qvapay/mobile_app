@@ -46,10 +46,10 @@ const P2PActionBar = ({
 			<QPButton
 				title="He pagado"
 				onPress={onMarkPaid}
-				style={[{ backgroundColor: theme.colors.success }, styles.actionButton]}
-				textStyle={{ color: theme.colors.almostBlack }}
+				style={[{ backgroundColor: theme.colors.successFill }, styles.actionButton]}
+				textStyle={{ color: theme.colors.successFillText }}
 				icon="check"
-				iconColor={theme.colors.almostBlack}
+				iconColor={theme.colors.successFillText}
 				iconStyle="solid"
 				loading={loading.markPaid}
 				disabled={loading.markPaid || !txIdInput.trim()}
@@ -60,10 +60,10 @@ const P2PActionBar = ({
 			<QPButton
 				title="Pagado"
 				onPress={onMarkPaid}
-				style={[{ backgroundColor: theme.colors.success }, styles.actionButton]}
-				textStyle={{ color: theme.colors.almostBlack }}
+				style={[{ backgroundColor: theme.colors.successFill }, styles.actionButton]}
+				textStyle={{ color: theme.colors.successFillText }}
 				icon="check-double"
-				iconColor={theme.colors.almostBlack}
+				iconColor={theme.colors.successFillText}
 				iconStyle="solid"
 				disabled={true}
 			/>

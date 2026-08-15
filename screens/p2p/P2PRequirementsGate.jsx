@@ -28,8 +28,8 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 						key={req.key}
 						style={[
 							styles.requirementCard,
-							{ backgroundColor: req.passed ? theme.colors.success + '15' : theme.colors.surface },
-							theme.mode === 'light' && { borderWidth: 1, borderColor: req.passed ? theme.colors.success + '40' : theme.colors.border },
+							{ backgroundColor: req.passed ? theme.colors.successFill + '15' : theme.colors.surface },
+							theme.mode === 'light' && { borderWidth: 1, borderColor: req.passed ? theme.colors.successFill + '40' : theme.colors.border },
 						]}
 						onPress={() => !req.passed && navigation.navigate(ROUTES.SETTINGS_STACK, { screen: req.route, initial: false })}
 						disabled={req.passed}
@@ -37,11 +37,11 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 						<FontAwesome6
 							name={req.passed ? 'circle-check' : req.icon}
 							size={20}
-							color={req.passed ? theme.colors.success : theme.colors.secondaryText}
+							color={req.passed ? theme.colors.successText : theme.colors.secondaryText}
 							iconStyle={req.passed ? 'solid' : (req.iconStyle || 'solid')}
 						/>
 						<View style={{ flex: 1 }}>
-							<Text style={[textStyles.h5, { color: req.passed ? theme.colors.success : theme.colors.primaryText }]}>{req.label}</Text>
+							<Text style={[textStyles.h5, { color: req.passed ? theme.colors.successText : theme.colors.primaryText }]}>{req.label}</Text>
 							{!req.passed && (
 								<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]}>{req.description}</Text>
 							)}

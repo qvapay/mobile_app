@@ -197,7 +197,7 @@ const TwoFactor = () => {
 			>
 
 				<View style={styles.statusContainer}>
-					<View style={[styles.statusIcon, { backgroundColor: theme.colors.success + '20' }]}>
+					<View style={[styles.statusIcon, { backgroundColor: theme.colors.successFill + '20' }]}>
 						<FontAwesome6 name="shield-halved" size={48} color={theme.colors.successText} iconStyle="solid" />
 					</View>
 

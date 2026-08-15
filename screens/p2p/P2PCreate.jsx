@@ -254,10 +254,10 @@ const P2PCreate = ({ navigation }) => {
 						onPress={handlePublish}
 						disabled={selectedCoin === null || amount === "" || receive === "" || isSending}
 						loading={isSending}
-						style={{ backgroundColor: type === "buy" ? theme.colors.success : theme.colors.danger }}
-						textStyle={{ color: type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite }}
-						iconColor={type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite}
-						loadingColor={type === "buy" ? theme.colors.almostBlack : theme.colors.almostWhite}
+						style={{ backgroundColor: type === "buy" ? theme.colors.successFill : theme.colors.danger }}
+						textStyle={{ color: type === "buy" ? theme.colors.successFillText : theme.colors.almostWhite }}
+						iconColor={type === "buy" ? theme.colors.successFillText : theme.colors.almostWhite}
+						loadingColor={type === "buy" ? theme.colors.successFillText : theme.colors.almostWhite}
 					/>
 				}
 			>

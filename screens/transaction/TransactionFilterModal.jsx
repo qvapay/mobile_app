@@ -1,6 +1,7 @@
 import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native'
 
 import QPInput from '../../ui/particles/QPInput'
+import QPSplitButton from '../../ui/particles/QPSplitButton'
 import { createContainerStyles } from '../../theme/themeUtils'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -78,6 +79,13 @@ const Chip = ({ label, selected, onPress, theme }) => (
 const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDraft, onSetPeriod, onClearPeriod, onClear, onApply, onClose, theme, textStyles, windowHeight }) => {
 
 	const containerStyles = createContainerStyles(theme)
+
+	// "Limpiar" solo existe cuando hay algo que limpiar — el slot se abre y
+	// cierra animado (mismo split-button del onboarding/registro).
+	// Al deseleccionar, onUpdateDraft escribe `undefined`, así que no basta con
+	// contar claves: hay que mirar los valores
+	const hasActiveFilters = !!draftPeriod ||
+		Object.values(draftFilters || {}).some((v) => v !== undefined && v !== null && v !== '')
 
 	return (
 	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
@@ -191,14 +199,18 @@ const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDr
 
 				</ScrollView>
 
-				{/* Action buttons */}
+				{/* Action buttons — "Limpiar" aparece animado con el primer filtro */}
 				<View style={styles.actions}>
-					<Pressable onPress={onClear} style={[styles.actionButton, { backgroundColor: theme.colors.elevation }]} >
-						<Text style={[styles.actionText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Limpiar</Text>
-					</Pressable>
-					<Pressable onPress={onApply} style={[styles.actionButton, { backgroundColor: theme.colors.primary, flex: 1 }]} >
-						<Text style={[styles.actionText, { color: '#FFFFFF', fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Aplicar</Text>
-					</Pressable>
+					<QPSplitButton
+						title="Aplicar"
+						onPress={onApply}
+						showBack={hasActiveFilters}
+						onBack={onClear}
+						backLabel="Limpiar"
+						backRatio={0.5}
+						backColor={theme.colors.elevation}
+						backTextColor={theme.colors.primaryText}
+					/>
 				</View>
 
 			</Pressable>
@@ -234,18 +246,7 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	actions: {
-		flexDirection: 'row',
-		gap: 12,
 		marginTop: 16,
-	},
-	actionButton: {
-		paddingVertical: 14,
-		paddingHorizontal: 24,
-		borderRadius: 25,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	actionText: {
 	},
 })
 

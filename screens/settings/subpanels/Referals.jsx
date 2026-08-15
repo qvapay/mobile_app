@@ -241,7 +241,7 @@ const Referals = () => {
 							<View key={referral.uuid} style={[styles.referralRow, { backgroundColor: theme.colors.surface }]}>
 								<ProfileContainerHorizontal user={referral} size={40} isOnline={isUserOnline(referral.uuid)} />
 								{referral.kyc ? (
-									<View style={[styles.badge, { backgroundColor: theme.colors.success + '20' }]}>
+									<View style={[styles.badge, { backgroundColor: theme.colors.successFill + '20' }]}>
 										<FontAwesome6 name="circle-check" size={10} color={theme.colors.successText} iconStyle="solid" />
 										<Text style={[styles.badgeText, { color: theme.colors.successText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>KYC</Text>
 									</View>

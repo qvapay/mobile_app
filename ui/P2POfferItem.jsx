@@ -32,7 +32,7 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
 		case 'completed':
 			return { title: 'Finalizado', bg: theme.colors.primary, textColor: theme.colors.almostWhite, borderRadius: 20 }
 		case 'paid':
-			return { title: 'Pagado', bg: theme.colors.success, textColor: theme.colors.almostBlack, borderRadius: 20 }
+			return { title: 'Pagado', bg: theme.colors.successFill, textColor: theme.colors.successFillText, borderRadius: 20 }
 		case 'revision':
 			return { title: 'Revisión', bg: theme.colors.warning, textColor: theme.colors.almostBlack, borderRadius: 20 }
 		case 'cancelled':
@@ -43,8 +43,8 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
 			}
 			return {
 				title: offerType === 'buy' ? 'Vender' : 'Comprar',
-				bg: offerType === 'buy' ? theme.colors.success : theme.colors.danger,
-				textColor: offerType === 'buy' ? theme.colors.almostBlack : theme.colors.almostWhite,
+				bg: offerType === 'buy' ? theme.colors.successFill : theme.colors.danger,
+				textColor: offerType === 'buy' ? theme.colors.successFillText : theme.colors.almostWhite,
 				borderRadius: 5
 			}
 	}
@@ -55,7 +55,9 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
  * and the offer detail header. Shows coin, rate, amount x receive, KYC/VIP/
  * private badges, an optional counterparty row (with online dot, tap to open
  * their P2P profile — disabled for yourself) and a status/action button that
- * navigates to the offer. Left border is green for buy offers, red for sell.
+ * navigates to the offer. El tipo de oferta lo comunica SOLO el botón de
+ * acción (Comprar/Vender), como en los P2P de la industria — la tarjeta es
+ * neutra, sin franjas de color.
  *
  * @param {object} props
  * @param {object} props.offer - P2P offer from the API (with `Coin`, `User`, optional `Peer`).
@@ -73,9 +75,6 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
-	// Border accent color by type
-	const accentColor = offer.type === 'buy' ? theme.colors.success : theme.colors.danger
-
 	// Dynamic badges
 	const badges = []
 	if (offer.only_kyc) badges.push({ label: 'KYC', color: theme.colors.primary })
@@ -87,7 +86,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const btnConfig = show_buttons ? getStatusButton(offer.status, isOwner, offer.type, theme) : null
 
 	return (
-		<View style={[styles.offerCard, { backgroundColor: theme.colors.surface, borderLeftWidth: 3, borderLeftColor: accentColor }]}>
+		<View style={[styles.offerCard, { backgroundColor: theme.colors.surface }]}>
 
 			<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 

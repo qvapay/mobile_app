@@ -53,7 +53,11 @@ test('showUsername=false swaps the username for the P2P trust strip', () => {
 	expect(out).not.toContain('@')
 	expect(out).toContain('5') // 3 created + 2 as peer
 	expect(out).toContain('4.5')
-	expect(iconNames(tree)).toEqual(expect.arrayContaining(['phone', 'telegram', 'repeat', 'star']))
+	// Solo operaciones y rating: teléfono/Telegram son obligatorios en P2P, así
+	// que todos los tienen y no aportan señal
+	expect(iconNames(tree)).toEqual(expect.arrayContaining(['repeat', 'star']))
+	expect(iconNames(tree)).not.toContain('phone')
+	expect(iconNames(tree)).not.toContain('telegram')
 })
 
 test('the trust strip hides operations and rating when they are zero', () => {
