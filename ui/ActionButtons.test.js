@@ -48,18 +48,18 @@ const renderRow = (navigation = { navigate: jest.fn() }) => {
 
 test('renderiza los 4 tiles de la cuenta y las 2 pills de ahorros', () => {
 	const tree = renderRow()
-	expect(labelsOf(tree)).toEqual(['Depositar', 'Extraer', 'Enviar', 'Pagar', 'Depositar', 'Retirar'])
+	expect(labelsOf(tree)).toEqual(['Depositar', 'Extraer', 'Enviar', 'Comerciar', 'Depositar', 'Retirar'])
 })
 
-test('los tiles de la cuenta navegan a Add / Withdraw / Send / Scan', () => {
+test('los tiles de la cuenta navegan a Add / Withdraw / Send / P2P', () => {
 	const navigation = { navigate: jest.fn() }
 	const tree = renderRow(navigation)
 	pressByLabel(tree, 'Extraer')
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.WITHDRAW)
 	pressByLabel(tree, 'Enviar')
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.SEND)
-	pressByLabel(tree, 'Pagar')
-	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.SCAN_SCREEN)
+	pressByLabel(tree, 'Comerciar')
+	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.P2P_SCREEN)
 	pressByLabel(tree, 'Depositar', 0)
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.ADD)
 })

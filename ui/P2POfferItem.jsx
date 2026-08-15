@@ -52,12 +52,18 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
 
 /**
  * List card for a P2P offer, used in the P2P marketplace list, user profiles
- * and the offer detail header. Shows coin, rate, amount x receive, KYC/VIP/
- * private badges, an optional counterparty row (with online dot, tap to open
- * their P2P profile — disabled for yourself) and a status/action button that
- * navigates to the offer. El tipo de oferta lo comunica SOLO el botón de
- * acción (Comprar/Vender), como en los P2P de la industria — la tarjeta es
- * neutra, sin franjas de color.
+ * and the offer detail header.
+ *
+ * Orden de lectura de los P2P de la industria (Binance/OKX/Bybit) —
+ * quién → a cuánto → cuánto → condiciones:
+ *   1. Contraparte con su reputación (ops + rating, con punto de online)
+ *   2. La TASA como número héroe junto al rail de pago (`Coin`), porque es
+ *      la variable que se compara entre ofertas, + el botón de acción
+ *   3. Disponible y contrapartida como línea de contexto en gris
+ *   4. Tags solo de lo excepcional (VIP / Privada)
+ *
+ * El tipo de oferta lo comunica SOLO el botón de acción (Comprar/Vender): la
+ * tarjeta es neutra, sin franjas de color.
  *
  * @param {object} props
  * @param {object} props.offer - P2P offer from the API (with `Coin`, `User`, optional `Peer`).
@@ -86,81 +92,75 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const isOwner = user.uuid === offer.User?.uuid
 	const btnConfig = show_buttons ? getStatusButton(offer.status, isOwner, offer.type, theme) : null
 
+	// Tasa: lo que se compara entre ofertas (guardando la división por cero)
+	const amountNum = Number(offer.amount)
+	const rate = amountNum > 0 ? (Number(offer.receive) / amountNum).toFixed(2) : '—'
+
 	return (
 		<View style={[styles.offerCard, { backgroundColor: theme.colors.surface }]}>
 
-			<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+			{/* 1 · Quién — la reputación primero (o la fecha, en el detalle) */}
+			{show_user && (() => {
+				const profileUser = offer.Peer && offer.Peer.uuid ? offer.Peer : offer.User
+				const isSelf = profileUser?.uuid === user?.uuid
+				const goToProfile = () => {
+					if (!profileUser?.uuid || isSelf || !navigation) return
+					navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: profileUser.uuid })
+				}
+				return (
+					<Pressable
+						onPress={goToProfile}
+						disabled={isSelf || !profileUser?.uuid}
+						style={styles.userRow}
+						hitSlop={4}
+					>
+						<ProfileContainerHorizontal user={profileUser} size={32} showUsername={false} isOnline={isUserOnline(profileUser?.uuid)} />
+					</Pressable>
+				)
+			})()}
 
-				<View style={{ flex: 1 }}>
-					{/* Amount and Receive */}
-					<View style={{ gap: 2, marginBottom: 4 }}>
-						<View style={styles.coinRow}>
-							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-								<QPCoin coin={offer.Coin?.logo} size={20} />
-								<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
-									{offer.Coin?.name}
-								</Text>
-							</View>
-							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-								<FontAwesome6 name="money-bill-transfer" size={12} color={theme.colors.primaryText} iconStyle="solid" />
-								<Text style={[textStyles.h7, { color: theme.colors.primaryText, fontWeight: '400' }]} >
-									{Number(offer.receive / offer.amount).toFixed(2)}
-								</Text>
-							</View>
-						</View>
-						<View style={[styles.amountRow, { marginLeft: 2 }]}>
-							<Text style={[textStyles.h3, { color: theme.colors.primary, fontWeight: '600' }]}>${offer.amount}</Text>
-							<Text style={[textStyles.h7, { color: theme.colors.primaryText, fontWeight: '200' }]}>x</Text>
-							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '600' }]}>{offer.receive}</Text>
-						</View>
-					</View>
+			{show_date && (
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>
+					{new Date(offer.created_at).toLocaleDateString()}
+				</Text>
+			)}
 
-					{/* User Info - tap to open peer profile */}
-					{show_user && (() => {
-						const profileUser = offer.Peer && offer.Peer.uuid ? offer.Peer : offer.User
-						const isSelf = profileUser?.uuid === user?.uuid
-						const goToProfile = () => {
-							if (!profileUser?.uuid || isSelf || !navigation) return
-							navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: profileUser.uuid })
-						}
-						return (
-							<Pressable
-								onPress={goToProfile}
-								disabled={isSelf || !profileUser?.uuid}
-								style={{ marginVertical: 2, alignSelf: 'flex-start' }}
-								hitSlop={4}
-							>
-								<ProfileContainerHorizontal user={profileUser} size={36} showUsername={false} isOnline={isUserOnline(profileUser?.uuid)} />
-							</Pressable>
-						)
-					})()}
+			{/* 2 · A cuánto — la tasa es la variable de decisión, va de héroe */}
+			<View style={styles.rateRow}>
+				<View style={styles.rateGroup}>
+					<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: '600' }]}>{rate}</Text>
+					<QPCoin coin={offer.Coin?.logo} size={18} />
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+						{offer.Coin?.name}
+					</Text>
 				</View>
-
-				{/* Right column: (fecha solo en el detalle) + badges + button */}
-				<View style={{ alignItems: 'flex-end', gap: 4 }}>
-					{show_date && (
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{new Date(offer.created_at).toLocaleDateString()}</Text>
-					)}
-					{badges.length > 0 && (
-						<View style={{ gap: 2, alignItems: 'flex-end' }}>
-							{badges.map((badge) => (
-								<View key={badge.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-									<Text style={[textStyles.caption, { color: badge.color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>{badge.label}</Text>
-									<View style={{ width: 2, height: 12, backgroundColor: badge.color }} />
-								</View>
-							))}
-						</View>
-					)}
-					{show_buttons && btnConfig && (
-						<QPButton
-							title={btnConfig.title}
-							style={{ backgroundColor: btnConfig.bg, width: 90, height: 24, borderRadius: btnConfig.borderRadius, paddingHorizontal: 5, paddingVertical: 2 }}
-							textStyle={{ color: btnConfig.textColor, fontSize: theme.typography.fontSize.sm, fontWeight: '400' }}
-							onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
-						/>
-					)}
-				</View>
+				{show_buttons && btnConfig && (
+					<QPButton
+						title={btnConfig.title}
+						style={{ backgroundColor: btnConfig.bg, width: 90, height: 28, borderRadius: btnConfig.borderRadius, paddingHorizontal: 5, paddingVertical: 2 }}
+						textStyle={{ color: btnConfig.textColor, fontSize: theme.typography.fontSize.sm, fontWeight: '400' }}
+						onPress={() => (navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: offer.uuid }))}
+					/>
+				)}
 			</View>
+
+			{/* 3 · Cuánto — disponible y contrapartida, como contexto */}
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>${offer.amount}</Text>
+				{' disponible · recibe '}
+				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>{offer.receive}</Text>
+			</Text>
+
+			{/* 4 · Condiciones — solo las excepcionales */}
+			{badges.length > 0 && (
+				<View style={styles.tagRow}>
+					{badges.map((badge) => (
+						<View key={badge.label} style={[styles.tag, { backgroundColor: badge.color + '22' }]}>
+							<Text style={[textStyles.caption, { color: badge.color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>{badge.label}</Text>
+						</View>
+					))}
+				</View>
+			)}
 
 			{/* Message */}
 			{offer.message && (
@@ -174,22 +174,39 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 }
 
 const styles = StyleSheet.create({
+	userRow: {
+		alignSelf: 'flex-start',
+		marginBottom: 2,
+	},
+	rateRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: 8,
+	},
+	rateGroup: {
+		flex: 1,
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 6,
+	},
+	tagRow: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 6,
+		marginTop: 6,
+	},
+	tag: {
+		paddingHorizontal: 8,
+		paddingVertical: 3,
+		borderRadius: 10,
+	},
 	offerCard: {
 		borderRadius: 8,
 		paddingHorizontal: 12,
-		paddingVertical: 4,
-		marginBottom: 4,
+		paddingVertical: 10,
+		marginBottom: 6,
 		position: 'relative'
-	},
-	amountRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 4
-	},
-	coinRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8
 	},
 	messageRow: {
 		flexDirection: 'row',

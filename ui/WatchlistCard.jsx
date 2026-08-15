@@ -20,7 +20,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
  *
  * @param {object} props
  * @param {{tick: string, price: number, change: number, priceHistory: {value: number}[]}} props.coin - Asset data.
- * @param {() => void} props.onPress - Opens the asset detail (StockDetail).
+ * @param {() => void} props.onPress - Abre el detalle de la moneda (CoinDetail).
  */
 const WatchlistCard = memo(({ coin, onPress }) => {
 

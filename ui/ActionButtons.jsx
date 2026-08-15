@@ -69,7 +69,7 @@ const SavingsPill = ({ icon, label, onPress, index, pageProgress, theme }) => {
 
 /**
  * Botonera del Home sincronizada con el pager del BalanceCard: en la página de
- * la cuenta muestra los 4 tiles (Depositar / Extraer / Enviar / Pagar) y al
+ * la cuenta muestra los 4 tiles (Depositar / Extraer / Enviar / Comerciar) y al
  * hacer swipe a Ahorros se transforman en las 2 pills menta del servicio de
  * ahorro (Depositar / Retirar → abren la pantalla Savings con el modal listo).
  * La transición sigue el dedo frame a frame en el UI thread (`pageProgress` es
@@ -99,7 +99,9 @@ const ActionButtons = ({ navigation, pageProgress }) => {
 		{ icon: 'plus', label: 'Depositar', onPress: () => navigation.navigate(ROUTES.ADD) },
 		{ icon: 'turn-up', label: 'Extraer', onPress: () => navigation.navigate(ROUTES.WITHDRAW) },
 		{ icon: 'paper-plane', label: 'Enviar', onPress: () => navigation.navigate(ROUTES.SEND) },
-		{ icon: 'qrcode', label: 'Pagar', onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN) },
+		// P2P es un tab hermano del Home dentro de MainStack, así que el
+		// navigate directo lo resuelve el tab navigator
+		{ icon: 'arrow-right-arrow-left', label: 'Comerciar', onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]
 
 	const savingsActions = [

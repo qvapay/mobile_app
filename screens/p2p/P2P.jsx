@@ -1,5 +1,5 @@
 import { FlashList } from "@shopify/flash-list"
-import { useEffect, useReducer, useCallback } from "react"
+import { useEffect, useReducer, useCallback, useRef } from "react"
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
 
 // Reanimated
@@ -15,6 +15,7 @@ import { useAuth } from "../../auth/AuthContext"
 // UI
 import P2POffer from "../../ui/P2POfferItem"
 import QPCoinPicker from "../../ui/QPCoinPicker"
+import QPSwitch from "../../ui/particles/QPSwitch"
 import P2PRequirementsGate from "./P2PRequirementsGate"
 import P2PFilterBar from "./P2PFilterBar"
 import P2PFiltersModal from "./P2PFiltersModal"
@@ -74,7 +75,12 @@ const P2P = ({ navigation, route }) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 	const insets = useSafeAreaInsets()
-	const { height: windowHeight } = useWindowDimensions()
+	const { height: windowHeight, width: windowWidth } = useWindowDimensions()
+
+	// Ancho del switch del header: lo más generoso que quepa sin acercarse al
+	// avatar ni a los botones (reservamos ~190px para ellos), con tope para que
+	// en pantallas anchas no se estire de más
+	const headerSwitchWidth = Math.max(132, Math.min(168, windowWidth - 190))
 
 	// Online status
 	const { trackUsers, untrackUsers } = useOnlineStatus()
@@ -101,13 +107,6 @@ const P2P = ({ navigation, route }) => {
 	const setShowCoinPicker = (value) => dispatchModals({ type: "set", field: "showCoinPicker", value })
 	const setShowSortMenu = (value) => dispatchModals({ type: "set", field: "showSortMenu", value })
 
-	// Reset bottom bar when leaving P2P tab
-	useFocusEffect(
-		useCallback(() => {
-			return () => { bottomBarVisible.value = withTiming(1, { duration: 250 }) }
-		}, [bottomBarVisible])
-	)
-
 	// Track P2P offer users for online status
 	useEffect(() => {
 		const ids = p2pOffers.flatMap(o => [o.User?.uuid, o.Peer?.uuid]).filter(Boolean)
@@ -131,13 +130,27 @@ const P2P = ({ navigation, route }) => {
 	const scrollDirection = useSharedValue(0)
 	const accumulatedDelta = useSharedValue(0)
 
+	// Estado OBJETIVO de la barra (1 visible / 0 oculta). Imprescindible como
+	// guardia: `filterBarVisible.value` devuelve el valor EN CURSO de la
+	// animación (0.7, 0.4…), nunca exactamente 0 hasta que termina, así que
+	// comparándolo se re-disparaba `withTiming` en cada evento de scroll y la
+	// animación se reiniciaba ~15 veces seguidas — de ahí que el ocultado se
+	// sintiera lento y elástico en vez de limpio.
+	const filterBarTarget = useRef(1)
+
+	const setBarsVisible = useCallback((visible) => {
+		if (filterBarTarget.current === visible) return
+		filterBarTarget.current = visible
+		filterBarVisible.value = withTiming(visible, { duration: 250 })
+		bottomBarVisible.value = withTiming(visible, { duration: 250 })
+	}, [filterBarVisible, bottomBarVisible])
+
 	const handleScroll = useCallback((event) => {
 		const currentY = event.nativeEvent.contentOffset.y
 		const diff = currentY - lastScrollY.value
 
 		if (currentY <= 0) {
-			filterBarVisible.value = withTiming(1, { duration: 250 })
-			bottomBarVisible.value = withTiming(1, { duration: 250 })
+			setBarsVisible(1)
 			accumulatedDelta.value = 0
 		} else {
 			const dir = diff > 0 ? 1 : diff < 0 ? -1 : 0
@@ -149,19 +162,30 @@ const P2P = ({ navigation, route }) => {
 					scrollDirection.value = dir
 				}
 				if (accumulatedDelta.value > 20) {
-					if (dir === 1 && filterBarVisible.value !== 0) {
-						filterBarVisible.value = withTiming(0, { duration: 250 })
-						bottomBarVisible.value = withTiming(0, { duration: 250 })
-					} else if (dir === -1 && filterBarVisible.value !== 1) {
-						filterBarVisible.value = withTiming(1, { duration: 250 })
-						bottomBarVisible.value = withTiming(1, { duration: 250 })
-					}
+					setBarsVisible(dir === 1 ? 0 : 1)
 				}
 			}
 		}
 
 		lastScrollY.value = currentY
-	}, [lastScrollY, filterBarVisible, bottomBarVisible, accumulatedDelta, scrollDirection])
+	}, [lastScrollY, accumulatedDelta, scrollDirection, setBarsVisible])
+
+	// Al salir del tab se restauran AMBAS barras y el estado de scroll: antes
+	// solo se reponía la bottom bar, así que al volver con la lista scrolleada
+	// los filtros seguían escondidos y el `target` quedaba desincronizado (el
+	// siguiente scroll hacia abajo ya no ocultaba la bottom bar)
+	useFocusEffect(
+		useCallback(() => {
+			return () => {
+				filterBarTarget.current = 1
+				filterBarVisible.value = 1
+				bottomBarVisible.value = withTiming(1, { duration: 250 })
+				accumulatedDelta.value = 0
+				scrollDirection.value = 0
+				lastScrollY.value = 0
+			}
+		}, [filterBarVisible, bottomBarVisible, accumulatedDelta, scrollDirection, lastScrollY])
+	)
 
 	const filterBarStyle = useAnimatedStyle(() => ({
 		transform: [{ translateY: interpolate(filterBarVisible.value, [0, 1], [-filterBarHeight.value, 0]) }],
@@ -169,19 +193,39 @@ const P2P = ({ navigation, route }) => {
 		opacity: filterBarVisible.value,
 	}))
 
-	// Toggle my offers filter
-	const toggleMyOffers = useCallback(() => {
-		setFilter("showMine", !showMine)
-	}, [showMine, setFilter])
-
-	// Configure header buttons locally to avoid non-serializable params
+	// Configure header buttons locally to avoid non-serializable params.
+	// El switch Comprar/Vender vive en el TopBar como headerTitle (patrón de
+	// los P2P de la industria: el lado del mercado se elige arriba del todo,
+	// no entre los filtros)
 	useEffect(() => {
 		navigation.setOptions({
+			// El header reparte el ancho entre izquierda/título/derecha, así que
+			// con 1 elemento a la izquierda y 2 a la derecha el título nunca cae
+			// en el centro real. Se saca de ese reparto con position absolute a
+			// ancho completo: el switch queda centrado respecto a la PANTALLA.
+			// El contenedor del header es `pointerEvents="box-none"`, así que la
+			// franja vacía a los lados no roba toques a los botones.
+			headerTitleAlign: 'center',
+			headerTitleContainerStyle: styles.headerTitleContainer,
+			headerTitle: () => (
+				<View style={styles.headerSwitchWrap}>
+					<QPSwitch
+						value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
+						onChange={(side) => setFilter("typeFilter", side === "left" ? "sell" : side === "right" ? "buy" : null)}
+						leftText="Comprar"
+						rightText="Vender"
+						leftColor={theme.colors.danger}
+						rightColor={theme.colors.successFill}
+						rightTextColor={theme.colors.successFillText}
+						style={[styles.headerSwitch, { width: headerSwitchWidth }]}
+					/>
+				</View>
+			),
+			// Solo dos botones: "Mis ofertas" era redundante (vive dentro del
+			// modal de Filtros, que además enciende su icono y muestra el badge
+			// activo) y su ancho hacía que el switch centrado se solapara
 			headerRight: () => (
 				<>
-					<Pressable style={containerStyles.headerRight} onPress={toggleMyOffers}>
-						<FontAwesome6 name="rectangle-list" size={20} color={showMine ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
-					</Pressable>
 					<Pressable style={containerStyles.headerRight} onPress={() => setShowFiltersModal(true)}>
 						<FontAwesome6 name="filter" size={20} color={hasActiveFilters ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
@@ -192,13 +236,12 @@ const P2P = ({ navigation, route }) => {
 			),
 			...(Platform.OS === 'ios' && {
 				unstable_headerRightItems: () => [
-					{ type: 'button', label: 'Mis Ofertas', icon: { type: 'sfSymbol', name: 'list.bullet.rectangle' }, onPress: toggleMyOffers, tintColor: showMine ? theme.colors.primary : theme.colors.primaryText },
 					{ type: 'button', label: 'Filtros', icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease.circle' }, onPress: () => setShowFiltersModal(true), tintColor: hasActiveFilters ? theme.colors.primary : theme.colors.primaryText },
 					{ type: 'button', label: 'Crear', icon: { type: 'sfSymbol', name: 'plus' }, onPress: () => navigation.navigate(ROUTES.P2P_CREATE_SCREEN) },
 				],
 			}),
 		})
-	}, [navigation, theme, hasActiveFilters, showMine, toggleMyOffers, containerStyles])
+	}, [navigation, theme, hasActiveFilters, containerStyles, typeFilter, setFilter, headerSwitchWidth])
 
 	// Remove a filter badge and re-fetch
 	const handleRemoveBadge = (badge) => {
@@ -225,12 +268,10 @@ const P2P = ({ navigation, route }) => {
 			{/* Quick Filters Bar (scroll-hide) */}
 			<Animated.View onLayout={(e) => { filterBarHeight.value = e.nativeEvent.layout.height }} style={filterBarStyle}>
 				<P2PFilterBar
-					typeFilter={typeFilter}
 					selectedCoin={selectedCoin}
 					sortIndex={sortIndex}
 					showSortMenu={showSortMenu}
 					activeFilterBadges={activeFilterBadges}
-					onSetType={(value) => setFilter("typeFilter", value)}
 					onOpenCoinPicker={() => setShowCoinPicker(true)}
 					onClearCoin={() => setFilter("selectedCoin", null)}
 					onToggleSortMenu={() => setShowSortMenu(!showSortMenu)}
@@ -295,6 +336,37 @@ const P2P = ({ navigation, route }) => {
 }
 
 const styles = StyleSheet.create({
+	headerTitleContainer: {
+		position: 'absolute',
+		left: 0,
+		right: 0,
+		// Sin top/bottom el contenedor absolute toma la altura de su contenido y
+		// se ancla arriba: hay que estirarlo a toda la altura para que el
+		// justifyContent 'center' centre de verdad contra los botones
+		top: 0,
+		bottom: 0,
+		// El header calcula un maxWidth para el título restando el ancho de los
+		// botones ((80 + 16) * 2 ≈ 192px): sin anularlo, el contenedor absolute
+		// se queda con ~168px anclados a la izquierda y el switch aparece
+		// pegado al avatar. Igual con el marginHorizontal 16 que aplica solo.
+		maxWidth: '100%',
+		marginHorizontal: 0,
+		alignItems: 'center',
+		justifyContent: 'center',
+		// Los iconos del header llevan paddingBottom 10 (containerStyles
+		// .headerLeft/.headerRight): el switch necesita el mismo para compartir
+		// línea base con ellos, si no queda "flotando" más abajo
+		paddingBottom: 10,
+	},
+	headerSwitchWrap: {
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	// El ancho lo calcula la pantalla (headerSwitchWidth): comparte espacio con
+	// el avatar y los botones del header
+	headerSwitch: {
+		height: 34,
+	},
 	emptyContainer: {
 		flex: 1,
 		justifyContent: "center",

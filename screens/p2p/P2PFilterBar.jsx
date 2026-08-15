@@ -2,27 +2,13 @@ import { View, Text, Pressable, StyleSheet } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import QPCoin from "../../ui/particles/QPCoin"
-import QPSwitch from "../../ui/particles/QPSwitch"
 import { SORT_OPTIONS } from "./useP2PFilters"
 
 // Quick filters bar (type / coin / sort) + the sort menu + active filter badges.
-const P2PFilterBar = ({ typeFilter, selectedCoin, sortIndex, showSortMenu, activeFilterBadges, onSetType, onOpenCoinPicker, onClearCoin, onToggleSortMenu, onSelectSort, onClearSort, onRemoveBadge, theme, textStyles }) => (
+const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadges, onOpenCoinPicker, onClearCoin, onToggleSortMenu, onSelectSort, onClearSort, onRemoveBadge, theme, textStyles }) => (
 	<>
+		{/* El switch Comprar/Vender vive en el TopBar (headerTitle de P2P.jsx) */}
 		<View style={styles.quickFiltersBar}>
-
-			{/* Buy/Sell Switch */}
-			<QPSwitch
-				value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
-				onChange={(side) => onSetType(side === "left" ? "sell" : side === "right" ? "buy" : null)}
-				leftText="Comprar"
-				rightText="Vender"
-				leftColor={theme.colors.danger}
-				rightColor={theme.colors.successFill}
-				rightTextColor={theme.colors.successFillText}
-				style={{ width: 150, height: 32 }}
-			/>
-
-			<View style={{ flex: 1 }} />
 
 			{/* Coin Pill */}
 			<Pressable style={[styles.filterPill, { backgroundColor: selectedCoin ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.border }]} onPress={onOpenCoinPicker}>

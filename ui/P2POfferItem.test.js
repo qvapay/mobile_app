@@ -86,6 +86,19 @@ describe('rendered content', () => {
 		expect(flagged).toContain('VIP')
 	})
 
+	test('la tasa es el héroe: se lee antes que el monto disponible', () => {
+		const out = textOf(renderItem(makeOffer()))
+		// Orden de lectura de la industria: quién → a cuánto (tasa) → cuánto
+		expect(out.indexOf('0.95')).toBeLessThan(out.indexOf('disponible'))
+		expect(out).toContain('disponible')
+		expect(out).toContain('recibe')
+	})
+
+	test('un monto de cero no revienta la tasa', () => {
+		const out = textOf(renderItem(makeOffer({ amount: '0' })))
+		expect(out).toContain('—')
+	})
+
 	test('la fecha solo aparece en el detalle (show_date), nunca en el listado', () => {
 		const listed = textOf(renderItem(makeOffer()))
 		expect(listed).not.toContain('2026')

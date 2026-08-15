@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { View, Text, Pressable, Animated, StyleSheet } from 'react-native'
+import { View, Text, Pressable, Animated, Easing, StyleSheet } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -62,12 +62,16 @@ const QPSwitch = ({
 
 	// Animate the pill whenever the selected value changes (from a press here or
 	// from a controlled prop update by the parent).
+	// Curva estándar (acelera y frena suave) en vez de un spring seco: la
+	// píldora se siente fluida al deslizarse, sin rebote — mismo easing que el
+	// segmented control de reactiive.io/demos/fluid-tab-interaction, a una
+	// duración usable (el demo va a 1s para lucirse).
 	useEffect(() => {
-		Animated.spring(translate, {
+		Animated.timing(translate, {
 			toValue: POSITION_OFFSET[currentValue] ?? NEUTRAL_OFFSET,
 			useNativeDriver: true,
-			friction: 12,
-			tension: 120
+			duration: 320,
+			easing: Easing.bezier(0.4, 0.0, 0.2, 1),
 		}).start()
 	}, [currentValue, translate])
 

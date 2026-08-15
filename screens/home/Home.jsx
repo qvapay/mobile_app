@@ -285,7 +285,17 @@ const Home = ({ navigation }) => {
 						<QPSectionHeader title="Mi Watchlist" subtitle="Ver todo" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)} />
 						<View style={styles.watchlistGrid}>
 							{watchlistData.map(coin => (
-								<WatchlistCard key={coin.tick} coin={coin} onPress={() => { }} />
+								<WatchlistCard
+									key={coin.tick}
+									coin={coin}
+									// La fila ya trae precio, cambio 24h e historial: se pasan
+									// como initialData para que el detalle pinte al instante
+									onPress={() => navigation.navigate(ROUTES.COIN_DETAIL_SCREEN, {
+										tick: coin.tick,
+										name: coin.tick,
+										initialData: coin,
+									})}
+								/>
 							))}
 						</View>
 					</View>
