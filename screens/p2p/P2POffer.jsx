@@ -113,7 +113,7 @@ const P2POffer = ({ route }) => {
 				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)} >
 
 					{/* Offer Header - Fixed */}
-					{p2p && <P2POfferItem offer={p2p} show_buttons={false} show_user={false} />}
+					{p2p && <P2POfferItem offer={p2p} show_buttons={false} show_user={false} show_date />}
 
 					{/* Payment details + TX id + status banner */}
 					<P2POfferDetailsCard p2p={p2p} statusMessage={statusMessage} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />

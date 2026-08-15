@@ -64,8 +64,9 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
  * @param {object} [props.navigation] - React Navigation object; required for button/profile taps.
  * @param {boolean} [props.show_buttons=true] - Render the status/action button (off in the offer detail header).
  * @param {boolean} [props.show_user=true] - Render the counterparty profile row.
+ * @param {boolean} [props.show_date=false] - Fecha de creación: fuera del listado (no aporta a la decisión y compite con el botón), solo en el detalle.
  */
-const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true }) => {
+const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false }) => {
 
 	// User context
 	const { user } = useAuth()
@@ -75,10 +76,10 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
-	// Dynamic badges
+	// Dynamic badges — sin KYC: es requisito para operar en P2P, lo cumple
+	// todo el mundo y no distingue ninguna oferta
 	const badges = []
-	if (offer.only_kyc) badges.push({ label: 'KYC', color: theme.colors.primary })
-	if (offer.only_vip) badges.push({ label: 'VIP', color: '#FFD700' })
+	if (offer.only_vip) badges.push({ label: 'VIP', color: theme.colors.gold })
 	if (offer.private) badges.push({ label: 'Privada', color: theme.colors.warning })
 
 	// Status button config
@@ -135,9 +136,11 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 					})()}
 				</View>
 
-				{/* Right column: date + badges + button */}
+				{/* Right column: (fecha solo en el detalle) + badges + button */}
 				<View style={{ alignItems: 'flex-end', gap: 4 }}>
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{new Date(offer.created_at).toLocaleDateString()}</Text>
+					{show_date && (
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>{new Date(offer.created_at).toLocaleDateString()}</Text>
+					)}
 					{badges.length > 0 && (
 						<View style={{ gap: 2, alignItems: 'flex-end' }}>
 							{badges.map((badge) => (

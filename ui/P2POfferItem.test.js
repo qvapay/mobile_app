@@ -72,14 +72,25 @@ describe('rendered content', () => {
 		expect(JSON.stringify(sell.props.style)).not.toContain('borderLeft')
 	})
 
-	test('renders the KYC / VIP / Privada badges only when flagged', () => {
+	test('renders the VIP / Privada badges only when flagged', () => {
 		const plain = textOf(renderItem(makeOffer()))
-		expect(plain).not.toContain('KYC')
 		expect(plain).not.toContain('VIP')
-		const flagged = textOf(renderItem(makeOffer({ only_kyc: 1, only_vip: 1, private: 1 })))
-		expect(flagged).toContain('KYC')
+		const flagged = textOf(renderItem(makeOffer({ only_vip: 1, private: 1 })))
 		expect(flagged).toContain('VIP')
 		expect(flagged).toContain('Privada')
+	})
+
+	test('no hay badge KYC: es requisito para operar en P2P y no distingue ofertas', () => {
+		const flagged = textOf(renderItem(makeOffer({ only_kyc: 1, only_vip: 1 })))
+		expect(flagged).not.toContain('KYC')
+		expect(flagged).toContain('VIP')
+	})
+
+	test('la fecha solo aparece en el detalle (show_date), nunca en el listado', () => {
+		const listed = textOf(renderItem(makeOffer()))
+		expect(listed).not.toContain('2026')
+		const detail = textOf(renderItem(makeOffer(), { show_date: true }))
+		expect(detail).toContain('2026')
 	})
 
 	test('shows the offer message row only when a message exists', () => {
