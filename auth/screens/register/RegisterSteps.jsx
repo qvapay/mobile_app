@@ -239,6 +239,40 @@ export const PhoneCodeStep = ({ theme, textStyles, makeStepEnter, dialCode, phon
 	</View>
 )
 
+// Verificación de identidad — la sesión de Didit se abre en el navegador; al
+// volver, el primario pasa a "Continuar" (kycOpened)
+export const KycStep = ({ theme, textStyles, makeStepEnter, kycOpened }) => (
+	<View key="step-kyc" style={styles.stepContainer}>
+		<Animated.View entering={makeStepEnter(0)} style={styles.iconBlock}>
+			<View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '20' }]}>
+				<FontAwesome6 name="shield-halved" size={34} color={theme.colors.primary} iconStyle="solid" />
+			</View>
+		</Animated.View>
+		<Animated.View entering={makeStepEnter(50)}>
+			<Text style={[textStyles.h1, styles.centeredText]}>Verifica tu identidad</Text>
+		</Animated.View>
+		<Animated.View entering={makeStepEnter(100)}>
+			<Text style={[textStyles.h3, styles.centeredText, { color: theme.colors.secondaryText }]}>
+				{kycOpened
+					? 'Cuando termines la verificación en el navegador, vuelve aquí y continúa. Te avisaremos en cuanto esté aprobada.'
+					: 'Es rápido y seguro: una foto de tu documento y una selfie. Con tu cuenta verificada desbloqueas todo QvaPay.'}
+			</Text>
+		</Animated.View>
+		{!kycOpened && (
+			<Animated.View entering={makeStepEnter(160)} style={styles.kycBenefits}>
+				{['P2P y cuenta de ahorro', 'Límites de envío y retiro más altos', 'Retiros procesados al instante'].map((benefit) => (
+					<View key={benefit} style={styles.ruleRow}>
+						<FontAwesome6 name="circle-check" size={16} color={theme.colors.successText} iconStyle="solid" />
+						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>
+							{benefit}
+						</Text>
+					</View>
+				))}
+			</Animated.View>
+		)}
+	</View>
+)
+
 // Invitación a las notificaciones push
 export const PushStep = ({ theme, textStyles, makeStepEnter }) => (
 	<View key="step-push" style={styles.stepContainer}>
@@ -269,7 +303,8 @@ export const StepActions = ({
 	resendDisabled, countdownLabel,
 	canGoBack, onBack,
 	onNameNext, onEmailNext, onRegister, onVerifyEmailPin,
-	onSendPhoneCode, onVerifyPhoneCode, onSkipToPushOrFinish,
+	onSendPhoneCode, onVerifyPhoneCode, onSkipPhone,
+	kycOpened, onStartKyc, onKycContinue,
 	onEnablePush, onSkipPush,
 }) => {
 	// Config del botón primario por paso
@@ -280,6 +315,9 @@ export const StepActions = ({
 		emailPin: { title: 'Verificar', onPress: onVerifyEmailPin, disabled: emailPin.length !== 4, loading: isLoading },
 		phone: { title: 'Enviar código', onPress: () => onSendPhoneCode(false), disabled: phone.trim().length < 7, loading: isLoading },
 		phoneCode: { title: 'Verificar teléfono', onPress: onVerifyPhoneCode, disabled: phoneCode.length !== 6, loading: isLoading },
+		kyc: kycOpened
+			? { title: 'Continuar', onPress: onKycContinue }
+			: { title: 'Verificar identidad', onPress: onStartKyc, loading: isLoading },
 		push: { title: 'Activar notificaciones', onPress: onEnablePush, loading: isLoading },
 	}[stepKey]
 
@@ -306,7 +344,7 @@ export const StepActions = ({
 			/>
 
 			{stepKey === 'phone' && (
-				<QPPressable variant="opacity" onPress={onSkipToPushOrFinish} style={styles.skipLink}>
+				<QPPressable variant="opacity" onPress={onSkipPhone} style={styles.skipLink}>
 					<Text style={skipLinkText}>Ahora no</Text>
 				</QPPressable>
 			)}
@@ -320,10 +358,16 @@ export const StepActions = ({
 						style={{ backgroundColor: theme.colors.surface }}
 						textStyle={{ color: theme.colors.primaryText }}
 					/>
-					<QPPressable variant="opacity" onPress={onSkipToPushOrFinish} style={styles.skipLink}>
+					<QPPressable variant="opacity" onPress={onSkipPhone} style={styles.skipLink}>
 						<Text style={skipLinkText}>Omitir por ahora</Text>
 					</QPPressable>
 				</>
+			)}
+
+			{stepKey === 'kyc' && !kycOpened && (
+				<QPPressable variant="opacity" onPress={onKycContinue} style={styles.skipLink}>
+					<Text style={skipLinkText}>Ahora no</Text>
+				</QPPressable>
 			)}
 
 			{stepKey === 'push' && (
@@ -368,6 +412,11 @@ const styles = StyleSheet.create({
 	iconBlock: {
 		alignItems: 'center',
 		paddingVertical: 24,
+	},
+	kycBenefits: {
+		marginTop: 24,
+		gap: 12,
+		alignSelf: 'center',
 	},
 	iconCircle: {
 		width: 80,

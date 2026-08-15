@@ -41,6 +41,10 @@ const mapMeToUser = (me, email) => ({
 	phone: me.phone,
 	phone_verified: me.phone_verified,
 	kyc: me.kyc,
+	// none | pending | approved | declined — señal de UI (pending = Didit en
+	// revisión); el flag autoritativo de gating sigue siendo `kyc`
+	kyc_status: me.kyc_status,
+	telegram_id: me.telegram_id,
 	vip: me.vip,
 	golden_check: me.golden_check,
 	golden_expire: me.golden_expire,

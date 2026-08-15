@@ -39,6 +39,7 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Push prompt
 import usePushPrompt from '../../hooks/usePushPrompt'
+import useKycPrompt from '../../hooks/useKycPrompt'
 
 // Update prompt
 import UpdatePromptModal from '../../ui/UpdatePromptModal'
@@ -65,6 +66,32 @@ const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
 		<Text style={[styles.serviceCardTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{title}</Text>
 	</Pressable>
 )
+
+// Empuje sutil a verificar la identidad — mismo layout que el banner de push,
+// gobernado por useKycPrompt (descartes + cooldown + gracia post-sesión Didit)
+const KycPromptBanner = ({ theme, navigation, prompt }) => {
+	const { shouldShowBanner, dismissBanner } = prompt
+	if (!shouldShowBanner) return null
+	return (
+		<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+			<View style={[styles.pushBannerIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+				<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
+			</View>
+			<View style={{ flex: 1 }}>
+				<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Verifica tu identidad y desbloquea todo QvaPay</Text>
+			</View>
+			<Pressable
+				onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.KYC, initial: false })}
+				style={[styles.pushBannerButton, { backgroundColor: theme.colors.primary }]}
+			>
+				<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Verificar</Text>
+			</Pressable>
+			<Pressable onPress={dismissBanner} hitSlop={8}>
+				<FontAwesome6 name="xmark" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
+			</Pressable>
+		</View>
+	)
+}
 
 // Invitación a activar las push — se auto-oculta según usePushPrompt
 const PushPromptBanner = ({ theme }) => {
@@ -112,6 +139,10 @@ const Home = ({ navigation }) => {
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
+	// Nudge de verificación de identidad (prioridad sobre el banner de push:
+	// solo uno a la vez para no apilar avisos)
+	const kycPrompt = useKycPrompt()
+
 	// Feed data + refresh
 	const {
 		latestTransactions,
@@ -144,7 +175,9 @@ const Home = ({ navigation }) => {
 
 				<ActionButtons navigation={navigation} />
 
-				<PushPromptBanner theme={theme} />
+				{kycPrompt.shouldShowBanner
+					? <KycPromptBanner theme={theme} navigation={navigation} prompt={kycPrompt} />
+					: <PushPromptBanner theme={theme} />}
 
 				<View style={styles.section}>
 					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.SEND)} />

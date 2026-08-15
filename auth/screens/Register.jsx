@@ -1,5 +1,6 @@
 import { usePreventRemove } from '@react-navigation/native'
 import { useState, useRef, useEffect, useEffectEvent, useLayoutEffect, useReducer } from 'react'
+import { Linking } from 'react-native'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -24,6 +25,9 @@ import useStepTransitions from '../../hooks/useStepTransitions'
 // Push notifications (OneSignal permission + flags de prompts)
 import usePushPrompt from '../../hooks/usePushPrompt'
 
+// Nudge de KYC (gracia post-sesión para el banner del Home)
+import { markKycSessionStarted } from '../../hooks/useKycPrompt'
+
 // UI
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPStepDots from '../../ui/particles/QPStepDots'
@@ -36,6 +40,7 @@ import {
 	EmailPinStep,
 	PhoneStep,
 	PhoneCodeStep,
+	KycStep,
 	PushStep,
 	StepActions,
 } from './register/RegisterSteps'
@@ -47,7 +52,7 @@ import { countries } from '../../labels/countries'
 import { toast } from 'sonner-native'
 
 // Un dato por pantalla, estilo fintech: el orden es el del flow
-const STEPS = ['name', 'email', 'password', 'emailPin', 'phone', 'phoneCode', 'push']
+const STEPS = ['name', 'email', 'password', 'emailPin', 'phone', 'phoneCode', 'kyc', 'push']
 
 // Email validation
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -112,6 +117,9 @@ const RegisterScreen = ({ navigation }) => {
 	const [isLoading, setIsLoading] = useState(false)
 	const [finishing, setFinishing] = useState(false)
 	const [showInvite, setShowInvite] = useState(false)
+	// El usuario ya abrió la sesión de Didit en el navegador — el primario del
+	// paso KYC pasa de "Verificar identidad" a "Continuar"
+	const [kycOpened, setKycOpened] = useState(false)
 
 	// La sesión silenciosa (accessToken + me) vive aquí entre la verificación del
 	// email y el final del flow — nunca se renderiza
@@ -150,11 +158,12 @@ const RegisterScreen = ({ navigation }) => {
 	// beforeRemove + preventDefault desincroniza el stack en native-stack (la
 	// pantalla ya salió nativamente) — usePreventRemove bloquea el pop nativo.
 	// finishing libera el bloqueo para que el flip a MainStack pueda desmontar la pantalla
-	const backIntercepted = !finishing && ['email', 'password', 'phone', 'phoneCode', 'push'].includes(stepKey)
+	const backIntercepted = !finishing && ['email', 'password', 'phone', 'phoneCode', 'kyc', 'push'].includes(stepKey)
 	usePreventRemove(backIntercepted, () => {
 		if (stepKey === 'email' || stepKey === 'password') goTo(step - 1)
-		else if (stepKey === 'phone') goToPushOrFinish()
+		else if (stepKey === 'phone') goToKycStep()
 		else if (stepKey === 'phoneCode') goTo(STEPS.indexOf('phone'))
+		else if (stepKey === 'kyc') goToPushOrFinish()
 		else if (stepKey === 'push') finish()
 	})
 
@@ -248,7 +257,7 @@ const RegisterScreen = ({ navigation }) => {
 			const result = await userApi.verifyPhone({ phone: phone.trim(), country, code: phoneCode, verify: true })
 			if (result.success) {
 				toast.success('Teléfono verificado correctamente')
-				goToPushOrFinish()
+				goToKycStep()
 			} else {
 				const errorMsg = result.error?.error || result.error?.message || result.error || 'Código incorrecto'
 				toast.error(String(errorMsg))
@@ -262,10 +271,39 @@ const RegisterScreen = ({ navigation }) => {
 		}
 	}
 
-	// Tras el teléfono (verificado u omitido) viene la invitación a las push;
+	// Tras el teléfono (verificado u omitido) viene la verificación de
+	// identidad — la sesión silenciosa permite pedir la URL de Didit aquí
+	const goToKycStep = () => { goTo(STEPS.indexOf('kyc')) }
+
+	// Tras el KYC (iniciado u omitido) viene la invitación a las push;
 	// si el permiso ya está concedido no hay nada que pedir y se entra directo
 	const goToPushOrFinish = () => {
 		if (isPushEnabled) { finish() } else { goTo(STEPS.indexOf('push')) }
+	}
+
+	// Abre la sesión de verificación de Didit en el navegador. Los códigos del
+	// backend se mapean a avanzar (400 ya verificado, 409 en revisión, 403
+	// rechazado/max intentos — nada accionable en el wizard) o a reintentar
+	const handleStartKyc = async () => {
+		setIsLoading(true)
+		try {
+			const resp = await userApi.requestKYCSession()
+			if (resp.success && resp.data) {
+				setKycOpened(true)
+				markKycSessionStarted()
+				await Linking.openURL(resp.data)
+			} else if (resp.status === 409 || resp.status === 400) {
+				if (resp.status === 409) toast.info('Tu verificación está en revisión')
+				goToPushOrFinish()
+			} else if (resp.status === 403) {
+				toast.error(String(resp.error || 'No se pudo iniciar la verificación'))
+				goToPushOrFinish()
+			} else {
+				toast.error(String(resp.error || 'No se pudo iniciar la verificación'))
+			}
+		} catch {
+			toast.error('Error de conexión, por favor intenta de nuevo')
+		} finally { setIsLoading(false) }
 	}
 
 	// Activar las push y entrar — dismissOnboardPrompt evita que Onboard u otros
@@ -341,7 +379,10 @@ const RegisterScreen = ({ navigation }) => {
 					onVerifyEmailPin={handleVerifyEmailPin}
 					onSendPhoneCode={handleSendPhoneCode}
 					onVerifyPhoneCode={handleVerifyPhoneCode}
-					onSkipToPushOrFinish={goToPushOrFinish}
+					kycOpened={kycOpened}
+					onStartKyc={handleStartKyc}
+					onSkipPhone={goToKycStep}
+					onKycContinue={goToPushOrFinish}
 					onEnablePush={handleEnablePush}
 					onSkipPush={handleSkipPush}
 				/>
@@ -376,6 +417,11 @@ const RegisterScreen = ({ navigation }) => {
 			{/* Código de verificación del teléfono */}
 			{stepKey === 'phoneCode' && (
 				<PhoneCodeStep {...stepProps} dialCode={countryData?.dial_code} phone={phone} phoneCode={phoneCode} setPhoneCode={setPhoneCode} isLoading={isLoading} />
+			)}
+
+			{/* Verificación de identidad (Didit en el navegador) */}
+			{stepKey === 'kyc' && (
+				<KycStep {...stepProps} kycOpened={kycOpened} />
 			)}
 
 			{/* Invitación a las notificaciones push */}

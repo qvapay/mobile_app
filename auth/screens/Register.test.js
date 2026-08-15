@@ -15,8 +15,9 @@ jest.mock('../AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../hooks/usePinCountdown', () => jest.fn())
 jest.mock('../../hooks/useStepTransitions', () => jest.fn())
 jest.mock('../../hooks/usePushPrompt', () => jest.fn())
+jest.mock('../../hooks/useKycPrompt', () => ({ markKycSessionStarted: jest.fn() }))
 jest.mock('../../api/authApi', () => ({ authApi: { login: jest.fn() } }))
-jest.mock('../../api/userApi', () => ({ userApi: { verifyPhone: jest.fn() } }))
+jest.mock('../../api/userApi', () => ({ userApi: { verifyPhone: jest.fn(), requestKYCSession: jest.fn() } }))
 jest.mock('../../api/client', () => ({ setAuthToken: jest.fn() }))
 jest.mock('../../ui/particles/QPInput', () => 'QPInput')
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
@@ -31,9 +32,10 @@ jest.mock('../../ui/QPKeyboardView', () => {
 	return ({ children, actions }) => React.createElement(View, null, children, actions)
 })
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
-jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
+jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn(), info: jest.fn() } }))
 
 import React from 'react'
+import { Linking } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { usePreventRemove } from '@react-navigation/native'
 import { useAuth } from '../AuthContext'
@@ -248,13 +250,13 @@ describe('phone verification via Telegram', () => {
 		expect(tree.root.findByType('QPCodeInput').props.length).toBe(6)
 	})
 
-	test('the 6th digit auto-verifies the code and moves on to the push invitation', async () => {
+	test('the 6th digit auto-verifies the code and moves on to the KYC step', async () => {
 		const tree = renderRegister()
 		await goToPhoneCodeStep(tree)
 		await act(async () => { tree.root.findByType('QPCodeInput').props.onChangeCode('654321') })
 		expect(userApi.verifyPhone).toHaveBeenLastCalledWith({ phone: '55555555', country: 'CU', code: '654321', verify: true })
 		expect(toast.success).toHaveBeenCalledWith('Teléfono verificado correctamente')
-		expect(button(tree, 'Activar notificaciones')).toBeDefined()
+		expect(button(tree, 'Verificar identidad')).toBeDefined()
 	})
 
 	test('a wrong phone code surfaces the nested backend error and clears the code', async () => {
@@ -266,20 +268,58 @@ describe('phone verification via Telegram', () => {
 		expect(tree.root.findByType('QPCodeInput').props.code).toBe('')
 	})
 
-	test('skipping the phone goes straight to the push step', async () => {
+	test('skipping the phone goes straight to the KYC step', async () => {
 		const tree = renderRegister()
 		await goToPhoneStep(tree)
 		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // "Ahora no"
 		expect(userApi.verifyPhone).not.toHaveBeenCalled()
-		expect(button(tree, 'Activar notificaciones')).toBeDefined()
+		expect(button(tree, 'Verificar identidad')).toBeDefined()
 	})
 
-	test('when push permission is already granted, verifying the phone finishes the session directly', async () => {
+	test('when push permission is already granted, skipping KYC after the phone finishes the session directly', async () => {
 		usePushPrompt.mockReturnValue({ isPushEnabled: true, enablePush, dismissOnboardPrompt })
 		const tree = renderRegister()
 		await goToPhoneCodeStep(tree)
 		await act(async () => { tree.root.findByType('QPCodeInput').props.onChangeCode('654321') })
+		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip kyc
 		expect(completeSession).toHaveBeenCalledWith({ accessToken: 'tok-1', me: { username: 'john' }, email: 'john@doe.com' })
+	})
+})
+
+describe('KYC step', () => {
+	const goToKycStep = async (tree) => {
+		await goToPhoneStep(tree)
+		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip phone
+	}
+
+	test('starting the verification opens the Didit URL and swaps the primary to Continuar', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: true, data: 'https://verify.didit.me/session/1' })
+		const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue()
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		expect(openURL).toHaveBeenCalledWith('https://verify.didit.me/session/1')
+		expect(button(tree, 'Continuar')).toBeDefined()
+		await press(tree, 'Continuar')
+		expect(button(tree, 'Activar notificaciones')).toBeDefined()
+	})
+
+	test('a 409 (verification already in review) advances to the push step', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: false, status: 409, error: 'En revisión' })
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		expect(toast.info).toHaveBeenCalledWith('Tu verificación está en revisión')
+		expect(button(tree, 'Activar notificaciones')).toBeDefined()
+	})
+
+	test('a server error keeps the user on the KYC step to retry', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: false, status: 500, error: 'Error interno' })
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		expect(toast.error).toHaveBeenCalledWith('Error interno')
+		expect(button(tree, 'Verificar identidad')).toBeDefined()
 	})
 })
 
@@ -288,6 +328,7 @@ describe('push step and session completion', () => {
 		const tree = renderRegister()
 		await goToPhoneStep(tree)
 		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip phone
+		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip kyc
 		await press(tree, 'Activar notificaciones')
 		expect(enablePush).toHaveBeenCalled()
 		expect(dismissOnboardPrompt).toHaveBeenCalled()
@@ -298,6 +339,7 @@ describe('push step and session completion', () => {
 		const tree = renderRegister()
 		await goToPhoneStep(tree)
 		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip phone
+		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip kyc
 		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // "Ahora no"
 		expect(enablePush).not.toHaveBeenCalled()
 		expect(dismissOnboardPrompt).toHaveBeenCalled()
@@ -309,6 +351,7 @@ describe('push step and session completion', () => {
 		const tree = renderRegister()
 		await goToPhoneStep(tree)
 		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip phone
+		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip kyc
 		await act(async () => { tree.root.findByType('QPPressable').props.onPress() }) // skip push
 		expect(toast.error).toHaveBeenCalledWith('No se pudo completar el registro, intenta de nuevo')
 		completeSession.mockResolvedValueOnce()
