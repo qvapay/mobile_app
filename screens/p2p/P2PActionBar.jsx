@@ -32,7 +32,7 @@ const P2PActionBar = ({
 			<QPButton
 				title=""
 				onPress={onCancel}
-				style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
+				style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
 				textStyle={{ color: theme.colors.primaryText }}
 				icon="xmark"
 				iconColor={theme.colors.primaryText}
@@ -89,7 +89,7 @@ const P2PActionBar = ({
 				<QPButton
 					title=""
 					onPress={onEdit}
-					style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, backgroundColor: theme.colors.surface }}
+					style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, backgroundColor: theme.colors.surface }}
 					icon="pen-to-square"
 					iconColor={theme.colors.primaryText}
 					iconStyle="solid"
@@ -97,7 +97,7 @@ const P2PActionBar = ({
 				<QPButton
 					title=""
 					onPress={onShare}
-					style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, backgroundColor: theme.colors.primary }}
+					style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, backgroundColor: theme.colors.primary }}
 					icon="share"
 					iconColor={theme.colors.almostWhite}
 					iconStyle="solid"

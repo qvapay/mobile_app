@@ -97,7 +97,8 @@ const AmountInput = ({
 									? theme.colors.primary
 									: theme.colors.elevation,
 								paddingVertical: 12,
-								borderRadius: 20,
+								borderRadius: 12,
+								borderCurve: 'continuous',
 								borderWidth: 1,
 								borderColor: amount === commonAmount.toString()
 									? theme.colors.primary
@@ -125,7 +126,8 @@ const AmountInput = ({
 									? theme.colors.primary
 									: theme.colors.elevation,
 								paddingVertical: 12,
-								borderRadius: 20,
+								borderRadius: 12,
+								borderCurve: 'continuous',
 								borderWidth: 1,
 								borderColor: amount === commonAmount.toString()
 									? theme.colors.primary
@@ -149,7 +151,8 @@ const styles = StyleSheet.create({
 	currencyButton: {
 		paddingHorizontal: 16,
 		paddingVertical: 10,
-		borderRadius: 20,
+		borderRadius: 12,
+		borderCurve: 'continuous',
 		borderWidth: 0.5
 	},
 })

@@ -364,7 +364,8 @@ const styles = StyleSheet.create({
 	floatingBtn: {
 		width: 40,
 		height: 40,
-		borderRadius: 20,
+		borderRadius: 16,
+		borderCurve: 'continuous',
 		backgroundColor: 'rgba(0,0,0,0.4)',
 		justifyContent: 'center',
 		alignItems: 'center',

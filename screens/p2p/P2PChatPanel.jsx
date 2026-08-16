@@ -206,7 +206,7 @@ const P2PChatPanel = ({
 					onChangeText={setChatText}
 					placeholder="Escribe tu mensaje..."
 					placeholderTextColor={theme.colors.placeholder}
-					style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, maxHeight: 100 }]}
+					style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 14, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 12, maxHeight: 100 }]}
 					multiline
 					textAlignVertical="center"
 				/>
@@ -293,7 +293,8 @@ const styles = StyleSheet.create({
 	sendButton: {
 		width: 40,
 		height: 40,
-		borderRadius: 20,
+		borderRadius: 14,
+		borderCurve: 'continuous',
 		alignItems: 'center',
 		justifyContent: 'center',
 	},

@@ -256,7 +256,10 @@ const styles = StyleSheet.create({
 	buttonRow: {
 		flexDirection: 'row',
 		gap: 10,
-		paddingHorizontal: 20,
+		// 16 = el mismo margen lateral de las tarjetas y del header: todo el
+		// contenido comparte una única línea vertical (el gráfico es la
+		// excepción deliberada, va a ancho completo)
+		paddingHorizontal: 16,
 	},
 	actionButton: {
 		flex: 1,

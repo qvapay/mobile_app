@@ -148,7 +148,9 @@ const styles = StyleSheet.create({
 	topButton: {
 		width: 40,
 		height: 40,
-		borderRadius: 20,
+		// Squircle proporcional (mismo lenguaje que QPButton)
+		borderRadius: 12,
+		borderCurve: 'continuous',
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderWidth: 1,

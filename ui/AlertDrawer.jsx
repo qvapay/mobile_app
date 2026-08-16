@@ -22,6 +22,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // replacement for a destructive button.
 const COLLAPSED_HEIGHT = 56
 const ACTION_HEIGHT = 52
+// Squircle: mismo radio que QPButton, en todos los estados del drawer
+const BUTTON_RADIUS = 16
 const CARD_PADDING = 20
 const ACTION_GAP = 12
 // Duration-based spring, same feel as the original demo (dampingRatio 1 = no bounce overshoot)
@@ -91,7 +93,9 @@ const AlertDrawer = ({ buttonLabel, title, description, onConfirm, confirmLabel,
 			bottom: interpolate(progress.value, [0, 1], [0, CARD_PADDING], Extrapolation.CLAMP),
 			width: interpolate(progress.value, [0, 1], [containerWidth.value, expandedWidth], Extrapolation.CLAMP),
 			height: interpolate(progress.value, [0, 1], [COLLAPSED_HEIGHT, ACTION_HEIGHT], Extrapolation.CLAMP),
-			borderRadius: interpolate(progress.value, [0, 1], [COLLAPSED_HEIGHT / 2, ACTION_HEIGHT / 2], Extrapolation.CLAMP),
+			// Squircle constante: la forma ya no cambia entre el botón colapsado
+			// y la acción expandida, así que el radio no necesita interpolarse
+			borderRadius: BUTTON_RADIUS,
 		}
 	})
 
@@ -193,7 +197,7 @@ const styles = {
 	container: {
 		width: '100%',
 		marginVertical: 5,
-		borderRadius: COLLAPSED_HEIGHT / 2,
+		borderRadius: BUTTON_RADIUS,
 		borderCurve: 'continuous',
 		overflow: 'hidden',
 	},
@@ -231,7 +235,8 @@ const styles = {
 	cancelButton: {
 		flex: 1,
 		height: ACTION_HEIGHT,
-		borderRadius: ACTION_HEIGHT / 2,
+		borderRadius: BUTTON_RADIUS,
+		borderCurve: 'continuous',
 		alignItems: 'center',
 		justifyContent: 'center',
 		paddingHorizontal: 12,

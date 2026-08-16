@@ -237,7 +237,7 @@ const SendConfirm = ({ navigation, route }) => {
 						title=""
 						onPress={() => navigation.goBack()}
 						disabled={isLoading}
-						style={{ width: 56, minHeight: 56, borderRadius: 28, paddingHorizontal: 0, backgroundColor: theme.colors.danger }}
+						style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, backgroundColor: theme.colors.danger }}
 						textStyle={{ color: theme.colors.primaryText }}
 						icon="xmark"
 						iconColor={theme.colors.primaryText}

@@ -69,7 +69,8 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 	},
 	cta: {
-		borderRadius: 20,
+		borderRadius: 16,
+		borderCurve: 'continuous',
 		paddingHorizontal: 18,
 		paddingVertical: 8,
 		marginTop: 8,
