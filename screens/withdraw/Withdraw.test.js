@@ -31,6 +31,11 @@ jest.mock('../../api/client', () => ({
 jest.mock('../../api/withdrawApi', () => ({
 	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn() },
 }))
+let mockCoinCatalog = []
+jest.mock('../../hooks/useCoins', () => ({
+	__esModule: true,
+	default: () => ({ coins: mockCoinCatalog, isLoading: false }),
+}))
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 // Gate de KYC en passthrough — su lógica se prueba en hooks/useKycGate.test.js
 jest.mock('../../hooks/useKycGate', () => ({
@@ -145,7 +150,8 @@ beforeEach(() => {
 	jest.clearAllMocks()
 	jest.useFakeTimers()
 	useAuth.mockReturnValue({ user: { balance: 150, satoshis: 5000, two_factor_secret: null }, updateUser: jest.fn() })
-	apiClient.get.mockResolvedValue({ data: [CUP, USDCASH, THRESHOLD, BTCLN, USDT] })
+	apiClient.get.mockResolvedValue({ data: [] })
+	mockCoinCatalog = [CUP, USDCASH, THRESHOLD, BTCLN, USDT]
 	withdrawApi.requestPin.mockResolvedValue({ success: true })
 	withdrawApi.withdraw.mockResolvedValue({ success: true, data: {} })
 	withdrawApi.decodeLightning.mockResolvedValue({ success: true, data: { kind: 'bolt11', amount_sat: 150000, description: 'test', expires_at: null } })
@@ -153,9 +159,11 @@ beforeEach(() => {
 afterEach(() => { jest.useRealTimers() })
 
 describe('coin loading and selection', () => {
-	test('fetches the enabled_out coins on mount', async () => {
-		await renderWithdraw()
-		expect(apiClient.get).toHaveBeenCalledWith('/coins/v2?enabled_out=true')
+	test('el catálogo llega de la caché compartida, sin pedirlo a la red al montar', async () => {
+		const tree = await renderWithdraw()
+		// useCoins ya sirve las monedas (memoria/disco) y revalida por detrás
+		expect(apiClient.get).not.toHaveBeenCalledWith('/coins/v2?enabled_out=true')
+		expect(tree.root.findByType('QPCoinPicker').props.coins).toHaveLength(5)
 	})
 
 	test('a preselectedCoin route param selects the matching coin', async () => {

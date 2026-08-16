@@ -16,6 +16,7 @@ import WithdrawAccountFields from './WithdrawAccountFields'
 import WithdrawDestinationSelector from './WithdrawDestinationSelector'
 import PinConfirmStep from '../transaction/PinConfirmStep'
 import { isCryptoCoin } from './withdrawDestination'
+import useCoins from '../../hooks/useCoins'
 import usePinEntry from '../../hooks/usePinEntry'
 
 // Gate de KYC (retiros > $1000)
@@ -112,6 +113,7 @@ const Withdraw = ({ navigation, route }) => {
 
 	// Contexts
 	const { user, updateUser } = useAuth()
+	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('out')
 
 	// Gate de KYC — intercepta antes del paso de PIN
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
@@ -143,7 +145,6 @@ const Withdraw = ({ navigation, route }) => {
 	const setSelectedCoin = (value) => dispatchCoin({ type: 'set', field: 'selectedCoin', value })
 	const setShowCoinPicker = (value) => dispatchCoin({ type: 'set', field: 'showCoinPicker', value })
 
-	const [isLoading, setIsLoading] = useState(false)
 	const [workingForm, setWorkingForm] = useState({})
 	const [balance] = useState(user?.balance || 0)
 	const currency = 'QUSD'
@@ -183,24 +184,16 @@ const Withdraw = ({ navigation, route }) => {
 	const amountLocked = isBTCLN && lnAmountSats > 0
 
 	// Fetch available coins enabled_out
+	// El catálogo llega de useCoins (caché compartida): la lista se pinta al
+	// instante en vez de esperar un viaje a la red cada vez que se entra
 	useEffect(() => {
-		let cancelled = false
-		const fetchCoins = async () => {
-			try {
-				setIsLoading(true)
-				const response = await apiClient.get('/coins/v2?enabled_out=true')
-				if (cancelled) return
-				setAvailableCoins(response.data)
-				if (preselectedCoin) {
-					const coin = response.data.find(c => c.tick === preselectedCoin)
-					if (coin) setSelectedCoin(coin)
-				}
-			} catch (err) { /* error fetching coins */ }
-			finally { if (!cancelled) setIsLoading(false) }
+		if (!coinCatalog.length) return
+		setAvailableCoins(coinCatalog)
+		if (preselectedCoin) {
+			const coin = coinCatalog.find(c => c.tick === preselectedCoin)
+			if (coin) setSelectedCoin(coin)
 		}
-		fetchCoins()
-		return () => { cancelled = true }
-	}, [preselectedCoin])
+	}, [coinCatalog, preselectedCoin])
 
 	// Decimals to render for the coin amount input
 	const coinDecimals = useMemo(() => {
@@ -535,7 +528,7 @@ const Withdraw = ({ navigation, route }) => {
 				onSelect={handleCoinSelect}
 				coins={availableCoins}
 				selectedCoin={selectedCoin}
-				isLoading={isLoading}
+				isLoading={loadingCoins}
 				amount={amountQUSD}
 				direction="out"
 				recentKey={RECENT_WITHDRAW_KEY}

@@ -17,6 +17,7 @@ import QPButton from '../../ui/particles/QPButton'
 import AmountInput from '../../ui/AmountInput'
 import QPCoinRow from '../../ui/QPCoinRow'
 import QPCoinPicker from '../../ui/QPCoinPicker'
+import useCoins from '../../hooks/useCoins'
 import WalletPickerSheet from '../../ui/WalletPickerSheet'
 import DepositDetailsModal from './DepositDetailsModal'
 
@@ -69,6 +70,7 @@ const Add = ({ navigation }) => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
+	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('in')
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	// Coin/amount form (same-named setters keep every call site unchanged)
@@ -136,19 +138,11 @@ const Add = ({ navigation }) => {
 		return () => { cancelled = true }
 	}, [topupData?.wallet, topupData?.coin, topupData?.network, topupData?.redirect_url, selectedCoin?.network])
 
-	// Get Available Coins for enabled_in
+	// Catálogo desde la caché compartida (useCoins): la lista aparece al
+	// instante en vez de esperar un viaje a la red en cada entrada
 	useEffect(() => {
-		const fetchAvailableCoins = async () => {
-			try {
-				setIsLoading(true)
-				const response = await apiClient.get('/coins/v2?enabled_in=true')
-				setAvailableCoins(response.data)
-			} catch (err) {
-				setError('Error al cargar las monedas disponibles')
-			} finally { setIsLoading(false) }
-		}
-		fetchAvailableCoins()
-	}, [])
+		if (coinCatalog.length) setAvailableCoins(coinCatalog)
+	}, [coinCatalog])
 
 	// Handle coin selection
 	const handleCoinSelect = (coin) => {
@@ -235,7 +229,7 @@ const Add = ({ navigation }) => {
 						</Text>
 					)}
 
-					<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface, borderColor: selectedCoin ? theme.colors.primary : theme.colors.elevation }]} onPress={() => setShowCoinPicker(true)} disabled={isLoading} >
+					<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface, borderColor: selectedCoin ? theme.colors.primary : theme.colors.elevation }]} onPress={() => setShowCoinPicker(true)} disabled={loadingCoins} >
 						{selectedCoin ? (
 							<View style={styles.selectedCoin}>
 								<QPCoinRow coin={selectedCoin} amount={amount} direction="in" />
@@ -244,7 +238,7 @@ const Add = ({ navigation }) => {
 						) : (
 							<View style={styles.coinSelectorPlaceholder}>
 								<Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
-									{isLoading ? "Cargando monedas..." : "Seleccionar moneda"}
+									{loadingCoins ? "Cargando monedas..." : "Seleccionar moneda"}
 								</Text>
 								<FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
 							</View>
