@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useSharedValue } from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../hooks/useContentPadding'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
 // Auth Context
@@ -135,7 +135,7 @@ const Home = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(20)
 
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
@@ -173,7 +173,7 @@ const Home = ({ navigation }) => {
 
 	return (
 		<View style={[containerStyles.subContainer]}>
-			<ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}>
+			<ScrollView style={styles.scrollView} contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}>
 
 				<PromoBanner promo={promo} />
 

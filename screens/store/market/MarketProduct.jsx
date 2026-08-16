@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
 
 import { useTheme } from '../../../theme/ThemeContext'
@@ -133,6 +134,7 @@ const MarketProduct = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(110)
 	const { width } = useWindowDimensions()
 	const galleryWidth = width - 40 // subContainer padding
 
@@ -237,7 +239,7 @@ const MarketProduct = ({ navigation, route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false}>
 
 				{/* Galería */}
 				<View style={[styles.gallery, { backgroundColor: theme.colors.elevationLight }]}>

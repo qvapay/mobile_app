@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { toast } from 'sonner-native'
 
@@ -47,7 +47,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding()
 	const isGold = user?.golden_check
 
 	// Fetched brand data (same-named setters keep every call site unchanged)
@@ -219,7 +219,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom }}>
+			<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={contentPadding}>
 
 				{/* Header */}
 				<View style={styles.header}>

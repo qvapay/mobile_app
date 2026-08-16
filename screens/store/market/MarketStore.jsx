@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Share, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../../hooks/useContentPadding'
 import { FlashList } from '@shopify/flash-list'
 import FastImage from '@d11/react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
@@ -83,6 +84,7 @@ const MarketStore = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(24)
 	const { width, height: windowHeight } = useWindowDimensions()
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 	const { count: cartCount } = useMarketCart()
@@ -201,7 +203,7 @@ const MarketStore = ({ navigation, route }) => {
 	return (
 		<View style={containerStyles.container}>
 			<ScrollView
-				contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+				contentContainerStyle={contentPadding}
 				showsVerticalScrollIndicator={false}
 				contentInsetAdjustmentBehavior="never"
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}

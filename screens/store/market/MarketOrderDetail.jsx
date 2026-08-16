@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../../hooks/useContentPadding'
 import Clipboard from '@react-native-clipboard/clipboard'
 import FastImage from '@d11/react-native-fast-image'
 
@@ -41,7 +41,7 @@ const MarketOrderDetail = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(30, 8)
 
 	if (!order) return <View style={containerStyles.subContainer} />
 
@@ -58,7 +58,7 @@ const MarketOrderDetail = ({ navigation, route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30, paddingTop: 8 }} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false}>
 
 				{/* Producto */}
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>

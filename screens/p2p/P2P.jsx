@@ -1,5 +1,5 @@
 import { FlashList } from "@shopify/flash-list"
-import { useEffect, useReducer, useCallback, useRef } from "react"
+import { useEffect, useReducer, useCallback, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
 
 // Reanimated
@@ -80,6 +80,13 @@ const P2P = ({ navigation, route }) => {
 	const containerStyles = useContainerStyles(theme)
 	const insets = useSafeAreaInsets()
 	const { height: windowHeight, width: windowWidth } = useWindowDimensions()
+
+	// No usa useContentPadding porque Android no suma el inset: ahí la barra
+	// inferior propia ya cubre esa zona y sumarlo dejaba un hueco doble
+	const contentPadding = useMemo(
+		() => ({ paddingBottom: Platform.OS === 'ios' ? 64 + insets.bottom : 24 }),
+		[insets.bottom]
+	)
 
 	// Ancho del switch del header: lo más generoso que quepa sin acercarse al
 	// avatar ni a los botones (reservamos ~190px para ellos), con tope para que
@@ -303,7 +310,7 @@ const P2P = ({ navigation, route }) => {
 				scrollEventThrottle={16}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 64 + insets.bottom : 24 }}
+				contentContainerStyle={contentPadding}
 				onEndReached={handleLoadMore}
 				onEndReachedThreshold={0.3}
 				ListFooterComponent={renderFooter}

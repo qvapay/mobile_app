@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import FastImage from '@d11/react-native-fast-image'
 
@@ -92,7 +92,7 @@ const MarketCart = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(30, 8)
 
 	const { items, remove, setQty, clear } = useMarketCart()
 
@@ -294,7 +294,7 @@ const MarketCart = ({ navigation }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<ScrollView
-				contentContainerStyle={{ paddingBottom: insets.bottom + 30, paddingTop: 8 }}
+				contentContainerStyle={contentPadding}
 				showsVerticalScrollIndicator={false}
 				keyboardShouldPersistTaps="handled"
 			>

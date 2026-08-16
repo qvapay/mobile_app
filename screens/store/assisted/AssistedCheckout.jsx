@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Toast
@@ -98,7 +98,7 @@ const AssistedCheckout = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(30, 8)
 
 	const [addresses, setAddresses] = useState([])
 	const [loading, setLoading] = useState(true)
@@ -198,7 +198,7 @@ const AssistedCheckout = ({ navigation }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<ScrollView
-				contentContainerStyle={{ paddingBottom: insets.bottom + 30, paddingTop: 8 }}
+				contentContainerStyle={contentPadding}
 				showsVerticalScrollIndicator={false}
 				keyboardShouldPersistTaps="handled"
 			>
