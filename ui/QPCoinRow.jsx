@@ -2,28 +2,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 import QPCoin from './particles/QPCoin'
-
-/**
- * Formatea una cantidad de cripto con los decimales que su magnitud pide:
- * 0.00084 BTC necesita 8, pero 1.234,56 USDT con 8 decimales es ilegible.
- */
-export const formatCoinAmount = (value) => {
-	const n = Number(value)
-	if (!Number.isFinite(n) || n <= 0) return '0'
-	if (n >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
-	if (n >= 1) return n.toFixed(4).replace(/\.?0+$/, '')
-	if (n >= 0.001) return n.toFixed(6).replace(/\.?0+$/, '')
-	return n.toFixed(8).replace(/\.?0+$/, '')
-}
-
-/** Precio unitario: los decimales fijos hacían ilegible tanto BTC como un banco. */
-export const formatCoinPrice = (value) => {
-	const n = Number(value)
-	if (!Number.isFinite(n) || n <= 0) return null
-	if (n >= 1000) return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 })
-	if (n >= 1) return '$' + n.toFixed(2)
-	return '$' + n.toFixed(4)
-}
+import { formatCoinAmount, formatCoinPrice } from '../helpers/coinFormat'
 
 /**
  * Fila de moneda del selector (QPCoinPicker y la pantalla Add).

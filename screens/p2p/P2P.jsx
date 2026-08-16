@@ -57,6 +57,10 @@ function modalsReducer(state, action) {
 	}
 }
 
+// Quitar un badge cambia los filtros, y de eso ya se encarga el refetch con
+// debounce del quickKey: forzar aquí otro fetch costaba dos peticiones
+const handleRemoveBadge = (badge) => { badge.onRemove() }
+
 /**
  * P2P marketplace tab: paginated FlashList of buy/sell offers with filters.
  * Offers load via `GET /p2p/index` (useP2POffers) filtered by type, coin, sort and
@@ -254,11 +258,6 @@ const P2P = ({ navigation, route }) => {
 			}),
 		})
 	}, [navigation, theme, hasActiveFilters, containerStyles, typeFilter, setFilter, headerSwitchWidth])
-
-	// Remove a filter badge and re-fetch
-	// Quitar un badge cambia los filtros, y de eso ya se encarga el refetch con
-	// debounce del quickKey: forzar aquí otro fetch costaba dos peticiones
-	const handleRemoveBadge = (badge) => { badge.onRemove() }
 
 	// Footer loader
 	const renderFooter = () => {

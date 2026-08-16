@@ -12,7 +12,8 @@ jest.mock('./particles/QPCoin', () => 'QPCoin')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
-import QPCoinRow, { formatCoinAmount, formatCoinPrice } from './QPCoinRow'
+import QPCoinRow from './QPCoinRow'
+import { formatCoinAmount, formatCoinPrice } from '../helpers/coinFormat'
 
 const COIN = {
 	name: 'Tron',
