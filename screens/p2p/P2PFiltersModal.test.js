@@ -19,8 +19,8 @@ const theme = createTheme(true)
 const textStyles = createTextStyles(theme)
 
 const emptyFilters = {
-	typeFilter: null, selectedCoin: null, showMine: false,
-	minAmount: '', maxAmount: '', ratioMin: '', ratioMax: '', onlyVip: false,
+	selectedCoin: null, showMine: false,
+	opAmount: '', ratioMin: '', ratioMax: '', onlyVip: false,
 }
 
 const renderModal = (filters = {}, handlers = {}) => {
@@ -50,13 +50,18 @@ test('sin filtros el slot de "Limpiar" queda cerrado', () => {
 })
 
 test.each([
-	['tipo', { typeFilter: 'buy' }],
 	['moneda', { selectedCoin: { tick: 'BTC' } }],
 	['mis ofertas', { showMine: true }],
-	['monto mínimo', { minAmount: '10' }],
+	['monto a operar', { opAmount: '500' }],
+	['tasa mínima', { ratioMin: '10' }],
 	['solo VIP', { onlyVip: true }],
 ])('un filtro de %s abre "Limpiar"', (_label, filters) => {
 	expect(renderModal(filters).props.showBack).toBe(true)
+})
+
+test('el lado del mercado NO vive en el modal: está en el switch del TopBar', () => {
+	// Con typeFilter puesto pero sin filtros del modal, "Limpiar" sigue cerrado
+	expect(renderModal({ typeFilter: 'buy' }).props.showBack).toBe(false)
 })
 
 test('reparte el espacio a partes iguales y limpia al pulsar el secundario', () => {

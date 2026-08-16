@@ -49,6 +49,16 @@ const renderItem = (offer, props = {}) => {
 
 const textOf = (tree) => JSON.stringify(tree.toJSON())
 
+// Texto plano del árbol: React serializa `{a}{b}` como children separados, así
+// que "+10.0%" aparece troceado en el JSON
+const flatText = (node) => {
+	if (node == null || node === false) return ''
+	if (typeof node === 'string' || typeof node === 'number') return String(node)
+	if (Array.isArray(node)) return node.map(flatText).join('')
+	return flatText(node.children)
+}
+const plainText = (tree) => flatText(tree.toJSON())
+
 beforeEach(() => {
 	jest.clearAllMocks()
 	useAuth.mockReturnValue({ user: VIEWER })
@@ -183,5 +193,33 @@ describe('counterparty row', () => {
 	test('show_user=false hides the profile row', () => {
 		const tree = renderItem(makeOffer(), { show_user: false })
 		expect(tree.root.findAllByType('ProfileContainerHorizontal')).toHaveLength(0)
+	})
+})
+
+describe('contexto de mercado', () => {
+	// La señal se invierte según el lado: en una oferta de VENTA (yo compro)
+	// una tasa más alta me da más moneda; en una de COMPRA es al revés
+	const withAvg = (offer, avg) => renderItem(offer, { marketAverage: avg })
+	const AVG = { average_buy: 100, average_sell: 100 }
+
+	test('sin medias de mercado no se pinta ninguna señal', () => {
+		expect(plainText(renderItem(makeOffer({ amount: '1', receive: '120' })))).not.toContain('%')
+	})
+
+	test('una oferta de venta con tasa por encima del mercado se marca a favor', () => {
+		expect(plainText(withAvg(makeOffer({ type: 'sell', amount: '1', receive: '110' }), AVG))).toContain('+10.0%')
+	})
+
+	test('una oferta de venta con tasa por debajo se marca en contra', () => {
+		expect(plainText(withAvg(makeOffer({ type: 'sell', amount: '1', receive: '90' }), AVG))).toContain('-10.0%')
+	})
+
+	test('en una oferta de compra el signo se invierte', () => {
+		// receive alto en una oferta de compra = peor para quien la toma
+		expect(plainText(withAvg(makeOffer({ type: 'buy', amount: '1', receive: '110' }), AVG))).toContain('-10.0%')
+	})
+
+	test('las diferencias por debajo del 1% no se señalan (ruido)', () => {
+		expect(plainText(withAvg(makeOffer({ type: 'sell', amount: '1', receive: '100.5' }), AVG))).not.toContain('%')
 	})
 })

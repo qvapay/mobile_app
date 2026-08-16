@@ -3,20 +3,20 @@ import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import QPCoin from "../../ui/particles/QPCoin"
 import QPInput from "../../ui/particles/QPInput"
-import QPSwitch from "../../ui/particles/QPSwitch"
 import QPSplitButton from "../../ui/particles/QPSplitButton"
 
 import { createContainerStyles } from "../../theme/themeUtils"
 
-// Full filters modal (Contacts-style card): my offers, type, coin, min/max, ratio, VIP.
+// Modal de filtros: mis ofertas, moneda, "quiero operar $X", rango de tasa y VIP.
+// El lado del mercado (Comprar/Vender) NO está aquí: vive en el switch del TopBar.
 const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicker, onClear, onApply, windowHeight, theme, textStyles }) => {
 
-	const { typeFilter, selectedCoin, showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip } = filters
+	const { selectedCoin, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
 	const containerStyles = createContainerStyles(theme)
 
 	// "Limpiar" solo existe cuando hay algo que limpiar — el slot se abre y
 	// cierra animado (mismo split-button del onboarding/registro)
-	const hasActiveFilters = !!(typeFilter || selectedCoin || showMine || minAmount || maxAmount || ratioMin || ratioMax || onlyVip)
+	const hasActiveFilters = !!(selectedCoin || showMine || opAmount || ratioMin || ratioMax || onlyVip)
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
@@ -44,21 +44,6 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 							/>
 						</View>
 
-						{/* Type */}
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Tipo</Text>
-							<QPSwitch
-								value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
-								onChange={(side) => setFilter("typeFilter", side === "left" ? "sell" : side === "right" ? "buy" : null)}
-								leftText="Comprar"
-								rightText="Vender"
-								leftColor={theme.colors.danger}
-								rightColor={theme.colors.successFill}
-								rightTextColor={theme.colors.successFillText}
-								style={{ width: 160, height: 30 }}
-							/>
-						</View>
-
 						{/* Coin */}
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Moneda</Text>
@@ -79,28 +64,24 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 						</View>
 
 						{/* Min / Max */}
+						{/* Un solo campo, como en los P2P de la industria: dices cuánto
+						    quieres operar y se muestran las ofertas que lo permiten */}
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Mínimo</Text>
+							<Text style={textStyles.h6}>Quiero operar</Text>
 							<View style={{ width: 160 }}>
-								<QPInput value={minAmount} onChangeText={(v) => setFilter("minAmount", v)} placeholder="0" keyboardType="numeric" />
-							</View>
-						</View>
-						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Máximo</Text>
-							<View style={{ width: 160 }}>
-								<QPInput value={maxAmount} onChangeText={(v) => setFilter("maxAmount", v)} placeholder="0" keyboardType="numeric" />
+								<QPInput value={opAmount} onChangeText={(v) => setFilter("opAmount", v)} placeholder="$ monto" keyboardType="numeric" />
 							</View>
 						</View>
 
-						{/* Ratio Min / Max */}
+						{/* Tasa mín / máx */}
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Ratio mín</Text>
+							<Text style={textStyles.h6}>Tasa mín</Text>
 							<View style={{ width: 160 }}>
 								<QPInput value={ratioMin} onChangeText={(v) => setFilter("ratioMin", v)} placeholder="0" keyboardType="numeric" />
 							</View>
 						</View>
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Ratio máx</Text>
+							<Text style={textStyles.h6}>Tasa máx</Text>
 							<View style={{ width: 160 }}>
 								<QPInput value={ratioMax} onChangeText={(v) => setFilter("ratioMax", v)} placeholder="0" keyboardType="numeric" />
 							</View>

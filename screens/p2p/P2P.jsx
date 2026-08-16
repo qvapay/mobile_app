@@ -1,5 +1,5 @@
 import { FlashList } from "@shopify/flash-list"
-import { useEffect, useReducer, useCallback, useRef } from "react"
+import { useEffect, useReducer, useCallback, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
 
 // Reanimated
@@ -19,7 +19,7 @@ import QPSwitch from "../../ui/particles/QPSwitch"
 import P2PRequirementsGate from "./P2PRequirementsGate"
 import P2PFilterBar from "./P2PFilterBar"
 import P2PFiltersModal from "./P2PFiltersModal"
-import useP2PFilters from "./useP2PFilters"
+import useP2PFilters, { applyClientFilters } from "./useP2PFilters"
 import useP2POffers from "./useP2POffers"
 
 // Icons
@@ -93,12 +93,12 @@ const P2P = ({ navigation, route }) => {
 
 	// Filters + derived API filters/badges
 	const initialCoin = route?.params?.coin ? { tick: route.params.coin, name: route.params.coinName || route.params.coin, logo: route.params.coin } : null
-	const { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges } = useP2PFilters(initialCoin)
+	const { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, clientFilters, isClientSorted, activeFilterBadges } = useP2PFilters(initialCoin)
 	const { typeFilter, selectedCoin, sortIndex, showMine } = filters
 
 	// Offers list + pagination + fetch
-	const quickKey = `${typeFilter}|${selectedCoin?.tick}|${orderBy}|${orderType}|${showMine}`
-	const { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, fetchP2POffers, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
+	const quickKey = `${typeFilter}|${selectedCoin?.tick}|${orderBy}|${orderType}|${showMine}|${apiFilters.take}|${apiFilters.min ?? ""}`
+	const { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, marketAverages, fetchP2POffers, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
 
 	// Modal visibility
 	const [modals, dispatchModals] = useReducer(modalsReducer, { showFiltersModal: false, showCoinPicker: false, showSortMenu: false })
@@ -106,6 +106,17 @@ const P2P = ({ navigation, route }) => {
 	const setShowFiltersModal = (value) => dispatchModals({ type: "set", field: "showFiltersModal", value })
 	const setShowCoinPicker = (value) => dispatchModals({ type: "set", field: "showCoinPicker", value })
 	const setShowSortMenu = (value) => dispatchModals({ type: "set", field: "showSortMenu", value })
+	// El picker de moneda se abre a veces desde el modal de filtros (y ese modal
+	// se cierra, porque dos modales a la vez dan problemas): se anota para
+	// devolver al usuario donde estaba, elija moneda o descarte
+	const returnToFiltersRef = useRef(false)
+	const closeCoinPicker = useCallback(() => {
+		setShowCoinPicker(false)
+		if (returnToFiltersRef.current) {
+			returnToFiltersRef.current = false
+			setShowFiltersModal(true)
+		}
+	}, [])
 
 	// Track P2P offer users for online status
 	useEffect(() => {
@@ -251,7 +262,7 @@ const P2P = ({ navigation, route }) => {
 
 	// Footer loader
 	const renderFooter = () => {
-		if (!isLoading || p2pOffers.length === 0) return null
+		if (!isLoading || visibleOffers.length === 0) return null
 		return (
 			<View style={{ paddingVertical: 20, alignItems: 'center' }}>
 				<ActivityIndicator size="small" color={theme.colors.primary} />
@@ -259,7 +270,13 @@ const P2P = ({ navigation, route }) => {
 		)
 	}
 
-	const renderOffer = ({ item }) => <P2POffer offer={item} navigation={navigation} />
+	// Ofertas visibles: el backend ignora ratio/VIP y su orden por tasa rompe la
+	// paginación, así que esos tres se resuelven aquí sobre la tanda cargada
+	const visibleOffers = useMemo(() => applyClientFilters(p2pOffers, clientFilters), [p2pOffers, clientFilters])
+
+	const renderOffer = ({ item }) => (
+		<P2POffer offer={item} navigation={navigation} marketAverage={marketAverages?.[item.coin]} />
+	)
 
 	if (!p2pEnabled) { return <P2PRequirementsGate user={user} navigation={navigation} theme={theme} textStyles={textStyles} containerStyles={containerStyles} /> }
 
@@ -284,7 +301,7 @@ const P2P = ({ navigation, route }) => {
 			</Animated.View>
 
 			<FlashList
-				data={p2pOffers}
+				data={visibleOffers}
 				renderItem={renderOffer}
 				keyExtractor={(item) => item.uuid}
 				onScroll={handleScroll}
@@ -292,7 +309,7 @@ const P2P = ({ navigation, route }) => {
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 64 + insets.bottom : 24 }}
-				onEndReached={handleLoadMore}
+				onEndReached={isClientSorted ? undefined : handleLoadMore}
 				onEndReachedThreshold={0.3}
 				ListFooterComponent={renderFooter}
 				ListEmptyComponent={
@@ -311,7 +328,7 @@ const P2P = ({ navigation, route }) => {
 				onClose={() => setShowFiltersModal(false)}
 				filters={filters}
 				setFilter={setFilter}
-				onOpenCoinPicker={() => { setShowCoinPicker(true); setShowFiltersModal(false) }}
+				onOpenCoinPicker={() => { returnToFiltersRef.current = true; setShowCoinPicker(true); setShowFiltersModal(false) }}
 				onClear={resetFilters}
 				onApply={() => { setShowFiltersModal(false); fetchP2POffers(1, true) }}
 				windowHeight={windowHeight}
@@ -322,8 +339,8 @@ const P2P = ({ navigation, route }) => {
 			{/* Coin Picker Modal */}
 			<QPCoinPicker
 				visible={showCoinPicker}
-				onClose={() => setShowCoinPicker(false)}
-				onSelect={(coin) => { setFilter("selectedCoin", coin); setShowCoinPicker(false) }}
+				onClose={closeCoinPicker}
+				onSelect={(coin) => { setFilter("selectedCoin", coin); closeCoinPicker() }}
 				coins={availableCoins}
 				selectedCoin={selectedCoin}
 				isLoading={loadingCoins}

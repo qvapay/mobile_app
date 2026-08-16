@@ -2,13 +2,27 @@ import { useReducer, useMemo, useCallback } from "react"
 
 const PAGE_SIZE = 30
 
-/** Sort options the P2P screen cycles through; `sortIndex` indexes into this array. */
+// Cuando el orden se resuelve en el cliente pedimos una tanda grande de una vez
+// en lugar de paginar: ordenar página a página reordenaría la lista cada vez que
+// llega una nueva tanda, que es peor que mostrar un top honesto.
+const CLIENT_SORT_PAGE_SIZE = 100
+
+/**
+ * Orden de la lista. `server: true` lo resuelve el backend (paginable);
+ * `server: false` se ordena en el cliente sobre la tanda cargada.
+ *
+ * "Tasa" y "Reputación" van en cliente a propósito:
+ * - el `orderBy=ratio` del backend solo mira las 50 ofertas más recientes y
+ *   luego pagina, así que devuelve páginas vacías y no es un ranking real;
+ * - por reputación no existe orden en el backend, pero cada oferta ya trae
+ *   `User.rating_avg` y sus operaciones completadas.
+ */
 export const SORT_OPTIONS = [
-	{ label: "Reciente", orderBy: "updated_at", orderType: "desc" },
-	{ label: "Monto ↓", orderBy: "amount", orderType: "desc" },
-	{ label: "Monto ↑", orderBy: "amount", orderType: "asc" },
-	{ label: "Ratio ↓", orderBy: "ratio", orderType: "desc" },
-	{ label: "Ratio ↑", orderBy: "ratio", orderType: "asc" },
+	{ label: "Reciente", orderBy: "updated_at", orderType: "desc", server: true },
+	{ label: "Monto ↓", orderBy: "amount", orderType: "desc", server: true },
+	{ label: "Monto ↑", orderBy: "amount", orderType: "asc", server: true },
+	{ label: "Mejor tasa", key: "rate", orderType: "desc", server: false },
+	{ label: "Reputación", key: "reputation", orderType: "desc", server: false },
 ]
 
 const initialFilters = {
@@ -16,8 +30,10 @@ const initialFilters = {
 	selectedCoin: null,
 	sortIndex: 0,
 	showMine: false,
-	minAmount: "",
-	maxAmount: "",
+	// "Quiero operar $X": muestra ofertas con al menos ese monto disponible
+	// (modelo de Binance; sustituye al antiguo rango min/max, que obligaba a
+	// pensar en los límites de la oferta ajena en vez de en lo tuyo)
+	opAmount: "",
 	ratioMin: "",
 	ratioMax: "",
 	onlyVip: false,
@@ -28,30 +44,83 @@ function filtersReducer(state, action) {
 		case "set":
 			return { ...state, [action.field]: action.value }
 		case "reset":
-			return { ...initialFilters }
+			// El lado del mercado (typeFilter) NO se limpia: vive en el switch del
+			// TopBar y es el modo en el que estás, no un filtro más
+			return { ...initialFilters, typeFilter: state.typeFilter }
 		default:
 			return state
 	}
 }
 
+const num = (value) => {
+	const parsed = parseFloat(value)
+	return Number.isFinite(parsed) ? parsed : null
+}
+
+/** Tasa de una oferta (lo que se compara entre ellas). */
+export const offerRate = (offer) => {
+	const amount = parseFloat(offer?.amount)
+	const receive = parseFloat(offer?.receive)
+	if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(receive)) return null
+	return receive / amount
+}
+
+/** Operaciones completadas de la contraparte (como creador + como peer). */
+export const offerUserOps = (offer) => {
+	const user = offer?.Peer?.uuid ? offer.Peer : offer?.User
+	return (user?._count?.P2P || 0) + (user?._count?.P2P_Peer || 0)
+}
+
+/**
+ * Aplica los filtros y el orden que el backend NO resuelve, sobre las ofertas
+ * ya cargadas. Se exporta para poder testearlo aislado.
+ *
+ * @param {Array} offers - Ofertas tal cual llegan de la API.
+ * @param {object} clientFilters - `{ ratioMin, ratioMax, onlyVip, sort }`.
+ * @returns {Array} Ofertas filtradas y ordenadas.
+ */
+export const applyClientFilters = (offers, { ratioMin, ratioMax, onlyVip, sort } = {}) => {
+	let out = offers || []
+
+	if (onlyVip) { out = out.filter((offer) => !!offer.only_vip) }
+
+	if (ratioMin != null) { out = out.filter((offer) => { const r = offerRate(offer); return r != null && r >= ratioMin }) }
+	if (ratioMax != null) { out = out.filter((offer) => { const r = offerRate(offer); return r != null && r <= ratioMax }) }
+
+	if (sort === "rate" || sort === "reputation") {
+		const score = sort === "rate"
+			? (offer) => offerRate(offer) ?? -Infinity
+			: (offer) => {
+				// Rating primero; a igual rating (o sin valoraciones), manda la
+				// experiencia: un 5.0 con 2 operaciones no vale lo que un 4.8 con 300
+				const user = offer?.Peer?.uuid ? offer.Peer : offer?.User
+				return (Number(user?.rating_avg) || 0) * 1000 + Math.min(offerUserOps(offer), 999)
+			}
+		// Copia antes de ordenar: `offers` viene del estado de la lista
+		out = [...out].sort((a, b) => score(b) - score(a))
+	}
+
+	return out
+}
+
 /**
  * Owns the P2P marketplace filter state plus everything derived from it: the query
- * params for `GET /p2p/index`, the "any filter active" flag and the removable badges.
+ * params for `GET /p2p/index`, the client-side filters the backend does not
+ * support, the "any filter active" flag and the removable badges.
  *
  * Pure state — no requests happen here. The screen feeds `apiFilters` into
- * useP2POffers, which refetches when its `quickKey` (built from the quick filters)
- * changes; modal filters only apply when the screen calls fetch explicitly.
- * Numeric fields (`minAmount`, `maxAmount`, `ratioMin`, `ratioMax`) are kept as
- * strings for the inputs and only parsed into `apiFilters` when they hold a number.
+ * useP2POffers, which refetches when its `quickKey` changes; modal filters only
+ * apply when the screen calls fetch explicitly.
+ *
+ * IMPORTANTE — reparto servidor/cliente: el backend ignora `ratio_min`,
+ * `ratio_max` y `only_vip` (los aceptaba en la URL pero nunca llegaban al
+ * WHERE, así que esos filtros no hacían nada). Se resuelven aquí sobre la tanda
+ * cargada, y por eso los órdenes de cliente piden una tanda grande.
  *
  * @param {object|null} initialCoin - Preselected coin (e.g. from navigation params); only `tick` is read.
- * @returns {object} Filter API:
- *   `filters` (raw state), `setFilter(field, value)` / `resetFilters()` (stable identities),
- *   `orderBy` + `orderType` (from the active SORT_OPTIONS entry),
- *   `hasActiveFilters` (any non-default filter set),
- *   `apiFilters` (memoized params for p2pApi.index: take, order, orderBy, type,
- *   my, coin, min, max, ratio_min, ratio_max, only_vip),
- *   `activeFilterBadges` (modal-filter chips, each with `label` + `onRemove`).
+ * @returns {object} Filter API: `filters`, `setFilter`, `resetFilters`, `orderBy`,
+ *   `orderType`, `hasActiveFilters`, `apiFilters`, `clientFilters`,
+ *   `isClientSorted`, `activeFilterBadges`.
  */
 export default function useP2PFilters(initialCoin) {
 
@@ -60,54 +129,60 @@ export default function useP2PFilters(initialCoin) {
 	const setFilter = useCallback((field, value) => dispatch({ type: "set", field, value }), [])
 	const resetFilters = useCallback(() => dispatch({ type: "reset" }), [])
 
-	const { typeFilter, selectedCoin, sortIndex, showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip } = filters
+	const { typeFilter, selectedCoin, sortIndex, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
 
-	const orderBy = SORT_OPTIONS[sortIndex].orderBy
-	const orderType = SORT_OPTIONS[sortIndex].orderType
+	const sortOption = SORT_OPTIONS[sortIndex] || SORT_OPTIONS[0]
+	const isClientSorted = !sortOption.server
+	// Con orden de cliente no se pagina: se pide una tanda grande y se ordena
+	const orderBy = sortOption.server ? sortOption.orderBy : "updated_at"
+	const orderType = sortOption.server ? sortOption.orderType : "desc"
 
-	// Whether any non-default filter is active
-	const hasActiveFilters = useMemo(() => {
-		return (
-			showMine ||
-			!!selectedCoin?.tick ||
-			minAmount !== "" ||
-			maxAmount !== "" ||
-			ratioMin !== "" ||
-			ratioMax !== "" ||
-			onlyVip ||
-			typeFilter
-		)
-	}, [showMine, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, onlyVip, typeFilter])
+	// Cualquier filtro activo. NO cuenta `typeFilter`: el lado del mercado vive
+	// en el switch del TopBar, y contarlo encendía el icono de Filtros por el
+	// simple hecho de elegir Comprar o Vender
+	const hasActiveFilters = useMemo(() => (
+		showMine ||
+		!!selectedCoin?.tick ||
+		opAmount !== "" ||
+		ratioMin !== "" ||
+		ratioMax !== "" ||
+		onlyVip
+	), [showMine, selectedCoin?.tick, opAmount, ratioMin, ratioMax, onlyVip])
 
-	// Filters object used for API
+	// Params que el backend SÍ entiende
 	const apiFilters = useMemo(() => {
 		const out = {
-			take: PAGE_SIZE,
+			take: isClientSorted ? CLIENT_SORT_PAGE_SIZE : PAGE_SIZE,
 			order: orderType,
-			orderBy: orderBy,
+			orderBy,
 			type: typeFilter,
 		}
 		if (showMine) { out.my = true }
 		if (selectedCoin?.tick) { out.coin = selectedCoin.tick }
-		if (minAmount !== "" && !isNaN(parseFloat(minAmount))) { out.min = parseFloat(minAmount) }
-		if (maxAmount !== "" && !isNaN(parseFloat(maxAmount))) { out.max = parseFloat(maxAmount) }
-		if (ratioMin !== "" && !isNaN(parseFloat(ratioMin))) { out.ratio_min = parseFloat(ratioMin) }
-		if (ratioMax !== "" && !isNaN(parseFloat(ratioMax))) { out.ratio_max = parseFloat(ratioMax) }
-		if (onlyVip) { out.only_vip = 1 }
+		// "Quiero operar $X" → ofertas con al menos ese monto
+		const amount = num(opAmount)
+		if (amount != null) { out.min = amount }
 		return out
-	}, [typeFilter, selectedCoin?.tick, minAmount, maxAmount, ratioMin, ratioMax, showMine, onlyVip, orderBy, orderType])
+	}, [typeFilter, selectedCoin?.tick, opAmount, showMine, orderBy, orderType, isClientSorted])
+
+	// Filtros y orden que resolvemos en el cliente
+	const clientFilters = useMemo(() => ({
+		ratioMin: num(ratioMin),
+		ratioMax: num(ratioMax),
+		onlyVip,
+		sort: sortOption.server ? null : sortOption.key,
+	}), [ratioMin, ratioMax, onlyVip, sortOption])
 
 	// Active filter badges (modal filters only) — onRemove clears that field
 	const activeFilterBadges = useMemo(() => {
 		const badges = []
 		if (showMine) badges.push({ key: "showMine", label: "Mis ofertas", onRemove: () => setFilter("showMine", false) })
-		if (minAmount !== "") badges.push({ key: "minAmount", label: `Min: $${minAmount}`, onRemove: () => setFilter("minAmount", "") })
-		if (maxAmount !== "") badges.push({ key: "maxAmount", label: `Max: $${maxAmount}`, onRemove: () => setFilter("maxAmount", "") })
-		if (ratioMin !== "") badges.push({ key: "ratioMin", label: `Ratio ≥ ${ratioMin}`, onRemove: () => setFilter("ratioMin", "") })
-		if (ratioMax !== "") badges.push({ key: "ratioMax", label: `Ratio ≤ ${ratioMax}`, onRemove: () => setFilter("ratioMax", "") })
+		if (opAmount !== "") badges.push({ key: "opAmount", label: `Opero $${opAmount}`, onRemove: () => setFilter("opAmount", "") })
+		if (ratioMin !== "") badges.push({ key: "ratioMin", label: `Tasa ≥ ${ratioMin}`, onRemove: () => setFilter("ratioMin", "") })
+		if (ratioMax !== "") badges.push({ key: "ratioMax", label: `Tasa ≤ ${ratioMax}`, onRemove: () => setFilter("ratioMax", "") })
 		if (onlyVip) badges.push({ key: "onlyVip", label: "Solo VIP", onRemove: () => setFilter("onlyVip", false) })
 		return badges
-	}, [showMine, minAmount, maxAmount, ratioMin, ratioMax, onlyVip, setFilter])
+	}, [showMine, opAmount, ratioMin, ratioMax, onlyVip, setFilter])
 
-	return { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges }
+	return { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, clientFilters, isClientSorted, activeFilterBadges }
 }
