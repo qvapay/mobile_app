@@ -166,6 +166,20 @@ describe('coin loading and selection', () => {
 		expect(tree.root.findByType('QPCoinPicker').props.coins).toHaveLength(5)
 	})
 
+	test('el precio de la moneda elegida se refresca cuando llega el catálogo nuevo', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		expect(amountCard(tree).props.selectedCoin.price).toBe(CUP.price)
+
+		// Revalidación: mismo tick, precio nuevo. La elección se mantiene pero el
+		// formulario debe calcular con el precio fresco, no con el capturado
+		const repriced = { ...CUP, price: String(Number(CUP.price) * 2) }
+		await act(async () => { mockCoinCatalog = [repriced, USDCASH, THRESHOLD, BTCLN, USDT] })
+		await act(async () => { tree.update(<Withdraw navigation={navigation} route={{ params: {} }} />) })
+		expect(amountCard(tree).props.selectedCoin.tick).toBe(CUP.tick)
+		expect(amountCard(tree).props.selectedCoin.price).toBe(repriced.price)
+	})
+
 	test('a preselectedCoin route param selects the matching coin', async () => {
 		const tree = await renderWithdraw({ preselectedCoin: 'BANK_CUP' })
 		expect(amountCard(tree).props.selectedCoin.tick).toBe('BANK_CUP')

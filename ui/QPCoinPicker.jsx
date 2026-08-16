@@ -121,7 +121,13 @@ const QPCoinPicker = ({
 			    completa — así se mantiene a la vista el contexto desde el que se
 			    abrió (los filtros, el formulario de crear oferta…) */}
 			<Pressable style={styles.sheetOverlay} onPress={onClose}>
-				<Pressable style={[styles.sheet, { backgroundColor: theme.colors.background, paddingBottom: insets.bottom || 12 }]}>
+				{/* El onPress vacío absorbe los toques: sin él, tocar el grabber, la
+				    cabecera o cualquier hueco de la hoja caía al overlay y cerraba
+				    el selector (mismo patrón que el resto de modales de la app) */}
+				<Pressable
+					style={[styles.sheet, { backgroundColor: theme.colors.background, paddingBottom: insets.bottom || 12 }]}
+					onPress={() => { }}
+				>
 
 					<View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
 

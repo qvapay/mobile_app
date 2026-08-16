@@ -143,10 +143,14 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 			}
 		}
 	}, [])
-	// Auto-referencia para poder relanzar el pendiente sin romper la identidad
-	// estable de fetchP2POffers (deps vacías)
+
+	// Auto-referencia para relanzar el pendiente sin romper la identidad estable
+	// de fetchP2POffers (deps vacías). Se asigna en un efecto, no en el cuerpo:
+	// React puede descartar o repetir un render, y una escritura de ref hecha
+	// ahí se escaparía de trabajo que nunca llega a pintarse. Va antes que los
+	// efectos que disparan fetch, así que ya está puesta cuando hacen falta.
 	const fetchRef = useRef(null)
-	fetchRef.current = fetchP2POffers
+	useEffect(() => { fetchRef.current = fetchP2POffers })
 
 	// Cold-start hydration: paint the cached marketplace while the fetch revalidates
 	useEffect(() => {

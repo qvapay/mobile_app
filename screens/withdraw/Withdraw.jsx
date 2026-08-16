@@ -193,14 +193,28 @@ const Withdraw = ({ navigation, route }) => {
 	useEffect(() => {
 		if (!coinCatalog.length) return
 		setAvailableCoins(coinCatalog)
+
 		if (preselectedCoin && !didPreselectRef.current) {
 			const coin = coinCatalog.find(c => c.tick === preselectedCoin)
 			if (coin) {
 				didPreselectRef.current = true
 				setSelectedCoin(coin)
+				return
 			}
 		}
+
 	}, [coinCatalog, preselectedCoin])
+
+	// La moneda elegida es un objeto capturado: al llegar el catálogo fresco el
+	// selector mostraba el precio nuevo mientras el formulario seguía
+	// calculando comisión y conversión con el viejo. Se refresca en su sitio,
+	// sin tocar la elección del usuario, y solo cuando el precio cambió (si no,
+	// cada revalidación provocaría un render de más)
+	useEffect(() => {
+		if (!selectedCoin || !coinCatalog.length) return
+		const fresh = coinCatalog.find(c => c.tick === selectedCoin.tick)
+		if (fresh && fresh.price !== selectedCoin.price) { setSelectedCoin(fresh) }
+	}, [coinCatalog, selectedCoin]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Decimals to render for the coin amount input
 	const coinDecimals = useMemo(() => {

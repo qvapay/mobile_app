@@ -128,6 +128,15 @@ test('la X, el backdrop y el gesto de cierre llaman a onClose', async () => {
 	expect(onClose).toHaveBeenCalledTimes(3)
 })
 
+test('tocar dentro de la hoja NO cierra el selector', async () => {
+	const onClose = jest.fn()
+	const tree = await renderPicker({ onClose })
+	// La hoja es el segundo pulsable: absorbe el toque para que no llegue al
+	// overlay (tocar el grabber o la cabecera cerraba el picker)
+	act(() => { pressables(tree)[1].props.onPress() })
+	expect(onClose).not.toHaveBeenCalled()
+})
+
 test('se presenta como bottom sheet, no como pantalla completa', async () => {
 	const tree = await renderPicker()
 	expect(tree.root.findAllByProps({ presentationStyle: 'pageSheet' })).toHaveLength(0)
