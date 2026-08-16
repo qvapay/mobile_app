@@ -16,7 +16,7 @@ import P2PRequirementsGate from "./P2PRequirementsGate"
 import { toast } from "sonner-native"
 
 // API & Helpers
-import coinsApi from "../../api/coinsApi"
+import useCoins from "../../hooks/useCoins"
 import p2pApi from "../../api/p2pApi"
 import { userApi } from "../../api/userApi"
 
@@ -44,7 +44,7 @@ function setFieldReducer(state, action) {
 
 /**
  * Form to publish a new P2P buy/sell offer (`POST /p2p/create`).
- * Coins come from `coinsApi.index({ enabled_p2p: true })`; the selected coin's
+ * Coins come from `useCoins('p2p')` (caché compartida); the selected coin's
  * `working_data` JSON drives the dynamic payment-details fields (same pattern as
  * Withdraw), which can be pre-filled from saved payment methods
  * (`GET /user/payment-methods`). Gated by `user.p2p_enabled` (P2PRequirementsGate);
@@ -57,6 +57,7 @@ const P2PCreate = ({ navigation }) => {
 
 	// Theme
 	const { theme } = useTheme()
+	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('p2p')
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
@@ -79,7 +80,6 @@ const P2PCreate = ({ navigation }) => {
 	const setSavedMethods = (value) => dispatchSaved({ type: "set", field: "savedMethods", value })
 	const setSavedMethodsLoading = (value) => dispatchSaved({ type: "set", field: "savedMethodsLoading", value })
 
-	const [isLoading, setIsLoading] = useState(false)
 	const [isSending, setIsSending] = useState(false)
 	const [workingForm, setWorkingForm] = useState({})
 	const [p2pEnabled] = useState(user.p2p_enabled)
@@ -92,19 +92,10 @@ const P2PCreate = ({ navigation }) => {
 	// Button label derived from type + amount
 	const buttonText = type === "buy" ? `Comprar ${amount > 0 ? "$" + amount : ""}` : `Vender ${amount > 0 ? "$" + amount : ""}`
 
-	// Fetch available coins (enabled_p2p like Withdraw)
+	// Catálogo desde la caché compartida (useCoins): sin espera al abrir
 	useEffect(() => {
-		const fetchCoins = async () => {
-			try {
-				setIsLoading(true)
-				const response = await coinsApi.index({ enabled_p2p: true })
-				setAvailableCoins(response.data)
-			} catch (err) {
-				// error fetching coins
-			} finally { setIsLoading(false) }
-		}
-		fetchCoins()
-	}, [])
+		if (coinCatalog.length) setAvailableCoins(coinCatalog)
+	}, [coinCatalog])
 
 	// Handle coin selection
 	const handleCoinSelect = (selected) => {
@@ -284,7 +275,7 @@ const P2PCreate = ({ navigation }) => {
 				onSelect={handleCoinSelect}
 				coins={availableCoins}
 				selectedCoin={selectedCoin}
-				isLoading={isLoading}
+				isLoading={loadingCoins}
 				showFees={false}
 				recentKey="qp_recent_p2p_create_coins"
 				defaultCoins={[

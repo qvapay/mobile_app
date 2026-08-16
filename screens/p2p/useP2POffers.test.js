@@ -4,7 +4,7 @@
  * (see keypadAmount.test.js for why).
  * @jest-environment node
  */
-jest.mock('../../api/p2pApi', () => ({ p2pApi: { index: jest.fn() } }))
+jest.mock('../../api/p2pApi', () => ({ p2pApi: { index: jest.fn(), getAverages: jest.fn() } }))
 jest.mock('../../api/coinsApi', () => ({ __esModule: true, default: { index: jest.fn() } }))
 jest.mock('../../helpers/widgetBridge', () => ({
 	updateWidgetP2POffers: jest.fn(),
@@ -49,6 +49,7 @@ const renderOffers = async (props = {}) => {
 beforeEach(() => {
 	jest.clearAllMocks()
 	p2pApi.index.mockResolvedValue({ success: true, offers: [] })
+	p2pApi.getAverages.mockResolvedValue({ success: true, data: { BANK_CUP: { average_buy: 400, average_sell: 410 } } })
 	coinsApi.index.mockResolvedValue({ success: true, data: [] })
 })
 
@@ -115,12 +116,31 @@ describe('refresh', () => {
 		expect(result.current.p2pOffers.map(o => o.uuid)).toEqual(['new-0', 'new-1'])
 	})
 
-	test('a quickKey change auto-refreshes page 1 (but not on first render)', async () => {
-		const { setProps } = await renderOffers()
-		expect(p2pApi.index).toHaveBeenCalledTimes(1) // mount only
-		await setProps({ quickKey: 'k1' })
-		expect(p2pApi.index).toHaveBeenCalledTimes(2)
-		expect(p2pApi.index).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }))
+	test('a quickKey change auto-refreshes page 1 tras el debounce (nunca en el primer render)', async () => {
+		jest.useFakeTimers()
+		try {
+			const { setProps } = await renderOffers()
+			expect(p2pApi.index).toHaveBeenCalledTimes(1) // mount only
+			await setProps({ quickKey: 'k1' })
+			// El refetch NO es inmediato: se agrupa para no agotar el rate limit
+			expect(p2pApi.index).toHaveBeenCalledTimes(1)
+			await act(async () => { jest.advanceTimersByTime(400) })
+			expect(p2pApi.index).toHaveBeenCalledTimes(2)
+			expect(p2pApi.index).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }))
+		} finally { jest.useRealTimers() }
+	})
+
+	test('cambios de filtro seguidos se agrupan en una sola petición', async () => {
+		jest.useFakeTimers()
+		try {
+			const { setProps } = await renderOffers()
+			await setProps({ quickKey: 'k1' })
+			await setProps({ quickKey: 'k2' })
+			await setProps({ quickKey: 'k3' })
+			await act(async () => { jest.advanceTimersByTime(400) })
+			// 1 del montaje + 1 sola por los tres cambios
+			expect(p2pApi.index).toHaveBeenCalledTimes(2)
+		} finally { jest.useRealTimers() }
 	})
 
 	test('refreshing with the my filter pushes own offers to the home-screen widget', async () => {
@@ -142,14 +162,31 @@ describe('refresh', () => {
 })
 
 describe('concurrency', () => {
-	test('concurrent fetches are dropped, not queued', async () => {
+	test('un refresh que llega con otra petición en vuelo se encola y se relanza', async () => {
 		let resolveFirst
 		p2pApi.index.mockImplementation(() => new Promise(res => { resolveFirst = res }))
 		const { result } = await renderOffers()
-		// mount fetch still in flight — these must be ignored
 		result.current.fetchP2POffers(1, true)
+		expect(p2pApi.index).toHaveBeenCalledTimes(1)
+
+		p2pApi.index.mockResolvedValue({ success: true, offers: [] })
+		await act(async () => { resolveFirst({ success: true, offers: [] }) })
+		// El cambio de filtro no se pierde: la lista no se queda en el anterior
+		expect(p2pApi.index).toHaveBeenCalledTimes(2)
+	})
+
+	test('un "cargar más" encolado durante un refresh se descarta', async () => {
+		let resolveFirst
+		p2pApi.index.mockImplementation(() => new Promise(res => { resolveFirst = res }))
+		const { result } = await renderOffers()
+		// Página 2 pedida mientras la lista se está recargando desde la 1: al
+		// terminar apuntaría a un listado que ya no existe, y pegaría la página
+		// N+1 detrás de la 1 saltándose las intermedias
 		result.current.fetchP2POffers(2)
 		expect(p2pApi.index).toHaveBeenCalledTimes(1)
+
+		p2pApi.index.mockResolvedValue({ success: true, offers: [] })
 		await act(async () => { resolveFirst({ success: true, offers: [] }) })
+		expect(p2pApi.index).toHaveBeenCalledTimes(1)
 	})
 })

@@ -177,7 +177,7 @@ const P2PUser = ({ navigation, route }) => {
 				<FontAwesome6 name="circle-exclamation" size={40} color={theme.colors.danger} iconStyle="solid" />
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginTop: 12 }]}>Perfil no disponible</Text>
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 4, textAlign: "center" }]}>{String(error)}</Text>
-				<Pressable onPress={() => fetchProfile()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, backgroundColor: theme.colors.primary }}>
+				<Pressable onPress={() => fetchProfile()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, borderCurve: 'continuous', backgroundColor: theme.colors.primary }}>
 					<Text style={[textStyles.h6, { color: theme.colors.almostWhite }]}>Reintentar</Text>
 				</Pressable>
 			</View>
@@ -856,7 +856,8 @@ const styles = StyleSheet.create({
 	floatingBtn: {
 		width: 40,
 		height: 40,
-		borderRadius: 20,
+		borderRadius: 16,
+		borderCurve: 'continuous',
 		backgroundColor: "rgba(0,0,0,0.4)",
 		justifyContent: "center",
 		alignItems: "center",

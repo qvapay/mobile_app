@@ -8,7 +8,7 @@ jest.mock('../theme/ThemeContext', () => {
 	const { createTheme } = jest.requireActual('../theme/ThemeContext')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
-jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }))
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView', useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }))
 jest.mock('@react-native-async-storage/async-storage', () => ({
 	getItem: jest.fn(),
 	setItem: jest.fn(),
@@ -46,8 +46,15 @@ const renderPicker = async (props = {}) => {
 }
 
 const pressables = (tree) => tree.root.findAll(n => typeof n.props.onPress === 'function')
-const coinRowPressables = (tree) => pressables(tree).filter(n => n.findAllByType('QPCoinRow').length > 0)
-const pillPressables = (tree) => pressables(tree).filter(n => n.findAllByType('QPCoin').length > 0 && n.findAllByType('QPCoinRow').length === 0)
+// OJO: el overlay y la hoja del bottom sheet son pulsables que CONTIENEN todo
+// el árbol, así que hay que exigir "exactamente uno" para quedarse con la fila
+// o el botón concreto y no con las capas de fondo
+const coinRowPressables = (tree) => pressables(tree).filter(n => n.findAllByType('QPCoinRow').length === 1)
+const pillPressables = (tree) => pressables(tree).filter(n => n.findAllByType('QPCoin').length === 1 && n.findAllByType('QPCoinRow').length === 0)
+const iconPressable = (tree, iconName) => pressables(tree).find(n => {
+	const icons = n.findAllByType('FontAwesome6')
+	return icons.length === 1 && icons[0].props.name === iconName
+})
 
 beforeEach(() => {
 	jest.clearAllMocks()
@@ -73,7 +80,7 @@ test('shows the loading and empty states', async () => {
 test('the header search toggle reveals an input that filters by name or tick', async () => {
 	const tree = await renderPicker()
 	expect(tree.root.findAllByType('QPInput')).toHaveLength(0)
-	act(() => { pressables(tree)[0].props.onPress() }) // magnifying glass
+	act(() => { iconPressable(tree, 'magnifying-glass').props.onPress() })
 	const input = tree.root.findByType('QPInput')
 	act(() => { input.props.onChangeText('tron') })
 	expect(tree.root.findAllByType('QPCoinRow').map(r => r.props.coin.tick)).toEqual(['TRX'])
@@ -110,11 +117,29 @@ test('tapping a quick pill selects its coin', async () => {
 	expect(onSelect).toHaveBeenCalledWith(COINS[0])
 })
 
-test('the close button and the sheet dismissal both call onClose', async () => {
+test('la X, el backdrop y el gesto de cierre llaman a onClose', async () => {
 	const onClose = jest.fn()
 	const tree = await renderPicker({ onClose })
-	act(() => { pressables(tree)[1].props.onPress() }) // xmark
-	const modal = tree.root.findByProps({ presentationStyle: 'pageSheet' })
+	act(() => { iconPressable(tree, 'xmark').props.onPress() })
+	// Backdrop: el primer pulsable del árbol es el overlay del bottom sheet
+	act(() => { pressables(tree)[0].props.onPress() })
+	const modal = tree.root.findByProps({ transparent: true })
 	act(() => { modal.props.onRequestClose() })
-	expect(onClose).toHaveBeenCalledTimes(2)
+	expect(onClose).toHaveBeenCalledTimes(3)
+})
+
+test('tocar dentro de la hoja NO cierra el selector', async () => {
+	const onClose = jest.fn()
+	const tree = await renderPicker({ onClose })
+	// La hoja es el segundo pulsable: absorbe el toque para que no llegue al
+	// overlay (tocar el grabber o la cabecera cerraba el picker)
+	act(() => { pressables(tree)[1].props.onPress() })
+	expect(onClose).not.toHaveBeenCalled()
+})
+
+test('se presenta como bottom sheet, no como pantalla completa', async () => {
+	const tree = await renderPicker()
+	expect(tree.root.findAllByProps({ presentationStyle: 'pageSheet' })).toHaveLength(0)
+	const modal = tree.root.findByProps({ transparent: true })
+	expect(modal.props.animationType).toBe('slide')
 })

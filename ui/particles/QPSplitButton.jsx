@@ -138,7 +138,8 @@ const styles = {
 	},
 	button: {
 		height: BUTTON_HEIGHT,
-		borderRadius: BUTTON_HEIGHT / 2,
+		// Squircle, igual que QPButton
+		borderRadius: 16,
 		borderCurve: 'continuous',
 		flexDirection: 'row',
 		alignItems: 'center',

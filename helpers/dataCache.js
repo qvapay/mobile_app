@@ -20,6 +20,11 @@ export const CACHE_KEYS = {
 	SEND_CAROUSEL: 'send_carousel',
 	P2P_OFFERS: 'p2p_offers',
 	P2P_COINS: 'p2p_coins',
+	// Catálogo de monedas por capacidad (depósito / retiro / todas): casi
+	// estático, se sirve desde caché y se revalida por detrás — ver hooks/useCoins
+	COINS_IN: 'coins_in',
+	COINS_OUT: 'coins_out',
+	COINS_ALL: 'coins_all',
 	STORE_CATALOG: 'store_catalog',
 	STORE_TOPUP_BRANDS: 'store_topup_brands', // + ':<countryCode>'
 	MARKET_STORES: 'market_stores',

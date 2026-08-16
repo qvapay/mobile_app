@@ -57,6 +57,10 @@ function modalsReducer(state, action) {
 	}
 }
 
+// Quitar un badge cambia los filtros, y de eso ya se encarga el refetch con
+// debounce del quickKey: forzar aquí otro fetch costaba dos peticiones
+const handleRemoveBadge = (badge) => { badge.onRemove() }
+
 /**
  * P2P marketplace tab: paginated FlashList of buy/sell offers with filters.
  * Offers load via `GET /p2p/index` (useP2POffers) filtered by type, coin, sort and
@@ -93,12 +97,13 @@ const P2P = ({ navigation, route }) => {
 
 	// Filters + derived API filters/badges
 	const initialCoin = route?.params?.coin ? { tick: route.params.coin, name: route.params.coinName || route.params.coin, logo: route.params.coin } : null
-	const { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges } = useP2PFilters(initialCoin)
+	const { filters, setFilter, resetFilters, hasActiveFilters, apiFilters, activeFilterBadges } = useP2PFilters(initialCoin)
 	const { typeFilter, selectedCoin, sortIndex, showMine } = filters
 
 	// Offers list + pagination + fetch
-	const quickKey = `${typeFilter}|${selectedCoin?.tick}|${orderBy}|${orderType}|${showMine}`
-	const { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, fetchP2POffers, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
+	// Todos los filtros son de servidor: cualquiera de ellos debe refetchear
+	const quickKey = JSON.stringify(apiFilters)
+	const { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, marketAverages, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
 
 	// Modal visibility
 	const [modals, dispatchModals] = useReducer(modalsReducer, { showFiltersModal: false, showCoinPicker: false, showSortMenu: false })
@@ -106,6 +111,17 @@ const P2P = ({ navigation, route }) => {
 	const setShowFiltersModal = (value) => dispatchModals({ type: "set", field: "showFiltersModal", value })
 	const setShowCoinPicker = (value) => dispatchModals({ type: "set", field: "showCoinPicker", value })
 	const setShowSortMenu = (value) => dispatchModals({ type: "set", field: "showSortMenu", value })
+	// El picker de moneda se abre a veces desde el modal de filtros (y ese modal
+	// se cierra, porque dos modales a la vez dan problemas): se anota para
+	// devolver al usuario donde estaba, elija moneda o descarte
+	const returnToFiltersRef = useRef(false)
+	const closeCoinPicker = useCallback(() => {
+		setShowCoinPicker(false)
+		if (returnToFiltersRef.current) {
+			returnToFiltersRef.current = false
+			setShowFiltersModal(true)
+		}
+	}, [])
 
 	// Track P2P offer users for online status
 	useEffect(() => {
@@ -243,12 +259,6 @@ const P2P = ({ navigation, route }) => {
 		})
 	}, [navigation, theme, hasActiveFilters, containerStyles, typeFilter, setFilter, headerSwitchWidth])
 
-	// Remove a filter badge and re-fetch
-	const handleRemoveBadge = (badge) => {
-		badge.onRemove()
-		setTimeout(() => fetchP2POffers(1, true), 0)
-	}
-
 	// Footer loader
 	const renderFooter = () => {
 		if (!isLoading || p2pOffers.length === 0) return null
@@ -259,7 +269,9 @@ const P2P = ({ navigation, route }) => {
 		)
 	}
 
-	const renderOffer = ({ item }) => <P2POffer offer={item} navigation={navigation} />
+	const renderOffer = ({ item }) => (
+		<P2POffer offer={item} navigation={navigation} marketAverage={marketAverages?.[item.coin]} />
+	)
 
 	if (!p2pEnabled) { return <P2PRequirementsGate user={user} navigation={navigation} theme={theme} textStyles={textStyles} containerStyles={containerStyles} /> }
 
@@ -311,9 +323,9 @@ const P2P = ({ navigation, route }) => {
 				onClose={() => setShowFiltersModal(false)}
 				filters={filters}
 				setFilter={setFilter}
-				onOpenCoinPicker={() => { setShowCoinPicker(true); setShowFiltersModal(false) }}
+				onOpenCoinPicker={() => { returnToFiltersRef.current = true; setShowCoinPicker(true); setShowFiltersModal(false) }}
 				onClear={resetFilters}
-				onApply={() => { setShowFiltersModal(false); fetchP2POffers(1, true) }}
+				onApply={() => setShowFiltersModal(false)}
 				windowHeight={windowHeight}
 				theme={theme}
 				textStyles={textStyles}
@@ -322,8 +334,8 @@ const P2P = ({ navigation, route }) => {
 			{/* Coin Picker Modal */}
 			<QPCoinPicker
 				visible={showCoinPicker}
-				onClose={() => setShowCoinPicker(false)}
-				onSelect={(coin) => { setFilter("selectedCoin", coin); setShowCoinPicker(false) }}
+				onClose={closeCoinPicker}
+				onSelect={(coin) => { setFilter("selectedCoin", coin); closeCoinPicker() }}
 				coins={availableCoins}
 				selectedCoin={selectedCoin}
 				isLoading={loadingCoins}

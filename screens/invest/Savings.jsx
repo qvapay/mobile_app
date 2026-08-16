@@ -180,19 +180,23 @@ const Savings = ({ route }) => {
 
 				{/* Action buttons */}
 				<View style={styles.buttonsRow}>
+					{/* Mismo lenguaje que las pills del morph del BalanceCard:
+					    squircle, 56 de alto y el verde del servicio de ahorro */}
 					<QPButton
 						title="Depositar"
 						icon="arrow-down"
 						onPress={() => openModal('deposit')}
-						style={styles.actionButton}
+						style={[styles.actionButton, { backgroundColor: theme.colors.successFill }]}
+						textStyle={{ color: theme.colors.successFillText }}
+						iconColor={theme.colors.successFillText}
 					/>
 					<QPButton
 						title="Retirar"
 						icon="arrow-up"
 						onPress={() => openModal('withdraw')}
-						style={styles.actionButton}
-						outlined
-						danger={false}
+						style={[styles.actionButton, { backgroundColor: theme.colors.successFill }]}
+						textStyle={{ color: theme.colors.successFillText }}
+						iconColor={theme.colors.successFillText}
 					/>
 				</View>
 
@@ -387,8 +391,13 @@ const styles = StyleSheet.create({
 		gap: 10,
 		marginBottom: 20,
 	},
+	// Squircle igual que la botonera del Home (QPButton por defecto es píldora)
 	actionButton: {
 		flex: 1,
+		height: 56,
+		borderRadius: 16,
+		borderCurve: 'continuous',
+		marginVertical: 0,
 	},
 	// Stats
 	statsCard: {

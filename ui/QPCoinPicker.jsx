@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { StyleSheet, Text, View, Pressable, Modal, ScrollView } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTheme } from '../theme/ThemeContext'
@@ -46,6 +46,7 @@ const QPCoinPicker = ({
 }) => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
+	const insets = useSafeAreaInsets()
 
 	const [coinSearch, setCoinSearch] = useState('')
 	const [showCoinSearch, setShowCoinSearch] = useState(false)
@@ -115,10 +116,22 @@ const QPCoinPicker = ({
 	}, [visible])
 
 	return (
-		<Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-			<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+		<Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+			{/* Bottom sheet: elegir una moneda no merece levantar una pantalla
+			    completa — así se mantiene a la vista el contexto desde el que se
+			    abrió (los filtros, el formulario de crear oferta…) */}
+			<Pressable style={styles.sheetOverlay} onPress={onClose}>
+				{/* El onPress vacío absorbe los toques: sin él, tocar el grabber, la
+				    cabecera o cualquier hueco de la hoja caía al overlay y cerraba
+				    el selector (mismo patrón que el resto de modales de la app) */}
+				<Pressable
+					style={[styles.sheet, { backgroundColor: theme.colors.background, paddingBottom: insets.bottom || 12 }]}
+					onPress={() => { }}
+				>
 
-				{/* Header */}
+					<View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
+
+					{/* Header */}
 				<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 					<Text style={textStyles.h4}>Seleccionar Moneda</Text>
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
@@ -190,13 +203,33 @@ const QPCoinPicker = ({
 					)}
 				</ScrollView>
 
-			</SafeAreaView>
+				</Pressable>
+			</Pressable>
 		</Modal>
 	)
 }
 
 const styles = StyleSheet.create({
-	modalContainer: { flex: 1 },
+	sheetOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.5)',
+		justifyContent: 'flex-end',
+	},
+	sheet: {
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		borderCurve: 'continuous',
+		maxHeight: '85%',
+		overflow: 'hidden',
+	},
+	grabber: {
+		width: 40,
+		height: 4,
+		borderRadius: 2,
+		alignSelf: 'center',
+		marginTop: 8,
+		marginBottom: 4,
+	},
 	modalHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -223,7 +256,7 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		borderWidth: 0.5,
 	},
-	coinList: { flex: 1 },
+	coinList: { flexShrink: 1 },
 	coinListContent: { paddingHorizontal: 10, paddingBottom: 20 },
 	coinItem: {
 		flexDirection: 'row',

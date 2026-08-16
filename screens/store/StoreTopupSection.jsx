@@ -99,7 +99,8 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		paddingHorizontal: 12,
 		paddingVertical: 8,
-		borderRadius: 999,
+		borderRadius: 12,
+		borderCurve: 'continuous',
 	},
 	recargasHeader: {
 		flexDirection: 'row',

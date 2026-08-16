@@ -64,7 +64,10 @@ const styles = {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 25,
+        // Squircle en vez de píldora: es el lenguaje de botón de la app
+        // (borderCurve continuous da la curva real en iOS)
+        borderRadius: 16,
+        borderCurve: 'continuous',
         height: 56,
         width: '100%',
         marginVertical: 5,

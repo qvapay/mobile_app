@@ -315,7 +315,8 @@ const styles = StyleSheet.create({
 	topButton: {
 		width: 40,
 		height: 40,
-		borderRadius: 20,
+		borderRadius: 12,
+		borderCurve: 'continuous',
 		backgroundColor: 'rgba(0,0,0,0.4)',
 		justifyContent: 'center',
 		alignItems: 'center',

@@ -175,7 +175,8 @@ const styles = StyleSheet.create({
 	currencyButton: {
 		paddingHorizontal: 16,
 		paddingVertical: 10,
-		borderRadius: 20,
+		borderRadius: 12,
+		borderCurve: 'continuous',
 		borderWidth: 0.5,
 	},
 	switchRow: {

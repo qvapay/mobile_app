@@ -4,6 +4,11 @@
  * auth/screens/Login.test.js for the screen-testing pattern).
  * @jest-environment node
  */
+let mockCoinCatalog = []
+jest.mock('../../hooks/useCoins', () => ({
+	__esModule: true,
+	default: () => ({ coins: mockCoinCatalog, isLoading: false }),
+}))
 jest.mock('../../theme/ThemeContext', () => {
 	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
@@ -78,11 +83,12 @@ afterEach(() => {
 	Linking.openURL.mockRestore()
 })
 
-test('loads the deposit-enabled coin catalog on mount', async () => {
+test('el catálogo llega de la caché compartida, sin pedirlo al montar', async () => {
 	const coins = [{ name: 'Criptomonedas', coins: [USDT] }]
-	apiClient.get.mockResolvedValue({ data: coins })
+	mockCoinCatalog = coins
 	const tree = await renderAdd()
-	expect(apiClient.get).toHaveBeenCalledWith('/coins/v2?enabled_in=true')
+	// useCoins sirve el catálogo desde memoria/disco y revalida por detrás
+	expect(apiClient.get).not.toHaveBeenCalledWith('/coins/v2?enabled_in=true')
 	expect(tree.root.findByType('QPCoinPicker').props.coins).toBe(coins)
 })
 

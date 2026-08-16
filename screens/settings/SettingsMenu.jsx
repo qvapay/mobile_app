@@ -209,10 +209,10 @@ const SettingsMenu = ({ navigation }) => {
 			</ScrollView>
 
 			{/* Floating header buttons */}
-			<Pressable onPress={() => navigation.goBack()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
+			<Pressable onPress={() => navigation.goBack()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 40, height: 40, borderRadius: 12, borderCurve: 'continuous', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="xmark" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
-			<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
+			<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN, { view: 'show' })} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, right: 16, width: 40, height: 40, borderRadius: 12, borderCurve: 'continuous', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="qrcode" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 			</Pressable>
 

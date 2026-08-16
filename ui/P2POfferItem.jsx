@@ -39,13 +39,13 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
 			return { title: 'Cancelado', bg: theme.colors.danger, textColor: theme.colors.almostWhite, borderRadius: 20 }
 		default:
 			if (isOwner) {
-				return { title: 'Editar', bg: theme.colors.primary, textColor: theme.colors.almostWhite, borderRadius: 5 }
+				return { title: 'Editar', bg: theme.colors.primary, textColor: theme.colors.almostWhite, borderRadius: 10 }
 			}
 			return {
 				title: offerType === 'buy' ? 'Vender' : 'Comprar',
 				bg: offerType === 'buy' ? theme.colors.successFill : theme.colors.danger,
 				textColor: offerType === 'buy' ? theme.colors.successFillText : theme.colors.almostWhite,
-				borderRadius: 5
+				borderRadius: 10
 			}
 	}
 }
@@ -71,8 +71,9 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
  * @param {boolean} [props.show_buttons=true] - Render the status/action button (off in the offer detail header).
  * @param {boolean} [props.show_user=true] - Render the counterparty profile row.
  * @param {boolean} [props.show_date=false] - Fecha de creación: fuera del listado (no aporta a la decisión y compite con el botón), solo en el detalle.
+ * @param {object} [props.marketAverage] - Medias 24h de la moneda (`{ average_buy, average_sell }`) para marcar si la tasa está por encima o por debajo del mercado.
  */
-const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false }) => {
+const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false, marketAverage = null }) => {
 
 	// User context
 	const { user } = useAuth()
@@ -94,7 +95,21 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 
 	// Tasa: lo que se compara entre ofertas (guardando la división por cero)
 	const amountNum = Number(offer.amount)
-	const rate = amountNum > 0 ? (Number(offer.receive) / amountNum).toFixed(2) : '—'
+	const rateValue = amountNum > 0 ? Number(offer.receive) / amountNum : null
+	const rate = rateValue != null ? rateValue.toFixed(2) : '—'
+
+	// Contexto de mercado: cuánto se aleja esta tasa de la media 24h de su
+	// moneda. Para quien COMPRA una oferta de venta, más tasa es mejor; en una
+	// oferta de compra es al revés — de ahí que se compare contra la media del
+	// mismo lado y se invierta el signo según el tipo
+	const marketAvg = marketAverage
+		? Number(offer.type === 'buy' ? marketAverage.average_buy : marketAverage.average_sell) || null
+		: null
+	const ratePremium = (marketAvg && rateValue) ? ((rateValue - marketAvg) / marketAvg) * 100 : null
+	const rateEdge = ratePremium == null ? null : (offer.type === 'buy' ? -ratePremium : ratePremium)
+	// Solo se señala cuando la diferencia es significativa (±1%)
+	const rateBetter = rateEdge != null && rateEdge >= 1
+	const rateWorse = rateEdge != null && rateEdge <= -1
 
 	return (
 		<View style={[styles.offerCard, { backgroundColor: theme.colors.surface }]}>
@@ -128,7 +143,12 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 			{/* 2 · A cuánto — la tasa es la variable de decisión, va de héroe */}
 			<View style={styles.rateRow}>
 				<View style={styles.rateGroup}>
-					<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: '600' }]}>{rate}</Text>
+					<Text style={[textStyles.h2, { color: rateBetter ? theme.colors.successText : rateWorse ? theme.colors.danger : theme.colors.primaryText, fontWeight: '600' }]}>{rate}</Text>
+					{rateEdge != null && (rateBetter || rateWorse) && (
+						<Text style={[textStyles.caption, { color: rateBetter ? theme.colors.successText : theme.colors.danger, fontSize: theme.typography.fontSize.xs }]}>
+							{rateEdge > 0 ? '+' : ''}{rateEdge.toFixed(1)}%
+						</Text>
+					)}
 					<QPCoin coin={offer.Coin?.logo} size={18} />
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]} numberOfLines={1}>
 						{offer.Coin?.name}

@@ -14,7 +14,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../routes'
 
-const ROW_HEIGHT = 64
+// Misma altura que los botones de acción de Savings (consistencia del par)
+const ROW_HEIGHT = 56
 
 // Tile de la cuenta principal (icono arriba, label abajo). El desplazamiento
 // es un parallax escalonado por índice: cada tile sale un poco más lejos que
@@ -42,8 +43,9 @@ const AccountTile = ({ icon, label, onPress, index, pageProgress, theme }) => {
 	)
 }
 
-// Pill de ahorros (relleno menta + tinta oscura — regla de verdes de la casa).
-// Entra desde la derecha con el mismo parallax escalonado, en espejo.
+// Pill de ahorros: mismo diseño que los botones de acción de la pantalla
+// Savings (squircle 16, alto 56, verde successFill con su tinta, icono 18 y
+// texto md). Entra desde la derecha con el parallax escalonado, en espejo.
 const SavingsPill = ({ icon, label, onPress, index, pageProgress, theme }) => {
 	const style = useAnimatedStyle(() => {
 		const p = pageProgress ? pageProgress.value : 0
@@ -58,8 +60,8 @@ const SavingsPill = ({ icon, label, onPress, index, pageProgress, theme }) => {
 	return (
 		<Animated.View style={[styles.tileSlot, style]}>
 			<QPPressable onPress={onPress} style={[styles.pill, { backgroundColor: theme.colors.successFill }]}>
-				<FontAwesome6 name={icon} size={16} color={theme.colors.successFillText} iconStyle="solid" />
-				<Text style={[styles.pillLabel, { color: theme.colors.successFillText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
+				<FontAwesome6 name={icon} size={18} color={theme.colors.successFillText} iconStyle="solid" />
+				<Text style={[styles.pillLabel, { color: theme.colors.successFillText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>
 					{label}
 				</Text>
 			</QPPressable>
@@ -104,9 +106,13 @@ const ActionButtons = ({ navigation, pageProgress }) => {
 		{ icon: 'arrow-right-arrow-left', label: 'Comerciar', onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]
 
+	// Mismos iconos y etiquetas que las acciones de la pantalla Savings (y que
+	// su modal): el usuario reconoce el par al llegar allí. Ojo además con
+	// 'turn-up', que es el icono de "Extraer" de la cuenta principal — usarlo
+	// aquí confundía dos operaciones distintas
 	const savingsActions = [
-		{ icon: 'piggy-bank', label: 'Depositar', onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'deposit' }) },
-		{ icon: 'turn-up', label: 'Retirar', onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'withdraw' }) },
+		{ icon: 'arrow-down', label: 'Depositar', onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'deposit' }) },
+		{ icon: 'arrow-up', label: 'Retirar', onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'withdraw' }) },
 	]
 
 	return (
@@ -144,6 +150,7 @@ const styles = StyleSheet.create({
 	tile: {
 		flex: 1,
 		borderRadius: 16,
+		borderCurve: 'continuous',
 		alignItems: 'center',
 		justifyContent: 'center',
 		gap: 5,
@@ -152,6 +159,7 @@ const styles = StyleSheet.create({
 	pill: {
 		flex: 1,
 		borderRadius: 16,
+		borderCurve: 'continuous',
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',

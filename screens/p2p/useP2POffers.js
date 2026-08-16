@@ -8,6 +8,10 @@ import { toast } from "sonner-native"
 
 const PAGE_SIZE = 30
 
+// Espera antes de refetchear al cambiar filtros: agrupa los toques seguidos en
+// una sola petición (el índice permite 10/min por usuario)
+const FILTER_DEBOUNCE_MS = 350
+
 const initialList = { p2pOffers: [], isLoading: false, error: null, refreshing: false }
 
 function listReducer(state, action) {
@@ -70,6 +74,8 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	const apiFiltersRef = useRef(apiFilters)
 	apiFiltersRef.current = apiFilters
 	const inFlightRef = useRef(false)
+	// Última petición que llegó mientras había otra en vuelo
+	const pendingFetchRef = useRef(null)
 	// Flipped on the first successful fetch — blocks late cache hydration
 	const hasFreshOffersRef = useRef(false)
 
@@ -77,9 +83,20 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	const [availableCoins, setAvailableCoins] = useState([])
 	const [loadingCoins, setLoadingCoins] = useState(false)
 
+	// Medias de mercado 24h por moneda (`{ TICK: { average_buy, average_sell } }`):
+	// permiten decir si la tasa de una oferta está por encima o por debajo del
+	// mercado, que es el contexto que da un P2P profesional
+	const [marketAverages, setMarketAverages] = useState(null)
+
 	// Get the Latest P2P Offers
 	const fetchP2POffers = useCallback(async (pageNum = 1, isRefresh = false) => {
-		if (inFlightRef.current) return
+		// Si ya hay uno en vuelo, en vez de descartar la petición se anota como
+		// pendiente y se relanza al terminar: cambiar de filtro mientras carga
+		// dejaba la lista mostrando el filtro anterior
+		if (inFlightRef.current) {
+			pendingFetchRef.current = { pageNum, isRefresh }
+			return
+		}
 		inFlightRef.current = true
 		const apiFilters = apiFiltersRef.current
 		try {
@@ -112,8 +129,28 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 		} finally {
 			inFlightRef.current = false
 			dispatchList({ type: "finish" })
+			const pending = pendingFetchRef.current
+			if (pending) {
+				pendingFetchRef.current = null
+				// Un "cargar más" encolado durante un refresh apunta a una página
+				// del listado ANTERIOR: al terminar el refresh la lista ya volvió
+				// a la página 1, así que servirlo pegaría la página N+1 detrás de
+				// la 1 saltándose las intermedias. Solo se replayean refrescos.
+				const wasReset = isRefresh || pageNum === 1
+				if (!wasReset || pending.isRefresh || pending.pageNum === 1) {
+					fetchRef.current?.(pending.pageNum, pending.isRefresh)
+				}
+			}
 		}
 	}, [])
+
+	// Auto-referencia para relanzar el pendiente sin romper la identidad estable
+	// de fetchP2POffers (deps vacías). Se asigna en un efecto, no en el cuerpo:
+	// React puede descartar o repetir un render, y una escritura de ref hecha
+	// ahí se escaparía de trabajo que nunca llega a pintarse. Va antes que los
+	// efectos que disparan fetch, así que ya está puesta cuando hacen falta.
+	const fetchRef = useRef(null)
+	useEffect(() => { fetchRef.current = fetchP2POffers })
 
 	// Cold-start hydration: paint the cached marketplace while the fetch revalidates
 	useEffect(() => {
@@ -128,14 +165,19 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 		if (p2pEnabled) { fetchP2POffers(1) }
 	}, [p2pEnabled, fetchP2POffers])
 
-	// Auto-fetch when quick filters change (type, coin, sort, showMine)
+	// Auto-fetch when quick filters change (type, coin, sort, showMine, monto).
+	// Con debounce: el backend permite 10 peticiones por minuto y usuario, y
+	// tocar varios filtros seguidos disparaba una por cada toque — suficiente
+	// para agotar la cuota y comerse un 429 en media docena de segundos
 	const isFirstRender = useRef(true)
 	useEffect(() => {
 		if (isFirstRender.current) {
 			isFirstRender.current = false
 			return
 		}
-		if (p2pEnabled) { fetchP2POffers(1, true) }
+		if (!p2pEnabled) return
+		const timer = setTimeout(() => fetchP2POffers(1, true), FILTER_DEBOUNCE_MS)
+		return () => clearTimeout(timer)
 	}, [quickKey, p2pEnabled, fetchP2POffers])
 
 	// Load coins for coin picker (once on mount) — cached so the picker is
@@ -159,6 +201,14 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 			finally { if (mounted) setLoadingCoins(false) }
 		}
 		loadCoins()
+
+		// El contexto de mercado es opcional: si falla, la lista funciona igual
+		try {
+			p2pApi.getAverages?.().then((res) => {
+				if (mounted && res?.success && res.data) { setMarketAverages(res.data) }
+			}).catch(() => { })
+		} catch { /* ignore */ }
+
 		return () => { mounted = false }
 	}, [])
 
@@ -170,5 +220,5 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 		if (!isLoading && hasMoreRef.current) { fetchP2POffers(pageRef.current + 1) }
 	}, [isLoading, fetchP2POffers])
 
-	return { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, fetchP2POffers, onRefresh, handleLoadMore }
+	return { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, marketAverages, fetchP2POffers, onRefresh, handleLoadMore }
 }

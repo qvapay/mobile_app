@@ -19,7 +19,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { toast } from 'sonner-native'
 
 // API
-import coinsApi from '../../../api/coinsApi'
+import useCoins from '../../../hooks/useCoins'
 import { userApi } from '../../../api/userApi'
 
 // Helpers
@@ -61,6 +61,16 @@ function createReducer(state, action) {
 	}
 }
 
+// Mismos accesos rápidos y recientes que el resto de selectores de moneda de
+// la app (P2P, retiros, depósitos): el picker se comporta igual en todas partes
+const RECENT_METHOD_COINS_KEY = "qp_recent_method_coins"
+const DEFAULT_METHOD_COINS = [
+	{ tick: "BANK_CUP", label: "CUP" },
+	{ tick: "BANK_MLC", label: "MLC" },
+	{ tick: "CLASICA", label: "Clásica" },
+	{ tick: "ETECSA", label: "ETECSA" },
+]
+
 const PaymentMethods = ({ navigation }) => {
 
 	// Theme
@@ -81,8 +91,10 @@ const PaymentMethods = ({ navigation }) => {
 
 	// State
 	const [loading, setLoading] = useState(true)
-	const [data, dispatchData] = useReducer(dataReducer, { methods: [], availableCoins: [], error: null })
-	const { methods, availableCoins, error } = data
+	const [data, dispatchData] = useReducer(dataReducer, { methods: [], error: null })
+	const { methods, error } = data
+	// Catálogo compartido y cacheado (mismo hook que Depositar/Extraer/P2P)
+	const { coins: availableCoins, isLoading: loadingCoins } = useCoins('all')
 	const [, setRefreshing] = useState(false)
 
 	// Create flow state
@@ -104,8 +116,7 @@ const PaymentMethods = ({ navigation }) => {
 			try {
 				setLoading(true)
 				dispatchData({ type: 'set', field: 'error', value: null })
-				const [coinsRes, methodsRes] = await Promise.all([coinsApi.index(), userApi.getPaymentMethods()])
-				if (coinsRes?.success && Array.isArray(coinsRes.data)) { dispatchData({ type: 'set', field: 'availableCoins', value: coinsRes.data }) }
+				const methodsRes = await userApi.getPaymentMethods()
 				if (methodsRes?.success) { dispatchData({ type: 'set', field: 'methods', value: Array.isArray(methodsRes.data) ? methodsRes.data : (methodsRes.data?.methods || []) }) }
 				else { dispatchData({ type: 'set', field: 'error', value: methodsRes?.error || 'No se pudieron cargar los métodos de pago' }) }
 			} catch (e) {
@@ -335,8 +346,11 @@ const PaymentMethods = ({ navigation }) => {
 							onClose={() => dispatchCreate({ type: 'showCoinPicker', value: false })}
 							onSelect={handleCoinSelect}
 							coins={availableCoins}
+							isLoading={loadingCoins}
 							selectedCoin={selectedCoin}
 							showFees={false}
+							recentKey={RECENT_METHOD_COINS_KEY}
+							defaultCoins={DEFAULT_METHOD_COINS}
 						/>
 
 					</View>
