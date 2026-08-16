@@ -105,6 +105,30 @@ test('una respuesta vacía no borra lo que ya había en caché', async () => {
 	expect(writeCache).not.toHaveBeenCalled()
 })
 
+test('el disco NO pisa una respuesta de red ya resuelta', async () => {
+	// La red resuelve primero y el disco llega tarde con datos viejos: si se
+	// colara, además envenenaría la memoria compartida para toda la sesión
+	let resolveDisk
+	readCache.mockImplementation(() => new Promise(res => { resolveDisk = res }))
+	const result = await renderCoins('in')
+	expect(result.current.coins).toEqual(FRESH)
+
+	await act(async () => { resolveDisk(STORED) })
+	expect(result.current.coins).toEqual(FRESH)
+})
+
+test('pasado el TTL de memoria se revalida (los precios mueven dinero real)', async () => {
+	await renderCoins('out')
+	expect(coinsApi.index).toHaveBeenCalledTimes(1)
+
+	// Simula una sesión larga: la copia en memoria envejece
+	jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 120000)
+	try {
+		await renderCoins('out')
+		expect(coinsApi.index).toHaveBeenCalledTimes(2)
+	} finally { Date.now.mockRestore() }
+})
+
 test('cada filtro conoce su clave de caché', () => {
 	expect(COIN_FILTERS.p2p.cacheKey).toBe('p2p_coins')
 	expect(COIN_FILTERS.in.cacheKey).toBe('coins_in')

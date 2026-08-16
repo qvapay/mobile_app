@@ -5,12 +5,18 @@ import { CACHE_KEYS, readCache, writeCache } from '../helpers/dataCache'
 // Memoria de módulo: dentro de una misma sesión, entrar dos veces a Depositar
 // (o saltar de Depositar a Extraer) no vuelve a tocar disco ni red
 const memory = new Map()
+const memoryAt = new Map()
 const inflight = new Map()
 
 // El catálogo de monedas es casi estático (cambia cuando se habilita un rail
 // nuevo), así que una copia de un día sigue siendo buena para pintar al
 // instante mientras se revalida por detrás
 const MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+// Pero el PRECIO de cada moneda sí se mueve, y alimenta los cálculos de dinero
+// de Withdraw y la conversión de QPCoinRow: la copia en memoria se revalida
+// pasado este tiempo para que una sesión larga no opere con precios viejos
+const MEMORY_TTL_MS = 60 * 1000
 
 /** Filtros soportados, cada uno con su clave de caché en disco. */
 export const COIN_FILTERS = {
@@ -23,6 +29,7 @@ export const COIN_FILTERS = {
 /** Solo para tests: la memoria de módulo rompería el aislamiento entre casos. */
 export const clearCoinsMemory = () => {
 	memory.clear()
+	memoryAt.clear()
 	inflight.clear()
 }
 
@@ -33,6 +40,7 @@ const fetchCoins = (kind) => {
 		.then((res) => {
 			if (res?.success && Array.isArray(res.data) && res.data.length) {
 				memory.set(kind, res.data)
+				memoryAt.set(kind, Date.now())
 				writeCache(cacheKey, res.data)
 				return res.data
 			}
@@ -64,31 +72,39 @@ export default function useCoins(kind = 'all') {
 
 	useEffect(() => {
 		let cancelled = false
+		// Guarda contra la carrera disco/red: si la red ya resolvió, el catálogo
+		// de disco NO debe pisarla (ni colarse en la memoria compartida, que
+		// envenenaría al resto de pantallas durante toda la sesión)
+		let hasFresh = false
 		const cached = memory.get(kind)
+		const freshEnough = cached && (Date.now() - (memoryAt.get(kind) || 0) < MEMORY_TTL_MS)
+
 		if (cached) {
-			// Ya se revalidó en esta sesión: el catálogo cambia cuando se habilita
-			// un rail nuevo, así que volver a pedirlo en cada montaje solo gasta
-			// cuota. El disco caduca a las 24h, con eso basta para la frescura
 			setCoins(cached)
 			setIsLoading(false)
-			return
+			// Con la copia caliente aún fresca no se revalida; pasado el TTL sí,
+			// porque los precios se mueven
+			if (freshEnough) return
+		} else {
+			setIsLoading(true)
+
+			// Disco primero: pinta mientras la red responde
+			readCache(COIN_FILTERS[kind]?.cacheKey || CACHE_KEYS.COINS_ALL, { maxAgeMs: MAX_AGE_MS })
+				.then((stored) => {
+					if (cancelled || hasFresh || !stored?.length) return
+					memory.set(kind, stored)
+					setCoins(stored)
+					setIsLoading(false)
+				})
+				.catch(() => { })
 		}
-
-		setIsLoading(true)
-
-		// Disco primero: pinta mientras la red responde
-		readCache(COIN_FILTERS[kind]?.cacheKey || CACHE_KEYS.COINS_ALL, { maxAgeMs: MAX_AGE_MS })
-			.then((stored) => {
-				if (cancelled || !stored?.length) return
-				memory.set(kind, stored)
-				setCoins(stored)
-				setIsLoading(false)
-			})
-			.catch(() => { })
 
 		fetchCoins(kind).then((fresh) => {
 			if (cancelled) return
-			if (fresh) setCoins(fresh)
+			if (fresh) {
+				hasFresh = true
+				setCoins(fresh)
+			}
 			setIsLoading(false)
 		})
 

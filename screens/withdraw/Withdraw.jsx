@@ -186,12 +186,19 @@ const Withdraw = ({ navigation, route }) => {
 	// Fetch available coins enabled_out
 	// El catálogo llega de useCoins (caché compartida): la lista se pinta al
 	// instante en vez de esperar un viaje a la red cada vez que se entra
+	// La preselección se aplica UNA vez: el catálogo cambia de identidad al
+	// hidratar desde disco y otra vez al llegar el de red, y sin esta guarda el
+	// segundo pase revertía la moneda que el usuario ya hubiera elegido
+	const didPreselectRef = useRef(false)
 	useEffect(() => {
 		if (!coinCatalog.length) return
 		setAvailableCoins(coinCatalog)
-		if (preselectedCoin) {
+		if (preselectedCoin && !didPreselectRef.current) {
 			const coin = coinCatalog.find(c => c.tick === preselectedCoin)
-			if (coin) setSelectedCoin(coin)
+			if (coin) {
+				didPreselectRef.current = true
+				setSelectedCoin(coin)
+			}
 		}
 	}, [coinCatalog, preselectedCoin])
 

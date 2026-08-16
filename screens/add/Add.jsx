@@ -141,8 +141,14 @@ const Add = ({ navigation }) => {
 	// Catálogo desde la caché compartida (useCoins): la lista aparece al
 	// instante en vez de esperar un viaje a la red en cada entrada
 	useEffect(() => {
-		if (coinCatalog.length) setAvailableCoins(coinCatalog)
-	}, [coinCatalog])
+		if (coinCatalog.length) {
+			setAvailableCoins(coinCatalog)
+			setError(null)
+		} else if (!loadingCoins) {
+			// Sin catálogo y sin carga en curso: la red falló y no había copia
+			setError('Error al cargar las monedas disponibles')
+		}
+	}, [coinCatalog, loadingCoins])
 
 	// Handle coin selection
 	const handleCoinSelect = (coin) => {
@@ -279,7 +285,7 @@ const Add = ({ navigation }) => {
 				onSelect={handleCoinSelect}
 				coins={availableCoins}
 				selectedCoin={selectedCoin}
-				isLoading={isLoading}
+				isLoading={loadingCoins}
 				amount={amount}
 				direction="in"
 				recentKey={RECENT_DEPOSIT_KEY}

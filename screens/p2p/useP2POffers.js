@@ -132,7 +132,14 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 			const pending = pendingFetchRef.current
 			if (pending) {
 				pendingFetchRef.current = null
-				fetchRef.current?.(pending.pageNum, pending.isRefresh)
+				// Un "cargar más" encolado durante un refresh apunta a una página
+				// del listado ANTERIOR: al terminar el refresh la lista ya volvió
+				// a la página 1, así que servirlo pegaría la página N+1 detrás de
+				// la 1 saltándose las intermedias. Solo se replayean refrescos.
+				const wasReset = isRefresh || pageNum === 1
+				if (!wasReset || pending.isRefresh || pending.pageNum === 1) {
+					fetchRef.current?.(pending.pageNum, pending.isRefresh)
+				}
 			}
 		}
 	}, [])

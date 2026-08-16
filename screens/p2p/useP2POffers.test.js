@@ -162,21 +162,31 @@ describe('refresh', () => {
 })
 
 describe('concurrency', () => {
-	test('una petición que llega con otra en vuelo se encola y se relanza al terminar', async () => {
+	test('un refresh que llega con otra petición en vuelo se encola y se relanza', async () => {
 		let resolveFirst
 		p2pApi.index.mockImplementation(() => new Promise(res => { resolveFirst = res }))
 		const { result } = await renderOffers()
-		// El fetch del montaje sigue en vuelo: estas no se lanzan todavía
 		result.current.fetchP2POffers(1, true)
+		expect(p2pApi.index).toHaveBeenCalledTimes(1)
+
+		p2pApi.index.mockResolvedValue({ success: true, offers: [] })
+		await act(async () => { resolveFirst({ success: true, offers: [] }) })
+		// El cambio de filtro no se pierde: la lista no se queda en el anterior
+		expect(p2pApi.index).toHaveBeenCalledTimes(2)
+	})
+
+	test('un "cargar más" encolado durante un refresh se descarta', async () => {
+		let resolveFirst
+		p2pApi.index.mockImplementation(() => new Promise(res => { resolveFirst = res }))
+		const { result } = await renderOffers()
+		// Página 2 pedida mientras la lista se está recargando desde la 1: al
+		// terminar apuntaría a un listado que ya no existe, y pegaría la página
+		// N+1 detrás de la 1 saltándose las intermedias
 		result.current.fetchP2POffers(2)
 		expect(p2pApi.index).toHaveBeenCalledTimes(1)
 
-		// Al resolver, se relanza SOLO la última (no se pierde el cambio de filtro,
-		// que era el bug: la lista se quedaba mostrando el filtro anterior)
 		p2pApi.index.mockResolvedValue({ success: true, offers: [] })
-	p2pApi.getAverages.mockResolvedValue({ success: true, data: { BANK_CUP: { average_buy: 400, average_sell: 410 } } })
 		await act(async () => { resolveFirst({ success: true, offers: [] }) })
-		expect(p2pApi.index).toHaveBeenCalledTimes(2)
-		expect(p2pApi.index).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
+		expect(p2pApi.index).toHaveBeenCalledTimes(1)
 	})
 })
