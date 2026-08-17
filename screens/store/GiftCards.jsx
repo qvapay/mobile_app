@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-n
 import useContentPadding from '../../hooks/useContentPadding'
 import { FlashList } from '@shopify/flash-list'
 
+// Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
@@ -13,25 +14,13 @@ import CategoryPill from '../../ui/store/CategoryPill'
 import BrandTile from '../../ui/store/BrandTile'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
-import { storeApi } from '../../api/storeApi'
+import { useVoucherCountriesQuery, useVoucherBrandsQuery, useVoucherCategoriesQuery } from './storeQueries'
 import { ROUTES } from '../../routes'
 
 import { toast } from 'sonner-native'
 
 const DEFAULT_COUNTRY = 'US'
 const PAGE_SIZE = 24
-
-// Catalog data (the voucher resource) and the list filters are two cohesive units
-const initialCatalog = { countries: [], brands: [], categories: [] }
-
-function catalogReducer(state, action) {
-	switch (action.type) {
-		case 'set':
-			return { ...state, [action.field]: action.value }
-		default:
-			return state
-	}
-}
 
 function filtersReducer(state, action) {
 	switch (action.type) {
@@ -60,50 +49,44 @@ const GiftCards = ({ navigation, route }) => {
 
 	const initialCategory = (route?.params?.category || 'ALL').toUpperCase()
 
-	const [catalog, dispatchCatalog] = useReducer(catalogReducer, initialCatalog)
-	const { countries, brands, categories } = catalog
 	const [filters, dispatchFilters] = useReducer(filtersReducer, { selectedCountry: null, activeCategory: initialCategory, search: '', page: 1 })
 	const { selectedCountry, activeCategory, search, page } = filters
-	const [loadingShell, setLoadingShell] = useState(true)
-	const [loadingBrands, setLoadingBrands] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
 
-	const fetchShell = useCallback(async () => {
-		const res = await storeApi.getVoucherCatalog({ countries: true })
-		if (!res.success) {
-			toast.error('Países', { description: res.error })
-			setLoadingShell(false)
-			return
-		}
-		const list = res.data?.countries || []
-		dispatchCatalog({ type: 'set', field: 'countries', value: list })
+	// Catálogo en React Query: países + marcas/categorías con clave por país.
+	// Volver a un país ya visitado pinta al instante desde caché
+	const countriesQuery = useVoucherCountriesQuery()
+	const brandsQuery = useVoucherBrandsQuery(selectedCountry?.code)
+	const categoriesQuery = useVoucherCategoriesQuery(selectedCountry?.code)
+
+	const countries = countriesQuery.data || []
+	const brands = useMemo(() => brandsQuery.data || [], [brandsQuery.data])
+	const categories = categoriesQuery.data || []
+	const loadingShell = countriesQuery.isPending
+	const loadingBrands = brandsQuery.isPending
+
+	// Los toasts solo cuando no hay NADA que pintar
+	useEffect(() => {
+		if (countriesQuery.isError && !countriesQuery.data) { toast.error('Países', { description: countriesQuery.error?.message }) }
+	}, [countriesQuery.isError, countriesQuery.data, countriesQuery.error])
+	useEffect(() => {
+		if (brandsQuery.isError && !brandsQuery.data) { toast.error('Marcas', { description: brandsQuery.error?.message }) }
+	}, [brandsQuery.isError, brandsQuery.data, brandsQuery.error])
+
+	// Default: US (o el primero) cuando llegan los países y no hay selección
+	useEffect(() => {
+		const list = countriesQuery.data
+		if (!list?.length || selectedCountry) return
 		const pick = list.find(c => c.code === DEFAULT_COUNTRY) || list[0]
-		if (pick && !selectedCountry) dispatchFilters({ type: 'set', field: 'selectedCountry', value: pick })
-		setLoadingShell(false)
-	}, [selectedCountry])
+		if (pick) dispatchFilters({ type: 'set', field: 'selectedCountry', value: pick })
+	}, [countriesQuery.data, selectedCountry])
 
-	useEffect(() => { fetchShell() }, [fetchShell])
-
-	const fetchCountryData = useCallback(async (code) => {
-		if (!code) return
-		setLoadingBrands(true)
-		const [brandsRes, catsRes] = await Promise.all([
-			storeApi.getVoucherCatalog({ country: code }),
-			storeApi.getVoucherCatalog({ categories: true, country: code }),
-		])
-		if (brandsRes.success) dispatchCatalog({ type: 'set', field: 'brands', value: brandsRes.data?.brands || [] })
-		else { toast.error('Marcas', { description: brandsRes.error }); dispatchCatalog({ type: 'set', field: 'brands', value: [] }) }
-		if (catsRes.success) dispatchCatalog({ type: 'set', field: 'categories', value: catsRes.data?.categories || [] })
-		else dispatchCatalog({ type: 'set', field: 'categories', value: [] })
-		setLoadingBrands(false)
-	}, [])
-
+	// Cambiar de país resetea búsqueda y paginación de cliente
 	useEffect(() => {
 		if (!selectedCountry?.code) return
 		dispatchFilters({ type: 'set', field: 'search', value: '' })
 		dispatchFilters({ type: 'set', field: 'page', value: 1 })
-		fetchCountryData(selectedCountry.code)
-	}, [selectedCountry?.code, fetchCountryData])
+	}, [selectedCountry?.code])
 
 	const filteredBrands = useMemo(() => {
 		const q = search.trim().toLowerCase()
@@ -130,12 +113,15 @@ const GiftCards = ({ navigation, route }) => {
 		})
 	}, [navigation, selectedCountry])
 
+	const { refetch: refetchCountries } = countriesQuery
+	const { refetch: refetchBrands } = brandsQuery
+	const { refetch: refetchCategories } = categoriesQuery
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchShell()
-		if (selectedCountry?.code) await fetchCountryData(selectedCountry.code)
-		setRefreshing(false)
-	}, [fetchShell, fetchCountryData, selectedCountry?.code])
+		try { await Promise.all([refetchCountries(), refetchBrands(), refetchCategories()]) }
+		catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
+	}, [refetchCountries, refetchBrands, refetchCategories])
 
 	if (loadingShell) {
 		return (

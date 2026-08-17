@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useRef, useCallback } from 'react'
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -15,6 +15,10 @@ import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
 
 // Cold-start data cache (transactions, quick-pay, catalogs…) — purged with the session
 import { clearDataCache } from '../helpers/dataCache'
+
+// React Query cache (se importa el singleton, no vía hook: clearAuthData corre
+// fuera del árbol de React en algunos caminos de arranque)
+import { queryClient, persister } from '../api/queryClient'
 
 // Storage keys
 const STORAGE_KEYS = { USER_DATA: 'user_data' }
@@ -58,8 +62,9 @@ const mapMeToUser = (me, email) => ({
 /**
  * Clears all persisted authentication data: the Keychain token
  * (`com.qvapay.auth`), the cached user profile, the synced
- * device-contacts keys (matches, last sync, consent), and every
- * `@qpcache:` cold-start slice (transactions, quick-pay, catalogs…).
+ * device-contacts keys (matches, last sync, consent), every
+ * `@qpcache:` cold-start slice (transactions, quick-pay, catalogs…) and the
+ * React Query cache, both in memory and its persisted copy.
  */
 const clearAuthData = async () => {
 	try {
@@ -72,6 +77,11 @@ const clearAuthData = async () => {
 				'device_contacts_consent',
 			]),
 			clearDataCache(),
+			// Sin esto, los datos de la cuenta anterior sobrevivirían en memoria y
+			// en el snapshot del persister: al entrar con otra cuenta se verían
+			// sus transacciones antes del primer fetch
+			queryClient.clear(),
+			persister.removeClient(),
 		])
 	} catch (err) { /* error clearing auth data */ }
 }
@@ -126,6 +136,16 @@ export default function useAuthState() {
 
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState(null)
+
+	// Espejo del user para que `updateUser` pueda ser ESTABLE (deps []): si la
+	// función se recreara con cada cambio de `user`, todo efecto que dependa de
+	// ella entraría en bucle — useHomeFeed vuelca el perfil con
+	// `useEffect(..., [profile.data, updateUser])`, y ese bucle bombardeaba el
+	// AuthContext con updates contra pantallas congeladas por enableFreeze,
+	// que pierden el contexto y revientan con "useAuth must be used within an
+	// AuthProvider" segundos después de arrancar
+	const userRef = useRef(null)
+	useEffect(() => { userRef.current = user }, [user])
 
 	// Initialize auth state on app start
 	useEffect(() => {
@@ -470,9 +490,9 @@ export default function useAuthState() {
 	 * @param {Object} newUserData - Partial user fields to merge over the current user.
 	 * @returns {Promise<{ success: boolean, error?: string }>}
 	 */
-	const updateUser = async (newUserData) => {
+	const updateUser = useCallback(async (newUserData) => {
 		try {
-			const updatedUser = { ...user, ...newUserData }
+			const updatedUser = { ...userRef.current, ...newUserData }
 			await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
 			setUser(updatedUser)
 			// Update home screen widgets with latest balance
@@ -483,7 +503,9 @@ export default function useAuthState() {
 			setError('Failed to update user data')
 			return { success: false, error: err.message }
 		}
-	}
+		// setUser/setError delegan en el dispatch estable del reducer
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
 
 	// Clear error
 	const clearError = () => { setError(null) }

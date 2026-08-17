@@ -476,6 +476,18 @@ describe('updateUser', () => {
 		expect(reloadWidgets).toHaveBeenCalled()
 	})
 
+	test('su identidad es ESTABLE entre updates — los efectos que dependen de ella no entran en bucle', async () => {
+		// useHomeFeed vuelca el perfil con `useEffect(..., [profile.data, updateUser])`:
+		// si cada setUser recreara updateUser, ese efecto se re-dispararía sin fin,
+		// bombardeando el AuthContext de updates — y las pantallas congeladas por
+		// enableFreeze pierden el contexto bajo esa tormenta ("useAuth must be
+		// used within an AuthProvider" segundos después de arrancar)
+		const { result } = await renderAuthenticatedHook()
+		const before = result.current.updateUser
+		await act(async () => { await result.current.updateUser({ balance: 77 }) })
+		expect(result.current.updateUser).toBe(before)
+	})
+
 	test('a persistence failure reports the error and keeps the previous user', async () => {
 		const { result } = await renderAuthenticatedHook()
 		AsyncStorage.setItem.mockRejectedValue(new Error('disk full'))

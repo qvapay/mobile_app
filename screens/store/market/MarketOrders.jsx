@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native'
 import FastImage from '@d11/react-native-fast-image'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Theme Context
 import { useTheme } from '../../../theme/ThemeContext'
@@ -10,27 +11,24 @@ import { createContainerStyles, createTextStyles } from '../../../theme/themeUti
 import QPLoader from '../../../ui/particles/QPLoader'
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
-// Routes & API
+// Routes & Data
 import { ROUTES } from '../../../routes'
-import { marketApi } from '../../../api/marketApi'
+import { useMarketOrdersInfiniteQuery, flattenOrders } from './marketQueries'
+import { trimToFirstPage } from '../../../api/queryUtils'
 
 // Helpers
 import { getShortDateTime } from '../../../helpers'
 import { mediaUrl } from '../../../helpers/mediaUrl'
 import { MARKET_ORDER_STATUS } from './marketConstants'
 
-// Stale-while-revalidate cache (first page only)
-import { CACHE_KEYS, readCache, writeCache } from '../../../helpers/dataCache'
-
 import { toast } from 'sonner-native'
-
-const PAGE_SIZE = 20
 
 /**
  * The user's marketplace purchases as buyer (`GET /market/orders`), newest
- * first with infinite scroll and pull-to-refresh. The first page is
- * SWR-cached; each row navigates to MarketOrderDetail carrying the full
- * order (there is no per-order fetch — the row already has everything).
+ * first with infinite scroll and pull-to-refresh. Los datos viven en React
+ * Query (query infinita persistida con su primera página); each row navigates
+ * to MarketOrderDetail carrying the full order (there is no per-order fetch —
+ * the row already has everything).
  */
 const MarketOrders = ({ navigation }) => {
 
@@ -38,58 +36,36 @@ const MarketOrders = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 
-	const [orders, setOrders] = useState([])
-	const [total, setTotal] = useState(null)
-	const [page, setPage] = useState(1)
-	const [loading, setLoading] = useState(true)
-	const [loadingMore, setLoadingMore] = useState(false)
+	const queryClient = useQueryClient()
 	const [refreshing, setRefreshing] = useState(false)
-	const hasFresh = useRef(false)
 
-	// Cold-start hydration (first page)
+	const query = useMarketOrdersInfiniteQuery()
+	const { hasNextPage, isFetching, fetchNextPage, refetch } = query
+
+	const orders = useMemo(() => flattenOrders(query.data?.pages), [query.data])
+	const loading = query.isPending
+	const loadingMore = query.isFetchingNextPage
+
+	// El toast solo cuando no hay NADA que pintar (offline con caché, silencio)
 	useEffect(() => {
-		readCache(CACHE_KEYS.MARKET_ORDERS).then(cached => {
-			if (!cached?.length || hasFresh.current) return
-			setOrders(cached)
-			setLoading(false)
-		})
-	}, [])
-
-	const fetchFirstPage = useCallback(async () => {
-		const res = await marketApi.getOrders({ page: 1, take: PAGE_SIZE })
-		if (res.success) {
-			hasFresh.current = true
-			const list = res.data?.orders || []
-			setOrders(list)
-			setTotal(res.data?.total ?? null)
-			setPage(1)
-			writeCache(CACHE_KEYS.MARKET_ORDERS, list)
-		} else if (!orders.length) {
-			toast.error('Compras', { description: res.error })
+		if (query.isError && !query.data) {
+			toast.error('Compras', { description: query.error?.message })
 		}
-		setLoading(false)
-	}, [orders.length])
+	}, [query.isError, query.data, query.error])
 
-	useEffect(() => { fetchFirstPage() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+	const loadMore = useCallback(() => {
+		if (hasNextPage && !isFetching) fetchNextPage()
+	}, [hasNextPage, isFetching, fetchNextPage])
 
-	const loadMore = useCallback(async () => {
-		if (loadingMore || total == null || orders.length >= total) return
-		setLoadingMore(true)
-		const nextPage = page + 1
-		const res = await marketApi.getOrders({ page: nextPage, take: PAGE_SIZE })
-		if (res.success) {
-			const fresh = (res.data?.orders || []).filter(o => !orders.some(x => x.uuid === o.uuid))
-			setOrders(prev => [...prev, ...fresh])
-			setPage(nextPage)
-		}
-		setLoadingMore(false)
-	}, [loadingMore, total, orders, page])
-
+	// Recortar a la página 1 antes de refetch: un refresh = UNA petición
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchFirstPage()
-		setRefreshing(false)
-	}, [fetchFirstPage])
+		try {
+			queryClient.setQueryData(['market', 'orders'], trimToFirstPage)
+			await refetch()
+		} catch { /* los datos anteriores siguen en pantalla */ }
+		finally { setRefreshing(false) }
+	}, [queryClient, refetch])
 
 	const renderItem = ({ item }) => {
 		const status = MARKET_ORDER_STATUS[item.status] || { label: item.status, color: 'placeholder' }

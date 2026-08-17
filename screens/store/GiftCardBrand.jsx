@@ -18,6 +18,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
+import { useVoucherBrandDetailQuery } from './storeQueries'
 import { tinyfiNumber } from '../../helpers'
 import useSatsDiscount from './useSatsDiscount'
 
@@ -99,16 +100,6 @@ const SummaryRow = ({ label, value, bold, highlight, theme, textStyles }) => (
 	</View>
 )
 
-// Fetched brand data and the purchase-wizard selection are two cohesive units
-function dataReducer(state, action) {
-	switch (action.type) {
-		case 'set':
-			return { ...state, [action.field]: action.value }
-		default:
-			return state
-	}
-}
-
 function purchaseReducer(state, action) {
 	switch (action.type) {
 		case 'set':
@@ -139,12 +130,25 @@ const GiftCardBrand = ({ navigation, route }) => {
 	const textStyles = createTextStyles(theme)
 	const contentPadding = useContentPadding()
 
-	const [data, dispatchData] = useReducer(dataReducer, { country: initCountry || null, brand: '', brandLogo: null, offers: [] })
-	const { country, brand, brandLogo, offers } = data
+	// Detalle de la marca en React Query (clave país+marca): volver a una
+	// tarjeta ya vista pinta al instante desde caché
+	const detailQuery = useVoucherBrandDetailQuery(countryCode, brandSlug)
+	const offers = detailQuery.data?.offers || []
+	const brand = detailQuery.data?.brand || brandSlug
+	const brandLogo = detailQuery.data?.brand_logo_url || null
+	// Only fall back to the fetched country when the route didn't supply one
+	const country = initCountry || detailQuery.data?.country || null
 	const [purchase, dispatchPurchase] = useReducer(purchaseReducer, { selectedOffer: null, rangeAmount: '', step: 1 })
 	const { selectedOffer, rangeAmount, step } = purchase
-	const [loading, setLoading] = useState(true)
+	const loading = detailQuery.isPending
 	const [submitting, setSubmitting] = useState(false)
+
+	// El toast solo cuando no hay NADA que pintar
+	useEffect(() => {
+		if (detailQuery.isError && !detailQuery.data) {
+			toast.error('Tarjeta', { description: detailQuery.error?.message || 'No se pudo cargar la tarjeta' })
+		}
+	}, [detailQuery.isError, detailQuery.data, detailQuery.error])
 
 	useLayoutEffect(() => {
 		const raw = parseFloat(user?.balance || 0)
@@ -178,24 +182,6 @@ const GiftCardBrand = ({ navigation, route }) => {
 			}),
 		})
 	}, [navigation, user?.balance, user?.satoshis, theme, textStyles.h5, textStyles.h6, brand])
-
-	useEffect(() => {
-		let cancelled = false
-			; (async () => {
-				setLoading(true)
-				const res = await storeApi.getVoucherCatalog({ country: countryCode, brand: brandSlug })
-				if (cancelled) return
-				if (res.success) {
-					dispatchData({ type: 'set', field: 'offers', value: res.data?.offers || [] })
-					dispatchData({ type: 'set', field: 'brand', value: res.data?.brand || brandSlug })
-					dispatchData({ type: 'set', field: 'brandLogo', value: res.data?.brand_logo_url || null })
-					// Only fall back to the fetched country when the route didn't supply one
-					if (res.data?.country && !initCountry) dispatchData({ type: 'set', field: 'country', value: res.data.country })
-				} else { toast.error('Tarjeta', { description: res.error || 'No se pudo cargar la tarjeta' }) }
-				setLoading(false)
-			})()
-		return () => { cancelled = true }
-	}, [countryCode, brandSlug, initCountry])
 
 	const offerPrice = useMemo(() => {
 		if (!selectedOffer) return 0

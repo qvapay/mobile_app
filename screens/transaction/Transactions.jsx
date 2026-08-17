@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
+import { useState, useCallback, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
 import { View, Text, ActivityIndicator, Pressable, Platform, useWindowDimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 
@@ -6,11 +6,9 @@ import { FlashList } from '@shopify/flash-list'
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
-// API
-import { transferApi } from '../../api/transferApi'
-
-// Stale-while-revalidate cache (instant cold-start / offline rendering)
-import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
+// Data
+import useTransactionsList from './useTransactionsList'
+import { groupTransactionsByDay } from './transactionsGrouping'
 
 // UI
 import QPTransaction from '../../ui/particles/QPTransaction'
@@ -22,31 +20,6 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
-const PAGE_SIZE = 20
-
-// The fetched list (items + its two loading flags) moves together as one unit
-const initialList = { transactions: [], isLoading: false, isRefreshing: false }
-
-function listReducer(state, action) {
-	switch (action.type) {
-		case 'start':
-			return { ...state, isLoading: !action.refresh, isRefreshing: !!action.refresh }
-		case 'setItems':
-			return { ...state, transactions: action.items }
-		case 'hydrate':
-			// Cached first page — never clobber data a fetch already delivered
-			return state.transactions.length === 0 && action.items?.length ? { ...state, transactions: action.items } : state
-		case 'appendItems':
-			return { ...state, transactions: [...state.transactions, ...action.items] }
-		case 'clear':
-			return { ...state, transactions: [] }
-		case 'finish':
-			return { ...state, isLoading: false, isRefreshing: false }
-		default:
-			return state
-	}
-}
 
 // The filter-modal draft (pending filters + selected period preset) is one unit
 const initialDraft = { filters: {}, period: null }
@@ -80,25 +53,17 @@ function draftReducer(state, action) {
  * Full transaction history with search, filters and infinite scroll (FlashList).
  * Pages through `GET /transaction` (20 per page); accepts `route.params.showSearch`
  * to open with the search bar already visible.
+ *
+ * Los datos viven en React Query (`useTransactionsList`): cada juego de filtros
+ * es su propia query infinita, la primera página sin filtrar se persiste en
+ * disco para el arranque en frío, y aplicar filtros o buscar es simplemente
+ * cambiar el estado `filters` — la query nueva arranca sola.
+ *
  * Header search/filter buttons use iOS native `unstable_headerRightItems`
  * (SF Symbols, liquid-glass) with a `headerRight` fallback on Android.
  * The filter modal edits a draft that only takes effect on "Aplicar".
  */
 const Transactions = ({ navigation, route }) => {
-
-	// Fetched list state
-	const [list, dispatchList] = useReducer(listReducer, initialList)
-	const { transactions, isLoading, isRefreshing } = list
-
-	// Pagination cursors — read only inside fetch/load-more handlers, never rendered,
-	// so refs avoid re-rendering the whole list on every page/hasMore change.
-	const pageRef = useRef(1)
-	const hasMoreRef = useRef(true)
-	// In-flight guard kept in a ref so fetchTransactions needn't capture isLoading state
-	const inFlightRef = useRef(false)
-	// Flipped on the first successful fetch — blocks late cache hydration from
-	// overwriting fresh (possibly filtered or genuinely empty) results
-	const hasFreshDataRef = useRef(false)
 
 	// Applied filter state
 	const [filters, setFilters] = useState({})
@@ -113,6 +78,14 @@ const Transactions = ({ navigation, route }) => {
 	// Currently-applied period preset — only read when seeding the draft, never rendered
 	const selectedPeriodRef = useRef(null)
 
+	// Paginated history for the applied filters
+	const { transactions, isPending, isFetchingNextPage, refreshing, onRefresh, loadMore } = useTransactionsList(filters)
+
+	// Separadores por día (estilo Mercury): cada día es su propia tarjeta con
+	// una fecha minúscula encima; las posiciones relativas al grupo hacen que
+	// QPTransaction redondee las esquinas de cada bloque, no de la lista entera
+	const listItems = useMemo(() => groupTransactionsByDay(transactions), [transactions])
+
 	// Contexts
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -121,42 +94,6 @@ const Transactions = ({ navigation, route }) => {
 
 	// Check if any filters are active
 	const hasActiveFilters = useMemo(() => Object.keys(filters).length > 0, [filters])
-
-	// Fetch transactions with current filters
-	const fetchTransactions = useCallback(async (pageNum = 1, refresh = false, activeFilters = filters) => {
-
-		if (inFlightRef.current) return
-		inFlightRef.current = true
-
-		try {
-
-			dispatchList({ type: 'start', refresh })
-
-			const result = await transferApi.getLatestTransactions({
-				page: pageNum,
-				take: PAGE_SIZE,
-				...activeFilters,
-			})
-
-			if (result.success) {
-				hasFreshDataRef.current = true
-				const newData = result.data || []
-				if (refresh || pageNum === 1) { dispatchList({ type: 'setItems', items: newData }) }
-				else { dispatchList({ type: 'appendItems', items: newData }) }
-				hasMoreRef.current = newData.length >= PAGE_SIZE
-				pageRef.current = pageNum
-				// Persist the unfiltered first page for instant cold-start rendering
-				if (pageNum === 1 && Object.keys(activeFilters).length === 0) {
-					writeCache(CACHE_KEYS.TRANSACTIONS_FIRST_PAGE, newData)
-				}
-			}
-		} catch (error) {
-			// Silent fail - list stays as is
-		} finally {
-			inFlightRef.current = false
-			dispatchList({ type: 'finish' })
-		}
-	}, [filters])
 
 	// Open filter modal with current filters as draft
 	const openFilters = useCallback(() => {
@@ -168,19 +105,17 @@ const Transactions = ({ navigation, route }) => {
 	const toggleSearch = useCallback(() => {
 		setShowSearch(prev => {
 			if (prev && searchText) {
-				// Closing search — clear search text and re-fetch without search filter
+				// Closing search — clear search text and drop the search filter
 				setSearchText('')
-				const newFilters = { ...filters }
-				delete newFilters.search
-				setFilters(newFilters)
-				pageRef.current = 1
-				hasMoreRef.current = true
-				dispatchList({ type: 'clear' })
-				fetchTransactions(1, false, newFilters)
+				setFilters(current => {
+					const next = { ...current }
+					delete next.search
+					return next
+				})
 			}
 			return !prev
 		})
-	}, [searchText, filters, fetchTransactions])
+	}, [searchText])
 
 	// Header buttons (search + filter)
 	useLayoutEffect(() => {
@@ -220,41 +155,12 @@ const Transactions = ({ navigation, route }) => {
 		})
 	}, [hasActiveFilters, showSearch, theme, navigation, containerStyles.headerRight, openFilters, toggleSearch])
 
-	// Cold-start hydration (mount only): paint the cached unfiltered first page
-	// while the network fetch revalidates; a resolved fetch always wins
-	useEffect(() => {
-		readCache(CACHE_KEYS.TRANSACTIONS_FIRST_PAGE).then(items => {
-			if (items && !hasFreshDataRef.current) dispatchList({ type: 'hydrate', items })
-		})
-	}, [])
-
-	// Initial load
-	useEffect(() => {
-		fetchTransactions(1)
-	}, [fetchTransactions])
-
-	// Load more on scroll end
-	const handleLoadMore = useCallback(() => {
-		if (!isLoading && hasMoreRef.current) {
-			fetchTransactions(pageRef.current + 1)
-		}
-	}, [isLoading, fetchTransactions])
-
-	// Pull to refresh
-	const handleRefresh = useCallback(() => {
-		hasMoreRef.current = true
-		fetchTransactions(1, true)
-	}, [fetchTransactions])
-
-	// Apply filters from modal
+	// Apply filters from modal — cambiar `filters` cambia de query; no hay nada
+	// más que resetear (cursores y lista los gestiona React Query)
 	const applyFilters = () => {
 		setFilters(draft.filters)
 		selectedPeriodRef.current = draft.period
 		setShowFilters(false)
-		pageRef.current = 1
-		hasMoreRef.current = true
-		dispatchList({ type: 'clear' })
-		fetchTransactions(1, false, draft.filters)
 	}
 
 	// Clear all draft filters
@@ -262,9 +168,9 @@ const Transactions = ({ navigation, route }) => {
 		dispatchDraft({ type: 'clearAll' })
 	}
 
-	// Footer loader
+	// Footer loader (next page in flight)
 	const renderFooter = () => {
-		if (!isLoading || transactions.length === 0) return null
+		if (!isFetchingNextPage) return null
 		return (
 			<View style={{ paddingVertical: 20, alignItems: 'center' }}>
 				<ActivityIndicator size="small" color={theme.colors.primary} />
@@ -274,18 +180,14 @@ const Transactions = ({ navigation, route }) => {
 
 	// Handle search submit
 	const handleSearch = useCallback((text) => {
-		const newFilters = { ...filters }
-		if (text.trim()) {
-			newFilters.search = text.trim()
-		} else {
-			delete newFilters.search
-		}
-		setFilters(newFilters)
-		pageRef.current = 1
-		hasMoreRef.current = true
-		dispatchList({ type: 'clear' })
-		fetchTransactions(1, false, newFilters)
-	}, [filters, fetchTransactions])
+		const term = text.trim()
+		setFilters(current => {
+			const next = { ...current }
+			if (term) { next.search = term }
+			else { delete next.search }
+			return next
+		})
+	}, [])
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -306,14 +208,19 @@ const Transactions = ({ navigation, route }) => {
 				</View>
 			)}
 			<FlashList
-				data={transactions}
-				renderItem={({ item, index }) => <QPTransaction transaction={item} navigation={navigation} index={index} totalItems={transactions.length} />}
-				keyExtractor={(item) => item.uuid}
-				ListEmptyComponent={!isLoading ? <Text style={textStyles.h2}>No hay transacciones</Text> : null}
+				data={listItems}
+				getItemType={(item) => item.type}
+				renderItem={({ item }) => (
+					item.type === 'header'
+						? <Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 8, marginBottom: 6, marginLeft: 4 }]}>{item.label}</Text>
+						: <QPTransaction transaction={item.transaction} navigation={navigation} index={item.groupIndex} totalItems={item.groupSize} />
+				)}
+				keyExtractor={(item) => (item.type === 'header' ? item.key : item.transaction.uuid)}
+				ListEmptyComponent={!isPending ? <Text style={textStyles.h2}>No hay transacciones</Text> : null}
 				ListFooterComponent={renderFooter}
-				onEndReached={handleLoadMore}
+				onEndReached={loadMore}
 				onEndReachedThreshold={0.3}
-				refreshControl={createHiddenRefreshControl(isRefreshing, handleRefresh)}
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 				showsVerticalScrollIndicator={false}
 				estimatedItemSize={70}
 			/>

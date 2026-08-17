@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-QvaPay is a React Native mobile fintech app (RN 0.84.1, React 19.2.3) providing a non-custodial wallet, P2P marketplace, crypto payment gateway, savings (with Roundup), phone top-ups and gift cards for underbanked regions in Latin America and the Caribbean. The version lives in `package.json` (currently **1.8.5**) and is synced everywhere else by `npm run version:sync`. The backend API lives at `~/webs/qpweb` (Next.js 16).
+QvaPay is a React Native mobile fintech app (RN 0.84.1, React 19.2.3) providing a non-custodial wallet, P2P marketplace, crypto payment gateway, savings (with Roundup), phone top-ups and gift cards for underbanked regions in Latin America and the Caribbean. The version lives in **`app.json`** (source of truth: `version` + `versionCode`) and is synced everywhere else by `npm run version:sync`. The backend API lives at `~/webs/qpweb` (Next.js 16).
 
 ## Common Commands
 
@@ -34,7 +34,7 @@ npm run android:publish[:internal|:production]  # gradle publishBundle to Play t
 npm run version:sync     # Sync version across iOS/Android/app.json (auto-runs before ios/android)
 ```
 
-**Node.js requirement**: >= 22.11. CocoaPods required for iOS. `npm run version:sync` reads `package.json` version and writes it across `ios/QvaPay.xcodeproj/project.pbxproj`, `android/app/build.gradle`, and `app.json` — all version bumps go through `package.json`.
+**Node.js requirement**: >= 22.11. CocoaPods required for iOS. `npm run version:sync` reads **`app.json`** (`version` + `versionCode`) and writes them into `package.json` and `ios/QvaPay.xcodeproj/project.pbxproj`; Android reads `app.json` directly via Gradle — all version bumps go through `app.json`. The version also feeds the React Query persister `buster`, so bumping it invalidates the whole persisted query cache on update.
 
 **Testing gotcha**: devDeps use jest 30 but the `react-native` preset bundles jest 29 packages — they clash in the default environment. Pattern: extract pure logic into a plain module and test it with a `@jest-environment node` docblock (see `screens/keypad/keypadAmount.js` + `.test.js`).
 
@@ -46,25 +46,47 @@ The full nested provider stack — order matters because lower providers depend 
 ```
 GestureHandlerRootView
   ErrorBoundary
-    SafeAreaProvider
-      LoadingProvider
-        AuthProvider
-          OnlineStatusProvider
-            SettingsProvider
-              ThemeProviderWithSettings
-                LoadingBridge       ← wires LoadingContext into the axios client
-                  AppLockProvider
-                    NavigationWrapper (NavigationContainer with linking + dynamic theme)
-                      GlobalLoadingBar
-                      AppNavigator
-                      Toaster (sonner-native, top-center)
-                    LockScreen
+    PersistQueryClientProvider  ← React Query + persister (por FUERA de Auth: el logout vacía la caché)
+      SafeAreaProvider
+        LoadingProvider
+          AuthProvider
+            OnlineStatusProvider
+              SettingsProvider
+                ThemeProviderWithSettings
+                  LoadingBridge       ← wires LoadingContext into the axios client
+                    AppLockProvider
+                      NavigationWrapper (NavigationContainer with linking + dynamic theme)
+                        GlobalLoadingBar
+                        AppNavigator
+                        Toaster (sonner-native, top-center)
+                      LockScreen
 ```
 
 `OneSignal.initialize(...)` is called at module scope **outside** the component tree. `AppNavigator` also owns OneSignal foreground/click listeners (toast + navigate) and the `UpdatePromptModal` flow via `helpers/versionCheck`.
 
+### Data Layer (React Query / TanStack Query 5)
+
+**Todas las LECTURAS de servidor viven en React Query** (queries por dominio en módulos `*Queries.js` junto a sus pantallas); las mutaciones de dinero y los flujos en vivo siguen siendo llamadas directas a `api/` (ver "Fuera a propósito"). Piezas centrales:
+
+- **`api/unwrap.js`**: traduce el contrato `{ success, data, error, status }` de los 15 módulos de `api/` a valor-o-`ApiError` (React Query necesita promesas que rechazan). `shouldRetry`: nunca 4xx (**excepto 429**, el único que el tiempo arregla — el token bucket del backend se rellena solo), siempre 5xx **y `status: undefined`** (500/red llegan sin código porque el interceptor rechaza sin `.response`). `retryDelay`: 429 espera 2.5s fijos (calzado con las ventanas de refill de 5s del backend); el resto backoff exponencial acotado a 5s. Máx 2 reintentos.
+- **`api/queryClient.js`**: `staleTime: 0` por defecto (cada montaje revalida; las queries que pueden permitirse datos viejos lo suben caso a caso), `gcTime` 24h (DEBE cubrir la persistencia o el GC ganaría al persister), `refetchOnWindowFocus` off (no hay foco de ventana en RN). **Persister** a AsyncStorage (`@qpquery:v1`, 24h, `buster` = versión de app.json) con dos políticas globales: `shouldPersistQuery` excluye queries con **`meta: { noPersist: true }`** (histórico filtrado/buscado, carrito asistido, disponibilidad IAP), y el `serialize` **recorta toda query infinita a su primera página** antes de escribirla (persistir N páginas obligaría al próximo arranque a revalidarlas todas en cadena).
+- **`api/queryUtils.js`**: `trimToFirstPage` — el pull-to-refresh de una query infinita hace `setQueryData(key, trimToFirstPage)` + `refetch()` para que un refresh sea UNA petición y no una cadena de refetches por página (Transactions, MarketOrders).
+- **Logout**: `clearAuthData` hace `queryClient.clear()` + `persister.removeClient()` — sin esto, los datos de la cuenta anterior sobrevivirían en memoria y en disco.
+
+**Raíces de claves** (jerárquicas: `refetchQueries(root)` refresca el dominio entero):
+`['home', …]` feed del Home (transactions/quickpay/blog/watchlist/promo/profile) | `['transactions','list',filters]` histórico infinito (los filtros VAN EN LA CLAVE: filtrar = cambiar de query) | `['savings', …]` resumen + movimientos | `['invest', …]` dashboard + stocks/históricos | `['coins', kind|history]` catálogo de monedas e históricos | `['store', …]` catálogos Zendit + compras | `['market', …]` Seller Shops | `['assisted', …]` Personal Shopper | `['p2p', …]` monedas/medias/snapshot/perfiles | `['topup', …]` recargas IAP | `['user','referrals']` | `['contacts']`
+
+**Queries compartidas entre pantallas** (misma clave = una petición y una caché): `['home','quickpay']` (fila de pago rápido del Home + carrusel de Send — vive en `hooks/useQuickPayQuery.js` para no arrastrar el feed entero a los tests de Send), `['savings','summary']` (`hooks/useSavingsSummaryQuery.js`: BalanceCard + Invest + Savings — un depósito/retiro invalida `['savings']` y las tres superficies se actualizan), `['coins', kind]` (`hooks/useCoins.js`, reescrito sobre RQ: Add/Withdraw/P2PCreate/PaymentMethods + picker del P2P), `['invest','coins']` (dashboard + CoinDetail), `['store','topup-countries']` (portada de tienda + PhoneTopupIndex).
+
+**Convenciones**: `refreshing` es SIEMPRE estado local activado solo por el tirón del usuario (nunca `useIsFetching` — BalanceCard lo usa como flanco de subida); los toasts de error solo cuando `isError && !data` (offline con caché = silencio); `placeholderData: previous => previous` en listas/catálogos para que cambiar de clave no vacíe la pantalla (también entre timeframes de un gráfico).
+
+**Fuera a propósito**: la orquestación de ofertas del P2P (`useP2POffers`: debounce 350ms + coalescing calibrados contra el rate limit 10/min — RQ solo aporta el snapshot de arranque vía `setQueryData(P2P_OFFERS_SNAPSHOT_KEY)`), `useP2POfferDetail`/`useP2PChat` (trade en vivo: polling 5s + SSE), y toda mutación de dinero (SendConfirm/Withdraw/Pay/compras — llamadas directas + `invalidateQueries` donde aplica).
+
+**Tests**: React Query notifica vía `notifyManager` (`setTimeout`), así que los harness necesitan asentar con un temporizador real tras cada interacción (`settle()` = `act(async () => sleep(20))`); con fake timers, avanzar el reloj simulado en su lugar (ver `useP2POffers.test.js`). Cada harness crea su `QueryClient` con `retry: false` y lo desmonta en `afterEach` (`clear()` + `unmount()`) o jest no cierra el proceso.
+
 ### State Management (Context API)
-- **AuthContext** (`/auth/AuthContext.js`, state extracted to `useAuthState.js`): auth state, one-shot token validation on startup (`initializeAuth()` refreshes via `/user/extended` — no periodic revalidation). State: `isAuthenticated`, `user`, `token`, `isLoading`, `error`. Functions: `login()` (handles 202 2FA + 200 success), `loginWithPasskey()`, `logout()`, `register()`, `confirmRegistration()`, `requestPin()`, `updateUser()`, `initializeAuth()`. The 60s lockout after 5 failed logins lives in `auth/screens/Login.jsx`, not the context. Helpers in `/auth/hooks/`: `useBiometricSupport`, `usePinCountdown`.
+Contexts = estado de UI/app (sesión, tema, ajustes, lock); el estado de **servidor** vive en React Query (sección anterior) — no crear contexts nuevos para datos de red.
+- **AuthContext** (`/auth/AuthContext.js`, state extracted to `useAuthState.js`): auth state, one-shot token validation on startup (`initializeAuth()` refreshes via `/user/extended` — no periodic revalidation). State: `isAuthenticated`, `user`, `token`, `isLoading`, `error`. Functions: `login()` (handles 202 2FA + 200 success), `loginWithPasskey()`, `logout()`, `register()`, `confirmRegistration()`, `requestPin()`, `updateUser()`, `initializeAuth()`. **`updateUser` tiene identidad ESTABLE** (`useCallback` deps `[]` + ref espejo del user): hay efectos que dependen de ella (useHomeFeed vuelca el perfil), y si se recreara con cada `setUser` entrarían en bucle infinito — la tormenta de updates de contexto contra pantallas congeladas por `enableFreeze` pierde el contexto y revienta con "useAuth must be used within an AuthProvider". The 60s lockout after 5 failed logins lives in `auth/screens/Login.jsx`, not the context. Helpers in `/auth/hooks/`: `useBiometricSupport`, `usePinCountdown`.
 - **SettingsContext** (`/settings/SettingsContext.js`, + `useSettingsState.js`, `settingsConstants.js`): app-wide settings (notifications, security, privacy, appearance, language, transactions, p2p, sounds). Granular AsyncStorage keys; supports import/export.
 - **ThemeContext** (`/theme/ThemeContext.js`): light/dark/auto theme, memoized styles via `useTextStyles()` / `useContainerStyles()`. Listens to system appearance.
 - **AppLockContext** (`/lock/AppLockContext.js`): PIN-protected app lock, gates the UI behind `LockScreen` when armed.
@@ -151,19 +173,19 @@ UI conventions:
 - `/ui/particles/`: atomic (QPButton, QPPressable, QPInput, QPAvatar, QPBalance, QPCoin, QPTransaction, QPRate, QPPill, QPLoader, QPSwitch, QPMoneyInput, QPCodeInput, QPSkeleton, QPProduct, QPSectionHeader, SettingsItem, TransactionSticker, FaceIDIcon)
 - `/ui/store/`: store-specific particles (BrandTile, CategoryPill, CountryPicker, OperatorAvatar)
 - `/auth/`: AuthContext + `useAuthState` + `hooks/` + Login/Register/Recover screens; Login subcomponents live in `auth/screens/login/` (CredentialsForm, TwoFactorEntry, QuickLoginRow, LeakedPasswordModal)
-- `/api/`: 15 modules + `client.js`
+- `/api/`: 15 modules + `client.js` + la capa de queries: `unwrap.js` (contrato→excepción + política de reintentos), `queryClient.js` (cliente + persister + políticas de persistencia), `queryUtils.js` (`trimToFirstPage`). Las queries por dominio viven junto a sus pantallas: `screens/home/homeQueries.js`, `screens/transaction/transactionsQueries.js` + `sendQueries.js`, `screens/invest/investQueries.js`, `screens/store/storeQueries.js`, `screens/store/market/marketQueries.js`, `screens/store/assisted/assistedQueries.js`, `screens/p2p/p2pQueries.js`
 - `/theme/`: ThemeContext + themeUtils
 - `/settings/`: SettingsContext + useSettingsState + settingsConstants
 - `/lock/`: AppLockContext + LockScreen
 - `/loading/`: LoadingContext (bridged to axios for `GlobalLoadingBar`)
-- `/hooks/`: `OnlineStatusContext`, `useAppNavigation`, `useDeviceContacts`, `usePinEntry` (multi-box PIN/OTP input mechanics), `usePushPrompt`, `useStepTransitions` (animated multi-step wizard transitions, used by Register), `useTransactionSSE` (real-time transaction stream via `react-native-sse`)
-- `/helpers/`: `dataCache.js` (stale-while-revalidate cold-start cache — see Development Notes), `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `stickers.js` (QvaPay sticker catalog), `versionCheck.js` (drives `UpdatePromptModal`), `walletDeeplinks.js` (Trust Wallet & co. universal links for deposits), `widgetBridge.js` (iOS/Android home-screen widgets)
+- `/hooks/`: `OnlineStatusContext`, `useAppNavigation`, `useDeviceContacts`, `usePinEntry` (multi-box PIN/OTP input mechanics), `usePushPrompt`, `useStepTransitions` (animated multi-step wizard transitions, used by Register), `useTransactionSSE` (real-time transaction stream via `react-native-sse`), y las queries compartidas entre pantallas: `useQuickPayQuery` (Home + Send), `useSavingsSummaryQuery` (BalanceCard + Invest + Savings), `useCoins` (catálogo de monedas sobre RQ, filtros in|out|p2p|all)
+- `/helpers/`: `dataCache.js` (LEGACY — solo `clearDataCache()` en el logout; ver Development Notes), `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `stickers.js` (QvaPay sticker catalog), `versionCheck.js` (drives `UpdatePromptModal`), `walletDeeplinks.js` (Trust Wallet & co. universal links for deposits), `widgetBridge.js` (iOS/Android home-screen widgets)
 - `/helpers.js`: legacy utilities (timeAgo, parseQRData, formatMoney, dates — Spanish locale)
 - `/assets/`: images, Rubik fonts, Lottie animations
 - `/scripts/`: `release-android.sh`, `sync-version.js`
 
 ### Key Dependencies
-React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `@shopify/react-native-skia` 2 (only the aurora loading veil), `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
+React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), **TanStack Query 5** (`@tanstack/react-query` + `react-query-persist-client` + `query-async-storage-persister`), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `@shopify/react-native-skia` 2 (only the aurora loading veil), `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
 
 OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc81`.
 
@@ -216,7 +238,7 @@ OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc8
 - 2FA: 4-digit PIN (email) or 6-digit TOTP (speakeasy)
 
 ### Backend Rate Limits (ArcJet)
-Auth login: 6/45s | P2P index: 5/60s | P2P create: 1/5s + 100/day | Transfer: 1/10s | Withdraw: 1/5s | Topup: 5/60s
+Auth login: 6/45s | P2P index: 10/min | P2P create: 1/5s + 100/day | Transfer: 1/10s | Withdraw: 1/5s | Topup: 5/60s | Transaction index (GET): token bucket 20 de ráfaga, refill 5/5s por usuario | Coin price-history: ráfaga 5, 3/10s (el backend cachea 1h — el cliente usa staleTime 1h)
 
 ### Key Models (Prisma/MySQL)
 **User**: uuid, username, name, lastname, email, password, balance(9,2), satoshis, phone, telegram, kyc, vip, golden_check, pin, trustscore, role, p2p_enabled, image, cover, two_factor_secret
@@ -265,4 +287,4 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 - Requests can pass `{ silent: true }` to suppress the global loading bar
 - **Idempotencia en operaciones de dinero** (`helpers/idempotency.js`): los tres endpoints de dinero (`/p2p/create`, `/transaction/transfer`, `/withdraw`) aceptan `idempotency_key` opcional (8-64 chars `[A-Za-z0-9._-]`). Las pantallas P2PCreate/SendConfirm/Withdraw guardan la clave en un ref creado al montar, la mantienen ESTABLE en todo reintento (timeout, 5xx, doble tap) y solo la rotan tras éxito 2xx confirmado. Un replay de operación completada devuelve `200` con la operación ORIGINAL + `duplicate: true` (p2pApi.create lo acepta como éxito además del 201); un reintento con la original en vuelo devuelve `409 DUPLICATE_REQUEST` — `callWithDuplicateRetry` espera ~5s (el rate limit 1/5s corre antes del check) y reintenta UNA vez con la misma clave. Clave finalizada dura 24h server-side; Redis caído = fail-open (es red de seguridad, no lógica de negocio)
 - **KYC (Didit) y nudges de verificación**: el KYC es una URL hospedada de Didit que se abre en el navegador — `POST /user/kyc` devuelve la URL (códigos: 400 ya verificado, 409 en revisión, 403 rechazado/máx intentos, 429 lock); `GET /user/kyc` → `{ kyc, kyc_status: none|pending|approved|declined }`. El flag autoritativo de gating es `user.kyc` (el backend gatea transfer ≥$500, retiro >$1000, P2P completo, ahorro y seller). Superficies en la app: paso `kyc` del Register wizard (sesión silenciosa, con "Ahora no"), pantalla `settings/subpanels/KYC.jsx` de 4 estados (re-check al volver del navegador vía AppState + polling 12s en pending) y banner sutil del Home gobernado por `hooks/useKycPrompt.js` (5 descartes máx, cooldown 5 días, gracia 48h tras abrir sesión — `markKycSessionStarted()`)
-- **Cold-start cache** (`helpers/dataCache.js`): stale-while-revalidate — screens hydrate instantly from AsyncStorage (`@qpcache:` prefix, versioned envelope) and revalidate over the network; a failed fetch keeps cached data on screen instead of an empty state. Wired into: Home feed (transactions, quick-pay, blog, watchlist, promo), Transactions (unfiltered first page), Send carousel, P2P (offers + coins), Store catalog (+ per-country topup brands), Invest dashboard and the savings summary in BalanceCard. Rules: hydration must never clobber a resolved fetch (guard via reducer `hydrate` actions or `hasFresh*` refs), only successful fetches write the cache, and `clearDataCache()` purges everything on logout (`clearAuthData`). User profile persists separately under `user_data` (auth/useAuthState.js)
+- **Cold-start cache**: lo da el persister de React Query (ver "Data Layer") — las pantallas pintan al instante desde `@qpquery:v1` y revalidan por detrás; un fetch fallido conserva los datos anteriores por construcción. **`helpers/dataCache.js` es LEGACY**: ya no tiene consumidores de lectura/escritura; solo sobrevive `clearDataCache()` en el logout para purgar las claves `@qpcache:` huérfanas de instalaciones viejas. No añadir usos nuevos — toda lectura nueva es una query. User profile persists separately under `user_data` (auth/useAuthState.js)

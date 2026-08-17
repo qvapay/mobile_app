@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useReducer } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Text, Pressable, View, StyleSheet, Dimensions } from 'react-native'
 import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 
@@ -9,11 +9,8 @@ import { createTextStyles } from '../theme/themeUtils'
 // Settings Context
 import { useSettings } from '../settings/SettingsContext'
 
-// API
-import { savingApi } from '../api/savingApi'
-
-// Stale-while-revalidate cache (instant cold-start / offline rendering)
-import { CACHE_KEYS, readCache, writeCache } from '../helpers/dataCache'
+// Resumen de ahorros (React Query, query compartida con el dashboard de Invest)
+import { useSavingsSummaryQuery } from '../hooks/useSavingsSummaryQuery'
 
 // Particles
 import QPBalance from './particles/QPBalance'
@@ -22,20 +19,8 @@ import QPFitText from './particles/QPFitText'
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_WIDTH = SCREEN_WIDTH - 32 // match container padding
 
-// Savings summary (balance + rate) is fetched and updated as a single unit
-const initialSavings = { balance: null, rate: 3.75 }
-
-function savingsReducer(state, action) {
-	switch (action.type) {
-		case 'loaded':
-			return { balance: action.balance, rate: action.rate ?? state.rate }
-		case 'hydrate':
-			// Cached summary — never clobber a fetch that already resolved
-			return state.balance === null ? { balance: action.balance, rate: action.rate ?? state.rate } : state
-		default:
-			return state
-	}
-}
+// Tasa anual por defecto mientras el resumen no ha llegado nunca
+const DEFAULT_RATE = 3.75
 
 /**
  * Home screen hero: a horizontally paged balance display (page 1 = main QUSD
@@ -64,8 +49,16 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }) 
 	// State
 	const [showBalance, setShowBalance] = useState(true)
 	const [activeIndex, setActiveIndex] = useState(0)
-	const [savings, dispatchSavings] = useReducer(savingsReducer, initialSavings)
 	const scrollRef = useRef(null)
+
+	// Resumen de ahorros: la query hace el fetch al montar y la persistencia en
+	// frío; aquí solo se adapta la forma que pinta la página 2 del pager
+	const summary = useSavingsSummaryQuery()
+	const { refetch: refetchSavings } = summary
+	const savings = {
+		balance: summary.data ? (summary.data.balance ?? 0) : null,
+		rate: summary.data?.rate ?? DEFAULT_RATE,
+	}
 
 	// Load balance visibility setting on component mount
 	useEffect(() => {
@@ -73,29 +66,11 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }) 
 		setShowBalance(balanceVisibility)
 	}, [getSetting])
 
-	// Cold-start hydration: cached savings summary paints instantly; the reducer
-	// guard keeps it from overwriting an already-resolved fetch
+	// El flanco de subida del pull-to-refresh del Home recarga los ahorros (su
+	// query no cuelga de ['home'], así que el refetchQueries del feed no la cubre)
 	useEffect(() => {
-		readCache(CACHE_KEYS.SAVINGS_SUMMARY).then(cached => {
-			if (cached) dispatchSavings({ type: 'hydrate', balance: cached.balance, rate: cached.rate })
-		})
-	}, [])
-
-	// Fetch savings data on mount and on each pull-to-refresh
-	useEffect(() => {
-		if (!refreshing && savings.balance !== null) return
-		let cancelled = false
-		const fetchSavings = async () => {
-			const result = await savingApi.getSummary()
-			if (cancelled) return
-			if (result.success && result.data) {
-				dispatchSavings({ type: 'loaded', balance: result.data.balance ?? 0, rate: result.data.rate })
-				writeCache(CACHE_KEYS.SAVINGS_SUMMARY, { balance: result.data.balance ?? 0, rate: result.data.rate })
-			}
-		}
-		fetchSavings()
-		return () => { cancelled = true }
-	}, [refreshing]) // eslint-disable-line react-hooks/exhaustive-deps
+		if (refreshing) refetchSavings()
+	}, [refreshing, refetchSavings])
 
 	// Functions
 	const toggleShowBalance = async () => {

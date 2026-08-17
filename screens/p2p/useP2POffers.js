@@ -1,9 +1,12 @@
-import { useReducer, useEffect, useCallback, useRef, useState } from "react"
+import { useReducer, useEffect, useCallback, useRef } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 
 import { p2pApi } from "../../api/p2pApi"
-import coinsApi from "../../api/coinsApi"
 import { updateWidgetP2POffers, reloadWidgets } from "../../helpers/widgetBridge"
-import { CACHE_KEYS, readCache, writeCache } from "../../helpers/dataCache"
+import { P2P_OFFERS_SNAPSHOT_KEY, useP2pMarketAveragesQuery } from "./p2pQueries"
+import useCoins from "../../hooks/useCoins"
+
+// Toast
 import { toast } from "sonner-native"
 
 const PAGE_SIZE = 30
@@ -79,14 +82,18 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	// Flipped on the first successful fetch — blocks late cache hydration
 	const hasFreshOffersRef = useRef(false)
 
-	// Coins for the picker
-	const [availableCoins, setAvailableCoins] = useState([])
-	const [loadingCoins, setLoadingCoins] = useState(false)
+	const queryClient = useQueryClient()
+
+	// Coins for the picker — el MISMO catálogo cacheado que Add/Withdraw/
+	// P2PCreate (`['coins', 'p2p']`): entrar al P2P deja el picker de Crear
+	// oferta ya caliente, y viceversa
+	const { coins: availableCoins, isLoading: loadingCoins } = useCoins('p2p')
 
 	// Medias de mercado 24h por moneda (`{ TICK: { average_buy, average_sell } }`):
 	// permiten decir si la tasa de una oferta está por encima o por debajo del
-	// mercado, que es el contexto que da un P2P profesional
-	const [marketAverages, setMarketAverages] = useState(null)
+	// mercado. Contexto opcional: un fallo deja `null` y la lista funciona igual
+	const averagesQuery = useP2pMarketAveragesQuery()
+	const marketAverages = averagesQuery.data || null
 
 	// Get the Latest P2P Offers
 	const fetchP2POffers = useCallback(async (pageNum = 1, isRefresh = false) => {
@@ -107,8 +114,10 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 				const newData = response.offers || []
 				if (isRefresh || pageNum === 1) {
 					dispatchList({ type: "setOffers", offers: newData })
-					// Persist the default marketplace view for instant cold-start rendering
-					if (!apiFilters.my && newData.length > 0) { writeCache(CACHE_KEYS.P2P_OFFERS, newData) }
+					// Persist the default marketplace view for instant cold-start
+					// rendering (snapshot en la caché de queries — el persister global
+					// lo escribe a disco)
+					if (!apiFilters.my && newData.length > 0) { queryClient.setQueryData(P2P_OFFERS_SNAPSHOT_KEY, newData) }
 					// Update widget with user's own active offers
 					if (apiFilters.my && newData.length > 0) {
 						updateWidgetP2POffers(newData)
@@ -142,7 +151,7 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 				}
 			}
 		}
-	}, [])
+	}, [queryClient])
 
 	// Auto-referencia para relanzar el pendiente sin romper la identidad estable
 	// de fetchP2POffers (deps vacías). Se asigna en un efecto, no en el cuerpo:
@@ -152,13 +161,13 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	const fetchRef = useRef(null)
 	useEffect(() => { fetchRef.current = fetchP2POffers })
 
-	// Cold-start hydration: paint the cached marketplace while the fetch revalidates
+	// Cold-start hydration: paint the cached marketplace while the fetch
+	// revalidates (el snapshot llega restaurado por el persister global)
 	useEffect(() => {
 		if (!p2pEnabled) return
-		readCache(CACHE_KEYS.P2P_OFFERS).then(offers => {
-			if (offers && !hasFreshOffersRef.current) { dispatchList({ type: "hydrate", offers }) }
-		})
-	}, [p2pEnabled])
+		const offers = queryClient.getQueryData(P2P_OFFERS_SNAPSHOT_KEY)
+		if (offers && !hasFreshOffersRef.current) { dispatchList({ type: "hydrate", offers }) }
+	}, [p2pEnabled, queryClient])
 
 	// Load data on mount (and if P2P becomes enabled)
 	useEffect(() => {
@@ -179,38 +188,6 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 		const timer = setTimeout(() => fetchP2POffers(1, true), FILTER_DEBOUNCE_MS)
 		return () => clearTimeout(timer)
 	}, [quickKey, p2pEnabled, fetchP2POffers])
-
-	// Load coins for coin picker (once on mount) — cached so the picker is
-	// instantly usable on cold start and offline
-	useEffect(() => {
-		let mounted = true
-		let hasFreshCoins = false
-		readCache(CACHE_KEYS.P2P_COINS).then(coins => {
-			if (mounted && coins?.length && !hasFreshCoins) { setAvailableCoins(coins) }
-		})
-		const loadCoins = async () => {
-			try {
-				setLoadingCoins(true)
-				const res = await coinsApi.index({ enabled_p2p: true })
-				if (mounted && res.success) {
-					hasFreshCoins = true
-					setAvailableCoins(res.data || [])
-					writeCache(CACHE_KEYS.P2P_COINS, res.data || [])
-				}
-			} catch (e) { /* ignore */ }
-			finally { if (mounted) setLoadingCoins(false) }
-		}
-		loadCoins()
-
-		// El contexto de mercado es opcional: si falla, la lista funciona igual
-		try {
-			p2pApi.getAverages?.().then((res) => {
-				if (mounted && res?.success && res.data) { setMarketAverages(res.data) }
-			}).catch(() => { })
-		} catch { /* ignore */ }
-
-		return () => { mounted = false }
-	}, [])
 
 	// Handle refresh
 	const onRefresh = () => { hasMoreRef.current = true; fetchP2POffers(1, true) }

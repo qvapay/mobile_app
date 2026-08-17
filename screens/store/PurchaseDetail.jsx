@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import FastImage from '@d11/react-native-fast-image'
 
@@ -15,8 +15,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../../routes'
 
-// API
-import { storeApi } from '../../api/storeApi'
+// Data (React Query)
+import { usePurchaseDetailQuery } from './storeQueries'
 
 // CDN helper
 import { mediaUrl } from '../../helpers/mediaUrl'
@@ -72,29 +72,18 @@ const PurchaseDetail = ({ route, navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 
-	// States
-	const [purchase, setPurchase] = useState(null)
-	const [isLoading, setIsLoading] = useState(true)
+	// Data: la query hace el fetch y cachea el recibo por id
+	const query = usePurchaseDetailQuery(purchaseId)
+	const purchase = query.data || null
+	const isLoading = query.isPending
+	const { refetch: fetchDetail } = query
 
-	// Fetch purchase detail
-	const fetchDetail = useCallback(async () => {
-		setIsLoading(true)
-		try {
-			const response = await storeApi.getPurchaseDetail(purchaseId)
-			if (response.success) {
-				setPurchase(response.data?.data || response.data)
-			} else {
-				toast.error('Error', { description: response.error || 'No se pudo obtener el detalle' })
-			}
-		} catch (error) {
-			toast.error('Error', { description: 'No se pudo conectar con el servidor' })
-		} finally {
-			setIsLoading(false)
+	// El toast solo cuando no hay NADA que pintar
+	useEffect(() => {
+		if (query.isError && !query.data) {
+			toast.error('Error', { description: query.error?.message || 'No se pudo obtener el detalle' })
 		}
-	}, [purchaseId])
-
-	// Initial load
-	useEffect(() => { fetchDetail() }, [fetchDetail])
+	}, [query.isError, query.data, query.error])
 
 	// Shared detail row component (same pattern as Transaction.jsx)
 	const DetailRow = ({ label, value, last, copiable, children }) => (
