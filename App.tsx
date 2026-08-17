@@ -5,6 +5,10 @@ import React, { useEffect, useMemo, useRef } from 'react'
 // OneSignal Push Notifications
 import { OneSignal } from 'react-native-onesignal'
 
+// Data layer (React Query + persistencia en AsyncStorage)
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { queryClient, persistOptions } from './api/queryClient'
+
 // Navigation Components
 import { enableFreeze } from 'react-native-screens'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -410,6 +414,8 @@ function App() {
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<ErrorBoundary>
+				{/* Por fuera de AuthProvider: el logout vacía la caché de queries */}
+				<PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
 					<SafeAreaProvider>
 						<LoadingProvider>
 							<AuthProvider>
@@ -432,7 +438,8 @@ function App() {
 							</AuthProvider>
 						</LoadingProvider>
 					</SafeAreaProvider>
-				</ErrorBoundary>
+				</PersistQueryClientProvider>
+			</ErrorBoundary>
 		</GestureHandlerRootView>
 	)
 }

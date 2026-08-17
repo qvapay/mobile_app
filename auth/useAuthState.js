@@ -16,6 +16,10 @@ import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
 // Cold-start data cache (transactions, quick-pay, catalogs…) — purged with the session
 import { clearDataCache } from '../helpers/dataCache'
 
+// React Query cache (se importa el singleton, no vía hook: clearAuthData corre
+// fuera del árbol de React en algunos caminos de arranque)
+import { queryClient, persister } from '../api/queryClient'
+
 // Storage keys
 const STORAGE_KEYS = { USER_DATA: 'user_data' }
 
@@ -58,8 +62,9 @@ const mapMeToUser = (me, email) => ({
 /**
  * Clears all persisted authentication data: the Keychain token
  * (`com.qvapay.auth`), the cached user profile, the synced
- * device-contacts keys (matches, last sync, consent), and every
- * `@qpcache:` cold-start slice (transactions, quick-pay, catalogs…).
+ * device-contacts keys (matches, last sync, consent), every
+ * `@qpcache:` cold-start slice (transactions, quick-pay, catalogs…) and the
+ * React Query cache, both in memory and its persisted copy.
  */
 const clearAuthData = async () => {
 	try {
@@ -72,6 +77,11 @@ const clearAuthData = async () => {
 				'device_contacts_consent',
 			]),
 			clearDataCache(),
+			// Sin esto, los datos de la cuenta anterior sobrevivirían en memoria y
+			// en el snapshot del persister: al entrar con otra cuenta se verían
+			// sus transacciones antes del primer fetch
+			queryClient.clear(),
+			persister.removeClient(),
 		])
 	} catch (err) { /* error clearing auth data */ }
 }
