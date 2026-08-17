@@ -10,7 +10,11 @@ play {
     track = "internal"
     // Always upload .aab (Google Play prefers it over .apk for distribution)
     defaultToAppBundles = true
-    // 'draft' parks the release in Play Console for manual rollout; flip to 'completed' once you trust the pipeline.
+    // Default conservador: un `publishBundle` a secas deja el release parado en
+    // Play Console. Quien quiera que salga en vivo lo pide explícitamente con
+    // --release-status, que es justo lo que hacen los scripts de npm:
+    // interno sale 'completed' (llega a los testers al momento) y producción se
+    // queda en 'draft' para promocionarla a mano desde la consola.
     releaseStatus = "draft"
     // Skip the upload entirely if the service account JSON isn't present locally (e.g. fresh clone)
     enabled = file("../play-publisher.json").exists()
