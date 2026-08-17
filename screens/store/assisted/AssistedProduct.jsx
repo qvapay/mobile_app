@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -34,7 +34,7 @@ const AssistedProduct = ({ navigation, route }) => {
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(30)
 
 	const [product, setProduct] = useState(route.params?.product || null)
 	const [quantity, setQuantity] = useState(1)
@@ -84,7 +84,7 @@ const AssistedProduct = ({ navigation, route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false}>
 
 				{/* Gallery */}
 				<View style={styles.mainImageWrap}>

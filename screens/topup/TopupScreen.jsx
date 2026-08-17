@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { View, Text, ScrollView, Platform, StyleSheet } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../hooks/useContentPadding'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { toast } from 'sonner-native'
 
@@ -49,7 +49,7 @@ const TopupScreen = () => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(30)
 
 	const [phoneNumber, setPhoneNumber] = useState('')
 	const [selectedSku, setSelectedSku] = useState(TOPUP_SKUS?.[0] || null)
@@ -249,7 +249,7 @@ const TopupScreen = () => {
 	return (
 		<ScrollView
 			style={[containerStyles.container, { paddingHorizontal: theme.spacing.md }]}
-			contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
+			contentContainerStyle={contentPadding}
 			showsVerticalScrollIndicator={false}
 			keyboardShouldPersistTaps="handled"
 		>

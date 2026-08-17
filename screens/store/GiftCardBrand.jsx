@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../hooks/useContentPadding'
 
 // Toast
 import { toast } from 'sonner-native'
@@ -137,7 +137,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding()
 
 	const [data, dispatchData] = useReducer(dataReducer, { country: initCountry || null, brand: '', brandLogo: null, offers: [] })
 	const { country, brand, brandLogo, offers } = data
@@ -267,7 +267,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom }}>
+			<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={contentPadding}>
 
 				<View style={styles.header}>
 					<OperatorAvatar brand={brand} logoUrl={brandLogo} size="lg" />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
 
 // Toast
@@ -31,7 +31,7 @@ const AssistedOrderDetail = ({ route }) => {
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(30, 8)
 
 	const [order, setOrder] = useState(null)
 	const [refreshing, setRefreshing] = useState(false)
@@ -62,7 +62,7 @@ const AssistedOrderDetail = ({ route }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<ScrollView
-				contentContainerStyle={{ paddingBottom: insets.bottom + 30, paddingTop: 8 }}
+				contentContainerStyle={contentPadding}
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 			>

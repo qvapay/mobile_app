@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable, useWindowDimensions } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Toast
@@ -59,7 +59,7 @@ const Store = ({ navigation }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(30)
 	const { width } = useWindowDimensions()
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
@@ -163,7 +163,7 @@ const Store = ({ navigation }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<ScrollView
-				contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
+				contentContainerStyle={contentPadding}
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 			>

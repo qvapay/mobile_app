@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import useContentPadding from '../../hooks/useContentPadding'
 import { FlashList } from '@shopify/flash-list'
 
 import { useTheme } from '../../theme/ThemeContext'
@@ -54,7 +54,7 @@ const GiftCards = ({ navigation, route }) => {
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const contentPadding = useContentPadding(24)
 	const { width } = useWindowDimensions()
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
@@ -154,7 +154,7 @@ const GiftCards = ({ navigation, route }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<ScrollView
-				contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+				contentContainerStyle={contentPadding}
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 			>
