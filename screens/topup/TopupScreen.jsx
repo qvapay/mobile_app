@@ -19,6 +19,8 @@ import TopupPhoneInput from './components/TopupPhoneInput'
 
 // API
 import { topupApi } from '../../api/topupApi'
+import { unwrap } from '../../api/unwrap'
+import { useQuery } from '@tanstack/react-query'
 
 // IAP
 import { useIAP } from 'react-native-iap'
@@ -54,9 +56,31 @@ const TopupScreen = () => {
 	const [phoneNumber, setPhoneNumber] = useState('')
 	const [selectedSku, setSelectedSku] = useState(TOPUP_SKUS?.[0] || null)
 	const [recentNumbers, setRecentNumbers] = useState([])
-	const [availability, setAvailability] = useState(null) // null = backend aún no respondió → todo disponible
-	const [history, setHistory] = useState([])
-	const [historyLoading, setHistoryLoading] = useState(true)
+	// Lecturas en React Query (la mecánica IAP de compra/consumo no se toca):
+	// disponibilidad por SKU (null = backend aún no respondió → todo disponible)
+	// e historial de recargas, que se refetchea tras cada compra confirmada
+	const availabilityQuery = useQuery({
+		queryKey: ['topup', 'availability'],
+		queryFn: async () => {
+			const data = unwrap(await topupApi.getTopupProducts())
+			if (!Array.isArray(data?.products)) return null
+			return Object.fromEntries(data.products.map((p) => [p.productId, p.available !== false]))
+		},
+		meta: { noPersist: true },
+	})
+	const availability = availabilityQuery.data ?? null
+
+	const historyQuery = useQuery({
+		queryKey: ['topup', 'history'],
+		queryFn: async () => {
+			const data = unwrap(await topupApi.getTopupHistory())
+			return data?.topups || data || []
+		},
+		placeholderData: previous => previous,
+	})
+	const history = historyQuery.data || []
+	const historyLoading = historyQuery.isPending
+	const { refetch: loadHistory } = historyQuery
 	const [isPurchasing, setIsPurchasing] = useState(false)
 
 	// Teléfono E.164 de la compra en vuelo (el estado puede cambiar durante el sheet nativo)
@@ -68,12 +92,6 @@ const TopupScreen = () => {
 
 	const phoneDigits = phoneNumber.replace(/\D/g, '')
 	const phoneValid = CUBAN_MOBILE.test(phoneDigits)
-
-	const loadHistory = useCallback(async () => {
-		const res = await topupApi.getTopupHistory()
-		if (res.success) setHistory(res.data?.topups || res.data || [])
-		setHistoryLoading(false)
-	}, [])
 
 	const saveRecentNumber = useCallback(async (phone) => {
 		setRecentNumbers((prev) => {
@@ -179,19 +197,12 @@ const TopupScreen = () => {
 		}
 	}, [connected, fetchProducts])
 
-	// Disponibilidad backend + historial + números recientes
+	// Números recientes (las lecturas de red ya viven en las queries de arriba)
 	useEffect(() => {
-		(async () => {
-			const res = await topupApi.getTopupProducts()
-			if (res.success && Array.isArray(res.data?.products)) {
-				setAvailability(Object.fromEntries(res.data.products.map((p) => [p.productId, p.available !== false])))
-			}
-		})()
-		loadHistory()
 		AsyncStorage.getItem(RECENT_NUMBERS_KEY)
 			.then((raw) => { if (raw) setRecentNumbers(JSON.parse(raw)) })
 			.catch(() => { })
-	}, [loadHistory])
+	}, [])
 
 	// Compras consumibles huérfanas (app cerrada entre compra y validación):
 	// re-validarlas al entrar; también corre bajo demanda desde onPurchaseError

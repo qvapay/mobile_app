@@ -1,10 +1,6 @@
-import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable, useWindowDimensions } from 'react-native'
 import useContentPadding from '../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-
-// Toast
-import { toast } from 'sonner-native'
 
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
@@ -15,44 +11,18 @@ import StoreGiftCardsSection from './StoreGiftCardsSection'
 import StoreMarketSection from './StoreMarketSection'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
-import { storeApi } from '../../api/storeApi'
-import { marketApi } from '../../api/marketApi'
+// Data (React Query: catálogos en paralelo, persistidos por separado)
+import { useStoreCatalog, SHOW_GIFT_CARDS } from './storeQueries'
+
 import { ROUTES } from '../../routes'
-
-// Stale-while-revalidate cache (instant cold-start / offline rendering)
-import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
-
-const DEFAULT_TOPUP_COUNTRY = 'CU'
-// Compliance with App Store Guideline 3.1.1 — vouchers hidden on iOS.
-const SHOW_GIFT_CARDS = Platform.OS !== 'ios'
-
-// All Store catalog slices arrive from one fetch pass — keep them as one unit
-const initialCatalog = { favorites: [], featured: [], categories: [], topupCountries: [], topupBrands: [], marketStores: [] }
-
-function catalogReducer(state, action) {
-	switch (action.type) {
-		case 'set':
-			return { ...state, [action.field]: action.value }
-		case 'hydrate': {
-			// Fill only still-empty slices — cached data never clobbers a resolved fetch
-			const next = { ...state }
-			for (const [field, value] of Object.entries(action.values || {})) {
-				if (Array.isArray(next[field]) && next[field].length === 0 && value?.length) { next[field] = value }
-			}
-			return next
-		}
-		default:
-			return state
-	}
-}
 
 /**
  * Store tab landing: department cards (compras asistidas, recargas and — on
  * Android only — gift cards) followed by the mobile top-up and gift-card
  * sections. Vouchers are hidden on iOS to comply with App Store Guideline 3.1.1.
- * Loads Zendit-backed catalogs from `GET /store/topup-catalog` and
- * `GET /store/voucher-catalog` using mode params (countries / favorites / featured /
- * categories / country); the top-up country defaults to Cuba (CU).
+ * Los catálogos viven en React Query (`useStoreCatalog`): Zendit vía
+ * `GET /store/topup-catalog` y `GET /store/voucher-catalog` con mode params;
+ * el país de recarga restaura la última selección y cae en Cuba (CU).
  */
 const Store = ({ navigation }) => {
 
@@ -63,94 +33,10 @@ const Store = ({ navigation }) => {
 	const { width } = useWindowDimensions()
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
-	const [catalog, dispatchCatalog] = useReducer(catalogReducer, initialCatalog)
-	const { favorites, featured, categories, topupCountries, topupBrands, marketStores } = catalog
-	const [topupSelected, setTopupSelected] = useState(null)
-	const [loading, setLoading] = useState(true)
-	const [refreshing, setRefreshing] = useState(false)
-
-	// Cold-start hydration: paint the cached catalog (and last selected country)
-	// immediately — the network pass below revalidates it
-	useEffect(() => {
-		readCache(CACHE_KEYS.STORE_CATALOG).then(cached => {
-			if (!cached) return
-			dispatchCatalog({ type: 'hydrate', values: cached.catalog })
-			if (cached.catalog?.topupCountries?.length) {
-				setTopupSelected(prev => prev || cached.topupSelected || null)
-				setLoading(false)
-			}
-		})
-	}, [])
-
-	const fetchInitial = useCallback(async () => {
-		const requests = [
-			storeApi.getTopupCatalog({ countries: true }),
-			marketApi.getStores({ take: 8 }),
-		]
-		if (SHOW_GIFT_CARDS) {
-			requests.push(
-				storeApi.getVoucherCatalog({ favorites: true }),
-				storeApi.getVoucherCatalog({ featured: true }),
-				storeApi.getVoucherCatalog({ categories: true }),
-			)
-		}
-		const results = await Promise.all(requests)
-		const [countriesRes, marketRes, favRes, featRes, catsRes] = results
-
-		if (marketRes.success) dispatchCatalog({ type: 'set', field: 'marketStores', value: marketRes.data?.stores || [] })
-
-		if (countriesRes.success) {
-			const list = countriesRes.data?.countries || []
-			dispatchCatalog({ type: 'set', field: 'topupCountries', value: list })
-			const pick = list.find(c => c.code === DEFAULT_TOPUP_COUNTRY) || list[0]
-			if (pick && !topupSelected) setTopupSelected(pick)
-		}
-		if (SHOW_GIFT_CARDS) {
-			if (favRes?.success) dispatchCatalog({ type: 'set', field: 'favorites', value: favRes.data?.favorites || [] })
-			if (featRes?.success) dispatchCatalog({ type: 'set', field: 'featured', value: (featRes.data?.featured || []).slice(0, 6) })
-			if (catsRes?.success) dispatchCatalog({ type: 'set', field: 'categories', value: (catsRes.data?.categories || []).slice(0, 6) })
-		}
-
-		setLoading(false)
-	}, [topupSelected])
-
-	useEffect(() => { fetchInitial() }, [fetchInitial])
-
-	// Persist the catalog whenever it holds real data (covers every fetch path)
-	useEffect(() => {
-		if (!topupCountries.length) return
-		const { topupBrands: _brands, ...persistable } = catalog
-		writeCache(CACHE_KEYS.STORE_CATALOG, { catalog: persistable, topupSelected })
-	}, [catalog, topupSelected, topupCountries.length])
-
-	const fetchTopupBrands = useCallback(async (code) => {
-		if (!code) return
-		// Brands are cached per country: paint cached instantly, then revalidate;
-		// offline the cached list stays instead of wiping to empty + toast
-		const cacheKey = `${CACHE_KEYS.STORE_TOPUP_BRANDS}:${code}`
-		const cached = await readCache(cacheKey)
-		if (cached?.length) dispatchCatalog({ type: 'set', field: 'topupBrands', value: cached })
-		const res = await storeApi.getTopupCatalog({ country: code })
-		if (res.success) {
-			const brands = res.data?.brands || []
-			dispatchCatalog({ type: 'set', field: 'topupBrands', value: brands })
-			writeCache(cacheKey, brands)
-		} else if (!cached?.length) {
-			toast.error('Operadores', { description: res.error })
-			dispatchCatalog({ type: 'set', field: 'topupBrands', value: [] })
-		}
-	}, [])
-
-	useEffect(() => {
-		if (topupSelected?.code) fetchTopupBrands(topupSelected.code)
-	}, [topupSelected?.code, fetchTopupBrands])
-
-	const onRefresh = useCallback(async () => {
-		setRefreshing(true)
-		await fetchInitial()
-		if (topupSelected?.code) await fetchTopupBrands(topupSelected.code)
-		setRefreshing(false)
-	}, [fetchInitial, fetchTopupBrands, topupSelected?.code])
+	const {
+		favorites, featured, categories, topupCountries, topupBrands, marketStores,
+		topupSelected, setTopupSelected, loading, refreshing, onRefresh,
+	} = useStoreCatalog()
 
 	if (loading) {
 		return (

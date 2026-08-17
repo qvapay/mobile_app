@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// API
-import { coinsApi } from '../../api/coinsApi'
+// Data (React Query)
+import { useCoinHistoryQuery, useInvestCoinsQuery } from './investQueries'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -30,20 +30,17 @@ import QPFitText from '../../ui/particles/QPFitText'
 // Whitelist del backend (/coins/price-history) — cualquier otro valor cae a 24H
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y', 'ALL']
 
-// Caché de sesión de historiales por tick:timeframe — el endpoint lleva un
-// rate limit agresivo (ráfaga 5, 3/10s) y tapear las pills lo agotaría; el
-// backend cachea 1h server-side así que repetir el fetch no aporta frescura
-const historyCache = new Map()
-
-const fetchHistoryCached = async (tick, tf) => {
-	const key = `${tick}:${tf}`
-	if (historyCache.has(key)) return historyCache.get(key)
-	const res = await coinsApi.priceHistory(tick, tf)
-	if (res.success && Array.isArray(res.data) && res.data.length > 1) {
-		historyCache.set(key, res.data)
-		return res.data
+// Cambio 24H calculado de un historial (para enriquecer el header cuando la
+// fila de origen no venía enriquecida)
+const statsFromHistory = (history) => {
+	if (!history?.length) return null
+	const first = Number(history[0]?.value || 0)
+	const last = Number(history[history.length - 1]?.value || 0)
+	return {
+		price: last,
+		change: first ? ((last - first) / first) * 100 : 0,
+		changeDollar: last - first,
 	}
-	return null
 }
 
 const formatPrice = (p) => {
@@ -104,10 +101,41 @@ const CoinDetail = ({ navigation, route }) => {
 	const { user } = useAuth()
 	const isGold = !!user?.golden_check
 
-	const [coin, setCoin] = useState(initialData || null)
-	const [priceHistory, setPriceHistory] = useState(initialData?.priceHistory || [])
 	const [timeframe, setTimeframe] = useState('24H')
-	const [isLoading, setIsLoading] = useState(!initialData?.priceHistory?.length)
+
+	// Historial en React Query (clave tick+timeframe, 1h de frescura — el
+	// endpoint tiene rate limit agresivo y el backend ya cachea 1h): tapear las
+	// pills no repite peticiones y el gráfico anterior queda como placeholder.
+	// Con initialData enriquecida, el 24H inicial ni siquiera va a la red
+	const historyQuery = useCoinHistoryQuery(tick, timeframe, {
+		enabled: timeframe !== '24H' || !initialData?.priceHistory?.length,
+	})
+	const priceHistory = historyQuery.data || (timeframe === '24H' ? initialData?.priceHistory || [] : [])
+	const isLoading = !priceHistory.length && historyQuery.isFetching
+
+	// Capacidades/comisiones frescas del catálogo — la MISMA query del
+	// dashboard de Invest, así que venir desde allí es un acierto de caché
+	const coinsQuery = useInvestCoinsQuery()
+
+	// Enriquecimiento 24H para el header cuando la fila no venía enriquecida:
+	// se congela la primera vez que hay historial 24H disponible
+	const [stats24, setStats24] = useState(() => statsFromHistory(initialData?.priceHistory))
+	useEffect(() => {
+		if (!stats24 && timeframe === '24H' && historyQuery.data) {
+			setStats24(statsFromHistory(historyQuery.data))
+		}
+	}, [stats24, timeframe, historyQuery.data])
+
+	// fresh aporta capacidades/comisiones; initialData y el 24H calculado
+	// conservan el precio/cambio ya enriquecidos (misma precedencia que antes)
+	const coin = useMemo(() => {
+		const fresh = coinsQuery.data?.find((c) => c.tick === tick) || null
+		const base = { ...(fresh || {}), ...(initialData || {}) }
+		if (!initialData?.priceHistory?.length && stats24) {
+			return { ...base, price: base.price || stats24.price, change: stats24.change, changeDollar: stats24.changeDollar }
+		}
+		return base
+	}, [coinsQuery.data, initialData, stats24, tick])
 	// Punto bajo el dedo durante el scrubbing PRO — el header muestra su
 	// precio/fecha en vez del precio live (estilo Robinhood)
 	const [scrub, setScrub] = useState(null)
@@ -119,46 +147,8 @@ const CoinDetail = ({ navigation, route }) => {
 	const isPositive = change >= 0
 	const trendColor = isPositive ? theme.colors.successText : theme.colors.danger
 
-	// Historial inicial (si la fila no venía enriquecida) + datos frescos del coin
-	useEffect(() => {
-		let cancelled = false
-		const load = async () => {
-			const needsHistory = !initialData?.priceHistory?.length
-			const [history, coinsRes] = await Promise.all([
-				needsHistory ? fetchHistoryCached(tick, '24H') : Promise.resolve(null),
-				coinsApi.index({ category_id: 1, trade: 1 }),
-			])
-			if (cancelled) return
-			if (history) {
-				const first = Number(history[0]?.value || 0)
-				const last = Number(history[history.length - 1]?.value || 0)
-				setPriceHistory(history)
-				// Enriquecer el header con el cambio 24H calculado del historial
-				setCoin((prev) => ({
-					...prev,
-					price: prev?.price || last,
-					change: first ? ((last - first) / first) * 100 : 0,
-					changeDollar: last - first,
-				}))
-			}
-			if (coinsRes.success && Array.isArray(coinsRes.data)) {
-				// fresh aporta capacidades/comisiones; prev conserva el cambio 24H
-				// y el precio ya enriquecidos
-				const fresh = coinsRes.data.find((c) => c.tick === tick)
-				if (fresh) setCoin((prev) => ({ ...fresh, ...prev }))
-			}
-			setIsLoading(false)
-		}
-		load()
-		return () => { cancelled = true }
-	}, [tick, initialData])
-
-	// Refetch del historial al cambiar timeframe (el header no cambia)
-	const handleTimeframeChange = useCallback(async (tf) => {
-		setTimeframe(tf)
-		const history = await fetchHistoryCached(tick, tf)
-		if (history) setPriceHistory(history)
-	}, [tick])
+	// Cambiar de timeframe es cambiar de query; el header no cambia
+	const handleTimeframeChange = useCallback((tf) => { setTimeframe(tf) }, [])
 
 	// Máx/mín del periodo visible
 	const values = priceHistory.map((p) => Number(p.value)).filter(Boolean)

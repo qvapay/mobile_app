@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
 import useContentPadding from '../../../hooks/useContentPadding'
 import { FlashList } from '@shopify/flash-list'
@@ -16,8 +16,8 @@ import { marketApi } from '../../../api/marketApi'
 import { ROUTES } from '../../../routes'
 import { MARKET_CATEGORIES, MARKET_CATEGORY_EMOJIS } from './marketConstants'
 
-// Stale-while-revalidate cache (instant cold-start / offline rendering)
-import { CACHE_KEYS, readCache, writeCache } from '../../../helpers/dataCache'
+// Índice de tiendas en React Query (persistido para el arranque en frío)
+import { useMarketStoresIndexQuery } from './marketQueries'
 
 import { toast } from 'sonner-native'
 
@@ -30,9 +30,6 @@ function storesReducer(state, action) {
 	switch (action.type) {
 		case 'set':
 			return { ...state, [action.field]: action.value }
-		case 'hydrate':
-			// Cached data never clobbers a resolved fetch
-			return state.stores.length === 0 && action.value?.length ? { ...state, stores: action.value } : state
 		default:
 			return state
 	}
@@ -54,37 +51,24 @@ const MarketStores = ({ navigation, route }) => {
 	const { width } = useWindowDimensions()
 	const numColumns = width >= 1024 ? 4 : width >= 600 ? 3 : 2
 
-	const [data, dispatchData] = useReducer(storesReducer, { stores: [], extraShops: [] })
-	const { stores, extraShops } = data
+	const [data, dispatchData] = useReducer(storesReducer, { extraShops: [] })
+	const { extraShops } = data
 	const [filters, dispatchFilters] = useReducer(storesReducer, { activeCategory: route?.params?.category || 'ALL', search: '', page: 1 })
 	const { activeCategory, search, page } = filters
-	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
-	const hasFreshStores = useRef(false)
 
-	// Cold-start hydration: paint the cached index immediately, revalidate below
+	// Índice de tiendas: React Query hace el fetch, la persistencia en frío y
+	// conserva la última lista buena si la red falla
+	const storesQuery = useMarketStoresIndexQuery(FETCH_TAKE)
+	const stores = useMemo(() => storesQuery.data || [], [storesQuery.data])
+	const loading = storesQuery.isPending
+
+	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
-		readCache(CACHE_KEYS.MARKET_STORES).then(cached => {
-			if (!cached?.length || hasFreshStores.current) return
-			dispatchData({ type: 'hydrate', value: cached })
-			setLoading(false)
-		})
-	}, [])
-
-	const fetchStores = useCallback(async () => {
-		const res = await marketApi.getStores({ take: FETCH_TAKE })
-		if (res.success) {
-			const list = res.data?.stores || []
-			hasFreshStores.current = true
-			dispatchData({ type: 'set', field: 'stores', value: list })
-			writeCache(CACHE_KEYS.MARKET_STORES, list)
-		} else if (!stores.length) {
-			toast.error('Tiendas', { description: res.error })
+		if (storesQuery.isError && !storesQuery.data) {
+			toast.error('Tiendas', { description: storesQuery.error?.message })
 		}
-		setLoading(false)
-	}, [stores.length])
-
-	useEffect(() => { fetchStores() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+	}, [storesQuery.isError, storesQuery.data, storesQuery.error])
 
 	// Búsqueda federada (debounced): tiendas que no están en la página cargada
 	useEffect(() => {
@@ -131,11 +115,13 @@ const MarketStores = ({ navigation, route }) => {
 		navigation.navigate(ROUTES.MARKET_STORE, { slug: store.slug })
 	}, [navigation])
 
+	const { refetch: refetchStores } = storesQuery
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchStores()
-		setRefreshing(false)
-	}, [fetchStores])
+		try { await refetchStores() }
+		catch { /* la lista anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
+	}, [refetchStores])
 
 	if (loading) {
 		return (

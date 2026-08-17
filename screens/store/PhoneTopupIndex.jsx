@@ -13,7 +13,7 @@ import CountryPicker from '../../ui/store/CountryPicker'
 import OperatorAvatar from '../../ui/store/OperatorAvatar'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 
-import { storeApi } from '../../api/storeApi'
+import { useTopupCountriesQuery, useTopupFeaturedQuery, useTopupBrandsQuery } from './storeQueries'
 import { ROUTES } from '../../routes'
 
 import { toast } from 'sonner-native'
@@ -25,18 +25,6 @@ const formatPriceRange = (min, max) => {
 	if (min == null) return `Hasta $${Number(max).toFixed(2)}`
 	if (max == null || max === min) return `$${Number(min).toFixed(2)}`
 	return `$${Number(min).toFixed(2)} – $${Number(max).toFixed(2)}`
-}
-
-// Catalog data + list filters are two cohesive units (same shape as GiftCards)
-const initialCatalog = { countries: [], featured: [], brands: [] }
-
-function catalogReducer(state, action) {
-	switch (action.type) {
-		case 'set':
-			return { ...state, [action.field]: action.value }
-		default:
-			return state
-	}
 }
 
 function filtersReducer(state, action) {
@@ -65,46 +53,42 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 
 	const initialCountry = (route?.params?.country || '').toUpperCase()
 
-	const [catalog, dispatchCatalog] = useReducer(catalogReducer, initialCatalog)
-	const { countries, featured, brands } = catalog
 	const [filters, dispatchFilters] = useReducer(filtersReducer, { selectedCountry: null, search: '' })
 	const { selectedCountry, search } = filters
-	const [loadingCountries, setLoadingCountries] = useState(true)
-	const [loadingBrands, setLoadingBrands] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
 
-	const fetchCountries = useCallback(async () => {
-		const [countriesRes, featuredRes] = await Promise.all([
-			storeApi.getTopupCatalog({ countries: true }),
-			storeApi.getTopupCatalog({ featured: true }),
-		])
-		if (countriesRes.success) {
-			const list = countriesRes.data?.countries || []
-			dispatchCatalog({ type: 'set', field: 'countries', value: list })
-			const pick = list.find(c => c.code === (initialCountry || DEFAULT_COUNTRY)) || list[0]
-			if (pick && !selectedCountry) dispatchFilters({ type: 'set', field: 'selectedCountry', value: pick })
-		} else { toast.error('Países', { description: countriesRes.error }) }
-		if (featuredRes.success) {
-			dispatchCatalog({ type: 'set', field: 'featured', value: (featuredRes.data?.featured || []).slice(0, 6) })
-		}
-		setLoadingCountries(false)
-	}, [initialCountry, selectedCountry])
+	// Catálogos en React Query: países y destacados compartidos con la portada
+	// de la tienda (misma clave), operadores con clave por país
+	const countriesQuery = useTopupCountriesQuery()
+	const featuredQuery = useTopupFeaturedQuery()
+	const brandsQuery = useTopupBrandsQuery(selectedCountry?.code)
 
-	useEffect(() => { fetchCountries() }, [fetchCountries])
+	const countries = countriesQuery.data || []
+	const featured = featuredQuery.data || []
+	const brands = useMemo(() => brandsQuery.data || [], [brandsQuery.data])
+	const loadingCountries = countriesQuery.isPending
+	const loadingBrands = brandsQuery.isPending
 
-	const fetchBrands = useCallback(async (countryCode) => {
-		if (!countryCode) return
-		setLoadingBrands(true)
-		const res = await storeApi.getTopupCatalog({ country: countryCode })
-		if (res.success) dispatchCatalog({ type: 'set', field: 'brands', value: res.data?.brands || [] })
-		else { toast.error('Operadores', { description: res.error }); dispatchCatalog({ type: 'set', field: 'brands', value: [] }) }
-		setLoadingBrands(false)
-	}, [])
+	// Los toasts solo cuando no hay NADA que pintar
+	useEffect(() => {
+		if (countriesQuery.isError && !countriesQuery.data) { toast.error('Países', { description: countriesQuery.error?.message }) }
+	}, [countriesQuery.isError, countriesQuery.data, countriesQuery.error])
+	useEffect(() => {
+		if (brandsQuery.isError && !brandsQuery.data) { toast.error('Operadores', { description: brandsQuery.error?.message }) }
+	}, [brandsQuery.isError, brandsQuery.data, brandsQuery.error])
 
+	// Default: el país de la ruta, o Cuba, cuando llegan los países
+	useEffect(() => {
+		const list = countriesQuery.data
+		if (!list?.length || selectedCountry) return
+		const pick = list.find(c => c.code === (initialCountry || DEFAULT_COUNTRY)) || list[0]
+		if (pick) dispatchFilters({ type: 'set', field: 'selectedCountry', value: pick })
+	}, [countriesQuery.data, selectedCountry, initialCountry])
+
+	// Cambiar de país resetea la búsqueda
 	useEffect(() => {
 		dispatchFilters({ type: 'set', field: 'search', value: '' })
-		if (selectedCountry?.code) fetchBrands(selectedCountry.code)
-	}, [selectedCountry?.code, fetchBrands])
+	}, [selectedCountry?.code])
 
 	const filteredBrands = useMemo(() => {
 		const q = search.trim().toLowerCase()
@@ -145,12 +129,15 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 		)
 	}
 
+	const { refetch: refetchCountries } = countriesQuery
+	const { refetch: refetchFeatured } = featuredQuery
+	const { refetch: refetchBrands } = brandsQuery
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchCountries()
-		if (selectedCountry?.code) await fetchBrands(selectedCountry.code)
-		setRefreshing(false)
-	}, [fetchCountries, fetchBrands, selectedCountry?.code])
+		try { await Promise.all([refetchCountries(), refetchFeatured(), refetchBrands()]) }
+		catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
+	}, [refetchCountries, refetchFeatured, refetchBrands])
 
 	if (loadingCountries) {
 		return (

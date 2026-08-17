@@ -31,10 +31,9 @@ import { ROUTES } from '../../routes'
 
 // API
 import { userApi } from '../../api/userApi'
-import { transferApi } from '../../api/transferApi'
 
-// Stale-while-revalidate cache (instant cold-start / offline rendering)
-import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
+// Carrusel de destinatarios (React Query: recientes + contactos en paralelo)
+import { useSendCarousel } from './sendQueries'
 
 // Toast
 import { toast } from 'sonner-native'
@@ -79,12 +78,14 @@ const Send = ({ navigation, route }) => {
 	const setAmount = (value) => dispatchForm({ type: 'set', field: 'amount', value })
 	const setDescription = (value) => dispatchForm({ type: 'set', field: 'description', value })
 
-	// Recipient selection (resolved user + incoming uuid + carousel of recent/contacts)
-	const [recipient, dispatchRecipient] = useReducer(setFieldReducer, { userFound: null, incomingUserUuid: user_uuid || null, carouselUsers: [] })
-	const { userFound, incomingUserUuid, carouselUsers } = recipient
+	// Recipient selection (resolved user + incoming uuid)
+	const [recipient, dispatchRecipient] = useReducer(setFieldReducer, { userFound: null, incomingUserUuid: user_uuid || null })
+	const { userFound, incomingUserUuid } = recipient
 	const setUserFound = (value) => dispatchRecipient({ type: 'set', field: 'userFound', value })
 	const setIncomingUserUuid = (value) => dispatchRecipient({ type: 'set', field: 'incomingUserUuid', value })
-	const setCarouselUsers = (value) => dispatchRecipient({ type: 'set', field: 'carouselUsers', value })
+
+	// Carousel of recent recipients + saved contacts (shared query with Home)
+	const carouselUsers = useSendCarousel()
 
 	// Modals + loading
 	const [isSearchModalVisible, setIsSearchModalVisible] = useState(false)
@@ -108,62 +109,6 @@ const Send = ({ navigation, route }) => {
 		return () => { if (ids.length) untrackUsers(ids) }
 	}, [carouselUsers, trackUsers, untrackUsers])
 
-	// Get latest sent transfers users, saved contacts, and synced contacts.
-	// The last successful merge is cached so the carousel paints instantly on
-	// cold start and survives offline launches (stale-while-revalidate).
-	useEffect(() => {
-		let hasFreshData = false
-
-		readCache(CACHE_KEYS.SEND_CAROUSEL).then(cached => {
-			if (cached?.length && !hasFreshData) { setCarouselUsers(cached) }
-		})
-
-		const fetchCarouselUsers = async () => {
-			try {
-				const seen = new Set()
-				const combined = []
-				let anySuccess = false
-
-				// 1. Latest sent transfers
-				const sentResult = await transferApi.getLatestSentTransfers(10)
-				if (sentResult.success) {
-					anySuccess = true
-					const users = (sentResult.data || []).filter(u => u.image)
-					for (const u of users) {
-						if (u.uuid && !seen.has(u.uuid)) {
-							seen.add(u.uuid)
-							combined.push(u)
-						}
-					}
-				}
-
-				// 2. Saved contacts
-				const contactsResult = await userApi.getContacts()
-				if (contactsResult.success) {
-					anySuccess = true
-					const list = Array.isArray(contactsResult.data) ? contactsResult.data : (contactsResult.data?.contacts || [])
-					for (const c of list) {
-						const cu = c?.Contact || {}
-						if (cu.uuid && !seen.has(cu.uuid) && cu.image) {
-							seen.add(cu.uuid)
-							combined.push(cu)
-						}
-					}
-				}
-
-				// Offline both requests fail — keep the cached carousel on screen
-				if (anySuccess) {
-					hasFreshData = true
-					setCarouselUsers(combined)
-					writeCache(CACHE_KEYS.SEND_CAROUSEL, combined)
-				}
-			} catch (err) { /* error fetching carousel users */ }
-			finally { setIsLoading(false) }
-		}
-		fetchCarouselUsers()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
-
 	// If user uuid is provided in the route, try to fetch user data
 	useEffect(() => {
 		if (incomingUserUuid) {
@@ -171,11 +116,10 @@ const Send = ({ navigation, route }) => {
 				try {
 					const result = await userApi.searchUser(incomingUserUuid)
 					if (result.success && result.data?.length > 0) { setUserFound(result.data[0]) }
-				} catch (err) { /* error fetching user data */ }
+				} catch { /* error fetching user data */ }
 			}
 			fetchUserData()
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [incomingUserUuid])
 
 	// Handle Send

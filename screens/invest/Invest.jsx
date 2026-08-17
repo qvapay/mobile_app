@@ -1,24 +1,18 @@
-import { useState, useEffect, useCallback, useReducer } from 'react'
+import { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// APIs
-import { coinsApi } from '../../api/coinsApi'
-import { p2pApi } from '../../api/p2pApi'
-import { savingApi } from '../../api/savingApi'
-import { stocksApi } from '../../api/stocksApi'
+// Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
+import { useInvestDashboard } from './investQueries'
 
 // Routes
 import { ROUTES } from '../../routes'
 
 // Helpers
 import { formatMoney } from '../../helpers'
-
-// Stale-while-revalidate cache (instant cold-start / offline rendering)
-import { CACHE_KEYS, readCache, writeCache } from '../../helpers/dataCache'
 
 // UI
 import QPLoader from '../../ui/particles/QPLoader'
@@ -35,9 +29,6 @@ const EXPLORE_TABS = [
 	{ key: 'popular', label: 'Populares', icon: 'star' },
 	{ key: 'stocks', label: 'Stocks', icon: 'chart-line' },
 ]
-
-// P2P coins to display
-const P2P_COINS = ['BANK_CUP', 'BANK_MLC', 'CLASICA', 'BANDECPREPAGO', 'ETECSA', 'TROPIPAY', 'ZELLE', 'BOLSATM']
 
 // --- Sub-components ---
 
@@ -95,10 +86,12 @@ const FilterChip = ({ label, icon, selected, theme, onPress }) => (
 )
 
 const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }) => {
+
 	const price = Number(item.price || 0)
 	const change = item.change || 0
 	const isPositive = change >= 0
 	const trendColor = isPositive ? theme.colors.successText : theme.colors.danger
+	
 	return (
 		<View style={[styles.itemRow, !isLast && styles.itemBorder(theme)]}>
 			{isCrypto ? (
@@ -165,40 +158,13 @@ const P2PRow = ({ pair, theme, textStyles, isLast }) => (
 
 // --- Main Component ---
 
-// The Invest dashboard loads four data slices in one pass — keep them as one unit
-const initialData = { savings: null, coins: [], stocks: [], p2pData: [] }
-
-function dataReducer(state, action) {
-	switch (action.type) {
-		case 'setSavings':
-			return { ...state, savings: action.savings }
-		case 'setCoins':
-			return { ...state, coins: action.coins }
-		case 'setStocks':
-			return { ...state, stocks: action.stocks }
-		case 'setP2p':
-			return { ...state, p2pData: action.p2pData }
-		case 'hydrate': {
-			// Fill only still-empty slices — cached data never clobbers a resolved fetch
-			const cached = action.data || {}
-			return {
-				savings: state.savings ?? cached.savings ?? null,
-				coins: state.coins.length ? state.coins : cached.coins || [],
-				stocks: state.stocks.length ? state.stocks : cached.stocks || [],
-				p2pData: state.p2pData.length ? state.p2pData : cached.p2pData || [],
-			}
-		}
-		default:
-			return state
-	}
-}
-
 /**
  * Invest tab dashboard: savings summary, popular crypto, stocks and P2P market averages.
- * One parallel fetch pass — `savingApi.getSummary`, `coinsApi.index` (enriched with 24h
- * price histories for sparklines), `p2pApi.getAverages` and `stocksApi.index`.
- * Rows navigate to Savings (passing the already-fetched summary), StockDetail (with
- * `initialData` for instant paint) or the P2P tab pre-filtered by coin.
+ * Los datos viven en React Query (`useInvestDashboard`): cuatro queries en
+ * paralelo persistidas por separado; el resumen de ahorros es la query
+ * compartida con BalanceCard. Rows navigate to Savings (passing the
+ * already-fetched summary), StockDetail (with `initialData` for instant paint)
+ * or the P2P tab pre-filtered by coin.
  */
 const Invest = ({ navigation }) => {
 
@@ -206,93 +172,8 @@ const Invest = ({ navigation }) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	const [isLoading, setIsLoading] = useState(true)
-	const [refreshing, setRefreshing] = useState(false)
-	const [data, dispatchData] = useReducer(dataReducer, initialData)
-	const { savings, coins, stocks, p2pData } = data
+	const { savings, coins, stocks, p2pData, isLoading, refreshing, onRefresh } = useInvestDashboard()
 	const [exploreTab, setExploreTab] = useState('popular')
-
-	const fetchData = useCallback(async (showLoader = true) => {
-		if (showLoader) setIsLoading(true)
-		try {
-			const [savingsRes, coinsRes, p2pRes, stocksRes] = await Promise.all([
-				savingApi.getSummary(),
-				coinsApi.index({ category_id: 1, trade: 1 }),
-				p2pApi.getAverages(),
-				stocksApi.index(),
-			])
-			if (savingsRes.success) dispatchData({ type: 'setSavings', savings: savingsRes.data })
-			if (p2pRes.success && p2pRes.data) {
-				const averages = p2pRes.data
-				const pairs = P2P_COINS.flatMap(tick => {
-					const d = averages[tick]
-					if (!d) return []
-					return [{ tick, name: d.name || tick, buy: d.average_buy || 0, sell: d.average_sell || 0, count: d.count || 0 }]
-				})
-				dispatchData({ type: 'setP2p', p2pData: pairs })
-			}
-			if (stocksRes.success && Array.isArray(stocksRes.data)) {
-				dispatchData({
-					type: 'setStocks', stocks: stocksRes.data.map(s => ({
-						tick: s.symbol,
-						name: s.name,
-						icon: s.icon,
-						iconStyle: s.iconStyle,
-						image: s.image || null,
-						price: s.price,
-						change: s.change,
-						changeDollar: s.changeDollar,
-					}))
-				})
-			}
-			if (coinsRes.success && coinsRes.data?.length) {
-				const rawCoins = coinsRes.data
-				// Fetch price histories for the first 5 coins
-				const ticks = rawCoins.slice(0, 5).map(c => c.tick)
-				const historyResults = await Promise.all(
-					ticks.map(tick => coinsApi.priceHistory(tick, '24H'))
-				)
-				const enriched = rawCoins.map(coin => {
-					const idx = ticks.indexOf(coin.tick)
-					if (idx === -1) return coin
-					const res = historyResults[idx]
-					if (!res.success || !res.data?.length) return coin
-					const history = res.data
-					const first = history[0].value
-					const last = history[history.length - 1].value
-					const change = first > 0 ? ((last - first) / first) * 100 : 0
-					const changeDollar = last - first
-					return { ...coin, price: last, change, changeDollar, priceHistory: history }
-				})
-				dispatchData({ type: 'setCoins', coins: enriched })
-			}
-		} catch {
-			// silently handle
-		} finally { setIsLoading(false) }
-	}, [])
-
-	// Cold-start hydration: paint the cached dashboard instantly (no full-screen
-	// loader) while fetchData revalidates in the background
-	useEffect(() => {
-		readCache(CACHE_KEYS.INVEST_DATA).then(cached => {
-			if (!cached) return
-			dispatchData({ type: 'hydrate', data: cached })
-			if (cached.coins?.length || cached.stocks?.length) setIsLoading(false)
-		})
-	}, [])
-
-	// Persist the dashboard whenever it holds real data (covers every fetch path)
-	useEffect(() => {
-		if (coins.length || stocks.length) writeCache(CACHE_KEYS.INVEST_DATA, data)
-	}, [data, coins.length, stocks.length])
-
-	useEffect(() => { fetchData() }, [fetchData])
-
-	const onRefresh = useCallback(async () => {
-		setRefreshing(true)
-		await fetchData(false)
-		setRefreshing(false)
-	}, [fetchData])
 
 	if (isLoading) return <QPLoader />
 

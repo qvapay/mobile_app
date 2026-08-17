@@ -14,7 +14,7 @@ import { createContainerStyles, createTextStyles } from '../../../theme/themeUti
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 // API
-import { shopApi } from '../../../api/shopApi'
+import { useAssistedOrderQuery } from './assistedQueries'
 
 // Helpers
 import { getShortDateTime } from '../../../helpers'
@@ -33,21 +33,23 @@ const AssistedOrderDetail = ({ route }) => {
 	const textStyles = createTextStyles(theme)
 	const contentPadding = useContentPadding(30, 8)
 
-	const [order, setOrder] = useState(null)
+	// Pedido en React Query (clave por id)
+	const orderQuery = useAssistedOrderQuery(route.params?.id)
+	const order = orderQuery.data || null
 	const [refreshing, setRefreshing] = useState(false)
 
-	const fetchOrder = useCallback(async () => {
-		const res = await shopApi.getOrder(route.params?.id)
-		if (res.success) setOrder(res.data?.order || null)
-		else toast.error('Pedido', { description: res.error })
-	}, [route.params?.id])
+	useEffect(() => {
+		if (orderQuery.isError && !orderQuery.data) {
+			toast.error('Pedido', { description: orderQuery.error?.message })
+		}
+	}, [orderQuery.isError, orderQuery.data, orderQuery.error])
 
-	useEffect(() => { fetchOrder() }, [fetchOrder])
-
+	const { refetch: fetchOrder } = orderQuery
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchOrder()
-		setRefreshing(false)
+		try { await fetchOrder() }
+		catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
 	}, [fetchOrder])
 
 	if (!order) { return <View style={containerStyles.subContainer} /> }

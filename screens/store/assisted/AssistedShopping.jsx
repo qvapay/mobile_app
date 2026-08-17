@@ -19,6 +19,7 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 // Routes & API
 import { ROUTES } from '../../../routes'
 import { shopApi } from '../../../api/shopApi'
+import { useAssistedCartQuery, useAssistedRecentQuery } from './assistedQueries'
 
 // Constants
 import { STORES, money, providerLabel } from './assistedConstants'
@@ -40,31 +41,30 @@ const AssistedShopping = ({ navigation }) => {
 
 	const [url, setUrl] = useState('')
 	const [searching, setSearching] = useState(false)
-	const [cartCount, setCartCount] = useState(0)
-	const [recent, setRecent] = useState([])
 	const [refreshing, setRefreshing] = useState(false)
 
-	const fetchData = useCallback(async () => {
-		const [cartRes, recentRes] = await Promise.all([
-			shopApi.getCart(),
-			shopApi.getRecentProducts(),
-		])
-		if (cartRes.success) setCartCount(cartRes.data?.cart?.item_count || 0)
-		if (recentRes.success) setRecent(recentRes.data?.products || [])
-	}, [])
+	// Carrito (badge) y estantería reciente en React Query, en paralelo
+	const cartQuery = useAssistedCartQuery()
+	const recentQuery = useAssistedRecentQuery()
+	const cartCount = cartQuery.data?.item_count || 0
+	const recent = recentQuery.data || []
 
 	// Refresh the cart badge every time the screen regains focus (items are
 	// added/removed from deeper screens in this same stack).
+	const { refetch: refetchCart } = cartQuery
+	const { refetch: refetchRecent } = recentQuery
 	useEffect(() => {
-		navigation.addListener('focus', fetchData)
-		return () => navigation.removeListener('focus', fetchData)
-	}, [navigation, fetchData])
+		const listener = () => { refetchCart(); refetchRecent() }
+		navigation.addListener('focus', listener)
+		return () => navigation.removeListener('focus', listener)
+	}, [navigation, refetchCart, refetchRecent])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchData()
-		setRefreshing(false)
-	}, [fetchData])
+		try { await Promise.all([refetchCart(), refetchRecent()]) }
+		catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
+	}, [refetchCart, refetchRecent])
 
 	const handleSearch = async () => {
 		const trimmed = url.trim()

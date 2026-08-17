@@ -245,21 +245,17 @@ export default function Keypad({ navigation }) {
 					textStyle={{ color: theme.colors.contrast }}
 					iconStyle="solid"
 				/>
-				<View style={styles.actionButtonSpacer} />
 				{/* Nearby radar — iOS only until BleTransport (phase 2) lands on Android */}
 				{Platform.OS === 'ios' && (
-					<>
-						<QPButton
-							title=""
-							onPress={handleNearby}
-							disabled={isProcessing}
-							icon="tower-broadcast"
-							style={[styles.nearbyButton, { backgroundColor: theme.colors.elevation }, isProcessing && styles.actionButtonDisabled]}
-							iconColor={theme.colors.contrast}
-							iconStyle="solid"
-						/>
-						<View style={styles.actionButtonSpacer} />
-					</>
+					<QPButton
+						title=""
+						onPress={handleNearby}
+						disabled={isProcessing}
+						icon="tower-broadcast"
+						style={[styles.nearbyButton, { backgroundColor: theme.colors.elevation }, isProcessing && styles.actionButtonDisabled]}
+						iconColor={theme.colors.contrast}
+						iconStyle="solid"
+					/>
 				)}
 				<QPButton
 					title={'Enviar'}
@@ -296,12 +292,10 @@ const styles = StyleSheet.create({
 		borderColor: 'rgba(255, 255, 255, 0.1)',
 	},
 	balanceText: {},
-	keypadSection: {
-		paddingHorizontal: 5,
-	},
+	keypadSection: {},
 	keypadRow: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
+		gap: 12,
 		marginBottom: 12,
 	},
 	keyButton: {
@@ -309,7 +303,6 @@ const styles = StyleSheet.create({
 		height: 60,
 		alignItems: 'center',
 		justifyContent: 'center',
-		marginHorizontal: 8,
 		borderRadius: 16,
 		borderCurve: 'continuous',
 		backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -326,7 +319,7 @@ const styles = StyleSheet.create({
 	},
 	actionSection: {
 		flexDirection: 'row',
-		paddingHorizontal: 5,
+		gap: 12,
 		paddingBottom: 8,
 	},
 	actionButton: {
@@ -339,9 +332,6 @@ const styles = StyleSheet.create({
 	},
 	actionButtonDisabled: {
 		opacity: 0.6,
-	},
-	actionButtonSpacer: {
-		width: 12,
 	},
 	nearbyButton: {
 		width: 56,

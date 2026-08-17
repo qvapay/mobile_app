@@ -16,7 +16,7 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 // Routes & API
 import { ROUTES } from '../../../routes'
-import { shopApi } from '../../../api/shopApi'
+import { useAssistedOrdersQuery } from './assistedQueries'
 
 // Helpers
 import { getShortDateTime } from '../../../helpers'
@@ -33,27 +33,30 @@ const AssistedOrders = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 
-	const [orders, setOrders] = useState(null)
+	// Pedidos en React Query; el foco revalida (los pedidos nacen en Checkout,
+	// más profundo en este mismo stack)
+	const ordersQuery = useAssistedOrdersQuery()
+	const { refetch: fetchOrders } = ordersQuery
+	const orders = ordersQuery.data ?? (ordersQuery.isError ? [] : null)
 	const [refreshing, setRefreshing] = useState(false)
 
-	const fetchOrders = useCallback(async () => {
-		const res = await shopApi.getOrders()
-		if (res.success) setOrders(res.data?.orders || [])
-		else {
-			setOrders([])
-			toast.error('Mis pedidos', { description: res.error })
+	useEffect(() => {
+		if (ordersQuery.isError && !ordersQuery.data) {
+			toast.error('Mis pedidos', { description: ordersQuery.error?.message })
 		}
-	}, [])
+	}, [ordersQuery.isError, ordersQuery.data, ordersQuery.error])
 
 	useEffect(() => {
-		navigation.addListener('focus', fetchOrders)
-		return () => navigation.removeListener('focus', fetchOrders)
+		const listener = () => { fetchOrders() }
+		navigation.addListener('focus', listener)
+		return () => navigation.removeListener('focus', listener)
 	}, [navigation, fetchOrders])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchOrders()
-		setRefreshing(false)
+		try { await fetchOrders() }
+		catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
 	}, [fetchOrders])
 
 	const renderItem = ({ item }) => {

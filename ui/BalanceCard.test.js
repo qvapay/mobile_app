@@ -10,15 +10,11 @@ jest.mock('../theme/ThemeContext', () => {
 })
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
 jest.mock('../api/savingApi', () => ({ savingApi: { getSummary: jest.fn() } }))
-jest.mock('../helpers/dataCache', () => ({
-	CACHE_KEYS: { SAVINGS_SUMMARY: 'savings_summary' },
-	readCache: jest.fn(async () => null),
-	writeCache: jest.fn(),
-}))
 jest.mock('./particles/QPBalance', () => 'QPBalance')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useSettings } from '../settings/SettingsContext'
 import { savingApi } from '../api/savingApi'
 import BalanceCard from './BalanceCard'
@@ -26,15 +22,38 @@ import BalanceCard from './BalanceCard'
 const getSetting = jest.fn()
 const updateSetting = jest.fn()
 
+// Se guardan para desmontarlos: un QueryClient vivo deja temporizadores de
+// recolección abiertos y jest no llega a cerrar el proceso
+let clients = []
+
 const renderCard = async (props = {}) => {
+	const client = new QueryClient({
+		defaultOptions: { queries: { retry: false } },
+	})
+	clients.push(client)
 	let tree
 	await act(async () => {
-		tree = create(<BalanceCard balance={props.balance ?? '123.45'} navigation={props.navigation} />)
+		tree = create(
+			<QueryClientProvider client={client}>
+				<BalanceCard balance={props.balance ?? '123.45'} navigation={props.navigation} />
+			</QueryClientProvider>
+		)
 	})
+	// React Query notifica vía notifyManager (setTimeout): dejar correr un
+	// temporizador real para que el resumen de ahorros aterrice
+	await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
 	return tree
 }
 
 const pages = (tree) => tree.root.findAll(node => typeof node.props.onPress === 'function')
+
+afterEach(() => {
+	for (const client of clients) {
+		client.clear()
+		client.unmount()
+	}
+	clients = []
+})
 
 beforeEach(() => {
 	jest.clearAllMocks()

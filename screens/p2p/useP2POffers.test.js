@@ -11,14 +11,9 @@ jest.mock('../../helpers/widgetBridge', () => ({
 	reloadWidgets: jest.fn(),
 }))
 jest.mock('sonner-native', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
-jest.mock('../../helpers/dataCache', () => ({
-	CACHE_KEYS: { P2P_OFFERS: 'p2p_offers', P2P_COINS: 'p2p_coins' },
-	readCache: jest.fn(async () => null),
-	writeCache: jest.fn(),
-}))
-
 import React from 'react'
 import { act, create } from 'react-test-renderer'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { p2pApi } from '../../api/p2pApi'
 import coinsApi from '../../api/coinsApi'
 import { updateWidgetP2POffers, reloadWidgets } from '../../helpers/widgetBridge'
@@ -28,7 +23,22 @@ import useP2POffers from './useP2POffers'
 const PAGE_SIZE = 30
 const offers = (count, prefix = 'o') => Array.from({ length: count }, (_, i) => ({ uuid: `${prefix}${i}` }))
 
+// Se guardan para desmontarlos: un QueryClient vivo deja temporizadores de
+// recolección abiertos y jest no llega a cerrar el proceso
+let clients = []
+
+// React Query notifica vía notifyManager (setTimeout): hay que dejar correr un
+// temporizador para que monedas y medias aterricen. Con fake timers activos
+// (tests de debounce) se avanza el reloj simulado en su lugar — un setTimeout
+// real jamás dispararía y renderOffers se colgaría
+const settle = () => act(async () => {
+	if (global.setTimeout.clock) { jest.advanceTimersByTime(25) }
+	else { await new Promise(r => setTimeout(r, 20)) }
+})
+
 const renderOffers = async (props = {}) => {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+	clients.push(client)
 	const result = { current: null }
 	let setProps
 	const Harness = () => {
@@ -42,9 +52,15 @@ const renderOffers = async (props = {}) => {
 		result.current = useP2POffers(state)
 		return null
 	}
-	await act(async () => { create(<Harness />) })
+	await act(async () => { create(<QueryClientProvider client={client}><Harness /></QueryClientProvider>) })
+	await settle()
 	return { result, setProps: (patch) => act(async () => { setProps(patch) }) }
 }
+
+afterEach(() => {
+	for (const client of clients) { client.clear(); client.unmount() }
+	clients = []
+})
 
 beforeEach(() => {
 	jest.clearAllMocks()

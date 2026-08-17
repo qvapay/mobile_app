@@ -18,6 +18,7 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 // Routes & API
 import { ROUTES } from '../../../routes'
 import { shopApi } from '../../../api/shopApi'
+import { useAssistedCartQuery } from './assistedQueries'
 
 // Constants
 import { money, providerLabel, MINIMUM_CART } from './assistedConstants'
@@ -34,26 +35,32 @@ const AssistedCart = ({ navigation }) => {
 	const textStyles = createTextStyles(theme)
 	const contentPadding = useContentPadding(30, 8)
 
-	const [cart, setCart] = useState(null)
+	// Carrito en React Query (meta.noPersist: estado vivo, no snapshot); las
+	// mutaciones de abajo refetchean tras confirmar
+	const cartQuery = useAssistedCartQuery()
+	const cart = cartQuery.data || null
+	const { refetch: fetchCart } = cartQuery
 	const [refreshing, setRefreshing] = useState(false)
 	const [mutatingUuid, setMutatingUuid] = useState(null)
 
-	const fetchCart = useCallback(async () => {
-		const res = await shopApi.getCart()
-		if (res.success) setCart(res.data?.cart || null)
-		else toast.error('Carrito', { description: res.error })
-	}, [])
+	useEffect(() => {
+		if (cartQuery.isError && !cartQuery.data) {
+			toast.error('Carrito', { description: cartQuery.error?.message })
+		}
+	}, [cartQuery.isError, cartQuery.data, cartQuery.error])
 
 	// Refetch on focus — items get added from the product screen.
 	useEffect(() => {
-		navigation.addListener('focus', fetchCart)
-		return () => navigation.removeListener('focus', fetchCart)
+		const listener = () => { fetchCart() }
+		navigation.addListener('focus', listener)
+		return () => navigation.removeListener('focus', listener)
 	}, [navigation, fetchCart])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchCart()
-		setRefreshing(false)
+		try { await fetchCart() }
+		catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
 	}, [fetchCart])
 
 	const changeQuantity = async (item, delta) => {

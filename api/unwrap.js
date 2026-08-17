@@ -57,6 +57,11 @@ export const unwrap = (result) => {
  * cuando consta un 4xx (fallo del cliente: reintentar no lo arregla). Todo lo
  * demás —5xx y ausencia de código— se reintenta.
  *
+ * La excepción dentro de los 4xx es el **429**: es el único que el tiempo SÍ
+ * arregla, porque el token bucket del backend se rellena solo (p. ej. el
+ * scroll infinito del histórico rebotaba en el cuarto swipe y se quedaba
+ * mudo). Se reintenta con la espera larga de `retryDelay`.
+ *
  * @param {number} failureCount - Intentos fallidos hasta ahora (React Query lo pasa).
  * @param {ApiError|Error} error - Error lanzado por `unwrap`.
  * @returns {boolean} Si conviene reintentar.
@@ -66,7 +71,26 @@ export const shouldRetry = (failureCount, error) => {
 	if (failureCount >= 2) return false
 
 	const status = error?.status
+	if (status === 429) return true
 	if (typeof status === 'number' && status >= 400 && status < 500) return false
 
 	return true
+}
+
+/**
+ * Espera entre reintentos, emparejada con `shouldRetry`.
+ *
+ * Un 429 espera un tiempo fijo pensado para el refill del rate limit del
+ * backend (ventanas de 5s): reintentar en caliente solo quemaría el bucket
+ * otra vez. El resto usa el backoff exponencial corto habitual.
+ *
+ * @param {number} attemptIndex - Reintento en curso, empezando en 0 (React Query lo pasa).
+ * @param {ApiError|Error} error - Error del intento anterior.
+ * @returns {number} Milisegundos a esperar antes del siguiente intento.
+ */
+export const retryDelay = (attemptIndex, error) => {
+
+	if (error?.status === 429) return 2500
+
+	return Math.min(1000 * 2 ** attemptIndex, 5000)
 }

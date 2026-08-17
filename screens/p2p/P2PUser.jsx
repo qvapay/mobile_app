@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useReducer } from "react"
+import { useState, useCallback } from "react"
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share, useWindowDimensions } from "react-native"
 import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from "react-native-linear-gradient"
@@ -10,6 +10,8 @@ import { createTextStyles, createContainerStyles } from "../../theme/themeUtils"
 
 // API
 import { p2pApi } from "../../api/p2pApi"
+import { unwrap } from "../../api/unwrap"
+import { useQuery } from "@tanstack/react-query"
 
 // UI
 import QPAvatar from "../../ui/particles/QPAvatar"
@@ -68,21 +70,13 @@ function formatRatingDate(date) {
 	return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
 }
 
-// Async fetch state (loading / refreshing / error / data) moves together as one unit
-const initialFetch = { loading: true, refreshing: false, error: null, data: null }
-
-function fetchReducer(state, action) {
-	switch (action.type) {
-		case 'start':
-			return { ...state, loading: !action.isRefresh, refreshing: action.isRefresh, error: null }
-		case 'success':
-			return { ...state, loading: false, refreshing: false, data: action.data }
-		case 'error':
-			return { ...state, loading: false, refreshing: false, error: action.error }
-		default:
-			return state
-	}
-}
+/** Perfil público completo del trader (usuario, stats, ofertas, reseñas). */
+const usePeerProfileQuery = (uuid) => useQuery({
+	queryKey: ['p2p', 'user', uuid],
+	queryFn: async () => unwrap(await p2pApi.peerProfile(uuid)),
+	enabled: !!uuid,
+	placeholderData: previous => previous,
+})
 
 /**
  * Public P2P trader profile: cover photo, stats, active offers and reviews in tabs.
@@ -106,29 +100,23 @@ const P2PUser = ({ navigation, route }) => {
 	const topOverlay = insets.top
 	const totalCoverHeight = Math.round(windowHeight * COVER_HEIGHT_RATIO)
 
-	const [fetchState, dispatchFetch] = useReducer(fetchReducer, initialFetch)
-	const { loading, refreshing, error, data } = fetchState
+	// Perfil en React Query (clave por uuid: volver a un trader pinta de caché)
+	const profileQuery = usePeerProfileQuery(uuid)
+	const { data } = profileQuery
+	const loading = profileQuery.isPending
+	const error = profileQuery.error?.message || null
+	const [refreshing, setRefreshing] = useState(false)
 	const [activeTab, setActiveTab] = useState(initialTab === "reviews" || initialTab === "stats" ? initialTab : "offers")
 	const [reviewMode, setReviewMode] = useState("received")
 
-	const fetchProfile = useCallback(async (isRefresh = false) => {
+	const { refetch: fetchProfile } = profileQuery
+	const onRefresh = useCallback(async () => {
+		setRefreshing(true)
 		try {
-			dispatchFetch({ type: 'start', isRefresh })
-			const res = await p2pApi.peerProfile(uuid)
-			if (res.success) {
-				dispatchFetch({ type: 'success', data: res.data })
-			} else {
-				dispatchFetch({ type: 'error', error: res.error })
-				if (isRefresh) toast.error(res.error)
-			}
-		} catch (e) {
-			dispatchFetch({ type: 'error', error: e.message })
-		}
-	}, [uuid])
-
-	useEffect(() => { fetchProfile() }, [fetchProfile])
-
-	const onRefresh = () => fetchProfile(true)
+			const res = await fetchProfile()
+			if (res.error) toast.error(res.error.message)
+		} finally { setRefreshing(false) }
+	}, [fetchProfile])
 
 	// Source of truth is the server. Never trust a locally-cached flag
 	// (AsyncStorage may keep stringy/stale values that bypass the gate).

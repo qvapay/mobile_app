@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback, useReducer } from 'react'
+import { useEffect, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Linking, Modal, Pressable, TextInput, useWindowDimensions } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// API
+// API (deposit/withdraw — las lecturas viven en React Query)
 import { savingApi } from '../../api/savingApi'
+import { useQueryClient } from '@tanstack/react-query'
+import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
+import { useSavingsMovementsQuery } from './investQueries'
 
 // UI
 import QPButton from '../../ui/particles/QPButton'
@@ -66,37 +69,18 @@ const Savings = ({ route }) => {
 	const { user, updateUser } = useAuth()
 	const { height: windowHeight } = useWindowDimensions()
 
-	// Use params if passed from Invest, otherwise fetch
-	const [savings, setSavings] = useState(route.params?.savings || null)
-	const [transactions, setTransactions] = useState([])
-	const [isLoading, setIsLoading] = useState(!route.params?.savings)
+	// Resumen (query compartida con BalanceCard/Invest) + movimientos. El
+	// summary de route.params pinta al instante mientras la query revalida
+	const queryClient = useQueryClient()
+	const summaryQuery = useSavingsSummaryQuery()
+	const movementsQuery = useSavingsMovementsQuery(20)
+	const savings = summaryQuery.data || route.params?.savings || null
+	const transactions = movementsQuery.data || []
+	const isLoading = !savings && summaryQuery.isPending
 
 	// Modal state
 	const [modal, dispatchModal] = useReducer(modalReducer, initialModal)
 	const { type: modalType, amount: modalAmount, loading: modalLoading } = modal
-
-	const fetchSavings = useCallback(async () => {
-		setIsLoading(true)
-		try {
-			const [summaryRes, txRes] = await Promise.all([
-				savingApi.getSummary(),
-				savingApi.getTransactions(20),
-			])
-			if (summaryRes.success) setSavings(summaryRes.data)
-			if (txRes.success && Array.isArray(txRes.data)) setTransactions(txRes.data)
-		} catch {
-			// silently handle
-		} finally { setIsLoading(false) }
-	}, [])
-
-	useEffect(() => {
-		if (!route.params?.savings) {
-			fetchSavings()
-		} else {
-			// Still fetch transactions even if summary was passed
-			savingApi.getTransactions(20).then(res => { if (res.success && Array.isArray(res.data)) setTransactions(res.data) })
-		}
-	}, [route.params?.savings, fetchSavings])
 
 	const checkingBalance = Number(user?.balance || 0)
 	const savingsBalance = Number(savings?.balance || 0)
@@ -139,7 +123,9 @@ const Savings = ({ route }) => {
 			if (res.success) {
 				toast.success(modalType === 'deposit' ? 'Depósito realizado' : 'Retiro realizado')
 				dispatchModal({ type: 'close' })
-				fetchSavings()
+				// Invalidar la raíz de ahorros refresca resumen y movimientos aquí,
+				// en el dashboard de Invest y en la página 2 del BalanceCard
+				queryClient.invalidateQueries({ queryKey: ['savings'] })
 				updateUser()
 			} else {
 				toast.error(res.error || 'Error en la operación')

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useReducer, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Share, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useContentPadding from '../../../hooks/useContentPadding'
@@ -16,13 +16,11 @@ import ProductTile from '../../../ui/store/ProductTile'
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 import { marketApi } from '../../../api/marketApi'
+import { useMarketShopQuery } from './marketQueries'
 import { mediaUrl } from '../../../helpers/mediaUrl'
 import { ROUTES } from '../../../routes'
 import useMarketCart from './useMarketCart'
 import { MARKET_CATEGORIES, MARKET_SOCIAL_ICONS, socialHref } from './marketConstants'
-
-// Stale-while-revalidate cache (instant back-navigation / offline rendering)
-import { CACHE_KEYS, readCache, writeCache } from '../../../helpers/dataCache'
 
 import { toast } from 'sonner-native'
 
@@ -33,18 +31,9 @@ const COVER_HEIGHT_RATIO = 0.2
 // Detalle embebido: 12 productos; el resto pagina contra el catálogo por tienda.
 const CATALOG_PAGE_SIZE = 24
 
-function shopReducer(state, action) {
-	switch (action.type) {
-		case 'set':
-			return { ...state, [action.field]: action.value }
-		case 'hydrate':
-			return state.store ? state : { ...state, ...action.values }
-		case 'appendProducts':
-			return { ...state, products: [...state.products, ...action.value] }
-		default:
-			return state
-	}
-}
+// Páginas extra del catálogo cargadas con "Cargar más" — estado local que se
+// descarta en cada refresh (la primera tanda viene embebida en la query)
+const initialExtra = { products: [], page: 1, total: null }
 
 /**
  * Floating controls over the cover (Scan/Profile look): back pill on the left
@@ -92,65 +81,66 @@ const MarketStore = ({ navigation, route }) => {
 	// Cover extends behind the status bar (header is disabled for this screen).
 	const totalCoverHeight = Math.round(windowHeight * COVER_HEIGHT_RATIO)
 
-	const [data, dispatchData] = useReducer(shopReducer, { store: null, products: [], catalogPage: 1, catalogTotal: null })
-	const { store, products, catalogPage, catalogTotal } = data
-	const [loading, setLoading] = useState(true)
+	const [extra, setExtra] = useState(initialExtra)
 	const [loadingMore, setLoadingMore] = useState(false)
 	const [refreshing, setRefreshing] = useState(false)
 	const [policyOpen, setPolicyOpen] = useState(false)
-	const hasFresh = useRef(false)
 
-	const cacheKey = `${CACHE_KEYS.MARKET_SHOP}:${slug}`
+	// Escaparate (tienda + primeros productos): React Query hace el fetch, la
+	// persistencia en frío por slug y conserva lo último bueno si la red falla
+	const shopQuery = useMarketShopQuery(slug)
+	const { refetch: refetchShop } = shopQuery
+	const store = shopQuery.data?.store || null
+	const loading = shopQuery.isPending
 
-	// Cold-start hydration: paint the cached storefront, revalidate below
-	useEffect(() => {
-		readCache(cacheKey).then(cached => {
-			if (!cached?.store || hasFresh.current) return
-			dispatchData({ type: 'hydrate', values: { store: cached.store, products: cached.products || [] } })
-			setLoading(false)
-		})
-	}, [cacheKey])
-
-	const fetchStore = useCallback(async () => {
-		const res = await marketApi.getStore(slug)
-		if (res.success) {
-			hasFresh.current = true
-			const fresh = { store: res.data?.store || null, products: res.data?.products || [] }
-			dispatchData({ type: 'set', field: 'store', value: fresh.store })
-			dispatchData({ type: 'set', field: 'products', value: fresh.products })
-			dispatchData({ type: 'set', field: 'catalogPage', value: 1 })
-			dispatchData({ type: 'set', field: 'catalogTotal', value: fresh.store?.product_count ?? null })
-			writeCache(cacheKey, fresh)
-		} else if (!store) {
-			toast.error('Tienda', { description: res.error })
-			if (res.status === 404) navigation.goBack()
+	// Embebidos + páginas extra, dedup por uuid (offsets corridos pueden repetir)
+	const products = useMemo(() => {
+		const seen = new Set()
+		const merged = []
+		for (const p of [...(shopQuery.data?.products || []), ...extra.products]) {
+			if (p?.uuid && seen.has(p.uuid)) continue
+			if (p?.uuid) seen.add(p.uuid)
+			merged.push(p)
 		}
-		setLoading(false)
-	}, [slug, cacheKey, store, navigation])
+		return merged
+	}, [shopQuery.data, extra.products])
 
-	useEffect(() => { fetchStore() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+	const catalogTotal = extra.total ?? store?.product_count ?? null
 
-	// "Cargar más": pagina el catálogo por tienda y de-dup por uuid con lo embebido
+	// El toast solo sin NADA que pintar; un 404 devuelve al índice, como antes
+	useEffect(() => {
+		if (shopQuery.isError && !shopQuery.data) {
+			toast.error('Tienda', { description: shopQuery.error?.message })
+			if (shopQuery.error?.status === 404) navigation.goBack()
+		}
+	}, [shopQuery.isError, shopQuery.data, shopQuery.error, navigation])
+
+	// "Cargar más": pagina el catálogo por tienda (estado local sobre la query)
 	const loadMore = useCallback(async () => {
 		setLoadingMore(true)
-		const nextPage = catalogPage + 1
+		const nextPage = extra.page + 1
 		const res = await marketApi.getCatalog({ shop: slug, page: nextPage, take: CATALOG_PAGE_SIZE, sort: 'newest' })
 		if (res.success) {
-			const fresh = (res.data?.products || []).filter(p => !products.some(x => x.uuid === p.uuid))
-			dispatchData({ type: 'appendProducts', value: fresh })
-			dispatchData({ type: 'set', field: 'catalogPage', value: nextPage })
-			if (res.data?.total != null) dispatchData({ type: 'set', field: 'catalogTotal', value: res.data.total })
+			const incoming = res.data?.products || []
+			setExtra(prev => ({
+				products: [...prev.products, ...incoming],
+				page: nextPage,
+				total: res.data?.total ?? prev.total,
+			}))
 		} else {
 			toast.error('Productos', { description: res.error })
 		}
 		setLoadingMore(false)
-	}, [slug, catalogPage, products])
+	}, [slug, extra.page])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await fetchStore()
-		setRefreshing(false)
-	}, [fetchStore])
+		try {
+			setExtra(initialExtra)
+			await refetchShop()
+		} catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
+	}, [refetchShop])
 
 	const goBack = useCallback(() => { navigation.goBack() }, [navigation])
 	const goCart = useCallback(() => { navigation.navigate(ROUTES.MARKET_CART) }, [navigation])

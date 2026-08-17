@@ -9,8 +9,8 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 // Routes
 import { ROUTES } from '../../routes'
 
-// API
-import { storeApi } from '../../api/storeApi'
+// Data (React Query)
+import { useMyPurchasesQuery } from './storeQueries'
 
 // Pull-to-refresh
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
@@ -45,31 +45,27 @@ const MyPurchases = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 
-	// States
-	const [purchases, setPurchases] = useState([])
-	const [isLoading, setIsLoading] = useState(true)
+	// Data: la query hace el fetch, la persistencia en frío y conserva la
+	// última lista buena si la red falla
+	const query = useMyPurchasesQuery()
+	const purchases = query.data || []
+	const isLoading = query.isPending
 	const [isRefreshing, setIsRefreshing] = useState(false)
 
-	// Fetch purchases
-	const fetchPurchases = useCallback(async (refresh = false) => {
-		if (refresh) { setIsRefreshing(true) }
-		else { setIsLoading(true) }
-
-		try {
-			const response = await storeApi.getMyPurchases()
-			if (response.success) {
-				setPurchases(response.data?.data || [])
-			} else { toast.error('Error', { description: response.error || 'No se pudieron cargar tus compras' }) }
-		} catch (error) {
-			toast.error('Error', { description: 'No se pudo conectar con el servidor' })
-		} finally {
-			setIsLoading(false)
-			setIsRefreshing(false)
+	// El toast solo cuando no hay NADA que pintar
+	useEffect(() => {
+		if (query.isError && !query.data) {
+			toast.error('Error', { description: query.error?.message || 'No se pudieron cargar tus compras' })
 		}
-	}, [])
+	}, [query.isError, query.data, query.error])
 
-	// Initial load
-	useEffect(() => { fetchPurchases() }, [fetchPurchases])
+	const { refetch } = query
+	const onRefresh = useCallback(async () => {
+		setIsRefreshing(true)
+		try { await refetch() }
+		catch { /* la lista anterior sigue en pantalla */ }
+		finally { setIsRefreshing(false) }
+	}, [refetch])
 
 	// Handle purchase tap - navigate to PurchaseDetail
 	const handlePurchasePress = (purchase) => { navigation.navigate(ROUTES.PURCHASE_DETAIL, { purchaseId: purchase.id }) }
@@ -120,7 +116,7 @@ const MyPurchases = ({ navigation }) => {
 				renderItem={renderItem}
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
-				refreshControl={createHiddenRefreshControl(isRefreshing, () => fetchPurchases(true))}
+				refreshControl={createHiddenRefreshControl(isRefreshing, onRefresh)}
 			/>
 		</View>
 	)

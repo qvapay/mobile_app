@@ -30,16 +30,10 @@ export const useTransactionsQuery = () => useQuery({
 	placeholderData: previous => previous,
 })
 
-/** Destinatarios recientes con avatar (fila de pago rápido). */
-export const useQuickPayQuery = () => useQuery({
-	queryKey: ['home', 'quickpay'],
-	queryFn: async () => {
-		const users = await unwrap(await transferApi.getLatestSentTransfers(10))
-		// Sin imagen no hay nada que pintar en la fila de avatares
-		return (users || []).filter(u => u.image)
-	},
-	placeholderData: previous => previous,
-})
+// Compartida con el carrusel de Send; vive en /hooks/ para que Send no
+// arrastre el resto del feed a sus tests. Se re-exporta para los consumidores
+// del feed de Home.
+export { useQuickPayQuery } from '../../hooks/useQuickPayQuery'
 
 /** Últimas entradas del blog (WordPress). */
 export const useBlogQuery = () => useQuery({

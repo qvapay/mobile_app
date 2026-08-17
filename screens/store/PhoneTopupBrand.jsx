@@ -17,6 +17,7 @@ import PhoneTopupStep1 from './PhoneTopupStep1'
 
 import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
+import { useTopupBrandDetailQuery } from './storeQueries'
 import { tinyfiNumber } from '../../helpers'
 import useSatsDiscount from './useSatsDiscount'
 
@@ -51,12 +52,13 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	const isGold = user?.golden_check
 
 	// Fetched brand data (same-named setters keep every call site unchanged)
-	const [data, dispatchData] = useReducer(setFieldReducer, { country: initCountry || null, brand: '', brandLogo: null, offers: [] })
-	const { country, brand, brandLogo, offers } = data
-	const setCountry = (value) => dispatchData({ type: 'set', field: 'country', value })
-	const setBrand = (value) => dispatchData({ type: 'set', field: 'brand', value })
-	const setBrandLogo = (value) => dispatchData({ type: 'set', field: 'brandLogo', value })
-	const setOffers = (value) => dispatchData({ type: 'set', field: 'offers', value })
+	// Detalle del operador en React Query (clave país+marca)
+	const detailQuery = useTopupBrandDetailQuery(countryCode, brandSlug)
+	const offers = detailQuery.data?.offers || []
+	const brand = detailQuery.data?.brand || brandSlug
+	const brandLogo = detailQuery.data?.brand_logo_url || null
+	// Only fall back to the fetched country when the route didn't supply one
+	const country = initCountry || detailQuery.data?.country || null
 
 	// Purchase wizard selection
 	const [purchase, dispatchPurchase] = useReducer(setFieldReducer, { phoneNumber: '', selectedOffer: null, rangeAmount: '', activeTab: 'ALL', step: 1 })
@@ -67,8 +69,15 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	const setActiveTab = (value) => dispatchPurchase({ type: 'set', field: 'activeTab', value })
 	const setStep = (value) => dispatchPurchase({ type: 'set', field: 'step', value })
 
-	const [loading, setLoading] = useState(true)
+	const loading = detailQuery.isPending
 	const [submitting, setSubmitting] = useState(false)
+
+	// El toast solo cuando no hay NADA que pintar
+	useEffect(() => {
+		if (detailQuery.isError && !detailQuery.data) {
+			toast.error('Operador', { description: detailQuery.error?.message || 'No se pudo cargar el operador' })
+		}
+	}, [detailQuery.isError, detailQuery.data, detailQuery.error])
 
 	useLayoutEffect(() => {
 		const usd = parseFloat(user?.balance || 0)
@@ -101,24 +110,6 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 			}),
 		})
 	}, [navigation, user?.balance, user?.satoshis, theme, textStyles.h5, textStyles.h6, brand])
-
-	useEffect(() => {
-		let cancelled = false
-			; (async () => {
-				setLoading(true)
-				const res = await storeApi.getTopupCatalog({ country: countryCode, brand: brandSlug })
-				if (cancelled) return
-				if (res.success) {
-					setOffers(res.data?.offers || [])
-					setBrand(res.data?.brand || brandSlug)
-					setBrandLogo(res.data?.brand_logo_url || null)
-					// Only fall back to the fetched country when the route didn't supply one
-					if (res.data?.country && !initCountry) setCountry(res.data.country)
-				} else { toast.error('Operador', { description: res.error || 'No se pudo cargar el operador' }) }
-				setLoading(false)
-			})()
-		return () => { cancelled = true }
-	}, [countryCode, brandSlug, initCountry])
 
 	// País bloqueado al del brand — el wizard de un operador no debería permitir
 	// cambiar el destino (Cubacel = CU, Telcel = MX, etc.). Construimos el E.164

@@ -7,7 +7,7 @@
  * escenarios donde reintentar tiene sentido llegan SIN código HTTP.
  * @jest-environment node
  */
-import { unwrap, shouldRetry, ApiError } from './unwrap'
+import { unwrap, shouldRetry, retryDelay, ApiError } from './unwrap'
 
 describe('unwrap', () => {
 	test('un éxito devuelve el data tal cual', () => {
@@ -49,7 +49,13 @@ describe('shouldRetry', () => {
 		expect(shouldRetry(0, new ApiError('No autorizado', 401))).toBe(false)
 		expect(shouldRetry(0, new ApiError('Sin permiso', 403))).toBe(false)
 		expect(shouldRetry(0, new ApiError('No existe', 404))).toBe(false)
-		expect(shouldRetry(0, new ApiError('Demasiadas', 429))).toBe(false)
+	})
+
+	test('el 429 es la excepción de los 4xx: el token bucket se rellena solo', () => {
+		// Sin esto, el scroll infinito del histórico rebotaba en el cuarto swipe
+		// y la lista se quedaba muda sin reintentar
+		expect(shouldRetry(0, new ApiError('Demasiadas', 429))).toBe(true)
+		expect(shouldRetry(2, new ApiError('Demasiadas', 429))).toBe(false)
 	})
 
 	test('SÍ reintenta cuando no hay status (500 y red llegan así)', () => {
@@ -72,5 +78,19 @@ describe('shouldRetry', () => {
 
 	test('un error que no es ApiError se reintenta (no consta que sea del cliente)', () => {
 		expect(shouldRetry(0, new Error('boom'))).toBe(true)
+	})
+})
+
+describe('retryDelay', () => {
+	test('un 429 espera el refill del rate limit, no el backoff caliente', () => {
+		expect(retryDelay(0, new ApiError('Demasiadas', 429))).toBe(2500)
+		expect(retryDelay(1, new ApiError('Demasiadas', 429))).toBe(2500)
+	})
+
+	test('el resto usa backoff exponencial corto', () => {
+		expect(retryDelay(0, new ApiError('Sin red', undefined))).toBe(1000)
+		expect(retryDelay(1, new ApiError('Bad gateway', 502))).toBe(2000)
+		// Y se acota: nunca más de 5s entre intentos
+		expect(retryDelay(4, new ApiError('Sin red', undefined))).toBe(5000)
 	})
 })

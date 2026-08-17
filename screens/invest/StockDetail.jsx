@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
 // Theme
@@ -6,7 +6,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // API
-import { stocksApi } from '../../api/stocksApi'
+import { useStockQuery, useStockHistoryQuery } from './investQueries'
 
 // UI
 import QPButton from '../../ui/particles/QPButton'
@@ -67,10 +67,15 @@ const StockDetail = ({ route }) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	const [stock, setStock] = useState(null)
-	const [priceHistory, setPriceHistory] = useState([])
 	const [timeframe, setTimeframe] = useState('24H')
-	const [isLoading, setIsLoading] = useState(true)
+
+	// Cotización + histórico en React Query: claves por símbolo y timeframe,
+	// cambiar de pill no vacía el gráfico (placeholder del timeframe anterior)
+	const stockQuery = useStockQuery(symbol)
+	const historyQuery = useStockHistoryQuery(symbol, timeframe)
+	const stock = stockQuery.data || null
+	const priceHistory = historyQuery.data || []
+	const isLoading = historyQuery.isPending
 
 	// Derive display values from stock (extended) or initialData (instant)
 	const price = stock?.price ?? initialData?.price ?? 0
@@ -79,34 +84,8 @@ const StockDetail = ({ route }) => {
 	const isPositive = change >= 0
 	const trendColor = isPositive ? theme.colors.successText : theme.colors.danger
 
-	// Fetch extended quote + initial price history
-	useEffect(() => {
-		let cancelled = false
-		const load = async () => {
-			setIsLoading(true)
-			const [quoteRes, historyRes] = await Promise.all([
-				stocksApi.show(symbol),
-				stocksApi.priceHistory(symbol, '24H'),
-			])
-			if (cancelled) return
-			if (quoteRes.success) setStock(quoteRes.data)
-			if (historyRes.success && Array.isArray(historyRes.data)) setPriceHistory(historyRes.data)
-			setIsLoading(false)
-		}
-		load()
-		return () => { cancelled = true }
-	}, [symbol])
-
-	// Refetch price history when timeframe changes
-	const fetchHistory = useCallback(async (tf) => {
-		const res = await stocksApi.priceHistory(symbol, tf)
-		if (res.success && Array.isArray(res.data)) setPriceHistory(res.data)
-	}, [symbol])
-
-	const handleTimeframeChange = useCallback((tf) => {
-		setTimeframe(tf)
-		fetchHistory(tf)
-	}, [fetchHistory])
+	// Cambiar de timeframe es cambiar de query: React Query trae el histórico
+	const handleTimeframeChange = useCallback((tf) => { setTimeframe(tf) }, [])
 
 	return (
 		// Sin padding horizontal en el layout raíz (ver CoinDetail): el gráfico

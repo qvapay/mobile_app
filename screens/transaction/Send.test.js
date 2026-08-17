@@ -26,11 +26,6 @@ jest.mock('../../ui/particles/TransactionSticker', () => 'TransactionSticker')
 jest.mock('../../ui/ProfileContainerHorizontal', () => 'ProfileContainerHorizontal')
 jest.mock('./SendUserSearchModal', () => 'SendUserSearchModal')
 jest.mock('./StickerPickerModal', () => 'StickerPickerModal')
-jest.mock('../../helpers/dataCache', () => ({
-	CACHE_KEYS: { SEND_CAROUSEL: 'send_carousel' },
-	readCache: jest.fn(async () => null),
-	writeCache: jest.fn(),
-}))
 jest.mock('../../api/userApi', () => ({
 	userApi: { searchUser: jest.fn(), getContacts: jest.fn() },
 }))
@@ -42,6 +37,7 @@ jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn(
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '../../auth/AuthContext'
 import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 import { userApi } from '../../api/userApi'
@@ -55,9 +51,26 @@ const trackUsers = jest.fn()
 const untrackUsers = jest.fn()
 const isUserOnline = jest.fn(() => false)
 
+// Se guardan para desmontarlos: un QueryClient vivo deja temporizadores de
+// recolección abiertos y jest no llega a cerrar el proceso
+let clients = []
+
 const renderSend = async (params = {}) => {
+	const client = new QueryClient({
+		defaultOptions: { queries: { retry: false } },
+	})
+	clients.push(client)
 	let tree
-	await act(async () => { tree = create(<Send navigation={navigation} route={{ params }} />) })
+	await act(async () => {
+		tree = create(
+			<QueryClientProvider client={client}>
+				<Send navigation={navigation} route={{ params }} />
+			</QueryClientProvider>
+		)
+	})
+	// React Query notifica vía notifyManager (setTimeout): dejar correr un
+	// temporizador real para que el carrusel refleje las respuestas
+	await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
 	return tree
 }
 
@@ -65,6 +78,14 @@ const sendButton = (tree) => tree.root.findByType('QPButton')
 const setAmount = (tree, value) => act(async () => { tree.root.findByType('AmountInput').props.onAmountChange(value) })
 const selectRecipient = (tree, user = RECIPIENT) =>
 	act(async () => { tree.root.findByType('SendUserSearchModal').props.onSelect(user) })
+
+afterEach(() => {
+	for (const client of clients) {
+		client.clear()
+		client.unmount()
+	}
+	clients = []
+})
 
 beforeEach(() => {
 	jest.clearAllMocks()

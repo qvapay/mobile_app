@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StyleSheet, Text, View, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
@@ -11,6 +11,8 @@ import { useAuth } from '../../../auth/AuthContext'
 
 // API
 import { userApi } from '../../../api/userApi'
+import { unwrap } from '../../../api/unwrap'
+import { useQuery } from '@tanstack/react-query'
 
 // UI Components
 import QPLoader from '../../../ui/particles/QPLoader'
@@ -32,21 +34,20 @@ import { useOnlineStatus } from '../../../hooks/OnlineStatusContext'
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 // Referral stats all arrive together from one API call — keep them as one unit
-const initialData = { referrals: [], totalReferrals: 0, smsEarnings: 0, smsBudgetRemaining: 5 }
-
-function dataReducer(state, action) {
-	switch (action.type) {
-		case 'loaded':
-			return {
-				referrals: action.data.referrals || [],
-				totalReferrals: action.data.totalReferrals || 0,
-				smsEarnings: action.data.smsEarningsThisMonth || 0,
-				smsBudgetRemaining: action.data.smsBudgetRemaining ?? 5,
-			}
-		default:
-			return state
-	}
-}
+/** Referidos del usuario, normalizados a lo que pinta la pantalla. */
+const useReferralsQuery = () => useQuery({
+	queryKey: ['user', 'referrals'],
+	queryFn: async () => {
+		const data = unwrap(await userApi.getReferrals()) || {}
+		return {
+			referrals: data.referrals || [],
+			totalReferrals: data.totalReferrals || 0,
+			smsEarnings: data.smsEarningsThisMonth || 0,
+			smsBudgetRemaining: data.smsBudgetRemaining ?? 5,
+		}
+	},
+	placeholderData: previous => previous,
+})
 
 // Share with source tracking
 const shareWithTracking = (channel, openUrl) => {
@@ -67,32 +68,28 @@ const Referals = () => {
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
-	// State
-	const [data, dispatch] = useReducer(dataReducer, initialData)
-	const { referrals, totalReferrals, smsEarnings, smsBudgetRemaining } = data
-	const [loading, setLoading] = useState(true)
+	// Data en React Query (persistida: la lista pinta al instante al volver)
+	const query = useReferralsQuery()
+	const { referrals = [], totalReferrals = 0, smsEarnings = 0, smsBudgetRemaining = 5 } = query.data || {}
+	const loading = query.isPending
 	const [refreshing, setRefreshing] = useState(false)
 
 	// Referral link
 	const referralLink = `https://www.qvapay.com/register/${user.username}`
 
-	// Load referral data
-	const loadReferralData = async () => {
-		try {
-			setLoading(true)
-			const response = await userApi.getReferrals()
-			if (response.success && response.data) { dispatch({ type: 'loaded', data: response.data }) }
-		} catch (error) {
-			toast.error('Error al cargar los referidos')
-		} finally { setLoading(false) }
-	}
+	// El toast solo cuando no hay NADA que pintar
+	useEffect(() => {
+		if (query.isError && !query.data) { toast.error('Error al cargar los referidos') }
+	}, [query.isError, query.data])
 
 	// Refresh data
-	const onRefresh = async () => {
+	const { refetch } = query
+	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		await loadReferralData()
-		setRefreshing(false)
-	}
+		try { await refetch() }
+		catch { /* lo anterior sigue en pantalla */ }
+		finally { setRefreshing(false) }
+	}, [refetch])
 
 	// Track referrals for online status
 	useEffect(() => {
@@ -100,11 +97,6 @@ const Referals = () => {
 		if (ids.length) trackUsers(ids)
 		return () => { if (ids.length) untrackUsers(ids) }
 	}, [referrals, trackUsers, untrackUsers])
-
-	// Load data on mount
-	useEffect(() => {
-		loadReferralData()
-	}, [])
 
 	// Copy referral link
 	const handleCopyLink = () => {
