@@ -28,6 +28,10 @@ import usePushPrompt from '../../hooks/usePushPrompt'
 // Nudge de KYC (gracia post-sesión para el banner del Home)
 import { markKycSessionStarted } from '../../hooks/useKycPrompt'
 
+// Atribución de instalación (Android Install Referrer): código del referidor
+// y source de adquisición capturados en el primer arranque
+import { getStoredAttribution, mapSourceToEnum } from '../../helpers/installReferrer'
+
 // UI
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPStepDots from '../../ui/particles/QPStepDots'
@@ -128,6 +132,24 @@ const RegisterScreen = ({ navigation }) => {
 	const finishingRef = useRef(false)
 	const lastnameInputRef = useRef(null)
 
+	// Atribución de instalación: si el referrer de Play trajo un código de
+	// invitación, se aplica solo (visible para el usuario); el utm_source viaja
+	// como `source` al crear la cuenta
+	const attributionRef = useRef(null)
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			const attribution = await getStoredAttribution()
+			if (cancelled || !attribution) return
+			attributionRef.current = attribution
+			if (attribution.invite) {
+				dispatch({ type: 'set', field: 'invite', value: attribution.invite })
+				setShowInvite(true)
+			}
+		})()
+		return () => { cancelled = true }
+	}, [])
+
 	// Resend countdown for the phone code
 	const { label: countdownLabel, isDisabled: resendDisabled, start: startCountdown } = usePinCountdown()
 
@@ -189,6 +211,7 @@ const RegisterScreen = ({ navigation }) => {
 				email: email.trim(),
 				password,
 				invite: invite.trim() || undefined,
+				source: mapSourceToEnum(attributionRef.current?.utmSource),
 				terms: true
 			})
 			if (result.success) {

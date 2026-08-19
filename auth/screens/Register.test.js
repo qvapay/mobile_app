@@ -16,6 +16,7 @@ jest.mock('../hooks/usePinCountdown', () => jest.fn())
 jest.mock('../../hooks/useStepTransitions', () => jest.fn())
 jest.mock('../../hooks/usePushPrompt', () => jest.fn())
 jest.mock('../../hooks/useKycPrompt', () => ({ markKycSessionStarted: jest.fn() }))
+jest.mock('../../helpers/installReferrer', () => ({ getStoredAttribution: jest.fn(), mapSourceToEnum: jest.fn() }))
 jest.mock('../../api/authApi', () => ({ authApi: { login: jest.fn() } }))
 jest.mock('../../api/userApi', () => ({ userApi: { verifyPhone: jest.fn(), requestKYCSession: jest.fn() } }))
 jest.mock('../../api/client', () => ({ setAuthToken: jest.fn() }))
@@ -45,6 +46,7 @@ import usePushPrompt from '../../hooks/usePushPrompt'
 import { authApi } from '../../api/authApi'
 import { userApi } from '../../api/userApi'
 import { setAuthToken } from '../../api/client'
+import { getStoredAttribution, mapSourceToEnum } from '../../helpers/installReferrer'
 import { toast } from 'sonner-native'
 import RegisterScreen from './Register'
 
@@ -117,6 +119,8 @@ beforeEach(() => {
 	userApi.verifyPhone.mockResolvedValue({ success: true })
 	completeSession.mockResolvedValue()
 	setAuthToken.mockResolvedValue()
+	getStoredAttribution.mockResolvedValue(null)
+	mapSourceToEnum.mockReturnValue(undefined)
 	enablePush.mockResolvedValue()
 	dismissOnboardPrompt.mockResolvedValue()
 })
@@ -191,6 +195,22 @@ describe('password step and account creation', () => {
 		act(() => { input(tree, 'Contraseña').props.onChangeText('Secret1!') })
 		await press(tree, 'Crear cuenta')
 		expect(register).toHaveBeenCalledWith(expect.objectContaining({ invite: 'AMIGO' }))
+	})
+
+	test('install-referrer attribution prefills the invite code and sends the mapped source', async () => {
+		getStoredAttribution.mockResolvedValue({ utmSource: 'telegram', invite: 'PADRINO' })
+		mapSourceToEnum.mockReturnValue('telegram')
+		const tree = renderRegister()
+		await act(async () => {})
+		await goToEmailStep(tree)
+		// The prefetched invite is visible without tapping the reveal toggle
+		expect(input(tree, 'Código de invitación').props.value).toBe('PADRINO')
+		act(() => { input(tree, 'tucorreo@gmail.com').props.onChangeText('john@doe.com') })
+		await press(tree, 'Continuar')
+		act(() => { input(tree, 'Contraseña').props.onChangeText('Secret1!') })
+		await press(tree, 'Crear cuenta')
+		expect(mapSourceToEnum).toHaveBeenCalledWith('telegram')
+		expect(register).toHaveBeenCalledWith(expect.objectContaining({ invite: 'PADRINO', source: 'telegram' }))
 	})
 
 	test('a failed registration toasts the backend error and stays on the password step', async () => {

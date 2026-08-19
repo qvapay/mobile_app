@@ -26,6 +26,7 @@ import { toast } from 'sonner-native'
 
 // Helpers
 import { copyTextToClipboard } from '../../../helpers'
+import { buildPlayReferralLink, buildWebReferralLink, buildReferralMessage } from '../../../helpers/referralLinks'
 
 // Online Status
 import { useOnlineStatus } from '../../../hooks/OnlineStatusContext'
@@ -74,8 +75,10 @@ const Referals = () => {
 	const loading = query.isPending
 	const [refreshing, setRefreshing] = useState(false)
 
-	// Referral link
-	const referralLink = `https://www.qvapay.com/register/${user.username}`
+	// Referral link shown in the copy box (short); the share buttons send the
+	// multiplatform invite (Play link with the invite embedded in the Install
+	// Referrer + web fallback for iPhone/desktop)
+	const referralLink = buildWebReferralLink(user.username)
 
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
@@ -98,32 +101,32 @@ const Referals = () => {
 		return () => { if (ids.length) untrackUsers(ids) }
 	}, [referrals, trackUsers, untrackUsers])
 
-	// Copy referral link
+	// Copy the full multiplatform invite (for WhatsApp and any other channel)
 	const handleCopyLink = () => {
-		copyTextToClipboard(referralLink)
-		toast.success('Enlace copiado al portapapeles')
+		copyTextToClipboard(buildReferralMessage(user.username, 'link'))
+		toast.success('Invitación copiada al portapapeles')
 	}
 
-	// Social share handlers
+	// Social share handlers — text channels carry the full invite message;
+	// Facebook's sharer only accepts a URL, so it gets the Play link directly
 	const shareToX = () => shareWithTracking('x', () => {
-		const link = `${referralLink}?source=x`
-		const msg = `Únete a QvaPay usando mi enlace de referido: ${link}`
+		const msg = buildReferralMessage(user.username, 'x')
 		Linking.openURL(`https://x.com/intent/tweet?text=${encodeURIComponent(msg)}`)
 	})
 
 	const shareToFacebook = () => shareWithTracking('facebook', () => {
-		const link = `${referralLink}?source=facebook`
+		const link = buildPlayReferralLink(user.username, 'facebook')
 		Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`)
 	})
 
 	const shareToTelegram = () => shareWithTracking('telegram', () => {
-		const link = `${referralLink}?source=telegram`
-		Linking.openURL(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Únete a QvaPay usando mi enlace de referido')}`)
+		const link = buildPlayReferralLink(user.username, 'telegram')
+		const text = `Únete a QvaPay con mi código de invitación: ${user.username}\n🌐 iPhone y web: ${buildWebReferralLink(user.username, 'telegram')}`
+		Linking.openURL(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`)
 	})
 
 	const shareToSMS = () => shareWithTracking('sms', () => {
-		const link = `${referralLink}?source=sms`
-		const msg = `Únete a QvaPay usando mi enlace de referido: ${link}`
+		const msg = buildReferralMessage(user.username, 'sms')
 		const separator = Platform.OS === 'ios' ? '&' : '?'
 		Linking.openURL(`sms:${separator}body=${encodeURIComponent(msg)}`)
 	})
