@@ -28,6 +28,7 @@ jest.mock('sonner-native', () => ({ toast: { info: jest.fn(), success: jest.fn()
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
 jest.mock('../helpers/playSound', () => jest.fn())
+jest.mock('../helpers/installReferrer', () => ({ consumeInstallReferrer: jest.fn() }))
 jest.mock('../helpers/versionCheck', () => ({ maybePromptUpdate: jest.fn() }))
 
 import React from 'react'
@@ -38,6 +39,7 @@ import { toast } from 'sonner-native'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 import playSound from '../helpers/playSound'
+import { consumeInstallReferrer } from '../helpers/installReferrer'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { useAppNavigation } from './useAppNavigation'
 
@@ -74,6 +76,7 @@ beforeEach(() => {
 		isLoading: false,
 	})
 	maybePromptUpdate.mockResolvedValue({ needsUpdate: false })
+	consumeInstallReferrer.mockResolvedValue(null)
 	Linking.getInitialURL.mockResolvedValue(null)
 	navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'Splash' }] })
 })
@@ -247,5 +250,40 @@ describe('OneSignal listeners', () => {
 			oneSignalListeners.click({ notification: { additionalData: { type: 'transaction', uuid: 't-1' } } })
 		})
 		expect(navigation.navigate).not.toHaveBeenCalled()
+	})
+})
+
+describe('install referrer deferred deep link', () => {
+	test('queues the campaign destination for the post-login reconciliation', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		consumeInstallReferrer.mockResolvedValue({ qpLink: `/p2p/${P2P_UUID}` })
+		const { pendingRef } = await renderAppNav()
+		expect(pendingRef.current).toBe(`https://www.qvapay.com/p2p/${P2P_UUID}`)
+	})
+
+	test('an authenticated first launch opens the campaign screen directly', async () => {
+		consumeInstallReferrer.mockResolvedValue({ qpLink: `/p2p/${P2P_UUID}` })
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [
+				{ name: 'MainStack' },
+				{ name: 'P2POffer', params: { p2p_uuid: P2P_UUID } },
+			],
+		})
+	})
+
+	test('organic installs leave the pending ref untouched', async () => {
+		const { pendingRef } = await renderAppNav()
+		expect(pendingRef.current).toBeNull()
+	})
+
+	test('never overwrites a deep link already queued', async () => {
+		consumeInstallReferrer.mockResolvedValue({ qpLink: `/p2p/${P2P_UUID}` })
+		const pendingRef = { current: `https://qvapay.com/pay/${P2P_UUID}` }
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		await renderAppNav(pendingRef)
+		expect(pendingRef.current).toBe(`https://qvapay.com/pay/${P2P_UUID}`)
 	})
 })

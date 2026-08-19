@@ -6,13 +6,21 @@ import { useEffect, useState } from 'react'
 import { Linking } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { OneSignal } from 'react-native-onesignal'
+
+// Toast
 import { toast } from 'sonner-native'
 
+// Contexts
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
+
+// Routes
 import { ROUTES } from '../routes'
+
+// Helpers
 import playSound from '../helpers/playSound'
 import { maybePromptUpdate } from '../helpers/versionCheck'
+import { consumeInstallReferrer } from '../helpers/installReferrer'
 
 /**
  * Parses the P2P offer UUID out of a deep link URL.
@@ -81,7 +89,7 @@ export function useAppNavigation(pendingDeepLinkRef) {
 
 	// Update prompt state
 	const [updateInfo, setUpdateInfo] = useState(
-		/** @type {{ needsUpdate: boolean; currentVersion?: string; latestVersion?: string; storeUrl?: string } | null} */ (null),
+		/** @type {{ needsUpdate: boolean; currentVersion?: string; latestVersion?: string; storeUrl?: string } | null} */(null),
 	)
 
 	useEffect(() => {
@@ -90,6 +98,17 @@ export function useAppNavigation(pendingDeepLinkRef) {
 		}, 2000)
 		return () => clearTimeout(timer)
 	}, [])
+
+	// Deferred deep link (Android Install Referrer): on the first launch after a
+	// Play install, the campaign link may carry a destination (`qp_link`). It is
+	// queued in pendingDeepLinkRef so the auth reconciliation below opens it
+	// after login/registration — same path a pre-auth universal link takes.
+	useEffect(() => {
+		(async () => {
+			const attribution = await consumeInstallReferrer()
+			if (attribution?.qpLink && !pendingDeepLinkRef.current) { pendingDeepLinkRef.current = `https://www.qvapay.com${attribution.qpLink}` }
+		})()
+	}, [pendingDeepLinkRef])
 
 	// Check for store update on app launch
 	useEffect(() => {
