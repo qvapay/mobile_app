@@ -71,9 +71,11 @@ const getStatusButton = (status, isOwner, offerType, theme) => {
  * @param {boolean} [props.show_buttons=true] - Render the status/action button (off in the offer detail header).
  * @param {boolean} [props.show_user=true] - Render the counterparty profile row.
  * @param {boolean} [props.show_date=false] - Fecha de creación: fuera del listado (no aporta a la decisión y compite con el botón), solo en el detalle.
+ * @param {boolean} [props.expand_message=false] - Mensaje del anunciante completo (detalle); en el listado se trunca a una línea para preservar la densidad.
  * @param {object} [props.marketAverage] - Medias 24h de la moneda (`{ average_buy, average_sell }`) para marcar si la tasa está por encima o por debajo del mercado.
+ * @param {object} [props.style] - Override sobre la card (el detalle iguala los márgenes verticales de su pila de cards).
  */
-const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false, marketAverage = null }) => {
+const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false, expand_message = false, marketAverage = null, style = null }) => {
 
 	// User context
 	const { user } = useAuth()
@@ -112,7 +114,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const rateWorse = rateEdge != null && rateEdge <= -1
 
 	return (
-		<View style={[styles.offerCard, { backgroundColor: theme.colors.surface }]}>
+		<View style={[styles.offerCard, { backgroundColor: theme.colors.surface }, style]}>
 
 			{/* 1 · Quién — la reputación primero (o la fecha, en el detalle) */}
 			{show_user && (() => {
@@ -164,10 +166,13 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 				)}
 			</View>
 
-			{/* 3 · Cuánto — disponible y contrapartida, como contexto */}
+			{/* 3 · Cuánto — disponible y contrapartida, como contexto. El verbo va
+			    en la perspectiva de QUIEN MIRA: en una oferta de venta el que la ve
+			    compra el saldo y por tanto ENVÍA el rail; en una de compra lo recibe.
+			    Si el que mira es el dueño, la perspectiva se invierte otra vez. */}
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
 				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>${offer.amount}</Text>
-				{' disponible · recibe '}
+				{(isOwner ? offer.type === 'buy' : offer.type === 'sell') ? ' disponible · envías ' : ' disponible · recibes '}
 				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>{offer.receive}</Text>
 			</Text>
 
@@ -186,7 +191,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 			{offer.message && (
 				<View style={[styles.messageRow, { gap: 6 }]}>
 					<FontAwesome6 name="message" size={14} color={theme.colors.primary} iconStyle="solid" />
-					<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1 }]} numberOfLines={1} ellipsizeMode="tail">{offer.message}</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: 1 }]} numberOfLines={expand_message ? undefined : 1} ellipsizeMode="tail">{offer.message}</Text>
 				</View>
 			)}
 		</View>

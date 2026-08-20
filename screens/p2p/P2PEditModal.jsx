@@ -34,7 +34,7 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 						onChangeText={(v) => setEdit("receive", v)}
 						placeholder="0.00"
 						keyboardType="decimal-pad"
-						prelabel="A recibir"
+						prelabel={p2p?.type === "buy" ? "A enviar" : "A recibir"}
 					/>
 
 					{/* Balance warning for SELL offers */}

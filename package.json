@@ -1,6 +1,6 @@
 {
   "name": "QvaPay",
-  "version": "2.3.10",
+  "version": "2.3.11",
   "private": true,
   "scripts": {
     "android": "react-native run-android",

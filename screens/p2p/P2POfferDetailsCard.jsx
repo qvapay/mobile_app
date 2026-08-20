@@ -17,7 +17,8 @@ const getDetailIcon = (name) => {
 	return "circle-info"
 }
 
-// Payment-details card + TX id row + contextual status banner shown above the chat.
+// Payment-details card + TX id row + status banner (the screen only passes
+// statusMessage for `revision` — active-trade guidance lives in P2PTradeProgress).
 const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerStyles }) => (
 	<>
 		{p2p && p2p.details && (() => {
@@ -35,7 +36,7 @@ const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerS
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>Datos de Pago</Text>
 					</View>
 					<View style={{ gap: 8 }}>
-						{details.slice(0, 4).map((d, idx) => {
+						{details.map((d, idx) => {
 							const fullValue = d.value || d.val || ""
 							const fieldName = d.name || d.key
 							const isWallet = fieldName === "Wallet" || d.key === "Wallet"
