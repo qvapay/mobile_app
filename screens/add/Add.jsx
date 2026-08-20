@@ -21,6 +21,12 @@ import useCoins from '../../hooks/useCoins'
 import WalletPickerSheet from '../../ui/WalletPickerSheet'
 import DepositDetailsModal from './DepositDetailsModal'
 
+// Depósito con tarjeta (Stripe PaymentSheet)
+import { presentCardDeposit } from './cardPaymentSheet'
+import CardFeeModeSelector from './CardFeeModeSelector'
+import { isCardDepositEligible, filterCardFromCatalog } from '../../helpers/cardDepositEligibility'
+import { cardFeeRateFor } from '../../helpers/cardFeeMode'
+
 // API
 import apiClient from '../../api/client'
 
@@ -52,6 +58,8 @@ const DEFAULT_DEPOSIT_COINS = [
 	{ tick: 'BTC', label: 'BTC' },
 	{ tick: 'USDTBSC', label: 'USDT BSC' },
 ]
+// Usuarios elegibles ven la tarjeta como primera pill de acceso rápido
+const CARD_FIRST_DEPOSIT_COINS = [{ tick: 'CARD', label: 'Tarjeta' }, ...DEFAULT_DEPOSIT_COINS]
 const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
 
 /**
@@ -121,40 +129,63 @@ const Add = ({ navigation }) => {
 		handleDepositStatusChange
 	)
 
-	// Reset deposit status when modal opens
-	useEffect(() => {
-		if (showDepositModal) setDepositStatus('pending')
-	}, [showDepositModal])
+	// El estado del depósito se resetea en handleTopup al crear cada orden (no en un
+	// efecto al abrir el modal: el PaymentSheet de CARD puede resolver 'processing'
+	// justo después y un reset por efecto lo pisaría)
 
 	// Detect installed wallets compatible with the issued deposit address.
-	// Only relevant for the crypto flow (no redirect_url like PayPal).
+	// Only relevant for the crypto flow (no redirect_url like PayPal; en CARD el
+	// "wallet" es el id del PaymentIntent, no una dirección).
 	useEffect(() => {
-		if (!topupData?.wallet || topupData?.redirect_url) { setInstalledWallets([]); return }
+		if (!topupData?.wallet || topupData?.redirect_url || topupData?.client_secret) { setInstalledWallets([]); return }
 		let cancelled = false
 			; (async () => {
 				const wallets = await detectInstalledWallets(topupData.coin, topupData.network || selectedCoin?.network)
 				if (!cancelled) setInstalledWallets(wallets)
 			})()
 		return () => { cancelled = true }
-	}, [topupData?.wallet, topupData?.coin, topupData?.network, topupData?.redirect_url, selectedCoin?.network])
+	}, [topupData?.wallet, topupData?.coin, topupData?.network, topupData?.redirect_url, topupData?.client_secret, selectedCoin?.network])
+
+	// Depósito con tarjeta: espejo cliente del gate del backend (KYC + Telegram +
+	// teléfono + 30 días + VIP/trustscore) — decide si se PINTA la opción CARD;
+	// el gate real (incluida la geolocalización) vive en POST /topup
+	const cardEligible = isCardDepositEligible(user)
 
 	// Catálogo desde la caché compartida (useCoins): la lista aparece al
 	// instante en vez de esperar un viaje a la red en cada entrada
 	useEffect(() => {
 		if (coinCatalog.length) {
-			setAvailableCoins(coinCatalog)
+			setAvailableCoins(filterCardFromCatalog(coinCatalog, cardEligible))
 			setError(null)
 		} else if (!loadingCoins) {
 			// Sin catálogo y sin carga en curso: la red falló y no había copia
 			setError('Error al cargar las monedas disponibles')
 		}
-	}, [coinCatalog, loadingCoins])
+	}, [coinCatalog, loadingCoins, cardEligible])
+
+	// Modo de fee del depósito CARD: 'on_top' (default, el fee se suma al cobro) o
+	// 'included' (paga exacto lo tecleado y se acredita el neto). Solo viaja en el
+	// POST cuando el método es CARD; el selector se pinta si además el fee es > 0.
+	const [feeMode, setFeeMode] = useState('on_top')
+	const isCardCoin = selectedCoin?.tick === 'CARD'
+	const cardFeeRate = isCardCoin ? cardFeeRateFor(selectedCoin, user) : 0
 
 	// Handle coin selection
 	const handleCoinSelect = (coin) => {
 		setSelectedCoin(coin)
+		setFeeMode('on_top')
 		setShowCoinPicker(false)
 	}
+
+	// Depósito CARD: presenta el PaymentSheet nativo de Stripe sobre la orden ya
+	// creada. Éxito → "processing" (el crédito real lo hace el webhook y llega por
+	// SSE como 'paid'); cancelar deja el modal abierto con el botón para reintentar
+	// (el PaymentIntent vive los mismos 30 min que la orden).
+	const launchCardSheet = useCallback(async (data) => {
+		const result = await presentCardDeposit({ topupData: data, theme, user })
+		if (result.status === 'paid') { setDepositStatus('processing') }
+		else if (result.status === 'failed') { toast.error('Pago con tarjeta', { description: result.message }) }
+	}, [theme, user])
 
 	// Handle topup request
 	const handleTopup = async () => {
@@ -165,16 +196,27 @@ const Add = ({ navigation }) => {
 		try {
 			setIsLoading(true)
 			setError(null)
-			const response = await apiClient.post('/topup', { pay_method: selectedCoin.tick, amount: Number(amount) })
+			const response = await apiClient.post('/topup', {
+				pay_method: selectedCoin.tick,
+				amount: Number(amount),
+				...(isCardCoin && { fee_mode: feeMode }),
+			})
 			if (response.data && response.status === 200) {
 				const data = response.data.data
 				setTopupData(data)
+				setDepositStatus('pending')
 				setShowDepositModal(true)
-				if (data?.redirect_url) {
+				if (data?.client_secret) {
+					launchCardSheet(data)
+				} else if (data?.redirect_url) {
 					Linking.openURL(data.redirect_url)
 				}
 			} else { toast.error('Error al crear la solicitud de depósito') }
-		} catch (err) { setError('Error al crear la solicitud de depósito, intente nuevamente en unos minutos') }
+		} catch (err) {
+			// El gate de tarjeta y el tope diario responden 400/429 con mensaje propio
+			const serverMessage = err?.response?.data?.error
+			setError(serverMessage || 'Error al crear la solicitud de depósito, intente nuevamente en unos minutos')
+		}
 		finally { setIsLoading(false) }
 	}
 
@@ -252,6 +294,16 @@ const Add = ({ navigation }) => {
 					</Pressable>
 				</View>
 
+				{/* Fee mode selector — solo para depósitos con tarjeta y fee > 0 */}
+				{isCardCoin && cardFeeRate > 0 && (
+					<CardFeeModeSelector
+						feeRate={cardFeeRate}
+						amount={amount}
+						value={feeMode}
+						onChange={setFeeMode}
+					/>
+				)}
+
 				{/* Error/Success Messages */}
 				{error && (
 					<View style={[containerStyles.card, { backgroundColor: theme.colors.danger + '20', marginVertical: 10 }]}>
@@ -274,6 +326,7 @@ const Add = ({ navigation }) => {
 				sseConnected={sseConnected}
 				installedWallets={installedWallets}
 				onOpenWalletPicker={() => setShowWalletPicker(true)}
+				onPayWithCard={() => topupData?.client_secret && launchCardSheet(topupData)}
 				theme={theme}
 				textStyles={textStyles}
 			/>
@@ -289,7 +342,7 @@ const Add = ({ navigation }) => {
 				amount={amount}
 				direction="in"
 				recentKey={RECENT_DEPOSIT_KEY}
-				defaultCoins={DEFAULT_DEPOSIT_COINS}
+				defaultCoins={cardEligible ? CARD_FIRST_DEPOSIT_COINS : DEFAULT_DEPOSIT_COINS}
 			/>
 
 			{/* Wallet Picker Sheet — opens installed wallet pre-filled */}

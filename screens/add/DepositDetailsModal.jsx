@@ -94,6 +94,56 @@ const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme,
 	</>
 )
 
+// Card deposit flow (Stripe PaymentSheet): la hoja nativa se presenta desde Add;
+// aquí solo el resumen de la orden y el botón para (re)abrirla mientras siga viva.
+const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWithCard, theme, textStyles }) => {
+
+	// Desglose desde la respuesta de /topup, sin recalcular: `value` = lo que cobra
+	// la tarjeta, `credited` = lo que se acredita (difiere en fee_mode=included)
+	const total = Number(topupData?.value || amount || 0)
+	const credited = Number(topupData?.credited ?? amount ?? 0)
+	const fee = Math.max(0, total - credited)
+	const canPay = depositStatus === 'pending' && countdown > 0
+
+	return (
+		<>
+			<View style={styles.amountSection}>
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
+					Total a pagar con tarjeta
+				</Text>
+				<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.semiBold }]}>
+					${total.toFixed(2)} USD
+				</Text>
+			</View>
+
+			{canPay && (
+				<QPButton
+					title="Pagar con tarjeta"
+					onPress={onPayWithCard}
+					icon="credit-card"
+					iconStyle="solid"
+					iconColor={theme.colors.almostWhite}
+					textStyle={{ color: theme.colors.almostWhite }}
+					style={{ marginBottom: 20 }}
+				/>
+			)}
+
+			<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
+				<DetailRow label="Cantidad a recargar" value={`$${credited.toFixed(2)} QUSD`} theme={theme} textStyles={textStyles} />
+				<DetailRow label="Comisión" value={`$${fee.toFixed(2)}`} theme={theme} textStyles={textStyles} />
+				<DetailRow label="Total a pagar" value={`$${total.toFixed(2)} USD`} theme={theme} textStyles={textStyles} />
+				<DetailRow label="Transacción" value={getFirstChunk(topupData?.transaction_uuid)} last theme={theme} textStyles={textStyles} />
+			</View>
+
+			<ImportantWarnings
+				items={['El pago se procesa de forma segura con Stripe', 'El cargo puede aparecer en tu estado de cuenta como QvaPay, Inc o DFXData, Inc', 'Tu banco puede pedir una confirmación 3D Secure', 'Completa el pago en 30 minutos']}
+				theme={theme}
+				textStyles={textStyles}
+			/>
+		</>
+	)
+}
+
 // Crypto / bank deposit flow
 const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPicker, theme, textStyles }) => (
 	<>
@@ -178,7 +228,9 @@ const STATUS_BANNERS = {
 }
 
 // Deposit details bottom sheet: QR / PayPal redirect, address + amount details, warnings.
-const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData, depositStatus, countdown, sseConnected, installedWallets, onOpenWalletPicker, theme, textStyles }) => {
+const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData, depositStatus, countdown, sseConnected, installedWallets, onOpenWalletPicker, onPayWithCard, theme, textStyles }) => {
+
+	const isCardDeposit = topupData?.coin === 'CARD'
 
 	const getCountdownColor = (seconds) => {
 		if (seconds < 60) return theme.colors.danger
@@ -238,7 +290,7 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 						<View style={[styles.coinNetworkInner, { backgroundColor: theme.colors.primary + '10' }]}>
 							<QPCoin coin={selectedCoin?.logo || topupData?.coin} size={24} />
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginLeft: 8 }]}>
-								{topupData?.coin}
+								{isCardDeposit ? (selectedCoin?.name || 'Tarjeta') : topupData?.coin}
 							</Text>
 							{(topupData?.network || selectedCoin?.network) && (
 								<View style={[styles.networkBadgeSmall, { backgroundColor: theme.colors.primary }]}>
@@ -250,7 +302,9 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 						</View>
 					</View>
 
-					{topupData?.redirect_url ? (
+					{isCardDeposit ? (
+						<CardDepositBody amount={amount} topupData={topupData} depositStatus={depositStatus} countdown={countdown} onPayWithCard={onPayWithCard} theme={theme} textStyles={textStyles} />
+					) : topupData?.redirect_url ? (
 						<PaypalDepositBody amount={amount} topupData={topupData} depositStatus={depositStatus} countdown={countdown} theme={theme} textStyles={textStyles} />
 					) : (
 						<CryptoDepositBody amount={amount} topupData={topupData} installedWallets={installedWallets} onOpenWalletPicker={onOpenWalletPicker} theme={theme} textStyles={textStyles} />

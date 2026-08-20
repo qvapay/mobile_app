@@ -27,6 +27,8 @@ jest.mock('../../ui/QPCoinRow', () => 'QPCoinRow')
 jest.mock('../../ui/QPCoinPicker', () => 'QPCoinPicker')
 jest.mock('../../ui/WalletPickerSheet', () => 'WalletPickerSheet')
 jest.mock('./DepositDetailsModal', () => 'DepositDetailsModal')
+jest.mock('./cardPaymentSheet', () => ({ presentCardDeposit: jest.fn() }))
+jest.mock('./CardFeeModeSelector', () => 'CardFeeModeSelector')
 jest.mock('../../api/client', () => ({
 	__esModule: true,
 	default: { get: jest.fn(), post: jest.fn() },
@@ -42,6 +44,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
 import { maybeRequestReview } from '../../helpers/inAppReview'
 import apiClient from '../../api/client'
+import { presentCardDeposit } from './cardPaymentSheet'
 import useTransactionSSE from '../../hooks/useTransactionSSE'
 import { toast } from 'sonner-native'
 import Add from './Add'
@@ -161,6 +164,129 @@ describe('deposit creation', () => {
 		await pressGenerate(tree)
 		expect(detectInstalledWallets).toHaveBeenCalledWith('USDT', 'TRC20')
 		expect(tree.root.findByType('DepositDetailsModal').props.installedWallets).toEqual([{ id: 'trust' }])
+	})
+})
+
+describe('depósito con tarjeta (CARD)', () => {
+	const CARD = { tick: 'CARD', name: 'Tarjeta', min_in: '10', fee_in: '6' }
+	const eligibleUser = {
+		balance: '100.00',
+		kyc: true,
+		telegram_id: '1',
+		phone_verified: true,
+		created_at: new Date(Date.now() - 60 * 86_400_000).toISOString(),
+		vip: false,
+		trustscore: 95,
+	}
+	const cardInvoice = {
+		transaction_uuid: 'tx-card',
+		wallet: 'pi_123',
+		coin: 'CARD',
+		value: '53',
+		client_secret: 'pi_123_secret_abc',
+		publishable_key: 'pk_test_x',
+	}
+
+	beforeEach(() => {
+		mockCoinCatalog = [{ name: 'Fiat', coins: [CARD, USDT] }]
+		useAuth.mockReturnValue({ user: eligibleUser, updateUser })
+		apiClient.post.mockResolvedValue({ status: 200, data: { data: cardInvoice } })
+		presentCardDeposit.mockResolvedValue({ status: 'paid' })
+	})
+
+	test('un usuario no elegible no ve la opción CARD en el catálogo ni en las pills', async () => {
+		useAuth.mockReturnValue({ user: { ...eligibleUser, kyc: false }, updateUser })
+		const tree = await renderAdd()
+		const picker = tree.root.findByType('QPCoinPicker')
+		expect(picker.props.coins).toEqual([{ name: 'Fiat', coins: [USDT] }])
+		expect(picker.props.defaultCoins.some(c => c.tick === 'CARD')).toBe(false)
+	})
+
+	test('un usuario elegible ve CARD y la pill Tarjeta primero', async () => {
+		const tree = await renderAdd()
+		const picker = tree.root.findByType('QPCoinPicker')
+		expect(picker.props.coins).toBe(mockCoinCatalog)
+		expect(picker.props.defaultCoins[0]).toEqual({ tick: 'CARD', label: 'Tarjeta' })
+	})
+
+	test('generar el depósito abre el modal y presenta el PaymentSheet nativo', async () => {
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, CARD)
+		await pressGenerate(tree)
+		expect(apiClient.post).toHaveBeenCalledWith('/topup', { pay_method: 'CARD', amount: 50, fee_mode: 'on_top' })
+		expect(presentCardDeposit).toHaveBeenCalledWith(expect.objectContaining({ topupData: cardInvoice, user: eligibleUser }))
+		const modal = tree.root.findByType('DepositDetailsModal')
+		expect(modal.props.visible).toBe(true)
+		// La hoja confirmó: queda en processing hasta que el webhook acredite (SSE 'paid')
+		expect(modal.props.depositStatus).toBe('processing')
+		// El id del PaymentIntent no es una dirección: nada de detección de wallets
+		expect(detectInstalledWallets).not.toHaveBeenCalled()
+	})
+
+	test('el selector de fee aparece solo con CARD elegida (y su fee > 0)', async () => {
+		const tree = await renderAdd()
+		expect(tree.root.findAllByType('CardFeeModeSelector')).toHaveLength(0)
+		await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(CARD) })
+		const selector = tree.root.findByType('CardFeeModeSelector')
+		expect(selector.props.value).toBe('on_top')
+		expect(selector.props.feeRate).toBe(6)
+		// Cambiar a otra moneda lo quita
+		await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(USDT) })
+		expect(tree.root.findAllByType('CardFeeModeSelector')).toHaveLength(0)
+	})
+
+	test('con CARD sin fee no hay selector y no cambia el flujo', async () => {
+		const tree = await renderAdd()
+		await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect({ ...CARD, fee_in: '0' }) })
+		expect(tree.root.findAllByType('CardFeeModeSelector')).toHaveLength(0)
+	})
+
+	test('elegir "fee incluido" viaja en el POST; re-elegir moneda vuelve al default', async () => {
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, CARD)
+		await act(async () => { tree.root.findByType('CardFeeModeSelector').props.onChange('included') })
+		await pressGenerate(tree)
+		expect(apiClient.post).toHaveBeenCalledWith('/topup', { pay_method: 'CARD', amount: 50, fee_mode: 'included' })
+		// Volver a seleccionar una moneda resetea el modo a on_top
+		await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(CARD) })
+		expect(tree.root.findByType('CardFeeModeSelector').props.value).toBe('on_top')
+	})
+
+	test('el POST de monedas no-CARD no lleva fee_mode', async () => {
+		apiClient.post.mockResolvedValue({ status: 200, data: { data: { transaction_uuid: 'tx-1', wallet: 'TAddr', coin: 'USDT' } } })
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, USDT)
+		await pressGenerate(tree)
+		expect(apiClient.post).toHaveBeenCalledWith('/topup', { pay_method: 'USDT', amount: 50 })
+	})
+
+	test('cancelar la hoja deja la orden pendiente y permite reintentar desde el modal', async () => {
+		presentCardDeposit.mockResolvedValue({ status: 'canceled' })
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, CARD)
+		await pressGenerate(tree)
+		const modal = tree.root.findByType('DepositDetailsModal')
+		expect(modal.props.depositStatus).toBe('pending')
+		presentCardDeposit.mockClear()
+		await act(async () => { modal.props.onPayWithCard() })
+		expect(presentCardDeposit).toHaveBeenCalledWith(expect.objectContaining({ topupData: cardInvoice }))
+	})
+
+	test('un fallo del PaymentSheet muestra el error en un toast', async () => {
+		presentCardDeposit.mockResolvedValue({ status: 'failed', message: 'Tarjeta rechazada' })
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, CARD)
+		await pressGenerate(tree)
+		expect(toast.error).toHaveBeenCalledWith('Pago con tarjeta', { description: 'Tarjeta rechazada' })
+		expect(tree.root.findByType('DepositDetailsModal').props.depositStatus).toBe('pending')
+	})
+
+	test('el rechazo del gate del servidor pinta su mensaje literal', async () => {
+		apiClient.post.mockRejectedValue({ response: { data: { error: 'Método de pago no soportado para este usuario' } } })
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, CARD)
+		await pressGenerate(tree)
+		expect(JSON.stringify(tree.toJSON())).toContain('Método de pago no soportado para este usuario')
 	})
 })
 

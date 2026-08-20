@@ -49,6 +49,9 @@ const mapMeToUser = (me, email) => ({
 	// revisión); el flag autoritativo de gating sigue siendo `kyc`
 	kyc_status: me.kyc_status,
 	telegram_id: me.telegram_id,
+	// Insumos del gate cliente de depósito con tarjeta (helpers/cardDepositEligibility)
+	trustscore: me.trustscore,
+	created_at: me.createdAt,
 	vip: me.vip,
 	golden_check: me.golden_check,
 	golden_expire: me.golden_expire,
