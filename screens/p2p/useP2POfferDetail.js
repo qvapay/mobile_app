@@ -1,5 +1,5 @@
 import { useReducer, useState, useEffect, useMemo, useCallback } from "react"
-import { Alert, Share } from "react-native"
+import { Share } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 import { ROUTES } from "../../routes"
@@ -78,6 +78,8 @@ function editReducer(state, action) {
  *   `canApply`, `statusMessage`, `peerStats`, `peerReviewsCount`, `isUserOnline`;
  *   per-action `loading` flags; `txIdInput`/`setTxIdInput` (mark-paid tx id);
  *   `showApplyConfirm`/`setShowApplyConfirm` and `edit`/`setEdit` modal state;
+ *   `confirmModal`/`closeConfirmModal`/`confirmModalAction` — the themed
+ *   confirmation flow for cancel/mark-paid/release (handlers only open it);
  *   actions — `onRefresh`, `openPeerProfile`, `handleCancel`, `handleMarkPaid`,
  *   `handleConfirmReceived`, `handleApply`, `handleApplyConfirm`, `handleShareIntent`,
  *   `openEditModal`, `handleEdit`, `handleRate`.
@@ -102,6 +104,8 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 	const [peerProfile, setPeerProfile] = useState(null)
 	const [txIdInput, setTxIdInput] = useState("")
 	const [showApplyConfirm, setShowApplyConfirm] = useState(false)
+	// Which trade action awaits confirmation in the themed modal: 'cancel' | 'markPaid' | 'received' | null
+	const [confirmModal, setConfirmModal] = useState(null)
 
 	// Open peer profile screen, skipping self-taps
 	const openPeerProfile = (u) => {
@@ -247,69 +251,57 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		} finally { dispatchOffer({ type: "set", field: "refreshing", value: false }) }
 	}
 
-	// Cancel
-	const handleCancel = () => {
-		Alert.alert("Cancelar Oferta", "¿Estás seguro de que quieres cancelar esta oferta? Esta acción no se puede deshacer.", [
-			{ text: "No", style: "cancel" },
-			{
-				text: "Sí, Cancelar",
-				style: "destructive",
-				onPress: async () => {
-					try {
-						setLoading("cancel", true)
-						const res = await p2pApi.cancel(p2p.uuid)
-						if (res.success) {
-							toast.success("Oferta cancelada")
-							refetchP2P()
-						} else { toast.error("No se pudo cancelar", { description: String(res.error || "") }) }
-					} catch (e) { toast.error("Error", { description: e.message }) }
-					finally { setLoading("cancel", false) }
-				}
-			}
-		])
+	// Trade actions run in two phases: the handler only OPENS the themed confirm
+	// modal (P2PConfirmModal); confirmModalAction executes the pending action.
+
+	const doCancel = async () => {
+		try {
+			setLoading("cancel", true)
+			const res = await p2pApi.cancel(p2p.uuid)
+			if (res.success) {
+				toast.success("Oferta cancelada")
+				refetchP2P()
+			} else { toast.error("No se pudo cancelar", { description: String(res.error || "") }) }
+		} catch (e) { toast.error("Error", { description: e.message }) }
+		finally { setLoading("cancel", false) }
 	}
 
-	// Mark paid
-	const handleMarkPaid = () => {
-		Alert.alert("Confirmar Pago", "¿Has realizado el pago al vendedor? Una vez confirmado, no podrás deshacer esta acción.", [
-			{ text: "No", style: "cancel" },
-			{
-				text: "Sí, he pagado",
-				style: "default",
-				onPress: async () => {
-					try {
-						setLoading("markPaid", true)
-						const res = await p2pApi.markPaid(p2p.uuid, txIdInput)
-						if (res.success) {
-							toast.success("Pago marcado como realizado")
-							refetchP2P()
-						} else { toast.error("No se pudo marcar pago", { description: String(res.error || "") }) }
-					} catch (e) { toast.error("Error", { description: e.message }) }
-					finally { setLoading("markPaid", false) }
-				}
-			}
-		])
+	const doMarkPaid = async () => {
+		try {
+			setLoading("markPaid", true)
+			const res = await p2pApi.markPaid(p2p.uuid, txIdInput)
+			if (res.success) {
+				toast.success("Pago marcado como realizado")
+				refetchP2P()
+			} else { toast.error("No se pudo marcar pago", { description: String(res.error || "") }) }
+		} catch (e) { toast.error("Error", { description: e.message }) }
+		finally { setLoading("markPaid", false) }
 	}
 
-	// Confirm received
-	const handleConfirmReceived = () => {
-		Alert.alert("Confirmar Recepción", "¿Has recibido el pago del comprador? Esta acción liberará los fondos en garantía.", [
-			{ text: "No", style: "cancel" },
-			{
-				text: "Sí, he recibido", style: "default",
-				onPress: async () => {
-					try {
-						setLoading("received", true)
-						const res = await p2pApi.confirmReceived(p2p.uuid)
-						if (res.success) {
-							toast.success("Pago recibido. Fondos liberados")
-							refetchP2P()
-						} else { toast.error("No se pudo confirmar", { description: String(res.error || "") }) }
-					} catch (e) { toast.error("Error", { description: e.message }) }
-					finally { setLoading("received", false) }
-				}
-			}
-		])
+	const doConfirmReceived = async () => {
+		try {
+			setLoading("received", true)
+			const res = await p2pApi.confirmReceived(p2p.uuid)
+			if (res.success) {
+				toast.success("Pago recibido. Fondos liberados")
+				refetchP2P()
+			} else { toast.error("No se pudo confirmar", { description: String(res.error || "") }) }
+		} catch (e) { toast.error("Error", { description: e.message }) }
+		finally { setLoading("received", false) }
+	}
+
+	const handleCancel = () => setConfirmModal("cancel")
+	const handleMarkPaid = () => setConfirmModal("markPaid")
+	const handleConfirmReceived = () => setConfirmModal("received")
+	const closeConfirmModal = () => setConfirmModal(null)
+
+	// Execute whichever action the open modal is confirming, then close it
+	const confirmModalAction = async () => {
+		try {
+			if (confirmModal === "cancel") await doCancel()
+			else if (confirmModal === "markPaid") await doMarkPaid()
+			else if (confirmModal === "received") await doConfirmReceived()
+		} finally { setConfirmModal(null) }
 	}
 
 	// Apply - core logic
@@ -435,6 +427,8 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		txIdInput, setTxIdInput,
 		// apply modal
 		showApplyConfirm, setShowApplyConfirm,
+		// trade-action confirm modal
+		confirmModal, closeConfirmModal, confirmModalAction,
 		// edit modal
 		edit, setEdit,
 		// actions

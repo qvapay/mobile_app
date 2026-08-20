@@ -19,6 +19,9 @@ const CHAT_MEDIA_BASE_URL = "https://media.qvapay.com/"
 
 // Active-offer chat: counterparty header, message thread, composer (image + sticker)
 // and the GOLD-gated sticker panel. All state/handlers come from useP2PChat.
+// `show_header` hides the internal peer row when the host renders its own (the
+// chat sheet puts it next to the close button); `wrapStyle` overrides the card
+// chrome when the panel lives inside a surface that already provides it.
 const P2PChatPanel = ({
 	user, counterparty, peerStats, peerReviewsCount, isUserOnline, openPeerProfile,
 	messages, chatLoading, chatError, chatText, setChatText,
@@ -26,11 +29,12 @@ const P2PChatPanel = ({
 	visibleTimestamps, chatScrollRef, messageAnimations,
 	handleSendChat, handlePickImage, handleSendImage, handleSendSticker, toggleTimestamp,
 	onChatScrollBeginDrag, onChatScroll, onChatMomentumScrollEnd, onChatContentSizeChange,
+	show_header = true, wrapStyle = null,
 	theme, textStyles, containerStyles,
 }) => (
-	<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 4 }]}>
+	<View style={[containerStyles.card, { flex: 1, padding: 0, marginVertical: 4 }, wrapStyle]}>
 
-		{counterparty && (
+		{show_header && counterparty && (
 			<P2PPeerRow
 				targetUser={counterparty}
 				wrapStyle={{ paddingVertical: 8, paddingHorizontal: 12 }}
@@ -55,7 +59,8 @@ const P2PChatPanel = ({
 			style={{ flex: 1 }}
 			contentContainerStyle={{
 				flexGrow: 1,
-				paddingVertical: 4,
+				paddingTop: 2,
+				paddingBottom: 10,
 				paddingHorizontal: 0
 			}}
 			showsVerticalScrollIndicator={true}
@@ -69,21 +74,26 @@ const P2PChatPanel = ({
 			onContentSizeChange={onChatContentSizeChange}
 		>
 			{messages.length === 0 && !chatLoading ? (
-				<View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No hay mensajes aún</Text>
+				<View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, gap: 8 }}>
+					<FontAwesome6 name="shield-halved" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>
+						Coordina el pago por aquí. Nunca compartas tu contraseña ni códigos de acceso: QvaPay jamás te los pedirá.
+					</Text>
 				</View>
 			) : (
 
-				// Use peer_id to determine if message is from current user
+				// Use peer_id to determine if message is from current user.
+				// Agrupado estilo Messenger: 10px entre grupos, 2px dentro del grupo
+				// (el margen vive SOLO en marginTop del siguiente — el primero de un
+				// grupo no debe llevar marginBottom o se despega de su propio stack).
 				messages.map((m, idx) => {
 
-					const mine = m.peer_id && user?.uuid && m.peer_id === user.uuid
+					const fromMe = (msg) => !!(msg?.peer_id && user?.uuid && msg.peer_id === user.uuid)
+					const mine = fromMe(m)
 					const prevMessage = idx > 0 ? messages[idx - 1] : null
 					const nextMessage = idx < messages.length - 1 ? messages[idx + 1] : null
-					const prevMine = prevMessage?.peer_id && user?.uuid && prevMessage.peer_id === user.uuid
-					const nextMine = nextMessage?.peer_id && user?.uuid && nextMessage.peer_id === user.uuid
-					const isConsecutive = prevMine === mine
-					const isLastInGroup = nextMine !== mine || idx === messages.length - 1
+					const isFirstInGroup = prevMessage === null || fromMe(prevMessage) !== mine
+					const isLastInGroup = nextMessage === null || fromMe(nextMessage) !== mine
 					const showTimestamp = visibleTimestamps.has(m.id)
 
 					// Get sender info for avatar (use counterparty if not mine)
@@ -97,7 +107,7 @@ const P2PChatPanel = ({
 					if (messageIsSticker) {
 						const stickerName = getStickerName(messageText)
 						return (
-							<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 0 : 6, marginBottom: isConsecutive ? 0 : 6 }]}>
+							<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isFirstInGroup ? 10 : 2 }]}>
 								<View style={{ marginHorizontal: 6, width: 16, height: 16, justifyContent: 'center', alignItems: 'center' }}>
 									{isLastInGroup ? <QPAvatar user={sender} size={16} /> : null}
 								</View>
@@ -122,7 +132,7 @@ const P2PChatPanel = ({
 					}
 
 					return (
-						<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isConsecutive ? 0 : 6, marginBottom: isConsecutive ? 0 : 6 }]}>
+						<View key={m.id || idx} style={[styles.messageContainer, { flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", marginTop: isFirstInGroup ? 10 : 2 }]}>
 
 							{/* Avatar - only show on last message in group */}
 							<View style={{ marginHorizontal: 6, width: 16, height: 16, justifyContent: 'center', alignItems: 'center' }}>
@@ -140,7 +150,17 @@ const P2PChatPanel = ({
 								}}
 								delayLongPress={400}
 								activeOpacity={0.7}
-								style={[styles.messageBubble, { backgroundColor: mine ? theme.colors.primary : theme.colors.primary, maxWidth: "75%", borderRadius: mine ? 18 : 18, borderBottomLeftRadius: mine ? 18 : 4, borderBottomRightRadius: mine ? 4 : 18, borderTopRightRadius: mine ? isConsecutive ? 4 : 18 : 18, overflow: 'hidden' }]}>
+								style={[styles.messageBubble, {
+									backgroundColor: mine ? theme.colors.primary : theme.colors.background,
+									maxWidth: "75%",
+									borderRadius: 18,
+									// Lado apilado aplanado en ambos remitentes; el rabito (4) solo al final del grupo
+									borderTopRightRadius: mine ? (isFirstInGroup ? 18 : 6) : 18,
+									borderBottomRightRadius: mine ? (isLastInGroup ? 4 : 6) : 18,
+									borderTopLeftRadius: mine ? 18 : (isFirstInGroup ? 18 : 6),
+									borderBottomLeftRadius: mine ? 18 : (isLastInGroup ? 4 : 6),
+									overflow: 'hidden',
+								}]}>
 
 								{/* Image in message */}
 								{hasImage && (
@@ -157,15 +177,15 @@ const P2PChatPanel = ({
 								{messageText ? (
 									<ChatMessageText
 										text={messageText}
-										textStyle={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}
-										highlightColor={theme.colors.almostWhite}
+										textStyle={[textStyles.h6, { color: mine ? theme.colors.almostWhite : theme.colors.primaryText, lineHeight: 20, textAlign: mine ? "right" : "left" }]}
+										highlightColor={mine ? theme.colors.almostWhite : theme.colors.primary}
 									/>
 								) : null}
 
 								{/* Show timestamp only when manually toggled */}
 								{showTimestamp && m.created_at && (
 									<Animated.View style={{ opacity: messageAnimations.current[m.id] || new Animated.Value(0), transform: [{ translateY: (messageAnimations.current[m.id] || new Animated.Value(0)).interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-										<Text style={[{ fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: theme.colors.almostWhite, marginTop: 4, opacity: 0.6, textAlign: mine ? "right" : "left" }]}>
+										<Text style={[{ fontSize: 10, fontFamily: theme.typography.fontFamily.light, color: mine ? theme.colors.almostWhite : theme.colors.secondaryText, marginTop: 4, opacity: 0.6, textAlign: mine ? "right" : "left" }]}>
 											{getShortDateTime(m.created_at)}
 										</Text>
 									</Animated.View>
@@ -189,15 +209,15 @@ const P2PChatPanel = ({
 
 		{/* Chat Input - Fixed at bottom */}
 		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-			<View style={[styles.chatInputContainer, { borderTopColor: theme.colors.border, borderTopWidth: 0.5 }]}>
+			<View style={[styles.chatInputContainer, !theme.isDark && { borderTopColor: theme.colors.border, borderTopWidth: 0.5 }]}>
 
 				{/* Image picker button */}
-				<Pressable onPress={handlePickImage} style={[styles.mediaButton, { backgroundColor: theme.colors.elevation }]}>
+				<Pressable onPress={handlePickImage} style={[styles.mediaButton, { backgroundColor: theme.colors.background }]}>
 					<FontAwesome6 name="image" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
 				</Pressable>
 
 				{/* Sticker button */}
-				<Pressable onPress={() => setShowStickerPanel(true)} style={[styles.mediaButton, { backgroundColor: theme.colors.elevation }]}>
+				<Pressable onPress={() => setShowStickerPanel(true)} style={[styles.mediaButton, { backgroundColor: theme.colors.background }]}>
 					<FontAwesome6 name="face-smile" size={16} color={theme.colors.secondaryText} iconStyle="regular" />
 				</Pressable>
 
@@ -206,7 +226,7 @@ const P2PChatPanel = ({
 					onChangeText={setChatText}
 					placeholder="Escribe tu mensaje..."
 					placeholderTextColor={theme.colors.placeholder}
-					style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 14, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 12, maxHeight: 100 }]}
+					style={[textStyles.h6, { flex: 1, backgroundColor: theme.colors.background, borderRadius: 14, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 12, maxHeight: 100 }]}
 					multiline
 					textAlignVertical="center"
 				/>
@@ -217,7 +237,7 @@ const P2PChatPanel = ({
 						<FontAwesome6 name="paper-plane" size={16} color={theme.colors.almostBlack} iconStyle="solid" />
 					</Pressable>
 				) : (
-					<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={[styles.sendButton, { backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.elevation : theme.colors.primary }]}>
+					<Pressable onPress={handleSendChat} disabled={(chatText || "").trim().length === 0} style={[styles.sendButton, { backgroundColor: (chatText || "").trim().length === 0 ? theme.colors.background : theme.colors.primary }]}>
 						<FontAwesome6 name="paper-plane" size={16} color={(chatText || "").trim().length === 0 ? theme.colors.secondaryText : theme.colors.almostBlack} iconStyle="solid" />
 					</Pressable>
 				)}
@@ -286,8 +306,7 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'flex-end',
 		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderTopWidth: 1,
+		paddingVertical: 6,
 		gap: 4,
 	},
 	sendButton: {

@@ -1,11 +1,9 @@
 /**
  * Unit tests for the P2P offer lifecycle hook — node environment with the API,
- * theme, presence, storage and native dialogs mocked (see keypadAmount.test.js
- * for why node env).
+ * theme, presence and storage mocked (see keypadAmount.test.js for why node env).
  * @jest-environment node
  */
 jest.mock('react-native', () => ({
-	Alert: { alert: jest.fn() },
 	Share: {
 		share: jest.fn(),
 		sharedAction: 'sharedAction',
@@ -45,7 +43,7 @@ jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn(
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
-import { Alert, Share } from 'react-native'
+import { Share } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { p2pApi } from '../../api/p2pApi'
 import { maybeRequestReview } from '../../helpers/inAppReview'
@@ -88,12 +86,6 @@ const renderDetail = async ({ offer, viewer, chatLive = false } = {}) => {
 	let root
 	await act(async () => { root = create(<Harness />) })
 	return { result, fetchChat, navigation, root }
-}
-
-// Press a button on the last Alert by its position (0 = cancel, 1 = confirm)
-const pressAlertButton = async (index) => {
-	const buttons = Alert.alert.mock.calls.at(-1)[2]
-	await act(async () => { await buttons[index].onPress?.() })
 }
 
 beforeEach(() => {
@@ -234,45 +226,58 @@ describe('5s polling on active statuses', () => {
 	})
 })
 
-describe('trade actions behind native confirmation dialogs', () => {
-	test('handleCancel cancels only after the destructive confirm', async () => {
+describe('trade actions behind the themed confirmation modal', () => {
+	test('handleCancel only opens the modal; confirmModalAction cancels and closes it', async () => {
 		p2pApi.cancel.mockResolvedValue({ success: true })
 		const offer = makeOffer({ status: 'open' })
 		const { result } = await renderDetail({ offer, viewer: CREATOR })
 		act(() => { result.current.handleCancel() })
-		expect(p2pApi.cancel).not.toHaveBeenCalled() // waiting on the dialog
-		await pressAlertButton(1)
+		expect(result.current.confirmModal).toBe('cancel')
+		expect(p2pApi.cancel).not.toHaveBeenCalled() // waiting on the modal
+		await act(async () => { await result.current.confirmModalAction() })
 		expect(p2pApi.cancel).toHaveBeenCalledWith('offer-1')
 		expect(toast.success).toHaveBeenCalledWith('Oferta cancelada')
+		expect(result.current.confirmModal).toBe(null)
 	})
 
-	test('handleMarkPaid sends the optional transaction id', async () => {
+	test('closeConfirmModal dismisses without running the action', async () => {
+		const { result } = await renderDetail({ offer: makeOffer(), viewer: CREATOR })
+		act(() => { result.current.handleCancel() })
+		act(() => { result.current.closeConfirmModal() })
+		expect(result.current.confirmModal).toBe(null)
+		expect(p2pApi.cancel).not.toHaveBeenCalled()
+	})
+
+	test('handleMarkPaid confirms through the modal and sends the transaction id', async () => {
 		p2pApi.markPaid.mockResolvedValue({ success: true })
 		const offer = makeOffer({ status: 'processing', Peer: PEER })
 		const { result } = await renderDetail({ offer, viewer: CREATOR })
 		act(() => { result.current.setTxIdInput('tx-123') })
 		act(() => { result.current.handleMarkPaid() })
-		await pressAlertButton(1)
+		expect(result.current.confirmModal).toBe('markPaid')
+		await act(async () => { await result.current.confirmModalAction() })
 		expect(p2pApi.markPaid).toHaveBeenCalledWith('offer-1', 'tx-123')
 		expect(toast.success).toHaveBeenCalledWith('Pago marcado como realizado')
 	})
 
-	test('handleConfirmReceived releases the escrow after confirm', async () => {
+	test('handleConfirmReceived releases the escrow after the modal confirm', async () => {
 		p2pApi.confirmReceived.mockResolvedValue({ success: true })
 		const offer = makeOffer({ status: 'paid', Peer: PEER })
 		const { result } = await renderDetail({ offer, viewer: PEER })
 		act(() => { result.current.handleConfirmReceived() })
-		await pressAlertButton(1)
+		expect(result.current.confirmModal).toBe('received')
+		await act(async () => { await result.current.confirmModalAction() })
 		expect(p2pApi.confirmReceived).toHaveBeenCalledWith('offer-1')
 		expect(toast.success).toHaveBeenCalledWith('Pago recibido. Fondos liberados')
 	})
 
-	test('an API failure on cancel toasts the backend error', async () => {
+	test('an API failure on cancel toasts the backend error and still closes the modal', async () => {
 		p2pApi.cancel.mockResolvedValue({ success: false, error: 'Ya procesada' })
 		const { result } = await renderDetail({ offer: makeOffer(), viewer: CREATOR })
 		act(() => { result.current.handleCancel() })
-		await pressAlertButton(1)
+		await act(async () => { await result.current.confirmModalAction() })
 		expect(toast.error).toHaveBeenCalledWith('No se pudo cancelar', { description: 'Ya procesada' })
+		expect(result.current.confirmModal).toBe(null)
 	})
 })
 

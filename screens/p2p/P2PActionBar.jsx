@@ -7,7 +7,7 @@ import QPRate from "../../ui/particles/QPRate"
 // and the offer's current status (apply / cancel / mark-paid / confirm / edit+share / rate).
 const P2PActionBar = ({
 	p2p, isOwner, isPayer, isReceiver,
-	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer, markedAsPaid,
+	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer,
 	loading, txIdInput, rating,
 	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate,
 	keyboardVisible, insets, theme, textStyles, containerStyles,
@@ -56,19 +56,6 @@ const P2PActionBar = ({
 			/>
 		)}
 
-		{markedAsPaid && isPayer && (
-			<QPButton
-				title="Pagado"
-				onPress={onMarkPaid}
-				style={[{ backgroundColor: theme.colors.successFill }, styles.actionButton]}
-				textStyle={{ color: theme.colors.successFillText }}
-				icon="check-double"
-				iconColor={theme.colors.successFillText}
-				iconStyle="solid"
-				disabled={true}
-			/>
-		)}
-
 		{canConfirmReceived && isReceiver && (
 			<QPButton
 				title="Pago recibido"
@@ -112,7 +99,8 @@ const P2PActionBar = ({
 		)}
 
 		{canRatePeer && (
-			<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+			<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>Califica a tu contraparte</Text>
 				<QPRate value={rating} onRate={onRate} size={28} readOnly={false} />
 			</View>
 		)}

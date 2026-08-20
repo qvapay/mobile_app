@@ -9,11 +9,17 @@ import { createContainerStyles, createTextStyles } from "../../theme/themeUtils"
 
 // UI Particles
 import P2POfferItem from "../../ui/P2POfferItem"
-import QPInput from "../../ui/particles/QPInput"
 import QPLoader from "../../ui/particles/QPLoader"
+import QPPressable from "../../ui/particles/QPPressable"
+
+// Icons
+import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 // Lottie
 import LottieView from "lottie-react-native"
+
+// Reanimated — anima el swap card informativa ↔ card de trade y la burbuja del chat
+import Animated, { FadeIn, FadeInDown, FadeOutUp, ZoomIn } from "react-native-reanimated"
 
 // User context
 import { useAuth } from "../../auth/AuthContext"
@@ -26,15 +32,21 @@ import useP2PChat from "./useP2PChat"
 import useP2PChatSSE from "./useP2PChatSSE"
 import useP2POfferDetail from "./useP2POfferDetail"
 import P2POfferDetailsCard from "./P2POfferDetailsCard"
-import P2PChatPanel from "./P2PChatPanel"
+import P2PChatSheet from "./P2PChatSheet"
+import P2PHeaderTimer from "./P2PHeaderTimer"
 import P2PPeerRow from "./P2PPeerRow"
 import P2PEditModal from "./P2PEditModal"
 import P2PApplyModal from "./P2PApplyModal"
+import P2PConfirmModal from "./P2PConfirmModal"
+import P2PTradeProgress from "./P2PTradeProgress"
 import P2PActionBar from "./P2PActionBar"
 
 /**
  * P2P offer detail + trade room — orchestrates the offer-detail hook, the chat hook
- * and the presentational sections (details / chat / modals / action bar).
+ * and the presentational sections (progress / details / modals / action bar). The
+ * chat lives in its own sheet (P2PChatSheet) behind a floating bubble with an
+ * unread badge — the screen owns the chat state so messages keep flowing and the
+ * badge stays accurate while the sheet is closed.
  * Expects `route.params.p2p_uuid`; also deep-linked from qvapay.com/p2p/:p2p_uuid.
  * The offer polls `GET /p2p/{uuid}` every 5s while active (status has no SSE); chat is
  * real-time over SSE (`useP2PChatSSE`) with a polling fallback, and trade actions drive
@@ -76,9 +88,10 @@ const P2POffer = ({ route }) => {
 	const {
 		p2p, isLoading, error, refreshing, rating,
 		isOwner, isPayer, isReceiver, status, counterparty,
-		canCancel, canMarkPaid, canConfirmReceived, canRatePeer, markedAsPaid,
+		canCancel, canMarkPaid, canConfirmReceived, canRatePeer,
 		canApply, statusMessage, peerStats, peerReviewsCount, isUserOnline,
 		loading, txIdInput, setTxIdInput, showApplyConfirm, setShowApplyConfirm, edit, setEdit,
+		confirmModal, closeConfirmModal, confirmModalAction,
 		onRefresh, openPeerProfile, handleCancel, handleMarkPaid, handleConfirmReceived,
 		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit, handleRate,
 	} = offer
@@ -93,6 +106,35 @@ const P2POffer = ({ route }) => {
 		return () => { showSub.remove(); hideSub.remove() }
 	}, [])
 	const keyboardVisible = keyboardHeight > 0
+
+	// Chat como hoja aparte (patrón Binance/OKX): burbuja flotante + badge de no
+	// leídos. El baseline de "visto" se fija con el histórico inicial (la carga
+	// no cuenta como no leído); abrir la hoja marca todo como visto.
+	const [chatOpen, setChatOpen] = useState(false)
+	const [chatSeenCount, setChatSeenCount] = useState(null)
+	const wasChatLoadingRef = useRef(false)
+	useEffect(() => {
+		if (chatSeenCount === null) {
+			if (wasChatLoadingRef.current && !chat.chatLoading) setChatSeenCount(chat.messages.length)
+			else if (chat.messages.length > 0) setChatSeenCount(chat.messages.length)
+		}
+		wasChatLoadingRef.current = chat.chatLoading
+	}, [chat.chatLoading, chat.messages.length, chatSeenCount])
+	useEffect(() => {
+		if (chatOpen) setChatSeenCount(chat.messages.length)
+	}, [chatOpen, chat.messages.length])
+	const chatUnread = chatSeenCount == null ? 0 : Math.max(0, chat.messages.length - chatSeenCount)
+
+	// Timer de la ventana de pago en el CENTRO del header (el título de la ruta
+	// va vacío): se setea UNA vez por ventana — P2PHeaderTimer se auto-tickea,
+	// así que no hay setOptions por segundo
+	const windowExpiresAt = status === "processing" ? p2p?.payment_window_expires_at || null : null
+	useEffect(() => {
+		navigation.setOptions({
+			headerTitleAlign: "center",
+			headerTitle: windowExpiresAt ? () => <P2PHeaderTimer expiresAt={windowExpiresAt} /> : undefined,
+		})
+	}, [navigation, windowExpiresAt])
 
 	// Loading state check - only show loader if no cached data
 	if (isLoading && !p2p) { return (<QPLoader />) }
@@ -112,23 +154,34 @@ const P2POffer = ({ route }) => {
 			<View style={[{ flex: 1 }, keyboardVisible && { paddingBottom: keyboardHeight }]}>
 				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)} >
 
-					{/* Offer Header - Fixed */}
-					{p2p && <P2POfferItem offer={p2p} show_buttons={false} show_user={false} show_date />}
-
-					{/* Payment details + TX id + status banner */}
-					<P2POfferDetailsCard p2p={p2p} statusMessage={statusMessage} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
-
-					{/* TX ID Input for payer when they can mark paid */}
-					{canMarkPaid && isPayer && (
-						<View style={{ marginVertical: 4 }}>
-							<QPInput
-								value={txIdInput}
-								onChangeText={setTxIdInput}
-								placeholder="ID de transacción"
-								prefixIconName="hashtag"
+					{/* Una sola card arriba: la informativa (open/cancelled/revision) se
+					    TRANSFORMA en la card de trade al aplicar — el swap anima la salida
+					    de una y la entrada de la otra (también al revertir a open) */}
+					{(isPayer || isReceiver) && ["processing", "paid", "completed"].includes(status) ? (
+						<Animated.View key="trade-progress" entering={FadeInDown.duration(300)} exiting={FadeOutUp.duration(180)}>
+							<P2PTradeProgress
+								p2p={p2p}
+								status={status}
+								isPayer={isPayer}
+								isReceiver={isReceiver}
+								canMarkPaid={canMarkPaid}
+								txIdInput={txIdInput}
+								setTxIdInput={setTxIdInput}
+								theme={theme}
+								textStyles={textStyles}
+								containerStyles={containerStyles}
 							/>
-						</View>
+						</Animated.View>
+					) : (
+						p2p && (
+							<Animated.View key="offer-header" entering={FadeIn.duration(200)} exiting={FadeOutUp.duration(180)}>
+								<P2POfferItem offer={p2p} show_buttons={false} show_user={false} show_date expand_message style={{ marginVertical: 4, marginBottom: 4 }} />
+							</Animated.View>
+						)
 					)}
+
+					{/* Payment details + registered TX id (+ banner only for revision — the stepper covers the rest) */}
+					<P2POfferDetailsCard p2p={p2p} statusMessage={status === "revision" ? statusMessage : null} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
 
 					{status === "open" ? (
 						isOwner ? (
@@ -141,7 +194,7 @@ const P2POffer = ({ route }) => {
 								{p2p?.User && (
 									<P2PPeerRow
 										targetUser={p2p.User}
-										wrapStyle={[containerStyles.card, { paddingVertical: 8, paddingHorizontal: 12 }]}
+										wrapStyle={[containerStyles.card, { marginVertical: 4, paddingVertical: 8, paddingHorizontal: 12 }]}
 										peerStats={peerStats}
 										peerReviewsCount={peerReviewsCount}
 										isOnline={isUserOnline(p2p.User?.uuid)}
@@ -150,45 +203,38 @@ const P2POffer = ({ route }) => {
 										textStyles={textStyles}
 									/>
 								)}
+
+								{/* Advertiser terms (from their P2P settings) — read before applying */}
+								{p2p?.User?.p2p_message ? (
+									<View style={[containerStyles.card, { marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 }]}>
+										<View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+											<FontAwesome6 name="file-lines" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+											<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>Términos del anunciante</Text>
+										</View>
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{p2p.User.p2p_message}</Text>
+									</View>
+								) : null}
+
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
 									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
 								</View>
 							</>
 						)
 					) : (
-						<P2PChatPanel
-							user={user}
-							counterparty={counterparty}
-							peerStats={peerStats}
-							peerReviewsCount={peerReviewsCount}
-							isUserOnline={isUserOnline}
-							openPeerProfile={openPeerProfile}
-							messages={chat.messages}
-							chatLoading={chat.chatLoading}
-							chatError={chat.chatError}
-							chatText={chat.chatText}
-							setChatText={chat.setChatText}
-							selectedImage={chat.selectedImage}
-							setSelectedImage={chat.setSelectedImage}
-							sendingImage={chat.sendingImage}
-							showStickerPanel={chat.showStickerPanel}
-							setShowStickerPanel={chat.setShowStickerPanel}
-							visibleTimestamps={chat.visibleTimestamps}
-							chatScrollRef={chat.chatScrollRef}
-							messageAnimations={chat.messageAnimations}
-							handleSendChat={chat.handleSendChat}
-							handlePickImage={chat.handlePickImage}
-							handleSendImage={chat.handleSendImage}
-							handleSendSticker={chat.handleSendSticker}
-							toggleTimestamp={chat.toggleTimestamp}
-							onChatScrollBeginDrag={chat.onChatScrollBeginDrag}
-							onChatScroll={chat.onChatScroll}
-							onChatMomentumScrollEnd={chat.onChatMomentumScrollEnd}
-							onChatContentSizeChange={chat.onChatContentSizeChange}
-							theme={theme}
-							textStyles={textStyles}
-							containerStyles={containerStyles}
-						/>
+						/* Trade activo: la contraparte inline; el chat vive en su propia
+						   hoja (burbuja flotante abajo) para no estrangular la pantalla */
+						counterparty && (
+							<P2PPeerRow
+								targetUser={counterparty}
+								wrapStyle={[containerStyles.card, { marginVertical: 4, paddingVertical: 8, paddingHorizontal: 12 }]}
+								peerStats={peerStats}
+								peerReviewsCount={peerReviewsCount}
+								isOnline={isUserOnline(counterparty?.uuid)}
+								onPress={openPeerProfile}
+								theme={theme}
+								textStyles={textStyles}
+							/>
+						)
 					)}
 
 				</ScrollView>
@@ -219,6 +265,115 @@ const P2POffer = ({ route }) => {
 					containerStyles={containerStyles}
 				/>
 
+				{/* Trade-action confirmation (cancel / mark-paid / release) with explicit summary + warning */}
+				{confirmModal && (() => {
+					const counterpartyName = counterparty?.username ? `@${counterparty.username}` : "tu contraparte"
+					const railAmount = `${p2p?.receive} ${p2p?.Coin?.name || ""}`.trim()
+					const configs = {
+						cancel: {
+							icon: "ban", iconColor: theme.colors.danger,
+							title: "Cancelar oferta",
+							body: "¿Seguro que quieres cancelar esta oferta? Esta acción no se puede deshacer.",
+							confirmLabel: "Sí, cancelar", confirmBg: theme.colors.danger, confirmTextColor: theme.colors.almostWhite,
+							loading: loading.cancel,
+						},
+						markPaid: {
+							icon: "money-bill-wave", iconColor: theme.colors.primary,
+							title: "¿Ya realizaste el pago?",
+							body: `Confirma que enviaste ${railAmount} a ${counterpartyName}.`,
+							warning: "Márcalo solo si la transferencia ya está hecha. Marcar sin pagar puede llevar la oferta a revisión.",
+							confirmLabel: "Sí, he pagado", confirmBg: theme.colors.successFill, confirmTextColor: theme.colors.successFillText,
+							loading: loading.markPaid,
+						},
+						received: {
+							icon: "lock-open", iconColor: theme.colors.warning,
+							title: "Liberar fondos",
+							body: `Vas a liberar $${p2p?.amount} de tu saldo a ${counterpartyName}.`,
+							warning: `Confirma solo si ${railAmount} ya está en tu cuenta. Esta acción es irreversible.`,
+							confirmLabel: "Liberar", confirmBg: theme.colors.primary, confirmTextColor: theme.colors.almostWhite,
+							loading: loading.received,
+						},
+					}
+					return (
+						<P2PConfirmModal
+							visible
+							onClose={closeConfirmModal}
+							onConfirm={confirmModalAction}
+							{...configs[confirmModal]}
+							theme={theme}
+							textStyles={textStyles}
+							containerStyles={containerStyles}
+						/>
+					)
+				})()}
+
+				{/* Burbuja flotante del chat — entra al arrancar el trade, badge de no leídos */}
+				{p2p && status !== "open" && (
+					<Animated.View entering={ZoomIn.delay(150).duration(220)} style={{ position: "absolute", right: 0, bottom: insets.bottom + 88 }}>
+						<QPPressable
+							onPress={() => setChatOpen(true)}
+							style={{
+								width: 56, height: 56, borderRadius: 16, borderCurve: "continuous",
+								backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center",
+								shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 6,
+							}}
+						>
+							<FontAwesome6 name="comment-dots" size={22} color={theme.colors.almostWhite} iconStyle="solid" />
+							{chatUnread > 0 && (
+								<View style={{
+									position: "absolute", top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10,
+									paddingHorizontal: 5, backgroundColor: theme.colors.danger, alignItems: "center", justifyContent: "center",
+								}}>
+									<Text style={[textStyles.h7, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.xs }]}>
+										{chatUnread > 9 ? "9+" : chatUnread}
+									</Text>
+								</View>
+							)}
+						</QPPressable>
+					</Animated.View>
+				)}
+
+				{/* Chat en hoja propia (pageSheet iOS / modal Android) */}
+				<P2PChatSheet
+					visible={chatOpen}
+					onClose={() => setChatOpen(false)}
+					keyboardHeight={keyboardHeight}
+					insets={insets}
+					theme={theme}
+					textStyles={textStyles}
+					containerStyles={containerStyles}
+					chatPanelProps={{
+						user,
+						counterparty,
+						peerStats,
+						peerReviewsCount,
+						isUserOnline,
+						openPeerProfile,
+						messages: chat.messages,
+						chatLoading: chat.chatLoading,
+						chatError: chat.chatError,
+						chatText: chat.chatText,
+						setChatText: chat.setChatText,
+						selectedImage: chat.selectedImage,
+						setSelectedImage: chat.setSelectedImage,
+						sendingImage: chat.sendingImage,
+						showStickerPanel: chat.showStickerPanel,
+						setShowStickerPanel: chat.setShowStickerPanel,
+						visibleTimestamps: chat.visibleTimestamps,
+						chatScrollRef: chat.chatScrollRef,
+						messageAnimations: chat.messageAnimations,
+						handleSendChat: chat.handleSendChat,
+						handlePickImage: chat.handlePickImage,
+						handleSendImage: chat.handleSendImage,
+						handleSendSticker: chat.handleSendSticker,
+						toggleTimestamp: chat.toggleTimestamp,
+						onChatScrollBeginDrag: chat.onChatScrollBeginDrag,
+						onChatScroll: chat.onChatScroll,
+						onChatMomentumScrollEnd: chat.onChatMomentumScrollEnd,
+						onChatContentSizeChange: chat.onChatContentSizeChange,
+					}}
+				/>
+
 				{/* Action Buttons - Fixed at bottom */}
 				<P2PActionBar
 					p2p={p2p}
@@ -230,7 +385,6 @@ const P2POffer = ({ route }) => {
 					canMarkPaid={canMarkPaid}
 					canConfirmReceived={canConfirmReceived}
 					canRatePeer={canRatePeer}
-					markedAsPaid={markedAsPaid}
 					loading={loading}
 					txIdInput={txIdInput}
 					rating={rating}
