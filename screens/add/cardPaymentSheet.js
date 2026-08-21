@@ -70,6 +70,7 @@ export async function presentCardDeposit({ topupData, theme, user }) {
 		// La hoja confirmó el PaymentIntent; el balance se acredita cuando el
 		// webhook procese el evento — la UI queda en "procesando" hasta el SSE
 		return { status: 'paid' }
+		
 	} catch {
 		return { status: 'failed', message: 'No se pudo procesar el pago con tu tarjeta.' }
 	}
