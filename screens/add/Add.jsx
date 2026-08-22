@@ -29,6 +29,7 @@ import { cardFeeRateFor } from '../../helpers/cardFeeMode'
 
 // API
 import apiClient from '../../api/client'
+import { userApi } from '../../api/userApi'
 
 // Hooks
 import useTransactionSSE from '../../hooks/useTransactionSSE'
@@ -111,10 +112,12 @@ const Add = ({ navigation }) => {
 		if (newStatus === 'paid') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			toast.success('Pago confirmado', { description: 'Tu depósito ha sido procesado exitosamente' })
-			// Close modal and refresh balance after a brief delay
-			setTimeout(() => {
+			// Close modal and refresh balance after a brief delay — el SSE solo trae
+			// el status string, así que el saldo nuevo hay que re-leerlo del perfil
+			setTimeout(async () => {
 				setShowDepositModal(false)
-				updateUser()
+				const profile = await userApi.getUserProfile()
+				if (profile.success && profile.data) await updateUser(profile.data)
 			}, 2000)
 			// Ask for app review after modal closes
 			setTimeout(() => { maybeRequestReview() }, 3500)

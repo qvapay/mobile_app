@@ -7,6 +7,7 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // API (deposit/withdraw — las lecturas viven en React Query)
 import { savingApi } from '../../api/savingApi'
+import { userApi } from '../../api/userApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
 import { useSavingsMovementsQuery } from './investQueries'
@@ -126,7 +127,10 @@ const Savings = ({ route }) => {
 				// Invalidar la raíz de ahorros refresca resumen y movimientos aquí,
 				// en el dashboard de Invest y en la página 2 del BalanceCard
 				queryClient.invalidateQueries({ queryKey: ['savings'] })
-				updateUser()
+				// La operación movió saldo entre wallet y ahorros: re-leer el perfil
+				// para reflejar el balance real (updateUser() vacío era un no-op)
+				const profile = await userApi.getUserProfile()
+				if (profile.success && profile.data) await updateUser(profile.data)
 			} else {
 				toast.error(res.error || 'Error en la operación')
 			}
