@@ -123,10 +123,20 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile file(keystoreProperties['MYAPP_UPLOAD_STORE_FILE'])
-            storePassword keystoreProperties['MYAPP_UPLOAD_STORE_PASSWORD']
-            keyAlias keystoreProperties['MYAPP_UPLOAD_KEY_ALIAS']
-            keyPassword keystoreProperties['MYAPP_UPLOAD_KEY_PASSWORD']
+            // Con keystore.properties (máquinas de release) firma con las
+            // credenciales de Play; sin él (CI, clones frescos) cae al debug
+            // keystore para que los APKs de prueba sean instalables
+            if (keystoreProperties['MYAPP_UPLOAD_STORE_FILE']) {
+                storeFile file(keystoreProperties['MYAPP_UPLOAD_STORE_FILE'])
+                storePassword keystoreProperties['MYAPP_UPLOAD_STORE_PASSWORD']
+                keyAlias keystoreProperties['MYAPP_UPLOAD_KEY_ALIAS']
+                keyPassword keystoreProperties['MYAPP_UPLOAD_KEY_PASSWORD']
+            } else {
+                storeFile file('debug.keystore')
+                storePassword 'android'
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+            }
         }
     }
     buildTypes {
