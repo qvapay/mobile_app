@@ -125,8 +125,11 @@ const Savings = ({ route }) => {
 				toast.success(modalType === 'deposit' ? 'Depósito realizado' : 'Retiro realizado')
 				dispatchModal({ type: 'close' })
 				// Invalidar la raíz de ahorros refresca resumen y movimientos aquí,
-				// en el dashboard de Invest y en la página 2 del BalanceCard
+				// en el dashboard de Invest y en la página 2 del BalanceCard; home y
+				// transactions cubren el feed del Home y el histórico de la wallet
 				queryClient.invalidateQueries({ queryKey: ['savings'] })
+				queryClient.invalidateQueries({ queryKey: ['home'] })
+				queryClient.invalidateQueries({ queryKey: ['transactions'] })
 				// La operación movió saldo entre wallet y ahorros: re-leer el perfil
 				// para reflejar el balance real (updateUser() vacío era un no-op)
 				const profile = await userApi.getUserProfile()

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
 import { StyleSheet, Text, View, Pressable, Linking } from 'react-native'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Helpers
 import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
@@ -76,6 +77,7 @@ const Add = ({ navigation }) => {
 
 	// User Context
 	const { user, updateUser } = useAuth()
+	const queryClient = useQueryClient()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -112,6 +114,11 @@ const Add = ({ navigation }) => {
 		if (newStatus === 'paid') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			toast.success('Pago confirmado', { description: 'Tu depósito ha sido procesado exitosamente' })
+			// Refresca las lecturas de servidor en React Query (recientes del Home
+			// e histórico): con enableFreeze los observadores sobreviven al fondo y
+			// sin invalidación seguirían mostrando el pre-depósito hasta remontar
+			queryClient.invalidateQueries({ queryKey: ['home'] })
+			queryClient.invalidateQueries({ queryKey: ['transactions'] })
 			// Close modal and refresh balance after a brief delay — el SSE solo trae
 			// el status string, así que el saldo nuevo hay que re-leerlo del perfil
 			setTimeout(async () => {
@@ -125,7 +132,7 @@ const Add = ({ navigation }) => {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			setCountdown(0)
 		} else if (newStatus === 'failed') { if (countdownRef.current) clearInterval(countdownRef.current) }
-	}, [updateUser])
+	}, [queryClient, updateUser])
 
 	const { isConnected: sseConnected } = useTransactionSSE(
 		showDepositModal ? topupData?.transaction_uuid : null,

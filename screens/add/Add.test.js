@@ -44,6 +44,7 @@ jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn(
 import React from 'react'
 import { Linking } from 'react-native'
 import { act, create } from 'react-test-renderer'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '../../auth/AuthContext'
 import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
 import { maybeRequestReview } from '../../helpers/inAppReview'
@@ -59,10 +60,23 @@ const USDT = { tick: 'USDT', name: 'Tether', min_in: '10', network: 'TRC20' }
 
 // The SSE hook is mocked; capture its status callback so tests can emit updates
 let sseCallback = null
+// Se guardan para desmontarlos: un QueryClient vivo deja temporizadores de
+// recolección abiertos y jest no llega a cerrar el proceso (patrón Send.test.js)
+let trees = []
+let clients = []
 
 const renderAdd = async () => {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+	clients.push(client)
 	let tree
-	await act(async () => { tree = create(<Add navigation={{ navigate: jest.fn() }} />) })
+	await act(async () => {
+		tree = create(
+			<QueryClientProvider client={client}>
+				<Add navigation={{ navigate: jest.fn() }} />
+			</QueryClientProvider>
+		)
+	})
+	trees.push(tree)
 	return tree
 }
 
@@ -88,6 +102,10 @@ beforeEach(() => {
 	})
 })
 afterEach(() => {
+	trees.forEach(tree => tree.unmount())
+	trees = []
+	clients.forEach(client => client.clear())
+	clients = []
 	jest.useRealTimers()
 	Linking.openURL.mockRestore()
 })
@@ -311,9 +329,13 @@ describe('real-time deposit status over SSE', () => {
 
 	test('a paid status toasts, closes the modal, refreshes the balance and asks for review', async () => {
 		const tree = await openInvoice()
+		const invalidate = jest.spyOn(clients[clients.length - 1], 'invalidateQueries')
 		await act(async () => { sseCallback('paid') })
 		expect(toast.success).toHaveBeenCalledWith('Pago confirmado', expect.anything())
 		expect(tree.root.findByType('DepositDetailsModal').props.depositStatus).toBe('paid')
+		// El historial también se refresca al momento (feed del Home + histórico)
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: ['home'] })
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] })
 		await act(async () => { jest.advanceTimersByTime(2000) })
 		expect(tree.root.findByType('DepositDetailsModal').props.visible).toBe(false)
 		// El saldo nuevo se re-lee del perfil: el SSE solo entrega el status string
