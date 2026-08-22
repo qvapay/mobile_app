@@ -33,6 +33,10 @@ jest.mock('../../api/client', () => ({
 	__esModule: true,
 	default: { get: jest.fn(), post: jest.fn() },
 }))
+jest.mock('../../api/userApi', () => ({
+	__esModule: true,
+	userApi: { getUserProfile: jest.fn() },
+}))
 jest.mock('../../hooks/useTransactionSSE', () => jest.fn())
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
@@ -44,6 +48,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
 import { maybeRequestReview } from '../../helpers/inAppReview'
 import apiClient from '../../api/client'
+import { userApi } from '../../api/userApi'
 import { presentCardDeposit } from './cardPaymentSheet'
 import useTransactionSSE from '../../hooks/useTransactionSSE'
 import { toast } from 'sonner-native'
@@ -75,6 +80,7 @@ beforeEach(() => {
 	useAuth.mockReturnValue({ user: { balance: '100.00' }, updateUser })
 	apiClient.get.mockResolvedValue({ data: [] })
 	apiClient.post.mockResolvedValue({ status: 200, data: { data: { transaction_uuid: 'tx-1', wallet: null } } })
+	userApi.getUserProfile.mockResolvedValue({ success: true, data: { balance: '150.00' } })
 	detectInstalledWallets.mockResolvedValue([])
 	useTransactionSSE.mockImplementation((uuid, cb) => {
 		sseCallback = cb
@@ -310,7 +316,10 @@ describe('real-time deposit status over SSE', () => {
 		expect(tree.root.findByType('DepositDetailsModal').props.depositStatus).toBe('paid')
 		await act(async () => { jest.advanceTimersByTime(2000) })
 		expect(tree.root.findByType('DepositDetailsModal').props.visible).toBe(false)
-		expect(updateUser).toHaveBeenCalled()
+		// El saldo nuevo se re-lee del perfil: el SSE solo entrega el status string
+		await act(async () => { await Promise.resolve(); await Promise.resolve() })
+		expect(userApi.getUserProfile).toHaveBeenCalled()
+		expect(updateUser).toHaveBeenCalledWith({ balance: '150.00' })
 		await act(async () => { jest.advanceTimersByTime(1500) })
 		expect(maybeRequestReview).toHaveBeenCalled()
 	})
