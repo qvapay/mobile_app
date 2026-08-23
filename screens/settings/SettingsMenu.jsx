@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { View, Text, Alert, ScrollView, Pressable, Linking, Platform, ActionSheetIOS } from 'react-native'
+import { View, Text, TextInput, Alert, ScrollView, Pressable, Linking, Platform, ActionSheetIOS } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -28,6 +28,7 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker'
 
 // Import settings
 import settings from './settings'
+import { filterSettings } from './settingsSearch'
 
 // Push prompt
 import usePushPrompt from '../../hooks/usePushPrompt'
@@ -62,6 +63,14 @@ const SettingsMenu = ({ navigation }) => {
 
 	// Push prompt
 	const { shouldShowRedDot } = usePushPrompt()
+
+	// Buscador del menú: filtra título + keywords sin acentos (settingsSearch.js).
+	// Mientras hay búsqueda activa solo se muestran los resultados — el perfil,
+	// el logout y el pie quedan fuera para no ensuciar la lista.
+	const [query, setQuery] = useState('')
+	const visibleSettings = filterSettings(settings, query)
+	const searching = query.trim().length > 0
+	const noResults = searching && Object.keys(visibleSettings).length === 0
 
 	// Biometric availability for the logout flow — read only when the logout
 	// drawer expands, so a ref avoids re-rendering the whole menu when it resolves.
@@ -127,6 +136,18 @@ const SettingsMenu = ({ navigation }) => {
 		}
 	}
 
+	// Estado por item del catálogo: check verde en verificaciones completadas
+	// (celular, Telegram, KYC) y pill "Activo" en la suscripción GOLD vigente
+	const itemStatus = (option) => {
+		switch (option.verifiedKey) {
+			case 'phone': return { verified: !!user?.phone_verified }
+			case 'telegram': return { verified: !!user?.telegram_id }
+			case 'kyc': return { verified: !!user?.kyc }
+			case 'gold': return user?.golden_check ? { pill: 'Activo' } : {}
+			default: return {}
+		}
+	}
+
 	// Edit avatar handler
 	const handleEditAvatar = () => showImagePicker(avatarPickerOptions, 'avatar', 'Cambiar foto de perfil')
 
@@ -146,18 +167,50 @@ const SettingsMenu = ({ navigation }) => {
 
 	return (
 		<View style={containerStyles.container}>
-			<ScrollView style={{ paddingHorizontal: theme.spacing.md }} contentInsetAdjustmentBehavior="never">
+			<ScrollView style={{ paddingHorizontal: theme.spacing.md }} contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
 
-				<ProfileContainer user={user} onEditAvatar={handleEditAvatar} onEditCover={handleEditCover} />
+				{!searching && <ProfileContainer user={user} onEditAvatar={handleEditAvatar} onEditCover={handleEditCover} />}
 
-				{Object.entries(settings).map(([categoryKey, category]) => {
-					const items = categoryKey === 'notifications' && shouldShowRedDot
-						? category.options.map(opt => ({ ...opt, showBadge: true }))
-						: category.options
+				{/* Buscador */}
+				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.elevation, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 14, height: 42, marginTop: searching ? insets.top + 56 : 6 }}>
+					<FontAwesome6 name="magnifying-glass" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
+					<TextInput
+						value={query}
+						onChangeText={setQuery}
+						placeholder="Buscar en ajustes"
+						placeholderTextColor={theme.colors.secondaryText}
+						style={{ flex: 1, paddingVertical: 0, color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.md }}
+						autoCorrect={false}
+						autoCapitalize="none"
+						returnKeyType="search"
+						clearButtonMode="while-editing"
+					/>
+					{searching && Platform.OS !== 'ios' && (
+						<Pressable onPress={() => setQuery('')} hitSlop={8}>
+							<FontAwesome6 name="circle-xmark" size={15} color={theme.colors.secondaryText} iconStyle="solid" />
+						</Pressable>
+					)}
+				</View>
+
+				{noResults && (
+					<View style={{ alignItems: 'center', paddingVertical: 40, gap: 10 }}>
+						<FontAwesome6 name="magnifying-glass" size={28} color={theme.colors.secondaryText} iconStyle="solid" />
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
+							{`Sin resultados para “${query.trim()}”`}
+						</Text>
+					</View>
+				)}
+
+				{Object.entries(visibleSettings).map(([categoryKey, category]) => {
+					const items = category.options.map(option => ({
+						...option,
+						...itemStatus(option),
+						...(categoryKey === 'notifications' && shouldShowRedDot ? { showBadge: true } : {}),
+					}))
 					return <SettingsSection key={categoryKey} title={category.title} items={items} navigation={navigation} />
 				})}
 
-				<AlertDrawer
+				{!searching && <AlertDrawer
 					buttonLabel="Cerrar sesión"
 					title="Cerrar sesión"
 					icon="right-from-bracket"
@@ -170,10 +223,10 @@ const SettingsMenu = ({ navigation }) => {
 					onCancel={logoutKeepsBiometrics ? () => performLogout() : undefined}
 					onBeforeExpand={() => setLogoutKeepsBiometrics(biometricsActiveRef.current)}
 					style={{ marginTop: 20 }}
-				/>
+				/>}
 
 				{/* Github, Twitter and Instagram accounts */}
-				<View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginVertical: 20 }}>
+				{!searching && <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginVertical: 20 }}>
 					<Pressable onPress={() => Linking.openURL('https://support.qvapay.com')}>
 						<FontAwesome6 name="headset" size={24} style={{ color: theme.colors.contrast }} iconStyle="solid" />
 					</Pressable>
@@ -198,13 +251,13 @@ const SettingsMenu = ({ navigation }) => {
 					<Pressable onPress={() => Linking.openURL('https://youtube.com/@qvapay')}>
 						<FontAwesome6 name="youtube" size={24} style={{ color: theme.colors.contrast }} iconStyle="brand" />
 					</Pressable>
-				</View>
+				</View>}
 
-				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20, marginBottom: insets.bottom }]}>
+				{!searching && <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20, marginBottom: insets.bottom }]}>
 					{`QvaPay © ${new Date().getFullYear()} \n`}
 					{`v ${version} build ${buildNumber}\n`}
 					{`Todos los derechos reservados`}
-				</Text>
+				</Text>}
 
 			</ScrollView>
 

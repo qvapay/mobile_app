@@ -172,6 +172,19 @@ export const userApi = {
 	},
 
 	/**
+	 * Gets the user's enterprise registrations and their approval status (`GET /user/company`).
+	 * Mirrors the web's Ajustes → Empresa panel.
+	 *
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ companies: [{ uuid, company_name, director_name, email, activity, employee_count, country, status, statutes_sent, created_at, updated_at }] }`
+	 */
+	getCompanies: async () => {
+		try {
+			const response = await apiClient.get(`/user/company`)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+	},
+
+	/**
 	 * Gets referral data — invited users list and earnings (`GET /user/referrals`).
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`

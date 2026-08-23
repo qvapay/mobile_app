@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 
 // Contexts
 import { useTheme } from '../theme/ThemeContext'
@@ -9,14 +9,19 @@ import { createTextStyles } from '../theme/themeUtils'
 // Particles
 import SettingsItem from './particles/SettingsItem'
 
+// Inset del separador: paddingHorizontal del box (16) + tile de icono (30) + gap (12),
+// para que la línea arranque alineada con el texto como en iOS Settings
+const SEPARATOR_INSET = 58
+
 /**
  * Titled group of SettingsItem rows on the Settings menu. Items with
  * `enabled: false` are filtered out before rendering, and each row receives
  * its index/total so SettingsItem can round only the group's outer corners.
+ * Rows are divided by hairline separators inset to the text edge.
  *
  * @param {object} props
- * @param {string} props.title - Section heading.
- * @param {{title: string, icon: string, screen: string, enabled?: boolean, showBadge?: boolean}[]} props.items - Row definitions.
+ * @param {string} props.title - Section heading (rendered as a spaced eyebrow).
+ * @param {{title: string, icon?: string, color?: string, screen: string, enabled?: boolean, showBadge?: boolean, verified?: boolean, pill?: string}[]} props.items - Row definitions.
  * @param {object} props.navigation - React Navigation object forwarded to each row.
  */
 const SettingsSection = ({ title, items, navigation }) => {
@@ -30,22 +35,47 @@ const SettingsSection = ({ title, items, navigation }) => {
 	const enabledItems = items.filter(item => item.enabled !== false)
 
 	return (
-		<View style={{ marginTop: 10 }}>
-			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>{title}</Text>
+		<View style={styles.section}>
+			<Text style={[textStyles.h7, styles.heading, { color: theme.colors.secondaryText }]}>{title}</Text>
 			{enabledItems.map((item, index) => (
-				<SettingsItem
-					key={index}
-					title={item.title}
-					icon={item.icon}
-					screen={item.screen}
-					index={index}
-					totalItems={enabledItems.length}
-					navigation={navigation}
-					showBadge={item.showBadge}
-				/>
+				<View key={item.screen || index}>
+					{index > 0 && (
+						<View style={{ backgroundColor: theme.colors.elevation }}>
+							<View style={[styles.separator, { backgroundColor: theme.colors.border }]} />
+						</View>
+					)}
+					<SettingsItem
+						title={item.title}
+						icon={item.icon}
+						color={item.color}
+						screen={item.screen}
+						index={index}
+						totalItems={enabledItems.length}
+						navigation={navigation}
+						showBadge={item.showBadge}
+						verified={item.verified}
+						pill={item.pill}
+					/>
+				</View>
 			))}
 		</View>
 	)
 }
+
+const styles = StyleSheet.create({
+	section: {
+		marginTop: 14,
+	},
+	heading: {
+		marginBottom: 6,
+		paddingHorizontal: 4,
+		letterSpacing: 1,
+	},
+	separator: {
+		height: StyleSheet.hairlineWidth,
+		marginLeft: SEPARATOR_INSET,
+		opacity: 0.5,
+	},
+})
 
 export default SettingsSection

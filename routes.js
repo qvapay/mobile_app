@@ -88,6 +88,7 @@ export const ROUTES = {
 	APP_LOCK: "AppLock",
 	PASSKEYS: "Passkeys",
 	ROUNDUP: "Roundup",
+	ENTERPRISE: "Enterprise",
 
 	// Invest Screens
 	SAVINGS_SCREEN: "Savings",

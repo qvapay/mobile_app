@@ -1,0 +1,297 @@
+import { useCallback, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, ScrollView, Linking, AppState } from 'react-native'
+
+// React Query
+import { useQuery } from '@tanstack/react-query'
+
+// Theme
+import { useTheme } from '../../../theme/ThemeContext'
+import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
+
+// UI
+import QPButton from '../../../ui/particles/QPButton'
+import QPLoader from '../../../ui/particles/QPLoader'
+
+// API
+import { userApi } from '../../../api/userApi'
+import { unwrap } from '../../../api/unwrap'
+
+// Helpers
+import { getShortDateTime } from '../../../helpers'
+
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// El registro empresarial (wizard con PDF de estatutos + captcha) vive en la web —
+// misma decisión que el KYC de Didit: la app muestra el estado y abre el navegador
+const ENTERPRISE_URL = 'https://www.qvapay.com/enterprise'
+const SELLER_URL = 'https://www.qvapay.com/seller'
+
+// Mismos textos de estado que /settings/company de la web
+const STATUS_LABEL = {
+	pending: 'Pendiente',
+	reviewing: 'En revisión',
+	contacted: 'Contactado',
+	approved: 'Aprobada',
+	rejected: 'Rechazada',
+}
+
+const STATUS_EXPLAINER = {
+	pending: 'Recibimos tu solicitud y está en cola para revisión. Te contactaremos al email corporativo si necesitamos más información.',
+	reviewing: 'Nuestro equipo está revisando la documentación de tu empresa.',
+	contacted: 'Nos pusimos en contacto contigo por el email corporativo. Revisa tu bandeja de entrada para continuar el proceso.',
+	approved: 'Tu empresa está verificada en QvaPay. Ya puedes operar con tu cuenta empresarial y abrir tiendas en el marketplace.',
+	rejected: 'Tu solicitud no fue aprobada. Si crees que se trata de un error o tu situación cambió, puedes enviar una nueva solicitud.',
+}
+
+/**
+ * Empresa — estado del registro empresarial de la cuenta (espejo móvil de
+ * Ajustes → Empresa de la web). Lee `GET /user/company` vía React Query
+ * (`['user','company']`) y muestra:
+ *
+ * - Sin empresas: beneficios + CTA que abre /enterprise en el navegador.
+ * - Con empresas: tarjeta por solicitud con badge de estado (pending/reviewing/
+ *   contacted/approved/rejected), datos enviados y fecha; las rechazadas
+ *   ofrecen re-aplicar y las aprobadas enlazan a la gestión de tiendas (web).
+ *
+ * Al volver del navegador (AppState → active) se refetchea el estado —
+ * el mismo patrón de re-check que el subpanel de KYC.
+ */
+const Enterprise = () => {
+
+	// Theme
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
+
+	// Colores de badge por estado (espejo de los de /settings/company; el azul de
+	// "contactado" no existe como token del theme, se fija igual que en la web)
+	const STATUS_COLOR = {
+		pending: theme.colors.warning,
+		reviewing: theme.colors.primary,
+		contacted: '#3B82F6',
+		approved: theme.colors.successText,
+		rejected: theme.colors.danger,
+	}
+
+	// Empresas del usuario
+	const { data, isPending, isError, refetch } = useQuery({
+		queryKey: ['user', 'company'],
+		queryFn: async () => unwrap(await userApi.getCompanies()),
+		placeholderData: previous => previous,
+	})
+	const companies = data?.companies ?? []
+	const hasApproved = companies.some((company) => company.status === 'approved')
+
+	// Re-check al volver del navegador (registro o re-aplicación en la web)
+	const browserOpenedRef = useRef(false)
+	useEffect(() => {
+		const sub = AppState.addEventListener('change', (state) => {
+			if (state === 'active' && browserOpenedRef.current) {
+				browserOpenedRef.current = false
+				refetch()
+			}
+		})
+		return () => sub.remove()
+	}, [refetch])
+
+	const openInBrowser = useCallback((url) => {
+		browserOpenedRef.current = true
+		Linking.openURL(url)
+	}, [])
+
+	if (isPending && !data) return <QPLoader />
+
+	// Error sin caché — con datos previos se pinta la lista y el refetch corre por detrás
+	if (isError && !data) {
+		return (
+			<View style={containerStyles.subContainer}>
+				<View style={styles.center}>
+					<View style={[styles.heroIcon, { backgroundColor: theme.colors.danger + '18' }]}>
+						<FontAwesome6 name="building-circle-exclamation" size={36} color={theme.colors.danger} iconStyle="solid" />
+					</View>
+					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 18, textAlign: 'center' }]}>No se pudo cargar</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>
+						No pudimos consultar el estado de tu empresa. Revisa tu conexión e inténtalo de nuevo.
+					</Text>
+					<QPButton title="Reintentar" onPress={() => refetch()} style={{ marginTop: 24, alignSelf: 'stretch' }} textStyle={{ color: theme.colors.almostWhite }} />
+				</View>
+			</View>
+		)
+	}
+
+	// Sin empresa registrada: beneficios + CTA al wizard web
+	if (companies.length === 0) {
+		return (
+			<View style={[containerStyles.subContainer, { justifyContent: 'space-between', paddingHorizontal: 20 }]}>
+
+				<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+					<View style={[styles.heroIcon, { backgroundColor: theme.colors.primary + '18' }]}>
+						<FontAwesome6 name="building" size={40} color={theme.colors.primary} iconStyle="solid" />
+					</View>
+
+					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 18 }]}>QvaPay para Empresas</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6, marginBottom: 24 }]}>
+						Registra tu empresa para acceder a la cuenta empresarial y, una vez aprobada, vender en el marketplace.
+					</Text>
+
+					<View style={[containerStyles.card, { width: '100%' }]}>
+						<BenefitItem icon="crown" text="Insignia VIP para el dueño" theme={theme} textStyles={textStyles} />
+						<BenefitItem icon="store" text="Tu tienda en el marketplace" theme={theme} textStyles={textStyles} />
+						<BenefitItem icon="credit-card" text="Cobra con más métodos de pago" theme={theme} textStyles={textStyles} />
+						<BenefitItem icon="bullhorn" text="Difusión en las redes de QvaPay" theme={theme} textStyles={textStyles} />
+					</View>
+				</View>
+
+				<View style={containerStyles.bottomButtonContainer}>
+					<QPButton
+						title="Registrar mi empresa"
+						onPress={() => openInBrowser(ENTERPRISE_URL)}
+						textStyle={{ color: theme.colors.almostWhite }}
+					/>
+				</View>
+
+			</View>
+		)
+	}
+
+	// Con solicitudes: tarjeta por empresa + gestión de tiendas si hay aprobada
+	return (
+		<ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ padding: 20, gap: 14 }}>
+
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
+				Gestiona el registro empresarial de tu cuenta y su estado de aprobación.
+			</Text>
+
+			{companies.map((company) => {
+				const color = STATUS_COLOR[company.status] || theme.colors.secondaryText
+				return (
+					<View key={company.uuid} style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+
+						<View style={styles.cardHeader}>
+							<View style={[styles.companyIcon, { backgroundColor: theme.colors.primary + '18' }]}>
+								<FontAwesome6 name="building" size={20} color={theme.colors.primary} iconStyle="solid" />
+							</View>
+							<View style={{ flex: 1 }}>
+								<Text style={[textStyles.h2, { color: theme.colors.primaryText }]} numberOfLines={1}>{company.company_name}</Text>
+								<View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
+									<Text style={[textStyles.h7, { color }]}>{STATUS_LABEL[company.status] || company.status}</Text>
+								</View>
+							</View>
+						</View>
+
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: 10 }]}>
+							{STATUS_EXPLAINER[company.status] || ''}
+						</Text>
+
+						<View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+						<DetailRow label="Director / Presidente" value={company.director_name} theme={theme} textStyles={textStyles} />
+						<DetailRow label="Email corporativo" value={company.email} theme={theme} textStyles={textStyles} />
+						<DetailRow label="Actividad" value={company.activity} theme={theme} textStyles={textStyles} />
+						<DetailRow label="Empleados" value={company.employee_count} theme={theme} textStyles={textStyles} />
+						<DetailRow label="Estatutos" value={company.statutes_sent ? 'Enviados' : 'No enviados'} theme={theme} textStyles={textStyles} />
+						<DetailRow label="Solicitud" value={company.created_at ? getShortDateTime(company.created_at) : 'N/A'} theme={theme} textStyles={textStyles} />
+
+						{company.status === 'rejected' && (
+							<QPButton
+								title="Enviar nueva solicitud"
+								onPress={() => openInBrowser(ENTERPRISE_URL)}
+								style={{ marginTop: 14 }}
+								textStyle={{ color: theme.colors.almostWhite }}
+							/>
+						)}
+					</View>
+				)
+			})}
+
+			{hasApproved && (
+				<View style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+					<View style={styles.cardHeader}>
+						<View style={[styles.companyIcon, { backgroundColor: theme.colors.successText + '18' }]}>
+							<FontAwesome6 name="store" size={20} color={theme.colors.successText} iconStyle="solid" />
+						</View>
+						<View style={{ flex: 1 }}>
+							<Text style={[textStyles.h2, { color: theme.colors.primaryText }]}>Tiendas</Text>
+							<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: 2 }]}>
+								Tu empresa está aprobada: crea tiendas y vende tus productos a los usuarios de QvaPay.
+							</Text>
+						</View>
+					</View>
+					<QPButton
+						title="Gestionar mis tiendas"
+						onPress={() => openInBrowser(SELLER_URL)}
+						style={{ marginTop: 14 }}
+						textStyle={{ color: theme.colors.almostWhite }}
+					/>
+				</View>
+			)}
+
+		</ScrollView>
+	)
+}
+
+const BenefitItem = ({ icon, text, theme, textStyles }) => (
+	<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 }}>
+		<FontAwesome6 name={icon} size={16} color={theme.colors.successText} iconStyle="solid" />
+		<Text style={[textStyles.body, { color: theme.colors.secondaryText }]}>{text}</Text>
+	</View>
+)
+
+const DetailRow = ({ label, value, theme, textStyles }) => (
+	<View style={styles.detailRow}>
+		<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{label}</Text>
+		<Text style={[textStyles.h5, { color: theme.colors.primaryText, flexShrink: 1, textAlign: 'right' }]} numberOfLines={2}>{value}</Text>
+	</View>
+)
+
+const styles = StyleSheet.create({
+	center: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		paddingBottom: 80,
+		paddingHorizontal: 20,
+	},
+	heroIcon: {
+		width: 96,
+		height: 96,
+		borderRadius: 24,
+		borderCurve: 'continuous',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	cardHeader: {
+		flexDirection: 'row',
+		alignItems: 'flex-start',
+		gap: 12,
+	},
+	companyIcon: {
+		width: 44,
+		height: 44,
+		borderRadius: 12,
+		borderCurve: 'continuous',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	statusPill: {
+		alignSelf: 'flex-start',
+		borderRadius: 999,
+		paddingHorizontal: 10,
+		paddingVertical: 3,
+		marginTop: 4,
+	},
+	divider: {
+		height: StyleSheet.hairlineWidth,
+		marginVertical: 12,
+	},
+	detailRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'flex-start',
+		gap: 16,
+		paddingVertical: 5,
+	},
+})
+
+export default Enterprise

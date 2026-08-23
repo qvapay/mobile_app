@@ -14,9 +14,9 @@ import { act, create } from 'react-test-renderer'
 import SettingsSection from './SettingsSection'
 
 const ITEMS = [
-	{ title: 'Perfil', icon: 'user', screen: 'Profile' },
+	{ title: 'Perfil', icon: 'user', color: '#3B82F6', screen: 'Profile', verified: true },
 	{ title: 'Oculto', icon: 'eye-slash', screen: 'Hidden', enabled: false },
-	{ title: 'Seguridad', icon: 'lock', screen: 'Security', showBadge: true },
+	{ title: 'Seguridad', icon: 'lock', color: '#F97316', screen: 'Security', showBadge: true, pill: 'Activo' },
 ]
 
 const renderSection = (props = {}) => {
@@ -57,4 +57,12 @@ test('forwards navigation, screen, icon and badge flags to each row', () => {
 	expect(rows[0].props.icon).toBe('user')
 	expect(rows[0].props.showBadge).toBeUndefined()
 	expect(rows[1].props.showBadge).toBe(true)
+})
+
+test('forwards the tint color and status accessories to each row', () => {
+	const rows = renderSection().root.findAllByType('SettingsItem')
+	expect(rows[0].props.color).toBe('#3B82F6')
+	expect(rows[0].props.verified).toBe(true)
+	expect(rows[0].props.pill).toBeUndefined()
+	expect(rows[1].props.pill).toBe('Activo')
 })
