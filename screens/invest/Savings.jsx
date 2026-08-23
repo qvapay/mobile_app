@@ -8,6 +8,7 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 // API (deposit/withdraw — las lecturas viven en React Query)
 import { savingApi } from '../../api/savingApi'
 import { useQueryClient } from '@tanstack/react-query'
+import { trimToFirstPage } from '../../api/queryUtils'
 import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
 import { useSavingsMovementsQuery } from './investQueries'
 
@@ -66,7 +67,7 @@ const Savings = ({ route }) => {
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
-	const { user, updateUser } = useAuth()
+	const { user } = useAuth()
 	const { height: windowHeight } = useWindowDimensions()
 
 	// Resumen (query compartida con BalanceCard/Invest) + movimientos. El
@@ -124,9 +125,15 @@ const Savings = ({ route }) => {
 				toast.success(modalType === 'deposit' ? 'Depósito realizado' : 'Retiro realizado')
 				dispatchModal({ type: 'close' })
 				// Invalidar la raíz de ahorros refresca resumen y movimientos aquí,
-				// en el dashboard de Invest y en la página 2 del BalanceCard
+				// en el dashboard de Invest y en la página 2 del BalanceCard. La
+				// invalidación de ['home'] cubre el feed y ['home','profile']: su
+				// efecto vuelca el perfil (y el saldo nuevo) en AuthContext
 				queryClient.invalidateQueries({ queryKey: ['savings'] })
-				updateUser()
+				queryClient.invalidateQueries({ queryKey: ['home'] })
+				// Recorte a página 1 antes de invalidar: cada lista infinita del
+				// histórico refresca con UNA petición, no una por página cargada
+				queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
+				queryClient.invalidateQueries({ queryKey: ['transactions'] })
 			} else {
 				toast.error(res.error || 'Error en la operación')
 			}

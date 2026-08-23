@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
 import { StyleSheet, Text, View, Pressable, Linking } from 'react-native'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Helpers
 import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
@@ -29,6 +30,7 @@ import { cardFeeRateFor } from '../../helpers/cardFeeMode'
 
 // API
 import apiClient from '../../api/client'
+import { trimToFirstPage } from '../../api/queryUtils'
 
 // Hooks
 import useTransactionSSE from '../../hooks/useTransactionSSE'
@@ -74,7 +76,8 @@ const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
 const Add = ({ navigation }) => {
 
 	// User Context
-	const { user, updateUser } = useAuth()
+	const { user } = useAuth()
+	const queryClient = useQueryClient()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -111,18 +114,24 @@ const Add = ({ navigation }) => {
 		if (newStatus === 'paid') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			toast.success('Pago confirmado', { description: 'Tu depósito ha sido procesado exitosamente' })
-			// Close modal and refresh balance after a brief delay
-			setTimeout(() => {
-				setShowDepositModal(false)
-				updateUser()
-			}, 2000)
+			// Refresca las lecturas de servidor en React Query: con enableFreeze los
+			// observadores sobreviven al fondo y sin invalidación seguirían mostrando
+			// el pre-depósito hasta remontar. ['home'] incluye ['home','profile'],
+			// cuyo efecto vuelca el perfil (y el saldo nuevo) en AuthContext
+			queryClient.invalidateQueries({ queryKey: ['home'] })
+			// Recorte a página 1 antes de invalidar: cada lista infinita del
+			// histórico refresca con UNA petición, no una por página cargada
+			queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
+			queryClient.invalidateQueries({ queryKey: ['transactions'] })
+			// Close modal after a brief delay so the success toast reads clearly
+			setTimeout(() => { setShowDepositModal(false) }, 2000)
 			// Ask for app review after modal closes
 			setTimeout(() => { maybeRequestReview() }, 3500)
 		} else if (newStatus === 'expired') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			setCountdown(0)
 		} else if (newStatus === 'failed') { if (countdownRef.current) clearInterval(countdownRef.current) }
-	}, [updateUser])
+	}, [queryClient])
 
 	const { isConnected: sseConnected } = useTransactionSSE(
 		showDepositModal ? topupData?.transaction_uuid : null,
