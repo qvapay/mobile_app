@@ -7,8 +7,8 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // API (deposit/withdraw — las lecturas viven en React Query)
 import { savingApi } from '../../api/savingApi'
-import { userApi } from '../../api/userApi'
 import { useQueryClient } from '@tanstack/react-query'
+import { trimToFirstPage } from '../../api/queryUtils'
 import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
 import { useSavingsMovementsQuery } from './investQueries'
 
@@ -67,7 +67,7 @@ const Savings = ({ route }) => {
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
-	const { user, updateUser } = useAuth()
+	const { user } = useAuth()
 	const { height: windowHeight } = useWindowDimensions()
 
 	// Resumen (query compartida con BalanceCard/Invest) + movimientos. El
@@ -125,15 +125,15 @@ const Savings = ({ route }) => {
 				toast.success(modalType === 'deposit' ? 'Depósito realizado' : 'Retiro realizado')
 				dispatchModal({ type: 'close' })
 				// Invalidar la raíz de ahorros refresca resumen y movimientos aquí,
-				// en el dashboard de Invest y en la página 2 del BalanceCard; home y
-				// transactions cubren el feed del Home y el histórico de la wallet
+				// en el dashboard de Invest y en la página 2 del BalanceCard. La
+				// invalidación de ['home'] cubre el feed y ['home','profile']: su
+				// efecto vuelca el perfil (y el saldo nuevo) en AuthContext
 				queryClient.invalidateQueries({ queryKey: ['savings'] })
 				queryClient.invalidateQueries({ queryKey: ['home'] })
+				// Recorte a página 1 antes de invalidar: cada lista infinita del
+				// histórico refresca con UNA petición, no una por página cargada
+				queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
 				queryClient.invalidateQueries({ queryKey: ['transactions'] })
-				// La operación movió saldo entre wallet y ahorros: re-leer el perfil
-				// para reflejar el balance real (updateUser() vacío era un no-op)
-				const profile = await userApi.getUserProfile()
-				if (profile.success && profile.data) await updateUser(profile.data)
 			} else {
 				toast.error(res.error || 'Error en la operación')
 			}

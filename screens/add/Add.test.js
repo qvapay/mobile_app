@@ -33,10 +33,6 @@ jest.mock('../../api/client', () => ({
 	__esModule: true,
 	default: { get: jest.fn(), post: jest.fn() },
 }))
-jest.mock('../../api/userApi', () => ({
-	__esModule: true,
-	userApi: { getUserProfile: jest.fn() },
-}))
 jest.mock('../../hooks/useTransactionSSE', () => jest.fn())
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
@@ -49,7 +45,6 @@ import { useAuth } from '../../auth/AuthContext'
 import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
 import { maybeRequestReview } from '../../helpers/inAppReview'
 import apiClient from '../../api/client'
-import { userApi } from '../../api/userApi'
 import { presentCardDeposit } from './cardPaymentSheet'
 import useTransactionSSE from '../../hooks/useTransactionSSE'
 import { toast } from 'sonner-native'
@@ -94,7 +89,6 @@ beforeEach(() => {
 	useAuth.mockReturnValue({ user: { balance: '100.00' }, updateUser })
 	apiClient.get.mockResolvedValue({ data: [] })
 	apiClient.post.mockResolvedValue({ status: 200, data: { data: { transaction_uuid: 'tx-1', wallet: null } } })
-	userApi.getUserProfile.mockResolvedValue({ success: true, data: { balance: '150.00' } })
 	detectInstalledWallets.mockResolvedValue([])
 	useTransactionSSE.mockImplementation((uuid, cb) => {
 		sseCallback = cb
@@ -329,19 +323,23 @@ describe('real-time deposit status over SSE', () => {
 
 	test('a paid status toasts, closes the modal, refreshes the balance and asks for review', async () => {
 		const tree = await openInvoice()
-		const invalidate = jest.spyOn(clients[clients.length - 1], 'invalidateQueries')
+		const client = clients[clients.length - 1]
+		const invalidate = jest.spyOn(client, 'invalidateQueries')
+		// Histórico infinito cacheado con dos páginas: el pago debe recortarlo a
+		// la primera para que el refetch posterior sea UNA petición
+		client.setQueryData(['transactions', 'list', {}], {
+			pages: [[{ uuid: 't-old' }], [{ uuid: 't-older' }]],
+			pageParams: [null, 2],
+		})
 		await act(async () => { sseCallback('paid') })
 		expect(toast.success).toHaveBeenCalledWith('Pago confirmado', expect.anything())
 		expect(tree.root.findByType('DepositDetailsModal').props.depositStatus).toBe('paid')
 		// El historial también se refresca al momento (feed del Home + histórico)
 		expect(invalidate).toHaveBeenCalledWith({ queryKey: ['home'] })
 		expect(invalidate).toHaveBeenCalledWith({ queryKey: ['transactions'] })
+		expect(client.getQueryData(['transactions', 'list', {}]).pages).toHaveLength(1)
 		await act(async () => { jest.advanceTimersByTime(2000) })
 		expect(tree.root.findByType('DepositDetailsModal').props.visible).toBe(false)
-		// El saldo nuevo se re-lee del perfil: el SSE solo entrega el status string
-		await act(async () => { await Promise.resolve(); await Promise.resolve() })
-		expect(userApi.getUserProfile).toHaveBeenCalled()
-		expect(updateUser).toHaveBeenCalledWith({ balance: '150.00' })
 		await act(async () => { jest.advanceTimersByTime(1500) })
 		expect(maybeRequestReview).toHaveBeenCalled()
 	})
