@@ -60,6 +60,7 @@ const CUP = {
 	price: '0.5',
 	stable: false,
 	fee_out: '5',
+	fee_out_gold: '2',
 	fee_out_fixed: 0,
 	decimals: 2,
 	logo: 'bank_cup',
@@ -220,6 +221,51 @@ describe('amount conversion and fees', () => {
 		expect(amountCard(tree).props.amountCoin).toBe('28.00')
 		await typeQUSD(tree, '100')
 		expect(amountCard(tree).props.amountCoin).toBe('95.00')
+	})
+
+	test('exactly at the threshold the fixed fee still applies (server parity)', async () => {
+		// The server switches to the percent only when amount > threshold, so $50
+		// on a [50, 2] config pays the flat $2 (not 5% = $2.50)
+		const tree = await renderWithdraw()
+		await selectCoin(tree, THRESHOLD)
+		await typeQUSD(tree, '50')
+		expect(amountCard(tree).props.amountCoin).toBe('48.00')
+	})
+
+	test('GOLD users are quoted fee_out_gold, like the server charges them', async () => {
+		useAuth.mockReturnValue({ user: { balance: 150, satoshis: 0, two_factor_secret: null, golden_check: true }, updateUser: jest.fn() })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		await typeQUSD(tree, '100')
+		// 100 - 2% gold = 98 USD net → 98 / 0.5 = 196 CUP
+		expect(amountCard(tree).props.amountCoin).toBe('196.00')
+	})
+
+	test('picking a select option with fee_pct adds the surcharge and resyncs the receive amount', async () => {
+		const PROVINCES = {
+			tick: 'USDCASHP',
+			name: 'Cash provincias',
+			price: '1',
+			stable: true,
+			fee_out: '0',
+			fee_out_fixed: 0,
+			decimals: 2,
+			logo: 'usdcash',
+			working_data: JSON.stringify([
+				{ name: 'Provincia', type: 'select', options: [{ value: 'La Habana', fee_pct: 0 }, { value: 'Holguín', fee_pct: 5 }] },
+			]),
+		}
+		mockCoinCatalog = [PROVINCES]
+		const tree = await renderWithdraw()
+		await selectCoin(tree, PROVINCES)
+		await typeQUSD(tree, '100')
+		expect(amountCard(tree).props.amountCoin).toBe('100.00')
+		// Choosing the surcharged province re-derives the receive side from the gross
+		await fillField(tree, 'provincia', 'Holguín')
+		expect(amountCard(tree).props.amountCoin).toBe('95.00')
+		// And a fee-free province goes back to the full amount
+		await fillField(tree, 'provincia', 'La Habana')
+		expect(amountCard(tree).props.amountCoin).toBe('100.00')
 	})
 
 	test('clearing the amount clears the converted amount too', async () => {

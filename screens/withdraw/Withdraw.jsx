@@ -16,6 +16,7 @@ import WithdrawAccountFields from './WithdrawAccountFields'
 import WithdrawDestinationSelector from './WithdrawDestinationSelector'
 import PinConfirmStep from '../transaction/PinConfirmStep'
 import { isCryptoCoin } from './withdrawDestination'
+import { calculateFee, grossFromNet, getSelectFeePct, keyFromFieldName } from './withdrawFees'
 import useCoins from '../../hooks/useCoins'
 import usePinEntry from '../../hooks/usePinEntry'
 
@@ -48,8 +49,6 @@ const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
 // Mínimo de sats por redención (espejo de MIN_SATS_REDEEM en el backend)
 const MIN_SATS_REDEEM = 100
 
-const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
-
 // USD (neto) -> cantidad en coin
 const usdToCoin = (usdNet, coin) => {
 	if (!coin) return 0
@@ -64,22 +63,6 @@ const coinToUsd = (coinAmount, coin) => {
 	const price = Number(coin.price)
 	if (!coin.stable && price > 0) return coinAmount * price
 	return coinAmount
-}
-
-// Fee for a gross USD amount on a coin
-const calculateFee = (amount, coin) => {
-	if (!coin) return 0
-	const feePercent = Number(coin.fee_out) || 0
-	if (Array.isArray(coin.fee_out_fixed) && coin.fee_out_fixed.length >= 2) {
-		const threshold = Number(coin.fee_out_fixed[0]) || 0
-		const fixedAmount = Number(coin.fee_out_fixed[1]) || 0
-		if (amount < threshold) { return fixedAmount }
-		const percentageFee = (amount * feePercent) / 100
-		return Math.round(percentageFee * 100) / 100
-	}
-	const feeFixed = Number(coin.fee_out_fixed) || 0
-	const percentageFee = (amount * feePercent) / 100
-	return Math.round((percentageFee + feeFixed) * 100) / 100
 }
 
 // Generic field setter for the related-state slices below
@@ -114,6 +97,9 @@ const Withdraw = ({ navigation, route }) => {
 	// Contexts
 	const { user, updateUser } = useAuth()
 	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('out')
+
+	// GOLD paga fee_out_gold en el servidor — la vista previa debe usar la misma tarifa
+	const isGold = !!user?.golden_check
 
 	// Gate de KYC — intercepta antes del paso de PIN
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
@@ -240,7 +226,7 @@ const Withdraw = ({ navigation, route }) => {
 		setAmountQUSD(value)
 		const num = Number(value)
 		if (selectedCoin && !isNaN(num) && num > 0) {
-			const totalFee = calculateFee(num, selectedCoin)
+			const totalFee = calculateFee(num, selectedCoin, { isGold, selectFeePct })
 			const netUsd = num - totalFee
 			const netInCoin = usdToCoin(netUsd, selectedCoin)
 			setAmountCoin(netInCoin > 0 ? netInCoin.toFixed(coinDecimals) : '')
@@ -255,21 +241,7 @@ const Withdraw = ({ navigation, route }) => {
 		const coinAmt = Number(value)
 		if (selectedCoin && !isNaN(coinAmt) && coinAmt > 0) {
 			const netUsd = coinToUsd(coinAmt, selectedCoin)
-			const feePercent = Number(selectedCoin?.fee_out) || 0
-			let requiredQUSD
-
-			if (Array.isArray(selectedCoin?.fee_out_fixed) && selectedCoin.fee_out_fixed.length >= 2) {
-				const threshold = Number(selectedCoin.fee_out_fixed[0]) || 0
-				const fixedAmount = Number(selectedCoin.fee_out_fixed[1]) || 0
-				const withPercentageFee = feePercent > 0 ? netUsd / (1 - feePercent / 100) : netUsd
-				if (withPercentageFee >= threshold) { requiredQUSD = withPercentageFee }
-				else { requiredQUSD = netUsd + fixedAmount }
-			} else {
-				const feeFixed = Number(selectedCoin?.fee_out_fixed) || 0
-				if (feePercent > 0) { requiredQUSD = (netUsd + feeFixed) / (1 - feePercent / 100) }
-				else { requiredQUSD = netUsd + feeFixed }
-			}
-
+			const requiredQUSD = grossFromNet(netUsd, selectedCoin, { isGold, selectFeePct })
 			setAmountQUSD(requiredQUSD > 0 ? String(Math.round(requiredQUSD * 100) / 100) : '')
 		} else {
 			setAmountQUSD('')
@@ -286,6 +258,28 @@ const Withdraw = ({ navigation, route }) => {
 			return []
 		}
 	}, [selectedCoin])
+
+	// Recargo % por opción elegida en campos `select` (p. ej. logística por
+	// provincia de USDCASH) — el servidor lo suma al fee, la vista previa también
+	const selectFeePct = useMemo(() => getSelectFeePct(workingFields, workingForm), [workingFields, workingForm])
+
+	// Fee total de la vista previa (para el desglose bajo la tarjeta de monto)
+	const previewFee = useMemo(() => {
+		const num = Number(amountQUSD)
+		if (!selectedCoin || isNaN(num) || num <= 0) return 0
+		return calculateFee(num, selectedCoin, { isGold, selectFeePct })
+	}, [amountQUSD, selectedCoin, isGold, selectFeePct])
+
+	// Elegir provincia (o refrescar el precio de la coin) cambia el fee después
+	// de tecleado el monto: se re-deriva el lado "Recibir" desde el bruto vigente
+	const resyncReceiveAmount = useEffectEvent(() => {
+		const num = Number(amountQUSD)
+		if (!selectedCoin || isNaN(num) || num <= 0) return
+		const totalFee = calculateFee(num, selectedCoin, { isGold, selectFeePct })
+		const netInCoin = usdToCoin(num - totalFee, selectedCoin)
+		setAmountCoin(netInCoin > 0 ? netInCoin.toFixed(coinDecimals) : '')
+	})
+	useEffect(() => { resyncReceiveAmount() }, [selectFeePct, selectedCoin])
 
 	const isFormValid = useMemo(() => {
 		if (!selectedCoin) { return false }
@@ -312,7 +306,8 @@ const Withdraw = ({ navigation, route }) => {
 		if (amountQUSD) {
 			const num = Number(amountQUSD)
 			if (!isNaN(num) && num > 0) {
-				const totalFee = calculateFee(num, coin)
+				// El form se resetea con la moneda nueva — sin recargo de select aún
+				const totalFee = calculateFee(num, coin, { isGold })
 				const netUsd = num - totalFee
 				const netInCoin = usdToCoin(netUsd, coin)
 				const decimals = Number.isFinite(Number(coin?.decimals)) && Number(coin?.decimals) >= 0 ? Number(coin.decimals) : 2
@@ -488,6 +483,14 @@ const Withdraw = ({ navigation, route }) => {
 							theme={theme}
 							textStyles={textStyles}
 						/>
+					)}
+
+					{/* Desglose del fee — misma cifra que cobrará el servidor */}
+					{!sourceSats && previewFee > 0 && (
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 6 }]}>
+							Comisión: ${previewFee.toFixed(2)}
+							{selectFeePct > 0 ? ` (incluye ${selectFeePct}% de logística)` : ''}
+						</Text>
 					)}
 
 					{/* Destino de fondos (solo crypto): wallet propia o terceros (bloqueado) */}
