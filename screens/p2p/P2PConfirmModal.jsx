@@ -1,5 +1,6 @@
 import { View, Text, Pressable, Modal, StyleSheet } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import { useTranslation } from "react-i18next"
 
 import QPButton from "../../ui/particles/QPButton"
 
@@ -14,45 +15,50 @@ const P2PConfirmModal = ({
 	icon, iconColor, title, body, warning,
 	confirmLabel, confirmBg, confirmTextColor,
 	theme, textStyles, containerStyles,
-}) => (
-	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !loading && onClose()}>
-		<Pressable style={containerStyles.modalOverlay} onPress={() => !loading && onClose()}>
-			<Pressable onPress={() => { }} style={containerStyles.modalCard}>
+}) => {
 
-				<FontAwesome6 name={icon} size={40} color={iconColor} iconStyle="solid" style={styles.icon} />
+	const { t } = useTranslation()
 
-				<Text style={[textStyles.h3, { color: theme.colors.primaryText, textAlign: "center", marginBottom: 8 }]}>{title}</Text>
-				<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center", lineHeight: 22, marginBottom: warning ? 12 : 20 }]}>{body}</Text>
+	return (
+		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !loading && onClose()}>
+			<Pressable style={containerStyles.modalOverlay} onPress={() => !loading && onClose()}>
+				<Pressable onPress={() => { }} style={containerStyles.modalCard}>
 
-				{warning ? (
-					<View style={[styles.warningBox, { backgroundColor: theme.colors.warning + "1A" }]}>
-						<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
-						<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1 }]}>{warning}</Text>
+					<FontAwesome6 name={icon} size={40} color={iconColor} iconStyle="solid" style={styles.icon} />
+
+					<Text style={[textStyles.h3, { color: theme.colors.primaryText, textAlign: "center", marginBottom: 8 }]}>{title}</Text>
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center", lineHeight: 22, marginBottom: warning ? 12 : 20 }]}>{body}</Text>
+
+					{warning ? (
+						<View style={[styles.warningBox, { backgroundColor: theme.colors.warning + "1A" }]}>
+							<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
+							<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1 }]}>{warning}</Text>
+						</View>
+					) : null}
+
+					<View style={styles.buttonsRow}>
+						<QPButton
+							title={t('common.actions.back')}
+							onPress={onClose}
+							style={[styles.backButton, { borderColor: theme.colors.border }]}
+							textStyle={{ color: theme.colors.primaryText }}
+							disabled={loading}
+						/>
+						<QPButton
+							title={confirmLabel}
+							onPress={onConfirm}
+							style={[styles.confirmButton, { backgroundColor: confirmBg }]}
+							textStyle={{ color: confirmTextColor }}
+							loading={loading}
+							disabled={loading}
+						/>
 					</View>
-				) : null}
 
-				<View style={styles.buttonsRow}>
-					<QPButton
-						title="Volver"
-						onPress={onClose}
-						style={[styles.backButton, { borderColor: theme.colors.border }]}
-						textStyle={{ color: theme.colors.primaryText }}
-						disabled={loading}
-					/>
-					<QPButton
-						title={confirmLabel}
-						onPress={onConfirm}
-						style={[styles.confirmButton, { backgroundColor: confirmBg }]}
-						textStyle={{ color: confirmTextColor }}
-						loading={loading}
-						disabled={loading}
-					/>
-				</View>
-
+				</Pressable>
 			</Pressable>
-		</Pressable>
-	</Modal>
-)
+		</Modal>
+	)
+}
 
 const styles = StyleSheet.create({
 	icon: {

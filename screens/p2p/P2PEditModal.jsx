@@ -1,84 +1,90 @@
 import { View, Text, ScrollView, Pressable, Modal, Switch } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import { useTranslation } from "react-i18next"
 
 import QPButton from "../../ui/particles/QPButton"
 import QPInput from "../../ui/particles/QPInput"
 
 // Edit-offer modal for the owner of an open offer (amount / receive / message / VIP).
-const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, windowHeight, theme, textStyles, containerStyles }) => (
-	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-		<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
-			<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]}>
-				<ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, windowHeight, theme, textStyles, containerStyles }) => {
 
-					{/* Header */}
-					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Editar Oferta</Text>
-						<Pressable onPress={onClose} hitSlop={8}>
-							<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
-						</Pressable>
-					</View>
+	const { t } = useTranslation()
 
-					{/* Amount */}
-					<QPInput
-						value={edit.amount}
-						onChangeText={(v) => setEdit("amount", v)}
-						placeholder="0.00"
-						keyboardType="decimal-pad"
-						prelabel="Monto (QUSD)"
-					/>
+	return (
+		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
+				<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]}>
+					<ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-					{/* Receive */}
-					<QPInput
-						value={edit.receive}
-						onChangeText={(v) => setEdit("receive", v)}
-						placeholder="0.00"
-						keyboardType="decimal-pad"
-						prelabel={p2p?.type === "buy" ? "A enviar" : "A recibir"}
-					/>
+						{/* Header */}
+						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('p2p.editModal.title')}</Text>
+							<Pressable onPress={onClose} hitSlop={8}>
+								<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
+							</Pressable>
+						</View>
 
-					{/* Balance warning for SELL offers */}
-					{p2p?.type === "sell" && parseFloat(edit.amount || 0) > parseFloat(p2p?.amount || 0) && (parseFloat(edit.amount || 0) - parseFloat(p2p?.amount || 0)) > parseFloat(user?.balance || 0) && (
-						<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 4 }]}>
-							Balance insuficiente para aumentar el monto
+						{/* Amount */}
+						<QPInput
+							value={edit.amount}
+							onChangeText={(v) => setEdit("amount", v)}
+							placeholder="0.00"
+							keyboardType="decimal-pad"
+							prelabel={t('p2p.editModal.amountLabel')}
+						/>
+
+						{/* Receive */}
+						<QPInput
+							value={edit.receive}
+							onChangeText={(v) => setEdit("receive", v)}
+							placeholder="0.00"
+							keyboardType="decimal-pad"
+							prelabel={p2p?.type === "buy" ? t('p2p.editModal.toSend') : t('p2p.editModal.toReceive')}
+						/>
+
+						{/* Balance warning for SELL offers */}
+						{p2p?.type === "sell" && parseFloat(edit.amount || 0) > parseFloat(p2p?.amount || 0) && (parseFloat(edit.amount || 0) - parseFloat(p2p?.amount || 0)) > parseFloat(user?.balance || 0) && (
+							<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 4 }]}>
+								{t('p2p.editModal.insufficientBalance')}
+							</Text>
+						)}
+
+						{/* Message */}
+						<QPInput
+							value={edit.message}
+							onChangeText={(text) => setEdit("message", text.slice(0, 79))}
+							placeholder={t('p2p.editModal.messagePlaceholder')}
+							prelabel={t('p2p.editModal.messageLabel')}
+							multiline
+						/>
+						<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, textAlign: 'right', marginTop: 2 }]}>
+							{edit.message.length}/79
 						</Text>
-					)}
 
-					{/* Message */}
-					<QPInput
-						value={edit.message}
-						onChangeText={(text) => setEdit("message", text.slice(0, 79))}
-						placeholder="Mensaje opcional"
-						prelabel="Mensaje"
-						multiline
-					/>
-					<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, textAlign: 'right', marginTop: 2 }]}>
-						{edit.message.length}/79
-					</Text>
+						{/* Only VIP toggle */}
+						<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginTop: 4 }}>
+							<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{t('p2p.common.onlyVipUsers')}</Text>
+							<Switch value={edit.onlyVip} onValueChange={(v) => setEdit("onlyVip", v)} trackColor={{ true: theme.colors.primary }} />
+						</View>
 
-					{/* Only VIP toggle */}
-					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginTop: 4 }}>
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>Solo usuarios VIP</Text>
-						<Switch value={edit.onlyVip} onValueChange={(v) => setEdit("onlyVip", v)} trackColor={{ true: theme.colors.primary }} />
-					</View>
+						{/* Submit */}
+						<QPButton
+							title={t('common.actions.save')}
+							onPress={onSubmit}
+							style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
+							textStyle={{ color: theme.colors.buttonText }}
+							icon="check"
+							iconColor={theme.colors.buttonText}
+							iconStyle="solid"
+							loading={edit.loading}
+							disabled={edit.loading}
+						/>
 
-					{/* Submit */}
-					<QPButton
-						title="Guardar"
-						onPress={onSubmit}
-						style={{ backgroundColor: theme.colors.primary, marginTop: 12 }}
-						textStyle={{ color: theme.colors.buttonText }}
-						icon="check"
-						iconColor={theme.colors.buttonText}
-						iconStyle="solid"
-						loading={edit.loading}
-						disabled={edit.loading}
-					/>
-
-				</ScrollView>
+					</ScrollView>
+				</Pressable>
 			</Pressable>
-		</Pressable>
-	</Modal>
-)
+		</Modal>
+	)
+}
 
 export default P2PEditModal

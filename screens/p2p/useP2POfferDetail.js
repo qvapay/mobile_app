@@ -1,4 +1,5 @@
 import { useReducer, useState, useEffect, useMemo, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { Share } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
@@ -87,6 +88,8 @@ function editReducer(state, action) {
 export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchChat, chatStreamLiveRef }) {
 
 	const { theme } = useTheme()
+	// Idioma activo: statusMessage es copy de render y debe recalcularse al cambiarlo
+	const { t } = useTranslation()
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
 	const [offer, dispatchOffer] = useReducer(offerReducer, initialOffer)
@@ -230,13 +233,13 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 
 	// Contextual status message
 	const statusMessage = useMemo(() => {
-		if (status === "processing" && isPayer) return { icon: "money-bill-wave", text: "Realiza el pago y marca como pagado", color: theme.colors.warning }
-		if (status === "processing" && isReceiver) return { icon: "clock", text: "Esperando que el comprador marque como pagado...", color: theme.colors.secondaryText }
-		if (status === "paid" && isPayer) return { icon: "check-double", text: "Has marcado como pagado. Esperando confirmación...", color: theme.colors.success }
-		if (status === "paid" && isReceiver) return { icon: "bell", text: "El comprador marcó como pagado. Verifica y confirma.", color: theme.colors.warning }
-		if (status === "revision") return { icon: "shield-halved", text: "Esta oferta está en revisión por el equipo de soporte", color: theme.colors.danger }
+		if (status === "processing" && isPayer) return { icon: "money-bill-wave", text: t('p2p.offer.status.processingPayer'), color: theme.colors.warning }
+		if (status === "processing" && isReceiver) return { icon: "clock", text: t('p2p.offer.status.processingReceiver'), color: theme.colors.secondaryText }
+		if (status === "paid" && isPayer) return { icon: "check-double", text: t('p2p.offer.status.paidPayer'), color: theme.colors.success }
+		if (status === "paid" && isReceiver) return { icon: "bell", text: t('p2p.offer.status.paidReceiver'), color: theme.colors.warning }
+		if (status === "revision") return { icon: "shield-halved", text: t('p2p.offer.status.revision'), color: theme.colors.danger }
 		return null
-	}, [status, isPayer, isReceiver, theme])
+	}, [status, isPayer, isReceiver, theme, t])
 
 	// canApply: only non-owner/non-peer users can apply to an open offer
 	const canApply = status === "open" && !isOwner && !isPeer
@@ -259,10 +262,10 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			setLoading("cancel", true)
 			const res = await p2pApi.cancel(p2p.uuid)
 			if (res.success) {
-				toast.success("Oferta cancelada")
+				toast.success(t('p2p.offer.toasts.cancelled'))
 				refetchP2P()
-			} else { toast.error("No se pudo cancelar", { description: String(res.error || "") }) }
-		} catch (e) { toast.error("Error", { description: e.message }) }
+			} else { toast.error(t('p2p.offer.toasts.cancelFailed'), { description: String(res.error || "") }) }
+		} catch (e) { toast.error(t('p2p.common.errorTitle'), { description: e.message }) }
 		finally { setLoading("cancel", false) }
 	}
 
@@ -271,10 +274,10 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			setLoading("markPaid", true)
 			const res = await p2pApi.markPaid(p2p.uuid, txIdInput)
 			if (res.success) {
-				toast.success("Pago marcado como realizado")
+				toast.success(t('p2p.offer.toasts.markedPaid'))
 				refetchP2P()
-			} else { toast.error("No se pudo marcar pago", { description: String(res.error || "") }) }
-		} catch (e) { toast.error("Error", { description: e.message }) }
+			} else { toast.error(t('p2p.offer.toasts.markPaidFailed'), { description: String(res.error || "") }) }
+		} catch (e) { toast.error(t('p2p.common.errorTitle'), { description: e.message }) }
 		finally { setLoading("markPaid", false) }
 	}
 
@@ -283,10 +286,10 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			setLoading("received", true)
 			const res = await p2pApi.confirmReceived(p2p.uuid)
 			if (res.success) {
-				toast.success("Pago recibido. Fondos liberados")
+				toast.success(t('p2p.offer.toasts.received'))
 				refetchP2P()
-			} else { toast.error("No se pudo confirmar", { description: String(res.error || "") }) }
-		} catch (e) { toast.error("Error", { description: e.message }) }
+			} else { toast.error(t('p2p.offer.toasts.confirmFailed'), { description: String(res.error || "") }) }
+		} catch (e) { toast.error(t('p2p.common.errorTitle'), { description: e.message }) }
 		finally { setLoading("received", false) }
 	}
 
@@ -310,10 +313,10 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			setLoading("apply", true)
 			const res = await p2pApi.apply(p2p.uuid)
 			if (res.success) {
-				toast.success("Aplicado")
+				toast.success(t('p2p.offer.toasts.applied'))
 				refetchP2P()
-			} else { toast.error("No se pudo aplicar", { description: String(res.error || "") }) }
-		} catch (e) { toast.error("Error", { description: e.message }) }
+			} else { toast.error(t('p2p.offer.toasts.applyFailed'), { description: String(res.error || "") }) }
+		} catch (e) { toast.error(t('p2p.common.errorTitle'), { description: e.message }) }
 		finally { setLoading("apply", false) }
 	}
 
@@ -331,14 +334,14 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		try {
 			const result = await Share.share({
 				url: `https://www.qvapay.com/p2p/${p2p_uuid}`,
-				title: "Oferta P2P",
-				message: `Mira esta oferta en QvaPay: https://www.qvapay.com/p2p/${p2p_uuid}`,
-				subject: "Mira esta oferta P2P en QvaPay 🔥"
+				title: t('p2p.offer.share.title'),
+				message: t('p2p.offer.share.message', { url: `https://www.qvapay.com/p2p/${p2p_uuid}` }),
+				subject: t('p2p.offer.share.subject')
 			})
 			if (result.action === Share.sharedAction) {
-				toast.success("Oferta compartida")
-			} else if (result.action === Share.dismissedAction) { toast.info("Compartir cancelado") }
-		} catch (err) { toast.error("No se pudo compartir", { description: String(err?.message || err) }) }
+				toast.success(t('p2p.offer.toasts.shared'))
+			} else if (result.action === Share.dismissedAction) { toast.info(t('p2p.offer.toasts.shareDismissed')) }
+		} catch (err) { toast.error(t('p2p.offer.toasts.shareFailed'), { description: String(err?.message || err) }) }
 	}
 
 	// Open edit modal and populate fields from current offer
@@ -359,11 +362,11 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		const rcv = parseFloat(edit.receive)
 
 		if (isNaN(amt) || amt < 0.1 || amt > 100000) {
-			toast.error("Monto inválido", { description: "El monto debe ser entre 0.1 y 100,000" })
+			toast.error(t('p2p.offer.toasts.invalidAmountTitle'), { description: t('p2p.offer.toasts.invalidAmountBody') })
 			return
 		}
 		if (isNaN(rcv) || rcv <= 0) {
-			toast.error("Valor inválido", { description: "El valor a recibir debe ser mayor a 0" })
+			toast.error(t('p2p.offer.toasts.invalidValueTitle'), { description: t('p2p.offer.toasts.invalidValueBody') })
 			return
 		}
 
@@ -371,7 +374,7 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 		if (p2p.type === "sell") {
 			const amountIncrease = amt - parseFloat(p2p.amount || 0)
 			if (amountIncrease > 0 && amountIncrease > parseFloat(user?.balance || 0)) {
-				toast.error("Balance insuficiente", { description: "No tienes suficiente balance para aumentar el monto" })
+				toast.error(t('p2p.offer.toasts.insufficientBalanceTitle'), { description: t('p2p.offer.toasts.insufficientBalanceBody') })
 				return
 			}
 		}
@@ -386,12 +389,12 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			}
 			const res = await p2pApi.edit(p2p.uuid, payload)
 			if (res.success) {
-				toast.success("Oferta actualizada")
+				toast.success(t('p2p.offer.toasts.updated'))
 				setEdit("show", false)
 				refetchP2P()
-			} else { toast.error("No se pudo editar", { description: String(res.error || "") }) }
+			} else { toast.error(t('p2p.offer.toasts.editFailed'), { description: String(res.error || "") }) }
 		} catch (e) {
-			toast.error("Error", { description: e.message })
+			toast.error(t('p2p.common.errorTitle'), { description: e.message })
 		} finally { setEdit("loading", false) }
 	}
 
@@ -401,15 +404,15 @@ export default function useP2POfferDetail({ p2p_uuid, user, navigation, fetchCha
 			setRating(newRating)
 			const res = await p2pApi.rateOffer(p2p_uuid, { rating: newRating })
 			if (res.success) {
-				toast.success("Oferta calificada")
+				toast.success(t('p2p.offer.toasts.rated'))
 				refetchP2P()
 				if (newRating === 5) { setTimeout(() => { maybeRequestReview() }, 1500) }
 			} else {
-				toast.error("No se pudo calificar", { description: String(res.error || "") })
+				toast.error(t('p2p.offer.toasts.rateFailed'), { description: String(res.error || "") })
 				setRating(p2p?.rating || 0)
 			}
 		} catch (err) {
-			toast.error("Error", { description: err.message })
+			toast.error(t('p2p.common.errorTitle'), { description: err.message })
 			setRating(p2p?.rating || 0)
 		}
 	}

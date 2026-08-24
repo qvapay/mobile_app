@@ -1,5 +1,6 @@
 import { View, Text, Pressable, TextInput, Switch, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { useTranslation } from 'react-i18next'
 
 import QPCoin from '../../ui/particles/QPCoin'
 import QPInput from '../../ui/particles/QPInput'
@@ -12,6 +13,7 @@ const isNumber = (val) => /^\d*(?:[.,]?\d*)$/.test(val)
 // account fields, advanced options and the optional GOLD custom message.
 const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, user, theme, textStyles, containerStyles }) => {
 
+	const { t } = useTranslation()
 	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer } = form
 
 	return (
@@ -20,8 +22,8 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 			<QPSwitch
 				value={type === 'buy' ? 'left' : 'right'}
 				onChange={(side) => onField('type', side === 'left' ? 'buy' : 'sell')}
-				leftText="Comprar"
-				rightText="Vender"
+				leftText={t('p2p.common.buy')}
+				rightText={t('p2p.common.sell')}
 				leftColor={theme.colors.danger}
 				rightColor={theme.colors.successFill}
 				rightTextColor={theme.colors.successFillText}
@@ -34,11 +36,11 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				<View style={{ paddingVertical: 2 }}>
 					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-							{type === 'buy' ? 'Comprar' : 'Vender'}
+							{type === 'buy' ? t('p2p.common.buy') : t('p2p.common.sell')}
 						</Text>
 						<Pressable onPress={() => { if (type === 'sell') onField('amount', String(user?.balance || 0)) }}>
 							<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-								Balance: <Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>${user?.balance || 0}</Text>
+								{t('p2p.create.form.balance')} <Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>${user?.balance || 0}</Text>
 							</Text>
 						</Pressable>
 					</View>
@@ -66,7 +68,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				{/* Recibir amount input */}
 				<View style={{ paddingTop: 2 }}>
 					<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-						{type === 'buy' ? 'Enviar' : 'Recibir'}
+						{type === 'buy' ? t('p2p.create.form.send') : t('p2p.create.form.receive')}
 					</Text>
 
 					<View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -89,7 +91,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 								</View>
 							) : (
 								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Moneda</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('p2p.common.coin')}</Text>
 									<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 								</View>
 							)}
@@ -112,7 +114,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 			{selectedCoin && workingFields.length > 0 && (
 				<View style={{ marginTop: 12, marginBottom: 6 }}>
 					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-						<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 6 }]}>Detalles adicionales:</Text>
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 6 }]}>{t('p2p.create.form.detailsTitle')}</Text>
 						<Pressable onPress={onLaunchSavedMethods}>
 							<FontAwesome6 name="book" size={16} color={theme.colors.primary} iconStyle="solid" />
 						</Pressable>
@@ -139,7 +141,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				<Pressable onPress={() => onField('advancedOpen', !advancedOpen)} style={containerStyles.rowBetween}>
 					<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 						<FontAwesome6 name="sliders" size={16} color={theme.colors.primaryText} iconStyle="solid" />
-						<Text style={[textStyles.h5, { marginLeft: 8 }]}>Opciones avanzadas</Text>
+						<Text style={[textStyles.h5, { marginLeft: 8 }]}>{t('p2p.create.form.advanced')}</Text>
 					</View>
 					<FontAwesome6 name={advancedOpen ? 'angle-up' : 'angle-down'} size={18} color={theme.colors.primaryText} iconStyle="solid" />
 				</Pressable>
@@ -147,11 +149,11 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				{advancedOpen && (
 					<View style={{ marginTop: 10, gap: 10 }}>
 						<View style={[styles.switchRow, { marginTop: 12 }]}>
-							<Text style={textStyles.h6}>Solo usuarios VIP</Text>
+							<Text style={textStyles.h6}>{t('p2p.common.onlyVipUsers')}</Text>
 							<Switch value={onlyVIP} onValueChange={(v) => onField('onlyVIP', v)} trackColor={{ true: theme.colors.primary }} />
 						</View>
 						<View style={styles.switchRow}>
-							<Text style={textStyles.h6}>Oferta Privada</Text>
+							<Text style={textStyles.h6}>{t('p2p.create.form.privateOffer')}</Text>
 							<Switch value={privateOffer} onValueChange={(v) => onField('privateOffer', v)} trackColor={{ true: theme.colors.primary }} />
 						</View>
 					</View>
@@ -162,7 +164,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				<QPInput
 					value={message}
 					onChangeText={(v) => onField('message', v)}
-					placeholder="Mensaje personalizado"
+					placeholder={t('p2p.create.form.customMessage')}
 					keyboardType="default"
 					style={{ marginVertical: 6 }}
 				/>

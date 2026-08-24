@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Share, useWindowDimensions } from "react-native"
 import FastImage from "@d11/react-native-fast-image"
 import LinearGradient from "react-native-linear-gradient"
@@ -31,16 +32,17 @@ import { ROUTES } from "../../routes"
 // Helpers
 import { displayName } from "../../helpers/displayName"
 
+// i18n — locale de fechas/números acorde al idioma activo
+import { getDateLocale } from "../../i18n"
+
 // Cover total (status bar incluido) = 20% del alto de pantalla
 const COVER_HEIGHT_RATIO = 0.2
 const DEFAULT_COVER = "https://media.qvapay.com/covers/timeline.jpg"
 const MEDIA_BASE = "https://media.qvapay.com/"
 
-const TABS = [
-	{ id: "offers", label: "Ofertas" },
-	{ id: "reviews", label: "Reseñas" },
-	{ id: "stats", label: "Estadísticas" },
-]
+// Los labels se resuelven con t() en el render (`p2p.user.tabs.*`) — sin copy
+// en constantes de módulo
+const TABS = [{ id: "offers" }, { id: "reviews" }, { id: "stats" }]
 
 function formatUSD(value) {
 	const num = Number(value || 0)
@@ -61,13 +63,13 @@ function formatMinutes(min) {
 function formatJoinDate(date) {
 	if (!date) return "—"
 	const d = new Date(date)
-	return d.toLocaleDateString("es-ES", { month: "short", year: "numeric" })
+	return d.toLocaleDateString(getDateLocale(), { month: "short", year: "numeric" })
 }
 
 function formatRatingDate(date) {
 	if (!date) return ""
 	const d = new Date(date)
-	return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+	return d.toLocaleDateString(getDateLocale(), { day: "2-digit", month: "short", year: "numeric" })
 }
 
 /** Perfil público completo del trader (usuario, stats, ofertas, reseñas). */
@@ -88,6 +90,7 @@ const usePeerProfileQuery = (uuid) => useQuery({
  */
 const P2PUser = ({ navigation, route }) => {
 
+	const { t } = useTranslation()
 	const { uuid, initialTab } = route.params
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -143,11 +146,11 @@ const P2PUser = ({ navigation, route }) => {
 		try {
 			await Share.share({
 				url, // iOS uses this as the payload
-				message: `Perfil P2P de @${user.username} en QvaPay: ${url}`, // Android uses message
-				title: `Perfil P2P de @${user.username}`,
+				message: t('p2p.user.share.message', { username: user.username, url }), // Android uses message
+				title: t('p2p.user.share.title', { username: user.username }),
 			})
 		} catch (_) { /* cancelled */ }
-	}, [uuid, user?.username])
+	}, [uuid, user?.username, t])
 
 	if (loading && !data) {
 		return (
@@ -163,10 +166,10 @@ const P2PUser = ({ navigation, route }) => {
 			<View style={[containerStyles.subContainer, { justifyContent: "center", alignItems: "center" }]}>
 				<FloatingTopBar insets={insets} theme={theme} onBack={() => navigation.goBack()} />
 				<FontAwesome6 name="circle-exclamation" size={40} color={theme.colors.danger} iconStyle="solid" />
-				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginTop: 12 }]}>Perfil no disponible</Text>
+				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginTop: 12 }]}>{t('p2p.user.notAvailable')}</Text>
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 4, textAlign: "center" }]}>{String(error)}</Text>
 				<Pressable onPress={() => fetchProfile()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, borderCurve: 'continuous', backgroundColor: theme.colors.primary }}>
-					<Text style={[textStyles.h6, { color: theme.colors.almostWhite }]}>Reintentar</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.almostWhite }]}>{t('common.actions.retry')}</Text>
 				</Pressable>
 			</View>
 		)
@@ -216,7 +219,7 @@ const P2PUser = ({ navigation, route }) => {
 
 					{/* Verification chips */}
 					<View style={styles.verifRow}>
-						{user?.phone_verified && <VerifChip theme={theme} icon="phone" label="Phone" />}
+						{user?.phone_verified && <VerifChip theme={theme} icon="phone" label={t('p2p.user.chips.phone')} />}
 						{user?.telegram_verified && <VerifChip theme={theme} icon="telegram" brand label="Telegram" />}
 						{user?.twitter && <VerifChip theme={theme} icon="x-twitter" brand label="X" />}
 					</View>
@@ -229,9 +232,9 @@ const P2PUser = ({ navigation, route }) => {
 
 					{/* Inline stats row */}
 					<View style={styles.inlineStatsRow}>
-						<InlineStat theme={theme} icon="star" color={theme.colors.warning} value={Number(stats.averageRating || 0).toFixed(2)} label="Rating" />
-						<InlineStat theme={theme} icon="handshake" color={theme.colors.primary} value={stats.completedP2P || 0} label="Ops" />
-						<InlineStat theme={theme} icon="calendar" color={theme.colors.secondaryText} value={formatJoinDate(user?.createdAt)} label="Desde" />
+						<InlineStat theme={theme} icon="star" color={theme.colors.warning} value={Number(stats.averageRating || 0).toFixed(2)} label={t('p2p.user.inline.rating')} />
+						<InlineStat theme={theme} icon="handshake" color={theme.colors.primary} value={stats.completedP2P || 0} label={t('p2p.user.inline.ops')} />
+						<InlineStat theme={theme} icon="calendar" color={theme.colors.secondaryText} value={formatJoinDate(user?.createdAt)} label={t('p2p.user.inline.since')} />
 					</View>
 
 					{/* Social links */}
@@ -251,8 +254,8 @@ const P2PUser = ({ navigation, route }) => {
 					<StatCard
 						theme={theme}
 						textStyles={textStyles}
-						label="Operaciones"
-						value={Number(stats.completedP2P || 0).toLocaleString("es-ES")}
+						label={t('p2p.user.cards.operations')}
+						value={Number(stats.completedP2P || 0).toLocaleString(getDateLocale())}
 						icon="arrows-rotate"
 						color={theme.colors.primary}
 					/>
@@ -260,17 +263,17 @@ const P2PUser = ({ navigation, route }) => {
 						theme={theme}
 						textStyles={textStyles}
 						unlocked={viewerGold}
-						label="Volumen"
-						message="Solo GOLD"
-						sublabel="Desbloquea métricas financieras"
+						label={t('p2p.user.cards.volume')}
+						message={t('p2p.user.cards.goldOnly')}
+						sublabel={t('p2p.user.cards.unlockMetrics')}
 						onPressLocked={() => navigation.navigate(ROUTES.GOLD_CHECK)}
 						unlockedCard={(
 							<StatCard
 								theme={theme}
 								textStyles={textStyles}
-								label="Volumen"
+								label={t('p2p.user.cards.volume')}
 								value={formatUSD(stats.totalVolume)}
-								sublabel={stats.volume30d > 0 ? `${formatUSD(stats.volume30d)} últ. 30d` : null}
+								sublabel={stats.volume30d > 0 ? t('p2p.user.cards.volume30d', { amount: formatUSD(stats.volume30d) }) : null}
 								icon="wallet"
 								color={theme.colors.gold}
 							/>
@@ -279,18 +282,18 @@ const P2PUser = ({ navigation, route }) => {
 					<StatCard
 						theme={theme}
 						textStyles={textStyles}
-						label="Tasa completado"
+						label={t('p2p.user.cards.completionRate')}
 						value={`${stats.completionRate || 0}%`}
-						sublabel={stats.total > 0 ? `${stats.completed}/${stats.total}` : "Sin ops"}
+						sublabel={stats.total > 0 ? `${stats.completed}/${stats.total}` : t('p2p.user.cards.noOps')}
 						icon="circle-check"
 						color={theme.colors.successText}
 					/>
 					<StatCard
 						theme={theme}
 						textStyles={textStyles}
-						label="Calificaciones"
-						value={Number(stats.ratersCount || 0).toLocaleString("es-ES")}
-						sublabel={stats.averageRating > 0 ? `★ ${stats.averageRating}` : "Sin datos"}
+						label={t('p2p.user.cards.ratings')}
+						value={Number(stats.ratersCount || 0).toLocaleString(getDateLocale())}
+						sublabel={stats.averageRating > 0 ? `★ ${stats.averageRating}` : t('p2p.user.cards.noData')}
 						icon="star"
 						color={theme.colors.warning}
 					/>
@@ -306,7 +309,7 @@ const P2PUser = ({ navigation, route }) => {
 								{/* Keep fontFamily stable across states — changing weight reflows the
 								    label width and looks like the text shrinks when switching tabs. */}
 								<Text style={[textStyles.h6, { color: isActive ? theme.colors.primary : theme.colors.secondaryText }]}>
-									{tab.label}
+									{t(`p2p.user.tabs.${tab.id}`)}
 								</Text>
 								{count !== null ? (
 									<View style={[styles.tabCount, { backgroundColor: isActive ? theme.colors.primary + "22" : theme.colors.elevation }]}>
@@ -418,26 +421,29 @@ const StatCard = ({ theme, textStyles, label, value, sublabel, icon, color }) =>
 )
 
 // Yellow "Hazte GOLD →" pill, used inside every GOLD gate.
-const HazteGoldPill = ({ theme, onPress, compact = false }) => (
-	<Pressable
-		onPress={onPress}
-		style={{
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 6,
-			backgroundColor: theme.colors.gold,
-			paddingHorizontal: compact ? 10 : 14,
-			paddingVertical: compact ? 5 : 7,
-			borderRadius: 20,
-			alignSelf: "center",
-		}}
-	>
-		<FontAwesome6 name="crown" size={compact ? 10 : 12} color={theme.colors.almostBlack} iconStyle="solid" />
-		<Text style={{ color: theme.colors.almostBlack, fontFamily: "Rubik-Bold", fontSize: compact ? 11 : 12 }}>
-			Hazte GOLD →
-		</Text>
-	</Pressable>
-)
+const HazteGoldPill = ({ theme, onPress, compact = false }) => {
+	const { t } = useTranslation()
+	return (
+		<Pressable
+			onPress={onPress}
+			style={{
+				flexDirection: "row",
+				alignItems: "center",
+				gap: 6,
+				backgroundColor: theme.colors.gold,
+				paddingHorizontal: compact ? 10 : 14,
+				paddingVertical: compact ? 5 : 7,
+				borderRadius: 20,
+				alignSelf: "center",
+			}}
+		>
+			<FontAwesome6 name="crown" size={compact ? 10 : 12} color={theme.colors.almostBlack} iconStyle="solid" />
+			<Text style={{ color: theme.colors.almostBlack, fontFamily: "Rubik-Bold", fontSize: compact ? 11 : 12 }}>
+				{t('p2p.user.goldPill')}
+			</Text>
+		</Pressable>
+	)
+}
 
 // Static GOLD-locked stat card — matches the web "Volumen solo para GOLD" card.
 const GoldGateCard = ({ theme, textStyles, unlocked, unlockedCard, label, message, sublabel, onPressLocked }) => {
@@ -517,12 +523,13 @@ const Stars = ({ value, size = 14 }) => {
 }
 
 const OffersTab = ({ theme, textStyles, offers, navigation, username }) => {
+	const { t } = useTranslation()
 	if (!offers || offers.length === 0) {
 		return (
 			<View style={[styles.emptyCard, { ...(theme.mode === "light" && { borderWidth: 1, borderColor: theme.colors.border }) }]}>
 				<FontAwesome6 name="rectangle-list" size={28} color={theme.colors.secondaryText} iconStyle="solid" />
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 8, textAlign: "center" }]}>
-					@{username} no tiene ofertas activas.
+					{t('p2p.user.offersEmpty', { username })}
 				</Text>
 			</View>
 		)
@@ -554,37 +561,41 @@ const Distribution = ({ theme, textStyles, distribution, total }) => {
 	)
 }
 
-const RatingRow = ({ theme, textStyles, rating, date, user, onPress }) => (
-	<Pressable
-		disabled={!user || !onPress}
-		onPress={() => user && onPress && onPress(user)}
-		style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 }}
-	>
-		<View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-			{user ? (
-				<>
-					<QPAvatar user={user} size={32} />
-					<View style={{ flex: 1 }}>
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1}>{displayName(user)}</Text>
-						<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]} numberOfLines={1}>@{user.username}</Text>
-					</View>
-				</>
-			) : (
-				<>
-					<View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation }} />
-					<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>Usuario eliminado</Text>
-				</>
-			)}
-		</View>
-		<View style={{ alignItems: "flex-end" }}>
-			<Stars value={rating} size={12} />
-			<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: 10 }]}>{formatRatingDate(date)}</Text>
-		</View>
-	</Pressable>
-)
+const RatingRow = ({ theme, textStyles, rating, date, user, onPress }) => {
+	const { t } = useTranslation()
+	return (
+		<Pressable
+			disabled={!user || !onPress}
+			onPress={() => user && onPress && onPress(user)}
+			style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 }}
+		>
+			<View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+				{user ? (
+					<>
+						<QPAvatar user={user} size={32} />
+						<View style={{ flex: 1 }}>
+							<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1}>{displayName(user)}</Text>
+							<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]} numberOfLines={1}>@{user.username}</Text>
+						</View>
+					</>
+				) : (
+					<>
+						<View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation }} />
+						<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{t('p2p.user.reviews.deletedUser')}</Text>
+					</>
+				)}
+			</View>
+			<View style={{ alignItems: "flex-end" }}>
+				<Stars value={rating} size={12} />
+				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: 10 }]}>{formatRatingDate(date)}</Text>
+			</View>
+		</Pressable>
+	)
+}
 
 const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, mode, setMode, onPressUser }) => {
 
+	const { t } = useTranslation()
 	const avg = Number(averageRating) || 0
 
 	return (
@@ -593,10 +604,10 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 			{/* Mode switcher */}
 			<View style={{ flexDirection: "row", gap: 8 }}>
 				<Pressable onPress={() => setMode("received")} style={[styles.modePill, { backgroundColor: mode === "received" ? theme.colors.primary : theme.colors.surface, ...(theme.mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
-					<Text style={[textStyles.h7, { color: mode === "received" ? theme.colors.almostWhite : theme.colors.primaryText, fontWeight: "600" }]}>Recibidas ({received.total || 0})</Text>
+					<Text style={[textStyles.h7, { color: mode === "received" ? theme.colors.almostWhite : theme.colors.primaryText, fontWeight: "600" }]}>{t('p2p.user.reviews.received', { total: received.total || 0 })}</Text>
 				</Pressable>
 				<Pressable onPress={() => setMode("sent")} style={[styles.modePill, { backgroundColor: mode === "sent" ? theme.colors.primary : theme.colors.surface, ...(theme.mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
-					<Text style={[textStyles.h7, { color: mode === "sent" ? theme.colors.almostWhite : theme.colors.primaryText, fontWeight: "600" }]}>Enviadas ({sent.total || 0})</Text>
+					<Text style={[textStyles.h7, { color: mode === "sent" ? theme.colors.almostWhite : theme.colors.primaryText, fontWeight: "600" }]}>{t('p2p.user.reviews.sent', { total: sent.total || 0 })}</Text>
 				</Pressable>
 			</View>
 
@@ -609,7 +620,7 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 									<Text style={[textStyles.h1, { color: theme.colors.primaryText, fontWeight: "800" }]}>{avg.toFixed(2)}</Text>
 									<Stars value={avg} size={16} />
 									<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 4 }]}>
-										{received.total} {received.total === 1 ? "reseña" : "reseñas"}
+										{t('p2p.user.reviews.count', { count: received.total })}
 									</Text>
 								</View>
 								<View style={{ flex: 1 }}>
@@ -620,15 +631,15 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 					) : (
 						<View style={[styles.emptyCard, { ...(theme.mode === "light" && { borderWidth: 1, borderColor: theme.colors.border }) }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>
-								Este usuario no tiene reseñas aún.
+								{t('p2p.user.reviews.none')}
 							</Text>
 						</View>
 					)}
 
 					<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...(theme.mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
-						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>Últimas calificaciones</Text>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>{t('p2p.user.reviews.latestTitle')}</Text>
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-							Las calificaciones P2P solo contienen puntuación.
+							{t('p2p.user.reviews.scoreOnly')}
 						</Text>
 						<View style={{ marginTop: 6 }}>
 							{received.items?.length > 0 ? (
@@ -640,14 +651,14 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 									</View>
 								))
 							) : (
-								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>Sin calificaciones para mostrar.</Text>
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>{t('p2p.user.reviews.emptyList')}</Text>
 							)}
 						</View>
 					</View>
 				</>
 			) : (
 				<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...(theme.mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
-					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>Calificaciones enviadas</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>{t('p2p.user.reviews.sentTitle')}</Text>
 					<View style={{ marginTop: 6 }}>
 						{sent.items?.length > 0 ? (
 							sent.items.map((r) => (
@@ -658,7 +669,7 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 								</View>
 							))
 						) : (
-							<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>No ha calificado a nadie.</Text>
+							<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 16 }]}>{t('p2p.user.reviews.sentEmpty')}</Text>
 						)}
 					</View>
 				</View>
@@ -667,48 +678,52 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 	)
 }
 
-const AnonymousRatingRow = ({ theme, textStyles, rating, date }) => (
-	<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 }}>
-		<View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-			<View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, alignItems: "center", justifyContent: "center" }}>
-				<FontAwesome6 name="lock" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+const AnonymousRatingRow = ({ theme, textStyles, rating, date }) => {
+	const { t } = useTranslation()
+	return (
+		<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 }}>
+			<View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+				<View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, alignItems: "center", justifyContent: "center" }}>
+					<FontAwesome6 name="lock" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+				</View>
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText, fontStyle: "italic" }]}>{t('p2p.user.reviews.privateUser')}</Text>
 			</View>
-			<Text style={[textStyles.h7, { color: theme.colors.secondaryText, fontStyle: "italic" }]}>Usuario privado</Text>
+			<View style={{ alignItems: "flex-end" }}>
+				<Stars value={rating} size={12} />
+				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: 10 }]}>{formatRatingDate(date)}</Text>
+			</View>
 		</View>
-		<View style={{ alignItems: "flex-end" }}>
-			<Stars value={rating} size={12} />
-			<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: 10 }]}>{formatRatingDate(date)}</Text>
-		</View>
-	</View>
-)
+	)
+}
 
 const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onPressUnlock }) => {
 
+	const { t } = useTranslation()
 	const maxCount = topCoins?.[0]?.count || 1
 
 	return (
 		<View style={{ gap: 12 }}>
 
 			<View style={[styles.cardsGrid, { paddingHorizontal: 0, marginTop: 0 }]}>
-				<MiniCard theme={theme} textStyles={textStyles} label="Pares únicos" value={Number(ranking?.unique_peers || 0).toLocaleString("es-ES")} icon="users" />
-				<MiniCard theme={theme} textStyles={textStyles} label="Cierre medio" value={formatMinutes(ranking?.avg_completion_time)} icon="stopwatch" />
-				<MiniCard theme={theme} textStyles={textStyles} label="Ops. 30 días" value={Number(stats.operations30d || 0).toLocaleString("es-ES")} icon="chart-line" />
-				<MiniCard theme={theme} textStyles={textStyles} label="Cancelación" value={`${stats.cancellationRate || 0}%`} icon="ban" color={theme.colors.danger} />
+				<MiniCard theme={theme} textStyles={textStyles} label={t('p2p.user.stats.uniquePeers')} value={Number(ranking?.unique_peers || 0).toLocaleString(getDateLocale())} icon="users" />
+				<MiniCard theme={theme} textStyles={textStyles} label={t('p2p.user.stats.avgClose')} value={formatMinutes(ranking?.avg_completion_time)} icon="stopwatch" />
+				<MiniCard theme={theme} textStyles={textStyles} label={t('p2p.user.stats.ops30d')} value={Number(stats.operations30d || 0).toLocaleString(getDateLocale())} icon="chart-line" />
+				<MiniCard theme={theme} textStyles={textStyles} label={t('p2p.user.stats.cancellation')} value={`${stats.cancellationRate || 0}%`} icon="ban" color={theme.colors.danger} />
 			</View>
 
 			<GoldWall
 				theme={theme}
 				textStyles={textStyles}
 				unlocked={viewerGold}
-				message="Monedas operadas solo para GOLD"
-				sublabel="Descubre qué monedas usa este trader"
+				message={t('p2p.user.stats.coinsGoldMessage')}
+				sublabel={t('p2p.user.stats.coinsGoldSublabel')}
 				onPress={onPressUnlock}
 				minHeight={300}
 			>
 				<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...(theme.mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
-					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>Monedas más operadas</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>{t('p2p.user.stats.topCoinsTitle')}</Text>
 					<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2, marginBottom: 8 }]}>
-						Top 5 por operaciones completadas.
+						{t('p2p.user.stats.topCoinsSubtitle')}
 					</Text>
 					{topCoins.length > 0 ? topCoins.map((c) => {
 						const pct = (c.count / maxCount) * 100
@@ -718,7 +733,7 @@ const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onP
 								<View style={{ flex: 1 }}>
 									<View style={{ flexDirection: "row", justifyContent: "space-between" }}>
 										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: "600" }]} numberOfLines={1}>{c.name}</Text>
-										<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{c.count} ops · {formatUSD(c.volume)}</Text>
+										<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{t('p2p.user.stats.coinMeta', { ops: c.count, volume: formatUSD(c.volume) })}</Text>
 									</View>
 									<View style={{ height: 5, backgroundColor: theme.colors.elevation, borderRadius: 3, marginTop: 4, overflow: "hidden" }}>
 										<View style={{ width: `${pct}%`, height: "100%", backgroundColor: theme.colors.primary }} />
@@ -728,7 +743,7 @@ const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onP
 						)
 					}) : (
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: "center", paddingVertical: 12 }]}>
-							Aún no hay operaciones completadas.
+							{t('p2p.user.stats.noCompletedOps')}
 						</Text>
 					)}
 				</View>

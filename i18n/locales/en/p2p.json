@@ -1,1 +1,278 @@
-{}
+{
+	"common": {
+		"buy": "Buy",
+		"sell": "Sell",
+		"coin": "Coin",
+		"onlyVipUsers": "VIP users only",
+		"errorTitle": "Error"
+	},
+	"market": {
+		"empty": "No P2P offers available",
+		"headerFilters": "Filters",
+		"headerCreate": "Create",
+		"toasts": {
+			"loadFailed": "Couldn't load P2P offers",
+			"connectionError": "Connection error"
+		}
+	},
+	"filters": {
+		"title": "Filters",
+		"myOffers": "My offers",
+		"select": "Select",
+		"operateAmount": "I want to trade",
+		"amountPlaceholder": "$ amount",
+		"rateMin": "Min rate",
+		"rateMax": "Max rate",
+		"onlyVip": "VIP only",
+		"apply": "Apply",
+		"clear": "Clear",
+		"sort": {
+			"recent": "Recent",
+			"amountDesc": "Amount ↓",
+			"amountAsc": "Amount ↑",
+			"bestRate": "Best rate",
+			"reputation": "Reputation"
+		},
+		"badges": {
+			"operate": "Trading ${{amount}}",
+			"rateMin": "Rate ≥ {{value}}",
+			"rateMax": "Rate ≤ {{value}}"
+		}
+	},
+	"requirements": {
+		"title": "P2P requirements",
+		"subtitle": "Complete the following steps to access the P2P market ({{done}}/3)",
+		"kyc": {
+			"label": "Identity verification",
+			"description": "Complete identity verification to trade on P2P"
+		},
+		"phone": {
+			"label": "Verified phone",
+			"description": "Verify your phone number for added security"
+		},
+		"telegram": {
+			"label": "Telegram linked",
+			"description": "Link your Telegram account to receive P2P notifications"
+		}
+	},
+	"create": {
+		"buyButton": "Buy {{amount}}",
+		"sellButton": "Sell {{amount}}",
+		"form": {
+			"send": "Send",
+			"receive": "Receive",
+			"balance": "Balance:",
+			"detailsTitle": "Additional details:",
+			"advanced": "Advanced options",
+			"privateOffer": "Private offer",
+			"customMessage": "Custom message"
+		},
+		"toasts": {
+			"incompleteTitle": "Missing information",
+			"selectOption": "You must select an option",
+			"selectCoin": "You must select a coin",
+			"completeAmounts": "You must fill in the buy and sell amounts",
+			"invalidAmountsTitle": "Invalid amounts",
+			"invalidAmountsBody": "Enter numeric values greater than 0 for buy and sell",
+			"missingDataTitle": "Missing details",
+			"missingDataBody": "Fill in your account details for the selected coin to buy and sell",
+			"successTitle": "Done",
+			"createdDuplicate": "This offer had already been created — taking you to it",
+			"created": "Your offer has been created successfully",
+			"networkError": "Network error",
+			"createErrorTitle": "Error creating the offer",
+			"createFailedFallback": "Couldn't create the P2P offer",
+			"selectCoinFirst": "Select a coin",
+			"methodsLoadFailed": "Couldn't load your payment methods",
+			"methodApplyFailed": "Couldn't apply the payment method"
+		}
+	},
+	"savedMethods": {
+		"title": "Select a saved method",
+		"loading": "Loading methods...",
+		"fallbackName": "Method",
+		"empty": "No saved methods for this coin"
+	},
+	"offer": {
+		"loadFailed": "Couldn't load the offer",
+		"searchingPeer": "We're looking for a peer interested in your offer.",
+		"advertiserTerms": "Advertiser's terms",
+		"applyQuestion": "Do you want to apply to this offer?",
+		"counterpartyFallback": "your counterparty",
+		"confirm": {
+			"cancel": {
+				"title": "Cancel offer",
+				"body": "Are you sure you want to cancel this offer? This action cannot be undone.",
+				"confirmLabel": "Yes, cancel"
+			},
+			"markPaid": {
+				"title": "Have you made the payment?",
+				"body": "Confirm you sent {{amount}} to {{counterparty}}.",
+				"warning": "Only mark it if the transfer is already done. Marking without paying can send the offer to review.",
+				"confirmLabel": "Yes, I've paid"
+			},
+			"release": {
+				"title": "Release funds",
+				"body": "You're about to release ${{amount}} from your balance to {{counterparty}}.",
+				"warning": "Confirm only if {{amount}} is already in your account. This action is irreversible.",
+				"confirmLabel": "Release"
+			}
+		},
+		"status": {
+			"processingPayer": "Make the payment and mark it as paid",
+			"processingReceiver": "Waiting for the buyer to mark as paid...",
+			"paidPayer": "You've marked it as paid. Waiting for confirmation...",
+			"paidReceiver": "The buyer marked it as paid. Verify and confirm.",
+			"revision": "This offer is under review by the support team"
+		},
+		"toasts": {
+			"cancelled": "Offer cancelled",
+			"cancelFailed": "Couldn't cancel",
+			"markedPaid": "Payment marked as done",
+			"markPaidFailed": "Couldn't mark as paid",
+			"received": "Payment received. Funds released",
+			"confirmFailed": "Couldn't confirm",
+			"applied": "Applied",
+			"applyFailed": "Couldn't apply",
+			"shared": "Offer shared",
+			"shareDismissed": "Share cancelled",
+			"shareFailed": "Couldn't share",
+			"updated": "Offer updated",
+			"editFailed": "Couldn't edit",
+			"invalidAmountTitle": "Invalid amount",
+			"invalidAmountBody": "The amount must be between 0.1 and 100,000",
+			"invalidValueTitle": "Invalid value",
+			"invalidValueBody": "The amount to receive must be greater than 0",
+			"insufficientBalanceTitle": "Insufficient balance",
+			"insufficientBalanceBody": "You don't have enough balance to increase the amount",
+			"rated": "Offer rated",
+			"rateFailed": "Couldn't rate"
+		},
+		"share": {
+			"title": "P2P offer",
+			"message": "Check out this offer on QvaPay: {{url}}",
+			"subject": "Check out this P2P offer on QvaPay 🔥"
+		}
+	},
+	"actionBar": {
+		"apply": "Apply",
+		"markPaid": "I've paid",
+		"paymentReceived": "Payment received",
+		"offerCancelled": "Offer cancelled",
+		"rateCounterparty": "Rate your counterparty"
+	},
+	"applyModal": {
+		"title": "Apply to the offer",
+		"body": "Are you sure you want to apply to this offer?"
+	},
+	"editModal": {
+		"title": "Edit Offer",
+		"amountLabel": "Amount (QUSD)",
+		"toSend": "To send",
+		"toReceive": "To receive",
+		"insufficientBalance": "Insufficient balance to increase the amount",
+		"messageLabel": "Message",
+		"messagePlaceholder": "Optional message"
+	},
+	"details": {
+		"paymentData": "Payment Details",
+		"txId": "Transaction ID"
+	},
+	"tradeProgress": {
+		"steps": {
+			"payment": "Payment",
+			"confirmation": "Confirmation",
+			"release": "Release"
+		},
+		"hero": {
+			"send": "You send",
+			"sent": "You sent",
+			"receive": "You'll receive",
+			"received": "You received"
+		},
+		"balance": {
+			"payer": "you'll get ${{amount}} in balance",
+			"payerDone": "you got ${{amount}} in balance",
+			"receiver": "you'll release ${{amount}} from your balance",
+			"receiverDone": "you released ${{amount}} from your balance"
+		},
+		"rateSuffix": "rate {{rate}}",
+		"windowExpired": "Payment window expired; the offer will be relisted",
+		"safety": "Release only if the payment is already in your account, not for screenshots or promises.",
+		"txIdPlaceholder": "Transfer ID",
+		"txIdHelper": "The payment ID unlocks “I've paid” and helps verify it faster."
+	},
+	"chat": {
+		"safetyNotice": "Coordinate the payment here. Never share your password or access codes: QvaPay will never ask you for them.",
+		"inputPlaceholder": "Type your message...",
+		"stickersTitle": "Stickers",
+		"stickersExclusive": "Exclusive stickers",
+		"stickersGold": "You need GOLD to use stickers",
+		"toasts": {
+			"sendFailed": "Couldn't send",
+			"imageTooLargeTitle": "Image too large",
+			"imageTooLargeBody": "The maximum is {{max}}MB",
+			"formatTitle": "Unsupported format",
+			"formatBody": "JPG, PNG and GIF only"
+		}
+	},
+	"user": {
+		"tabs": {
+			"offers": "Offers",
+			"reviews": "Reviews",
+			"stats": "Stats"
+		},
+		"share": {
+			"title": "P2P profile of @{{username}}",
+			"message": "P2P profile of @{{username}} on QvaPay: {{url}}"
+		},
+		"notAvailable": "Profile not available",
+		"chips": {
+			"phone": "Phone"
+		},
+		"inline": {
+			"rating": "Rating",
+			"ops": "Ops",
+			"since": "Since"
+		},
+		"cards": {
+			"operations": "Operations",
+			"volume": "Volume",
+			"goldOnly": "GOLD only",
+			"unlockMetrics": "Unlock financial metrics",
+			"volume30d": "{{amount}} last 30d",
+			"completionRate": "Completion rate",
+			"noOps": "No ops",
+			"ratings": "Ratings",
+			"noData": "No data"
+		},
+		"goldPill": "Go GOLD →",
+		"reviews": {
+			"received": "Received ({{total}})",
+			"sent": "Sent ({{total}})",
+			"count_one": "{{count}} review",
+			"count_other": "{{count}} reviews",
+			"none": "This user has no reviews yet.",
+			"latestTitle": "Latest ratings",
+			"scoreOnly": "P2P ratings only contain a score.",
+			"emptyList": "No ratings to show.",
+			"sentTitle": "Ratings sent",
+			"sentEmpty": "They haven't rated anyone.",
+			"deletedUser": "Deleted user",
+			"privateUser": "Private user"
+		},
+		"offersEmpty": "@{{username}} has no active offers.",
+		"stats": {
+			"uniquePeers": "Unique peers",
+			"avgClose": "Avg. close time",
+			"ops30d": "Ops. 30 days",
+			"cancellation": "Cancellation",
+			"coinsGoldMessage": "Traded coins for GOLD only",
+			"coinsGoldSublabel": "Discover which coins this trader uses",
+			"topCoinsTitle": "Most traded coins",
+			"topCoinsSubtitle": "Top 5 by completed trades.",
+			"coinMeta": "{{ops}} ops · {{volume}}",
+			"noCompletedOps": "No completed trades yet."
+		}
+	}
+}
