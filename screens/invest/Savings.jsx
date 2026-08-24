@@ -16,6 +16,7 @@ import { useSavingsMovementsQuery } from './investQueries'
 // UI
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
+import QPBalance from '../../ui/particles/QPBalance'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -35,7 +36,8 @@ import { ROUTES } from '../../routes'
 
 // Helpers
 import { timeAgo, formatMoney } from '../../helpers'
-import QPFitText from '../../ui/particles/QPFitText'
+import { sanitizeAmountInput, parseAmountInput } from '../../helpers/amountInput'
+import { useKeyboardHeight } from '../../hooks/useKeyboardHeight'
 
 // The deposit/withdraw modal is one piece of state: which operation, the amount, and its loading flag
 const initialModal = { type: null, amount: '', loading: false }
@@ -71,6 +73,7 @@ const Savings = ({ route }) => {
 	const textStyles = useTextStyles(theme)
 	const { user } = useAuth()
 	const { height: windowHeight } = useWindowDimensions()
+	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
 	// Resumen (query compartida con BalanceCard/Invest) + movimientos. El
 	// summary de route.params pinta al instante mientras la query revalida
@@ -104,7 +107,7 @@ const Savings = ({ route }) => {
 	}, [initialAction]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	const handleModalSubmit = async () => {
-		const amount = parseFloat(modalAmount)
+		const amount = parseAmountInput(modalAmount)
 		if (!amount || amount < 1) {
 			toast.error(t('invest.savings.toasts.minAmount'))
 			return
@@ -146,10 +149,6 @@ const Savings = ({ route }) => {
 
 	if (isLoading) return <QPLoader />
 
-	// El balance puede ser negativo (deuda gestionada desde admin): se muestra
-	// en danger con el signo antes del símbolo
-	const isDebt = savingsBalance < 0
-	const balance = formatMoney(savingsBalance)
 	const rate = savings?.currentRate || 0
 	const totalDeposited = Number(savings?.totalDeposited || savings?.total_deposited || 0).toFixed(2)
 	const totalWithdrawn = Number(savings?.totalWithdrawn || savings?.total_withdrawn || 0).toFixed(2)
@@ -167,7 +166,10 @@ const Savings = ({ route }) => {
 					<View style={[styles.heroIcon, { backgroundColor: theme.colors.primary + '15' }]}>
 						<FontAwesome6 name="vault" size={28} color={theme.colors.primary} iconStyle="solid" />
 					</View>
-					<QPFitText style={[textStyles.amount, styles.heroBalance, isDebt && { color: theme.colors.danger }]}>{balance}</QPFitText>
+					{/* Mismo particle que el BalanceCard del Home: símbolo gris menor,
+					    cifras en negro/blanco (o danger si hay deuda — QPBalance lo
+					    detecta por el prefijo "-") */}
+					<QPBalance formattedAmount={savingsBalance.toFixed(2)} fontSize={60} theme={theme} style={styles.heroBalance} />
 					<Text style={[styles.heroRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
 						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('invest.common.perYear')}
 					</Text>
@@ -245,9 +247,15 @@ const Savings = ({ route }) => {
 			{/* Deposit / Withdraw Modal */}
 			<Modal visible={!!modalType} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !modalLoading && dispatchModal({ type: 'close' })}>
 				{/* Overlay + card canónicos del theme (el overlay trae el padding
-				    horizontal que mantiene la card dentro de los márgenes) */}
-				<Pressable style={containerStyles.modalOverlay} onPress={() => !modalLoading && dispatchModal({ type: 'close' })}>
-					<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]}>
+				    horizontal que mantiene la card dentro de los márgenes). Con el
+				    teclado abierto el overlay cede su altura como paddingBottom para
+				    re-centrar la card en el espacio restante — KeyboardAvoidingView
+				    no es fiable dentro de un Modal statusBarTranslucent en Android */}
+				<Pressable
+					style={[containerStyles.modalOverlay, keyboardVisible && { paddingBottom: keyboardHeight + 16 }]}
+					onPress={() => !modalLoading && dispatchModal({ type: 'close' })}
+				>
+					<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: keyboardVisible ? windowHeight - keyboardHeight - 48 : windowHeight * 0.75 }]}>
 
 						{/* Header */}
 						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -270,10 +278,11 @@ const Savings = ({ route }) => {
 						{/* Amount input */}
 						<View style={{ alignItems: 'center', marginBottom: 24 }}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-								<Text style={{ color: theme.colors.primaryText, fontSize: 40, fontFamily: theme.typography.fontFamily.semiBold }}>$</Text>
+								{/* Símbolo al patrón de QPBalance: gris medio y un paso menor que las cifras */}
+								<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, marginRight: 4 }}>$</Text>
 								<TextInput
 									value={modalAmount}
-									onChangeText={(amount) => dispatchModal({ type: 'setAmount', amount })}
+									onChangeText={(amount) => dispatchModal({ type: 'setAmount', amount: sanitizeAmountInput(amount) })}
 									placeholder="0.00"
 									placeholderTextColor={theme.colors.tertiaryText}
 									keyboardType="decimal-pad"
@@ -309,7 +318,7 @@ const Savings = ({ route }) => {
 							icon={modalType === 'deposit' ? 'arrow-down' : 'arrow-up'}
 							onPress={handleModalSubmit}
 							loading={modalLoading}
-							disabled={modalLoading || !modalAmount || parseFloat(modalAmount) < 1}
+							disabled={modalLoading || !modalAmount || parseAmountInput(modalAmount) < 1}
 						/>
 
 					</Pressable>
@@ -378,7 +387,9 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		marginBottom: 16,
 	},
+	// QPBalance trae el alto/margen del keypad — aquí el héroe es más compacto
 	heroBalance: {
+		height: 'auto',
 		marginBottom: 4,
 	},
 	heroRate: {},

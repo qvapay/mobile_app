@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import QPInput from '../../ui/particles/QPInput'
 import QPSplitButton from '../../ui/particles/QPSplitButton'
 import { createContainerStyles } from '../../theme/themeUtils'
+import { sanitizeAmountInput } from '../../helpers/amountInput'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Status options for filter chips — i18n keys resolved in render (module
@@ -156,7 +157,7 @@ const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDr
 							<QPInput
 								placeholder={t('transactions.filters.min')}
 								value={draftFilters.min_amount || ''}
-								onChangeText={v => onUpdateDraft('min_amount', v.replace(/[^0-9.]/g, ''))}
+								onChangeText={v => onUpdateDraft('min_amount', sanitizeAmountInput(v))}
 								keyboardType="decimal-pad"
 								style={{ marginVertical: 0 }}
 							/>
@@ -166,7 +167,7 @@ const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDr
 							<QPInput
 								placeholder={t('transactions.filters.max')}
 								value={draftFilters.max_amount || ''}
-								onChangeText={v => onUpdateDraft('max_amount', v.replace(/[^0-9.]/g, ''))}
+								onChangeText={v => onUpdateDraft('max_amount', sanitizeAmountInput(v))}
 								keyboardType="decimal-pad"
 								style={{ marginVertical: 0 }}
 							/>

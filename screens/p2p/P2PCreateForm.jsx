@@ -7,7 +7,7 @@ import QPInput from '../../ui/particles/QPInput'
 import QPSwitch from '../../ui/particles/QPSwitch'
 
 const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
-const isNumber = (val) => /^\d*(?:[.,]?\d*)$/.test(val)
+import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 // Create-offer form body: type switch, QUSD⇄coin amounts, live ratio, per-coin
 // account fields, advanced options and the optional GOLD custom message.
@@ -49,7 +49,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 						<View style={{ flex: 1 }}>
 							<TextInput
 								value={amount}
-								onChangeText={(v) => { if (isNumber(v)) onField('amount', v) }}
+								onChangeText={(v) => onField('amount', sanitizeAmountInput(v))}
 								placeholder="0.00"
 								placeholderTextColor={theme.colors.placeholder}
 								keyboardType="decimal-pad"
@@ -75,7 +75,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 						<View style={{ flex: 1 }}>
 							<TextInput
 								value={receive}
-								onChangeText={(v) => { if (isNumber(v)) onField('receive', v) }}
+								onChangeText={(v) => onField('receive', sanitizeAmountInput(v, 8))}
 								placeholder="0.00"
 								placeholderTextColor={theme.colors.placeholder}
 								keyboardType="decimal-pad"

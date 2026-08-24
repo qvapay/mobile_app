@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react'
-import { Platform, ScrollView, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
+import { ScrollView, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme/ThemeContext'
 import { createContainerStyles } from '../theme/themeUtils'
+import { useKeyboardHeight } from '../hooks/useKeyboardHeight'
 
 /**
  * Keyboard-aware screen container used across forms (Login, Register, Send,
  * settings subpanels): a themed ScrollView plus an optional pinned `actions`
  * footer (usually the submit QPButton) that rides above the keyboard.
- * Tracks keyboard height manually via Keyboard listeners instead of
- * KeyboardAvoidingView — iOS uses the `will` events for a fluid follow,
- * Android only fires `did*`. Tapping anywhere outside inputs dismisses the
+ * Tracks keyboard height manually via `useKeyboardHeight` instead of
+ * KeyboardAvoidingView. Tapping anywhere outside inputs dismisses the
  * keyboard (`keyboardShouldPersistTaps="handled"` keeps buttons tappable).
  *
  * @param {object} props
@@ -29,17 +28,7 @@ const QPKeyboardView = ({
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const insets = useSafeAreaInsets()
-	const [keyboardHeight, setKeyboardHeight] = useState(0)
-
-	useEffect(() => {
-		const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
-		const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-		const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height))
-		const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0))
-		return () => { showSub.remove(); hideSub.remove() }
-	}, [])
-
-	const keyboardVisible = keyboardHeight > 0
+	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
 	return (
 		<View style={[containerStyles.subContainer, keyboardVisible && { paddingBottom: keyboardHeight }]}>

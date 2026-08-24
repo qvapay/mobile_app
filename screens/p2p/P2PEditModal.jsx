@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 
 import QPButton from "../../ui/particles/QPButton"
 import QPInput from "../../ui/particles/QPInput"
+import { sanitizeAmountInput } from "../../helpers/amountInput"
 
 // Edit-offer modal for the owner of an open offer (amount / receive / message / VIP).
 const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, windowHeight, theme, textStyles, containerStyles }) => {
@@ -27,7 +28,7 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 						{/* Amount */}
 						<QPInput
 							value={edit.amount}
-							onChangeText={(v) => setEdit("amount", v)}
+							onChangeText={(v) => setEdit("amount", sanitizeAmountInput(v))}
 							placeholder="0.00"
 							keyboardType="decimal-pad"
 							prelabel={t('p2p.editModal.amountLabel')}
@@ -36,7 +37,7 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 						{/* Receive */}
 						<QPInput
 							value={edit.receive}
-							onChangeText={(v) => setEdit("receive", v)}
+							onChangeText={(v) => setEdit("receive", sanitizeAmountInput(v, 8))}
 							placeholder="0.00"
 							keyboardType="decimal-pad"
 							prelabel={p2p?.type === "buy" ? t('p2p.editModal.toSend') : t('p2p.editModal.toReceive')}
