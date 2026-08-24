@@ -3,6 +3,7 @@
 // Store setup differs per platform: iOS uses two separate App Store products,
 // Android a single Play subscription ('gold_check') with two base plans.
 import { Platform } from 'react-native'
+import i18n from '../i18n'
 
 // Product IDs per platform
 const IAP_SKUS_IOS = [
@@ -123,35 +124,35 @@ export const isAlreadyOwnedError = (error) => {
 }
 
 /**
- * Maps a react-native-iap error to a Spanish user-facing message.
+ * Maps a react-native-iap error to a localized user-facing message.
  * @param {object|null} error - IAP error carrying `code` (or `responseCode`).
  * @returns {string|null} Message to toast, or null for E_USER_CANCELLED (silenced on purpose).
  */
 export const getIAPErrorMessage = (error) => {
-	if (!error) return 'Error desconocido'
+	if (!error) return i18n.t('hooks.iap.unknownError')
 	const code = error.code || error.responseCode
 	const messages = {
 		// Códigos OpenIAP de react-native-iap >= 14 (kebab-case)
 		'user-cancelled': null, // silenciar cancelacion del usuario
-		'item-unavailable': 'Este producto no está disponible en tu región',
-		'sku-not-found': 'Este producto no está disponible en tu región',
-		'network-error': 'Error de conexión. Verifica tu internet',
-		'service-error': 'El servicio de pagos no está disponible',
-		'billing-unavailable': 'El servicio de pagos no está disponible',
-		'developer-error': 'Error de configuración. Contacta soporte',
-		'already-owned': 'Ya tienes una compra activa de este producto',
-		'deferred-payment': 'El pago está pendiente de aprobación',
+		'item-unavailable': i18n.t('hooks.iap.itemUnavailable'),
+		'sku-not-found': i18n.t('hooks.iap.itemUnavailable'),
+		'network-error': i18n.t('hooks.iap.connectionError'),
+		'service-error': i18n.t('hooks.iap.serviceUnavailable'),
+		'billing-unavailable': i18n.t('hooks.iap.serviceUnavailable'),
+		'developer-error': i18n.t('hooks.iap.configurationError'),
+		'already-owned': i18n.t('hooks.iap.alreadyOwned'),
+		'deferred-payment': i18n.t('hooks.iap.paymentPending'),
 		// Códigos E_* de versiones anteriores de la lib
 		E_USER_CANCELLED: null,
-		E_ITEM_UNAVAILABLE: 'Este producto no está disponible en tu región',
-		E_NETWORK_ERROR: 'Error de conexión. Verifica tu internet',
-		E_SERVICE_ERROR: 'El servicio de pagos no está disponible',
-		E_DEVELOPER_ERROR: 'Error de configuración. Contacta soporte',
-		E_ALREADY_OWNED: 'Ya tienes una compra activa de este producto',
-		E_DEFERRED_PAYMENT: 'El pago está pendiente de aprobación',
+		E_ITEM_UNAVAILABLE: i18n.t('hooks.iap.itemUnavailable'),
+		E_NETWORK_ERROR: i18n.t('hooks.iap.connectionError'),
+		E_SERVICE_ERROR: i18n.t('hooks.iap.serviceUnavailable'),
+		E_DEVELOPER_ERROR: i18n.t('hooks.iap.configurationError'),
+		E_ALREADY_OWNED: i18n.t('hooks.iap.alreadyOwned'),
+		E_DEFERRED_PAYMENT: i18n.t('hooks.iap.paymentPending'),
 	}
 	// `in` en vez de `??`: el null de E_USER_CANCELLED es un valor válido (silencio),
 	// no una entrada ausente
 	if (code in messages) return messages[code]
-	return error.message ?? 'Error al procesar la compra'
+	return error.message ?? i18n.t('hooks.iap.purchaseFailed')
 }

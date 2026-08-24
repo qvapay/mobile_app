@@ -1,0 +1,173 @@
+{
+	"common": {
+		"back": "Atrás",
+		"brandCount_one": "{{count}} marca",
+		"brandCount_other": "{{count}} marcas",
+		"continueWithAmount": "Continuar · {{amount}}",
+		"amountUsdBetween": "Monto USD (entre {{min}} y {{max}})",
+		"insufficientBalanceNote": "Saldo insuficiente.",
+		"latamHint": "Recarga el móvil de cualquier persona en LATAM.",
+		"noOperators": "No hay operadores disponibles",
+		"noResultsFor": "Sin resultados para \"{{query}}\"",
+		"plans_one": "{{count}} plan",
+		"plans_other": "{{count}} planes",
+		"processing": "Procesando…",
+		"selectCountry": "Selecciona país",
+		"upTo": "Hasta {{amount}}",
+		"variableAmount": "monto variable"
+	},
+	"toasts": {
+		"amountBetween": "Monto entre {{min}} y {{max}}",
+		"brands": "Marcas",
+		"card": "Tarjeta",
+		"countries": "Países",
+		"error": "Error",
+		"insufficientBalance": "Saldo insuficiente",
+		"operator": "Operador",
+		"operators": "Operadores"
+	},
+	"landing": {
+		"title": "Tienda",
+		"subtitleGiftCards": "Recargas, tarjetas de regalo y compras asistidas",
+		"subtitleTopupsOnly": "Recargas móviles y compras asistidas",
+		"departments": {
+			"stores": {
+				"title": "Tiendas",
+				"subtitle": "Comercios verificados que aceptan QvaPay"
+			},
+			"assisted": {
+				"title": "Compras asistidas",
+				"subtitle": "Compra en Amazon y eBay con QUSD"
+			},
+			"googlePlay": {
+				"title": "Recarga móvil con Google Play",
+				"subtitle": "Paga con tu tarjeta, sin saldo QvaPay"
+			},
+			"topups": {
+				"title": "Recargas móviles",
+				"subtitle": "Cubacel y +100 países"
+			},
+			"giftCards": {
+				"title": "Tarjetas de regalo",
+				"subtitle": "+100 marcas"
+			}
+		},
+		"giftCards": {
+			"hint": "Amazon, Steam, Apple, Google Play y más",
+			"favorites": "Tus marcas favoritas",
+			"featured": "⚡ Populares",
+			"byCategory": "Explora por categoría",
+			"exploreCta": "Explora tarjetas de regalo",
+			"exploreCtaHint": "Cientos de marcas en 11 países"
+		},
+		"topups": {
+			"cubaHint": "Cubacel local — tarifa P2P sin recargo."
+		}
+	},
+	"topupIndex": {
+		"recipientCountry": "País del destinatario",
+		"cubaHint": "Cubacel local — sin cargo del exterior.",
+		"featuredTitle": "⚡ Operadores populares",
+		"searchPlaceholder": "Filtrar operador en {{country}}…",
+		"operatorsIn": "Operadores en {{country}}",
+		"operatorCount_one": "{{count}} operador",
+		"operatorCount_other": "{{count}} operadores"
+	},
+	"topupBrand": {
+		"noActivePlans": "No hay planes activos en este momento.",
+		"confirmTitle": "Confirmar recarga",
+		"selectPlanAndNumberCta": "Selecciona plan y número",
+		"toasts": {
+			"loadError": "No se pudo cargar el operador",
+			"selectPlanAndNumber": "Selecciona un plan y un número válido",
+			"sent": "¡Recarga enviada!",
+			"sentDescription": "Tu recarga se está procesando"
+		}
+	},
+	"topupStep1": {
+		"subTypes": {
+			"ALL": "Todos",
+			"MOBILE": "Saldo",
+			"DATA": "Datos",
+			"BUNDLE": "Combo",
+			"EXTERIOR": "Exterior",
+			"P2P": "Local"
+		},
+		"recipientNumber": "Número del destinatario",
+		"localNumberPlaceholder": "Número local",
+		"invalidNumberFor": "Número inválido para {{country}}",
+		"onlyNumbersFrom": "Solo números de {{flag}} {{country}}",
+		"selectPlan": "Selecciona un plan"
+	},
+	"giftCards": {
+		"searchPlaceholder": "Buscar marca: Amazon, Steam…",
+		"allCategories": "Todas",
+		"brandsIn": "Marcas en {{country}}",
+		"emptyCategory": "No hay marcas en esta categoría",
+		"loadMore": "Cargar más"
+	},
+	"giftCardBrand": {
+		"valueLabel": "Valor: {{value}}",
+		"denominationCount_one": "{{count}} denominación",
+		"denominationCount_other": "{{count}} denominaciones",
+		"noActiveDenominations": "No hay denominaciones activas.",
+		"selectDenomination": "Selecciona una denominación",
+		"confirmTitle": "Confirmar compra",
+		"asBrandIndicates": "Según indica la marca",
+		"toasts": {
+			"loadError": "No se pudo cargar la tarjeta",
+			"purchased": "¡Compra realizada!",
+			"purchasedDescription": "Tu tarjeta se está procesando"
+		}
+	},
+	"summary": {
+		"operator": "Operador",
+		"number": "Número",
+		"plan": "Plan",
+		"benefits": "Beneficios",
+		"brand": "Marca",
+		"youReceive": "Recibes",
+		"referenceValue": "Valor referencia",
+		"total": "Total",
+		"satsDiscount": "Descuento satoshis",
+		"youPay": "Pagas",
+		"yourBalance": "Tu saldo"
+	},
+	"myPurchases": {
+		"empty": "No tienes compras aún",
+		"toasts": {
+			"loadError": "No se pudieron cargar tus compras"
+		}
+	},
+	"purchaseDetail": {
+		"notFound": "No se encontró la compra",
+		"detailsTitle": "Detalles de la compra:",
+		"receipt": "Recibo",
+		"provider": "Proveedor",
+		"viewTransaction": "Ver transacción",
+		"fields": {
+			"service": "Servicio:",
+			"amount": "Monto:",
+			"brand": "Marca:",
+			"country": "País:",
+			"type": "Tipo:",
+			"notes": "Notas:",
+			"date": "Fecha:",
+			"transactionId": "ID Transacción:"
+		},
+		"receiptLabels": {
+			"voucherId": "Voucher ID",
+			"epin": "ePIN",
+			"confirmationNumber": "Confirmación",
+			"send": "Enviado",
+			"currency": "Moneda",
+			"deliveryType": "Tipo de entrega",
+			"redemptionUrl": "URL de canje",
+			"expiresAt": "Expira",
+			"instructions": "Instrucciones"
+		},
+		"toasts": {
+			"loadError": "No se pudo obtener el detalle"
+		}
+	}
+}

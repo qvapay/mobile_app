@@ -1,0 +1,62 @@
+{
+	"actions": {
+		"accept": "Aceptar",
+		"back": "Volver",
+		"cancel": "Cancelar",
+		"close": "Cerrar",
+		"confirm": "Confirmar",
+		"continue": "Continuar",
+		"copy": "Copiar",
+		"delete": "Eliminar",
+		"done": "Listo",
+		"notNow": "Ahora no",
+		"openSettings": "Abrir Configuración",
+		"retry": "Reintentar",
+		"save": "Guardar",
+		"search": "Buscar",
+		"seeAll": "Ver todas",
+		"share": "Compartir",
+		"understood": "Entendido"
+	},
+	"dates": {
+		"today": "Hoy",
+		"yesterday": "Ayer",
+		"earlier": "Anteriores"
+	},
+	"p2pType": {
+		"buy": "Compra",
+		"buyUpper": "COMPRA",
+		"sell": "Venta",
+		"sellUpper": "VENTA"
+	},
+	"status": {
+		"cancelled": "Cancelada",
+		"closed": "Cerrada",
+		"completed": "Completada",
+		"open": "Abierta",
+		"paid": "Pagada",
+		"pending": "Pendiente",
+		"processing": "Procesando",
+		"received": "Recibida",
+		"revision": "Revisión"
+	},
+	"time": {
+		"second_one": "{{count}} segundo",
+		"second_other": "{{count}} segundos",
+		"minute_one": "{{count}} minuto",
+		"minute_other": "{{count}} minutos",
+		"hour_one": "{{count}} hora",
+		"hour_other": "{{count}} horas",
+		"day_one": "{{count}} día",
+		"day_other": "{{count}} días",
+		"week_one": "{{count}} semana",
+		"week_other": "{{count}} semanas",
+		"month_one": "{{count}} mes",
+		"month_other": "{{count}} meses",
+		"year_one": "{{count}} año",
+		"year_other": "{{count}} años"
+	},
+	"toasts": {
+		"copied": "Copiado al portapapeles"
+	}
+}

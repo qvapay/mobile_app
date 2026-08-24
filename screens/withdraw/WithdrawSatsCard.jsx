@@ -1,4 +1,5 @@
 import { View, Text, Pressable, TextInput } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -13,6 +14,7 @@ const SATS_COLOR = '#F7931A'
  */
 const WithdrawSatsCard = ({ amountSats, onChangeAmountSats, availableSats, btcPrice, minSats, locked, theme, textStyles }) => {
 
+	const { t } = useTranslation()
 	const satsNumber = Number(amountSats) || 0
 	const approxUsd = btcPrice > 0 ? (satsNumber / 1e8) * btcPrice : 0
 	const availableUsd = btcPrice > 0 ? (availableSats / 1e8) * btcPrice : 0
@@ -21,11 +23,11 @@ const WithdrawSatsCard = ({ amountSats, onChangeAmountSats, availableSats, btcPr
 		<View style={{ backgroundColor: SATS_COLOR + '18', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 14, borderWidth: 2, borderColor: SATS_COLOR }}>
 
 			<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Redimir satoshis</Text>
+				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('withdraw.satsCard.title')}</Text>
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
 					<FontAwesome6 name="bolt" size={12} color={SATS_COLOR} iconStyle="solid" />
 					<Text style={[textStyles.h7, { color: SATS_COLOR, fontWeight: '600' }]}>
-						{availableSats.toLocaleString()} disponibles
+						{t('withdraw.satsCard.available', { sats: availableSats.toLocaleString() })}
 					</Text>
 					{availableUsd > 0 && (
 						<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>≈ ${availableUsd.toFixed(2)}</Text>
@@ -50,17 +52,17 @@ const WithdrawSatsCard = ({ amountSats, onChangeAmountSats, availableSats, btcPr
 						onPress={() => onChangeAmountSats(String(availableSats))}
 						style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: SATS_COLOR + '30' }}
 					>
-						<Text style={[textStyles.h7, { color: SATS_COLOR, fontWeight: '600' }]}>MAX</Text>
+						<Text style={[textStyles.h7, { color: SATS_COLOR, fontWeight: '600' }]}>{t('withdraw.satsCard.max')}</Text>
 					</Pressable>
 				)}
 			</View>
 
 			<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
 				{locked
-					? `Monto fijado por la factura ⚡ ${satsNumber.toLocaleString()} sats`
+					? t('withdraw.index.lockedByInvoice', { sats: satsNumber.toLocaleString() })
 					: satsNumber > 0 && approxUsd > 0
-						? `≈ $${approxUsd.toFixed(2)} USD · sin comisión`
-						: `Mínimo ${minSats.toLocaleString()} sats · sin comisión`}
+						? t('withdraw.satsCard.approx', { usd: approxUsd.toFixed(2) })
+						: t('withdraw.satsCard.minimum', { sats: minSats.toLocaleString() })}
 			</Text>
 		</View>
 	)

@@ -5,13 +5,17 @@
  * Native: testeable con `@jest-environment node`.
  */
 
+import i18n from '../../../i18n'
 import { cartItemKey } from './cartCore'
 
-/** Mensajes de línea no comprable (mismos códigos que la web). */
+/**
+ * Mensajes de línea no comprable (mismos códigos que la web). Los valores son
+ * CLAVES de i18n: el render site las resuelve con `t(PROBLEM_LABELS[code])`.
+ */
 export const PROBLEM_LABELS = {
-	gone: 'Ya no está disponible',
-	soldout: 'Agotado',
-	variant_required: 'El producto cambió: elige de nuevo sus opciones desde la ficha',
+	gone: 'market.checkout.problems.gone',
+	soldout: 'market.common.soldOut',
+	variant_required: 'market.checkout.problems.variantRequired',
 }
 
 /**
@@ -104,7 +108,7 @@ export function enrichCartItems(items, freshMap, selectedAddress, statuses = {})
 export function groupByShop(entries) {
 	const byShop = []
 	for (const e of entries) {
-		const name = e.fresh?.shop?.name || e.item.shop_name || 'Tienda'
+		const name = e.fresh?.shop?.name || e.item.shop_name || i18n.t('market.common.storeFallback')
 		const slug = e.fresh?.shop?.slug || e.item.shop_slug || null
 		let group = byShop.find((g) => g.name === name)
 		if (!group) { group = { name, slug, entries: [] }; byShop.push(group) }
@@ -115,21 +119,22 @@ export function groupByShop(entries) {
 
 /**
  * Maps a failed order response to a human message. The backend speaks in
- * error codes for 409s and Spanish messages for the rest.
+ * error codes for 409s and Spanish messages for the rest (those pass through
+ * verbatim; only local fallbacks are localized, via `i18n.t` at call time).
  *
  * @param {number|undefined} status - HTTP status of the failure.
  * @param {string|undefined} error - Backend `error` field.
- * @returns {string} Spanish message for the cart line.
+ * @returns {string} Localized message for the cart line.
  */
 export function mapOrderError(status, error) {
 	const code = String(error || '')
-	if (code === 'OUT_OF_STOCK') return 'Se agotó mientras comprabas'
-	if (code === 'PRODUCT_GONE') return 'Ya no está disponible'
-	if (code === 'VARIANT_REQUIRED') return 'Elige de nuevo las opciones del producto'
-	if (code === 'SHIP_TO_BLOCKED') return 'El vendedor no envía a tu dirección'
-	if (code === 'DUPLICATE_REQUEST') return 'Compra duplicada: revisa tus compras'
-	if (status === 429) return 'El servicio está ocupado. Intenta de nuevo en unos segundos.'
-	return code || 'No pudimos procesar la compra'
+	if (code === 'OUT_OF_STOCK') return i18n.t('market.checkout.errors.outOfStock')
+	if (code === 'PRODUCT_GONE') return i18n.t('market.checkout.problems.gone')
+	if (code === 'VARIANT_REQUIRED') return i18n.t('market.checkout.errors.variantRequired')
+	if (code === 'SHIP_TO_BLOCKED') return i18n.t('market.checkout.errors.shipToBlocked')
+	if (code === 'DUPLICATE_REQUEST') return i18n.t('market.checkout.errors.duplicate')
+	if (status === 429) return i18n.t('market.checkout.errors.busy')
+	return code || i18n.t('market.checkout.errors.generic')
 }
 
 /**

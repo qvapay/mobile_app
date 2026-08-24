@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, Pressable, Modal, Switch, StyleSheet } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import { useTranslation } from "react-i18next"
 
 import QPCoin from "../../ui/particles/QPCoin"
 import QPInput from "../../ui/particles/QPInput"
@@ -12,6 +13,7 @@ import { sanitizeAmountInput } from "../../helpers/amountInput"
 // El lado del mercado (Comprar/Vender) NO está aquí: vive en el switch del TopBar.
 const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicker, onClear, onApply, windowHeight, theme, textStyles }) => {
 
+	const { t } = useTranslation()
 	const { selectedCoin, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
 	const containerStyles = createContainerStyles(theme)
 
@@ -27,7 +29,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 					{/* Header */}
 					<View style={styles.filterCardHeader}>
 						<FontAwesome6 name="sliders" size={20} color={theme.colors.primary} iconStyle="solid" />
-						<Text style={[textStyles.h3, { flex: 1, marginLeft: 12 }]}>Filtros</Text>
+						<Text style={[textStyles.h3, { flex: 1, marginLeft: 12 }]}>{t('p2p.filters.title')}</Text>
 						<Pressable onPress={onClose} hitSlop={12}>
 							<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 						</Pressable>
@@ -36,7 +38,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 					<ScrollView showsVerticalScrollIndicator={false} bounces={false}>
 						{/* Show My Offers */}
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Mis ofertas</Text>
+							<Text style={textStyles.h6}>{t('p2p.filters.myOffers')}</Text>
 							<Switch
 								value={showMine}
 								onValueChange={(v) => setFilter("showMine", v)}
@@ -47,7 +49,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 
 						{/* Coin */}
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Moneda</Text>
+							<Text style={textStyles.h6}>{t('p2p.common.coin')}</Text>
 							<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border, width: 160 }]} onPress={onOpenCoinPicker}>
 								{selectedCoin ? (
 									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -57,7 +59,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 									</View>
 								) : (
 									<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Seleccionar</Text>
+										<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('p2p.filters.select')}</Text>
 										<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 									</View>
 								)}
@@ -68,21 +70,21 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 						{/* Un solo campo, como en los P2P de la industria: dices cuánto
 						    quieres operar y se muestran las ofertas que lo permiten */}
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Quiero operar</Text>
+							<Text style={textStyles.h6}>{t('p2p.filters.operateAmount')}</Text>
 							<View style={{ width: 160 }}>
-								<QPInput value={opAmount} onChangeText={(v) => setFilter("opAmount", sanitizeAmountInput(v))} placeholder="$ monto" keyboardType="numeric" />
+								<QPInput value={opAmount} onChangeText={(v) => setFilter("opAmount", sanitizeAmountInput(v))} placeholder={t('p2p.filters.amountPlaceholder')} keyboardType="numeric" />
 							</View>
 						</View>
 
 						{/* Tasa mín / máx */}
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Tasa mín</Text>
+							<Text style={textStyles.h6}>{t('p2p.filters.rateMin')}</Text>
 							<View style={{ width: 160 }}>
 								<QPInput value={ratioMin} onChangeText={(v) => setFilter("ratioMin", sanitizeAmountInput(v, 4))} placeholder="0" keyboardType="numeric" />
 							</View>
 						</View>
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Tasa máx</Text>
+							<Text style={textStyles.h6}>{t('p2p.filters.rateMax')}</Text>
 							<View style={{ width: 160 }}>
 								<QPInput value={ratioMax} onChangeText={(v) => setFilter("ratioMax", sanitizeAmountInput(v, 4))} placeholder="0" keyboardType="numeric" />
 							</View>
@@ -90,7 +92,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 
 						{/* Only VIP */}
 						<View style={styles.rowBetween}>
-							<Text style={textStyles.h6}>Solo VIP</Text>
+							<Text style={textStyles.h6}>{t('p2p.filters.onlyVip')}</Text>
 							<Switch
 								value={onlyVip}
 								onValueChange={(v) => setFilter("onlyVip", v)}
@@ -103,11 +105,11 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 					{/* Action buttons — "Limpiar" aparece animado con el primer filtro */}
 					<View style={styles.filterCardActions}>
 						<QPSplitButton
-							title="Aplicar"
+							title={t('p2p.filters.apply')}
 							onPress={onApply}
 							showBack={hasActiveFilters}
 							onBack={onClear}
-							backLabel="Limpiar"
+							backLabel={t('p2p.filters.clear')}
 							backRatio={0.5}
 							backColor={theme.colors.elevation}
 							backTextColor={theme.colors.primaryText}

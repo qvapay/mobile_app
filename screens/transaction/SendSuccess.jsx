@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Lottie
@@ -46,6 +47,7 @@ const SendSuccess = ({ navigation, route }) => {
 	const parsedDescription = parseTransactionDescription(description)
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -83,9 +85,9 @@ const SendSuccess = ({ navigation, route }) => {
 
 			<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
 				<LottieView source={require('../../assets/lotties/completed.json')} autoPlay loop={false} style={{ width: 500, height: 350 }} />
-				<Text style={textStyles.h2}>Pago completado</Text>
+				<Text style={textStyles.h2}>{t('transactions.sendSuccess.title')}</Text>
 				<Text style={[textStyles.h6, { textAlign: 'center', paddingHorizontal: 20, color: theme.colors.secondaryText }]}>
-					Hemos procesado este pago y estará en su destino en pocos segundos.
+					{t('transactions.sendSuccess.subtitle')}
 				</Text>
 				{parsedDescription.type === 'sticker' && (
 					<View style={{ marginTop: 20 }}>
@@ -96,7 +98,7 @@ const SendSuccess = ({ navigation, route }) => {
 
 			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
 				<QPButton
-					title="Volver al inicio"
+					title={t('transactions.sendSuccess.backHome')}
 					onPress={() => navigation.navigate(ROUTES.MAIN_STACK)}
 					textStyle={{ color: theme.colors.buttonText }}
 				/>

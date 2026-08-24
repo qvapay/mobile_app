@@ -1,15 +1,17 @@
 // Legacy grab-bag of utilities predating the /helpers/ directory:
-// Spanish-locale dates and "time ago", QR/deep-link parsing, coin filtering,
+// localized dates and "time ago", QR/deep-link parsing, coin filtering,
 // number/money formatters and clipboard helpers.
 import { toast } from 'sonner-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
+import i18n, { getDateLocale } from './i18n'
 
 /**
- * Spanish elapsed-time string since a date, largest unit only ("3 minutos").
- * Note: the week branch is unreachable — anything over a day reports in days.
+ * Localized elapsed-time string since a date, largest unit only
+ * ("3 minutos" / "3 minutes"). Days cap the scale — anything over a day
+ * reports in days.
  * @param {string|number|Date} date
- * @returns {string|undefined}
+ * @returns {string}
  */
 const timeSince = (date) => {
 
@@ -17,26 +19,10 @@ const timeSince = (date) => {
 	const desiredDate = new Date(date)
 	const secondsPast = (now - desiredDate) / 1000
 
-	if (secondsPast < 60) {
-		const seconds = parseInt(secondsPast, 10)
-		return `${seconds} segundo${seconds > 1 ? 's' : ''}`
-	}
-	if (secondsPast < 3600) {
-		const minutes = parseInt(secondsPast / 60, 10)
-		return `${minutes} minuto${minutes > 1 ? 's' : ''}`
-	}
-	if (secondsPast <= 86400) {
-		const hours = parseInt(secondsPast / 3600, 10)
-		return `${hours} hora${hours > 1 ? 's' : ''}`
-	}
-	if (secondsPast > 86400) {
-		const day = parseInt(secondsPast / 86400, 10)
-		return `${day} dia${day > 1 ? 's' : ''}`
-	}
-	if (secondsPast > 604800) {
-		const week = parseInt(secondsPast / 604800, 10)
-		return `${week} semana${week > 1 ? 's' : ''}`
-	}
+	if (secondsPast < 60) { return i18n.t('common.time.second', { count: parseInt(secondsPast, 10) }) }
+	if (secondsPast < 3600) { return i18n.t('common.time.minute', { count: parseInt(secondsPast / 60, 10) }) }
+	if (secondsPast <= 86400) { return i18n.t('common.time.hour', { count: parseInt(secondsPast / 3600, 10) }) }
+	return i18n.t('common.time.day', { count: parseInt(secondsPast / 86400, 10) })
 }
 
 /**
@@ -58,43 +44,33 @@ const reduceString = (string, amount = 20) => { return string.substring(0, amoun
 const reduceStringInside = (string, amount = 20) => { return string.substring(0, amount) + '...' + string.substring(string.length - amount) }
 
 /**
- * Short es-ES locale date-time ("dd/mm/yy, hh:mm a. m.") from any date input.
+ * Short locale date-time ("dd/mm/yy, hh:mm a. m.") in the active language.
  * @param {string|number|Date} date
  * @returns {string}
  */
 const getShortDateTime = (date) => {
 	const desiredDate = new Date(date)
-	return desiredDate.toLocaleString('es-ES', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })
+	return desiredDate.toLocaleString(getDateLocale(), { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
 /**
- * Spanish "time ago" string, largest unit only ("2 días", "1 mes", "3 años").
+ * Localized "time ago" string, largest unit only ("2 días", "1 mes", "3 years").
  * @param {string|number|Date} date
  * @returns {string}
  */
 const timeAgo = (date) => {
 	const seconds = Math.floor((new Date() - new Date(date)) / 1000)
 	let interval = seconds / 31536000
-	if (interval > 1) {
-		return Math.floor(interval) + " año" + (Math.floor(interval) > 1 ? "s" : "")
-	}
+	if (interval > 1) { return i18n.t('common.time.year', { count: Math.floor(interval) }) }
 	interval = seconds / 2592000
-	if (interval > 1) {
-		return Math.floor(interval) + " mes" + (Math.floor(interval) > 1 ? "es" : "")
-	}
+	if (interval > 1) { return i18n.t('common.time.month', { count: Math.floor(interval) }) }
 	interval = seconds / 86400
-	if (interval > 1) {
-		return Math.floor(interval) + " día" + (Math.floor(interval) > 1 ? "s" : "")
-	}
+	if (interval > 1) { return i18n.t('common.time.day', { count: Math.floor(interval) }) }
 	interval = seconds / 3600
-	if (interval > 1) {
-		return Math.floor(interval) + " hora" + (Math.floor(interval) > 1 ? "s" : "")
-	}
+	if (interval > 1) { return i18n.t('common.time.hour', { count: Math.floor(interval) }) }
 	interval = seconds / 60
-	if (interval > 1) {
-		return Math.floor(interval) + " minuto" + (Math.floor(interval) > 1 ? "s" : "")
-	}
-	return Math.floor(seconds) + " segundo" + (Math.floor(seconds) > 1 ? "s" : "")
+	if (interval > 1) { return i18n.t('common.time.minute', { count: Math.floor(interval) }) }
+	return i18n.t('common.time.second', { count: Math.floor(seconds) })
 }
 
 /**
@@ -341,34 +317,28 @@ const adjustNumber = (value) => {
 }
 
 /**
- * Spanish label for a P2P offer type: "buy" → "Compra", "sell" → "Venta".
- * Anything else passes through unchanged.
+ * Localized label for a P2P offer type: "buy" → "Compra"/"Buy",
+ * "sell" → "Venta"/"Sell". Anything else passes through unchanged.
  * @param {string} text
  * @returns {string}
  */
 const p2pTypeText = (text) => {
-	if (text === "buy") { return "Compra" }
-	if (text === "sell") { return "Venta" }
+	if (text === "buy") { return i18n.t('common.p2pType.buy') }
+	if (text === "sell") { return i18n.t('common.p2pType.sell') }
 	return text
 }
 
+// Backend statuses with a localized label in common.status.*
+const STATUS_LABEL_KEYS = ['open', 'revision', 'cancelled', 'closed', 'completed', 'processing', 'pending', 'paid', 'received']
+
 /**
- * Spanish label for a P2P offer / transaction status ("open" → "Abierta",
+ * Localized label for a P2P offer / transaction status ("open" → "Abierta",
  * "paid" → "Pagada", …). Unknown statuses pass through unchanged.
  * @param {string} text
  * @returns {string}
  */
 const statusText = (text) => {
-	if (text === "open") { return "Abierta" }
-	if (text === "revision") { return "Revisión" }
-	if (text === "cancelled") { return "Cancelada" }
-	if (text === "closed") { return "Cerrada" }
-	if (text === "completed") { return "Completada" }
-	if (text === "processing") { return "Procesando" }
-	if (text === "pending") { return "Pendiente" }
-	if (text === "paid") { return "Pagada" }
-	if (text === "received") { return "Recibida" }
-	return text
+	return STATUS_LABEL_KEYS.includes(text) ? i18n.t(`common.status.${text}`) : text
 }
 
 /**
@@ -389,13 +359,13 @@ const shuffleArray = (array) => {
 }
 
 /**
- * Copies text to the clipboard with a success haptic and a Spanish toast.
+ * Copies text to the clipboard with a success haptic and a localized toast.
  * @param {string} text
  */
 const copyTextToClipboard = (text) => {
 	Clipboard.setString(text)
 	ReactNativeHapticFeedback.trigger('notificationSuccess', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
-	toast.success('Copiado al portapapeles', { duration: 1500 })
+	toast.success(i18n.t('common.toasts.copied'), { duration: 1500 })
 }
 
 /**
@@ -411,8 +381,8 @@ const getFirstChunk = (uuid) => {
 	return uuid.split("-")[0]
 }
 
-/** Uppercase Spanish P2P type label: 'buy' → 'COMPRA', anything else → 'VENTA'. */
-const getTypeText = type => { return type === 'buy' ? 'COMPRA' : 'VENTA' }
+/** Uppercase localized P2P type label: 'buy' → 'COMPRA'/'BUY', anything else → 'VENTA'/'SELL'. */
+const getTypeText = type => { return type === 'buy' ? i18n.t('common.p2pType.buyUpper') : i18n.t('common.p2pType.sellUpper') }
 /** Theme color for a P2P type: success (green) for 'buy', error (red) otherwise. */
 const getTypeColor = (type, theme) => { return type === 'buy' ? theme.colors.success : theme.colors.error }
 

@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Linking } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -10,26 +11,27 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 
+// Los text son claves de i18n resueltas en render (constante de módulo)
 const CONSEQUENCES = [
 	{
 		icon: 'wallet',
-		text: 'Tu saldo disponible será eliminado permanentemente',
+		text: 'settings.deleteAccount.consequences.balance',
 	},
 	{
 		icon: 'clock-rotate-left',
-		text: 'Tu historial de transacciones se eliminará',
+		text: 'settings.deleteAccount.consequences.history',
 	},
 	{
 		icon: 'handshake',
-		text: 'Todas tus ofertas P2P activas serán canceladas',
+		text: 'settings.deleteAccount.consequences.p2pOffers',
 	},
 	{
 		icon: 'address-card',
-		text: 'Tu verificación KYC y datos personales se borrarán',
+		text: 'settings.deleteAccount.consequences.kycData',
 	},
 	{
 		icon: 'user-slash',
-		text: 'Tu nombre de usuario quedará disponible para otros',
+		text: 'settings.deleteAccount.consequences.username',
 	},
 ]
 
@@ -37,6 +39,7 @@ const handleOpenSupport = () => { Linking.openURL('https://support.qvapay.com') 
 
 const DeleteAccount = () => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -45,9 +48,9 @@ const DeleteAccount = () => {
 		<View style={containerStyles.subContainer}>
 			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-				<Text style={textStyles.h1}>Eliminar cuenta</Text>
+				<Text style={textStyles.h1}>{t('settings.deleteAccount.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-					Esta acción es permanente e irreversible
+					{t('settings.deleteAccount.subtitle')}
 				</Text>
 
 				{/* Warning icon */}
@@ -67,13 +70,13 @@ const DeleteAccount = () => {
 				{/* Consequences */}
 				<View style={[containerStyles.card, { marginBottom: 16 }]}>
 					<Text style={[textStyles.h4, { marginBottom: 16 }]}>
-						Al eliminar tu cuenta:
+						{t('settings.deleteAccount.consequencesTitle')}
 					</Text>
 					{CONSEQUENCES.map((item, index) => (
 						<View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < CONSEQUENCES.length - 1 ? 14 : 0 }}>
 							<FontAwesome6 name={item.icon} size={16} color={theme.colors.danger} iconStyle="solid" />
 							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-								{item.text}
+								{t(item.text)}
 							</Text>
 						</View>
 					))}
@@ -84,7 +87,7 @@ const DeleteAccount = () => {
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="headset" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-							Para solicitar la eliminación de tu cuenta, crea un ticket en nuestro centro de soporte. Nuestro equipo procesará tu solicitud en un plazo de 48 horas.
+							{t('settings.deleteAccount.supportInfo')}
 						</Text>
 					</View>
 				</View>
@@ -93,7 +96,7 @@ const DeleteAccount = () => {
 
 			<View style={containerStyles.bottomButtonContainer}>
 				<QPButton
-					title="Contactar soporte"
+					title={t('settings.deleteAccount.contactSupport')}
 					onPress={handleOpenSupport}
 					style={{ backgroundColor: theme.colors.danger }}
 					textStyle={{ color: theme.colors.almostWhite }}

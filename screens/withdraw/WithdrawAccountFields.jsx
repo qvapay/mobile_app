@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import QPInput from '../../ui/particles/QPInput'
 import QPPressable from '../../ui/particles/QPPressable'
@@ -12,9 +13,11 @@ import { keyFromFieldName } from './withdrawFees'
 // payloads — e.g. the BTCLN wallet field with a BOLT11 invoice — so they wrap
 // instead of scrolling, and disable autocapitalize/autocorrect that would
 // corrupt them.
-const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], theme, textStyles }) => (
+const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<View style={{ marginTop: 20 }}>
-		<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>Datos de su cuenta:</Text>
+		<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>{t('withdraw.accountFields.title')}</Text>
 		{workingFields.map((field) => {
 			const key = keyFromFieldName(field.name)
 
@@ -75,6 +78,7 @@ const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, mult
 			)
 		})}
 	</View>
-)
+	)
+}
 
 export default WithdrawAccountFields

@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -24,6 +25,7 @@ import { ROUTES } from '../routes'
 const EmptyTransactions = ({ navigation }) => {
 
 	// Context
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 
 	return (
@@ -32,14 +34,14 @@ const EmptyTransactions = ({ navigation }) => {
 				<FontAwesome6 name="receipt" size={20} color={theme.colors.primary} iconStyle="solid" />
 			</View>
 			<Text style={[styles.title, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }]}>
-				Aún no tienes transacciones
+				{t('ui.emptyTransactions.title')}
 			</Text>
 			<Text style={[styles.subtitle, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
-				Añade saldo o haz tu primer pago y aparecerá aquí.
+				{t('ui.emptyTransactions.subtitle')}
 			</Text>
 			<QPPressable onPress={() => navigation.navigate(ROUTES.ADD)} style={[styles.cta, { backgroundColor: theme.colors.primary }]}>
 				<Text style={{ color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
-					Añadir saldo
+					{t('ui.emptyTransactions.cta')}
 				</Text>
 			</QPPressable>
 		</View>

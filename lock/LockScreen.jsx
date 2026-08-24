@@ -1,4 +1,5 @@
 import { useState, useEffect, useEffectEvent, useRef, useCallback, useReducer } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SystemBars } from 'react-native-edge-to-edge'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -41,6 +42,7 @@ function biometricsReducer(state, action) {
  */
 const LockScreen = () => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
@@ -108,7 +110,7 @@ const LockScreen = () => {
 	const verifyPin = async (code) => {
 		const result = await unlockWithPin(code)
 		if (!result.success) {
-			setError('PIN incorrecto')
+			setError(t('misc.lock.errors.wrongPin'))
 			setPin('')
 			triggerShake()
 			setTimeout(() => codeInputRef.current?.focus(0), 300)
@@ -122,10 +124,10 @@ const LockScreen = () => {
 
 	const getBiometryLabel = () => {
 		switch (biometryType) {
-			case 'FaceID': return 'Desbloquear con Face ID'
-			case 'TouchID': return 'Desbloquear con Touch ID'
-			case 'Fingerprint': return 'Desbloquear con huella'
-			default: return 'Desbloquear con biometr\u00eda'
+			case 'FaceID': return t('misc.lock.unlock.faceId')
+			case 'TouchID': return t('misc.lock.unlock.touchId')
+			case 'Fingerprint': return t('misc.lock.unlock.fingerprint')
+			default: return t('misc.lock.unlock.biometrics')
 		}
 	}
 
@@ -151,7 +153,7 @@ const LockScreen = () => {
 
 				{/* Title */}
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
-					Ingresa tu PIN de seguridad
+					{t('misc.lock.enterPin')}
 				</Text>
 
 				{/* Biometric button */}
@@ -168,7 +170,7 @@ const LockScreen = () => {
 						<View style={styles.separatorRow}>
 							<View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
 							<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginHorizontal: 12 }]}>
-								o ingresa tu PIN
+								{t('misc.lock.orEnterPin')}
 							</Text>
 							<View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
 						</View>

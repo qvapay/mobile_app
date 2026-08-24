@@ -8,7 +8,7 @@ import {
 	isDuplicateInFlight,
 	callWithDuplicateRetry,
 	isNetworkFailure,
-	SAFE_RETRY_HINT,
+	safeRetryHint,
 } from './idempotency'
 
 describe('makeIdempotencyKey', () => {
@@ -119,9 +119,9 @@ describe('isNetworkFailure', () => {
 	})
 })
 
-describe('SAFE_RETRY_HINT', () => {
+describe('safeRetryHint', () => {
 
 	test('promises a safe retry in Spanish', () => {
-		expect(SAFE_RETRY_HINT).toMatch(/reintentar sin riesgo/i)
+		expect(safeRetryHint()).toMatch(/reintentar sin riesgo/i)
 	})
 })

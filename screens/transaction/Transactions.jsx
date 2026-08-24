@@ -1,5 +1,6 @@
 import { useState, useCallback, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
 import { View, Text, ActivityIndicator, Pressable, Platform, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
 
 // Contexts
@@ -87,6 +88,7 @@ const Transactions = ({ navigation, route }) => {
 	const listItems = useMemo(() => groupTransactionsByDay(transactions), [transactions])
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -138,14 +140,14 @@ const Transactions = ({ navigation, route }) => {
 				unstable_headerRightItems: () => [
 					{
 						type: 'button',
-						label: 'Buscar',
+						label: t('common.actions.search'),
 						icon: { type: 'sfSymbol', name: 'magnifyingglass' },
 						tintColor: showSearch ? theme.colors.primary : undefined,
 						onPress: toggleSearch,
 					},
 					{
 						type: 'button',
-						label: 'Filtrar',
+						label: t('transactions.filters.title'),
 						icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease' },
 						tintColor: hasActiveFilters ? theme.colors.primary : undefined,
 						onPress: openFilters,
@@ -153,7 +155,7 @@ const Transactions = ({ navigation, route }) => {
 				],
 			}),
 		})
-	}, [hasActiveFilters, showSearch, theme, navigation, containerStyles.headerRight, openFilters, toggleSearch])
+	}, [hasActiveFilters, showSearch, theme, navigation, containerStyles.headerRight, openFilters, toggleSearch, t])
 
 	// Apply filters from modal — cambiar `filters` cambia de query; no hay nada
 	// más que resetear (cursores y lista los gestiona React Query)
@@ -194,7 +196,7 @@ const Transactions = ({ navigation, route }) => {
 			{showSearch && (
 				<View style={{ paddingHorizontal: 0, paddingBottom: 8 }}>
 					<QPInput
-						placeholder="Buscar por descripción o UUID"
+						placeholder={t('transactions.list.searchPlaceholder')}
 						value={searchText}
 						onChangeText={setSearchText}
 						onSubmitEditing={() => handleSearch(searchText)}
@@ -216,7 +218,7 @@ const Transactions = ({ navigation, route }) => {
 						: <QPTransaction transaction={item.transaction} navigation={navigation} index={item.groupIndex} totalItems={item.groupSize} />
 				)}
 				keyExtractor={(item) => (item.type === 'header' ? item.key : item.transaction.uuid)}
-				ListEmptyComponent={!isPending ? <Text style={textStyles.h2}>No hay transacciones</Text> : null}
+				ListEmptyComponent={!isPending ? <Text style={textStyles.h2}>{t('transactions.list.empty')}</Text> : null}
 				ListFooterComponent={renderFooter}
 				onEndReached={loadMore}
 				onEndReachedThreshold={0.3}

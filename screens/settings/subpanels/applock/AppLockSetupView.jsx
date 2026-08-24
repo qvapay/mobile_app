@@ -1,19 +1,24 @@
 import { View, Text, ScrollView } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import LottieView from 'lottie-react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import QPButton from '../../../../ui/particles/QPButton'
 
 // Disabled-info / setup / confirm flow. PIN rows are pre-rendered by the parent.
-const AppLockSetupView = ({ mode, security, setupRow, confirmRow, onActivate, onSubmit, onCancel, isLoading, pinComplete, confirmComplete, theme, textStyles, containerStyles }) => (
+const AppLockSetupView = ({ mode, security, setupRow, confirmRow, onActivate, onSubmit, onCancel, isLoading, pinComplete, confirmComplete, theme, textStyles, containerStyles }) => {
+
+	const { t } = useTranslation()
+
+	return (
 	<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 		<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
 			{mode === 'info' && (
 				<>
-					<Text style={textStyles.h1}>Bloqueo de app</Text>
+					<Text style={textStyles.h1}>{t('settings.appLock.title')}</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-						Protege tu app con PIN y biometría
+						{t('settings.appLock.setup.subtitle')}
 					</Text>
 
 					{/* Status icon */}
@@ -31,19 +36,19 @@ const AppLockSetupView = ({ mode, security, setupRow, confirmRow, onActivate, on
 						<View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
 							<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
 							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-								Bloquea la app automáticamente después de {security.autoLockTimeout || 5} minutos en segundo plano
+								{t('settings.appLock.setup.features.autoLock', { minutes: security.autoLockTimeout || 5 })}
 							</Text>
 						</View>
 						<View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
 							<FontAwesome6 name="fingerprint" size={16} color={theme.colors.primary} iconStyle="solid" />
 							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-								Desbloquea con Face ID, Touch ID o Huella Digital o tu PIN de 4 dígitos
+								{t('settings.appLock.setup.features.unlockMethods')}
 							</Text>
 						</View>
 						<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 							<FontAwesome6 name="lock" size={16} color={theme.colors.primary} iconStyle="solid" />
 							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-								Toda la verificación es local, no se envían datos al servidor
+								{t('settings.appLock.setup.features.localOnly')}
 							</Text>
 						</View>
 					</View>
@@ -52,9 +57,9 @@ const AppLockSetupView = ({ mode, security, setupRow, confirmRow, onActivate, on
 
 			{mode === 'setup' && (
 				<>
-					<Text style={textStyles.h1}>Crear PIN</Text>
+					<Text style={textStyles.h1}>{t('settings.appLock.setup.createTitle')}</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-						Elige un PIN de 4 dígitos para bloquear tu app
+						{t('settings.appLock.setup.createSubtitle')}
 					</Text>
 
 					{setupRow}
@@ -63,9 +68,9 @@ const AppLockSetupView = ({ mode, security, setupRow, confirmRow, onActivate, on
 
 			{mode === 'confirm' && (
 				<>
-					<Text style={textStyles.h1}>Confirmar PIN</Text>
+					<Text style={textStyles.h1}>{t('settings.appLock.setup.confirmTitle')}</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-						Ingresa el PIN nuevamente para confirmar
+						{t('settings.appLock.setup.confirmSubtitle')}
 					</Text>
 
 					{confirmRow}
@@ -76,30 +81,31 @@ const AppLockSetupView = ({ mode, security, setupRow, confirmRow, onActivate, on
 
 		<View style={containerStyles.bottomButtonContainer}>
 			{mode === 'info' && (
-				<QPButton title="Activar bloqueo" onPress={onActivate} />
+				<QPButton title={t('settings.appLock.setup.activateButton')} onPress={onActivate} />
 			)}
 
 			{mode === 'setup' && (
 				<>
-					<QPButton title="Continuar" onPress={onSubmit} disabled={!pinComplete} />
-					<QPButton title="Cancelar" onPress={onCancel} style={{ marginTop: 12 }} danger outlined />
+					<QPButton title={t('common.actions.continue')} onPress={onSubmit} disabled={!pinComplete} />
+					<QPButton title={t('common.actions.cancel')} onPress={onCancel} style={{ marginTop: 12 }} danger outlined />
 				</>
 			)}
 
 			{mode === 'confirm' && (
 				<>
 					<QPButton
-						title="Activar bloqueo"
+						title={t('settings.appLock.setup.activateButton')}
 						textStyle={{ color: theme.colors.buttonText }}
 						onPress={onSubmit}
 						loading={isLoading}
 						disabled={!confirmComplete}
 					/>
-					<QPButton title="Cancelar" onPress={onCancel} style={{ marginTop: 12 }} danger outlined />
+					<QPButton title={t('common.actions.cancel')} onPress={onCancel} style={{ marginTop: 12 }} danger outlined />
 				</>
 			)}
 		</View>
 	</View>
-)
+	)
+}
 
 export default AppLockSetupView

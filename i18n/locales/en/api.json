@@ -1,0 +1,112 @@
+{
+	"common": {
+		"networkError": "A network error occurred",
+		"networkErrorShort": "Network error",
+		"purchaseMissingData": "Missing purchase data",
+		"purchasesLoadFailed": "Couldn't load your purchases",
+		"purchaseValidateFailed": "Couldn't validate the purchase",
+		"checkoutProcessFailed": "We couldn't process the purchase"
+	},
+	"auth": {
+		"loginFailed": "Couldn't log in",
+		"connectFailed": "Couldn't connect to the server",
+		"requestPinFailed": "Couldn't request the PIN",
+		"registerFailed": "Couldn't sign up",
+		"confirmRegistrationFailed": "Couldn't confirm the registration",
+		"passkeysLoadFailed": "Couldn't load passkeys",
+		"passkeyDeleteFailed": "Couldn't delete the passkey",
+		"passkeyRegisterOptionsFailed": "Couldn't generate registration options",
+		"passkeyRegisterVerifyFailed": "Couldn't verify the registration",
+		"passkeyLoginOptionsFailed": "Couldn't generate authentication options",
+		"passkeyLoginVerifyFailed": "Couldn't verify the authentication",
+		"resetPasswordFailed": "Couldn't request the password reset"
+	},
+	"user": {
+		"kycSessionFailed": "Couldn't get the verification session",
+		"companySubmitFailed": "Couldn't submit the request",
+		"paymentMethodsLoadFailed": "Couldn't load payment methods",
+		"paymentMethodCreateFailed": "Couldn't create the payment method",
+		"paymentMethodDeleteFailed": "Couldn't delete the payment method",
+		"contactsLoadFailed": "Couldn't load contacts",
+		"contactAddFailed": "Couldn't add the contact",
+		"contactFavoriteFailed": "Couldn't update the favorite",
+		"contactDeleteFailed": "Couldn't delete the contact",
+		"contactsSyncFailed": "Couldn't sync contacts",
+		"twoFactorGenerateFailed": "Couldn't generate the 2FA code",
+		"twoFactorActivateFailed": "Couldn't activate 2FA",
+		"twoFactorDeactivateFailed": "Couldn't deactivate 2FA",
+		"imageUploadFailed": "Couldn't upload the image"
+	},
+	"p2p": {
+		"offersLoadFailed": "Couldn't load P2P offers",
+		"createFailed": "Couldn't create the P2P offer",
+		"editFailed": "Couldn't edit the offer",
+		"averagesLoadFailed": "Couldn't load P2P averages",
+		"profileLoadFailed": "Couldn't load the profile"
+	},
+	"withdraw": {
+		"pinSendFailed": "Couldn't send the PIN",
+		"withdrawFailed": "Couldn't complete the withdrawal",
+		"lightningInvalid": "Invalid Lightning destination"
+	},
+	"saving": {
+		"summaryLoadFailed": "Couldn't load the savings summary",
+		"roundupUpdateFailed": "Couldn't update the roundup setting",
+		"depositFailed": "Couldn't complete the deposit",
+		"withdrawFailed": "Couldn't complete the withdrawal",
+		"transactionsLoadFailed": "Couldn't load transactions",
+		"earningsLoadFailed": "Couldn't load earnings"
+	},
+	"stocks": {
+		"stocksLoadFailed": "Couldn't load stocks",
+		"quoteLoadFailed": "Couldn't load the quote",
+		"historyLoadFailed": "Couldn't load the history"
+	},
+	"store": {
+		"voucherCatalogLoadFailed": "Couldn't load the gift card catalog",
+		"voucherPurchaseFailed": "Couldn't complete the purchase",
+		"topupCatalogLoadFailed": "Couldn't load the top-up catalog",
+		"topupMissingData": "Missing top-up data",
+		"topupPurchaseFailed": "Couldn't complete the top-up",
+		"purchaseDetailLoadFailed": "Couldn't load the details"
+	},
+	"shop": {
+		"productLinkMissing": "Paste the product link",
+		"productDataLoadFailed": "We couldn't get the product data",
+		"productLoadFailed": "Couldn't load the product",
+		"recentProductsLoadFailed": "Couldn't load recent products",
+		"cartLoadFailed": "Couldn't load the cart",
+		"productMissingData": "Missing product data",
+		"cartAddFailed": "Couldn't add to cart",
+		"cartRemoveFailed": "Couldn't remove the product",
+		"quoteMissingDestination": "Enter a state or a shipping address",
+		"quoteFailed": "Couldn't calculate the total",
+		"checkoutMissingAddress": "Select or create a shipping address",
+		"ordersLoadFailed": "Couldn't load your orders",
+		"orderLoadFailed": "Couldn't load the order",
+		"addressesLoadFailed": "Couldn't load your addresses",
+		"addressSaveFailed": "Couldn't save the address",
+		"addressSearchFailed": "Couldn't search for the address",
+		"addressLoadFailed": "Couldn't get the address",
+		"addressDeleteFailed": "Couldn't delete the address"
+	},
+	"market": {
+		"storesLoadFailed": "Couldn't load stores",
+		"storeInvalid": "Invalid store",
+		"storeLoadFailed": "Couldn't load the store",
+		"productInvalid": "Invalid product",
+		"productLoadFailed": "Couldn't load the product",
+		"catalogLoadFailed": "Couldn't load the catalog",
+		"searchTooShort": "Search too short",
+		"searchFailed": "Couldn't search",
+		"verifyCartEmpty": "No products to verify",
+		"verifyCartFailed": "Couldn't verify the cart"
+	},
+	"coins": {
+		"coinsLoadFailed": "Couldn't load coins",
+		"priceHistoryLoadFailed": "Couldn't load the price history"
+	},
+	"promo": {
+		"promoLoadFailed": "Couldn't load the promo"
+	}
+}

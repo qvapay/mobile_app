@@ -1,4 +1,8 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
+
+// i18n (locale de fechas acorde al idioma activo)
+import { getDateLocale } from '../i18n'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -26,23 +30,25 @@ import { ROUTES } from '../routes'
  * Terminal states (completed/paid/revision/cancelled) render pill-shaped
  * status chips; open offers render "Editar" for the owner or an inverse
  * action for peers ("Vender" on a buy offer, "Comprar" on a sell offer).
+ * `t` llega del componente para que el label se re-resuelva con cada render
+ * (y por tanto con cada cambio de idioma).
  */
-const getStatusButton = (status, isOwner, offerType, theme) => {
+const getStatusButton = (status, isOwner, offerType, theme, t) => {
 	switch (status) {
 		case 'completed':
-			return { title: 'Finalizado', bg: theme.colors.primary, textColor: theme.colors.almostWhite, borderRadius: 20 }
+			return { title: t('ui.offerItem.status.completed'), bg: theme.colors.primary, textColor: theme.colors.almostWhite, borderRadius: 20 }
 		case 'paid':
-			return { title: 'Pagado', bg: theme.colors.successFill, textColor: theme.colors.successFillText, borderRadius: 20 }
+			return { title: t('ui.offerItem.status.paid'), bg: theme.colors.successFill, textColor: theme.colors.successFillText, borderRadius: 20 }
 		case 'revision':
-			return { title: 'Revisión', bg: theme.colors.warning, textColor: theme.colors.almostBlack, borderRadius: 20 }
+			return { title: t('ui.offerItem.status.revision'), bg: theme.colors.warning, textColor: theme.colors.almostBlack, borderRadius: 20 }
 		case 'cancelled':
-			return { title: 'Cancelado', bg: theme.colors.danger, textColor: theme.colors.almostWhite, borderRadius: 20 }
+			return { title: t('ui.offerItem.status.cancelled'), bg: theme.colors.danger, textColor: theme.colors.almostWhite, borderRadius: 20 }
 		default:
 			if (isOwner) {
-				return { title: 'Editar', bg: theme.colors.primary, textColor: theme.colors.almostWhite, borderRadius: 10 }
+				return { title: t('ui.offerItem.edit'), bg: theme.colors.primary, textColor: theme.colors.almostWhite, borderRadius: 10 }
 			}
 			return {
-				title: offerType === 'buy' ? 'Vender' : 'Comprar',
+				title: offerType === 'buy' ? t('ui.offerItem.sell') : t('ui.offerItem.buy'),
 				bg: offerType === 'buy' ? theme.colors.successFill : theme.colors.danger,
 				textColor: offerType === 'buy' ? theme.colors.successFillText : theme.colors.almostWhite,
 				borderRadius: 10
@@ -82,6 +88,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const { isUserOnline } = useOnlineStatus()
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -89,11 +96,11 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	// todo el mundo y no distingue ninguna oferta
 	const badges = []
 	if (offer.only_vip) badges.push({ label: 'VIP', color: theme.colors.gold })
-	if (offer.private) badges.push({ label: 'Privada', color: theme.colors.warning })
+	if (offer.private) badges.push({ label: t('ui.offerItem.privateBadge'), color: theme.colors.warning })
 
 	// Status button config
 	const isOwner = user.uuid === offer.User?.uuid
-	const btnConfig = show_buttons ? getStatusButton(offer.status, isOwner, offer.type, theme) : null
+	const btnConfig = show_buttons ? getStatusButton(offer.status, isOwner, offer.type, theme, t) : null
 
 	// Tasa: lo que se compara entre ofertas (guardando la división por cero)
 	const amountNum = Number(offer.amount)
@@ -138,7 +145,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 
 			{show_date && (
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs }]}>
-					{new Date(offer.created_at).toLocaleDateString()}
+					{new Date(offer.created_at).toLocaleDateString(getDateLocale())}
 				</Text>
 			)}
 
@@ -172,7 +179,7 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 			    Si el que mira es el dueño, la perspectiva se invierte otra vez. */}
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
 				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>${offer.amount}</Text>
-				{(isOwner ? offer.type === 'buy' : offer.type === 'sell') ? ' disponible · envías ' : ' disponible · recibes '}
+				{(isOwner ? offer.type === 'buy' : offer.type === 'sell') ? t('ui.offerItem.availableYouSend') : t('ui.offerItem.availableYouReceive')}
 				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>{offer.receive}</Text>
 			</Text>
 

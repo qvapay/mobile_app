@@ -1,0 +1,152 @@
+{
+	"actionButtons": {
+		"account": {
+			"deposit": "Depositar",
+			"withdraw": "Extraer",
+			"send": "Enviar",
+			"trade": "Comerciar"
+		},
+		"savings": {
+			"deposit": "Depositar",
+			"withdraw": "Retirar"
+		},
+		"kycGateMessage": "Para extraer fondos necesitas tener tu identidad verificada. Es rápido y solo se hace una vez."
+	},
+	"addressPicker": {
+		"addressFallback": "Dirección",
+		"defaultSuffix": " · Predeterminada",
+		"newAddress": "Nueva dirección"
+	},
+	"amountInput": {
+		"balanceLabel": "Balance:"
+	},
+	"brandTile": {
+		"from": "desde ${{min}}",
+		"optionsCount": "{{count}} opciones"
+	},
+	"cashDelivery": {
+		"sectionTitle": "Envío de efectivo",
+		"subtitle": "Recibe USD en efectivo en La Habana\nen menos de 72 horas",
+		"cta": "Enviar efectivo",
+		"kycGateMessage": "Para enviar efectivo con USD CASH necesitas tener tu identidad verificada. Es rápido y solo se hace una vez.",
+		"kycRequired": "Requiere identidad verificada"
+	},
+	"coinPicker": {
+		"title": "Seleccionar Moneda",
+		"searchPlaceholder": "Buscar moneda...",
+		"loading": "Cargando monedas...",
+		"empty": "No hay monedas disponibles"
+	},
+	"coinRow": {
+		"feeTerm": "{{fee}}% comisión",
+		"minTerm": "mín. ${{min}}"
+	},
+	"contactsDisclosure": {
+		"title": "Acceso a tus contactos",
+		"body": "QvaPay recopila los números de teléfono de tu lista de contactos y los envía de forma segura a nuestros servidores para encontrar amigos y familiares que ya usan la app. Los números se utilizan únicamente para esta búsqueda y no se comparten con terceros.",
+		"privacyLink": "Ver Política de Privacidad",
+		"accept": "Aceptar y continuar",
+		"decline": "No, gracias"
+	},
+	"countryPickerModal": {
+		"title": "Seleccionar país",
+		"searchPlaceholder": "Buscar país..."
+	},
+	"emptyTransactions": {
+		"title": "Aún no tienes transacciones",
+		"subtitle": "Añade saldo o haz tu primer pago y aparecerá aquí.",
+		"cta": "Añadir saldo"
+	},
+	"kycGate": {
+		"title": "Verifica tu identidad",
+		"defaultMessage": "Esta operación requiere tener tu identidad verificada. Es rápido y solo se hace una vez.",
+		"verifyNow": "Verificar ahora"
+	},
+	"newAddressForm": {
+		"errors": {
+			"recipientName": "Escribe el nombre de quien recibe",
+			"line1": "Escribe la dirección (línea 1)",
+			"city": "Escribe la ciudad",
+			"state": "Selecciona el estado",
+			"postalCode": "Código postal USA inválido (ej: 33033)"
+		},
+		"statePickerTitle": "Estado de destino",
+		"recipientName": "Nombre de quien recibe",
+		"phoneOptional": "Teléfono (opcional)",
+		"line1": "Dirección (línea 1)",
+		"line2": "Apto, suite… (opcional)",
+		"city": "Ciudad",
+		"state": "Estado",
+		"statePlaceholder": "Seleccionar",
+		"postalCode": "Código postal"
+	},
+	"offerItem": {
+		"status": {
+			"completed": "Finalizado",
+			"paid": "Pagado",
+			"revision": "Revisión",
+			"cancelled": "Cancelado"
+		},
+		"edit": "Editar",
+		"sell": "Vender",
+		"buy": "Comprar",
+		"privateBadge": "Privada",
+		"availableYouSend": " disponible · envías ",
+		"availableYouReceive": " disponible · recibes "
+	},
+	"phoneInput": {
+		"placeholder": "Número de teléfono"
+	},
+	"productTile": {
+		"soldOut": "Agotado"
+	},
+	"profile": {
+		"operations": "Operaciones",
+		"rating": "Rating"
+	},
+	"pushPrompt": {
+		"title": "No te pierdas ningún pago",
+		"body": "Activa las notificaciones para saber al instante cuando recibes dinero, cuando tus ofertas P2P tienen respuesta y más.",
+		"enable": "Activar notificaciones"
+	},
+	"satsDiscountRow": {
+		"label": "Usar mis satoshis · {{sats}} (≈ ${{satsUsd}})"
+	},
+	"splitButton": {
+		"back": "Atrás"
+	},
+	"storeCountryPicker": {
+		"placeholder": "Seleccionar país",
+		"title": "Selecciona país",
+		"searchPlaceholder": "Buscar país…",
+		"noResults": "Sin resultados",
+		"options_one": "{{count}} opción",
+		"options_other": "{{count}} opciones"
+	},
+	"storeTile": {
+		"products_one": "{{count}} producto",
+		"products_other": "{{count}} productos",
+		"sales_one": "{{count}} venta",
+		"sales_other": "{{count}} ventas",
+		"verified": "Tienda verificada"
+	},
+	"transactionRow": {
+		"deposit": "Depósito {{coin}}",
+		"withdrawal": "Extracción {{method}}",
+		"servicePurchase": "Compra de servicio",
+		"sentTo": "Envío a @{{username}}",
+		"paymentFrom": "Pago de @{{username}}",
+		"transfer": "Transferencia"
+	},
+	"updatePrompt": {
+		"title": "Nueva versión disponible",
+		"body": "La versión {{latestVersion}} ya está disponible en {{storeName}}. Actualiza para disfrutar las últimas mejoras y correcciones.",
+		"currentVersion": "Tu versión actual: {{currentVersion}}",
+		"updateNow": "Actualizar ahora"
+	},
+	"walletPicker": {
+		"title": "Abre en tu wallet",
+		"memoWarning": "Verifica que el memo se haya copiado en tu wallet antes de enviar.",
+		"empty": "No detectamos ninguna wallet instalada compatible con esta moneda."
+	}
+}

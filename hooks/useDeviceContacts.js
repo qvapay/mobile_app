@@ -4,6 +4,7 @@ import Contacts from 'react-native-contacts'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { toast } from 'sonner-native'
 import { userApi } from '../api/userApi'
+import i18n from '../i18n'
 
 const STORAGE_KEYS = {
 	MATCHED: 'device_contacts_matched',
@@ -47,7 +48,7 @@ const normalizePhone = (raw) => {
  * timeout. Syncs are throttled to one per 15 minutes unless `force` is passed,
  * and phone numbers are uploaded in batches of 2000. Android checks permission
  * via PermissionsAndroid; iOS treats 'limited' access as authorized.
- * All toasts/errors are user-facing Spanish strings.
+ * All toasts/errors are localized user-facing strings.
  *
  * @returns {object} `{ matchedContacts, permissionStatus, isSyncing, error,
  *   showDisclosure, checkPermission, requestPermission, acceptDisclosure,
@@ -77,11 +78,11 @@ const useDeviceContacts = () => {
 	// Show alert to guide user to Settings
 	const showSettingsAlert = useCallback(() => {
 		Alert.alert(
-			'Permiso de contactos',
-			'Para sincronizar tus contactos, activa el permiso en la configuración de tu dispositivo.',
+			i18n.t('hooks.deviceContacts.alerts.permissionTitle'),
+			i18n.t('hooks.deviceContacts.alerts.permissionBody'),
 			[
-				{ text: 'Cancelar', style: 'cancel' },
-				{ text: 'Abrir Configuración', onPress: openSettings },
+				{ text: i18n.t('common.actions.cancel'), style: 'cancel' },
+				{ text: i18n.t('common.actions.openSettings'), onPress: openSettings },
 			]
 		)
 	}, [openSettings])
@@ -242,8 +243,8 @@ const useDeviceContacts = () => {
 			// Verify permission
 			const permStatus = await checkPermission()
 			if (permStatus !== 'authorized' && permStatus !== 'limited') {
-				setError('Permiso de contactos no concedido')
-				toast.error('Permiso de contactos no concedido')
+				setError(i18n.t('hooks.deviceContacts.toasts.permissionDenied'))
+				toast.error(i18n.t('hooks.deviceContacts.toasts.permissionDenied'))
 				return
 			}
 
@@ -268,7 +269,7 @@ const useDeviceContacts = () => {
 				setMatchedContacts([])
 				await AsyncStorage.setItem(STORAGE_KEYS.MATCHED, JSON.stringify([]))
 				await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, String(Date.now()))
-				toast.info('No se encontraron números de teléfono en tus contactos')
+				toast.info(i18n.t('hooks.deviceContacts.toasts.noPhoneNumbers'))
 				return
 			}
 
@@ -280,7 +281,7 @@ const useDeviceContacts = () => {
 			const allMatches = []
 			let totalAutoAdded = 0
 			for (const result of results) {
-				if (!result.success) { throw new Error(result.error || 'Error al sincronizar contactos') }
+				if (!result.success) { throw new Error(result.error || i18n.t('hooks.deviceContacts.syncFailed')) }
 				if (result.data?.matches) { allMatches.push(...result.data.matches) }
 				if (result.data?.auto_added_count) { totalAutoAdded += result.data.auto_added_count }
 			}
@@ -298,16 +299,16 @@ const useDeviceContacts = () => {
 			setMatchedContacts(merged)
 
 			if (totalAutoAdded > 0) {
-				toast.success(`${totalAutoAdded} contacto${totalAutoAdded > 1 ? 's' : ''} agregado${totalAutoAdded > 1 ? 's' : ''} automáticamente`)
+				toast.success(i18n.t('hooks.deviceContacts.toasts.autoAdded', { count: totalAutoAdded }))
 			} else if (merged.length > 0) {
-				toast.success('Contactos sincronizados')
-			} else { toast.info('Ninguno de tus contactos usa QvaPay aún') }
+				toast.success(i18n.t('hooks.deviceContacts.toasts.synced'))
+			} else { toast.info(i18n.t('hooks.deviceContacts.toasts.noneOnQvaPay')) }
 
 			onSyncComplete?.()
 
 		} catch (e) {
-			setError(e.message || 'Error al sincronizar contactos')
-			toast.error('Error al sincronizar', { description: e.message })
+			setError(e.message || i18n.t('hooks.deviceContacts.syncFailed'))
+			toast.error(i18n.t('hooks.deviceContacts.toasts.syncErrorTitle'), { description: e.message })
 			await loadCachedMatches()
 		} finally {
 			setIsSyncing(false)

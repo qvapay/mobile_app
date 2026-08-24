@@ -54,9 +54,10 @@ describe('timeSince', () => {
 		expect(timeSince(secondsAgo(5 * 3600))).toBe('5 horas')
 	})
 
-	test('anything over a day reports in days (week branch is unreachable)', () => {
-		expect(timeSince(secondsAgo(2 * 86400))).toBe('2 dias')
-		expect(timeSince(secondsAgo(10 * 86400))).toBe('10 dias')
+	test('anything over a day reports in days', () => {
+		// i18n unificó "dia" (typo del viejo timeSince) con "día" (common.time.day)
+		expect(timeSince(secondsAgo(2 * 86400))).toBe('2 días')
+		expect(timeSince(secondsAgo(10 * 86400))).toBe('10 días')
 	})
 })
 

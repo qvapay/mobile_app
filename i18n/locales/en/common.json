@@ -1,0 +1,62 @@
+{
+	"actions": {
+		"accept": "OK",
+		"back": "Back",
+		"cancel": "Cancel",
+		"close": "Close",
+		"confirm": "Confirm",
+		"continue": "Continue",
+		"copy": "Copy",
+		"delete": "Delete",
+		"done": "Done",
+		"notNow": "Not now",
+		"openSettings": "Open Settings",
+		"retry": "Retry",
+		"save": "Save",
+		"search": "Search",
+		"seeAll": "See all",
+		"share": "Share",
+		"understood": "Got it"
+	},
+	"dates": {
+		"today": "Today",
+		"yesterday": "Yesterday",
+		"earlier": "Earlier"
+	},
+	"p2pType": {
+		"buy": "Buy",
+		"buyUpper": "BUY",
+		"sell": "Sell",
+		"sellUpper": "SELL"
+	},
+	"status": {
+		"cancelled": "Cancelled",
+		"closed": "Closed",
+		"completed": "Completed",
+		"open": "Open",
+		"paid": "Paid",
+		"pending": "Pending",
+		"processing": "Processing",
+		"received": "Received",
+		"revision": "Under review"
+	},
+	"time": {
+		"second_one": "{{count}} second",
+		"second_other": "{{count}} seconds",
+		"minute_one": "{{count}} minute",
+		"minute_other": "{{count}} minutes",
+		"hour_one": "{{count}} hour",
+		"hour_other": "{{count}} hours",
+		"day_one": "{{count}} day",
+		"day_other": "{{count}} days",
+		"week_one": "{{count}} week",
+		"week_other": "{{count}} weeks",
+		"month_one": "{{count}} month",
+		"month_other": "{{count}} months",
+		"year_one": "{{count}} year",
+		"year_other": "{{count}} years"
+	},
+	"toasts": {
+		"copied": "Copied to clipboard"
+	}
+}

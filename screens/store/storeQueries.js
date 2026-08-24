@@ -10,6 +10,9 @@ import { marketApi } from '../../api/marketApi'
 
 import { unwrap } from '../../api/unwrap'
 
+// i18n en call time (hook fuera de componentes: los toasts se resuelven al disparar)
+import i18n from '../../i18n'
+
 /** Raíz de las claves del catálogo de la tienda. */
 export const STORE_QUERY_KEY = ['store']
 
@@ -175,7 +178,7 @@ export const useStoreCatalog = () => {
 	// versión anterior: offline con caché se quedaba la lista, sin toast)
 	useEffect(() => {
 		if (brands.isError && !brands.data) {
-			toast.error('Operadores', { description: brands.error?.message })
+			toast.error(i18n.t('store.toasts.operators'), { description: brands.error?.message })
 		}
 	}, [brands.isError, brands.data, brands.error])
 

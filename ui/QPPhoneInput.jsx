@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -34,6 +35,7 @@ import { countries } from '../labels/countries'
  */
 const QPPhoneInput = ({ country, onChangeCountry, lockedCountry, valid, ...inputProps }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -66,7 +68,7 @@ const QPPhoneInput = ({ country, onChangeCountry, lockedCountry, valid, ...input
 
 				<View style={styles.inputWrap}>
 					<QPInput
-						placeholder="Número de teléfono"
+						placeholder={t('ui.phoneInput.placeholder')}
 						keyboardType="phone-pad"
 						textContentType="telephoneNumber"
 						autoComplete="tel"

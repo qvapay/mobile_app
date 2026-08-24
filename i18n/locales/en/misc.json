@@ -1,0 +1,60 @@
+{
+	"scan": {
+		"permission": {
+			"title": "Camera permission required",
+			"body": "Please allow camera access to scan QR codes",
+			"settings": "Settings"
+		},
+		"instructions": {
+			"title": "Place the QR code inside the frame",
+			"subtitle": "The QR code will be scanned automatically"
+		},
+		"modeSwitch": {
+			"scan": "Scan QR",
+			"myQr": "My QR"
+		}
+	},
+	"nearby": {
+		"title": "Pay nearby",
+		"verifying": "Verifying users…",
+		"searching": "Looking for users nearby…",
+		"peersNearby_one": "{{count}} person nearby",
+		"peersNearby_other": "{{count}} people nearby",
+		"charging": "Charging ${{amount}}",
+		"chargeNearby": "Charge nearby",
+		"paymentConfirmed": "Payment confirmed",
+		"confirming": "Confirming…",
+		"sheet": {
+			"subtitle": "Nearby users will see this amount when they tap your avatar",
+			"amountPlaceholder": "Amount to charge",
+			"charge": "Charge",
+			"chargeAmount": "Charge ${{amount}}"
+		},
+		"gate": {
+			"permissionTitle": "Permission needed",
+			"unavailableTitle": "Not available",
+			"permissionBody": "To discover nearby users, QvaPay needs access to the local network and Bluetooth. Enable them in Settings.",
+			"unavailableBody": "Your device can't discover nearby users right now. Check that Bluetooth and WiFi are turned on.",
+			"openSettings": "Open Settings"
+		}
+	},
+	"lock": {
+		"enterPin": "Enter your security PIN",
+		"orEnterPin": "or enter your PIN",
+		"unlock": {
+			"faceId": "Unlock with Face ID",
+			"touchId": "Unlock with Touch ID",
+			"fingerprint": "Unlock with fingerprint",
+			"biometrics": "Unlock with biometrics"
+		},
+		"errors": {
+			"wrongPin": "Incorrect PIN",
+			"verifyPin": "Error verifying PIN",
+			"biometricCanceled": "Biometric authentication cancelled",
+			"biometricError": "Biometric authentication error",
+			"savePin": "Couldn't save the PIN",
+			"currentPinWrong": "Current PIN is incorrect",
+			"updatePin": "Couldn't update the PIN"
+		}
+	}
+}

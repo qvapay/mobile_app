@@ -1,0 +1,174 @@
+{
+	"common": {
+		"errorTitle": "Error"
+	},
+	"send": {
+		"sendButton": "Send ${{amount}}",
+		"amountPlaceholder": "Amount to send",
+		"amountPlaceholderTo": "Amount to send to ...",
+		"sendTo": "Send to:",
+		"seeAllContacts": "See all",
+		"removeRecipientA11y": "Remove selected user",
+		"stickerSelected": "Sticker selected",
+		"removeStickerA11y": "Remove sticker",
+		"messagePlaceholder": "Leave a message for {{name}} ...",
+		"sendStickerA11y": "Send a sticker",
+		"stickersGoldOnlyA11y": "Stickers available for GOLD users"
+	},
+	"sendConfirm": {
+		"recipientNotFound": "Couldn't find the recipient user",
+		"userNotFound": "User not found",
+		"confirmSend": "Confirm send",
+		"kycGateMessage": "Sending ${{amount}} or more requires identity verification. It's quick and you only do it once.",
+		"toasts": {
+			"recipientLoadFailed": "Couldn't load the recipient's details",
+			"pinSentTitle": "PIN sent",
+			"pinSentBody": "Check your email",
+			"pinSendFailed": "Couldn't send the PIN",
+			"pinRequestFailed": "Couldn't request the PIN",
+			"enterPin4": "Enter a 4-digit PIN",
+			"enterOtp6": "Enter a 6-digit OTP code",
+			"networkErrorTitle": "Network error",
+			"transactionErrorTitle": "Transaction error",
+			"transactionFailed": "Couldn't complete the transaction",
+			"unexpectedError": "Unexpected error while processing the transaction"
+		}
+	},
+	"sendSuccess": {
+		"title": "Payment completed",
+		"subtitle": "We've processed this payment and it will reach its destination in a few seconds.",
+		"backHome": "Back to home"
+	},
+	"userSearch": {
+		"title": "Search user",
+		"placeholder": "Search user ...",
+		"noResults": "No users found",
+		"tryAnother": "Try another name or username",
+		"hint": "Search by name, username or email"
+	},
+	"stickers": {
+		"title": "Stickers",
+		"goldRequired": "GOLD required",
+		"goldNeeded": "You need to be a GOLD user to send stickers"
+	},
+	"summary": {
+		"recipient": "Recipient",
+		"message": "Message",
+		"details": "Transaction details",
+		"fee": "Fee",
+		"totalToSend": "Total to send"
+	},
+	"pinConfirm": {
+		"enterPin": "Enter your PIN",
+		"enterOtp": "Enter the OTP code",
+		"sending": "Sending...",
+		"requestPin": "Request PIN"
+	},
+	"receive": {
+		"shareWithAmount": "Pay me ${{amount}} on QvaPay: {{url}}",
+		"share": "Pay me on QvaPay: {{url}}",
+		"tapToCopy": "Tap the QR to copy the link"
+	},
+	"detail": {
+		"detailsTitle": "Transaction details:",
+		"id": "ID:",
+		"amount": "Amount:",
+		"status": "Status:",
+		"note": "Note:",
+		"date": "Date:",
+		"download": "Download",
+		"toasts": {
+			"tokenFailed": "Couldn't get the authentication token",
+			"successTitle": "Success",
+			"pdfDownloaded": "PDF downloaded successfully",
+			"pdfFailed": "Couldn't download the PDF"
+		},
+		"related": {
+			"cryptoDeposit": "Crypto deposit",
+			"coin": "Coin:",
+			"expectedValue": "Expected value:",
+			"receivedValue": "Received value:",
+			"address": "Address:",
+			"txHash": "TX Hash:",
+			"type": "Type:",
+			"toReceive": "To receive:",
+			"withdrawal": "Withdrawal",
+			"method": "Method:",
+			"amountRequested": "Requested amount:",
+			"service": "Service",
+			"serviceLabel": "Service:",
+			"purchase": "Purchase",
+			"cartCancelled": "Cancelled",
+			"cartDelivered": "Delivered",
+			"cartPurchased": "Purchased",
+			"tracking": "Tracking:",
+			"description": "Description:",
+			"appId": "App ID:"
+		}
+	},
+	"list": {
+		"searchPlaceholder": "Search by description or UUID",
+		"empty": "No transactions"
+	},
+	"filters": {
+		"title": "Filter",
+		"sectionStatus": "Status",
+		"sectionPeriod": "Period",
+		"sectionAmount": "Amount",
+		"sectionSortBy": "Sort by",
+		"sectionSortDir": "Direction",
+		"searchPlaceholder": "Description or UUID",
+		"min": "Minimum",
+		"max": "Maximum",
+		"apply": "Apply",
+		"clear": "Clear",
+		"statusOptions": {
+			"paid": "Paid",
+			"pending": "Pending",
+			"processing": "Processing",
+			"cancelled": "Cancelled"
+		},
+		"periods": {
+			"thisWeek": "This week",
+			"thisMonth": "This month",
+			"lastMonth": "Last month"
+		},
+		"sortField": {
+			"date": "Date",
+			"amount": "Amount"
+		},
+		"sortDir": {
+			"desc": "Newest",
+			"asc": "Oldest"
+		}
+	},
+	"pay": {
+		"loadingInvoice": "Loading invoice…",
+		"invoiceUnavailable": "Invoice unavailable",
+		"invoiceNotFound": "The requested invoice was not found",
+		"invoiceLoadFailed": "Couldn't load the invoice",
+		"invoiceLoadError": "Error loading the invoice",
+		"paymentDone": "Payment sent",
+		"payFailed": "Couldn't process the payment",
+		"payError": "Error processing the payment",
+		"id": "ID",
+		"concept": "Description",
+		"date": "Date",
+		"balanceAvailable": "Available balance: ${{amount}}",
+		"insufficientBalance": "Insufficient balance (${{amount}})",
+		"moodQuestion": "How do you feel about this payment?",
+		"alreadyPaid": "This invoice was already {{status}}.",
+		"ownInvoice": "You can't pay an invoice you created yourself.",
+		"payButton": "Pay ${{amount}}",
+		"moods": {
+			"none": "None",
+			"loved": "Loved it",
+			"happy": "Happy",
+			"thumbsy": "Great",
+			"sad": "Sad"
+		},
+		"toasts": {
+			"paidTo": "You paid ${{amount}} to {{name}}"
+		}
+	}
+}

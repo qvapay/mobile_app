@@ -1,0 +1,60 @@
+{
+	"scan": {
+		"permission": {
+			"title": "Permissão de câmera necessária",
+			"body": "Permita o acesso à câmera para escanear códigos QR",
+			"settings": "Configurações"
+		},
+		"instructions": {
+			"title": "Posicione o QR Code dentro do quadro",
+			"subtitle": "O QR Code será escaneado automaticamente"
+		},
+		"modeSwitch": {
+			"scan": "Escanear QR",
+			"myQr": "Meu QR"
+		}
+	},
+	"nearby": {
+		"title": "Pagar por perto",
+		"verifying": "Verificando usuários…",
+		"searching": "Procurando usuários por perto…",
+		"peersNearby_one": "{{count}} pessoa por perto",
+		"peersNearby_other": "{{count}} pessoas por perto",
+		"charging": "Cobrando ${{amount}}",
+		"chargeNearby": "Cobrar por perto",
+		"paymentConfirmed": "Pagamento confirmado",
+		"confirming": "Confirmando…",
+		"sheet": {
+			"subtitle": "Usuários por perto verão este valor ao tocar no seu avatar",
+			"amountPlaceholder": "Valor a cobrar",
+			"charge": "Cobrar",
+			"chargeAmount": "Cobrar ${{amount}}"
+		},
+		"gate": {
+			"permissionTitle": "Permissão necessária",
+			"unavailableTitle": "Indisponível",
+			"permissionBody": "Para descobrir usuários por perto, o QvaPay precisa de acesso à rede local e ao Bluetooth. Ative nas Configurações.",
+			"unavailableBody": "Seu dispositivo não consegue descobrir usuários por perto no momento. Verifique se o Bluetooth e o WiFi estão ligados.",
+			"openSettings": "Abrir Configurações"
+		}
+	},
+	"lock": {
+		"enterPin": "Digite seu PIN de segurança",
+		"orEnterPin": "ou digite seu PIN",
+		"unlock": {
+			"faceId": "Desbloquear com Face ID",
+			"touchId": "Desbloquear com Touch ID",
+			"fingerprint": "Desbloquear com a digital",
+			"biometrics": "Desbloquear com biometria"
+		},
+		"errors": {
+			"wrongPin": "PIN incorreto",
+			"verifyPin": "Erro ao verificar o PIN",
+			"biometricCanceled": "Autenticação biométrica cancelada",
+			"biometricError": "Erro na autenticação biométrica",
+			"savePin": "Não foi possível salvar o PIN",
+			"currentPinWrong": "PIN atual incorreto",
+			"updatePin": "Não foi possível atualizar o PIN"
+		}
+	}
+}

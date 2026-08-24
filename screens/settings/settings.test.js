@@ -1,12 +1,21 @@
 /**
  * Unit tests for the settings menu catalog — node environment
  * (see keypadAmount.test.js for why).
+ *
+ * Desde la migración i18n los `title` del catálogo son CLAVES
+ * (settings.menu.*) resueltas en render: aquí se validan RESUELTAS en ambos
+ * idiomas contra el singleton real (bundle cargado por jest.setup.js), lo que
+ * además caza claves sin registrar (una clave sin valor se devuelve a sí misma).
  * @jest-environment node
  */
 import settings from './settings'
 import { ROUTES } from '../../routes'
+import i18n from '../../i18n'
 
 const allOptions = Object.values(settings).flatMap(group => group.options)
+const tEs = i18n.getFixedT('es')
+const tEn = i18n.getFixedT('en')
+const tPt = i18n.getFixedT('pt')
 
 describe('settings menu catalog', () => {
 	test('mirrors the web dashboard grouping', () => {
@@ -15,9 +24,13 @@ describe('settings menu catalog', () => {
 		])
 	})
 
-	test('every group has an uppercase Spanish title and at least one option', () => {
+	test('every group title resolves to an uppercase label in every language', () => {
 		for (const group of Object.values(settings)) {
-			expect(group.title).toBe(group.title.toUpperCase())
+			for (const t of [tEs, tEn, tPt]) {
+				const resolved = t(group.title)
+				expect(resolved).not.toBe(group.title) // la clave está registrada
+				expect(resolved).toBe(resolved.toUpperCase())
+			}
 			expect(group.options.length).toBeGreaterThan(0)
 		}
 	})
@@ -29,6 +42,16 @@ describe('settings menu catalog', () => {
 			expect(typeof option.title).toBe('string')
 			expect(option.enabled).toBe(true)
 			expect(option.notifications).toBe(0)
+		}
+	})
+
+	test('every option title resolves to real copy in every language', () => {
+		for (const option of allOptions) {
+			for (const t of [tEs, tEn, tPt]) {
+				const resolved = t(option.title)
+				expect(resolved).not.toBe(option.title) // clave registrada en el bundle
+				expect(resolved.trim().length).toBeGreaterThan(0)
+			}
 		}
 	})
 

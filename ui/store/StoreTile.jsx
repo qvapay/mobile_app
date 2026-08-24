@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FastImage from '@d11/react-native-fast-image'
 
 import QPPressable from '../particles/QPPressable'
@@ -20,6 +21,7 @@ import { mediaUrl } from '../../helpers/mediaUrl'
  */
 const StoreTile = ({ store, onPress, style }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -27,8 +29,8 @@ const StoreTile = ({ store, onPress, style }) => {
 	const rating = store?.rating_avg != null && Number(store.rating_avg) > 0 ? Number(store.rating_avg).toFixed(1) : null
 	const meta = [
 		rating ? `★ ${rating}` : null,
-		store?.product_count ? `${store.product_count} ${store.product_count === 1 ? 'producto' : 'productos'}` : null,
-		store?.sales_count ? `${store.sales_count} ${store.sales_count === 1 ? 'venta' : 'ventas'}` : null,
+		store?.product_count ? t('ui.storeTile.products', { count: store.product_count }) : null,
+		store?.sales_count ? t('ui.storeTile.sales', { count: store.sales_count }) : null,
 	].filter(Boolean).join(' · ')
 
 	return (
@@ -61,7 +63,7 @@ const StoreTile = ({ store, onPress, style }) => {
 					{store?.name}
 				</Text>
 				<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-					{meta || 'Tienda verificada'}
+					{meta || t('ui.storeTile.verified')}
 				</Text>
 			</View>
 		</QPPressable>

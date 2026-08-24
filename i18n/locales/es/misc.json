@@ -1,0 +1,60 @@
+{
+	"scan": {
+		"permission": {
+			"title": "Permiso de cámara requerido",
+			"body": "Por favor permite el acceso a la cámara para escanear QR",
+			"settings": "Ajustes"
+		},
+		"instructions": {
+			"title": "Coloca el QR code dentro del marco",
+			"subtitle": "El QR code será escaneado automáticamente"
+		},
+		"modeSwitch": {
+			"scan": "Scan QR",
+			"myQr": "Mi QR"
+		}
+	},
+	"nearby": {
+		"title": "Pagar cerca",
+		"verifying": "Verificando usuarios…",
+		"searching": "Buscando usuarios cerca…",
+		"peersNearby_one": "{{count}} persona cerca",
+		"peersNearby_other": "{{count}} personas cerca",
+		"charging": "Cobrando ${{amount}}",
+		"chargeNearby": "Cobrar cerca",
+		"paymentConfirmed": "Pago confirmado",
+		"confirming": "Confirmando…",
+		"sheet": {
+			"subtitle": "Los usuarios cercanos verán este monto al tocar tu avatar",
+			"amountPlaceholder": "Monto a cobrar",
+			"charge": "Cobrar",
+			"chargeAmount": "Cobrar ${{amount}}"
+		},
+		"gate": {
+			"permissionTitle": "Permiso necesario",
+			"unavailableTitle": "No disponible",
+			"permissionBody": "Para descubrir usuarios cercanos, QvaPay necesita acceso a la red local y Bluetooth. Actívalos en Ajustes.",
+			"unavailableBody": "Tu dispositivo no puede descubrir usuarios cercanos en este momento. Revisa que Bluetooth y WiFi estén encendidos.",
+			"openSettings": "Abrir Ajustes"
+		}
+	},
+	"lock": {
+		"enterPin": "Ingresa tu PIN de seguridad",
+		"orEnterPin": "o ingresa tu PIN",
+		"unlock": {
+			"faceId": "Desbloquear con Face ID",
+			"touchId": "Desbloquear con Touch ID",
+			"fingerprint": "Desbloquear con huella",
+			"biometrics": "Desbloquear con biometría"
+		},
+		"errors": {
+			"wrongPin": "PIN incorrecto",
+			"verifyPin": "Error verificando PIN",
+			"biometricCanceled": "Autenticación biométrica cancelada",
+			"biometricError": "Error en autenticación biométrica",
+			"savePin": "No se pudo guardar el PIN",
+			"currentPinWrong": "PIN actual incorrecto",
+			"updatePin": "No se pudo actualizar el PIN"
+		}
+	}
+}

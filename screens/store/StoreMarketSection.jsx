@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import StoreTile from '../../ui/store/StoreTile'
 import { ROUTES } from '../../routes'
@@ -28,14 +29,16 @@ const SectionHeader = ({ title, hint, actionLabel, onAction, theme, textStyles }
  */
 const StoreMarketSection = ({ marketStores, theme, textStyles, navigation }) => {
 
+	const { t } = useTranslation()
+
 	if (!marketStores?.length) return null
 
 	return (
 		<View style={styles.section}>
 			<SectionHeader
-				title="Tiendas"
-				hint="Comercios verificados que aceptan QvaPay"
-				actionLabel="Ver todas"
+				title={t('store.landing.departments.stores.title')}
+				hint={t('store.landing.departments.stores.subtitle')}
+				actionLabel={t('common.actions.seeAll')}
 				onAction={() => navigation.navigate(ROUTES.MARKET_STORES)}
 				theme={theme}
 				textStyles={textStyles}

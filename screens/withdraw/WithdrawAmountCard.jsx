@@ -1,4 +1,5 @@
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import QPCoin from '../../ui/particles/QPCoin'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -12,15 +13,17 @@ const formatBalance = (val) => {
 // The QUSD ⇄ coin swap card: amount to withdraw, amount to receive, and coin selector.
 // `locked` freezes both inputs (e.g. a scanned BOLT11 invoice fixes the amount) and
 // `lockedCaption` explains why below the card.
-const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, locked, lockedCaption, theme, textStyles }) => (
+const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, locked, lockedCaption, theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 10, borderWidth: 2, borderColor: theme.colors.primary }}>
 
 		{/* QUSD amount input */}
 		<View style={{ paddingVertical: 2 }}>
 			<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Extraer</Text>
+				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>{t('withdraw.amountCard.withdraw')}</Text>
 				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-					<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>Balance:</Text>
+					<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>{t('withdraw.amountCard.balance')}</Text>
 					<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
 						{formatBalance(balance)} {currency}
 					</Text>
@@ -57,7 +60,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 
 		{/* Coin amount and selector */}
 		<View style={{ paddingTop: 2 }}>
-			<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>Recibir</Text>
+			<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>{t('withdraw.amountCard.receive')}</Text>
 			<View style={{ borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 				<View style={{ flex: 1 }}>
 					<TextInput
@@ -79,7 +82,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 						</View>
 					) : (
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Moneda</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('withdraw.amountCard.coinPlaceholder')}</Text>
 							<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 						</View>
 					)}
@@ -92,7 +95,8 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 			<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, paddingBottom: 6 }]}>{lockedCaption}</Text>
 		)}
 	</View>
-)
+	)
+}
 
 const styles = StyleSheet.create({
 	currencyButton: {

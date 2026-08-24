@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Share, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useContentPadding from '../../../hooks/useContentPadding'
 import { FlashList } from '@shopify/flash-list'
@@ -69,6 +70,7 @@ const FloatingTopBar = ({ insets, onBack, onCart, cartCount, theme }) => (
 const MarketStore = ({ navigation, route }) => {
 
 	const { slug } = route.params || {}
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -110,10 +112,10 @@ const MarketStore = ({ navigation, route }) => {
 	// El toast solo sin NADA que pintar; un 404 devuelve al índice, como antes
 	useEffect(() => {
 		if (shopQuery.isError && !shopQuery.data) {
-			toast.error('Tienda', { description: shopQuery.error?.message })
+			toast.error(t('market.store.toasts.loadErrorTitle'), { description: shopQuery.error?.message })
 			if (shopQuery.error?.status === 404) navigation.goBack()
 		}
-	}, [shopQuery.isError, shopQuery.data, shopQuery.error, navigation])
+	}, [shopQuery.isError, shopQuery.data, shopQuery.error, navigation, t])
 
 	// "Cargar más": pagina el catálogo por tienda (estado local sobre la query)
 	const loadMore = useCallback(async () => {
@@ -128,10 +130,10 @@ const MarketStore = ({ navigation, route }) => {
 				total: res.data?.total ?? prev.total,
 			}))
 		} else {
-			toast.error('Productos', { description: res.error })
+			toast.error(t('market.store.toasts.productsErrorTitle'), { description: res.error })
 		}
 		setLoadingMore(false)
-	}, [slug, extra.page])
+	}, [slug, extra.page, t])
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
@@ -153,11 +155,11 @@ const MarketStore = ({ navigation, route }) => {
 		try {
 			await Share.share({
 				url, // iOS uses this as the payload
-				message: `Descubre ${store?.name || 'esta tienda'} en QvaPay: ${url}`, // Android uses message
-				title: store?.name || 'Tienda en QvaPay',
+				message: t('market.store.share.message', { name: store?.name || t('market.store.share.fallbackName'), url }), // Android uses message
+				title: store?.name || t('market.store.share.fallbackTitle'),
 			})
 		} catch (_) { /* cancelled */ }
-	}, [slug, store?.name])
+	}, [slug, store?.name, t])
 
 	if (loading || !store) {
 		return (
@@ -175,11 +177,11 @@ const MarketStore = ({ navigation, route }) => {
 	const cover = mediaUrl(store.banner) || mediaUrl(store.product_images?.[0]) || mediaUrl(products[0]?.main_image)
 	const rating = store.rating_avg != null && Number(store.rating_avg) > 0 ? Number(store.rating_avg).toFixed(1) : null
 	const metaLine = [
-		store.category && MARKET_CATEGORIES[store.category],
+		store.category && MARKET_CATEGORIES[store.category] ? t(MARKET_CATEGORIES[store.category]) : null,
 		rating && store.accept_reviews !== false && store.rating_count > 0
-			? `★ ${rating} · ${store.rating_count} ${store.rating_count === 1 ? 'reseña' : 'reseñas'}`
+			? t('market.store.reviews', { rating, count: store.rating_count })
 			: null,
-		store.sales_count ? `${store.sales_count} ${store.sales_count === 1 ? 'venta' : 'ventas'}` : null,
+		store.sales_count ? t('market.store.sales', { count: store.sales_count }) : null,
 	].filter(Boolean).join(' · ')
 	const socials = Object.entries(store.socials || {}).map(([network, value]) => ({ network, href: socialHref(network, value) })).filter(s => s.href)
 	const hasMore = catalogTotal != null && products.length < catalogTotal
@@ -272,10 +274,10 @@ const MarketStore = ({ navigation, route }) => {
 
 				{/* Productos */}
 				<View style={[styles.section, styles.gridHeader]}>
-					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>Productos</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>{t('market.store.products')}</Text>
 					{store.product_count != null && (
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-							{store.product_count} {store.product_count === 1 ? 'producto' : 'productos'}
+							{t('market.common.products', { count: store.product_count })}
 						</Text>
 					)}
 				</View>
@@ -284,7 +286,7 @@ const MarketStore = ({ navigation, route }) => {
 					<View style={styles.section}>
 						<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-								Esta tienda aún no tiene productos publicados
+								{t('market.store.emptyProducts')}
 							</Text>
 						</View>
 					</View>
@@ -307,7 +309,7 @@ const MarketStore = ({ navigation, route }) => {
 										onPress={loadMore}
 										style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600', paddingVertical: 10, paddingHorizontal: 24 }]}
 									>
-										Cargar más
+										{t('market.common.loadMore')}
 									</Text>
 								)}
 							</View>
@@ -323,7 +325,7 @@ const MarketStore = ({ navigation, route }) => {
 							style={[styles.policyCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 						>
 							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-								Política de devoluciones {policyOpen ? '▾' : '▸'}
+								{t('market.store.returnsPolicy')} {policyOpen ? '▾' : '▸'}
 							</Text>
 							{policyOpen && (
 								<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6 }]}>

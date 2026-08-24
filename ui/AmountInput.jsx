@@ -1,4 +1,5 @@
 import { View, Text, TextInput, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import QPPressable from './particles/QPPressable'
 import { sanitizeAmountInput } from '../helpers/amountInput'
 
@@ -35,6 +36,7 @@ const AmountInput = ({
 	style = {}
 }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -57,7 +59,7 @@ const AmountInput = ({
 					</Text>
 					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
 						<Text style={[textStyles.h7, { color: theme.colors.tertiaryText }]}>
-							Balance:
+							{t('ui.amountInput.balanceLabel')}
 						</Text>
 						<Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>
 							${formatBalance(balance)} QUSD

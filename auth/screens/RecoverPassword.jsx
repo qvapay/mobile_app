@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -32,6 +33,9 @@ const validateEmail = (value) => {
  */
 const RecoverPasswordScreen = ({ navigation, route }) => {
 
+	// Idioma activo
+	const { t } = useTranslation()
+
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -53,12 +57,12 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 
 		// Validate email
 		if (!email.trim()) {
-			setEmailError('El correo electrónico es requerido')
+			setEmailError(t('auth.recoverPassword.errors.emailRequired'))
 			return
 		}
 
 		if (!validateEmail(email.trim())) {
-			setEmailError('Por favor ingrese un correo electrónico válido')
+			setEmailError(t('auth.recoverPassword.errors.emailInvalid'))
 			return
 		}
 
@@ -68,11 +72,11 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 			const result = await authApi.resetPassword({ email: email.trim() })
 
 			if (result.success) {
-				setSuccessMessage('Se ha enviado un correo electrónico con las instrucciones para restablecer tu contraseña. Por favor revisa tu bandeja de entrada.')
-			} else { setEmailError(result.error || 'Ha ocurrido un error al solicitar el restablecimiento de contraseña') }
+				setSuccessMessage(t('auth.recoverPassword.success'))
+			} else { setEmailError(result.error || t('auth.recoverPassword.errors.requestFailed')) }
 
 		} catch (err) {
-			setEmailError('Ha ocurrido un error inesperado')
+			setEmailError(t('auth.recoverPassword.errors.unexpected'))
 		} finally { setIsLoading(false) }
 	}
 
@@ -82,14 +86,14 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 			actions={
 				successMessage ? (
 					<QPButton
-						title="Volver al inicio de sesión"
+						title={t('auth.recoverPassword.backToLogin')}
 						onPress={() => navigation.goBack()}
 						style={{ backgroundColor: theme.colors.primary, marginTop: 10 }}
 						textStyle={{ color: theme.colors.almostWhite }}
 					/>
 				) : (
 					<QPButton
-						title="Restablecer contraseña"
+						title={t('auth.recoverPassword.submit')}
 						onPress={handleRestorePassword}
 						style={{ backgroundColor: theme.colors.danger }}
 						textStyle={{ color: theme.colors.almostWhite }}
@@ -99,13 +103,13 @@ const RecoverPasswordScreen = ({ navigation, route }) => {
 			}
 		>
 
-			<Text style={textStyles.h1}>Restablecer contraseña</Text>
-			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu correo electrónico para restaurar tu contraseña</Text>
+			<Text style={textStyles.h1}>{t('auth.recoverPassword.title')}</Text>
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('auth.recoverPassword.subtitle')}</Text>
 
 			<View style={styles.formContainer}>
 
 				<QPInput
-					placeholder="Correo electrónico"
+					placeholder={t('auth.recoverPassword.emailPlaceholder')}
 					autoComplete="email"
 					value={email}
 					onChangeText={(text) => {

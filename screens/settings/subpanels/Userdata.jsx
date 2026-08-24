@@ -1,5 +1,9 @@
 import { useState, useEffect, useReducer } from 'react'
 import { Text, View } from 'react-native'
+import { Trans, useTranslation } from 'react-i18next'
+
+// i18n (call-time para el helper de módulo + locale de fechas)
+import i18n, { getDateLocale } from '../../../i18n'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -50,18 +54,19 @@ function formReducer(state, action) {
 	}
 }
 
-// Format date for display
+// Format date for display (fuera de React: i18n.t en call-time)
 const formatDate = (dateString) => {
-	if (!dateString) return 'N/A'
+	if (!dateString) return i18n.t('settings.userdata.notAvailable')
 	try {
-		return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
-	} catch (error) { return 'N/A' }
+		return new Date(dateString).toLocaleDateString(getDateLocale(), { year: 'numeric', month: 'long', day: 'numeric' })
+	} catch (error) { return i18n.t('settings.userdata.notAvailable') }
 }
 
 // User Data Settings Component
 const Userdata = () => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { updateUser } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -102,24 +107,25 @@ const Userdata = () => {
 					telegram_id: userData.telegram_id || '',
 					createdAt: userData.createdAt || ''
 				})
-			} else { toast.error('Error al cargar datos del usuario') }
+			// i18n.t en call-time: mantiene loadUserData estable para exhaustive-deps
+			} else { toast.error(i18n.t('settings.userdata.toasts.loadFailed')) }
 		} catch (error) {
-			toast.error('Error al cargar datos del usuario')
+			toast.error(i18n.t('settings.userdata.toasts.loadFailed'))
 		} finally { setIsLoadingData(false) }
 	}
 
 	// Handle form submission
 	const handleSubmit = async () => {
 		if (!name || !lastname) {
-			toast.error('Completa al menos el nombre y apellido')
+			toast.error(t('settings.userdata.toasts.nameRequired'))
 			return
 		}
 		if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-			toast.error('Formato de correo electrónico inválido')
+			toast.error(t('settings.userdata.toasts.invalidEmail'))
 			return
 		}
 		if (country && country.length !== 2) {
-			toast.error('El código de país debe tener 2 caracteres (ej: US, ES)')
+			toast.error(t('settings.userdata.toasts.invalidCountry'))
 			return
 		}
 
@@ -136,16 +142,16 @@ const Userdata = () => {
 			}
 			const result = await userApi.updateUser(updateData)
 			if (result.success && result.data) {
-				toast.success('Datos actualizados correctamente')
+				toast.success(t('settings.userdata.toasts.updated'))
 				const userData = result.data
 				dispatchForm({ type: 'set', field: 'username', value: userData.username || username })
 				dispatchForm({ type: 'set', field: 'name', value: userData.name || name })
 				dispatchForm({ type: 'set', field: 'lastname', value: userData.lastname || lastname })
 				dispatchForm({ type: 'set', field: 'bio', value: userData.bio || bio })
 				updateUser({ name: userData.name || name, lastname: userData.lastname || lastname })
-			} else { toast.error(result.error || 'Error al actualizar') }
+			} else { toast.error(result.error || t('settings.userdata.toasts.updateFailed')) }
 		} catch (error) {
-			toast.error('Error al actualizar')
+			toast.error(t('settings.userdata.toasts.updateFailed'))
 		} finally { setIsLoading(false) }
 	}
 
@@ -156,7 +162,7 @@ const Userdata = () => {
 		<QPKeyboardView
 			actions={
 				<QPButton
-					title="Actualizar datos"
+					title={t('settings.userdata.submitButton')}
 					onPress={handleSubmit}
 					disabled={!name || !lastname || isLoading}
 					textStyle={{ color: theme.colors.almostWhite }}
@@ -165,14 +171,14 @@ const Userdata = () => {
 			}
 		>
 
-			<Text style={textStyles.h1}>Datos personales</Text>
-			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Edita tu información de perfil</Text>
+			<Text style={textStyles.h1}>{t('settings.userdata.title')}</Text>
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.userdata.subtitle')}</Text>
 
 			{/* Account section */}
 			<View style={{ marginTop: 20 }}>
-				<SectionHeader icon="user-tag" title="Cuenta" theme={theme} textStyles={textStyles} />
+				<SectionHeader icon="user-tag" title={t('settings.userdata.sections.account')} theme={theme} textStyles={textStyles} />
 				<QPInput
-					placeholder="Nombre de usuario"
+					placeholder={t('settings.userdata.placeholders.username')}
 					value={username}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'username', value })}
 					editable={false}
@@ -181,7 +187,7 @@ const Userdata = () => {
 					suffixIconName={userStatus.kyc ? 'circle-check' : ''}
 				/>
 				<QPInput
-					placeholder="Correo electrónico"
+					placeholder={t('settings.userdata.placeholders.email')}
 					value={email}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'email', value })}
 					keyboardType="email-address"
@@ -194,23 +200,23 @@ const Userdata = () => {
 
 			{/* Personal info section */}
 			<View style={{ marginTop: 10 }}>
-				<SectionHeader icon="id-card" title="Información personal" theme={theme} textStyles={textStyles} />
+				<SectionHeader icon="id-card" title={t('settings.userdata.sections.personal')} theme={theme} textStyles={textStyles} />
 				<QPInput
-					placeholder="Nombre"
+					placeholder={t('settings.userdata.placeholders.name')}
 					value={name}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'name', value })}
 					prefixIconName="user"
 					autoCapitalize="words"
 				/>
 				<QPInput
-					placeholder="Apellido"
+					placeholder={t('settings.userdata.placeholders.lastname')}
 					value={lastname}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'lastname', value })}
 					prefixIconName="user"
 					autoCapitalize="words"
 				/>
 				<QPInput
-					placeholder="Biografía o descripción"
+					placeholder={t('settings.userdata.placeholders.bio')}
 					value={bio}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'bio', value })}
 					multiline
@@ -222,9 +228,9 @@ const Userdata = () => {
 
 			{/* Contact section */}
 			<View style={{ marginTop: 10 }}>
-				<SectionHeader icon="address-book" title="Contacto y redes" theme={theme} textStyles={textStyles} />
+				<SectionHeader icon="address-book" title={t('settings.userdata.sections.contact')} theme={theme} textStyles={textStyles} />
 				<QPInput
-					placeholder="Teléfono"
+					placeholder={t('settings.userdata.placeholders.phone')}
 					value={phone}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'phone', value })}
 					keyboardType="phone-pad"
@@ -234,7 +240,7 @@ const Userdata = () => {
 					style={{ opacity: 0.6 }}
 				/>
 				<QPInput
-					placeholder="@usuario_telegram"
+					placeholder={t('settings.userdata.placeholders.telegram')}
 					value={telegram}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'telegram', value })}
 					autoCapitalize="none"
@@ -243,7 +249,7 @@ const Userdata = () => {
 					suffixIconName={userStatus.telegram_id ? 'circle-check' : ''}
 				/>
 				<QPInput
-					placeholder="@usuario_twitter"
+					placeholder={t('settings.userdata.placeholders.twitter')}
 					value={twitter}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'twitter', value })}
 					autoCapitalize="none"
@@ -254,16 +260,16 @@ const Userdata = () => {
 
 			{/* Location section */}
 			<View style={{ marginTop: 10 }}>
-				<SectionHeader icon="location-dot" title="Ubicación" theme={theme} textStyles={textStyles} />
+				<SectionHeader icon="location-dot" title={t('settings.userdata.sections.location')} theme={theme} textStyles={textStyles} />
 				<QPInput
-					placeholder="Dirección"
+					placeholder={t('settings.userdata.placeholders.address')}
 					value={address}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'address', value })}
 					autoCapitalize="sentences"
 					prefixIconName="location-dot"
 				/>
 				<QPInput
-					placeholder="País (ej: US, ES, MX)"
+					placeholder={t('settings.userdata.placeholders.country')}
 					value={country}
 					onChangeText={(value) => dispatchForm({ type: 'set', field: 'country', value })}
 					autoCapitalize="characters"
@@ -277,13 +283,18 @@ const Userdata = () => {
 				<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 					<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-						El nombre de usuario, email y teléfono se gestionan desde sus respectivas secciones de ajustes.
+						{t('settings.userdata.info')}
 					</Text>
 				</View>
 			</View>
 
+			{/* La frase vive en UNA clave; la fecha estilizada entra como <0> vía Trans */}
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 40 }]}>
-				Miembro desde: <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }}>{formatDate(userStatus.createdAt)}</Text>
+				<Trans
+					i18nKey="settings.userdata.memberSince"
+					values={{ date: formatDate(userStatus.createdAt) }}
+					components={[<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }} />]}
+				/>
 			</Text>
 
 		</QPKeyboardView>

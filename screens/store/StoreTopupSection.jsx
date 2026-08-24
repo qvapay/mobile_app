@@ -1,18 +1,24 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 
 import CountryPicker from '../../ui/store/CountryPicker'
 import OperatorAvatar from '../../ui/store/OperatorAvatar'
 import { ROUTES } from '../../routes'
 
+// i18n.t en call time: se re-resuelve en cada render (el componente re-renderiza
+// con useTranslation al cambiar de idioma)
 const formatPriceRange = (min, max) => {
 	if (min == null && max == null) return null
-	if (min == null) return `Hasta $${Number(max).toFixed(2)}`
+	if (min == null) return i18n.t('store.common.upTo', { amount: `$${Number(max).toFixed(2)}` })
 	if (max == null || max === min) return `$${Number(min).toFixed(2)}`
 	return `$${Number(min).toFixed(2)} – $${Number(max).toFixed(2)}`
 }
 
 // Mobile top-ups block of the Store screen: country picker + top-6 operators grid.
 const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelectCountry, numColumns, theme, textStyles, navigation }) => {
+
+	const { t } = useTranslation()
 
 	const goToTopupBrand = (b) => {
 		navigation.navigate(ROUTES.PHONE_TOPUP_BRAND, {
@@ -26,18 +32,18 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 		<View style={styles.section}>
 			<View style={styles.recargasHeader}>
 				<View style={{ flex: 1 }}>
-					<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600' }]}>Recargas móviles</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600' }]}>{t('store.landing.departments.topups.title')}</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
 						{topupSelected?.code === 'CU'
-							? 'Cubacel local — tarifa P2P sin recargo.'
-							: 'Recarga el móvil de cualquier persona en LATAM.'}
+							? t('store.landing.topups.cubaHint')
+							: t('store.common.latamHint')}
 					</Text>
 				</View>
 				<Pressable
 					onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { country: topupSelected?.code })}
 					style={[styles.miniCta, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 				>
-					<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>Ver todas</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>{t('common.actions.seeAll')}</Text>
 				</Pressable>
 			</View>
 
@@ -47,7 +53,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 					countries={topupCountries}
 					value={topupSelected}
 					onChange={onSelectCountry}
-					placeholder="Selecciona país"
+					placeholder={t('store.common.selectCountry')}
 				/>
 			</View>
 
@@ -74,7 +80,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 									{b.brand}
 								</Text>
 								<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-									{price || `${b.offer_count || 0} planes`}
+									{price || t('store.common.plans', { count: b.offer_count || 0 })}
 								</Text>
 							</View>
 						</Pressable>
@@ -83,7 +89,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 				{topupBrands.length === 0 && (
 					<View style={[styles.empty, { backgroundColor: theme.colors.surface, width: '100%' }]}>
 						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-							No hay operadores disponibles
+							{t('store.common.noOperators')}
 						</Text>
 					</View>
 				)}

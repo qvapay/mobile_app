@@ -1,5 +1,7 @@
 import { useState, useEffect, useReducer } from 'react'
 import { StyleSheet, Text, View, Alert } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../../i18n'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -46,6 +48,7 @@ function setupReducer(state, action) {
 const TwoFactor = () => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { updateUser } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -74,7 +77,9 @@ const TwoFactor = () => {
 				setIs2FAEnabled(result.data.two_factor_secret === '***')
 			}
 		} catch (error) {
-			toast.error('Error al cargar datos', { description: error.message })
+			// i18n.t en call-time: mantiene loadUserData estable para exhaustive-deps
+			// (la t del hook la volvería reactiva y exigiría relanzar el efecto de montaje)
+			toast.error(i18n.t('settings.twoFactor.toasts.loadFailed'), { description: error.message })
 		} finally {
 			setIsLoadingData(false)
 		}
@@ -88,12 +93,12 @@ const TwoFactor = () => {
 
 			if (result.success && result.data) {
 				dispatchSetup({ type: 'started', secret: result.data.secret, otpauthUrl: result.data.otpauth_url })
-				toast.success('Secreto generado', { description: 'Escanea el código QR con tu app de autenticación' })
+				toast.success(t('settings.twoFactor.toasts.secretGenerated'), { description: t('settings.twoFactor.toasts.secretGeneratedDescription') })
 			} else {
-				toast.error('Error', { description: result.error || 'No se pudo generar el código 2FA' })
+				toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: result.error || t('settings.twoFactor.toasts.generateFailed') })
 			}
 		} catch (error) {
-			toast.error('Error', { description: error.message })
+			toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: error.message })
 		} finally {
 			setIsLoading(false)
 		}
@@ -102,7 +107,7 @@ const TwoFactor = () => {
 	// Activate 2FA
 	const handleActivate2FA = async () => {
 		if (!verificationCode || verificationCode.length !== 6) {
-			toast.error('Error', { description: 'Ingresa un código de 6 dígitos' })
+			toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: t('settings.twoFactor.toasts.enterCode6') })
 			return
 		}
 
@@ -119,12 +124,12 @@ const TwoFactor = () => {
 					updateUser({ two_factor_secret: '***' })
 				}
 
-				toast.success('2FA Activado', { description: 'Tu cuenta ahora está protegida con autenticación de dos factores' })
+				toast.success(t('settings.twoFactor.toasts.activated'), { description: t('settings.twoFactor.toasts.activatedDescription') })
 			} else {
-				toast.error('Código inválido', { description: result.error || 'El código ingresado no es válido' })
+				toast.error(t('settings.twoFactor.toasts.invalidCode'), { description: result.error || t('settings.twoFactor.toasts.invalidCodeDescription') })
 			}
 		} catch (error) {
-			toast.error('Error', { description: error.message })
+			toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: error.message })
 		} finally {
 			setIsLoading(false)
 		}
@@ -133,12 +138,12 @@ const TwoFactor = () => {
 	// Deactivate 2FA
 	const handleDeactivate2FA = async () => {
 		Alert.alert(
-			'Desactivar 2FA',
-			'¿Estás seguro de que quieres desactivar la autenticación de dos factores? Tu cuenta será menos segura.',
+			t('settings.twoFactor.alerts.deactivateTitle'),
+			t('settings.twoFactor.alerts.deactivateBody'),
 			[
-				{ text: 'Cancelar', style: 'cancel' },
+				{ text: t('common.actions.cancel'), style: 'cancel' },
 				{
-					text: 'Desactivar',
+					text: t('settings.twoFactor.alerts.deactivateConfirm'),
 					style: 'destructive',
 					onPress: async () => {
 						try {
@@ -153,12 +158,12 @@ const TwoFactor = () => {
 									updateUser({ two_factor_secret: null })
 								}
 
-								toast.success('2FA Desactivado', { description: 'La autenticación de dos factores ha sido desactivada' })
+								toast.success(t('settings.twoFactor.toasts.deactivated'), { description: t('settings.twoFactor.toasts.deactivatedDescription') })
 							} else {
-								toast.error('Error', { description: result.error || 'No se pudo desactivar el 2FA' })
+								toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: result.error || t('settings.twoFactor.toasts.deactivateFailed') })
 							}
 						} catch (error) {
-							toast.error('Error', { description: error.message })
+							toast.error(t('settings.twoFactor.toasts.errorTitle'), { description: error.message })
 						} finally {
 							setIsLoading(false)
 						}
@@ -174,7 +179,7 @@ const TwoFactor = () => {
 	// Copy secret to clipboard
 	const handleCopySecret = () => {
 		copyTextToClipboard(secret)
-		toast.success('Copiado', { description: 'Secreto copiado al portapapeles' })
+		toast.success(t('settings.twoFactor.toasts.copiedTitle'), { description: t('settings.twoFactor.toasts.copiedDescription') })
 	}
 
 	// Loading state
@@ -186,7 +191,7 @@ const TwoFactor = () => {
 			<QPKeyboardView
 				actions={
 					<QPButton
-						title="Desactivar 2FA"
+						title={t('settings.twoFactor.deactivateButton')}
 						onPress={handleDeactivate2FA}
 						loading={isLoading}
 						disabled={isLoading}
@@ -202,11 +207,11 @@ const TwoFactor = () => {
 					</View>
 
 					<Text style={[textStyles.h1, { color: theme.colors.successText, marginTop: 20 }]}>
-						2FA activo
+						{t('settings.twoFactor.enabled.title')}
 					</Text>
 
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
-						Tu cuenta está protegida con autenticación de dos factores
+						{t('settings.twoFactor.enabled.subtitle')}
 					</Text>
 				</View>
 
@@ -214,7 +219,7 @@ const TwoFactor = () => {
 					<View style={styles.infoRow}>
 						<FontAwesome6 name="circle-check" size={20} color={theme.colors.successText} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.primaryText, marginLeft: 12, flex: 1 }]}>
-							Cada vez que inicies sesión, necesitarás un código de tu app de autenticación
+							{t('settings.twoFactor.enabled.info')}
 						</Text>
 					</View>
 				</View>
@@ -247,7 +252,7 @@ const TwoFactor = () => {
 		<QPKeyboardView
 			actions={
 				<QPButton
-					title="Configurar 2FA"
+					title={t('settings.twoFactor.setupButton')}
 					onPress={handleGenerate2FA}
 					loading={isLoading}
 					disabled={isLoading}
@@ -256,9 +261,9 @@ const TwoFactor = () => {
 			}
 		>
 
-			<Text style={textStyles.h1}>Autenticación de dos factores</Text>
+			<Text style={textStyles.h1}>{t('settings.twoFactor.title')}</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-				Añade una capa extra de seguridad a tu cuenta
+				{t('settings.twoFactor.subtitle')}
 			</Text>
 
 			<View style={[styles.statusContainer, { marginTop: 30 }]}>
@@ -267,33 +272,33 @@ const TwoFactor = () => {
 				</View>
 
 				<Text style={[textStyles.h2, { color: theme.colors.warning, marginTop: 20 }]}>
-					2FA No Activo
+					{t('settings.twoFactor.notEnabled.status')}
 				</Text>
 			</View>
 
 			<View style={[containerStyles.card, { marginTop: 30 }]}>
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginBottom: 12 }]}>
-					Beneficios del 2FA:
+					{t('settings.twoFactor.notEnabled.benefitsTitle')}
 				</Text>
 
 				<View style={styles.benefitRow}>
 					<FontAwesome6 name="lock" size={16} color={theme.colors.primary} iconStyle="solid" />
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-						Protege tu cuenta incluso si alguien conoce tu contraseña
+						{t('settings.twoFactor.notEnabled.benefit1')}
 					</Text>
 				</View>
 
 				<View style={styles.benefitRow}>
 					<FontAwesome6 name="mobile-screen" size={16} color={theme.colors.primary} iconStyle="solid" />
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-						Usa apps como Google Authenticator o Authy
+						{t('settings.twoFactor.notEnabled.benefit2')}
 					</Text>
 				</View>
 
 				<View style={styles.benefitRow}>
 					<FontAwesome6 name="clock" size={16} color={theme.colors.primary} iconStyle="solid" />
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-						Códigos que cambian cada 30 segundos
+						{t('settings.twoFactor.notEnabled.benefit3')}
 					</Text>
 				</View>
 			</View>

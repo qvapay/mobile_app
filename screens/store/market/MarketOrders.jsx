@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FastImage from '@d11/react-native-fast-image'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -32,6 +33,7 @@ import { toast } from 'sonner-native'
  */
 const MarketOrders = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -49,9 +51,9 @@ const MarketOrders = ({ navigation }) => {
 	// El toast solo cuando no hay NADA que pintar (offline con caché, silencio)
 	useEffect(() => {
 		if (query.isError && !query.data) {
-			toast.error('Compras', { description: query.error?.message })
+			toast.error(t('market.orders.toasts.loadErrorTitle'), { description: query.error?.message })
 		}
-	}, [query.isError, query.data, query.error])
+	}, [query.isError, query.data, query.error, t])
 
 	const loadMore = useCallback(() => {
 		if (hasNextPage && !isFetching) fetchNextPage()
@@ -79,12 +81,12 @@ const MarketOrders = ({ navigation }) => {
 					{image && <FastImage source={{ uri: image }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />}
 				</View>
 				<View style={{ flex: 1 }}>
-					<Text style={[textStyles.h6, { fontWeight: '500' }]} numberOfLines={1}>{item.product?.title || 'Producto'}</Text>
+					<Text style={[textStyles.h6, { fontWeight: '500' }]} numberOfLines={1}>{item.product?.title || t('market.common.productFallback')}</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]} numberOfLines={1}>
 						{[item.shop?.name, getShortDateTime(item.created_at)].filter(Boolean).join(' · ')}
 					</Text>
 					<Text style={[textStyles.caption, { color: theme.colors[status.color] || theme.colors.secondaryText, marginTop: 3, fontWeight: '600' }]}>
-						{status.label}{item.tracking_code ? ` · ${item.tracking_code}` : ''}
+						{t(status.label)}{item.tracking_code ? ` · ${item.tracking_code}` : ''}
 					</Text>
 				</View>
 				<View style={styles.right}>
@@ -110,9 +112,9 @@ const MarketOrders = ({ navigation }) => {
 			{orders.length === 0 ? (
 				<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
 					<Text style={{ fontSize: 44 }}>🛍️</Text>
-					<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 12 }]}>Aún no has comprado nada</Text>
+					<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 12 }]}>{t('market.orders.emptyTitle')}</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4, textAlign: 'center' }]}>
-						Tus compras en las tiendas de la comunidad aparecerán aquí.
+						{t('market.orders.emptySubtitle')}
 					</Text>
 				</View>
 			) : (

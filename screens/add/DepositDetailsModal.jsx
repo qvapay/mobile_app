@@ -1,5 +1,6 @@
 import { Text, View, ScrollView, Pressable, Modal, StyleSheet, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useTranslation } from 'react-i18next'
 
 import QPCoin from '../../ui/particles/QPCoin'
 import QPButton from '../../ui/particles/QPButton'
@@ -34,69 +35,77 @@ const DetailRow = ({ label, value, copyValue, last, theme, textStyles }) => (
 	</View>
 )
 
-const ImportantWarnings = ({ items, theme, textStyles }) => (
-	<View style={[styles.warningsCard, { backgroundColor: theme.colors.danger + '10', borderColor: theme.colors.danger + '30' }]}>
-		<View style={styles.warningsHeader}>
-			<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.danger} iconStyle="solid" />
-			<Text style={[textStyles.h6, { color: theme.colors.danger, marginLeft: 8 }]}>Importante</Text>
+const ImportantWarnings = ({ items, theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
+		<View style={[styles.warningsCard, { backgroundColor: theme.colors.danger + '10', borderColor: theme.colors.danger + '30' }]}>
+			<View style={styles.warningsHeader}>
+				<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.danger} iconStyle="solid" />
+				<Text style={[textStyles.h6, { color: theme.colors.danger, marginLeft: 8 }]}>{t('add.modal.important')}</Text>
+			</View>
+			<View style={styles.warningsList}>
+				{items.map((item) => (
+					<Text key={item} style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
+						{'•'} {item}
+					</Text>
+				))}
+			</View>
 		</View>
-		<View style={styles.warningsList}>
-			{items.map((item) => (
-				<Text key={item} style={[textStyles.caption, styles.warningItem, { color: theme.colors.danger }]}>
-					{'•'} {item}
-				</Text>
-			))}
-		</View>
-	</View>
-)
+	)
+}
 
 // PayPal redirect deposit flow
-const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme, textStyles }) => (
-	<>
-		<View style={styles.amountSection}>
-			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
-				Monto a depositar
-			</Text>
-			<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.semiBold }]}>
-				${amount} QUSD
-			</Text>
-		</View>
-
-		<QPButton
-			title="Abrir PayPal"
-			onPress={() => Linking.openURL(topupData.redirect_url)}
-			icon="arrow-up-right-from-square"
-			iconStyle="solid"
-			iconColor={theme.colors.almostWhite}
-			textStyle={{ color: theme.colors.almostWhite }}
-			style={{ marginBottom: 20 }}
-		/>
-
-		{depositStatus === 'pending' && countdown > 0 && (
-			<View style={[styles.statusBanner, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
-				<FontAwesome6 name="clock" size={14} color={theme.colors.primary} iconStyle="solid" />
-				<Text style={[textStyles.subtitle, { color: theme.colors.primary, marginLeft: 8, flex: 1 }]}>
-					Esperando confirmación de pago en PayPal...
+const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
+		<>
+			<View style={styles.amountSection}>
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
+					{t('add.modal.labels.amountToDeposit')}
+				</Text>
+				<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.semiBold }]}>
+					${amount} QUSD
 				</Text>
 			</View>
-		)}
 
-		<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
-			<DetailRow label="Monto a depositar" value={`$${amount} QUSD`} theme={theme} textStyles={textStyles} />
-			<DetailRow label="Transacción" value={getFirstChunk(topupData?.transaction_uuid)} last theme={theme} textStyles={textStyles} />
-		</View>
+			<QPButton
+				title={t('add.modal.paypal.openButton')}
+				onPress={() => Linking.openURL(topupData.redirect_url)}
+				icon="arrow-up-right-from-square"
+				iconStyle="solid"
+				iconColor={theme.colors.almostWhite}
+				textStyle={{ color: theme.colors.almostWhite }}
+				style={{ marginBottom: 20 }}
+			/>
 
-		<ImportantWarnings
-			items={['Complete el pago en PayPal en 30 minutos', 'No cierre esta pantalla hasta confirmar el pago']}
-			theme={theme}
-			textStyles={textStyles}
-		/>
-	</>
-)
+			{depositStatus === 'pending' && countdown > 0 && (
+				<View style={[styles.statusBanner, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
+					<FontAwesome6 name="clock" size={14} color={theme.colors.primary} iconStyle="solid" />
+					<Text style={[textStyles.subtitle, { color: theme.colors.primary, marginLeft: 8, flex: 1 }]}>
+						{t('add.modal.paypal.waiting')}
+					</Text>
+				</View>
+			)}
+
+			<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
+				<DetailRow label={t('add.modal.labels.amountToDeposit')} value={`$${amount} QUSD`} theme={theme} textStyles={textStyles} />
+				<DetailRow label={t('add.modal.labels.transaction')} value={getFirstChunk(topupData?.transaction_uuid)} last theme={theme} textStyles={textStyles} />
+			</View>
+
+			<ImportantWarnings
+				items={[t('add.modal.paypal.warnings.complete'), t('add.modal.paypal.warnings.keepOpen')]}
+				theme={theme}
+				textStyles={textStyles}
+			/>
+		</>
+	)
+}
 
 // Card deposit flow (Stripe PaymentSheet): la hoja nativa se presenta desde Add;
 // aquí solo el resumen de la orden y el botón para (re)abrirla mientras siga viva.
 const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWithCard, theme, textStyles }) => {
+
+	const { t } = useTranslation()
 
 	// Desglose desde la respuesta de /topup, sin recalcular: `value` = lo que cobra
 	// la tarjeta, `credited` = lo que se acredita (difiere en fee_mode=included)
@@ -109,7 +118,7 @@ const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWit
 		<>
 			<View style={styles.amountSection}>
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
-					Total a pagar con tarjeta
+					{t('add.modal.labels.totalToPayCard')}
 				</Text>
 				<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.semiBold }]}>
 					${total.toFixed(2)} USD
@@ -118,7 +127,7 @@ const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWit
 
 			{canPay && (
 				<QPButton
-					title="Pagar con tarjeta"
+					title={t('add.modal.card.payButton')}
 					onPress={onPayWithCard}
 					icon="credit-card"
 					iconStyle="solid"
@@ -129,14 +138,14 @@ const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWit
 			)}
 
 			<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
-				<DetailRow label="Cantidad a recargar" value={`$${credited.toFixed(2)} QUSD`} theme={theme} textStyles={textStyles} />
-				<DetailRow label="Comisión" value={`$${fee.toFixed(2)}`} theme={theme} textStyles={textStyles} />
-				<DetailRow label="Total a pagar" value={`$${total.toFixed(2)} USD`} theme={theme} textStyles={textStyles} />
-				<DetailRow label="Transacción" value={getFirstChunk(topupData?.transaction_uuid)} last theme={theme} textStyles={textStyles} />
+				<DetailRow label={t('add.modal.labels.amountToCredit')} value={`$${credited.toFixed(2)} QUSD`} theme={theme} textStyles={textStyles} />
+				<DetailRow label={t('add.modal.labels.fee')} value={`$${fee.toFixed(2)}`} theme={theme} textStyles={textStyles} />
+				<DetailRow label={t('add.modal.labels.totalToPay')} value={`$${total.toFixed(2)} USD`} theme={theme} textStyles={textStyles} />
+				<DetailRow label={t('add.modal.labels.transaction')} value={getFirstChunk(topupData?.transaction_uuid)} last theme={theme} textStyles={textStyles} />
 			</View>
 
 			<ImportantWarnings
-				items={['El pago se procesa de forma segura con Stripe', 'El cargo puede aparecer en tu estado de cuenta como QvaPay, Inc o DFXData, Inc', 'Tu banco puede pedir una confirmación 3D Secure', 'Completa el pago en 30 minutos']}
+				items={[t('add.modal.card.warnings.stripe'), t('add.modal.card.warnings.statement'), t('add.modal.card.warnings.threeDSecure'), t('add.modal.card.warnings.complete')]}
 				theme={theme}
 				textStyles={textStyles}
 			/>
@@ -145,7 +154,9 @@ const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWit
 }
 
 // Crypto / bank deposit flow
-const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPicker, theme, textStyles }) => (
+const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPicker, theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<>
 		{/* QR Code */}
 		<View style={styles.qrSection}>
@@ -171,7 +182,7 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 		{/* Crypto Amount - Prominent */}
 		<View style={styles.amountSection}>
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }]}>
-				Total a pagar
+				{t('add.modal.labels.totalToPay')}
 			</Text>
 			<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
 				<Text style={[textStyles.h1, { color: theme.colors.primaryText, textAlign: 'center', fontFamily: theme.typography.fontFamily.semiBold }]}>
@@ -189,7 +200,7 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 		{/* Open in installed wallet */}
 		{installedWallets.length > 0 && (
 			<QPButton
-				title="Abrir en mi wallet"
+				title={t('add.modal.crypto.openWalletButton')}
 				onPress={onOpenWalletPicker}
 				icon="wallet"
 				iconStyle="solid"
@@ -201,35 +212,38 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 
 		{/* Deposit Details Card */}
 		<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
-			<DetailRow label="Dirección" value={truncateWalletAddress(topupData?.wallet || '')} copyValue={topupData?.wallet} theme={theme} textStyles={textStyles} />
-			<DetailRow label="Monto a depositar" value={`$${amount} QUSD`} theme={theme} textStyles={textStyles} />
-			{topupData?.account_name && <DetailRow label="Nombre del titular" value={topupData.account_name} copyValue={topupData.account_name} theme={theme} textStyles={textStyles} />}
-			{topupData?.routing_number && <DetailRow label="Número de ruta" value={topupData.routing_number} copyValue={topupData.routing_number} theme={theme} textStyles={textStyles} />}
-			{topupData?.account_number && <DetailRow label="Número de cuenta" value={topupData.account_number} copyValue={topupData.account_number} theme={theme} textStyles={textStyles} />}
-			{topupData?.memo && <DetailRow label="Memo" value={topupData.memo} copyValue={topupData.memo} theme={theme} textStyles={textStyles} />}
-			<DetailRow label="Tasa de cambio" value={`$${formatCryptoAmount(topupData?.price)}`} theme={theme} textStyles={textStyles} />
-			<DetailRow label="Total a pagar" value={`${formatCryptoAmount(topupData?.value)} ${topupData?.coin}`} copyValue={formatCryptoAmount(topupData?.value)} theme={theme} textStyles={textStyles} />
-			<DetailRow label="Transacción" value={getFirstChunk(topupData?.transaction_uuid)} last theme={theme} textStyles={textStyles} />
+			<DetailRow label={t('add.modal.labels.address')} value={truncateWalletAddress(topupData?.wallet || '')} copyValue={topupData?.wallet} theme={theme} textStyles={textStyles} />
+			<DetailRow label={t('add.modal.labels.amountToDeposit')} value={`$${amount} QUSD`} theme={theme} textStyles={textStyles} />
+			{topupData?.account_name && <DetailRow label={t('add.modal.labels.holderName')} value={topupData.account_name} copyValue={topupData.account_name} theme={theme} textStyles={textStyles} />}
+			{topupData?.routing_number && <DetailRow label={t('add.modal.labels.routingNumber')} value={topupData.routing_number} copyValue={topupData.routing_number} theme={theme} textStyles={textStyles} />}
+			{topupData?.account_number && <DetailRow label={t('add.modal.labels.accountNumber')} value={topupData.account_number} copyValue={topupData.account_number} theme={theme} textStyles={textStyles} />}
+			{topupData?.memo && <DetailRow label={t('add.modal.labels.memo')} value={topupData.memo} copyValue={topupData.memo} theme={theme} textStyles={textStyles} />}
+			<DetailRow label={t('add.modal.labels.exchangeRate')} value={`$${formatCryptoAmount(topupData?.price)}`} theme={theme} textStyles={textStyles} />
+			<DetailRow label={t('add.modal.labels.totalToPay')} value={`${formatCryptoAmount(topupData?.value)} ${topupData?.coin}`} copyValue={formatCryptoAmount(topupData?.value)} theme={theme} textStyles={textStyles} />
+			<DetailRow label={t('add.modal.labels.transaction')} value={getFirstChunk(topupData?.transaction_uuid)} last theme={theme} textStyles={textStyles} />
 		</View>
 
 		<ImportantWarnings
-			items={['No envíe cripto a otra dirección', 'Complete el pago en 30 minutos', 'Envíe exactamente la cantidad indicada', 'No use una red/token diferente']}
+			items={[t('add.modal.crypto.warnings.onlyThisAddress'), t('add.modal.crypto.warnings.complete'), t('add.modal.crypto.warnings.exactAmount'), t('add.modal.crypto.warnings.sameNetwork')]}
 			theme={theme}
 			textStyles={textStyles}
 		/>
 	</>
-)
+	)
+}
 
+// El texto vive como CLAVE de i18n y se resuelve en render (constante de módulo)
 const STATUS_BANNERS = {
-	processing: { icon: 'spinner', color: 'warning', text: 'Pago detectado, procesando...' },
-	paid: { icon: 'circle-check', color: 'success', text: 'Pago confirmado' },
-	expired: { icon: 'clock', color: 'danger', text: 'Depósito expirado' },
-	failed: { icon: 'triangle-exclamation', color: 'danger', text: 'Error en el pago' },
+	processing: { icon: 'spinner', color: 'warning', textKey: 'add.modal.status.processing' },
+	paid: { icon: 'circle-check', color: 'success', textKey: 'add.modal.status.paid' },
+	expired: { icon: 'clock', color: 'danger', textKey: 'add.modal.status.expired' },
+	failed: { icon: 'triangle-exclamation', color: 'danger', textKey: 'add.modal.status.failed' },
 }
 
 // Deposit details bottom sheet: QR / PayPal redirect, address + amount details, warnings.
 const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData, depositStatus, countdown, sseConnected, installedWallets, onOpenWalletPicker, onPayWithCard, theme, textStyles }) => {
 
+	const { t } = useTranslation()
 	const isCardDeposit = topupData?.coin === 'CARD'
 
 	const getCountdownColor = (seconds) => {
@@ -247,14 +261,14 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 				{/* Modal Header */}
 				<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
 					<View style={{ flex: 1 }}>
-						<Text style={textStyles.h4}>Depositar ${amount} QUSD</Text>
+						<Text style={textStyles.h4}>{t('add.modal.title', { amount })}</Text>
 					</View>
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
 						<View style={[styles.sseDot, { backgroundColor: sseConnected ? theme.colors.successText : theme.colors.danger }]} />
 						<View style={[styles.countdownBadge, { backgroundColor: getCountdownColor(countdown) + '20', borderColor: getCountdownColor(countdown) }]}>
 							<FontAwesome6 name="clock" size={12} color={getCountdownColor(countdown)} iconStyle="solid" />
 							<Text style={[textStyles.caption, { color: getCountdownColor(countdown), fontFamily: theme.typography.fontFamily.medium, marginLeft: 4, fontVariant: ['tabular-nums'], minWidth: 42 }]}>
-								{countdown > 0 ? formatCountdown(countdown) : 'Expirado'}
+								{countdown > 0 ? formatCountdown(countdown) : t('add.modal.expired')}
 							</Text>
 						</View>
 					</View>
@@ -270,7 +284,7 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 						<View style={[styles.statusBanner, { backgroundColor: theme.colors[banner.color] + '15', borderColor: theme.colors[banner.color] }]}>
 							<FontAwesome6 name={banner.icon} size={14} color={theme.colors[banner.color]} iconStyle="solid" />
 							<Text style={[textStyles.subtitle, { color: theme.colors[banner.color], marginLeft: 8, flex: 1 }]}>
-								{banner.text}
+								{t(banner.textKey)}
 							</Text>
 						</View>
 					)}
@@ -280,7 +294,7 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 						<View style={[styles.warningBanner, { backgroundColor: theme.colors.danger + '15', borderColor: theme.colors.danger }]}>
 							<FontAwesome6 name="triangle-exclamation" size={16} color={theme.colors.danger} iconStyle="solid" />
 							<Text style={[textStyles.subtitle, { color: theme.colors.danger, marginLeft: 8, flex: 1 }]}>
-								Este depósito ha expirado. Por favor genera uno nuevo.
+								{t('add.modal.expiredNotice')}
 							</Text>
 						</View>
 					)}
@@ -290,7 +304,7 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 						<View style={[styles.coinNetworkInner, { backgroundColor: theme.colors.primary + '10' }]}>
 							<QPCoin coin={selectedCoin?.logo || topupData?.coin} size={24} />
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginLeft: 8 }]}>
-								{isCardDeposit ? (selectedCoin?.name || 'Tarjeta') : topupData?.coin}
+								{isCardDeposit ? (selectedCoin?.name || t('add.modal.cardFallbackName')) : topupData?.coin}
 							</Text>
 							{(topupData?.network || selectedCoin?.network) && (
 								<View style={[styles.networkBadgeSmall, { backgroundColor: theme.colors.primary }]}>

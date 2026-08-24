@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from "react-native"
+import { useTranslation } from "react-i18next"
 
 import QPButton from "../../ui/particles/QPButton"
 import QPRate from "../../ui/particles/QPRate"
@@ -11,102 +12,107 @@ const P2PActionBar = ({
 	loading, txIdInput, rating,
 	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate,
 	keyboardVisible, insets, theme, textStyles, containerStyles,
-}) => (
-	<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row', paddingTop: 8, paddingBottom: keyboardVisible ? 4 : insets.bottom + 4, gap: 8 }]}>
+}) => {
 
-		{canApply && (
-			<QPButton
-				title="Aplicar"
-				onPress={onApply}
-				style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
-				textStyle={{ color: theme.colors.buttonText }}
-				icon="check"
-				iconColor={theme.colors.buttonText}
-				iconStyle="solid"
-				loading={loading.apply}
-				disabled={loading.apply}
-			/>
-		)}
+	const { t } = useTranslation()
 
-		{canCancel && (
-			<QPButton
-				title=""
-				onPress={onCancel}
-				style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
-				textStyle={{ color: theme.colors.primaryText }}
-				icon="xmark"
-				iconColor={theme.colors.primaryText}
-				iconStyle="solid"
-				loading={loading.cancel}
-				disabled={loading.cancel}
-			/>
-		)}
+	return (
+		<View style={[containerStyles.bottomButtonContainer, { flexDirection: 'row', paddingTop: 8, paddingBottom: keyboardVisible ? 4 : insets.bottom + 4, gap: 8 }]}>
 
-		{canMarkPaid && isPayer && (
-			<QPButton
-				title="He pagado"
-				onPress={onMarkPaid}
-				style={[{ backgroundColor: theme.colors.successFill }, styles.actionButton]}
-				textStyle={{ color: theme.colors.successFillText }}
-				icon="check"
-				iconColor={theme.colors.successFillText}
-				iconStyle="solid"
-				loading={loading.markPaid}
-				disabled={loading.markPaid || !txIdInput.trim()}
-			/>
-		)}
+			{canApply && (
+				<QPButton
+					title={t('p2p.actionBar.apply')}
+					onPress={onApply}
+					style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
+					textStyle={{ color: theme.colors.buttonText }}
+					icon="check"
+					iconColor={theme.colors.buttonText}
+					iconStyle="solid"
+					loading={loading.apply}
+					disabled={loading.apply}
+				/>
+			)}
 
-		{canConfirmReceived && isReceiver && (
-			<QPButton
-				title="Pago recibido"
-				onPress={onConfirmReceived}
-				style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
-				textStyle={{ color: theme.colors.almostWhite }}
-				icon="money-bill-1-wave"
-				iconColor={theme.colors.almostWhite}
-				iconStyle="solid"
-				loading={loading.received}
-			/>
-		)}
-
-		{/* Edit + Share - Owner of open offer */}
-		{p2p?.status === "open" && isOwner && (
-			<>
-				<View style={{ flex: 1 }} />
+			{canCancel && (
 				<QPButton
 					title=""
-					onPress={onEdit}
-					style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, backgroundColor: theme.colors.surface }}
-					icon="pen-to-square"
+					onPress={onCancel}
+					style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, marginRight: 10, backgroundColor: theme.colors.danger }}
+					textStyle={{ color: theme.colors.primaryText }}
+					icon="xmark"
 					iconColor={theme.colors.primaryText}
 					iconStyle="solid"
+					loading={loading.cancel}
+					disabled={loading.cancel}
 				/>
+			)}
+
+			{canMarkPaid && isPayer && (
 				<QPButton
-					title=""
-					onPress={onShare}
-					style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, backgroundColor: theme.colors.primary }}
-					icon="share"
+					title={t('p2p.actionBar.markPaid')}
+					onPress={onMarkPaid}
+					style={[{ backgroundColor: theme.colors.successFill }, styles.actionButton]}
+					textStyle={{ color: theme.colors.successFillText }}
+					icon="check"
+					iconColor={theme.colors.successFillText}
+					iconStyle="solid"
+					loading={loading.markPaid}
+					disabled={loading.markPaid || !txIdInput.trim()}
+				/>
+			)}
+
+			{canConfirmReceived && isReceiver && (
+				<QPButton
+					title={t('p2p.actionBar.paymentReceived')}
+					onPress={onConfirmReceived}
+					style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
+					textStyle={{ color: theme.colors.almostWhite }}
+					icon="money-bill-1-wave"
 					iconColor={theme.colors.almostWhite}
 					iconStyle="solid"
+					loading={loading.received}
 				/>
-			</>
-		)}
+			)}
 
-		{p2p?.status === "cancelled" && (
-			<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Oferta cancelada</Text>
-			</View>
-		)}
+			{/* Edit + Share - Owner of open offer */}
+			{p2p?.status === "open" && isOwner && (
+				<>
+					<View style={{ flex: 1 }} />
+					<QPButton
+						title=""
+						onPress={onEdit}
+						style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, backgroundColor: theme.colors.surface }}
+						icon="pen-to-square"
+						iconColor={theme.colors.primaryText}
+						iconStyle="solid"
+					/>
+					<QPButton
+						title=""
+						onPress={onShare}
+						style={{ width: 56, minHeight: 56, borderRadius: 16, borderCurve: 'continuous', paddingHorizontal: 0, backgroundColor: theme.colors.primary }}
+						icon="share"
+						iconColor={theme.colors.almostWhite}
+						iconStyle="solid"
+					/>
+				</>
+			)}
 
-		{canRatePeer && (
-			<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-				<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>Califica a tu contraparte</Text>
-				<QPRate value={rating} onRate={onRate} size={28} readOnly={false} />
-			</View>
-		)}
+			{p2p?.status === "cancelled" && (
+				<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('p2p.actionBar.offerCancelled')}</Text>
+				</View>
+			)}
 
-	</View>
-)
+			{canRatePeer && (
+				<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+					<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{t('p2p.actionBar.rateCounterparty')}</Text>
+					<QPRate value={rating} onRate={onRate} size={28} readOnly={false} />
+				</View>
+			)}
+
+		</View>
+	)
+}
 
 const styles = StyleSheet.create({
 	actionButton: {

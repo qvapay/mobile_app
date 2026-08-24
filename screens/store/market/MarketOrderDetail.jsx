@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import Clipboard from '@react-native-clipboard/clipboard'
 import FastImage from '@d11/react-native-fast-image'
@@ -38,6 +39,7 @@ const Row = ({ label, value, theme, textStyles }) => (
 const MarketOrderDetail = ({ navigation, route }) => {
 
 	const { order } = route.params || {}
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -53,7 +55,7 @@ const MarketOrderDetail = ({ navigation, route }) => {
 
 	const copyTracking = () => {
 		Clipboard.setString(order.tracking_code)
-		toast.success('Código de rastreo copiado')
+		toast.success(t('market.orderDetail.toasts.trackingCopied'))
 	}
 
 	return (
@@ -67,12 +69,12 @@ const MarketOrderDetail = ({ navigation, route }) => {
 							{image && <FastImage source={{ uri: image }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />}
 						</View>
 						<View style={{ flex: 1 }}>
-							<Text style={[textStyles.h5, { fontWeight: '600' }]} numberOfLines={2}>{order.product?.title || 'Producto'}</Text>
+							<Text style={[textStyles.h5, { fontWeight: '600' }]} numberOfLines={2}>{order.product?.title || t('market.common.productFallback')}</Text>
 							{!!variantLabel && (
 								<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>{variantLabel}</Text>
 							)}
 							<Text style={[textStyles.caption, { color: theme.colors[status.color] || theme.colors.secondaryText, marginTop: 4, fontWeight: '600' }]}>
-								{status.label}
+								{t(status.label)}
 							</Text>
 						</View>
 					</View>
@@ -80,23 +82,23 @@ const MarketOrderDetail = ({ navigation, route }) => {
 
 				{/* Desglose */}
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
-					<Row label="Cantidad" value={`${order.quantity}`} theme={theme} textStyles={textStyles} />
-					<Row label="Precio unitario" value={money(order.unit_price)} theme={theme} textStyles={textStyles} />
+					<Row label={t('market.orderDetail.quantity')} value={`${order.quantity}`} theme={theme} textStyles={textStyles} />
+					<Row label={t('market.orderDetail.unitPrice')} value={money(order.unit_price)} theme={theme} textStyles={textStyles} />
 					{Number(order.gift_card_amount) > 0 && (
-						<Row label="Gift card aplicada" value={`-${money(order.gift_card_amount)}`} theme={theme} textStyles={textStyles} />
+						<Row label={t('market.orderDetail.giftCardApplied')} value={`-${money(order.gift_card_amount)}`} theme={theme} textStyles={textStyles} />
 					)}
 					<View style={[styles.row, styles.totalRow, { borderTopColor: `${theme.colors.secondaryText}33` }]}>
-						<Text style={[textStyles.h6, { fontWeight: '600' }]}>Total</Text>
+						<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('market.common.total')}</Text>
 						<Text style={[textStyles.h5, { fontWeight: '600', color: theme.colors.primary }]}>{money(order.total)}</Text>
 					</View>
 					{!!order.product?.kind && (
-						<Row label="Tipo" value={KIND_LABELS[order.product.kind] || order.product.kind} theme={theme} textStyles={textStyles} />
+						<Row label={t('market.orderDetail.type')} value={KIND_LABELS[order.product.kind] ? t(KIND_LABELS[order.product.kind]) : order.product.kind} theme={theme} textStyles={textStyles} />
 					)}
-					<Row label="Fecha" value={getShortDateTime(order.created_at)} theme={theme} textStyles={textStyles} />
+					<Row label={t('market.orderDetail.date')} value={getShortDateTime(order.created_at)} theme={theme} textStyles={textStyles} />
 					{!!order.delivered_at && (
-						<Row label="Entregado" value={getShortDateTime(order.delivered_at)} theme={theme} textStyles={textStyles} />
+						<Row label={t('market.orderDetail.delivered')} value={getShortDateTime(order.delivered_at)} theme={theme} textStyles={textStyles} />
 					)}
-					{!!order.note && <Row label="Nota" value={order.note} theme={theme} textStyles={textStyles} />}
+					{!!order.note && <Row label={t('market.orderDetail.note')} value={order.note} theme={theme} textStyles={textStyles} />}
 				</View>
 
 				{/* Rastreo */}
@@ -106,7 +108,7 @@ const MarketOrderDetail = ({ navigation, route }) => {
 						style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 					>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-							Código de rastreo (toca para copiar)
+							{t('market.orderDetail.trackingLabel')}
 						</Text>
 						<Text style={[textStyles.h6, { fontWeight: '600', marginTop: 4 }]}>{order.tracking_code}</Text>
 					</Pressable>
@@ -120,7 +122,7 @@ const MarketOrderDetail = ({ navigation, route }) => {
 					>
 						<OperatorAvatar brand={order.shop.name} logoUrl={order.shop.logo} size="md" />
 						<View style={{ flex: 1, marginLeft: 10 }}>
-							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>Vendido por</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{t('market.common.soldBy')}</Text>
 							<Text style={[textStyles.h6, { fontWeight: '600' }]} numberOfLines={1}>{order.shop.name}</Text>
 						</View>
 						<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>›</Text>
@@ -129,7 +131,7 @@ const MarketOrderDetail = ({ navigation, route }) => {
 
 				{/* Referencia */}
 				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 14 }]}>
-					Orden {order.uuid}
+					{t('market.orderDetail.orderRef', { uuid: order.uuid })}
 				</Text>
 			</ScrollView>
 		</View>

@@ -34,10 +34,10 @@ describe('DEFAULT_SETTINGS', () => {
 		])
 	})
 
-	test('notable defaults: dark theme, Spanish locale, QUSD, onboarding gate on', () => {
+	test('notable defaults: dark theme, auto language, QUSD, onboarding gate on', () => {
 		expect(DEFAULT_SETTINGS.appearance.theme).toBe('dark')
 		expect(DEFAULT_SETTINGS.appearance.firstTime).toBe(true)
-		expect(DEFAULT_SETTINGS.language.currentLanguage).toBe('es')
+		expect(DEFAULT_SETTINGS.language.currentLanguage).toBe('auto')
 		expect(DEFAULT_SETTINGS.language.currency).toBe('QUSD')
 		expect(DEFAULT_SETTINGS.transactions.defaultCurrency).toBe('QUSD')
 	})

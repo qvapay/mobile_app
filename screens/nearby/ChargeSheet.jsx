@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut, Easing } from 'react-native-reanimated'
 
 // Theme Context
@@ -23,6 +24,7 @@ import QPButton from '../../ui/particles/QPButton'
  */
 const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const [amount, setAmount] = useState(initialAmount)
@@ -44,16 +46,16 @@ const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }) => {
 				<View style={[styles.handle, { backgroundColor: theme.colors.tertiaryText }]} />
 
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText, textAlign: 'center', marginBottom: 4 }]}>
-					Cobrar cerca
+					{t('misc.nearby.chargeNearby')}
 				</Text>
 				<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 16 }]}>
-					Los usuarios cercanos verán este monto al tocar tu avatar
+					{t('misc.nearby.sheet.subtitle')}
 				</Text>
 
-				<AmountInput amount={amount} onAmountChange={setAmount} balance={balance} placeholder="Monto a cobrar" />
+				<AmountInput amount={amount} onAmountChange={setAmount} balance={balance} placeholder={t('misc.nearby.sheet.amountPlaceholder')} />
 
 				<QPButton
-					title={canConfirm ? `Cobrar $${amount}` : 'Cobrar'}
+					title={canConfirm ? t('misc.nearby.sheet.chargeAmount', { amount }) : t('misc.nearby.sheet.charge')}
 					onPress={() => canConfirm && onConfirm(amount)}
 					disabled={!canConfirm}
 					icon="bolt"

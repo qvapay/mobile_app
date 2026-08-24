@@ -8,10 +8,13 @@ import { useTextStyles } from '../theme/themeUtils'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// i18n (locale de fechas acorde al idioma activo)
+import { getDateLocale } from '../i18n'
+
 // Format date
 const formatDate = (dateString) => {
 	const date = new Date(dateString)
-	return date.toLocaleDateString('es-ES', {
+	return date.toLocaleDateString(getDateLocale(), {
 		year: 'numeric',
 		month: 'long',
 		day: 'numeric'
@@ -24,7 +27,7 @@ const stripHtml = (html) => { return html.replace(/<[^>]*>/g, '').trim() }
 /**
  * Card for a WordPress blog post (featured image, date, author, title, excerpt)
  * shown in the Home feed; tapping opens the post in the external browser.
- * Excerpt HTML is stripped client-side; dates are formatted in Spanish locale.
+ * Excerpt HTML is stripped client-side; dates follow the active i18n locale.
  * On iPad the cards render two-up, so width is computed from the window width
  * and the bottom margin is dropped.
  *

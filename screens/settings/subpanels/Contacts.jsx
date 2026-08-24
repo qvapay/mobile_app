@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useReducer } from 'react'
 import { Alert, Text, View, Pressable, Platform } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -84,6 +85,9 @@ const Contacts = ({ navigation }) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
+	// Idioma activo
+	const { t } = useTranslation()
+
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
@@ -126,9 +130,9 @@ const Contacts = ({ navigation }) => {
 			if (res.success) {
 				const list = Array.isArray(res.data) ? res.data : (res.data?.contacts || [])
 				dispatchData({ type: 'refreshed', contacts: list })
-			} else { toast.error(res.error || 'No se pudieron cargar los contactos'); dispatchData({ type: 'refreshDone' }) }
-		} catch (e) { toast.error(e.message || 'Error de red'); dispatchData({ type: 'refreshDone' }) }
-	}, [])
+			} else { toast.error(res.error || t('settings.contacts.toasts.loadFailed')); dispatchData({ type: 'refreshDone' }) }
+		} catch (e) { toast.error(e.message || t('settings.contacts.toasts.networkError')); dispatchData({ type: 'refreshDone' }) }
+	}, [t])
 
 	// Handle sync button press
 	const handleSyncPress = useCallback(async () => {
@@ -140,11 +144,11 @@ const Contacts = ({ navigation }) => {
 				syncDeviceContacts(syncOpts)
 			} else if (status === 'denied') {
 				Alert.alert(
-					'Permiso denegado',
-					'Para sincronizar tus contactos, activa el permiso en la configuración de tu dispositivo.',
+					t('settings.contacts.alerts.permissionDeniedTitle'),
+					t('settings.contacts.alerts.permissionDeniedBody'),
 					[
-						{ text: 'Cancelar', style: 'cancel' },
-						{ text: 'Abrir Configuración', onPress: openSettings },
+						{ text: t('common.actions.cancel'), style: 'cancel' },
+						{ text: t('common.actions.openSettings'), onPress: openSettings },
 					]
 				)
 			} else {
@@ -153,11 +157,11 @@ const Contacts = ({ navigation }) => {
 					syncDeviceContacts(syncOpts)
 				} else if (result === 'denied') {
 					Alert.alert(
-						'Permiso denegado',
-						'Para sincronizar tus contactos, activa el permiso en la configuración de tu dispositivo.',
+						t('settings.contacts.alerts.permissionDeniedTitle'),
+						t('settings.contacts.alerts.permissionDeniedBody'),
 						[
-							{ text: 'Cancelar', style: 'cancel' },
-							{ text: 'Abrir Configuración', onPress: openSettings },
+							{ text: t('common.actions.cancel'), style: 'cancel' },
+							{ text: t('common.actions.openSettings'), onPress: openSettings },
 						]
 					)
 				}
@@ -165,7 +169,7 @@ const Contacts = ({ navigation }) => {
 		} finally {
 			setIsResolvingPermission(false)
 		}
-	}, [checkPermission, requestPermission, syncDeviceContacts, openSettings, refresh])
+	}, [checkPermission, requestPermission, syncDeviceContacts, openSettings, refresh, t])
 
 	// Header buttons: sync + add
 	useEffect(() => {
@@ -186,20 +190,20 @@ const Contacts = ({ navigation }) => {
 				unstable_headerRightItems: () => [
 					{
 						type: 'button',
-						label: 'Sincronizar',
+						label: t('settings.contacts.header.sync'),
 						icon: { type: 'sfSymbol', name: 'arrow.triangle.2.circlepath' },
 						onPress: handleSyncPress,
 					},
 					{
 						type: 'button',
-						label: 'Agregar',
+						label: t('settings.contacts.header.add'),
 						icon: { type: 'sfSymbol', name: 'plus' },
 						onPress: () => setShowAddModal(true),
 					},
 				],
 			}),
 		})
-	}, [navigation, theme.colors.primaryText, handleSyncPress])
+	}, [navigation, theme.colors.primaryText, handleSyncPress, t])
 
 	// Check permission on mount
 	useEffect(() => {
@@ -214,9 +218,9 @@ const Contacts = ({ navigation }) => {
 			if (res.success) {
 				const list = Array.isArray(res.data) ? res.data : (res.data?.contacts || [])
 				dispatchData({ type: 'loaded', contacts: list })
-			} else { dispatchData({ type: 'error', error: res.error || 'No se pudieron cargar los contactos' }) }
-		} catch (e) { dispatchData({ type: 'error', error: e.message || 'Error de red' }) }
-	}, [])
+			} else { dispatchData({ type: 'error', error: res.error || t('settings.contacts.toasts.loadFailed') }) }
+		} catch (e) { dispatchData({ type: 'error', error: e.message || t('settings.contacts.toasts.networkError') }) }
+	}, [t])
 
 	useEffect(() => { load() }, [load])
 
@@ -228,32 +232,32 @@ const Contacts = ({ navigation }) => {
 			const res = await userApi.toggleFavoriteContact(id)
 			if (res.success) {
 				dispatchData({ type: 'setContacts', contacts: data.contacts.map((c) => c.id === id ? { ...c, favorite: res.data.favorite } : c) })
-			} else { toast.error(res.error || 'No se pudo actualizar') }
-		} catch (e) { toast.error(e.message || 'Error de red') }
+			} else { toast.error(res.error || t('settings.contacts.toasts.updateFailed')) }
+		} catch (e) { toast.error(e.message || t('settings.contacts.toasts.networkError')) }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [data.contacts])
+	}, [data.contacts, t])
 
 	// Handle delete contact
 	const handleDelete = useCallback((contact) => {
 		const id = contact?.id || contact?.uuid || contact?.Contact?.uuid
-		if (!id) { toast.error('ID de contacto inválido'); return }
+		if (!id) { toast.error(t('settings.contacts.toasts.invalidContactId')); return }
 		Alert.alert(
-			'Eliminar contacto',
-			'¿Seguro que deseas eliminar este contacto?',
+			t('settings.contacts.alerts.deleteTitle'),
+			t('settings.contacts.alerts.deleteBody'),
 			[
-				{ text: 'Cancelar', style: 'cancel' },
+				{ text: t('common.actions.cancel'), style: 'cancel' },
 				{
-					text: 'Eliminar', style: 'destructive', onPress: async () => {
+					text: t('common.actions.delete'), style: 'destructive', onPress: async () => {
 						try {
 							const res = await userApi.deleteContact(id)
-							if (res.success) { toast.success('Contacto eliminado'); refresh() }
-							else { toast.error(res.error || 'No se pudo eliminar') }
-						} catch (e) { toast.error(e.message || 'Error de red') }
+							if (res.success) { toast.success(t('settings.contacts.toasts.deleted')); refresh() }
+							else { toast.error(res.error || t('settings.contacts.toasts.deleteFailed')) }
+						} catch (e) { toast.error(e.message || t('settings.contacts.toasts.networkError')) }
 					}
 				}
 			]
 		)
-	}, [refresh])
+	}, [refresh, t])
 
 	// Filter contacts locally
 	const query = filterQuery.trim().toLowerCase()
@@ -316,7 +320,7 @@ const Contacts = ({ navigation }) => {
 					ListEmptyComponent={(
 						<View style={[containerStyles.card, { alignItems: 'center' }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-								{contacts.length === 0 ? 'No tienes contactos guardados' : `Sin resultados para "${filterQuery}"`}
+								{contacts.length === 0 ? t('settings.contacts.emptyList') : t('settings.contacts.noResults', { query: filterQuery })}
 							</Text>
 						</View>
 					)}

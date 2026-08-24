@@ -1,0 +1,57 @@
+{
+	"kinetic": {
+		"headline": "Tu dinero.",
+		"verb1": "Envíalo.",
+		"verb2": "Ahórralo.",
+		"verb3": "Inviértelo.",
+		"verb4": "Recíbelo.",
+		"subtitle": "Dólares digitales, P2P y crypto para el Caribe.",
+		"marquee": {
+			"remittances": "Remesas",
+			"savings": "Ahorro",
+			"topups": "Recargas",
+			"payments": "Pagos",
+			"store": "Tienda"
+		}
+	},
+	"actions": {
+		"start": "Comenzar",
+		"createAccount": "Crear cuenta",
+		"terms": "Al continuar, aceptas nuestros <0>Términos y Condiciones</0>"
+	},
+	"onboard": {
+		"steps": {
+			"trade": {
+				"title": "Bienvenido a QvaPay",
+				"description": "Tu plataforma de pagos digitales en USD"
+			},
+			"bot": {
+				"title": "Finanzas Inteligentes",
+				"description": "Gestiona tus finanzas con facilidad y sin complicaciones"
+			},
+			"coins": {
+				"title": "Múltiples Monedas",
+				"description": "Maneja diferentes divisas con facilidad y sin comisiones ocultas"
+			},
+			"earn": {
+				"title": "Gana Dinero",
+				"description": "Invierte y haz crecer tu dinero con nuestras opciones de inversión"
+			},
+			"security": {
+				"title": "Seguridad Total",
+				"description": "Tus datos y transacciones están protegidos con la más alta seguridad"
+			},
+			"box": {
+				"title": "Envíos Rápidos",
+				"description": "Transfiere dinero de forma instantánea a cualquier parte del mundo"
+			},
+			"vault": {
+				"title": "Billetera Digital",
+				"description": "Guarda y gestiona todos tus activos digitales en un solo lugar"
+			}
+		},
+		"skip": "Saltar",
+		"next": "Siguiente",
+		"finish": "Finalizar"
+	}
+}

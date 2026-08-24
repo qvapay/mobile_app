@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, interpolate, runOnJS, Easing } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 
@@ -150,6 +151,7 @@ const Courier = ({ routes, initialDelay, msPerPx, scaleX, accent }) => {
  */
 const CashDeliveryCard = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 
 	// Enviar efectivo requiere identidad verificada: sin KYC la card queda
@@ -190,12 +192,12 @@ const CashDeliveryCard = ({ navigation }) => {
 		<View style={styles.section}>
 
 			<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.lg }]}>
-				Envío de efectivo
+				{t('ui.cashDelivery.sectionTitle')}
 			</Text>
 
 			<Pressable
 				onPress={() => {
-					if (!requireKyc({ message: 'Para enviar efectivo con USD CASH necesitas tener tu identidad verificada. Es rápido y solo se hace una vez.' })) return
+					if (!requireKyc({ message: t('ui.cashDelivery.kycGateMessage') })) return
 					navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })
 				}}
 				style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, opacity: kycVerified ? 1 : 0.55, transform: [{ scale: pressed ? 0.98 : 1 }] }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
@@ -216,7 +218,7 @@ const CashDeliveryCard = ({ navigation }) => {
 							USD CASH
 						</Text>
 						<Text style={[styles.cardSubtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
-							Recibe USD en efectivo en La Habana{'\n'}en menos de 72 horas
+							{t('ui.cashDelivery.subtitle')}
 						</Text>
 					</View>
 				</View>
@@ -224,7 +226,7 @@ const CashDeliveryCard = ({ navigation }) => {
 				{/* Bottom action row: sin KYC comunica el porqué del sombreado */}
 				<View style={styles.actionRow}>
 					<Text style={[styles.actionText, { color: kycVerified ? theme.colors.primary : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.md }]}>
-						{kycVerified ? 'Enviar efectivo' : 'Requiere identidad verificada'}
+						{kycVerified ? t('ui.cashDelivery.cta') : t('ui.cashDelivery.kycRequired')}
 					</Text>
 					<FontAwesome6 name={kycVerified ? 'chevron-right' : 'lock'} size={14} color={kycVerified ? theme.colors.primary : theme.colors.secondaryText} iconStyle="solid" />
 				</View>

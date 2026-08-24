@@ -4,16 +4,18 @@
  * cada bloque renderizado como su propia tarjeta.
  *
  * Módulo puro (sin imports de React Native) para poder testearlo en el entorno
- * node de jest — el mismo patrón de `screens/keypad/keypadAmount.js`.
+ * node de jest — el mismo patrón de `screens/keypad/keypadAmount.js`. El i18n
+ * respeta esa regla: `i18n/index.js` tampoco importa nada nativo.
  */
+import i18n, { getDateLocale } from '../../i18n'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
 /**
- * Etiqueta humana del día en español: "Hoy", "Ayer", "16 de agosto" y, si el
- * año no es el corriente, "16 de agosto de 2025".
+ * Etiqueta humana del día en el idioma activo: "Hoy"/"Today", "Ayer"/"Yesterday",
+ * "16 de agosto"/"August 16" y, si el año no es el corriente, con año.
  *
  * @param {string|number|Date} dateInput - Fecha de la transacción.
  * @param {Date} [now] - Inyectable en tests; por defecto, ahora.
@@ -22,13 +24,13 @@ const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.
 export const dayLabel = (dateInput, now = new Date()) => {
 
 	const date = new Date(dateInput)
-	if (isNaN(date)) return 'Anteriores'
+	if (isNaN(date)) return i18n.t('common.dates.earlier')
 
 	const daysAgo = Math.round((startOfDay(now) - startOfDay(date)) / DAY_MS)
-	if (daysAgo === 0) return 'Hoy'
-	if (daysAgo === 1) return 'Ayer'
+	if (daysAgo === 0) return i18n.t('common.dates.today')
+	if (daysAgo === 1) return i18n.t('common.dates.yesterday')
 
-	return date.toLocaleDateString('es-ES', {
+	return date.toLocaleDateString(getDateLocale(), {
 		day: 'numeric',
 		month: 'long',
 		...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' }),

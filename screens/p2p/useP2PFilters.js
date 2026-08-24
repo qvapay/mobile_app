@@ -1,4 +1,5 @@
 import { useReducer, useMemo, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 
 const PAGE_SIZE = 30
 
@@ -6,13 +7,15 @@ const PAGE_SIZE = 30
  * Orden de la lista. Todos se resuelven en el servidor: desde 2026-08-16 el
  * backend ordena `ratio` (receive/amount), `rating` y `trades` en SQL con
  * paginación real, así que no queda nada que ordenar en el cliente.
+ * El copy no vive aquí: `labelKey` se resuelve con t() en el render (constante
+ * de módulo — un literal quedaría congelado en el idioma del arranque).
  */
 export const SORT_OPTIONS = [
-	{ label: "Reciente", orderBy: "updated_at", orderType: "desc" },
-	{ label: "Monto ↓", orderBy: "amount", orderType: "desc" },
-	{ label: "Monto ↑", orderBy: "amount", orderType: "asc" },
-	{ label: "Mejor tasa", orderBy: "ratio", orderType: "desc" },
-	{ label: "Reputación", orderBy: "rating", orderType: "desc" },
+	{ labelKey: "p2p.filters.sort.recent", orderBy: "updated_at", orderType: "desc" },
+	{ labelKey: "p2p.filters.sort.amountDesc", orderBy: "amount", orderType: "desc" },
+	{ labelKey: "p2p.filters.sort.amountAsc", orderBy: "amount", orderType: "asc" },
+	{ labelKey: "p2p.filters.sort.bestRate", orderBy: "ratio", orderType: "desc" },
+	{ labelKey: "p2p.filters.sort.reputation", orderBy: "rating", orderType: "desc" },
 ]
 
 const initialFilters = {
@@ -68,6 +71,9 @@ const num = (value) => {
  */
 export default function useP2PFilters(initialCoin) {
 
+	// Idioma activo: los badges son copy de render y deben recalcularse al cambiarlo
+	const { t } = useTranslation()
+
 	const [filters, dispatch] = useReducer(filtersReducer, { ...initialFilters, selectedCoin: initialCoin })
 	// Stable identities (dispatch is stable) so consumers can list them in deps safely.
 	const setFilter = useCallback((field, value) => dispatch({ type: "set", field, value }), [])
@@ -117,13 +123,13 @@ export default function useP2PFilters(initialCoin) {
 	// Active filter badges (modal filters only) — onRemove clears that field
 	const activeFilterBadges = useMemo(() => {
 		const badges = []
-		if (showMine) badges.push({ key: "showMine", label: "Mis ofertas", onRemove: () => setFilter("showMine", false) })
-		if (opAmount !== "") badges.push({ key: "opAmount", label: `Opero $${opAmount}`, onRemove: () => setFilter("opAmount", "") })
-		if (ratioMin !== "") badges.push({ key: "ratioMin", label: `Tasa ≥ ${ratioMin}`, onRemove: () => setFilter("ratioMin", "") })
-		if (ratioMax !== "") badges.push({ key: "ratioMax", label: `Tasa ≤ ${ratioMax}`, onRemove: () => setFilter("ratioMax", "") })
-		if (onlyVip) badges.push({ key: "onlyVip", label: "Solo VIP", onRemove: () => setFilter("onlyVip", false) })
+		if (showMine) badges.push({ key: "showMine", label: t('p2p.filters.myOffers'), onRemove: () => setFilter("showMine", false) })
+		if (opAmount !== "") badges.push({ key: "opAmount", label: t('p2p.filters.badges.operate', { amount: opAmount }), onRemove: () => setFilter("opAmount", "") })
+		if (ratioMin !== "") badges.push({ key: "ratioMin", label: t('p2p.filters.badges.rateMin', { value: ratioMin }), onRemove: () => setFilter("ratioMin", "") })
+		if (ratioMax !== "") badges.push({ key: "ratioMax", label: t('p2p.filters.badges.rateMax', { value: ratioMax }), onRemove: () => setFilter("ratioMax", "") })
+		if (onlyVip) badges.push({ key: "onlyVip", label: t('p2p.filters.onlyVip'), onRemove: () => setFilter("onlyVip", false) })
 		return badges
-	}, [showMine, opAmount, ratioMin, ratioMax, onlyVip, setFilter])
+	}, [showMine, opAmount, ratioMin, ratioMax, onlyVip, setFilter, t])
 
 	return { filters, setFilter, resetFilters, orderBy, orderType, hasActiveFilters, apiFilters, activeFilterBadges }
 }

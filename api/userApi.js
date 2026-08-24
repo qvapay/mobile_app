@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 export const userApi = {
 
@@ -45,9 +46,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo obtener la sesión de verificación', status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.kycSessionFailed'), status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -212,9 +213,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo enviar la solicitud', status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.companySubmitFailed'), status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -287,9 +288,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener los métodos de pago', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodsLoadFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -307,9 +308,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo crear el método de pago', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodCreateFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -326,9 +327,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo eliminar el método de pago', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodDeleteFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -345,9 +346,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener los contactos', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactsLoadFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -365,9 +366,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo agregar el contacto', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactAddFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -384,9 +385,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo actualizar el favorito', status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactFavoriteFailed'), status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -403,9 +404,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo eliminar el contacto', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactDeleteFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -422,9 +423,9 @@ export const userApi = {
 			return { success: true, data: response.data }
 		} catch (error) {
 			if (error.response?.data) {
-				return { success: false, error: error.response.data.error || 'No se pudieron sincronizar los contactos' }
+				return { success: false, error: error.response.data.error || i18n.t('api.user.contactsSyncFailed') }
 			}
-			return { success: false, error: error.message || 'Error de red' }
+			return { success: false, error: error.message || i18n.t('api.common.networkErrorShort') }
 		}
 	},
 
@@ -442,9 +443,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo generar el código 2FA', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.twoFactorGenerateFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -465,9 +466,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo activar el 2FA', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.twoFactorActivateFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -484,9 +485,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo desactivar el 2FA', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.twoFactorDeactivateFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -511,9 +512,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo validar la compra', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.common.purchaseValidateFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -541,9 +542,9 @@ export const userApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo subir la imagen', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.imageUploadFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 

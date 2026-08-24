@@ -1,0 +1,59 @@
+{
+	"authState": {
+		"loginFailed": "Não foi possível entrar",
+		"loginFailedRetry": "Não foi possível entrar. Tente de novo.",
+		"passkeyLoginFailed": "Erro ao entrar com Passkey",
+		"requestPinFailed": "Não foi possível solicitar o PIN",
+		"logoutFailed": "Não foi possível sair. Tente de novo.",
+		"registerFailed": "Não foi possível concluir o cadastro. Tente de novo.",
+		"confirmRegistrationFailed": "Não foi possível confirmar o cadastro",
+		"updateUserFailed": "Não foi possível atualizar os dados do usuário"
+	},
+	"pinCountdown": {
+		"requestPin": "Solicitar PIN"
+	},
+	"idempotency": {
+		"safeRetryHint": "Você pode tentar de novo sem risco de duplicar a operação."
+	},
+	"iap": {
+		"unknownError": "Erro desconhecido",
+		"itemUnavailable": "Este produto não está disponível na sua região",
+		"connectionError": "Erro de conexão. Verifique sua internet",
+		"serviceUnavailable": "O serviço de pagamentos não está disponível",
+		"configurationError": "Erro de configuração. Entre em contato com o suporte",
+		"alreadyOwned": "Você já tem uma compra ativa deste produto",
+		"paymentPending": "O pagamento está aguardando aprovação",
+		"purchaseFailed": "Erro ao processar a compra"
+	},
+	"appNavigation": {
+		"toasts": {
+			"loginToPay": "Entre para pagar a fatura",
+			"loginToSeeOffer": "Entre para ver a oferta P2P",
+			"loginToSeeStore": "Entre para ver a loja"
+		}
+	},
+	"deviceContacts": {
+		"alerts": {
+			"permissionTitle": "Permissão de contatos",
+			"permissionBody": "Para sincronizar seus contatos, ative a permissão nas configurações do seu dispositivo."
+		},
+		"toasts": {
+			"permissionDenied": "Permissão de contatos não concedida",
+			"noPhoneNumbers": "Nenhum número de telefone encontrado nos seus contatos",
+			"autoAdded_one": "{{count}} contato adicionado automaticamente",
+			"autoAdded_other": "{{count}} contatos adicionados automaticamente",
+			"synced": "Contatos sincronizados",
+			"noneOnQvaPay": "Nenhum dos seus contatos usa o QvaPay ainda",
+			"syncErrorTitle": "Erro ao sincronizar"
+		},
+		"syncFailed": "Erro ao sincronizar contatos"
+	},
+	"transactionSSE": {
+		"updateProcessFailed": "Erro ao processar a atualização do pagamento",
+		"connectionLost": "A conexão com o servidor foi perdida",
+		"monitorConnectFailed": "Não foi possível estabelecer a conexão de monitoramento"
+	},
+	"coins": {
+		"emptyCatalog": "Catálogo de moedas vazio"
+	}
+}

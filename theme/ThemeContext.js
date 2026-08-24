@@ -4,17 +4,19 @@ import { createContext, use, useEffect, useState, useMemo, useRef } from 'react'
 
 // Curated accent palette (GOLD-only customization). Every color must hold
 // white button text and read as a tint on both #0E0E1C and #FFFFFF, and must
-// not collide with the semantic success/danger colors.
+// not collide with the semantic success/danger colors. Data only — the
+// localized display names live in i18n under `settings.themePanel.accents.<id>`
+// (resolved at render time by screens/settings/subpanels/Theme.jsx).
 export const ACCENT_COLORS = [
-    { id: 'default', name: 'QvaPay', color: '#6759EF' },
-    { id: 'violet', name: 'Violeta', color: '#9B51E0' },
-    { id: 'ocean', name: 'Océano', color: '#2F80ED' },
-    { id: 'turquoise', name: 'Turquesa', color: '#06B6D4' },
-    { id: 'emerald', name: 'Esmeralda', color: '#10B981' },
-    { id: 'gold', name: 'Dorado', color: '#E6A817' },
-    { id: 'orange', name: 'Naranja', color: '#EA580C' },
-    { id: 'pink', name: 'Rosa', color: '#E84393' },
-    { id: 'graphite', name: 'Grafito', color: '#64748B' },
+    { id: 'default', color: '#6759EF' },
+    { id: 'violet', color: '#9B51E0' },
+    { id: 'ocean', color: '#2F80ED' },
+    { id: 'turquoise', color: '#06B6D4' },
+    { id: 'emerald', color: '#10B981' },
+    { id: 'gold', color: '#E6A817' },
+    { id: 'orange', color: '#EA580C' },
+    { id: 'pink', color: '#E84393' },
+    { id: 'graphite', color: '#64748B' },
 ]
 
 // Resolve an accent id to its hex color (unknown ids fall back to the brand color)

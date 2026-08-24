@@ -1,0 +1,86 @@
+{
+	"common": {
+		"deposit": "Depositar",
+		"withdraw": "Sacar",
+		"p2pMarket": "Mercado P2P",
+		"perYear": "ao ano",
+		"statistics": "Estatísticas"
+	},
+	"timeframes": {
+		"1H": "1H",
+		"24H": "24H",
+		"1W": "1S",
+		"1M": "1M",
+		"1Y": "1A",
+		"ALL": "TUDO"
+	},
+	"dashboard": {
+		"savings": "Poupança",
+		"explore": "Explorar",
+		"tabs": {
+			"popular": "Populares",
+			"stocks": "Ações"
+		},
+		"seeAll": "Ver tudo",
+		"offers_one": "{{count}} oferta",
+		"offers_other": "{{count}} ofertas",
+		"empty": "Sem dados"
+	},
+	"savings": {
+		"kycGateMessage": "A conta de poupança exige que sua identidade esteja verificada. É rápido e você só faz isso uma vez.",
+		"totalDeposited": "Total depositado",
+		"totalWithdrawn": "Total sacado",
+		"earnings": "Rendimentos",
+		"activity": "Atividade",
+		"emptyActivity": "As operações vão aparecer aqui",
+		"disclaimer": "O serviço de poupança do QvaPay gera juros sobre o saldo depositado. Os fundos podem ser sacados a qualquer momento. As taxas de juros estão sujeitas a alterações.",
+		"termsOfService": "Termos do serviço",
+		"availableBalance": "Disponível: {{amount}}",
+		"inSavings": "Na poupança: {{amount}}",
+		"useMax": "Usar o máximo",
+		"txTypes": {
+			"deposit": "Depósito",
+			"withdrawal": "Saque",
+			"earning": "Rendimento"
+		},
+		"toasts": {
+			"minAmount": "O valor mínimo é $1.00",
+			"insufficientBalance": "Saldo insuficiente",
+			"insufficientSavings": "Saldo da poupança insuficiente",
+			"depositDone": "Depósito realizado",
+			"withdrawDone": "Saque realizado",
+			"operationError": "Erro na operação",
+			"networkError": "Erro de rede"
+		}
+	},
+	"stockDetail": {
+		"buy": "Comprar",
+		"sell": "Vender",
+		"open": "Abertura",
+		"previousClose": "Fechamento anterior",
+		"dayHigh": "Máxima do dia",
+		"dayLow": "Mínima do dia",
+		"volume": "Volume",
+		"fiftyTwoWeekHigh": "Máx. 52 sem.",
+		"fiftyTwoWeekLow": "Mín. 52 sem.",
+		"about": "Sobre",
+		"sector": "Setor",
+		"exchange": "Bolsa",
+		"type": "Tipo"
+	},
+	"coinDetail": {
+		"goldUpsell": "Explore o preço ponto a ponto com o GOLD",
+		"periodHigh": "Máxima ({{timeframe}})",
+		"periodLow": "Mínima ({{timeframe}})",
+		"depositFee": "Tarifa de depósito",
+		"withdrawFee": "Tarifa de saque",
+		"deposits": "Depósitos",
+		"withdrawals": "Saques",
+		"available": "Disponível",
+		"notAvailable": "Indisponível",
+		"spotTeaser": "Compra e venda spot — em breve"
+	},
+	"queries": {
+		"historyNoData": "Histórico sem dados suficientes"
+	}
+}

@@ -1,0 +1,32 @@
+{
+	"banners": {
+		"kyc": {
+			"text": "Verify your identity and unlock all of QvaPay",
+			"action": "Verify"
+		},
+		"push": {
+			"text": "Get instant alerts for your payments",
+			"action": "Enable"
+		}
+	},
+	"sections": {
+		"quickPay": "Quick pay",
+		"latestTransactions": "Latest transactions",
+		"services": "Services",
+		"watchlist": "My Watchlist",
+		"news": "Latest news"
+	},
+	"quickPay": {
+		"sendFirst": "Send your first payment"
+	},
+	"services": {
+		"topups": "Top-ups",
+		"giftCards": "Gift Cards",
+		"invest": "Invest",
+		"p2p": "P2P"
+	},
+	"watchlist": {
+		"seeAll": "See all",
+		"updateFailed": "Couldn't update any prices"
+	}
+}

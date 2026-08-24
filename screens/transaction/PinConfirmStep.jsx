@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import QPSwitch from '../../ui/particles/QPSwitch'
 import QPCodeInput from '../../ui/particles/QPCodeInput'
@@ -21,16 +22,20 @@ import QPCodeInput from '../../ui/particles/QPCodeInput'
  * @param {function} [props.onBoxFocus] - Box focus callback (e.g. scroll-into-view).
  * @param {object} [props.codeInputRef] - Ref to QPCodeInput ({ focus(index) }).
  */
-const PinConfirmStep = ({ pin, onChangePin, codeLength, twoFactorMethod, hasOTP, sendingPin, onMethodToggle, onRequestPin, onBoxFocus, codeInputRef, theme, textStyles, containerStyles }) => (
+const PinConfirmStep = ({ pin, onChangePin, codeLength, twoFactorMethod, hasOTP, sendingPin, onMethodToggle, onRequestPin, onBoxFocus, codeInputRef, theme, textStyles, containerStyles }) => {
+
+	const { t } = useTranslation()
+
+	return (
 	<View style={[containerStyles.card, { marginTop: 0 }]}>
 
 		<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
 			<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-				{twoFactorMethod === 'pin' ? 'Ingresa tu PIN' : 'Ingresa el código OTP'}
+				{twoFactorMethod === 'pin' ? t('transactions.pinConfirm.enterPin') : t('transactions.pinConfirm.enterOtp')}
 			</Text>
 			{twoFactorMethod === 'pin' && (
 				<Text onPress={onRequestPin} style={[textStyles.h6, { color: theme.colors.primary, opacity: sendingPin ? 0.5 : 1 }]} disabled={sendingPin}>
-					{sendingPin ? 'Enviando...' : 'Solicitar PIN'}
+					{sendingPin ? t('transactions.pinConfirm.sending') : t('transactions.pinConfirm.requestPin')}
 				</Text>
 			)}
 		</View>
@@ -59,6 +64,7 @@ const PinConfirmStep = ({ pin, onChangePin, codeLength, twoFactorMethod, hasOTP,
 			/>
 		</View>
 	</View>
-)
+	)
+}
 
 export default PinConfirmStep

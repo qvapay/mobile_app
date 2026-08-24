@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Modal } from 'react-native'
 import Animated from 'react-native-reanimated'
+import { useTranslation } from 'react-i18next'
 
 // React Query
 import { useQueryClient } from '@tanstack/react-query'
@@ -64,6 +65,9 @@ const STEPS = 3
  */
 const EnterpriseRegister = ({ navigation }) => {
 
+	// Idioma activo
+	const { t } = useTranslation()
+
 	// Theme
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -108,13 +112,13 @@ const EnterpriseRegister = ({ navigation }) => {
 			const [doc] = await pick({ type: [types.pdf] })
 			if (!doc) { return }
 			if (doc.type !== 'application/pdf' && !(doc.name || '').toLowerCase().endsWith('.pdf')) {
-				toast.error('El archivo debe ser un PDF')
+				toast.error(t('settings.enterprise.register.toasts.mustBePdf'))
 				return
 			}
 			setFile(doc)
 		} catch (e) {
 			if (isErrorWithCode(e) && e.code === errorCodes.OPERATION_CANCELED) { return }
-			toast.error('Error', { description: 'No se pudo abrir el selector de archivos' })
+			toast.error(t('settings.enterprise.register.toasts.pickerErrorTitle'), { description: t('settings.enterprise.register.toasts.pickerErrorBody') })
 		}
 	}
 
@@ -139,11 +143,11 @@ const EnterpriseRegister = ({ navigation }) => {
 		setLoading(false)
 
 		if (result.success) {
-			toast.success('Solicitud enviada', { description: 'Nos pondremos en contacto contigo pronto.' })
+			toast.success(t('settings.enterprise.register.toasts.submitted'), { description: t('settings.enterprise.register.toasts.submittedDescription') })
 			queryClient.invalidateQueries({ queryKey: ['user', 'company'] })
 			navigation.goBack()
 		} else {
-			toast.error('No se pudo enviar', { description: result.error })
+			toast.error(t('settings.enterprise.register.toasts.submitFailed'), { description: result.error })
 		}
 	}
 
@@ -157,18 +161,18 @@ const EnterpriseRegister = ({ navigation }) => {
 
 				{step === 0 && (
 					<Animated.View key="company" entering={makeStepEnter(0)} exiting={stepExit}>
-						<Text style={textStyles.h1}>Tu empresa</Text>
+						<Text style={textStyles.h1}>{t('settings.enterprise.register.step1.title')}</Text>
 						<Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 18 }]}>
-							Registra tu PYME para acceder a la cuenta empresarial de QvaPay
+							{t('settings.enterprise.register.step1.subtitle')}
 						</Text>
 
-						<FieldLabel text="Nombre de la PYME" theme={theme} textStyles={textStyles} />
-						<QPInput value={form.companyName} onChangeText={setField('companyName')} placeholder="Mi Empresa S.L." autoCapitalize="words" />
+						<FieldLabel text={t('settings.enterprise.register.step1.nameLabel')} theme={theme} textStyles={textStyles} />
+						<QPInput value={form.companyName} onChangeText={setField('companyName')} placeholder={t('settings.enterprise.register.step1.namePlaceholder')} autoCapitalize="words" />
 
-						<FieldLabel text="Actividad empresarial" theme={theme} textStyles={textStyles} />
-						<QPInput value={form.activity} onChangeText={setField('activity')} placeholder="Comercio electrónico, servicios, etc." autoCapitalize="sentences" />
+						<FieldLabel text={t('settings.enterprise.register.step1.activityLabel')} theme={theme} textStyles={textStyles} />
+						<QPInput value={form.activity} onChangeText={setField('activity')} placeholder={t('settings.enterprise.register.step1.activityPlaceholder')} autoCapitalize="sentences" />
 
-						<FieldLabel text="Cantidad de empleados" theme={theme} textStyles={textStyles} />
+						<FieldLabel text={t('settings.enterprise.register.step1.employeesLabel')} theme={theme} textStyles={textStyles} />
 						<View style={styles.chipRow}>
 							{EMPLOYEE_RANGES.map((range) => (
 								<Chip
@@ -181,53 +185,53 @@ const EnterpriseRegister = ({ navigation }) => {
 							))}
 						</View>
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 8 }]}>
-							Empleados en plantilla, incluyendo directivos.
+							{t('settings.enterprise.register.step1.employeesHint')}
 						</Text>
 					</Animated.View>
 				)}
 
 				{step === 1 && (
 					<Animated.View key="fiscal" entering={makeStepEnter(0)} exiting={stepExit}>
-						<Text style={textStyles.h1}>Datos fiscales</Text>
+						<Text style={textStyles.h1}>{t('settings.enterprise.register.step2.title')}</Text>
 						<Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 18 }]}>
-							El país donde está constituida la empresa y su identificación fiscal
+							{t('settings.enterprise.register.step2.subtitle')}
 						</Text>
 
-						<FieldLabel text="País de constitución" theme={theme} textStyles={textStyles} />
+						<FieldLabel text={t('settings.enterprise.register.step2.countryLabel')} theme={theme} textStyles={textStyles} />
 						<QPPressable style={[styles.pickerRow, { backgroundColor: theme.colors.elevation }]} onPress={() => setPickerOpen('country')}>
 							<Text style={[textStyles.h4, { color: form.country ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular }]}>
-								{countryName || 'Selecciona el país…'}
+								{countryName || t('settings.enterprise.register.step2.countryPlaceholder')}
 							</Text>
 							<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 						</QPPressable>
 
 						{form.country === 'US' && (
 							<>
-								<FieldLabel text="EIN (Employer Identification Number)" theme={theme} textStyles={textStyles} />
+								<FieldLabel text={t('settings.enterprise.register.step2.einLabel')} theme={theme} textStyles={textStyles} />
 								<QPInput value={form.taxId} onChangeText={setField('taxId')} placeholder="12-3456789" keyboardType="numbers-and-punctuation" maxLength={10} autoCapitalize="none" />
 
-								<FieldLabel text="Tipo de entidad" theme={theme} textStyles={textStyles} />
+								<FieldLabel text={t('settings.enterprise.register.step2.entityLabel')} theme={theme} textStyles={textStyles} />
 								<View style={styles.chipRow}>
 									{US_ENTITY_TYPES.map((entity) => (
 										<Chip key={entity} label={entity} selected={form.entityType === entity} onPress={() => setField('entityType')(entity)} theme={theme} />
 									))}
 								</View>
 
-								<FieldLabel text="Estado de constitución" theme={theme} textStyles={textStyles} />
+								<FieldLabel text={t('settings.enterprise.register.step2.incStateLabel')} theme={theme} textStyles={textStyles} />
 								<QPPressable style={[styles.pickerRow, { backgroundColor: theme.colors.elevation }]} onPress={() => setPickerOpen('incState')}>
 									<Text style={[textStyles.h4, { color: form.incState ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular }]}>
-										{US_STATES.find((s) => s.code === form.incState)?.name || 'Selecciona el estado…'}
+										{US_STATES.find((s) => s.code === form.incState)?.name || t('settings.enterprise.register.step2.statePlaceholder')}
 									</Text>
 									<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 								</QPPressable>
 
-								<FieldLabel text="Dirección registrada en EE. UU." theme={theme} textStyles={textStyles} />
-								<QPInput value={form.addrLine1} onChangeText={setField('addrLine1')} placeholder="Calle y número" autoCapitalize="words" />
-								<QPInput value={form.addrCity} onChangeText={setField('addrCity')} placeholder="Ciudad" autoCapitalize="words" />
+								<FieldLabel text={t('settings.enterprise.register.step2.usAddressLabel')} theme={theme} textStyles={textStyles} />
+								<QPInput value={form.addrLine1} onChangeText={setField('addrLine1')} placeholder={t('settings.enterprise.register.step2.addrLine1Placeholder')} autoCapitalize="words" />
+								<QPInput value={form.addrCity} onChangeText={setField('addrCity')} placeholder={t('settings.enterprise.register.step2.addrCityPlaceholder')} autoCapitalize="words" />
 								<View style={styles.addrRow}>
 									<QPPressable style={[styles.pickerRow, styles.addrState, { backgroundColor: theme.colors.elevation }]} onPress={() => setPickerOpen('addrState')}>
 										<Text style={[textStyles.h4, { color: form.addrState ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular }]}>
-											{form.addrState || 'Estado'}
+											{form.addrState || t('settings.enterprise.register.step2.addrStatePlaceholder')}
 										</Text>
 										<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 									</QPPressable>
@@ -240,23 +244,23 @@ const EnterpriseRegister = ({ navigation }) => {
 
 						{form.country === 'CU' && (
 							<>
-								<FieldLabel text="NIT (Número de Identificación Tributaria)" theme={theme} textStyles={textStyles} />
-								<QPInput value={form.taxId} onChangeText={setField('taxId')} placeholder="11 dígitos" keyboardType="number-pad" maxLength={11} />
+								<FieldLabel text={t('settings.enterprise.register.step2.nitLabel')} theme={theme} textStyles={textStyles} />
+								<QPInput value={form.taxId} onChangeText={setField('taxId')} placeholder={t('settings.enterprise.register.step2.nitPlaceholder')} keyboardType="number-pad" maxLength={11} />
 
-								<FieldLabel text="Código REEUP" theme={theme} textStyles={textStyles} />
+								<FieldLabel text={t('settings.enterprise.register.step2.reeupLabel')} theme={theme} textStyles={textStyles} />
 								<QPInput value={form.reeup} onChangeText={setField('reeup')} placeholder="123.4.56789" autoCapitalize="none" maxLength={20} />
 								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-									Registro Estatal de Empresas y Unidades Presupuestadas.
+									{t('settings.enterprise.register.step2.reeupHint')}
 								</Text>
 							</>
 						)}
 
 						{form.country !== '' && form.country !== 'US' && form.country !== 'CU' && (
 							<>
-								<FieldLabel text="Número de identificación fiscal" theme={theme} textStyles={textStyles} />
-								<QPInput value={form.taxId} onChangeText={setField('taxId')} placeholder="RFC, RUC, NIT, CIF…" autoCapitalize="characters" maxLength={50} />
+								<FieldLabel text={t('settings.enterprise.register.step2.taxIdLabel')} theme={theme} textStyles={textStyles} />
+								<QPInput value={form.taxId} onChangeText={setField('taxId')} placeholder={t('settings.enterprise.register.step2.taxIdPlaceholder')} autoCapitalize="characters" maxLength={50} />
 								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-									El identificador fiscal de tu empresa en su país de registro.
+									{t('settings.enterprise.register.step2.taxIdHint')}
 								</Text>
 							</>
 						)}
@@ -265,33 +269,33 @@ const EnterpriseRegister = ({ navigation }) => {
 
 				{step === 2 && (
 					<Animated.View key="contact" entering={makeStepEnter(0)} exiting={stepExit}>
-						<Text style={textStyles.h1}>Contacto y estatutos</Text>
+						<Text style={textStyles.h1}>{t('settings.enterprise.register.step3.title')}</Text>
 						<Text style={[textStyles.h3, { color: theme.colors.secondaryText, marginBottom: 18 }]}>
-							La empresa quedará asociada a tu cuenta QvaPay
+							{t('settings.enterprise.register.step3.subtitle')}
 						</Text>
 
-						<FieldLabel text="Nombre del director o presidente" theme={theme} textStyles={textStyles} />
-						<QPInput value={form.directorName} onChangeText={setField('directorName')} placeholder="Juan Pérez García" autoCapitalize="words" />
+						<FieldLabel text={t('settings.enterprise.register.step3.directorLabel')} theme={theme} textStyles={textStyles} />
+						<QPInput value={form.directorName} onChangeText={setField('directorName')} placeholder={t('settings.enterprise.register.step3.directorPlaceholder')} autoCapitalize="words" />
 
-						<FieldLabel text="Email corporativo de contacto" theme={theme} textStyles={textStyles} />
-						<QPInput value={form.email} onChangeText={setField('email')} placeholder="director@empresa.com" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+						<FieldLabel text={t('settings.enterprise.register.step3.emailLabel')} theme={theme} textStyles={textStyles} />
+						<QPInput value={form.email} onChangeText={setField('email')} placeholder={t('settings.enterprise.register.step3.emailPlaceholder')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2, marginBottom: 8 }]}>
-							Solo para contactarte sobre esta solicitud. No tiene que coincidir con el email de tu cuenta.
+							{t('settings.enterprise.register.step3.emailHint')}
 						</Text>
 
-						<FieldLabel text="Estatutos de la empresa (PDF)" theme={theme} textStyles={textStyles} />
+						<FieldLabel text={t('settings.enterprise.register.step3.statutesLabel')} theme={theme} textStyles={textStyles} />
 						<QPPressable style={[styles.fileCard, { backgroundColor: theme.colors.elevation }]} onPress={pickStatutes}>
 							<View style={[styles.fileIcon, { backgroundColor: (file ? theme.colors.successText : theme.colors.primary) + '1F' }]}>
 								<FontAwesome6 name={file ? 'file-circle-check' : 'file-arrow-up'} size={18} color={file ? theme.colors.successText : theme.colors.primary} iconStyle="solid" />
 							</View>
 							<View style={styles.fill}>
 								<Text numberOfLines={1} style={[textStyles.h4, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular }]}>
-									{file ? (file.name || 'estatutos.pdf') : 'Elegir archivo PDF'}
+									{file ? (file.name || t('settings.enterprise.register.step3.statutesFileName')) : t('settings.enterprise.register.step3.chooseFile')}
 								</Text>
 								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
 									{file
-										? `${file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB · ' : ''}Toca para cambiar`
-										: 'Estatutos o escritura de constitución · máx. 10MB'}
+										? (file.size ? t('settings.enterprise.register.step3.fileSizeTap', { size: (file.size / 1024 / 1024).toFixed(2) }) : t('settings.enterprise.register.step3.tapToChange'))
+										: t('settings.enterprise.register.step3.fileHint')}
 								</Text>
 							</View>
 						</QPPressable>
@@ -304,7 +308,7 @@ const EnterpriseRegister = ({ navigation }) => {
 			{/* Botonera persistente entre pasos (nunca dentro del switch) */}
 			<View style={containerStyles.bottomButtonContainer}>
 				<QPSplitButton
-					title={step < STEPS - 1 ? 'Continuar' : 'Enviar solicitud'}
+					title={step < STEPS - 1 ? t('common.actions.continue') : t('settings.enterprise.register.submitButton')}
 					onPress={step < STEPS - 1 ? goNext : handleSubmit}
 					showBack={step > 0}
 					onBack={goBack}
@@ -316,7 +320,7 @@ const EnterpriseRegister = ({ navigation }) => {
 			{/* Picker de país (buscable, sin jurisdicciones sancionadas) */}
 			<OptionPickerModal
 				visible={pickerOpen === 'country'}
-				title="País de constitución"
+				title={t('settings.enterprise.register.step2.countryLabel')}
 				options={COMPANY_COUNTRIES.map((c) => ({ value: c.code, label: c.name }))}
 				selected={form.country}
 				onSelect={selectCountry}
@@ -330,7 +334,7 @@ const EnterpriseRegister = ({ navigation }) => {
 			{/* Pickers de estado US (constitución y dirección) */}
 			<OptionPickerModal
 				visible={pickerOpen === 'incState'}
-				title="Estado de constitución"
+				title={t('settings.enterprise.register.step2.incStateLabel')}
 				options={US_STATES.map((s) => ({ value: s.code, label: s.name }))}
 				selected={form.incState}
 				onSelect={(code) => { setField('incState')(code); setPickerOpen(null) }}
@@ -342,7 +346,7 @@ const EnterpriseRegister = ({ navigation }) => {
 			/>
 			<OptionPickerModal
 				visible={pickerOpen === 'addrState'}
-				title="Estado de la dirección"
+				title={t('settings.enterprise.register.step2.addrStateTitle')}
 				options={US_STATES.map((s) => ({ value: s.code, label: s.name }))}
 				selected={form.addrState}
 				onSelect={(code) => { setField('addrState')(code); setPickerOpen(null) }}
@@ -386,6 +390,7 @@ const Chip = ({ label, selected, onPress, theme }) => (
  */
 const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClose, searchable = false, theme, textStyles, containerStyles }) => {
 
+	const { t } = useTranslation()
 	const [search, setSearch] = useState('')
 	const query = search.trim().toLowerCase()
 	const filtered = query ? options.filter((o) => o.label.toLowerCase().includes(query) || o.value.toLowerCase().includes(query)) : options
@@ -398,7 +403,7 @@ const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClos
 				<QPPressable style={[containerStyles.modalCard, styles.pickerCard]} onPress={() => {}}>
 					<Text style={[textStyles.h3, { color: theme.colors.primaryText, marginBottom: 10 }]}>{title}</Text>
 					{searchable && (
-						<QPInput value={search} onChangeText={setSearch} placeholder="Buscar…" prefixIconName="magnifying-glass" style={{ marginVertical: 0, marginBottom: 8 }} />
+						<QPInput value={search} onChangeText={setSearch} placeholder={t('settings.enterprise.register.searchPlaceholder')} prefixIconName="magnifying-glass" style={{ marginVertical: 0, marginBottom: 8 }} />
 					)}
 					<ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
 						{filtered.map((option) => (

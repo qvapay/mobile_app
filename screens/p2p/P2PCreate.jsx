@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useReducer, useRef } from "react"
+import { useTranslation } from "react-i18next"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -21,7 +22,7 @@ import p2pApi from "../../api/p2pApi"
 import { userApi } from "../../api/userApi"
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica la oferta
-import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from "../../helpers/idempotency"
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from "../../helpers/idempotency"
 
 // User context
 import { useAuth } from "../../auth/AuthContext"
@@ -51,6 +52,9 @@ function setFieldReducer(state, action) {
  * on 201 it navigates straight to the created offer (P2POffer).
  */
 const P2PCreate = ({ navigation }) => {
+
+	// Idioma activo
+	const { t } = useTranslation()
 
 	// User context
 	const { user } = useAuth()
@@ -90,7 +94,9 @@ const P2PCreate = ({ navigation }) => {
 	const idempotencyKeyRef = useRef(makeIdempotencyKey())
 
 	// Button label derived from type + amount
-	const buttonText = type === "buy" ? `Comprar ${amount > 0 ? "$" + amount : ""}` : `Vender ${amount > 0 ? "$" + amount : ""}`
+	const buttonText = type === "buy"
+		? t('p2p.create.buyButton', { amount: amount > 0 ? "$" + amount : "" })
+		: t('p2p.create.sellButton', { amount: amount > 0 ? "$" + amount : "" })
 
 	// Catálogo desde la caché compartida (useCoins): sin espera al abrir
 	useEffect(() => {
@@ -118,24 +124,24 @@ const P2PCreate = ({ navigation }) => {
 	const handlePublish = async () => {
 
 		if (type !== "buy" && type !== "sell") {
-			toast.error("Datos incompletos", { description: "Debes seleccionar una opción" })
+			toast.error(t('p2p.create.toasts.incompleteTitle'), { description: t('p2p.create.toasts.selectOption') })
 			return
 		}
 
 		if (!selectedCoin) {
-			toast.error("Datos incompletos", { description: "Debes seleccionar una moneda" })
+			toast.error(t('p2p.create.toasts.incompleteTitle'), { description: t('p2p.create.toasts.selectCoin') })
 			return
 		}
 
 		// Basic validation
 		if (!amount || !receive) {
-			toast.error("Datos incompletos", { description: "Debes completar los montos de comprar y vender" })
+			toast.error(t('p2p.create.toasts.incompleteTitle'), { description: t('p2p.create.toasts.completeAmounts') })
 			return
 		}
 		const amt = parseFloat(normalizeNumber(amount))
 		const rcv = parseFloat(normalizeNumber(receive))
 		if (isNaN(amt) || isNaN(rcv) || amt <= 0 || rcv <= 0) {
-			toast.error("Montos inválidos", { description: "Introduce valores numéricos mayores que 0 para comprar y vender" })
+			toast.error(t('p2p.create.toasts.invalidAmountsTitle'), { description: t('p2p.create.toasts.invalidAmountsBody') })
 			return
 		}
 		// Working data required if coin has fields
@@ -146,7 +152,7 @@ const P2PCreate = ({ navigation }) => {
 				return value.length > 0
 			})
 			if (!allFilled) {
-				toast.error("Faltan datos", { description: "Completa los datos de su cuenta para la moneda seleccionada para comprar y vender" })
+				toast.error(t('p2p.create.toasts.missingDataTitle'), { description: t('p2p.create.toasts.missingDataBody') })
 				return
 			}
 		}
@@ -172,28 +178,28 @@ const P2PCreate = ({ navigation }) => {
 
 			if (res.success) {
 				idempotencyKeyRef.current = makeIdempotencyKey()
-				toast.success("Listo", {
+				toast.success(t('p2p.create.toasts.successTitle'), {
 					description: res.data?.duplicate
-						? "Esta oferta ya se había creado — te llevamos a ella"
-						: "Tu oferta se ha creado correctamente",
+						? t('p2p.create.toasts.createdDuplicate')
+						: t('p2p.create.toasts.created'),
 				})
 				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: res.data.p2p.uuid })
 			} else if (isNetworkFailure(res)) {
-				toast.error("Error de red", { description: `${res.error || "No se ha podido conectar con el servidor"}. ${SAFE_RETRY_HINT}` })
+				toast.error(t('p2p.create.toasts.networkError'), { description: `${res.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {
-				const errMsg = res?.error || "No se pudo crear la oferta P2P"
-				toast.error("Error al crear la oferta", { description: errMsg })
+				const errMsg = res?.error || t('p2p.create.toasts.createFailedFallback')
+				toast.error(t('p2p.create.toasts.createErrorTitle'), { description: errMsg })
 			}
 
 		} catch (err) {
-			toast.error("Error al crear la oferta", { description: err.message })
+			toast.error(t('p2p.create.toasts.createErrorTitle'), { description: err.message })
 		} finally { setIsSending(false) }
 	}
 
 	// Handle launch saved payment methods
 	const lauchSavedPaymentMethods = () => {
 		if (!selectedCoin) {
-			toast.error("Selecciona una moneda")
+			toast.error(t('p2p.create.toasts.selectCoinFirst'))
 			return
 		}
 		setSavedMethodsLoading(true)
@@ -207,9 +213,9 @@ const P2PCreate = ({ navigation }) => {
 					})
 					setSavedMethods(filtered)
 					setShowSavedMethods(true)
-				} else { toast.error(res.error || "No se pudieron cargar los métodos") }
+				} else { toast.error(res.error || t('p2p.create.toasts.methodsLoadFailed')) }
 			})
-			.catch((e) => { toast.error(e.message || "Error de red") })
+			.catch((e) => { toast.error(e.message || t('p2p.create.toasts.networkError')) })
 			.finally(() => setSavedMethodsLoading(false))
 	}
 
@@ -229,7 +235,7 @@ const P2PCreate = ({ navigation }) => {
 			})
 			setWorkingForm(nextForm)
 			setShowSavedMethods(false)
-		} catch (e) { toast.error(e.message || "No se pudo aplicar el método") }
+		} catch (e) { toast.error(e.message || t('p2p.create.toasts.methodApplyFailed')) }
 	}
 
 	if (!p2pEnabled) {

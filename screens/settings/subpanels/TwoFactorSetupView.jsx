@@ -1,4 +1,5 @@
 import { Text, View, Pressable, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
@@ -7,19 +8,21 @@ import QRCodeStyled from 'react-native-qrcode-styled'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // 2FA setup screen: QR code, manual secret, and the 6-digit verification input.
-const TwoFactorSetupView = ({ otpauthUrl, secret, verificationCode, onChangeCode, onActivate, onCancel, onCopySecret, isLoading, theme, textStyles, containerStyles }) => (
+const TwoFactorSetupView = ({ otpauthUrl, secret, verificationCode, onChangeCode, onActivate, onCancel, onCopySecret, isLoading, theme, textStyles, containerStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<QPKeyboardView
 		actions={
 			<>
 				<QPButton
-					title="Activar 2FA"
+					title={t('settings.twoFactor.setup.activateButton')}
 					onPress={onActivate}
 					loading={isLoading}
 					disabled={isLoading || verificationCode.length !== 6}
 					textStyle={{ color: theme.colors.almostWhite }}
 				/>
 				<QPButton
-					title="Cancelar"
+					title={t('common.actions.cancel')}
 					onPress={onCancel}
 					disabled={isLoading}
 					style={{ backgroundColor: theme.colors.surface }}
@@ -30,9 +33,9 @@ const TwoFactorSetupView = ({ otpauthUrl, secret, verificationCode, onChangeCode
 		actionsContainerStyle={{ gap: 10 }}
 	>
 
-		<Text style={textStyles.h1}>Configurar 2FA</Text>
+		<Text style={textStyles.h1}>{t('settings.twoFactor.setup.title')}</Text>
 		<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-			Escanea el código QR con tu app de autenticación (Google Authenticator, Authy, etc.)
+			{t('settings.twoFactor.setup.subtitle')}
 		</Text>
 
 		{/* QR Code */}
@@ -53,7 +56,7 @@ const TwoFactorSetupView = ({ otpauthUrl, secret, verificationCode, onChangeCode
 		{/* Manual secret */}
 		<View style={[containerStyles.card, { marginTop: 20 }]}>
 			<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
-				O ingresa este código manualmente:
+				{t('settings.twoFactor.setup.manualEntry')}
 			</Text>
 			<Pressable onPress={onCopySecret} style={styles.secretContainer}>
 				<Text style={[styles.secretText, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]} selectable>
@@ -66,7 +69,7 @@ const TwoFactorSetupView = ({ otpauthUrl, secret, verificationCode, onChangeCode
 		{/* Verification code input */}
 		<View style={{ marginTop: 20 }}>
 			<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
-				Ingresa el código de 6 dígitos de tu app:
+				{t('settings.twoFactor.setup.enterCode')}
 			</Text>
 			<QPInput
 				value={verificationCode}
@@ -80,7 +83,8 @@ const TwoFactorSetupView = ({ otpauthUrl, secret, verificationCode, onChangeCode
 		</View>
 
 	</QPKeyboardView>
-)
+	)
+}
 
 const styles = StyleSheet.create({
 	qrContainer: {
