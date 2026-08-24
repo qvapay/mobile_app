@@ -1,5 +1,6 @@
 import { Modal, View, Text, Pressable } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -28,6 +29,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
  */
 const KycGateModal = ({ visible, message, onClose }) => {
 
+	const { t } = useTranslation()
+
 	// Theme
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -49,17 +52,17 @@ const KycGateModal = ({ visible, message, onClose }) => {
 						<FontAwesome6 name="shield-halved" size={30} color={theme.colors.primary} iconStyle="solid" />
 					</View>
 
-					<Text style={[textStyles.h2, styles.title]}>Verifica tu identidad</Text>
+					<Text style={[textStyles.h2, styles.title]}>{t('ui.kycGate.title')}</Text>
 
 					<Text style={[textStyles.h3, styles.message, { color: theme.colors.secondaryText }]}>
-						{message || 'Esta operación requiere tener tu identidad verificada. Es rápido y solo se hace una vez.'}
+						{message || t('ui.kycGate.defaultMessage')}
 					</Text>
 
-					<QPButton title="Verificar ahora" onPress={goVerify} />
+					<QPButton title={t('ui.kycGate.verifyNow')} onPress={goVerify} />
 
 					<QPPressable variant="opacity" onPress={onClose} style={styles.skipLink}>
 						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
-							Ahora no
+							{t('common.actions.notNow')}
 						</Text>
 					</QPPressable>
 				</Pressable>

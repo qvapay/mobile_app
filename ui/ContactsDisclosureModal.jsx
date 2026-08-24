@@ -1,4 +1,5 @@
 import { Modal, View, Text, ScrollView, Pressable, StyleSheet, Linking } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -27,6 +28,7 @@ const PRIVACY_URL = 'https://www.qvapay.com/privacy'
  */
 const ContactsDisclosureModal = ({ visible, onAccept, onDecline }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -36,26 +38,26 @@ const ContactsDisclosureModal = ({ visible, onAccept, onDecline }) => {
 				<View style={themeStyles.container.modalCard}>
 					<FontAwesome6 name="address-book" size={40} color={theme.colors.primary} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 					<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
-						Acceso a tus contactos
+						{t('ui.contactsDisclosure.title')}
 					</Text>
 					<ScrollView style={styles.scrollArea} bounces={false}>
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: 22 }]}>
-							QvaPay recopila los números de teléfono de tu lista de contactos y los envía de forma segura a nuestros servidores para encontrar amigos y familiares que ya usan la app. Los números se utilizan únicamente para esta búsqueda y no se comparten con terceros.
+							{t('ui.contactsDisclosure.body')}
 						</Text>
 					</ScrollView>
 					<Pressable onPress={() => Linking.openURL(PRIVACY_URL)} style={styles.privacyLink}>
 						<Text style={[textStyles.body, { color: theme.colors.primary, textAlign: 'center' }]}>
-							Ver Política de Privacidad
+							{t('ui.contactsDisclosure.privacyLink')}
 						</Text>
 					</Pressable>
 					<QPButton
-						title="Aceptar y continuar"
+						title={t('ui.contactsDisclosure.accept')}
 						onPress={onAccept}
 						style={{ backgroundColor: theme.colors.primary, marginBottom: 8 }}
 						textStyle={{ color: theme.colors.almostWhite }}
 					/>
 					<QPButton
-						title="No, gracias"
+						title={t('ui.contactsDisclosure.decline')}
 						onPress={onDecline}
 						style={{ backgroundColor: 'transparent' }}
 						textStyle={{ color: theme.colors.secondaryText }}

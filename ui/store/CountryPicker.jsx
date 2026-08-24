@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react'
 import {
 	View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, useWindowDimensions,
 } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useTheme } from '../../theme/ThemeContext'
@@ -22,10 +23,11 @@ const noop = () => {}
  * @param {Array} props.countries - Catalog country list.
  * @param {object|null} props.value - Currently selected country (matched by `code`).
  * @param {function} props.onChange - Receives the picked country object.
- * @param {string} [props.placeholder='Seleccionar país'] - Trigger text when nothing is selected.
+ * @param {string} [props.placeholder] - Trigger text when nothing is selected (default: the localized "Seleccionar país").
  */
-const CountryPicker = ({ countries = [], value = null, onChange = noop, placeholder = 'Seleccionar país' }) => {
+const CountryPicker = ({ countries = [], value = null, onChange = noop, placeholder = null }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const { height: windowHeight } = useWindowDimensions()
@@ -64,7 +66,7 @@ const CountryPicker = ({ countries = [], value = null, onChange = noop, placehol
 					</Text>
 					{item.offer_count != null && (
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-							{item.offer_count} {item.offer_count === 1 ? 'opción' : 'opciones'}
+							{t('ui.storeCountryPicker.options', { count: item.offer_count })}
 						</Text>
 					)}
 				</View>
@@ -95,7 +97,7 @@ const CountryPicker = ({ countries = [], value = null, onChange = noop, placehol
 						</View>
 					</>
 				) : (
-					<Text style={[textStyles.h6, { color: theme.colors.placeholder, flex: 1 }]}>{placeholder}</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.placeholder, flex: 1 }]}>{placeholder ?? t('ui.storeCountryPicker.placeholder')}</Text>
 				)}
 				<FontAwesome6 name="chevron-down" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
 			</Pressable>
@@ -117,7 +119,7 @@ const CountryPicker = ({ countries = [], value = null, onChange = noop, placehol
 					>
 						<View style={[styles.header, theme.mode === 'light' && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}>
 							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-								Selecciona país
+								{t('ui.storeCountryPicker.title')}
 							</Text>
 							<Pressable onPress={() => setOpen(false)} hitSlop={8}>
 								<FontAwesome6 name="xmark" size={18} color={theme.colors.tertiaryText} iconStyle="solid" />
@@ -129,7 +131,7 @@ const CountryPicker = ({ countries = [], value = null, onChange = noop, placehol
 							<TextInput
 								value={query}
 								onChangeText={setQuery}
-								placeholder="Buscar país…"
+								placeholder={t('ui.storeCountryPicker.searchPlaceholder')}
 								placeholderTextColor={theme.colors.placeholder}
 								style={[styles.searchInput, { color: theme.colors.primaryText }]}
 								autoCorrect={false}
@@ -144,7 +146,7 @@ const CountryPicker = ({ countries = [], value = null, onChange = noop, placehol
 						>
 							{filtered.length === 0 ? (
 								<Text style={[textStyles.caption, { textAlign: 'center', padding: 24, color: theme.colors.tertiaryText }]}>
-									Sin resultados
+									{t('ui.storeCountryPicker.noResults')}
 								</Text>
 							) : (
 								filtered.map(renderRow)

@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, interpolate, runOnJS, Easing } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 
@@ -141,6 +142,7 @@ const Courier = ({ routes, initialDelay, msPerPx, scaleX, accent }) => {
  */
 const CashDeliveryCard = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 
 	// Rendered map width (card width). Seeded from the window so overlays are
@@ -175,7 +177,7 @@ const CashDeliveryCard = ({ navigation }) => {
 		<View style={styles.section}>
 
 			<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.lg }]}>
-				Envío de efectivo
+				{t('ui.cashDelivery.sectionTitle')}
 			</Text>
 
 			<Pressable onPress={() => navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
@@ -196,7 +198,7 @@ const CashDeliveryCard = ({ navigation }) => {
 							USD CASH
 						</Text>
 						<Text style={[styles.cardSubtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
-							Recibe USD en efectivo en La Habana{'\n'}en menos de 72 horas
+							{t('ui.cashDelivery.subtitle')}
 						</Text>
 					</View>
 				</View>
@@ -204,7 +206,7 @@ const CashDeliveryCard = ({ navigation }) => {
 				{/* Bottom action row */}
 				<View style={styles.actionRow}>
 					<Text style={[styles.actionText, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.md }]}>
-						Enviar efectivo
+						{t('ui.cashDelivery.cta')}
 					</Text>
 					<FontAwesome6 name="chevron-right" size={14} color={theme.colors.primary} iconStyle="solid" />
 				</View>

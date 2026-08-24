@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle } from 'react-native-reanimated'
 
 // Theme Context
@@ -84,6 +85,8 @@ const SavingsPill = ({ icon, label, onPress, index, pageProgress, theme }) => {
  */
 const ActionButtons = ({ navigation, pageProgress }) => {
 
+	const { t } = useTranslation()
+
 	// Theme variables, dark and light modes with memoized styles
 	const { theme } = useTheme()
 
@@ -98,12 +101,12 @@ const ActionButtons = ({ navigation, pageProgress }) => {
 	)
 
 	const accountActions = [
-		{ icon: 'plus', label: 'Depositar', onPress: () => navigation.navigate(ROUTES.ADD) },
-		{ icon: 'turn-up', label: 'Extraer', onPress: () => navigation.navigate(ROUTES.WITHDRAW) },
-		{ icon: 'paper-plane', label: 'Enviar', onPress: () => navigation.navigate(ROUTES.SEND) },
+		{ icon: 'plus', label: t('ui.actionButtons.account.deposit'), onPress: () => navigation.navigate(ROUTES.ADD) },
+		{ icon: 'turn-up', label: t('ui.actionButtons.account.withdraw'), onPress: () => navigation.navigate(ROUTES.WITHDRAW) },
+		{ icon: 'paper-plane', label: t('ui.actionButtons.account.send'), onPress: () => navigation.navigate(ROUTES.SEND) },
 		// P2P es un tab hermano del Home dentro de MainStack, así que el
 		// navigate directo lo resuelve el tab navigator
-		{ icon: 'arrow-right-arrow-left', label: 'Comerciar', onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
+		{ icon: 'arrow-right-arrow-left', label: t('ui.actionButtons.account.trade'), onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]
 
 	// Mismos iconos y etiquetas que las acciones de la pantalla Savings (y que
@@ -111,8 +114,8 @@ const ActionButtons = ({ navigation, pageProgress }) => {
 	// 'turn-up', que es el icono de "Extraer" de la cuenta principal — usarlo
 	// aquí confundía dos operaciones distintas
 	const savingsActions = [
-		{ icon: 'arrow-down', label: 'Depositar', onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'deposit' }) },
-		{ icon: 'arrow-up', label: 'Retirar', onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'withdraw' }) },
+		{ icon: 'arrow-down', label: t('ui.actionButtons.savings.deposit'), onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'deposit' }) },
+		{ icon: 'arrow-up', label: t('ui.actionButtons.savings.withdraw'), onPress: () => navigation.navigate(ROUTES.SAVINGS_SCREEN, { action: 'withdraw' }) },
 	]
 
 	return (

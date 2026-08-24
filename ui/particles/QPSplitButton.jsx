@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Text, View, ActivityIndicator } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Animated, {
 	FadeIn,
 	useAnimatedStyle,
@@ -34,7 +35,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
  * @param {function} props.onPress - Handler del botón primario.
  * @param {boolean} [props.showBack=false] - Abre el slot del botón Atrás.
  * @param {function} [props.onBack] - Handler del botón Atrás.
- * @param {string} [props.backLabel='Atrás'] - Label del botón Atrás.
+ * @param {string} [props.backLabel] - Label del botón Atrás (default: el "Atrás" localizado).
  * @param {boolean} [props.check=false] - Desliza el check dentro del primario.
  * @param {boolean} [props.disabled=false] - Deshabilita y atenúa el primario.
  * @param {boolean} [props.loading=false] - Spinner en el primario, bloquea ambos.
@@ -49,9 +50,10 @@ const BUTTON_HEIGHT = 56
 const CHECK_WIDTH = 20
 const SPLIT_SPRING = { duration: 300, dampingRatio: 1.5 }
 
-const QPSplitButton = ({ title, onPress, showBack = false, onBack, backLabel = 'Atrás', check = false, disabled = false, loading = false, backRatio = DEFAULT_BACK_RATIO, backColor, backTextColor }) => {
+const QPSplitButton = ({ title, onPress, showBack = false, onBack, backLabel, check = false, disabled = false, loading = false, backRatio = DEFAULT_BACK_RATIO, backColor, backTextColor }) => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 
 	// Ancho real de la fila (medido, no derivado de la ventana) → ancho del Atrás
@@ -87,6 +89,8 @@ const QPSplitButton = ({ title, onPress, showBack = false, onBack, backLabel = '
 		color: theme.colors.buttonText,
 	}
 
+	const resolvedBackLabel = backLabel ?? t('ui.splitButton.back')
+
 	return (
 		<View style={styles.row} onLayout={(e) => setRowWidth(e.nativeEvent.layout.width)}>
 
@@ -95,9 +99,9 @@ const QPSplitButton = ({ title, onPress, showBack = false, onBack, backLabel = '
 				<QPPressable
 					onPress={onBack}
 					disabled={!showBack || loading}
-					accessibilityLabel={backLabel}
+					accessibilityLabel={resolvedBackLabel}
 					style={[styles.button, { width: backWidth, backgroundColor: backColor || theme.colors.secondary }]}>
-					<Text style={[labelStyle, backTextColor && { color: backTextColor }]}>{backLabel}</Text>
+					<Text style={[labelStyle, backTextColor && { color: backTextColor }]}>{resolvedBackLabel}</Text>
 				</QPPressable>
 			</Animated.View>
 

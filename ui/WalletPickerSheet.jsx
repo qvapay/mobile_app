@@ -1,4 +1,5 @@
 import { Modal, View, Text, ScrollView, Pressable, StyleSheet, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import { useTheme } from '../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../theme/themeUtils'
@@ -23,6 +24,7 @@ import { openInWallet } from '../helpers/walletDeeplinks'
  */
 const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -41,7 +43,7 @@ const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
 				<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} >
 					<View style={styles.header}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Abre en tu wallet</Text>
+						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('ui.walletPicker.title')}</Text>
 						<Pressable onPress={onClose} hitSlop={8}>
 							<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 						</Pressable>
@@ -51,7 +53,7 @@ const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 						<View style={[styles.memoWarning, { backgroundColor: theme.colors.warning + '20', borderColor: theme.colors.warning }]}>
 							<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
 							<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1, marginLeft: 8 }]}>
-								Verifica que el memo se haya copiado en tu wallet antes de enviar.
+								{t('ui.walletPicker.memoWarning')}
 							</Text>
 						</View>
 					)}
@@ -72,7 +74,7 @@ const WalletPickerSheet = ({ visible, wallets, ctx, onClose, onOpened }) => {
 						) : (
 							<View style={styles.emptyState}>
 								<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
-									No detectamos ninguna wallet instalada compatible con esta moneda.
+									{t('ui.walletPicker.empty')}
 								</Text>
 							</View>
 						)}

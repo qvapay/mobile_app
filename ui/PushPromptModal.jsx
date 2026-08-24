@@ -1,4 +1,5 @@
 import { Modal, View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -23,6 +24,7 @@ import QPButton from './particles/QPButton'
  */
 const PushPromptModal = ({ visible, onAccept, onDismiss }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -32,19 +34,19 @@ const PushPromptModal = ({ visible, onAccept, onDismiss }) => {
 				<View style={themeStyles.container.modalCard}>
 					<FontAwesome6 name="bell" size={40} color={theme.colors.primary} iconStyle="solid" style={{ alignSelf: 'center', marginBottom: 16 }} />
 					<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
-						No te pierdas ningún pago
+						{t('ui.pushPrompt.title')}
 					</Text>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginBottom: 20 }]}>
-						Activa las notificaciones para saber al instante cuando recibes dinero, cuando tus ofertas P2P tienen respuesta y más.
+						{t('ui.pushPrompt.body')}
 					</Text>
 					<QPButton
-						title="Activar notificaciones"
+						title={t('ui.pushPrompt.enable')}
 						onPress={onAccept}
 						style={{ backgroundColor: theme.colors.primary, marginBottom: 8 }}
 						textStyle={{ color: theme.colors.almostWhite }}
 					/>
 					<QPButton
-						title="Ahora no"
+						title={t('common.actions.notNow')}
 						onPress={onDismiss}
 						style={{ backgroundColor: 'transparent' }}
 						textStyle={{ color: theme.colors.secondaryText }}

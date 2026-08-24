@@ -1,4 +1,5 @@
 import { View, Text, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Helpers
 import { timeSince, reduceString } from '../../helpers'
@@ -47,6 +48,7 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     const { user } = useAuth()
 
     // Contexts
+    const { t } = useTranslation()
     const { theme } = useTheme()
     const textStyles = useTextStyles(theme)
     const containerStyles = useContainerStyles(theme)
@@ -93,13 +95,13 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }) =
     // Display description with smart fallback
     const displayDescription = (description && description.trim())
         ? reduceString(description, 16)
-        : wallet_coin && !withdraw?.payment_method ? `Depósito ${wallet_coin}`
-        : withdraw?.payment_method ? `Extracción ${withdraw.payment_method}`
+        : wallet_coin && !withdraw?.payment_method ? t('ui.transactionRow.deposit', { coin: wallet_coin })
+        : withdraw?.payment_method ? t('ui.transactionRow.withdrawal', { method: withdraw.payment_method })
         : app?.name ? app.name
-        : buyedService ? 'Compra de servicio'
-        : isPaidByMe && owner?.username ? `Envío a @${reduceString(owner.username, 12)}`
-        : !isPaidByMe && paid_by?.username ? `Pago de @${reduceString(paid_by.username, 12)}`
-        : 'Transferencia'
+        : buyedService ? t('ui.transactionRow.servicePurchase')
+        : isPaidByMe && owner?.username ? t('ui.transactionRow.sentTo', { username: reduceString(owner.username, 12) })
+        : !isPaidByMe && paid_by?.username ? t('ui.transactionRow.paymentFrom', { username: reduceString(paid_by.username, 12) })
+        : t('ui.transactionRow.transfer')
 
     // Navigate to transaction
     const navigateToTransaction = () => navigation.navigate(ROUTES.TRANSACTION, { transaction })

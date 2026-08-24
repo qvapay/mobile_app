@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import OperatorAvatar from './OperatorAvatar'
 import { useTheme } from '../../theme/ThemeContext'
@@ -18,6 +19,7 @@ import { createTextStyles } from '../../theme/themeUtils'
  */
 const BrandTile = ({ brand, country, onPress, style }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -25,7 +27,7 @@ const BrandTile = ({ brand, country, onPress, style }) => {
 	const max = brand?.price_max
 	let priceLabel = null
 	if (min != null && max != null && min !== max) priceLabel = `$${Number(min).toFixed(0)} – $${Number(max).toFixed(0)}`
-	else if (min != null) priceLabel = `desde $${Number(min).toFixed(2)}`
+	else if (min != null) priceLabel = t('ui.brandTile.from', { min: Number(min).toFixed(2) })
 
 	return (
 		<Pressable
@@ -45,7 +47,7 @@ const BrandTile = ({ brand, country, onPress, style }) => {
 					{brand?.brand}
 				</Text>
 				<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-					{country?.flag ? `${country.flag} ` : ''}{priceLabel || `${brand?.offer_count || 0} opciones`}
+					{country?.flag ? `${country.flag} ` : ''}{priceLabel || t('ui.brandTile.optionsCount', { count: brand?.offer_count || 0 })}
 				</Text>
 			</View>
 		</Pressable>

@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 /**
@@ -21,7 +22,9 @@ export const formatAddress = (a) => `${a.recipient_name} — ${a.line1}${a.line2
  * @param {function} props.onSelectAddress - `(uuid) => void`.
  * @param {function} props.onNewAddress - Selects the "new address" row.
  */
-const AddressPicker = ({ addresses, useNewAddress, selectedUuid, onSelectAddress, onNewAddress, theme, textStyles }) => (
+const AddressPicker = ({ addresses, useNewAddress, selectedUuid, onSelectAddress, onNewAddress, theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<View style={{ marginTop: 12, gap: 8 }}>
 		{addresses.map(address => {
 			const selected = !useNewAddress && selectedUuid === address.uuid
@@ -44,7 +47,7 @@ const AddressPicker = ({ addresses, useNewAddress, selectedUuid, onSelectAddress
 					/>
 					<View style={{ flex: 1 }}>
 						<Text style={[textStyles.h6, { fontWeight: '600' }]}>
-							{address.label || 'Dirección'}{address.is_default ? ' · Predeterminada' : ''}
+							{address.label || t('ui.addressPicker.addressFallback')}{address.is_default ? t('ui.addressPicker.defaultSuffix') : ''}
 						</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]} numberOfLines={2}>
 							{formatAddress(address)}
@@ -65,11 +68,12 @@ const AddressPicker = ({ addresses, useNewAddress, selectedUuid, onSelectAddress
 		>
 			<FontAwesome6 name="plus" size={14} color={useNewAddress ? theme.colors.primary : theme.colors.secondaryText} iconStyle="solid" />
 			<Text style={[textStyles.h6, { fontWeight: '600', color: useNewAddress ? theme.colors.primary : theme.colors.primaryText }]}>
-				Nueva dirección
+				{t('ui.addressPicker.newAddress')}
 			</Text>
 		</Pressable>
 	</View>
-)
+	)
+}
 
 const styles = StyleSheet.create({
 	addressCard: {

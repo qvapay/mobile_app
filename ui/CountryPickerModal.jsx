@@ -1,4 +1,5 @@
 import { Text, View, ScrollView, Modal, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import QPPressable from './particles/QPPressable'
 
 import QPInput from './particles/QPInput'
@@ -24,6 +25,7 @@ import { createContainerStyles } from '../theme/themeUtils'
  */
 const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, onSelect, onClose, theme, textStyles }) => {
 
+	const { t } = useTranslation()
 	const query = countrySearch.toLowerCase()
 	const containerStyles = createContainerStyles(theme)
 
@@ -32,7 +34,7 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 			<View style={containerStyles.modalOverlay}>
 				<View style={[containerStyles.modalCard, styles.modalContent]}>
 					<View style={styles.modalHeader}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Seleccionar país</Text>
+						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('ui.countryPickerModal.title')}</Text>
 						<QPPressable onPress={onClose}>
 							<FontAwesome6 name="circle-xmark" size={24} color={theme.colors.secondaryText} />
 						</QPPressable>
@@ -40,7 +42,7 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 					<QPInput
 						value={countrySearch}
 						onChangeText={onChangeSearch}
-						placeholder="Buscar país..."
+						placeholder={t('ui.countryPickerModal.searchPlaceholder')}
 						prefixIconName="magnifying-glass"
 						style={{ marginVertical: 0 }}
 					/>

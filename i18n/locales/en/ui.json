@@ -1,1 +1,149 @@
-{}
+{
+	"actionButtons": {
+		"account": {
+			"deposit": "Deposit",
+			"withdraw": "Withdraw",
+			"send": "Send",
+			"trade": "Trade"
+		},
+		"savings": {
+			"deposit": "Deposit",
+			"withdraw": "Withdraw"
+		}
+	},
+	"addressPicker": {
+		"addressFallback": "Address",
+		"defaultSuffix": " · Default",
+		"newAddress": "New address"
+	},
+	"amountInput": {
+		"balanceLabel": "Balance:"
+	},
+	"brandTile": {
+		"from": "from ${{min}}",
+		"optionsCount": "{{count}} options"
+	},
+	"cashDelivery": {
+		"sectionTitle": "Cash delivery",
+		"subtitle": "Get USD cash in Havana\nin less than 72 hours",
+		"cta": "Send cash"
+	},
+	"coinPicker": {
+		"title": "Select coin",
+		"searchPlaceholder": "Search coin...",
+		"loading": "Loading coins...",
+		"empty": "No coins available"
+	},
+	"coinRow": {
+		"feeTerm": "{{fee}}% fee",
+		"minTerm": "min. ${{min}}"
+	},
+	"contactsDisclosure": {
+		"title": "Access to your contacts",
+		"body": "QvaPay collects the phone numbers in your contact list and sends them securely to our servers to find friends and family who already use the app. The numbers are used only for this lookup and are never shared with third parties.",
+		"privacyLink": "View Privacy Policy",
+		"accept": "Accept and continue",
+		"decline": "No, thanks"
+	},
+	"countryPickerModal": {
+		"title": "Select country",
+		"searchPlaceholder": "Search country..."
+	},
+	"emptyTransactions": {
+		"title": "No transactions yet",
+		"subtitle": "Add balance or make your first payment and it will show up here.",
+		"cta": "Add balance"
+	},
+	"kycGate": {
+		"title": "Verify your identity",
+		"defaultMessage": "This operation requires a verified identity. It's quick and you only do it once.",
+		"verifyNow": "Verify now"
+	},
+	"newAddressForm": {
+		"errors": {
+			"recipientName": "Enter the recipient's name",
+			"line1": "Enter the address (line 1)",
+			"city": "Enter the city",
+			"state": "Select the state",
+			"postalCode": "Invalid US ZIP code (e.g. 33033)"
+		},
+		"statePickerTitle": "Destination state",
+		"recipientName": "Recipient's name",
+		"phoneOptional": "Phone (optional)",
+		"line1": "Address (line 1)",
+		"line2": "Apt, suite… (optional)",
+		"city": "City",
+		"state": "State",
+		"statePlaceholder": "Select",
+		"postalCode": "ZIP code"
+	},
+	"offerItem": {
+		"status": {
+			"completed": "Completed",
+			"paid": "Paid",
+			"revision": "Under review",
+			"cancelled": "Cancelled"
+		},
+		"edit": "Edit",
+		"sell": "Sell",
+		"buy": "Buy",
+		"privateBadge": "Private",
+		"availableYouSend": " available · you send ",
+		"availableYouReceive": " available · you receive "
+	},
+	"phoneInput": {
+		"placeholder": "Phone number"
+	},
+	"productTile": {
+		"soldOut": "Sold out"
+	},
+	"profile": {
+		"operations": "Operations",
+		"rating": "Rating"
+	},
+	"pushPrompt": {
+		"title": "Never miss a payment",
+		"body": "Turn on notifications to know instantly when you receive money, when your P2P offers get a response, and more.",
+		"enable": "Turn on notifications"
+	},
+	"satsDiscountRow": {
+		"label": "Use my satoshis · {{sats}} (≈ ${{satsUsd}})"
+	},
+	"splitButton": {
+		"back": "Back"
+	},
+	"storeCountryPicker": {
+		"placeholder": "Select country",
+		"title": "Select country",
+		"searchPlaceholder": "Search country…",
+		"noResults": "No results",
+		"options_one": "{{count}} option",
+		"options_other": "{{count}} options"
+	},
+	"storeTile": {
+		"products_one": "{{count}} product",
+		"products_other": "{{count}} products",
+		"sales_one": "{{count}} sale",
+		"sales_other": "{{count}} sales",
+		"verified": "Verified store"
+	},
+	"transactionRow": {
+		"deposit": "{{coin}} deposit",
+		"withdrawal": "{{method}} withdrawal",
+		"servicePurchase": "Service purchase",
+		"sentTo": "Sent to @{{username}}",
+		"paymentFrom": "Payment from @{{username}}",
+		"transfer": "Transfer"
+	},
+	"updatePrompt": {
+		"title": "New version available",
+		"body": "Version {{latestVersion}} is now available on {{storeName}}. Update to enjoy the latest improvements and fixes.",
+		"currentVersion": "Your current version: {{currentVersion}}",
+		"updateNow": "Update now"
+	},
+	"walletPicker": {
+		"title": "Open in your wallet",
+		"memoWarning": "Make sure the memo was copied into your wallet before sending.",
+		"empty": "We couldn't detect any installed wallet compatible with this coin."
+	}
+}

@@ -1,4 +1,5 @@
 import { Modal, View, Text, Pressable, StyleSheet, Platform, Dimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -32,6 +33,7 @@ const { height: windowHeight } = Dimensions.get('window')
  */
 const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, onDismiss }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -56,22 +58,22 @@ const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, o
 						<FontAwesome6 name="circle-arrow-up" size={36} color={theme.colors.primary} iconStyle="solid" />
 					</View>
 					<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
-						Nueva versión disponible
+						{t('ui.updatePrompt.title')}
 					</Text>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: 22, marginBottom: 12 }]}>
-						La versión {latestVersion} ya está disponible en {storeName}. Actualiza para disfrutar las últimas mejoras y correcciones.
+						{t('ui.updatePrompt.body', { latestVersion, storeName })}
 					</Text>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', fontSize: theme.typography.fontSize.xs, marginBottom: 20 }]}>
-						Tu versión actual: {currentVersion}
+						{t('ui.updatePrompt.currentVersion', { currentVersion })}
 					</Text>
 					<QPButton
-						title="Actualizar ahora"
+						title={t('ui.updatePrompt.updateNow')}
 						onPress={handleUpdate}
 						style={{ backgroundColor: theme.colors.primary, marginBottom: 8 }}
 						textStyle={{ color: theme.colors.almostWhite }}
 					/>
 					<QPButton
-						title="Ahora no"
+						title={t('common.actions.notNow')}
 						onPress={handleDismiss}
 						style={{ backgroundColor: 'transparent' }}
 						textStyle={{ color: theme.colors.secondaryText }}

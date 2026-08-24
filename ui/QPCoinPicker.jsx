@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { StyleSheet, Text, View, Pressable, Modal, ScrollView } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -44,6 +45,7 @@ const QPCoinPicker = ({
 	defaultCoins = [],
 	showFees = true,
 }) => {
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
@@ -68,7 +70,7 @@ const QPCoinPicker = ({
 	const saveRecentCoin = useCallback((coinTick) => {
 		if (!recentKey) return
 		setRecentCoins((prev) => {
-			const updated = [coinTick, ...prev.filter((t) => t !== coinTick)].slice(0, MAX_QUICK_PILLS)
+			const updated = [coinTick, ...prev.filter((tick) => tick !== coinTick)].slice(0, MAX_QUICK_PILLS)
 			AsyncStorage.setItem(recentKey, JSON.stringify(updated))
 			return updated
 		})
@@ -133,7 +135,7 @@ const QPCoinPicker = ({
 
 					{/* Header */}
 				<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-					<Text style={textStyles.h4}>Seleccionar Moneda</Text>
+					<Text style={textStyles.h4}>{t('ui.coinPicker.title')}</Text>
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
 						<Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
 							<FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
@@ -150,7 +152,7 @@ const QPCoinPicker = ({
 						<QPInput
 							value={coinSearch}
 							onChangeText={setCoinSearch}
-							placeholder="Buscar moneda..."
+							placeholder={t('ui.coinPicker.searchPlaceholder')}
 							prefixIconName="magnifying-glass"
 						/>
 					</View>
@@ -181,7 +183,7 @@ const QPCoinPicker = ({
 				<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
 					{isLoading ? (
 						<View style={styles.loadingContainer}>
-							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando monedas...</Text>
+							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('ui.coinPicker.loading')}</Text>
 						</View>
 					) : filteredCoins.length > 0 ? (
 						filteredCoins.map((coin) => (
@@ -198,7 +200,7 @@ const QPCoinPicker = ({
 						))
 					) : (
 						<View style={styles.loadingContainer}>
-							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay monedas disponibles</Text>
+							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('ui.coinPicker.empty')}</Text>
 						</View>
 					)}
 				</ScrollView>

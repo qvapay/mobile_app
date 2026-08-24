@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+import i18n from '../../i18n'
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
@@ -14,17 +16,18 @@ export const EMPTY_US_ADDRESS = { recipient_name: '', phone: '', line1: '', line
 const ZIP_REGEX = /^\d{5}(-\d{4})?$/
 
 /**
- * Validates a new US shipping-address form.
+ * Validates a new US shipping-address form. Los mensajes se resuelven con
+ * `i18n.t()` en call time (idioma activo al validar, no al importar).
  *
  * @param {Object} form - Form values (EMPTY_US_ADDRESS shape).
- * @returns {string|null} Spanish error message, or null when valid.
+ * @returns {string|null} Localized error message, or null when valid.
  */
 export function validateUsAddress(form) {
-	if (form.recipient_name.trim().length < 2) return 'Escribe el nombre de quien recibe'
-	if (form.line1.trim().length < 3) return 'Escribe la dirección (línea 1)'
-	if (form.city.trim().length < 2) return 'Escribe la ciudad'
-	if (!US_STATES.some(s => s.code === form.state)) return 'Selecciona el estado'
-	if (!ZIP_REGEX.test(form.postal_code.trim())) return 'Código postal USA inválido (ej: 33033)'
+	if (form.recipient_name.trim().length < 2) return i18n.t('ui.newAddressForm.errors.recipientName')
+	if (form.line1.trim().length < 3) return i18n.t('ui.newAddressForm.errors.line1')
+	if (form.city.trim().length < 2) return i18n.t('ui.newAddressForm.errors.city')
+	if (!US_STATES.some(s => s.code === form.state)) return i18n.t('ui.newAddressForm.errors.state')
+	if (!ZIP_REGEX.test(form.postal_code.trim())) return i18n.t('ui.newAddressForm.errors.postalCode')
 	return null
 }
 
@@ -49,13 +52,14 @@ export function buildAddressBody(form) {
 
 // US state picker — centered card modal (house modal pattern)
 const StatePickerModal = ({ visible, currentState, onSelect, onClose, theme, textStyles }) => {
+	const { t } = useTranslation()
 	const { height: windowHeight } = useWindowDimensions()
 	const containerStyles = createContainerStyles(theme)
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
 				<Pressable style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
-					<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>Estado de destino</Text>
+					<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>{t('ui.newAddressForm.statePickerTitle')}</Text>
 					<ScrollView showsVerticalScrollIndicator={false}>
 						{US_STATES.map(state => (
 							<Pressable
@@ -88,6 +92,7 @@ const StatePickerModal = ({ visible, currentState, onSelect, onClose, theme, tex
  */
 const NewAddressForm = ({ form, onChange }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const [statePickerVisible, setStatePickerVisible] = useState(false)
@@ -105,27 +110,27 @@ const NewAddressForm = ({ form, onChange }) => {
 					postal_code: address.postal_code || f.postal_code,
 				}))}
 			/>
-			<QPInput prelabel="Nombre de quien recibe" placeholder="John Doe" value={form.recipient_name} onChangeText={setField('recipient_name')} autoCapitalize="words" />
-			<QPInput prelabel="Teléfono (opcional)" placeholder="+1 305 555 0100" value={form.phone} onChangeText={setField('phone')} keyboardType="phone-pad" />
-			<QPInput prelabel="Dirección (línea 1)" placeholder="123 Main St" value={form.line1} onChangeText={setField('line1')} />
-			<QPInput prelabel="Apto, suite… (opcional)" placeholder="Apt 4B" value={form.line2} onChangeText={setField('line2')} />
-			<QPInput prelabel="Ciudad" placeholder="Miami" value={form.city} onChangeText={setField('city')} autoCapitalize="words" />
+			<QPInput prelabel={t('ui.newAddressForm.recipientName')} placeholder="John Doe" value={form.recipient_name} onChangeText={setField('recipient_name')} autoCapitalize="words" />
+			<QPInput prelabel={t('ui.newAddressForm.phoneOptional')} placeholder="+1 305 555 0100" value={form.phone} onChangeText={setField('phone')} keyboardType="phone-pad" />
+			<QPInput prelabel={t('ui.newAddressForm.line1')} placeholder="123 Main St" value={form.line1} onChangeText={setField('line1')} />
+			<QPInput prelabel={t('ui.newAddressForm.line2')} placeholder="Apt 4B" value={form.line2} onChangeText={setField('line2')} />
+			<QPInput prelabel={t('ui.newAddressForm.city')} placeholder="Miami" value={form.city} onChangeText={setField('city')} autoCapitalize="words" />
 
 			<View style={styles.stateZipRow}>
 				<View style={{ flex: 1 }}>
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6 }]}>Estado</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6 }]}>{t('ui.newAddressForm.state')}</Text>
 					<Pressable
 						style={[styles.statePicker, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 						onPress={() => setStatePickerVisible(true)}
 					>
 						<Text style={[textStyles.h6, { color: form.state ? theme.colors.primaryText : theme.colors.secondaryText }]}>
-							{form.state ? `${form.state} — ${US_STATES.find(s => s.code === form.state)?.name}` : 'Seleccionar'}
+							{form.state ? `${form.state} — ${US_STATES.find(s => s.code === form.state)?.name}` : t('ui.newAddressForm.statePlaceholder')}
 						</Text>
 						<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 					</Pressable>
 				</View>
 				<View style={{ width: 130 }}>
-					<QPInput prelabel="Código postal" placeholder="33033" value={form.postal_code} onChangeText={setField('postal_code')} keyboardType="numbers-and-punctuation" maxLength={10} />
+					<QPInput prelabel={t('ui.newAddressForm.postalCode')} placeholder="33033" value={form.postal_code} onChangeText={setField('postal_code')} keyboardType="numbers-and-punctuation" maxLength={10} />
 				</View>
 			</View>
 
