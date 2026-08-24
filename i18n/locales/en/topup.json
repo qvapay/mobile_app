@@ -1,1 +1,50 @@
-{}
+{
+	"index": {
+		"intro": "Top up any mobile phone in Cuba paying directly with {{store}} — no QvaPay balance needed.",
+		"selectAmount": "Choose the amount",
+		"buyButton": "Buy top-up",
+		"buyButtonWithPrice": "Buy top-up {{price}}",
+		"processing": "Processing...",
+		"securePayment": "The payment is processed securely by {{provider}}. The top-up arrives within minutes.",
+		"toasts": {
+			"sent": {
+				"title": "Top-up sent!",
+				"description": "{{label}} on its way to {{phone}}"
+			},
+			"sentFallbackLabel": "Your top-up",
+			"sentFallbackPhone": "your number",
+			"pending": {
+				"title": "Top-up in progress",
+				"description": "We'll let you know when it's done. You won't be charged twice."
+			},
+			"validateFailed": "Couldn't validate the purchase",
+			"validateError": "Error validating the purchase",
+			"orphanFound": {
+				"title": "You have a previous undelivered purchase",
+				"description": "Retrying delivery…"
+			},
+			"playPending": {
+				"title": "Google Play reports a payment still pending",
+				"description": "Wait for the payment to be confirmed or cancel it from the Play Store app."
+			},
+			"recoverFailed": "Couldn't recover the previous purchase. Try again in a few minutes.",
+			"invalidPhone": "Enter a valid Cuban number",
+			"selectAmount": "Choose an amount"
+		}
+	},
+	"card": {
+		"unavailable": "Not available"
+	},
+	"history": {
+		"title": "Recent history",
+		"status": {
+			"processing": "In progress",
+			"failed": "Failed"
+		}
+	},
+	"phone": {
+		"label": "Number to top up",
+		"invalidHint": "Must start with 5 and have 8 digits",
+		"onlyCuba": "Only 🇨🇺 Cuban mobile numbers"
+	}
+}

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import LottieView from 'lottie-react-native'
@@ -54,6 +55,7 @@ const HAPTIC_OPTS = { enableVibrateFallback: true, ignoreAndroidSystemSettings: 
 const NearbyPay = ({ navigation, route }) => {
 
 	const { prefill_amount } = route.params || {}
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const { user, updateUser } = useAuth()
@@ -117,7 +119,7 @@ const NearbyPay = ({ navigation, route }) => {
 				<QPPressable variant="opacity" onPress={() => navigation.goBack()} style={styles.closeButton}>
 					<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
 				</QPPressable>
-				<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Pagar cerca</Text>
+				<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('misc.nearby.title')}</Text>
 				<View style={styles.closeButton} />
 			</View>
 
@@ -147,8 +149,8 @@ const NearbyPay = ({ navigation, route }) => {
 					{/* Status line */}
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
 						{peers.length === 0
-							? (pendingCount > 0 ? 'Verificando usuarios…' : 'Buscando usuarios cerca…')
-							: `${peers.length} ${peers.length === 1 ? 'persona cerca' : 'personas cerca'}`}
+							? (pendingCount > 0 ? t('misc.nearby.verifying') : t('misc.nearby.searching'))
+							: t('misc.nearby.peersNearby', { count: peers.length })}
 					</Text>
 
 					{/* Charge mode: banner or CTA */}
@@ -157,15 +159,15 @@ const NearbyPay = ({ navigation, route }) => {
 							<View style={[styles.chargeBanner, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
 								<FontAwesome6 name="bolt" size={16} color={theme.colors.primary} iconStyle="solid" />
 								<Text style={[textStyles.body, { color: theme.colors.primaryText, flex: 1, marginLeft: 10, fontFamily: theme.typography.fontFamily.medium }]}>
-									Cobrando ${chargeMode.amount}
+									{t('misc.nearby.charging', { amount: chargeMode.amount })}
 								</Text>
 								<QPPressable variant="opacity" onPress={stopCharging}>
-									<Text style={[textStyles.body, { color: theme.colors.danger }]}>Cancelar</Text>
+									<Text style={[textStyles.body, { color: theme.colors.danger }]}>{t('common.actions.cancel')}</Text>
 								</QPPressable>
 							</View>
 						) : (
 							<QPButton
-								title="Cobrar cerca"
+								title={t('misc.nearby.chargeNearby')}
 								onPress={() => setShowChargeSheet(true)}
 								icon="bolt"
 								iconStyle="solid"
@@ -193,10 +195,10 @@ const NearbyPay = ({ navigation, route }) => {
 						+${receivedOverlay.amount}
 					</Text>
 					<Text style={[textStyles.body, { color: receivedOverlay.confirmed ? theme.colors.successText : theme.colors.secondaryText, marginTop: 6 }]}>
-						{receivedOverlay.confirmed ? 'Pago confirmado' : 'Confirmando…'}
+						{receivedOverlay.confirmed ? t('misc.nearby.paymentConfirmed') : t('misc.nearby.confirming')}
 					</Text>
 					<QPButton
-						title="Listo"
+						title={t('common.actions.done')}
 						onPress={() => setReceivedOverlay(null)}
 						style={styles.receivedButton}
 					/>

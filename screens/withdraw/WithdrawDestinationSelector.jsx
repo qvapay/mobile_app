@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -21,17 +22,19 @@ import QPPressable from '../../ui/particles/QPPressable'
  */
 const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles }) => {
 
+	const { t } = useTranslation()
+
 	if (destination === 'third_party') {
 		return (
 			<View style={[styles.blockedCard, { backgroundColor: theme.colors.danger + '15', borderColor: theme.colors.danger }]}>
-				<QPPressable variant="opacity" onPress={() => onSelect(null)} style={styles.closeButton} accessibilityLabel="Cerrar y volver a elegir destino">
+				<QPPressable variant="opacity" onPress={() => onSelect(null)} style={styles.closeButton} accessibilityLabel={t('withdraw.destination.closeAccessibility')}>
 					<FontAwesome6 name="xmark" size={18} color={theme.colors.secondaryText} iconStyle="solid" />
 				</QPPressable>
 				<FontAwesome6 name="ban" size={32} color={theme.colors.danger} iconStyle="solid" />
-				<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginTop: 12, textAlign: 'center' }]}>No soportamos pagos a terceros</Text>
-				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4, textAlign: 'center' }]}>Extrae tus fondos a tu wallet personal.</Text>
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText, marginTop: 12, textAlign: 'center' }]}>{t('withdraw.destination.blockedTitle')}</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4, textAlign: 'center' }]}>{t('withdraw.destination.blockedSubtitle')}</Text>
 				<QPButton
-					title="Usar mi wallet personal"
+					title={t('withdraw.destination.useMyWallet')}
 					onPress={() => onSelect('personal')}
 					style={{ marginTop: 16, width: '100%' }}
 					textStyle={{ color: theme.colors.almostWhite }}
@@ -41,13 +44,13 @@ const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles 
 	}
 
 	const options = [
-		{ key: 'personal', icon: 'wallet', title: 'Extracción a wallet personal', subtitle: 'Una wallet cuyas llaves privadas controlas tú.' },
-		{ key: 'third_party', icon: 'users', title: 'Pago a terceros', subtitle: 'Enviar a otra persona, comercio o servicio.' },
+		{ key: 'personal', icon: 'wallet', title: t('withdraw.destination.personalTitle'), subtitle: t('withdraw.destination.personalSubtitle') },
+		{ key: 'third_party', icon: 'users', title: t('withdraw.destination.thirdPartyTitle'), subtitle: t('withdraw.destination.thirdPartySubtitle') },
 	]
 
 	return (
 		<View style={styles.container}>
-			<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>¿A dónde envías los fondos?</Text>
+			<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>{t('withdraw.destination.question')}</Text>
 			{options.map(({ key, icon, title, subtitle }) => {
 				const selected = destination === key
 				return (
@@ -77,7 +80,7 @@ const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles 
 				<View style={[styles.warningStrip, { backgroundColor: theme.colors.warning + '20', borderColor: theme.colors.warning }]}>
 					<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
 					<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1, marginLeft: 8 }]}>
-						Usa una wallet personal. No nos hacemos responsables de fondos enviados a exchanges u otros sistemas de terceros: pueden retener, marcar o rechazar tu depósito.
+						{t('withdraw.destination.exchangeWarning')}
 					</Text>
 				</View>
 			)}

@@ -1,1 +1,90 @@
-{}
+{
+	"index": {
+		"generateButton": "Generate deposit",
+		"amountPlaceholder": "Amount to deposit",
+		"selectCoinLabel": "Select coin:",
+		"selectCoinPlaceholder": "Select coin",
+		"loadingCoins": "Loading coins...",
+		"cardPillLabel": "Card",
+		"toasts": {
+			"paymentConfirmed": {
+				"title": "Payment confirmed",
+				"description": "Your deposit has been processed successfully"
+			},
+			"invalidAmount": "Please enter a valid amount",
+			"missingCoinOrAmount": "Please select a coin and enter an amount",
+			"minAmount": "The minimum amount for {{name}} is {{min}}",
+			"createFailed": "Couldn't create the deposit request",
+			"cardPaymentTitle": "Card payment"
+		},
+		"errors": {
+			"loadCoins": "Couldn't load the available coins",
+			"createRetry": "Couldn't create the deposit request, please try again in a few minutes"
+		}
+	},
+	"feeMode": {
+		"title": "Deposit fee:",
+		"onTopTitle": "Fee on top",
+		"includedTitle": "Fee included",
+		"preview": "You pay ${{pays}} · you receive ${{credited}}",
+		"onTopHint": "{{rate}}% is added to the payment",
+		"includedHint": "{{rate}}% is deducted from the credited amount"
+	},
+	"cardSheet": {
+		"initFailed": "Couldn't start the card payment. Generate a new deposit.",
+		"processFailed": "Couldn't process the payment with your card."
+	},
+	"modal": {
+		"title": "Deposit ${{amount}} QUSD",
+		"expired": "Expired",
+		"expiredNotice": "This deposit has expired. Please generate a new one.",
+		"cardFallbackName": "Card",
+		"important": "Important",
+		"status": {
+			"processing": "Payment detected, processing...",
+			"paid": "Payment confirmed",
+			"expired": "Deposit expired",
+			"failed": "Payment error"
+		},
+		"labels": {
+			"amountToDeposit": "Amount to deposit",
+			"transaction": "Transaction",
+			"amountToCredit": "Amount to credit",
+			"fee": "Fee",
+			"totalToPay": "Total to pay",
+			"totalToPayCard": "Total to pay by card",
+			"address": "Address",
+			"holderName": "Account holder name",
+			"routingNumber": "Routing number",
+			"accountNumber": "Account number",
+			"memo": "Memo",
+			"exchangeRate": "Exchange rate"
+		},
+		"paypal": {
+			"openButton": "Open PayPal",
+			"waiting": "Waiting for payment confirmation on PayPal...",
+			"warnings": {
+				"complete": "Complete the payment on PayPal within 30 minutes",
+				"keepOpen": "Don't close this screen until the payment is confirmed"
+			}
+		},
+		"card": {
+			"payButton": "Pay with card",
+			"warnings": {
+				"stripe": "The payment is processed securely by Stripe",
+				"statement": "The charge may appear on your statement as QvaPay, Inc or DFXData, Inc",
+				"threeDSecure": "Your bank may ask for a 3D Secure confirmation",
+				"complete": "Complete the payment within 30 minutes"
+			}
+		},
+		"crypto": {
+			"openWalletButton": "Open in my wallet",
+			"warnings": {
+				"onlyThisAddress": "Don't send crypto to any other address",
+				"complete": "Complete the payment within 30 minutes",
+				"exactAmount": "Send exactly the indicated amount",
+				"sameNetwork": "Don't use a different network/token"
+			}
+		}
+	}
+}

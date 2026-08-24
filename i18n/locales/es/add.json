@@ -1,1 +1,90 @@
-{}
+{
+	"index": {
+		"generateButton": "Generar Depósito",
+		"amountPlaceholder": "Monto a depositar",
+		"selectCoinLabel": "Seleccionar moneda:",
+		"selectCoinPlaceholder": "Seleccionar moneda",
+		"loadingCoins": "Cargando monedas...",
+		"cardPillLabel": "Tarjeta",
+		"toasts": {
+			"paymentConfirmed": {
+				"title": "Pago confirmado",
+				"description": "Tu depósito ha sido procesado exitosamente"
+			},
+			"invalidAmount": "Por favor ingresa un monto válido",
+			"missingCoinOrAmount": "Por favor selecciona una moneda e ingresa un monto",
+			"minAmount": "El monto mínimo para {{name}} es {{min}}",
+			"createFailed": "Error al crear la solicitud de depósito",
+			"cardPaymentTitle": "Pago con tarjeta"
+		},
+		"errors": {
+			"loadCoins": "Error al cargar las monedas disponibles",
+			"createRetry": "Error al crear la solicitud de depósito, intente nuevamente en unos minutos"
+		}
+	},
+	"feeMode": {
+		"title": "Comisión del depósito:",
+		"onTopTitle": "Fee aparte",
+		"includedTitle": "Fee incluido",
+		"preview": "Pagas ${{pays}} · recibes ${{credited}}",
+		"onTopHint": "Se suma {{rate}}% al pago",
+		"includedHint": "Se descuenta {{rate}}% de lo acreditado"
+	},
+	"cardSheet": {
+		"initFailed": "No se pudo iniciar el pago con tarjeta. Genera un nuevo depósito.",
+		"processFailed": "No se pudo procesar el pago con tu tarjeta."
+	},
+	"modal": {
+		"title": "Depositar ${{amount}} QUSD",
+		"expired": "Expirado",
+		"expiredNotice": "Este depósito ha expirado. Por favor genera uno nuevo.",
+		"cardFallbackName": "Tarjeta",
+		"important": "Importante",
+		"status": {
+			"processing": "Pago detectado, procesando...",
+			"paid": "Pago confirmado",
+			"expired": "Depósito expirado",
+			"failed": "Error en el pago"
+		},
+		"labels": {
+			"amountToDeposit": "Monto a depositar",
+			"transaction": "Transacción",
+			"amountToCredit": "Cantidad a recargar",
+			"fee": "Comisión",
+			"totalToPay": "Total a pagar",
+			"totalToPayCard": "Total a pagar con tarjeta",
+			"address": "Dirección",
+			"holderName": "Nombre del titular",
+			"routingNumber": "Número de ruta",
+			"accountNumber": "Número de cuenta",
+			"memo": "Memo",
+			"exchangeRate": "Tasa de cambio"
+		},
+		"paypal": {
+			"openButton": "Abrir PayPal",
+			"waiting": "Esperando confirmación de pago en PayPal...",
+			"warnings": {
+				"complete": "Complete el pago en PayPal en 30 minutos",
+				"keepOpen": "No cierre esta pantalla hasta confirmar el pago"
+			}
+		},
+		"card": {
+			"payButton": "Pagar con tarjeta",
+			"warnings": {
+				"stripe": "El pago se procesa de forma segura con Stripe",
+				"statement": "El cargo puede aparecer en tu estado de cuenta como QvaPay, Inc o DFXData, Inc",
+				"threeDSecure": "Tu banco puede pedir una confirmación 3D Secure",
+				"complete": "Completa el pago en 30 minutos"
+			}
+		},
+		"crypto": {
+			"openWalletButton": "Abrir en mi wallet",
+			"warnings": {
+				"onlyThisAddress": "No envíe cripto a otra dirección",
+				"complete": "Complete el pago en 30 minutos",
+				"exactAmount": "Envíe exactamente la cantidad indicada",
+				"sameNetwork": "No use una red/token diferente"
+			}
+		}
+	}
+}

@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -22,30 +23,31 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
  */
 const CardFeeModeSelector = ({ feeRate, amount, value, onChange }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
 	const options = [
 		{
 			mode: 'on_top',
-			title: 'Fee aparte',
+			title: t('add.feeMode.onTopTitle'),
 			subtitle: (p) => p
-				? `Pagas $${p.pays.toFixed(2)} · recibes $${p.credited.toFixed(2)}`
-				: `Se suma ${feeRate}% al pago`,
+				? t('add.feeMode.preview', { pays: p.pays.toFixed(2), credited: p.credited.toFixed(2) })
+				: t('add.feeMode.onTopHint', { rate: feeRate }),
 		},
 		{
 			mode: 'included',
-			title: 'Fee incluido',
+			title: t('add.feeMode.includedTitle'),
 			subtitle: (p) => p
-				? `Pagas $${p.pays.toFixed(2)} · recibes $${p.credited.toFixed(2)}`
-				: `Se descuenta ${feeRate}% de lo acreditado`,
+				? t('add.feeMode.preview', { pays: p.pays.toFixed(2), credited: p.credited.toFixed(2) })
+				: t('add.feeMode.includedHint', { rate: feeRate }),
 		},
 	]
 
 	return (
 		<View style={styles.container}>
 			<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
-				Comisión del depósito:
+				{t('add.feeMode.title')}
 			</Text>
 
 			{options.map(({ mode, title, subtitle }) => {

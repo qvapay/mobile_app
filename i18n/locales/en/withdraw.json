@@ -1,1 +1,64 @@
-{}
+{
+	"index": {
+		"withdrawButton": "Withdraw ${{amount}} {{currency}}",
+		"redeemButton": "Redeem {{sats}} sats",
+		"sourceBalance": "Balance",
+		"sourceSats": "⚡ {{sats}} sats",
+		"lockedByInvoice": "Amount fixed by the invoice ⚡ {{sats}} sats",
+		"fee": "Fee: ${{fee}}",
+		"feeWithLogistics": "Fee: ${{fee}} (includes {{pct}}% logistics)",
+		"lightningInvoice": "Lightning invoice",
+		"lightningDescription": "“{{description}}”",
+		"lightningExpires": " · expires in {{minutes}} min",
+		"kycGate": "Withdrawals over ${{amount}} require your identity to be verified. It's quick and you only do it once.",
+		"toasts": {
+			"pinSent": {
+				"title": "PIN sent",
+				"description": "Check your email"
+			},
+			"pinSendFailed": "Couldn't send the PIN",
+			"pinRequestError": "Error requesting the PIN",
+			"enterPin": "Enter a 4-digit PIN",
+			"enterOtp": "Enter a 6-digit OTP code",
+			"redeemed": {
+				"title": "Redemption processed",
+				"description": "{{sats}} sats have been redeemed"
+			},
+			"withdrawn": {
+				"title": "Withdrawal processed",
+				"description": "${{amount}} QUSD has been withdrawn"
+			},
+			"networkErrorTitle": "Network error",
+			"withdrawFailed": "Couldn't complete the withdrawal",
+			"processError": "Error processing the withdrawal"
+		}
+	},
+	"amountCard": {
+		"withdraw": "Withdraw",
+		"balance": "Balance:",
+		"receive": "Receive",
+		"coinPlaceholder": "Coin"
+	},
+	"satsCard": {
+		"title": "Redeem satoshis",
+		"available": "{{sats}} available",
+		"max": "MAX",
+		"approx": "≈ ${{usd}} USD · no fee",
+		"minimum": "Minimum {{sats}} sats · no fee"
+	},
+	"accountFields": {
+		"title": "Your account details:"
+	},
+	"destination": {
+		"question": "Where are you sending the funds?",
+		"personalTitle": "Withdraw to a personal wallet",
+		"personalSubtitle": "A wallet whose private keys you control.",
+		"thirdPartyTitle": "Third-party payment",
+		"thirdPartySubtitle": "Send to another person, merchant or service.",
+		"blockedTitle": "We don't support third-party payments",
+		"blockedSubtitle": "Withdraw your funds to your personal wallet.",
+		"useMyWallet": "Use my personal wallet",
+		"closeAccessibility": "Close and choose the destination again",
+		"exchangeWarning": "Use a personal wallet. We are not responsible for funds sent to exchanges or other third-party systems: they can hold, flag or reject your deposit."
+	}
+}
