@@ -1,5 +1,6 @@
 package com.qvapay
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -10,6 +11,11 @@ class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(null)
+    // Portrait solo en teléfonos: en pantallas grandes (>= sw600dp) Android 16
+    // ignora la restricción de todos modos — dejarlas libres también en <= 15
+    if (resources.configuration.smallestScreenWidthDp < 600) {
+      requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    }
   }
 
   /**

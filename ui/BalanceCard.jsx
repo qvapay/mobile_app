@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Text, Pressable, View, StyleSheet, Dimensions } from 'react-native'
+import { Text, Pressable, View, StyleSheet, useWindowDimensions } from 'react-native'
 import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 
 // Theme Context
@@ -15,9 +15,6 @@ import { useSavingsSummaryQuery } from '../hooks/useSavingsSummaryQuery'
 // Particles
 import QPBalance from './particles/QPBalance'
 import QPFitText from './particles/QPFitText'
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
-const CARD_WIDTH = SCREEN_WIDTH - 32 // match container padding
 
 // Tasa anual por defecto mientras el resumen no ha llegado nunca
 const DEFAULT_RATE = 3.75
@@ -42,6 +39,10 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }) 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
+
+	// Ancho vivo: en tablets/plegables la rotación o el resize cambian la ventana
+	const { width: windowWidth } = useWindowDimensions()
+	const cardWidth = windowWidth - 32 // match container padding
 
 	// Settings context
 	const { getSetting, updateSetting } = useSettings()
@@ -91,7 +92,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }) 
 	// índice discreto (runOnJS únicamente al cruzar de página)
 	const lastIndex = useSharedValue(0)
 	const onScroll = useAnimatedScrollHandler((event) => {
-		const progress = Math.min(Math.max(event.contentOffset.x / CARD_WIDTH, 0), 1)
+		const progress = Math.min(Math.max(event.contentOffset.x / cardWidth, 0), 1)
 		if (pageProgress) pageProgress.value = progress
 		const index = progress > 0.5 ? 1 : 0
 		if (index !== lastIndex.value) {
@@ -110,12 +111,12 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }) 
 				onScroll={onScroll}
 				scrollEventThrottle={16}
 				decelerationRate="fast"
-				snapToInterval={CARD_WIDTH}
-				contentContainerStyle={{ width: CARD_WIDTH * 2 }}
+				snapToInterval={cardWidth}
+				contentContainerStyle={{ width: cardWidth * 2 }}
 			>
 
 				{/* Page 1: Main Balance */}
-				<Pressable onPress={toggleShowBalance} style={[styles.page, { width: CARD_WIDTH }]}>
+				<Pressable onPress={toggleShowBalance} style={[styles.page, { width: cardWidth }]}>
 					{showBalance ? (
 						<QPBalance formattedAmount={Number(balance || 0).toFixed(2)} fontSize={60} theme={theme} />
 					) : (
@@ -126,7 +127,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }) 
 				</Pressable>
 
 				{/* Page 2: Savings Balance */}
-				<Pressable onPress={() => navigation?.navigate('Savings')} style={[styles.page, { width: CARD_WIDTH }]} >
+				<Pressable onPress={() => navigation?.navigate('Savings')} style={[styles.page, { width: cardWidth }]} >
 					{showBalance ? (
 						<View style={styles.savingsContent}>
 							<QPBalance formattedAmount={Number(savings.balance ?? 0).toFixed(2)} fontSize={60} theme={theme} />
