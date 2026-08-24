@@ -6,6 +6,7 @@
  * `queryFn` acabaría repitiendo su propio `if (!result.success) throw …`, que es
  * justo la duplicación que un refactor de datos debería eliminar.
  */
+import i18n from '../i18n'
 
 /**
  * Error de API con el código HTTP adjunto, para que la política de reintentos
@@ -35,7 +36,7 @@ export class ApiError extends Error {
 export const unwrap = (result) => {
 
 	if (!result?.success) {
-		throw new ApiError(result?.error || 'Ha ocurrido un error inesperado', result?.status)
+		throw new ApiError(result?.error || i18n.t('errors.unexpected'), result?.status)
 	}
 
 	// React Query trata `undefined` como un fallo de la query ("Query data cannot

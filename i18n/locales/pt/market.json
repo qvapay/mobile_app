@@ -1,0 +1,157 @@
+{
+	"common": {
+		"loadMore": "Carregar mais",
+		"soldBy": "Vendido por",
+		"total": "Total",
+		"productFallback": "Produto",
+		"storeFallback": "Loja",
+		"soldOut": "Esgotado",
+		"products_one": "{{count}} produto",
+		"products_other": "{{count}} produtos"
+	},
+	"categories": {
+		"electronics": "Eletrônicos",
+		"fashion": "Moda e acessórios",
+		"home": "Casa",
+		"beauty": "Beleza e cuidados pessoais",
+		"food": "Alimentos e bebidas",
+		"sports": "Esportes",
+		"gaming": "Games",
+		"books": "Livros e educação",
+		"digital": "Produtos digitais",
+		"services": "Serviços",
+		"other": "Outros"
+	},
+	"kinds": {
+		"physical": "Físico",
+		"digital": "Digital",
+		"service": "Serviço",
+		"giftcard": "Gift card"
+	},
+	"orderStatus": {
+		"fulfilled": "Entregue",
+		"refunded": "Reembolsada"
+	},
+	"checkout": {
+		"problems": {
+			"gone": "Não está mais disponível",
+			"variantRequired": "O produto mudou: escolha as opções de novo na página do produto"
+		},
+		"errors": {
+			"outOfStock": "Esgotou enquanto você comprava",
+			"variantRequired": "Escolha as opções do produto de novo",
+			"shipToBlocked": "O vendedor não envia para o seu endereço",
+			"duplicate": "Compra duplicada: confira suas compras",
+			"busy": "O serviço está ocupado. Tente de novo em alguns segundos.",
+			"generic": "Não foi possível processar a compra"
+		}
+	},
+	"stores": {
+		"searchPlaceholder": "Buscar lojas…",
+		"all": "Todas",
+		"verifiedStores": "Lojas verificadas",
+		"count_one": "{{count}} loja",
+		"count_other": "{{count}} lojas",
+		"noResults": "Nenhum resultado para \"{{search}}\"",
+		"emptyCategory": "Ainda não há lojas nesta categoria",
+		"toasts": {
+			"loadErrorTitle": "Lojas"
+		}
+	},
+	"store": {
+		"reviews_one": "★ {{rating}} · {{count}} avaliação",
+		"reviews_other": "★ {{rating}} · {{count}} avaliações",
+		"sales_one": "{{count}} venda",
+		"sales_other": "{{count}} vendas",
+		"products": "Produtos",
+		"emptyProducts": "Esta loja ainda não tem produtos publicados",
+		"returnsPolicy": "Política de devolução",
+		"share": {
+			"message": "Conheça {{name}} no QvaPay: {{url}}",
+			"fallbackName": "esta loja",
+			"fallbackTitle": "Loja no QvaPay"
+		},
+		"toasts": {
+			"loadErrorTitle": "Loja",
+			"productsErrorTitle": "Produtos"
+		}
+	},
+	"product": {
+		"from": "a partir de {{price}}",
+		"available_one": "{{count}} disponível",
+		"available_other": "{{count}} disponíveis",
+		"shipsTo": "Envios para",
+		"addToCart": "Ao carrinho",
+		"buyNow": "Comprar agora",
+		"chooseAxes": "Escolha {{axes}}",
+		"axesJoiner": " e ",
+		"oneOption": "uma opção",
+		"toasts": {
+			"loadErrorTitle": "Produto",
+			"cartFull": "Carrinho cheio (máximo de 30 produtos)",
+			"added": "Adicionado ao carrinho"
+		}
+	},
+	"cart": {
+		"confirm": {
+			"title": "Confirmar compra",
+			"body_one": "Serão descontados {{amount}} do seu saldo em {{count}} pedido. Cada loja recebe o pagamento separadamente.",
+			"body_other": "Serão descontados {{amount}} do seu saldo em {{count}} pedidos. Cada loja recebe o pagamento separadamente.",
+			"shippingTo": "Enviaremos para: {{address}}"
+		},
+		"payAmount": "Pagar {{amount}}",
+		"empty": {
+			"title": "Seu carrinho está vazio",
+			"subtitle": "Explore as lojas e adicione produtos para comprar tudo de uma vez.",
+			"seeOrders": "Ver minhas compras ›",
+			"explore": "Explorar lojas"
+		},
+		"revalidating": "Atualizando preços e disponibilidade…",
+		"offlineBanner": "Sem conexão — não foi possível verificar preços e estoque. O pagamento fica bloqueado até tentar de novo.",
+		"viewStore": "Ver loja ›",
+		"stockLeft": "{{qty}} disp.",
+		"itemShipBlocked": "O vendedor não envia para o endereço escolhido",
+		"processing": "Processando…",
+		"shippingAddress": "Endereço de entrega",
+		"shippingAddressHint": "Usado para todos os produtos físicos do carrinho. Por enquanto, o frete é só para os EUA.",
+		"availableBalance": "Saldo disponível",
+		"insufficientBalance": "Saldo insuficiente para esta compra.",
+		"unavailable_one": "Um produto não está mais disponível e não será incluído.",
+		"unavailable_other": "{{count}} produtos não estão mais disponíveis e não serão incluídos.",
+		"chooseAddress": "Escolha ou adicione um endereço de entrega para continuar.",
+		"shipBlockedSummary": "Alguns produtos não são enviados para o endereço escolhido. Troque o endereço ou remova esses itens do carrinho.",
+		"processingPurchases": "Processando compras…",
+		"retryPayment": "Tentar pagamento de novo ({{failed}})",
+		"clearCart": "Esvaziar carrinho",
+		"toasts": {
+			"addressErrorTitle": "Endereço",
+			"addressSaveFailed": "Não foi possível salvar o endereço de entrega",
+			"confirmed_one": "Compra confirmada!",
+			"confirmed_other": "{{count}} compras confirmadas!",
+			"partial_one": "{{count}} compra confirmada · {{failed}} com erro. Confira os itens restantes.",
+			"partial_other": "{{count}} compras confirmadas · {{failed}} com erro. Confira os itens restantes.",
+			"allFailed": "Não foi possível concluir nenhuma compra. Confira os erros."
+		}
+	},
+	"orders": {
+		"emptyTitle": "Você ainda não comprou nada",
+		"emptySubtitle": "Suas compras nas lojas da comunidade vão aparecer aqui.",
+		"toasts": {
+			"loadErrorTitle": "Compras"
+		}
+	},
+	"orderDetail": {
+		"quantity": "Quantidade",
+		"unitPrice": "Preço unitário",
+		"giftCardApplied": "Gift card aplicado",
+		"type": "Tipo",
+		"date": "Data",
+		"delivered": "Entregue",
+		"note": "Nota",
+		"trackingLabel": "Código de rastreio (toque para copiar)",
+		"orderRef": "Pedido {{uuid}}",
+		"toasts": {
+			"trackingCopied": "Código de rastreio copiado"
+		}
+	}
+}

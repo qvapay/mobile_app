@@ -1,13 +1,16 @@
 import { View, Text, StyleSheet } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import { useTranslation } from "react-i18next"
 
 import QPCoin from "../../ui/particles/QPCoin"
 import QPInput from "../../ui/particles/QPInput"
 
 import usePaymentWindow from "./usePaymentWindow"
 
-// Trade lifecycle steps: the payer pays → marks it → the receiver releases
-const STEPS = ["Pago", "Confirmación", "Liberación"]
+// Trade lifecycle steps: the payer pays → marks it → the receiver releases.
+// Builder (no module-level copy): resolved with t() per render so the stepper
+// re-labels itself on a live language switch.
+const getSteps = (t) => [t('p2p.tradeProgress.steps.payment'), t('p2p.tradeProgress.steps.confirmation'), t('p2p.tradeProgress.steps.release')]
 
 /**
  * Trade-room progress card (industry pattern: the Binance/OKX order screen):
@@ -24,6 +27,8 @@ const STEPS = ["Pago", "Confirmación", "Liberación"]
  */
 const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdInput, setTxIdInput, theme, textStyles, containerStyles }) => {
 
+	const { t } = useTranslation()
+
 	// Only the expiry flip matters here — the live countdown renders in the header
 	const { expired: windowExpired } = usePaymentWindow(
 		status === "processing" ? p2p?.payment_window_expires_at || null : null
@@ -36,15 +41,20 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 	const doneCount = status === "completed" ? 3 : status === "paid" ? 2 : 0
 	const activeIndex = status === "completed" ? -1 : status === "paid" ? 2 : 0
 	const completed = status === "completed"
+	const steps = getSteps(t)
 
-	const heroVerb = isPayer ? (completed ? "Enviaste" : "Envías") : (completed ? "Recibiste" : "Recibirás")
-	// La tasa viaja aquí porque esta card SUSTITUYE a la informativa en el trade room
+	// Claves por perspectiva y tiempo verbal — frases completas, nada concatenado
+	const heroVerb = isPayer
+		? (completed ? t('p2p.tradeProgress.hero.sent') : t('p2p.tradeProgress.hero.send'))
+		: (completed ? t('p2p.tradeProgress.hero.received') : t('p2p.tradeProgress.hero.receive'))
+	// La tasa viaja aquí porque esta card SUSTITUYE a la informativa en el trade room.
+	// El " · " une dos datos independientes (frase de saldo + tasa), no parte una frase.
 	const amountNum = Number(p2p.amount)
 	const rate = amountNum > 0 ? (Number(p2p.receive) / amountNum).toFixed(2) : null
 	const balanceLine = (isPayer
-		? (completed ? `recibiste $${p2p.amount} de saldo` : `recibirás $${p2p.amount} de saldo`)
-		: (completed ? `liberaste $${p2p.amount} de tu saldo` : `liberarás $${p2p.amount} de tu saldo`))
-		+ (rate ? ` · tasa ${rate}` : "")
+		? (completed ? t('p2p.tradeProgress.balance.payerDone', { amount: p2p.amount }) : t('p2p.tradeProgress.balance.payer', { amount: p2p.amount }))
+		: (completed ? t('p2p.tradeProgress.balance.receiverDone', { amount: p2p.amount }) : t('p2p.tradeProgress.balance.receiver', { amount: p2p.amount })))
+		+ (rate ? ` · ${t('p2p.tradeProgress.rateSuffix', { rate })}` : "")
 
 	return (
 		<View style={[containerStyles.card, styles.card]}>
@@ -54,7 +64,7 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 				<View style={styles.bannerRow}>
 					<FontAwesome6 name="hourglass-end" size={16} color={theme.colors.danger} iconStyle="solid" />
 					<Text style={[textStyles.h6, { color: theme.colors.danger, flex: 1, fontWeight: "600" }]}>
-						Ventana de pago expirada; la oferta volverá a publicarse
+						{t('p2p.tradeProgress.windowExpired')}
 					</Text>
 				</View>
 			)}
@@ -72,7 +82,7 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 
 			{/* 3-step progress */}
 			<View style={styles.stepsRow}>
-				{STEPS.map((label, i) => {
+				{steps.map((label, i) => {
 					const done = i < doneCount
 					const active = i === activeIndex
 					return (
@@ -103,7 +113,7 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 				<View style={styles.safetyRow}>
 					<FontAwesome6 name="shield-halved" size={12} color={theme.colors.warning} iconStyle="solid" />
 					<Text style={[textStyles.caption, { color: theme.colors.warning, flex: 1 }]}>
-						Libera solo si el pago ya está en tu cuenta, no por capturas ni promesas.
+						{t('p2p.tradeProgress.safety')}
 					</Text>
 				</View>
 			)}
@@ -114,11 +124,11 @@ const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdI
 					<QPInput
 						value={txIdInput}
 						onChangeText={setTxIdInput}
-						placeholder="ID de la transferencia"
+						placeholder={t('p2p.tradeProgress.txIdPlaceholder')}
 						prefixIconName="hashtag"
 					/>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-						El ID del pago habilita «He pagado» y ayuda a verificarlo más rápido.
+						{t('p2p.tradeProgress.txIdHelper')}
 					</Text>
 				</View>
 			)}

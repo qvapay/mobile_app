@@ -74,6 +74,7 @@ export const ROUTES = {
 	REFERALS: "Referals",
 	THEME: "Theme",
 	FONT_SIZE: "FontSize",
+	LANGUAGE: "Language",
 	USERDATA: "Userdata",
 	PHONE: "Phone",
 	TELEGRAM: "Telegram",

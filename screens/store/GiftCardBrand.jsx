@@ -4,6 +4,8 @@ import useContentPadding from '../../hooks/useContentPadding'
 
 // Toast
 import { toast } from 'sonner-native'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 
 const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
 
@@ -42,9 +44,10 @@ const getReceivedValue = (offer) => {
 
 const OfferRow = ({ offer, selected, onSelect, theme, textStyles }) => {
 
+	const { t } = useTranslation()
 	const received = getReceivedValue(offer)
 	const sendStr = formatSendValue(offer.send)
-	const secondary = sendStr && received !== sendStr ? `Valor: ${sendStr}` : null
+	const secondary = sendStr && received !== sendStr ? t('store.giftCardBrand.valueLabel', { value: sendStr }) : null
 
 	let priceMain
 	let priceSub = null
@@ -52,7 +55,7 @@ const OfferRow = ({ offer, selected, onSelect, theme, textStyles }) => {
 		priceMain = `$${Number(offer.price).toFixed(2)}`
 	} else {
 		priceMain = `$${offer.price_min} – $${offer.price_max}`
-		priceSub = 'monto variable'
+		priceSub = t('store.common.variableAmount')
 	}
 
 	return (
@@ -81,7 +84,7 @@ const OfferRow = ({ offer, selected, onSelect, theme, textStyles }) => {
 				)}
 			</View>
 			<View style={{ alignItems: 'flex-end', marginLeft: 10 }}>
-				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', fontSize: 10 }]}>Pagas</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', fontSize: 10 }]}>{t('store.summary.youPay')}</Text>
 				<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>{priceMain}</Text>
 				{priceSub && (
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{priceSub}</Text>
@@ -124,6 +127,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 
 	const { country: initCountry, countryCode, brandSlug } = route.params || {}
 
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
@@ -146,7 +150,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
 		if (detailQuery.isError && !detailQuery.data) {
-			toast.error('Tarjeta', { description: detailQuery.error?.message || 'No se pudo cargar la tarjeta' })
+			toast.error(i18n.t('store.toasts.card'), { description: detailQuery.error?.message || i18n.t('store.giftCardBrand.toasts.loadError') })
 		}
 	}, [detailQuery.isError, detailQuery.data, detailQuery.error])
 
@@ -197,19 +201,19 @@ const GiftCardBrand = ({ navigation, route }) => {
 	const hasBalance = user?.balance != null ? Number(user.balance) >= satsDiscount.cashDue : false
 
 	const handleContinue = useCallback(() => {
-		if (!selectedOffer) { toast.error('Selecciona una denominación'); return }
+		if (!selectedOffer) { toast.error(i18n.t('store.giftCardBrand.selectDenomination')); return }
 		if (selectedOffer.price_type === 'RANGE') {
 			const min = Number(selectedOffer.price_min || 0)
 			const max = Number(selectedOffer.price_max || 0)
 			const amt = parseFloat(rangeAmount)
-			if (!amt || amt < min || amt > max) { toast.error(`Monto entre $${min} y $${max}`); return }
+			if (!amt || amt < min || amt > max) { toast.error(i18n.t('store.toasts.amountBetween', { min: `$${min}`, max: `$${max}` })); return }
 		}
 		dispatchPurchase({ type: 'set', field: 'step', value: 2 })
 	}, [selectedOffer, rangeAmount])
 
 	const handleConfirm = useCallback(async () => {
 		if (!selectedOffer) return
-		if (!hasBalance) { toast.error('Saldo insuficiente'); return }
+		if (!hasBalance) { toast.error(i18n.t('store.toasts.insufficientBalance')); return }
 		setSubmitting(true)
 		const body = {
 			offer_id: selectedOffer.offer_id,
@@ -223,10 +227,10 @@ const GiftCardBrand = ({ navigation, route }) => {
 		if (res.success) {
 			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
 			satsDiscount.applyPurchaseResult(res.data, offerPrice)
-			toast.success('¡Compra realizada!', { description: 'Tu tarjeta se está procesando' })
+			toast.success(i18n.t('store.giftCardBrand.toasts.purchased'), { description: i18n.t('store.giftCardBrand.toasts.purchasedDescription') })
 			navigation.goBack()
 		} else {
-			toast.error('Error', { description: res.error })
+			toast.error(i18n.t('store.toasts.error'), { description: res.error })
 		}
 	}, [selectedOffer, hasBalance, countryCode, brand, rangeAmount, satsDiscount, offerPrice, navigation])
 
@@ -245,7 +249,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 					{brand} · {country?.name}
 				</Text>
 				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8 }]}>
-					No hay denominaciones activas.
+					{t('store.giftCardBrand.noActiveDenominations')}
 				</Text>
 			</View>
 		)
@@ -260,7 +264,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 					<View style={{ flex: 1, marginLeft: 12 }}>
 						<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>{brand}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-							{country?.flag} {country?.name} · {offers.length} {offers.length === 1 ? 'denominación' : 'denominaciones'}
+							{country?.flag} {country?.name} · {t('store.giftCardBrand.denominationCount', { count: offers.length })}
 						</Text>
 					</View>
 				</View>
@@ -268,7 +272,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 				{step === 1 && (
 					<View style={styles.section}>
 						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 10 }]}>
-							Selecciona una denominación
+							{t('store.giftCardBrand.selectDenomination')}
 						</Text>
 						<View style={{ gap: 8 }}>
 							{offers.map((offer, idx) => (
@@ -286,7 +290,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 						{selectedOffer?.price_type === 'RANGE' && (
 							<View style={[styles.rangeBox, { borderWidth: 1, borderColor: theme.colors.primary + '40', backgroundColor: theme.colors.primary + '08' }]}>
 								<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6 }]}>
-									Monto USD (entre ${selectedOffer.price_min} y ${selectedOffer.price_max})
+									{t('store.common.amountUsdBetween', { min: `$${selectedOffer.price_min}`, max: `$${selectedOffer.price_max}` })}
 								</Text>
 								<TextInput
 									value={rangeAmount}
@@ -305,18 +309,18 @@ const GiftCardBrand = ({ navigation, route }) => {
 					<View style={styles.section}>
 						<View style={[styles.summary, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 12 }]}>
-								Confirmar compra
+								{t('store.giftCardBrand.confirmTitle')}
 							</Text>
-							<SummaryRow theme={theme} textStyles={textStyles} label="Marca" value={`${brand} (${country?.name})`} />
-							<SummaryRow theme={theme} textStyles={textStyles} label="Recibes" value={getReceivedValue(selectedOffer) || 'Según indica la marca'} highlight />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.brand')} value={`${brand} (${country?.name})`} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.youReceive')} value={getReceivedValue(selectedOffer) || t('store.giftCardBrand.asBrandIndicates')} highlight />
 							{(() => {
 								const sendStr = formatSendValue(selectedOffer.send)
 								const received = getReceivedValue(selectedOffer)
 								return sendStr && received !== sendStr
-									? <SummaryRow theme={theme} textStyles={textStyles} label="Valor referencia" value={sendStr} />
+									? <SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.referenceValue')} value={sendStr} />
 									: null
 							})()}
-							<SummaryRow theme={theme} textStyles={textStyles} label="Total" value={`$${offerPrice.toFixed(2)} USD`} bold={!satsDiscount.enabled} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.total')} value={`$${offerPrice.toFixed(2)} USD`} bold={!satsDiscount.enabled} />
 							{satsDiscount.available && (
 								<SatsDiscountRow
 									enabled={satsDiscount.enabled}
@@ -329,15 +333,15 @@ const GiftCardBrand = ({ navigation, route }) => {
 							)}
 							{satsDiscount.enabled && (
 								<>
-									<SummaryRow theme={theme} textStyles={textStyles} label="Descuento satoshis" value={`≈ −$${satsDiscount.discountUsd.toFixed(2)}`} highlight />
-									<SummaryRow theme={theme} textStyles={textStyles} label="Pagas" value={`≈ $${satsDiscount.cashDue.toFixed(2)} USD`} bold />
+									<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.satsDiscount')} value={`≈ −$${satsDiscount.discountUsd.toFixed(2)}`} highlight />
+									<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.youPay')} value={`≈ $${satsDiscount.cashDue.toFixed(2)} USD`} bold />
 								</>
 							)}
-							<SummaryRow theme={theme} textStyles={textStyles} label="Tu saldo" value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.yourBalance')} value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
 						</View>
 						{!hasBalance && (
 							<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-								Saldo insuficiente.
+								{t('store.common.insufficientBalanceNote')}
 							</Text>
 						)}
 					</View>
@@ -346,18 +350,18 @@ const GiftCardBrand = ({ navigation, route }) => {
 				<View style={{ marginTop: 18, gap: 12 }}>
 					{step === 1 ? (
 						<QPButton
-							title={selectedOffer ? `Continuar · $${offerPrice.toFixed(2)}` : 'Selecciona una denominación'}
+							title={selectedOffer ? t('store.common.continueWithAmount', { amount: `$${offerPrice.toFixed(2)}` }) : t('store.giftCardBrand.selectDenomination')}
 							onPress={handleContinue}
 							disabled={!selectedOffer || (selectedOffer?.price_type === 'RANGE' && !rangeAmount)}
 						/>
 					) : (
 						<View style={{ flexDirection: 'row', gap: 10 }}>
 							<View style={{ flex: 1 }}>
-								<QPButton title="Atrás" onPress={() => dispatchPurchase({ type: 'set', field: 'step', value: 1 })} disabled={submitting} />
+								<QPButton title={t('store.common.back')} onPress={() => dispatchPurchase({ type: 'set', field: 'step', value: 1 })} disabled={submitting} />
 							</View>
 							<View style={{ flex: 2 }}>
 								<QPButton
-									title={submitting ? 'Procesando…' : 'Confirmar'}
+									title={submitting ? t('store.common.processing') : t('common.actions.confirm')}
 									onPress={handleConfirm}
 									disabled={submitting || !hasBalance}
 									loading={submitting}

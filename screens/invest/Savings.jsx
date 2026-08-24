@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Linking, Modal, Pressable, TextInput, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -64,6 +65,7 @@ function modalReducer(state, action) {
  */
 const Savings = ({ route }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
@@ -90,7 +92,7 @@ const Savings = ({ route }) => {
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
 
 	const openModal = (type) => {
-		if (!requireKyc({ message: 'La cuenta de ahorro requiere tener tu identidad verificada. Es rápido y solo se hace una vez.' })) return
+		if (!requireKyc({ message: t('invest.savings.kycGateMessage') })) return
 		dispatchModal({ type: 'open', modalType: type })
 	}
 
@@ -104,15 +106,15 @@ const Savings = ({ route }) => {
 	const handleModalSubmit = async () => {
 		const amount = parseFloat(modalAmount)
 		if (!amount || amount < 1) {
-			toast.error('El monto mínimo es $1.00')
+			toast.error(t('invest.savings.toasts.minAmount'))
 			return
 		}
 		if (modalType === 'deposit' && amount > checkingBalance) {
-			toast.error('Balance insuficiente')
+			toast.error(t('invest.savings.toasts.insufficientBalance'))
 			return
 		}
 		if (modalType === 'withdraw' && amount > savingsBalance) {
-			toast.error('Balance de ahorros insuficiente')
+			toast.error(t('invest.savings.toasts.insufficientSavings'))
 			return
 		}
 
@@ -122,7 +124,7 @@ const Savings = ({ route }) => {
 				? await savingApi.deposit(amount)
 				: await savingApi.withdraw(amount)
 			if (res.success) {
-				toast.success(modalType === 'deposit' ? 'Depósito realizado' : 'Retiro realizado')
+				toast.success(modalType === 'deposit' ? t('invest.savings.toasts.depositDone') : t('invest.savings.toasts.withdrawDone'))
 				dispatchModal({ type: 'close' })
 				// Invalidar la raíz de ahorros refresca resumen y movimientos aquí,
 				// en el dashboard de Invest y en la página 2 del BalanceCard. La
@@ -135,10 +137,10 @@ const Savings = ({ route }) => {
 				queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
 				queryClient.invalidateQueries({ queryKey: ['transactions'] })
 			} else {
-				toast.error(res.error || 'Error en la operación')
+				toast.error(res.error || t('invest.savings.toasts.operationError'))
 			}
 		} catch (e) {
-			toast.error(e.message || 'Error de red')
+			toast.error(e.message || t('invest.savings.toasts.networkError'))
 		} finally { dispatchModal({ type: 'setLoading', loading: false }) }
 	}
 
@@ -167,7 +169,7 @@ const Savings = ({ route }) => {
 					</View>
 					<QPFitText style={[textStyles.amount, styles.heroBalance, isDebt && { color: theme.colors.danger }]}>{balance}</QPFitText>
 					<Text style={[styles.heroRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
-						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> anual
+						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('invest.common.perYear')}
 					</Text>
 				</View>
 
@@ -176,7 +178,7 @@ const Savings = ({ route }) => {
 					{/* Mismo lenguaje que las pills del morph del BalanceCard:
 					    squircle, 56 de alto y el verde del servicio de ahorro */}
 					<QPButton
-						title="Depositar"
+						title={t('invest.common.deposit')}
 						icon="arrow-down"
 						onPress={() => openModal('deposit')}
 						style={[styles.actionButton, { backgroundColor: theme.colors.successFill }]}
@@ -184,7 +186,7 @@ const Savings = ({ route }) => {
 						iconColor={theme.colors.successFillText}
 					/>
 					<QPButton
-						title="Retirar"
+						title={t('invest.common.withdraw')}
 						icon="arrow-up"
 						onPress={() => openModal('withdraw')}
 						style={[styles.actionButton, { backgroundColor: theme.colors.successFill }]}
@@ -196,9 +198,9 @@ const Savings = ({ route }) => {
 				{/* Stats */}
 				{(Number(totalDeposited) > 0 || Number(totalWithdrawn) > 0 || Number(totalEarned) > 0) && (
 					<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
-						<StatRow label="Total depositado" value={`$${totalDeposited}`} theme={theme} />
-						<StatRow label="Total retirado" value={`$${totalWithdrawn}`} theme={theme} />
-						<StatRow label="Ganancias" value={`$${totalEarned}`} theme={theme} valueColor={theme.colors.successText} isLast />
+						<StatRow label={t('invest.savings.totalDeposited')} value={`$${totalDeposited}`} theme={theme} />
+						<StatRow label={t('invest.savings.totalWithdrawn')} value={`$${totalWithdrawn}`} theme={theme} />
+						<StatRow label={t('invest.savings.earnings')} value={`$${totalEarned}`} theme={theme} valueColor={theme.colors.successText} isLast />
 					</View>
 				)}
 
@@ -206,7 +208,7 @@ const Savings = ({ route }) => {
 				<View style={[styles.separator, { borderBottomColor: theme.colors.border + '40' }]} />
 
 				{/* Activity */}
-				<Text style={[textStyles.h3, styles.sectionTitle]}>Actividad</Text>
+				<Text style={[textStyles.h3, styles.sectionTitle]}>{t('invest.savings.activity')}</Text>
 				{transactions.length > 0 ? (
 					<View style={[styles.activityCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
 						{transactions.map((tx, index) => (
@@ -217,7 +219,7 @@ const Savings = ({ route }) => {
 					<View style={styles.emptyActivity}>
 						<FontAwesome6 name="clock-rotate-left" size={32} color={theme.colors.secondaryText + '60'} iconStyle="solid" />
 						<Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
-							Las operaciones aparecerán aquí
+							{t('invest.savings.emptyActivity')}
 						</Text>
 					</View>
 				)}
@@ -229,13 +231,13 @@ const Savings = ({ route }) => {
 				<View style={styles.disclaimer}>
 					<FontAwesome6 name="shield-halved" size={20} color={theme.colors.secondaryText + '80'} iconStyle="solid" />
 					<Text style={[styles.disclaimerText, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>
-						El servicio de ahorros de QvaPay genera intereses sobre tu balance depositado. Los fondos pueden ser retirados en cualquier momento. Las tasas de interés están sujetas a cambios.
+						{t('invest.savings.disclaimer')}
 					</Text>
 					<Text
 						style={[styles.disclaimerLink, { color: theme.colors.primary, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}
 						onPress={() => Linking.openURL(ROUTES.TERMS_AND_CONDITIONS)}
 					>
-						Términos del servicio
+						{t('invest.savings.termsOfService')}
 					</Text>
 				</View>
 			</ScrollView>
@@ -250,7 +252,7 @@ const Savings = ({ route }) => {
 						{/* Header */}
 						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
 							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
-								{modalType === 'deposit' ? 'Depositar' : 'Retirar'}
+								{modalType === 'deposit' ? t('invest.common.deposit') : t('invest.common.withdraw')}
 							</Text>
 							<Pressable onPress={() => !modalLoading && dispatchModal({ type: 'close' })} hitSlop={8}>
 								<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
@@ -260,8 +262,8 @@ const Savings = ({ route }) => {
 						{/* Available balance hint */}
 						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular, textAlign: 'center', marginBottom: 8 }}>
 							{modalType === 'deposit'
-								? `Disponible: ${formatMoney(checkingBalance)}`
-								: `En ahorros: ${formatMoney(savingsBalance)}`
+								? t('invest.savings.availableBalance', { amount: formatMoney(checkingBalance) })
+								: t('invest.savings.inSavings', { amount: formatMoney(savingsBalance) })
 							}
 						</Text>
 
@@ -298,12 +300,12 @@ const Savings = ({ route }) => {
 							})}
 							style={{ alignSelf: 'center', marginBottom: 24 }}
 						>
-							<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>Usar máximo</Text>
+							<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('invest.savings.useMax')}</Text>
 						</Pressable>
 
 						{/* Submit */}
 						<QPButton
-							title={modalType === 'deposit' ? 'Depositar' : 'Retirar'}
+							title={modalType === 'deposit' ? t('invest.common.deposit') : t('invest.common.withdraw')}
 							icon={modalType === 'deposit' ? 'arrow-down' : 'arrow-up'}
 							onPress={handleModalSubmit}
 							loading={modalLoading}
@@ -326,13 +328,15 @@ const StatRow = ({ label, value, theme, valueColor, isLast }) => (
 	</View>
 )
 
+// Las etiquetas son claves i18n resueltas en render (constante de módulo)
 const txConfig = {
-	deposit: { icon: 'arrow-down', color: '#10B981', label: 'Depósito' },
-	withdrawal: { icon: 'arrow-up', color: '#F59E0B', label: 'Retiro' },
-	earning: { icon: 'coins', color: '#8B5CF6', label: 'Ganancia' },
+	deposit: { icon: 'arrow-down', color: '#10B981', labelKey: 'invest.savings.txTypes.deposit' },
+	withdrawal: { icon: 'arrow-up', color: '#F59E0B', labelKey: 'invest.savings.txTypes.withdrawal' },
+	earning: { icon: 'coins', color: '#8B5CF6', labelKey: 'invest.savings.txTypes.earning' },
 }
 
 const ActivityRow = ({ tx, theme, isLast }) => {
+	const { t } = useTranslation()
 	const config = txConfig[tx.type] || txConfig.deposit
 	const isPositive = tx.type === 'deposit' || tx.type === 'earning'
 	const sign = isPositive ? '+' : '-'
@@ -343,7 +347,7 @@ const ActivityRow = ({ tx, theme, isLast }) => {
 				<FontAwesome6 name={config.icon} size={14} color={config.color} iconStyle="solid" />
 			</View>
 			<View style={styles.activityInfo}>
-				<Text style={[styles.activityLabel, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{tx.description || config.label}</Text>
+				<Text style={[styles.activityLabel, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{tx.description || t(config.labelKey)}</Text>
 				<Text style={[styles.activityDate, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{timeAgo(tx.createdAt)}</Text>
 			</View>
 			<Text style={[styles.activityAmount, { color: isPositive ? theme.colors.successText : theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>

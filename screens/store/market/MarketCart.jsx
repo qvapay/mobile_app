@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import FastImage from '@d11/react-native-fast-image'
@@ -49,6 +50,7 @@ function shippingReducer(state, action) {
 
 // Purchase confirmation — centered card modal (house pattern)
 const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, onClose, theme, textStyles }) => {
+	const { t } = useTranslation()
 	const containerStyles = createContainerStyles(theme)
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !paying && onClose()}>
@@ -57,18 +59,18 @@ const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, on
 					<View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
 						<FontAwesome6 name="cart-shopping" size={22} color={theme.colors.primary} iconStyle="solid" />
 					</View>
-					<Text style={[textStyles.h4, { fontWeight: '600', textAlign: 'center', marginTop: 12 }]}>Confirmar compra</Text>
+					<Text style={[textStyles.h4, { fontWeight: '600', textAlign: 'center', marginTop: 12 }]}>{t('market.cart.confirm.title')}</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
-						Se descontarán {money(total)} de tu balance en {count} {count === 1 ? 'orden' : 'órdenes'}. Cada tienda recibe su pago por separado.
+						{t('market.cart.confirm.body', { amount: money(total), count })}
 					</Text>
 					{!!addressSummary && (
 						<Text style={[textStyles.caption, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 6, lineHeight: 18 }]} numberOfLines={3}>
-							Enviaremos a: {addressSummary}
+							{t('market.cart.confirm.shippingTo', { address: addressSummary })}
 						</Text>
 					)}
-					<QPButton title={`Pagar ${money(total)}`} onPress={onPay} loading={paying} style={{ marginTop: 18 }} />
+					<QPButton title={t('market.cart.payAmount', { amount: money(total) })} onPress={onPay} loading={paying} style={{ marginTop: 18 }} />
 					<Pressable style={{ marginTop: 12, alignSelf: 'center' }} onPress={() => !paying && onClose()}>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Cancelar</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('common.actions.cancel')}</Text>
 					</Pressable>
 				</Pressable>
 			</Pressable>
@@ -88,6 +90,7 @@ const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, on
  */
 const MarketCart = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
@@ -199,7 +202,7 @@ const MarketCart = ({ navigation }) => {
 			const res = await shopApi.createShippingAddress(buildAddressBody(form))
 			const createdUuid = res.success ? res.data?.address?.uuid : null
 			if (!createdUuid) {
-				toast.error('Dirección', { description: res.error || 'No se pudo guardar la dirección de envío' })
+				toast.error(t('market.cart.toasts.addressErrorTitle'), { description: res.error || t('market.cart.toasts.addressSaveFailed') })
 				setPaying(false)
 				return
 			}
@@ -231,7 +234,7 @@ const MarketCart = ({ navigation }) => {
 				outcome = res.success ? { ok: true } : { ok: false, error: mapOrderError(res.status, res.error), raw: res.error }
 				break
 			}
-			if (!outcome) outcome = { ok: false, error: 'El servicio está ocupado. Intenta de nuevo en unos segundos.' }
+			if (!outcome) outcome = { ok: false, error: t('market.checkout.errors.busy') }
 
 			if (outcome.ok) {
 				succeeded++
@@ -255,13 +258,13 @@ const MarketCart = ({ navigation }) => {
 		}
 
 		if (failed === 0 && succeeded > 0) {
-			toast.success(succeeded === 1 ? '¡Compra confirmada!' : `¡${succeeded} compras confirmadas!`)
+			toast.success(t('market.cart.toasts.confirmed', { count: succeeded }))
 			navigation.replace(ROUTES.MARKET_ORDERS)
 		} else if (succeeded > 0) {
-			toast.warning(`${succeeded} ${succeeded === 1 ? 'compra confirmada' : 'compras confirmadas'} · ${failed} con error. Revisa los ítems restantes.`)
+			toast.warning(t('market.cart.toasts.partial', { count: succeeded, failed }))
 			await revalidate()
 		} else if (failed > 0) {
-			toast.error('No se pudo completar ninguna compra. Revisa los errores.')
+			toast.error(t('market.cart.toasts.allFailed'))
 		}
 	}
 
@@ -270,17 +273,17 @@ const MarketCart = ({ navigation }) => {
 		return (
 			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
 				<Text style={{ fontSize: 44 }}>🛒</Text>
-				<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 12 }]}>Tu carrito está vacío</Text>
+				<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 12 }]}>{t('market.cart.empty.title')}</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4, textAlign: 'center' }]}>
-					Explora las tiendas y agrega productos para comprarlos juntos.
+					{t('market.cart.empty.subtitle')}
 				</Text>
 				{succeededCount > 0 && (
 					<Pressable onPress={() => navigation.replace(ROUTES.MARKET_ORDERS)} style={{ marginTop: 10 }}>
-						<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>Ver mis compras ›</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>{t('market.cart.empty.seeOrders')}</Text>
 					</Pressable>
 				)}
 				<QPButton
-					title="Explorar tiendas"
+					title={t('market.cart.empty.explore')}
 					onPress={() => navigation.navigate(ROUTES.MARKET_STORES)}
 					style={{ marginTop: 20, width: 220 }}
 				/>
@@ -300,16 +303,16 @@ const MarketCart = ({ navigation }) => {
 			>
 				{revalidating && (
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 10 }]}>
-						Actualizando precios y disponibilidad…
+						{t('market.cart.revalidating')}
 					</Text>
 				)}
 				{offline && (
 					<View style={[styles.banner, { backgroundColor: `${theme.colors.warning}1A` }]}>
 						<Text style={[textStyles.caption, { color: theme.colors.warning }]}>
-							Sin conexión — no pudimos verificar precios y stock. El pago está bloqueado hasta reintentar.
+							{t('market.cart.offlineBanner')}
 						</Text>
 						<Pressable onPress={revalidate} style={{ marginTop: 6 }}>
-							<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>Reintentar</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>{t('common.actions.retry')}</Text>
 						</Pressable>
 					</View>
 				)}
@@ -327,7 +330,7 @@ const MarketCart = ({ navigation }) => {
 								style={styles.shopHeader}
 							>
 								<Text style={[textStyles.h6, { fontWeight: '600' }]} numberOfLines={1}>{group.name}</Text>
-								{!!group.slug && <Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>Ver tienda ›</Text>}
+								{!!group.slug && <Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>{t('market.cart.viewStore')}</Text>}
 							</Pressable>
 
 							{group.entries.map(e => {
@@ -353,7 +356,7 @@ const MarketCart = ({ navigation }) => {
 
 											{e.problem ? (
 												<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 3, fontWeight: '500' }]}>
-													{PROBLEM_LABELS[e.problem]}
+													{t(PROBLEM_LABELS[e.problem])}
 												</Text>
 											) : (
 												<View style={styles.qtyRow}>
@@ -373,14 +376,14 @@ const MarketCart = ({ navigation }) => {
 														<FontAwesome6 name="plus" size={10} color={theme.colors.primaryText} iconStyle="solid" />
 													</Pressable>
 													{!!e.fresh?.track_inventory && e.maxQty < 999 && (
-														<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginLeft: 8 }]}>{e.maxQty} disp.</Text>
+														<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginLeft: 8 }]}>{t('market.cart.stockLeft', { qty: e.maxQty })}</Text>
 													)}
 												</View>
 											)}
 
 											{e.shipBlocked && (
 												<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 3, fontWeight: '500' }]}>
-													El vendedor no envía a la dirección elegida
+													{t('market.cart.itemShipBlocked')}
 												</Text>
 											)}
 											{!!errored && (
@@ -389,7 +392,7 @@ const MarketCart = ({ navigation }) => {
 												</Text>
 											)}
 											{e.status === 'paying' && (
-												<Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 3, fontWeight: '500' }]}>Procesando…</Text>
+												<Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 3, fontWeight: '500' }]}>{t('market.cart.processing')}</Text>
 											)}
 										</View>
 										<View style={styles.itemRight}>
@@ -408,9 +411,9 @@ const MarketCart = ({ navigation }) => {
 				{/* Dirección de envío (solo con físicos) */}
 				{anyPhysical && (
 					<View style={{ marginTop: 20 }}>
-						<Text style={[textStyles.h5, { fontWeight: '600' }]}>Dirección de envío</Text>
+						<Text style={[textStyles.h5, { fontWeight: '600' }]}>{t('market.cart.shippingAddress')}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4 }]}>
-							Se usa para todos los productos físicos del carrito. Por ahora solo enviamos dentro de Estados Unidos.
+							{t('market.cart.shippingAddressHint')}
 						</Text>
 						<AddressPicker
 							addresses={addresses}
@@ -429,43 +432,43 @@ const MarketCart = ({ navigation }) => {
 				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 					<View style={styles.summaryRow}>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-							{payable.length} {payable.length === 1 ? 'producto' : 'productos'}
+							{t('market.common.products', { count: payable.length })}
 						</Text>
 						<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(total)}</Text>
 					</View>
 					<View style={[styles.summaryRow, styles.totalRow, { borderTopColor: `${theme.colors.secondaryText}33` }]}>
-						<Text style={[textStyles.h6, { fontWeight: '600' }]}>Total</Text>
+						<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('market.common.total')}</Text>
 						<Text style={[textStyles.h5, { fontWeight: '600', color: theme.colors.primary }]}>{money(total)}</Text>
 					</View>
 					<View style={[styles.summaryRow, { marginTop: 6 }]}>
-						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>Saldo disponible</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{t('market.cart.availableBalance')}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600' }]}>{money(balance)}</Text>
 					</View>
 
 					{!enoughBalance && (
 						<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-							Saldo insuficiente para esta compra.
+							{t('market.cart.insufficientBalance')}
 						</Text>
 					)}
 					{unavailable.length > 0 && (
 						<Text style={[textStyles.caption, { color: theme.colors.warning, marginTop: 8 }]}>
-							{unavailable.length === 1 ? 'Un producto ya no está disponible y no se incluirá.' : `${unavailable.length} productos ya no están disponibles y no se incluirán.`}
+							{t('market.cart.unavailable', { count: unavailable.length })}
 						</Text>
 					)}
 					{anyPhysical && !addressReady && (
 						<Text style={[textStyles.caption, { color: theme.colors.warning, marginTop: 8 }]}>
-							{formError || 'Elige o agrega una dirección de envío para continuar.'}
+							{formError || t('market.cart.chooseAddress')}
 						</Text>
 					)}
 					{anyShipBlocked && (
 						<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-							Hay productos que no se envían a la dirección elegida. Cámbiala o quítalos del carrito.
+							{t('market.cart.shipBlockedSummary')}
 						</Text>
 					)}
 				</View>
 
 				<QPButton
-					title={paying ? 'Procesando compras…' : failedCount > 0 ? `Reintentar pago (${failedCount})` : `Pagar ${money(total)}`}
+					title={paying ? t('market.cart.processingPurchases') : failedCount > 0 ? t('market.cart.retryPayment', { failed: failedCount }) : t('market.cart.payAmount', { amount: money(total) })}
 					icon="lock"
 					onPress={() => setConfirmVisible(true)}
 					loading={paying}
@@ -474,7 +477,7 @@ const MarketCart = ({ navigation }) => {
 				/>
 
 				<Pressable disabled={paying} onPress={clear} style={{ marginTop: 12, alignSelf: 'center' }}>
-					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>Vaciar carrito</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{t('market.cart.clearCart')}</Text>
 				</Pressable>
 			</ScrollView>
 

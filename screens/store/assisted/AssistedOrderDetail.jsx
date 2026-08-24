@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
 
@@ -16,6 +17,9 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 // API
 import { useAssistedOrderQuery } from './assistedQueries'
 
+// i18n (call-time inside effects, so `t` stays out of the dep arrays)
+import i18n from '../../../i18n'
+
 // Helpers
 import { getShortDateTime } from '../../../helpers'
 import { money, providerLabel } from './assistedConstants'
@@ -28,6 +32,7 @@ import FulfillmentBadge from './FulfillmentBadge'
  */
 const AssistedOrderDetail = ({ route }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -40,7 +45,7 @@ const AssistedOrderDetail = ({ route }) => {
 
 	useEffect(() => {
 		if (orderQuery.isError && !orderQuery.data) {
-			toast.error('Pedido', { description: orderQuery.error?.message })
+			toast.error(i18n.t('assisted.orderDetail.toasts.errorTitle'), { description: orderQuery.error?.message })
 		}
 	}, [orderQuery.isError, orderQuery.data, orderQuery.error])
 
@@ -72,7 +77,7 @@ const AssistedOrderDetail = ({ route }) => {
 				{/* Header */}
 				<View style={themeStyles.container.rowBetween}>
 					<View>
-						<Text style={[textStyles.h4, { fontWeight: '600' }]}>Pedido #{order.id}</Text>
+						<Text style={[textStyles.h4, { fontWeight: '600' }]}>{t('assisted.common.orderNumber', { id: order.id })}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]}>
 							{getShortDateTime(order.created_at)}
 						</Text>
@@ -92,7 +97,7 @@ const AssistedOrderDetail = ({ route }) => {
 							<View style={{ flex: 1, gap: 2 }}>
 								<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={2}>{item.title}</Text>
 								<Text style={[styles.meta, { color: theme.colors.secondaryText }]}>
-									{providerLabel(item.provider)} · × {item.count} · {money(item.qp_price)} c/u
+									{t('assisted.orderDetail.itemMeta', { store: providerLabel(item.provider), count: item.count, amount: money(item.qp_price) })}
 								</Text>
 							</View>
 							<Text style={[textStyles.h6, { fontWeight: '600' }]}>{money(item.qp_price * item.count)}</Text>
@@ -102,37 +107,37 @@ const AssistedOrderDetail = ({ route }) => {
 
 				{/* Totals */}
 				<View style={[...cardStyle, { marginTop: 12 }]}>
-					<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>Resumen</Text>
+					<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>{t('assisted.common.summary')}</Text>
 					<View style={styles.summaryRow}>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Subtotal</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('assisted.common.subtotal')}</Text>
 						<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(order.subtotal)}</Text>
 					</View>
 					<View style={styles.summaryRow}>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Tax</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('assisted.orderDetail.tax')}</Text>
 						<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(order.tax)}</Text>
 					</View>
 					<View style={[styles.summaryRow, styles.totalRow, { borderTopColor: `${theme.colors.secondaryText}33` }]}>
-						<Text style={[textStyles.h6, { fontWeight: '600' }]}>Total pagado</Text>
+						<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('assisted.orderDetail.totalPaid')}</Text>
 						<Text style={[textStyles.h5, { fontWeight: '600', color: theme.colors.primary }]}>{money(order.total)}</Text>
 					</View>
 				</View>
 
 				{/* Fulfillment */}
 				<View style={[...cardStyle, { marginTop: 12 }]}>
-					<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>Seguimiento</Text>
+					<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>{t('assisted.orderDetail.fulfillment')}</Text>
 					<View style={styles.summaryRow}>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Orden en tienda</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('assisted.orderDetail.storeOrder')}</Text>
 						<Text style={[textStyles.h6, { fontWeight: '500' }]}>{order.store_id || '—'}</Text>
 					</View>
 					<View style={styles.summaryRow}>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Tracking</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('assisted.orderDetail.trackingLabel')}</Text>
 						<Text style={[textStyles.h6, { fontWeight: '500' }]} numberOfLines={1}>{order.tracking_code || '—'}</Text>
 					</View>
 				</View>
 
 				{/* Shipping address */}
 				<View style={[...cardStyle, { marginTop: 12 }]}>
-					<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>Dirección de envío</Text>
+					<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>{t('assisted.common.shippingAddress')}</Text>
 					{address ? (
 						<View style={{ gap: 2 }}>
 							{!!address.recipient_name && <Text style={[textStyles.h6, { fontWeight: '500' }]}>{address.recipient_name}</Text>}
@@ -142,10 +147,10 @@ const AssistedOrderDetail = ({ route }) => {
 							<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
 								{address.city}, {address.state} {address.postal_code} · {address.country}
 							</Text>
-							{!!address.phone && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>Tel: {address.phone}</Text>}
+							{!!address.phone && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{t('assisted.orderDetail.phone', { phone: address.phone })}</Text>}
 						</View>
 					) : (
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Sin dirección registrada</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('assisted.orderDetail.noAddress')}</Text>
 					)}
 				</View>
 

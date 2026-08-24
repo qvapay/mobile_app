@@ -20,6 +20,9 @@ import { clearDataCache } from '../helpers/dataCache'
 // fuera del árbol de React en algunos caminos de arranque)
 import { queryClient, persister } from '../api/queryClient'
 
+// i18n (call time: los setError corren en callbacks async, fuera de render)
+import i18n from '../i18n'
+
 // Storage keys
 const STORAGE_KEYS = { USER_DATA: 'user_data' }
 
@@ -286,7 +289,7 @@ export default function useAuthState() {
 			const apiResponse = await authApi.login(credentials)
 
 			if (!apiResponse.success) {
-				setError(apiResponse.error || 'Login failed')
+				setError(apiResponse.error || i18n.t('hooks.authState.loginFailed'))
 				return { success: false, error: apiResponse.error, details: apiResponse.details, status: apiResponse.status, action: apiResponse.action }
 			}
 
@@ -300,7 +303,7 @@ export default function useAuthState() {
 			return { success: true, security_warning: apiResponse.security_warning || null }
 
 		} catch (err) {
-			setError('Login failed. Please try again.')
+			setError(i18n.t('hooks.authState.loginFailedRetry'))
 			return { success: false, error: err.message, details: err.details }
 		} finally { setIsLoading(false) }
 	}
@@ -346,8 +349,8 @@ export default function useAuthState() {
 			if (err?.message?.includes('cancel') || err?.code === 'ERR_PASSKEY_CANCELLED') {
 				return { success: false, error: null } // silent cancel
 			}
-			setError('Error al iniciar sesión con Passkey')
-			return { success: false, error: err.message || 'Error al iniciar sesión con Passkey' }
+			setError(i18n.t('hooks.authState.passkeyLoginFailed'))
+			return { success: false, error: err.message || i18n.t('hooks.authState.passkeyLoginFailed') }
 		} finally { setIsLoading(false) }
 	}
 
@@ -372,7 +375,7 @@ export default function useAuthState() {
 			}
 		}
 		catch (err) {
-			setError('Failed to request PIN')
+			setError(i18n.t('hooks.authState.requestPinFailed'))
 			return { success: false, error: err.message }
 		} finally { setIsLoading(false) }
 	}
@@ -408,7 +411,7 @@ export default function useAuthState() {
 			return { success: true }
 
 		} catch (err) {
-			setError('Logout failed. Please try again.')
+			setError(i18n.t('hooks.authState.logoutFailed'))
 			return { success: false, error: err.message }
 		} finally { setIsLoading(false) }
 	}
@@ -447,10 +450,10 @@ export default function useAuthState() {
 			}
 
 		} catch (err) {
-			setError('Registration failed. Please try again.')
+			setError(i18n.t('hooks.authState.registerFailed'))
 			return {
 				success: false,
-				error: 'Registration failed. Please try again.'
+				error: i18n.t('hooks.authState.registerFailed')
 			}
 		} finally { setIsLoading(false) }
 	}
@@ -476,10 +479,10 @@ export default function useAuthState() {
 			}
 		}
 		catch (err) {
-			setError('Failed to confirm registration')
+			setError(i18n.t('hooks.authState.confirmRegistrationFailed'))
 			return {
 				success: false,
-				error: err.message || 'Failed to confirm registration',
+				error: err.message || i18n.t('hooks.authState.confirmRegistrationFailed'),
 				details: {}
 			}
 		} finally { setIsLoading(false) }
@@ -503,7 +506,7 @@ export default function useAuthState() {
 			reloadWidgets()
 			return { success: true }
 		} catch (err) {
-			setError('Failed to update user data')
+			setError(i18n.t('hooks.authState.updateUserFailed'))
 			return { success: false, error: err.message }
 		}
 		// setUser/setError delegan en el dispatch estable del reducer

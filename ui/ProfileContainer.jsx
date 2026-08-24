@@ -2,6 +2,7 @@ import FastImage from '@d11/react-native-fast-image'
 import LinearGradient from 'react-native-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -39,6 +40,7 @@ const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 56
 const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const insets = useSafeAreaInsets()
@@ -132,7 +134,7 @@ const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 			<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
 				<View style={styles.statItem}>
 					<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{p2pCount}</Text>
-					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Operaciones</Text>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('ui.profile.operations')}</Text>
 				</View>
 				<View style={[styles.statDivider, { backgroundColor: theme.colors.secondaryText }]} />
 				<View style={styles.statItem}>
@@ -140,7 +142,7 @@ const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }) => {
 						<FontAwesome6 name="star" size={14} color={theme.colors.warning} iconStyle="solid" />
 						<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{rating.toFixed(1)}</Text>
 					</View>
-					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Rating</Text>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('ui.profile.rating')}</Text>
 				</View>
 				<View style={[styles.statDivider, { backgroundColor: theme.colors.secondaryText }]} />
 				<View style={styles.statItem}>

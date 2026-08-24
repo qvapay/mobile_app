@@ -5,8 +5,8 @@
  * truth; this list only drives the marketing UI on the landing screen.
  */
 
-// Stores shown on the landing. `available` = purchasable today; the rest are
-// "Pronto". `icon` is a FontAwesome6 brand glyph when one exists.
+// Stores shown on the landing. `available` = purchasable today; the rest get
+// the "coming soon" tag. `icon` is a FontAwesome6 brand glyph when one exists.
 export const STORES = [
 	{ key: 'amazon', label: 'Amazon', icon: 'amazon', available: true },
 	{ key: 'ebay', label: 'eBay', icon: 'ebay', available: true },
@@ -32,16 +32,16 @@ const PROVIDER_LABELS = {
 export const providerLabel = (provider) => PROVIDER_LABELS[provider] || provider || ''
 
 /**
- * Order status metadata. Status comes derived from the backend Cart booleans:
- * paid → Confirmado, purchased → En camino, delivered → Entregado, cancelled.
- * `color` is a theme.colors key.
+ * Order status metadata. Status comes derived from the backend Cart booleans
+ * (paid / purchased / delivered / cancelled). `labelKey` is an i18n key
+ * resolved at render time (FulfillmentBadge); `color` is a theme.colors key.
  */
 export const ORDER_STATUS = {
-	paid: { label: 'Confirmado', color: 'success' },
-	purchased: { label: 'En camino', color: 'warning' },
-	delivered: { label: 'Entregado', color: 'primary' },
-	cancelled: { label: 'Cancelado', color: 'danger' },
-	pending: { label: 'Pendiente', color: 'secondaryText' },
+	paid: { labelKey: 'assisted.status.paid', color: 'success' },
+	purchased: { labelKey: 'assisted.status.purchased', color: 'warning' },
+	delivered: { labelKey: 'assisted.status.delivered', color: 'primary' },
+	cancelled: { labelKey: 'assisted.status.cancelled', color: 'danger' },
+	pending: { labelKey: 'common.status.pending', color: 'secondaryText' },
 }
 
 // USD helper used across the assisted screens.

@@ -1,0 +1,64 @@
+{
+	"index": {
+		"withdrawButton": "Sacar ${{amount}} {{currency}}",
+		"redeemButton": "Resgatar {{sats}} sats",
+		"sourceBalance": "Saldo",
+		"sourceSats": "⚡ {{sats}} sats",
+		"lockedByInvoice": "Valor fixado pela fatura ⚡ {{sats}} sats",
+		"fee": "Tarifa: ${{fee}}",
+		"feeWithLogistics": "Tarifa: ${{fee}} (inclui {{pct}}% de logística)",
+		"lightningInvoice": "Fatura Lightning",
+		"lightningDescription": "“{{description}}”",
+		"lightningExpires": " · expira em {{minutes}} min",
+		"kycGate": "Saques acima de ${{amount}} exigem que sua identidade esteja verificada. É rápido e você só faz isso uma vez.",
+		"toasts": {
+			"pinSent": {
+				"title": "PIN enviado",
+				"description": "Confira seu e-mail"
+			},
+			"pinSendFailed": "Não foi possível enviar o PIN",
+			"pinRequestError": "Erro ao solicitar o PIN",
+			"enterPin": "Digite um PIN de 4 dígitos",
+			"enterOtp": "Digite um código OTP de 6 dígitos",
+			"redeemed": {
+				"title": "Resgate processado",
+				"description": "Foram resgatados {{sats}} sats"
+			},
+			"withdrawn": {
+				"title": "Saque processado",
+				"description": "Foram sacados ${{amount}} QUSD"
+			},
+			"networkErrorTitle": "Erro de rede",
+			"withdrawFailed": "Não foi possível concluir o saque",
+			"processError": "Erro ao processar o saque"
+		}
+	},
+	"amountCard": {
+		"withdraw": "Sacar",
+		"balance": "Saldo:",
+		"receive": "Receber",
+		"coinPlaceholder": "Moeda"
+	},
+	"satsCard": {
+		"title": "Resgatar satoshis",
+		"available": "{{sats}} disponíveis",
+		"max": "MAX",
+		"approx": "≈ ${{usd}} USD · sem tarifa",
+		"minimum": "Mínimo de {{sats}} sats · sem tarifa"
+	},
+	"accountFields": {
+		"title": "Dados da sua conta:"
+	},
+	"destination": {
+		"question": "Para onde você vai enviar os fundos?",
+		"personalTitle": "Saque para wallet pessoal",
+		"personalSubtitle": "Uma wallet cujas chaves privadas você controla.",
+		"thirdPartyTitle": "Pagamento a terceiros",
+		"thirdPartySubtitle": "Enviar para outra pessoa, comércio ou serviço.",
+		"blockedTitle": "Não aceitamos pagamentos a terceiros",
+		"blockedSubtitle": "Saque seus fundos para a sua wallet pessoal.",
+		"useMyWallet": "Usar minha wallet pessoal",
+		"closeAccessibility": "Fechar e escolher o destino de novo",
+		"exchangeWarning": "Use uma wallet pessoal. Não nos responsabilizamos por fundos enviados a exchanges ou outros sistemas de terceiros: eles podem reter, marcar ou rejeitar seu depósito."
+	}
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -30,6 +31,7 @@ const newToken = () => `${Date.now().toString(36)}-${Math.random().toString(36).
  */
 const AddressAutocomplete = ({ onSelect }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -88,9 +90,9 @@ const AddressAutocomplete = ({ onSelect }) => {
 	return (
 		<View>
 			<QPInput
-				prelabel="Buscar dirección"
+				prelabel={t('assisted.addressSearch.label')}
 				prefixIconName="magnifying-glass"
-				placeholder="Empieza a escribir tu dirección…"
+				placeholder={t('assisted.addressSearch.placeholder')}
 				value={query}
 				onChangeText={setQuery}
 				autoCapitalize="words"
@@ -113,7 +115,7 @@ const AddressAutocomplete = ({ onSelect }) => {
 				</View>
 			)}
 			<Text style={[styles.hint, { color: theme.colors.tertiaryText }]}>
-				Busca y autocompleta; luego puedes ajustar los campos.
+				{t('assisted.addressSearch.hint')}
 			</Text>
 		</View>
 	)

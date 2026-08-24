@@ -1,0 +1,32 @@
+{
+	"banners": {
+		"kyc": {
+			"text": "Verifique sua identidade e desbloqueie todo o QvaPay",
+			"action": "Verificar"
+		},
+		"push": {
+			"text": "Receba alertas dos seus pagamentos na hora",
+			"action": "Ativar"
+		}
+	},
+	"sections": {
+		"quickPay": "Pagamento rápido",
+		"latestTransactions": "Últimas transações",
+		"services": "Serviços",
+		"watchlist": "Minha Watchlist",
+		"news": "Últimas notícias"
+	},
+	"quickPay": {
+		"sendFirst": "Envie seu primeiro pagamento"
+	},
+	"services": {
+		"topups": "Recargas",
+		"giftCards": "Gift Cards",
+		"invest": "Invest",
+		"p2p": "P2P"
+	},
+	"watchlist": {
+		"seeAll": "Ver tudo",
+		"updateFailed": "Não foi possível atualizar nenhuma cotação"
+	}
+}

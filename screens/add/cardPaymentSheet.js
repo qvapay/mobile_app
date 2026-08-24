@@ -1,4 +1,5 @@
 import { initStripe, initPaymentSheet, presentPaymentSheet } from '@stripe/stripe-react-native'
+import i18n from '../../i18n'
 
 /**
  * Depósito con tarjeta (moneda CARD): monta y presenta el PaymentSheet nativo
@@ -25,7 +26,7 @@ let initializedKey = null
 export async function presentCardDeposit({ topupData, theme, user }) {
 
 	const { client_secret, publishable_key } = topupData || {}
-	if (!client_secret || !publishable_key) { return { status: 'failed', message: 'No se pudo iniciar el pago con tarjeta. Genera un nuevo depósito.' } }
+	if (!client_secret || !publishable_key) { return { status: 'failed', message: i18n.t('add.cardSheet.initFailed') } }
 
 	try {
 		if (initializedKey !== publishable_key) {
@@ -64,7 +65,7 @@ export async function presentCardDeposit({ topupData, theme, user }) {
 		const { error } = await presentPaymentSheet()
 		if (error) {
 			if (error.code === 'Canceled') { return { status: 'canceled' } }
-			return { status: 'failed', message: error.localizedMessage || error.message || 'No se pudo procesar el pago con tu tarjeta.' }
+			return { status: 'failed', message: error.localizedMessage || error.message || i18n.t('add.cardSheet.processFailed') }
 		}
 
 		// La hoja confirmó el PaymentIntent; el balance se acredita cuando el
@@ -72,6 +73,6 @@ export async function presentCardDeposit({ topupData, theme, user }) {
 		return { status: 'paid' }
 		
 	} catch {
-		return { status: 'failed', message: 'No se pudo procesar el pago con tu tarjeta.' }
+		return { status: 'failed', message: i18n.t('add.cardSheet.processFailed') }
 	}
 }

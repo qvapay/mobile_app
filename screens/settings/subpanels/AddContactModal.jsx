@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FlashList } from '@shopify/flash-list'
 import { Text, View, Modal } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // UI Particles
 import QPInput from '../../../ui/particles/QPInput'
@@ -24,6 +25,7 @@ import { displayFullName } from '../../../helpers/displayName'
 // Self-contained "add contact" modal: user search + add. Reports success via onAdded.
 const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, containerStyles }) => {
 
+	const { t } = useTranslation()
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
 	const [userSearch, setUserSearch] = useState('')
@@ -50,11 +52,11 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 				setSearchResults(result.data || [])
 			} else {
 				setSearchResults([])
-				toast.error(result.error || 'Error en la busqueda')
+				toast.error(result.error || t('settings.contacts.addModal.toasts.searchError'))
 			}
 		} catch (e) {
 			setSearchResults([])
-			toast.error(e.message || 'Error de red')
+			toast.error(e.message || t('settings.contacts.toasts.networkError'))
 		} finally { setIsSearching(false) }
 	}
 
@@ -63,13 +65,13 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 		try {
 			const res = await userApi.addContact(selectedUser.uuid, selectedUser.name)
 			if (res.success) {
-				toast.success('Contacto agregado')
+				toast.success(t('settings.contacts.addModal.toasts.added'))
 				onClose()
 				setUserSearch('')
 				setSearchResults([])
 				onAdded()
-			} else { toast.error(res.error || 'No se pudo agregar el contacto') }
-		} catch (e) { toast.error(e.message || 'Error de red') }
+			} else { toast.error(res.error || t('settings.contacts.addModal.toasts.addFailed')) }
+		} catch (e) { toast.error(e.message || t('settings.contacts.toasts.networkError')) }
 	}
 
 	return (
@@ -86,7 +88,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 					paddingHorizontal: 20
 				}}>
 					<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
-						Agregar Contacto
+						{t('settings.contacts.addModal.title')}
 					</Text>
 					<QPPressable
 						onPress={onClose}
@@ -108,7 +110,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 					<View style={{ flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.primary, backgroundColor: theme.colors.surface, alignItems: 'center', height: 50 }}>
 						<View style={{ flex: 1 }}>
 							<QPInput
-								placeholder="Buscar usuario ..."
+								placeholder={t('settings.contacts.addModal.searchPlaceholder')}
 								value={userSearch}
 								onChangeText={setUserSearch}
 								disabled={isSearching}
@@ -179,7 +181,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 											paddingVertical: 6,
 										}}
 									>
-										<Text style={[textStyles.h6, { color: theme.colors.almostWhite, fontWeight: '600' }]}>Agregar</Text>
+										<Text style={[textStyles.h6, { color: theme.colors.almostWhite, fontWeight: '600' }]}>{t('settings.contacts.addModal.addButton')}</Text>
 									</QPPressable>
 								</View>
 							)}
@@ -188,17 +190,17 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 						<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
 							<FontAwesome6 name="user-slash" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-								No se encontraron usuarios
+								{t('settings.contacts.addModal.noUsersFound')}
 							</Text>
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8, textAlign: 'center' }]}>
-								Intenta con otro nombre o username
+								{t('settings.contacts.addModal.tryAnotherName')}
 							</Text>
 						</View>
 					) : (
 						<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
 							<FontAwesome6 name="magnifying-glass" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-								Busca por nombre, username o email
+								{t('settings.contacts.addModal.searchHint')}
 							</Text>
 						</View>
 					)}

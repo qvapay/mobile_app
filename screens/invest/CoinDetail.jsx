@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
+
+// i18n (locale de fechas del scrubbing)
+import { getDateLocale } from '../../i18n'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -27,7 +31,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import QPFitText from '../../ui/particles/QPFitText'
 
 
-// Whitelist del backend (/coins/price-history) — cualquier otro valor cae a 24H
+// Whitelist del backend (/coins/price-history) — cualquier otro valor cae a 24H.
+// Son VALORES del API; el label visible es `invest.timeframes.<valor>`
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y', 'ALL']
 
 // Cambio 24H calculado de un historial (para enriquecer el header cuando la
@@ -56,8 +61,9 @@ const formatPrice = (p) => {
 const formatScrubTime = (t) => {
 	const ms = t > 1e12 ? t : t * 1000
 	const date = new Date(ms)
-	return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) +
-		', ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+	const locale = getDateLocale()
+	return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' }) +
+		', ' + date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 // --- Sub-components ---
@@ -93,6 +99,7 @@ const StatRow = ({ label, value, theme, isLast }) => (
 const CoinDetail = ({ navigation, route }) => {
 
 	const { tick, name, initialData } = route.params
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
@@ -208,7 +215,7 @@ const CoinDetail = ({ navigation, route }) => {
 					<QPPressable variant="opacity" onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)} style={styles.proUpsell}>
 						<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />
 						<Text style={[styles.proUpsellText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
-							Explora el precio punto a punto con GOLD
+							{t('invest.coinDetail.goldUpsell')}
 						</Text>
 					</QPPressable>
 				)}
@@ -218,7 +225,7 @@ const CoinDetail = ({ navigation, route }) => {
 					{TIMEFRAMES.map((tf) => (
 						<TimeframePill
 							key={tf}
-							label={tf}
+							label={t(`invest.timeframes.${tf}`)}
 							active={timeframe === tf}
 							theme={theme}
 							onPress={() => handleTimeframeChange(tf)}
@@ -230,7 +237,7 @@ const CoinDetail = ({ navigation, route }) => {
 				<View style={styles.buttonRow}>
 					{canDeposit && (
 						<QPButton
-							title="Depositar"
+							title={t('invest.common.deposit')}
 							icon="arrow-down"
 							style={styles.actionButton}
 							onPress={() => navigation.navigate(ROUTES.ADD)}
@@ -238,7 +245,7 @@ const CoinDetail = ({ navigation, route }) => {
 					)}
 					{canP2P && (
 						<QPButton
-							title="Mercado P2P"
+							title={t('invest.common.p2pMarket')}
 							icon="scale-balanced"
 							style={[styles.actionButton, { backgroundColor: theme.colors.surface }]}
 							textStyle={{ color: theme.colors.primaryText }}
@@ -256,21 +263,21 @@ const CoinDetail = ({ navigation, route }) => {
 
 				{/* Estadísticas del periodo + capacidades */}
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
-					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Estadísticas</Text>
-					<StatRow label={`Máximo (${timeframe})`} value={formatPrice(periodHigh)} theme={theme} />
-					<StatRow label={`Mínimo (${timeframe})`} value={formatPrice(periodLow)} theme={theme} />
-					{coin?.fee_in != null && <StatRow label="Comisión de depósito" value={`${Number(coin.fee_in)}%`} theme={theme} />}
-					{coin?.fee_out != null && <StatRow label="Comisión de retiro" value={`${Number(coin.fee_out)}%`} theme={theme} />}
-					<StatRow label="Depósitos" value={coin?.enabled_in ? 'Disponible' : 'No disponible'} theme={theme} />
-					<StatRow label="Retiros" value={coin?.enabled_out ? 'Disponible' : 'No disponible'} theme={theme} />
-					<StatRow label="P2P" value={coin?.enabled_p2p ? 'Disponible' : 'No disponible'} theme={theme} isLast />
+					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('invest.common.statistics')}</Text>
+					<StatRow label={t('invest.coinDetail.periodHigh', { timeframe: t(`invest.timeframes.${timeframe}`) })} value={formatPrice(periodHigh)} theme={theme} />
+					<StatRow label={t('invest.coinDetail.periodLow', { timeframe: t(`invest.timeframes.${timeframe}`) })} value={formatPrice(periodLow)} theme={theme} />
+					{coin?.fee_in != null && <StatRow label={t('invest.coinDetail.depositFee')} value={`${Number(coin.fee_in)}%`} theme={theme} />}
+					{coin?.fee_out != null && <StatRow label={t('invest.coinDetail.withdrawFee')} value={`${Number(coin.fee_out)}%`} theme={theme} />}
+					<StatRow label={t('invest.coinDetail.deposits')} value={coin?.enabled_in ? t('invest.coinDetail.available') : t('invest.coinDetail.notAvailable')} theme={theme} />
+					<StatRow label={t('invest.coinDetail.withdrawals')} value={coin?.enabled_out ? t('invest.coinDetail.available') : t('invest.coinDetail.notAvailable')} theme={theme} />
+					<StatRow label="P2P" value={coin?.enabled_p2p ? t('invest.coinDetail.available') : t('invest.coinDetail.notAvailable')} theme={theme} isLast />
 				</View>
 
 				{/* Spot: teaser de futuro */}
 				<View style={[styles.card, styles.spotTeaser, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
 					<FontAwesome6 name="chart-line" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[styles.spotTeaserText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
-						Compra y venta spot — próximamente
+						{t('invest.coinDetail.spotTeaser')}
 					</Text>
 				</View>
 			</ScrollView>

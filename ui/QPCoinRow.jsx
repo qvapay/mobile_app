@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 import QPCoin from './particles/QPCoin'
@@ -22,6 +23,7 @@ import { formatCoinAmount, formatCoinPrice } from '../helpers/coinFormat'
  */
 const QPCoinRow = ({ coin, amount = '', direction = 'in', showFees = true }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -32,11 +34,11 @@ const QPCoinRow = ({ coin, amount = '', direction = 'in', showFees = true }) => 
 	const priceNum = parseFloat(coin.price) || 0
 	const converted = priceNum > 0 ? amountNum / priceNum : 0
 
-	// Condiciones en una sola línea y en español, en vez de dos columnas con
+	// Condiciones en una sola línea y localizadas, en vez de dos columnas con
 	// etiquetas tipo "FEE IN" / "MIN OUT"
 	const terms = []
-	if (Number(fee) > 0) terms.push(`${fee}% comisión`)
-	if (Number(min) > 0) terms.push(`mín. $${min}`)
+	if (Number(fee) > 0) terms.push(t('ui.coinRow.feeTerm', { fee }))
+	if (Number(min) > 0) terms.push(t('ui.coinRow.minTerm', { min }))
 
 	// El precio solo aporta cuando la moneda no va 1:1 con el dólar: en los
 	// raíles fiat (banco, Transfermóvil…) mostrar "$1.0000" era puro ruido

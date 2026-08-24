@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect } from 'react'
 import { Text, View, Image } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Animated, {
 	Easing,
@@ -42,43 +43,18 @@ const onboardImages = {
 	vault: require('../../assets/images/onboard/vault.png'),
 }
 
-// Onboard Images and Descriptions
+// Onboard steps: solo el id de asset a nivel de módulo — título y descripción
+// se resuelven en render vía claves `welcome.onboard.steps.<asset>.*` (mismo
+// patrón que las opciones de Language.jsx), así el carrusel cambia de idioma
+// en vivo y ningún t() queda congelado a nivel de módulo.
 const onboard_steps = [
-	{
-		asset: 'trade',
-		title: "Bienvenido a QvaPay",
-		description: "Tu plataforma de pagos digitales en USD"
-	},
-	{
-		asset: 'bot',
-		title: "Finanzas Inteligentes",
-		description: "Gestiona tus finanzas con facilidad y sin complicaciones"
-	},
-	{
-		asset: 'coins',
-		title: "Múltiples Monedas",
-		description: "Maneja diferentes divisas con facilidad y sin comisiones ocultas"
-	},
-	{
-		asset: 'earn',
-		title: "Gana Dinero",
-		description: "Invierte y haz crecer tu dinero con nuestras opciones de inversión"
-	},
-	{
-		asset: 'security',
-		title: "Seguridad Total",
-		description: "Tus datos y transacciones están protegidos con la más alta seguridad"
-	},
-	{
-		asset: 'box',
-		title: "Envíos Rápidos",
-		description: "Transfiere dinero de forma instantánea a cualquier parte del mundo"
-	},
-	{
-		asset: 'vault',
-		title: "Billetera Digital",
-		description: "Guarda y gestiona todos tus activos digitales en un solo lugar"
-	}
+	{ asset: 'trade' },
+	{ asset: 'bot' },
+	{ asset: 'coins' },
+	{ asset: 'earn' },
+	{ asset: 'security' },
+	{ asset: 'box' },
+	{ asset: 'vault' },
 ]
 
 // Ilustración con flotación sutil en loop
@@ -117,6 +93,9 @@ const Onboard = ({ navigation }) => {
 	// States
 	const [currentStep, setCurrentStep] = useState(0)
 	const [showPushModal, setShowPushModal] = useState(false)
+
+	// Idioma activo
+	const { t } = useTranslation()
 
 	// Transiciones direccionales de step (compartidas con el wizard de registro)
 	const { direction, makeStepEnter, stepExit } = useStepTransitions()
@@ -184,16 +163,17 @@ const Onboard = ({ navigation }) => {
 						onPress={handleCompleteOnboarding}
 						hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
 						<Text style={{ color: theme.colors.primary, fontSize: 13, fontFamily: theme.typography.fontFamily.medium, opacity: 0.7 }}>
-							Saltar
+							{t('welcome.onboard.skip')}
 						</Text>
 					</QPPressable>
 				</Animated.View>
 			),
 		})
 		// handleCompleteOnboarding se recrea en cada render — la dependencia real
-		// es el paso activo y el tema; incluirla forzaría setOptions por render
+		// es el paso activo, el tema y el idioma; incluirla forzaría setOptions
+		// por render
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [navigation, currentStep, isLastStep, theme])
+	}, [navigation, currentStep, isLastStep, theme, t])
 
 	return (
 		<SafeAreaView edges={['bottom', 'left', 'right']} style={[containerStyles.subContainer, { flex: 1, justifyContent: 'space-between', alignItems: 'center' }]}>
@@ -214,14 +194,14 @@ const Onboard = ({ navigation }) => {
 					{/* Title */}
 					<Animated.View entering={makeStepEnter(70)}>
 						<Text style={[fontStyles.h1, { textAlign: 'center', marginBottom: 16 }]}>
-							{currentStepData.title}
+							{t(`welcome.onboard.steps.${currentStepData.asset}.title`)}
 						</Text>
 					</Animated.View>
 
 					{/* Description */}
 					<Animated.View entering={makeStepEnter(140)}>
 						<Text style={[fontStyles.subtitle, { textAlign: 'center', lineHeight: 24 }]}>
-							{currentStepData.description}
+							{t(`welcome.onboard.steps.${currentStepData.asset}.description`)}
 						</Text>
 					</Animated.View>
 				</Animated.View>
@@ -229,7 +209,7 @@ const Onboard = ({ navigation }) => {
 
 			{/* Navigation Buttons — split-button (patrón de reactiive.io/demos/steps) */}
 			<QPSplitButton
-				title={isLastStep ? 'Finalizar' : 'Siguiente'}
+				title={isLastStep ? t('welcome.onboard.finish') : t('welcome.onboard.next')}
 				onPress={isLastStep ? handleCompleteOnboarding : handleNextStep}
 				showBack={currentStep > 0}
 				onBack={handlePreviousStep}

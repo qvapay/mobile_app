@@ -1,0 +1,10 @@
+{
+	"server": "Ha ocurrido un error, contacte a soporte",
+	"network": "No se ha podido conectar con el servidor",
+	"unexpected": "Ha ocurrido un error inesperado",
+	"boundary": {
+		"title": "Algo salió mal",
+		"subtitle": "Ha ocurrido un error inesperado"
+	},
+	"biometricPrompt": "Accede a tu cuenta QvaPay"
+}

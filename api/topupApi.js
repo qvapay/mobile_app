@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 /**
  * Mobile top-ups purchased through the native stores (Google Play Billing /
@@ -50,9 +51,9 @@ export const topupApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo validar la compra', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.common.purchaseValidateFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 

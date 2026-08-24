@@ -3,6 +3,7 @@ import { Platform } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 import * as Keychain from 'react-native-keychain'
 import config from '../config'
+import i18n from '../i18n'
 
 const version = DeviceInfo.getVersion()
 const buildNumber = DeviceInfo.getBuildNumber()
@@ -84,6 +85,10 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
 	async (reqConfig) => {
 		if (!reqConfig.silent && _loadingStart) { _loadingStart() }
+		// Idioma activo del cliente, por request (sigue los cambios en vivo):
+		// hoy el backend responde en español, pero este header le permite
+		// localizar sus mensajes en el futuro sin tocar el móvil.
+		reqConfig.headers['Accept-Language'] = i18n.language || 'es'
 		try {
 			const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
 			if (credentials) { reqConfig.headers.Authorization = `Bearer ${credentials.password}` }
@@ -101,8 +106,8 @@ apiClient.interceptors.request.use(
  * Stops the global loading bar and normalizes errors:
  *   401 → clears the Keychain token (next cold start lands on Welcome)
  *   403/422 → passed through untouched for the screen to handle
- *   500 → rejects with a generic Spanish support message
- *   no response (network/timeout) → rejects with a Spanish connectivity message
+ *   500 → rejects with a generic localized support message
+ *   no response (network/timeout) → rejects with a localized connectivity message
  * Gotcha: for 500 and network errors the rejection is a plain `{ message }`
  * object, not an axios error — there is no `.response` on it.
  */
@@ -133,13 +138,13 @@ apiClient.interceptors.response.use(
 					// The screen handles these.
 					break
 				case 500:
-					return Promise.reject({ message: "Ha ocurrido un error, contacte a soporte" })
+					return Promise.reject({ message: i18n.t('errors.server') })
 				default:
 					break
 			}
 		} else if (error.request) {
-			return Promise.reject({ message: "No se ha podido conectar con el servidor" })
-		} else { return Promise.reject({ message: "Ha ocurrido un error inesperado" }) }
+			return Promise.reject({ message: i18n.t('errors.network') })
+		} else { return Promise.reject({ message: i18n.t('errors.unexpected') }) }
 
 		return Promise.reject(error)
 	}
@@ -241,7 +246,7 @@ export const getBiometricCredentials = async () => {
 
 		const credentials = await Keychain.getGenericPassword({
 			service: BIOMETRIC_SERVICE,
-			authenticationPrompt: { title: 'Accede a tu cuenta QvaPay' },
+			authenticationPrompt: { title: i18n.t('errors.biometricPrompt') },
 		})
 		if (credentials) {
 			return { email: credentials.username, password: credentials.password }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, ScrollView, Switch } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -20,31 +21,28 @@ import { OneSignal } from 'react-native-onesignal'
 // UI
 import QPLoader from '../../../ui/particles/QPLoader'
 
-// Channel config
+// Channel config — el copy vive en claves i18n (settings.notifications.channels.<id>)
+// resueltas en render, así el panel cambia de idioma en vivo
 const CHANNELS = [
 	{
+		id: 'email',
 		key: 'email_enabled',
-		label: 'Correo electrónico',
-		description: 'Recibe notificaciones de transacciones, seguridad y ofertas P2P por email',
 		icon: 'envelope',
 	},
 	{
+		id: 'telegram',
 		key: 'telegram_enabled',
-		label: 'Telegram',
-		description: 'Recibe alertas instantáneas en tu cuenta de Telegram vinculada',
 		icon: 'telegram',
 		iconStyle: 'brand',
 	},
 	{
+		id: 'push',
 		key: 'push_enabled',
-		label: 'Notificaciones push',
-		description: 'Recibe notificaciones en tiempo real en tu dispositivo',
 		icon: 'bell',
 	},
 	// {
+	// 	id: 'sms',
 	// 	key: 'sms_enabled',
-	// 	label: 'SMS',
-	// 	description: 'Recibe notificaciones por mensaje de texto',
 	// 	icon: 'comment-sms',
 	// 	comingSoon: true,
 	// },
@@ -52,6 +50,7 @@ const CHANNELS = [
 
 const Notifications = () => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -105,7 +104,7 @@ const Notifications = () => {
 					if (previous) { OneSignal.User.pushSubscription.optIn() }
 					else { OneSignal.User.pushSubscription.optOut() }
 				}
-				toast.error('No se pudo actualizar la configuración')
+				toast.error(t('settings.notifications.toasts.updateFailed'))
 			}
 		} catch (error) {
 			setSettings(prev => ({ ...prev, [key]: previous }))
@@ -114,7 +113,7 @@ const Notifications = () => {
 				if (previous) { OneSignal.User.pushSubscription.optIn() }
 				else { OneSignal.User.pushSubscription.optOut() }
 			}
-			toast.error('Error de conexión')
+			toast.error(t('settings.notifications.toasts.connectionError'))
 		}
 	}
 
@@ -124,9 +123,9 @@ const Notifications = () => {
 		<View style={containerStyles.subContainer}>
 			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-				<Text style={textStyles.h1}>Notificaciones</Text>
+				<Text style={textStyles.h1}>{t('settings.notifications.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-					Configura cómo quieres recibir tus alertas
+					{t('settings.notifications.subtitle')}
 				</Text>
 
 				<View style={{ marginTop: 20, gap: 10 }}>
@@ -161,15 +160,15 @@ const Notifications = () => {
 
 							<View style={{ flex: 1 }}>
 								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-									<Text style={[textStyles.h4, { marginBottom: 0 }]}>{channel.label}</Text>
+									<Text style={[textStyles.h4, { marginBottom: 0 }]}>{t(`settings.notifications.channels.${channel.id}.label`)}</Text>
 									{channel.comingSoon && (
 										<View style={{ backgroundColor: theme.colors.warning + '30', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-											<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.warning, fontWeight: '600' }}>Próximamente</Text>
+											<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.warning, fontWeight: '600' }}>{t('settings.notifications.comingSoon')}</Text>
 										</View>
 									)}
 								</View>
 								<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-									{channel.description}
+									{t(`settings.notifications.channels.${channel.id}.description`)}
 								</Text>
 							</View>
 
@@ -188,7 +187,7 @@ const Notifications = () => {
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-							Las notificaciones de seguridad (inicio de sesión, cambio de contraseña) siempre se envían por email independientemente de esta configuración.
+							{t('settings.notifications.info')}
 						</Text>
 					</View>
 				</View>

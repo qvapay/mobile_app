@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -24,15 +25,16 @@ import QPSvgUri from '../../ui/particles/QPSvgUri'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Explore tabs
+// Explore tabs (labels = claves i18n resueltas en render)
 const EXPLORE_TABS = [
-	{ key: 'popular', label: 'Populares', icon: 'star' },
-	{ key: 'stocks', label: 'Stocks', icon: 'chart-line' },
+	{ key: 'popular', labelKey: 'invest.dashboard.tabs.popular', icon: 'star' },
+	{ key: 'stocks', labelKey: 'invest.dashboard.tabs.stocks', icon: 'chart-line' },
 ]
 
 // --- Sub-components ---
 
 const SavingsCard = ({ savings, theme, textStyles, onPress }) => {
+	const { t } = useTranslation()
 	// El balance puede ser negativo (deuda gestionada desde admin): danger + signo
 	const isDebt = Number(savings?.balance || 0) < 0
 	const balance = formatMoney(savings?.balance)
@@ -41,9 +43,9 @@ const SavingsCard = ({ savings, theme, textStyles, onPress }) => {
 		<Pressable onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme), { opacity: pressed ? 0.85 : 1 }]}>
 			<View style={styles.savingsRow}>
 				<View style={styles.savingsInfo}>
-					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>Ahorros</Text>
+					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>{t('invest.dashboard.savings')}</Text>
 					<Text style={[textStyles.h1, styles.savingsBalance, isDebt && { color: theme.colors.danger }]}>{balance}</Text>
-					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> anual</Text>
+					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('invest.common.perYear')}</Text>
 				</View>
 				<View style={[styles.savingsIcon, { backgroundColor: theme.colors.primary + '15' }]}>
 					<FontAwesome6 name="vault" size={24} color={theme.colors.primary} iconStyle="solid" />
@@ -53,22 +55,25 @@ const SavingsCard = ({ savings, theme, textStyles, onPress }) => {
 	)
 }
 
-const SectionCard = ({ title, icon, theme, rightLabel, onSeeAll, children }) => (
-	<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
-		<View style={styles.sectionHeader}>
-			<View style={styles.cardHeader}>
-				<FontAwesome6 name={icon} size={16} color={theme.colors.primary} iconStyle="solid" />
-				<Text style={[styles.cardTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{title}</Text>
+const SectionCard = ({ title, icon, theme, rightLabel, onSeeAll, children }) => {
+	const { t } = useTranslation()
+	return (
+		<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
+			<View style={styles.sectionHeader}>
+				<View style={styles.cardHeader}>
+					<FontAwesome6 name={icon} size={16} color={theme.colors.primary} iconStyle="solid" />
+					<Text style={[styles.cardTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{title}</Text>
+				</View>
+				{onSeeAll && (
+					<Pressable onPress={onSeeAll} hitSlop={8}>
+						<Text style={[styles.seeAll, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{rightLabel || t('invest.dashboard.seeAll')}</Text>
+					</Pressable>
+				)}
 			</View>
-			{onSeeAll && (
-				<Pressable onPress={onSeeAll} hitSlop={8}>
-					<Text style={[styles.seeAll, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{rightLabel || 'Ver todo'}</Text>
-				</Pressable>
-			)}
+			{children}
 		</View>
-		{children}
-	</View>
-)
+	)
+}
 
 const FilterChip = ({ label, icon, selected, theme, onPress }) => (
 	<Pressable
@@ -136,25 +141,28 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }) => {
 	)
 }
 
-const P2PRow = ({ pair, theme, textStyles, isLast }) => (
-	<View style={[styles.itemRow, !isLast && styles.itemBorder(theme)]}>
-		<QPCoin coin={pair.tick} size={32} />
-		<View style={styles.p2pInfo}>
-			<Text style={[textStyles.h4, styles.itemName]}>{pair.name}</Text>
-			<Text style={[styles.itemSub, { color: theme.colors.secondaryText }]}>{pair.count} ofertas</Text>
-		</View>
-		<View style={styles.p2pPriceCol}>
-			<View style={styles.p2pPriceRow}>
-				<FontAwesome6 name="caret-up" size={9} color={theme.colors.successText} iconStyle="solid" />
-				<Text style={[styles.p2pPrice, { color: theme.colors.successText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{pair.buy.toFixed(2)}</Text>
+const P2PRow = ({ pair, theme, textStyles, isLast }) => {
+	const { t } = useTranslation()
+	return (
+		<View style={[styles.itemRow, !isLast && styles.itemBorder(theme)]}>
+			<QPCoin coin={pair.tick} size={32} />
+			<View style={styles.p2pInfo}>
+				<Text style={[textStyles.h4, styles.itemName]}>{pair.name}</Text>
+				<Text style={[styles.itemSub, { color: theme.colors.secondaryText }]}>{t('invest.dashboard.offers', { count: pair.count })}</Text>
 			</View>
-			<View style={styles.p2pPriceRow}>
-				<FontAwesome6 name="caret-down" size={9} color={theme.colors.danger} iconStyle="solid" />
-				<Text style={[styles.p2pPrice, { color: theme.colors.danger, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{pair.sell.toFixed(2)}</Text>
+			<View style={styles.p2pPriceCol}>
+				<View style={styles.p2pPriceRow}>
+					<FontAwesome6 name="caret-up" size={9} color={theme.colors.successText} iconStyle="solid" />
+					<Text style={[styles.p2pPrice, { color: theme.colors.successText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{pair.buy.toFixed(2)}</Text>
+				</View>
+				<View style={styles.p2pPriceRow}>
+					<FontAwesome6 name="caret-down" size={9} color={theme.colors.danger} iconStyle="solid" />
+					<Text style={[styles.p2pPrice, { color: theme.colors.danger, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{pair.sell.toFixed(2)}</Text>
+				</View>
 			</View>
 		</View>
-	</View>
-)
+	)
+}
 
 // --- Main Component ---
 
@@ -168,6 +176,7 @@ const P2PRow = ({ pair, theme, textStyles, isLast }) => (
  */
 const Invest = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
@@ -196,12 +205,12 @@ const Invest = ({ navigation }) => {
 				/>
 
 				{/* Explore: Cripto + Stocks */}
-				<SectionCard title="Explorar" icon="lightbulb" theme={theme}>
+				<SectionCard title={t('invest.dashboard.explore')} icon="lightbulb" theme={theme}>
 					<View style={styles.chipRow}>
 						{EXPLORE_TABS.map((tab) => (
 							<FilterChip
 								key={tab.key}
-								label={tab.label}
+								label={t(tab.labelKey)}
 								icon={tab.icon}
 								selected={exploreTab === tab.key}
 								theme={theme}
@@ -245,17 +254,17 @@ const Invest = ({ navigation }) => {
 							</Pressable>
 						)
 					})}
-					{exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Sin datos</Text>}
+					{exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('invest.dashboard.empty')}</Text>}
 				</SectionCard>
 
 				{/* P2P Mercado */}
-				<SectionCard title="Mercado P2P" icon="scale-balanced" theme={theme} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)}>
+				<SectionCard title={t('invest.common.p2pMarket')} icon="scale-balanced" theme={theme} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)}>
 					{p2pData.length > 0 ? p2pData.map((pair, i) => (
 						<Pressable key={pair.tick} onPress={() => navigation.navigate(ROUTES.P2P_SCREEN, { coin: pair.tick, coinName: pair.name })}>
 							<P2PRow pair={pair} theme={theme} textStyles={textStyles} isLast={i === p2pData.length - 1} />
 						</Pressable>
 					)) : (
-						<Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Sin datos</Text>
+						<Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('invest.dashboard.empty')}</Text>
 					)}
 				</SectionCard>
 			</ScrollView>

@@ -1,4 +1,5 @@
 import { Linking, StyleSheet, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -20,6 +21,7 @@ import QPButton from '../../ui/particles/QPButton'
  */
 const NearbyPermissionGate = ({ state }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const denied = state === 'permission_denied'
@@ -34,18 +36,18 @@ const NearbyPermissionGate = ({ state }) => {
 			/>
 
 			<Text style={[textStyles.h4, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 20 }]}>
-				{denied ? 'Permiso necesario' : 'No disponible'}
+				{denied ? t('misc.nearby.gate.permissionTitle') : t('misc.nearby.gate.unavailableTitle')}
 			</Text>
 
 			<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}>
 				{denied
-					? 'Para descubrir usuarios cercanos, QvaPay necesita acceso a la red local y Bluetooth. Actívalos en Ajustes.'
-					: 'Tu dispositivo no puede descubrir usuarios cercanos en este momento. Revisa que Bluetooth y WiFi estén encendidos.'}
+					? t('misc.nearby.gate.permissionBody')
+					: t('misc.nearby.gate.unavailableBody')}
 			</Text>
 
 			{denied && (
 				<QPButton
-					title="Abrir Ajustes"
+					title={t('misc.nearby.gate.openSettings')}
 					onPress={() => Linking.openSettings()}
 					icon="gear"
 					iconStyle="solid"

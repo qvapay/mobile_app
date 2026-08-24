@@ -1,0 +1,50 @@
+{
+	"index": {
+		"intro": "Recarregue qualquer celular de Cuba pagando direto com {{store}} — sem precisar de saldo QvaPay.",
+		"selectAmount": "Selecione o valor",
+		"buyButton": "Comprar recarga",
+		"buyButtonWithPrice": "Comprar recarga {{price}}",
+		"processing": "Processando...",
+		"securePayment": "O pagamento é processado com segurança por {{provider}}. A recarga chega em minutos.",
+		"toasts": {
+			"sent": {
+				"title": "Recarga enviada!",
+				"description": "{{label}} a caminho de {{phone}}"
+			},
+			"sentFallbackLabel": "Sua recarga",
+			"sentFallbackPhone": "seu número",
+			"pending": {
+				"title": "Recarga em andamento",
+				"description": "Vamos avisar quando ela for concluída. Você não vai pagar duas vezes."
+			},
+			"validateFailed": "Não foi possível validar a compra",
+			"validateError": "Erro ao validar a compra",
+			"orphanFound": {
+				"title": "Você tem uma compra anterior não entregue",
+				"description": "Tentando a entrega novamente…"
+			},
+			"playPending": {
+				"title": "O Google Play informa um pagamento ainda pendente",
+				"description": "Aguarde a confirmação do pagamento ou cancele no app da Play Store."
+			},
+			"recoverFailed": "Não foi possível recuperar a compra anterior. Tente de novo em alguns minutos.",
+			"invalidPhone": "Digite um número cubano válido",
+			"selectAmount": "Selecione um valor"
+		}
+	},
+	"card": {
+		"unavailable": "Indisponível"
+	},
+	"history": {
+		"title": "Histórico recente",
+		"status": {
+			"processing": "Em andamento",
+			"failed": "Falhou"
+		}
+	},
+	"phone": {
+		"label": "Número para recarregar",
+		"invalidHint": "Deve começar com 5 e ter 8 dígitos",
+		"onlyCuba": "Somente números de celular de 🇨🇺 Cuba"
+	}
+}

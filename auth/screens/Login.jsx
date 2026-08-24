@@ -1,5 +1,6 @@
 import { View, Text, Alert } from 'react-native'
 import { useReducer, useState, useEffect, useEffectEvent, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -63,6 +64,9 @@ function formReducer(state, action) {
  */
 const LoginScreen = ({ navigation }) => {
 
+	// Idioma activo
+	const { t } = useTranslation()
+
 	// Settings Context
 	const { updateSettings } = useSettings()
 
@@ -117,8 +121,8 @@ const LoginScreen = ({ navigation }) => {
 					await removeBiometricCredentials()
 					setHasBiometrics(false)
 					await updateSettings('security', { biometricsEnabled: false })
-					toast.error('Credenciales inválidas', { description: 'Inicia sesión manualmente' })
-				} else { toast.error(String(result.error || 'Error al iniciar sesión')) }
+					toast.error(t('auth.login.toasts.invalidCredentials'), { description: t('auth.login.toasts.loginManually') })
+				} else { toast.error(String(result.error || t('auth.login.toasts.loginError'))) }
 			}
 
 			// If login is successful and there is a security warning, show the leaked password modal
@@ -129,7 +133,7 @@ const LoginScreen = ({ navigation }) => {
 				dispatch({ type: 'enterTwoFactorWithCreds', email: credentials.email, password: credentials.password, hasOtp: result.has_otp || false })
 			}
 		} catch (err) {
-			toast.error('Error al acceder con biometría')
+			toast.error(t('auth.login.toasts.biometricError'))
 		} finally { setIsLoading(false) }
 	}
 
@@ -141,19 +145,20 @@ const LoginScreen = ({ navigation }) => {
 		const has = await hasBiometricCredentials()
 		if (has) return
 
-		const biometricLabel = type === 'FaceID' ? 'Face ID' : type === 'TouchID' ? 'Touch ID' : 'Huella Digital'
+		// 'Face ID' / 'Touch ID' son marcas y no se traducen; solo la huella es clave
+		const biometricLabel = type === 'FaceID' ? 'Face ID' : type === 'TouchID' ? 'Touch ID' : t('auth.login.biometrics.fingerprint')
 		Alert.alert(
-			`Activar ${biometricLabel}`,
-			`¿Deseas usar ${biometricLabel} para acceder a tu cuenta en el futuro?`,
+			t('auth.login.alerts.enableBiometric.title', { label: biometricLabel }),
+			t('auth.login.alerts.enableBiometric.body', { label: biometricLabel }),
 			[
-				{ text: 'Ahora no', style: 'cancel' },
+				{ text: t('common.actions.notNow'), style: 'cancel' },
 				{
-					text: 'Activar',
+					text: t('auth.login.alerts.enableBiometric.confirm'),
 					onPress: async () => {
 						const saved = await setBiometricCredentials(loginEmail, loginPassword)
 						if (saved) {
 							await updateSettings('security', { biometricsEnabled: true })
-							toast.success(`${biometricLabel} activado`)
+							toast.success(t('auth.login.toasts.biometricEnabled', { label: biometricLabel }))
 						}
 					}
 				}
@@ -163,7 +168,7 @@ const LoginScreen = ({ navigation }) => {
 
 	// Handle pre-login: validate credentials, then either show the PIN step (202) or finish.
 	const handlePreLogin = async () => {
-		if (!form.email || !form.password) { toast.error('Por favor completa todos los campos'); return }
+		if (!form.email || !form.password) { toast.error(t('auth.login.toasts.completeAllFields')); return }
 
 		try {
 			clearError()
@@ -174,7 +179,7 @@ const LoginScreen = ({ navigation }) => {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
 				} else {
-					toast.error(String(result.error || 'Error al iniciar sesión'))
+					toast.error(String(result.error || t('auth.login.toasts.loginError')))
 				}
 				if (result.status === 401) { setFailedAttempts(prev => prev + 1) }
 			}
@@ -191,14 +196,14 @@ const LoginScreen = ({ navigation }) => {
 					promptBiometricEnrollment(form.email, form.password)
 				}
 			}
-		} catch (err) { toast.error('Ha ocurrido un error durante el inicio de sesión') }
+		} catch (err) { toast.error(t('auth.login.toasts.loginUnexpectedError')) }
 		finally { setIsLoading(false) }
 	}
 
 	// Send all credentials (+ 2FA code) to login
 	const handleLogin = async () => {
 		if (!form.email || !form.password || !form.code || form.code.length !== expectedCodeLength) {
-			toast.error('No es posible iniciar sesión sin completar todos los campos')
+			toast.error(t('auth.login.toasts.completeAllFields2fa'))
 			return
 		}
 
@@ -209,7 +214,7 @@ const LoginScreen = ({ navigation }) => {
 			if (!result.success) {
 				if (result.status === 403 && result.action === 'reset_password') {
 					setLeakedModal({ visible: true, blocked: true, message: result.error, count: 0 })
-				} else { toast.error(String(result.error || 'Error al iniciar sesión'), { description: typeof result.details === 'string' ? result.details : undefined }) }
+				} else { toast.error(String(result.error || t('auth.login.toasts.loginError')), { description: typeof result.details === 'string' ? result.details : undefined }) }
 				if (result.status === 401) { setFailedAttempts(prev => prev + 1) }
 			}
 			if (result.success) {
@@ -220,7 +225,7 @@ const LoginScreen = ({ navigation }) => {
 					promptBiometricEnrollment(form.email, form.password)
 				}
 			}
-		} catch (err) { toast.error('Ha ocurrido un error durante el inicio de sesión, por favor intenta nuevamente') }
+		} catch (err) { toast.error(t('auth.login.toasts.loginUnexpectedErrorRetry')) }
 		finally { setIsLoading(false) }
 	}
 
@@ -228,10 +233,10 @@ const LoginScreen = ({ navigation }) => {
 	const handleRequestPin = async () => {
 		try {
 			const result = await requestPin({ email: form.email, password: form.password })
-			if (!result.success) { toast.error(String(result.error || 'Error al solicitar PIN')) }
+			if (!result.success) { toast.error(String(result.error || t('auth.login.toasts.requestPinError'))) }
 			return result
 		} catch (err) {
-			toast.error('Ha ocurrido un error durante la solicitud de PIN, por favor intenta nuevamente')
+			toast.error(t('auth.login.toasts.requestPinUnexpectedError'))
 			return { success: false }
 		}
 	}
@@ -246,7 +251,7 @@ const LoginScreen = ({ navigation }) => {
 				toast.error(String(result.error))
 			}
 		} catch (err) {
-			toast.error('Error al iniciar con Passkey')
+			toast.error(t('auth.login.toasts.passkeyError'))
 		} finally { setIsLoading(false) }
 	}
 
@@ -277,7 +282,7 @@ const LoginScreen = ({ navigation }) => {
 				actions={
 					form.showPin ? (
 						<QPButton
-							title="Acceder"
+							title={t('auth.login.submit')}
 							onPress={handleLogin}
 							disabled={!form.email || !form.password || form.code.length !== expectedCodeLength || failedAttempts > 5}
 							textStyle={{ color: theme.colors.almostWhite }}
@@ -285,7 +290,7 @@ const LoginScreen = ({ navigation }) => {
 						/>
 					) : (
 						<QPButton
-							title="Acceder"
+							title={t('auth.login.submit')}
 							onPress={handlePreLogin}
 							disabled={!form.email || !form.password || failedAttempts > 5}
 							textStyle={{ color: theme.colors.almostWhite }}
@@ -295,8 +300,8 @@ const LoginScreen = ({ navigation }) => {
 				}
 			>
 
-				<Text style={textStyles.h1}>Acceder a tu cuenta</Text>
-				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{form.showPin ? (form.method === 'otp' ? "Ingresa el código de tu aplicación de autenticación" : "Coloca tu PIN para acceder a tu cuenta") : "Ingresa tu correo electrónico y contraseña para acceder a tu cuenta"}</Text>
+				<Text style={textStyles.h1}>{t('auth.login.title')}</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{form.showPin ? (form.method === 'otp' ? t('auth.login.subtitleOtp') : t('auth.login.subtitlePin')) : t('auth.login.subtitleCredentials')}</Text>
 
 				<View style={{ flex: 1, marginVertical: 20 }}>
 					{form.showPin ? (
@@ -333,7 +338,7 @@ const LoginScreen = ({ navigation }) => {
 					/>
 				)}
 
-				{failedAttempts > 5 && <Text style={[textStyles.h4, { color: theme.colors.danger, textAlign: 'center' }]}>Demasiados intentos, por favor espera 1 minuto para intentar nuevamente</Text>}
+				{failedAttempts > 5 && <Text style={[textStyles.h4, { color: theme.colors.danger, textAlign: 'center' }]}>{t('auth.login.lockout')}</Text>}
 
 			</QPKeyboardView>
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Idiomas soportados por la app (i18n/locales/). Habilita el selector de
+     idioma por-app en Ajustes del sistema (Android 13+/API 33): el usuario
+     elige y Locale.getDefault() del proceso lo refleja, que es lo que lee
+     getDeviceLanguage() (i18n/index.js) en modo 'auto'. En Android <13 el
+     atributo se ignora sin efecto y queda el panel interno de la app.
+     Espejo de CFBundleLocalizations en iOS: un idioma nuevo se añade AQUÍ,
+     allí y en i18n/. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="es" />
+    <locale android:name="en" />
+    <locale android:name="pt-BR" />
+</locale-config>

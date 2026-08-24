@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useReducer } from 'react'
 import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -29,7 +30,7 @@ import apiClient from '../../api/client'
 import { withdrawApi } from '../../api/withdrawApi'
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el débito
-import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from '../../helpers/idempotency'
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -97,6 +98,7 @@ const Withdraw = ({ navigation, route }) => {
 	// Contexts
 	const { user, updateUser } = useAuth()
 	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('out')
+	const { t } = useTranslation()
 
 	// GOLD paga fee_out_gold en el servidor — la vista previa debe usar la misma tarifa
 	const isGold = !!user?.golden_check
@@ -323,19 +325,19 @@ const Withdraw = ({ navigation, route }) => {
 			setSendingPin(true)
 			const result = await withdrawApi.requestPin()
 			if (result.success) {
-				toast.success('PIN enviado', { description: 'Revisa tu correo electrónico' })
+				toast.success(t('withdraw.index.toasts.pinSent.title'), { description: t('withdraw.index.toasts.pinSent.description') })
 			} else {
-				toast.error(result.error || 'No se pudo enviar el PIN')
+				toast.error(result.error || t('withdraw.index.toasts.pinSendFailed'))
 			}
 		} catch (err) {
-			toast.error('Error al solicitar el PIN')
+			toast.error(t('withdraw.index.toasts.pinRequestError'))
 		} finally { setSendingPin(false) }
 	}
 
 	// Submit withdraw with PIN
 	const handleWithdraw = async () => {
 		if (!pin || pin.length !== codeLength) {
-			toast.error(twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos')
+			toast.error(twoFactorMethod === 'pin' ? t('withdraw.index.toasts.enterPin') : t('withdraw.index.toasts.enterOtp'))
 			return
 		}
 
@@ -360,12 +362,12 @@ const Withdraw = ({ navigation, route }) => {
 			if (result.success) {
 				idempotencyKeyRef.current = makeIdempotencyKey()
 				if (sourceSats) {
-					toast.success('Redención procesada', { description: `Se han redimido ${Number(amountSats).toLocaleString()} sats` })
+					toast.success(t('withdraw.index.toasts.redeemed.title'), { description: t('withdraw.index.toasts.redeemed.description', { sats: Number(amountSats).toLocaleString() }) })
 					// El backend devuelve los sats restantes fresh — reflejarlos sin refetch
 					const satoshisLeft = result.data?.data?.satoshis
 					if (typeof satoshisLeft === 'number') { updateUser({ satoshis: satoshisLeft }) }
 				} else {
-					toast.success('Extracción procesada', { description: `Se han extraído $${amountQUSD} QUSD` })
+					toast.success(t('withdraw.index.toasts.withdrawn.title'), { description: t('withdraw.index.toasts.withdrawn.description', { amount: amountQUSD }) })
 					updateUser({ balance: Number(user?.balance || 0) - Number(amountQUSD) })
 				}
 				setShowPinStep(false)
@@ -376,12 +378,12 @@ const Withdraw = ({ navigation, route }) => {
 				setWorkingForm({})
 				navigation.goBack()
 			} else if (isNetworkFailure(result)) {
-				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${SAFE_RETRY_HINT}` })
+				toast.error(t('withdraw.index.toasts.networkErrorTitle'), { description: `${result.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {
-				toast.error(result.error || 'No se pudo completar la extracción')
+				toast.error(result.error || t('withdraw.index.toasts.withdrawFailed'))
 			}
 		} catch (err) {
-			toast.error('Error al procesar la extracción')
+			toast.error(t('withdraw.index.toasts.processError'))
 		} finally { setSendingWithdraw(false) }
 	}
 
@@ -413,7 +415,7 @@ const Withdraw = ({ navigation, route }) => {
 				actions={
 					showPinStep ? (
 						<QPButton
-							title={sourceSats ? `Redimir ${(Number(amountSats) || 0).toLocaleString()} sats` : `Extraer $${amountQUSD} ${currency}`}
+							title={sourceSats ? t('withdraw.index.redeemButton', { sats: (Number(amountSats) || 0).toLocaleString() }) : t('withdraw.index.withdrawButton', { amount: amountQUSD, currency })}
 							onPress={handleWithdraw}
 							disabled={!isFormValid || !pin || pin.length < codeLength}
 							loading={sendingWithdraw}
@@ -424,12 +426,12 @@ const Withdraw = ({ navigation, route }) => {
 						/>
 					) : (
 						<QPButton
-							title="Continuar"
+							title={t('common.actions.continue')}
 							onPress={() => {
 								// Gate preventivo: el backend rechaza retiros > $1000 sin KYC
 								if (!requireKyc({
 									gated: Number(amountQUSD) > KYC_WITHDRAW_THRESHOLD,
-									message: `Los retiros de más de $${KYC_WITHDRAW_THRESHOLD} requieren tener tu identidad verificada. Es rápido y solo se hace una vez.`,
+									message: t('withdraw.index.kycGate', { amount: KYC_WITHDRAW_THRESHOLD }),
 								})) return
 								setShowPinStep(true); setPin('')
 							}}
@@ -448,8 +450,8 @@ const Withdraw = ({ navigation, route }) => {
 					{isBTCLN && availableSats > 0 && (
 						<QPSwitch
 							value={source === 'satoshis' ? 'right' : 'left'}
-							leftText="Saldo"
-							rightText={`⚡ ${availableSats.toLocaleString()} sats`}
+							leftText={t('withdraw.index.sourceBalance')}
+							rightText={t('withdraw.index.sourceSats', { sats: availableSats.toLocaleString() })}
 							leftColor={theme.colors.primary}
 							rightColor="#F7931A"
 							onChange={(side) => setSource(side === 'right' ? 'satoshis' : 'balance')}
@@ -479,7 +481,7 @@ const Withdraw = ({ navigation, route }) => {
 							currency={currency}
 							onOpenCoinPicker={() => setShowCoinPicker(true)}
 							locked={amountLocked}
-							lockedCaption={`Monto fijado por la factura ⚡ ${lnAmountSats.toLocaleString()} sats`}
+							lockedCaption={t('withdraw.index.lockedByInvoice', { sats: lnAmountSats.toLocaleString() })}
 							theme={theme}
 							textStyles={textStyles}
 						/>
@@ -488,8 +490,9 @@ const Withdraw = ({ navigation, route }) => {
 					{/* Desglose del fee — misma cifra que cobrará el servidor */}
 					{!sourceSats && previewFee > 0 && (
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 6 }]}>
-							Comisión: ${previewFee.toFixed(2)}
-							{selectFeePct > 0 ? ` (incluye ${selectFeePct}% de logística)` : ''}
+							{selectFeePct > 0
+								? t('withdraw.index.feeWithLogistics', { fee: previewFee.toFixed(2), pct: selectFeePct })
+								: t('withdraw.index.fee', { fee: previewFee.toFixed(2) })}
 						</Text>
 					)}
 
@@ -518,8 +521,8 @@ const Withdraw = ({ navigation, route }) => {
 					{/* Info autoritativa de la factura escaneada (decode del backend, no crítico) */}
 					{isBTCLN && lnInfo?.kind === 'bolt11' && (
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 6 }]}>
-							{lnInfo.description ? `“${lnInfo.description}”` : 'Factura Lightning'}
-							{lnInfo.expires_at ? ` · expira en ${Math.max(0, Math.round((lnInfo.expires_at - Date.now()) / 60000))} min` : ''}
+							{lnInfo.description ? t('withdraw.index.lightningDescription', { description: lnInfo.description }) : t('withdraw.index.lightningInvoice')}
+							{lnInfo.expires_at ? t('withdraw.index.lightningExpires', { minutes: Math.max(0, Math.round((lnInfo.expires_at - Date.now()) / 60000)) }) : ''}
 						</Text>
 					)}
 

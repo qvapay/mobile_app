@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 // P2P API functions
 export const p2pApi = {
@@ -69,13 +70,13 @@ export const p2pApi = {
 				const errorData = error.response.data
 				return {
 					success: false,
-					error: errorData.message || 'No se pudieron obtener las ofertas P2P',
+					error: errorData.message || i18n.t('api.p2p.offersLoadFailed'),
 					details: errorData,
 					status: error.response.status
 				}
 			}
 
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -272,7 +273,7 @@ export const p2pApi = {
 			} else {
 				return {
 					success: false,
-					error: response.data?.error || 'No se pudo crear la oferta P2P',
+					error: response.data?.error || i18n.t('api.p2p.createFailed'),
 					details: response.data,
 					status: response.status
 				}
@@ -285,7 +286,7 @@ export const p2pApi = {
 					error:
 						errorData.error ||
 						errorData.message ||
-						'No se pudo crear la oferta P2P',
+						i18n.t('api.p2p.createFailed'),
 					details: errorData,
 					status: error.response.status
 				}
@@ -293,7 +294,7 @@ export const p2pApi = {
 
 			return {
 				success: false,
-				error: error.message || 'Ha ocurrido un error de red',
+				error: error.message || i18n.t('api.common.networkError'),
 				status: error.response?.status
 			}
 		}
@@ -315,11 +316,11 @@ export const p2pApi = {
 			if (error.response?.data) {
 				return {
 					success: false,
-					error: error.response.data.error || error.response.data.message || 'No se pudo editar la oferta',
+					error: error.response.data.error || error.response.data.message || i18n.t('api.p2p.editFailed'),
 					status: error.response.status
 				}
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -351,9 +352,9 @@ export const p2pApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener los promedios P2P', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.p2p.averagesLoadFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -388,7 +389,7 @@ export const p2pApi = {
 		} catch (error) {
 			return {
 				success: false,
-				error: error.response?.data?.error || error.response?.data?.message || error.message || 'No se pudo obtener el perfil',
+				error: error.response?.data?.error || error.response?.data?.message || error.message || i18n.t('api.p2p.profileLoadFailed'),
 				status: error.response?.status,
 			}
 		}

@@ -1,15 +1,18 @@
 import { useMemo } from 'react'
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { useTranslation } from 'react-i18next'
 
 import QPPhoneInput from '../../ui/QPPhoneInput'
 
-const SUB_TYPE_LABEL = {
-	MOBILE: 'Saldo',
-	DATA: 'Datos',
-	BUNDLE: 'Combo',
-	EXTERIOR: 'Exterior',
-	P2P: 'Local',
+// Constantes de módulo con CLAVES de i18n (no copy): se resuelven con t() en
+// render para que el idioma activo aplique en vivo
+const SUB_TYPE_LABEL_KEY = {
+	MOBILE: 'store.topupStep1.subTypes.MOBILE',
+	DATA: 'store.topupStep1.subTypes.DATA',
+	BUNDLE: 'store.topupStep1.subTypes.BUNDLE',
+	EXTERIOR: 'store.topupStep1.subTypes.EXTERIOR',
+	P2P: 'store.topupStep1.subTypes.P2P',
 }
 const SUB_TYPE_COLOR = {
 	MOBILE: '#3b82f6',
@@ -19,10 +22,10 @@ const SUB_TYPE_COLOR = {
 	P2P: '#06b6d4',
 }
 const SUBTYPE_TABS = [
-	{ key: 'ALL', label: 'Todos' },
-	{ key: 'MOBILE', label: 'Saldo' },
-	{ key: 'DATA', label: 'Datos' },
-	{ key: 'BUNDLE', label: 'Combo' },
+	{ key: 'ALL', labelKey: 'store.topupStep1.subTypes.ALL' },
+	{ key: 'MOBILE', labelKey: 'store.topupStep1.subTypes.MOBILE' },
+	{ key: 'DATA', labelKey: 'store.topupStep1.subTypes.DATA' },
+	{ key: 'BUNDLE', labelKey: 'store.topupStep1.subTypes.BUNDLE' },
 ]
 
 const extractBenefits = (text) => {
@@ -37,9 +40,10 @@ const extractHeadline = (text) => {
 
 const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }) => {
 
+	const { t } = useTranslation()
 	const isPhonePackage = offer.source === 'cuba'
 	const subTypeKey = (offer.sub_type || 'MOBILE').toUpperCase()
-	const subTypeLabel = SUB_TYPE_LABEL[subTypeKey] || subTypeKey
+	const subTypeLabel = SUB_TYPE_LABEL_KEY[subTypeKey] ? t(SUB_TYPE_LABEL_KEY[subTypeKey]) : subTypeKey
 	const subTypeColor = SUB_TYPE_COLOR[subTypeKey] || SUB_TYPE_COLOR.MOBILE
 
 	const headline = isPhonePackage ? offer.name : extractHeadline(offer.notes || offer.name)
@@ -60,7 +64,7 @@ const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }) => {
 		priceMain = `$${Number(offer.price).toFixed(2)}`
 	} else {
 		priceMain = `$${offer.price_min} – $${offer.price_max}`
-		priceSub = 'monto variable'
+		priceSub = t('store.common.variableAmount')
 	}
 
 	return (
@@ -90,7 +94,7 @@ const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }) => {
 				{(benefits.length > 0 || offer.period || (isPhonePackage && offer.external)) && (
 					<View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4, gap: 8 }}>
 						{offer.period && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{offer.period}</Text>}
-						{isPhonePackage && offer.external && <Text style={[textStyles.caption, { color: '#f59e0b' }]}>Exterior</Text>}
+						{isPhonePackage && offer.external && <Text style={[textStyles.caption, { color: '#f59e0b' }]}>{t('store.topupStep1.subTypes.EXTERIOR')}</Text>}
 						{benefits.map((b, i) => (
 							<Text key={i} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{b}</Text>
 						))}
@@ -113,9 +117,11 @@ const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }) => {
 // Step 1 of the top-up wizard: recipient phone, plan-type tabs, plan list + range amount.
 const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offers, activeTab, onSelectTab, selectedOffer, rangeAmount, onSelectOffer, onChangeRange, isGold, theme, textStyles }) => {
 
+	const { t } = useTranslation()
+
 	const availableSubTypes = useMemo(() => {
 		const set = new Set(offers.map(o => (o.sub_type || 'MOBILE').toUpperCase()))
-		return SUBTYPE_TABS.filter(t => t.key === 'ALL' || set.has(t.key))
+		return SUBTYPE_TABS.filter(tab => tab.key === 'ALL' || set.has(tab.key))
 	}, [offers])
 
 	const visibleOffers = useMemo(() => {
@@ -128,7 +134,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 			{/* Phone input — país bloqueado al del brand, sin selector */}
 			<View style={styles.section}>
 				<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 8 }]}>
-					<FontAwesome6 name="phone" size={12} color={theme.colors.primaryText} iconStyle="solid" />  Número del destinatario
+					<FontAwesome6 name="phone" size={12} color={theme.colors.primaryText} iconStyle="solid" />  {t('store.topupStep1.recipientNumber')}
 				</Text>
 
 				<QPPhoneInput
@@ -136,21 +142,21 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 					valid={phoneValid}
 					value={phoneNumber}
 					onChangeText={onChangePhone}
-					placeholder="Número local"
+					placeholder={t('store.topupStep1.localNumberPlaceholder')}
 				/>
 
 				{!phoneValid && phoneNumber.length > 0 ? (
 					<View style={styles.hintRow}>
 						<FontAwesome6 name="circle-exclamation" size={11} color={theme.colors.danger} iconStyle="solid" />
 						<Text style={[textStyles.caption, { color: theme.colors.danger, marginLeft: 6 }]}>
-							Número inválido para {country?.name}
+							{t('store.topupStep1.invalidNumberFor', { country: country?.name || '' })}
 						</Text>
 					</View>
 				) : (
 					<View style={styles.hintRow}>
 						<FontAwesome6 name="circle-info" size={11} color={theme.colors.tertiaryText} iconStyle="solid" />
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginLeft: 6 }]}>
-							Solo números de {country?.flag} {country?.name}
+							{t('store.topupStep1.onlyNumbersFrom', { flag: country?.flag || '', country: country?.name || '' })}
 						</Text>
 					</View>
 				)}
@@ -159,19 +165,19 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 			{/* SubType tabs */}
 			{availableSubTypes.length > 2 && (
 				<View style={[styles.tabs, theme.mode === 'light' && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}>
-					{availableSubTypes.map(t => {
-						const active = activeTab === t.key
-						const cnt = t.key === 'ALL'
+					{availableSubTypes.map(tab => {
+						const active = activeTab === tab.key
+						const cnt = tab.key === 'ALL'
 							? offers.length
-							: offers.filter(o => (o.sub_type || 'MOBILE').toUpperCase() === t.key).length
+							: offers.filter(o => (o.sub_type || 'MOBILE').toUpperCase() === tab.key).length
 						return (
 							<Pressable
-								key={t.key}
-								onPress={() => onSelectTab(t.key)}
+								key={tab.key}
+								onPress={() => onSelectTab(tab.key)}
 								style={[styles.tab, { borderBottomColor: active ? theme.colors.primary : 'transparent' }]}
 							>
 								<Text style={[textStyles.h6, { color: active ? theme.colors.primary : theme.colors.tertiaryText, fontWeight: '600' }]}>
-									{t.label} <Text style={{ color: theme.colors.tertiaryText, fontSize: 12 }}>{cnt}</Text>
+									{t(tab.labelKey)} <Text style={{ color: theme.colors.tertiaryText, fontSize: 12 }}>{cnt}</Text>
 								</Text>
 							</Pressable>
 						)
@@ -182,7 +188,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 			{/* Offer list */}
 			<View style={styles.section}>
 				<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 10 }]}>
-					Selecciona un plan
+					{t('store.topupStep1.selectPlan')}
 				</Text>
 				<View style={{ gap: 8 }}>
 					{visibleOffers.map((offer, idx) => (
@@ -201,7 +207,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 				{selectedOffer?.price_type === 'RANGE' && (
 					<View style={[styles.rangeBox, { borderWidth: 1, borderColor: theme.colors.primary + '40', backgroundColor: theme.colors.primary + '08' }]}>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6 }]}>
-							Monto USD (entre ${selectedOffer.price_min} y ${selectedOffer.price_max})
+							{t('store.common.amountUsdBetween', { min: `$${selectedOffer.price_min}`, max: `$${selectedOffer.price_max}` })}
 						</Text>
 						<TextInput
 							value={rangeAmount}

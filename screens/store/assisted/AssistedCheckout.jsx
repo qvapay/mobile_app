@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -20,46 +21,55 @@ import NewAddressForm, { EMPTY_US_ADDRESS, validateUsAddress, buildAddressBody }
 import { ROUTES } from '../../../routes'
 import { shopApi } from '../../../api/shopApi'
 
+// i18n (call-time inside effects, so `t` stays out of the dep arrays)
+import i18n from '../../../i18n'
+
 // Constants
 import { money } from './assistedConstants'
 
 // Subtotal + tax + total card (server-side quote)
-const QuoteSummary = ({ quote, insufficient, balance, total, theme, textStyles }) => (
+const QuoteSummary = ({ quote, insufficient, balance, total, theme, textStyles }) => {
+
+	const { t } = useTranslation()
+
+	return (
 	<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
-		<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>Resumen</Text>
+		<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>{t('assisted.common.summary')}</Text>
 		{quote ? (
 			<>
 				<View style={styles.summaryRow}>
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Subtotal ({quote.item_count} producto{quote.item_count === 1 ? '' : 's'})</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('assisted.checkout.subtotalItems', { count: quote.item_count })}</Text>
 					<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(quote.subtotal)}</Text>
 				</View>
 				<View style={styles.summaryRow}>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-						Tax {quote.state} ({(quote.tax_rate * 100).toFixed(2)}%)
+						{t('assisted.checkout.taxLine', { state: quote.state, rate: (quote.tax_rate * 100).toFixed(2) })}
 					</Text>
 					<Text style={[textStyles.h6, { fontWeight: '500' }]}>{money(quote.tax)}</Text>
 				</View>
 				<View style={[styles.summaryRow, styles.totalRow, { borderTopColor: `${theme.colors.secondaryText}33` }]}>
-					<Text style={[textStyles.h6, { fontWeight: '600' }]}>Total</Text>
+					<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('assisted.checkout.total')}</Text>
 					<Text style={[textStyles.h5, { fontWeight: '600', color: theme.colors.primary }]}>{money(quote.total)}</Text>
 				</View>
 				{insufficient && (
 					<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-						Saldo insuficiente — tienes {money(balance)} y necesitas {money(total)}.
+						{t('assisted.checkout.insufficientBalance', { balance: money(balance), total: money(total) })}
 					</Text>
 				)}
 			</>
 		) : (
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-				Selecciona el estado de destino para calcular el tax.
+				{t('assisted.checkout.selectStateHint')}
 			</Text>
 		)}
 	</View>
-)
+	)
+}
 
 // Purchase confirmation — centered card modal
 const ConfirmPurchaseModal = ({ visible, paying, total, addressSummary, onPay, onClose, theme, textStyles }) => {
 
+	const { t } = useTranslation()
 	const containerStyles = createContainerStyles(theme)
 
 	return (
@@ -69,16 +79,16 @@ const ConfirmPurchaseModal = ({ visible, paying, total, addressSummary, onPay, o
 				<View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
 					<FontAwesome6 name="basket-shopping" size={22} color={theme.colors.primary} iconStyle="solid" />
 				</View>
-				<Text style={[textStyles.h4, { fontWeight: '600', textAlign: 'center', marginTop: 12 }]}>Confirmar compra</Text>
+				<Text style={[textStyles.h4, { fontWeight: '600', textAlign: 'center', marginTop: 12 }]}>{t('assisted.checkout.confirmTitle')}</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
-					Se descontarán {money(total)} de tu balance. Enviaremos a:
+					{t('assisted.checkout.confirmBody', { amount: money(total) })}
 				</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 6, lineHeight: 18 }]} numberOfLines={3}>
 					{addressSummary}
 				</Text>
-				<QPButton title={`Pagar ${money(total)}`} onPress={onPay} loading={paying} style={{ marginTop: 18 }} />
+				<QPButton title={t('assisted.checkout.payAmount', { amount: money(total) })} onPress={onPay} loading={paying} style={{ marginTop: 18 }} />
 				<Pressable style={{ marginTop: 12, alignSelf: 'center' }} onPress={() => !paying && onClose()}>
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Cancelar</Text>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('common.actions.cancel')}</Text>
 				</Pressable>
 			</Pressable>
 		</Pressable>
@@ -94,6 +104,7 @@ const ConfirmPurchaseModal = ({ visible, paying, total, addressSummary, onPay, o
  */
 const AssistedCheckout = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
@@ -122,7 +133,7 @@ const AssistedCheckout = ({ navigation }) => {
 					setUseNewAddress(true)
 				}
 			} else {
-				toast.error('Direcciones', { description: res.error })
+				toast.error(i18n.t('assisted.checkout.toasts.addressesTitle'), { description: res.error })
 				setUseNewAddress(true)
 			}
 			setLoading(false)
@@ -148,7 +159,7 @@ const AssistedCheckout = ({ navigation }) => {
 			if (res.success) setQuote(res.data?.quote || null)
 			else {
 				setQuote(null)
-				toast.error('Checkout', { description: res.error })
+				toast.error(i18n.t('assisted.checkout.toasts.checkoutTitle'), { description: res.error })
 			}
 		}
 		fetchQuote()
@@ -165,7 +176,7 @@ const AssistedCheckout = ({ navigation }) => {
 
 	const handleConfirm = () => {
 		if (useNewAddress && formError) {
-			toast.error('Dirección', { description: formError })
+			toast.error(t('assisted.checkout.toasts.addressTitle'), { description: formError })
 			return
 		}
 		setConfirmVisible(true)
@@ -180,10 +191,10 @@ const AssistedCheckout = ({ navigation }) => {
 		setPaying(false)
 		setConfirmVisible(false)
 		if (res.success && res.data?.ok) {
-			toast.success('Compra realizada', { description: `Pedido #${res.data.cart_id} confirmado por ${money(res.data.total)}` })
+			toast.success(t('assisted.checkout.toasts.successTitle'), { description: t('assisted.checkout.toasts.successBody', { id: res.data.cart_id, amount: money(res.data.total) }) })
 			navigation.replace(ROUTES.ASSISTED_ORDER_DETAIL, { id: res.data.cart_id })
 		} else {
-			toast.error('Checkout', { description: res.error })
+			toast.error(t('assisted.checkout.toasts.checkoutTitle'), { description: res.error })
 		}
 	}
 
@@ -204,9 +215,9 @@ const AssistedCheckout = ({ navigation }) => {
 			>
 
 				{/* Address selector */}
-				<Text style={[textStyles.h5, { fontWeight: '600' }]}>Dirección de envío</Text>
+				<Text style={[textStyles.h5, { fontWeight: '600' }]}>{t('assisted.common.shippingAddress')}</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4 }]}>
-					Por ahora solo enviamos dentro de Estados Unidos.
+					{t('assisted.checkout.usOnly')}
 				</Text>
 
 				{addresses.length > 0 && (
@@ -228,7 +239,7 @@ const AssistedCheckout = ({ navigation }) => {
 				<QuoteSummary quote={quote} insufficient={insufficient} balance={balance} total={total} theme={theme} textStyles={textStyles} />
 
 				<QPButton
-					title={quote ? `Pagar ${money(quote.total)}` : 'Pagar'}
+					title={quote ? t('assisted.checkout.payAmount', { amount: money(quote.total) }) : t('assisted.checkout.pay')}
 					icon="lock"
 					onPress={handleConfirm}
 					disabled={!canPay}

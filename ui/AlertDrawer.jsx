@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, Dimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,
@@ -50,15 +51,16 @@ const SPRING = { dampingRatio: 1, duration: 400 }
  * @param {function} props.onConfirm - Fired when the (morphed) danger button is pressed while expanded.
  * @param {string} [props.confirmLabel=buttonLabel] - Danger button label while expanded;
  *        crossfades from `buttonLabel` when they differ.
- * @param {string} [props.cancelLabel='Cancelar'] - Neutral pill label.
+ * @param {string} [props.cancelLabel] - Neutral pill label (defaults to the localized "Cancelar").
  * @param {function} [props.onCancel] - Optional action for the neutral pill (fired after
  *        collapsing). Without it the pill is a plain cancel. The ✕ always just dismisses.
  * @param {string} [props.icon='exclamation'] - FontAwesome6 icon inside the danger circle.
  * @param {function} [props.onBeforeExpand] - Awaited before expanding; use it to
  *        resolve content that is only known at press time (e.g. biometrics state).
  */
-const AlertDrawer = ({ buttonLabel, title, description, onConfirm, confirmLabel, cancelLabel = 'Cancelar', onCancel, icon = 'exclamation', onBeforeExpand, style }) => {
+const AlertDrawer = ({ buttonLabel, title, description, onConfirm, confirmLabel, cancelLabel, onCancel, icon = 'exclamation', onBeforeExpand, style }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const [expanded, setExpanded] = useState(false)
 
@@ -169,7 +171,7 @@ const AlertDrawer = ({ buttonLabel, title, description, onConfirm, confirmLabel,
 				<View style={styles.actionsRow}>
 					<QPPressable onPress={handleCancelPress} style={[styles.cancelButton, { backgroundColor: theme.colors.background }]}>
 						<Text numberOfLines={1} style={{ fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold, color: theme.colors.primaryText }}>
-							{cancelLabel}
+							{cancelLabel ?? t('common.actions.cancel')}
 						</Text>
 					</QPPressable>
 					<View style={styles.confirmSlot} onLayout={(e) => { slotWidth.value = e.nativeEvent.layout.width }} />

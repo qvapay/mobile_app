@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useNavigation } from "@react-navigation/native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { View, Text, Platform, ScrollView, Keyboard, useWindowDimensions } from "react-native"
@@ -56,6 +57,7 @@ import P2PActionBar from "./P2PActionBar"
  */
 const P2POffer = ({ route }) => {
 
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const navigation = useNavigation()
 
@@ -142,7 +144,7 @@ const P2POffer = ({ route }) => {
 		return (
 			<View style={containerStyles.subContainer}>
 				<View style={[containerStyles.card, { alignItems: "center", justifyContent: "center" }]}>
-					<Text style={[textStyles.h5, { color: theme.colors.danger }]}>No se pudo cargar la oferta</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.danger }]}>{t('p2p.offer.loadFailed')}</Text>
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error.error || error.message || error)}</Text>
 				</View>
 			</View>
@@ -186,7 +188,7 @@ const P2POffer = ({ route }) => {
 					{status === "open" ? (
 						isOwner ? (
 							<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>Estamos buscando un peer interesado en tu oferta.</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>{t('p2p.offer.searchingPeer')}</Text>
 								<LottieView source={require("../../assets/lotties/searching.json")} autoPlay loop style={{ width: 250, height: 250 }} />
 							</View>
 						) : (
@@ -209,14 +211,14 @@ const P2POffer = ({ route }) => {
 									<View style={[containerStyles.card, { marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 }]}>
 										<View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
 											<FontAwesome6 name="file-lines" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-											<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>Términos del anunciante</Text>
+											<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5 }]}>{t('p2p.offer.advertiserTerms')}</Text>
 										</View>
 										<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{p2p.User.p2p_message}</Text>
 									</View>
 								) : null}
 
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
-									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>¿Quieres aplicar a esta oferta?</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>{t('p2p.offer.applyQuestion')}</Text>
 								</View>
 							</>
 						)
@@ -267,30 +269,30 @@ const P2POffer = ({ route }) => {
 
 				{/* Trade-action confirmation (cancel / mark-paid / release) with explicit summary + warning */}
 				{confirmModal && (() => {
-					const counterpartyName = counterparty?.username ? `@${counterparty.username}` : "tu contraparte"
+					const counterpartyName = counterparty?.username ? `@${counterparty.username}` : t('p2p.offer.counterpartyFallback')
 					const railAmount = `${p2p?.receive} ${p2p?.Coin?.name || ""}`.trim()
 					const configs = {
 						cancel: {
 							icon: "ban", iconColor: theme.colors.danger,
-							title: "Cancelar oferta",
-							body: "¿Seguro que quieres cancelar esta oferta? Esta acción no se puede deshacer.",
-							confirmLabel: "Sí, cancelar", confirmBg: theme.colors.danger, confirmTextColor: theme.colors.almostWhite,
+							title: t('p2p.offer.confirm.cancel.title'),
+							body: t('p2p.offer.confirm.cancel.body'),
+							confirmLabel: t('p2p.offer.confirm.cancel.confirmLabel'), confirmBg: theme.colors.danger, confirmTextColor: theme.colors.almostWhite,
 							loading: loading.cancel,
 						},
 						markPaid: {
 							icon: "money-bill-wave", iconColor: theme.colors.primary,
-							title: "¿Ya realizaste el pago?",
-							body: `Confirma que enviaste ${railAmount} a ${counterpartyName}.`,
-							warning: "Márcalo solo si la transferencia ya está hecha. Marcar sin pagar puede llevar la oferta a revisión.",
-							confirmLabel: "Sí, he pagado", confirmBg: theme.colors.successFill, confirmTextColor: theme.colors.successFillText,
+							title: t('p2p.offer.confirm.markPaid.title'),
+							body: t('p2p.offer.confirm.markPaid.body', { amount: railAmount, counterparty: counterpartyName }),
+							warning: t('p2p.offer.confirm.markPaid.warning'),
+							confirmLabel: t('p2p.offer.confirm.markPaid.confirmLabel'), confirmBg: theme.colors.successFill, confirmTextColor: theme.colors.successFillText,
 							loading: loading.markPaid,
 						},
 						received: {
 							icon: "lock-open", iconColor: theme.colors.warning,
-							title: "Liberar fondos",
-							body: `Vas a liberar $${p2p?.amount} de tu saldo a ${counterpartyName}.`,
-							warning: `Confirma solo si ${railAmount} ya está en tu cuenta. Esta acción es irreversible.`,
-							confirmLabel: "Liberar", confirmBg: theme.colors.primary, confirmTextColor: theme.colors.almostWhite,
+							title: t('p2p.offer.confirm.release.title'),
+							body: t('p2p.offer.confirm.release.body', { amount: p2p?.amount, counterparty: counterpartyName }),
+							warning: t('p2p.offer.confirm.release.warning', { amount: railAmount }),
+							confirmLabel: t('p2p.offer.confirm.release.confirmLabel'), confirmBg: theme.colors.primary, confirmTextColor: theme.colors.almostWhite,
 							loading: loading.received,
 						},
 					}

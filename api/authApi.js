@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 // Authentication API functions
 export const authApi = {
@@ -48,7 +49,7 @@ export const authApi = {
 				const errorData = error.response.data
 				return {
 					success: false,
-					error: errorData.message || errorData.error || 'No se pudo iniciar sesión',
+					error: errorData.message || errorData.error || i18n.t('api.auth.loginFailed'),
 					details: errorData,
 					status: error.response?.status ?? null,
 					action: errorData.action || null,
@@ -56,7 +57,7 @@ export const authApi = {
 			}
 
 			// Network or unexpected error
-			const friendlyMessage = 'No se ha podido conectar al servidor'
+			const friendlyMessage = i18n.t('api.auth.connectFailed')
 			return {
 				success: false,
 				error: error.message || friendlyMessage,
@@ -84,9 +85,9 @@ export const authApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.message || 'No se pudo solicitar el PIN', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.message || i18n.t('api.auth.requestPinFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response.status }
 		}
 	},
 
@@ -134,9 +135,9 @@ export const authApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo registrar', details: errorData }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.auth.registerFailed'), details: errorData }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red' }
+			return { success: false, error: error.message || i18n.t('api.common.networkError') }
 		}
 	},
 
@@ -163,11 +164,11 @@ export const authApi = {
 				const errorData = error.response.data
 				return {
 					success: false,
-					error: errorData.error || errorData.message || 'No se pudo confirmar el registro',
+					error: errorData.error || errorData.message || i18n.t('api.auth.confirmRegistrationFailed'),
 					details: errorData
 				}
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red' }
+			return { success: false, error: error.message || i18n.t('api.common.networkError') }
 		}
 	},
 
@@ -183,7 +184,7 @@ export const authApi = {
 			const response = await apiClient.get('/auth/passkey/list')
 			return { success: true, data: response.data.passkeys }
 		} catch (error) {
-			return { success: false, error: error.response?.data?.error || 'Error al obtener passkeys' }
+			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeysLoadFailed') }
 		}
 	},
 
@@ -198,7 +199,7 @@ export const authApi = {
 			const response = await apiClient.post('/auth/passkey/delete', { id })
 			return { success: true }
 		} catch (error) {
-			return { success: false, error: error.response?.data?.error || 'Error al eliminar passkey' }
+			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyDeleteFailed') }
 		}
 	},
 
@@ -214,7 +215,7 @@ export const authApi = {
 		try {
 			const response = await apiClient.post('/auth/passkey/register-options', { name })
 			return { success: true, data: response.data }
-		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al generar opciones de registro' } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyRegisterOptionsFailed') } }
 	},
 
 	/**
@@ -228,7 +229,7 @@ export const authApi = {
 		try {
 			const response = await apiClient.post('/auth/passkey/register-verify', attestation)
 			return { success: true, data: response.data }
-		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al verificar el registro' } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyRegisterVerifyFailed') } }
 	},
 
 	/**
@@ -241,7 +242,7 @@ export const authApi = {
 		try {
 			const response = await apiClient.post('/auth/passkey/login-options')
 			return { success: true, data: response.data }
-		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al generar opciones de autenticación' } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyLoginOptionsFailed') } }
 	},
 
 	/**
@@ -263,7 +264,7 @@ export const authApi = {
 				tokenType: response.data.token_type,
 				me: response.data.me,
 			}
-		} catch (error) { return { success: false, error: error.response?.data?.error || 'Error al verificar la autenticación' } }
+		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyLoginVerifyFailed') } }
 	},
 
 	/**
@@ -289,11 +290,11 @@ export const authApi = {
 				const errorData = error.response.data
 				return {
 					success: false,
-					error: errorData.error || errorData.message || 'No se pudo solicitar el restablecimiento de contraseña',
+					error: errorData.error || errorData.message || i18n.t('api.auth.resetPasswordFailed'),
 					details: errorData
 				}
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red' }
+			return { success: false, error: error.message || i18n.t('api.common.networkError') }
 		}
 	}
 }

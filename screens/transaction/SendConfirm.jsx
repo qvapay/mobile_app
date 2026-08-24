@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect, useEffectEvent, useReducer } from 'react'
 import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
+
+// i18n en call time para los toasts disparados dentro de efectos (usar el `t`
+// del hook ahí obligaría a re-correr el fetch del destinatario al cambiar idioma)
+import i18n from '../../i18n'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -38,7 +43,7 @@ import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 import { getActiveSession } from '../../nearby/session'
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el envío
-import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from '../../helpers/idempotency'
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
 
 // PIN/OTP entry sub-flow state — one cohesive unit
 function pinFlowReducer(state, action) {
@@ -62,6 +67,7 @@ const initialPinFlow = { showPinStep: false, sendingPin: false }
 const SendConfirm = ({ navigation, route }) => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -118,12 +124,12 @@ const SendConfirm = ({ navigation, route }) => {
 				if (result.success && result.data.length > 0) {
 					setRecipientUser(result.data[0])
 				} else {
-					toast.error('Error', { description: 'No se pudo encontrar el usuario destinatario' })
+					toast.error(i18n.t('transactions.common.errorTitle'), { description: i18n.t('transactions.sendConfirm.recipientNotFound') })
 					navigation.goBack()
 				}
 			} catch (error) {
 				if (cancelled) return
-				toast.error('Error', { description: 'Error al cargar los datos del destinatario' })
+				toast.error(i18n.t('transactions.common.errorTitle'), { description: i18n.t('transactions.sendConfirm.toasts.recipientLoadFailed') })
 				navigation.goBack()
 			} finally { if (!cancelled) setIsLoadingUser(false) }
 		}
@@ -137,12 +143,12 @@ const SendConfirm = ({ navigation, route }) => {
 			setSendingPin(true)
 			const result = await withdrawApi.requestPin()
 			if (result.success) {
-				toast.success('PIN enviado', { description: 'Revisa tu correo electrónico' })
+				toast.success(t('transactions.sendConfirm.toasts.pinSentTitle'), { description: t('transactions.sendConfirm.toasts.pinSentBody') })
 			} else {
-				toast.error(result.error || 'No se pudo enviar el PIN')
+				toast.error(result.error || t('transactions.sendConfirm.toasts.pinSendFailed'))
 			}
 		} catch (error) {
-			toast.error('Error al solicitar el PIN')
+			toast.error(t('transactions.sendConfirm.toasts.pinRequestFailed'))
 		} finally { setSendingPin(false) }
 	}
 
@@ -174,7 +180,7 @@ const SendConfirm = ({ navigation, route }) => {
 	const executeTransaction = async () => {
 
 		if (!pin || pin.length !== codeLength) {
-			toast.error(twoFactorMethod === 'pin' ? 'Ingresa un PIN de 4 dígitos' : 'Ingresa un código OTP de 6 dígitos')
+			toast.error(twoFactorMethod === 'pin' ? t('transactions.sendConfirm.toasts.enterPin4') : t('transactions.sendConfirm.toasts.enterOtp6'))
 			return
 		}
 
@@ -194,12 +200,12 @@ const SendConfirm = ({ navigation, route }) => {
 				getActiveSession()?.notifyPaymentSent({ toUuid: recipientUser.uuid, amount: send_amount, txUuid: result.data?.uuid })
 				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser, description: description })
 			} else if (isNetworkFailure(result)) {
-				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${SAFE_RETRY_HINT}` })
+				toast.error(t('transactions.sendConfirm.toasts.networkErrorTitle'), { description: `${result.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {
-				toast.error('Error en la transacción', { description: result.error || 'No se pudo completar la transacción' })
+				toast.error(t('transactions.sendConfirm.toasts.transactionErrorTitle'), { description: result.error || t('transactions.sendConfirm.toasts.transactionFailed') })
 			}
 		} catch (error) {
-			toast.error('Error', { description: error.message || 'Error inesperado al procesar la transacción' })
+			toast.error(t('transactions.common.errorTitle'), { description: error.message || t('transactions.sendConfirm.toasts.unexpectedError') })
 		} finally { setIsLoading(false) }
 	}
 
@@ -212,13 +218,13 @@ const SendConfirm = ({ navigation, route }) => {
 			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
 				<FontAwesome6 name="user-slash" size={64} color={theme.colors.tertiaryText} iconStyle="solid" />
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText, marginTop: 20, textAlign: 'center' }]}>
-					Usuario no encontrado
+					{t('transactions.sendConfirm.userNotFound')}
 				</Text>
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 10, textAlign: 'center' }]}>
-					No se pudo encontrar el usuario destinatario
+					{t('transactions.sendConfirm.recipientNotFound')}
 				</Text>
 				<QPButton
-					title="Volver"
+					title={t('common.actions.back')}
 					onPress={() => navigation.goBack()}
 					style={{ marginTop: 30, width: '80%' }}
 					textStyle={{ color: theme.colors.buttonText }}
@@ -246,7 +252,7 @@ const SendConfirm = ({ navigation, route }) => {
 
 					{showPinStep ? (
 						<QPButton
-							title="Confirmar Envío"
+							title={t('transactions.sendConfirm.confirmSend')}
 							onPress={executeTransaction}
 							loading={isLoading}
 							disabled={isLoading || !pin || pin.length < codeLength}
@@ -258,12 +264,12 @@ const SendConfirm = ({ navigation, route }) => {
 						/>
 					) : (
 						<QPButton
-							title="Continuar"
+							title={t('common.actions.continue')}
 							onPress={() => {
 								// Gate preventivo: el backend rechaza envíos >= $500 sin KYC
 								if (!requireKyc({
 									gated: Number(send_amount) >= KYC_TRANSFER_THRESHOLD,
-									message: `Los envíos de $${KYC_TRANSFER_THRESHOLD} o más requieren tener tu identidad verificada. Es rápido y solo se hace una vez.`,
+									message: t('transactions.sendConfirm.kycGateMessage', { amount: KYC_TRANSFER_THRESHOLD }),
 								})) return
 								setShowPinStep(true); setPin('')
 							}}

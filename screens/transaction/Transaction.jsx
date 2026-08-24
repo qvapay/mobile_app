@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // Async Storage
@@ -76,6 +77,7 @@ const Transaction = ({ route, navigation }) => {
 	const [loading, setLoading] = useState(false)
 
 	// Contexts
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -164,7 +166,7 @@ const Transaction = ({ route, navigation }) => {
 
 			const token = await getAuthToken()
 			if (!token) {
-				toast.error('Error', { description: 'No se pudo obtener el token de autenticación' })
+				toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.tokenFailed') })
 				return
 			}
 
@@ -184,10 +186,10 @@ const Transaction = ({ route, navigation }) => {
 				if (Platform.OS === 'ios') {
 					ReactNativeBlobUtil.ios.openDocument(path)
 				} else { ReactNativeBlobUtil.android.actionViewIntent(path, 'application/pdf') }
-				toast.success('Éxito', { description: 'PDF descargado correctamente' })
-			} else { toast.error('Error', { description: 'No se pudo descargar el PDF' }) }
+				toast.success(t('transactions.detail.toasts.successTitle'), { description: t('transactions.detail.toasts.pdfDownloaded') })
+			} else { toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.pdfFailed') }) }
 		} catch (error) {
-			toast.error('Error', { description: 'No se pudo descargar el PDF' })
+			toast.error(t('transactions.common.errorTitle'), { description: t('transactions.detail.toasts.pdfFailed') })
 		} finally { downloadingRef.current = false }
 	}
 
@@ -206,11 +208,11 @@ const Transaction = ({ route, navigation }) => {
 				</View>
 
 				{/* Transaction Details Card */}
-				<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 5 }]}>Detalles de la Transacción:</Text>
+				<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 5 }]}>{t('transactions.detail.detailsTitle')}</Text>
 
 				<View style={[styles.detailsCard, { backgroundColor: theme.colors.surface }]}>
 
-					<DetailRow label="ID:">
+					<DetailRow label={t('transactions.detail.id')}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 							<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{getFirstChunk(transactionDetails.uuid)}</Text>
 							<Pressable onPress={() => copyTextToClipboard(transactionDetails.uuid)}>
@@ -219,9 +221,9 @@ const Transaction = ({ route, navigation }) => {
 						</View>
 					</DetailRow>
 
-					<DetailRow label="Monto:" value={`$${amountFixed}`} />
+					<DetailRow label={t('transactions.detail.amount')} value={`$${amountFixed}`} />
 
-					<DetailRow label="Estado:">
+					<DetailRow label={t('transactions.detail.status')}>
 						<View style={[styles.statusBadge, { backgroundColor: getStatusColor(transactionDetails.status, theme) }]}>
 							<Text style={[textStyles.h7, { color: theme.colors.almostBlack, fontWeight: '600' }]}>
 								{statusText(transactionDetails.status)}
@@ -233,7 +235,7 @@ const Transaction = ({ route, navigation }) => {
 						const parsed = parseTransactionDescription(transactionDetails.description)
 						return (
 							<View style={[styles.detailRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Nota:</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('transactions.detail.note')}</Text>
 								{parsed.type === 'sticker' ? (
 									<TransactionSticker name={parsed.sticker} size={96} />
 								) : (
@@ -243,7 +245,7 @@ const Transaction = ({ route, navigation }) => {
 						)
 					})()}
 
-					<DetailRow label="Fecha:" value={getShortDateTime(transactionDetails.created_at)} last />
+					<DetailRow label={t('transactions.detail.date')} value={getShortDateTime(transactionDetails.created_at)} last />
 
 				</View>
 
@@ -255,7 +257,7 @@ const Transaction = ({ route, navigation }) => {
 				{((transactionDetails.user && transactionDetails.paid_by) || transactionDetails.withdraw) && (
 					<View style={[containerStyles.bottomButtonContainer, { marginTop: 'auto', paddingBottom: insets.bottom + 16 }]}>
 						<QPButton
-							title="Descargar"
+							title={t('transactions.detail.download')}
 							icon="download"
 							iconColor="white"
 							onPress={handleDownloadPDF}

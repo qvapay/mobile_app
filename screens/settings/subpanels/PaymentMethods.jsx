@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useReducer } from 'react'
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -73,6 +74,9 @@ const DEFAULT_METHOD_COINS = [
 
 const PaymentMethods = ({ navigation }) => {
 
+	// i18n
+	const { t } = useTranslation()
+
 	// Theme
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -118,13 +122,13 @@ const PaymentMethods = ({ navigation }) => {
 				dispatchData({ type: 'set', field: 'error', value: null })
 				const methodsRes = await userApi.getPaymentMethods()
 				if (methodsRes?.success) { dispatchData({ type: 'set', field: 'methods', value: Array.isArray(methodsRes.data) ? methodsRes.data : (methodsRes.data?.methods || []) }) }
-				else { dispatchData({ type: 'set', field: 'error', value: methodsRes?.error || 'No se pudieron cargar los métodos de pago' }) }
+				else { dispatchData({ type: 'set', field: 'error', value: methodsRes?.error || t('settings.paymentMethods.toasts.loadFailed') }) }
 			} catch (e) {
-				dispatchData({ type: 'set', field: 'error', value: e.message || 'Error de red' })
+				dispatchData({ type: 'set', field: 'error', value: e.message || t('settings.paymentMethods.toasts.networkError') })
 			} finally { setLoading(false) }
 		}
 		load()
-	}, [])
+	}, [t])
 
 	// Refresh methods
 	const refresh = async () => {
@@ -132,8 +136,8 @@ const PaymentMethods = ({ navigation }) => {
 			setRefreshing(true)
 			const res = await userApi.getPaymentMethods()
 			if (res.success) { dispatchData({ type: 'set', field: 'methods', value: Array.isArray(res.data) ? res.data : (res.data?.methods || []) }) }
-			else { toast.error(res.error || 'No se pudieron cargar los métodos de pago') }
-		} catch (e) { toast.error(e.message || 'Error de red') }
+			else { toast.error(res.error || t('settings.paymentMethods.toasts.loadFailed')) }
+		} catch (e) { toast.error(e.message || t('settings.paymentMethods.toasts.networkError')) }
 		finally { setRefreshing(false) }
 	}
 
@@ -155,14 +159,14 @@ const PaymentMethods = ({ navigation }) => {
 	const handleCreate = async () => {
 
 		if (!selectedCoin) {
-			toast.error('Selecciona una moneda')
+			toast.error(t('settings.paymentMethods.toasts.selectCoin'))
 			return
 		}
 
 		if ((workingFields || []).length > 0) {
 			const allFilled = workingFields.every((field) => ((workingForm[keyFromFieldName(field.name)] ?? '').toString().trim()).length > 0)
 			if (!allFilled) {
-				toast.error('Faltan datos', { description: 'Completa los campos requeridos' })
+				toast.error(t('settings.paymentMethods.toasts.missingData'), { description: t('settings.paymentMethods.toasts.missingDataDescription') })
 				return
 			}
 		}
@@ -182,32 +186,32 @@ const PaymentMethods = ({ navigation }) => {
 			const res = await userApi.createPaymentMethod(payload)
 
 			if (res.success) {
-				toast.success('Método creado')
+				toast.success(t('settings.paymentMethods.toasts.created'))
 				await refresh()
 				closeCreate()
-			} else { toast.error(res.error || 'No se pudo crear el método') }
+			} else { toast.error(res.error || t('settings.paymentMethods.toasts.createFailed')) }
 		} catch (e) {
-			toast.error(e.message || 'Error de red')
+			toast.error(e.message || t('settings.paymentMethods.toasts.networkError'))
 		} finally { dispatchCreate({ type: 'setCreating', value: false }) }
 	}
 
 	// Handle delete method
 	const handleDelete = (method) => {
 		const id = method?.id || method?.uuid || method?.ID || method?.Id
-		if (!id) { toast.error('ID de método inválido'); return }
+		if (!id) { toast.error(t('settings.paymentMethods.toasts.invalidId')); return }
 		Alert.alert(
-			'Eliminar método',
-			'¿Seguro que deseas eliminar este método de pago?',
+			t('settings.paymentMethods.alerts.deleteTitle'),
+			t('settings.paymentMethods.alerts.deleteBody'),
 			[
-				{ text: 'Cancelar', style: 'cancel' },
+				{ text: t('common.actions.cancel'), style: 'cancel' },
 				{
-					text: 'Eliminar', style: 'destructive', onPress: async () => {
+					text: t('common.actions.delete'), style: 'destructive', onPress: async () => {
 						dispatchData({ type: 'set', field: 'methods', value: methods.filter(m => (m.id || m.uuid) !== id) })
 						try {
 							const res = await userApi.deletePaymentMethod(id)
-							if (res.success) { toast.success('Método eliminado') }
-							else { toast.error(res.error || 'No se pudo eliminar'); refresh() }
-						} catch (e) { toast.error(e.message || 'Error de red'); refresh() }
+							if (res.success) { toast.success(t('settings.paymentMethods.toasts.deleted')) }
+							else { toast.error(res.error || t('settings.paymentMethods.toasts.deleteFailed')); refresh() }
+						} catch (e) { toast.error(e.message || t('settings.paymentMethods.toasts.networkError')); refresh() }
 					}
 				}
 			]
@@ -221,8 +225,8 @@ const PaymentMethods = ({ navigation }) => {
 		<View style={containerStyles.subContainer}>
 			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-				<Text style={textStyles.h1}>Métodos de pago</Text>
-				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Administra tus cuentas y métodos usados en P2P</Text>
+				<Text style={textStyles.h1}>{t('settings.paymentMethods.title')}</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.paymentMethods.subtitle')}</Text>
 
 				{error && (
 					<View style={[containerStyles.card, { borderColor: theme.colors.danger, borderWidth: 1 }]}>
@@ -234,11 +238,11 @@ const PaymentMethods = ({ navigation }) => {
 				<View style={{ marginTop: 10, marginBottom: 20 }}>
 					{methods.length === 0 ? (
 						<View style={[containerStyles.card, { alignItems: 'center' }]}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>No tienes métodos de pago guardados</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('settings.paymentMethods.empty')}</Text>
 						</View>
 					) : (
 						methods.map((method) => {
-							const name = method?.name || method?.coin?.name || 'Método'
+							const name = method?.name || method?.coin?.name || t('settings.paymentMethods.fallbackName')
 							const logo = method?.coin?.logo
 							const rawDetails = (method && (method.details || method.Details)) || null
 							const details = Array.isArray(rawDetails) ? rawDetails : (rawDetails && typeof rawDetails === 'object') ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
@@ -280,7 +284,7 @@ const PaymentMethods = ({ navigation }) => {
 					<View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 
 						<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-							<Text style={textStyles.h4}>Nuevo Método de Pago</Text>
+							<Text style={textStyles.h4}>{t('settings.paymentMethods.modal.title')}</Text>
 							<Pressable onPress={closeCreate} style={styles.closeButton}>
 								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
@@ -289,11 +293,11 @@ const PaymentMethods = ({ navigation }) => {
 						<ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 }}>
 
 							{/* Name */}
-							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>Nombre</Text>
-							<QPInput value={paymentMethodName} onChangeText={(v) => dispatchCreate({ type: 'setName', value: v })} placeholder="Nombre del método" style={{ marginVertical: 6 }} />
+							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.paymentMethods.modal.nameLabel')}</Text>
+							<QPInput value={paymentMethodName} onChangeText={(v) => dispatchCreate({ type: 'setName', value: v })} placeholder={t('settings.paymentMethods.modal.namePlaceholder')} style={{ marginVertical: 6 }} />
 
 							{/* Coin selector */}
-							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>Moneda</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.paymentMethods.modal.coinLabel')}</Text>
 							<Pressable style={[styles.selector, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => dispatchCreate({ type: 'showCoinPicker', value: true })}>
 								{selectedCoin ? (
 									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -301,7 +305,7 @@ const PaymentMethods = ({ navigation }) => {
 										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
 									</View>
 								) : (
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>Seleccionar moneda</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('settings.paymentMethods.modal.selectCoin')}</Text>
 								)}
 								<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 							</Pressable>
@@ -309,7 +313,7 @@ const PaymentMethods = ({ navigation }) => {
 							{/* Dynamic fields */}
 							{!!selectedCoin && workingFields.length > 0 && (
 								<View style={{ marginTop: 12 }}>
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>Datos de la cuenta</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.paymentMethods.modal.accountData')}</Text>
 									{workingFields.map((field) => {
 										const key = keyFromFieldName(field.name)
 										return (
@@ -332,7 +336,7 @@ const PaymentMethods = ({ navigation }) => {
 						{/* Actions */}
 						<View style={[containerStyles.bottomButtonContainer, { paddingHorizontal: 20 }]}>
 							<QPButton
-								title="Guardar método"
+								title={t('settings.paymentMethods.modal.saveButton')}
 								onPress={handleCreate}
 								loading={creating}
 								disabled={creating || !selectedCoin}

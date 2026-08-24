@@ -1,5 +1,6 @@
 import { createContext, use, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { AppState } from 'react-native'
+import i18n from '../i18n'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 import {
@@ -102,9 +103,9 @@ export const AppLockProvider = ({ children }) => {
 				setIsLocked(false)
 				return { success: true }
 			}
-			return { success: false, error: 'Autenticaci\u00f3n biom\u00e9trica cancelada' }
+			return { success: false, error: i18n.t('misc.lock.errors.biometricCanceled') }
 		} catch (error) {
-			return { success: false, error: 'Error en autenticaci\u00f3n biom\u00e9trica' }
+			return { success: false, error: i18n.t('misc.lock.errors.biometricError') }
 		}
 	}, [])
 
@@ -121,9 +122,9 @@ export const AppLockProvider = ({ children }) => {
 				setIsLocked(false)
 				return { success: true }
 			}
-			return { success: false, error: 'PIN incorrecto' }
+			return { success: false, error: i18n.t('misc.lock.errors.wrongPin') }
 		} catch (error) {
-			return { success: false, error: 'Error verificando PIN' }
+			return { success: false, error: i18n.t('misc.lock.errors.verifyPin') }
 		}
 	}, [])
 
@@ -147,7 +148,7 @@ export const AppLockProvider = ({ children }) => {
 			setAppLockEnabled(true)
 			return { success: true }
 		}
-		return { success: false, error: 'No se pudo guardar el PIN' }
+		return { success: false, error: i18n.t('misc.lock.errors.savePin') }
 	}, [])
 
 	// Disable app lock
@@ -168,13 +169,13 @@ export const AppLockProvider = ({ children }) => {
 	const changeAppLockPin = useCallback(async (oldPin, newPin) => {
 		const storedPin = await getAppLockPin()
 		if (storedPin !== oldPin) {
-			return { success: false, error: 'PIN actual incorrecto' }
+			return { success: false, error: i18n.t('misc.lock.errors.currentPinWrong') }
 		}
 		const stored = await setAppLockPin(newPin)
 		if (stored) {
 			return { success: true }
 		}
-		return { success: false, error: 'No se pudo actualizar el PIN' }
+		return { success: false, error: i18n.t('misc.lock.errors.updatePin') }
 	}, [])
 
 	// Update auto lock timeout in settings

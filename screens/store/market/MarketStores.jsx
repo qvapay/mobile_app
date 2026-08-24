@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import { FlashList } from '@shopify/flash-list'
 
@@ -44,6 +45,7 @@ function storesReducer(state, action) {
  */
 const MarketStores = ({ navigation, route }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -66,9 +68,9 @@ const MarketStores = ({ navigation, route }) => {
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
 		if (storesQuery.isError && !storesQuery.data) {
-			toast.error('Tiendas', { description: storesQuery.error?.message })
+			toast.error(t('market.stores.toasts.loadErrorTitle'), { description: storesQuery.error?.message })
 		}
-	}, [storesQuery.isError, storesQuery.data, storesQuery.error])
+	}, [storesQuery.isError, storesQuery.data, storesQuery.error, t])
 
 	// Búsqueda federada (debounced): tiendas que no están en la página cargada
 	useEffect(() => {
@@ -150,7 +152,7 @@ const MarketStores = ({ navigation, route }) => {
 						<QPInput
 							value={search}
 							onChangeText={(v) => dispatchFilters({ type: 'set', field: 'search', value: v })}
-							placeholder="Buscar tiendas…"
+							placeholder={t('market.stores.searchPlaceholder')}
 							prefixIconName="magnifying-glass"
 							style={{ fontSize: theme.typography.fontSize.md }}
 						/>
@@ -164,7 +166,7 @@ const MarketStores = ({ navigation, route }) => {
 							active={activeCategory === 'ALL'}
 							onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: 'ALL' })}
 							emoji="✨"
-							label="Todas"
+							label={t('market.stores.all')}
 							count={stores.length}
 						/>
 						{presentCategories.map(c => (
@@ -173,7 +175,7 @@ const MarketStores = ({ navigation, route }) => {
 								active={activeCategory === c}
 								onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: activeCategory === c ? 'ALL' : c })}
 								emoji={MARKET_CATEGORY_EMOJIS[c]}
-								label={MARKET_CATEGORIES[c]}
+								label={t(MARKET_CATEGORIES[c])}
 							/>
 						))}
 					</ScrollView>
@@ -182,17 +184,17 @@ const MarketStores = ({ navigation, route }) => {
 				{/* Grid */}
 				<View style={styles.gridHeader}>
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-						Tiendas verificadas
+						{t('market.stores.verifiedStores')}
 					</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-						{filteredStores.length} {filteredStores.length === 1 ? 'tienda' : 'tiendas'}
+						{t('market.stores.count', { count: filteredStores.length })}
 					</Text>
 				</View>
 
 				{filteredStores.length === 0 ? (
 					<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
 						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-							{search ? `Sin resultados para "${search}"` : 'Todavía no hay tiendas en esta categoría'}
+							{search ? t('market.stores.noResults', { search }) : t('market.stores.emptyCategory')}
 						</Text>
 					</View>
 				) : (
@@ -211,7 +213,7 @@ const MarketStores = ({ navigation, route }) => {
 									onPress={() => dispatchFilters({ type: 'set', field: 'page', value: safePage + 1 })}
 									style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600', paddingVertical: 10, paddingHorizontal: 24 }]}
 								>
-									Cargar más
+									{t('market.common.loadMore')}
 								</Text>
 							</View>
 						)}

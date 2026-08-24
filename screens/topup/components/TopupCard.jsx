@@ -1,4 +1,5 @@
 import { Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Selectable amount card for one top-up product: CUP amount on top, localized
@@ -12,7 +13,9 @@ import { Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
  * @param {boolean} [props.unavailable] - Backend reports the product as not purchasable.
  * @param {function} props.onPress
  */
-const TopupCard = ({ label, price, selected, unavailable = false, onPress, theme, textStyles }) => (
+const TopupCard = ({ label, price, selected, unavailable = false, onPress, theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<Pressable
 		onPress={onPress}
 		disabled={unavailable}
@@ -33,10 +36,11 @@ const TopupCard = ({ label, price, selected, unavailable = false, onPress, theme
 			<ActivityIndicator size="small" color={theme.colors.tertiaryText} style={{ marginTop: 4 }} />
 		)}
 		{unavailable && (
-			<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>No disponible</Text>
+			<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>{t('topup.card.unavailable')}</Text>
 		)}
 	</Pressable>
-)
+	)
+}
 
 const styles = StyleSheet.create({
 	card: {

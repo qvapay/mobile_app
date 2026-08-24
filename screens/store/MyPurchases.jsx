@@ -22,6 +22,10 @@ import { mediaUrl } from '../../helpers/mediaUrl'
 // Toast
 import { toast } from 'sonner-native'
 
+// i18n
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
+
 // Status colors (same pattern as Transaction.jsx)
 const getStatusColor = (status, theme) => {
 	switch (status) {
@@ -41,6 +45,7 @@ const getStatusColor = (status, theme) => {
 const MyPurchases = ({ navigation }) => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -55,7 +60,7 @@ const MyPurchases = ({ navigation }) => {
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
 		if (query.isError && !query.data) {
-			toast.error('Error', { description: query.error?.message || 'No se pudieron cargar tus compras' })
+			toast.error(i18n.t('store.toasts.error'), { description: query.error?.message || i18n.t('store.myPurchases.toasts.loadError') })
 		}
 	}, [query.isError, query.data, query.error])
 
@@ -103,7 +108,7 @@ const MyPurchases = ({ navigation }) => {
 	if (purchases.length === 0) {
 		return (
 			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center' }]}>
-				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>No tienes compras aún</Text>
+				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('store.myPurchases.empty')}</Text>
 			</View>
 		)
 	}

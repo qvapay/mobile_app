@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import BrandTile from '../../ui/store/BrandTile'
 import { ROUTES } from '../../routes'
@@ -22,6 +23,8 @@ const SectionHeader = ({ title, hint, actionLabel, onAction, theme, textStyles }
 // Gift-cards block of the Store screen: favourites, featured brands, categories, empty CTA.
 const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, theme, textStyles, navigation }) => {
 
+	const { t } = useTranslation()
+
 	const goToVoucherBrand = (b) => {
 		navigation.navigate(ROUTES.GIFT_CARD_BRAND, {
 			country: { code: b.country, ...(b.country_meta || {}) },
@@ -33,9 +36,9 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 	return (
 		<View style={styles.section}>
 			<SectionHeader
-				title="Tarjetas de regalo"
-				hint="Amazon, Steam, Apple, Google Play y más"
-				actionLabel="Ver todas"
+				title={t('store.landing.departments.giftCards.title')}
+				hint={t('store.landing.giftCards.hint')}
+				actionLabel={t('common.actions.seeAll')}
 				onAction={() => navigation.navigate(ROUTES.GIFT_CARDS)}
 				theme={theme}
 				textStyles={textStyles}
@@ -45,7 +48,7 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 			{favorites.length > 0 && (
 				<View style={{ marginBottom: 14 }}>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-						Tus marcas favoritas
+						{t('store.landing.giftCards.favorites')}
 					</Text>
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 10 }}>
 						{favorites.map(b => (
@@ -65,7 +68,7 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 			{featured.length > 0 && (
 				<View style={{ marginBottom: 14 }}>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-						⚡ Populares
+						{t('store.landing.giftCards.featured')}
 					</Text>
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 10 }}>
 						{featured.map(b => (
@@ -85,7 +88,7 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 			{categories.length > 0 && (
 				<View>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-						Explora por categoría
+						{t('store.landing.giftCards.byCategory')}
 					</Text>
 					<View style={styles.catGrid}>
 						{categories.map(c => (
@@ -104,7 +107,7 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 										{c.label}
 									</Text>
 									<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-										{c.count} {c.count === 1 ? 'marca' : 'marcas'}
+										{t('store.common.brandCount', { count: c.count })}
 									</Text>
 								</View>
 							</Pressable>
@@ -122,10 +125,10 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 					<Text style={{ fontSize: 36 }}>🎁</Text>
 					<View style={{ flex: 1, marginLeft: 14 }}>
 						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-							Explora tarjetas de regalo
+							{t('store.landing.giftCards.exploreCta')}
 						</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
-							Cientos de marcas en 11 países
+							{t('store.landing.giftCards.exploreCtaHint')}
 						</Text>
 					</View>
 					<Text style={[textStyles.h5, { color: theme.colors.primary, fontWeight: '600' }]}>›</Text>

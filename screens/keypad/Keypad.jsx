@@ -9,6 +9,7 @@ import {
 	Platform
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useTranslation } from 'react-i18next'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -51,6 +52,7 @@ export default function Keypad({ navigation }) {
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const insets = useSafeAreaInsets()
+	const { t } = useTranslation()
 
 	// State
 	const [amount, setAmount] = useState('0')
@@ -107,9 +109,9 @@ export default function Keypad({ navigation }) {
 		animateFontSize(newFontSize)
 
 		// Announce to screen reader
-		AccessibilityInfo.announceForAccessibility(`Amount: $${newAmount}`)
+		AccessibilityInfo.announceForAccessibility(t('keypad.a11y.amountAnnouncement', { amount: newAmount }))
 
-	}, [amount, calculateFontSize, animateFontSize, triggerHapticFeedback])
+	}, [amount, calculateFontSize, animateFontSize, triggerHapticFeedback, t])
 
 	// Set maximum balance
 	const setMaxBalance = useCallback(() => {
@@ -122,9 +124,9 @@ export default function Keypad({ navigation }) {
 		triggerHapticFeedback()
 
 		// Announce to screen reader
-		AccessibilityInfo.announceForAccessibility(`Set to maximum balance: $${maxAmount}`)
+		AccessibilityInfo.announceForAccessibility(t('keypad.a11y.maxBalanceAnnouncement', { amount: maxAmount }))
 
-	}, [user?.balance, calculateFontSize, animateFontSize, triggerHapticFeedback])
+	}, [user?.balance, calculateFontSize, animateFontSize, triggerHapticFeedback, t])
 
 	// Send amount
 	const handleSendAmount = useCallback(async () => {
@@ -133,12 +135,12 @@ export default function Keypad({ navigation }) {
 		const numericAmount = parseFloat(amount)
 
 		if (numericAmount <= 0) {
-			toast.error('Monto inválido', { description: 'El monto debe ser mayor a 0' })
+			toast.error(t('keypad.toasts.invalidAmount.title'), { description: t('keypad.toasts.invalidAmount.description') })
 			return
 		}
 
 		if (user?.balance && numericAmount > user.balance) {
-			toast.error('Saldo insuficiente', { description: 'El monto no puede exceder tu saldo disponible' })
+			toast.error(t('keypad.toasts.insufficientBalance.title'), { description: t('keypad.toasts.insufficientBalance.description') })
 			return
 		}
 
@@ -147,10 +149,10 @@ export default function Keypad({ navigation }) {
 		try {
 			navigation.navigate(ROUTES.SEND, { send_amount: numericAmount.toString() })
 		} catch (err) {
-			toast.error('Error', { description: 'Error al procesar la solicitud de envío' })
+			toast.error(t('keypad.toasts.sendError.title'), { description: t('keypad.toasts.sendError.description') })
 		} finally { setIsProcessing(false) }
 
-	}, [amount, user?.balance, isProcessing, navigation])
+	}, [amount, user?.balance, isProcessing, navigation, t])
 
 	// Receive amount
 	const handleReceiveAmount = useCallback(() => {
@@ -168,7 +170,7 @@ export default function Keypad({ navigation }) {
 	const renderKey = useCallback((key, index) => {
 
 		const isBackspace = key === 'backspace'
-		const accessibilityLabel = isBackspace ? 'Delete last digit' : `Number ${key}`
+		const accessibilityLabel = isBackspace ? t('keypad.a11y.deleteKeyLabel') : t('keypad.a11y.numberKeyLabel', { digit: key })
 
 		return (
 			<Pressable
@@ -177,7 +179,7 @@ export default function Keypad({ navigation }) {
 				onPress={() => handleKeyPress(key)}
 				accessibilityRole="button"
 				accessibilityLabel={accessibilityLabel}
-				accessibilityHint={isBackspace ? "Removes the last entered digit" : "Adds this number to the amount"}
+				accessibilityHint={isBackspace ? t('keypad.a11y.deleteKeyHint') : t('keypad.a11y.numberKeyHint')}
 				disabled={isProcessing}
 			>
 				{isBackspace ? (
@@ -195,7 +197,7 @@ export default function Keypad({ navigation }) {
 				)}
 			</Pressable>
 		)
-	}, [handleKeyPress, isProcessing, theme])
+	}, [handleKeyPress, isProcessing, theme, t])
 
 	// Format amount for display
 	const formattedAmount = useMemo(() => {
@@ -215,8 +217,8 @@ export default function Keypad({ navigation }) {
 					style={[styles.balanceContainer, { backgroundColor: theme.colors.elevation }]}
 					onPress={setMaxBalance}
 					accessibilityRole="button"
-					accessibilityLabel={`Current balance: $${user?.balance || 0}`}
-					accessibilityHint="Double tap to set amount to maximum balance"
+					accessibilityLabel={t('keypad.a11y.balanceLabel', { balance: user?.balance || 0 })}
+					accessibilityHint={t('keypad.a11y.balanceHint')}
 				>
 					<Text style={[styles.balanceText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
 						${user?.balance || 0}
@@ -236,7 +238,7 @@ export default function Keypad({ navigation }) {
 			{/* Action Buttons */}
 			<View style={styles.actionSection}>
 				<QPButton
-					title="Recibir"
+					title={t('keypad.actions.receive')}
 					onPress={handleReceiveAmount}
 					disabled={isProcessing}
 					icon="arrow-down"
@@ -258,7 +260,7 @@ export default function Keypad({ navigation }) {
 					/>
 				)}
 				<QPButton
-					title={'Enviar'}
+					title={t('keypad.actions.send')}
 					onPress={handleSendAmount}
 					disabled={isProcessing}
 					icon="arrow-up"

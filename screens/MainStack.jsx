@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Pressable, View, Text, Image, Platform } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -68,6 +69,7 @@ const MainStack = ({ navigation }) => {
 	// Contexts
 	const { user, isAuthenticated } = useAuth()
 	const { theme } = useTheme()
+	const { t } = useTranslation()
 	const { appearance, getSetting } = useSettings()
 	const showBalance = getSetting('privacy', 'showBalance', true)
 	const showLabels = appearance.bottomBarLabels
@@ -108,7 +110,7 @@ const MainStack = ({ navigation }) => {
 			}],
 			unstable_headerRightItems: () => [{
 				type: 'button',
-				label: 'Escanear',
+				label: t('navigation.headerItems.scan'),
 				icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
 				onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
 			}],
@@ -131,11 +133,11 @@ const MainStack = ({ navigation }) => {
 				fontSize: theme.typography.fontSize.xs,
 			},
 		}),
-	}), [theme, showLabels, insets.top, insets.bottom, user, containerStyles, navigation])
+	}), [theme, showLabels, insets.top, insets.bottom, user, containerStyles, navigation, t])
 
 	// Memoized per-screen options
 	const homeOptions = useMemo(() => ({
-		tabBarLabel: showLabels ? 'Inicio' : '',
+		tabBarLabel: showLabels ? t('navigation.tabs.home') : '',
 		tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
 		// Android fallback
 		headerLeft: () => (
@@ -218,33 +220,33 @@ const MainStack = ({ navigation }) => {
 				}] : []),
 				{
 					type: 'button',
-					label: 'Escanear',
+					label: t('navigation.headerItems.scan'),
 					icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
 					onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
 				},
 			],
 		}),
-	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, qvapayLogo])
+	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, qvapayLogo, t])
 
 	const investOptions = useMemo(() => ({
-		tabBarLabel: showLabels ? 'Invertir' : '',
+		tabBarLabel: showLabels ? t('navigation.tabs.invest') : '',
 		tabBarIcon: getTabIcon(ROUTES.INVEST_SCREEN),
 		headerRight: () => null,
 		...(supportsLiquidGlass && { unstable_headerRightItems: () => [] }),
-	}), [showLabels])
+	}), [showLabels, t])
 
 	const keypadOptions = useMemo(() => ({
-		tabBarLabel: showLabels ? 'Enviar' : '',
+		tabBarLabel: showLabels ? t('navigation.tabs.send') : '',
 		tabBarIcon: getTabIcon(ROUTES.KEYPAD_SCREEN),
-	}), [showLabels])
+	}), [showLabels, t])
 
 	const p2pOptions = useMemo(() => ({
-		tabBarLabel: showLabels ? 'P2P' : '',
+		tabBarLabel: showLabels ? t('navigation.tabs.p2p') : '',
 		tabBarIcon: getTabIcon(ROUTES.P2P_SCREEN),
-	}), [showLabels])
+	}), [showLabels, t])
 
 	const storeOptions = useMemo(() => ({
-		tabBarLabel: showLabels ? 'Tienda' : '',
+		tabBarLabel: showLabels ? t('navigation.tabs.store') : '',
 		tabBarIcon: getTabIcon(ROUTES.STORE_SCREEN),
 		headerTitle: '',
 		// Android fallback
@@ -257,12 +259,12 @@ const MainStack = ({ navigation }) => {
 		...(supportsLiquidGlass && {
 			unstable_headerRightItems: () => [{
 				type: 'button',
-				label: 'Carrito',
+				label: t('navigation.headerItems.cart'),
 				icon: { type: 'sfSymbol', name: 'cart.fill' },
 				onPress: () => navigation.navigate(ROUTES.MY_PURCHASES),
 			}],
 		}),
-	}), [showLabels, containerStyles, theme, navigation])
+	}), [showLabels, containerStyles, theme, navigation, t])
 
 	const hapticTabListeners = useMemo(() => ({
 		tabPress: () => ReactNativeHapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false }),

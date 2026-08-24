@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FastImage from '@d11/react-native-fast-image'
 
 import QPPressable from '../particles/QPPressable'
@@ -20,6 +21,7 @@ import { formatPriceRange } from '../../screens/store/market/marketConstants'
  */
 const ProductTile = ({ product, onPress, style }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -50,7 +52,7 @@ const ProductTile = ({ product, onPress, style }) => {
 				)}
 				{soldOut && (
 					<View style={styles.soldOutVeil}>
-						<Text style={[textStyles.caption, { color: '#FFF', fontWeight: '600' }]}>Agotado</Text>
+						<Text style={[textStyles.caption, { color: '#FFF', fontWeight: '600' }]}>{t('ui.productTile.soldOut')}</Text>
 					</View>
 				)}
 			</View>

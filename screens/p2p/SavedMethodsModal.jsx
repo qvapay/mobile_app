@@ -1,55 +1,61 @@
 import { View, Text, ScrollView, Pressable, Modal, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { useTranslation } from 'react-i18next'
 
 // Picker for the user's saved payment methods (filtered to the selected coin).
-const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme, textStyles }) => (
-	<Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-		<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-			<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-				<Text style={textStyles.h4}>Seleccionar método guardado</Text>
-				<Pressable onPress={onClose} style={styles.closeButton}>
-					<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-				</Pressable>
-			</View>
+const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme, textStyles }) => {
 
-			<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-				{loading ? (
-					<View style={styles.loadingContainer}>
-						<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>Cargando métodos...</Text>
-					</View>
-				) : (methods || []).length > 0 ? (
-					(methods || []).map((method) => {
-						const name = method?.name || method?.coin?.name || 'Método'
-						const rawDetails = (method && (method.details || method.Details)) || null
-						const methodDetails = Array.isArray(rawDetails) ? rawDetails : rawDetails && typeof rawDetails === 'object' ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
-						return (
-							<Pressable key={method.id || method.uuid || JSON.stringify(method)} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => onSelect(method)}>
-								<View style={{ flex: 1 }}>
-									<Text style={textStyles.h4}>{name}</Text>
-									{methodDetails.length > 0 && (
-										<View style={{ marginTop: 6, gap: 4 }}>
-											{methodDetails.slice(0, 4).map((d, idx) => (
-												<View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
-													<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
-												</View>
-											))}
-										</View>
-									)}
-								</View>
-							</Pressable>
-						)
-					})
-				) : (
-					<View style={styles.loadingContainer}>
-						<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>No hay métodos guardados para esta moneda</Text>
-					</View>
-				)}
-			</ScrollView>
-		</SafeAreaView>
-	</Modal>
-)
+	const { t } = useTranslation()
+
+	return (
+		<Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+			<SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+				<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
+					<Text style={textStyles.h4}>{t('p2p.savedMethods.title')}</Text>
+					<Pressable onPress={onClose} style={styles.closeButton}>
+						<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+					</Pressable>
+				</View>
+
+				<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
+					{loading ? (
+						<View style={styles.loadingContainer}>
+							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('p2p.savedMethods.loading')}</Text>
+						</View>
+					) : (methods || []).length > 0 ? (
+						(methods || []).map((method) => {
+							const name = method?.name || method?.coin?.name || t('p2p.savedMethods.fallbackName')
+							const rawDetails = (method && (method.details || method.Details)) || null
+							const methodDetails = Array.isArray(rawDetails) ? rawDetails : rawDetails && typeof rawDetails === 'object' ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
+							return (
+								<Pressable key={method.id || method.uuid || JSON.stringify(method)} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => onSelect(method)}>
+									<View style={{ flex: 1 }}>
+										<Text style={textStyles.h4}>{name}</Text>
+										{methodDetails.length > 0 && (
+											<View style={{ marginTop: 6, gap: 4 }}>
+												{methodDetails.slice(0, 4).map((d, idx) => (
+													<View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+														<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
+														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
+													</View>
+												))}
+											</View>
+										)}
+									</View>
+								</Pressable>
+							)
+						})
+					) : (
+						<View style={styles.loadingContainer}>
+							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('p2p.savedMethods.empty')}</Text>
+						</View>
+					)}
+				</ScrollView>
+			</SafeAreaView>
+		</Modal>
+	)
+}
 
 const styles = StyleSheet.create({
 	modalContainer: { flex: 1 },

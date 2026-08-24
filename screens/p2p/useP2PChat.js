@@ -8,6 +8,10 @@ import { p2pApi } from "../../api/p2pApi"
 // Toast
 import { toast } from "sonner-native"
 
+// i18n en call time: fetchChat mantiene identidad estable (el efecto de carga
+// depende de ella) y los toasts se resuelven al disparar, no al montar
+import i18n from "../../i18n"
+
 // Constants
 const MAX_IMAGE_SIZE_MB = 5
 
@@ -109,7 +113,7 @@ export default function useP2PChat({ p2p_uuid }) {
 			}
 		} catch (err) {
 			set("error", err.message)
-			toast.error("Error", { description: err.message })
+			toast.error(i18n.t('p2p.common.errorTitle'), { description: err.message })
 		} finally { set("loading", false) }
 	}, [p2p_uuid, set])
 
@@ -139,8 +143,8 @@ export default function useP2PChat({ p2p_uuid }) {
 				await fetchChat()
 				chatScrollRef.current?.scrollToEnd({ animated: true })
 			}
-			else { toast.error("No se pudo enviar", { description: String(res.error || "") }) }
-		} catch (e) { toast.error("Error", { description: e.message }) }
+			else { toast.error(i18n.t('p2p.chat.toasts.sendFailed'), { description: String(res.error || "") }) }
+		} catch (e) { toast.error(i18n.t('p2p.common.errorTitle'), { description: e.message }) }
 	}
 
 	// Open image picker
@@ -156,13 +160,13 @@ export default function useP2PChat({ p2p_uuid }) {
 			if (!asset) return
 			// Validate file size against MAX_IMAGE_SIZE_MB
 			if (asset.fileSize && asset.fileSize > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-				toast.error("Imagen muy grande", { description: `El máximo es ${MAX_IMAGE_SIZE_MB}MB` })
+				toast.error(i18n.t('p2p.chat.toasts.imageTooLargeTitle'), { description: i18n.t('p2p.chat.toasts.imageTooLargeBody', { max: MAX_IMAGE_SIZE_MB }) })
 				return
 			}
 			// Validate file type
 			const validTypes = ["image/jpeg", "image/png", "image/gif", "image/jpg"]
 			if (asset.type && !validTypes.includes(asset.type.toLowerCase())) {
-				toast.error("Formato no soportado", { description: "Solo JPG, PNG y GIF" })
+				toast.error(i18n.t('p2p.chat.toasts.formatTitle'), { description: i18n.t('p2p.chat.toasts.formatBody') })
 				return
 			}
 			set("selectedImage", asset)
@@ -188,10 +192,10 @@ export default function useP2PChat({ p2p_uuid }) {
 				await fetchChat()
 				chatScrollRef.current?.scrollToEnd({ animated: true })
 			} else {
-				toast.error("No se pudo enviar", { description: String(res.error || "") })
+				toast.error(i18n.t('p2p.chat.toasts.sendFailed'), { description: String(res.error || "") })
 			}
 		} catch (e) {
-			toast.error("Error", { description: e.message })
+			toast.error(i18n.t('p2p.common.errorTitle'), { description: e.message })
 		} finally {
 			set("sendingImage", false)
 		}
@@ -206,10 +210,10 @@ export default function useP2PChat({ p2p_uuid }) {
 				await fetchChat()
 				chatScrollRef.current?.scrollToEnd({ animated: true })
 			} else {
-				toast.error("No se pudo enviar", { description: String(res.error || "") })
+				toast.error(i18n.t('p2p.chat.toasts.sendFailed'), { description: String(res.error || "") })
 			}
 		} catch (e) {
-			toast.error("Error", { description: e.message })
+			toast.error(i18n.t('p2p.common.errorTitle'), { description: e.message })
 		}
 	}
 

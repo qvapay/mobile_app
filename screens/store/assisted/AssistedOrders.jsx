@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
 import FastImage from '@d11/react-native-fast-image'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -18,17 +19,21 @@ import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 import { ROUTES } from '../../../routes'
 import { useAssistedOrdersQuery } from './assistedQueries'
 
+// i18n (call-time inside effects, so `t` stays out of the dep arrays)
+import i18n from '../../../i18n'
+
 // Helpers
 import { getShortDateTime } from '../../../helpers'
 import { money } from './assistedConstants'
 import FulfillmentBadge from './FulfillmentBadge'
 
 /**
- * List of the user's paid assisted-shopping orders with fulfillment status
- * (Confirmado / En camino / Entregado / Cancelado) and tracking hint.
+ * List of the user's paid assisted-shopping orders with localized fulfillment
+ * status (paid / purchased / delivered / cancelled) and tracking hint.
  */
 const AssistedOrders = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -42,7 +47,7 @@ const AssistedOrders = ({ navigation }) => {
 
 	useEffect(() => {
 		if (ordersQuery.isError && !ordersQuery.data) {
-			toast.error('Mis pedidos', { description: ordersQuery.error?.message })
+			toast.error(i18n.t('assisted.orders.toasts.errorTitle'), { description: ordersQuery.error?.message })
 		}
 	}, [ordersQuery.isError, ordersQuery.data, ordersQuery.error])
 
@@ -78,15 +83,15 @@ const AssistedOrders = ({ navigation }) => {
 				</View>
 				<View style={{ flex: 1, gap: 3 }}>
 					<View style={styles.titleRow}>
-						<Text style={[textStyles.h6, { fontWeight: '600' }]}>Pedido #{item.id}</Text>
+						<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('assisted.common.orderNumber', { id: item.id })}</Text>
 						<FulfillmentBadge status={item.status} />
 					</View>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
-						{titles || `${item.item_count} producto${item.item_count === 1 ? '' : 's'}`}
+						{titles || t('assisted.common.products', { count: item.item_count })}
 					</Text>
 					{item.tracking_code ? (
 						<Text style={[styles.tracking, { color: theme.colors.secondaryText }]} numberOfLines={1}>
-							Tracking: {item.tracking_code}
+							{t('assisted.orders.tracking', { code: item.tracking_code })}
 						</Text>
 					) : null}
 				</View>
@@ -106,9 +111,9 @@ const AssistedOrders = ({ navigation }) => {
 				<View style={[styles.emptyIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
 					<FontAwesome6 name="clipboard-list" size={26} color={theme.colors.primary} iconStyle="solid" />
 				</View>
-				<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 16 }]}>Aún no tienes pedidos</Text>
+				<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 16 }]}>{t('assisted.orders.emptyTitle')}</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, textAlign: 'center' }]}>
-					Cuando hagas tu primera compra asistida aparecerá aquí.
+					{t('assisted.orders.emptySubtitle')}
 				</Text>
 			</View>
 		)

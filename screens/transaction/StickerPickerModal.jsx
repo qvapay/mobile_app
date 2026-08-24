@@ -1,4 +1,5 @@
 import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import QPPressable from '../../ui/particles/QPPressable'
 
 import { useTheme } from '../../theme/ThemeContext'
@@ -12,6 +13,7 @@ import { QVAPAY_STICKERS } from '../../helpers/stickers'
 // Sticker grid picker (GOLD-gated). Calls onSelect(stickerName) on tap.
 const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
 
@@ -20,7 +22,7 @@ const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 			<Pressable style={themeStyles.container.modalOverlay} onPress={onClose}>
 				<Pressable style={[themeStyles.container.modalCard, { padding: 16 }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { }}>
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Stickers</Text>
+						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('transactions.stickers.title')}</Text>
 						<QPPressable onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }}>
 							<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
 						</QPPressable>
@@ -46,8 +48,8 @@ const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 						{!isGold && (
 							<View style={[styles.lockOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
 								<FontAwesome6 name="crown" size={28} color={theme.colors.gold} iconStyle="solid" />
-								<Text style={[textStyles.h5, { color: theme.colors.almostWhite, marginTop: 12, textAlign: 'center' }]}>GOLD requerido</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.almostWhite, opacity: 0.8, marginTop: 4, textAlign: 'center' }]}>Necesitas ser usuario GOLD para enviar stickers</Text>
+								<Text style={[textStyles.h5, { color: theme.colors.almostWhite, marginTop: 12, textAlign: 'center' }]}>{t('transactions.stickers.goldRequired')}</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.almostWhite, opacity: 0.8, marginTop: 4, textAlign: 'center' }]}>{t('transactions.stickers.goldNeeded')}</Text>
 							</View>
 						)}
 					</View>

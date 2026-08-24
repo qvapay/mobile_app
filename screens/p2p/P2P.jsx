@@ -1,6 +1,7 @@
 import { FlashList } from "@shopify/flash-list"
 import { useEffect, useReducer, useCallback, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
+import { useTranslation } from "react-i18next"
 
 // Reanimated
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate } from "react-native-reanimated"
@@ -70,6 +71,9 @@ const handleRemoveBadge = (badge) => { badge.onRemove() }
  * hides on scroll (Twitter-style) along with the Android bottom bar.
  */
 const P2P = ({ navigation, route }) => {
+
+	// Idioma activo (el switch del header y el vacío se re-renderizan al cambiar)
+	const { t } = useTranslation()
 
 	// User
 	const { user } = useAuth()
@@ -235,8 +239,8 @@ const P2P = ({ navigation, route }) => {
 					<QPSwitch
 						value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
 						onChange={(side) => setFilter("typeFilter", side === "left" ? "sell" : side === "right" ? "buy" : null)}
-						leftText="Comprar"
-						rightText="Vender"
+						leftText={t('p2p.common.buy')}
+						rightText={t('p2p.common.sell')}
 						leftColor={theme.colors.danger}
 						rightColor={theme.colors.successFill}
 						rightTextColor={theme.colors.successFillText}
@@ -259,12 +263,12 @@ const P2P = ({ navigation, route }) => {
 			),
 			...(Platform.OS === 'ios' && {
 				unstable_headerRightItems: () => [
-					{ type: 'button', label: 'Filtros', icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease.circle' }, onPress: () => setShowFiltersModal(true), tintColor: hasActiveFilters ? theme.colors.primary : theme.colors.primaryText },
-					{ type: 'button', label: 'Crear', icon: { type: 'sfSymbol', name: 'plus' }, onPress: () => navigation.navigate(ROUTES.P2P_CREATE_SCREEN) },
+					{ type: 'button', label: t('p2p.market.headerFilters'), icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease.circle' }, onPress: () => setShowFiltersModal(true), tintColor: hasActiveFilters ? theme.colors.primary : theme.colors.primaryText },
+					{ type: 'button', label: t('p2p.market.headerCreate'), icon: { type: 'sfSymbol', name: 'plus' }, onPress: () => navigation.navigate(ROUTES.P2P_CREATE_SCREEN) },
 				],
 			}),
 		})
-	}, [navigation, theme, hasActiveFilters, containerStyles, typeFilter, setFilter, headerSwitchWidth])
+	}, [navigation, theme, hasActiveFilters, containerStyles, typeFilter, setFilter, headerSwitchWidth, t])
 
 	// Footer loader
 	const renderFooter = () => {
@@ -317,7 +321,7 @@ const P2P = ({ navigation, route }) => {
 				ListEmptyComponent={
 					<View style={styles.emptyContainer}>
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
-							{error ? error : "No hay ofertas P2P disponibles"}
+							{error ? error : t('p2p.market.empty')}
 						</Text>
 					</View>
 				}

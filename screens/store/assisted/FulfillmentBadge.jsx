@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import { useTheme } from '../../../theme/ThemeContext'
 import { ORDER_STATUS } from './assistedConstants'
@@ -9,6 +10,7 @@ import { ORDER_STATUS } from './assistedConstants'
  */
 const FulfillmentBadge = ({ status }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const meta = ORDER_STATUS[status] || ORDER_STATUS.pending
 	const color = theme.colors[meta.color] || theme.colors.secondaryText
@@ -16,7 +18,7 @@ const FulfillmentBadge = ({ status }) => {
 	return (
 		<View style={[styles.badge, { backgroundColor: `${color}26` }]}>
 			<Text style={[styles.text, { color, fontFamily: theme.typography.fontFamily.medium }]}>
-				{meta.label}
+				{t(meta.labelKey)}
 			</Text>
 		</View>
 	)

@@ -1,14 +1,16 @@
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { timeAgo } from '../../../helpers'
 
-// Estado backend → icono/color/etiqueta. Cualquier estado desconocido cae en 'pending'.
+// Estado backend → icono/color/clave de etiqueta (resuelta con t() en render).
+// Cualquier estado desconocido cae en 'pending'.
 const STATUS_META = {
-	completed: { icon: 'circle-check', colorKey: 'success', label: 'Completada' },
-	processing: { icon: 'clock', colorKey: 'warning', label: 'En proceso' },
-	pending: { icon: 'clock', colorKey: 'warning', label: 'Pendiente' },
-	failed: { icon: 'circle-xmark', colorKey: 'danger', label: 'Fallida' },
+	completed: { icon: 'circle-check', colorKey: 'success', labelKey: 'common.status.completed' },
+	processing: { icon: 'clock', colorKey: 'warning', labelKey: 'topup.history.status.processing' },
+	pending: { icon: 'clock', colorKey: 'warning', labelKey: 'common.status.pending' },
+	failed: { icon: 'circle-xmark', colorKey: 'danger', labelKey: 'topup.history.status.failed' },
 }
 
 // Oculta el medio del número: +5355123456 → +53 5•••••56
@@ -30,12 +32,14 @@ const maskPhone = (phone) => {
  */
 const TopupHistory = ({ items = [], loading = false, theme, textStyles }) => {
 
+	const { t } = useTranslation()
+
 	if (!loading && items.length === 0) return null
 
 	return (
 		<View style={styles.section}>
 			<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 10 }]}>
-				Historial reciente
+				{t('topup.history.title')}
 			</Text>
 
 			{loading && items.length === 0 ? (
@@ -68,7 +72,7 @@ const TopupHistory = ({ items = [], loading = false, theme, textStyles }) => {
 										${item.amountCUP} CUP
 									</Text>
 									<Text style={[textStyles.caption, { color: statusColor, marginTop: 2 }]}>
-										{meta.label}
+										{t(meta.labelKey)}
 									</Text>
 								</View>
 							</View>

@@ -9,6 +9,11 @@ import useCoins from "../../hooks/useCoins"
 // Toast
 import { toast } from "sonner-native"
 
+// i18n en call time: fetchP2POffers mantiene identidad estable (deps vacías de
+// filtros) y un `t` reactivo en sus deps re-dispararía los efectos de montaje
+// al cambiar de idioma
+import i18n from "../../i18n"
+
 const PAGE_SIZE = 30
 
 // Espera antes de refetchear al cambiar filtros: agrupa los toques seguidos en
@@ -129,12 +134,12 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 				hasMoreRef.current = newData.length >= PAGE_SIZE
 				pageRef.current = pageNum
 			} else {
-				dispatchList({ type: "error", error: response.error || "Error al cargar las ofertas P2P" })
-				toast.error(response.error || "Error al cargar las ofertas P2P")
+				dispatchList({ type: "error", error: response.error || i18n.t('p2p.market.toasts.loadFailed') })
+				toast.error(response.error || i18n.t('p2p.market.toasts.loadFailed'))
 			}
 		} catch (err) {
-			dispatchList({ type: "error", error: "Error de conexión" })
-			toast.error("Error de conexión")
+			dispatchList({ type: "error", error: i18n.t('p2p.market.toasts.connectionError') })
+			toast.error(i18n.t('p2p.market.toasts.connectionError'))
 		} finally {
 			inFlightRef.current = false
 			dispatchList({ type: "finish" })

@@ -1,3 +1,8 @@
+// i18n — inicializa el singleton como side-effect ANTES que el resto de la app
+// (el ErrorBoundary resuelve su copy con i18n.t() en render); ver i18n/index.js
+import './i18n'
+import { useTranslation } from 'react-i18next'
+
 // React Components
 import { Platform, Pressable } from 'react-native'
 import React, { useEffect, useMemo, useRef } from 'react'
@@ -25,6 +30,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 
 // Settings Context
 import { SettingsProvider, useSettings } from './settings/SettingsContext'
+import LanguageSync from './settings/LanguageSync'
 
 // App Lock
 import { AppLockProvider } from './lock/AppLockContext'
@@ -144,10 +150,12 @@ type ScreenConfig = {
 	options?: any
 }
 
-// Every screen that needs no render-time values — AppNavigator maps over this list.
+// Screen list builder — AppNavigator lo memoiza con useMemo([t]) para que un
+// cambio de idioma recree los options (native-stack repinta los headers en
+// vivo) sin batir la identidad en re-renders ajenos (flash liquid glass).
 // P2P Offer is the one exception (header avatar needs navigation + user) and is
 // registered inline in AppNavigator.
-const STATIC_SCREENS: ScreenConfig[] = [
+const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenConfig[] => [
 	// Onboard + Welcome + Main Stack
 	// Onboard lleva header nativo para hospedar los QPStepDots como título
 	// (los dots + Saltar los inyecta la pantalla vía setOptions)
@@ -156,8 +164,8 @@ const STATIC_SCREENS: ScreenConfig[] = [
 	{ name: ROUTES.MAIN_STACK, component: MainStack },
 
 	// Add and Withdraw Screens
-	{ name: ROUTES.ADD, component: Add, options: getHeaderOptions('Depositar') },
-	{ name: ROUTES.WITHDRAW, component: Withdraw, options: getHeaderOptions('Extraer') },
+	{ name: ROUTES.ADD, component: Add, options: getHeaderOptions(t('navigation.headers.deposit')) },
+	{ name: ROUTES.WITHDRAW, component: Withdraw, options: getHeaderOptions(t('navigation.headers.withdraw')) },
 
 	// P2P Create Screen
 	{ name: ROUTES.P2P_CREATE_SCREEN, component: P2PCreate, options: getHeaderOptions('', { animation: 'slide_from_bottom' }) },
@@ -167,22 +175,22 @@ const STATIC_SCREENS: ScreenConfig[] = [
 
 	// GoldCheck — also reachable from SettingsStack, but registered here so
 	// peer profile and other screens can push it directly with a back button
-	{ name: ROUTES.GOLD_CHECK, component: GoldCheck, options: getHeaderOptions('Hazte GOLD') },
+	{ name: ROUTES.GOLD_CHECK, component: GoldCheck, options: getHeaderOptions(t('navigation.headers.goldCheck')) },
 
 	// Settings Stack
 	{ name: ROUTES.SETTINGS_STACK, component: SettingsStack, options: { animation: 'slide_from_bottom' } },
 
 	// Contacts (accessible from Send)
-	{ name: ROUTES.CONTACTS, component: Contacts, options: getHeaderOptions('Contactos') },
+	{ name: ROUTES.CONTACTS, component: Contacts, options: getHeaderOptions(t('navigation.headers.contacts')) },
 
 	// Send, Receive and Send Success Screens
-	{ name: ROUTES.SEND, component: Send, options: getHeaderOptions('Enviar QUSD') },
-	{ name: ROUTES.SEND_CONFIRM, component: SendConfirm, options: getHeaderOptions('Confirmar pago') },
+	{ name: ROUTES.SEND, component: Send, options: getHeaderOptions(t('navigation.headers.send')) },
+	{ name: ROUTES.SEND_CONFIRM, component: SendConfirm, options: getHeaderOptions(t('navigation.headers.sendConfirm')) },
 	{ name: ROUTES.SEND_SUCCESS, component: SendSuccess },
 	{ name: ROUTES.RECEIVE, component: Receive, options: { headerShown: false, animation: 'slide_from_bottom' } },
 
 	// Transaction Screens
-	{ name: ROUTES.TRANSACTIONS, component: Transactions, options: getHeaderOptions('Transacciones') },
+	{ name: ROUTES.TRANSACTIONS, component: Transactions, options: getHeaderOptions(t('navigation.headers.transactions')) },
 	{
 		// Transaction detail: when both parties exist the screen shows the
 		// counterparty's profile header, so the header must be transparent from
@@ -218,7 +226,7 @@ const STATIC_SCREENS: ScreenConfig[] = [
 	},
 
 	// Savings Screen
-	{ name: ROUTES.SAVINGS_SCREEN, component: Savings, options: getHeaderOptions('Ahorros') },
+	{ name: ROUTES.SAVINGS_SCREEN, component: Savings, options: getHeaderOptions(t('navigation.headers.savings')) },
 
 	// Stock Detail Screen
 	{ name: ROUTES.STOCK_DETAIL_SCREEN, component: StockDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
@@ -239,36 +247,36 @@ const STATIC_SCREENS: ScreenConfig[] = [
 	{ name: ROUTES.RECOVER_2FA_SCREEN, component: Recover2FAScreen, options: getHeaderOptions('') },
 
 	// Phone Topup Screens
-	{ name: ROUTES.PHONE_TOPUP_INDEX, component: PhoneTopupIndex, options: getHeaderOptions('Recargas móviles') },
+	{ name: ROUTES.PHONE_TOPUP_INDEX, component: PhoneTopupIndex, options: getHeaderOptions(t('navigation.headers.phoneTopups')) },
 	{ name: ROUTES.PHONE_TOPUP_BRAND, component: PhoneTopupBrand, options: getHeaderOptions('') },
 
 	// Store-billed Topup Screen (Google Play / App Store consumables)
-	{ name: ROUTES.TOPUP_SCREEN, component: TopupScreen, options: getHeaderOptions('Recarga móvil') },
+	{ name: ROUTES.TOPUP_SCREEN, component: TopupScreen, options: getHeaderOptions(t('navigation.headers.topup')) },
 
 	// Gift Card Screens
-	{ name: ROUTES.GIFT_CARDS, component: GiftCards, options: getHeaderOptions('Tarjetas de regalo') },
+	{ name: ROUTES.GIFT_CARDS, component: GiftCards, options: getHeaderOptions(t('navigation.headers.giftCards')) },
 	{ name: ROUTES.GIFT_CARD_BRAND, component: GiftCardBrand, options: getHeaderOptions('') },
 
 	// My Purchases Screens
-	{ name: ROUTES.MY_PURCHASES, component: MyPurchases, options: getHeaderOptions('Mis Compras') },
+	{ name: ROUTES.MY_PURCHASES, component: MyPurchases, options: getHeaderOptions(t('navigation.headers.myPurchases')) },
 	{ name: ROUTES.PURCHASE_DETAIL, component: PurchaseDetail, options: getHeaderOptions('') },
 
 	// Marketplace (tiendas de comercios aprobados) Screens
-	{ name: ROUTES.MARKET_STORES, component: MarketStores, options: getHeaderOptions('Tiendas', { headerRight: () => <CartHeaderButton /> }) },
+	{ name: ROUTES.MARKET_STORES, component: MarketStores, options: getHeaderOptions(t('navigation.headers.stores'), { headerRight: () => <CartHeaderButton /> }) },
 	// MarketStore — no header so the store cover extends to the status bar (P2PUser/Profile look)
 	{ name: ROUTES.MARKET_STORE, component: MarketStore, options: { headerShown: false } },
 	{ name: ROUTES.MARKET_PRODUCT, component: MarketProduct, options: getHeaderOptions('', { headerRight: () => <CartHeaderButton /> }) },
-	{ name: ROUTES.MARKET_CART, component: MarketCart, options: getHeaderOptions('Mi carrito') },
-	{ name: ROUTES.MARKET_ORDERS, component: MarketOrders, options: getHeaderOptions('Mis compras') },
-	{ name: ROUTES.MARKET_ORDER_DETAIL, component: MarketOrderDetail, options: getHeaderOptions('Pedido') },
+	{ name: ROUTES.MARKET_CART, component: MarketCart, options: getHeaderOptions(t('navigation.headers.myCart')) },
+	{ name: ROUTES.MARKET_ORDERS, component: MarketOrders, options: getHeaderOptions(t('navigation.headers.marketOrders')) },
+	{ name: ROUTES.MARKET_ORDER_DETAIL, component: MarketOrderDetail, options: getHeaderOptions(t('navigation.headers.order')) },
 
 	// Assisted Shopping (Personal Shopper) Screens
-	{ name: ROUTES.ASSISTED_SHOPPING, component: AssistedShopping, options: getHeaderOptions('Compras asistidas') },
+	{ name: ROUTES.ASSISTED_SHOPPING, component: AssistedShopping, options: getHeaderOptions(t('navigation.headers.assistedShopping')) },
 	{ name: ROUTES.ASSISTED_PRODUCT, component: AssistedProduct, options: getHeaderOptions('') },
-	{ name: ROUTES.ASSISTED_CART, component: AssistedCart, options: getHeaderOptions('Mi carrito') },
-	{ name: ROUTES.ASSISTED_CHECKOUT, component: AssistedCheckout, options: getHeaderOptions('Confirmar compra') },
-	{ name: ROUTES.ASSISTED_ORDERS, component: AssistedOrders, options: getHeaderOptions('Mis pedidos') },
-	{ name: ROUTES.ASSISTED_ORDER_DETAIL, component: AssistedOrderDetail, options: ({ route }: any) => getHeaderOptions(route.params?.id ? `Pedido #${route.params.id}` : '') },
+	{ name: ROUTES.ASSISTED_CART, component: AssistedCart, options: getHeaderOptions(t('navigation.headers.myCart')) },
+	{ name: ROUTES.ASSISTED_CHECKOUT, component: AssistedCheckout, options: getHeaderOptions(t('navigation.headers.assistedCheckout')) },
+	{ name: ROUTES.ASSISTED_ORDERS, component: AssistedOrders, options: getHeaderOptions(t('navigation.headers.assistedOrders')) },
+	{ name: ROUTES.ASSISTED_ORDER_DETAIL, component: AssistedOrderDetail, options: ({ route }: any) => getHeaderOptions(route.params?.id ? t('navigation.headers.orderNumber', { id: route.params.id }) : '') },
 
 	// Accesible Screens
 	{ name: ROUTES.HELP_SCREEN, component: HelpScreen },
@@ -303,6 +311,10 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 
+	// Idioma activo — useTranslation re-renderiza en cada languageChanged y
+	// entrega una `t` con identidad nueva, que recalcula los títulos abajo
+	const { t } = useTranslation()
+
 	// Splash timing, store-update prompt, auth routing and deep-link handling
 	const {
 		navigation,
@@ -326,6 +338,10 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 		contentStyle: { backgroundColor: theme.colors.background },
 	}), [theme])
 
+	// Recalculado SOLO al cambiar el idioma; estable en el resto de re-renders
+	// (options con identidad cambiante reintroducen el flash liquid glass en iOS)
+	const staticScreens = useMemo(() => buildStaticScreens(t), [t])
+
 	// Show splash screen if still loading or if minimum time hasn't passed
 	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
 
@@ -333,7 +349,7 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 	return (
 		<>
 			<Stack.Navigator initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN} screenOptions={stackScreenOptions}>
-				{STATIC_SCREENS.map(({ name, component, options }) => (
+				{staticScreens.map(({ name, component, options }) => (
 					<Stack.Screen key={name} name={name} component={component} options={options} />
 				))}
 
@@ -423,6 +439,7 @@ function App() {
 							<AuthProvider>
 								<OnlineStatusProvider>
 									<SettingsProvider>
+										<LanguageSync />
 										<ThemeProviderWithSettings>
 											<LoadingBridge>
 												<AppLockProvider>

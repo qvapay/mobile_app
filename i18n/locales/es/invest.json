@@ -1,0 +1,86 @@
+{
+	"common": {
+		"deposit": "Depositar",
+		"withdraw": "Retirar",
+		"p2pMarket": "Mercado P2P",
+		"perYear": "anual",
+		"statistics": "Estadísticas"
+	},
+	"timeframes": {
+		"1H": "1H",
+		"24H": "24H",
+		"1W": "1S",
+		"1M": "1M",
+		"1Y": "1A",
+		"ALL": "TODO"
+	},
+	"dashboard": {
+		"savings": "Ahorros",
+		"explore": "Explorar",
+		"tabs": {
+			"popular": "Populares",
+			"stocks": "Stocks"
+		},
+		"seeAll": "Ver todo",
+		"offers_one": "{{count}} oferta",
+		"offers_other": "{{count}} ofertas",
+		"empty": "Sin datos"
+	},
+	"savings": {
+		"kycGateMessage": "La cuenta de ahorro requiere tener tu identidad verificada. Es rápido y solo se hace una vez.",
+		"totalDeposited": "Total depositado",
+		"totalWithdrawn": "Total retirado",
+		"earnings": "Ganancias",
+		"activity": "Actividad",
+		"emptyActivity": "Las operaciones aparecerán aquí",
+		"disclaimer": "El servicio de ahorros de QvaPay genera intereses sobre tu balance depositado. Los fondos pueden ser retirados en cualquier momento. Las tasas de interés están sujetas a cambios.",
+		"termsOfService": "Términos del servicio",
+		"availableBalance": "Disponible: {{amount}}",
+		"inSavings": "En ahorros: {{amount}}",
+		"useMax": "Usar máximo",
+		"txTypes": {
+			"deposit": "Depósito",
+			"withdrawal": "Retiro",
+			"earning": "Ganancia"
+		},
+		"toasts": {
+			"minAmount": "El monto mínimo es $1.00",
+			"insufficientBalance": "Balance insuficiente",
+			"insufficientSavings": "Balance de ahorros insuficiente",
+			"depositDone": "Depósito realizado",
+			"withdrawDone": "Retiro realizado",
+			"operationError": "Error en la operación",
+			"networkError": "Error de red"
+		}
+	},
+	"stockDetail": {
+		"buy": "Comprar",
+		"sell": "Vender",
+		"open": "Apertura",
+		"previousClose": "Cierre anterior",
+		"dayHigh": "Máximo del día",
+		"dayLow": "Mínimo del día",
+		"volume": "Volumen",
+		"fiftyTwoWeekHigh": "Máx. 52 sem.",
+		"fiftyTwoWeekLow": "Mín. 52 sem.",
+		"about": "Acerca de",
+		"sector": "Sector",
+		"exchange": "Exchange",
+		"type": "Tipo"
+	},
+	"coinDetail": {
+		"goldUpsell": "Explora el precio punto a punto con GOLD",
+		"periodHigh": "Máximo ({{timeframe}})",
+		"periodLow": "Mínimo ({{timeframe}})",
+		"depositFee": "Comisión de depósito",
+		"withdrawFee": "Comisión de retiro",
+		"deposits": "Depósitos",
+		"withdrawals": "Retiros",
+		"available": "Disponible",
+		"notAvailable": "No disponible",
+		"spotTeaser": "Compra y venta spot — próximamente"
+	},
+	"queries": {
+		"historyNoData": "Historial sin datos suficientes"
+	}
+}

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback, useReducer } from 'react'
 import { StyleSheet, Text, View, Pressable, Linking } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 // Helpers
 import { detectInstalledWallets } from '../../helpers/walletDeeplinks'
@@ -60,8 +61,6 @@ const DEFAULT_DEPOSIT_COINS = [
 	{ tick: 'BTC', label: 'BTC' },
 	{ tick: 'USDTBSC', label: 'USDT BSC' },
 ]
-// Usuarios elegibles ven la tarjeta como primera pill de acceso rápido
-const CARD_FIRST_DEPOSIT_COINS = [{ tick: 'CARD', label: 'Tarjeta' }, ...DEFAULT_DEPOSIT_COINS]
 const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
 
 /**
@@ -78,6 +77,7 @@ const Add = ({ navigation }) => {
 	// User Context
 	const { user } = useAuth()
 	const queryClient = useQueryClient()
+	const { t } = useTranslation()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -113,7 +113,7 @@ const Add = ({ navigation }) => {
 		setDepositStatus(newStatus)
 		if (newStatus === 'paid') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
-			toast.success('Pago confirmado', { description: 'Tu depósito ha sido procesado exitosamente' })
+			toast.success(t('add.index.toasts.paymentConfirmed.title'), { description: t('add.index.toasts.paymentConfirmed.description') })
 			// Refresca las lecturas de servidor en React Query: con enableFreeze los
 			// observadores sobreviven al fondo y sin invalidación seguirían mostrando
 			// el pre-depósito hasta remontar. ['home'] incluye ['home','profile'],
@@ -131,7 +131,7 @@ const Add = ({ navigation }) => {
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			setCountdown(0)
 		} else if (newStatus === 'failed') { if (countdownRef.current) clearInterval(countdownRef.current) }
-	}, [queryClient])
+	}, [queryClient, t])
 
 	const { isConnected: sseConnected } = useTransactionSSE(
 		showDepositModal ? topupData?.transaction_uuid : null,
@@ -160,6 +160,13 @@ const Add = ({ navigation }) => {
 	// el gate real (incluida la geolocalización) vive en POST /topup
 	const cardEligible = isCardDepositEligible(user)
 
+	// Usuarios elegibles ven la tarjeta como primera pill de acceso rápido
+	// (la etiqueta se resuelve en render para seguir el idioma activo)
+	const defaultDepositCoins = useMemo(
+		() => (cardEligible ? [{ tick: 'CARD', label: t('add.index.cardPillLabel') }, ...DEFAULT_DEPOSIT_COINS] : DEFAULT_DEPOSIT_COINS),
+		[cardEligible, t],
+	)
+
 	// Catálogo desde la caché compartida (useCoins): la lista aparece al
 	// instante en vez de esperar un viaje a la red en cada entrada
 	useEffect(() => {
@@ -168,9 +175,9 @@ const Add = ({ navigation }) => {
 			setError(null)
 		} else if (!loadingCoins) {
 			// Sin catálogo y sin carga en curso: la red falló y no había copia
-			setError('Error al cargar las monedas disponibles')
+			setError(t('add.index.errors.loadCoins'))
 		}
-	}, [coinCatalog, loadingCoins, cardEligible])
+	}, [coinCatalog, loadingCoins, cardEligible, t])
 
 	// Modo de fee del depósito CARD: 'on_top' (default, el fee se suma al cobro) o
 	// 'included' (paga exacto lo tecleado y se acredita el neto). Solo viaja en el
@@ -193,15 +200,15 @@ const Add = ({ navigation }) => {
 	const launchCardSheet = useCallback(async (data) => {
 		const result = await presentCardDeposit({ topupData: data, theme, user })
 		if (result.status === 'paid') { setDepositStatus('processing') }
-		else if (result.status === 'failed') { toast.error('Pago con tarjeta', { description: result.message }) }
-	}, [theme, user])
+		else if (result.status === 'failed') { toast.error(t('add.index.toasts.cardPaymentTitle'), { description: result.message }) }
+	}, [theme, user, t])
 
 	// Handle topup request
 	const handleTopup = async () => {
 		const amountValue = parseFloat(amount)
-		if (isNaN(amountValue) || amountValue <= 0) { toast.error('Por favor ingresa un monto válido'); return }
-		if (!selectedCoin || !amount) { toast.error('Por favor selecciona una moneda e ingresa un monto'); return }
-		if (amountValue < parseFloat(selectedCoin.min_in)) { toast.error(`El monto mínimo para ${selectedCoin.name} es ${selectedCoin.min_in}`); return }
+		if (isNaN(amountValue) || amountValue <= 0) { toast.error(t('add.index.toasts.invalidAmount')); return }
+		if (!selectedCoin || !amount) { toast.error(t('add.index.toasts.missingCoinOrAmount')); return }
+		if (amountValue < parseFloat(selectedCoin.min_in)) { toast.error(t('add.index.toasts.minAmount', { name: selectedCoin.name, min: selectedCoin.min_in })); return }
 		try {
 			setIsLoading(true)
 			setError(null)
@@ -220,11 +227,11 @@ const Add = ({ navigation }) => {
 				} else if (data?.redirect_url) {
 					Linking.openURL(data.redirect_url)
 				}
-			} else { toast.error('Error al crear la solicitud de depósito') }
+			} else { toast.error(t('add.index.toasts.createFailed')) }
 		} catch (err) {
 			// El gate de tarjeta y el tope diario responden 400/429 con mensaje propio
 			const serverMessage = err?.response?.data?.error
-			setError(serverMessage || 'Error al crear la solicitud de depósito, intente nuevamente en unos minutos')
+			setError(serverMessage || t('add.index.errors.createRetry'))
 		}
 		finally { setIsLoading(false) }
 	}
@@ -255,7 +262,7 @@ const Add = ({ navigation }) => {
 			<QPKeyboardView
 				actions={
 					<QPButton
-						title="Generar Depósito"
+						title={t('add.index.generateButton')}
 						onPress={handleTopup}
 						disabled={!selectedCoin || !amount}
 						loading={isLoading}
@@ -272,7 +279,7 @@ const Add = ({ navigation }) => {
 				<AmountInput
 					amount={amount}
 					onAmountChange={setAmount}
-					placeholder="Monto a depositar"
+					placeholder={t('add.index.amountPlaceholder')}
 					style={{ marginTop: 0 }}
 					balance={user.balance}
 				/>
@@ -282,7 +289,7 @@ const Add = ({ navigation }) => {
 
 					{selectedCoin && (
 						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
-							Seleccionar moneda:
+							{t('add.index.selectCoinLabel')}
 						</Text>
 					)}
 
@@ -295,7 +302,7 @@ const Add = ({ navigation }) => {
 						) : (
 							<View style={styles.coinSelectorPlaceholder}>
 								<Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
-									{loadingCoins ? "Cargando monedas..." : "Seleccionar moneda"}
+									{loadingCoins ? t('add.index.loadingCoins') : t('add.index.selectCoinPlaceholder')}
 								</Text>
 								<FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
 							</View>
@@ -351,7 +358,7 @@ const Add = ({ navigation }) => {
 				amount={amount}
 				direction="in"
 				recentKey={RECENT_DEPOSIT_KEY}
-				defaultCoins={cardEligible ? CARD_FIRST_DEPOSIT_COINS : DEFAULT_DEPOSIT_COINS}
+				defaultCoins={defaultDepositCoins}
 			/>
 
 			{/* Wallet Picker Sheet — opens installed wallet pre-filled */}

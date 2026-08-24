@@ -1,0 +1,86 @@
+{
+	"common": {
+		"deposit": "Deposit",
+		"withdraw": "Withdraw",
+		"p2pMarket": "P2P market",
+		"perYear": "per year",
+		"statistics": "Statistics"
+	},
+	"timeframes": {
+		"1H": "1H",
+		"24H": "24H",
+		"1W": "1W",
+		"1M": "1M",
+		"1Y": "1Y",
+		"ALL": "ALL"
+	},
+	"dashboard": {
+		"savings": "Savings",
+		"explore": "Explore",
+		"tabs": {
+			"popular": "Popular",
+			"stocks": "Stocks"
+		},
+		"seeAll": "See all",
+		"offers_one": "{{count}} offer",
+		"offers_other": "{{count}} offers",
+		"empty": "No data"
+	},
+	"savings": {
+		"kycGateMessage": "The savings account requires identity verification. It's quick and you only do it once.",
+		"totalDeposited": "Total deposited",
+		"totalWithdrawn": "Total withdrawn",
+		"earnings": "Earnings",
+		"activity": "Activity",
+		"emptyActivity": "Your operations will appear here",
+		"disclaimer": "QvaPay's savings service earns interest on your deposited balance. Funds can be withdrawn at any time. Interest rates are subject to change.",
+		"termsOfService": "Terms of service",
+		"availableBalance": "Available: {{amount}}",
+		"inSavings": "In savings: {{amount}}",
+		"useMax": "Use max",
+		"txTypes": {
+			"deposit": "Deposit",
+			"withdrawal": "Withdrawal",
+			"earning": "Earning"
+		},
+		"toasts": {
+			"minAmount": "The minimum amount is $1.00",
+			"insufficientBalance": "Insufficient balance",
+			"insufficientSavings": "Insufficient savings balance",
+			"depositDone": "Deposit completed",
+			"withdrawDone": "Withdrawal completed",
+			"operationError": "The operation failed",
+			"networkError": "Network error"
+		}
+	},
+	"stockDetail": {
+		"buy": "Buy",
+		"sell": "Sell",
+		"open": "Open",
+		"previousClose": "Previous close",
+		"dayHigh": "Day high",
+		"dayLow": "Day low",
+		"volume": "Volume",
+		"fiftyTwoWeekHigh": "52-week high",
+		"fiftyTwoWeekLow": "52-week low",
+		"about": "About",
+		"sector": "Sector",
+		"exchange": "Exchange",
+		"type": "Type"
+	},
+	"coinDetail": {
+		"goldUpsell": "Explore the price point by point with GOLD",
+		"periodHigh": "High ({{timeframe}})",
+		"periodLow": "Low ({{timeframe}})",
+		"depositFee": "Deposit fee",
+		"withdrawFee": "Withdrawal fee",
+		"deposits": "Deposits",
+		"withdrawals": "Withdrawals",
+		"available": "Available",
+		"notAvailable": "Not available",
+		"spotTeaser": "Spot buy and sell — coming soon"
+	},
+	"queries": {
+		"historyNoData": "Not enough price history data"
+	}
+}

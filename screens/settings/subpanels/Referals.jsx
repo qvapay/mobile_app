@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StyleSheet, Text, View, ScrollView, Pressable, Linking, Platform } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme Context
 import { useTheme } from '../../../theme/ThemeContext'
@@ -60,6 +61,7 @@ const shareWithTracking = (channel, openUrl) => {
 const Referals = () => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -82,8 +84,8 @@ const Referals = () => {
 
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
-		if (query.isError && !query.data) { toast.error('Error al cargar los referidos') }
-	}, [query.isError, query.data])
+		if (query.isError && !query.data) { toast.error(t('settings.referals.toasts.loadFailed')) }
+	}, [query.isError, query.data, t])
 
 	// Refresh data
 	const { refetch } = query
@@ -104,7 +106,7 @@ const Referals = () => {
 	// Copy the full multiplatform invite (for WhatsApp and any other channel)
 	const handleCopyLink = () => {
 		copyTextToClipboard(buildReferralMessage(user.username, 'link'))
-		toast.success('Invitación copiada al portapapeles')
+		toast.success(t('settings.referals.toasts.inviteCopied'))
 	}
 
 	// Social share handlers — text channels carry the full invite message;
@@ -121,7 +123,7 @@ const Referals = () => {
 
 	const shareToTelegram = () => shareWithTracking('telegram', () => {
 		const link = buildPlayReferralLink(user.username, 'telegram')
-		const text = `Únete a QvaPay con mi código de invitación: ${user.username}\n🌐 iPhone y web: ${buildWebReferralLink(user.username, 'telegram')}`
+		const text = t('settings.referals.shareMessages.telegram', { username: user.username, link: buildWebReferralLink(user.username, 'telegram') })
 		Linking.openURL(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`)
 	})
 
@@ -143,16 +145,16 @@ const Referals = () => {
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
 			>
 
-				<Text style={textStyles.h1}>Referidos</Text>
+				<Text style={textStyles.h1}>{t('settings.referals.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-					Invita amigos y gana recompensas
+					{t('settings.referals.subtitle')}
 				</Text>
 
 				{/* Stats Row */}
 				<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
 					<View style={styles.statItem}>
 						<Text style={[styles.statValue, { color: theme.colors.primary, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>{totalReferrals}</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Referidos</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('settings.referals.stats.referrals')}</Text>
 					</View>
 					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 					<View style={styles.statItem}>
@@ -160,12 +162,12 @@ const Referals = () => {
 							<FontAwesome6 name="circle-check" size={14} color={theme.colors.successText} iconStyle="solid" />
 							<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>{verifiedCount}</Text>
 						</View>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Verificados</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('settings.referals.stats.verified')}</Text>
 					</View>
 					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 					<View style={styles.statItem}>
 						<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>{referrals.length - verifiedCount}</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Pendientes</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('settings.referals.stats.pending')}</Text>
 					</View>
 				</View>
 
@@ -175,20 +177,20 @@ const Referals = () => {
 						<Text style={[styles.statValue, { color: theme.colors.successText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>
 							${smsEarnings.toFixed(2)}
 						</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Ganado este mes</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('settings.referals.stats.earnedThisMonth')}</Text>
 					</View>
 					<View style={[styles.statDivider, { backgroundColor: theme.colors.elevation }]} />
 					<View style={styles.statItem}>
 						<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xl, fontFamily: theme.typography.fontFamily.medium }]}>
 							${smsBudgetRemaining.toFixed(2)}
 						</Text>
-						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>Disponible</Text>
+						<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('settings.referals.stats.available')}</Text>
 					</View>
 				</View>
 
 				{/* Share Card */}
 				<View style={[styles.shareCard, { backgroundColor: theme.colors.surface }]}>
-					<Text style={[styles.shareTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Tu enlace de referido</Text>
+					<Text style={[styles.shareTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{t('settings.referals.shareTitle')}</Text>
 					<Pressable onPress={handleCopyLink} style={[styles.linkBox, { backgroundColor: theme.colors.background }]}>
 						<FontAwesome6 name="link" size={14} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[styles.linkText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]} numberOfLines={1}>
@@ -208,27 +210,27 @@ const Referals = () => {
 				<View style={[styles.howItWorks, { backgroundColor: theme.colors.surface }]}>
 					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
 						<FontAwesome6 name="lightbulb" size={14} color={theme.colors.warning} iconStyle="solid" />
-						{'  '}Cómo funciona
+						{'  '}{t('settings.referals.howItWorks.title')}
 					</Text>
-					<Step number="1" text="Comparte tu enlace por SMS u otras redes" theme={theme} />
-					<Step number="2" text="Tu amigo se registra y confirma su correo" theme={theme} />
-					<Step number="3" text="Recibes $0.01 por cada registro vía SMS (hasta $5/mes)" theme={theme} />
+					<Step number="1" text={t('settings.referals.howItWorks.step1')} theme={theme} />
+					<Step number="2" text={t('settings.referals.howItWorks.step2')} theme={theme} />
+					<Step number="3" text={t('settings.referals.howItWorks.step3')} theme={theme} />
 				</View>
 
 				{/* Referrals List */}
 				<View style={{ marginTop: 20 }}>
 					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, marginBottom: 12, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
-						Mis referidos ({totalReferrals})
+						{t('settings.referals.myReferrals', { count: totalReferrals })}
 					</Text>
 
 					{referrals.length === 0 ? (
 						<View style={[styles.emptyState, { backgroundColor: theme.colors.surface }]}>
 							<FontAwesome6 name="user-group" size={32} color={theme.colors.secondaryText} iconStyle="solid" />
 							<Text style={[styles.emptyTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }]}>
-								Aún no tienes referidos
+								{t('settings.referals.empty.title')}
 							</Text>
 							<Text style={[styles.emptySubtitle, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
-								Comparte tu enlace para empezar a invitar amigos
+								{t('settings.referals.empty.subtitle')}
 							</Text>
 						</View>
 					) : (
@@ -243,7 +245,7 @@ const Referals = () => {
 								) : (
 									<View style={[styles.badge, { backgroundColor: theme.colors.warning + '20' }]}>
 										<FontAwesome6 name="clock" size={10} color={theme.colors.warning} iconStyle="solid" />
-										<Text style={[styles.badgeText, { color: theme.colors.warning, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>Pendiente</Text>
+										<Text style={[styles.badgeText, { color: theme.colors.warning, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>{t('common.status.pending')}</Text>
 									</View>
 								)}
 							</View>

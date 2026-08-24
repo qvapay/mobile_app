@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import QPPhoneInput from '../../../ui/QPPhoneInput'
@@ -17,10 +18,12 @@ const CUBA = { flag: '🇨🇺', dial: '+53' }
  * @param {string[]} [props.recentNumbers] - E.164 numbers previously topped up.
  * @param {(phone: string) => void} [props.onPickRecent] - Called with the E.164 number of a tapped chip.
  */
-const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers = [], onPickRecent, theme, textStyles }) => (
+const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers = [], onPickRecent, theme, textStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<View style={styles.section}>
 		<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 8 }]}>
-			<FontAwesome6 name="phone" size={12} color={theme.colors.primaryText} iconStyle="solid" />  Número a recargar
+			<FontAwesome6 name="phone" size={12} color={theme.colors.primaryText} iconStyle="solid" />  {t('topup.phone.label')}
 		</Text>
 
 		<QPPhoneInput
@@ -36,14 +39,14 @@ const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers
 			<View style={styles.hintRow}>
 				<FontAwesome6 name="circle-exclamation" size={11} color={theme.colors.danger} iconStyle="solid" />
 				<Text style={[textStyles.caption, { color: theme.colors.danger, marginLeft: 6 }]}>
-					Debe empezar con 5 y tener 8 dígitos
+					{t('topup.phone.invalidHint')}
 				</Text>
 			</View>
 		) : (
 			<View style={styles.hintRow}>
 				<FontAwesome6 name="circle-info" size={11} color={theme.colors.tertiaryText} iconStyle="solid" />
 				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginLeft: 6 }]}>
-					Solo números móviles de 🇨🇺 Cuba
+					{t('topup.phone.onlyCuba')}
 				</Text>
 			</View>
 		)}
@@ -67,7 +70,8 @@ const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers
 			</ScrollView>
 		)}
 	</View>
-)
+	)
+}
 
 const styles = StyleSheet.create({
 	section: {

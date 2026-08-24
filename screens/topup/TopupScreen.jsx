@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { View, Text, ScrollView, Platform, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../hooks/useContentPadding'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { toast } from 'sonner-native'
@@ -48,6 +49,7 @@ const PENDING_PHONE_KEY = '@topup_pending_phone'
 const TopupScreen = () => {
 
 	const { user } = useAuth()
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -119,21 +121,24 @@ const TopupScreen = () => {
 			await finishTransaction({ purchase, isConsumable: true })
 			await AsyncStorage.removeItem(PENDING_PHONE_KEY).catch(() => { })
 			const info = TOPUP_CATALOG?.[purchase.productId || purchase.id]
-			toast.success('¡Recarga enviada!', {
-				description: `${info?.label || 'Tu recarga'} en camino a ${phoneE164 || 'tu número'}`,
+			toast.success(t('topup.index.toasts.sent.title'), {
+				description: t('topup.index.toasts.sent.description', {
+					label: info?.label || t('topup.index.toasts.sentFallbackLabel'),
+					phone: phoneE164 || t('topup.index.toasts.sentFallbackPhone'),
+				}),
 			})
 			if (phoneE164) saveRecentNumber(phoneE164)
 			loadHistory()
 		} else if (result.data?.pending || result.status === 202) {
 			// NO consumir: el backend consume server-side cuando la recarga se confirme
-			toast.info('Recarga en proceso', {
-				description: 'Te avisaremos cuando se complete. No se te cobrará dos veces.',
+			toast.info(t('topup.index.toasts.pending.title'), {
+				description: t('topup.index.toasts.pending.description'),
 			})
 			loadHistory()
 		} else {
-			toast.error(result.error || result.data?.error || 'No se pudo validar la compra')
+			toast.error(result.error || result.data?.error || t('topup.index.toasts.validateFailed'))
 		}
-	}, [saveRecentNumber, loadHistory])
+	}, [saveRecentNumber, loadHistory, t])
 
 	// Reintenta entregar y consumir compras huérfanas (compradas pero nunca
 	// consumidas): mientras exista una, Play Billing bloquea el SKU con
@@ -163,7 +168,7 @@ const TopupScreen = () => {
 				const phone = pendingPhoneRef.current || await AsyncStorage.getItem(PENDING_PHONE_KEY)
 				await handleValidatedPurchase(purchase, phone)
 			} catch (error) {
-				toast.error('Error al validar la compra')
+				toast.error(t('topup.index.toasts.validateError'))
 			} finally {
 				setIsPurchasing(false)
 			}
@@ -172,16 +177,16 @@ const TopupScreen = () => {
 			setIsPurchasing(false)
 			if (isAlreadyOwnedError(error)) {
 				// Una compra anterior sin consumir bloquea el SKU: reintentar su entrega ya
-				toast.info('Tienes una compra anterior sin entregar', { description: 'Reintentando la entrega…' })
+				toast.info(t('topup.index.toasts.orphanFound.title'), { description: t('topup.index.toasts.orphanFound.description') })
 				try {
 					const found = await recoverOrphanedPurchases()
 					if (!found) {
-						toast.error('Google Play reporta un pago aún pendiente', {
-							description: 'Espera a que se confirme el pago o cancélalo desde la app de Play Store.',
+						toast.error(t('topup.index.toasts.playPending.title'), {
+							description: t('topup.index.toasts.playPending.description'),
 						})
 					}
 				} catch (recoveryError) {
-					toast.error('No se pudo recuperar la compra anterior. Intenta de nuevo en unos minutos.')
+					toast.error(t('topup.index.toasts.recoverFailed'))
 				}
 				return
 			}
@@ -228,8 +233,8 @@ const TopupScreen = () => {
 	)
 
 	const handleBuy = useCallback(async () => {
-		if (!phoneValid) { toast.error('Ingresa un número cubano válido'); return }
-		if (!selectedSku) { toast.error('Selecciona un monto'); return }
+		if (!phoneValid) { toast.error(t('topup.index.toasts.invalidPhone')); return }
+		if (!selectedSku) { toast.error(t('topup.index.toasts.selectAmount')); return }
 
 		const phoneE164 = `+53${phoneDigits}`
 		pendingPhoneRef.current = phoneE164
@@ -251,7 +256,7 @@ const TopupScreen = () => {
 			const message = getIAPErrorMessage(error)
 			if (message) toast.error(message)
 		}
-	}, [phoneValid, selectedSku, phoneDigits, user?.uuid, requestPurchase])
+	}, [phoneValid, selectedSku, phoneDigits, user?.uuid, requestPurchase, t])
 
 	const handlePickRecent = useCallback((phone) => {
 		setPhoneNumber(String(phone).replace(/^\+53/, ''))
@@ -265,7 +270,7 @@ const TopupScreen = () => {
 			keyboardShouldPersistTaps="handled"
 		>
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, marginBottom: 18, lineHeight: 18 }]}>
-				Recarga cualquier móvil de Cuba pagando directo con {Platform.OS === 'ios' ? 'App Store' : 'Google Play'} — sin necesidad de saldo QvaPay.
+				{t('topup.index.intro', { store: Platform.OS === 'ios' ? 'App Store' : 'Google Play' })}
 			</Text>
 
 			<TopupPhoneInput
@@ -280,7 +285,7 @@ const TopupScreen = () => {
 
 			<View style={styles.section}>
 				<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 10 }]}>
-					Selecciona el monto
+					{t('topup.index.selectAmount')}
 				</Text>
 				<View style={styles.cardsGrid}>
 					{(TOPUP_SKUS || []).map((sku) => (
@@ -302,14 +307,14 @@ const TopupScreen = () => {
 				icon={Platform.OS === 'ios' ? 'apple' : 'google-play'}
 				iconStyle="brand"
 				iconColor={theme.colors.buttonText}
-				title={isPurchasing ? 'Procesando...' : `Comprar recarga${selectedPrice ? ` ${selectedPrice}` : ''}`}
+				title={isPurchasing ? t('topup.index.processing') : (selectedPrice ? t('topup.index.buyButtonWithPrice', { price: selectedPrice }) : t('topup.index.buyButton'))}
 				onPress={handleBuy}
 				disabled={!canBuy}
 				loading={isPurchasing}
 			/>
 
 			<Text style={[textStyles.caption, { textAlign: 'center', marginTop: theme.spacing.sm, color: theme.colors.tertiaryText, lineHeight: 18 }]}>
-				El pago se procesa de forma segura por {Platform.OS === 'ios' ? 'Apple' : 'Google'}. La recarga llega en minutos.
+				{t('topup.index.securePayment', { provider: Platform.OS === 'ios' ? 'Apple' : 'Google' })}
 			</Text>
 
 			<TopupHistory

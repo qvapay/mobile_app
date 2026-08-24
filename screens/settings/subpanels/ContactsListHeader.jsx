@@ -1,17 +1,22 @@
 import { Text, View, Pressable, ActivityIndicator } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import QPInput from '../../../ui/particles/QPInput'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Header for the contacts list: title, local filter, error/sync banners, sync-agenda CTA.
-const ContactsListHeader = ({ contactsCount, filteredCount, filterQuery, onChangeFilter, error, isSyncing, permissionStatus, isResolvingPermission, onSyncPress, theme, textStyles, containerStyles }) => (
+const ContactsListHeader = ({ contactsCount, filteredCount, filterQuery, onChangeFilter, error, isSyncing, permissionStatus, isResolvingPermission, onSyncPress, theme, textStyles, containerStyles }) => {
+
+	const { t } = useTranslation()
+
+	return (
 	<>
-		<Text style={textStyles.h1}>Contactos</Text>
-		<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Personas a las que envias con frecuencia</Text>
+		<Text style={textStyles.h1}>{t('settings.contacts.title')}</Text>
+		<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.contacts.subtitle')}</Text>
 
 		{contactsCount > 0 && (
 			<QPInput
-				placeholder="Buscar contacto ..."
+				placeholder={t('settings.contacts.filterPlaceholder')}
 				value={filterQuery}
 				onChangeText={onChangeFilter}
 				autoCapitalize="none"
@@ -29,7 +34,7 @@ const ContactsListHeader = ({ contactsCount, filteredCount, filterQuery, onChang
 		{isSyncing && (
 			<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 }]}>
 				<ActivityIndicator size="small" color={theme.colors.primary} />
-				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Sincronizando contactos...</Text>
+				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('settings.contacts.syncing')}</Text>
 			</View>
 		)}
 
@@ -54,10 +59,10 @@ const ContactsListHeader = ({ contactsCount, filteredCount, filterQuery, onChang
 				)}
 				<View style={{ flex: 1 }}>
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-						{isResolvingPermission ? 'Solicitando permiso...' : 'Sincronizar agenda'}
+						{isResolvingPermission ? t('settings.contacts.requestingPermission') : t('settings.contacts.syncAgenda')}
 					</Text>
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-						Encuentra amigos que usan QvaPay
+						{t('settings.contacts.findFriends')}
 					</Text>
 				</View>
 				{!isResolvingPermission && (
@@ -68,10 +73,11 @@ const ContactsListHeader = ({ contactsCount, filteredCount, filterQuery, onChang
 
 		{filteredCount > 0 && (
 			<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 10, marginBottom: 8 }]}>
-				Contactos guardados ({filteredCount})
+				{t('settings.contacts.savedCount', { count: filteredCount })}
 			</Text>
 		)}
 	</>
-)
+	)
+}
 
 export default ContactsListHeader

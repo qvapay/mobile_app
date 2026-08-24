@@ -1,5 +1,6 @@
 import { useState, useEffect, useReducer } from 'react'
 import { Text, View, Alert } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -44,6 +45,7 @@ function setFieldReducer(state, action) {
 const Phone = () => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { updateUser } = useAuth()
 
 	// Theme variables, dark and light modes with memoized styles
@@ -98,12 +100,12 @@ const Phone = () => {
 	// Remove phone number
 	const handleRemovePhone = async () => {
 		Alert.alert(
-			'Eliminar Teléfono',
-			'¿Estás seguro de que quieres eliminar tu número de teléfono?',
+			t('settings.phone.alerts.removeTitle'),
+			t('settings.phone.alerts.removeBody'),
 			[
-				{ text: 'Cancelar', style: 'cancel' },
+				{ text: t('common.actions.cancel'), style: 'cancel' },
 				{
-					text: 'Eliminar',
+					text: t('common.actions.delete'),
 					style: 'destructive',
 					onPress: async () => {
 						try {
@@ -116,12 +118,12 @@ const Phone = () => {
 								setPin('')
 								setShowPinInput(false)
 								if (updateUser) { updateUser({ phone: null, phone_verified: false }) }
-								toast.success('Número de teléfono eliminado correctamente')
+								toast.success(t('settings.phone.toasts.removed'))
 							} else {
-								toast.error(result.error || 'Error al eliminar el número de teléfono')
+								toast.error(result.error || t('settings.phone.toasts.removeFailed'))
 							}
 						} catch (error) {
-							toast.error('Error al eliminar el número de teléfono')
+							toast.error(t('settings.phone.toasts.removeFailed'))
 						} finally { setIsLoading(false) }
 					}
 				}
@@ -132,11 +134,11 @@ const Phone = () => {
 	// Send code to phone
 	const handleSendCode = async () => {
 		if (!phone.trim()) {
-			toast.error('Por favor ingresa un número de teléfono')
+			toast.error(t('settings.phone.toasts.enterNumber'))
 			return
 		}
 		if (phone.trim().length < 7) {
-			toast.error('El número debe tener al menos 7 dígitos')
+			toast.error(t('settings.phone.toasts.minDigits'))
 			return
 		}
 
@@ -145,20 +147,20 @@ const Phone = () => {
 			const result = await userApi.verifyPhone({ phone: phone.trim(), country, verify: false })
 			if (result.success) {
 				setShowPinInput(true)
-				toast.success('PIN enviado por Telegram o WhatsApp')
+				toast.success(t('settings.phone.toasts.pinSent'))
 			} else {
-				const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al enviar el código'
+				const errorMsg = result.error?.error || result.error?.message || result.error || t('settings.phone.toasts.sendFailed')
 				toast.error(String(errorMsg))
 			}
 		} catch (error) {
-			toast.error('Error al enviar el código')
+			toast.error(t('settings.phone.toasts.sendFailed'))
 		} finally { setIsLoading(false) }
 	}
 
 	// Verify phone
 	const handleVerifyPhone = async () => {
 		if (!pin.trim() || pin.trim().length !== 6) {
-			toast.error('Ingresa un PIN válido de 6 dígitos')
+			toast.error(t('settings.phone.toasts.invalidPin'))
 			return
 		}
 
@@ -173,13 +175,13 @@ const Phone = () => {
 				setShowPinInput(false)
 				setPin('')
 				setPhone('')
-				toast.success('Teléfono verificado correctamente')
+				toast.success(t('settings.phone.toasts.verified'))
 			} else {
-				const errorMsg = result.error?.error || result.error?.message || result.error || 'Error al verificar el teléfono'
+				const errorMsg = result.error?.error || result.error?.message || result.error || t('settings.phone.toasts.verifyFailed')
 				toast.error(String(errorMsg))
 			}
 		} catch (error) {
-			toast.error('Error al verificar el teléfono')
+			toast.error(t('settings.phone.toasts.verifyFailed'))
 		} finally { setIsVerifying(false) }
 	}
 
@@ -207,7 +209,7 @@ const Phone = () => {
 				actions={
 					!showPinInput ? (
 						<QPButton
-							title="Enviar código"
+							title={t('settings.phone.sendCodeButton')}
 							onPress={handleSendCode}
 							loading={isLoading}
 							disabled={isLoading || !phone.trim()}
@@ -216,14 +218,14 @@ const Phone = () => {
 					) : (
 						<>
 							<QPButton
-								title="Verificar teléfono"
+								title={t('settings.phone.verifyButton')}
 								onPress={handleVerifyPhone}
 								loading={isVerifying}
 								disabled={isVerifying || !pin.trim() || pin.trim().length !== 6}
 								textStyle={{ color: theme.colors.buttonText }}
 							/>
 							<QPButton
-								title="Reenviar código"
+								title={t('settings.phone.resendButton')}
 								onPress={handleSendCode}
 								loading={isLoading}
 								disabled={isLoading}
@@ -235,8 +237,8 @@ const Phone = () => {
 				}
 			>
 
-				<Text style={textStyles.h1}>Verificar celular</Text>
-				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para verificarlo vía Telegram o WhatsApp</Text>
+				<Text style={textStyles.h1}>{t('settings.phone.title')}</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.phone.subtitle')}</Text>
 
 				{/* Status icon */}
 				<View style={{ alignItems: 'center', paddingVertical: 24 }}>
@@ -265,7 +267,7 @@ const Phone = () => {
 						<QPInput
 							value={pin}
 							onChangeText={setPin}
-							placeholder="Código de 6 dígitos"
+							placeholder={t('settings.phone.codePlaceholder')}
 							keyboardType="numeric"
 							maxLength={6}
 							prefixIconName="key"
@@ -279,7 +281,7 @@ const Phone = () => {
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-							El código de verificación se enviará por Telegram o WhatsApp al número que ingreses. Revisa tus mensajes en ambas apps para obtener el PIN.
+							{t('settings.phone.info')}
 						</Text>
 					</View>
 				</View>
