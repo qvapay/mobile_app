@@ -1,1 +1,173 @@
-{}
+{
+	"common": {
+		"back": "Back",
+		"brandCount_one": "{{count}} brand",
+		"brandCount_other": "{{count}} brands",
+		"continueWithAmount": "Continue · {{amount}}",
+		"amountUsdBetween": "USD amount (between {{min}} and {{max}})",
+		"insufficientBalanceNote": "Insufficient balance.",
+		"latamHint": "Top up anyone's phone in LATAM.",
+		"noOperators": "No operators available",
+		"noResultsFor": "No results for \"{{query}}\"",
+		"plans_one": "{{count}} plan",
+		"plans_other": "{{count}} plans",
+		"processing": "Processing…",
+		"selectCountry": "Select a country",
+		"upTo": "Up to {{amount}}",
+		"variableAmount": "variable amount"
+	},
+	"toasts": {
+		"amountBetween": "Amount between {{min}} and {{max}}",
+		"brands": "Brands",
+		"card": "Card",
+		"countries": "Countries",
+		"error": "Error",
+		"insufficientBalance": "Insufficient balance",
+		"operator": "Operator",
+		"operators": "Operators"
+	},
+	"landing": {
+		"title": "Store",
+		"subtitleGiftCards": "Mobile top-ups, gift cards and assisted shopping",
+		"subtitleTopupsOnly": "Mobile top-ups and assisted shopping",
+		"departments": {
+			"stores": {
+				"title": "Stores",
+				"subtitle": "Verified merchants that accept QvaPay"
+			},
+			"assisted": {
+				"title": "Assisted shopping",
+				"subtitle": "Shop on Amazon and eBay with QUSD"
+			},
+			"googlePlay": {
+				"title": "Mobile top-up with Google Play",
+				"subtitle": "Pay with your card, no QvaPay balance needed"
+			},
+			"topups": {
+				"title": "Mobile top-ups",
+				"subtitle": "Cubacel and 100+ countries"
+			},
+			"giftCards": {
+				"title": "Gift cards",
+				"subtitle": "100+ brands"
+			}
+		},
+		"giftCards": {
+			"hint": "Amazon, Steam, Apple, Google Play and more",
+			"favorites": "Your favorite brands",
+			"featured": "⚡ Popular",
+			"byCategory": "Browse by category",
+			"exploreCta": "Explore gift cards",
+			"exploreCtaHint": "Hundreds of brands in 11 countries"
+		},
+		"topups": {
+			"cubaHint": "Local Cubacel — P2P rate with no surcharge."
+		}
+	},
+	"topupIndex": {
+		"recipientCountry": "Recipient's country",
+		"cubaHint": "Local Cubacel — no international surcharge.",
+		"featuredTitle": "⚡ Popular operators",
+		"searchPlaceholder": "Filter operators in {{country}}…",
+		"operatorsIn": "Operators in {{country}}",
+		"operatorCount_one": "{{count}} operator",
+		"operatorCount_other": "{{count}} operators"
+	},
+	"topupBrand": {
+		"noActivePlans": "No active plans right now.",
+		"confirmTitle": "Confirm top-up",
+		"selectPlanAndNumberCta": "Select a plan and number",
+		"toasts": {
+			"loadError": "Couldn't load the operator",
+			"selectPlanAndNumber": "Select a plan and a valid number",
+			"sent": "Top-up sent!",
+			"sentDescription": "Your top-up is being processed"
+		}
+	},
+	"topupStep1": {
+		"subTypes": {
+			"ALL": "All",
+			"MOBILE": "Airtime",
+			"DATA": "Data",
+			"BUNDLE": "Bundle",
+			"EXTERIOR": "International",
+			"P2P": "Local"
+		},
+		"recipientNumber": "Recipient's number",
+		"localNumberPlaceholder": "Local number",
+		"invalidNumberFor": "Invalid number for {{country}}",
+		"onlyNumbersFrom": "Only numbers from {{flag}} {{country}}",
+		"selectPlan": "Select a plan"
+	},
+	"giftCards": {
+		"searchPlaceholder": "Search brands: Amazon, Steam…",
+		"allCategories": "All",
+		"brandsIn": "Brands in {{country}}",
+		"emptyCategory": "No brands in this category",
+		"loadMore": "Load more"
+	},
+	"giftCardBrand": {
+		"valueLabel": "Value: {{value}}",
+		"denominationCount_one": "{{count}} denomination",
+		"denominationCount_other": "{{count}} denominations",
+		"noActiveDenominations": "No active denominations.",
+		"selectDenomination": "Select a denomination",
+		"confirmTitle": "Confirm purchase",
+		"asBrandIndicates": "As stated by the brand",
+		"toasts": {
+			"loadError": "Couldn't load the card",
+			"purchased": "Purchase complete!",
+			"purchasedDescription": "Your card is being processed"
+		}
+	},
+	"summary": {
+		"operator": "Operator",
+		"number": "Number",
+		"plan": "Plan",
+		"benefits": "Benefits",
+		"brand": "Brand",
+		"youReceive": "You receive",
+		"referenceValue": "Reference value",
+		"total": "Total",
+		"satsDiscount": "Satoshi discount",
+		"youPay": "You pay",
+		"yourBalance": "Your balance"
+	},
+	"myPurchases": {
+		"empty": "No purchases yet",
+		"toasts": {
+			"loadError": "Couldn't load your purchases"
+		}
+	},
+	"purchaseDetail": {
+		"notFound": "Purchase not found",
+		"detailsTitle": "Purchase details:",
+		"receipt": "Receipt",
+		"provider": "Provider",
+		"viewTransaction": "View transaction",
+		"fields": {
+			"service": "Service:",
+			"amount": "Amount:",
+			"brand": "Brand:",
+			"country": "Country:",
+			"type": "Type:",
+			"notes": "Notes:",
+			"date": "Date:",
+			"transactionId": "Transaction ID:"
+		},
+		"receiptLabels": {
+			"voucherId": "Voucher ID",
+			"epin": "ePIN",
+			"confirmationNumber": "Confirmation",
+			"send": "Sent",
+			"currency": "Currency",
+			"deliveryType": "Delivery type",
+			"redemptionUrl": "Redemption URL",
+			"expiresAt": "Expires",
+			"instructions": "Instructions"
+		},
+		"toasts": {
+			"loadError": "Couldn't load the details"
+		}
+	}
+}

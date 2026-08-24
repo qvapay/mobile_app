@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable, useWindowDimensions } from 'react-native'
 import useContentPadding from '../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { useTranslation } from 'react-i18next'
 
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
@@ -26,6 +27,7 @@ import { ROUTES } from '../../routes'
  */
 const Store = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -57,9 +59,9 @@ const Store = ({ navigation }) => {
 				{/* Hero */}
 				<View style={styles.heroRow}>
 					<View style={{ flex: 1 }}>
-						<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: '600' }]}>Tienda</Text>
+						<Text style={[textStyles.h2, { color: theme.colors.primaryText, fontWeight: '600' }]}>{t('store.landing.title')}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
-							{SHOW_GIFT_CARDS ? 'Recargas, tarjetas de regalo y compras asistidas' : 'Recargas móviles y compras asistidas'}
+							{SHOW_GIFT_CARDS ? t('store.landing.subtitleGiftCards') : t('store.landing.subtitleTopupsOnly')}
 						</Text>
 					</View>
 				</View>
@@ -69,8 +71,8 @@ const Store = ({ navigation }) => {
 					<DepartmentCard
 						icon="shop"
 						color="#F59E0B"
-						title="Tiendas"
-						subtitle="Comercios verificados que aceptan QvaPay"
+						title={t('store.landing.departments.stores.title')}
+						subtitle={t('store.landing.departments.stores.subtitle')}
 						theme={theme}
 						textStyles={textStyles}
 						onPress={() => navigation.navigate(ROUTES.MARKET_STORES)}
@@ -78,8 +80,8 @@ const Store = ({ navigation }) => {
 					<DepartmentCard
 						icon="basket-shopping"
 						color="#10B981"
-						title="Compras asistidas"
-						subtitle="Compra en Amazon y eBay con QUSD"
+						title={t('store.landing.departments.assisted.title')}
+						subtitle={t('store.landing.departments.assisted.subtitle')}
 						theme={theme}
 						textStyles={textStyles}
 						onPress={() => navigation.navigate(ROUTES.ASSISTED_SHOPPING)}
@@ -90,8 +92,8 @@ const Store = ({ navigation }) => {
 							icon="google-play"
 							iconStyle="brand"
 							color="#34A853"
-							title="Recarga móvil con Google Play"
-							subtitle="Paga con tu tarjeta, sin saldo QvaPay"
+							title={t('store.landing.departments.googlePlay.title')}
+							subtitle={t('store.landing.departments.googlePlay.subtitle')}
 							theme={theme}
 							textStyles={textStyles}
 							onPress={() => navigation.navigate(ROUTES.TOPUP_SCREEN)}
@@ -101,8 +103,8 @@ const Store = ({ navigation }) => {
 						<DepartmentCard
 							icon="mobile-screen-button"
 							color={theme.colors.primary}
-							title="Recargas móviles"
-							subtitle="Cubacel y +100 países"
+							title={t('store.landing.departments.topups.title')}
+							subtitle={t('store.landing.departments.topups.subtitle')}
 							compact
 							theme={theme}
 							textStyles={textStyles}
@@ -112,8 +114,8 @@ const Store = ({ navigation }) => {
 							<DepartmentCard
 								icon="gift"
 								color="#8B5CF6"
-								title="Tarjetas de regalo"
-								subtitle="+100 marcas"
+								title={t('store.landing.departments.giftCards.title')}
+								subtitle={t('store.landing.departments.giftCards.subtitle')}
 								compact
 								theme={theme}
 								textStyles={textStyles}

@@ -18,6 +18,8 @@ import { useVoucherCountriesQuery, useVoucherBrandsQuery, useVoucherCategoriesQu
 import { ROUTES } from '../../routes'
 
 import { toast } from 'sonner-native'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 
 const DEFAULT_COUNTRY = 'US'
 const PAGE_SIZE = 24
@@ -40,6 +42,7 @@ function filtersReducer(state, action) {
  */
 const GiftCards = ({ navigation, route }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -67,10 +70,10 @@ const GiftCards = ({ navigation, route }) => {
 
 	// Los toasts solo cuando no hay NADA que pintar
 	useEffect(() => {
-		if (countriesQuery.isError && !countriesQuery.data) { toast.error('Países', { description: countriesQuery.error?.message }) }
+		if (countriesQuery.isError && !countriesQuery.data) { toast.error(i18n.t('store.toasts.countries'), { description: countriesQuery.error?.message }) }
 	}, [countriesQuery.isError, countriesQuery.data, countriesQuery.error])
 	useEffect(() => {
-		if (brandsQuery.isError && !brandsQuery.data) { toast.error('Marcas', { description: brandsQuery.error?.message }) }
+		if (brandsQuery.isError && !brandsQuery.data) { toast.error(i18n.t('store.toasts.brands'), { description: brandsQuery.error?.message }) }
 	}, [brandsQuery.isError, brandsQuery.data, brandsQuery.error])
 
 	// Default: US (o el primero) cuando llegan los países y no hay selección
@@ -150,7 +153,7 @@ const GiftCards = ({ navigation, route }) => {
 						<QPInput
 							value={search}
 							onChangeText={(v) => dispatchFilters({ type: 'set', field: 'search', value: v })}
-							placeholder="Buscar marca: Amazon, Steam…"
+							placeholder={t('store.giftCards.searchPlaceholder')}
 							prefixIconName="magnifying-glass"
 							style={{ fontSize: theme.typography.fontSize.md }}
 						/>
@@ -172,7 +175,7 @@ const GiftCards = ({ navigation, route }) => {
 							active={activeCategory === 'ALL'}
 							onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: 'ALL' })}
 							emoji="✨"
-							label="Todas"
+							label={t('store.giftCards.allCategories')}
 							count={brands.length}
 						/>
 						{categories.map(c => (
@@ -191,10 +194,10 @@ const GiftCards = ({ navigation, route }) => {
 				{/* Brands grid */}
 				<View style={styles.gridHeader}>
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-						{selectedCountry?.flag} Marcas en {selectedCountry?.name}
+						{selectedCountry?.flag} {t('store.giftCards.brandsIn', { country: selectedCountry?.name || '' })}
 					</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-						{filteredBrands.length} {filteredBrands.length === 1 ? 'marca' : 'marcas'}
+						{t('store.common.brandCount', { count: filteredBrands.length })}
 					</Text>
 				</View>
 
@@ -205,7 +208,7 @@ const GiftCards = ({ navigation, route }) => {
 				) : filteredBrands.length === 0 ? (
 					<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
 						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-							{search ? `Sin resultados para "${search}"` : 'No hay marcas en esta categoría'}
+							{search ? t('store.common.noResultsFor', { query: search }) : t('store.giftCards.emptyCategory')}
 						</Text>
 					</View>
 				) : (
@@ -224,7 +227,7 @@ const GiftCards = ({ navigation, route }) => {
 									onPress={() => dispatchFilters({ type: 'set', field: 'page', value: safePage + 1 })}
 									style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600', paddingVertical: 10, paddingHorizontal: 24 }]}
 								>
-									Cargar más
+									{t('store.giftCards.loadMore')}
 								</Text>
 							</View>
 						)}

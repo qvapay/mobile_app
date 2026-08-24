@@ -31,6 +31,10 @@ import { getShortDateTime, statusText, copyTextToClipboard, getFirstChunk } from
 import { toast } from 'sonner-native'
 import QPFitText from '../../ui/particles/QPFitText'
 
+// i18n
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
+
 // Status colors (same pattern as Transaction.jsx)
 const getStatusColor = (status, theme) => {
 	switch (status) {
@@ -44,17 +48,17 @@ const getStatusColor = (status, theme) => {
 // Get logo URL (same pattern as QPProduct)
 const getLogoUrl = (logo) => mediaUrl(logo) || ''
 
-// Human-readable labels for receipt fields
-const receiptLabels = {
-	voucherId: 'Voucher ID',
-	epin: 'ePIN',
-	confirmationNumber: 'Confirmación',
-	send: 'Enviado',
-	currency: 'Moneda',
-	deliveryType: 'Tipo de entrega',
-	redemptionUrl: 'URL de canje',
-	expiresAt: 'Expira',
-	instructions: 'Instrucciones',
+// Localized labels for receipt fields: i18n KEYS resueltas con t() en render
+const receiptLabelKeys = {
+	voucherId: 'store.purchaseDetail.receiptLabels.voucherId',
+	epin: 'store.purchaseDetail.receiptLabels.epin',
+	confirmationNumber: 'store.purchaseDetail.receiptLabels.confirmationNumber',
+	send: 'store.purchaseDetail.receiptLabels.send',
+	currency: 'store.purchaseDetail.receiptLabels.currency',
+	deliveryType: 'store.purchaseDetail.receiptLabels.deliveryType',
+	redemptionUrl: 'store.purchaseDetail.receiptLabels.redemptionUrl',
+	expiresAt: 'store.purchaseDetail.receiptLabels.expiresAt',
+	instructions: 'store.purchaseDetail.receiptLabels.instructions',
 }
 
 /**
@@ -68,6 +72,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 	const { purchaseId } = route.params
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -81,7 +86,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
 		if (query.isError && !query.data) {
-			toast.error('Error', { description: query.error?.message || 'No se pudo obtener el detalle' })
+			toast.error(i18n.t('store.toasts.error'), { description: query.error?.message || i18n.t('store.purchaseDetail.toasts.loadError') })
 		}
 	}, [query.isError, query.data, query.error])
 
@@ -126,9 +131,9 @@ const PurchaseDetail = ({ route, navigation }) => {
 	if (!purchase) {
 		return (
 			<View style={[containerStyles.subContainer, { justifyContent: 'center', alignItems: 'center', gap: 16 }]}>
-				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>No se encontró la compra</Text>
+				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('store.purchaseDetail.notFound')}</Text>
 				<QPButton
-					title="Volver"
+					title={t('common.actions.back')}
 					onPress={() => navigation.goBack()}
 					style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 24 }}
 					textStyle={{ color: theme.colors.almostWhite }}
@@ -173,19 +178,19 @@ const PurchaseDetail = ({ route, navigation }) => {
 				</View>
 
 				{/* Purchase Details Card */}
-				<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 5 }]}>Detalles de la compra:</Text>
+				<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 5 }]}>{t('store.purchaseDetail.detailsTitle')}</Text>
 				<View style={[styles.detailsCard, { backgroundColor: theme.colors.surface }]}>
-					<DetailRow label="Servicio:" value={purchase.service?.name} />
-					<DetailRow label="Monto:" value={`$${Number(purchase.amount).toFixed(2)}`} />
-					{serviceData.brand ? <DetailRow label="Marca:" value={serviceData.brand} /> : null}
-					{serviceData.country ? <DetailRow label="País:" value={serviceData.country} /> : null}
-					{serviceData.productType ? <DetailRow label="Tipo:" value={serviceData.productType} /> : null}
+					<DetailRow label={t('store.purchaseDetail.fields.service')} value={purchase.service?.name} />
+					<DetailRow label={t('store.purchaseDetail.fields.amount')} value={`$${Number(purchase.amount).toFixed(2)}`} />
+					{serviceData.brand ? <DetailRow label={t('store.purchaseDetail.fields.brand')} value={serviceData.brand} /> : null}
+					{serviceData.country ? <DetailRow label={t('store.purchaseDetail.fields.country')} value={serviceData.country} /> : null}
+					{serviceData.productType ? <DetailRow label={t('store.purchaseDetail.fields.type')} value={serviceData.productType} /> : null}
 					{purchase.notes ? (
-						<DetailRow label="Notas:">
+						<DetailRow label={t('store.purchaseDetail.fields.notes')}>
 							<Text style={[textStyles.h6, { color: theme.colors.primaryText, flex: 1, textAlign: 'right', marginLeft: 16 }]}>{purchase.notes}</Text>
 						</DetailRow>
 					) : null}
-					<DetailRow label="Fecha:" value={getShortDateTime(purchase.created_at)} last />
+					<DetailRow label={t('store.purchaseDetail.fields.date')} value={getShortDateTime(purchase.created_at)} last />
 				</View>
 
 				{/* Receipt Card - only if there's receipt data with non-empty values */}
@@ -193,13 +198,13 @@ const PurchaseDetail = ({ route, navigation }) => {
 					<View style={[styles.detailsCard, { backgroundColor: theme.colors.surface, marginTop: 16 }]}>
 						<CardHeader
 							icon="receipt"
-							title="Recibo"
+							title={t('store.purchaseDetail.receipt')}
 							color={theme.colors.successText}
 						/>
 						{Object.entries(receipt).map(([key, val], index, arr) => {
 							// Skip empty values and internal fields
 							if (!val || val === '' || key === 'currencyDivisor' || key === 'accountId') return null
-							const label = receiptLabels[key] || key
+							const label = receiptLabelKeys[key] ? t(receiptLabelKeys[key]) : key
 							const isLast = index === arr.length - 1
 							const copiable = key === 'voucherId' || key === 'epin' || key === 'confirmationNumber'
 							return (<DetailRow key={key} label={`${label}:`} value={String(val)} last={isLast} copiable={copiable} />)
@@ -212,13 +217,13 @@ const PurchaseDetail = ({ route, navigation }) => {
 					<View style={[styles.detailsCard, { backgroundColor: theme.colors.surface, marginTop: 16 }]}>
 						<CardHeader
 							icon="server"
-							title="Proveedor"
+							title={t('store.purchaseDetail.provider')}
 							color={theme.colors.primary}
 							badge={serviceData.providerStatus}
 							badgeColor={getStatusColor(serviceData.providerStatus === 'SUCCESSFUL' ? 'paid' : 'pending', theme)}
 						/>
 						{serviceData.providerTransactionId ? (
-							<DetailRow label="ID Transacción:" value={getFirstChunk(serviceData.providerTransactionId)} copiable last />
+							<DetailRow label={t('store.purchaseDetail.fields.transactionId')} value={getFirstChunk(serviceData.providerTransactionId)} copiable last />
 						) : null}
 					</View>
 				)}
@@ -227,7 +232,7 @@ const PurchaseDetail = ({ route, navigation }) => {
 				{purchase.transaction?.uuid && (
 					<View style={[containerStyles.bottomButtonContainer, { marginTop: 16 }]}>
 						<QPButton
-							title="Ver transacción"
+							title={t('store.purchaseDetail.viewTransaction')}
 							icon="arrow-up-right-from-square"
 							iconColor="white"
 							onPress={() => navigation.navigate(ROUTES.TRANSACTION, { transaction: { uuid: purchase.transaction.uuid, amount: purchase.amount, status: purchase.status, created_at: purchase.created_at } })}

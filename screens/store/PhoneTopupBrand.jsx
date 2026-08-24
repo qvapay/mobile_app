@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native'
 import useContentPadding from '../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { toast } from 'sonner-native'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 
 const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
 
@@ -44,6 +46,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 
 	const { country: initCountry, countryCode, brandSlug } = route.params || {}
 
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
@@ -75,7 +78,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
 		if (detailQuery.isError && !detailQuery.data) {
-			toast.error('Operador', { description: detailQuery.error?.message || 'No se pudo cargar el operador' })
+			toast.error(i18n.t('store.toasts.operator'), { description: detailQuery.error?.message || i18n.t('store.topupBrand.toasts.loadError') })
 		}
 	}, [detailQuery.isError, detailQuery.data, detailQuery.error])
 
@@ -144,19 +147,19 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 	const hasBalance = user?.balance != null ? Number(user.balance) >= satsDiscount.cashDue : false
 
 	const handleContinue = useCallback(() => {
-		if (!phoneValid || !selectedOffer) { toast.error('Selecciona un plan y un número válido'); return }
+		if (!phoneValid || !selectedOffer) { toast.error(i18n.t('store.topupBrand.toasts.selectPlanAndNumber')); return }
 		if (selectedOffer.price_type === 'RANGE') {
 			const min = Number(selectedOffer.price_min || 0)
 			const max = Number(selectedOffer.price_max || 0)
 			const amt = parseFloat(rangeAmount)
-			if (!amt || amt < min || amt > max) { toast.error(`Monto entre $${min} y $${max}`); return }
+			if (!amt || amt < min || amt > max) { toast.error(i18n.t('store.toasts.amountBetween', { min: `$${min}`, max: `$${max}` })); return }
 		}
 		setStep(2)
 	}, [phoneValid, selectedOffer, rangeAmount])
 
 	const handleConfirm = useCallback(async () => {
 		if (!selectedOffer) return
-		if (!hasBalance) { toast.error('Saldo insuficiente'); return }
+		if (!hasBalance) { toast.error(i18n.t('store.toasts.insufficientBalance')); return }
 		setSubmitting(true)
 		let res
 		if (selectedOffer.source === 'cuba') {
@@ -180,10 +183,10 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 		if (res.success) {
 			// Reflejar el gasto real (cash_paid) y los sats restantes sin refetch
 			satsDiscount.applyPurchaseResult(res.data, offerPrice)
-			toast.success('¡Recarga enviada!', { description: 'Tu recarga se está procesando' })
+			toast.success(i18n.t('store.topupBrand.toasts.sent'), { description: i18n.t('store.topupBrand.toasts.sentDescription') })
 			navigation.goBack()
 		} else {
-			toast.error('Error', { description: res.error })
+			toast.error(i18n.t('store.toasts.error'), { description: res.error })
 		}
 	}, [selectedOffer, fullPhoneNumber, hasBalance, countryCode, rangeAmount, satsDiscount, offerPrice, navigation])
 
@@ -202,7 +205,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 					{brand} · {country?.name}
 				</Text>
 				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8 }]}>
-					No hay planes activos en este momento.
+					{t('store.topupBrand.noActivePlans')}
 				</Text>
 			</View>
 		)
@@ -218,7 +221,7 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 					<View style={{ flex: 1, marginLeft: 12 }}>
 						<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>{brand}</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-							{country?.flag} {country?.name} · {offers.length} {offers.length === 1 ? 'plan' : 'planes'}
+							{country?.flag} {country?.name} · {t('store.common.plans', { count: offers.length })}
 						</Text>
 					</View>
 				</View>
@@ -246,15 +249,15 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 					<View style={styles.section}>
 						<View style={[styles.summary, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 12 }]}>
-								Confirmar recarga
+								{t('store.topupBrand.confirmTitle')}
 							</Text>
-							<SummaryRow theme={theme} textStyles={textStyles} label="Operador" value={`${brand} (${country?.name})`} />
-							<SummaryRow theme={theme} textStyles={textStyles} label="Número" value={fullPhoneNumber} />
-							<SummaryRow theme={theme} textStyles={textStyles} label="Plan" value={selectedOffer.name || selectedOffer.notes || '—'} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.operator')} value={`${brand} (${country?.name})`} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.number')} value={fullPhoneNumber} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.plan')} value={selectedOffer.name || selectedOffer.notes || '—'} />
 							{selectedOffer.sent_benefits && (
-								<SummaryRow theme={theme} textStyles={textStyles} label="Beneficios" value={selectedOffer.sent_benefits} />
+								<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.benefits')} value={selectedOffer.sent_benefits} />
 							)}
-							<SummaryRow theme={theme} textStyles={textStyles} label="Total" value={`$${offerPrice.toFixed(2)} USD`} bold={!satsDiscount.enabled} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.total')} value={`$${offerPrice.toFixed(2)} USD`} bold={!satsDiscount.enabled} />
 							{satsDiscount.available && (
 								<SatsDiscountRow
 									enabled={satsDiscount.enabled}
@@ -267,15 +270,15 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 							)}
 							{satsDiscount.enabled && (
 								<>
-									<SummaryRow theme={theme} textStyles={textStyles} label="Descuento satoshis" value={`≈ −$${satsDiscount.discountUsd.toFixed(2)}`} highlight />
-									<SummaryRow theme={theme} textStyles={textStyles} label="Pagas" value={`≈ $${satsDiscount.cashDue.toFixed(2)} USD`} bold />
+									<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.satsDiscount')} value={`≈ −$${satsDiscount.discountUsd.toFixed(2)}`} highlight />
+									<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.youPay')} value={`≈ $${satsDiscount.cashDue.toFixed(2)} USD`} bold />
 								</>
 							)}
-							<SummaryRow theme={theme} textStyles={textStyles} label="Tu saldo" value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
+							<SummaryRow theme={theme} textStyles={textStyles} label={t('store.summary.yourBalance')} value={`$${Number(user?.balance ?? 0).toFixed(2)} USD`} />
 						</View>
 						{!hasBalance && (
 							<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 8 }]}>
-								Saldo insuficiente.
+								{t('store.common.insufficientBalanceNote')}
 							</Text>
 						)}
 					</View>
@@ -284,18 +287,18 @@ const PhoneTopupBrand = ({ navigation, route }) => {
 				<View style={{ marginTop: 18, gap: 12 }}>
 					{step === 1 ? (
 						<QPButton
-							title={selectedOffer && phoneValid ? `Continuar · $${offerPrice.toFixed(2)}` : 'Selecciona plan y número'}
+							title={selectedOffer && phoneValid ? t('store.common.continueWithAmount', { amount: `$${offerPrice.toFixed(2)}` }) : t('store.topupBrand.selectPlanAndNumberCta')}
 							onPress={handleContinue}
 							disabled={!selectedOffer || !phoneValid || (selectedOffer?.price_type === 'RANGE' && !rangeAmount)}
 						/>
 					) : (
 						<View style={{ flexDirection: 'row', gap: 10 }}>
 							<View style={{ flex: 1 }}>
-								<QPButton title="Atrás" onPress={() => setStep(1)} disabled={submitting} />
+								<QPButton title={t('store.common.back')} onPress={() => setStep(1)} disabled={submitting} />
 							</View>
 							<View style={{ flex: 2 }}>
 								<QPButton
-									title={submitting ? 'Procesando…' : 'Confirmar'}
+									title={submitting ? t('store.common.processing') : t('common.actions.confirm')}
 									onPress={handleConfirm}
 									disabled={submitting || !hasBalance}
 									loading={submitting}

@@ -17,12 +17,16 @@ import { useTopupCountriesQuery, useTopupFeaturedQuery, useTopupBrandsQuery } fr
 import { ROUTES } from '../../routes'
 
 import { toast } from 'sonner-native'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 
 const DEFAULT_COUNTRY = 'CU'
 
+// i18n.t en call time: se re-resuelve en cada render (el componente re-renderiza
+// con useTranslation al cambiar de idioma)
 const formatPriceRange = (min, max) => {
 	if (min == null && max == null) return null
-	if (min == null) return `Hasta $${Number(max).toFixed(2)}`
+	if (min == null) return i18n.t('store.common.upTo', { amount: `$${Number(max).toFixed(2)}` })
 	if (max == null || max === min) return `$${Number(min).toFixed(2)}`
 	return `$${Number(min).toFixed(2)} – $${Number(max).toFixed(2)}`
 }
@@ -44,6 +48,7 @@ function filtersReducer(state, action) {
  */
 const PhoneTopupIndex = ({ navigation, route }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -71,10 +76,10 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 
 	// Los toasts solo cuando no hay NADA que pintar
 	useEffect(() => {
-		if (countriesQuery.isError && !countriesQuery.data) { toast.error('Países', { description: countriesQuery.error?.message }) }
+		if (countriesQuery.isError && !countriesQuery.data) { toast.error(i18n.t('store.toasts.countries'), { description: countriesQuery.error?.message }) }
 	}, [countriesQuery.isError, countriesQuery.data, countriesQuery.error])
 	useEffect(() => {
-		if (brandsQuery.isError && !brandsQuery.data) { toast.error('Operadores', { description: brandsQuery.error?.message }) }
+		if (brandsQuery.isError && !brandsQuery.data) { toast.error(i18n.t('store.toasts.operators'), { description: brandsQuery.error?.message }) }
 	}, [brandsQuery.isError, brandsQuery.data, brandsQuery.error])
 
 	// Default: el país de la ruta, o Cuba, cuando llegan los países
@@ -121,7 +126,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 						{item.brand}
 					</Text>
 					<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-						{price || `${item.offer_count || 0} planes`}
+						{price || t('store.common.plans', { count: item.offer_count || 0 })}
 					</Text>
 				</View>
 				<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
@@ -158,18 +163,18 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 				{/* Hero card: country picker */}
 				<View style={[styles.heroCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-						País del destinatario
+						{t('store.topupIndex.recipientCountry')}
 					</Text>
 					<CountryPicker
 						countries={countries}
 						value={selectedCountry}
 						onChange={(c) => dispatchFilters({ type: 'set', field: 'selectedCountry', value: c })}
-						placeholder="Selecciona país"
+						placeholder={t('store.common.selectCountry')}
 					/>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 8 }]}>
 						{selectedCountry?.code === 'CU'
-							? 'Cubacel local — sin cargo del exterior.'
-							: 'Recarga el móvil de cualquier persona en LATAM.'}
+							? t('store.topupIndex.cubaHint')
+							: t('store.common.latamHint')}
 					</Text>
 				</View>
 
@@ -177,7 +182,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 				{featured.length > 0 && !search && (
 					<View style={styles.section}>
 						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 10 }]}>
-							⚡ Operadores populares
+							{t('store.topupIndex.featuredTitle')}
 						</Text>
 						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 12, gap: 10 }}>
 							{featured.map(f => (
@@ -209,7 +214,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 						<QPInput
 							value={search}
 							onChangeText={(v) => dispatchFilters({ type: 'set', field: 'search', value: v })}
-							placeholder={`Filtrar operador en ${selectedCountry?.name || ''}…`}
+							placeholder={t('store.topupIndex.searchPlaceholder', { country: selectedCountry?.name || '' })}
 							prefixIconName="magnifying-glass"
 							style={{ fontSize: theme.typography.fontSize.md }}
 						/>
@@ -220,10 +225,10 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-							{selectedCountry?.flag} Operadores en {selectedCountry?.name}
+							{selectedCountry?.flag} {t('store.topupIndex.operatorsIn', { country: selectedCountry?.name || '' })}
 						</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-							{filteredBrands.length} {filteredBrands.length === 1 ? 'operador' : 'operadores'}
+							{t('store.topupIndex.operatorCount', { count: filteredBrands.length })}
 						</Text>
 					</View>
 
@@ -234,7 +239,7 @@ const PhoneTopupIndex = ({ navigation, route }) => {
 					) : filteredBrands.length === 0 ? (
 						<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-								{search ? `Sin resultados para "${search}"` : 'No hay operadores disponibles'}
+								{search ? t('store.common.noResultsFor', { query: search }) : t('store.common.noOperators')}
 							</Text>
 						</View>
 					) : (
