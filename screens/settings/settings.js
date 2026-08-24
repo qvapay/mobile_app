@@ -29,6 +29,15 @@ const settings = {
                 enabled: true,
                 notifications: 0,
             },
+            {
+                title: 'Idioma',
+                screen: ROUTES.LANGUAGE,
+                icon: 'language',
+                color: '#3B82F6',
+                keywords: ['español', 'ingles', 'english', 'language', 'traducción', 'idiomas'],
+                enabled: true,
+                notifications: 0,
+            },
         ],
     },
     profile: {

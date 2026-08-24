@@ -1,0 +1,22 @@
+{
+	"language": {
+		"title": "Language",
+		"subtitle": "Choose the app language",
+		"sectionLabel": "App language",
+		"appliedImmediately": "Changes apply immediately",
+		"options": {
+			"auto": {
+				"title": "Automatic",
+				"description": "Follow the device language"
+			},
+			"es": {
+				"title": "Español",
+				"description": "Usar español en toda la aplicación"
+			},
+			"en": {
+				"title": "English",
+				"description": "Use English across the app"
+			}
+		}
+	}
+}

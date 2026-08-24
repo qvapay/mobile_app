@@ -26,8 +26,8 @@ export const STORAGE_KEYS = {
 /**
  * Default value for every settings category. Stored settings are merged OVER
  * this object on load, so adding a new key here is enough to roll it out to
- * existing installs. Notable defaults: dark theme, Spanish locale, QUSD
- * currency, `appearance.firstTime: true` (gates the onboarding flow).
+ * existing installs. Notable defaults: dark theme, auto language (follows the
+ * device), QUSD currency, `appearance.firstTime: true` (gates onboarding).
  */
 export const DEFAULT_SETTINGS = {
 	// Notification settings
@@ -80,9 +80,11 @@ export const DEFAULT_SETTINGS = {
 		bottomBarLabels: false
 	},
 
-	// Language and localization
+	// Language and localization — currentLanguage: 'auto' | 'es' | 'en'
+	// ('auto' sigue el idioma del dispositivo; settings/LanguageSync.jsx lo
+	// aplica al singleton de i18next en runtime)
 	language: {
-		currentLanguage: 'es',
+		currentLanguage: 'auto',
 		region: 'ES',
 		dateFormat: 'DD/MM/YYYY',
 		timeFormat: '12h', // 12h, 24h

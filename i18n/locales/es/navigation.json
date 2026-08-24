@@ -1,0 +1,35 @@
+{
+	"headers": {
+		"deposit": "Depositar",
+		"withdraw": "Extraer",
+		"goldCheck": "Hazte GOLD",
+		"contacts": "Contactos",
+		"send": "Enviar QUSD",
+		"sendConfirm": "Confirmar pago",
+		"transactions": "Transacciones",
+		"savings": "Ahorros",
+		"phoneTopups": "Recargas móviles",
+		"topup": "Recarga móvil",
+		"giftCards": "Tarjetas de regalo",
+		"myPurchases": "Mis Compras",
+		"stores": "Tiendas",
+		"myCart": "Mi carrito",
+		"marketOrders": "Mis compras",
+		"order": "Pedido",
+		"orderNumber": "Pedido #{{id}}",
+		"assistedShopping": "Compras asistidas",
+		"assistedCheckout": "Confirmar compra",
+		"assistedOrders": "Mis pedidos"
+	},
+	"tabs": {
+		"home": "Inicio",
+		"invest": "Invertir",
+		"send": "Enviar",
+		"p2p": "P2P",
+		"store": "Tienda"
+	},
+	"headerItems": {
+		"scan": "Escanear",
+		"cart": "Carrito"
+	}
+}

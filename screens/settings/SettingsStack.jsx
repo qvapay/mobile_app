@@ -16,6 +16,7 @@ import GoldCheck from './subpanels/GoldCheck'
 import Referals from './subpanels/Referals'
 import Theme from './subpanels/Theme'
 import FontSize from './subpanels/FontSize'
+import Language from './subpanels/Language'
 import Userdata from './subpanels/Userdata'
 import Phone from './subpanels/Phone'
 import Telegram from './subpanels/Telegram'
@@ -64,6 +65,7 @@ const SettingsStack = ({ navigation }) => {
 			<Stack.Screen name={ROUTES.REFERALS} component={Referals} />
 			<Stack.Screen name={ROUTES.THEME} component={Theme} />
 			<Stack.Screen name={ROUTES.FONT_SIZE} component={FontSize} />
+			<Stack.Screen name={ROUTES.LANGUAGE} component={Language} />
 			<Stack.Screen name={ROUTES.USERDATA} component={Userdata} />
 			<Stack.Screen name={ROUTES.PHONE} component={Phone} />
 			<Stack.Screen name={ROUTES.TELEGRAM} component={Telegram} />
