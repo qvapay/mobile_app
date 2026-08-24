@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import i18n from '../../i18n'
+import { useTranslation } from 'react-i18next'
 
 // mm:ss formatter — pure, so it lives at module scope instead of being rebuilt each render
 const format = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
@@ -21,8 +21,10 @@ const format = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 
  */
 export default function usePinCountdown() {
 
-	// Initializer runs at mount, so the label resolves in the active language
-	const [label, setLabel] = useState(() => i18n.t('hooks.pinCountdown.requestPin'))
+	const { t } = useTranslation()
+	const idleLabel = t('hooks.pinCountdown.requestPin')
+
+	const [label, setLabel] = useState(idleLabel)
 	const [isDisabled, setIsDisabled] = useState(false)
 	const remainingRef = useRef(0)
 	const intervalRef = useRef(null)
@@ -44,13 +46,20 @@ export default function usePinCountdown() {
 			if (remainingRef.current <= 0) {
 				stop()
 				setIsDisabled(false)
-				setLabel(i18n.t('hooks.pinCountdown.requestPin'))
+				setLabel(t('hooks.pinCountdown.requestPin'))
 			} else { setLabel(format(remainingRef.current)) }
 		}, 1000)
 	}
 
 	// Clear any running interval on unmount
 	useEffect(() => stop, [])
+
+	// Sync label with current translation when idle and language changes
+	useEffect(() => {
+		if (!isDisabled && remainingRef.current === 0) {
+			setLabel(idleLabel)
+		}
+	}, [idleLabel, isDisabled])
 
 	return { label, isDisabled, start }
 }
