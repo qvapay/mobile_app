@@ -10,6 +10,7 @@
     "pods": "cd ios && pod install",
     "lint": "eslint .",
     "i18n:check": "node scripts/check-i18n.js",
+    "i18n:usage": "node scripts/check-i18n-usage.js",
     "start": "react-native start",
     "test": "jest",
     "android:bundle": "cd android && ./gradlew bundleRelease",

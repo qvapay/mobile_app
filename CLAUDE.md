@@ -20,6 +20,8 @@ npm run start            # Start Metro bundler
 # Quality
 npm run lint             # Run ESLint (@react-native config)
 npm run test             # Run Jest tests (react-native preset)
+npm run i18n:check       # Paridad de claves es/en + placeholders + pares de plural
+npm run i18n:usage       # Toda clave literal t('...') del código existe en el bundle es
 npx jest screens/keypad/keypadAmount.test.js  # Run a single test file
 npm run doctor           # react-doctor diagnostics (also runs in CI: .github/workflows/react-doctor.yml)
 
@@ -52,6 +54,7 @@ GestureHandlerRootView
           AuthProvider
             OnlineStatusProvider
               SettingsProvider
+                LanguageSync        ← render null; aplica language.currentLanguage a i18next
                 ThemeProviderWithSettings
                   LoadingBridge       ← wires LoadingContext into the axios client
                     AppLockProvider
@@ -151,6 +154,19 @@ The client also owns three Keychain services and exports their helpers:
 - `promoApi.js`: promo banners shown across the app
 - `blogApi.js`: WordPress REST API (uses native `fetch`, not axios)
 
+### i18n (es/en — i18next)
+
+**TODO el copy de UI vive en i18next** desde 2026-08-24 (barrido completo, ~1.900 claves). Piezas:
+
+- **`i18n/index.js`**: singleton con init SÍNCRONO a nivel de módulo (`initImmediate: false`, recursos empaquetados) — `i18n.t()` es usable desde el primer import (ErrorBoundary lo necesita en render). `lng: 'es'` SIEMPRE en el init (determinista para jest); el idioma real lo aplica **`settings/LanguageSync.jsx`** en runtime. Exporta `getDeviceLanguage()` (vía `Intl` de Hermes, sin dep nativa), `resolveLanguage(pref)` y `getDateLocale()` ('es-ES'/'en-US' — sustituye a todo locale hardcodeado). **Regla dura: este módulo jamás importa react-native/AsyncStorage** (corre en cada test node).
+- **Recursos**: `i18n/locales/{es,en}/<dominio>.json` (21 dominios), fusionados por `i18n/resources.js` como grupos top-level de un único namespace → `t('p2p.offer.toasts.published')`. El español es el idioma fuente; convenciones y glosario en **`i18n/CONVENTIONS.md`**.
+- **Preferencia**: `settings.language.currentLanguage` (`'auto'|'es'|'en'`, default `'auto'` = idioma del dispositivo con fallback a español); panel en Ajustes → Idioma (`subpanels/Language.jsx`). `LanguageSync` hace `i18n.changeLanguage(resolveLanguage(pref))` con guards de hidratación e identidad.
+- **Patrones**: componentes → `useTranslation()` (sin provider: singleton global). Fuera de render (api/, helpers, hooks no reactivos, clases) → `i18n.t()` EN CALL TIME, nunca resuelto a nivel de módulo. Constantes de módulo con copy → mapas de claves/builders `(t) => …` resueltos en render. En hooks con identidad estable calibrada (useP2POffers/useP2PChat, fetchs de SendConfirm/Pay) se usa `i18n.t()` call-time a propósito: un `t` reactivo en sus deps re-dispararía efectos al cambiar idioma.
+- **Navegación**: los títulos viven en `buildStaticScreens(t)` memoizado con `[t]` en `AppNavigator` (mantener la memoización: options con identidad cambiante reintroducen el flash liquid-glass iOS); tabs de MainStack con `t` en sus deps de useMemo.
+- **Tests**: `jest.setup.js` (registrado en `setupFiles` PRESERVANDO el del preset RN — las claves de proyecto REEMPLAZAN las del preset) inicializa el singleton real en español → `t()` devuelve los literales que las suites asertan. El contrato está fijado en `i18n/i18n.test.js`.
+- **Backend**: el cliente manda `Accept-Language` por request; la prosa de error del servidor sigue en español (workstream futuro en qpweb) — solo los FALLBACKS locales son claves.
+- **NO traducir**: passthrough del backend, marcas (QvaPay, QUSD, Face ID…), enums/valores que viajan a la API ('Criptomonedas', ticks), payloads de OneSignal, valores de routes.js, `ui/BottomBar.jsx` (código muerto).
+
 ### Theme System
 ```javascript
 const { theme } = useTheme()
@@ -185,7 +201,7 @@ UI conventions:
 - `/scripts/`: `release-android.sh`, `sync-version.js`
 
 ### Key Dependencies
-React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), **TanStack Query 5** (`@tanstack/react-query` + `react-query-persist-client` + `query-async-storage-persister`), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `@shopify/react-native-skia` 2 (only the aurora loading veil), `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
+React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), **TanStack Query 5** (`@tanstack/react-query` + `react-query-persist-client` + `query-async-storage-persister`), **i18next 26 + react-i18next 17** (+ `intl-pluralrules` para Hermes), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `@shopify/react-native-skia` 2 (only the aurora loading veil), `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
 
 OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc81`.
 
@@ -275,7 +291,7 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 
 - `.jsx` everywhere (~145 files); `App.tsx` is the only TypeScript file — migration not really started
 - Functional components + hooks only (no class components beyond `ErrorBoundary`)
-- UI strings hardcoded in Spanish (i18n on roadmap)
+- **UI multilenguaje (es/en) vía i18next** — ver sección "i18n" arriba; copy nuevo SIEMPRE nace como clave en `i18n/locales/` siguiendo `i18n/CONVENTIONS.md`, nunca como literal
 - Token lives in Keychain (`com.qvapay.auth`) — AsyncStorage is only used for non-secret settings
 - API base URL switches on `__DEV__`; dev IP `192.168.0.10:3000` in `config.js` may need updating per machine
 - Lists should use `@shopify/flash-list` — preferred over `FlatList` for new code
