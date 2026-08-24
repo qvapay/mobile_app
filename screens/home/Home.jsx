@@ -240,8 +240,9 @@ const Home = ({ navigation }) => {
 					)}
 				</View>
 
-				{/* Cash Delivery Card - only show when balance >= 200 */}
-				{Number(user.balance) >= 200 && (<CashDeliveryCard navigation={navigation} />)}
+				{/* Cash Delivery Card: con KYC solo desde balance >= 200; sin KYC
+				    se muestra siempre, sombreada y gateada (invita a verificarse) */}
+				{(!user.kyc || Number(user.balance) >= 200) && (<CashDeliveryCard navigation={navigation} />)}
 
 				{/* Service Cards */}
 				<View style={styles.section}>

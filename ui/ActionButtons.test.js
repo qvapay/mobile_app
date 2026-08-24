@@ -22,6 +22,11 @@ jest.mock('react-native-reanimated', () => {
 })
 jest.mock('./particles/QPPressable', () => 'QPPressable')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
+jest.mock('./KycGateModal', () => 'KycGateModal')
+
+// Usuario verificado por defecto; los tests de gate lo vacían
+let mockUser = { kyc: true }
+jest.mock('../auth/AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -46,6 +51,8 @@ const renderRow = (navigation = { navigate: jest.fn() }) => {
 	return tree
 }
 
+afterEach(() => { mockUser = { kyc: true } })
+
 test('renderiza los 4 tiles de la cuenta y las 2 pills de ahorros', () => {
 	const tree = renderRow()
 	expect(labelsOf(tree)).toEqual(['Depositar', 'Extraer', 'Enviar', 'Comerciar', 'Depositar', 'Retirar'])
@@ -62,6 +69,31 @@ test('los tiles de la cuenta navegan a Add / Withdraw / Send / P2P', () => {
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.P2P_SCREEN)
 	pressByLabel(tree, 'Depositar', 0)
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.ADD)
+})
+
+test('sin KYC, Extraer no navega: se atenúa y abre el KycGateModal', () => {
+	mockUser = { kyc: false }
+	const navigation = { navigate: jest.fn() }
+	const tree = renderRow(navigation)
+
+	// El tile se pinta atenuado (tinta terciaria en vez de primaria)
+	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const theme = createTheme(true)
+	const extraerTile = tree.root.findAllByType('QPPressable').find((p) =>
+		p.findAllByType('Text').some((t) => t.props.children === 'Extraer')
+	)
+	expect(extraerTile.findByType('FontAwesome6').props.color).toBe(theme.colors.tertiaryText)
+
+	pressByLabel(tree, 'Extraer')
+	expect(navigation.navigate).not.toHaveBeenCalled()
+
+	const modal = tree.root.findByType('KycGateModal')
+	expect(modal.props.visible).toBe(true)
+	expect(modal.props.message).toMatch(/identidad verificada/)
+
+	// Cerrar el modal lo desmonta del estado del gate
+	act(() => { modal.props.onClose() })
+	expect(tree.root.findByType('KycGateModal').props.visible).toBe(false)
 })
 
 test('las pills de ahorros abren Savings con la acción pre-cargada', () => {
