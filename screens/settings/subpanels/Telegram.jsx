@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Text, View, ScrollView, Alert, Linking } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -23,6 +24,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 const Telegram = () => {
 
     // Contexts
+    const { t } = useTranslation()
     const { updateUser } = useAuth()
     const { theme } = useTheme()
     const textStyles = createTextStyles(theme)
@@ -49,23 +51,23 @@ const Telegram = () => {
                 if (link) {
                     await Linking.openURL(link)
                 } else {
-                    toast.error('No se pudo obtener el enlace de verificación')
+                    toast.error(t('settings.telegram.toasts.linkFailed'))
                 }
-            } else { toast.error(result.error || 'Error al verificar Telegram') }
+            } else { toast.error(result.error || t('settings.telegram.toasts.verifyFailed')) }
         } catch (error) {
-            toast.error('Error al verificar Telegram')
+            toast.error(t('settings.telegram.toasts.verifyFailed'))
         } finally { setIsLoading(false) }
     }
 
     // Remove Telegram
     const handleRemoveTelegram = async () => {
         Alert.alert(
-            'Eliminar Telegram',
-            '¿Estás seguro de que quieres desvincular tu cuenta de Telegram?',
+            t('settings.telegram.alerts.removeTitle'),
+            t('settings.telegram.alerts.removeBody'),
             [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: t('common.actions.cancel'), style: 'cancel' },
                 {
-                    text: 'Eliminar',
+                    text: t('common.actions.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -75,10 +77,10 @@ const Telegram = () => {
                                 setTelegram('')
                                 setTelegramId('')
                                 if (updateUser) { updateUser({ telegram: null, telegram_id: null, telegram_chat_id: null }) }
-                                toast.success('Telegram desvinculado correctamente')
-                            } else { toast.error(result.error || 'Error al desvincular Telegram') }
+                                toast.success(t('settings.telegram.toasts.unlinked'))
+                            } else { toast.error(result.error || t('settings.telegram.toasts.unlinkFailed')) }
                         } catch (error) {
-                            toast.error('Error al desvincular Telegram')
+                            toast.error(t('settings.telegram.toasts.unlinkFailed'))
                         } finally { setIsLoading(false) }
                     }
                 }
@@ -108,7 +110,7 @@ const Telegram = () => {
 
                 <Text style={textStyles.h1}>Telegram</Text>
                 <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-                    {telegram_id ? 'Tu cuenta está vinculada' : 'Vincula tu cuenta de Telegram'}
+                    {telegram_id ? t('settings.telegram.subtitleLinked') : t('settings.telegram.subtitleUnlinked')}
                 </Text>
 
                 {/* Status icon */}
@@ -139,11 +141,11 @@ const Telegram = () => {
                     <>
                         {/* Benefits when connected */}
                         <View style={containerStyles.card}>
-                            <Text style={[textStyles.h4, { marginBottom: 12 }]}>Notificaciones activas:</Text>
+                            <Text style={[textStyles.h4, { marginBottom: 12 }]}>{t('settings.telegram.linked.title')}</Text>
                             {[
-                                { icon: 'arrow-right-arrow-left', text: 'Alertas de transacciones entrantes y salientes' },
-                                { icon: 'shield-halved', text: 'Avisos de seguridad e inicio de sesión' },
-                                { icon: 'handshake', text: 'Actualizaciones de tus ofertas P2P' },
+                                { icon: 'arrow-right-arrow-left', text: t('settings.telegram.linked.item1') },
+                                { icon: 'shield-halved', text: t('settings.telegram.linked.item2') },
+                                { icon: 'handshake', text: t('settings.telegram.linked.item3') },
                             ].map((item, index) => (
                                 <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < 2 ? 10 : 0 }}>
                                     <FontAwesome6 name={item.icon} size={14} color={theme.colors.successText} iconStyle="solid" />
@@ -158,11 +160,11 @@ const Telegram = () => {
                     <>
                         {/* Benefits when not connected */}
                         <View style={containerStyles.card}>
-                            <Text style={[textStyles.h4, { marginBottom: 12 }]}>Beneficios de vincular Telegram:</Text>
+                            <Text style={[textStyles.h4, { marginBottom: 12 }]}>{t('settings.telegram.unlinked.title')}</Text>
                             {[
-                                { icon: 'bolt', text: 'Recibe alertas instantáneas de transacciones' },
-                                { icon: 'bell', text: 'Notificaciones de seguridad en tiempo real' },
-                                { icon: 'handshake', text: 'Seguimiento de ofertas P2P desde Telegram' },
+                                { icon: 'bolt', text: t('settings.telegram.unlinked.item1') },
+                                { icon: 'bell', text: t('settings.telegram.unlinked.item2') },
+                                { icon: 'handshake', text: t('settings.telegram.unlinked.item3') },
                             ].map((item, index) => (
                                 <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < 2 ? 10 : 0 }}>
                                     <FontAwesome6 name={item.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
@@ -178,7 +180,7 @@ const Telegram = () => {
                             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                                 <FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
                                 <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                                    Al verificar, serás redirigido al bot de QvaPay en Telegram para vincular tu cuenta automáticamente.
+                                    {t('settings.telegram.unlinked.info')}
                                 </Text>
                             </View>
                         </View>
@@ -190,7 +192,7 @@ const Telegram = () => {
             <View style={containerStyles.bottomButtonContainer}>
                 {telegram_id ? (
                     <QPButton
-                        title="Desvincular Telegram"
+                        title={t('settings.telegram.unlinkButton')}
                         onPress={handleRemoveTelegram}
                         loading={isLoading}
                         disabled={isLoading}
@@ -199,7 +201,7 @@ const Telegram = () => {
                     />
                 ) : (
                     <QPButton
-                        title="Vincular Telegram"
+                        title={t('settings.telegram.linkButton')}
                         onPress={handleVerifyTelegram}
                         loading={isLoading}
                         disabled={isLoading}

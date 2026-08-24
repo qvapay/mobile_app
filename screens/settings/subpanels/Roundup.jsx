@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { View, Text, ScrollView, Switch } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -19,6 +20,7 @@ import { toast } from 'sonner-native'
 
 const Roundup = () => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -47,27 +49,27 @@ const Roundup = () => {
 			const result = await savingApi.updateRoundup(value)
 			if (!result.success) {
 				updateSettings('roundup', previous)
-				toast.error(result.error || 'No se pudo actualizar la configuración')
+				toast.error(result.error || t('settings.roundup.toasts.updateFailed'))
 			}
 		} catch {
 			updateSettings('roundup', previous)
-			toast.error('Error de conexión')
+			toast.error(t('settings.roundup.toasts.connectionError'))
 		}
 	}
 
 	const options = [
 		{
 			key: 'enabled',
-			label: 'Activar Micro pagos',
-			description: 'Redondea hacia arriba tus pagos y guarda la diferencia',
+			label: t('settings.roundup.options.enable.label'),
+			description: t('settings.roundup.options.enable.description'),
 			icon: 'coins',
 			value: roundup.enabled,
 			onToggle: handleToggleEnabled,
 		},
 		{
 			key: 'savings',
-			label: 'Enviar a Ahorros',
-			description: 'Los kilitos se envían a tu cuenta de ahorros',
+			label: t('settings.roundup.options.savings.label'),
+			description: t('settings.roundup.options.savings.description'),
 			icon: 'piggy-bank',
 			value: roundup.enabled,
 			onToggle: handleToggleEnabled,
@@ -75,8 +77,8 @@ const Roundup = () => {
 		},
 		{
 			key: 'donations',
-			label: 'Enviar a Donaciones',
-			description: 'Los kilitos se destinan a donaciones comunitarias',
+			label: t('settings.roundup.options.donations.label'),
+			description: t('settings.roundup.options.donations.description'),
 			icon: 'hand-holding-heart',
 			value: false,
 			comingSoon: true,
@@ -88,9 +90,9 @@ const Roundup = () => {
 		<View style={containerStyles.subContainer}>
 			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-				<Text style={textStyles.h1}>Micro pagos</Text>
+				<Text style={textStyles.h1}>{t('settings.roundup.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-					Redondea tus pagos y ahorra los kilitos
+					{t('settings.roundup.subtitle')}
 				</Text>
 
 				<View style={{ marginTop: 20, gap: 10 }}>
@@ -134,7 +136,7 @@ const Roundup = () => {
 											backgroundColor: theme.colors.background,
 										}}>
 											<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs }]}>
-												Próximamente
+												{t('settings.roundup.comingSoon')}
 											</Text>
 										</View>
 									)}
@@ -159,7 +161,7 @@ const Roundup = () => {
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-							Al pagar $4.30, se cobra $5.00 y los $0.70 restantes se envían a tu cuenta de ahorros. Aplica en cobros, facturas y compras de paquetes.
+							{t('settings.roundup.info')}
 						</Text>
 					</View>
 				</View>

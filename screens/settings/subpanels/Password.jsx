@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native'
 import { useState, useReducer } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -41,6 +42,7 @@ function formReducer(state, action) {
 const Password = () => {
 
 	// Contexts
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const { updateSettings } = useSettings()
 	const containerStyles = createContainerStyles(theme)
@@ -65,16 +67,16 @@ const Password = () => {
 			})
 			if (result.success) {
 				dispatch({ type: 'reset' })
-				toast.success('Contraseña cambiada correctamente')
+				toast.success(t('settings.password.toasts.changed'))
 				// Invalidate biometric credentials since password changed
 				const has = await hasBiometricCredentials()
 				if (has) {
 					await removeBiometricCredentials()
 					await updateSettings('security', { biometricsEnabled: false })
-					toast.info('Biometría desactivada', { description: 'Actívala de nuevo en tu próximo inicio de sesión' })
+					toast.info(t('settings.password.toasts.biometricsDisabled'), { description: t('settings.password.toasts.biometricsDisabledDescription') })
 				}
 			}
-		} catch (error) { toast.error('Error al cambiar la contraseña', { description: error.message }) }
+		} catch (error) { toast.error(t('settings.password.toasts.changeFailed'), { description: error.message }) }
 		finally { setIsLoading(false) }
 	}
 
@@ -82,7 +84,7 @@ const Password = () => {
 		<QPKeyboardView
 			actions={
 				<QPButton
-					title="Cambiar contraseña"
+					title={t('settings.password.submitButton')}
 					onPress={handleSubmit}
 					disabled={!canSubmit || isLoading}
 					style={{ backgroundColor: !canSubmit ? theme.colors.secondaryText : theme.colors.primary }}
@@ -92,14 +94,14 @@ const Password = () => {
 			}
 		>
 
-			<Text style={textStyles.h1}>Cambiar contraseña</Text>
-			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Establece una nueva contraseña para tu cuenta</Text>
+			<Text style={textStyles.h1}>{t('settings.password.title')}</Text>
+			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.password.subtitle')}</Text>
 
 			<View style={{ flex: 1, marginVertical: 20 }}>
 
 				{/* Current Password */}
 				<QPInput
-					placeholder="Contraseña actual"
+					placeholder={t('settings.password.placeholders.current')}
 					value={form.currentPassword}
 					onChangeText={(value) => dispatch({ type: 'set', field: 'currentPassword', value })}
 					prefixIconName="lock"
@@ -109,7 +111,7 @@ const Password = () => {
 
 				{/* New Password */}
 				<QPInput
-					placeholder="Nueva contraseña"
+					placeholder={t('settings.password.placeholders.new')}
 					value={form.newPassword}
 					onChangeText={(value) => dispatch({ type: 'set', field: 'newPassword', value })}
 					prefixIconName="lock"
@@ -119,7 +121,7 @@ const Password = () => {
 
 				{/* Confirm New Password */}
 				<QPInput
-					placeholder="Confirmar nueva contraseña"
+					placeholder={t('settings.password.placeholders.confirm')}
 					value={form.confirmPassword}
 					onChangeText={(value) => dispatch({ type: 'set', field: 'confirmPassword', value })}
 					prefixIconName="lock"
@@ -130,12 +132,12 @@ const Password = () => {
 				{/* Password requirements */}
 				<View style={[containerStyles.card, { marginTop: 10 }]}>
 					<Text style={[textStyles.h4, { marginBottom: 12 }]}>
-						Requisitos de contraseña:
+						{t('settings.password.requirementsTitle')}
 					</Text>
 					{[
-						{ icon: 'text-width', text: 'Mínimo 8 caracteres' },
-						{ icon: 'font', text: 'Al menos una letra mayúscula' },
-						{ icon: 'hashtag', text: 'Al menos un número' },
+						{ icon: 'text-width', text: t('settings.password.requirements.minLength') },
+						{ icon: 'font', text: t('settings.password.requirements.uppercase') },
+						{ icon: 'hashtag', text: t('settings.password.requirements.number') },
 					].map((req, index) => (
 						<View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: index < 2 ? 10 : 0 }}>
 							<FontAwesome6 name={req.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
@@ -151,7 +153,7 @@ const Password = () => {
 					<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 						<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-							Usa una contraseña única que no utilices en otros servicios. Si tienes biometría activa, se desactivará al cambiar la contraseña.
+							{t('settings.password.securityTip')}
 						</Text>
 					</View>
 				</View>

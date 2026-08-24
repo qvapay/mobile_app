@@ -445,5 +445,359 @@
 			"opening": "Abriendo verificación...",
 			"verifyButton": "Verificar mi identidad"
 		}
+	},
+	"notifications": {
+		"title": "Notificaciones",
+		"subtitle": "Configura cómo quieres recibir tus alertas",
+		"comingSoon": "Próximamente",
+		"channels": {
+			"email": {
+				"label": "Correo electrónico",
+				"description": "Recibe notificaciones de transacciones, seguridad y ofertas P2P por email"
+			},
+			"telegram": {
+				"label": "Telegram",
+				"description": "Recibe alertas instantáneas en tu cuenta de Telegram vinculada"
+			},
+			"push": {
+				"label": "Notificaciones push",
+				"description": "Recibe notificaciones en tiempo real en tu dispositivo"
+			}
+		},
+		"info": "Las notificaciones de seguridad (inicio de sesión, cambio de contraseña) siempre se envían por email independientemente de esta configuración.",
+		"toasts": {
+			"updateFailed": "No se pudo actualizar la configuración",
+			"connectionError": "Error de conexión"
+		}
+	},
+	"passkeys": {
+		"title": "Passkeys",
+		"subtitle": "Inicia sesión de forma segura sin contraseña, usando Face ID, huella o tu dispositivo",
+		"defaultName": "Mi Passkey",
+		"yourPasskeys": "Tus passkeys",
+		"meta": "{{syncStatus}} · Último uso: {{time}}",
+		"status": {
+			"synced": "Sincronizada",
+			"thisDeviceOnly": "Solo este dispositivo"
+		},
+		"timeAgo": {
+			"never": "Nunca",
+			"justNow": "Justo ahora",
+			"minutes": "hace {{mins}}m",
+			"hours": "hace {{hours}}h",
+			"days": "hace {{days}}d"
+		},
+		"howItWorks": {
+			"title": "Como funciona",
+			"step1": "Registra una passkey en este dispositivo",
+			"step2": "En el login, toca el botón de llave",
+			"step3": "Confirma con Face ID o huella digital",
+			"step4": "Accedes sin escribir contraseña ni PIN"
+		},
+		"registering": "Registrando...",
+		"addButton": "Agregar Passkey",
+		"alerts": {
+			"deleteTitle": "Eliminar Passkey",
+			"deleteBody": "¿Seguro que quieres eliminar \"{{name}}\"?"
+		},
+		"toasts": {
+			"optionsFailed": "Error al obtener opciones",
+			"verifyFailed": "Error al verificar",
+			"registered": "Passkey registrada correctamente",
+			"alreadyRegistered": "Ya tienes una passkey registrada en este dispositivo",
+			"registerError": "Error: {{message}}",
+			"registerFailed": "Error al registrar passkey",
+			"deleted": "Passkey eliminada",
+			"deleteFailed": "Error al eliminar"
+		}
+	},
+	"password": {
+		"title": "Cambiar contraseña",
+		"subtitle": "Establece una nueva contraseña para tu cuenta",
+		"submitButton": "Cambiar contraseña",
+		"placeholders": {
+			"current": "Contraseña actual",
+			"new": "Nueva contraseña",
+			"confirm": "Confirmar nueva contraseña"
+		},
+		"requirementsTitle": "Requisitos de contraseña:",
+		"requirements": {
+			"minLength": "Mínimo 8 caracteres",
+			"uppercase": "Al menos una letra mayúscula",
+			"number": "Al menos un número"
+		},
+		"securityTip": "Usa una contraseña única que no utilices en otros servicios. Si tienes biometría activa, se desactivará al cambiar la contraseña.",
+		"toasts": {
+			"changed": "Contraseña cambiada correctamente",
+			"biometricsDisabled": "Biometría desactivada",
+			"biometricsDisabledDescription": "Actívala de nuevo en tu próximo inicio de sesión",
+			"changeFailed": "Error al cambiar la contraseña"
+		}
+	},
+	"paymentMethods": {
+		"title": "Métodos de pago",
+		"subtitle": "Administra tus cuentas y métodos usados en P2P",
+		"empty": "No tienes métodos de pago guardados",
+		"fallbackName": "Método",
+		"modal": {
+			"title": "Nuevo Método de Pago",
+			"nameLabel": "Nombre",
+			"namePlaceholder": "Nombre del método",
+			"coinLabel": "Moneda",
+			"selectCoin": "Seleccionar moneda",
+			"accountData": "Datos de la cuenta",
+			"saveButton": "Guardar método"
+		},
+		"alerts": {
+			"deleteTitle": "Eliminar método",
+			"deleteBody": "¿Seguro que deseas eliminar este método de pago?"
+		},
+		"toasts": {
+			"loadFailed": "No se pudieron cargar los métodos de pago",
+			"networkError": "Error de red",
+			"selectCoin": "Selecciona una moneda",
+			"missingData": "Faltan datos",
+			"missingDataDescription": "Completa los campos requeridos",
+			"created": "Método creado",
+			"createFailed": "No se pudo crear el método",
+			"invalidId": "ID de método inválido",
+			"deleted": "Método eliminado",
+			"deleteFailed": "No se pudo eliminar"
+		}
+	},
+	"phone": {
+		"title": "Verificar celular",
+		"subtitle": "Ingresa tu número para verificarlo vía Telegram o WhatsApp",
+		"codePlaceholder": "Código de 6 dígitos",
+		"info": "El código de verificación se enviará por Telegram o WhatsApp al número que ingreses. Revisa tus mensajes en ambas apps para obtener el PIN.",
+		"sendCodeButton": "Enviar código",
+		"verifyButton": "Verificar teléfono",
+		"resendButton": "Reenviar código",
+		"alerts": {
+			"removeTitle": "Eliminar Teléfono",
+			"removeBody": "¿Estás seguro de que quieres eliminar tu número de teléfono?"
+		},
+		"toasts": {
+			"removed": "Número de teléfono eliminado correctamente",
+			"removeFailed": "Error al eliminar el número de teléfono",
+			"enterNumber": "Por favor ingresa un número de teléfono",
+			"minDigits": "El número debe tener al menos 7 dígitos",
+			"pinSent": "PIN enviado por Telegram o WhatsApp",
+			"sendFailed": "Error al enviar el código",
+			"invalidPin": "Ingresa un PIN válido de 6 dígitos",
+			"verified": "Teléfono verificado correctamente",
+			"verifyFailed": "Error al verificar el teléfono"
+		},
+		"verified": {
+			"title": "Celular",
+			"subtitle": "Tu número está verificado",
+			"info": "Tu número verificado te permite recibir códigos de seguridad por SMS y recuperar acceso a tu cuenta.",
+			"removeButton": "Eliminar número"
+		}
+	},
+	"referals": {
+		"title": "Referidos",
+		"subtitle": "Invita amigos y gana recompensas",
+		"stats": {
+			"referrals": "Referidos",
+			"verified": "Verificados",
+			"pending": "Pendientes",
+			"earnedThisMonth": "Ganado este mes",
+			"available": "Disponible"
+		},
+		"shareTitle": "Tu enlace de referido",
+		"shareMessages": {
+			"telegram": "Únete a QvaPay con mi código de invitación: {{username}}\n🌐 iPhone y web: {{link}}"
+		},
+		"howItWorks": {
+			"title": "Cómo funciona",
+			"step1": "Comparte tu enlace por SMS u otras redes",
+			"step2": "Tu amigo se registra y confirma su correo",
+			"step3": "Recibes $0.01 por cada registro vía SMS (hasta $5/mes)"
+		},
+		"myReferrals": "Mis referidos ({{count}})",
+		"empty": {
+			"title": "Aún no tienes referidos",
+			"subtitle": "Comparte tu enlace para empezar a invitar amigos"
+		},
+		"toasts": {
+			"loadFailed": "Error al cargar los referidos",
+			"inviteCopied": "Invitación copiada al portapapeles"
+		}
+	},
+	"roundup": {
+		"title": "Micro pagos",
+		"subtitle": "Redondea tus pagos y ahorra los kilitos",
+		"comingSoon": "Próximamente",
+		"options": {
+			"enable": {
+				"label": "Activar Micro pagos",
+				"description": "Redondea hacia arriba tus pagos y guarda la diferencia"
+			},
+			"savings": {
+				"label": "Enviar a Ahorros",
+				"description": "Los kilitos se envían a tu cuenta de ahorros"
+			},
+			"donations": {
+				"label": "Enviar a Donaciones",
+				"description": "Los kilitos se destinan a donaciones comunitarias"
+			}
+		},
+		"info": "Al pagar $4.30, se cobra $5.00 y los $0.70 restantes se envían a tu cuenta de ahorros. Aplica en cobros, facturas y compras de paquetes.",
+		"toasts": {
+			"updateFailed": "No se pudo actualizar la configuración",
+			"connectionError": "Error de conexión"
+		}
+	},
+	"telegram": {
+		"subtitleLinked": "Tu cuenta está vinculada",
+		"subtitleUnlinked": "Vincula tu cuenta de Telegram",
+		"linked": {
+			"title": "Notificaciones activas:",
+			"item1": "Alertas de transacciones entrantes y salientes",
+			"item2": "Avisos de seguridad e inicio de sesión",
+			"item3": "Actualizaciones de tus ofertas P2P"
+		},
+		"unlinked": {
+			"title": "Beneficios de vincular Telegram:",
+			"item1": "Recibe alertas instantáneas de transacciones",
+			"item2": "Notificaciones de seguridad en tiempo real",
+			"item3": "Seguimiento de ofertas P2P desde Telegram",
+			"info": "Al verificar, serás redirigido al bot de QvaPay en Telegram para vincular tu cuenta automáticamente."
+		},
+		"linkButton": "Vincular Telegram",
+		"unlinkButton": "Desvincular Telegram",
+		"alerts": {
+			"removeTitle": "Eliminar Telegram",
+			"removeBody": "¿Estás seguro de que quieres desvincular tu cuenta de Telegram?"
+		},
+		"toasts": {
+			"linkFailed": "No se pudo obtener el enlace de verificación",
+			"verifyFailed": "Error al verificar Telegram",
+			"unlinked": "Telegram desvinculado correctamente",
+			"unlinkFailed": "Error al desvincular Telegram"
+		}
+	},
+	"themePanel": {
+		"title": "Tema",
+		"subtitle": "Personaliza la apariencia de la aplicación",
+		"appearanceLabel": "Apariencia",
+		"appliedImmediately": "Los cambios se aplican inmediatamente",
+		"options": {
+			"auto": {
+				"title": "Automático",
+				"description": "Ajuste automático según el sistema"
+			},
+			"light": {
+				"title": "Claro",
+				"description": "Usar el tema claro en todo momento"
+			},
+			"dark": {
+				"title": "Oscuro",
+				"description": "Usar el tema oscuro en todo momento"
+			}
+		},
+		"accentLabel": "Color de acento",
+		"accents": {
+			"default": "QvaPay",
+			"violet": "Violeta",
+			"ocean": "Océano",
+			"turquoise": "Turquesa",
+			"emerald": "Esmeralda",
+			"gold": "Dorado",
+			"orange": "Naranja",
+			"pink": "Rosa",
+			"graphite": "Grafito"
+		},
+		"accessibilityColor": "Color {{name}}",
+		"currentColor": "Color actual: {{name}}",
+		"accentUpsell": "Personaliza el color de la app con QvaPay GOLD",
+		"navBarLabel": "Barra de navegación",
+		"showLabelsTitle": "Mostrar texto",
+		"showLabelsDescription": "Mostrar etiquetas en la barra de navegación",
+		"toasts": {
+			"accentGoldOnly": "El color de acento es exclusivo de QvaPay GOLD"
+		}
+	},
+	"twoFactor": {
+		"title": "Autenticación de dos factores",
+		"subtitle": "Añade una capa extra de seguridad a tu cuenta",
+		"setupButton": "Configurar 2FA",
+		"deactivateButton": "Desactivar 2FA",
+		"enabled": {
+			"title": "2FA activo",
+			"subtitle": "Tu cuenta está protegida con autenticación de dos factores",
+			"info": "Cada vez que inicies sesión, necesitarás un código de tu app de autenticación"
+		},
+		"notEnabled": {
+			"status": "2FA No Activo",
+			"benefitsTitle": "Beneficios del 2FA:",
+			"benefit1": "Protege tu cuenta incluso si alguien conoce tu contraseña",
+			"benefit2": "Usa apps como Google Authenticator o Authy",
+			"benefit3": "Códigos que cambian cada 30 segundos"
+		},
+		"setup": {
+			"title": "Configurar 2FA",
+			"subtitle": "Escanea el código QR con tu app de autenticación (Google Authenticator, Authy, etc.)",
+			"manualEntry": "O ingresa este código manualmente:",
+			"enterCode": "Ingresa el código de 6 dígitos de tu app:",
+			"activateButton": "Activar 2FA"
+		},
+		"alerts": {
+			"deactivateTitle": "Desactivar 2FA",
+			"deactivateBody": "¿Estás seguro de que quieres desactivar la autenticación de dos factores? Tu cuenta será menos segura.",
+			"deactivateConfirm": "Desactivar"
+		},
+		"toasts": {
+			"loadFailed": "Error al cargar datos",
+			"secretGenerated": "Secreto generado",
+			"secretGeneratedDescription": "Escanea el código QR con tu app de autenticación",
+			"errorTitle": "Error",
+			"generateFailed": "No se pudo generar el código 2FA",
+			"enterCode6": "Ingresa un código de 6 dígitos",
+			"activated": "2FA Activado",
+			"activatedDescription": "Tu cuenta ahora está protegida con autenticación de dos factores",
+			"invalidCode": "Código inválido",
+			"invalidCodeDescription": "El código ingresado no es válido",
+			"deactivated": "2FA Desactivado",
+			"deactivatedDescription": "La autenticación de dos factores ha sido desactivada",
+			"deactivateFailed": "No se pudo desactivar el 2FA",
+			"copiedTitle": "Copiado",
+			"copiedDescription": "Secreto copiado al portapapeles"
+		}
+	},
+	"userdata": {
+		"title": "Datos personales",
+		"subtitle": "Edita tu información de perfil",
+		"submitButton": "Actualizar datos",
+		"notAvailable": "N/A",
+		"sections": {
+			"account": "Cuenta",
+			"personal": "Información personal",
+			"contact": "Contacto y redes",
+			"location": "Ubicación"
+		},
+		"placeholders": {
+			"username": "Nombre de usuario",
+			"email": "Correo electrónico",
+			"name": "Nombre",
+			"lastname": "Apellido",
+			"bio": "Biografía o descripción",
+			"phone": "Teléfono",
+			"telegram": "@usuario_telegram",
+			"twitter": "@usuario_twitter",
+			"address": "Dirección",
+			"country": "País (ej: US, ES, MX)"
+		},
+		"info": "El nombre de usuario, email y teléfono se gestionan desde sus respectivas secciones de ajustes.",
+		"memberSince": "Miembro desde: <0>{{date}}</0>",
+		"toasts": {
+			"loadFailed": "Error al cargar datos del usuario",
+			"nameRequired": "Completa al menos el nombre y apellido",
+			"invalidEmail": "Formato de correo electrónico inválido",
+			"invalidCountry": "El código de país debe tener 2 caracteres (ej: US, ES)",
+			"updated": "Datos actualizados correctamente",
+			"updateFailed": "Error al actualizar"
+		}
 	}
 }

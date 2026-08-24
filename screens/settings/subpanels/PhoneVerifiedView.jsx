@@ -1,16 +1,19 @@
 import { Text, View, ScrollView } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import QPButton from '../../../ui/particles/QPButton'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Verified-phone state: shows the number + a remove action.
-const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, containerStyles }) => (
+const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, containerStyles }) => {
+	const { t } = useTranslation()
+	return (
 	<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 		<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-			<Text style={textStyles.h1}>Celular</Text>
+			<Text style={textStyles.h1}>{t('settings.phone.verified.title')}</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-				Tu número está verificado
+				{t('settings.phone.verified.subtitle')}
 			</Text>
 
 			{/* Status icon */}
@@ -35,7 +38,7 @@ const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, 
 				<View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
 					<FontAwesome6 name="circle-check" size={16} color={theme.colors.successText} iconStyle="solid" />
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-						Tu número verificado te permite recibir códigos de seguridad por SMS y recuperar acceso a tu cuenta.
+						{t('settings.phone.verified.info')}
 					</Text>
 				</View>
 			</View>
@@ -44,7 +47,7 @@ const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, 
 
 		<View style={containerStyles.bottomButtonContainer}>
 			<QPButton
-				title="Eliminar número"
+				title={t('settings.phone.verified.removeButton')}
 				onPress={onRemove}
 				loading={isLoading}
 				disabled={isLoading}
@@ -53,6 +56,7 @@ const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, 
 			/>
 		</View>
 	</View>
-)
+	)
+}
 
 export default PhoneVerifiedView

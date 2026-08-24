@@ -445,5 +445,359 @@
 			"opening": "Opening verification...",
 			"verifyButton": "Verify my identity"
 		}
+	},
+	"notifications": {
+		"title": "Notifications",
+		"subtitle": "Choose how you want to receive your alerts",
+		"comingSoon": "Coming soon",
+		"channels": {
+			"email": {
+				"label": "Email",
+				"description": "Get transaction, security and P2P offer notifications by email"
+			},
+			"telegram": {
+				"label": "Telegram",
+				"description": "Get instant alerts in your linked Telegram account"
+			},
+			"push": {
+				"label": "Push notifications",
+				"description": "Get real-time notifications on your device"
+			}
+		},
+		"info": "Security notifications (login, password change) are always sent by email regardless of this setting.",
+		"toasts": {
+			"updateFailed": "Couldn't update the settings",
+			"connectionError": "Connection error"
+		}
+	},
+	"passkeys": {
+		"title": "Passkeys",
+		"subtitle": "Log in securely without a password, using Face ID, fingerprint or your device",
+		"defaultName": "My Passkey",
+		"yourPasskeys": "Your passkeys",
+		"meta": "{{syncStatus}} · Last used: {{time}}",
+		"status": {
+			"synced": "Synced",
+			"thisDeviceOnly": "This device only"
+		},
+		"timeAgo": {
+			"never": "Never",
+			"justNow": "Just now",
+			"minutes": "{{mins}}m ago",
+			"hours": "{{hours}}h ago",
+			"days": "{{days}}d ago"
+		},
+		"howItWorks": {
+			"title": "How it works",
+			"step1": "Register a passkey on this device",
+			"step2": "At login, tap the key button",
+			"step3": "Confirm with Face ID or fingerprint",
+			"step4": "You're in without typing a password or PIN"
+		},
+		"registering": "Registering...",
+		"addButton": "Add Passkey",
+		"alerts": {
+			"deleteTitle": "Delete Passkey",
+			"deleteBody": "Are you sure you want to delete \"{{name}}\"?"
+		},
+		"toasts": {
+			"optionsFailed": "Couldn't get the options",
+			"verifyFailed": "Couldn't verify it",
+			"registered": "Passkey registered successfully",
+			"alreadyRegistered": "You already have a passkey registered on this device",
+			"registerError": "Error: {{message}}",
+			"registerFailed": "Couldn't register the passkey",
+			"deleted": "Passkey deleted",
+			"deleteFailed": "Couldn't delete it"
+		}
+	},
+	"password": {
+		"title": "Change password",
+		"subtitle": "Set a new password for your account",
+		"submitButton": "Change password",
+		"placeholders": {
+			"current": "Current password",
+			"new": "New password",
+			"confirm": "Confirm new password"
+		},
+		"requirementsTitle": "Password requirements:",
+		"requirements": {
+			"minLength": "At least 8 characters",
+			"uppercase": "At least one uppercase letter",
+			"number": "At least one number"
+		},
+		"securityTip": "Use a unique password you don't use on other services. If biometrics are enabled, they'll be disabled when you change your password.",
+		"toasts": {
+			"changed": "Password changed successfully",
+			"biometricsDisabled": "Biometrics disabled",
+			"biometricsDisabledDescription": "Enable them again on your next login",
+			"changeFailed": "Couldn't change the password"
+		}
+	},
+	"paymentMethods": {
+		"title": "Payment methods",
+		"subtitle": "Manage your accounts and methods used on P2P",
+		"empty": "You don't have any saved payment methods",
+		"fallbackName": "Method",
+		"modal": {
+			"title": "New payment method",
+			"nameLabel": "Name",
+			"namePlaceholder": "Method name",
+			"coinLabel": "Currency",
+			"selectCoin": "Select a currency",
+			"accountData": "Account details",
+			"saveButton": "Save method"
+		},
+		"alerts": {
+			"deleteTitle": "Delete method",
+			"deleteBody": "Are you sure you want to delete this payment method?"
+		},
+		"toasts": {
+			"loadFailed": "Couldn't load your payment methods",
+			"networkError": "Network error",
+			"selectCoin": "Select a currency",
+			"missingData": "Missing details",
+			"missingDataDescription": "Fill in the required fields",
+			"created": "Method created",
+			"createFailed": "Couldn't create the method",
+			"invalidId": "Invalid method ID",
+			"deleted": "Method deleted",
+			"deleteFailed": "Couldn't delete it"
+		}
+	},
+	"phone": {
+		"title": "Verify phone",
+		"subtitle": "Enter your number to verify it via Telegram or WhatsApp",
+		"codePlaceholder": "6-digit code",
+		"info": "The verification code will be sent via Telegram or WhatsApp to the number you enter. Check your messages in both apps to get the PIN.",
+		"sendCodeButton": "Send code",
+		"verifyButton": "Verify phone",
+		"resendButton": "Resend code",
+		"alerts": {
+			"removeTitle": "Remove phone",
+			"removeBody": "Are you sure you want to remove your phone number?"
+		},
+		"toasts": {
+			"removed": "Phone number removed successfully",
+			"removeFailed": "Couldn't remove the phone number",
+			"enterNumber": "Please enter a phone number",
+			"minDigits": "The number must have at least 7 digits",
+			"pinSent": "PIN sent via Telegram or WhatsApp",
+			"sendFailed": "Couldn't send the code",
+			"invalidPin": "Enter a valid 6-digit PIN",
+			"verified": "Phone verified successfully",
+			"verifyFailed": "Couldn't verify the phone"
+		},
+		"verified": {
+			"title": "Phone",
+			"subtitle": "Your number is verified",
+			"info": "Your verified number lets you receive security codes by SMS and recover access to your account.",
+			"removeButton": "Remove number"
+		}
+	},
+	"referals": {
+		"title": "Referrals",
+		"subtitle": "Invite friends and earn rewards",
+		"stats": {
+			"referrals": "Referrals",
+			"verified": "Verified",
+			"pending": "Pending",
+			"earnedThisMonth": "Earned this month",
+			"available": "Available"
+		},
+		"shareTitle": "Your referral link",
+		"shareMessages": {
+			"telegram": "Join QvaPay with my invite code: {{username}}\n🌐 iPhone and web: {{link}}"
+		},
+		"howItWorks": {
+			"title": "How it works",
+			"step1": "Share your link by SMS or other networks",
+			"step2": "Your friend signs up and confirms their email",
+			"step3": "You get $0.01 for each sign-up via SMS (up to $5/month)"
+		},
+		"myReferrals": "My referrals ({{count}})",
+		"empty": {
+			"title": "You don't have any referrals yet",
+			"subtitle": "Share your link to start inviting friends"
+		},
+		"toasts": {
+			"loadFailed": "Couldn't load your referrals",
+			"inviteCopied": "Invite copied to clipboard"
+		}
+	},
+	"roundup": {
+		"title": "Round-ups",
+		"subtitle": "Round up your payments and save the spare change",
+		"comingSoon": "Coming soon",
+		"options": {
+			"enable": {
+				"label": "Enable round-ups",
+				"description": "Rounds your payments up and saves the difference"
+			},
+			"savings": {
+				"label": "Send to Savings",
+				"description": "The spare change goes to your savings account"
+			},
+			"donations": {
+				"label": "Send to Donations",
+				"description": "The spare change goes to community donations"
+			}
+		},
+		"info": "When you pay $4.30, $5.00 is charged and the remaining $0.70 goes to your savings account. Applies to charges, invoices and package purchases.",
+		"toasts": {
+			"updateFailed": "Couldn't update the settings",
+			"connectionError": "Connection error"
+		}
+	},
+	"telegram": {
+		"subtitleLinked": "Your account is linked",
+		"subtitleUnlinked": "Link your Telegram account",
+		"linked": {
+			"title": "Active notifications:",
+			"item1": "Alerts for incoming and outgoing transactions",
+			"item2": "Security and login notices",
+			"item3": "Updates on your P2P offers"
+		},
+		"unlinked": {
+			"title": "Benefits of linking Telegram:",
+			"item1": "Get instant transaction alerts",
+			"item2": "Real-time security notifications",
+			"item3": "Track your P2P offers from Telegram",
+			"info": "When you verify, you'll be redirected to the QvaPay bot on Telegram to link your account automatically."
+		},
+		"linkButton": "Link Telegram",
+		"unlinkButton": "Unlink Telegram",
+		"alerts": {
+			"removeTitle": "Remove Telegram",
+			"removeBody": "Are you sure you want to unlink your Telegram account?"
+		},
+		"toasts": {
+			"linkFailed": "Couldn't get the verification link",
+			"verifyFailed": "Couldn't verify Telegram",
+			"unlinked": "Telegram unlinked successfully",
+			"unlinkFailed": "Couldn't unlink Telegram"
+		}
+	},
+	"themePanel": {
+		"title": "Theme",
+		"subtitle": "Customize the app's appearance",
+		"appearanceLabel": "Appearance",
+		"appliedImmediately": "Changes apply immediately",
+		"options": {
+			"auto": {
+				"title": "Automatic",
+				"description": "Adjusts automatically with the system"
+			},
+			"light": {
+				"title": "Light",
+				"description": "Use the light theme at all times"
+			},
+			"dark": {
+				"title": "Dark",
+				"description": "Use the dark theme at all times"
+			}
+		},
+		"accentLabel": "Accent color",
+		"accents": {
+			"default": "QvaPay",
+			"violet": "Violet",
+			"ocean": "Ocean",
+			"turquoise": "Turquoise",
+			"emerald": "Emerald",
+			"gold": "Gold",
+			"orange": "Orange",
+			"pink": "Pink",
+			"graphite": "Graphite"
+		},
+		"accessibilityColor": "{{name}} color",
+		"currentColor": "Current color: {{name}}",
+		"accentUpsell": "Customize the app color with QvaPay GOLD",
+		"navBarLabel": "Navigation bar",
+		"showLabelsTitle": "Show text",
+		"showLabelsDescription": "Show labels on the navigation bar",
+		"toasts": {
+			"accentGoldOnly": "The accent color is exclusive to QvaPay GOLD"
+		}
+	},
+	"twoFactor": {
+		"title": "Two-factor authentication",
+		"subtitle": "Add an extra layer of security to your account",
+		"setupButton": "Set up 2FA",
+		"deactivateButton": "Disable 2FA",
+		"enabled": {
+			"title": "2FA active",
+			"subtitle": "Your account is protected with two-factor authentication",
+			"info": "Every time you log in, you'll need a code from your authenticator app"
+		},
+		"notEnabled": {
+			"status": "2FA not active",
+			"benefitsTitle": "2FA benefits:",
+			"benefit1": "Protects your account even if someone knows your password",
+			"benefit2": "Use apps like Google Authenticator or Authy",
+			"benefit3": "Codes that change every 30 seconds"
+		},
+		"setup": {
+			"title": "Set up 2FA",
+			"subtitle": "Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.)",
+			"manualEntry": "Or enter this code manually:",
+			"enterCode": "Enter the 6-digit code from your app:",
+			"activateButton": "Enable 2FA"
+		},
+		"alerts": {
+			"deactivateTitle": "Disable 2FA",
+			"deactivateBody": "Are you sure you want to disable two-factor authentication? Your account will be less secure.",
+			"deactivateConfirm": "Disable"
+		},
+		"toasts": {
+			"loadFailed": "Couldn't load your data",
+			"secretGenerated": "Secret generated",
+			"secretGeneratedDescription": "Scan the QR code with your authenticator app",
+			"errorTitle": "Error",
+			"generateFailed": "Couldn't generate the 2FA code",
+			"enterCode6": "Enter a 6-digit code",
+			"activated": "2FA enabled",
+			"activatedDescription": "Your account is now protected with two-factor authentication",
+			"invalidCode": "Invalid code",
+			"invalidCodeDescription": "The code you entered isn't valid",
+			"deactivated": "2FA disabled",
+			"deactivatedDescription": "Two-factor authentication has been disabled",
+			"deactivateFailed": "Couldn't disable 2FA",
+			"copiedTitle": "Copied",
+			"copiedDescription": "Secret copied to clipboard"
+		}
+	},
+	"userdata": {
+		"title": "Personal details",
+		"subtitle": "Edit your profile information",
+		"submitButton": "Update details",
+		"notAvailable": "N/A",
+		"sections": {
+			"account": "Account",
+			"personal": "Personal information",
+			"contact": "Contact and social",
+			"location": "Location"
+		},
+		"placeholders": {
+			"username": "Username",
+			"email": "Email",
+			"name": "First name",
+			"lastname": "Last name",
+			"bio": "Bio or description",
+			"phone": "Phone",
+			"telegram": "@telegram_user",
+			"twitter": "@twitter_user",
+			"address": "Address",
+			"country": "Country (e.g. US, ES, MX)"
+		},
+		"info": "Your username, email and phone are managed from their own settings sections.",
+		"memberSince": "Member since: <0>{{date}}</0>",
+		"toasts": {
+			"loadFailed": "Couldn't load your user data",
+			"nameRequired": "Fill in at least your first and last name",
+			"invalidEmail": "Invalid email format",
+			"invalidCountry": "The country code must be 2 characters (e.g. US, ES)",
+			"updated": "Details updated successfully",
+			"updateFailed": "Couldn't update"
+		}
 	}
 }
