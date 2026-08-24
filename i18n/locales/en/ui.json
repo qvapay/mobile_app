@@ -9,7 +9,8 @@
 		"savings": {
 			"deposit": "Deposit",
 			"withdraw": "Withdraw"
-		}
+		},
+		"kycGateMessage": "Withdrawing funds requires a verified identity. It's quick and you only do it once."
 	},
 	"addressPicker": {
 		"addressFallback": "Address",
@@ -26,7 +27,9 @@
 	"cashDelivery": {
 		"sectionTitle": "Cash delivery",
 		"subtitle": "Get USD cash in Havana\nin less than 72 hours",
-		"cta": "Send cash"
+		"cta": "Send cash",
+		"kycGateMessage": "Sending cash with USD CASH requires a verified identity. It's quick and you only do it once.",
+		"kycRequired": "Requires verified identity"
 	},
 	"coinPicker": {
 		"title": "Select coin",

@@ -9,7 +9,8 @@
 		"savings": {
 			"deposit": "Depositar",
 			"withdraw": "Retirar"
-		}
+		},
+		"kycGateMessage": "Para extraer fondos necesitas tener tu identidad verificada. Es rápido y solo se hace una vez."
 	},
 	"addressPicker": {
 		"addressFallback": "Dirección",
@@ -26,7 +27,9 @@
 	"cashDelivery": {
 		"sectionTitle": "Envío de efectivo",
 		"subtitle": "Recibe USD en efectivo en La Habana\nen menos de 72 horas",
-		"cta": "Enviar efectivo"
+		"cta": "Enviar efectivo",
+		"kycGateMessage": "Para enviar efectivo con USD CASH necesitas tener tu identidad verificada. Es rápido y solo se hace una vez.",
+		"kycRequired": "Requiere identidad verificada"
 	},
 	"coinPicker": {
 		"title": "Seleccionar Moneda",

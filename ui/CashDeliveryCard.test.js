@@ -11,6 +11,11 @@ jest.mock('../theme/ThemeContext', () => {
 })
 jest.mock('react-native-reanimated')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
+jest.mock('./KycGateModal', () => 'KycGateModal')
+
+// Usuario verificado por defecto; los tests del gate lo vacían
+let mockUser = { kyc: true }
+jest.mock('../auth/AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 jest.mock('react-native-svg', () => ({
 	__esModule: true,
 	default: 'Svg',
@@ -39,7 +44,7 @@ const renderCard = (navigation = { navigate: jest.fn() }) => {
 const findCardPressable = (tree) =>
 	tree.root.findAll(node => typeof node.props.onPress === 'function')[0]
 
-beforeEach(() => { mockIsDark = true })
+beforeEach(() => { mockIsDark = true; mockUser = { kyc: true } })
 
 test('shows the section title, hero copy and the action row', () => {
 	const out = JSON.stringify(renderCard().toJSON())
@@ -54,6 +59,29 @@ test('tapping the card opens the Withdraw flow with USDCASH preselected', () => 
 	const tree = renderCard(navigation)
 	act(() => { findCardPressable(tree).props.onPress() })
 	expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })
+})
+
+test('sin KYC la card queda sombreada, con candado, y el toque abre el gate en vez de navegar', () => {
+	mockUser = { kyc: false }
+	const navigation = { navigate: jest.fn() }
+	const tree = renderCard(navigation)
+
+	// Sombreada + fila de acción con el porqué
+	const card = findCardPressable(tree)
+	expect(JSON.stringify(card.props.style({ pressed: false }))).toContain('"opacity":0.55')
+	const out = JSON.stringify(tree.toJSON())
+	expect(out).toContain('Requiere identidad verificada')
+	expect(out).not.toContain('Enviar efectivo')
+
+	// Inaccesible: no navega, abre el KycGateModal
+	act(() => { card.props.onPress() })
+	expect(navigation.navigate).not.toHaveBeenCalled()
+	const modal = tree.root.findByType('KycGateModal')
+	expect(modal.props.visible).toBe(true)
+	expect(modal.props.message).toMatch(/identidad verificada/)
+
+	act(() => { modal.props.onClose() })
+	expect(tree.root.findByType('KycGateModal').props.visible).toBe(false)
 })
 
 test('draws the vector map from real geography: sea, land and road network', () => {

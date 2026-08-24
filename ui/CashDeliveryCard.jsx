@@ -7,6 +7,11 @@ import Svg, { Path } from 'react-native-svg'
 import { ROUTES } from '../routes'
 import { useTheme } from '../theme/ThemeContext'
 
+// Auth & KYC gate
+import { useAuth } from '../auth/AuthContext'
+import useKycGate from '../hooks/useKycGate'
+import KycGateModal from './KycGateModal'
+
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -137,6 +142,10 @@ const Courier = ({ routes, initialDelay, msPerPx, scaleX, accent }) => {
  * opens the Withdraw flow with `USDCASH` preselected. Border only appears in
  * light mode (house rule: no borders on dark surfaces).
  *
+ * Sin KYC la card se muestra SOMBREADA (opacidad reducida + fila de acción
+ * con candado) y el toque abre el KycGateModal en vez de navegar — mismo
+ * patrón que el tile Extraer del Home.
+ *
  * @param {object} props
  * @param {object} props.navigation - React Navigation object used for `navigate()`.
  */
@@ -144,6 +153,12 @@ const CashDeliveryCard = ({ navigation }) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
+
+	// Enviar efectivo requiere identidad verificada: sin KYC la card queda
+	// sombreada y el toque abre el gate en vez del flujo de retiro
+	const { user } = useAuth()
+	const kycVerified = !!user?.kyc
+	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
 
 	// Rendered map width (card width). Seeded from the window so overlays are
 	// positioned on first paint; onLayout corrects for iPad/split view.
@@ -180,7 +195,12 @@ const CashDeliveryCard = ({ navigation }) => {
 				{t('ui.cashDelivery.sectionTitle')}
 			</Text>
 
-			<Pressable onPress={() => navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+			<Pressable
+				onPress={() => {
+					if (!requireKyc({ message: t('ui.cashDelivery.kycGateMessage') })) return
+					navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })
+				}}
+				style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, opacity: kycVerified ? 1 : 0.55, transform: [{ scale: pressed ? 0.98 : 1 }] }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
 
 				{/* Map area */}
 				<View style={styles.mapArea} onLayout={e => setMapWidth(e.nativeEvent.layout.width)}>
@@ -203,14 +223,16 @@ const CashDeliveryCard = ({ navigation }) => {
 					</View>
 				</View>
 
-				{/* Bottom action row */}
+				{/* Bottom action row: sin KYC comunica el porqué del sombreado */}
 				<View style={styles.actionRow}>
-					<Text style={[styles.actionText, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.md }]}>
-						{t('ui.cashDelivery.cta')}
+					<Text style={[styles.actionText, { color: kycVerified ? theme.colors.primary : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.md }]}>
+						{kycVerified ? t('ui.cashDelivery.cta') : t('ui.cashDelivery.kycRequired')}
 					</Text>
-					<FontAwesome6 name="chevron-right" size={14} color={theme.colors.primary} iconStyle="solid" />
+					<FontAwesome6 name={kycVerified ? 'chevron-right' : 'lock'} size={14} color={kycVerified ? theme.colors.primary : theme.colors.secondaryText} iconStyle="solid" />
 				</View>
 			</Pressable>
+
+			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
 		</View>
 	)
 }

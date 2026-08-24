@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Share, ScrollView, Pressable, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, Share, ScrollView, Pressable, useWindowDimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // QR Code
@@ -21,15 +21,14 @@ import ProfileContainer from '../../ui/ProfileContainer'
 import { copyTextToClipboard } from '../../helpers'
 import QPFitText from '../../ui/particles/QPFitText'
 
-const { width: screenWidth } = Dimensions.get('window')
-const QR_SIZE = Math.min(screenWidth - 80, 240)
-
 const Receive = ({ navigation, route }) => {
 
 	const { receive_amount } = route.params || {}
 	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
+	const { width: screenWidth } = useWindowDimensions()
+	const qrSize = Math.min(screenWidth - 80, 240)
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 
@@ -74,7 +73,7 @@ const Receive = ({ navigation, route }) => {
 						<QRCodeStyled
 							data={qrUrl}
 							style={styles.qrInner}
-							size={QR_SIZE}
+							size={qrSize}
 							padding={8}
 							pieceSize={7}
 							isPiecesGlued

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, Dimensions, Animated, Linking, Pressable } from 'react-native'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { View, Text, StyleSheet, useWindowDimensions, Animated, Linking, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import Svg, { Path } from 'react-native-svg'
 
@@ -31,31 +31,32 @@ import { parseQRData } from '../../helpers'
 // Routes
 import { ROUTES } from '../../routes'
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
-const SCAN_AREA_SIZE = Math.min(screenWidth * 0.8, 300)
 const CUTOUT_R = 22
-const CUTOUT_X = (screenWidth - SCAN_AREA_SIZE) / 2
-const CUTOUT_Y = (screenHeight - SCAN_AREA_SIZE) / 2
 
-// SVG path: full-screen rect with a rounded-rect hole (evenodd)
-const OVERLAY_PATH = [
-	// Outer rect (clockwise)
-	`M0,0 H${screenWidth} V${screenHeight} H0 Z`,
-	// Inner rounded rect (counter-clockwise for evenodd cutout)
-	`M${CUTOUT_X + CUTOUT_R},${CUTOUT_Y}`,
-	`H${CUTOUT_X + SCAN_AREA_SIZE - CUTOUT_R}`,
-	`Q${CUTOUT_X + SCAN_AREA_SIZE},${CUTOUT_Y} ${CUTOUT_X + SCAN_AREA_SIZE},${CUTOUT_Y + CUTOUT_R}`,
-	`V${CUTOUT_Y + SCAN_AREA_SIZE - CUTOUT_R}`,
-	`Q${CUTOUT_X + SCAN_AREA_SIZE},${CUTOUT_Y + SCAN_AREA_SIZE} ${CUTOUT_X + SCAN_AREA_SIZE - CUTOUT_R},${CUTOUT_Y + SCAN_AREA_SIZE}`,
-	`H${CUTOUT_X + CUTOUT_R}`,
-	`Q${CUTOUT_X},${CUTOUT_Y + SCAN_AREA_SIZE} ${CUTOUT_X},${CUTOUT_Y + SCAN_AREA_SIZE - CUTOUT_R}`,
-	`V${CUTOUT_Y + CUTOUT_R}`,
-	`Q${CUTOUT_X},${CUTOUT_Y} ${CUTOUT_X + CUTOUT_R},${CUTOUT_Y}`,
-	'Z',
-].join(' ')
-
-// Responsive QR size
-const QR_SIZE = Math.min(screenWidth - 80, 240)
+// SVG path: full-screen rect with a rounded-rect hole (evenodd) — depende del
+// tamaño vivo de la ventana (rotación/resize en tablets y plegables)
+const buildScanLayout = (screenWidth, screenHeight) => {
+	const scanAreaSize = Math.min(screenWidth * 0.8, 300)
+	const cutoutX = (screenWidth - scanAreaSize) / 2
+	const cutoutY = (screenHeight - scanAreaSize) / 2
+	const overlayPath = [
+		// Outer rect (clockwise)
+		`M0,0 H${screenWidth} V${screenHeight} H0 Z`,
+		// Inner rounded rect (counter-clockwise for evenodd cutout)
+		`M${cutoutX + CUTOUT_R},${cutoutY}`,
+		`H${cutoutX + scanAreaSize - CUTOUT_R}`,
+		`Q${cutoutX + scanAreaSize},${cutoutY} ${cutoutX + scanAreaSize},${cutoutY + CUTOUT_R}`,
+		`V${cutoutY + scanAreaSize - CUTOUT_R}`,
+		`Q${cutoutX + scanAreaSize},${cutoutY + scanAreaSize} ${cutoutX + scanAreaSize - CUTOUT_R},${cutoutY + scanAreaSize}`,
+		`H${cutoutX + CUTOUT_R}`,
+		`Q${cutoutX},${cutoutY + scanAreaSize} ${cutoutX},${cutoutY + scanAreaSize - CUTOUT_R}`,
+		`V${cutoutY + CUTOUT_R}`,
+		`Q${cutoutX},${cutoutY} ${cutoutX + CUTOUT_R},${cutoutY}`,
+		'Z',
+	].join(' ')
+	const qrSize = Math.min(screenWidth - 80, 240)
+	return { scanAreaSize, cutoutX, cutoutY, overlayPath, qrSize }
+}
 
 // Top bar layout
 
@@ -75,6 +76,13 @@ const Scan = ({ navigation, route }) => {
 
 	// Idioma activo
 	const { t } = useTranslation()
+
+	// Layout dependiente del tamaño vivo de la ventana
+	const { width: screenWidth, height: screenHeight } = useWindowDimensions()
+	const { scanAreaSize, cutoutX, cutoutY, overlayPath, qrSize } = useMemo(
+		() => buildScanLayout(screenWidth, screenHeight),
+		[screenWidth, screenHeight]
+	)
 
 	// Context
 	const { theme } = useTheme()
@@ -221,16 +229,16 @@ const Scan = ({ navigation, route }) => {
 
 					{/* Dark overlay with rounded cutout */}
 					<Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
-						<Path d={OVERLAY_PATH} fill="rgba(0,0,0,0.8)" fillRule="evenodd" />
+						<Path d={overlayPath} fill="rgba(0,0,0,0.8)" fillRule="evenodd" />
 					</Svg>
 
 					{/* Corner brackets + scan line */}
-					<View style={styles.scanFrame}>
+					<View style={[styles.scanFrame, { top: cutoutY, left: cutoutX, width: scanAreaSize, height: scanAreaSize }]}>
 						<View style={[styles.corner, styles.topLeft]} />
 						<View style={[styles.corner, styles.topRight]} />
 						<View style={[styles.corner, styles.bottomLeft]} />
 						<View style={[styles.corner, styles.bottomRight]} />
-						{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [16, SCAN_AREA_SIZE - 16], }) }] }]} />)}
+						{isScanning && (<Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineAnimation.interpolate({ inputRange: [0, 1], outputRange: [16, scanAreaSize - 16], }) }] }]} />)}
 					</View>
 
 					{/* Instructions */}
@@ -250,7 +258,7 @@ const Scan = ({ navigation, route }) => {
 							<QRCodeStyled
 								data={qrUrl}
 								style={{ backgroundColor: '#FFFFFF' }}
-								size={QR_SIZE}
+								size={qrSize}
 								padding={8}
 								pieceSize={7}
 								isPiecesGlued
@@ -333,10 +341,6 @@ const styles = StyleSheet.create({
 	},
 	scanFrame: {
 		position: 'absolute',
-		top: CUTOUT_Y,
-		left: CUTOUT_X,
-		width: SCAN_AREA_SIZE,
-		height: SCAN_AREA_SIZE,
 	},
 	corner: {
 		position: 'absolute',
