@@ -1,1 +1,174 @@
-{}
+{
+	"common": {
+		"errorTitle": "Error"
+	},
+	"send": {
+		"sendButton": "Enviar ${{amount}}",
+		"amountPlaceholder": "Monto a enviar",
+		"amountPlaceholderTo": "Monto a enviar a ...",
+		"sendTo": "Enviar a:",
+		"seeAllContacts": "Ver todos",
+		"removeRecipientA11y": "Eliminar usuario seleccionado",
+		"stickerSelected": "Sticker seleccionado",
+		"removeStickerA11y": "Quitar sticker",
+		"messagePlaceholder": "Deja un mensaje para {{name}} ...",
+		"sendStickerA11y": "Enviar sticker",
+		"stickersGoldOnlyA11y": "Stickers disponibles para usuarios GOLD"
+	},
+	"sendConfirm": {
+		"recipientNotFound": "No se pudo encontrar el usuario destinatario",
+		"userNotFound": "Usuario no encontrado",
+		"confirmSend": "Confirmar Envío",
+		"kycGateMessage": "Los envíos de ${{amount}} o más requieren tener tu identidad verificada. Es rápido y solo se hace una vez.",
+		"toasts": {
+			"recipientLoadFailed": "Error al cargar los datos del destinatario",
+			"pinSentTitle": "PIN enviado",
+			"pinSentBody": "Revisa tu correo electrónico",
+			"pinSendFailed": "No se pudo enviar el PIN",
+			"pinRequestFailed": "Error al solicitar el PIN",
+			"enterPin4": "Ingresa un PIN de 4 dígitos",
+			"enterOtp6": "Ingresa un código OTP de 6 dígitos",
+			"networkErrorTitle": "Error de red",
+			"transactionErrorTitle": "Error en la transacción",
+			"transactionFailed": "No se pudo completar la transacción",
+			"unexpectedError": "Error inesperado al procesar la transacción"
+		}
+	},
+	"sendSuccess": {
+		"title": "Pago completado",
+		"subtitle": "Hemos procesado este pago y estará en su destino en pocos segundos.",
+		"backHome": "Volver al inicio"
+	},
+	"userSearch": {
+		"title": "Buscar Usuario",
+		"placeholder": "Buscar usuario ...",
+		"noResults": "No se encontraron usuarios",
+		"tryAnother": "Intenta con otro nombre o username",
+		"hint": "Busca por nombre, username o email"
+	},
+	"stickers": {
+		"title": "Stickers",
+		"goldRequired": "GOLD requerido",
+		"goldNeeded": "Necesitas ser usuario GOLD para enviar stickers"
+	},
+	"summary": {
+		"recipient": "Destinatario",
+		"message": "Mensaje",
+		"details": "Detalles de la transacción",
+		"fee": "Comisión",
+		"totalToSend": "Total a enviar"
+	},
+	"pinConfirm": {
+		"enterPin": "Ingresa tu PIN",
+		"enterOtp": "Ingresa el código OTP",
+		"sending": "Enviando...",
+		"requestPin": "Solicitar PIN"
+	},
+	"receive": {
+		"shareWithAmount": "Págame ${{amount}} en QvaPay: {{url}}",
+		"share": "Págame en QvaPay: {{url}}",
+		"tapToCopy": "Toca el QR para copiar el enlace"
+	},
+	"detail": {
+		"detailsTitle": "Detalles de la Transacción:",
+		"id": "ID:",
+		"amount": "Monto:",
+		"status": "Estado:",
+		"note": "Nota:",
+		"date": "Fecha:",
+		"download": "Descargar",
+		"toasts": {
+			"tokenFailed": "No se pudo obtener el token de autenticación",
+			"successTitle": "Éxito",
+			"pdfDownloaded": "PDF descargado correctamente",
+			"pdfFailed": "No se pudo descargar el PDF"
+		},
+		"related": {
+			"cryptoDeposit": "Depósito Crypto",
+			"coin": "Moneda:",
+			"expectedValue": "Valor esperado:",
+			"receivedValue": "Valor recibido:",
+			"address": "Dirección:",
+			"txHash": "TX Hash:",
+			"type": "Tipo:",
+			"toReceive": "A recibir:",
+			"withdrawal": "Extracción",
+			"method": "Método:",
+			"amountRequested": "Monto solicitado:",
+			"service": "Servicio",
+			"serviceLabel": "Servicio:",
+			"purchase": "Compra",
+			"cartCancelled": "Cancelado",
+			"cartDelivered": "Entregado",
+			"cartPurchased": "Comprado",
+			"tracking": "Rastreo:",
+			"description": "Descripción:",
+			"appId": "App ID:"
+		}
+	},
+	"list": {
+		"searchPlaceholder": "Buscar por descripción o UUID",
+		"empty": "No hay transacciones"
+	},
+	"filters": {
+		"title": "Filtrar",
+		"sectionStatus": "Estado",
+		"sectionPeriod": "Período",
+		"sectionAmount": "Monto",
+		"sectionSortBy": "Ordenar por",
+		"sectionSortDir": "Dirección",
+		"searchPlaceholder": "Descripción o UUID",
+		"min": "Mínimo",
+		"max": "Máximo",
+		"apply": "Aplicar",
+		"clear": "Limpiar",
+		"statusOptions": {
+			"paid": "Pagadas",
+			"pending": "Pendientes",
+			"processing": "Procesando",
+			"cancelled": "Canceladas"
+		},
+		"periods": {
+			"thisWeek": "Esta semana",
+			"thisMonth": "Este mes",
+			"lastMonth": "Último mes"
+		},
+		"sortField": {
+			"date": "Fecha",
+			"amount": "Monto"
+		},
+		"sortDir": {
+			"desc": "Recientes",
+			"asc": "Antiguos"
+		}
+	},
+	"pay": {
+		"loadingInvoice": "Cargando factura…",
+		"invoiceUnavailable": "Factura no disponible",
+		"invoiceNotFound": "No se encontró la factura solicitada",
+		"invoiceLoadFailed": "No se pudo cargar la factura",
+		"invoiceLoadError": "Error al cargar la factura",
+		"paymentDone": "Pago realizado",
+		"payFailed": "No se pudo procesar el pago",
+		"payError": "Error al procesar el pago",
+		"id": "ID",
+		"concept": "Concepto",
+		"date": "Fecha",
+		"balanceAvailable": "Saldo disponible: ${{amount}}",
+		"insufficientBalance": "Saldo insuficiente (${{amount}})",
+		"moodQuestion": "¿Cómo te sientes con este pago?",
+		"alreadyPaid": "Esta factura ya fue {{status}}.",
+		"ownInvoice": "No puedes pagar una factura que creaste tú mismo.",
+		"payButton": "Pagar ${{amount}}",
+		"moods": {
+			"none": "Ninguna",
+			"loved": "Encantado",
+			"happy": "Feliz",
+			"thumbsy": "Genial",
+			"sad": "Triste"
+		},
+		"toasts": {
+			"paidTo": "Pagaste ${{amount}} a {{name}}"
+		}
+	}
+}

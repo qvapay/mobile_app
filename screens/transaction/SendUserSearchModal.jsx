@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { View, Text, Modal, FlatList } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -27,6 +28,7 @@ import { displayFullName } from '../../helpers/displayName'
 // Self-contained "send to" user search: live-filters the carousel + queries the API.
 const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -66,11 +68,11 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 				setSearchResults(result.data || [])
 			} else {
 				setSearchResults([])
-				toast.error('Error', { description: result.error })
+				toast.error(t('transactions.common.errorTitle'), { description: result.error })
 			}
 		} catch (err) {
 			setSearchResults([])
-			toast.error('Error', { description: err.message })
+			toast.error(t('transactions.common.errorTitle'), { description: err.message })
 		} finally { setIsSearching(false) }
 	}
 
@@ -92,7 +94,7 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 
 				{/* Modal Header */}
 				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingHorizontal: 20 }}>
-					<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>Buscar Usuario</Text>
+					<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('transactions.userSearch.title')}</Text>
 					<QPPressable
 						onPress={onClose}
 						style={{ backgroundColor: theme.colors.elevation, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' }}
@@ -106,7 +108,7 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 					<View style={{ flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.primary, backgroundColor: theme.colors.surface, alignItems: 'center', height: 50 }}>
 						<View style={{ flex: 1 }}>
 							<QPInput
-								placeholder="Buscar usuario ..."
+								placeholder={t('transactions.userSearch.placeholder')}
 								value={userSearch}
 								onChangeText={setUserSearch}
 								disabled={isSearching}
@@ -170,17 +172,17 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 						<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
 							<FontAwesome6 name="user-slash" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-								No se encontraron usuarios
+								{t('transactions.userSearch.noResults')}
 							</Text>
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 8, textAlign: 'center' }]}>
-								Intenta con otro nombre o username
+								{t('transactions.userSearch.tryAnother')}
 							</Text>
 						</View>
 					) : (
 						<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
 							<FontAwesome6 name="magnifying-glass" size={48} color={theme.colors.tertiaryText} iconStyle="solid" />
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginTop: 16, textAlign: 'center' }]}>
-								Busca por nombre, username o email
+								{t('transactions.userSearch.hint')}
 							</Text>
 						</View>
 					)}

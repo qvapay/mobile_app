@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Share, ScrollView, Pressable, Dimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
@@ -26,6 +27,7 @@ const QR_SIZE = Math.min(screenWidth - 80, 240)
 const Receive = ({ navigation, route }) => {
 
 	const { receive_amount } = route.params || {}
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -41,8 +43,8 @@ const Receive = ({ navigation, route }) => {
 		try {
 			await Share.share({
 				message: amount > 0
-					? `Págame $${amount} en QvaPay: ${qrUrl}`
-					: `Págame en QvaPay: ${qrUrl}`,
+					? t('transactions.receive.shareWithAmount', { amount, url: qrUrl })
+					: t('transactions.receive.share', { url: qrUrl }),
 				url: qrUrl,
 			})
 		} catch (e) { /* user cancelled */ }
@@ -88,7 +90,7 @@ const Receive = ({ navigation, route }) => {
 						/>
 					</Pressable>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textAlign: 'center', marginTop: 12 }]}>
-						Toca el QR para copiar el enlace
+						{t('transactions.receive.tapToCopy')}
 					</Text>
 				</View>
 			</ScrollView>

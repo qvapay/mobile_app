@@ -1,5 +1,6 @@
 import { useState, useEffect, useReducer } from 'react'
 import { View, Text, ScrollView, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -65,6 +66,7 @@ function setFieldReducer(state, action) {
 const Send = ({ navigation, route }) => {
 
 	// Context
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -132,7 +134,7 @@ const Send = ({ navigation, route }) => {
 				description: description
 			})
 		} catch (err) {
-			toast.error('Error', { description: err.message })
+			toast.error(t('transactions.common.errorTitle'), { description: err.message })
 		} finally { setIsLoading(false) }
 	}
 
@@ -142,7 +144,7 @@ const Send = ({ navigation, route }) => {
 			<QPKeyboardView
 				actions={
 					<QPButton
-						title={`Enviar $${amount || '0'}`}
+						title={t('transactions.send.sendButton', { amount: amount || '0' })}
 						onPress={handleSendConfirm}
 						disabled={!sendEnabled}
 						loading={isLoading}
@@ -152,15 +154,15 @@ const Send = ({ navigation, route }) => {
 			>
 
 				{/* Amount Input Component */}
-				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} placeholder={incomingUserUuid ? 'Monto a enviar' : 'Monto a enviar a ...'} />
+				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} placeholder={incomingUserUuid ? t('transactions.send.amountPlaceholder') : t('transactions.send.amountPlaceholderTo')} />
 
 				{/** Latest sent transfers users */}
 				<View style={{ marginVertical: 20, gap: 10 }}>
 
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Enviar a:</Text>
+						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>{t('transactions.send.sendTo')}</Text>
 						<Pressable onPress={() => navigation.navigate(ROUTES.CONTACTS)} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.primary }]}>Ver todos</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.primary }]}>{t('transactions.send.seeAllContacts')}</Text>
 							<FontAwesome6 name="arrow-right" size={10} color={theme.colors.primary} iconStyle="solid" />
 						</Pressable>
 					</View>
@@ -173,7 +175,7 @@ const Send = ({ navigation, route }) => {
 							<QPPressable
 								onPress={() => setUserFound(null)}
 								style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }}
-								accessibilityLabel="Eliminar usuario seleccionado"
+								accessibilityLabel={t('transactions.send.removeRecipientA11y')}
 							>
 								<FontAwesome6 name="xmark" size={18} color={theme.colors.primaryText} iconStyle="solid" />
 							</QPPressable>
@@ -199,17 +201,17 @@ const Send = ({ navigation, route }) => {
 						<View style={[containerStyles.card, { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }]}>
 							<TransactionSticker name={parsedDescription.sticker} size={56} />
 							<View style={{ flex: 1 }}>
-								<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>Sticker seleccionado</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{t('transactions.send.stickerSelected')}</Text>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{parsedDescription.sticker.replace('.webm', '')}</Text>
 							</View>
-							<QPPressable onPress={() => setDescription('')} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }} accessibilityLabel="Quitar sticker">
+							<QPPressable onPress={() => setDescription('')} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }} accessibilityLabel={t('transactions.send.removeStickerA11y')}>
 								<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />
 							</QPPressable>
 						</View>
 					) : (
 						<View style={{ position: 'relative' }}>
 							<QPInput
-								placeholder={`Deja un mensaje para ${displayName(userFound)} ...`}
+								placeholder={t('transactions.send.messagePlaceholder', { name: displayName(userFound) })}
 								value={description}
 								onChangeText={setDescription}
 								prefixIconName="comment"
@@ -218,7 +220,7 @@ const Send = ({ navigation, route }) => {
 							<Pressable
 								onPress={() => setIsStickerPickerVisible(true)}
 								style={{ position: 'absolute', right: 12, top: 0, bottom: 0, width: 40, justifyContent: 'center', alignItems: 'center' }}
-								accessibilityLabel={isGold ? 'Enviar sticker' : 'Stickers disponibles para usuarios GOLD'}
+								accessibilityLabel={isGold ? t('transactions.send.sendStickerA11y') : t('transactions.send.stickersGoldOnlyA11y')}
 							>
 								<View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, justifyContent: 'center', alignItems: 'center' }}>
 									<TransactionSticker name="ok.webm" size={24} />

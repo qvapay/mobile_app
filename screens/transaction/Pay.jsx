@@ -1,6 +1,11 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
+
+// i18n en call time para el fetch inicial (usar el `t` del hook dentro del
+// useCallback re-dispararía el fetch de la factura al cambiar idioma)
+import i18n from '../../i18n'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -38,12 +43,13 @@ import FastImage from '@d11/react-native-fast-image'
 import LottieView from 'lottie-react-native'
 import QPFitText from '../../ui/particles/QPFitText'
 
+// i18n keys resolved in render — a module constant would freeze the boot language
 const MOODS = [
-	{ value: '', icon: 'face-meh-blank', label: 'Ninguna', color: '#9CA3AF' },
-	{ value: 'loved', icon: 'heart', label: 'Encantado', color: '#F472B6' },
-	{ value: 'happy', icon: 'face-smile', label: 'Feliz', color: '#34D399' },
-	{ value: 'thumbsy', icon: 'thumbs-up', label: 'Genial', color: '#60A5FA' },
-	{ value: 'sad', icon: 'face-frown', label: 'Triste', color: '#FBBF24' },
+	{ value: '', icon: 'face-meh-blank', labelKey: 'transactions.pay.moods.none', color: '#9CA3AF' },
+	{ value: 'loved', icon: 'heart', labelKey: 'transactions.pay.moods.loved', color: '#F472B6' },
+	{ value: 'happy', icon: 'face-smile', labelKey: 'transactions.pay.moods.happy', color: '#34D399' },
+	{ value: 'thumbsy', icon: 'thumbs-up', labelKey: 'transactions.pay.moods.thumbsy', color: '#60A5FA' },
+	{ value: 'sad', icon: 'face-frown', labelKey: 'transactions.pay.moods.sad', color: '#FBBF24' },
 ]
 
 // Normalize detail-API shape (lowercase keys) for rendering
@@ -88,6 +94,7 @@ const Pay = ({ route, navigation }) => {
 	const { uuid } = route.params || {}
 
 	// Contexts
+	const { t } = useTranslation()
 	const { user } = useAuth()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -119,10 +126,10 @@ const Pay = ({ route, navigation }) => {
 			if (response.success) {
 				setTransaction(normalize(response.data.data))
 			} else {
-				setLoadError(response.error || 'No se pudo cargar la factura')
+				setLoadError(response.error || i18n.t('transactions.pay.invoiceLoadFailed'))
 			}
 		} catch (error) {
-			setLoadError(error?.message || 'Error al cargar la factura')
+			setLoadError(error?.message || i18n.t('transactions.pay.invoiceLoadError'))
 		} finally { setLoading(false) }
 	}, [uuid])
 
@@ -156,14 +163,14 @@ const Pay = ({ route, navigation }) => {
 			const result = await payApi.payTransaction(transaction.uuid, selectedMood)
 			if (result.success) {
 				setSuccess(true)
-				toast.success('Pago realizado', { description: `Pagaste $${amountFixed} a ${transaction.app?.name || transaction.user?.name || 'QvaPay'}` })
+				toast.success(t('transactions.pay.paymentDone'), { description: t('transactions.pay.toasts.paidTo', { amount: amountFixed, name: transaction.app?.name || transaction.user?.name || 'QvaPay' }) })
 				setTimeout(() => { handleClose() }, 1800)
 			} else {
-				setPayError(result.error || 'No se pudo procesar el pago')
-				toast.error('Error', { description: result.error || 'No se pudo procesar el pago' })
+				setPayError(result.error || t('transactions.pay.payFailed'))
+				toast.error(t('transactions.common.errorTitle'), { description: result.error || t('transactions.pay.payFailed') })
 			}
 		} catch (error) {
-			setPayError(error?.message || 'Error al procesar el pago')
+			setPayError(error?.message || t('transactions.pay.payError'))
 		} finally { setPaying(false) }
 	}
 
@@ -175,7 +182,7 @@ const Pay = ({ route, navigation }) => {
 					<View style={styles.handle} />
 					<View style={{ padding: 40, alignItems: 'center' }}>
 						<FontAwesome6 name="spinner" size={28} color={theme.colors.primary} iconStyle="solid" />
-						<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: 14 }]}>Cargando factura…</Text>
+						<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: 14 }]}>{t('transactions.pay.loadingInvoice')}</Text>
 					</View>
 				</View>
 			</View>
@@ -190,11 +197,11 @@ const Pay = ({ route, navigation }) => {
 					<View style={styles.handle} />
 					<View style={{ padding: 24, alignItems: 'center' }}>
 						<FontAwesome6 name="circle-exclamation" size={40} color={theme.colors.danger} iconStyle="solid" />
-						<Text style={[textStyles.h3, { marginTop: 16, textAlign: 'center' }]}>Factura no disponible</Text>
+						<Text style={[textStyles.h3, { marginTop: 16, textAlign: 'center' }]}>{t('transactions.pay.invoiceUnavailable')}</Text>
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 8, textAlign: 'center' }]}>
-							{loadError || 'No se encontró la factura solicitada'}
+							{loadError || t('transactions.pay.invoiceNotFound')}
 						</Text>
-						<QPButton title="Cerrar" onPress={handleClose} style={{ marginTop: 20 }} textStyle={{ color: theme.colors.buttonText }} />
+						<QPButton title={t('common.actions.close')} onPress={handleClose} style={{ marginTop: 20 }} textStyle={{ color: theme.colors.buttonText }} />
 					</View>
 				</View>
 			</View>
@@ -249,7 +256,7 @@ const Pay = ({ route, navigation }) => {
 					<View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
 
 						<View style={styles.row}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>ID</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('transactions.pay.id')}</Text>
 							<Pressable onPress={() => copyTextToClipboard(transaction.uuid)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 								<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{getFirstChunk(transaction.uuid)}</Text>
 								<FontAwesome6 name="copy" size={13} color={theme.colors.primary} iconStyle="solid" />
@@ -258,7 +265,7 @@ const Pay = ({ route, navigation }) => {
 
 						{transaction.description ? (
 							<View style={[styles.row, { alignItems: 'flex-start' }]}>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Concepto</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('transactions.pay.concept')}</Text>
 								<Text style={[textStyles.h6, { color: theme.colors.primaryText, flex: 1, textAlign: 'right', marginLeft: 16 }]} numberOfLines={3}>
 									{transaction.description}
 								</Text>
@@ -266,7 +273,7 @@ const Pay = ({ route, navigation }) => {
 						) : null}
 
 						<View style={[styles.row, styles.rowLast]}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Fecha</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('transactions.pay.date')}</Text>
 							<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{getShortDateTime(transaction.created_at)}</Text>
 						</View>
 
@@ -277,7 +284,7 @@ const Pay = ({ route, navigation }) => {
 						<View style={[styles.balanceHint, { backgroundColor: hasEnough ? theme.colors.surface : theme.colors.danger + '20' }]}>
 							<FontAwesome6 name={hasEnough ? 'wallet' : 'triangle-exclamation'} size={14} color={hasEnough ? theme.colors.secondaryText : theme.colors.danger} iconStyle="solid" />
 							<Text style={[textStyles.h6, { color: hasEnough ? theme.colors.secondaryText : theme.colors.danger, marginLeft: 8 }]}>
-								{hasEnough ? `Saldo disponible: $${balanceFloat.toFixed(2)}` : `Saldo insuficiente ($${balanceFloat.toFixed(2)})`}
+								{hasEnough ? t('transactions.pay.balanceAvailable', { amount: balanceFloat.toFixed(2) }) : t('transactions.pay.insufficientBalance', { amount: balanceFloat.toFixed(2) })}
 							</Text>
 						</View>
 					)}
@@ -285,14 +292,14 @@ const Pay = ({ route, navigation }) => {
 					{/* Reaction selector */}
 					{canPay && !success && (
 						<View style={{ marginTop: 20 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 10 }]}>¿Cómo te sientes con este pago?</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 10 }]}>{t('transactions.pay.moodQuestion')}</Text>
 							<View style={styles.moodsRow}>
 								{MOODS.map((mood) => {
 									const selected = selectedMood === mood.value
 									return (
 										<Pressable key={mood.value || 'none'} onPress={() => setSelectedMood(mood.value)} style={[styles.moodChip, { backgroundColor: selected ? mood.color : theme.colors.surface, borderColor: selected ? mood.color : theme.colors.border }]} >
 											<FontAwesome6 name={mood.icon} size={16} color={selected ? '#fff' : mood.color} iconStyle="solid" />
-											<Text style={[textStyles.h7, { color: selected ? '#fff' : theme.colors.primaryText, marginLeft: 6 }]}>{mood.label}</Text>
+											<Text style={[textStyles.h7, { color: selected ? '#fff' : theme.colors.primaryText, marginLeft: 6 }]}>{t(mood.labelKey)}</Text>
 										</Pressable>
 									)
 								})}
@@ -304,7 +311,7 @@ const Pay = ({ route, navigation }) => {
 					{success && (
 						<View style={styles.successWrap}>
 							<LottieView source={require('../../assets/lotties/transfer_ok.json')} autoPlay loop={false} style={{ width: 140, height: 140 }} />
-							<Text style={[textStyles.h3, { color: theme.colors.successText, marginTop: 8 }]}>Pago realizado</Text>
+							<Text style={[textStyles.h3, { color: theme.colors.successText, marginTop: 8 }]}>{t('transactions.pay.paymentDone')}</Text>
 						</View>
 					)}
 
@@ -314,12 +321,12 @@ const Pay = ({ route, navigation }) => {
 					{/* Already paid / own transaction info */}
 					{alreadyPaid && (
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 16 }]}>
-							Esta factura ya fue {statusText(transaction.status).toLowerCase()}.
+							{t('transactions.pay.alreadyPaid', { status: statusText(transaction.status).toLowerCase() })}
 						</Text>
 					)}
 					{isOwn && !alreadyPaid && (
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 16 }]}>
-							No puedes pagar una factura que creaste tú mismo.
+							{t('transactions.pay.ownInvoice')}
 						</Text>
 					)}
 
@@ -330,7 +337,7 @@ const Pay = ({ route, navigation }) => {
 					{canPay && !success ? (
 						<>
 							<QPButton
-								title={`Pagar $${amountFixed}`}
+								title={t('transactions.pay.payButton', { amount: amountFixed })}
 								icon="lock"
 								iconColor={theme.colors.buttonText}
 								onPress={handlePay}
@@ -339,7 +346,7 @@ const Pay = ({ route, navigation }) => {
 								textStyle={{ color: theme.colors.buttonText }}
 							/>
 							<QPButton
-								title="Cancelar"
+								title={t('common.actions.cancel')}
 								onPress={handleClose}
 								style={{ backgroundColor: 'transparent' }}
 								textStyle={{ color: theme.colors.secondaryText }}
@@ -347,7 +354,7 @@ const Pay = ({ route, navigation }) => {
 						</>
 					) : (
 						<QPButton
-							title="Cerrar"
+							title={t('common.actions.close')}
 							onPress={handleClose}
 							style={{ backgroundColor: theme.colors.surface }}
 							textStyle={{ color: theme.colors.primaryText }}
