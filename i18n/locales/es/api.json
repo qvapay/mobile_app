@@ -1,1 +1,112 @@
-{}
+{
+	"common": {
+		"networkError": "Ha ocurrido un error de red",
+		"networkErrorShort": "Error de red",
+		"purchaseMissingData": "Faltan datos para la compra",
+		"purchasesLoadFailed": "No se pudieron obtener tus compras",
+		"purchaseValidateFailed": "No se pudo validar la compra",
+		"checkoutProcessFailed": "No pudimos procesar la compra"
+	},
+	"auth": {
+		"loginFailed": "No se pudo iniciar sesión",
+		"connectFailed": "No se ha podido conectar al servidor",
+		"requestPinFailed": "No se pudo solicitar el PIN",
+		"registerFailed": "No se pudo registrar",
+		"confirmRegistrationFailed": "No se pudo confirmar el registro",
+		"passkeysLoadFailed": "Error al obtener passkeys",
+		"passkeyDeleteFailed": "Error al eliminar passkey",
+		"passkeyRegisterOptionsFailed": "Error al generar opciones de registro",
+		"passkeyRegisterVerifyFailed": "Error al verificar el registro",
+		"passkeyLoginOptionsFailed": "Error al generar opciones de autenticación",
+		"passkeyLoginVerifyFailed": "Error al verificar la autenticación",
+		"resetPasswordFailed": "No se pudo solicitar el restablecimiento de contraseña"
+	},
+	"user": {
+		"kycSessionFailed": "No se pudo obtener la sesión de verificación",
+		"companySubmitFailed": "No se pudo enviar la solicitud",
+		"paymentMethodsLoadFailed": "No se pudieron obtener los métodos de pago",
+		"paymentMethodCreateFailed": "No se pudo crear el método de pago",
+		"paymentMethodDeleteFailed": "No se pudo eliminar el método de pago",
+		"contactsLoadFailed": "No se pudieron obtener los contactos",
+		"contactAddFailed": "No se pudo agregar el contacto",
+		"contactFavoriteFailed": "No se pudo actualizar el favorito",
+		"contactDeleteFailed": "No se pudo eliminar el contacto",
+		"contactsSyncFailed": "No se pudieron sincronizar los contactos",
+		"twoFactorGenerateFailed": "No se pudo generar el código 2FA",
+		"twoFactorActivateFailed": "No se pudo activar el 2FA",
+		"twoFactorDeactivateFailed": "No se pudo desactivar el 2FA",
+		"imageUploadFailed": "No se pudo subir la imagen"
+	},
+	"p2p": {
+		"offersLoadFailed": "No se pudieron obtener las ofertas P2P",
+		"createFailed": "No se pudo crear la oferta P2P",
+		"editFailed": "No se pudo editar la oferta",
+		"averagesLoadFailed": "No se pudieron obtener los promedios P2P",
+		"profileLoadFailed": "No se pudo obtener el perfil"
+	},
+	"withdraw": {
+		"pinSendFailed": "No se pudo enviar el PIN",
+		"withdrawFailed": "No se pudo completar la extracción",
+		"lightningInvalid": "Destino Lightning inválido"
+	},
+	"saving": {
+		"summaryLoadFailed": "No se pudo obtener el resumen de ahorros",
+		"roundupUpdateFailed": "No se pudo actualizar el ajuste de redondeo",
+		"depositFailed": "No se pudo realizar el depósito",
+		"withdrawFailed": "No se pudo realizar el retiro",
+		"transactionsLoadFailed": "No se pudieron obtener las transacciones",
+		"earningsLoadFailed": "No se pudieron obtener las ganancias"
+	},
+	"stocks": {
+		"stocksLoadFailed": "No se pudieron obtener las acciones",
+		"quoteLoadFailed": "No se pudo obtener la cotización",
+		"historyLoadFailed": "No se pudo obtener el historial"
+	},
+	"store": {
+		"voucherCatalogLoadFailed": "No se pudo obtener el catálogo de tarjetas",
+		"voucherPurchaseFailed": "No se pudo realizar la compra",
+		"topupCatalogLoadFailed": "No se pudo obtener el catálogo de recargas",
+		"topupMissingData": "Faltan datos para la recarga",
+		"topupPurchaseFailed": "No se pudo realizar la recarga",
+		"purchaseDetailLoadFailed": "No se pudo obtener el detalle"
+	},
+	"shop": {
+		"productLinkMissing": "Pega el enlace del producto",
+		"productDataLoadFailed": "No pudimos obtener los datos del producto",
+		"productLoadFailed": "No se pudo obtener el producto",
+		"recentProductsLoadFailed": "No se pudieron obtener los productos recientes",
+		"cartLoadFailed": "No se pudo obtener el carrito",
+		"productMissingData": "Faltan datos del producto",
+		"cartAddFailed": "No se pudo agregar al carrito",
+		"cartRemoveFailed": "No se pudo eliminar el producto",
+		"quoteMissingDestination": "Indica un estado o una dirección de envío",
+		"quoteFailed": "No se pudo calcular el total",
+		"checkoutMissingAddress": "Selecciona o crea una dirección de envío",
+		"ordersLoadFailed": "No se pudieron obtener tus pedidos",
+		"orderLoadFailed": "No se pudo obtener el pedido",
+		"addressesLoadFailed": "No se pudieron obtener tus direcciones",
+		"addressSaveFailed": "No se pudo guardar la dirección",
+		"addressSearchFailed": "No se pudo buscar la dirección",
+		"addressLoadFailed": "No se pudo obtener la dirección",
+		"addressDeleteFailed": "No se pudo eliminar la dirección"
+	},
+	"market": {
+		"storesLoadFailed": "No se pudieron obtener las tiendas",
+		"storeInvalid": "Tienda inválida",
+		"storeLoadFailed": "No se pudo cargar la tienda",
+		"productInvalid": "Producto inválido",
+		"productLoadFailed": "No se pudo cargar el producto",
+		"catalogLoadFailed": "No se pudo obtener el catálogo",
+		"searchTooShort": "Búsqueda demasiado corta",
+		"searchFailed": "No se pudo buscar",
+		"verifyCartEmpty": "Sin productos que verificar",
+		"verifyCartFailed": "No se pudo verificar el carrito"
+	},
+	"coins": {
+		"coinsLoadFailed": "No se pudieron obtener las monedas",
+		"priceHistoryLoadFailed": "No se pudo obtener el historial de precios"
+	},
+	"promo": {
+		"promoLoadFailed": "No se pudo obtener la promoción"
+	}
+}

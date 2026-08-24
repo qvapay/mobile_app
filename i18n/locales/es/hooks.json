@@ -1,1 +1,59 @@
-{}
+{
+	"authState": {
+		"loginFailed": "No se pudo iniciar sesión",
+		"loginFailedRetry": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+		"passkeyLoginFailed": "Error al iniciar sesión con Passkey",
+		"requestPinFailed": "No se pudo solicitar el PIN",
+		"logoutFailed": "No se pudo cerrar la sesión. Inténtalo de nuevo.",
+		"registerFailed": "No se pudo completar el registro. Inténtalo de nuevo.",
+		"confirmRegistrationFailed": "No se pudo confirmar el registro",
+		"updateUserFailed": "No se pudieron actualizar los datos del usuario"
+	},
+	"pinCountdown": {
+		"requestPin": "Solicitar PIN"
+	},
+	"idempotency": {
+		"safeRetryHint": "Puedes reintentar sin riesgo de duplicar la operación."
+	},
+	"iap": {
+		"unknownError": "Error desconocido",
+		"itemUnavailable": "Este producto no está disponible en tu región",
+		"connectionError": "Error de conexión. Verifica tu internet",
+		"serviceUnavailable": "El servicio de pagos no está disponible",
+		"configurationError": "Error de configuración. Contacta soporte",
+		"alreadyOwned": "Ya tienes una compra activa de este producto",
+		"paymentPending": "El pago está pendiente de aprobación",
+		"purchaseFailed": "Error al procesar la compra"
+	},
+	"appNavigation": {
+		"toasts": {
+			"loginToPay": "Inicia sesión para pagar la factura",
+			"loginToSeeOffer": "Inicia sesión para ver la oferta P2P",
+			"loginToSeeStore": "Inicia sesión para ver la tienda"
+		}
+	},
+	"deviceContacts": {
+		"alerts": {
+			"permissionTitle": "Permiso de contactos",
+			"permissionBody": "Para sincronizar tus contactos, activa el permiso en la configuración de tu dispositivo."
+		},
+		"toasts": {
+			"permissionDenied": "Permiso de contactos no concedido",
+			"noPhoneNumbers": "No se encontraron números de teléfono en tus contactos",
+			"autoAdded_one": "{{count}} contacto agregado automáticamente",
+			"autoAdded_other": "{{count}} contactos agregados automáticamente",
+			"synced": "Contactos sincronizados",
+			"noneOnQvaPay": "Ninguno de tus contactos usa QvaPay aún",
+			"syncErrorTitle": "Error al sincronizar"
+		},
+		"syncFailed": "Error al sincronizar contactos"
+	},
+	"transactionSSE": {
+		"updateProcessFailed": "Error al procesar actualización de pago",
+		"connectionLost": "Se perdió la conexión con el servidor",
+		"monitorConnectFailed": "No se pudo establecer conexión de monitoreo"
+	},
+	"coins": {
+		"emptyCatalog": "Catálogo de monedas vacío"
+	}
+}

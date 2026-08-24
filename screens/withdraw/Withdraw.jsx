@@ -29,7 +29,7 @@ import apiClient from '../../api/client'
 import { withdrawApi } from '../../api/withdrawApi'
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el débito
-import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from '../../helpers/idempotency'
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -376,7 +376,7 @@ const Withdraw = ({ navigation, route }) => {
 				setWorkingForm({})
 				navigation.goBack()
 			} else if (isNetworkFailure(result)) {
-				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${SAFE_RETRY_HINT}` })
+				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${safeRetryHint()}` })
 			} else {
 				toast.error(result.error || 'No se pudo completar la extracción')
 			}

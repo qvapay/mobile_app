@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import coinsApi from '../api/coinsApi'
 import { unwrap } from '../api/unwrap'
+import i18n from '../i18n'
 
 // El catálogo es casi estático, pero el PRECIO de cada moneda sí se mueve y
 // alimenta cálculos de dinero (Withdraw, conversión de QPCoinRow): la copia
@@ -40,7 +41,7 @@ export default function useCoins(kind = 'all') {
 		queryFn: async () => {
 			const { params } = COIN_FILTERS[kind] || COIN_FILTERS.all
 			const list = unwrap(await coinsApi.index(params)) || []
-			if (!list.length) { throw new Error('Catálogo de monedas vacío') }
+			if (!list.length) { throw new Error(i18n.t('hooks.coins.emptyCatalog')) }
 			return list
 		},
 		staleTime: FRESH_TTL_MS,

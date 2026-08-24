@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import i18n from '../../i18n'
 
 // mm:ss formatter — pure, so it lives at module scope instead of being rebuilt each render
 const format = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
@@ -16,11 +17,12 @@ const format = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 
  * See https://react.dev/reference/react/useRef
  *
  * @returns {{ label: string, isDisabled: boolean, start: (seconds?: number) => void }}
- *   `label` is either 'Solicitar PIN' or the remaining time; `start` defaults to 60s.
+ *   `label` is either the localized "Solicitar PIN" or the remaining time; `start` defaults to 60s.
  */
 export default function usePinCountdown() {
 
-	const [label, setLabel] = useState('Solicitar PIN')
+	// Initializer runs at mount, so the label resolves in the active language
+	const [label, setLabel] = useState(() => i18n.t('hooks.pinCountdown.requestPin'))
 	const [isDisabled, setIsDisabled] = useState(false)
 	const remainingRef = useRef(0)
 	const intervalRef = useRef(null)
@@ -42,7 +44,7 @@ export default function usePinCountdown() {
 			if (remainingRef.current <= 0) {
 				stop()
 				setIsDisabled(false)
-				setLabel('Solicitar PIN')
+				setLabel(i18n.t('hooks.pinCountdown.requestPin'))
 			} else { setLabel(format(remainingRef.current)) }
 		}, 1000)
 	}

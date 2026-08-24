@@ -1,11 +1,12 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 /**
  * Wraps a request into the standard `{ success, data, error?, details?, status? }`
  * envelope used by every endpoint in this module.
  *
  * @param {Function} request - Thunk that performs the axios call.
- * @param {string} fallbackError - Spanish message used when the backend provides none.
+ * @param {string} fallbackError - Localized message used when the backend provides none.
  * @returns {Promise<Object>} The response envelope.
  */
 const wrap = async (request, fallbackError) => {
@@ -22,7 +23,7 @@ const wrap = async (request, fallbackError) => {
 				status: error.response.status,
 			}
 		}
-		return { success: false, error: error.message || 'Error de red', status: error.response?.status }
+		return { success: false, error: error.message || i18n.t('api.common.networkErrorShort'), status: error.response?.status }
 	}
 }
 
@@ -58,7 +59,7 @@ export const marketApi = {
 	getStores: async (params = {}) => {
 		const qs = buildQuery(params)
 		const url = qs ? `/market/stores?${qs}` : '/market/stores'
-		return wrap(() => apiClient.get(url), 'No se pudieron obtener las tiendas')
+		return wrap(() => apiClient.get(url), i18n.t('api.market.storesLoadFailed'))
 	},
 
 	/**
@@ -70,8 +71,8 @@ export const marketApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ store, products }` (store includes real `rating_avg`/`rating_count`).
 	 */
 	getStore: async (slug) => {
-		if (!slug) return { success: false, error: 'Tienda inválida', status: 400 }
-		return wrap(() => apiClient.get(`/market/stores/${encodeURIComponent(slug)}`), 'No se pudo cargar la tienda')
+		if (!slug) return { success: false, error: i18n.t('api.market.storeInvalid'), status: 400 }
+		return wrap(() => apiClient.get(`/market/stores/${encodeURIComponent(slug)}`), i18n.t('api.market.storeLoadFailed'))
 	},
 
 	/**
@@ -82,8 +83,8 @@ export const marketApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ product, shop }`.
 	 */
 	getProduct: async (uuid) => {
-		if (!uuid) return { success: false, error: 'Producto inválido', status: 400 }
-		return wrap(() => apiClient.get(`/market/products/${encodeURIComponent(uuid)}`), 'No se pudo cargar el producto')
+		if (!uuid) return { success: false, error: i18n.t('api.market.productInvalid'), status: 400 }
+		return wrap(() => apiClient.get(`/market/products/${encodeURIComponent(uuid)}`), i18n.t('api.market.productLoadFailed'))
 	},
 
 	/**
@@ -96,7 +97,7 @@ export const marketApi = {
 	getCatalog: async (params = {}) => {
 		const qs = buildQuery(params)
 		const url = qs ? `/market/catalog?${qs}` : '/market/catalog'
-		return wrap(() => apiClient.get(url), 'No se pudo obtener el catálogo')
+		return wrap(() => apiClient.get(url), i18n.t('api.market.catalogLoadFailed'))
 	},
 
 	/**
@@ -107,8 +108,8 @@ export const marketApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` includes `{ products, shops, total }`.
 	 */
 	search: async (q) => {
-		if (!q || String(q).trim().length < 2) return { success: false, error: 'Búsqueda demasiado corta', status: 400 }
-		return wrap(() => apiClient.get(`/shop/search?${buildQuery({ q: String(q).trim() })}`, { silent: true }), 'No se pudo buscar')
+		if (!q || String(q).trim().length < 2) return { success: false, error: i18n.t('api.market.searchTooShort'), status: 400 }
+		return wrap(() => apiClient.get(`/shop/search?${buildQuery({ q: String(q).trim() })}`, { silent: true }), i18n.t('api.market.searchFailed'))
 	},
 
 	/**
@@ -120,8 +121,8 @@ export const marketApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ products }`.
 	 */
 	getProductsBatch: async (uuids) => {
-		if (!Array.isArray(uuids) || uuids.length === 0) return { success: false, error: 'Sin productos que verificar', status: 400 }
-		return wrap(() => apiClient.get(`/shop/products?uuids=${encodeURIComponent(uuids.join(','))}`, { silent: true }), 'No se pudo verificar el carrito')
+		if (!Array.isArray(uuids) || uuids.length === 0) return { success: false, error: i18n.t('api.market.verifyCartEmpty'), status: 400 }
+		return wrap(() => apiClient.get(`/shop/products?uuids=${encodeURIComponent(uuids.join(','))}`, { silent: true }), i18n.t('api.market.verifyCartFailed'))
 	},
 
 	/**
@@ -134,8 +135,8 @@ export const marketApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ order, transaction_uuid }` on 201.
 	 */
 	createOrder: async (body) => {
-		if (!body?.product_uuid || !body?.idempotency_key) { return { success: false, error: 'Faltan datos para la compra', status: 400 } }
-		return wrap(() => apiClient.post('/market/order', body, { silent: true }), 'No pudimos procesar la compra')
+		if (!body?.product_uuid || !body?.idempotency_key) { return { success: false, error: i18n.t('api.common.purchaseMissingData'), status: 400 } }
+		return wrap(() => apiClient.post('/market/order', body, { silent: true }), i18n.t('api.common.checkoutProcessFailed'))
 	},
 
 	/**
@@ -148,6 +149,6 @@ export const marketApi = {
 	getOrders: async (params = {}) => {
 		const qs = buildQuery(params)
 		const url = qs ? `/market/orders?${qs}` : '/market/orders'
-		return wrap(() => apiClient.get(url), 'No se pudieron obtener tus compras')
+		return wrap(() => apiClient.get(url), i18n.t('api.common.purchasesLoadFailed'))
 	},
 }

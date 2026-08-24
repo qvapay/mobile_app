@@ -267,7 +267,7 @@ describe('login', () => {
 		let outcome
 		await act(async () => { outcome = await result.current.login(CREDENTIALS) })
 		expect(outcome).toEqual({ success: false, error: 'boom', details: undefined })
-		expect(result.current.error).toBe('Login failed. Please try again.')
+		expect(result.current.error).toBe('No se pudo iniciar sesión. Inténtalo de nuevo.')
 	})
 })
 
@@ -398,8 +398,8 @@ describe('register', () => {
 		const { result } = await renderHook()
 		let outcome
 		await act(async () => { outcome = await result.current.register({}) })
-		expect(outcome).toEqual({ success: false, error: 'Registration failed. Please try again.' })
-		expect(result.current.error).toBe('Registration failed. Please try again.')
+		expect(outcome).toEqual({ success: false, error: 'No se pudo completar el registro. Inténtalo de nuevo.' })
+		expect(result.current.error).toBe('No se pudo completar el registro. Inténtalo de nuevo.')
 	})
 })
 
@@ -427,7 +427,7 @@ describe('confirmRegistration', () => {
 		let outcome
 		await act(async () => { outcome = await result.current.confirmRegistration({ email: 'a@b.c', pin: '1234' }) })
 		expect(outcome).toEqual({ success: false, error: 'boom', details: {} })
-		expect(result.current.error).toBe('Failed to confirm registration')
+		expect(result.current.error).toBe('No se pudo confirmar el registro')
 	})
 })
 
@@ -456,7 +456,7 @@ describe('requestPin', () => {
 		let outcome
 		await act(async () => { outcome = await result.current.requestPin(CREDENTIALS) })
 		expect(outcome).toEqual({ success: false, error: 'boom' })
-		expect(result.current.error).toBe('Failed to request PIN')
+		expect(result.current.error).toBe('No se pudo solicitar el PIN')
 	})
 })
 
@@ -494,7 +494,7 @@ describe('updateUser', () => {
 		let outcome
 		await act(async () => { outcome = await result.current.updateUser({ balance: 77 }) })
 		expect(outcome).toEqual({ success: false, error: 'disk full' })
-		expect(result.current.error).toBe('Failed to update user data')
+		expect(result.current.error).toBe('No se pudieron actualizar los datos del usuario')
 		expect(result.current.user.balance).toBe(ME.balance)
 	})
 })

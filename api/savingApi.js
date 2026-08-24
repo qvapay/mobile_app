@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 export const savingApi = {
 	/**
@@ -14,9 +15,9 @@ export const savingApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo obtener el resumen de ahorros', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.saving.summaryLoadFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -34,9 +35,9 @@ export const savingApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo actualizar el ajuste de redondeo', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.saving.roundupUpdateFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -54,9 +55,9 @@ export const savingApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo realizar el depósito', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.saving.depositFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -74,9 +75,9 @@ export const savingApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudo realizar el retiro', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.saving.withdrawFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -95,9 +96,9 @@ export const savingApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener las transacciones', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.saving.transactionsLoadFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -116,9 +117,9 @@ export const savingApi = {
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || 'No se pudieron obtener las ganancias', details: errorData, status: error.response.status }
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.saving.earningsLoadFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 }

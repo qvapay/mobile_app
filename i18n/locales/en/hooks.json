@@ -1,1 +1,59 @@
-{}
+{
+	"authState": {
+		"loginFailed": "Couldn't log in",
+		"loginFailedRetry": "Couldn't log in. Please try again.",
+		"passkeyLoginFailed": "Couldn't log in with Passkey",
+		"requestPinFailed": "Couldn't request the PIN",
+		"logoutFailed": "Couldn't log out. Please try again.",
+		"registerFailed": "Couldn't complete the registration. Please try again.",
+		"confirmRegistrationFailed": "Couldn't confirm the registration",
+		"updateUserFailed": "Couldn't update user data"
+	},
+	"pinCountdown": {
+		"requestPin": "Request PIN"
+	},
+	"idempotency": {
+		"safeRetryHint": "You can retry with no risk of duplicating the operation."
+	},
+	"iap": {
+		"unknownError": "Unknown error",
+		"itemUnavailable": "This product isn't available in your region",
+		"connectionError": "Connection error. Check your internet",
+		"serviceUnavailable": "The payment service isn't available",
+		"configurationError": "Configuration error. Contact support",
+		"alreadyOwned": "You already have an active purchase of this product",
+		"paymentPending": "The payment is pending approval",
+		"purchaseFailed": "Couldn't process the purchase"
+	},
+	"appNavigation": {
+		"toasts": {
+			"loginToPay": "Log in to pay the invoice",
+			"loginToSeeOffer": "Log in to see the P2P offer",
+			"loginToSeeStore": "Log in to see the store"
+		}
+	},
+	"deviceContacts": {
+		"alerts": {
+			"permissionTitle": "Contacts permission",
+			"permissionBody": "To sync your contacts, enable the permission in your device settings."
+		},
+		"toasts": {
+			"permissionDenied": "Contacts permission not granted",
+			"noPhoneNumbers": "No phone numbers found in your contacts",
+			"autoAdded_one": "{{count}} contact added automatically",
+			"autoAdded_other": "{{count}} contacts added automatically",
+			"synced": "Contacts synced",
+			"noneOnQvaPay": "None of your contacts use QvaPay yet",
+			"syncErrorTitle": "Sync failed"
+		},
+		"syncFailed": "Couldn't sync contacts"
+	},
+	"transactionSSE": {
+		"updateProcessFailed": "Couldn't process the payment update",
+		"connectionLost": "Connection to the server was lost",
+		"monitorConnectFailed": "Couldn't establish the monitoring connection"
+	},
+	"coins": {
+		"emptyCatalog": "Empty coin catalog"
+	}
+}

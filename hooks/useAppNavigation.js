@@ -22,6 +22,9 @@ import playSound from '../helpers/playSound'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
 
+// i18n (fuera de render: los toasts se disparan en efectos/listeners)
+import i18n from '../i18n'
+
 /**
  * Parses the P2P offer UUID out of a deep link URL.
  * Matches both https paths and the qvapay:// custom scheme.
@@ -69,7 +72,7 @@ const parseStoreLink = (url) => {
  * listeners (toast + optional sound; tap navigates to the right screen).
  *
  * Deep links (/pay/:uuid, /p2p/:p2p_uuid) that arrive while logged out are
- * stashed in `pendingDeepLinkRef` with a Spanish "log in first" toast; once
+ * stashed in `pendingDeepLinkRef` with a localized "log in first" toast; once
  * authenticated the stack is reset to MainStack + the target screen, so back
  * lands on Home instead of exiting.
  *
@@ -173,13 +176,13 @@ export function useAppNavigation(pendingDeepLinkRef) {
 					if (!url) return
 					if (parsePayUuid(url)) {
 						pendingDeepLinkRef.current = url
-						toast.info('Inicia sesión para pagar la factura')
+						toast.info(i18n.t('hooks.appNavigation.toasts.loginToPay'))
 					} else if (parseP2PUuid(url)) {
 						pendingDeepLinkRef.current = url
-						toast.info('Inicia sesión para ver la oferta P2P')
+						toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeOffer'))
 					} else if (parseStoreLink(url)) {
 						pendingDeepLinkRef.current = url
-						toast.info('Inicia sesión para ver la tienda')
+						toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeStore'))
 					}
 				})
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
@@ -193,13 +196,13 @@ export function useAppNavigation(pendingDeepLinkRef) {
 			if (!isAuthenticated && url) {
 				if (parsePayUuid(url)) {
 					pendingDeepLinkRef.current = url
-					toast.info('Inicia sesión para pagar la factura')
+					toast.info(i18n.t('hooks.appNavigation.toasts.loginToPay'))
 				} else if (parseP2PUuid(url)) {
 					pendingDeepLinkRef.current = url
-					toast.info('Inicia sesión para ver la oferta P2P')
+					toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeOffer'))
 				} else if (parseStoreLink(url)) {
 					pendingDeepLinkRef.current = url
-					toast.info('Inicia sesión para ver la tienda')
+					toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeStore'))
 				}
 			}
 		})

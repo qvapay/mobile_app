@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 export const withdrawApi = {
 
@@ -21,12 +22,12 @@ export const withdrawApi = {
 				const errorData = error.response.data
 				return {
 					success: false,
-					error: errorData.error || errorData.message || 'No se pudo enviar el PIN',
+					error: errorData.error || errorData.message || i18n.t('api.withdraw.pinSendFailed'),
 					details: errorData,
 					status: error.response.status
 				}
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -82,13 +83,13 @@ export const withdrawApi = {
 				const errorData = error.response.data
 				return {
 					success: false,
-					error: errorData.error || errorData.message || 'No se pudo completar la extracción',
+					error: errorData.error || errorData.message || i18n.t('api.withdraw.withdrawFailed'),
 					details: errorData,
 					status: error.response.status
 				}
 			}
 
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -107,9 +108,9 @@ export const withdrawApi = {
 			return { success: true, data: response.data, status: response.status }
 		} catch (error) {
 			if (error.response?.data) {
-				return { success: false, error: error.response.data.error || 'Destino Lightning inválido', status: error.response.status }
+				return { success: false, error: error.response.data.error || i18n.t('api.withdraw.lightningInvalid'), status: error.response.status }
 			}
-			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 }

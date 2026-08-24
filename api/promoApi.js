@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 export const promoApi = {
 	/**
@@ -13,6 +14,6 @@ export const promoApi = {
 		try {
 			const response = await apiClient.get('/promo', { silent: true })
 			return { success: true, data: response.data?.data || response.data }
-		} catch (error) { return { success: false, error: error.message || 'No se pudo obtener la promoción', data: null } }
+		} catch (error) { return { success: false, error: error.message || i18n.t('api.promo.promoLoadFailed'), data: null } }
 	},
 }

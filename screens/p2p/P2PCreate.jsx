@@ -21,7 +21,7 @@ import p2pApi from "../../api/p2pApi"
 import { userApi } from "../../api/userApi"
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica la oferta
-import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from "../../helpers/idempotency"
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from "../../helpers/idempotency"
 
 // User context
 import { useAuth } from "../../auth/AuthContext"
@@ -179,7 +179,7 @@ const P2PCreate = ({ navigation }) => {
 				})
 				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: res.data.p2p.uuid })
 			} else if (isNetworkFailure(res)) {
-				toast.error("Error de red", { description: `${res.error || "No se ha podido conectar con el servidor"}. ${SAFE_RETRY_HINT}` })
+				toast.error("Error de red", { description: `${res.error || "No se ha podido conectar con el servidor"}. ${safeRetryHint()}` })
 			} else {
 				const errMsg = res?.error || "No se pudo crear la oferta P2P"
 				toast.error("Error al crear la oferta", { description: errMsg })

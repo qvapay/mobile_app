@@ -5,6 +5,7 @@
  * y rotada solo tras éxito confirmado (2xx parseado). El servidor la
  * namespacea por usuario y endpoint.
  */
+import i18n from '../i18n'
 
 /**
  * Genera una clave de idempotencia. No asumimos `crypto.randomUUID` en
@@ -62,5 +63,11 @@ export async function callWithDuplicateRetry(fn, { delayMs = 5200 } = {}) {
  */
 export function isNetworkFailure(result) { return !!result && !result.success && result.status == null }
 
-/** Copy sugerido para fallos de red en operaciones con clave estable. */
-export const SAFE_RETRY_HINT = 'Puedes reintentar sin riesgo de duplicar la operación.'
+/**
+ * Copy sugerido para fallos de red en operaciones con clave estable.
+ * Función (no const de módulo) para que el texto se resuelva en el idioma
+ * activo en call time y no quede congelado en el del arranque.
+ *
+ * @returns {string} Mensaje localizado.
+ */
+export function safeRetryHint() { return i18n.t('hooks.idempotency.safeRetryHint') }

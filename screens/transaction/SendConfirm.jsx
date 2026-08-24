@@ -38,7 +38,7 @@ import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 import { getActiveSession } from '../../nearby/session'
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el envío
-import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, SAFE_RETRY_HINT } from '../../helpers/idempotency'
+import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
 
 // PIN/OTP entry sub-flow state — one cohesive unit
 function pinFlowReducer(state, action) {
@@ -194,7 +194,7 @@ const SendConfirm = ({ navigation, route }) => {
 				getActiveSession()?.notifyPaymentSent({ toUuid: recipientUser.uuid, amount: send_amount, txUuid: result.data?.uuid })
 				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser, description: description })
 			} else if (isNetworkFailure(result)) {
-				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${SAFE_RETRY_HINT}` })
+				toast.error('Error de red', { description: `${result.error || 'No se ha podido conectar con el servidor'}. ${safeRetryHint()}` })
 			} else {
 				toast.error('Error en la transacción', { description: result.error || 'No se pudo completar la transacción' })
 			}

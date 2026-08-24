@@ -1,11 +1,12 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 /**
  * Wraps a request into the standard `{ success, data, error?, details?, status? }`
  * envelope used by every endpoint in this module.
  *
  * @param {Function} request - Thunk that performs the axios call.
- * @param {string} fallbackError - Spanish message used when the backend provides none.
+ * @param {string} fallbackError - Localized message used when the backend provides none.
  * @returns {Promise<Object>} The response envelope.
  */
 const wrap = async (request, fallbackError) => {
@@ -22,7 +23,7 @@ const wrap = async (request, fallbackError) => {
 				status: error.response.status,
 			}
 		}
-		return { success: false, error: error.message || 'Error de red', status: error.response?.status }
+		return { success: false, error: error.message || i18n.t('api.common.networkErrorShort'), status: error.response?.status }
 	}
 }
 
@@ -63,7 +64,7 @@ export const storeApi = {
 	getVoucherCatalog: async (params = {}) => {
 		const qs = buildQuery(params)
 		const url = qs ? `/store/voucher-catalog?${qs}` : '/store/voucher-catalog'
-		return wrap(() => apiClient.get(url), 'No se pudo obtener el catálogo de tarjetas')
+		return wrap(() => apiClient.get(url), i18n.t('api.store.voucherCatalogLoadFailed'))
 	},
 
 	/**
@@ -75,8 +76,8 @@ export const storeApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the purchase with redemption info
 	 */
 	purchaseVoucher: async (body) => {
-		if (!body?.offer_id || !body?.country || !body?.brand) { return { success: false, error: 'Faltan datos para la compra', status: 400 } }
-		return wrap(() => apiClient.post('/store/voucher/purchase', body), 'No se pudo realizar la compra')
+		if (!body?.offer_id || !body?.country || !body?.brand) { return { success: false, error: i18n.t('api.common.purchaseMissingData'), status: 400 } }
+		return wrap(() => apiClient.post('/store/voucher/purchase', body), i18n.t('api.store.voucherPurchaseFailed'))
 	},
 
 	// ---------------------- TOPUPS (LATAM + CUBA) ----------------------
@@ -94,7 +95,7 @@ export const storeApi = {
 	getTopupCatalog: async (params = {}) => {
 		const qs = buildQuery(params)
 		const url = qs ? `/store/topup-catalog?${qs}` : '/store/topup-catalog'
-		return wrap(() => apiClient.get(url), 'No se pudo obtener el catálogo de recargas')
+		return wrap(() => apiClient.get(url), i18n.t('api.store.topupCatalogLoadFailed'))
 	},
 
 	/**
@@ -106,8 +107,8 @@ export const storeApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
 	purchaseTopup: async (body) => {
-		if (!body?.offer_id || !body?.phone_number || !body?.country) { return { success: false, error: 'Faltan datos para la recarga', status: 400 } }
-		return wrap(() => apiClient.post('/store/topup', body), 'No se pudo realizar la recarga')
+		if (!body?.offer_id || !body?.phone_number || !body?.country) { return { success: false, error: i18n.t('api.store.topupMissingData'), status: 400 } }
+		return wrap(() => apiClient.post('/store/topup', body), i18n.t('api.store.topupPurchaseFailed'))
 	},
 
 	/**
@@ -118,8 +119,8 @@ export const storeApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
 	purchasePhonePackage: async (body) => {
-		if (!body?.phone_package_id || !body?.phone_number) { return { success: false, error: 'Faltan datos para la recarga', status: 400 } }
-		return wrap(() => apiClient.post('/store/phone_package', body), 'No se pudo realizar la recarga')
+		if (!body?.phone_package_id || !body?.phone_number) { return { success: false, error: i18n.t('api.store.topupMissingData'), status: 400 } }
+		return wrap(() => apiClient.post('/store/phone_package', body), i18n.t('api.store.topupPurchaseFailed'))
 	},
 
 	// ---------------------- PURCHASES ----------------------
@@ -129,7 +130,7 @@ export const storeApi = {
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the purchases list
 	 */
-	getMyPurchases: async () => wrap(() => apiClient.get('/store/my'), 'No se pudieron obtener tus compras'),
+	getMyPurchases: async () => wrap(() => apiClient.get('/store/my'), i18n.t('api.common.purchasesLoadFailed')),
 
 	/**
 	 * Gets one purchase with its redemption details (`GET /store/my/{id}`).
@@ -137,5 +138,5 @@ export const storeApi = {
 	 * @param {string|number} id - Purchase identifier from `getMyPurchases`.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the full purchase (codes, PINs, status)
 	 */
-	getPurchaseDetail: async (id) => wrap(() => apiClient.get(`/store/my/${id}`), 'No se pudo obtener el detalle'),
+	getPurchaseDetail: async (id) => wrap(() => apiClient.get(`/store/my/${id}`), i18n.t('api.store.purchaseDetailLoadFailed')),
 }

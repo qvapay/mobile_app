@@ -1,11 +1,12 @@
 import { apiClient } from './client'
+import i18n from '../i18n'
 
 /**
  * Wraps a request into the standard `{ success, data, error?, details?, status? }`
  * envelope used by every endpoint in this module.
  *
  * @param {Function} request - Thunk that performs the axios call.
- * @param {string} fallbackError - Spanish message used when the backend provides none.
+ * @param {string} fallbackError - Localized message used when the backend provides none.
  * @returns {Promise<Object>} The response envelope.
  */
 const wrap = async (request, fallbackError) => {
@@ -22,7 +23,7 @@ const wrap = async (request, fallbackError) => {
 				status: error.response.status,
 			}
 		}
-		return { success: false, error: error.message || 'Error de red', status: error.response?.status }
+		return { success: false, error: error.message || i18n.t('api.common.networkErrorShort'), status: error.response?.status }
 	}
 }
 
@@ -47,8 +48,8 @@ export const shopApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.product`
 	 */
 	parseProductUrl: async (url) => {
-		if (!url) return { success: false, error: 'Pega el enlace del producto', status: 400 }
-		return wrap(() => apiClient.post('/shop/assisted-shopping/product', { url }), 'No pudimos obtener los datos del producto')
+		if (!url) return { success: false, error: i18n.t('api.shop.productLinkMissing'), status: 400 }
+		return wrap(() => apiClient.post('/shop/assisted-shopping/product', { url }), i18n.t('api.shop.productDataLoadFailed'))
 	},
 
 	/**
@@ -57,7 +58,7 @@ export const shopApi = {
 	 * @param {string} uuid - Product uuid.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.product`
 	 */
-	getProduct: async (uuid) => wrap(() => apiClient.get(`/shop/assisted-shopping/product/${uuid}`), 'No se pudo obtener el producto'),
+	getProduct: async (uuid) => wrap(() => apiClient.get(`/shop/assisted-shopping/product/${uuid}`), i18n.t('api.shop.productLoadFailed')),
 
 	/**
 	 * Recently searched products across all users, purchasable providers only
@@ -65,7 +66,7 @@ export const shopApi = {
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.products`
 	 */
-	getRecentProducts: async () => wrap(() => apiClient.get('/shop/assisted-shopping/recent', { silent: true }), 'No se pudieron obtener los productos recientes'),
+	getRecentProducts: async () => wrap(() => apiClient.get('/shop/assisted-shopping/recent', { silent: true }), i18n.t('api.shop.recentProductsLoadFailed')),
 
 	// ---------------------- CART ----------------------
 
@@ -75,7 +76,7 @@ export const shopApi = {
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.cart`
 	 */
-	getCart: async () => wrap(() => apiClient.get('/shop/assisted-shopping/cart'), 'No se pudo obtener el carrito'),
+	getCart: async () => wrap(() => apiClient.get('/shop/assisted-shopping/cart'), i18n.t('api.shop.cartLoadFailed')),
 
 	/**
 	 * Adds a product to the open cart (`POST /shop/assisted-shopping/cart`).
@@ -84,8 +85,8 @@ export const shopApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.cart` updated
 	 */
 	addToCart: async (body) => {
-		if (!body?.product_uuid) return { success: false, error: 'Faltan datos del producto', status: 400 }
-		return wrap(() => apiClient.post('/shop/assisted-shopping/cart', body), 'No se pudo agregar al carrito')
+		if (!body?.product_uuid) return { success: false, error: i18n.t('api.shop.productMissingData'), status: 400 }
+		return wrap(() => apiClient.post('/shop/assisted-shopping/cart', body), i18n.t('api.shop.cartAddFailed'))
 	},
 
 	/**
@@ -96,7 +97,7 @@ export const shopApi = {
 	 * @param {string} productUuid - Product uuid to remove.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.ok`
 	 */
-	removeFromCart: async (productUuid) => wrap(() => apiClient.delete(`/shop/assisted-shopping/cart/product/${productUuid}`), 'No se pudo eliminar el producto'),
+	removeFromCart: async (productUuid) => wrap(() => apiClient.delete(`/shop/assisted-shopping/cart/product/${productUuid}`), i18n.t('api.shop.cartRemoveFailed')),
 
 	// ---------------------- CHECKOUT ----------------------
 
@@ -110,9 +111,9 @@ export const shopApi = {
 	 */
 	getQuote: async (body) => {
 		if (!body?.state && !body?.shipping_address_id) {
-			return { success: false, error: 'Indica un estado o una dirección de envío', status: 400 }
+			return { success: false, error: i18n.t('api.shop.quoteMissingDestination'), status: 400 }
 		}
-		return wrap(() => apiClient.post('/shop/assisted-shopping/checkout/quote', body, { silent: true }), 'No se pudo calcular el total')
+		return wrap(() => apiClient.post('/shop/assisted-shopping/checkout/quote', body, { silent: true }), i18n.t('api.shop.quoteFailed'))
 	},
 
 	/**
@@ -124,8 +125,8 @@ export const shopApi = {
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` = `{ ok, cart_id, transaction_uuid, total, subtotal, tax, shipping_address }`
 	 */
 	checkout: async (body) => {
-		if (!body?.shipping_address_id && !body?.new_address) { return { success: false, error: 'Selecciona o crea una dirección de envío', status: 400 } }
-		return wrap(() => apiClient.post('/shop/assisted-shopping/checkout', body), 'No pudimos procesar la compra')
+		if (!body?.shipping_address_id && !body?.new_address) { return { success: false, error: i18n.t('api.shop.checkoutMissingAddress'), status: 400 } }
+		return wrap(() => apiClient.post('/shop/assisted-shopping/checkout', body), i18n.t('api.common.checkoutProcessFailed'))
 	},
 
 	// ---------------------- ORDERS ----------------------
@@ -137,7 +138,7 @@ export const shopApi = {
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.orders`
 	 */
-	getOrders: async () => wrap(() => apiClient.get('/shop/assisted-shopping/orders'), 'No se pudieron obtener tus pedidos'),
+	getOrders: async () => wrap(() => apiClient.get('/shop/assisted-shopping/orders'), i18n.t('api.shop.ordersLoadFailed')),
 
 	/**
 	 * Gets one order with items, totals, address and tracking
@@ -146,7 +147,7 @@ export const shopApi = {
 	 * @param {string|number} id - Cart/order id from `getOrders`.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.order`
 	 */
-	getOrder: async (id) => wrap(() => apiClient.get(`/shop/assisted-shopping/orders/${id}`), 'No se pudo obtener el pedido'),
+	getOrder: async (id) => wrap(() => apiClient.get(`/shop/assisted-shopping/orders/${id}`), i18n.t('api.shop.orderLoadFailed')),
 
 	// ---------------------- SHIPPING ADDRESSES ----------------------
 
@@ -155,7 +156,7 @@ export const shopApi = {
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.addresses`
 	 */
-	getShippingAddresses: async () => wrap(() => apiClient.get('/user/shipping-addresses'), 'No se pudieron obtener tus direcciones'),
+	getShippingAddresses: async () => wrap(() => apiClient.get('/user/shipping-addresses'), i18n.t('api.shop.addressesLoadFailed')),
 
 	/**
 	 * Creates a US shipping address (`POST /user/shipping-addresses`).
@@ -163,7 +164,7 @@ export const shopApi = {
 	 * @param {{ recipient_name: string, line1: string, city: string, state: string, postal_code: string, label?: string, phone?: string, line2?: string, is_default?: boolean }} body - Address payload.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.address`
 	 */
-	createShippingAddress: async (body) => wrap(() => apiClient.post('/user/shipping-addresses', body), 'No se pudo guardar la dirección'),
+	createShippingAddress: async (body) => wrap(() => apiClient.post('/user/shipping-addresses', body), i18n.t('api.shop.addressSaveFailed')),
 
 	/**
 	 * Autocompletes a partial US address (`POST /user/shipping-addresses/autocomplete`).
@@ -175,7 +176,7 @@ export const shopApi = {
 	 * @param {{ q: string, session: string }} body - Partial address (min 3 chars) + session token.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.suggestions` = `[{ place_id, text }]`
 	 */
-	autocompleteAddress: async (body) => wrap(() => apiClient.post('/user/shipping-addresses/autocomplete', body, { silent: true }), 'No se pudo buscar la dirección'),
+	autocompleteAddress: async (body) => wrap(() => apiClient.post('/user/shipping-addresses/autocomplete', body, { silent: true }), i18n.t('api.shop.addressSearchFailed')),
 
 	/**
 	 * Resolves a Places suggestion into structured address fields
@@ -184,7 +185,7 @@ export const shopApi = {
 	 * @param {{ place_id: string, session: string }} body - Suggestion id + the same session token used to autocomplete.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` = `{ address: { line1, city, state, postal_code, country }, formatted }`
 	 */
-	getPlaceDetails: async (body) => wrap(() => apiClient.post('/user/shipping-addresses/place-details', body, { silent: true }), 'No se pudo obtener la dirección'),
+	getPlaceDetails: async (body) => wrap(() => apiClient.post('/user/shipping-addresses/place-details', body, { silent: true }), i18n.t('api.shop.addressLoadFailed')),
 
 	/**
 	 * Deletes (soft) a saved shipping address (`DELETE /user/shipping-addresses/{uuid}`).
@@ -192,5 +193,5 @@ export const shopApi = {
 	 * @param {string} uuid - Address uuid.
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data.ok`
 	 */
-	deleteShippingAddress: async (uuid) => wrap(() => apiClient.delete(`/user/shipping-addresses/${uuid}`), 'No se pudo eliminar la dirección'),
+	deleteShippingAddress: async (uuid) => wrap(() => apiClient.delete(`/user/shipping-addresses/${uuid}`), i18n.t('api.shop.addressDeleteFailed')),
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import EventSource from 'react-native-sse'
 import config from '../config'
 import { getAuthToken } from '../api/client'
+import i18n from '../i18n'
 
 // Once one of these arrives the transaction can't change anymore — close the stream for good
 const TERMINAL_STATUSES = ['paid', 'expired', 'failed']
@@ -17,7 +18,7 @@ const RETRY_LIMIT = 10
  * then each change as a plain `message` whose data is the raw status string.
  * Terminal statuses (paid/expired/failed) close the stream. Reconnection is
  * left to react-native-sse's built-in retry; after RETRY_LIMIT consecutive
- * errors the stream is closed and `error` is set (Spanish, user-facing).
+ * errors the stream is closed and `error` is set (localized, user-facing).
  *
  * @param {string|null} transactionUuid - Transaction UUID to monitor. Pass null to disable.
  * @param {function} [onStatusChange] - Callback invoked with each new status string.
@@ -74,14 +75,14 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 					es.close()
 					setIsConnected(false)
 				}
-			} catch (err) { setError('Error al procesar actualización de pago') }
+			} catch (err) { setError(i18n.t('hooks.transactionSSE.updateProcessFailed')) }
 		}
 
 		const onError = () => {
 			retriesRef.current += 1
 			setIsConnected(false)
 			if (retriesRef.current >= RETRY_LIMIT) {
-				setError('Se perdió la conexión con el servidor')
+				setError(i18n.t('hooks.transactionSSE.connectionLost'))
 				es.close()
 			}
 		}
@@ -108,7 +109,7 @@ const useTransactionSSE = (transactionUuid, onStatusChange) => {
 
 			} catch (err) {
 				if (cancelled) return
-				setError('No se pudo establecer conexión de monitoreo')
+				setError(i18n.t('hooks.transactionSSE.monitorConnectFailed'))
 				setIsConnected(false)
 			}
 		}
