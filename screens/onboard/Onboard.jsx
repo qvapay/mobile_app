@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect } from 'react'
 import { Text, View, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Animated, {
@@ -170,29 +170,33 @@ const Onboard = ({ navigation }) => {
 	const isLastStep = currentStep === onboard_steps.length - 1
 	const currentStepData = onboard_steps[currentStep]
 
+	// Dots + Saltar en el header nativo (mismo patrón que Register y
+	// EnterpriseRegister). native-stack INVOCA headerTitle-como-función, así
+	// que QPStepDots conserva identidad entre setOptions y la píldora anima
+	// de paso a paso sin remontarse. El Saltar desaparece en el último paso.
+	useLayoutEffect(() => {
+		navigation.setOptions({
+			headerTitle: () => <QPStepDots count={onboard_steps.length} activeIndex={currentStep} />,
+			headerRight: () => isLastStep ? null : (
+				<Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(200)}>
+					<QPPressable
+						variant="opacity"
+						onPress={handleCompleteOnboarding}
+						hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+						<Text style={{ color: theme.colors.primary, fontSize: 13, fontFamily: theme.typography.fontFamily.medium, opacity: 0.7 }}>
+							Saltar
+						</Text>
+					</QPPressable>
+				</Animated.View>
+			),
+		})
+		// handleCompleteOnboarding se recrea en cada render — la dependencia real
+		// es el paso activo y el tema; incluirla forzaría setOptions por render
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [navigation, currentStep, isLastStep, theme])
+
 	return (
-		<SafeAreaView style={[containerStyles.subContainer, { flex: 1, justifyContent: 'space-between', alignItems: 'center' }]}>
-
-			{/* Step Indicator + Skip */}
-			<View style={{ width: '100%', minHeight: 32, justifyContent: 'center' }}>
-				<QPStepDots count={onboard_steps.length} activeIndex={currentStep} />
-
-				{!isLastStep && (
-					<Animated.View
-						entering={FadeIn.duration(250)}
-						exiting={FadeOut.duration(200)}
-						style={{ position: 'absolute', right: 0 }}>
-						<QPPressable
-							variant="opacity"
-							onPress={handleCompleteOnboarding}
-							hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-							<Text style={{ color: theme.colors.primary, fontSize: 13, fontFamily: theme.typography.fontFamily.medium, opacity: 0.7 }}>
-								Saltar
-							</Text>
-						</QPPressable>
-					</Animated.View>
-				)}
-			</View>
+		<SafeAreaView edges={['bottom', 'left', 'right']} style={[containerStyles.subContainer, { flex: 1, justifyContent: 'space-between', alignItems: 'center' }]}>
 
 			{/* Main Content — cada step se monta absoluto para que entrada y salida
                 se solapen sin saltos de layout */}

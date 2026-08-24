@@ -43,7 +43,7 @@ describe('filterSettings', () => {
 		byKeyword('kyc', 'Verificación de identidad')
 		byKeyword('pyme', 'Empresa')
 		byKeyword('pin', 'Bloqueo de app')
-		byKeyword('teléfono', 'Verificar Celular')
+		byKeyword('teléfono', 'Verificar celular')
 	})
 
 	test('drops groups left without matches and keeps group titles', () => {

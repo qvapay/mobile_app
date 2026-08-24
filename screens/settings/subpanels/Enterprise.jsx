@@ -22,9 +22,11 @@ import { getShortDateTime } from '../../../helpers'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// El registro empresarial (wizard con PDF de estatutos + captcha) vive en la web —
-// misma decisión que el KYC de Didit: la app muestra el estado y abre el navegador
-const ENTERPRISE_URL = 'https://www.qvapay.com/enterprise'
+// Routes
+import { ROUTES } from '../../../routes'
+
+// El registro es NATIVO (wizard EnterpriseRegister → POST /user/company); la
+// gestión de tiendas del vendedor sigue siendo web-only y abre el navegador
 const SELLER_URL = 'https://www.qvapay.com/seller'
 
 // Mismos textos de estado que /settings/company de la web
@@ -49,15 +51,16 @@ const STATUS_EXPLAINER = {
  * Ajustes → Empresa de la web). Lee `GET /user/company` vía React Query
  * (`['user','company']`) y muestra:
  *
- * - Sin empresas: beneficios + CTA que abre /enterprise en el navegador.
+ * - Sin empresas: beneficios + CTA al wizard nativo (EnterpriseRegister).
  * - Con empresas: tarjeta por solicitud con badge de estado (pending/reviewing/
  *   contacted/approved/rejected), datos enviados y fecha; las rechazadas
- *   ofrecen re-aplicar y las aprobadas enlazan a la gestión de tiendas (web).
+ *   ofrecen re-aplicar (mismo wizard) y las aprobadas enlazan a la gestión de
+ *   tiendas del vendedor (web).
  *
- * Al volver del navegador (AppState → active) se refetchea el estado —
- * el mismo patrón de re-check que el subpanel de KYC.
+ * El wizard invalida `['user','company']` al enviar; el re-check por AppState
+ * cubre además cambios hechos en la web del vendedor u otro dispositivo.
  */
-const Enterprise = () => {
+const Enterprise = ({ navigation }) => {
 
 	// Theme
 	const { theme } = useTheme()
@@ -146,7 +149,7 @@ const Enterprise = () => {
 				<View style={containerStyles.bottomButtonContainer}>
 					<QPButton
 						title="Registrar mi empresa"
-						onPress={() => openInBrowser(ENTERPRISE_URL)}
+						onPress={() => navigation.navigate(ROUTES.ENTERPRISE_REGISTER)}
 						textStyle={{ color: theme.colors.almostWhite }}
 					/>
 				</View>
@@ -159,8 +162,9 @@ const Enterprise = () => {
 	return (
 		<ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ padding: 20, gap: 14 }}>
 
+			<Text style={textStyles.h1}>Empresa</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-				Gestiona el registro empresarial de tu cuenta y su estado de aprobación.
+				Gestiona el registro empresarial de tu cuenta y su estado de aprobación
 			</Text>
 
 			{companies.map((company) => {
@@ -196,7 +200,7 @@ const Enterprise = () => {
 						{company.status === 'rejected' && (
 							<QPButton
 								title="Enviar nueva solicitud"
-								onPress={() => openInBrowser(ENTERPRISE_URL)}
+								onPress={() => navigation.navigate(ROUTES.ENTERPRISE_REGISTER)}
 								style={{ marginTop: 14 }}
 								textStyle={{ color: theme.colors.almostWhite }}
 							/>

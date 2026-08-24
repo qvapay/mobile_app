@@ -221,7 +221,7 @@ const PaymentMethods = ({ navigation }) => {
 		<View style={containerStyles.subContainer}>
 			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-				<Text style={textStyles.h1}>Métodos de Pago</Text>
+				<Text style={textStyles.h1}>Métodos de pago</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Administra tus cuentas y métodos usados en P2P</Text>
 
 				{error && (

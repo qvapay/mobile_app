@@ -149,7 +149,9 @@ type ScreenConfig = {
 // registered inline in AppNavigator.
 const STATIC_SCREENS: ScreenConfig[] = [
 	// Onboard + Welcome + Main Stack
-	{ name: ROUTES.ONBOARD_SCREEN, component: Onboard },
+	// Onboard lleva header nativo para hospedar los QPStepDots como título
+	// (los dots + Saltar los inyecta la pantalla vía setOptions)
+	{ name: ROUTES.ONBOARD_SCREEN, component: Onboard, options: getHeaderOptions('') },
 	{ name: ROUTES.WELCOME_SCREEN, component: WelcomeScreen, options: { animation: 'none' } },
 	{ name: ROUTES.MAIN_STACK, component: MainStack },
 

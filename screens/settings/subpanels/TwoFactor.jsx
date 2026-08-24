@@ -202,7 +202,7 @@ const TwoFactor = () => {
 					</View>
 
 					<Text style={[textStyles.h1, { color: theme.colors.successText, marginTop: 20 }]}>
-						2FA Activo
+						2FA activo
 					</Text>
 
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
@@ -256,7 +256,7 @@ const TwoFactor = () => {
 			}
 		>
 
-			<Text style={textStyles.h1}>Autenticación de Dos Factores</Text>
+			<Text style={textStyles.h1}>Autenticación de dos factores</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
 				Añade una capa extra de seguridad a tu cuenta
 			</Text>

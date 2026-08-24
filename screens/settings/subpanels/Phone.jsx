@@ -235,7 +235,7 @@ const Phone = () => {
 				}
 			>
 
-				<Text style={textStyles.h1}>Verificar Teléfono</Text>
+				<Text style={textStyles.h1}>Verificar celular</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ingresa tu número para verificarlo vía Telegram o WhatsApp</Text>
 
 				{/* Status icon */}

@@ -8,7 +8,7 @@ const PhoneVerifiedView = ({ userPhone, onRemove, isLoading, theme, textStyles, 
 	<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 		<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-			<Text style={textStyles.h1}>Teléfono</Text>
+			<Text style={textStyles.h1}>Celular</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
 				Tu número está verificado
 			</Text>

@@ -44,7 +44,7 @@ const settings = {
                 notifications: 0,
             },
             {
-                title: 'Verificar Celular',
+                title: 'Verificar celular',
                 screen: ROUTES.PHONE,
                 icon: 'mobile-screen-button',
                 color: '#22C55E',

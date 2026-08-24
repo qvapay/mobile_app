@@ -89,6 +89,7 @@ export const ROUTES = {
 	PASSKEYS: "Passkeys",
 	ROUNDUP: "Roundup",
 	ENTERPRISE: "Enterprise",
+	ENTERPRISE_REGISTER: "EnterpriseRegister",
 
 	// Invest Screens
 	SAVINGS_SCREEN: "Savings",

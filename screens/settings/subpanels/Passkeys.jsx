@@ -121,7 +121,7 @@ const Passkeys = () => {
                 {/* Registered passkeys */}
                 {passkeys.length > 0 && (
                     <View style={{ marginTop: 16 }}>
-                        <Text style={[textStyles.h4, { marginBottom: 12, color: theme.colors.secondaryText }]}>TUS PASSKEYS</Text>
+                        <Text style={[textStyles.h4, { marginBottom: 12, color: theme.colors.secondaryText }]}>Tus passkeys</Text>
                         {passkeys.map((pk) => (
                             <View key={pk.id} style={{ backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
                                 <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' }}>

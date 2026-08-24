@@ -185,6 +185,40 @@ export const userApi = {
 	},
 
 	/**
+	 * Submits an enterprise registration from the app (`POST /user/company`,
+	 * multipart). Same fields as the web /enterprise wizard; the authenticated
+	 * user becomes the company owner. `file` is the statutes PDF from the
+	 * document picker (`{ uri, name }`).
+	 *
+	 * @param {Object} params
+	 * @param {Object<string, string>} params.fields - Flat form fields (see enterpriseForm.buildRegisterFields).
+	 * @param {{uri: string, name?: string}} params.file - Statutes PDF.
+	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — 409 = solicitud activa/empresa aprobada duplicada
+	 */
+	registerCompany: async ({ fields, file }) => {
+		try {
+			const formData = new FormData()
+			Object.entries(fields).forEach(([key, value]) => {
+				if (value !== undefined && value !== null && value !== '') { formData.append(key, value) }
+			})
+			formData.append('statutes', {
+				uri: file.uri,
+				name: file.name || 'estatutos.pdf',
+				type: 'application/pdf'
+			})
+			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
+			const response = await apiClient.post('/user/company', formData, config)
+			return { success: true, data: response.data, status: response.status }
+		} catch (error) {
+			if (error.response?.data) {
+				const errorData = error.response.data
+				return { success: false, error: errorData.error || errorData.message || 'No se pudo enviar la solicitud', status: error.response.status }
+			}
+			return { success: false, error: error.message || 'Ha ocurrido un error de red', status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Gets referral data — invited users list and earnings (`GET /user/referrals`).
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
