@@ -20,6 +20,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { storeApi } from '../../api/storeApi'
 import { useVoucherBrandDetailQuery } from './storeQueries'
 import { tinyfiNumber } from '../../helpers'
+import { sanitizeAmountInput } from '../../helpers/amountInput'
 import useSatsDiscount from './useSatsDiscount'
 
 const cleanText = (text) => {
@@ -290,7 +291,7 @@ const GiftCardBrand = ({ navigation, route }) => {
 								</Text>
 								<TextInput
 									value={rangeAmount}
-									onChangeText={(v) => dispatchPurchase({ type: 'set', field: 'rangeAmount', value: v })}
+									onChangeText={(v) => dispatchPurchase({ type: 'set', field: 'rangeAmount', value: sanitizeAmountInput(v) })}
 									keyboardType="decimal-pad"
 									placeholder={`${selectedOffer.price_min}`}
 									placeholderTextColor={theme.colors.placeholder}

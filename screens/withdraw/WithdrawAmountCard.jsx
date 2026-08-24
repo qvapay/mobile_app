@@ -2,6 +2,7 @@ import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
 
 import QPCoin from '../../ui/particles/QPCoin'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 const formatBalance = (val) => {
 	if (!val) return '0.00'
@@ -30,7 +31,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 				<View style={{ flex: 1 }}>
 					<TextInput
 						value={amountQUSD}
-						onChangeText={onChangeQUSD}
+						onChangeText={(v) => onChangeQUSD(sanitizeAmountInput(v))}
 						placeholder="0.00"
 						placeholderTextColor={theme.colors.placeholder}
 						keyboardType="numeric"
@@ -61,7 +62,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 				<View style={{ flex: 1 }}>
 					<TextInput
 						value={amountCoin}
-						onChangeText={onChangeAmountCoin}
+						onChangeText={(v) => onChangeAmountCoin(sanitizeAmountInput(v, 8))}
 						placeholder="0.00"
 						placeholderTextColor={theme.colors.placeholder}
 						keyboardType="numeric"

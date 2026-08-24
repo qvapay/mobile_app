@@ -9,12 +9,13 @@ import { View, Text, StyleSheet } from 'react-native'
  * @param {string} props.formattedAmount - Pre-formatted amount; may start with "-".
  * @param {number} props.fontSize - Digit size (the symbol stays at xxxl).
  * @param {object} props.theme - Theme object passed in explicitly (no context read).
+ * @param {object} [props.style] - Container style override (e.g. height/margins outside the keypad).
  */
-const QPBalance = ({ formattedAmount, fontSize, theme }) => {
+const QPBalance = ({ formattedAmount, fontSize, theme, style }) => {
     const isNegative = String(formattedAmount).startsWith('-')
     const displayAmount = isNegative ? String(formattedAmount).slice(1) : formattedAmount
     return (
-        <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }]}>
+        <View style={[styles.amountContainer, { alignItems: 'center', justifyContent: 'center', alignContent: 'center' }, style]}>
             <Text style={[styles.currencySymbol, { color: isNegative ? theme.colors.danger : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold }]}>{isNegative ? '-$' : '$'}</Text>
             {/* Red de seguridad de ancho: si aún con el shrink por longitud del
                 caller el número no cabe (pantallas estrechas), se auto-escala */}

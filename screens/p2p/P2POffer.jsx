@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigation } from "@react-navigation/native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { View, Text, Platform, ScrollView, Keyboard, useWindowDimensions } from "react-native"
+import { View, Text, ScrollView, useWindowDimensions } from "react-native"
 
 // Theme
 import { useTheme } from "../../theme/ThemeContext"
@@ -28,6 +28,7 @@ import { useAuth } from "../../auth/AuthContext"
 import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
 // Hooks + sections
+import { useKeyboardHeight } from "../../hooks/useKeyboardHeight"
 import useP2PChat from "./useP2PChat"
 import useP2PChatSSE from "./useP2PChatSSE"
 import useP2POfferDetail from "./useP2POfferDetail"
@@ -97,15 +98,7 @@ const P2POffer = ({ route }) => {
 	} = offer
 
 	// Keyboard height tracking
-	const [keyboardHeight, setKeyboardHeight] = useState(0)
-	useEffect(() => {
-		const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
-		const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-		const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height))
-		const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0))
-		return () => { showSub.remove(); hideSub.remove() }
-	}, [])
-	const keyboardVisible = keyboardHeight > 0
+	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
 	// Chat como hoja aparte (patrón Binance/OKX): burbuja flotante + badge de no
 	// leídos. El baseline de "visto" se fija con el histórico inicial (la carga

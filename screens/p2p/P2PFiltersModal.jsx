@@ -6,6 +6,7 @@ import QPInput from "../../ui/particles/QPInput"
 import QPSplitButton from "../../ui/particles/QPSplitButton"
 
 import { createContainerStyles } from "../../theme/themeUtils"
+import { sanitizeAmountInput } from "../../helpers/amountInput"
 
 // Modal de filtros: mis ofertas, moneda, "quiero operar $X", rango de tasa y VIP.
 // El lado del mercado (Comprar/Vender) NO está aquí: vive en el switch del TopBar.
@@ -69,7 +70,7 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Quiero operar</Text>
 							<View style={{ width: 160 }}>
-								<QPInput value={opAmount} onChangeText={(v) => setFilter("opAmount", v)} placeholder="$ monto" keyboardType="numeric" />
+								<QPInput value={opAmount} onChangeText={(v) => setFilter("opAmount", sanitizeAmountInput(v))} placeholder="$ monto" keyboardType="numeric" />
 							</View>
 						</View>
 
@@ -77,13 +78,13 @@ const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicke
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Tasa mín</Text>
 							<View style={{ width: 160 }}>
-								<QPInput value={ratioMin} onChangeText={(v) => setFilter("ratioMin", v)} placeholder="0" keyboardType="numeric" />
+								<QPInput value={ratioMin} onChangeText={(v) => setFilter("ratioMin", sanitizeAmountInput(v, 4))} placeholder="0" keyboardType="numeric" />
 							</View>
 						</View>
 						<View style={styles.rowBetween}>
 							<Text style={textStyles.h6}>Tasa máx</Text>
 							<View style={{ width: 160 }}>
-								<QPInput value={ratioMax} onChangeText={(v) => setFilter("ratioMax", v)} placeholder="0" keyboardType="numeric" />
+								<QPInput value={ratioMax} onChangeText={(v) => setFilter("ratioMax", sanitizeAmountInput(v, 4))} placeholder="0" keyboardType="numeric" />
 							</View>
 						</View>
 

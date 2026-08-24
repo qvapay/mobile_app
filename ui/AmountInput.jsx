@@ -1,5 +1,6 @@
 import { View, Text, TextInput, StyleSheet } from 'react-native'
 import QPPressable from './particles/QPPressable'
+import { sanitizeAmountInput } from '../helpers/amountInput'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -67,7 +68,7 @@ const AmountInput = ({
 				<View style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 					<TextInput
 						value={amount}
-						onChangeText={onAmountChange}
+						onChangeText={(v) => onAmountChange(sanitizeAmountInput(v))}
 						placeholder="0.00"
 						placeholderTextColor={theme.colors.placeholder}
 						keyboardType="numeric"

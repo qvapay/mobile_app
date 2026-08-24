@@ -3,6 +3,7 @@ import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import QPPhoneInput from '../../ui/QPPhoneInput'
+import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 const SUB_TYPE_LABEL = {
 	MOBILE: 'Saldo',
@@ -205,7 +206,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 						</Text>
 						<TextInput
 							value={rangeAmount}
-							onChangeText={onChangeRange}
+							onChangeText={(v) => onChangeRange(sanitizeAmountInput(v))}
 							keyboardType="decimal-pad"
 							placeholder={`${selectedOffer.price_min}`}
 							placeholderTextColor={theme.colors.placeholder}

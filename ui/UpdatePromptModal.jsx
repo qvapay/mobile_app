@@ -1,4 +1,4 @@
-import { Modal, View, Text, Pressable, StyleSheet, Platform, Dimensions } from 'react-native'
+import { Modal, View, Text, Pressable, StyleSheet, Platform, useWindowDimensions } from 'react-native'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -12,8 +12,6 @@ import QPButton from './particles/QPButton'
 
 // Helper
 import { openStore, markPromptShown } from '../helpers/versionCheck'
-
-const { height: windowHeight } = Dimensions.get('window')
 
 /**
  * "New version available" modal driven by `helpers/versionCheck` from
@@ -34,6 +32,7 @@ const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, o
 
 	const { theme, styles: themeStyles } = useTheme()
 	const textStyles = createTextStyles(theme)
+	const { height: windowHeight } = useWindowDimensions()
 
 	const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play'
 
