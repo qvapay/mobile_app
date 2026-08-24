@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Button } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -10,11 +11,13 @@ import { ROUTES } from '../../routes'
  */
 const Recover2FAScreen = ({ navigation }) => {
 
+    const { t } = useTranslation()
+
     return (
         <View style={styles.container}>
-            <Text>Recover 2FA Screen</Text>
+            <Text>{t('auth.recover2fa.title')}</Text>
 
-            <Button title="Go to Login" onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
+            <Button title={t('auth.recover2fa.goToLogin')} onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)} />
         </View>
     )
 }
