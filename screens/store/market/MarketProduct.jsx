@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
@@ -130,6 +131,7 @@ const pickerStyles = StyleSheet.create({
 const MarketProduct = ({ navigation, route }) => {
 
 	const { uuid } = route.params || {}
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -155,13 +157,13 @@ const MarketProduct = ({ navigation, route }) => {
 				setProduct(res.data?.product || null)
 				setShop(res.data?.shop || null)
 			} else {
-				toast.error('Producto', { description: res.error })
+				toast.error(t('market.product.toasts.loadErrorTitle'), { description: res.error })
 				navigation.goBack()
 			}
 			setLoading(false)
 		})()
 		return () => { cancelled = true }
-	}, [uuid, navigation])
+	}, [uuid, navigation, t])
 
 	const hasVariants = (product?.variants?.length || 0) > 0 && (product?.option_axes?.length || 0) > 0
 	const variantReady = !hasVariants || !!variant
@@ -211,17 +213,17 @@ const MarketProduct = ({ navigation, route }) => {
 
 	const addToCart = useCallback((silently = false) => {
 		if (!variantReady) {
-			toast.error(`Elige ${product.option_axes.join(' y ')}`)
+			toast.error(t('market.product.chooseAxes', { axes: product.option_axes.join(t('market.product.axesJoiner')) }))
 			return false
 		}
 		const accepted = add(buildCartItem())
 		if (!accepted) {
-			toast.error('Carrito lleno (30 productos máximo)')
+			toast.error(t('market.product.toasts.cartFull'))
 			return false
 		}
-		if (!silently) toast.success('Agregado al carrito', { description: product.title })
+		if (!silently) toast.success(t('market.product.toasts.added'), { description: product.title })
 		return true
-	}, [variantReady, product, add, buildCartItem])
+	}, [variantReady, product, add, buildCartItem, t])
 
 	const buyNow = useCallback(() => {
 		if (addToCart(true)) navigation.navigate(ROUTES.MARKET_CART)
@@ -278,22 +280,22 @@ const MarketProduct = ({ navigation, route }) => {
 				{/* Título + precio */}
 				<View style={{ marginTop: 14 }}>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-						{KIND_LABELS[product.kind] || product.kind}
+						{KIND_LABELS[product.kind] ? t(KIND_LABELS[product.kind]) : product.kind}
 					</Text>
 					<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 4 }]}>
 						{product.title}
 					</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.primary, fontWeight: '600', marginTop: 6 }]}>
-						{!variantReady ? `desde ${priceLabel}` : priceLabel}
+						{!variantReady ? t('market.product.from', { price: priceLabel }) : priceLabel}
 					</Text>
 					{stock !== null && stock !== undefined && stock > 0 && (
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 4 }]}>
-							{stock} {stock === 1 ? 'disponible' : 'disponibles'}
+							{t('market.product.available', { count: stock })}
 						</Text>
 					)}
 					{soldOut && (
 						<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 4, fontWeight: '600' }]}>
-							Agotado
+							{t('market.common.soldOut')}
 						</Text>
 					)}
 				</View>
@@ -315,7 +317,7 @@ const MarketProduct = ({ navigation, route }) => {
 				{shipping && (
 					<View style={[styles.infoCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-							Envíos a
+							{t('market.product.shipsTo')}
 						</Text>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 4 }]}>
 							{shipping}
@@ -338,7 +340,7 @@ const MarketProduct = ({ navigation, route }) => {
 					>
 						<OperatorAvatar brand={shop.name} logoUrl={shop.logo} size="md" featured={!!shop.featured} />
 						<View style={{ flex: 1, marginLeft: 10 }}>
-							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>Vendido por</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{t('market.common.soldBy')}</Text>
 							<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]} numberOfLines={1}>
 								{shop.name}
 							</Text>
@@ -356,7 +358,7 @@ const MarketProduct = ({ navigation, route }) => {
 				<View style={{ flex: 1 }}>
 					{/* Variante outline primary (QPButton solo trae outline para danger) */}
 					<QPButton
-						title={soldOut ? 'Agotado' : variantReady ? 'Al carrito' : `Elige ${product.option_axes?.join(' y ') || 'una opción'}`}
+						title={soldOut ? t('market.common.soldOut') : variantReady ? t('market.product.addToCart') : t('market.product.chooseAxes', { axes: product.option_axes?.join(t('market.product.axesJoiner')) || t('market.product.oneOption') })}
 						onPress={() => addToCart(false)}
 						disabled={soldOut || !variantReady}
 						style={{ backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.primary }}
@@ -365,7 +367,7 @@ const MarketProduct = ({ navigation, route }) => {
 				</View>
 				<View style={{ flex: 1 }}>
 					<QPButton
-						title="Comprar ahora"
+						title={t('market.product.buyNow')}
 						onPress={buyNow}
 						disabled={soldOut || !variantReady}
 					/>
