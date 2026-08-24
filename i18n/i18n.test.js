@@ -38,7 +38,7 @@ describe('i18n singleton', () => {
 
 	test('el bundle inglés resuelve tras changeLanguage y getDateLocale lo sigue', async () => {
 		await i18n.changeLanguage('en')
-		expect(i18n.t('errors.network')).toBe('Could not connect to the server')
+		expect(i18n.t('errors.network')).toBe("Couldn't connect to the server")
 		expect(i18n.t('navigation.headers.deposit')).toBe('Deposit')
 		expect(i18n.t('common.time.day', { count: 1 })).toBe('1 day')
 		expect(getDateLocale()).toBe('en-US')

@@ -1,6 +1,6 @@
 {
 	"server": "Something went wrong, please contact support",
-	"network": "Could not connect to the server",
+	"network": "Couldn't connect to the server",
 	"unexpected": "An unexpected error occurred",
 	"boundary": {
 		"title": "Something went wrong",

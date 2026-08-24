@@ -9,7 +9,7 @@
 	},
 	"auth": {
 		"loginFailed": "Couldn't log in",
-		"connectFailed": "Could not connect to the server",
+		"connectFailed": "Couldn't connect to the server",
 		"requestPinFailed": "Couldn't request the PIN",
 		"registerFailed": "Couldn't sign up",
 		"confirmRegistrationFailed": "Couldn't confirm the registration",
