@@ -1,1 +1,99 @@
-{}
+{
+	"common": {
+		"assistedTitle": "Compras asistidas",
+		"cartTitle": "Carrito",
+		"products_one": "{{count}} producto",
+		"products_other": "{{count}} productos",
+		"orderNumber": "Pedido #{{id}}",
+		"summary": "Resumen",
+		"subtotal": "Subtotal",
+		"shippingAddress": "Dirección de envío"
+	},
+	"status": {
+		"paid": "Confirmado",
+		"purchased": "En camino",
+		"delivered": "Entregado",
+		"cancelled": "Cancelado"
+	},
+	"shopping": {
+		"heroTitle": "Pega el enlace y lo compramos por ti",
+		"heroSubtitle": "Te traemos los datos del producto en vivo, pagas con tu balance y nosotros lo compramos y enviamos a tu dirección en Estados Unidos.",
+		"searchButton": "Buscar producto",
+		"soon": "Pronto",
+		"myCart": "Mi carrito",
+		"cartEmpty": "Vacío por ahora",
+		"myOrders": "Mis pedidos",
+		"ordersSubtitle": "Historial y tracking",
+		"recentlySearched": "Buscados recientemente",
+		"finePrint": "Solo envíos dentro de Estados Unidos · Mínimo de compra ${{minimum}} USD · Tax estatal según destino · Comisión QvaPay: 0% Amazon · 1% eBay",
+		"toasts": {
+			"pasteLink": "Pega el enlace del producto que quieres comprar"
+		}
+	},
+	"product": {
+		"viewOn": "Ver en {{store}}",
+		"feeIncluded": "Incluye {{fee}}% de comisión QvaPay",
+		"feeNone": "Sin comisión QvaPay",
+		"taxNote": "El tax estatal se calcula en el checkout según la dirección de envío.",
+		"quantity": "Cantidad",
+		"addToCart": "Agregar al carrito · {{amount}}",
+		"toasts": {
+			"addedTitle": "Agregado al carrito"
+		}
+	},
+	"cart": {
+		"emptyTitle": "Tu carrito está vacío",
+		"emptySubtitle": "Pega el enlace de un producto de Amazon o eBay para empezar.",
+		"searchButton": "Buscar productos",
+		"itemMeta": "{{store}} · {{amount}} c/u",
+		"taxNote": "El tax estatal se agrega en el checkout según tu dirección.",
+		"minimumWarning": "El mínimo de compra es {{minimum}} — te faltan {{missing}}.",
+		"checkoutButton": "Continuar al checkout"
+	},
+	"checkout": {
+		"usOnly": "Por ahora solo enviamos dentro de Estados Unidos.",
+		"subtotalItems_one": "Subtotal ({{count}} producto)",
+		"subtotalItems_other": "Subtotal ({{count}} productos)",
+		"taxLine": "Tax {{state}} ({{rate}}%)",
+		"total": "Total",
+		"insufficientBalance": "Saldo insuficiente — tienes {{balance}} y necesitas {{total}}.",
+		"selectStateHint": "Selecciona el estado de destino para calcular el tax.",
+		"confirmTitle": "Confirmar compra",
+		"confirmBody": "Se descontarán {{amount}} de tu balance. Enviaremos a:",
+		"payAmount": "Pagar {{amount}}",
+		"pay": "Pagar",
+		"toasts": {
+			"addressesTitle": "Direcciones",
+			"addressTitle": "Dirección",
+			"checkoutTitle": "Checkout",
+			"successTitle": "Compra realizada",
+			"successBody": "Pedido #{{id}} confirmado por {{amount}}"
+		}
+	},
+	"orders": {
+		"tracking": "Tracking: {{code}}",
+		"emptyTitle": "Aún no tienes pedidos",
+		"emptySubtitle": "Cuando hagas tu primera compra asistida aparecerá aquí.",
+		"toasts": {
+			"errorTitle": "Mis pedidos"
+		}
+	},
+	"orderDetail": {
+		"itemMeta": "{{store}} · × {{count}} · {{amount}} c/u",
+		"tax": "Tax",
+		"totalPaid": "Total pagado",
+		"fulfillment": "Seguimiento",
+		"storeOrder": "Orden en tienda",
+		"trackingLabel": "Tracking",
+		"phone": "Tel: {{phone}}",
+		"noAddress": "Sin dirección registrada",
+		"toasts": {
+			"errorTitle": "Pedido"
+		}
+	},
+	"addressSearch": {
+		"label": "Buscar dirección",
+		"placeholder": "Empieza a escribir tu dirección…",
+		"hint": "Busca y autocompleta; luego puedes ajustar los campos."
+	}
+}

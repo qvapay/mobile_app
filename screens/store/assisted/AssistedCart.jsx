@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -20,6 +21,9 @@ import { ROUTES } from '../../../routes'
 import { shopApi } from '../../../api/shopApi'
 import { useAssistedCartQuery } from './assistedQueries'
 
+// i18n (call-time inside effects, so `t` stays out of the dep arrays)
+import i18n from '../../../i18n'
+
 // Constants
 import { money, providerLabel, MINIMUM_CART } from './assistedConstants'
 
@@ -30,6 +34,7 @@ import { money, providerLabel, MINIMUM_CART } from './assistedConstants'
  */
 const AssistedCart = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -45,7 +50,7 @@ const AssistedCart = ({ navigation }) => {
 
 	useEffect(() => {
 		if (cartQuery.isError && !cartQuery.data) {
-			toast.error('Carrito', { description: cartQuery.error?.message })
+			toast.error(i18n.t('assisted.common.cartTitle'), { description: cartQuery.error?.message })
 		}
 	}, [cartQuery.isError, cartQuery.data, cartQuery.error])
 
@@ -70,7 +75,7 @@ const AssistedCart = ({ navigation }) => {
 			: await shopApi.removeFromCart(item.uuid)
 		setMutatingUuid(null)
 		if (res.success) await fetchCart()
-		else toast.error('Carrito', { description: res.error })
+		else toast.error(t('assisted.common.cartTitle'), { description: res.error })
 	}
 
 	const removeItem = async (item) => {
@@ -79,7 +84,7 @@ const AssistedCart = ({ navigation }) => {
 		for (let i = 0; i < item.count; i++) {
 			const res = await shopApi.removeFromCart(item.uuid)
 			if (!res.success) {
-				toast.error('Carrito', { description: res.error })
+				toast.error(t('assisted.common.cartTitle'), { description: res.error })
 				break
 			}
 		}
@@ -99,12 +104,12 @@ const AssistedCart = ({ navigation }) => {
 				<View style={[styles.emptyIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
 					<FontAwesome6 name="basket-shopping" size={28} color={theme.colors.primary} iconStyle="solid" />
 				</View>
-				<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 16 }]}>Tu carrito está vacío</Text>
+				<Text style={[textStyles.h5, { fontWeight: '600', marginTop: 16 }]}>{t('assisted.cart.emptyTitle')}</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, textAlign: 'center' }]}>
-					Pega el enlace de un producto de Amazon o eBay para empezar.
+					{t('assisted.cart.emptySubtitle')}
 				</Text>
 				<QPButton
-					title="Buscar productos"
+					title={t('assisted.cart.searchButton')}
 					icon="magnifying-glass"
 					onPress={() => navigation.navigate(ROUTES.ASSISTED_SHOPPING)}
 					style={{ marginTop: 22, alignSelf: 'stretch' }}
@@ -136,7 +141,7 @@ const AssistedCart = ({ navigation }) => {
 								<View style={{ flex: 1, gap: 4 }}>
 									<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={2}>{item.title}</Text>
 									<Text style={[styles.itemMeta, { color: theme.colors.secondaryText }]}>
-										{providerLabel(item.provider)} · {money(item.qp_price)} c/u
+										{t('assisted.cart.itemMeta', { store: providerLabel(item.provider), amount: money(item.qp_price) })}
 									</Text>
 									<View style={styles.itemActions}>
 										<View style={styles.stepper}>
@@ -170,21 +175,21 @@ const AssistedCart = ({ navigation }) => {
 				{/* Summary */}
 				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
 					<View style={themeStyles.container.rowBetween}>
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>Subtotal</Text>
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('assisted.common.subtotal')}</Text>
 						<Text style={[textStyles.h5, { fontWeight: '600' }]}>{money(subtotal)}</Text>
 					</View>
 					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 4 }]}>
-						El tax estatal se agrega en el checkout según tu dirección.
+						{t('assisted.cart.taxNote')}
 					</Text>
 					{!meetsMinimum && (
 						<Text style={[textStyles.caption, { color: theme.colors.warning, marginTop: 6 }]}>
-							El mínimo de compra es {money(MINIMUM_CART)} — te faltan {money(MINIMUM_CART - subtotal)}.
+							{t('assisted.cart.minimumWarning', { minimum: money(MINIMUM_CART), missing: money(MINIMUM_CART - subtotal) })}
 						</Text>
 					)}
 				</View>
 
 				<QPButton
-					title="Continuar al checkout"
+					title={t('assisted.cart.checkoutButton')}
 					icon="arrow-right"
 					onPress={() => navigation.navigate(ROUTES.ASSISTED_CHECKOUT)}
 					disabled={!meetsMinimum}

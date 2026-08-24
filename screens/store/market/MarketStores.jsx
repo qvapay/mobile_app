@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import { FlashList } from '@shopify/flash-list'
 

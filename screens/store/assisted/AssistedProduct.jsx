@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -18,6 +19,9 @@ import QPButton from '../../../ui/particles/QPButton'
 import { ROUTES } from '../../../routes'
 import { shopApi } from '../../../api/shopApi'
 
+// i18n (call-time inside effects, so `t` stays out of the dep arrays)
+import i18n from '../../../i18n'
+
 // Constants
 import { money, providerLabel, feePercent } from './assistedConstants'
 
@@ -31,6 +35,7 @@ const MAX_QUANTITY = 10
  */
 const AssistedProduct = ({ navigation, route }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -53,7 +58,7 @@ const AssistedProduct = ({ navigation, route }) => {
 				setProduct(res.data.product)
 				setSelectedImage(res.data.product.main_image)
 			} else {
-				toast.error('Compras asistidas', { description: res.error })
+				toast.error(i18n.t('assisted.common.assistedTitle'), { description: res.error })
 				navigation.goBack()
 			}
 		}
@@ -75,9 +80,9 @@ const AssistedProduct = ({ navigation, route }) => {
 		const res = await shopApi.addToCart({ product_uuid: product.uuid, quantity })
 		setAdding(false)
 		if (res.success) {
-			toast.success('Agregado al carrito', { description: `${quantity} × ${product.title.slice(0, 60)}` })
+			toast.success(t('assisted.product.toasts.addedTitle'), { description: `${quantity} × ${product.title.slice(0, 60)}` })
 			navigation.navigate(ROUTES.ASSISTED_CART)
-		} else { toast.error('Carrito', { description: res.error }) }
+		} else { toast.error(t('assisted.common.cartTitle'), { description: res.error }) }
 	}
 
 	if (!product) { return <View style={containerStyles.subContainer} /> }
@@ -120,7 +125,7 @@ const AssistedProduct = ({ navigation, route }) => {
 						</Text>
 					</View>
 					<Pressable style={styles.externalLink} onPress={() => Linking.openURL(product.url)}>
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>Ver en {providerLabel(product.provider)}</Text>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('assisted.product.viewOn', { store: providerLabel(product.provider) })}</Text>
 						<FontAwesome6 name="arrow-up-right-from-square" size={11} color={theme.colors.secondaryText} iconStyle="solid" />
 					</Pressable>
 				</View>
@@ -134,16 +139,16 @@ const AssistedProduct = ({ navigation, route }) => {
 						{money(product.qp_price)}
 					</Text>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
-						{fee > 0 ? `Incluye ${fee}% de comisión QvaPay` : 'Sin comisión QvaPay'}
+						{fee > 0 ? t('assisted.product.feeIncluded', { fee }) : t('assisted.product.feeNone')}
 					</Text>
 				</View>
 				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 2 }]}>
-					El tax estatal se calcula en el checkout según la dirección de envío.
+					{t('assisted.product.taxNote')}
 				</Text>
 
 				{/* Quantity + total */}
 				<View style={[styles.quantityCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
-					<Text style={[textStyles.h6, { fontWeight: '600' }]}>Cantidad</Text>
+					<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('assisted.product.quantity')}</Text>
 					<View style={styles.stepper}>
 						<Pressable
 							style={[styles.stepperButton, { backgroundColor: theme.colors.background }, quantity <= 1 && { opacity: 0.4 }]}
@@ -171,7 +176,7 @@ const AssistedProduct = ({ navigation, route }) => {
 				)}
 
 				<QPButton
-					title={`Agregar al carrito · ${money(total)}`}
+					title={t('assisted.product.addToCart', { amount: money(total) })}
 					icon="basket-shopping"
 					onPress={handleAddToCart}
 					loading={adding}

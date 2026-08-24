@@ -1,1 +1,99 @@
-{}
+{
+	"common": {
+		"assistedTitle": "Assisted shopping",
+		"cartTitle": "Cart",
+		"products_one": "{{count}} product",
+		"products_other": "{{count}} products",
+		"orderNumber": "Order #{{id}}",
+		"summary": "Summary",
+		"subtotal": "Subtotal",
+		"shippingAddress": "Shipping address"
+	},
+	"status": {
+		"paid": "Confirmed",
+		"purchased": "On the way",
+		"delivered": "Delivered",
+		"cancelled": "Cancelled"
+	},
+	"shopping": {
+		"heroTitle": "Paste the link and we buy it for you",
+		"heroSubtitle": "We fetch the product details live, you pay with your balance, and we buy it and ship it to your address in the United States.",
+		"searchButton": "Search product",
+		"soon": "Soon",
+		"myCart": "My cart",
+		"cartEmpty": "Empty for now",
+		"myOrders": "My orders",
+		"ordersSubtitle": "History and tracking",
+		"recentlySearched": "Recently searched",
+		"finePrint": "US shipping only · ${{minimum}} USD minimum purchase · State tax based on destination · QvaPay fee: 0% Amazon · 1% eBay",
+		"toasts": {
+			"pasteLink": "Paste the link of the product you want to buy"
+		}
+	},
+	"product": {
+		"viewOn": "View on {{store}}",
+		"feeIncluded": "Includes {{fee}}% QvaPay fee",
+		"feeNone": "No QvaPay fee",
+		"taxNote": "State tax is calculated at checkout based on the shipping address.",
+		"quantity": "Quantity",
+		"addToCart": "Add to cart · {{amount}}",
+		"toasts": {
+			"addedTitle": "Added to cart"
+		}
+	},
+	"cart": {
+		"emptyTitle": "Your cart is empty",
+		"emptySubtitle": "Paste the link of an Amazon or eBay product to get started.",
+		"searchButton": "Search products",
+		"itemMeta": "{{store}} · {{amount}} each",
+		"taxNote": "State tax is added at checkout based on your address.",
+		"minimumWarning": "The minimum purchase is {{minimum}} — you need {{missing}} more.",
+		"checkoutButton": "Continue to checkout"
+	},
+	"checkout": {
+		"usOnly": "For now we only ship within the United States.",
+		"subtotalItems_one": "Subtotal ({{count}} product)",
+		"subtotalItems_other": "Subtotal ({{count}} products)",
+		"taxLine": "{{state}} tax ({{rate}}%)",
+		"total": "Total",
+		"insufficientBalance": "Insufficient balance — you have {{balance}} and need {{total}}.",
+		"selectStateHint": "Select the destination state to calculate the tax.",
+		"confirmTitle": "Confirm purchase",
+		"confirmBody": "{{amount}} will be deducted from your balance. We will ship to:",
+		"payAmount": "Pay {{amount}}",
+		"pay": "Pay",
+		"toasts": {
+			"addressesTitle": "Addresses",
+			"addressTitle": "Address",
+			"checkoutTitle": "Checkout",
+			"successTitle": "Purchase completed",
+			"successBody": "Order #{{id}} confirmed for {{amount}}"
+		}
+	},
+	"orders": {
+		"tracking": "Tracking: {{code}}",
+		"emptyTitle": "You have no orders yet",
+		"emptySubtitle": "Your first assisted purchase will show up here.",
+		"toasts": {
+			"errorTitle": "My orders"
+		}
+	},
+	"orderDetail": {
+		"itemMeta": "{{store}} · × {{count}} · {{amount}} each",
+		"tax": "Tax",
+		"totalPaid": "Total paid",
+		"fulfillment": "Tracking",
+		"storeOrder": "Store order",
+		"trackingLabel": "Tracking number",
+		"phone": "Phone: {{phone}}",
+		"noAddress": "No address on file",
+		"toasts": {
+			"errorTitle": "Order"
+		}
+	},
+	"addressSearch": {
+		"label": "Search address",
+		"placeholder": "Start typing your address…",
+		"hint": "Search and autocomplete; you can still adjust the fields."
+	}
+}

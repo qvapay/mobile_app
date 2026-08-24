@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -22,7 +23,7 @@ import { shopApi } from '../../../api/shopApi'
 import { useAssistedCartQuery, useAssistedRecentQuery } from './assistedQueries'
 
 // Constants
-import { STORES, money, providerLabel } from './assistedConstants'
+import { STORES, MINIMUM_CART, money, providerLabel } from './assistedConstants'
 
 /**
  * Assisted-shopping landing: paste a store product URL and the fulfillment
@@ -32,6 +33,7 @@ import { STORES, money, providerLabel } from './assistedConstants'
  */
 const AssistedShopping = ({ navigation }) => {
 
+	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -69,7 +71,7 @@ const AssistedShopping = ({ navigation }) => {
 	const handleSearch = async () => {
 		const trimmed = url.trim()
 		if (!trimmed) {
-			toast.error('Compras asistidas', { description: 'Pega el enlace del producto que quieres comprar' })
+			toast.error(t('assisted.common.assistedTitle'), { description: t('assisted.shopping.toasts.pasteLink') })
 			return
 		}
 		setSearching(true)
@@ -79,7 +81,7 @@ const AssistedShopping = ({ navigation }) => {
 			setUrl('')
 			navigation.navigate(ROUTES.ASSISTED_PRODUCT, { product: res.data.product })
 		} else {
-			toast.error('Compras asistidas', { description: res.error })
+			toast.error(t('assisted.common.assistedTitle'), { description: res.error })
 		}
 	}
 
@@ -96,10 +98,10 @@ const AssistedShopping = ({ navigation }) => {
 
 				{/* Hero */}
 				<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 12 }]}>
-					Pega el enlace y lo compramos por ti
+					{t('assisted.shopping.heroTitle')}
 				</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, lineHeight: 18 }]}>
-					Te traemos los datos del producto en vivo, pagas con tu balance y nosotros lo compramos y enviamos a tu dirección en Estados Unidos.
+					{t('assisted.shopping.heroSubtitle')}
 				</Text>
 
 				{/* URL search */}
@@ -116,7 +118,7 @@ const AssistedShopping = ({ navigation }) => {
 						onSubmitEditing={handleSearch}
 					/>
 					<QPButton
-						title="Buscar producto"
+						title={t('assisted.shopping.searchButton')}
 						icon="magnifying-glass"
 						onPress={handleSearch}
 						loading={searching}
@@ -144,7 +146,7 @@ const AssistedShopping = ({ navigation }) => {
 							</Text>
 							{!store.available && (
 								<Text style={[styles.soonTag, { color: theme.colors.warning, fontFamily: theme.typography.fontFamily.medium }]}>
-									Pronto
+									{t('assisted.shopping.soon')}
 								</Text>
 							)}
 						</View>
@@ -161,9 +163,9 @@ const AssistedShopping = ({ navigation }) => {
 							<FontAwesome6 name="basket-shopping" size={16} color={theme.colors.primary} iconStyle="solid" />
 						</View>
 						<View style={{ flex: 1 }}>
-							<Text style={[textStyles.h6, { fontWeight: '600' }]}>Mi carrito</Text>
+							<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('assisted.shopping.myCart')}</Text>
 							<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
-								{cartCount > 0 ? `${cartCount} producto${cartCount === 1 ? '' : 's'}` : 'Vacío por ahora'}
+								{cartCount > 0 ? t('assisted.common.products', { count: cartCount }) : t('assisted.shopping.cartEmpty')}
 							</Text>
 						</View>
 						{cartCount > 0 && (
@@ -181,8 +183,8 @@ const AssistedShopping = ({ navigation }) => {
 							<FontAwesome6 name="clipboard-list" size={16} color={theme.colors.primary} iconStyle="solid" />
 						</View>
 						<View style={{ flex: 1 }}>
-							<Text style={[textStyles.h6, { fontWeight: '600' }]}>Mis pedidos</Text>
-							<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>Historial y tracking</Text>
+							<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('assisted.shopping.myOrders')}</Text>
+							<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>{t('assisted.shopping.ordersSubtitle')}</Text>
 						</View>
 					</Pressable>
 				</View>
@@ -190,7 +192,7 @@ const AssistedShopping = ({ navigation }) => {
 				{/* Recently searched */}
 				{recent.length > 0 && (
 					<View style={{ marginTop: 24 }}>
-						<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>Buscados recientemente</Text>
+						<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>{t('assisted.shopping.recentlySearched')}</Text>
 						<View style={styles.recentGrid}>
 							{recent.map(product => (
 								<Pressable
@@ -228,7 +230,7 @@ const AssistedShopping = ({ navigation }) => {
 
 				{/* Fine print */}
 				<Text style={[styles.finePrint, { color: theme.colors.tertiaryText }]}>
-					Solo envíos dentro de Estados Unidos · Mínimo de compra $20 USD · Tax estatal según destino · Comisión QvaPay: 0% Amazon · 1% eBay
+					{t('assisted.shopping.finePrint', { minimum: MINIMUM_CART })}
 				</Text>
 
 			</ScrollView>
