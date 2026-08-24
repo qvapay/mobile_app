@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useSharedValue } from 'react-native-reanimated'
+import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../hooks/useContentPadding'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
 
@@ -71,6 +72,7 @@ const ServiceCard = ({ icon, title, iconColor, onPress, theme }) => (
 // Empuje sutil a verificar la identidad — mismo layout que el banner de push,
 // gobernado por useKycPrompt (descartes + cooldown + gracia post-sesión Didit)
 const KycPromptBanner = ({ theme, navigation, prompt }) => {
+	const { t } = useTranslation()
 	const { shouldShowBanner, dismissBanner } = prompt
 	if (!shouldShowBanner) return null
 	return (
@@ -79,13 +81,13 @@ const KycPromptBanner = ({ theme, navigation, prompt }) => {
 				<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
 			</View>
 			<View style={{ flex: 1 }}>
-				<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Verifica tu identidad y desbloquea todo QvaPay</Text>
+				<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('home.banners.kyc.text')}</Text>
 			</View>
 			<Pressable
 				onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.KYC, initial: false })}
 				style={[styles.pushBannerButton, { backgroundColor: theme.colors.primary }]}
 			>
-				<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Verificar</Text>
+				<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{t('home.banners.kyc.action')}</Text>
 			</Pressable>
 			<Pressable onPress={dismissBanner} hitSlop={8}>
 				<FontAwesome6 name="xmark" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
@@ -96,6 +98,7 @@ const KycPromptBanner = ({ theme, navigation, prompt }) => {
 
 // Invitación a activar las push — se auto-oculta según usePushPrompt
 const PushPromptBanner = ({ theme }) => {
+	const { t } = useTranslation()
 	const { shouldShowBanner, enablePush, dismissBanner } = usePushPrompt()
 	if (!shouldShowBanner) return null
 	return (
@@ -104,13 +107,13 @@ const PushPromptBanner = ({ theme }) => {
 				<FontAwesome6 name="bell" size={16} color={theme.colors.primary} iconStyle="solid" />
 			</View>
 			<View style={{ flex: 1 }}>
-				<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>Recibe alertas de tus pagos al instante</Text>
+				<Text style={[styles.pushBannerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('home.banners.push.text')}</Text>
 			</View>
 			<Pressable
 				onPress={() => { enablePush(); dismissBanner() }}
 				style={[styles.pushBannerButton, { backgroundColor: theme.colors.primary }]}
 			>
-				<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>Activar</Text>
+				<Text style={[styles.pushBannerButtonText, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{t('home.banners.push.action')}</Text>
 			</Pressable>
 			<Pressable onPress={dismissBanner} hitSlop={8}>
 				<FontAwesome6 name="xmark" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
@@ -130,6 +133,9 @@ const Home = ({ navigation }) => {
 
 	// User Context
 	const { user } = useAuth()
+
+	// Idioma activo
+	const { t } = useTranslation()
 
 	// Context
 	const { theme } = useTheme()
@@ -186,7 +192,7 @@ const Home = ({ navigation }) => {
 					: <PushPromptBanner theme={theme} />}
 
 				<View style={styles.section}>
-					<QPSectionHeader title="Pago rápido" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.SEND)} />
+					<QPSectionHeader title={t('home.sections.quickPay')} subtitle={t('common.actions.seeAll')} iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.SEND)} />
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 0 }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 							<Pressable onPress={() => navigation.navigate(ROUTES.SEND)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -194,7 +200,7 @@ const Home = ({ navigation }) => {
 									<FontAwesome6 name="plus" size={24} color={theme.colors.primary} iconStyle="solid" />
 								</View>
 								{latestSentTransfersUsers.length === 0 && (
-									<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>Envía tu primer pago</Text>
+									<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>{t('home.quickPay.sendFirst')}</Text>
 								)}
 							</Pressable>
 							{latestSentTransfersUsers.map((transferUser, index) => (
@@ -208,7 +214,7 @@ const Home = ({ navigation }) => {
 
 				<View style={styles.section}>
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>Últimas transacciones</Text>
+						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText }]}>{t('home.sections.latestTransactions')}</Text>
 						{latestTransactions.length > 0 && (
 							<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS, { showSearch: true })} hitSlop={8}>
 								<FontAwesome6 name="magnifying-glass" size={16} color={theme.colors.tertiaryText} iconStyle="solid" />
@@ -223,7 +229,7 @@ const Home = ({ navigation }) => {
 								))}
 							</View>
 							<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} >
-								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>Ver todas</Text>
+								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>{t('common.actions.seeAll')}</Text>
 								<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
 							</Pressable>
 						</>
@@ -245,11 +251,11 @@ const Home = ({ navigation }) => {
 
 				{/* Service Cards */}
 				<View style={styles.section}>
-					<QPSectionHeader title="Servicios" subtitle="Ver todas" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.STORE_SCREEN)} />
+					<QPSectionHeader title={t('home.sections.services')} subtitle={t('common.actions.seeAll')} iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.STORE_SCREEN)} />
 					<View style={styles.serviceCardsContainer}>
 						<ServiceCard
 							icon="mobile-screen"
-							title="Recargas"
+							title={t('home.services.topups')}
 							iconColor="#10B981"
 							onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX)}
 							theme={theme}
@@ -257,7 +263,7 @@ const Home = ({ navigation }) => {
 						{Platform.OS !== 'ios' && (
 							<ServiceCard
 								icon="gift"
-								title="Gift Cards"
+								title={t('home.services.giftCards')}
 								iconColor="#8B5CF6"
 								onPress={() => navigation.navigate(ROUTES.STORE_SCREEN)}
 								theme={theme}
@@ -265,14 +271,14 @@ const Home = ({ navigation }) => {
 						)}
 						<ServiceCard
 							icon="chart-line"
-							title="Invest"
+							title={t('home.services.invest')}
 							iconColor="#F59E0B"
 							onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)}
 							theme={theme}
 						/>
 						<ServiceCard
 							icon="building-columns"
-							title="P2P"
+							title={t('home.services.p2p')}
 							iconColor={theme.colors.primary}
 							onPress={() => navigation.navigate(ROUTES.P2P_SCREEN)}
 							theme={theme}
@@ -282,7 +288,7 @@ const Home = ({ navigation }) => {
 
 				{watchlistData.length > 0 && (
 					<View style={styles.section}>
-						<QPSectionHeader title="Mi Watchlist" subtitle="Ver todo" iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)} />
+						<QPSectionHeader title={t('home.sections.watchlist')} subtitle={t('home.watchlist.seeAll')} iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)} />
 						<View style={styles.watchlistGrid}>
 							{watchlistData.map(coin => (
 								<WatchlistCard
@@ -302,7 +308,7 @@ const Home = ({ navigation }) => {
 				)}
 
 				<View style={styles.section}>
-					<QPSectionHeader title="Últimas noticias" subtitle="Ver todas" iconName="arrow-right" onPress={() => Linking.openURL('https://qvapay.blog')} />
+					<QPSectionHeader title={t('home.sections.news')} subtitle={t('common.actions.seeAll')} iconName="arrow-right" onPress={() => Linking.openURL('https://qvapay.blog')} />
 					<View style={Platform.isPad ? styles.blogGrid : undefined}>
 						{latestBlogPosts.map((post, index) => (
 							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} iPad={Platform.isPad} />

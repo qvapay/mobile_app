@@ -1,1 +1,57 @@
-{}
+{
+	"kinetic": {
+		"headline": "Your money.",
+		"verb1": "Send it.",
+		"verb2": "Save it.",
+		"verb3": "Invest it.",
+		"verb4": "Receive it.",
+		"subtitle": "Digital dollars, P2P and crypto for the Caribbean.",
+		"marquee": {
+			"remittances": "Remittances",
+			"savings": "Savings",
+			"topups": "Top-ups",
+			"payments": "Payments",
+			"store": "Store"
+		}
+	},
+	"actions": {
+		"start": "Get started",
+		"createAccount": "Create account",
+		"terms": "By continuing, you accept our <0>Terms and Conditions</0>"
+	},
+	"onboard": {
+		"steps": {
+			"trade": {
+				"title": "Welcome to QvaPay",
+				"description": "Your digital payments platform in USD"
+			},
+			"bot": {
+				"title": "Smart finances",
+				"description": "Manage your finances with ease and no complications"
+			},
+			"coins": {
+				"title": "Multiple currencies",
+				"description": "Handle different currencies with ease and no hidden fees"
+			},
+			"earn": {
+				"title": "Earn money",
+				"description": "Invest and grow your money with our investment options"
+			},
+			"security": {
+				"title": "Total security",
+				"description": "Your data and transactions are protected with the highest security"
+			},
+			"box": {
+				"title": "Fast transfers",
+				"description": "Transfer money instantly to anywhere in the world"
+			},
+			"vault": {
+				"title": "Digital wallet",
+				"description": "Store and manage all your digital assets in one place"
+			}
+		},
+		"skip": "Skip",
+		"next": "Next",
+		"finish": "Finish"
+	}
+}

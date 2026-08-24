@@ -9,6 +9,9 @@ import { promoApi } from '../../api/promoApi'
 
 import { unwrap } from '../../api/unwrap'
 
+// i18n fuera de render: el mensaje se resuelve en call time (nunca a nivel de módulo)
+import i18n from '../../i18n'
+
 /**
  * Raíz de las claves del feed de Home.
  *
@@ -66,7 +69,7 @@ export const useWatchlistQuery = () => useQuery({
 		// aquí, React Query conserva los últimos precios buenos en pantalla — que
 		// es justo lo que hacía la guarda manual anterior, pero sin escribirla
 		if (!data.some(c => c.priceHistory.length)) {
-			throw new Error('No se pudo actualizar ninguna cotización')
+			throw new Error(i18n.t('home.watchlist.updateFailed'))
 		}
 		return data
 	},

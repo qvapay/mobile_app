@@ -1,6 +1,7 @@
 import { Text, View, StyleSheet, Linking } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 import DeviceInfo from 'react-native-device-info'
+import { Trans, useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -25,30 +26,37 @@ const WelcomeActions = ({ navigation }) => {
 	// Theme
 	const { theme } = useTheme()
 
+	// Idioma activo
+	const { t } = useTranslation()
+
 	return (
 		<Animated.View entering={FadeInDown.delay(500).duration(700)} style={styles.container}>
 			<View style={styles.buttons}>
 				<QPButton
-					title="Comenzar"
+					title={t('welcome.actions.start')}
 					onPress={() => navigation.navigate(ROUTES.LOGIN_SCREEN)}
 					textStyle={{ fontSize: theme.typography.fontSize.lg }}
 				/>
 				<QPButton
-					title="Crear cuenta"
+					title={t('welcome.actions.createAccount')}
 					onPress={() => navigation.navigate(ROUTES.REGISTER_SCREEN)}
 					style={{ backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.primary + '60' }}
 					textStyle={{ fontSize: theme.typography.fontSize.lg, color: theme.colors.primaryText }}
 				/>
 			</View>
 
+			{/* La frase de términos vive en UNA sola clave (el enlace va como <0> vía
+			    Trans) — nunca partir la oración en claves por el Text anidado */}
 			<Text style={[styles.terms, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
-				Al continuar, aceptas nuestros{' '}
-				<Text
-					style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }}
-					onPress={() => Linking.openURL(ROUTES.TERMS_AND_CONDITIONS)}
-				>
-					Términos y Condiciones
-				</Text>
+				<Trans
+					i18nKey="welcome.actions.terms"
+					components={[
+						<Text
+							style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium }}
+							onPress={() => Linking.openURL(ROUTES.TERMS_AND_CONDITIONS)}
+						/>,
+					]}
+				/>
 			</Text>
 
 			<Text style={[styles.version, { color: theme.colors.tertiaryText + '40', fontFamily: theme.typography.fontFamily.regular }]}>

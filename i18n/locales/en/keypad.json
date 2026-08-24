@@ -1,1 +1,30 @@
-{}
+{
+	"actions": {
+		"receive": "Receive",
+		"send": "Send"
+	},
+	"toasts": {
+		"invalidAmount": {
+			"title": "Invalid amount",
+			"description": "The amount must be greater than 0"
+		},
+		"insufficientBalance": {
+			"title": "Insufficient balance",
+			"description": "The amount can't exceed your available balance"
+		},
+		"sendError": {
+			"title": "Error",
+			"description": "Couldn't process the send request"
+		}
+	},
+	"a11y": {
+		"amountAnnouncement": "Amount: ${{amount}}",
+		"maxBalanceAnnouncement": "Set to maximum balance: ${{amount}}",
+		"deleteKeyLabel": "Delete last digit",
+		"deleteKeyHint": "Removes the last entered digit",
+		"numberKeyLabel": "Number {{digit}}",
+		"numberKeyHint": "Adds this number to the amount",
+		"balanceLabel": "Current balance: ${{balance}}",
+		"balanceHint": "Double tap to set amount to maximum balance"
+	}
+}

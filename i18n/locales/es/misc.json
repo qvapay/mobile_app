@@ -1,1 +1,17 @@
-{}
+{
+	"scan": {
+		"permission": {
+			"title": "Permiso de cámara requerido",
+			"body": "Por favor permite el acceso a la cámara para escanear QR",
+			"settings": "Ajustes"
+		},
+		"instructions": {
+			"title": "Coloca el QR code dentro del marco",
+			"subtitle": "El QR code será escaneado automáticamente"
+		},
+		"modeSwitch": {
+			"scan": "Scan QR",
+			"myQr": "Mi QR"
+		}
+	}
+}

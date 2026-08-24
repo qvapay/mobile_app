@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Text, View, StyleSheet, Pressable, useWindowDimensions } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import LinearGradient from 'react-native-linear-gradient'
 import Animated, {
@@ -28,33 +29,37 @@ import SolIcon from '../../assets/images/coins/sol.svg'
 import BnbIcon from '../../assets/images/coins/bnb.svg'
 import TonIcon from '../../assets/images/coins/ton.svg'
 
-// El verbo rotatorio del headline — cada uno con su acento del theme
+// El verbo rotatorio del headline — cada uno con su acento del theme. Builder
+// resuelto en render (nunca t() a nivel de módulo, quedaría congelado al idioma
+// del arranque).
 const WORD_INTERVAL_MS = 2400
-const kineticWords = (theme) => [
-	{ text: 'Envíalo.', color: theme.colors.primary },
-	{ text: 'Ahórralo.', color: theme.colors.successText },
-	{ text: 'Inviértelo.', color: theme.colors.gold },
-	{ text: 'Recíbelo.', color: theme.colors.warning },
+const kineticWords = (theme, t) => [
+	{ text: t('welcome.kinetic.verb1'), color: theme.colors.primary },
+	{ text: t('welcome.kinetic.verb2'), color: theme.colors.successText },
+	{ text: t('welcome.kinetic.verb3'), color: theme.colors.gold },
+	{ text: t('welcome.kinetic.verb4'), color: theme.colors.warning },
 ]
 
 // Contenido de las tres columnas de marquesina: pills de monedas y features.
 // Cada columna lleva mezcla distinta para que el patrón no se note repetido.
-const MARQUEE_COLUMNS = [
+// Builder con t para el copy localizable; ticks y marcas (BTC, P2P, Gift Cards,
+// Invest, SQP, Crypto…) quedan literales a propósito.
+const marqueeColumns = (t) => [
 	{
 		duration: 26000, reverse: false, items: [
 			{ Icon: BtcIcon, label: 'BTC' }, { label: 'P2P' }, { Icon: UsdtIcon, label: 'USDT' },
-			{ label: 'Remesas' }, { Icon: SolIcon, label: 'SOL' }, { label: 'Ahorro' },
+			{ label: t('welcome.kinetic.marquee.remittances') }, { Icon: SolIcon, label: 'SOL' }, { label: t('welcome.kinetic.marquee.savings') },
 		]
 	},
 	{
 		duration: 34000, reverse: true, items: [
-			{ label: 'Recargas' }, { Icon: EthIcon, label: 'ETH' }, { label: 'Gift Cards' },
-			{ Icon: TonIcon, label: 'TON' }, { label: 'Pagos' }, { label: 'USD' },
+			{ label: t('welcome.kinetic.marquee.topups') }, { Icon: EthIcon, label: 'ETH' }, { label: 'Gift Cards' },
+			{ Icon: TonIcon, label: 'TON' }, { label: t('welcome.kinetic.marquee.payments') }, { label: 'USD' },
 		]
 	},
 	{
 		duration: 30000, reverse: false, items: [
-			{ Icon: BnbIcon, label: 'BNB' }, { label: 'Tienda' }, { label: 'Invest' },
+			{ Icon: BnbIcon, label: 'BNB' }, { label: t('welcome.kinetic.marquee.store') }, { label: 'Invest' },
 			{ Icon: UsdtIcon, label: 'USDT' }, { label: 'SQP' }, { label: 'Crypto' },
 		]
 	},
@@ -131,7 +136,11 @@ const WelcomeKinetic = ({ navigation, onSecretLongPress, actions }) => {
 	const { width } = useWindowDimensions()
 	const reducedMotion = useReducedMotion()
 
-	const words = kineticWords(theme)
+	// Idioma activo
+	const { t } = useTranslation()
+
+	const words = kineticWords(theme, t)
+	const columns = marqueeColumns(t)
 	const [wordIndex, setWordIndex] = useState(0)
 
 	useEffect(() => {
@@ -149,7 +158,7 @@ const WelcomeKinetic = ({ navigation, onSecretLongPress, actions }) => {
 
 			{/* Marquesinas diagonales de fondo */}
 			<View style={[styles.marqueeField, { width: width * 1.6, left: -width * 0.3 }]} pointerEvents="none">
-				{MARQUEE_COLUMNS.map((column, i) => (
+				{columns.map((column, i) => (
 					<View key={i} style={styles.marqueeColumn}>
 						<MarqueeColumn {...column} theme={theme} frozen={reducedMotion} />
 					</View>
@@ -178,7 +187,7 @@ const WelcomeKinetic = ({ navigation, onSecretLongPress, actions }) => {
 					<Animated.Text
 						entering={FadeInDown.delay(150).duration(700)}
 						style={[styles.headline, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold }]}>
-						Tu dinero.
+						{t('welcome.kinetic.headline')}
 					</Animated.Text>
 					<View style={styles.wordSlot}>
 						<Animated.Text
@@ -194,7 +203,7 @@ const WelcomeKinetic = ({ navigation, onSecretLongPress, actions }) => {
 				<Animated.Text
 					entering={FadeInDown.delay(400).duration(700)}
 					style={[styles.subtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.md }]}>
-					Dólares digitales, P2P y crypto para el Caribe.
+					{t('welcome.kinetic.subtitle')}
 				</Animated.Text>
 
 				{actions}

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, Dimensions, Animated, Linking, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import Svg, { Path } from 'react-native-svg'
 
 // QR Code
@@ -71,6 +72,9 @@ const Scan = ({ navigation, route }) => {
 
 	// User
 	const { user } = useAuth()
+
+	// Idioma activo
+	const { t } = useTranslation()
 
 	// Context
 	const { theme } = useTheme()
@@ -182,10 +186,10 @@ const Scan = ({ navigation, route }) => {
 	if (viewMode === 'scan' && !hasPermission) {
 		return (
 			<View style={[containerStyles.container, containerStyles.center]}>
-				<Text style={textStyles.h4}>Permiso de cámara requerido</Text>
-				<Text style={[textStyles.caption, { textAlign: 'center', marginTop: 10 }]}>Por favor permite el acceso a la cámara para escanear QR</Text>
+				<Text style={textStyles.h4}>{t('misc.scan.permission.title')}</Text>
+				<Text style={[textStyles.caption, { textAlign: 'center', marginTop: 10 }]}>{t('misc.scan.permission.body')}</Text>
 				<QPButton
-					title="Ajustes"
+					title={t('misc.scan.permission.settings')}
 					onPress={() => Linking.openSettings()}
 					style={{ marginTop: 20, backgroundColor: 'transparent' }}
 					textStyle={{ color: theme.colors.almostWhite }}
@@ -231,8 +235,8 @@ const Scan = ({ navigation, route }) => {
 
 					{/* Instructions */}
 					<View style={styles.instructionsContainer}>
-						<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>Coloca el QR code dentro del marco</Text>
-						<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 5 }]}>El QR code será escaneado automáticamente</Text>
+						<Text style={[textStyles.h5, { color: 'white', textAlign: 'center' }]}>{t('misc.scan.instructions.title')}</Text>
+						<Text style={[textStyles.caption, { color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 5 }]}>{t('misc.scan.instructions.subtitle')}</Text>
 					</View>
 				</>
 			) : (
@@ -281,8 +285,8 @@ const Scan = ({ navigation, route }) => {
 					<QPSwitch
 						value={viewMode === 'scan' ? 'left' : 'right'}
 						onChange={handleViewModeChange}
-						leftText="Scan QR"
-						rightText="Mi QR"
+						leftText={t('misc.scan.modeSwitch.scan')}
+						rightText={t('misc.scan.modeSwitch.myQr')}
 						leftColor={theme.colors.primary}
 						rightColor={theme.colors.primary}
 					/>

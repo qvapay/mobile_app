@@ -1,1 +1,17 @@
-{}
+{
+	"scan": {
+		"permission": {
+			"title": "Camera permission required",
+			"body": "Please allow camera access to scan QR codes",
+			"settings": "Settings"
+		},
+		"instructions": {
+			"title": "Place the QR code inside the frame",
+			"subtitle": "The QR code will be scanned automatically"
+		},
+		"modeSwitch": {
+			"scan": "Scan QR",
+			"myQr": "My QR"
+		}
+	}
+}

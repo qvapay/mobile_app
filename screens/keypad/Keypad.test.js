@@ -40,8 +40,10 @@ const renderKeypad = () => {
 const findPressable = (tree, predicate) =>
 	tree.root.findAll(n => typeof n.props.onPress === 'function' && predicate(n.props.accessibilityLabel || ''))[0]
 
+// Los accessibilityLabel se normalizaron a claves i18n (antes inglés hardcodeado);
+// los tests corren en 'es', así que se buscan por el literal español del bundle
 const pressKey = (tree, key) => {
-	const label = key === 'backspace' ? 'Delete last digit' : `Number ${key}`
+	const label = key === 'backspace' ? 'Borrar último dígito' : `Número ${key}`
 	act(() => { findPressable(tree, l => l === label).props.onPress() })
 }
 
@@ -86,7 +88,7 @@ describe('amount entry', () => {
 
 	test('tapping the balance chip sets the amount to the full balance', () => {
 		const tree = renderKeypad()
-		act(() => { findPressable(tree, l => l.startsWith('Current balance')).props.onPress() })
+		act(() => { findPressable(tree, l => l.startsWith('Saldo actual')).props.onPress() })
 		expect(displayedAmount(tree)).toBe('100')
 	})
 })
