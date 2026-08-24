@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -19,6 +20,7 @@ import QPSvgUri from '../../ui/particles/QPSvgUri'
 import QPFitText from '../../ui/particles/QPFitText'
 
 
+// Valores del API de histórico; el label visible es `invest.timeframes.<valor>`
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y']
 
 // Format volume: 45230000 → "45.2M"
@@ -63,6 +65,7 @@ const StatRow = ({ label, value, theme, isLast }) => (
 const StockDetail = ({ route }) => {
 
 	const { symbol, icon, iconStyle, initialData, image } = route.params
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
@@ -129,7 +132,7 @@ const StockDetail = ({ route }) => {
 					{TIMEFRAMES.map((tf) => (
 						<TimeframePill
 							key={tf}
-							label={tf}
+							label={t(`invest.timeframes.${tf}`)}
 							active={timeframe === tf}
 							theme={theme}
 							onPress={() => handleTimeframeChange(tf)}
@@ -139,32 +142,32 @@ const StockDetail = ({ route }) => {
 
 				{/* Buy / Sell Buttons */}
 				<View style={styles.buttonRow}>
-					<QPButton title="Comprar" style={styles.actionButton} disabled onPress={() => { }} />
-					<QPButton title="Vender" style={styles.actionButton} outline disabled onPress={() => { }} />
+					<QPButton title={t('invest.stockDetail.buy')} style={styles.actionButton} disabled onPress={() => { }} />
+					<QPButton title={t('invest.stockDetail.sell')} style={styles.actionButton} outline disabled onPress={() => { }} />
 				</View>
 
 				{/* Statistics */}
 				{stock && (
 					<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
-						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Estadísticas</Text>
-						<StatRow label="Apertura" value={formatPrice(stock.open)} theme={theme} />
-						<StatRow label="Cierre anterior" value={formatPrice(stock.previousClose)} theme={theme} />
-						<StatRow label="Máximo del día" value={formatPrice(stock.high)} theme={theme} />
-						<StatRow label="Mínimo del día" value={formatPrice(stock.low)} theme={theme} />
-						<StatRow label="Volumen" value={formatVolume(stock.volume)} theme={theme} />
-						<StatRow label="Máx. 52 sem." value={formatPrice(stock.fiftyTwoWeekHigh)} theme={theme} />
-						<StatRow label="Mín. 52 sem." value={formatPrice(stock.fiftyTwoWeekLow)} theme={theme} isLast />
+						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('invest.common.statistics')}</Text>
+						<StatRow label={t('invest.stockDetail.open')} value={formatPrice(stock.open)} theme={theme} />
+						<StatRow label={t('invest.stockDetail.previousClose')} value={formatPrice(stock.previousClose)} theme={theme} />
+						<StatRow label={t('invest.stockDetail.dayHigh')} value={formatPrice(stock.high)} theme={theme} />
+						<StatRow label={t('invest.stockDetail.dayLow')} value={formatPrice(stock.low)} theme={theme} />
+						<StatRow label={t('invest.stockDetail.volume')} value={formatVolume(stock.volume)} theme={theme} />
+						<StatRow label={t('invest.stockDetail.fiftyTwoWeekHigh')} value={formatPrice(stock.fiftyTwoWeekHigh)} theme={theme} />
+						<StatRow label={t('invest.stockDetail.fiftyTwoWeekLow')} value={formatPrice(stock.fiftyTwoWeekLow)} theme={theme} isLast />
 					</View>
 				)}
 
 				{/* About */}
 				{stock?.description ? (
 					<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
-						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>Acerca de</Text>
+						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('invest.stockDetail.about')}</Text>
 						<Text style={[styles.description, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{stock.description}</Text>
-						{stock.sector ? <StatRow label="Sector" value={stock.sector} theme={theme} /> : null}
-						{stock.exchange ? <StatRow label="Exchange" value={stock.exchange} theme={theme} /> : null}
-						{stock.type ? <StatRow label="Tipo" value={stock.type} theme={theme} isLast /> : null}
+						{stock.sector ? <StatRow label={t('invest.stockDetail.sector')} value={stock.sector} theme={theme} /> : null}
+						{stock.exchange ? <StatRow label={t('invest.stockDetail.exchange')} value={stock.exchange} theme={theme} /> : null}
+						{stock.type ? <StatRow label={t('invest.stockDetail.type')} value={stock.type} theme={theme} isLast /> : null}
 					</View>
 				) : null}
 			</ScrollView>

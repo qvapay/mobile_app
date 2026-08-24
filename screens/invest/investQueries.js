@@ -10,6 +10,9 @@ import { stocksApi } from '../../api/stocksApi'
 import { unwrap } from '../../api/unwrap'
 import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
 
+// i18n fuera de React: resolver EN CALL TIME, nunca a nivel de módulo
+import i18n from '../../i18n'
+
 /**
  * Raíz de las claves del dashboard de Invest. El resumen de ahorros NO cuelga
  * de aquí: vive bajo `['savings', …]` porque lo comparte el BalanceCard del
@@ -149,7 +152,7 @@ export const useCoinHistoryQuery = (tick, timeframe, { enabled = true } = {}) =>
 		const data = unwrap(await coinsApi.priceHistory(tick, timeframe))
 		// Un historial de 0-1 puntos no pinta gráfico: se trata como fallo para
 		// no cachear basura (mismo criterio que el Map anterior)
-		if (!Array.isArray(data) || data.length < 2) { throw new Error('Historial sin datos suficientes') }
+		if (!Array.isArray(data) || data.length < 2) { throw new Error(i18n.t('invest.queries.historyNoData')) }
 		return data
 	},
 	enabled: enabled && !!tick,

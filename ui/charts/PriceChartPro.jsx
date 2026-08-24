@@ -8,6 +8,9 @@ import { runOnJS, useAnimatedReaction, useDerivedValue, useReducedMotion } from 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 
+// i18n (locale de fechas del eje de tiempo)
+import { getDateLocale } from '../../i18n'
+
 // Base compartida con el gráfico básico
 import { LiveDot, formatAxisPrice, toChartPoints } from './PriceChart'
 
@@ -19,9 +22,10 @@ const hapticTick = () => ReactNativeHapticFeedback.trigger('selection', { enable
 const formatTimeLabel = (t, spanSecs) => {
 	const ms = t > 1e12 ? t : t * 1000
 	const date = new Date(ms)
-	if (spanSecs <= 2 * 86400) return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-	if (spanSecs <= 120 * 86400) return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-	return date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' })
+	const locale = getDateLocale()
+	if (spanSecs <= 2 * 86400) return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+	if (spanSecs <= 120 * 86400) return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+	return date.toLocaleDateString(locale, { month: 'short', year: '2-digit' })
 }
 
 // Crosshair del scrubbing: línea vertical punteada + dot con halo sobre la
