@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useReducer } from 'react'
 import { View, Text, Alert } from 'react-native'
 import { toast } from 'sonner-native'
+import { useTranslation } from 'react-i18next'
 
 import QPCodeInput from '../../../ui/particles/QPCodeInput'
 
@@ -43,6 +44,7 @@ function biometricsReducer(state, action) {
 
 const AppLock = () => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -85,7 +87,7 @@ const AppLock = () => {
 	// Handle enable app lock
 	const handleEnable = async () => {
 		if (pin.length !== 4) {
-			toast.error('Ingresa un PIN de 4 dígitos')
+			toast.error(t('settings.appLock.toasts.enterPin4'))
 			return
 		}
 		if (mode === 'setup') {
@@ -94,7 +96,7 @@ const AppLock = () => {
 			return
 		}
 		if (pin !== confirmPin) {
-			toast.error('Los PIN no coinciden')
+			toast.error(t('settings.appLock.toasts.pinMismatch'))
 			setConfirmPin('')
 			setTimeout(() => confirmPinRef.current?.focus(0), 100)
 			return
@@ -103,7 +105,7 @@ const AppLock = () => {
 		const result = await enableAppLock(pin)
 		setIsLoading(false)
 		if (result.success) {
-			toast.success('Bloqueo activado', { description: 'Tu app está protegida' })
+			toast.success(t('settings.appLock.toasts.enabled'), { description: t('settings.appLock.protected') })
 			resetForm()
 		} else {
 			toast.error(result.error)
@@ -113,16 +115,16 @@ const AppLock = () => {
 	// Handle disable
 	const handleDisable = () => {
 		Alert.alert(
-			'Desactivar bloqueo',
-			'Tu app ya no se bloqueará automáticamente. ¿Continuar?',
+			t('settings.appLock.alerts.disableTitle'),
+			t('settings.appLock.alerts.disableBody'),
 			[
-				{ text: 'Cancelar', style: 'cancel' },
+				{ text: t('common.actions.cancel'), style: 'cancel' },
 				{
-					text: 'Desactivar',
+					text: t('settings.appLock.alerts.disableConfirm'),
 					style: 'destructive',
 					onPress: async () => {
 						await disableAppLock()
-						toast.success('Bloqueo desactivado')
+						toast.success(t('settings.appLock.toasts.disabled'))
 						resetForm()
 					}
 				}
@@ -133,11 +135,11 @@ const AppLock = () => {
 	// Handle change PIN
 	const handleChangePin = async () => {
 		if (oldPin.length !== 4 || pin.length !== 4 || confirmPin.length !== 4) {
-			toast.error('Completa todos los campos')
+			toast.error(t('settings.appLock.toasts.fillAllFields'))
 			return
 		}
 		if (pin !== confirmPin) {
-			toast.error('Los PIN nuevos no coinciden')
+			toast.error(t('settings.appLock.toasts.newPinMismatch'))
 			setConfirmPin('')
 			setTimeout(() => confirmPinRef.current?.focus(0), 100)
 			return
@@ -146,7 +148,7 @@ const AppLock = () => {
 		const result = await changeAppLockPin(oldPin, pin)
 		setIsLoading(false)
 		if (result.success) {
-			toast.success('PIN actualizado')
+			toast.success(t('settings.appLock.toasts.pinUpdated'))
 			resetForm()
 		} else {
 			toast.error(result.error)
@@ -194,9 +196,9 @@ const AppLock = () => {
 	if (mode === 'changePin') {
 		return (
 			<AppLockChangePinView
-				oldPinRow={renderPinRow('PIN actual', oldPin, setOldPin, oldPinRef, pinRef)}
-				newPinRow={renderPinRow('Nuevo PIN', pin, setPin, pinRef, confirmPinRef)}
-				confirmRow={renderPinRow('Confirmar nuevo PIN', confirmPin, setConfirmPin, confirmPinRef, null)}
+				oldPinRow={renderPinRow(t('settings.appLock.labels.currentPin'), oldPin, setOldPin, oldPinRef, pinRef)}
+				newPinRow={renderPinRow(t('settings.appLock.labels.newPin'), pin, setPin, pinRef, confirmPinRef)}
+				confirmRow={renderPinRow(t('settings.appLock.labels.confirmNewPin'), confirmPin, setConfirmPin, confirmPinRef, null)}
 				onSubmit={handleChangePin}
 				onCancel={resetForm}
 				isLoading={isLoading}
@@ -213,8 +215,8 @@ const AppLock = () => {
 		<AppLockSetupView
 			mode={mode}
 			security={security}
-			setupRow={renderPinRow('Nuevo PIN', pin, setPin, pinRef, null)}
-			confirmRow={renderPinRow('Confirmar PIN', confirmPin, setConfirmPin, confirmPinRef, null)}
+			setupRow={renderPinRow(t('settings.appLock.labels.newPin'), pin, setPin, pinRef, null)}
+			confirmRow={renderPinRow(t('settings.appLock.labels.confirmPin'), confirmPin, setConfirmPin, confirmPinRef, null)}
 			onActivate={() => {
 				setMode('setup')
 				setTimeout(() => pinRef.current?.focus(0), 100)

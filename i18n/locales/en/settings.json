@@ -77,5 +77,373 @@
 		},
 		"reviewUnavailable": "Rating isn't available right now",
 		"allRightsReserved": "All rights reserved"
+	},
+	"appLock": {
+		"title": "App lock",
+		"protected": "Your app is protected",
+		"labels": {
+			"currentPin": "Current PIN",
+			"newPin": "New PIN",
+			"confirmNewPin": "Confirm new PIN",
+			"confirmPin": "Confirm PIN"
+		},
+		"toasts": {
+			"enterPin4": "Enter a 4-digit PIN",
+			"pinMismatch": "The PINs don't match",
+			"enabled": "Lock enabled",
+			"fillAllFields": "Fill in all the fields",
+			"newPinMismatch": "The new PINs don't match",
+			"pinUpdated": "PIN updated",
+			"disabled": "Lock disabled"
+		},
+		"alerts": {
+			"disableTitle": "Disable lock",
+			"disableBody": "Your app will no longer lock automatically. Continue?",
+			"disableConfirm": "Disable"
+		},
+		"changePin": {
+			"title": "Change PIN",
+			"subtitle": "Enter your current PIN and the new one",
+			"submit": "Update PIN"
+		},
+		"enabled": {
+			"active": "Active",
+			"timeoutTitle": "Auto-lock time",
+			"timeoutDescription": "The app will lock after this long in the background",
+			"biometricEnabled": "{{label}} enabled",
+			"biometricHint": "You can unlock with biometrics or your PIN",
+			"changePinButton": "Change lock PIN",
+			"disableButton": "Disable lock"
+		},
+		"setup": {
+			"subtitle": "Protect your app with a PIN and biometrics",
+			"features": {
+				"autoLock": "Locks the app automatically after {{minutes}} minutes in the background",
+				"unlockMethods": "Unlock with Face ID, Touch ID or fingerprint, or your 4-digit PIN",
+				"localOnly": "All verification is local, no data is sent to the server"
+			},
+			"createTitle": "Create PIN",
+			"createSubtitle": "Choose a 4-digit PIN to lock your app",
+			"confirmTitle": "Confirm PIN",
+			"confirmSubtitle": "Enter the PIN again to confirm",
+			"activateButton": "Enable lock"
+		}
+	},
+	"biometrics": {
+		"fingerprint": "Fingerprint",
+		"subtitle": "Access your account quickly and securely",
+		"notAvailableTitle": "Not available",
+		"notAvailableBody": "Your device doesn't support biometric authentication",
+		"status": {
+			"active": "Active",
+			"inactive": "Inactive"
+		},
+		"accessWith": "Log in with {{label}}",
+		"info": {
+			"storedSecurely": "Your credentials are stored securely on your device, protected by {{label}}",
+			"instantLogin": "Log in instantly without typing your email and password",
+			"passwordChange": "If you change your password, you'll need to enable {{label}} again"
+		},
+		"alerts": {
+			"disableTitle": "Disable {{label}}",
+			"disableBody": "You'll no longer be able to use {{label}} to log in. Continue?",
+			"disableConfirm": "Disable",
+			"enableBody": "To enable {{label}}, log out and log in again. You'll be offered to enable it after login."
+		},
+		"toasts": {
+			"disabled": "{{label}} disabled"
+		}
+	},
+	"contacts": {
+		"title": "Contacts",
+		"subtitle": "People you send to often",
+		"filterPlaceholder": "Search contacts...",
+		"syncing": "Syncing contacts...",
+		"requestingPermission": "Requesting permission...",
+		"syncAgenda": "Sync address book",
+		"findFriends": "Find friends who use QvaPay",
+		"savedCount": "Saved contacts ({{count}})",
+		"emptyList": "You don't have any saved contacts",
+		"noResults": "No results for \"{{query}}\"",
+		"header": {
+			"sync": "Sync",
+			"add": "Add"
+		},
+		"alerts": {
+			"permissionDeniedTitle": "Permission denied",
+			"permissionDeniedBody": "To sync your contacts, enable the permission in your device settings.",
+			"deleteTitle": "Delete contact",
+			"deleteBody": "Are you sure you want to delete this contact?"
+		},
+		"toasts": {
+			"loadFailed": "Couldn't load your contacts",
+			"networkError": "Network error",
+			"invalidContactId": "Invalid contact ID",
+			"deleted": "Contact deleted",
+			"deleteFailed": "Couldn't delete it",
+			"updateFailed": "Couldn't update it"
+		},
+		"addModal": {
+			"title": "Add contact",
+			"searchPlaceholder": "Search user...",
+			"addButton": "Add",
+			"noUsersFound": "No users found",
+			"tryAnotherName": "Try another name or username",
+			"searchHint": "Search by name, username or email",
+			"toasts": {
+				"searchError": "Search failed",
+				"added": "Contact added",
+				"addFailed": "Couldn't add the contact"
+			}
+		}
+	},
+	"deleteAccount": {
+		"title": "Delete account",
+		"subtitle": "This action is permanent and irreversible",
+		"consequencesTitle": "When you delete your account:",
+		"consequences": {
+			"balance": "Your available balance will be permanently deleted",
+			"history": "Your transaction history will be deleted",
+			"p2pOffers": "All your active P2P offers will be cancelled",
+			"kycData": "Your KYC verification and personal data will be erased",
+			"username": "Your username will become available to others"
+		},
+		"supportInfo": "To request your account deletion, open a ticket in our support center. Our team will process your request within 48 hours.",
+		"contactSupport": "Contact support"
+	},
+	"enterprise": {
+		"title": "Business",
+		"subtitle": "Manage your account's business registration and its approval status",
+		"status": {
+			"pending": "Pending",
+			"reviewing": "Under review",
+			"contacted": "Contacted",
+			"approved": "Approved",
+			"rejected": "Rejected"
+		},
+		"statusExplainer": {
+			"pending": "We received your application and it's queued for review. We'll contact you at the corporate email if we need more information.",
+			"reviewing": "Our team is reviewing your company's documentation.",
+			"contacted": "We reached out to you at the corporate email. Check your inbox to continue the process.",
+			"approved": "Your company is verified on QvaPay. You can now operate with your business account and open stores in the marketplace.",
+			"rejected": "Your application wasn't approved. If you believe this is a mistake or your situation changed, you can submit a new application."
+		},
+		"errorTitle": "Couldn't load",
+		"errorBody": "We couldn't check your company's status. Check your connection and try again.",
+		"emptyTitle": "QvaPay for Business",
+		"emptyBody": "Register your company to access the business account and, once approved, sell in the marketplace.",
+		"benefits": {
+			"vipBadge": "VIP badge for the owner",
+			"marketplaceStore": "Your store in the marketplace",
+			"morePaymentMethods": "Get paid with more payment methods",
+			"promotion": "Promotion on QvaPay's social channels"
+		},
+		"registerButton": "Register my company",
+		"reapplyButton": "Submit a new application",
+		"details": {
+			"director": "Director / President",
+			"email": "Corporate email",
+			"activity": "Activity",
+			"employees": "Employees",
+			"statutes": "Bylaws",
+			"statutesSent": "Sent",
+			"statutesNotSent": "Not sent",
+			"submittedAt": "Application"
+		},
+		"stores": {
+			"title": "Stores",
+			"body": "Your company is approved: create stores and sell your products to QvaPay users.",
+			"manageButton": "Manage my stores"
+		},
+		"register": {
+			"toasts": {
+				"mustBePdf": "The file must be a PDF",
+				"pickerErrorTitle": "Error",
+				"pickerErrorBody": "Couldn't open the file picker",
+				"submitted": "Application sent",
+				"submittedDescription": "We'll get in touch with you soon.",
+				"submitFailed": "Couldn't send it"
+			},
+			"searchPlaceholder": "Search…",
+			"submitButton": "Submit application",
+			"step1": {
+				"title": "Your company",
+				"subtitle": "Register your company to access QvaPay's business account",
+				"nameLabel": "Company name",
+				"namePlaceholder": "My Company LLC",
+				"activityLabel": "Business activity",
+				"activityPlaceholder": "E-commerce, services, etc.",
+				"employeesLabel": "Number of employees",
+				"employeesHint": "Employees on payroll, including executives."
+			},
+			"step2": {
+				"title": "Tax details",
+				"subtitle": "The country where the company is incorporated and its tax ID",
+				"countryLabel": "Country of incorporation",
+				"countryPlaceholder": "Select the country…",
+				"einLabel": "EIN (Employer Identification Number)",
+				"entityLabel": "Entity type",
+				"incStateLabel": "State of incorporation",
+				"statePlaceholder": "Select the state…",
+				"usAddressLabel": "Registered address in the U.S.",
+				"addrLine1Placeholder": "Street and number",
+				"addrCityPlaceholder": "City",
+				"addrStatePlaceholder": "State",
+				"addrStateTitle": "Address state",
+				"nitLabel": "NIT (Tax Identification Number)",
+				"nitPlaceholder": "11 digits",
+				"reeupLabel": "REEUP code",
+				"reeupHint": "Cuba's State Registry of Companies and Budgeted Units.",
+				"taxIdLabel": "Tax identification number",
+				"taxIdPlaceholder": "RFC, RUC, NIT, CIF…",
+				"taxIdHint": "Your company's tax ID in its country of registration."
+			},
+			"step3": {
+				"title": "Contact and bylaws",
+				"subtitle": "The company will be linked to your QvaPay account",
+				"directorLabel": "Director or president's name",
+				"directorPlaceholder": "Juan Pérez García",
+				"emailLabel": "Corporate contact email",
+				"emailPlaceholder": "director@company.com",
+				"emailHint": "Only to contact you about this application. It doesn't have to match your account email.",
+				"statutesLabel": "Company bylaws (PDF)",
+				"statutesFileName": "bylaws.pdf",
+				"chooseFile": "Choose PDF file",
+				"fileSizeTap": "{{size}} MB · Tap to change",
+				"tapToChange": "Tap to change",
+				"fileHint": "Bylaws or articles of incorporation · max. 10MB"
+			}
+		},
+		"validation": {
+			"companyName": "Enter the company name.",
+			"activity": "Describe the business activity.",
+			"employeeCount": "Select the number of employees.",
+			"country": "Select the company's country of incorporation.",
+			"ein": "Enter a valid EIN (format 12-3456789).",
+			"entityType": "Select the company's entity type.",
+			"incState": "Select the state of incorporation.",
+			"addrLine1": "Enter the company's registered address (street and number).",
+			"addrCity": "Enter the city of the registered address.",
+			"addrState": "Select the state of the registered address.",
+			"addrZip": "Enter a valid ZIP code (e.g. 33101).",
+			"nit": "Enter a valid NIT (11 digits).",
+			"reeup": "Enter a valid REEUP code.",
+			"taxId": "Enter the company's tax identification number.",
+			"directorName": "Enter the director or president's name.",
+			"email": "Enter a valid contact email.",
+			"statutesPdf": "Attach the company bylaws as a PDF.",
+			"fileTooLarge": "The file must not exceed 10MB."
+		}
+	},
+	"fontSize": {
+		"title": "Font size",
+		"subtitle": "Adjust the text size across the app",
+		"preview": "Preview",
+		"sampleTitle": "Sample title",
+		"sampleSubtitle": "Section subtitle",
+		"sampleParagraph": "This is a sample paragraph so you can see how text will look across the app at the selected size.",
+		"sampleCaption": "Small text · Additional details",
+		"sizeLabel": "Size",
+		"labels": {
+			"extraSmall": "Extra small",
+			"small": "Small",
+			"medium": "Medium - Default",
+			"large": "Large",
+			"extraLarge": "Extra large"
+		}
+	},
+	"goldCheck": {
+		"plans": {
+			"monthly": {
+				"label": "Monthly",
+				"period": "/month"
+			},
+			"yearly": {
+				"label": "Yearly",
+				"period": "/year"
+			}
+		},
+		"duration": {
+			"monthly": "1 month",
+			"yearly": "12 months"
+		},
+		"alreadyGold": "You're already Gold!",
+		"unlockTitle": "Unlock the full power of QvaPay",
+		"activeSubscription": "Active subscription",
+		"expires": "Expires: {{date}}",
+		"alerts": {
+			"confirmTitle": "Confirm Gold subscription",
+			"confirmBody": "Are you sure you want to subscribe to QvaPay Gold?\n\nUser: @{{username}}\nDuration: {{duration}}\n",
+			"payButton": "Pay ${{amount}}"
+		},
+		"toasts": {
+			"activated": "Gold subscription activated",
+			"paymentPendingActivation": "Your payment is pending confirmation. Your Gold will activate once it completes.",
+			"validateFailed": "Couldn't validate the purchase",
+			"validateError": "Error validating the purchase",
+			"noUserInfo": "Couldn't get your user information",
+			"subscribed": "Subscription successful",
+			"subscribeFailed": "Couldn't process the subscription",
+			"subscribeError": "An error occurred while processing the subscription",
+			"noPreviousPurchases": "No previous purchases found",
+			"restored": "Subscription restored",
+			"paymentPending": "Your payment is pending confirmation.",
+			"restoreFailed": "Couldn't restore the subscription",
+			"restoreError": "Error restoring purchases"
+		},
+		"upsell": {
+			"bestValue": "Best value",
+			"benefitsTitle": "GOLD benefits:",
+			"benefits": {
+				"goldenCheck": "Golden check on your profile",
+				"betterRate": "Better interest rate on your balance",
+				"moreP2POps": "More simultaneous P2P operations",
+				"subdomain": "Exclusive subdomain (xxx.qvapay.com)",
+				"earlyOffers": "Early access to P2P offers",
+				"zeroP2PFee": "0% P2P fee",
+				"earlyFeatures": "Early access to new features",
+				"cashback": "Cashback on top-up purchases",
+				"prioritySupport": "Priority support"
+			},
+			"processing": "Processing...",
+			"payWithBalance": "Pay with QvaPay balance ${{amount}}",
+			"payWithStore": "Pay with {{store}}",
+			"payWithStorePrice": "Pay with {{store}} {{price}}",
+			"loadingPrices": "Loading store prices...",
+			"restoring": "Restoring...",
+			"restorePurchases": "Restore purchases",
+			"disclaimer": "The subscription renews automatically. You can cancel anytime from your account settings."
+		}
+	},
+	"kyc": {
+		"toasts": {
+			"inReview": "Your verification is under review",
+			"errorTitle": "Error",
+			"sessionFailed": "Couldn't get the verification session",
+			"genericError": "An error occurred"
+		},
+		"verified": {
+			"title": "Identity verified!",
+			"body": "Thanks for completing the verification. You can now enjoy all the benefits."
+		},
+		"pending": {
+			"title": "Verification under review",
+			"body": "We're reviewing your information. We'll let you know as soon as it's ready — it usually takes just a few minutes."
+		},
+		"declined": {
+			"title": "Verification declined",
+			"body": "We couldn't complete your verification. Write to us at <0>soporte@qvapay.com</0> and we'll help you sort it out."
+		},
+		"idle": {
+			"title": "Identity verification",
+			"body": "Verify your identity to access all of QvaPay's benefits.",
+			"benefits": {
+				"higherLimits": "Higher transaction limits",
+				"betterP2P": "Better opportunities on the P2P",
+				"exclusiveFeatures": "Access to exclusive features"
+			},
+			"opening": "Opening verification...",
+			"verifyButton": "Verify my identity"
+		}
 	}
 }

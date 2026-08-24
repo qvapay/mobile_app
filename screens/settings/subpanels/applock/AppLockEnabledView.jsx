@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import QPButton from '../../../../ui/particles/QPButton'
@@ -14,13 +15,17 @@ const TIMEOUT_OPTIONS = [
 ]
 
 // App-lock enabled state: auto-lock timeout selector, biometric info, change/disable actions.
-const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTimeoutSelect, onChangePin, onDisable, theme, textStyles, containerStyles }) => (
+const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTimeoutSelect, onChangePin, onDisable, theme, textStyles, containerStyles }) => {
+
+	const { t } = useTranslation()
+
+	return (
 	<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
 		<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-			<Text style={textStyles.h1}>Bloqueo de app</Text>
+			<Text style={textStyles.h1}>{t('settings.appLock.title')}</Text>
 			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-				Tu app está protegida
+				{t('settings.appLock.protected')}
 			</Text>
 
 			{/* Status icon */}
@@ -28,14 +33,14 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 				<View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.successFill + '20' }}>
 					<FontAwesome6 name="lock" size={40} color={theme.colors.successText} iconStyle="solid" />
 				</View>
-				<Text style={[textStyles.h2, { color: theme.colors.successText, marginTop: 20 }]}>Activo</Text>
+				<Text style={[textStyles.h2, { color: theme.colors.successText, marginTop: 20 }]}>{t('settings.appLock.enabled.active')}</Text>
 			</View>
 
 			{/* Auto-lock timeout */}
 			<View style={[containerStyles.card, { marginBottom: 16 }]}>
-				<Text style={[textStyles.h4, { marginBottom: 12 }]}>Tiempo de bloqueo</Text>
+				<Text style={[textStyles.h4, { marginBottom: 12 }]}>{t('settings.appLock.enabled.timeoutTitle')}</Text>
 				<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginBottom: 16 }]}>
-					La app se bloqueará después de este tiempo en segundo plano
+					{t('settings.appLock.enabled.timeoutDescription')}
 				</Text>
 				<View style={styles.timeoutGrid}>
 					{TIMEOUT_OPTIONS.map((option) => (
@@ -70,12 +75,12 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 							<FontAwesome6 name="fingerprint" size={18} style={{ color: theme.colors.primary, marginRight: 12 }} iconStyle="solid" />
 						)}
 						<Text style={[textStyles.h4, { flex: 1, marginBottom: 0 }]}>
-							{biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella Digital'} activado
+							{t('settings.appLock.enabled.biometricEnabled', { label: biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : t('settings.biometrics.fingerprint') })}
 						</Text>
 						<FontAwesome6 name="circle-check" size={20} color={theme.colors.successText} iconStyle="solid" />
 					</View>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginTop: 8 }]}>
-						Puedes desbloquear con biometría o PIN
+						{t('settings.appLock.enabled.biometricHint')}
 					</Text>
 				</View>
 			)}
@@ -84,11 +89,12 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 
 		{/* Actions */}
 		<View style={containerStyles.bottomButtonContainer}>
-			<QPButton title="Cambiar PIN de bloqueo" onPress={onChangePin} />
-			<QPButton title="Desactivar bloqueo" onPress={onDisable} style={{ marginTop: 12 }} danger />
+			<QPButton title={t('settings.appLock.enabled.changePinButton')} onPress={onChangePin} />
+			<QPButton title={t('settings.appLock.enabled.disableButton')} onPress={onDisable} style={{ marginTop: 12 }} danger />
 		</View>
 	</View>
-)
+	)
+}
 
 const styles = StyleSheet.create({
 	timeoutGrid: {

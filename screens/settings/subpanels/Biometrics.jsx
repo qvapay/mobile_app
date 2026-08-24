@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, ScrollView, Alert, Switch } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -25,6 +26,7 @@ import QPLoader from '../../../ui/particles/QPLoader'
 const Biometrics = () => {
 
     // Contexts
+    const { t } = useTranslation()
     const { theme } = useTheme()
     const { updateSettings } = useSettings()
     const textStyles = createTextStyles(theme)
@@ -46,30 +48,30 @@ const Biometrics = () => {
         checkBiometrics()
     }, [])
 
-    const biometricLabel = biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : 'Huella Digital'
+    const biometricLabel = biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : t('settings.biometrics.fingerprint')
 
     // Toggle biometrics
     const handleToggle = async (value) => {
         if (!value) {
             Alert.alert(
-                `Desactivar ${biometricLabel}`,
-                `Ya no podrás usar ${biometricLabel} para iniciar sesión. ¿Continuar?`,
+                t('settings.biometrics.alerts.disableTitle', { label: biometricLabel }),
+                t('settings.biometrics.alerts.disableBody', { label: biometricLabel }),
                 [
-                    { text: 'Cancelar', style: 'cancel' },
+                    { text: t('common.actions.cancel'), style: 'cancel' },
                     {
-                        text: 'Desactivar',
+                        text: t('settings.biometrics.alerts.disableConfirm'),
                         style: 'destructive',
                         onPress: async () => {
                             await removeBiometricCredentials()
                             await updateSettings('security', { biometricsEnabled: false })
                             setBiometricsActive(false)
-                            toast.success(`${biometricLabel} desactivado`)
+                            toast.success(t('settings.biometrics.toasts.disabled', { label: biometricLabel }))
                         }
                     }
                 ]
             )
         } else {
-            Alert.alert(biometricLabel, `Para activar ${biometricLabel}, cierra sesión e inicia sesión nuevamente. Se te ofrecerá activarlo después del login.`)
+            Alert.alert(biometricLabel, t('settings.biometrics.alerts.enableBody', { label: biometricLabel }))
         }
     }
 
@@ -84,9 +86,9 @@ const Biometrics = () => {
                         <View style={{ width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.warning + '20' }}>
                             <FontAwesome6 name="fingerprint" size={48} color={theme.colors.warning} iconStyle="solid" />
                         </View>
-                        <Text style={[textStyles.h1, { color: theme.colors.warning, marginTop: 20 }]}>No disponible</Text>
+                        <Text style={[textStyles.h1, { color: theme.colors.warning, marginTop: 20 }]}>{t('settings.biometrics.notAvailableTitle')}</Text>
                         <Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 10 }]}>
-                            Tu dispositivo no soporta autenticación biométrica
+                            {t('settings.biometrics.notAvailableBody')}
                         </Text>
                     </View>
                 </ScrollView>
@@ -100,7 +102,7 @@ const Biometrics = () => {
 
                 <Text style={textStyles.h1}>{biometricLabel}</Text>
                 <Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-                    Accede a tu cuenta de forma rápida y segura
+                    {t('settings.biometrics.subtitle')}
                 </Text>
 
                 {/* Status icon */}
@@ -113,7 +115,7 @@ const Biometrics = () => {
                         )}
                     </View>
                     <Text style={[textStyles.h2, { color: biometricsActive ? theme.colors.successText : theme.colors.tertiaryText, marginTop: 20 }]}>
-                        {biometricsActive ? 'Activo' : 'Inactivo'}
+                        {biometricsActive ? t('settings.biometrics.status.active') : t('settings.biometrics.status.inactive')}
                     </Text>
                 </View>
 
@@ -125,7 +127,7 @@ const Biometrics = () => {
                         ) : (
                             <FontAwesome6 name="fingerprint" size={18} style={{ color: theme.colors.primary, marginRight: 12 }} iconStyle="solid" />
                         )}
-                        <Text style={[textStyles.h4, { marginBottom: 0 }]}>Acceder con {biometricLabel}</Text>
+                        <Text style={[textStyles.h4, { marginBottom: 0 }]}>{t('settings.biometrics.accessWith', { label: biometricLabel })}</Text>
                     </View>
                     <Switch value={biometricsActive} onValueChange={handleToggle} trackColor={{ false: theme.colors.tertiaryText, true: theme.colors.primary }} />
                 </View>
@@ -135,19 +137,19 @@ const Biometrics = () => {
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
                         <FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
                         <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Tus credenciales se almacenan de forma segura en el dispositivo, protegidas por {biometricLabel}
+                            {t('settings.biometrics.info.storedSecurely', { label: biometricLabel })}
                         </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
                         <FontAwesome6 name="bolt" size={16} color={theme.colors.primary} iconStyle="solid" />
                         <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Inicia sesión al instante sin escribir tu correo y contraseña
+                            {t('settings.biometrics.info.instantLogin')}
                         </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <FontAwesome6 name="circle-info" size={16} color={theme.colors.primary} iconStyle="solid" />
                         <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
-                            Si cambias tu contraseña, deberás activar {biometricLabel} de nuevo
+                            {t('settings.biometrics.info.passwordChange', { label: biometricLabel })}
                         </Text>
                     </View>
                 </View>

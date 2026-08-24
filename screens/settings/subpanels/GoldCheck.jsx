@@ -1,6 +1,8 @@
 import { View, Text, ScrollView, Platform, Alert } from 'react-native'
 import React, { useState, useEffect, useCallback, useReducer } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useTranslation } from 'react-i18next'
+import { getDateLocale } from '../../../i18n'
 
 // Lottie
 import LottieView from 'lottie-react-native'
@@ -28,17 +30,14 @@ import { toast } from 'sonner-native'
 import { useIAP } from 'react-native-iap'
 import { IAP_SKUS, getProductId, getAndroidOfferToken, getIAPErrorMessage } from '../../../helpers/iap'
 
-// Plans
+// Plans — label/period viven como claves de i18n (settings.goldCheck.plans.*)
+// y las resuelve GoldUpsell en render por la clave de cada entrada
 const plans = {
 	monthly: {
-		value: 4.99,
-		period: '/mes',
-		label: 'Mensual'
+		value: 4.99
 	},
 	yearly: {
-		value: 49.99,
-		period: '/año',
-		label: 'Anual'
+		value: 49.99
 	}
 }
 
@@ -53,6 +52,9 @@ function setFieldReducer(state, action) {
 }
 
 const GoldCheck = ({ navigation }) => {
+
+	// Idioma activo
+	const { t } = useTranslation()
 
 	// User AuthContext
 	const { user, updateUser } = useAuth()
@@ -109,15 +111,15 @@ const GoldCheck = ({ navigation }) => {
 					setGoldCheckStatus(true)
 					setGoldCheckExpire(result.data.golden_expire)
 					updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
-					toast.success('Suscripción Gold activada')
+					toast.success(t('settings.goldCheck.toasts.activated'))
 				} else if (result.data?.pending || result.status === 202) {
 					// Deferred payment (cash/carrier) not yet settled — do NOT finish; the store re-notifies on settle.
-					toast.info('Tu pago está pendiente de confirmación. Tu Gold se activará al completarse.')
+					toast.info(t('settings.goldCheck.toasts.paymentPendingActivation'))
 				} else {
-					toast.error(result.error || result.data?.error || 'No se pudo validar la compra')
+					toast.error(result.error || result.data?.error || t('settings.goldCheck.toasts.validateFailed'))
 				}
 			} catch (error) {
-				toast.error('Error al validar la compra')
+				toast.error(t('settings.goldCheck.toasts.validateError'))
 			} finally {
 				setIsPurchasingIAP(false)
 			}
@@ -159,27 +161,27 @@ const GoldCheck = ({ navigation }) => {
 	const handleSubscribe = async () => {
 
 		if (!user?.uuid) {
-			toast.error('No se pudo obtener la información del usuario')
+			toast.error(t('settings.goldCheck.toasts.noUserInfo'))
 			return
 		}
 
 		const duration = selectedPlan === 'yearly' ? 12 : 1
 		const plan = plans[selectedPlan]
-		const durationText = selectedPlan === 'yearly' ? '12 meses' : '1 mes'
+		const durationText = selectedPlan === 'yearly' ? t('settings.goldCheck.duration.yearly') : t('settings.goldCheck.duration.monthly')
 
 		setIsLoading(true)
 
 		Alert.alert(
-			'Confirmar Suscripción Gold',
-			`¿Estás seguro de que quieres suscribirte a QvaPay Gold?\n\nUsuario: @${user.username || user.email}\nDuración: ${durationText}\n`,
+			t('settings.goldCheck.alerts.confirmTitle'),
+			t('settings.goldCheck.alerts.confirmBody', { username: user.username || user.email, duration: durationText }),
 			[
 				{
-					text: 'Cancelar',
+					text: t('common.actions.cancel'),
 					style: 'cancel',
 					onPress: () => setIsLoading(false)
 				},
 				{
-					text: `Pagar $${plan.value}`,
+					text: t('settings.goldCheck.alerts.payButton', { amount: plan.value }),
 					style: 'destructive',
 					onPress: async () => {
 
@@ -195,11 +197,11 @@ const GoldCheck = ({ navigation }) => {
 								setGoldCheckStatus(true)
 								setGoldCheckExpire(result.data.golden_expire)
 								updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
-								toast.success('Suscripción exitosa')
-							} else { toast.error(result.error || 'No se pudo procesar la suscripción') }
+								toast.success(t('settings.goldCheck.toasts.subscribed'))
+							} else { toast.error(result.error || t('settings.goldCheck.toasts.subscribeFailed')) }
 
 						} catch (error) {
-							toast.error('Ocurrió un error al procesar la suscripción')
+							toast.error(t('settings.goldCheck.toasts.subscribeError'))
 						}
 						finally {
 							setIsPurchasing(false)
@@ -253,7 +255,7 @@ const GoldCheck = ({ navigation }) => {
 			const { getAvailablePurchases: getAvailablePurchasesDirect } = require('react-native-iap')
 			const purchases = await getAvailablePurchasesDirect()
 			if (!purchases?.length) {
-				toast.info('No se encontraron compras anteriores')
+				toast.info(t('settings.goldCheck.toasts.noPreviousPurchases'))
 				return
 			}
 
@@ -274,18 +276,18 @@ const GoldCheck = ({ navigation }) => {
 				setGoldCheckStatus(true)
 				setGoldCheckExpire(result.data.golden_expire)
 				updateUser({ ...user, gold_check: true, gold_expire: result.data.golden_expire })
-				toast.success('Suscripción restaurada')
+				toast.success(t('settings.goldCheck.toasts.restored'))
 			} else if (result.data?.pending || result.status === 202) {
-				toast.info('Tu pago está pendiente de confirmación.')
+				toast.info(t('settings.goldCheck.toasts.paymentPending'))
 			} else {
-				toast.error(result.error || result.data?.error || 'No se pudo restaurar la suscripción')
+				toast.error(result.error || result.data?.error || t('settings.goldCheck.toasts.restoreFailed'))
 			}
 		} catch (error) {
-			toast.error('Error al restaurar compras')
+			toast.error(t('settings.goldCheck.toasts.restoreError'))
 		} finally {
 			setIsRestoringPurchases(false)
 		}
-	}, [user, updateUser])
+	}, [user, updateUser, t])
 
 	return (
 		<ScrollView style={[containerStyles.container, { paddingHorizontal: theme.spacing.md }]}>
@@ -303,7 +305,7 @@ const GoldCheck = ({ navigation }) => {
 				)}
 
 				<Text style={[textStyles.h1, { textAlign: 'center', marginBottom: theme.spacing.lg, lineHeight: 36 }]}>
-					{goldCheckStatus ? '¡Ya eres Gold!' : 'Desbloquea todo el poder de QvaPay'}
+					{goldCheckStatus ? t('settings.goldCheck.alreadyGold') : t('settings.goldCheck.unlockTitle')}
 				</Text>
 
 				{/* Gold Status Display */}
@@ -319,13 +321,13 @@ const GoldCheck = ({ navigation }) => {
 						<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
 							<FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" style={{ marginRight: theme.spacing.sm }} />
 							<Text style={[textStyles.h3, { textAlign: 'center', color: theme.colors.gold }]}>
-								Suscripción Activa
+								{t('settings.goldCheck.activeSubscription')}
 							</Text>
 						</View>
 
 						{goldCheckExpire && (
 							<Text style={[textStyles.text, { textAlign: 'center', color: theme.colors.primaryText }]}>
-								Vence: {new Date(goldCheckExpire).toLocaleDateString()}
+								{t('settings.goldCheck.expires', { date: new Date(goldCheckExpire).toLocaleDateString(getDateLocale()) })}
 							</Text>
 						)}
 					</View>

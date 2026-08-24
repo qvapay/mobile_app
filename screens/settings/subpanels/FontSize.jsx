@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
@@ -13,16 +14,18 @@ const fontSizeSteps = [
 	{ key: 'extraLarge', label: 'XL' },
 ]
 
+// Claves de i18n resueltas en render (constante de módulo)
 const fontSizeLabels = {
-	extraSmall: 'Extra pequeño',
-	small: 'Pequeño',
-	medium: 'Mediano - Por defecto',
-	large: 'Grande',
-	extraLarge: 'Extra grande',
+	extraSmall: 'settings.fontSize.labels.extraSmall',
+	small: 'settings.fontSize.labels.small',
+	medium: 'settings.fontSize.labels.medium',
+	large: 'settings.fontSize.labels.large',
+	extraLarge: 'settings.fontSize.labels.extraLarge',
 }
 
 const FontSize = () => {
 
+	const { t } = useTranslation()
 	const { theme, setFontSize, fontSizeKey } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
@@ -39,29 +42,29 @@ const FontSize = () => {
 		<ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false}>
 
 			<View style={styles.header}>
-				<Text style={textStyles.h1}>Tamaño de fuente</Text>
-				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>Ajusta el tamaño del texto en toda la app</Text>
+				<Text style={textStyles.h1}>{t('settings.fontSize.title')}</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('settings.fontSize.subtitle')}</Text>
 			</View>
 
 			{/* Preview */}
-			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Vista previa</Text>
+			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>{t('settings.fontSize.preview')}</Text>
 			<View style={[containerStyles.box, { padding: 16, marginBottom: 20, flexDirection: 'column', alignItems: 'flex-start' }]}>
 				<Text style={[textStyles.h2, { color: theme.colors.primaryText, marginBottom: 6 }]}>
-					Título de ejemplo
+					{t('settings.fontSize.sampleTitle')}
 				</Text>
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 10 }]}>
-					Subtítulo de sección
+					{t('settings.fontSize.sampleSubtitle')}
 				</Text>
 				<Text style={[textStyles.body, { color: theme.colors.primaryText, lineHeight: theme.typography.fontSize.md * 1.5 }]}>
-					Este es un párrafo de ejemplo para que puedas ver cómo se verá el texto en toda la aplicación con el tamaño seleccionado.
+					{t('settings.fontSize.sampleParagraph')}
 				</Text>
 				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 8 }]}>
-					Texto pequeño · Detalles adicionales
+					{t('settings.fontSize.sampleCaption')}
 				</Text>
 			</View>
 
 			{/* Step selector */}
-			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Tamaño</Text>
+			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>{t('settings.fontSize.sizeLabel')}</Text>
 			<View style={[containerStyles.box, { padding: 20, paddingBottom: 24, marginBottom: 12 }]}>
 				<View style={styles.stepSelector}>
 					<Text style={{ fontSize: theme.typography.fontSize.sm - 2, color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium }}>Aa</Text>
@@ -107,7 +110,7 @@ const FontSize = () => {
 			</View>
 
 			<Text style={[textStyles.caption, { color: theme.colors.primary, textAlign: 'center', marginBottom: 12 }]}>
-				{fontSizeLabels[fontSizeKey]}
+				{t(fontSizeLabels[fontSizeKey])}
 			</Text>
 
 		</ScrollView>

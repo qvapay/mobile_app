@@ -4,9 +4,12 @@
  * US → EIN + entity type + inc. state + registered address; CU → NIT + REEUP;
  * rest → generic tax id. Sanctioned jurisdictions are excluded from the
  * country list (the server rejects them anyway). Free of React Native imports
- * so it runs under `@jest-environment node` (see keypadAmount.js).
+ * so it runs under `@jest-environment node` (see keypadAmount.js) — the i18n
+ * singleton is RN-free too, and the localized validation messages resolve via
+ * `i18n.t()` EN CALL TIME (never at module scope) so language switches apply.
  */
 
+import i18n from '../../../../i18n'
 import { countries } from '../../../../labels/countries'
 
 // Espejo de DEFAULT_ISO2 en qpweb lib/sanctioned-jurisdictions.js — países
@@ -87,12 +90,12 @@ export const EMPTY_FISCAL = { taxId: '', reeup: '', entityType: '', incState: ''
 /**
  * Valida el paso Empresa (nombre, actividad, empleados).
  * @param {object} form
- * @returns {string|null} Mensaje de error o null si es válido.
+ * @returns {string|null} Mensaje de error (localizado) o null si es válido.
  */
 export const validateCompanyStep = (form) => {
-	if (form.companyName.trim().length < 2) { return 'Ingresa el nombre de la empresa.' }
-	if (form.activity.trim().length < 3) { return 'Describe la actividad empresarial.' }
-	if (!EMPLOYEE_RANGES.some((r) => r.value === form.employeeCount)) { return 'Selecciona la cantidad de empleados.' }
+	if (form.companyName.trim().length < 2) { return i18n.t('settings.enterprise.validation.companyName') }
+	if (form.activity.trim().length < 3) { return i18n.t('settings.enterprise.validation.activity') }
+	if (!EMPLOYEE_RANGES.some((r) => r.value === form.employeeCount)) { return i18n.t('settings.enterprise.validation.employeeCount') }
 	return null
 }
 
@@ -100,26 +103,26 @@ export const validateCompanyStep = (form) => {
  * Valida el paso Fiscal — espejo del bloque fiscalError del wizard web
  * (y de validateCompanyFiscal en el server).
  * @param {object} form
- * @returns {string|null} Mensaje de error o null si es válido.
+ * @returns {string|null} Mensaje de error (localizado) o null si es válido.
  */
 export const validateFiscalStep = (form) => {
-	if (!form.country) { return 'Selecciona el país de constitución de la empresa.' }
+	if (!form.country) { return i18n.t('settings.enterprise.validation.country') }
 	if (form.country === 'US') {
-		if (!EIN_REGEX.test(form.taxId.trim().replace(/\s/g, ''))) { return 'Ingresa un EIN válido (formato 12-3456789).' }
-		if (!US_ENTITY_TYPES.includes(form.entityType)) { return 'Selecciona el tipo de entidad de la empresa.' }
-		if (!US_STATES.some((s) => s.code === form.incState)) { return 'Selecciona el estado de constitución.' }
-		if (form.addrLine1.trim().length < 3) { return 'Ingresa la dirección registrada de la empresa (calle y número).' }
-		if (form.addrCity.trim().length < 2) { return 'Ingresa la ciudad de la dirección registrada.' }
-		if (!US_STATES.some((s) => s.code === form.addrState)) { return 'Selecciona el estado de la dirección registrada.' }
-		if (!US_ZIP_REGEX.test(form.addrZip.trim())) { return 'Ingresa un código ZIP válido (p. ej. 33101).' }
+		if (!EIN_REGEX.test(form.taxId.trim().replace(/\s/g, ''))) { return i18n.t('settings.enterprise.validation.ein') }
+		if (!US_ENTITY_TYPES.includes(form.entityType)) { return i18n.t('settings.enterprise.validation.entityType') }
+		if (!US_STATES.some((s) => s.code === form.incState)) { return i18n.t('settings.enterprise.validation.incState') }
+		if (form.addrLine1.trim().length < 3) { return i18n.t('settings.enterprise.validation.addrLine1') }
+		if (form.addrCity.trim().length < 2) { return i18n.t('settings.enterprise.validation.addrCity') }
+		if (!US_STATES.some((s) => s.code === form.addrState)) { return i18n.t('settings.enterprise.validation.addrState') }
+		if (!US_ZIP_REGEX.test(form.addrZip.trim())) { return i18n.t('settings.enterprise.validation.addrZip') }
 		return null
 	}
 	if (form.country === 'CU') {
-		if (!NIT_REGEX.test(form.taxId.trim().replace(/\s/g, ''))) { return 'Ingresa un NIT válido (11 dígitos).' }
-		if (!REEUP_REGEX.test(form.reeup.trim())) { return 'Ingresa un código REEUP válido.' }
+		if (!NIT_REGEX.test(form.taxId.trim().replace(/\s/g, ''))) { return i18n.t('settings.enterprise.validation.nit') }
+		if (!REEUP_REGEX.test(form.reeup.trim())) { return i18n.t('settings.enterprise.validation.reeup') }
 		return null
 	}
-	if (form.taxId.trim().length < 3) { return 'Ingresa el número de identificación fiscal de la empresa.' }
+	if (form.taxId.trim().length < 3) { return i18n.t('settings.enterprise.validation.taxId') }
 	return null
 }
 
@@ -127,13 +130,13 @@ export const validateFiscalStep = (form) => {
  * Valida el paso Contacto y estatutos (director, email, PDF).
  * @param {object} form
  * @param {{ name?: string, size?: number }|null} file - Documento elegido en el picker.
- * @returns {string|null} Mensaje de error o null si es válido.
+ * @returns {string|null} Mensaje de error (localizado) o null si es válido.
  */
 export const validateContactStep = (form, file) => {
-	if (form.directorName.trim().length < 3) { return 'Ingresa el nombre del director o presidente.' }
-	if (!EMAIL_REGEX.test(form.email.trim())) { return 'Ingresa un email de contacto válido.' }
-	if (!file) { return 'Adjunta los estatutos de la empresa en PDF.' }
-	if (file.size && file.size > 10 * 1024 * 1024) { return 'El archivo no debe superar los 10MB.' }
+	if (form.directorName.trim().length < 3) { return i18n.t('settings.enterprise.validation.directorName') }
+	if (!EMAIL_REGEX.test(form.email.trim())) { return i18n.t('settings.enterprise.validation.email') }
+	if (!file) { return i18n.t('settings.enterprise.validation.statutesPdf') }
+	if (file.size && file.size > 10 * 1024 * 1024) { return i18n.t('settings.enterprise.validation.fileTooLarge') }
 	return null
 }
 
