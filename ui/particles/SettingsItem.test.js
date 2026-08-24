@@ -62,7 +62,7 @@ describe('SettingsItem', () => {
 	test('rounds only the outer corners of the group', async () => {
 		const first = await render({ index: 0, totalItems: 3 })
 		const firstStyle = StyleSheet.flatten(getPressable(first).props.style)
-		expect(firstStyle.borderTopLeftRadius).toBe(10)
+		expect(firstStyle.borderTopLeftRadius).toBe(12)
 		expect(firstStyle.borderBottomLeftRadius).toBe(0)
 
 		const middle = await render({ index: 1, totalItems: 3 })
@@ -73,7 +73,7 @@ describe('SettingsItem', () => {
 		const last = await render({ index: 2, totalItems: 3 })
 		const lastStyle = StyleSheet.flatten(getPressable(last).props.style)
 		expect(lastStyle.borderTopLeftRadius).toBe(0)
-		expect(lastStyle.borderBottomLeftRadius).toBe(10)
+		expect(lastStyle.borderBottomLeftRadius).toBe(12)
 		expect(lastStyle.marginBottom).toBe(10)
 	})
 
