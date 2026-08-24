@@ -18,5 +18,64 @@
 				"description": "Use English across the app"
 			}
 		}
+	},
+	"menu": {
+		"searchPlaceholder": "Search settings",
+		"noResults": "No results for “{{query}}”",
+		"groups": {
+			"appearance": "APPEARANCE",
+			"profile": "PROFILE",
+			"gold": "GOLD",
+			"security": "SECURITY",
+			"notifications": "NOTIFICATIONS",
+			"payments": "PAYMENTS"
+		},
+		"items": {
+			"theme": "Theme",
+			"fontSize": "Font",
+			"language": "Language",
+			"userdata": "Personal details",
+			"phone": "Verify phone",
+			"telegram": "Verify Telegram",
+			"enterprise": "Business",
+			"goldCheck": "GOLD subscription",
+			"referals": "Invite friends",
+			"password": "Change password",
+			"biometrics": "Face ID / Touch ID",
+			"passkeys": "Passkeys",
+			"appLock": "App lock",
+			"kyc": "Identity verification",
+			"deleteAccount": "Delete account",
+			"notifications": "Notification delivery",
+			"paymentMethods": "Payment methods",
+			"contacts": "Contacts",
+			"roundup": "Round-ups"
+		},
+		"status": {
+			"active": "Active"
+		},
+		"avatar": {
+			"changeProfilePhoto": "Change profile photo",
+			"changeCoverPhoto": "Change cover photo",
+			"takePhoto": "Take photo",
+			"chooseFromGallery": "Choose from gallery",
+			"uploadingPhoto": "Uploading photo...",
+			"uploadingCover": "Uploading cover...",
+			"photoUpdated": "Photo updated",
+			"coverUpdated": "Cover updated",
+			"uploadFailedPhoto": "Couldn't upload the photo",
+			"uploadFailedCover": "Couldn't upload the cover",
+			"errorTitle": "Error"
+		},
+		"logout": {
+			"button": "Log out",
+			"confirmQuestion": "Are you sure you want to log out?",
+			"keepBiometricsQuestion": "Do you want to keep biometric access for next time?",
+			"deleteAll": "Remove everything",
+			"keepBiometrics": "Keep biometrics",
+			"failed": "Couldn't log out. Please try again."
+		},
+		"reviewUnavailable": "Rating isn't available right now",
+		"allRightsReserved": "All rights reserved"
 	}
 }

@@ -18,5 +18,64 @@
 				"description": "Use English across the app"
 			}
 		}
+	},
+	"menu": {
+		"searchPlaceholder": "Buscar en ajustes",
+		"noResults": "Sin resultados para “{{query}}”",
+		"groups": {
+			"appearance": "APARIENCIA",
+			"profile": "PERFIL",
+			"gold": "GOLD",
+			"security": "SEGURIDAD",
+			"notifications": "NOTIFICACIONES",
+			"payments": "PAGOS"
+		},
+		"items": {
+			"theme": "Tema",
+			"fontSize": "Fuente",
+			"language": "Idioma",
+			"userdata": "Datos personales",
+			"phone": "Verificar celular",
+			"telegram": "Verificar Telegram",
+			"enterprise": "Empresa",
+			"goldCheck": "Suscripción GOLD",
+			"referals": "Invitar amigos",
+			"password": "Cambiar contraseña",
+			"biometrics": "Face ID / Touch ID",
+			"passkeys": "Passkeys",
+			"appLock": "Bloqueo de app",
+			"kyc": "Verificación de identidad",
+			"deleteAccount": "Eliminar cuenta",
+			"notifications": "Envío de notificaciones",
+			"paymentMethods": "Métodos de pago",
+			"contacts": "Contactos",
+			"roundup": "Micro pagos"
+		},
+		"status": {
+			"active": "Activo"
+		},
+		"avatar": {
+			"changeProfilePhoto": "Cambiar foto de perfil",
+			"changeCoverPhoto": "Cambiar foto de portada",
+			"takePhoto": "Tomar foto",
+			"chooseFromGallery": "Elegir de galería",
+			"uploadingPhoto": "Subiendo foto...",
+			"uploadingCover": "Subiendo portada...",
+			"photoUpdated": "Foto actualizada",
+			"coverUpdated": "Portada actualizada",
+			"uploadFailedPhoto": "No se pudo subir la foto",
+			"uploadFailedCover": "No se pudo subir la portada",
+			"errorTitle": "Error"
+		},
+		"logout": {
+			"button": "Cerrar sesión",
+			"confirmQuestion": "¿Estás seguro de querer cerrar sesión?",
+			"keepBiometricsQuestion": "¿Deseas mantener el acceso biométrico para la próxima vez?",
+			"deleteAll": "Eliminar todo",
+			"keepBiometrics": "Mantener biometría",
+			"failed": "No se pudo cerrar sesión. Por favor, inténtalo de nuevo."
+		},
+		"reviewUnavailable": "Valoración no disponible en este momento",
+		"allRightsReserved": "Todos los derechos reservados"
 	}
 }
