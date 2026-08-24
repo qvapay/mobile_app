@@ -80,7 +80,7 @@ export const DEFAULT_SETTINGS = {
 		bottomBarLabels: false
 	},
 
-	// Language and localization — currentLanguage: 'auto' | 'es' | 'en'
+	// Language and localization — currentLanguage: 'auto' | 'es' | 'en' | 'pt'
 	// ('auto' sigue el idioma del dispositivo; settings/LanguageSync.jsx lo
 	// aplica al singleton de i18next en runtime)
 	language: {

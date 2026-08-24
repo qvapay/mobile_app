@@ -1,0 +1,174 @@
+{
+	"common": {
+		"errorTitle": "Erro"
+	},
+	"send": {
+		"sendButton": "Enviar ${{amount}}",
+		"amountPlaceholder": "Valor a enviar",
+		"amountPlaceholderTo": "Valor a enviar para ...",
+		"sendTo": "Enviar para:",
+		"seeAllContacts": "Ver todos",
+		"removeRecipientA11y": "Remover usuário selecionado",
+		"stickerSelected": "Sticker selecionado",
+		"removeStickerA11y": "Remover sticker",
+		"messagePlaceholder": "Deixe uma mensagem para {{name}} ...",
+		"sendStickerA11y": "Enviar sticker",
+		"stickersGoldOnlyA11y": "Stickers disponíveis para usuários GOLD"
+	},
+	"sendConfirm": {
+		"recipientNotFound": "Não foi possível encontrar o usuário destinatário",
+		"userNotFound": "Usuário não encontrado",
+		"confirmSend": "Confirmar envio",
+		"kycGateMessage": "Envios de ${{amount}} ou mais exigem identidade verificada. É rápido e você só faz uma vez.",
+		"toasts": {
+			"recipientLoadFailed": "Não foi possível carregar os dados do destinatário",
+			"pinSentTitle": "PIN enviado",
+			"pinSentBody": "Confira seu e-mail",
+			"pinSendFailed": "Não foi possível enviar o PIN",
+			"pinRequestFailed": "Não foi possível solicitar o PIN",
+			"enterPin4": "Digite um PIN de 4 dígitos",
+			"enterOtp6": "Digite um código OTP de 6 dígitos",
+			"networkErrorTitle": "Erro de rede",
+			"transactionErrorTitle": "Erro na transação",
+			"transactionFailed": "Não foi possível concluir a transação",
+			"unexpectedError": "Erro inesperado ao processar a transação"
+		}
+	},
+	"sendSuccess": {
+		"title": "Pagamento concluído",
+		"subtitle": "Processamos este pagamento e ele chegará ao destino em poucos segundos.",
+		"backHome": "Voltar ao início"
+	},
+	"userSearch": {
+		"title": "Buscar usuário",
+		"placeholder": "Buscar usuário ...",
+		"noResults": "Nenhum usuário encontrado",
+		"tryAnother": "Tente outro nome ou usuário",
+		"hint": "Busque por nome, usuário ou e-mail"
+	},
+	"stickers": {
+		"title": "Stickers",
+		"goldRequired": "Requer GOLD",
+		"goldNeeded": "Você precisa ser usuário GOLD para enviar stickers"
+	},
+	"summary": {
+		"recipient": "Destinatário",
+		"message": "Mensagem",
+		"details": "Detalhes da transação",
+		"fee": "Tarifa",
+		"totalToSend": "Total a enviar"
+	},
+	"pinConfirm": {
+		"enterPin": "Digite seu PIN",
+		"enterOtp": "Digite o código OTP",
+		"sending": "Enviando...",
+		"requestPin": "Solicitar PIN"
+	},
+	"receive": {
+		"shareWithAmount": "Me pague ${{amount}} no QvaPay: {{url}}",
+		"share": "Me pague no QvaPay: {{url}}",
+		"tapToCopy": "Toque no QR para copiar o link"
+	},
+	"detail": {
+		"detailsTitle": "Detalhes da transação:",
+		"id": "ID:",
+		"amount": "Valor:",
+		"status": "Status:",
+		"note": "Nota:",
+		"date": "Data:",
+		"download": "Baixar",
+		"toasts": {
+			"tokenFailed": "Não foi possível obter o token de autenticação",
+			"successTitle": "Sucesso",
+			"pdfDownloaded": "PDF baixado com sucesso",
+			"pdfFailed": "Não foi possível baixar o PDF"
+		},
+		"related": {
+			"cryptoDeposit": "Depósito cripto",
+			"coin": "Moeda:",
+			"expectedValue": "Valor esperado:",
+			"receivedValue": "Valor recebido:",
+			"address": "Endereço:",
+			"txHash": "TX Hash:",
+			"type": "Tipo:",
+			"toReceive": "A receber:",
+			"withdrawal": "Saque",
+			"method": "Método:",
+			"amountRequested": "Valor solicitado:",
+			"service": "Serviço",
+			"serviceLabel": "Serviço:",
+			"purchase": "Compra",
+			"cartCancelled": "Cancelado",
+			"cartDelivered": "Entregue",
+			"cartPurchased": "Comprado",
+			"tracking": "Rastreio:",
+			"description": "Descrição:",
+			"appId": "App ID:"
+		}
+	},
+	"list": {
+		"searchPlaceholder": "Buscar por descrição ou UUID",
+		"empty": "Nenhuma transação"
+	},
+	"filters": {
+		"title": "Filtrar",
+		"sectionStatus": "Status",
+		"sectionPeriod": "Período",
+		"sectionAmount": "Valor",
+		"sectionSortBy": "Ordenar por",
+		"sectionSortDir": "Direção",
+		"searchPlaceholder": "Descrição ou UUID",
+		"min": "Mínimo",
+		"max": "Máximo",
+		"apply": "Aplicar",
+		"clear": "Limpar",
+		"statusOptions": {
+			"paid": "Pagas",
+			"pending": "Pendentes",
+			"processing": "Processando",
+			"cancelled": "Canceladas"
+		},
+		"periods": {
+			"thisWeek": "Esta semana",
+			"thisMonth": "Este mês",
+			"lastMonth": "Mês passado"
+		},
+		"sortField": {
+			"date": "Data",
+			"amount": "Valor"
+		},
+		"sortDir": {
+			"desc": "Recentes",
+			"asc": "Antigas"
+		}
+	},
+	"pay": {
+		"loadingInvoice": "Carregando fatura…",
+		"invoiceUnavailable": "Fatura indisponível",
+		"invoiceNotFound": "A fatura solicitada não foi encontrada",
+		"invoiceLoadFailed": "Não foi possível carregar a fatura",
+		"invoiceLoadError": "Erro ao carregar a fatura",
+		"paymentDone": "Pagamento realizado",
+		"payFailed": "Não foi possível processar o pagamento",
+		"payError": "Erro ao processar o pagamento",
+		"id": "ID",
+		"concept": "Descrição",
+		"date": "Data",
+		"balanceAvailable": "Saldo disponível: ${{amount}}",
+		"insufficientBalance": "Saldo insuficiente (${{amount}})",
+		"moodQuestion": "Como você se sente com este pagamento?",
+		"alreadyPaid": "Esta fatura já foi {{status}}.",
+		"ownInvoice": "Você não pode pagar uma fatura que você mesmo criou.",
+		"payButton": "Pagar ${{amount}}",
+		"moods": {
+			"none": "Nenhuma",
+			"loved": "Amei",
+			"happy": "Feliz",
+			"thumbsy": "Ótimo",
+			"sad": "Triste"
+		},
+		"toasts": {
+			"paidTo": "Você pagou ${{amount}} para {{name}}"
+		}
+	}
+}

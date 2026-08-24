@@ -1,0 +1,30 @@
+{
+	"actions": {
+		"receive": "Receber",
+		"send": "Enviar"
+	},
+	"toasts": {
+		"invalidAmount": {
+			"title": "Valor inválido",
+			"description": "O valor deve ser maior que 0"
+		},
+		"insufficientBalance": {
+			"title": "Saldo insuficiente",
+			"description": "O valor não pode exceder seu saldo disponível"
+		},
+		"sendError": {
+			"title": "Erro",
+			"description": "Não foi possível processar a solicitação de envio"
+		}
+	},
+	"a11y": {
+		"amountAnnouncement": "Valor: ${{amount}}",
+		"maxBalanceAnnouncement": "Definido para o saldo máximo: ${{amount}}",
+		"deleteKeyLabel": "Apagar último dígito",
+		"deleteKeyHint": "Apaga o último dígito digitado",
+		"numberKeyLabel": "Número {{digit}}",
+		"numberKeyHint": "Adiciona este número ao valor",
+		"balanceLabel": "Saldo atual: ${{balance}}",
+		"balanceHint": "Toque duas vezes para definir o valor como o saldo máximo"
+	}
+}

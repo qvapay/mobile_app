@@ -154,11 +154,12 @@ The client also owns three Keychain services and exports their helpers:
 - `promoApi.js`: promo banners shown across the app
 - `blogApi.js`: WordPress REST API (uses native `fetch`, not axios)
 
-### i18n (es/en — i18next)
+### i18n (es/en/pt-BR — i18next)
 
-**TODO el copy de UI vive en i18next** desde 2026-08-24 (barrido completo, ~1.900 claves). Piezas:
+**TODO el copy de UI vive en i18next** desde 2026-08-24 (barrido completo, ~1.900 claves por idioma; pt-BR añadido el mismo día). Piezas:
 
-- **`i18n/index.js`**: singleton con init SÍNCRONO a nivel de módulo (`initImmediate: false`, recursos empaquetados) — `i18n.t()` es usable desde el primer import (ErrorBoundary lo necesita en render). `lng: 'es'` SIEMPRE en el init (determinista para jest); el idioma real lo aplica **`settings/LanguageSync.jsx`** en runtime. Exporta `getDeviceLanguage()` (vía `Intl` de Hermes, sin dep nativa), `resolveLanguage(pref)` y `getDateLocale()` ('es-ES'/'en-US' — sustituye a todo locale hardcodeado). **Regla dura: este módulo jamás importa react-native/AsyncStorage** (corre en cada test node).
+- **`i18n/index.js`**: singleton con init SÍNCRONO a nivel de módulo (`initImmediate: false`, recursos empaquetados) — `i18n.t()` es usable desde el primer import (ErrorBoundary lo necesita en render). `lng: 'es'` SIEMPRE en el init (determinista para jest); el idioma real lo aplica **`settings/LanguageSync.jsx`** en runtime. Exporta `getDeviceLanguage()` (vía `Intl` de Hermes, sin dep nativa), `resolveLanguage(pref)` y `getDateLocale()` ('es-ES'/'en-US'/'pt-BR' — sustituye a todo locale hardcodeado). **Regla dura: este módulo jamás importa react-native/AsyncStorage** (corre en cada test node).
+- **Selectores por-app del SISTEMA** (los dos alimentan el modo 'auto' vía el locale del proceso): iOS exige **`CFBundleLocalizations`** en Info.plist (sin él, `CFBundleDevelopmentRegion=es` clava NSLocale en español aunque el teléfono esté en inglés — bug real cazado en simulador) y Android 13+ usa **`android:localeConfig`** → `res/xml/locales_config.xml`. **Checklist idioma nuevo**: carpeta `i18n/locales/<código>/` (21 JSON), bloque en `resources.js`, `SUPPORTED_LANGUAGES` + `DATE_LOCALES` en index.js, opción en `subpanels/Language.jsx` + claves `settings.language.options.<código>` en TODOS los bundles (cada idioma se muestra en sí mismo), `OTHERS` en `scripts/check-i18n.js`, Info.plist y locales_config.xml, y sufijos de plural extra si el CLDR del idioma no es one/other (pt: el 0 selecciona `_one`).
 - **Recursos**: `i18n/locales/{es,en}/<dominio>.json` (21 dominios), fusionados por `i18n/resources.js` como grupos top-level de un único namespace → `t('p2p.offer.toasts.published')`. El español es el idioma fuente; convenciones y glosario en **`i18n/CONVENTIONS.md`**.
 - **Preferencia**: `settings.language.currentLanguage` (`'auto'|'es'|'en'`, default `'auto'` = idioma del dispositivo con fallback a español); panel en Ajustes → Idioma (`subpanels/Language.jsx`). `LanguageSync` hace `i18n.changeLanguage(resolveLanguage(pref))` con guards de hidratación e identidad.
 - **Patrones**: componentes → `useTranslation()` (sin provider: singleton global). Fuera de render (api/, helpers, hooks no reactivos, clases) → `i18n.t()` EN CALL TIME, nunca resuelto a nivel de módulo. Constantes de módulo con copy → mapas de claves/builders `(t) => …` resueltos en render. En hooks con identidad estable calibrada (useP2POffers/useP2PChat, fetchs de SendConfirm/Pay) se usa `i18n.t()` call-time a propósito: un `t` reactivo en sus deps re-dispararía efectos al cambiar idioma.
@@ -291,7 +292,7 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 
 - `.jsx` everywhere (~145 files); `App.tsx` is the only TypeScript file — migration not really started
 - Functional components + hooks only (no class components beyond `ErrorBoundary`)
-- **UI multilenguaje (es/en) vía i18next** — ver sección "i18n" arriba; copy nuevo SIEMPRE nace como clave en `i18n/locales/` siguiendo `i18n/CONVENTIONS.md`, nunca como literal
+- **UI multilenguaje (es/en/pt-BR) vía i18next** — ver sección "i18n" arriba; copy nuevo SIEMPRE nace como clave en `i18n/locales/` (los 3 idiomas) siguiendo `i18n/CONVENTIONS.md`, nunca como literal
 - Token lives in Keychain (`com.qvapay.auth`) — AsyncStorage is only used for non-secret settings
 - API base URL switches on `__DEV__`; dev IP `192.168.0.10:3000` in `config.js` may need updating per machine
 - Lists should use `@shopify/flash-list` — preferred over `FlatList` for new code

@@ -1,0 +1,278 @@
+{
+	"common": {
+		"buy": "Comprar",
+		"sell": "Vender",
+		"coin": "Moeda",
+		"onlyVipUsers": "Apenas usuários VIP",
+		"errorTitle": "Erro"
+	},
+	"market": {
+		"empty": "Nenhuma oferta P2P disponível",
+		"headerFilters": "Filtros",
+		"headerCreate": "Criar",
+		"toasts": {
+			"loadFailed": "Não foi possível carregar as ofertas P2P",
+			"connectionError": "Erro de conexão"
+		}
+	},
+	"filters": {
+		"title": "Filtros",
+		"myOffers": "Minhas ofertas",
+		"select": "Selecionar",
+		"operateAmount": "Quero negociar",
+		"amountPlaceholder": "$ valor",
+		"rateMin": "Cotação mín",
+		"rateMax": "Cotação máx",
+		"onlyVip": "Só VIP",
+		"apply": "Aplicar",
+		"clear": "Limpar",
+		"sort": {
+			"recent": "Recente",
+			"amountDesc": "Valor ↓",
+			"amountAsc": "Valor ↑",
+			"bestRate": "Melhor cotação",
+			"reputation": "Reputação"
+		},
+		"badges": {
+			"operate": "Negociando ${{amount}}",
+			"rateMin": "Cotação ≥ {{value}}",
+			"rateMax": "Cotação ≤ {{value}}"
+		}
+	},
+	"requirements": {
+		"title": "Requisitos para P2P",
+		"subtitle": "Complete os passos a seguir para acessar o mercado P2P ({{done}}/3)",
+		"kyc": {
+			"label": "Verificação de identidade",
+			"description": "Complete a verificação de identidade para negociar no P2P"
+		},
+		"phone": {
+			"label": "Telefone verificado",
+			"description": "Verifique seu número de telefone para mais segurança"
+		},
+		"telegram": {
+			"label": "Telegram vinculado",
+			"description": "Vincule sua conta do Telegram para receber notificações P2P"
+		}
+	},
+	"create": {
+		"buyButton": "Comprar {{amount}}",
+		"sellButton": "Vender {{amount}}",
+		"form": {
+			"send": "Enviar",
+			"receive": "Receber",
+			"balance": "Saldo:",
+			"detailsTitle": "Detalhes adicionais:",
+			"advanced": "Opções avançadas",
+			"privateOffer": "Oferta privada",
+			"customMessage": "Mensagem personalizada"
+		},
+		"toasts": {
+			"incompleteTitle": "Dados incompletos",
+			"selectOption": "Selecione uma opção",
+			"selectCoin": "Selecione uma moeda",
+			"completeAmounts": "Preencha os valores de compra e venda",
+			"invalidAmountsTitle": "Valores inválidos",
+			"invalidAmountsBody": "Digite valores numéricos maiores que 0 para compra e venda",
+			"missingDataTitle": "Faltam dados",
+			"missingDataBody": "Preencha os dados da sua conta na moeda selecionada para comprar e vender",
+			"successTitle": "Pronto",
+			"createdDuplicate": "Essa oferta já tinha sido criada — levamos você até ela",
+			"created": "Sua oferta foi criada com sucesso",
+			"networkError": "Erro de rede",
+			"createErrorTitle": "Erro ao criar a oferta",
+			"createFailedFallback": "Não foi possível criar a oferta P2P",
+			"selectCoinFirst": "Selecione uma moeda",
+			"methodsLoadFailed": "Não foi possível carregar os métodos",
+			"methodApplyFailed": "Não foi possível aplicar o método"
+		}
+	},
+	"savedMethods": {
+		"title": "Selecionar método salvo",
+		"loading": "Carregando métodos...",
+		"fallbackName": "Método",
+		"empty": "Nenhum método salvo para esta moeda"
+	},
+	"offer": {
+		"loadFailed": "Não foi possível carregar a oferta",
+		"searchingPeer": "Estamos procurando alguém interessado na sua oferta.",
+		"advertiserTerms": "Termos do anunciante",
+		"applyQuestion": "Quer aceitar esta oferta?",
+		"counterpartyFallback": "sua contraparte",
+		"confirm": {
+			"cancel": {
+				"title": "Cancelar oferta",
+				"body": "Tem certeza de que quer cancelar esta oferta? Essa ação não pode ser desfeita.",
+				"confirmLabel": "Sim, cancelar"
+			},
+			"markPaid": {
+				"title": "Você já fez o pagamento?",
+				"body": "Confirme que você enviou {{amount}} para {{counterparty}}.",
+				"warning": "Marque apenas se a transferência já foi feita. Marcar sem pagar pode levar a oferta para revisão.",
+				"confirmLabel": "Sim, já paguei"
+			},
+			"release": {
+				"title": "Liberar fundos",
+				"body": "Você vai liberar ${{amount}} do seu saldo para {{counterparty}}.",
+				"warning": "Confirme apenas se {{amount}} já está na sua conta. Essa ação é irreversível.",
+				"confirmLabel": "Liberar"
+			}
+		},
+		"status": {
+			"processingPayer": "Faça o pagamento e marque como pago",
+			"processingReceiver": "Aguardando o comprador marcar como pago...",
+			"paidPayer": "Você marcou como pago. Aguardando confirmação...",
+			"paidReceiver": "O comprador marcou como pago. Verifique e confirme.",
+			"revision": "Esta oferta está em revisão pela equipe de suporte"
+		},
+		"toasts": {
+			"cancelled": "Oferta cancelada",
+			"cancelFailed": "Não foi possível cancelar",
+			"markedPaid": "Pagamento marcado como realizado",
+			"markPaidFailed": "Não foi possível marcar o pagamento",
+			"received": "Pagamento recebido. Fundos liberados",
+			"confirmFailed": "Não foi possível confirmar",
+			"applied": "Oferta aceita",
+			"applyFailed": "Não foi possível aceitar",
+			"shared": "Oferta compartilhada",
+			"shareDismissed": "Compartilhamento cancelado",
+			"shareFailed": "Não foi possível compartilhar",
+			"updated": "Oferta atualizada",
+			"editFailed": "Não foi possível editar",
+			"invalidAmountTitle": "Valor inválido",
+			"invalidAmountBody": "O valor deve estar entre 0,1 e 100.000",
+			"invalidValueTitle": "Valor inválido",
+			"invalidValueBody": "O valor a receber deve ser maior que 0",
+			"insufficientBalanceTitle": "Saldo insuficiente",
+			"insufficientBalanceBody": "Você não tem saldo suficiente para aumentar o valor",
+			"rated": "Oferta avaliada",
+			"rateFailed": "Não foi possível avaliar"
+		},
+		"share": {
+			"title": "Oferta P2P",
+			"message": "Confira esta oferta no QvaPay: {{url}}",
+			"subject": "Confira esta oferta P2P no QvaPay 🔥"
+		}
+	},
+	"actionBar": {
+		"apply": "Aceitar",
+		"markPaid": "Já paguei",
+		"paymentReceived": "Pagamento recebido",
+		"offerCancelled": "Oferta cancelada",
+		"rateCounterparty": "Avalie sua contraparte"
+	},
+	"applyModal": {
+		"title": "Aceitar a oferta",
+		"body": "Tem certeza de que quer aceitar esta oferta?"
+	},
+	"editModal": {
+		"title": "Editar oferta",
+		"amountLabel": "Valor (QUSD)",
+		"toSend": "A enviar",
+		"toReceive": "A receber",
+		"insufficientBalance": "Saldo insuficiente para aumentar o valor",
+		"messageLabel": "Mensagem",
+		"messagePlaceholder": "Mensagem opcional"
+	},
+	"details": {
+		"paymentData": "Dados de pagamento",
+		"txId": "ID da transação"
+	},
+	"tradeProgress": {
+		"steps": {
+			"payment": "Pagamento",
+			"confirmation": "Confirmação",
+			"release": "Liberação"
+		},
+		"hero": {
+			"send": "Você envia",
+			"sent": "Você enviou",
+			"receive": "Você recebe",
+			"received": "Você recebeu"
+		},
+		"balance": {
+			"payer": "você vai receber ${{amount}} de saldo",
+			"payerDone": "você recebeu ${{amount}} de saldo",
+			"receiver": "você vai liberar ${{amount}} do seu saldo",
+			"receiverDone": "você liberou ${{amount}} do seu saldo"
+		},
+		"rateSuffix": "cotação {{rate}}",
+		"windowExpired": "O prazo de pagamento expirou; a oferta será publicada novamente",
+		"safety": "Libere apenas se o pagamento já estiver na sua conta, não por prints nem promessas.",
+		"txIdPlaceholder": "ID da transferência",
+		"txIdHelper": "O ID do pagamento habilita “Já paguei” e ajuda a verificar mais rápido."
+	},
+	"chat": {
+		"safetyNotice": "Combine o pagamento por aqui. Nunca compartilhe sua senha nem códigos de acesso: o QvaPay jamais vai pedir esses dados.",
+		"inputPlaceholder": "Digite sua mensagem...",
+		"stickersTitle": "Stickers",
+		"stickersExclusive": "Stickers exclusivos",
+		"stickersGold": "Você precisa de GOLD para usar stickers",
+		"toasts": {
+			"sendFailed": "Não foi possível enviar",
+			"imageTooLargeTitle": "Imagem muito grande",
+			"imageTooLargeBody": "O máximo é {{max}}MB",
+			"formatTitle": "Formato não suportado",
+			"formatBody": "Apenas JPG, PNG e GIF"
+		}
+	},
+	"user": {
+		"tabs": {
+			"offers": "Ofertas",
+			"reviews": "Avaliações",
+			"stats": "Estatísticas"
+		},
+		"share": {
+			"title": "Perfil P2P de @{{username}}",
+			"message": "Perfil P2P de @{{username}} no QvaPay: {{url}}"
+		},
+		"notAvailable": "Perfil indisponível",
+		"chips": {
+			"phone": "Telefone"
+		},
+		"inline": {
+			"rating": "Nota",
+			"ops": "Ops",
+			"since": "Desde"
+		},
+		"cards": {
+			"operations": "Operações",
+			"volume": "Volume",
+			"goldOnly": "Só GOLD",
+			"unlockMetrics": "Desbloqueie métricas financeiras",
+			"volume30d": "{{amount}} últ. 30d",
+			"completionRate": "Taxa de conclusão",
+			"noOps": "Sem ops",
+			"ratings": "Avaliações",
+			"noData": "Sem dados"
+		},
+		"goldPill": "Seja GOLD →",
+		"reviews": {
+			"received": "Recebidas ({{total}})",
+			"sent": "Enviadas ({{total}})",
+			"count_one": "{{count}} avaliação",
+			"count_other": "{{count}} avaliações",
+			"none": "Este usuário ainda não tem avaliações.",
+			"latestTitle": "Últimas avaliações",
+			"scoreOnly": "As avaliações P2P contêm apenas a pontuação.",
+			"emptyList": "Nenhuma avaliação para mostrar.",
+			"sentTitle": "Avaliações enviadas",
+			"sentEmpty": "Ainda não avaliou ninguém.",
+			"deletedUser": "Usuário excluído",
+			"privateUser": "Usuário privado"
+		},
+		"offersEmpty": "@{{username}} não tem ofertas ativas.",
+		"stats": {
+			"uniquePeers": "Contrapartes únicas",
+			"avgClose": "Fechamento médio",
+			"ops30d": "Ops. 30 dias",
+			"cancellation": "Cancelamento",
+			"coinsGoldMessage": "Moedas negociadas apenas para GOLD",
+			"coinsGoldSublabel": "Descubra quais moedas este trader usa",
+			"topCoinsTitle": "Moedas mais negociadas",
+			"topCoinsSubtitle": "Top 5 por operações concluídas.",
+			"coinMeta": "{{ops}} ops · {{volume}}",
+			"noCompletedOps": "Ainda não há operações concluídas."
+		}
+	}
+}

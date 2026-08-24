@@ -10,7 +10,7 @@ const path = require('path')
 
 const LOCALES_DIR = path.join(__dirname, '..', 'i18n', 'locales')
 const BASE = 'es'
-const OTHERS = ['en']
+const OTHERS = ['en', 'pt']
 
 const flatten = (obj, prefix = '', out = {}) => {
 	for (const [key, value] of Object.entries(obj)) {

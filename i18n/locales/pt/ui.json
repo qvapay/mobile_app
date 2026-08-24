@@ -1,0 +1,149 @@
+{
+	"actionButtons": {
+		"account": {
+			"deposit": "Depositar",
+			"withdraw": "Sacar",
+			"send": "Enviar",
+			"trade": "Negociar"
+		},
+		"savings": {
+			"deposit": "Depositar",
+			"withdraw": "Sacar"
+		}
+	},
+	"addressPicker": {
+		"addressFallback": "Endereço",
+		"defaultSuffix": " · Padrão",
+		"newAddress": "Novo endereço"
+	},
+	"amountInput": {
+		"balanceLabel": "Saldo:"
+	},
+	"brandTile": {
+		"from": "desde ${{min}}",
+		"optionsCount": "{{count}} opções"
+	},
+	"cashDelivery": {
+		"sectionTitle": "Envio de dinheiro em espécie",
+		"subtitle": "Receba USD em espécie em Havana\nem menos de 72 horas",
+		"cta": "Enviar dinheiro"
+	},
+	"coinPicker": {
+		"title": "Selecionar moeda",
+		"searchPlaceholder": "Buscar moeda...",
+		"loading": "Carregando moedas...",
+		"empty": "Nenhuma moeda disponível"
+	},
+	"coinRow": {
+		"feeTerm": "{{fee}}% tarifa",
+		"minTerm": "mín. ${{min}}"
+	},
+	"contactsDisclosure": {
+		"title": "Acesso aos seus contatos",
+		"body": "O QvaPay coleta os números de telefone da sua lista de contatos e os envia com segurança para os nossos servidores para encontrar amigos e familiares que já usam o app. Os números são usados somente para essa busca e não são compartilhados com terceiros.",
+		"privacyLink": "Ver Política de Privacidade",
+		"accept": "Aceitar e continuar",
+		"decline": "Não, obrigado"
+	},
+	"countryPickerModal": {
+		"title": "Selecionar país",
+		"searchPlaceholder": "Buscar país..."
+	},
+	"emptyTransactions": {
+		"title": "Você ainda não tem transações",
+		"subtitle": "Adicione saldo ou faça seu primeiro pagamento e ele vai aparecer aqui.",
+		"cta": "Adicionar saldo"
+	},
+	"kycGate": {
+		"title": "Verifique sua identidade",
+		"defaultMessage": "Esta operação exige que sua identidade esteja verificada. É rápido e você só faz isso uma vez.",
+		"verifyNow": "Verificar agora"
+	},
+	"newAddressForm": {
+		"errors": {
+			"recipientName": "Digite o nome de quem recebe",
+			"line1": "Digite o endereço (linha 1)",
+			"city": "Digite a cidade",
+			"state": "Selecione o estado",
+			"postalCode": "Código postal dos EUA inválido (ex.: 33033)"
+		},
+		"statePickerTitle": "Estado de destino",
+		"recipientName": "Nome de quem recebe",
+		"phoneOptional": "Telefone (opcional)",
+		"line1": "Endereço (linha 1)",
+		"line2": "Apto., suíte… (opcional)",
+		"city": "Cidade",
+		"state": "Estado",
+		"statePlaceholder": "Selecionar",
+		"postalCode": "Código postal"
+	},
+	"offerItem": {
+		"status": {
+			"completed": "Finalizado",
+			"paid": "Pago",
+			"revision": "Em revisão",
+			"cancelled": "Cancelado"
+		},
+		"edit": "Editar",
+		"sell": "Vender",
+		"buy": "Comprar",
+		"privateBadge": "Privada",
+		"availableYouSend": " disponível · você envia ",
+		"availableYouReceive": " disponível · você recebe "
+	},
+	"phoneInput": {
+		"placeholder": "Número de telefone"
+	},
+	"productTile": {
+		"soldOut": "Esgotado"
+	},
+	"profile": {
+		"operations": "Operações",
+		"rating": "Rating"
+	},
+	"pushPrompt": {
+		"title": "Não perca nenhum pagamento",
+		"body": "Ative as notificações para saber na hora quando você recebe dinheiro, quando suas ofertas P2P têm resposta e mais.",
+		"enable": "Ativar notificações"
+	},
+	"satsDiscountRow": {
+		"label": "Usar meus satoshis · {{sats}} (≈ ${{satsUsd}})"
+	},
+	"splitButton": {
+		"back": "Voltar"
+	},
+	"storeCountryPicker": {
+		"placeholder": "Selecionar país",
+		"title": "Selecione o país",
+		"searchPlaceholder": "Buscar país…",
+		"noResults": "Nenhum resultado",
+		"options_one": "{{count}} opção",
+		"options_other": "{{count}} opções"
+	},
+	"storeTile": {
+		"products_one": "{{count}} produto",
+		"products_other": "{{count}} produtos",
+		"sales_one": "{{count}} venda",
+		"sales_other": "{{count}} vendas",
+		"verified": "Loja verificada"
+	},
+	"transactionRow": {
+		"deposit": "Depósito {{coin}}",
+		"withdrawal": "Saque {{method}}",
+		"servicePurchase": "Compra de serviço",
+		"sentTo": "Envio para @{{username}}",
+		"paymentFrom": "Pagamento de @{{username}}",
+		"transfer": "Transferência"
+	},
+	"updatePrompt": {
+		"title": "Nova versão disponível",
+		"body": "A versão {{latestVersion}} já está disponível em {{storeName}}. Atualize para aproveitar as últimas melhorias e correções.",
+		"currentVersion": "Sua versão atual: {{currentVersion}}",
+		"updateNow": "Atualizar agora"
+	},
+	"walletPicker": {
+		"title": "Abra na sua wallet",
+		"memoWarning": "Verifique se o memo foi copiado na sua wallet antes de enviar.",
+		"empty": "Não detectamos nenhuma wallet instalada compatível com esta moeda."
+	}
+}

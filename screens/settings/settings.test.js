@@ -15,6 +15,7 @@ import i18n from '../../i18n'
 const allOptions = Object.values(settings).flatMap(group => group.options)
 const tEs = i18n.getFixedT('es')
 const tEn = i18n.getFixedT('en')
+const tPt = i18n.getFixedT('pt')
 
 describe('settings menu catalog', () => {
 	test('mirrors the web dashboard grouping', () => {
@@ -23,9 +24,9 @@ describe('settings menu catalog', () => {
 		])
 	})
 
-	test('every group title resolves to an uppercase label in both languages', () => {
+	test('every group title resolves to an uppercase label in every language', () => {
 		for (const group of Object.values(settings)) {
-			for (const t of [tEs, tEn]) {
+			for (const t of [tEs, tEn, tPt]) {
 				const resolved = t(group.title)
 				expect(resolved).not.toBe(group.title) // la clave está registrada
 				expect(resolved).toBe(resolved.toUpperCase())
@@ -44,9 +45,9 @@ describe('settings menu catalog', () => {
 		}
 	})
 
-	test('every option title resolves to real copy in both languages', () => {
+	test('every option title resolves to real copy in every language', () => {
 		for (const option of allOptions) {
-			for (const t of [tEs, tEn]) {
+			for (const t of [tEs, tEn, tPt]) {
 				const resolved = t(option.title)
 				expect(resolved).not.toBe(option.title) // clave registrada en el bundle
 				expect(resolved.trim().length).toBeGreaterThan(0)

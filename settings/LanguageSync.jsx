@@ -5,7 +5,7 @@ import i18n, { resolveLanguage } from '../i18n'
 /**
  * Puente Settings → i18next (render null; primer hijo de SettingsProvider en
  * App.tsx). Aplica la preferencia persistida (`language.currentLanguage`:
- * 'auto'|'es'|'en') al singleton cuando los settings terminan de hidratar.
+ * 'auto'|'es'|'en'|'pt') al singleton cuando los settings terminan de hidratar.
  * La reactividad no depende de su posición en el árbol: `changeLanguage`
  * emite `languageChanged` y cada `useTranslation()` suscrito se re-renderiza.
  */

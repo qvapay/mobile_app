@@ -16,6 +16,10 @@
 			"en": {
 				"title": "English",
 				"description": "Use English across the app"
+			},
+			"pt": {
+				"title": "Português (Brasil)",
+				"description": "Usar português em todo o aplicativo"
 			}
 		}
 	},

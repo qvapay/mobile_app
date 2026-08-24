@@ -1,7 +1,23 @@
-# Convenciones de i18n (es/en)
+# Convenciones de i18n (es/en/pt-BR)
 
 Guía obligatoria para migrar strings a i18next. El español es el idioma FUENTE;
-el inglés se traduce con el glosario de abajo.
+inglés y portugués se traducen con los glosarios de abajo. Copy nuevo se añade
+SIEMPRE a los tres bundles (`npm run i18n:check` exige paridad total).
+
+## Añadir un idioma nuevo
+
+1. `i18n/locales/<código>/` con los 21 JSON (estructura idéntica a es).
+2. Bloque del idioma en `i18n/resources.js`.
+3. `SUPPORTED_LANGUAGES` + `DATE_LOCALES` en `i18n/index.js`.
+4. Opción en `screens/settings/subpanels/Language.jsx` + claves
+   `settings.language.options.<código>` en TODOS los bundles (cada idioma se
+   muestra en sí mismo, como en los ajustes del sistema).
+5. `OTHERS` en `scripts/check-i18n.js`.
+6. **iOS**: añadirlo a `CFBundleLocalizations` (Info.plist) — sin esto NSLocale
+   no negocia y el modo 'auto' no lo detecta jamás. **Android**: añadirlo a
+   `android/app/src/main/res/xml/locales_config.xml` (selector por-app 13+).
+7. Si el plural CLDR del idioma no es one/other, añadir los sufijos que pida
+   (`_few`, `_many`…) en TODOS los archivos con plurales.
 
 ## Arquitectura
 
@@ -93,6 +109,20 @@ contraparte→counterparty · disponible→available · Escanear→Scan
 Tono en inglés: claro y directo, sentence case (solo mayúscula inicial salvo
 nombres propios), sin traducciones literales rígidas — "No se pudo cargar X" →
 "Couldn't load X".
+
+## Glosario es → pt-BR
+
+contraseña→senha · Extraer/retiro→Sacar/saque · Depositar→Depositar ·
+saldo→saldo · monto→valor · tasa (cambio)→cotação · comisión→tarifa ·
+huella→impressão digital · Ajustes→Configurações · Iniciar sesión→Entrar ·
+Cerrar sesión→Sair · Regístrate→Criar conta · Ahorros→Poupança ·
+Invertir→Investir · carrito→carrinho · Pedido→Pedido · Tienda→Loja ·
+envío→frete · dirección→endereço · Tarjetas de regalo→Gift cards (anglicismo
+estándar BR) · billetera→carteira · Eliminar→Excluir · Reintentar→Tentar de
+novo · Entendido→Entendi · Ahora no→Agora não · agotado→esgotado ·
+"No se pudo X"→"Não foi possível X". Tono você implícito, fintech BR natural.
+GOTCHA plural pt (CLDR): el 0 selecciona `_one` ("0 dia"), no `_other` —
+cada `_one` debe leer natural con 0 y con 1.
 
 ## Flujo por lote
 

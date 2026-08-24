@@ -17,6 +17,7 @@ const languageOptions = [
 	{ id: 'auto', icon: 'wand-magic-sparkles' },
 	{ id: 'es', icon: 'earth-americas' },
 	{ id: 'en', icon: 'globe' },
+	{ id: 'pt', icon: 'earth-americas' },
 ]
 
 // Language Screen

@@ -36,6 +36,17 @@ describe('i18n singleton', () => {
 		expect(SUPPORTED_LANGUAGES).toContain(getDeviceLanguage())
 	})
 
+	test('el bundle portugués resuelve tras changeLanguage y getDateLocale lo sigue', async () => {
+		await i18n.changeLanguage('pt')
+		expect(i18n.t('errors.network')).toBe('Não foi possível conectar ao servidor')
+		expect(i18n.t('navigation.headers.deposit')).toBe('Depositar')
+		// Regla CLDR de pt: el 0 selecciona _one ("0 dia"), a diferencia de es/en
+		expect(i18n.t('common.time.day', { count: 0 })).toBe('0 dia')
+		expect(i18n.t('common.time.day', { count: 2 })).toBe('2 dias')
+		expect(getDateLocale()).toBe('pt-BR')
+		await i18n.changeLanguage('es')
+	})
+
 	test('el bundle inglés resuelve tras changeLanguage y getDateLocale lo sigue', async () => {
 		await i18n.changeLanguage('en')
 		expect(i18n.t('errors.network')).toBe("Couldn't connect to the server")

@@ -1,0 +1,807 @@
+{
+	"language": {
+		"title": "Idioma",
+		"subtitle": "Escolha o idioma do aplicativo",
+		"sectionLabel": "Idioma do app",
+		"appliedImmediately": "As alterações são aplicadas imediatamente",
+		"options": {
+			"auto": {
+				"title": "Automático",
+				"description": "Segue o idioma do dispositivo"
+			},
+			"es": {
+				"title": "Español",
+				"description": "Usar español en toda la aplicación"
+			},
+			"en": {
+				"title": "English",
+				"description": "Use English across the app"
+			},
+			"pt": {
+				"title": "Português (Brasil)",
+				"description": "Usar português em todo o aplicativo"
+			}
+		}
+	},
+	"menu": {
+		"searchPlaceholder": "Buscar nas configurações",
+		"noResults": "Nenhum resultado para “{{query}}”",
+		"groups": {
+			"appearance": "APARÊNCIA",
+			"profile": "PERFIL",
+			"gold": "GOLD",
+			"security": "SEGURANÇA",
+			"notifications": "NOTIFICAÇÕES",
+			"payments": "PAGAMENTOS"
+		},
+		"items": {
+			"theme": "Tema",
+			"fontSize": "Fonte",
+			"language": "Idioma",
+			"userdata": "Dados pessoais",
+			"phone": "Verificar celular",
+			"telegram": "Verificar Telegram",
+			"enterprise": "Empresa",
+			"goldCheck": "Assinatura GOLD",
+			"referals": "Convidar amigos",
+			"password": "Alterar senha",
+			"biometrics": "Face ID / Touch ID",
+			"passkeys": "Passkeys",
+			"appLock": "Bloqueio do app",
+			"kyc": "Verificação de identidade",
+			"deleteAccount": "Excluir conta",
+			"notifications": "Envio de notificações",
+			"paymentMethods": "Métodos de pagamento",
+			"contacts": "Contatos",
+			"roundup": "Arredondamentos"
+		},
+		"status": {
+			"active": "Ativo"
+		},
+		"avatar": {
+			"changeProfilePhoto": "Alterar foto de perfil",
+			"changeCoverPhoto": "Alterar foto de capa",
+			"takePhoto": "Tirar foto",
+			"chooseFromGallery": "Escolher da galeria",
+			"uploadingPhoto": "Enviando foto...",
+			"uploadingCover": "Enviando capa...",
+			"photoUpdated": "Foto atualizada",
+			"coverUpdated": "Capa atualizada",
+			"uploadFailedPhoto": "Não foi possível enviar a foto",
+			"uploadFailedCover": "Não foi possível enviar a capa",
+			"errorTitle": "Erro"
+		},
+		"logout": {
+			"button": "Sair",
+			"confirmQuestion": "Tem certeza de que quer sair?",
+			"keepBiometricsQuestion": "Quer manter o acesso biométrico para a próxima vez?",
+			"deleteAll": "Excluir tudo",
+			"keepBiometrics": "Manter biometria",
+			"failed": "Não foi possível sair. Por favor, tente de novo."
+		},
+		"reviewUnavailable": "Avaliação indisponível no momento",
+		"allRightsReserved": "Todos os direitos reservados"
+	},
+	"appLock": {
+		"title": "Bloqueio do app",
+		"protected": "Seu app está protegido",
+		"labels": {
+			"currentPin": "PIN atual",
+			"newPin": "Novo PIN",
+			"confirmNewPin": "Confirmar novo PIN",
+			"confirmPin": "Confirmar PIN"
+		},
+		"toasts": {
+			"enterPin4": "Digite um PIN de 4 dígitos",
+			"pinMismatch": "Os PINs não coincidem",
+			"enabled": "Bloqueio ativado",
+			"fillAllFields": "Preencha todos os campos",
+			"newPinMismatch": "Os PINs novos não coincidem",
+			"pinUpdated": "PIN atualizado",
+			"disabled": "Bloqueio desativado"
+		},
+		"alerts": {
+			"disableTitle": "Desativar bloqueio",
+			"disableBody": "Seu app não será mais bloqueado automaticamente. Continuar?",
+			"disableConfirm": "Desativar"
+		},
+		"changePin": {
+			"title": "Alterar PIN",
+			"subtitle": "Digite seu PIN atual e o novo",
+			"submit": "Atualizar PIN"
+		},
+		"enabled": {
+			"active": "Ativo",
+			"timeoutTitle": "Tempo de bloqueio",
+			"timeoutDescription": "O app será bloqueado após esse tempo em segundo plano",
+			"biometricEnabled": "{{label}} ativado",
+			"biometricHint": "Você pode desbloquear com biometria ou PIN",
+			"changePinButton": "Alterar PIN de bloqueio",
+			"disableButton": "Desativar bloqueio"
+		},
+		"setup": {
+			"subtitle": "Proteja seu app com PIN e biometria",
+			"features": {
+				"autoLock": "Bloqueia o app automaticamente depois de {{minutes}} minutos em segundo plano",
+				"unlockMethods": "Desbloqueie com Face ID, Touch ID ou impressão digital, ou com seu PIN de 4 dígitos",
+				"localOnly": "Toda a verificação é local, nenhum dado é enviado ao servidor"
+			},
+			"createTitle": "Criar PIN",
+			"createSubtitle": "Escolha um PIN de 4 dígitos para bloquear seu app",
+			"confirmTitle": "Confirmar PIN",
+			"confirmSubtitle": "Digite o PIN de novo para confirmar",
+			"activateButton": "Ativar bloqueio"
+		}
+	},
+	"biometrics": {
+		"fingerprint": "Impressão digital",
+		"subtitle": "Acesse sua conta de forma rápida e segura",
+		"notAvailableTitle": "Não disponível",
+		"notAvailableBody": "Seu dispositivo não é compatível com autenticação biométrica",
+		"status": {
+			"active": "Ativo",
+			"inactive": "Inativo"
+		},
+		"accessWith": "Entrar com {{label}}",
+		"info": {
+			"storedSecurely": "Suas credenciais são armazenadas de forma segura no dispositivo, protegidas por {{label}}",
+			"instantLogin": "Entre na hora sem digitar seu e-mail e senha",
+			"passwordChange": "Se você alterar sua senha, vai precisar ativar {{label}} de novo"
+		},
+		"alerts": {
+			"disableTitle": "Desativar {{label}}",
+			"disableBody": "Você não poderá mais usar {{label}} para entrar. Continuar?",
+			"disableConfirm": "Desativar",
+			"enableBody": "Para ativar {{label}}, saia da conta e entre de novo. A opção de ativar vai aparecer depois do login."
+		},
+		"toasts": {
+			"disabled": "{{label}} desativado"
+		}
+	},
+	"contacts": {
+		"title": "Contatos",
+		"subtitle": "Pessoas para quem você envia com frequência",
+		"filterPlaceholder": "Buscar contato...",
+		"syncing": "Sincronizando contatos...",
+		"requestingPermission": "Solicitando permissão...",
+		"syncAgenda": "Sincronizar agenda",
+		"findFriends": "Encontre amigos que usam o QvaPay",
+		"savedCount": "Contatos salvos ({{count}})",
+		"emptyList": "Você não tem contatos salvos",
+		"noResults": "Nenhum resultado para \"{{query}}\"",
+		"header": {
+			"sync": "Sincronizar",
+			"add": "Adicionar"
+		},
+		"alerts": {
+			"permissionDeniedTitle": "Permissão negada",
+			"permissionDeniedBody": "Para sincronizar seus contatos, ative a permissão nas configurações do seu dispositivo.",
+			"deleteTitle": "Excluir contato",
+			"deleteBody": "Tem certeza de que quer excluir este contato?"
+		},
+		"toasts": {
+			"loadFailed": "Não foi possível carregar os contatos",
+			"networkError": "Erro de rede",
+			"invalidContactId": "ID de contato inválido",
+			"deleted": "Contato excluído",
+			"deleteFailed": "Não foi possível excluir",
+			"updateFailed": "Não foi possível atualizar"
+		},
+		"addModal": {
+			"title": "Adicionar contato",
+			"searchPlaceholder": "Buscar usuário...",
+			"addButton": "Adicionar",
+			"noUsersFound": "Nenhum usuário encontrado",
+			"tryAnotherName": "Tente outro nome ou nome de usuário",
+			"searchHint": "Busque por nome, nome de usuário ou e-mail",
+			"toasts": {
+				"searchError": "Erro na busca",
+				"added": "Contato adicionado",
+				"addFailed": "Não foi possível adicionar o contato"
+			}
+		}
+	},
+	"deleteAccount": {
+		"title": "Excluir conta",
+		"subtitle": "Esta ação é permanente e irreversível",
+		"consequencesTitle": "Ao excluir sua conta:",
+		"consequences": {
+			"balance": "Seu saldo disponível será excluído permanentemente",
+			"history": "Seu histórico de transações será excluído",
+			"p2pOffers": "Todas as suas ofertas P2P ativas serão canceladas",
+			"kycData": "Sua verificação KYC e seus dados pessoais serão apagados",
+			"username": "Seu nome de usuário ficará disponível para outras pessoas"
+		},
+		"supportInfo": "Para solicitar a exclusão da sua conta, abra um ticket na nossa central de suporte. Nossa equipe vai processar sua solicitação em até 48 horas.",
+		"contactSupport": "Falar com o suporte"
+	},
+	"enterprise": {
+		"title": "Empresa",
+		"subtitle": "Gerencie o registro empresarial da sua conta e seu status de aprovação",
+		"status": {
+			"pending": "Pendente",
+			"reviewing": "Em análise",
+			"contacted": "Contatado",
+			"approved": "Aprovada",
+			"rejected": "Rejeitada"
+		},
+		"statusExplainer": {
+			"pending": "Recebemos sua solicitação e ela está na fila para análise. Vamos entrar em contato pelo e-mail corporativo se precisarmos de mais informações.",
+			"reviewing": "Nossa equipe está analisando a documentação da sua empresa.",
+			"contacted": "Entramos em contato com você pelo e-mail corporativo. Confira sua caixa de entrada para continuar o processo.",
+			"approved": "Sua empresa está verificada no QvaPay. Você já pode operar com sua conta empresarial e abrir lojas no marketplace.",
+			"rejected": "Sua solicitação não foi aprovada. Se você acha que houve um erro ou sua situação mudou, pode enviar uma nova solicitação."
+		},
+		"errorTitle": "Não foi possível carregar",
+		"errorBody": "Não conseguimos consultar o status da sua empresa. Verifique sua conexão e tente de novo.",
+		"emptyTitle": "QvaPay para Empresas",
+		"emptyBody": "Registre sua empresa para acessar a conta empresarial e, depois de aprovada, vender no marketplace.",
+		"benefits": {
+			"vipBadge": "Selo VIP para o dono",
+			"marketplaceStore": "Sua loja no marketplace",
+			"morePaymentMethods": "Receba com mais métodos de pagamento",
+			"promotion": "Divulgação nas redes do QvaPay"
+		},
+		"registerButton": "Registrar minha empresa",
+		"reapplyButton": "Enviar nova solicitação",
+		"details": {
+			"director": "Diretor / Presidente",
+			"email": "E-mail corporativo",
+			"activity": "Atividade",
+			"employees": "Funcionários",
+			"statutes": "Estatuto",
+			"statutesSent": "Enviado",
+			"statutesNotSent": "Não enviado",
+			"submittedAt": "Solicitação"
+		},
+		"stores": {
+			"title": "Lojas",
+			"body": "Sua empresa está aprovada: crie lojas e venda seus produtos para os usuários do QvaPay.",
+			"manageButton": "Gerenciar minhas lojas"
+		},
+		"register": {
+			"toasts": {
+				"mustBePdf": "O arquivo deve ser um PDF",
+				"pickerErrorTitle": "Erro",
+				"pickerErrorBody": "Não foi possível abrir o seletor de arquivos",
+				"submitted": "Solicitação enviada",
+				"submittedDescription": "Vamos entrar em contato com você em breve.",
+				"submitFailed": "Não foi possível enviar"
+			},
+			"searchPlaceholder": "Buscar…",
+			"submitButton": "Enviar solicitação",
+			"step1": {
+				"title": "Sua empresa",
+				"subtitle": "Registre sua PME para acessar a conta empresarial do QvaPay",
+				"nameLabel": "Nome da PME",
+				"namePlaceholder": "Minha Empresa LTDA",
+				"activityLabel": "Atividade empresarial",
+				"activityPlaceholder": "Comércio eletrônico, serviços, etc.",
+				"employeesLabel": "Número de funcionários",
+				"employeesHint": "Funcionários no quadro, incluindo diretores."
+			},
+			"step2": {
+				"title": "Dados fiscais",
+				"subtitle": "O país onde a empresa está constituída e sua identificação fiscal",
+				"countryLabel": "País de constituição",
+				"countryPlaceholder": "Selecione o país…",
+				"einLabel": "EIN (Employer Identification Number)",
+				"entityLabel": "Tipo de entidade",
+				"incStateLabel": "Estado de constituição",
+				"statePlaceholder": "Selecione o estado…",
+				"usAddressLabel": "Endereço registrado nos EUA",
+				"addrLine1Placeholder": "Rua e número",
+				"addrCityPlaceholder": "Cidade",
+				"addrStatePlaceholder": "Estado",
+				"addrStateTitle": "Estado do endereço",
+				"nitLabel": "NIT (Número de Identificação Tributária)",
+				"nitPlaceholder": "11 dígitos",
+				"reeupLabel": "Código REEUP",
+				"reeupHint": "Registro Estatal de Empresas e Unidades Orçamentadas de Cuba.",
+				"taxIdLabel": "Número de identificação fiscal",
+				"taxIdPlaceholder": "RFC, RUC, NIT, CIF…",
+				"taxIdHint": "O identificador fiscal da sua empresa no país de registro."
+			},
+			"step3": {
+				"title": "Contato e estatuto",
+				"subtitle": "A empresa ficará vinculada à sua conta QvaPay",
+				"directorLabel": "Nome do diretor ou presidente",
+				"directorPlaceholder": "Juan Pérez García",
+				"emailLabel": "E-mail corporativo de contato",
+				"emailPlaceholder": "director@empresa.com",
+				"emailHint": "Só para entrar em contato sobre esta solicitação. Não precisa ser o mesmo e-mail da sua conta.",
+				"statutesLabel": "Estatuto da empresa (PDF)",
+				"statutesFileName": "estatuto.pdf",
+				"chooseFile": "Escolher arquivo PDF",
+				"fileSizeTap": "{{size}} MB · Toque para alterar",
+				"tapToChange": "Toque para alterar",
+				"fileHint": "Estatuto ou contrato social · máx. 10MB"
+			}
+		},
+		"validation": {
+			"companyName": "Digite o nome da empresa.",
+			"activity": "Descreva a atividade empresarial.",
+			"employeeCount": "Selecione o número de funcionários.",
+			"country": "Selecione o país de constituição da empresa.",
+			"ein": "Digite um EIN válido (formato 12-3456789).",
+			"entityType": "Selecione o tipo de entidade da empresa.",
+			"incState": "Selecione o estado de constituição.",
+			"addrLine1": "Digite o endereço registrado da empresa (rua e número).",
+			"addrCity": "Digite a cidade do endereço registrado.",
+			"addrState": "Selecione o estado do endereço registrado.",
+			"addrZip": "Digite um código ZIP válido (ex.: 33101).",
+			"nit": "Digite um NIT válido (11 dígitos).",
+			"reeup": "Digite um código REEUP válido.",
+			"taxId": "Digite o número de identificação fiscal da empresa.",
+			"directorName": "Digite o nome do diretor ou presidente.",
+			"email": "Digite um e-mail de contato válido.",
+			"statutesPdf": "Anexe o estatuto da empresa em PDF.",
+			"fileTooLarge": "O arquivo não pode ultrapassar 10MB."
+		}
+	},
+	"fontSize": {
+		"title": "Tamanho da fonte",
+		"subtitle": "Ajuste o tamanho do texto em todo o app",
+		"preview": "Pré-visualização",
+		"sampleTitle": "Título de exemplo",
+		"sampleSubtitle": "Subtítulo de seção",
+		"sampleParagraph": "Este é um parágrafo de exemplo para você ver como o texto vai ficar em todo o aplicativo com o tamanho selecionado.",
+		"sampleCaption": "Texto pequeno · Detalhes adicionais",
+		"sizeLabel": "Tamanho",
+		"labels": {
+			"extraSmall": "Muito pequeno",
+			"small": "Pequeno",
+			"medium": "Médio - Padrão",
+			"large": "Grande",
+			"extraLarge": "Muito grande"
+		}
+	},
+	"goldCheck": {
+		"plans": {
+			"monthly": {
+				"label": "Mensal",
+				"period": "/mês"
+			},
+			"yearly": {
+				"label": "Anual",
+				"period": "/ano"
+			}
+		},
+		"duration": {
+			"monthly": "1 mês",
+			"yearly": "12 meses"
+		},
+		"alreadyGold": "Você já é Gold!",
+		"unlockTitle": "Desbloqueie todo o poder do QvaPay",
+		"activeSubscription": "Assinatura ativa",
+		"expires": "Vence: {{date}}",
+		"alerts": {
+			"confirmTitle": "Confirmar assinatura Gold",
+			"confirmBody": "Tem certeza de que quer assinar o QvaPay Gold?\n\nUsuário: @{{username}}\nDuração: {{duration}}\n",
+			"payButton": "Pagar ${{amount}}"
+		},
+		"toasts": {
+			"activated": "Assinatura Gold ativada",
+			"paymentPendingActivation": "Seu pagamento está pendente de confirmação. Seu Gold será ativado assim que for concluído.",
+			"validateFailed": "Não foi possível validar a compra",
+			"validateError": "Erro ao validar a compra",
+			"noUserInfo": "Não foi possível obter as informações do usuário",
+			"subscribed": "Assinatura concluída",
+			"subscribeFailed": "Não foi possível processar a assinatura",
+			"subscribeError": "Ocorreu um erro ao processar a assinatura",
+			"noPreviousPurchases": "Nenhuma compra anterior encontrada",
+			"restored": "Assinatura restaurada",
+			"paymentPending": "Seu pagamento está pendente de confirmação.",
+			"restoreFailed": "Não foi possível restaurar a assinatura",
+			"restoreError": "Erro ao restaurar as compras"
+		},
+		"upsell": {
+			"bestValue": "Mais vantajoso",
+			"benefitsTitle": "Benefícios GOLD:",
+			"benefits": {
+				"goldenCheck": "Selo dourado no seu perfil",
+				"betterRate": "Melhor rendimento para o seu saldo",
+				"moreP2POps": "Mais operações simultâneas no P2P",
+				"subdomain": "Subdomínio exclusivo (xxx.qvapay.com)",
+				"earlyOffers": "Acesso antecipado a ofertas P2P",
+				"zeroP2PFee": "0% de tarifa no P2P",
+				"earlyFeatures": "Acesso antecipado a novos recursos",
+				"cashback": "Cashback em compras de recargas",
+				"prioritySupport": "Suporte prioritário"
+			},
+			"processing": "Processando...",
+			"payWithBalance": "Pagar com saldo QvaPay ${{amount}}",
+			"payWithStore": "Pagar com {{store}}",
+			"payWithStorePrice": "Pagar com {{store}} {{price}}",
+			"loadingPrices": "Carregando preços da loja...",
+			"restoring": "Restaurando...",
+			"restorePurchases": "Restaurar compras",
+			"disclaimer": "A assinatura é renovada automaticamente. Você pode cancelar a qualquer momento nas configurações da sua conta."
+		}
+	},
+	"kyc": {
+		"toasts": {
+			"inReview": "Sua verificação está em análise",
+			"errorTitle": "Erro",
+			"sessionFailed": "Não foi possível obter a sessão de verificação",
+			"genericError": "Ocorreu um erro"
+		},
+		"verified": {
+			"title": "Identidade verificada!",
+			"body": "Obrigado por concluir a verificação. Agora você pode aproveitar todos os benefícios."
+		},
+		"pending": {
+			"title": "Verificação em análise",
+			"body": "Estamos analisando suas informações. Vamos avisar você assim que estiver pronta — normalmente leva só alguns minutos."
+		},
+		"declined": {
+			"title": "Verificação recusada",
+			"body": "Não conseguimos concluir sua verificação. Escreva para <0>soporte@qvapay.com</0> e vamos ajudar você a resolver."
+		},
+		"idle": {
+			"title": "Verificação de identidade",
+			"body": "Verifique sua identidade para acessar todos os benefícios do QvaPay.",
+			"benefits": {
+				"higherLimits": "Limites de transação mais altos",
+				"betterP2P": "Melhores oportunidades no P2P",
+				"exclusiveFeatures": "Acesso a recursos exclusivos"
+			},
+			"opening": "Abrindo verificação...",
+			"verifyButton": "Verificar minha identidade"
+		}
+	},
+	"notifications": {
+		"title": "Notificações",
+		"subtitle": "Configure como você quer receber seus alertas",
+		"comingSoon": "Em breve",
+		"channels": {
+			"email": {
+				"label": "E-mail",
+				"description": "Receba notificações de transações, segurança e ofertas P2P por e-mail"
+			},
+			"telegram": {
+				"label": "Telegram",
+				"description": "Receba alertas instantâneos na sua conta do Telegram vinculada"
+			},
+			"push": {
+				"label": "Notificações push",
+				"description": "Receba notificações em tempo real no seu dispositivo"
+			}
+		},
+		"info": "As notificações de segurança (login, alteração de senha) são sempre enviadas por e-mail, independentemente desta configuração.",
+		"toasts": {
+			"updateFailed": "Não foi possível atualizar as configurações",
+			"connectionError": "Erro de conexão"
+		}
+	},
+	"passkeys": {
+		"title": "Passkeys",
+		"subtitle": "Entre com segurança sem senha, usando Face ID, impressão digital ou seu dispositivo",
+		"defaultName": "Minha Passkey",
+		"yourPasskeys": "Suas passkeys",
+		"meta": "{{syncStatus}} · Último uso: {{time}}",
+		"status": {
+			"synced": "Sincronizada",
+			"thisDeviceOnly": "Só este dispositivo"
+		},
+		"timeAgo": {
+			"never": "Nunca",
+			"justNow": "Agora mesmo",
+			"minutes": "há {{mins}}m",
+			"hours": "há {{hours}}h",
+			"days": "há {{days}}d"
+		},
+		"howItWorks": {
+			"title": "Como funciona",
+			"step1": "Registre uma passkey neste dispositivo",
+			"step2": "No login, toque no botão de chave",
+			"step3": "Confirme com Face ID ou impressão digital",
+			"step4": "Você entra sem digitar senha nem PIN"
+		},
+		"registering": "Registrando...",
+		"addButton": "Adicionar Passkey",
+		"alerts": {
+			"deleteTitle": "Excluir Passkey",
+			"deleteBody": "Tem certeza de que quer excluir \"{{name}}\"?"
+		},
+		"toasts": {
+			"optionsFailed": "Erro ao obter as opções",
+			"verifyFailed": "Erro ao verificar",
+			"registered": "Passkey registrada com sucesso",
+			"alreadyRegistered": "Você já tem uma passkey registrada neste dispositivo",
+			"registerError": "Erro: {{message}}",
+			"registerFailed": "Erro ao registrar a passkey",
+			"deleted": "Passkey excluída",
+			"deleteFailed": "Erro ao excluir"
+		}
+	},
+	"password": {
+		"title": "Alterar senha",
+		"subtitle": "Defina uma nova senha para a sua conta",
+		"submitButton": "Alterar senha",
+		"placeholders": {
+			"current": "Senha atual",
+			"new": "Nova senha",
+			"confirm": "Confirmar nova senha"
+		},
+		"requirementsTitle": "Requisitos da senha:",
+		"requirements": {
+			"minLength": "Mínimo de 8 caracteres",
+			"uppercase": "Pelo menos uma letra maiúscula",
+			"number": "Pelo menos um número"
+		},
+		"securityTip": "Use uma senha única, que você não usa em outros serviços. Se a biometria estiver ativa, ela será desativada ao alterar a senha.",
+		"toasts": {
+			"changed": "Senha alterada com sucesso",
+			"biometricsDisabled": "Biometria desativada",
+			"biometricsDisabledDescription": "Ative de novo no seu próximo login",
+			"changeFailed": "Erro ao alterar a senha"
+		}
+	},
+	"paymentMethods": {
+		"title": "Métodos de pagamento",
+		"subtitle": "Gerencie suas contas e métodos usados no P2P",
+		"empty": "Você não tem métodos de pagamento salvos",
+		"fallbackName": "Método",
+		"modal": {
+			"title": "Novo método de pagamento",
+			"nameLabel": "Nome",
+			"namePlaceholder": "Nome do método",
+			"coinLabel": "Moeda",
+			"selectCoin": "Selecionar moeda",
+			"accountData": "Dados da conta",
+			"saveButton": "Salvar método"
+		},
+		"alerts": {
+			"deleteTitle": "Excluir método",
+			"deleteBody": "Tem certeza de que quer excluir este método de pagamento?"
+		},
+		"toasts": {
+			"loadFailed": "Não foi possível carregar os métodos de pagamento",
+			"networkError": "Erro de rede",
+			"selectCoin": "Selecione uma moeda",
+			"missingData": "Faltam dados",
+			"missingDataDescription": "Preencha os campos obrigatórios",
+			"created": "Método criado",
+			"createFailed": "Não foi possível criar o método",
+			"invalidId": "ID de método inválido",
+			"deleted": "Método excluído",
+			"deleteFailed": "Não foi possível excluir"
+		}
+	},
+	"phone": {
+		"title": "Verificar celular",
+		"subtitle": "Digite seu número para verificá-lo via Telegram ou WhatsApp",
+		"codePlaceholder": "Código de 6 dígitos",
+		"info": "O código de verificação será enviado por Telegram ou WhatsApp para o número que você digitar. Confira suas mensagens nos dois apps para ver o PIN.",
+		"sendCodeButton": "Enviar código",
+		"verifyButton": "Verificar telefone",
+		"resendButton": "Reenviar código",
+		"alerts": {
+			"removeTitle": "Excluir telefone",
+			"removeBody": "Tem certeza de que quer excluir seu número de telefone?"
+		},
+		"toasts": {
+			"removed": "Número de telefone excluído com sucesso",
+			"removeFailed": "Erro ao excluir o número de telefone",
+			"enterNumber": "Por favor, digite um número de telefone",
+			"minDigits": "O número deve ter pelo menos 7 dígitos",
+			"pinSent": "PIN enviado por Telegram ou WhatsApp",
+			"sendFailed": "Erro ao enviar o código",
+			"invalidPin": "Digite um PIN válido de 6 dígitos",
+			"verified": "Telefone verificado com sucesso",
+			"verifyFailed": "Erro ao verificar o telefone"
+		},
+		"verified": {
+			"title": "Celular",
+			"subtitle": "Seu número está verificado",
+			"info": "Seu número verificado permite receber códigos de segurança por SMS e recuperar o acesso à sua conta.",
+			"removeButton": "Excluir número"
+		}
+	},
+	"referals": {
+		"title": "Indicações",
+		"subtitle": "Convide amigos e ganhe recompensas",
+		"stats": {
+			"referrals": "Indicados",
+			"verified": "Verificados",
+			"pending": "Pendentes",
+			"earnedThisMonth": "Ganho este mês",
+			"available": "Disponível"
+		},
+		"shareTitle": "Seu link de indicação",
+		"shareMessages": {
+			"telegram": "Crie sua conta no QvaPay com meu código de convite: {{username}}\n🌐 iPhone e web: {{link}}"
+		},
+		"howItWorks": {
+			"title": "Como funciona",
+			"step1": "Compartilhe seu link por SMS ou outras redes",
+			"step2": "Seu amigo cria a conta e confirma o e-mail",
+			"step3": "Você recebe $0.01 por cada cadastro via SMS (até $5/mês)"
+		},
+		"myReferrals": "Meus indicados ({{count}})",
+		"empty": {
+			"title": "Você ainda não tem indicados",
+			"subtitle": "Compartilhe seu link para começar a convidar amigos"
+		},
+		"toasts": {
+			"loadFailed": "Erro ao carregar as indicações",
+			"inviteCopied": "Convite copiado para a área de transferência"
+		}
+	},
+	"roundup": {
+		"title": "Arredondamentos",
+		"subtitle": "Arredonde seus pagamentos e guarde o troco",
+		"comingSoon": "Em breve",
+		"options": {
+			"enable": {
+				"label": "Ativar arredondamentos",
+				"description": "Arredonda seus pagamentos para cima e guarda a diferença"
+			},
+			"savings": {
+				"label": "Enviar para a Poupança",
+				"description": "O troco vai para a sua conta de poupança"
+			},
+			"donations": {
+				"label": "Enviar para Doações",
+				"description": "O troco é destinado a doações comunitárias"
+			}
+		},
+		"info": "Ao pagar $4.30, são cobrados $5.00 e os $0.70 restantes vão para a sua conta de poupança. Vale para cobranças, faturas e compras de pacotes.",
+		"toasts": {
+			"updateFailed": "Não foi possível atualizar as configurações",
+			"connectionError": "Erro de conexão"
+		}
+	},
+	"telegram": {
+		"subtitleLinked": "Sua conta está vinculada",
+		"subtitleUnlinked": "Vincule sua conta do Telegram",
+		"linked": {
+			"title": "Notificações ativas:",
+			"item1": "Alertas de transações recebidas e enviadas",
+			"item2": "Avisos de segurança e login",
+			"item3": "Atualizações das suas ofertas P2P"
+		},
+		"unlinked": {
+			"title": "Benefícios de vincular o Telegram:",
+			"item1": "Receba alertas instantâneos de transações",
+			"item2": "Notificações de segurança em tempo real",
+			"item3": "Acompanhamento das ofertas P2P pelo Telegram",
+			"info": "Ao verificar, você será redirecionado para o bot do QvaPay no Telegram para vincular sua conta automaticamente."
+		},
+		"linkButton": "Vincular Telegram",
+		"unlinkButton": "Desvincular Telegram",
+		"alerts": {
+			"removeTitle": "Remover Telegram",
+			"removeBody": "Tem certeza de que quer desvincular sua conta do Telegram?"
+		},
+		"toasts": {
+			"linkFailed": "Não foi possível obter o link de verificação",
+			"verifyFailed": "Erro ao verificar o Telegram",
+			"unlinked": "Telegram desvinculado com sucesso",
+			"unlinkFailed": "Erro ao desvincular o Telegram"
+		}
+	},
+	"themePanel": {
+		"title": "Tema",
+		"subtitle": "Personalize a aparência do aplicativo",
+		"appearanceLabel": "Aparência",
+		"appliedImmediately": "As alterações são aplicadas imediatamente",
+		"options": {
+			"auto": {
+				"title": "Automático",
+				"description": "Ajuste automático conforme o sistema"
+			},
+			"light": {
+				"title": "Claro",
+				"description": "Usar o tema claro o tempo todo"
+			},
+			"dark": {
+				"title": "Escuro",
+				"description": "Usar o tema escuro o tempo todo"
+			}
+		},
+		"accentLabel": "Cor de destaque",
+		"accents": {
+			"default": "QvaPay",
+			"violet": "Violeta",
+			"ocean": "Oceano",
+			"turquoise": "Turquesa",
+			"emerald": "Esmeralda",
+			"gold": "Dourado",
+			"orange": "Laranja",
+			"pink": "Rosa",
+			"graphite": "Grafite"
+		},
+		"accessibilityColor": "Cor {{name}}",
+		"currentColor": "Cor atual: {{name}}",
+		"accentUpsell": "Personalize a cor do app com o QvaPay GOLD",
+		"navBarLabel": "Barra de navegação",
+		"showLabelsTitle": "Mostrar texto",
+		"showLabelsDescription": "Mostrar rótulos na barra de navegação",
+		"toasts": {
+			"accentGoldOnly": "A cor de destaque é exclusiva do QvaPay GOLD"
+		}
+	},
+	"twoFactor": {
+		"title": "Autenticação de dois fatores",
+		"subtitle": "Adicione uma camada extra de segurança à sua conta",
+		"setupButton": "Configurar 2FA",
+		"deactivateButton": "Desativar 2FA",
+		"enabled": {
+			"title": "2FA ativo",
+			"subtitle": "Sua conta está protegida com autenticação de dois fatores",
+			"info": "Sempre que você entrar, vai precisar de um código do seu app autenticador"
+		},
+		"notEnabled": {
+			"status": "2FA inativo",
+			"benefitsTitle": "Benefícios do 2FA:",
+			"benefit1": "Protege sua conta mesmo que alguém saiba a sua senha",
+			"benefit2": "Use apps como Google Authenticator ou Authy",
+			"benefit3": "Códigos que mudam a cada 30 segundos"
+		},
+		"setup": {
+			"title": "Configurar 2FA",
+			"subtitle": "Escaneie o código QR com seu app autenticador (Google Authenticator, Authy, etc.)",
+			"manualEntry": "Ou digite este código manualmente:",
+			"enterCode": "Digite o código de 6 dígitos do seu app:",
+			"activateButton": "Ativar 2FA"
+		},
+		"alerts": {
+			"deactivateTitle": "Desativar 2FA",
+			"deactivateBody": "Tem certeza de que quer desativar a autenticação de dois fatores? Sua conta ficará menos segura.",
+			"deactivateConfirm": "Desativar"
+		},
+		"toasts": {
+			"loadFailed": "Erro ao carregar os dados",
+			"secretGenerated": "Segredo gerado",
+			"secretGeneratedDescription": "Escaneie o código QR com seu app autenticador",
+			"errorTitle": "Erro",
+			"generateFailed": "Não foi possível gerar o código 2FA",
+			"enterCode6": "Digite um código de 6 dígitos",
+			"activated": "2FA ativado",
+			"activatedDescription": "Sua conta agora está protegida com autenticação de dois fatores",
+			"invalidCode": "Código inválido",
+			"invalidCodeDescription": "O código digitado não é válido",
+			"deactivated": "2FA desativado",
+			"deactivatedDescription": "A autenticação de dois fatores foi desativada",
+			"deactivateFailed": "Não foi possível desativar o 2FA",
+			"copiedTitle": "Copiado",
+			"copiedDescription": "Segredo copiado para a área de transferência"
+		}
+	},
+	"userdata": {
+		"title": "Dados pessoais",
+		"subtitle": "Edite suas informações de perfil",
+		"submitButton": "Atualizar dados",
+		"notAvailable": "N/A",
+		"sections": {
+			"account": "Conta",
+			"personal": "Informações pessoais",
+			"contact": "Contato e redes",
+			"location": "Localização"
+		},
+		"placeholders": {
+			"username": "Nome de usuário",
+			"email": "E-mail",
+			"name": "Nome",
+			"lastname": "Sobrenome",
+			"bio": "Biografia ou descrição",
+			"phone": "Telefone",
+			"telegram": "@usuario_telegram",
+			"twitter": "@usuario_twitter",
+			"address": "Endereço",
+			"country": "País (ex.: US, ES, MX)"
+		},
+		"info": "O nome de usuário, o e-mail e o telefone são gerenciados nas respectivas seções das configurações.",
+		"memberSince": "Membro desde: <0>{{date}}</0>",
+		"toasts": {
+			"loadFailed": "Erro ao carregar os dados do usuário",
+			"nameRequired": "Preencha pelo menos o nome e o sobrenome",
+			"invalidEmail": "Formato de e-mail inválido",
+			"invalidCountry": "O código do país deve ter 2 caracteres (ex.: US, ES)",
+			"updated": "Dados atualizados com sucesso",
+			"updateFailed": "Erro ao atualizar"
+		}
+	}
+}

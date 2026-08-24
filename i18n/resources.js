@@ -3,7 +3,9 @@
  * como grupos top-level de un ÚNICO namespace — las claves se consumen como
  * `t('auth.login.title')`. Los 21 dominios existen desde el día uno (los aún
  * no migrados son `{}`): cada lote de migración solo toca SUS dos JSON, nunca
- * este archivo.
+ * este archivo. Un idioma nuevo = carpeta en locales/ + su bloque aquí +
+ * SUPPORTED_LANGUAGES/DATE_LOCALES en index.js + CFBundleLocalizations (iOS)
+ * + locales_config.xml (Android) + opción en el panel de Idioma.
  */
 
 // Español (idioma fuente — extracción verbatim de los literales del código)
@@ -51,6 +53,29 @@ import enTransactions from './locales/en/transactions.json'
 import enUi from './locales/en/ui.json'
 import enWelcome from './locales/en/welcome.json'
 import enWithdraw from './locales/en/withdraw.json'
+
+// Português (Brasil)
+import ptAdd from './locales/pt/add.json'
+import ptApi from './locales/pt/api.json'
+import ptAssisted from './locales/pt/assisted.json'
+import ptAuth from './locales/pt/auth.json'
+import ptCommon from './locales/pt/common.json'
+import ptErrors from './locales/pt/errors.json'
+import ptHome from './locales/pt/home.json'
+import ptHooks from './locales/pt/hooks.json'
+import ptInvest from './locales/pt/invest.json'
+import ptKeypad from './locales/pt/keypad.json'
+import ptMarket from './locales/pt/market.json'
+import ptMisc from './locales/pt/misc.json'
+import ptNavigation from './locales/pt/navigation.json'
+import ptP2p from './locales/pt/p2p.json'
+import ptSettings from './locales/pt/settings.json'
+import ptStore from './locales/pt/store.json'
+import ptTopup from './locales/pt/topup.json'
+import ptTransactions from './locales/pt/transactions.json'
+import ptUi from './locales/pt/ui.json'
+import ptWelcome from './locales/pt/welcome.json'
+import ptWithdraw from './locales/pt/withdraw.json'
 
 const resources = {
 	es: {
@@ -101,6 +126,31 @@ const resources = {
 			ui: enUi,
 			welcome: enWelcome,
 			withdraw: enWithdraw,
+		},
+	},
+	pt: {
+		translation: {
+			add: ptAdd,
+			api: ptApi,
+			assisted: ptAssisted,
+			auth: ptAuth,
+			common: ptCommon,
+			errors: ptErrors,
+			home: ptHome,
+			hooks: ptHooks,
+			invest: ptInvest,
+			keypad: ptKeypad,
+			market: ptMarket,
+			misc: ptMisc,
+			navigation: ptNavigation,
+			p2p: ptP2p,
+			settings: ptSettings,
+			store: ptStore,
+			topup: ptTopup,
+			transactions: ptTransactions,
+			ui: ptUi,
+			welcome: ptWelcome,
+			withdraw: ptWithdraw,
 		},
 	},
 }

@@ -18,13 +18,18 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import resources from './resources'
 
-export const SUPPORTED_LANGUAGES = ['es', 'en']
+export const SUPPORTED_LANGUAGES = ['es', 'en', 'pt']
 export const DEFAULT_LANGUAGE = 'es'
+
+// Tag de locale para fechas por idioma soportado
+const DATE_LOCALES = { es: 'es-ES', en: 'en-US', pt: 'pt-BR' }
 
 /**
  * Idioma del dispositivo reducido a los soportados, vía Intl (respaldado por
  * el locale del sistema en Hermes iOS/Android — sin dependencia nativa).
- * @returns {'es'|'en'} 'es' cuando el idioma del sistema no está soportado.
+ * En iOS el sistema negocia contra CFBundleLocalizations y en Android 13+
+ * contra locales_config.xml (selectores por-app de Ajustes incluidos).
+ * @returns {'es'|'en'|'pt'} 'es' cuando el idioma del sistema no está soportado.
  */
 export const getDeviceLanguage = () => {
 	try {
@@ -38,8 +43,8 @@ export const getDeviceLanguage = () => {
 
 /**
  * Resuelve la preferencia persistida al idioma efectivo.
- * @param {'auto'|'es'|'en'|null|undefined} pref - `language.currentLanguage` de Settings.
- * @returns {'es'|'en'}
+ * @param {'auto'|'es'|'en'|'pt'|null|undefined} pref - `language.currentLanguage` de Settings.
+ * @returns {'es'|'en'|'pt'}
  */
 export const resolveLanguage = (pref) => {
 	if (!pref || pref === 'auto') { return getDeviceLanguage() }
@@ -49,9 +54,9 @@ export const resolveLanguage = (pref) => {
 /**
  * Tag de locale para fechas (`toLocaleDateString`/`toLocaleString`) acorde al
  * idioma ACTIVO de i18next. Sustituye a los 'es-ES' hardcodeados.
- * @returns {'es-ES'|'en-US'}
+ * @returns {'es-ES'|'en-US'|'pt-BR'}
  */
-export const getDateLocale = () => (i18n.language === 'en' ? 'en-US' : 'es-ES')
+export const getDateLocale = () => DATE_LOCALES[i18n.language] || DATE_LOCALES[DEFAULT_LANGUAGE]
 
 i18n
 	.use(initReactI18next)
