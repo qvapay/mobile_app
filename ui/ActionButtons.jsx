@@ -5,6 +5,11 @@ import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle } from 'react-
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
 
+// Auth & KYC gate
+import { useAuth } from '../auth/AuthContext'
+import useKycGate from '../hooks/useKycGate'
+import KycGateModal from './KycGateModal'
+
 // UI
 import QPPressable from './particles/QPPressable'
 
@@ -20,7 +25,7 @@ const ROW_HEIGHT = 56
 // Tile de la cuenta principal (icono arriba, label abajo). El desplazamiento
 // es un parallax escalonado por índice: cada tile sale un poco más lejos que
 // el anterior, siguiendo el dedo en tiempo real (pageProgress 0→1).
-const AccountTile = ({ icon, label, onPress, index, pageProgress, theme }) => {
+const AccountTile = ({ icon, label, onPress, index, pageProgress, theme, dimmed }) => {
 	const style = useAnimatedStyle(() => {
 		const p = pageProgress ? pageProgress.value : 0
 		return {
@@ -34,8 +39,8 @@ const AccountTile = ({ icon, label, onPress, index, pageProgress, theme }) => {
 	return (
 		<Animated.View style={[styles.tileSlot, style]}>
 			<QPPressable onPress={onPress} style={[styles.tile, { backgroundColor: theme.colors.elevation }]}>
-				<FontAwesome6 name={icon} size={17} color={theme.colors.primaryText} iconStyle="solid" />
-				<Text style={[styles.tileLabel, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
+				<FontAwesome6 name={icon} size={17} color={dimmed ? theme.colors.tertiaryText : theme.colors.primaryText} iconStyle="solid" />
+				<Text style={[styles.tileLabel, { color: dimmed ? theme.colors.tertiaryText : theme.colors.primaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
 					{label}
 				</Text>
 			</QPPressable>
@@ -87,6 +92,12 @@ const ActionButtons = ({ navigation, pageProgress }) => {
 	// Theme variables, dark and light modes with memoized styles
 	const { theme } = useTheme()
 
+	// Extraer requiere identidad verificada: sin KYC el tile se atenúa y el
+	// toque abre el KycGateModal (con salto a verificación) en vez de navegar
+	const { user } = useAuth()
+	const kycVerified = !!user?.kyc
+	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
+
 	// Qué fila recibe los toques (los estilos animados siguen el dedo; el
 	// pointerEvents cambia al cruzar la mitad del swipe)
 	const [savingsActive, setSavingsActive] = useState(false)
@@ -99,7 +110,15 @@ const ActionButtons = ({ navigation, pageProgress }) => {
 
 	const accountActions = [
 		{ icon: 'plus', label: 'Depositar', onPress: () => navigation.navigate(ROUTES.ADD) },
-		{ icon: 'turn-up', label: 'Extraer', onPress: () => navigation.navigate(ROUTES.WITHDRAW) },
+		{
+			icon: 'turn-up',
+			label: 'Extraer',
+			dimmed: !kycVerified,
+			onPress: () => {
+				if (!requireKyc({ message: 'Para extraer fondos necesitas tener tu identidad verificada. Es rápido y solo se hace una vez.' })) return
+				navigation.navigate(ROUTES.WITHDRAW)
+			},
+		},
 		{ icon: 'paper-plane', label: 'Enviar', onPress: () => navigation.navigate(ROUTES.SEND) },
 		// P2P es un tab hermano del Home dentro de MainStack, así que el
 		// navigate directo lo resuelve el tab navigator
@@ -128,6 +147,8 @@ const ActionButtons = ({ navigation, pageProgress }) => {
 					<SavingsPill key={action.label} {...action} index={index} pageProgress={pageProgress} theme={theme} />
 				))}
 			</View>
+
+			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
 		</View>
 	)
 }
