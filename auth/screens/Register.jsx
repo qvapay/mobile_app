@@ -137,6 +137,8 @@ const RegisterScreen = ({ navigation }) => {
 	const verifyingRef = useRef(false)
 	const finishingRef = useRef(false)
 	const lastnameInputRef = useRef(null)
+	// KYC result captured during the wizard to merge into completeSession
+	const kycResultRef = useRef(null)
 
 	// Atribución de instalación: si el referrer de Play trajo un código de
 	// invitación, se aplica solo (visible para el usuario); el utm_source viaja
@@ -321,9 +323,11 @@ const RegisterScreen = ({ navigation }) => {
 
 			if (resp.kind === 'native') {
 				if (resp.outcome === 'approved') {
+					kycResultRef.current = { kyc: true, kyc_status: 'approved' }
 					toast.success(t('auth.register.toasts.kycApproved'))
 					goToPushOrFinish()
 				} else if (resp.outcome === 'pending' || resp.outcome === 'declined') {
+					kycResultRef.current = { kyc_status: resp.outcome === 'declined' ? 'declined' : 'pending' }
 					// declined también se comunica como revisión (política: la revisión
 					// manual la resuelve el equipo, no es un rechazo terminal en el alta)
 					toast.info(t('auth.register.toasts.kycInReview'))
@@ -344,8 +348,12 @@ const RegisterScreen = ({ navigation }) => {
 					toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
 				}
 			} else {
-				// sdk-error: reintentable desde el propio paso
-				toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
+				// sdk-error: mostrar guía específica para denegación de cámara
+				if (resp.errorType === 'cameraAccessDenied') {
+					toast.error(t('settings.kyc.toasts.errorTitle'), { description: t('settings.kyc.toasts.cameraDenied') })
+				} else {
+					toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
+				}
 			}
 		} catch {
 			toast.error(t('auth.register.toasts.connectionError'))
@@ -381,6 +389,12 @@ const RegisterScreen = ({ navigation }) => {
 		setFinishing(true)
 		setIsLoading(true)
 		try {
+			// Merge the KYC result into the session before completing to avoid race
+			// with updateUser: the hook's fire-and-forget updateUser would merge
+			// into null userRef and race completeSession's write
+			if (kycResultRef.current) {
+				sessionRef.current.me = { ...sessionRef.current.me, ...kycResultRef.current }
+			}
 			await completeSession({ ...sessionRef.current, email: email.trim() })
 		} catch {
 			// No dejar la pantalla muerta: liberar el lock para poder reintentar

@@ -40,7 +40,7 @@ const SDK_LANGUAGE = { pt: 'pt-BR' }
  */
 const useKycVerification = () => {
 
-	const { updateUser } = useAuth()
+	const { user, updateUser } = useAuth()
 
 	// true mientras se pide la sesión o el flujo nativo está en pantalla
 	const [launching, setLaunching] = useState(false)
@@ -74,14 +74,16 @@ const useKycVerification = () => {
 				const status = result.session?.status
 				if (status === VerificationStatus.Approved) {
 					// Adelanta badges/gates sin esperar al próximo /user/extended
-					updateUser({ kyc: true, kyc_status: 'approved' })
+					// (skip if user is null: during registration, Register captures
+					// the result and merges it before completeSession)
+					if (user) updateUser({ kyc: true, kyc_status: 'approved' })
 					return { kind: 'native', outcome: 'approved' }
 				}
 				if (status === VerificationStatus.Declined) {
-					updateUser({ kyc_status: 'declined' })
+					if (user) updateUser({ kyc_status: 'declined' })
 					return { kind: 'native', outcome: 'declined' }
 				}
-				updateUser({ kyc_status: 'pending' })
+				if (user) updateUser({ kyc_status: 'pending' })
 				return { kind: 'native', outcome: 'pending' }
 			}
 
@@ -99,7 +101,7 @@ const useKycVerification = () => {
 		} catch (e) {
 			return { kind: 'sdk-error', message: e?.message }
 		} finally { setLaunching(false) }
-	}, [updateUser])
+	}, [user, updateUser])
 
 	return { launchKyc, launching }
 }
