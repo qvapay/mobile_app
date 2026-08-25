@@ -22,3 +22,8 @@
 # @stripe/stripe-react-native referencia el módulo opcional de push provisioning
 # (tarjetas en Google Wallet) que no está en el classpath — la app no lo usa
 -dontwarn com.stripe.android.pushProvisioning.**
+
+# SDK nativo de Didit (KYC): binario cerrado con modelos serializados y JNI que
+# R8 full mode no puede rastrear — keep conservador de su grupo completo
+-keep class me.didit.** { *; }
+-dontwarn me.didit.**

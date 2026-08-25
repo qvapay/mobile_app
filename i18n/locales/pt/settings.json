@@ -424,7 +424,9 @@
 			"inReview": "Sua verificação está em análise",
 			"errorTitle": "Erro",
 			"sessionFailed": "Não foi possível obter a sessão de verificação",
-			"genericError": "Ocorreu um erro"
+			"genericError": "Ocorreu um erro",
+			"approved": "Identidade verificada!",
+			"cameraDenied": "Precisamos de acesso à câmera para verificar sua identidade. Ative-o nos ajustes do sistema."
 		},
 		"verified": {
 			"title": "Identidade verificada!",

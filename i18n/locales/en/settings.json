@@ -424,7 +424,9 @@
 			"inReview": "Your verification is under review",
 			"errorTitle": "Error",
 			"sessionFailed": "Couldn't get the verification session",
-			"genericError": "An error occurred"
+			"genericError": "An error occurred",
+			"approved": "Identity verified!",
+			"cameraDenied": "We need camera access to verify your identity. Enable it in your system settings."
 		},
 		"verified": {
 			"title": "Identity verified!",
