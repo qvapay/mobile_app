@@ -84,7 +84,14 @@ describe('userApi KYC', () => {
 		const result = await userApi.requestKYCSession()
 
 		expect(apiClient.post).toHaveBeenCalledWith('/user/kyc')
-		expect(result).toEqual({ success: true, data: 'https://verify.didit.me/session/abc', status: 200 })
+		// Backend sin session_token (despliegue anterior) → null, no undefined
+		expect(result).toEqual({ success: true, data: 'https://verify.didit.me/session/abc', sessionToken: null, status: 200 })
+	})
+
+	test('requestKYCSession expone el session_token del SDK nativo cuando el backend lo manda', async () => {
+		apiClient.post.mockResolvedValue(ok({ data: 'https://verify.didit.me/session/abc', session_token: 'abc' }))
+
+		expect(await userApi.requestKYCSession()).toEqual({ success: true, data: 'https://verify.didit.me/session/abc', sessionToken: 'abc', status: 200 })
 	})
 
 	test('requestKYCSession returns the API error or Spanish fallback', async () => {

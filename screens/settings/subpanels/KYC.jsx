@@ -13,8 +13,8 @@ import QPLoader from '../../../ui/particles/QPLoader'
 // API
 import { userApi } from '../../../api/userApi'
 
-// Nudge de KYC (gracia post-sesión para el banner del Home)
-import { markKycSessionStarted } from '../../../hooks/useKycPrompt'
+// Flujo de verificación nativo (SDK embebido, con fallback a navegador)
+import useKycVerification from '../../../hooks/useKycVerification'
 
 // Lottie
 import LottieView from 'lottie-react-native'
@@ -38,16 +38,16 @@ const PENDING_POLL_MS = 12000
  * `GET /user/kyc` → `{ kyc, kyc_status: none|pending|approved|declined }`:
  *
  * - `verified`  — kyc true: Lottie de verificado.
- * - `pending`   — Didit en revisión: sin CTA, polling cada 12s.
+ * - `pending`   — verificación en revisión: sin CTA, polling cada 12s.
  * - `declined`  — rechazada: caso de soporte, sin re-intento self-service
  *                 (el backend responde 403 a nuevas sesiones).
- * - `idle`      — sin verificar: beneficios + CTA que abre la URL hospedada
- *                 de Didit en el navegador (`POST /user/kyc`).
+ * - `idle`      — sin verificar: beneficios + CTA que lanza el flujo NATIVO
+ *                 de verificación (useKycVerification) sin salir de la app.
  *
- * Al volver del navegador (AppState → active tras abrir la sesión) se
- * re-consulta el estado — espejo del recheck por `visibilitychange` de la web.
- * Los códigos del POST se mapean: 409 → pending, 403 → declined/max intentos,
- * 400 → ya verificado (refresca).
+ * El flujo nativo devuelve el resultado en línea (approved/pending/declined →
+ * transición de estado inmediata). Solo en el fallback a navegador (backend
+ * viejo sin session_token) sobrevive el re-check por AppState al volver, y los
+ * códigos del POST se mapean: 409 → pending, 403 → declined, 400 → refresca.
  */
 const KYC = () => {
 
@@ -62,9 +62,11 @@ const KYC = () => {
 	// Auth
 	const { user, updateUser } = useAuth()
 
+	// Flujo de verificación nativo
+	const { launchKyc, launching } = useKycVerification()
+
 	// States: 'loading' | 'verified' | 'pending' | 'declined' | 'idle'
 	const [status, setStatus] = useState('loading')
-	const [requesting, setRequesting] = useState(false)
 	const sessionOpenedRef = useRef(false)
 
 	const checkStatus = useCallback(async () => {
@@ -94,7 +96,7 @@ const KYC = () => {
 	// Estado inicial
 	useEffect(() => { checkStatus() }, [checkStatus])
 
-	// Re-check al volver del navegador de Didit
+	// Re-check al volver del navegador (solo aplica al fallback sin SDK)
 	useEffect(() => {
 		const sub = AppState.addEventListener('change', (state) => {
 			if (state === 'active' && sessionOpenedRef.current) {
@@ -111,17 +113,31 @@ const KYC = () => {
 		return () => clearInterval(poll)
 	}, [status, checkStatus])
 
-	// Request verification session URL and open in browser
+	// Lanza el flujo nativo y traduce su resultado al estado de la pantalla
 	const requestVerification = useCallback(async () => {
-		try {
-			setRequesting(true)
-			const resp = await userApi.requestKYCSession()
-			if (resp.success && resp.data) {
-				sessionOpenedRef.current = true
-				markKycSessionStarted()
-				await Linking.openURL(resp.data)
-				return
+		const resp = await launchKyc()
+
+		if (resp.kind === 'native') {
+			if (resp.outcome === 'approved') {
+				setStatus('verified')
+				toast.success(t('settings.kyc.toasts.approved'))
+			} else if (resp.outcome === 'pending') {
+				setStatus('pending')
+				toast.info(t('settings.kyc.toasts.inReview'))
+			} else if (resp.outcome === 'declined') {
+				setStatus('declined')
 			}
+			// cancelled: el usuario cerró el flujo, se queda en idle sin ruido
+			return
+		}
+
+		if (resp.kind === 'browser') {
+			// Fallback a la URL hospedada: el resultado llega al volver (AppState)
+			sessionOpenedRef.current = true
+			return
+		}
+
+		if (resp.kind === 'request-error') {
 			// El backend codifica el estado en el status HTTP
 			if (resp.status === 409) {
 				setStatus('pending')
@@ -131,11 +147,18 @@ const KYC = () => {
 			} else if (resp.status === 400) {
 				checkStatus()
 			} else {
-				toast.error(t('settings.kyc.toasts.errorTitle'), { description: resp.error || t('settings.kyc.toasts.sessionFailed') })
+				toast.error(t('settings.kyc.toasts.errorTitle'), { description: resp.message || t('settings.kyc.toasts.sessionFailed') })
 			}
-		} catch (e) { toast.error(t('settings.kyc.toasts.errorTitle'), { description: e.message || t('settings.kyc.toasts.genericError') }) }
-		finally { setRequesting(false) }
-	}, [checkStatus, t])
+			return
+		}
+
+		// sdk-error
+		if (resp.errorType === 'cameraAccessDenied') {
+			toast.error(t('settings.kyc.toasts.errorTitle'), { description: t('settings.kyc.toasts.cameraDenied') })
+		} else {
+			toast.error(t('settings.kyc.toasts.errorTitle'), { description: resp.message || t('settings.kyc.toasts.genericError') })
+		}
+	}, [launchKyc, checkStatus, t])
 
 	if (status === 'loading') return <QPLoader />
 
@@ -212,9 +235,9 @@ const KYC = () => {
 
 			<View style={containerStyles.bottomButtonContainer}>
 				<QPButton
-					title={requesting ? t('settings.kyc.idle.opening') : t('settings.kyc.idle.verifyButton')}
+					title={launching ? t('settings.kyc.idle.opening') : t('settings.kyc.idle.verifyButton')}
 					onPress={requestVerification}
-					loading={requesting}
+					loading={launching}
 					textStyle={{ color: theme.colors.almostWhite }}
 				/>
 			</View>

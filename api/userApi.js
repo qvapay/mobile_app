@@ -34,15 +34,17 @@ export const userApi = {
 	},
 
 	/**
-	 * Requests a KYC verification session from the DIDIT provider (`POST /user/kyc`).
+	 * Requests a KYC verification session from the identity provider (`POST /user/kyc`).
 	 * Unwraps `response.data.data`, so `data` is the hosted verification URL to open.
+	 * `sessionToken` (when the backend sends it) feeds the native verification SDK;
+	 * without it the caller falls back to opening the hosted URL in the browser.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the verification URL string
+	 * @returns {Promise<Object>} `{ success, data?, sessionToken?, error?, status? }` — `data` is the verification URL string
 	 */
 	requestKYCSession: async () => {
 		try {
 			const response = await apiClient.post(`/user/kyc`)
-			return { success: true, data: response.data?.data, status: response.status }
+			return { success: true, data: response.data?.data, sessionToken: response.data?.session_token || null, status: response.status }
 		} catch (error) {
 			if (error.response?.data) {
 				const errorData = error.response.data
@@ -54,9 +56,8 @@ export const userApi = {
 
 	/**
 	 * Gets the current user's KYC status (`GET /user/kyc`).
-	 * `result` is one of: started, processing, passed, failed.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, raw?, error?, status? }` — `data` is `{ uuid, KYC: { result, country, birthday, document_url, selfie_url } }`, `raw` the unwrapped response body
+	 * @returns {Promise<Object>} `{ success, data?, raw?, error?, status? }` — `data` is `{ uuid, kyc: boolean, kyc_status: 'none'|'pending'|'approved'|'declined' }`, `raw` the unwrapped response body
 	 */
 	getKYCStatus: async () => {
 		try {

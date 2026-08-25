@@ -155,3 +155,10 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// fast-image arrastra com.caverock:androidsvg (jar) y el SDK de Didit la MISMA
+// librería como com.caverock:androidsvg-aar → checkDuplicateClasses revienta.
+// Se excluye el jar plano: el aar sirve las mismas clases 1.4 a ambos.
+configurations.all {
+    exclude group: "com.caverock", module: "androidsvg"
+}

@@ -30,6 +30,7 @@ PODS:
   - boost (1.84.0)
   - BVLinearGradient (2.8.3):
     - React-Core
+  - DiditSDK/AutoDetection (4.7.2)
   - DoubleConversion (1.1.6)
   - fast_float (8.0.0)
   - FBLazyVector (0.84.1)
@@ -3545,6 +3546,35 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - SdkReactNative (4.7.3):
+    - boost
+    - DiditSDK/AutoDetection (= 4.7.2)
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - SDWebImage (5.21.7):
     - SDWebImage/Core (= 5.21.7)
   - SDWebImage/Core (5.21.7)
@@ -3755,6 +3785,7 @@ DEPENDENCIES:
   - "AsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
+  - DiditSDK/AutoDetection (from `https://raw.githubusercontent.com/didit-protocol/sdk-ios/4.7.2/DiditSDK.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
@@ -3859,6 +3890,7 @@ DEPENDENCIES:
   - RNSound (from `../node_modules/react-native-sound`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
+  - "SdkReactNative (from `../node_modules/@didit-protocol/sdk-react-native`)"
   - SocketRocket (~> 0.7.1)
   - "stripe-react-native (from `../node_modules/@stripe/stripe-react-native`)"
   - VisionCamera (from `../node_modules/react-native-vision-camera`)
@@ -3907,6 +3939,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   BVLinearGradient:
     :path: "../node_modules/react-native-linear-gradient"
+  DiditSDK:
+    :podspec: https://raw.githubusercontent.com/didit-protocol/sdk-ios/4.7.2/DiditSDK.podspec
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
   fast_float:
@@ -4114,6 +4148,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-svg"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
+  SdkReactNative:
+    :path: "../node_modules/@didit-protocol/sdk-react-native"
   stripe-react-native:
     :path: "../node_modules/@stripe/stripe-react-native"
   VisionCamera:
@@ -4127,6 +4163,7 @@ SPEC CHECKSUMS:
   AsyncStorage: d7dcc63ec84ccd43e489b5dcdbd4bf93d12f04eb
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
+  DiditSDK: d190e09da2e7c5bf663244c19ea5583a826ccd7c
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
   FBLazyVector: baf9d0492aa305444465c798e972f87e6a60dc69
@@ -4247,6 +4284,7 @@ SPEC CHECKSUMS:
   RNSound: 80f864773ff8f670fc8f052a3e478cec201d9b43
   RNSVG: a14f58a6be359fd52b3d6eef86c1a6461264dd78
   RNWorklets: 16432d8c65c186246eb2761e9d30373dd17f2ffc
+  SdkReactNative: 0784b1e2ff48e4e2f9cc91dd624e7aeb7590194a
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
@@ -4267,6 +4305,6 @@ SPEC CHECKSUMS:
   VisionCameraBarcodeScanner: 64a1d69adfe42b51f618649ee7a6617b1c3e25ad
   Yoga: 9e495ad6f457c4ff504a8328981496b5cf41dd7f
 
-PODFILE CHECKSUM: 58028f42af9ee6f1394adb81af86e462a10d2a8d
+PODFILE CHECKSUM: e93be018783276bd136a84c4f3e400d23d04e5c1
 
 COCOAPODS: 1.16.2

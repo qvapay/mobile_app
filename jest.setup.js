@@ -7,3 +7,16 @@
  * instancia global), dejando intactos los harnesses `create(<Componente/>)`.
  */
 require('./i18n')
+
+/**
+ * El SDK nativo de verificación de identidad es un TurboModule: importarlo en
+ * el entorno node de jest lanzaría al registrar el módulo nativo. Mock global
+ * con la misma superficie que consume useKycVerification; las suites que
+ * necesiten resultados concretos lo re-mockean con jest.mocked/mockResolvedValue.
+ */
+/* global jest */
+jest.mock('@didit-protocol/sdk-react-native', () => ({
+	startVerification: jest.fn(async () => ({ type: 'cancelled' })),
+	startVerificationWithWorkflow: jest.fn(async () => ({ type: 'cancelled' })),
+	VerificationStatus: { Approved: 'Approved', Pending: 'Pending', Declined: 'Declined' },
+}))

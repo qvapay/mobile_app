@@ -35,7 +35,7 @@ This mobile application is the primary gateway to QvaPay. Built with **React Nat
 #### 💰 Money
 - Non-custodial crypto wallet with multi-coin support (40+ networks and fiat rails)
 - USD-equivalent digital balance (QUSD) + **spendable satoshis** (Lightning withdrawals, store discounts, bolt11 scanning)
-- **Card deposits via Stripe** (native PaymentSheet)
+- **Card deposits** with a native payment sheet
 - Instant transfers with PIN/TOTP confirmation and **idempotency keys** on every money operation (safe retries, no double-spends)
 - Merchant invoice payments (Pay screen, deep-linkable)
 - Transaction history with real-time **SSE streaming**, filters, and PDF receipt downloads
@@ -52,14 +52,14 @@ This mobile application is the primary gateway to QvaPay. Built with **React Nat
 - Savings account with **Roundup** (spare-change auto-deposits) and earnings dashboard
 
 #### 🛍️ Store
-- Phone top-ups (Cubacel + Zendit international) and gift cards by country/category
+- Phone top-ups (Cuba + international) and gift cards by country/category
 - **In-app purchase top-ups** billed through App Store / Google Play (consumable IAP)
 - **Personal Shopper**: assisted shopping on Amazon & eBay with cart, tax quotes, and US shipping
 - **Seller Shops** marketplace with local cart and idempotent checkout
 
 #### 🔐 Security & Identity
 - **Passkey login** (WebAuthn), biometric auth (Face ID / fingerprint), 2FA (PIN + TOTP)
-- **KYC verification** powered by Didit (hosted flow with in-app status tracking)
+- **KYC verification** with a hosted flow and in-app status tracking
 - App lock with PIN gate, Keychain-only token storage, leaked-password warnings
 - Failed-login throttling and rate limiting on all sensitive endpoints
 
@@ -89,7 +89,7 @@ This mobile application is the primary gateway to QvaPay. Built with **React Nat
 | 🖌️ Graphics | Skia 2 (SkSL aurora shader) + victory-native 41 (charts) + Lottie 7 |
 | 📷 Camera | Vision Camera 5 + barcode scanner (QR / bolt11) |
 | 🔐 Storage | Keychain (tokens, biometrics, app-lock PIN) + AsyncStorage (settings & cache) |
-| 💳 Payments | Stripe PaymentSheet + react-native-iap 15 (StoreKit / Play Billing) |
+| 💳 Payments | Native payment sheet + react-native-iap 15 (StoreKit / Play Billing) |
 | 🪪 Auth | Bearer tokens + Passkeys (WebAuthn) + biometrics + TOTP |
 | 🔔 Notifications | OneSignal 5 |
 | 🍞 Toasts | sonner-native |
@@ -156,11 +156,11 @@ npm run android       # Run on Android emulator
 - [x] **React Query data layer** — offline-first persisted cache, instant cold starts
 - [x] **Multi-language support (ES/EN/PT-BR)** — full i18next sweep, ~1,900 keys per language
 - [x] **Lightning / spendable satoshis** — LN withdrawals, sats discounts, bolt11 scanning
-- [x] **Card deposits via Stripe** (native PaymentSheet)
+- [x] **Card deposits** (native payment sheet)
 - [x] **In-app purchase top-ups** (StoreKit / Play Billing consumables)
 - [x] **Personal Shopper** — assisted Amazon/eBay shopping with checkout
 - [x] **Seller Shops marketplace** with idempotent checkout
-- [x] **KYC via Didit** — register wizard step, status screen, smart home nudges
+- [x] **KYC flow** — register wizard step, status screen, smart home nudges
 - [x] **Idempotency keys** on all money operations (transfer, withdraw, P2P create)
 - [x] **Price charts** with GOLD scrubbing (victory-native)
 - [x] **Custom app icons for GOLD users** (8 themed variants)
@@ -171,7 +171,7 @@ npm run android       # Run on Android emulator
 - [x] P2P marketplace full lifecycle with client-side filters and rate coloring
 - [x] Savings account with Roundup + Invest dashboard with watchlist
 - [x] Home-screen widgets, push notifications, PDF receipts
-- [x] Phone top-ups and gift cards (unified Zendit catalogs)
+- [x] Phone top-ups and gift cards (unified catalogs)
 - [x] Deep linking (P2P offers, payments, shops) + Android install referrer attribution
 - [x] FlashList migration, haptics, edge-to-edge, light/dark theme, privacy mode
 - [x] R8 shrinking on Android release builds
@@ -200,7 +200,7 @@ We welcome contributions! Please open an issue or submit a pull request. All cod
 
 QvaPay complies with applicable regulations including:
 
-- AML / KYC procedures for user onboarding (Didit-powered verification)
+- AML / KYC procedures for user onboarding
 - Integration with OFAC sanctions list
 - US FinCEN registered MSB (via partners)
 - Ongoing work toward EU licensing under e-Residency

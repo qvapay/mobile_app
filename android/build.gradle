@@ -20,3 +20,14 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    repositories {
+        // SDK nativo de Didit (KYC). Scoped a su grupo: sin el filtro, Gradle sondea
+        // este host para CADA dependencia y un 429 desactiva el repo a mitad de build.
+        maven {
+            url "https://raw.githubusercontent.com/didit-protocol/sdk-android/main/repository"
+            content { includeGroup "me.didit" }
+        }
+    }
+}

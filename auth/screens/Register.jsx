@@ -1,6 +1,5 @@
 import { usePreventRemove } from '@react-navigation/native'
 import { useState, useRef, useEffect, useEffectEvent, useLayoutEffect, useReducer } from 'react'
-import { Linking } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Routes
@@ -26,8 +25,8 @@ import useStepTransitions from '../../hooks/useStepTransitions'
 // Push notifications (OneSignal permission + flags de prompts)
 import usePushPrompt from '../../hooks/usePushPrompt'
 
-// Nudge de KYC (gracia post-sesión para el banner del Home)
-import { markKycSessionStarted } from '../../hooks/useKycPrompt'
+// Flujo de verificación de identidad nativo (SDK embebido, fallback a navegador)
+import useKycVerification from '../../hooks/useKycVerification'
 
 // Atribución de instalación (Android Install Referrer): código del referidor
 // y source de adquisición capturados en el primer arranque
@@ -92,6 +91,9 @@ const RegisterScreen = ({ navigation }) => {
 
 	// Auth Context
 	const { register, clearError, completeSession } = useAuth()
+
+	// Verificación de identidad nativa (paso kyc del wizard)
+	const { launchKyc } = useKycVerification()
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -308,25 +310,42 @@ const RegisterScreen = ({ navigation }) => {
 		if (isPushEnabled) { finish() } else { goTo(STEPS.indexOf('push')) }
 	}
 
-	// Abre la sesión de verificación de Didit en el navegador. Los códigos del
-	// backend se mapean a avanzar (400 ya verificado, 409 en revisión, 403
-	// rechazado/max intentos — nada accionable en el wizard) o a reintentar
+	// Lanza el flujo de verificación NATIVO (useKycVerification). Un resultado
+	// terminal avanza el wizard (aprobada/en revisión — nada más que hacer aquí);
+	// cancelar se queda en el paso con el "Ahora no" disponible; solo el fallback
+	// a navegador conserva el estado kycOpened de la vuelta manual
 	const handleStartKyc = async () => {
 		setIsLoading(true)
 		try {
-			const resp = await userApi.requestKYCSession()
-			if (resp.success && resp.data) {
+			const resp = await launchKyc()
+
+			if (resp.kind === 'native') {
+				if (resp.outcome === 'approved') {
+					toast.success(t('auth.register.toasts.kycApproved'))
+					goToPushOrFinish()
+				} else if (resp.outcome === 'pending' || resp.outcome === 'declined') {
+					// declined también se comunica como revisión (política: la revisión
+					// manual la resuelve el equipo, no es un rechazo terminal en el alta)
+					toast.info(t('auth.register.toasts.kycInReview'))
+					goToPushOrFinish()
+				}
+				// cancelled: sin ruido, el paso sigue ofreciendo verificar o "Ahora no"
+			} else if (resp.kind === 'browser') {
 				setKycOpened(true)
-				markKycSessionStarted()
-				await Linking.openURL(resp.data)
-			} else if (resp.status === 409 || resp.status === 400) {
-				if (resp.status === 409) toast.info(t('auth.register.toasts.kycInReview'))
-				goToPushOrFinish()
-			} else if (resp.status === 403) {
-				toast.error(String(resp.error || t('auth.register.toasts.kycStartFailed')))
-				goToPushOrFinish()
+			} else if (resp.kind === 'request-error') {
+				// 400 ya verificado, 409 en revisión, 403 rechazado — nada accionable
+				if (resp.status === 409 || resp.status === 400) {
+					if (resp.status === 409) toast.info(t('auth.register.toasts.kycInReview'))
+					goToPushOrFinish()
+				} else if (resp.status === 403) {
+					toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
+					goToPushOrFinish()
+				} else {
+					toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
+				}
 			} else {
-				toast.error(String(resp.error || t('auth.register.toasts.kycStartFailed')))
+				// sdk-error: reintentable desde el propio paso
+				toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
 			}
 		} catch {
 			toast.error(t('auth.register.toasts.connectionError'))

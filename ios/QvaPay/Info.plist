@@ -84,7 +84,9 @@
 		<string>_qvapay-nearby._udp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Para poder escanear QRs, $(PRODUCT_NAME) necesita permiso.</string>
+	<string>QvaPay usa la cámara para escanear QRs y para capturar tu documento y rostro durante la verificación de identidad.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>QvaPay usa el micrófono para grabar el video de prueba de vida durante la verificación de identidad.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>QvaPay necesita acceso a tus contactos para encontrar amigos que ya usan la app y facilitar los envios de dinero.</string>
 	<key>NSFaceIDUsageDescription</key>
