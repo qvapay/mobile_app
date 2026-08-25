@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondos de las variantes del icono adaptativo (feature GOLD "Ícono de la app").
+     El adaptive-icon referencia estos @color directamente: no hacen falta PNG de fondo. -->
+<resources>
+    <color name="ic_launcher_bg_midnight">#0E0E1C</color>
+    <color name="ic_launcher_bg_gold">#E6A817</color>
+    <color name="ic_launcher_bg_ocean">#2F80ED</color>
+    <color name="ic_launcher_bg_pink">#E84393</color>
+    <color name="ic_launcher_bg_navidad">#C6303E</color>
+    <color name="ic_launcher_bg_halloween">#2A1B3D</color>
+    <color name="ic_launcher_bg_blackfriday">#000000</color>
+</resources>

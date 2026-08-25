@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Switch } from 'react-native'
+import { StyleSheet, Text, View, Pressable, ScrollView, Switch, Image, Platform } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useNavigation } from '@react-navigation/native'
 import { toast } from 'sonner-native'
@@ -16,6 +16,9 @@ import { useAuth } from '../../../auth/AuthContext'
 
 // Routes
 import { ROUTES } from '../../../routes'
+
+// App icon catalog + native bridge (GOLD)
+import { APP_ICONS, changeAppIcon } from '../../../helpers/appIcon'
 
 // Las opciones llevan CLAVES de i18n (settings.themePanel.options.<id>) resueltas
 // en render, así el panel cambia de idioma en vivo
@@ -66,6 +69,28 @@ const Theme = () => {
 		try {
 			await setAccentColor(accentId)
 		} catch (error) { /* error updating accent */ }
+	}
+
+	// Ícono de la app (exclusivo GOLD). A diferencia del acento, el icono
+	// seleccionado se muestra SIEMPRE tal cual está en el dispositivo (revertirlo
+	// al expirar GOLD dispararía la alerta del sistema de iOS en un momento
+	// arbitrario); si GOLD expira solo se bloquea elegir otro.
+	const selectedIconId = settings.appearance.appIcon || 'default'
+	const currentIconName = t(`settings.themePanel.icons.${selectedIconId}`)
+	const handleIconSelect = async (iconId) => {
+		if (!isGold) {
+			toast(t('settings.themePanel.toasts.iconGoldOnly'))
+			navigation.navigate(ROUTES.GOLD_CHECK)
+			return
+		}
+		if (iconId === selectedIconId) return
+		try {
+			await changeAppIcon(iconId)
+			await updateSettings('appearance', { appIcon: iconId })
+		} catch (error) {
+			// El SO rechazó el cambio (o el usuario canceló): no persistir nada
+			toast(t('settings.themePanel.toasts.iconChangeFailed'))
+		}
 	}
 
 	// Bottom bar labels toggle for Accessibility
@@ -158,8 +183,43 @@ const Theme = () => {
 				</View>
 			</View>
 
-			{/** Ícono */}
-			{/* <Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 5, paddingHorizontal: 2 }]}>Ícono</Text> */}
+			{/** Ícono de la app (exclusivo GOLD) */}
+			<View style={styles.accentHeader}>
+				<Text style={[textStyles.h4, { color: theme.colors.secondaryText, paddingHorizontal: 2 }]}>{t('settings.themePanel.iconLabel')}</Text>
+				<View style={[styles.goldBadge, { backgroundColor: hexToRgba(theme.colors.gold, 0.15) }]}>
+					<FontAwesome6 name="crown" size={10} color={goldTextColor} iconStyle="solid" />
+					<Text style={[styles.goldBadgeText, { color: goldTextColor, fontFamily: theme.typography.fontFamily.medium }]}>GOLD</Text>
+				</View>
+			</View>
+			<View style={[containerStyles.box, styles.accentCard]}>
+				<View style={styles.swatchGrid}>
+					{APP_ICONS.map((icon) => {
+						const isSelected = selectedIconId === icon.id
+						return (
+							<Pressable
+								key={icon.id}
+								onPress={() => handleIconSelect(icon.id)}
+								accessibilityRole="button"
+								accessibilityLabel={t('settings.themePanel.accessibilityIcon', { name: t(`settings.themePanel.icons.${icon.id}`) })}
+								style={[styles.iconRing, isSelected && { borderColor: theme.colors.primary }]}
+							>
+								<Image source={icon.preview} style={[styles.iconTile, !isGold && !isSelected && styles.swatchLocked]} />
+							</Pressable>
+						)
+					})}
+				</View>
+				<View style={styles.accentFooter}>
+					{!isGold && <FontAwesome6 name="lock" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />}
+					<Text style={[textStyles.caption, styles.accentFooterText, { color: theme.colors.tertiaryText }]}>
+						{isGold ? t('settings.themePanel.currentIcon', { name: currentIconName }) : t('settings.themePanel.iconUpsell')}
+					</Text>
+				</View>
+				{isGold && Platform.OS === 'ios' && (
+					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 4 }]}>
+						{t('settings.themePanel.iosIconAlert')}
+					</Text>
+				)}
+			</View>
 
 			{/** Barra de navegación */}
 			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 8, paddingHorizontal: 2 }]}>{t('settings.themePanel.navBarLabel')}</Text>
@@ -266,6 +326,22 @@ const styles = StyleSheet.create({
 	},
 	swatchLocked: {
 		opacity: 0.4,
+	},
+	iconRing: {
+		width: 68,
+		height: 68,
+		borderRadius: 20,
+		borderCurve: 'continuous',
+		borderWidth: 2,
+		borderColor: 'transparent',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	iconTile: {
+		width: 56,
+		height: 56,
+		borderRadius: 16,
+		borderCurve: 'continuous',
 	},
 	accentFooter: {
 		flexDirection: 'row',

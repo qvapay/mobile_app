@@ -716,11 +716,28 @@
 		"accessibilityColor": "Cor {{name}}",
 		"currentColor": "Cor atual: {{name}}",
 		"accentUpsell": "Personalize a cor do app com o QvaPay GOLD",
+		"iconLabel": "Ícone do app",
+		"icons": {
+			"default": "Clássico",
+			"midnight": "Meia-noite",
+			"gold": "Dourado",
+			"ocean": "Oceano",
+			"pink": "Rosa",
+			"navidad": "Natal",
+			"halloween": "Halloween",
+			"blackfriday": "Black Friday"
+		},
+		"accessibilityIcon": "Ícone {{name}}",
+		"currentIcon": "Ícone atual: {{name}}",
+		"iconUpsell": "Personalize o ícone do app com o QvaPay GOLD",
+		"iosIconAlert": "O iOS mostrará uma confirmação ao mudar o ícone",
 		"navBarLabel": "Barra de navegação",
 		"showLabelsTitle": "Mostrar texto",
 		"showLabelsDescription": "Mostrar rótulos na barra de navegação",
 		"toasts": {
-			"accentGoldOnly": "A cor de destaque é exclusiva do QvaPay GOLD"
+			"accentGoldOnly": "A cor de destaque é exclusiva do QvaPay GOLD",
+			"iconGoldOnly": "O ícone do app é exclusivo do QvaPay GOLD",
+			"iconChangeFailed": "Não foi possível mudar o ícone"
 		}
 	},
 	"twoFactor": {
