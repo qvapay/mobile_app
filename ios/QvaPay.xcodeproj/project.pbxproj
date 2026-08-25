@@ -38,6 +38,8 @@
 		W1000071000000000000000A /* QvaPayWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = W1000006000000000000000A /* QvaPayWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		W2000010000000000000000A /* SharedStorageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000001000000000000000A /* SharedStorageBridge.swift */; };
 		W2000011000000000000000A /* SharedStorageBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000002000000000000000A /* SharedStorageBridge.m */; };
+		W2000012000000000000000A /* AppIconChanger.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000003000000000000000A /* AppIconChanger.swift */; };
+		W2000013000000000000000A /* AppIconChanger.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000004000000000000000A /* AppIconChanger.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +105,8 @@
 		W1000008000000000000000A /* P2POffersWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = P2POffersWidget.swift; sourceTree = "<group>"; };
 		W2000001000000000000000A /* SharedStorageBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SharedStorageBridge.swift; path = QvaPay/SharedStorageBridge.swift; sourceTree = "<group>"; };
 		W2000002000000000000000A /* SharedStorageBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = SharedStorageBridge.m; path = QvaPay/SharedStorageBridge.m; sourceTree = "<group>"; };
+		W2000003000000000000000A /* AppIconChanger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppIconChanger.swift; path = QvaPay/AppIconChanger.swift; sourceTree = "<group>"; };
+		W2000004000000000000000A /* AppIconChanger.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = AppIconChanger.m; path = QvaPay/AppIconChanger.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,6 +139,8 @@
 				A1B2C3D4E5F60718A1B2C3D4 /* QvaPay.entitlements */,
 				W2000001000000000000000A /* SharedStorageBridge.swift */,
 				W2000002000000000000000A /* SharedStorageBridge.m */,
+				W2000003000000000000000A /* AppIconChanger.swift */,
+				W2000004000000000000000A /* AppIconChanger.m */,
 			);
 			name = QvaPay;
 			sourceTree = "<group>";
@@ -426,6 +432,8 @@
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				W2000010000000000000000A /* SharedStorageBridge.swift in Sources */,
 				W2000011000000000000000A /* SharedStorageBridge.m in Sources */,
+				W2000012000000000000000A /* AppIconChanger.swift in Sources */,
+				W2000013000000000000000A /* AppIconChanger.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -457,6 +465,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = DCD46B1CF6A891714EE9EA8F /* Pods-QvaPay.debug.xcconfig */;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconMidnight AppIconGold AppIconOcean AppIconPink AppIconNavidad AppIconHalloween AppIconBlackFriday";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;
@@ -494,6 +503,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 6118ACB2B698AABF0A7D97B1 /* Pods-QvaPay.release.xcconfig */;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconMidnight AppIconGold AppIconOcean AppIconPink AppIconNavidad AppIconHalloween AppIconBlackFriday";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;

@@ -3,7 +3,7 @@
   "version": "2.4.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "react-native run-android --main-activity .MainActivity",
     "ios:build": "cd ios && xcodebuild -workspace QvaPay.xcworkspace -scheme QvaPay -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build",
     "ios": "react-native run-ios",
     "ios:device": "react-native run-ios --udid 00008150-00110C693E08401C",
