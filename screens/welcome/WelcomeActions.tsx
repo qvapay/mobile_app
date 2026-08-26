@@ -2,15 +2,21 @@ import { Text, View, StyleSheet, Linking } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 import DeviceInfo from 'react-native-device-info'
 import { Trans, useTranslation } from 'react-i18next'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 
 // Routes
 import { ROUTES } from '../../routes'
+import type { RootStackParamList } from '../../types/navigation'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
+
+type WelcomeActionsProps = {
+	navigation: NativeStackNavigationProp<RootStackParamList, 'Welcome'>
+}
 
 /**
  * Bloque de CTAs compartido por las variantes del WelcomeScreen: botón primario
@@ -18,10 +24,10 @@ import QPButton from '../../ui/particles/QPButton'
  * los términos y la versión de la app. Entra con un FadeInDown retrasado para
  * ceder el protagonismo al hero de cada variante.
  *
- * @param {object} props
- * @param {object} props.navigation - Navigation del stack.
+ * @param props
+ * @param props.navigation - Navigation del stack.
  */
-const WelcomeActions = ({ navigation }) => {
+const WelcomeActions = ({ navigation }: WelcomeActionsProps) => {
 
 	// Theme
 	const { theme } = useTheme()

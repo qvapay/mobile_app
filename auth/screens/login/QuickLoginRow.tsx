@@ -2,9 +2,20 @@ import { View, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import FaceIDIcon from '../../../ui/particles/FaceIDIcon'
+import type { Theme } from '../../../theme/ThemeContext'
+
+type QuickLoginRowProps = {
+	hasBiometrics: boolean
+	/** Biometry type from Keychain ('FaceID' | 'TouchID' | 'Fingerprint' | ...), null when unsupported. */
+	biometryType: string | null
+	isLoading: boolean
+	onBiometricLogin: () => void
+	onPasskeyLogin: () => void
+	theme: Theme
+}
 
 // Biometric + passkey quick-login buttons shown on the credentials screen.
-const QuickLoginRow = ({ hasBiometrics, biometryType, isLoading, onBiometricLogin, onPasskeyLogin, theme }) => (
+const QuickLoginRow = ({ hasBiometrics, biometryType, isLoading, onBiometricLogin, onPasskeyLogin, theme }: QuickLoginRowProps) => (
 	<View style={styles.row}>
 		{hasBiometrics && biometryType && (
 			<Pressable

@@ -2,9 +2,19 @@ import { useTranslation } from 'react-i18next'
 
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
+import type { Theme } from '../../../theme/ThemeContext'
+
+type CredentialsFormProps = {
+	email: string
+	password: string
+	onChangeEmail: (value: string) => void
+	onChangePassword: (value: string) => void
+	onRestorePassword: () => void
+	theme: Theme
+}
 
 // Email + password inputs and the "restore password" link.
-const CredentialsForm = ({ email, password, onChangeEmail, onChangePassword, onRestorePassword, theme }) => {
+const CredentialsForm = ({ email, password, onChangeEmail, onChangePassword, onRestorePassword, theme }: CredentialsFormProps) => {
 
 	const { t } = useTranslation()
 
@@ -34,7 +44,9 @@ const CredentialsForm = ({ email, password, onChangeEmail, onChangePassword, onR
 
 			<QPButton
 				title={t('auth.login.restorePassword')}
-				style={{ backgroundColor: null }}
+				// backgroundColor null anula el fondo por defecto de QPButton (RN no
+				// tipa null como ColorValue) — cast local, runtime intacto
+				style={{ backgroundColor: null as unknown as undefined }}
 				textStyle={{ color: theme.colors.primary }}
 				onPress={onRestorePassword}
 			/>

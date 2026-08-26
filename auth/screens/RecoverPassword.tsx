@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -8,6 +9,7 @@ import { createTextStyles } from '../../theme/themeUtils'
 
 // Routes
 // import { ROUTES } from '../../routes'
+import type { RootStackParamList } from '../../types/navigation'
 
 // UI
 import QPKeyboardView from '../../ui/QPKeyboardView'
@@ -19,8 +21,10 @@ import QPInput from '../../ui/particles/QPInput'
 // API
 import { authApi } from '../../api/authApi'
 
+type Props = NativeStackScreenProps<RootStackParamList, 'RecoverPassword'>
+
 // Email validation function
-const validateEmail = (value) => {
+const validateEmail = (value: string) => {
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 	return emailRegex.test(value)
 }
@@ -31,7 +35,7 @@ const validateEmail = (value) => {
  * On success the action button swaps to a "back to login" one — the actual
  * reset happens through the link in the email, not in the app.
  */
-const RecoverPasswordScreen = ({ navigation, route }) => {
+const RecoverPasswordScreen = ({ navigation, route }: Props) => {
 
 	// Idioma activo
 	const { t } = useTranslation()

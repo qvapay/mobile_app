@@ -1,6 +1,8 @@
 import { View, Text, Alert } from 'react-native'
 import { useReducer, useState, useEffect, useEffectEvent, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
 
 // Auth Context
 import { useAuth } from '../AuthContext'
@@ -22,6 +24,7 @@ import TwoFactorEntry from './login/TwoFactorEntry'
 import QuickLoginRow from './login/QuickLoginRow'
 import LeakedPasswordModal from './login/LeakedPasswordModal'
 import useBiometricSupport from '../hooks/useBiometricSupport'
+import type { LeakedModalState } from './login/LeakedPasswordModal'
 
 // Biometric utilities
 import { getSupportedBiometryType, hasBiometricCredentials, getBiometricCredentials, setBiometricCredentials, removeBiometricCredentials } from '../../api/client'
@@ -35,12 +38,35 @@ import { ROUTES } from '../../routes'
 // The login screen is a small state machine (enter credentials → enter 2FA → done).
 // Grouping those fields in one reducer keeps the multi-field transitions atomic —
 // e.g. moving to the 2FA step flips showPin, hasOtp, method and clears the code together.
-const initialForm = { email: '', password: '', showPin: false, hasOtp: false, method: 'pin', code: '' }
+/** Slice del formulario de login (credenciales + paso 2FA). */
+type LoginForm = {
+	email: string
+	password: string
+	showPin: boolean
+	hasOtp: boolean
+	method: 'pin' | 'otp'
+	code: string
+}
 
-function formReducer(state, action) {
+type LoginFormAction =
+	| { type: 'set', field: string, value: string }
+	| { type: 'setMethod', method: 'pin' | 'otp' }
+	| { type: 'enterTwoFactor', hasOtp: boolean }
+	| { type: 'enterTwoFactorWithCreds', email: string, password: string, hasOtp: boolean }
+
+/**
+ * Forma REAL de `security_warning` en la respuesta de login. `LoginResult` lo
+ * tipa como `string | null` (mismatch reportado, el tipo compartido NO se toca
+ * desde aquí): la pantalla lee `.message` y `.count`, así que se castea local.
+ */
+type SecurityWarning = { message?: string, count: number }
+
+const initialForm: LoginForm = { email: '', password: '', showPin: false, hasOtp: false, method: 'pin', code: '' }
+
+function formReducer(state: LoginForm, action: LoginFormAction): LoginForm {
 	switch (action.type) {
 		case 'set':
-			return { ...state, [action.field]: action.value }
+			return { ...state, [action.field]: action.value } as LoginForm
 		case 'setMethod':
 			// Switching method resets the entered code
 			return { ...state, method: action.method, code: '' }
@@ -62,7 +88,7 @@ function formReducer(state, action) {
  * Client-side throttle mirrors the backend: 60s lockout after 5 failed attempts.
  * HIBP leaked-password results (warning or forced reset) surface in LeakedPasswordModal.
  */
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Login'>) => {
 
 	// Idioma activo
 	const { t } = useTranslation()
@@ -84,13 +110,13 @@ const LoginScreen = ({ navigation }) => {
 	// Independent state slices
 	const [isLoading, setIsLoading] = useState(false)
 	const [failedAttempts, setFailedAttempts] = useState(0)
-	const [leakedModal, setLeakedModal] = useState({ visible: false, blocked: false, message: '', count: 0 })
+	const [leakedModal, setLeakedModal] = useState<LeakedModalState>({ visible: false, blocked: false, message: '', count: 0 })
 
 	// Biometric support detection
 	const { biometryType, hasBiometrics, setHasBiometrics } = useBiometricSupport()
 
 	// Reset failed attempts after a 1-minute lockout
-	const failedAttemptsTimerRef = useRef(null)
+	const failedAttemptsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	useEffect(() => {
 		if (failedAttempts > 5) {
 			if (failedAttemptsTimerRef.current) { clearTimeout(failedAttemptsTimerRef.current) }
@@ -99,7 +125,7 @@ const LoginScreen = ({ navigation }) => {
 		return () => { if (failedAttemptsTimerRef.current) { clearTimeout(failedAttemptsTimerRef.current) } }
 	}, [failedAttempts])
 
-	const handleMethodToggle = (side) => {
+	const handleMethodToggle = (side: 'left' | 'right' | null) => {
 		const newMethod = side === 'left' ? 'pin' : side === 'right' ? 'otp' : 'pin'
 		if (newMethod !== form.method) { dispatch({ type: 'setMethod', method: newMethod }) }
 	}
@@ -126,7 +152,7 @@ const LoginScreen = ({ navigation }) => {
 			}
 
 			// If login is successful and there is a security warning, show the leaked password modal
-			if (result.success && result.security_warning) { setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count }) }
+			if (result.success && result.security_warning) { setLeakedModal({ visible: true, blocked: false, message: (result.security_warning as unknown as SecurityWarning).message, count: (result.security_warning as unknown as SecurityWarning).count }) }
 
 			if (result.status === 202) {
 				await updateSettings('appearance', { firstTime: false })
@@ -138,7 +164,7 @@ const LoginScreen = ({ navigation }) => {
 	}
 
 	// Prompt biometric enrollment after successful login
-	const promptBiometricEnrollment = async (loginEmail, loginPassword) => {
+	const promptBiometricEnrollment = async (loginEmail: string, loginPassword: string) => {
 
 		const type = await getSupportedBiometryType()
 		if (!type) return
@@ -191,7 +217,7 @@ const LoginScreen = ({ navigation }) => {
 			// Login directo exitoso (sin 2FA) — ofrecer biometría y verificar security_warning
 			if (result.success && result.status !== 202) {
 				if (result.security_warning) {
-					setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count })
+					setLeakedModal({ visible: true, blocked: false, message: (result.security_warning as unknown as SecurityWarning).message, count: (result.security_warning as unknown as SecurityWarning).count })
 				} else {
 					promptBiometricEnrollment(form.email, form.password)
 				}
@@ -220,7 +246,7 @@ const LoginScreen = ({ navigation }) => {
 			if (result.success) {
 				setFailedAttempts(0)
 				if (result.security_warning) {
-					setLeakedModal({ visible: true, blocked: false, message: result.security_warning.message, count: result.security_warning.count })
+					setLeakedModal({ visible: true, blocked: false, message: (result.security_warning as unknown as SecurityWarning).message, count: (result.security_warning as unknown as SecurityWarning).count })
 				} else {
 					promptBiometricEnrollment(form.email, form.password)
 				}

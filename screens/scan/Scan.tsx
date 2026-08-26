@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, useWindowDimensions, Animated, Linking, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import Svg, { Path } from 'react-native-svg'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
 
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
@@ -35,7 +37,7 @@ const CUTOUT_R = 22
 
 // SVG path: full-screen rect with a rounded-rect hole (evenodd) — depende del
 // tamaño vivo de la ventana (rotación/resize en tablets y plegables)
-const buildScanLayout = (screenWidth, screenHeight) => {
+const buildScanLayout = (screenWidth: number, screenHeight: number) => {
 	const scanAreaSize = Math.min(screenWidth * 0.8, 300)
 	const cutoutX = (screenWidth - scanAreaSize) / 2
 	const cutoutY = (screenHeight - scanAreaSize) / 2
@@ -69,7 +71,7 @@ const buildScanLayout = (screenWidth, screenHeight) => {
  * SendConfirm. Scanning locks via ref after each hit and re-arms after 2s to
  * avoid rapid-fire duplicates. The "show" mode renders qvapay.com/payme/{username}.
  */
-const Scan = ({ navigation, route }) => {
+const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'Scan'>) => {
 
 	// User
 	const { user } = useAuth()
@@ -127,7 +129,7 @@ const Scan = ({ navigation, route }) => {
 	}, [isScanning, startScanAnimation])
 
 	// Toggle camera based on mode — all setters at the call site so React batches one render
-	const handleViewModeChange = (side) => {
+	const handleViewModeChange = (side: 'left' | 'right' | null) => {
 		const mode = side === 'left' ? 'scan' : 'show'
 		const scanning = mode === 'scan'
 		isScanningRef.current = scanning
@@ -137,7 +139,7 @@ const Scan = ({ navigation, route }) => {
 	}
 
 	// Handle barcode scanned
-	const handleBarcodeScanned = (data) => {
+	const handleBarcodeScanned = (data: unknown) => {
 
 		if (!data || !isScanningRef.current) return
 
@@ -164,7 +166,10 @@ const Scan = ({ navigation, route }) => {
 			navigation.replace(ROUTES.WITHDRAW, {
 				preselectedCoin: 'BTCLN',
 				lnInvoice: parsedData.invoice,
-				lnAmountSats: parsedData.amountSats,
+				// `amountSats` es `number | null` (factura sin importe) pero el param de
+				// Withdraw solo declara `number | string`: el null se sigue mandando tal
+				// cual (runtime intacto), con cast local — mismatch reportado
+				lnAmountSats: parsedData.amountSats as number | undefined,
 			})
 		}
 
@@ -223,6 +228,11 @@ const Scan = ({ navigation, route }) => {
 							device={device}
 							isActive={isScanning}
 							outputs={[scannerOutput]}
+							// Vision Camera 5 renombró `torch` a `torchMode`: el prop que pasa
+							// la pantalla ya no existe en CameraViewProps (la linterna nunca
+							// enciende). Bug de runtime PRE-EXISTENTE — se preserva tal cual y
+							// solo se silencia el tipo.
+							// @ts-expect-error prop de Vision Camera 4 conservada a propósito
 							torch={isTorchEnabled ? 'on' : 'off'}
 						/>
 					)}
@@ -260,6 +270,10 @@ const Scan = ({ navigation, route }) => {
 								style={{ backgroundColor: '#FFFFFF' }}
 								size={qrSize}
 								padding={8}
+								// `SVGQRCodeStyled` omite `pieceSize` de sus props (lo deriva de
+								// size/padding), así que el valor se ignora. Prop inerte
+								// pre-existente — se conserva, solo se silencia el tipo.
+								// @ts-expect-error prop derivada internamente por la librería
 								pieceSize={7}
 								isPiecesGlued
 								pieceBorderRadius={2}

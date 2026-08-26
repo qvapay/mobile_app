@@ -7,6 +7,13 @@ import Animated, {
 	useSharedValue,
 	withTiming,
 } from 'react-native-reanimated'
+import type { RefObject } from 'react'
+import type { TextInput } from 'react-native'
+import type { EntryAnimationsValues, LayoutAnimation } from 'react-native-reanimated'
+
+// Theme
+import type { Theme } from '../../../theme/ThemeContext'
+import type { TextStyles } from '../../../theme/themeUtils'
 
 // UI Particles
 import QPInput from '../../../ui/particles/QPInput'
@@ -21,8 +28,31 @@ import QPPhoneInput from '../../../ui/QPPhoneInput'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+/**
+ * `makeStepEnter(delay)` de `useStepTransitions` — se re-declara aquí (en vez de
+ * derivarlo con ReturnType<typeof useStepTransitions>) para no convertir el hook
+ * en un import de runtime solo por su tipo.
+ */
+type MakeStepEnter = (delay?: number) => (values: EntryAnimationsValues) => LayoutAnimation
+
+/** `setField(campo)` devuelve el onChangeText de ese campo del form de Register. */
+type SetField = (field: string) => (value: string) => void
+
+/** Props que Register comparte con TODAS las pantallas del wizard (`stepProps`). */
+type StepBaseProps = {
+	theme: Theme
+	textStyles: TextStyles
+	makeStepEnter: MakeStepEnter
+}
+
+/** Una regla de contraseña evaluada (Register las deriva del valor actual). */
+type PasswordRuleItem = { ok: boolean, label: string }
+
+/** Clave del paso activo del wizard (valores de `STEPS` en Register). */
+export type StepKey = 'name' | 'email' | 'password' | 'emailPin' | 'phone' | 'phoneCode' | 'kyc' | 'push'
+
 // Regla de contraseña con check animado
-const PasswordRule = ({ ok, label, theme }) => {
+const PasswordRule = ({ ok, label, theme }: PasswordRuleItem & { theme: Theme }) => {
 	const progress = useSharedValue(ok ? 1 : 0)
 	useEffect(() => {
 		progress.value = withTiming(ok ? 1 : 0, { duration: 220 })
@@ -43,8 +73,18 @@ const PasswordRule = ({ ok, label, theme }) => {
 	)
 }
 
+type NameStepProps = StepBaseProps & {
+	name: string
+	lastname: string
+	setField: SetField
+	nameValid: boolean
+	lastnameInputRef: RefObject<TextInput | null>
+	onNext: () => void
+	onLogin: () => void
+}
+
 // ¿Cómo te llamas?
-export const NameStep = ({ theme, textStyles, makeStepEnter, name, lastname, setField, nameValid, lastnameInputRef, onNext, onLogin }) => {
+export const NameStep = ({ theme, textStyles, makeStepEnter, name, lastname, setField, nameValid, lastnameInputRef, onNext, onLogin }: NameStepProps) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-name" style={styles.stepContainer}>
@@ -92,8 +132,18 @@ export const NameStep = ({ theme, textStyles, makeStepEnter, name, lastname, set
 	)
 }
 
+type EmailStepProps = StepBaseProps & {
+	email: string
+	invite: string
+	setField: SetField
+	emailValid: boolean
+	showInvite: boolean
+	onShowInvite: () => void
+	onNext: () => void
+}
+
 // Tu correo electrónico
-export const EmailStep = ({ theme, textStyles, makeStepEnter, email, invite, setField, emailValid, showInvite, onShowInvite, onNext }) => {
+export const EmailStep = ({ theme, textStyles, makeStepEnter, email, invite, setField, emailValid, showInvite, onShowInvite, onNext }: EmailStepProps) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-email" style={styles.stepContainer}>
@@ -138,8 +188,14 @@ export const EmailStep = ({ theme, textStyles, makeStepEnter, email, invite, set
 	)
 }
 
+type PasswordStepProps = StepBaseProps & {
+	password: string
+	setField: SetField
+	passwordRules: PasswordRuleItem[]
+}
+
 // Crea tu contraseña
-export const PasswordStep = ({ theme, textStyles, makeStepEnter, password, setField, passwordRules }) => {
+export const PasswordStep = ({ theme, textStyles, makeStepEnter, password, setField, passwordRules }: PasswordStepProps) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-password" style={styles.stepContainer}>
@@ -171,8 +227,15 @@ export const PasswordStep = ({ theme, textStyles, makeStepEnter, password, setFi
 	)
 }
 
+type EmailPinStepProps = StepBaseProps & {
+	email: string
+	emailPin: string
+	setEmailPin: (code: string) => void
+	isLoading: boolean
+}
+
 // Revisa tu correo
-export const EmailPinStep = ({ theme, textStyles, makeStepEnter, email, emailPin, setEmailPin, isLoading }) => {
+export const EmailPinStep = ({ theme, textStyles, makeStepEnter, email, emailPin, setEmailPin, isLoading }: EmailPinStepProps) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-emailPin" style={styles.stepContainer}>
@@ -202,8 +265,14 @@ export const EmailPinStep = ({ theme, textStyles, makeStepEnter, email, emailPin
 	)
 }
 
+type PhoneStepProps = StepBaseProps & {
+	country: string
+	phone: string
+	setField: SetField
+}
+
 // Añade tu teléfono
-export const PhoneStep = ({ theme, textStyles, makeStepEnter, country, phone, setField }) => {
+export const PhoneStep = ({ theme, textStyles, makeStepEnter, country, phone, setField }: PhoneStepProps) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-phone" style={styles.stepContainer}>
@@ -232,8 +301,17 @@ export const PhoneStep = ({ theme, textStyles, makeStepEnter, country, phone, se
 	)
 }
 
+type PhoneCodeStepProps = StepBaseProps & {
+	/** `countries.find(...)?.dial_code` — opcional porque el find puede fallar. */
+	dialCode?: string
+	phone: string
+	phoneCode: string
+	setPhoneCode: (code: string) => void
+	isLoading: boolean
+}
+
 // Código de verificación del teléfono
-export const PhoneCodeStep = ({ theme, textStyles, makeStepEnter, dialCode, phone, phoneCode, setPhoneCode, isLoading }) => {
+export const PhoneCodeStep = ({ theme, textStyles, makeStepEnter, dialCode, phone, phoneCode, setPhoneCode, isLoading }: PhoneCodeStepProps) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-phoneCode" style={styles.stepContainer}>
@@ -260,7 +338,7 @@ export const PhoneCodeStep = ({ theme, textStyles, makeStepEnter, dialCode, phon
 
 // Verificación de identidad — la sesión de Didit se abre en el navegador; al
 // volver, el primario pasa a "Continuar" (kycOpened)
-export const KycStep = ({ theme, textStyles, makeStepEnter, kycOpened }) => {
+export const KycStep = ({ theme, textStyles, makeStepEnter, kycOpened }: StepBaseProps & { kycOpened: boolean }) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-kyc" style={styles.stepContainer}>
@@ -296,7 +374,7 @@ export const KycStep = ({ theme, textStyles, makeStepEnter, kycOpened }) => {
 }
 
 // Invitación a las notificaciones push
-export const PushStep = ({ theme, textStyles, makeStepEnter }) => {
+export const PushStep = ({ theme, textStyles, makeStepEnter }: StepBaseProps) => {
 	const { t } = useTranslation()
 	return (
 		<View key="step-push" style={styles.stepContainer}>
@@ -317,6 +395,42 @@ export const PushStep = ({ theme, textStyles, makeStepEnter }) => {
 	)
 }
 
+/** Forma común del botón primario de cada paso (QPSplitButton). */
+type PrimaryAction = {
+	title: string
+	onPress: () => void
+	disabled?: boolean
+	loading?: boolean
+}
+
+type StepActionsProps = {
+	stepKey: StepKey
+	theme: Theme
+	isLoading: boolean
+	/** Validaciones derivadas de los pasos con formulario. */
+	valid: { name: boolean, email: boolean, password: boolean }
+	emailPin: string
+	phone: string
+	phoneCode: string
+	resendDisabled: boolean
+	countdownLabel: string
+	canGoBack: boolean
+	onBack: () => void
+	onNameNext: () => void
+	onEmailNext: () => void
+	onRegister: () => void
+	onVerifyEmailPin: () => void
+	/** `true` cuando el usuario pide reenviar (no avanza de paso). */
+	onSendPhoneCode: (isResend: boolean) => void
+	onVerifyPhoneCode: () => void
+	onSkipPhone: () => void
+	kycOpened: boolean
+	onStartKyc: () => void
+	onKycContinue: () => void
+	onEnablePush: () => void
+	onSkipPush: () => void
+}
+
 // Botones de acción del paso actual (van al slot `actions` del QPKeyboardView).
 // `valid` agrupa las validaciones derivadas: { name, email, password }.
 // El QPSplitButton se renderiza UNA sola vez fuera del switch de extras: así
@@ -331,11 +445,13 @@ export const StepActions = ({
 	onSendPhoneCode, onVerifyPhoneCode, onSkipPhone,
 	kycOpened, onStartKyc, onKycContinue,
 	onEnablePush, onSkipPush,
-}) => {
+}: StepActionsProps) => {
 	const { t } = useTranslation()
 
-	// Config del botón primario por paso
-	const primary = {
+	// Config del botón primario por paso. La anotación explícita mantiene UNA
+	// sola forma para los 8 pasos (sin ella el índice devolvería una unión donde
+	// `disabled`/`loading` faltan en los brazos que no los pasan).
+	const primary: PrimaryAction | undefined = {
 		name: { title: t('common.actions.continue'), onPress: onNameNext, disabled: !valid.name },
 		email: { title: t('common.actions.continue'), onPress: onEmailNext, disabled: !valid.email },
 		password: { title: t('auth.register.actions.createAccount'), onPress: onRegister, disabled: !valid.password, loading: isLoading },

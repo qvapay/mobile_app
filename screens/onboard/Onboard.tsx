@@ -12,9 +12,12 @@ import Animated, {
 	withSequence,
 	withTiming,
 } from 'react-native-reanimated'
+import type { ImageSourcePropType } from 'react-native'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 import { ROUTES } from '../../routes'
 import { useSettings } from '../../settings/SettingsContext'
+import type { RootStackParamList } from '../../types/navigation'
 
 // Push prompt
 import usePushPrompt from '../../hooks/usePushPrompt'
@@ -41,13 +44,13 @@ const onboardImages = {
 	security: require('../../assets/images/onboard/security.png'),
 	trade: require('../../assets/images/onboard/trade.png'),
 	vault: require('../../assets/images/onboard/vault.png'),
-}
+} satisfies Record<string, ImageSourcePropType>
 
 // Onboard steps: solo el id de asset a nivel de módulo — título y descripción
 // se resuelven en render vía claves `welcome.onboard.steps.<asset>.*` (mismo
 // patrón que las opciones de Language.jsx), así el carrusel cambia de idioma
 // en vivo y ningún t() queda congelado a nivel de módulo.
-const onboard_steps = [
+const onboard_steps: { asset: keyof typeof onboardImages }[] = [
 	{ asset: 'trade' },
 	{ asset: 'bot' },
 	{ asset: 'coins' },
@@ -58,8 +61,8 @@ const onboard_steps = [
 ]
 
 // Ilustración con flotación sutil en loop
-const FloatingImage = ({ source }) => {
-	
+const FloatingImage = ({ source }: { source: ImageSourcePropType }) => {
+
 	const floatY = useSharedValue(0)
 
 	useEffect(() => {
@@ -81,6 +84,8 @@ const FloatingImage = ({ source }) => {
 	)
 }
 
+type Props = NativeStackScreenProps<RootStackParamList, 'Onboard'>
+
 /**
  * First-launch onboarding carousel (7 feature slides), shown while
  * `appearance.firstTime` is true.
@@ -88,7 +93,7 @@ const FloatingImage = ({ source }) => {
  * (`useStepTransitions`). Completing or skipping it clears the firstTime flag,
  * optionally shows the OneSignal push-permission prompt, then navigates to Welcome.
  */
-const Onboard = ({ navigation }) => {
+const Onboard = ({ navigation }: Props) => {
 
 	// States
 	const [currentStep, setCurrentStep] = useState(0)

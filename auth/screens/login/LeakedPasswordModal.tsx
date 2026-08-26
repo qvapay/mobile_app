@@ -4,10 +4,29 @@ import { useTranslation } from 'react-i18next'
 import QPButton from '../../../ui/particles/QPButton'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import type { Theme } from '../../../theme/ThemeContext'
+
+/**
+ * Slice de estado del modal de contraseña filtrada (vive en Login).
+ * `message` puede llegar undefined cuando el backend no manda prosa de error.
+ */
+export type LeakedModalState = {
+	visible: boolean
+	blocked: boolean
+	message?: string
+	count: number
+}
+
+type LeakedPasswordModalProps = {
+	state: LeakedModalState
+	theme: Theme
+	onReset: () => void
+	onDismiss: () => void
+}
 
 // Security-warning modal shown when the backend flags a leaked/compromised password.
 // `state` is the leakedModal slice: { visible, blocked, message, count }.
-const LeakedPasswordModal = ({ state, theme, onReset, onDismiss }) => {
+const LeakedPasswordModal = ({ state, theme, onReset, onDismiss }: LeakedPasswordModalProps) => {
 
 	const { t } = useTranslation()
 	const textStyles = createTextStyles(theme)

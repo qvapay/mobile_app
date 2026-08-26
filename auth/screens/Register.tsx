@@ -1,6 +1,10 @@
 import { usePreventRemove } from '@react-navigation/native'
 import { useState, useRef, useEffect, useEffectEvent, useLayoutEffect, useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TextInput } from 'react-native'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
+import type { Me } from '../../types/domain'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -31,6 +35,7 @@ import useKycVerification from '../../hooks/useKycVerification'
 // Atribución de instalación (Android Install Referrer): código del referidor
 // y source de adquisición capturados en el primer arranque
 import { getStoredAttribution, mapSourceToEnum } from '../../helpers/installReferrer'
+import type { InstallAttribution } from '../../helpers/installReferrer'
 
 // UI
 import QPKeyboardView from '../../ui/QPKeyboardView'
@@ -48,6 +53,7 @@ import {
 	PushStep,
 	StepActions,
 } from './register/RegisterSteps'
+import type { StepKey } from './register/RegisterSteps'
 
 // Países (dial code para el paso del código de teléfono)
 import { countries } from '../../labels/countries'
@@ -56,18 +62,31 @@ import { countries } from '../../labels/countries'
 import { toast } from 'sonner-native'
 
 // Un dato por pantalla, estilo fintech: el orden es el del flow
-const STEPS = ['name', 'email', 'password', 'emailPin', 'phone', 'phoneCode', 'kyc', 'push']
+const STEPS: readonly StepKey[] = ['name', 'email', 'password', 'emailPin', 'phone', 'phoneCode', 'kyc', 'push']
 
 // Email validation
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// The account-creation fields are one logical form
-const initialForm = { name: '', lastname: '', email: '', password: '', invite: '', phone: '', country: 'CU' }
+/** Campos de alta de cuenta: un único form lógico repartido entre pasos. */
+type RegisterForm = {
+	name: string
+	lastname: string
+	email: string
+	password: string
+	invite: string
+	phone: string
+	country: string
+}
 
-function formReducer(state, action) {
+type RegisterFormAction = { type: 'set', field: string, value: string }
+
+// The account-creation fields are one logical form
+const initialForm: RegisterForm = { name: '', lastname: '', email: '', password: '', invite: '', phone: '', country: 'CU' }
+
+function formReducer(state: RegisterForm, action: RegisterFormAction): RegisterForm {
 	switch (action.type) {
 		case 'set':
-			return { ...state, [action.field]: action.value }
+			return { ...state, [action.field]: action.value } as RegisterForm
 		default:
 			return state
 	}
@@ -84,7 +103,7 @@ function formReducer(state, action) {
  * Cada pantalla del wizard vive en `register/RegisterSteps.jsx`; aquí queda la máquina
  * de estados y los handlers.
  */
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Register'>) => {
 
 	// Idioma activo
 	const { t } = useTranslation()
@@ -117,7 +136,7 @@ const RegisterScreen = ({ navigation }) => {
 	// Form state
 	const [form, dispatch] = useReducer(formReducer, initialForm)
 	const { name, lastname, email, password, invite, phone, country } = form
-	const setField = (field) => (value) => dispatch({ type: 'set', field, value })
+	const setField = (field: string) => (value: string) => dispatch({ type: 'set', field, value })
 
 	// Verification codes (email PIN + Telegram phone code)
 	const [emailPin, setEmailPin] = useState('')
@@ -133,15 +152,15 @@ const RegisterScreen = ({ navigation }) => {
 
 	// La sesión silenciosa (accessToken + me) vive aquí entre la verificación del
 	// email y el final del flow — nunca se renderiza
-	const sessionRef = useRef(null)
+	const sessionRef = useRef<{ accessToken: string, me: Me } | null>(null)
 	const verifyingRef = useRef(false)
 	const finishingRef = useRef(false)
-	const lastnameInputRef = useRef(null)
+	const lastnameInputRef = useRef<TextInput | null>(null)
 
 	// Atribución de instalación: si el referrer de Play trajo un código de
 	// invitación, se aplica solo (visible para el usuario); el utm_source viaja
 	// como `source` al crear la cuenta
-	const attributionRef = useRef(null)
+	const attributionRef = useRef<InstallAttribution | null>(null)
 	useEffect(() => {
 		let cancelled = false;
 		(async () => {
@@ -175,7 +194,7 @@ const RegisterScreen = ({ navigation }) => {
 	const countryData = countries.find(c => c.code === country)
 
 	// Navegación interna del wizard
-	const goTo = (index) => {
+	const goTo = (index: number) => {
 		direction.value = index > step ? 1 : -1
 		setStep(index)
 	}
@@ -240,11 +259,15 @@ const RegisterScreen = ({ navigation }) => {
 		try {
 			const result = await authApi.login({ email: email.trim(), password, two_factor_code: emailPin })
 			if (result.success && result.accessToken) {
-				sessionRef.current = { accessToken: result.accessToken, me: result.me }
+				// `me` es opcional en LoginResult (el brazo 202 comparte forma con el
+				// 200), pero un 200 con accessToken SIEMPRE lo trae: cast local
+				sessionRef.current = { accessToken: result.accessToken, me: result.me as Me }
 				await setAuthToken(result.accessToken)
 				goTo(STEPS.indexOf('phone'))
 			} else {
-				toast.error(result.error || t('auth.register.toasts.wrongPin'))
+				// La condición compuesta de arriba no estrecha a la rama de fallo:
+				// `error` solo existe ahí, así que se lee con cast local
+				toast.error((result as { error?: string }).error || t('auth.register.toasts.wrongPin'))
 				setEmailPin('')
 			}
 		} catch (err) {
@@ -269,7 +292,10 @@ const RegisterScreen = ({ navigation }) => {
 				startCountdown(60)
 				if (!isResend) { goTo(STEPS.indexOf('phoneCode')) }
 			} else {
-				const errorMsg = result.error?.error || result.error?.message || result.error || t('auth.register.toasts.codeSendFailed')
+				// OJO: `error` de userApi SIEMPRE es un string; los accesos `.error`/
+				// `.message` son ramas muertas de una forma vieja del backend. Se
+				// preservan tal cual con casts locales (bug latente, no se toca aquí)
+				const errorMsg = (result.error as unknown as { error?: string })?.error || (result.error as unknown as { message?: string })?.message || result.error || t('auth.register.toasts.codeSendFailed')
 				toast.error(String(errorMsg))
 			}
 		} catch (err) {
@@ -288,7 +314,9 @@ const RegisterScreen = ({ navigation }) => {
 				toast.success(t('auth.register.toasts.phoneVerified'))
 				goToKycStep()
 			} else {
-				const errorMsg = result.error?.error || result.error?.message || result.error || t('auth.register.toasts.wrongCode')
+				// Mismo caso que en handleSendPhoneCode: `.error`/`.message` son ramas
+				// muertas sobre un string — casts locales para conservar el runtime
+				const errorMsg = (result.error as unknown as { error?: string })?.error || (result.error as unknown as { message?: string })?.message || result.error || t('auth.register.toasts.wrongCode')
 				toast.error(String(errorMsg))
 				setPhoneCode('')
 			}

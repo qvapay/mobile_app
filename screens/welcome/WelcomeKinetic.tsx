@@ -14,9 +14,15 @@ import Animated, {
 	withRepeat,
 	withTiming,
 } from 'react-native-reanimated'
+import type { ComponentType, ReactNode } from 'react'
+import type { SvgProps } from 'react-native-svg'
+import type { TFunction } from 'i18next'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
+import type { Theme } from '../../theme/ThemeContext'
+import type { RootStackParamList } from '../../types/navigation'
 
 // Marca: isotipo + nombre plano con halo respirando detrás
 import BrandMark from './BrandMark'
@@ -29,11 +35,17 @@ import SolIcon from '../../assets/images/coins/sol.svg'
 import BnbIcon from '../../assets/images/coins/bnb.svg'
 import TonIcon from '../../assets/images/coins/ton.svg'
 
+/** Pill de la marquesina: icono SVG opcional + etiqueta. */
+type MarqueeItem = { Icon?: ComponentType<SvgProps>, label: string }
+
+/** Config de una columna de marquesina (duración, sentido y pills). */
+type MarqueeColumnConfig = { duration: number, reverse: boolean, items: MarqueeItem[] }
+
 // El verbo rotatorio del headline — cada uno con su acento del theme. Builder
 // resuelto en render (nunca t() a nivel de módulo, quedaría congelado al idioma
 // del arranque).
 const WORD_INTERVAL_MS = 2400
-const kineticWords = (theme, t) => [
+const kineticWords = (theme: Theme, t: TFunction) => [
 	{ text: t('welcome.kinetic.verb1'), color: theme.colors.primary },
 	{ text: t('welcome.kinetic.verb2'), color: theme.colors.successText },
 	{ text: t('welcome.kinetic.verb3'), color: theme.colors.gold },
@@ -44,7 +56,7 @@ const kineticWords = (theme, t) => [
 // Cada columna lleva mezcla distinta para que el patrón no se note repetido.
 // Builder con t para el copy localizable; ticks y marcas (BTC, P2P, Gift Cards,
 // Invest, SQP, Crypto…) quedan literales a propósito.
-const marqueeColumns = (t) => [
+const marqueeColumns = (t: TFunction): MarqueeColumnConfig[] => [
 	{
 		duration: 26000, reverse: false, items: [
 			{ Icon: BtcIcon, label: 'BTC' }, { label: 'P2P' }, { Icon: UsdtIcon, label: 'USDT' },
@@ -65,11 +77,13 @@ const marqueeColumns = (t) => [
 	},
 ]
 
-const Pill = ({ Icon, label, theme }) => (
+const Pill = ({ Icon, label, theme }: MarqueeItem & { theme: Theme }) => (
 	<View style={[
 		styles.pill,
 		{ backgroundColor: theme.colors.surface },
-		theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+		// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
+		// pre-existente que se preserva tal cual (la pill nunca pinta borde en light)
+		(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
 	]}>
 		{Icon && <Icon width={18} height={18} />}
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: 13 }}>
@@ -78,10 +92,12 @@ const Pill = ({ Icon, label, theme }) => (
 	</View>
 )
 
+type MarqueeColumnProps = MarqueeColumnConfig & { theme: Theme, frozen: boolean }
+
 // Columna de marquesina infinita: el contenido se renderiza DOS veces apilado y
 // se desplaza exactamente la altura de una copia — el wrap es invisible. La
 // altura se mide con onLayout (no se asume).
-const MarqueeColumn = ({ items, duration, reverse, theme, frozen }) => {
+const MarqueeColumn = ({ items, duration, reverse, theme, frozen }: MarqueeColumnProps) => {
 	const shift = useSharedValue(0)
 	const [copyHeight, setCopyHeight] = useState(0)
 
@@ -100,7 +116,7 @@ const MarqueeColumn = ({ items, duration, reverse, theme, frozen }) => {
 
 	// Cada copia repite los items 4 veces: una sola pasada (~330px) no cubre una
 	// pantalla alta y el hueco del wrap entraría en cámara
-	const copy = (key) => (
+	const copy = (key: 'a' | 'b') => (
 		<View key={key} onLayout={key === 'a' ? (e) => setCopyHeight(e.nativeEvent.layout.height) : undefined}>
 			{[0, 1, 2, 3].flatMap((rep) =>
 				items.map((item, i) => (
@@ -120,6 +136,13 @@ const MarqueeColumn = ({ items, duration, reverse, theme, frozen }) => {
 	)
 }
 
+type WelcomeKineticProps = {
+	/** Navigation del Welcome — se recibe pero hoy no se usa aquí (los CTAs navegan desde WelcomeActions). */
+	navigation: NativeStackNavigationProp<RootStackParamList, 'Welcome'>
+	onSecretLongPress: () => void
+	actions: ReactNode
+}
+
 /**
  * Hero del WelcomeScreen ("Kinetic"): la marca arriba (isotipo con halo
  * respirando detrás + nombre plano — BrandMark), tipografía editorial
@@ -129,7 +152,7 @@ const MarqueeColumn = ({ items, duration, reverse, theme, frozen }) => {
  * de la app. Un scrim de degradado mantiene legible el texto. Reduced-motion
  * congela las marquesinas y fija el primer verbo.
  */
-const WelcomeKinetic = ({ navigation, onSecretLongPress, actions }) => {
+const WelcomeKinetic = ({ onSecretLongPress, actions }: WelcomeKineticProps) => {
 
 	// Theme
 	const { theme } = useTheme()
