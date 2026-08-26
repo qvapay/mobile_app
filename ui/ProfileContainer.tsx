@@ -1,0 +1,222 @@
+import FastImage from '@d11/react-native-fast-image'
+import LinearGradient from 'react-native-linear-gradient'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native'
+import { useTranslation } from 'react-i18next'
+
+// Theme Context
+import { useTheme } from '../theme/ThemeContext'
+import { useTextStyles } from '../theme/themeUtils'
+
+// Tipos de dominio
+import type { User, P2PUser } from '../types/domain'
+
+// UI Particles
+import QPAvatar from './particles/QPAvatar'
+
+// Helpers
+import { displayName } from '../helpers/displayName'
+
+// Icons
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+const COVER_VISIBLE_HEIGHT = 200
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 56
+
+// Perfil propio (User) o ajeno (P2PUser), más los agregados P2P que el
+// backend adjunta al perfil extendido y que solo lee esta cabecera
+type ProfileUser = (User | P2PUser) & {
+	p2p_completed_count?: number
+	p2p_average_rating?: number
+	trustscore?: number
+	cover_photo_url?: string | null
+}
+
+type ProfileContainerProps = {
+	user?: ProfileUser
+	onEditAvatar?: () => void
+	onEditCover?: () => void
+}
+
+/**
+ * Full profile header: cover photo pulled up behind the navigation header and
+ * status bar (negative top margin sized from safe-area insets + platform
+ * header height), overlapping avatar, name with KYC/gold/admin badges, and a
+ * P2P stats card (operations / rating / TrustScore). Used on the Settings
+ * menu (own profile, with edit buttons) and on Transaction/Receive/Scan for
+ * viewing other users. Edit pencils only render when their callbacks are
+ * passed; a bottom gradient fades the cover into the screen background.
+ * Without a cover the whole cover area collapses to a plain safe-area spacer —
+ * except when `onEditCover` is passed (Settings), where the placeholder stays
+ * so the user can tap the pencil to add one.
+ *
+ * @param props
+ * @param props.user - User profile (name, username, kyc, golden_check, cover_photo_url, trustscore, ...).
+ * @param props.onEditAvatar - Shows the avatar edit pencil and enables tapping it.
+ * @param props.onEditCover - Shows the cover edit pencil.
+ */
+const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }: ProfileContainerProps) => {
+
+	// Contexts
+	const { t } = useTranslation()
+	const { theme } = useTheme()
+	const textStyles = useTextStyles(theme)
+	const insets = useSafeAreaInsets()
+
+	// Total offset to pull cover behind header + status bar + container padding
+	const topOffset = insets.top + HEADER_HEIGHT
+	const totalCoverHeight = COVER_VISIBLE_HEIGHT + topOffset
+
+	// Qvapay Logo based on theme
+	const qvapayLogo = theme.isDark ? require('../assets/images/ui/qvapay-logo-white.png') : require('../assets/images/ui/logo-qvapay.png')
+
+	// P2P Stats
+	const p2pCount = user.p2p_completed_count || 0
+	const rating = user.p2p_average_rating || 0
+	const trustScore = user.trustscore || 0
+
+	const hasCover = !!user.cover_photo_url
+	// No cover and nothing to edit → skip the cover area entirely (a bare
+	// gradient over the background looks broken); keep the placeholder only
+	// when the pencil to add a cover is available (own profile in Settings).
+	const showCoverArea = hasCover || !!onEditCover
+
+	return (
+		<View style={{ alignItems: 'center' }}>
+
+			{/* Cover Image Area - extends behind header + status bar */}
+			{showCoverArea ? (
+				<View style={[styles.coverContainer, { backgroundColor: theme.colors.surface, height: totalCoverHeight, marginTop: -topOffset }]}>
+					{hasCover ? (
+						<FastImage source={{ uri: user.cover_photo_url as string, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />
+					) : (
+						<View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+							<FontAwesome6 name="image" size={40} color={theme.colors.elevation} iconStyle="solid" />
+						</View>
+					)}
+					{/* Gradient fade at the bottom */}
+					<LinearGradient
+						colors={['transparent', theme.colors.background]}
+						start={{ x: 0.5, y: 0.6 }}
+						end={{ x: 0.5, y: 1 }}
+						style={StyleSheet.absoluteFill}
+					/>
+					{/* Cover edit button */}
+					{onEditCover && (
+						<Pressable onPress={onEditCover} style={[styles.coverEditButton, { backgroundColor: theme.colors.primary }]}>
+							<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
+						</Pressable>
+					)}
+				</View>
+			) : (
+				// These screens draw from the physical top of the screen (transparent
+				// header / floating controls), so clear the status bar + header height.
+				<View style={{ height: topOffset }} />
+			)}
+
+			{/* Avatar overlapping the cover (or sitting below the header spacer) */}
+			<View style={showCoverArea ? styles.avatarWrapper : styles.avatarWrapperNoCover}>
+				<Pressable onPress={onEditAvatar} disabled={!onEditAvatar}>
+					<View style={{ position: 'relative' }}>
+						<QPAvatar size={120} user={user} />
+						{onEditAvatar && (
+							<View style={{
+								position: 'absolute',
+								bottom: 4,
+								right: 4,
+								width: 28,
+								height: 28,
+								borderRadius: 14,
+								backgroundColor: theme.colors.primary,
+								alignItems: 'center',
+								justifyContent: 'center',
+								borderWidth: 2,
+								borderColor: theme.colors.background,
+							}}>
+								<FontAwesome6 name="pen" size={12} color="#fff" iconStyle="solid" />
+							</View>
+						)}
+					</View>
+				</Pressable>
+			</View>
+
+			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 }}>
+				{user.name && (<Text style={[textStyles.h1, { marginVertical: 0, paddingVertical: 0 }]}>{displayName(user)}</Text>)}
+				{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 20, height: 20 }} />)}
+				{user.golden_check && (<FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" />)}
+				{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 20, height: 20 }} />)}
+			</View>
+			{user.username && (<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginVertical: 0, paddingVertical: 0 }]}>@{user.username}</Text>)}
+
+			{/* P2P Stats Card */}
+			<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
+				<View style={styles.statItem}>
+					<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{p2pCount}</Text>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('ui.profile.operations')}</Text>
+				</View>
+				<View style={[styles.statDivider, { backgroundColor: theme.colors.secondaryText }]} />
+				<View style={styles.statItem}>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+						<FontAwesome6 name="star" size={14} color={theme.colors.warning} iconStyle="solid" />
+						<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{rating.toFixed(1)}</Text>
+					</View>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('ui.profile.rating')}</Text>
+				</View>
+				<View style={[styles.statDivider, { backgroundColor: theme.colors.secondaryText }]} />
+				<View style={styles.statItem}>
+					<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.medium }]}>{trustScore}</Text>
+					<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>TrustScore</Text>
+				</View>
+			</View>
+		</View>
+	)
+}
+
+const styles = StyleSheet.create({
+	coverContainer: {
+		marginHorizontal: -16,
+		alignSelf: 'stretch',
+		overflow: 'hidden',
+	},
+	coverEditButton: {
+		position: 'absolute',
+		bottom: 40,
+		right: 12,
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	avatarWrapper: {
+		marginTop: -60,
+		alignItems: 'center',
+	},
+	avatarWrapperNoCover: {
+		marginTop: 12,
+		alignItems: 'center',
+	},
+	statsCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		borderRadius: 12,
+		paddingVertical: 12,
+		paddingHorizontal: 20,
+		marginTop: 16,
+		width: '100%',
+	},
+	statItem: {
+		flex: 1,
+		alignItems: 'center',
+		gap: 4,
+	},
+	statValue: {},
+	statLabel: {},
+	statDivider: {
+		width: StyleSheet.hairlineWidth,
+		height: 28,
+		opacity: 0.4,
+	},
+})
+
+export default ProfileContainer

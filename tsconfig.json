@@ -1,11 +1,26 @@
 {
 	"extends": "@react-native/typescript-config",
+	"compilerOptions": {
+		"paths": {
+			// El preset RN pone customConditions: ["react-native"] y eso resuelve
+			// react-native-iap a su FUENTE .ts (exports."react-native"), que no
+			// compila con las libs de RN. Pin a sus .d.ts (cubiertos por skipLibCheck).
+			"react-native-iap": [
+				"./node_modules/react-native-iap/lib/typescript/src/index.d.ts"
+			]
+		}
+	},
 	"include": [
 		"**/*.ts",
-		"**/*.tsx"
+		"**/*.tsx",
+		"**/*.js",
+		"**/*.jsx"
 	],
 	"exclude": [
 		"**/node_modules",
-		"**/Pods"
+		"**/Pods",
+		"ios",
+		"android",
+		"vendor"
 	]
 }

@@ -14,7 +14,7 @@ const path = require('path')
 const ROOT = path.join(__dirname, '..')
 const LOCALES_ES = path.join(ROOT, 'i18n', 'locales', 'es')
 const SCAN_DIRS = ['screens', 'ui', 'auth', 'api', 'hooks', 'helpers', 'settings', 'lock', 'theme', 'loading', 'nearby']
-const SCAN_FILES = ['App.tsx', 'helpers.js', 'routes.js', 'linking.js']
+const SCAN_FILES = ['App.tsx', 'helpers.ts', 'routes.js', 'linking.js']
 const DOMAINS = fs.readdirSync(LOCALES_ES).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''))
 
 const flatten = (obj, prefix = '', out = {}) => {

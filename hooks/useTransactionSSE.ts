@@ -1,0 +1,138 @@
+import { useState, useEffect, useRef } from 'react'
+import EventSource, { type EventSourceEvent } from 'react-native-sse'
+import config from '../config'
+import { getAuthToken } from '../api/client'
+import i18n from '../i18n'
+
+// Once one of these arrives the transaction can't change anymore — close the stream for good
+const TERMINAL_STATUSES = ['paid', 'expired', 'failed']
+// Consecutive stream errors tolerated before giving up (reconnects are the library's)
+const RETRY_LIMIT = 10
+
+/**
+ * Streams real-time transaction status updates over SSE
+ * (`GET /callback/transaction?uuid={uuid}`, Bearer-authenticated).
+ * Based on the web useSSE pattern from ~/webs/qpweb/app/pay/wizard.js.
+ *
+ * The backend pushes the current status on connect via a named `init` event,
+ * then each change as a plain `message` whose data is the raw status string.
+ * Terminal statuses (paid/expired/failed) close the stream. Reconnection is
+ * left to react-native-sse's built-in retry; after RETRY_LIMIT consecutive
+ * errors the stream is closed and `error` is set (localized, user-facing).
+ *
+ * @param transactionUuid - Transaction UUID to monitor. Pass null to disable.
+ * @param onStatusChange - Callback invoked with each new status string.
+ * @returns `{ status, error, isConnected }` — `status` starts as 'pending'.
+ */
+const useTransactionSSE = (
+	transactionUuid: string | null | undefined,
+	onStatusChange?: (status: string) => void,
+): { status: string, error: string | null, isConnected: boolean } => {
+
+	const [status, setStatus] = useState('pending')
+	const [error, setError] = useState<string | null>(null)
+	const [isConnected, setIsConnected] = useState(false)
+	const retriesRef = useRef(0)
+	const onStatusChangeRef = useRef(onStatusChange)
+
+	// Keep callback ref updated without triggering reconnect
+	useEffect(() => {
+		onStatusChangeRef.current = onStatusChange
+	}, [onStatusChange])
+
+	useEffect(() => {
+		if (!transactionUuid) {
+			setStatus('pending')
+			setError(null)
+			setIsConnected(false)
+			return
+		}
+
+		let es: EventSource<'init'> | null = null
+		let cancelled = false
+		retriesRef.current = 0
+
+		const onOpen = () => {
+			setError(null)
+			setIsConnected(true)
+			retriesRef.current = 0
+		}
+
+		// Named 'init' event from backend
+		const onInit = (event: EventSourceEvent<'init'>) => {
+			if (event.data) {
+				const newStatus = event.data
+				setStatus(newStatus)
+				onStatusChangeRef.current?.(newStatus)
+			}
+		}
+
+		// Unnamed messages (data: {status})
+		const onMessage = (event: EventSourceEvent<'message'>) => {
+			try {
+				const newStatus = event.data
+				if (!newStatus) return
+				setStatus(newStatus)
+				onStatusChangeRef.current?.(newStatus)
+				if (TERMINAL_STATUSES.includes(newStatus)) {
+					es!.close()
+					setIsConnected(false)
+				}
+			} catch (err) { setError(i18n.t('hooks.transactionSSE.updateProcessFailed')) }
+		}
+
+		const onError = () => {
+			retriesRef.current += 1
+			setIsConnected(false)
+			if (retriesRef.current >= RETRY_LIMIT) {
+				setError(i18n.t('hooks.transactionSSE.connectionLost'))
+				es!.close()
+			}
+		}
+
+		const connect = async () => {
+
+			try {
+
+				const token = await getAuthToken()
+				// Unmounted while awaiting the token — don't open a connection nobody will close
+				if (cancelled) return
+				const url = `${config.API_BASE_URL}/callback/transaction?uuid=${transactionUuid}`
+
+				es = new EventSource<'init'>(url, {
+					headers: {
+						...(token ? { Authorization: `Bearer ${token}` } : {}),
+					},
+				})
+
+				es.addEventListener('open', onOpen)
+				es.addEventListener('init', onInit)
+				es.addEventListener('message', onMessage)
+				es.addEventListener('error', onError)
+
+			} catch (err) {
+				if (cancelled) return
+				setError(i18n.t('hooks.transactionSSE.monitorConnectFailed'))
+				setIsConnected(false)
+			}
+		}
+
+		connect()
+
+		// Release the connection THIS effect opened (captured in `es`).
+		return () => {
+			cancelled = true
+			es?.removeEventListener('open', onOpen)
+			es?.removeEventListener('init', onInit)
+			es?.removeEventListener('message', onMessage)
+			es?.removeEventListener('error', onError)
+			es?.close()
+			setIsConnected(false)
+		}
+
+	}, [transactionUuid])
+
+	return { status, error, isConnected }
+}
+
+export default useTransactionSSE
