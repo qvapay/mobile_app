@@ -1,5 +1,73 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
+import type { Me } from '../types/domain'
+
+/** Credenciales de `authApi.login`. */
+export type LoginCredentials = {
+	email: string
+	password: string
+	/** 2FA code (email PIN or 6-digit TOTP); empty on the first call. */
+	two_factor_code?: string
+}
+
+/**
+ * Resultado de `authApi.login`: tres formas según la fase del flujo —
+ * 202 prelogin (2FA pendiente), 200 autenticado (token + `me`), o fallo
+ * (con `status: null` cuando no hubo respuesta y `action` opcional del backend).
+ */
+export type LoginResult =
+	| (ApiSuccess<unknown> & {
+		/** 202 en el prelogin (2FA pendiente); ausente en el 200 completo. */
+		status?: number
+		notified?: unknown
+		has_otp?: boolean
+		accessToken?: string
+		tokenType?: string
+		me?: Me
+		security_warning?: string | null
+	})
+	| (Omit<ApiFailure, 'status'> & { status: number | null, action?: string | null })
+
+/** Resultado de `authApi.logout`: SIEMPRE `success: true` (best-effort). */
+export type LogoutResult = ApiSuccess<unknown> & { error?: string }
+
+/** Credenciales de `authApi.register`. */
+export type RegisterCredentials = {
+	name: string
+	lastname: string
+	email: string
+	password: string
+	/** Optional referral username. */
+	invite?: string
+	/** Optional acquisition source tag. */
+	source?: string
+	/** Terms acceptance (defaults to true). */
+	terms?: boolean
+}
+
+/** Resultado de `authApi.register`: éxito con `message` y `user` extra. */
+export type RegisterResult = (ApiSuccess<unknown> & { message?: string, user?: unknown }) | ApiFailure
+
+/** Credenciales de `authApi.confirmRegistration`. */
+export type ConfirmRegistrationCredentials = {
+	/** UUID returned by `register`. */
+	uuid: string
+	email: string
+	/** PIN received by email. */
+	pin: string
+}
+
+/** Resultado de `authApi.confirmRegistration`: éxito con `message` extra. */
+export type ConfirmRegistrationResult = (ApiSuccess<unknown> & { message?: string }) | ApiFailure
+
+/** Resultado de `authApi.verifyPasskeyLogin`: espeja un `login` 200. */
+export type PasskeyLoginResult =
+	| (ApiSuccess<unknown> & { accessToken?: string, tokenType?: string, me?: Me })
+	| ApiFailure
+
+/** Resultado de `authApi.resetPassword`: éxito con `message` extra. */
+export type ResetPasswordResult = (ApiSuccess<unknown> & { message?: string }) | ApiFailure
 
 // Authentication API functions
 export const authApi = {
@@ -12,13 +80,13 @@ export const authApi = {
 	 *   (the caller is responsible for persisting the token via `setAuthToken`).
 	 * Always sends `remember: true` for a long-lived session.
 	 *
-	 * @param {Object} credentials - Login credentials
-	 * @param {string} credentials.email - User email
-	 * @param {string} credentials.password - User password
-	 * @param {string} [credentials.two_factor_code] - 2FA code (email PIN or 6-digit TOTP); empty on the first call
-	 * @returns {Promise<Object>} `{ success, status?, data?, accessToken?, tokenType?, me?, security_warning?, error?, details?, action? }`
+	 * @param credentials - Login credentials
+	 * @param credentials.email - User email
+	 * @param credentials.password - User password
+	 * @param credentials.two_factor_code - 2FA code (email PIN or 6-digit TOTP); empty on the first call
+	 * @returns `{ success, status?, data?, accessToken?, tokenType?, me?, security_warning?, error?, details?, action? }`
 	 */
-	login: async (credentials) => {
+	login: async (credentials: LoginCredentials): Promise<LoginResult> => {
 
 		try {
 
@@ -42,7 +110,9 @@ export const authApi = {
 				security_warning: response.data.security_warning || null,
 			}
 
-		} catch (error) {
+		} catch (err) {
+
+			const error = err as ApiClientError
 
 			// Handle specific API errors
 			if (error?.response?.data) {
@@ -52,7 +122,7 @@ export const authApi = {
 					error: errorData.message || errorData.error || i18n.t('api.auth.loginFailed'),
 					details: errorData,
 					status: error.response?.status ?? null,
-					action: errorData.action || null,
+					action: (errorData.action as string | null | undefined) || null,
 				}
 			}
 
@@ -70,24 +140,25 @@ export const authApi = {
 	 * Requests (or re-sends) the 2FA login PIN by email (`POST /auth/request-pin`).
 	 * Used when the user did not receive the PIN from the initial 202 prelogin.
 	 *
-	 * @param {Object} credentials - Request PIN credentials
-	 * @param {string} credentials.email - User email
-	 * @param {string} credentials.password - User password
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` echoes the backend confirmation message
+	 * @param credentials - Request PIN credentials
+	 * @param credentials.email - User email
+	 * @param credentials.password - User password
+	 * @returns `{ success, data?, error?, status? }` — `data` echoes the backend confirmation message
 	 */
-	requestPin: async (credentials) => {
+	requestPin: async (credentials: { email: string, password: string }): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/auth/request-pin', {
 				email: credentials.email,
 				password: credentials.password
 			})
 			return { success: true, data: response.data }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.message || i18n.t('api.auth.requestPinFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response!.status }
 		}
 	},
 
@@ -96,13 +167,16 @@ export const authApi = {
 	 * Best-effort: resolves `success: true` even when the request fails, so local
 	 * logout (clearing the Keychain token) always proceeds.
 	 *
-	 * @returns {Promise<Object>} `{ success: true, data?, error?, status? }`
+	 * @returns `{ success: true, data?, error?, status? }`
 	 */
-	logout: async () => {
+	logout: async (): Promise<LogoutResult> => {
 		try {
 			const response = await apiClient.post('/auth/logout')
 			return { success: true, data: response.data }
-		} catch (error) { return { success: true, error: error.message, status: error.response.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: true, error: error.message, status: error.response!.status }
+		}
 	},
 
 	/**
@@ -110,17 +184,17 @@ export const authApi = {
 	 * The account starts unverified — the backend emails a PIN that must be
 	 * confirmed via `confirmRegistration` (or consumed by the login flow).
 	 *
-	 * @param {Object} credentials - Registration credentials
-	 * @param {string} credentials.name - User's first name
-	 * @param {string} credentials.lastname - User's last name
-	 * @param {string} credentials.email - User's email address
-	 * @param {string} credentials.password - User's password
-	 * @param {string} [credentials.invite] - Optional referral username
-	 * @param {string} [credentials.source] - Optional acquisition source tag
-	 * @param {boolean} [credentials.terms] - Terms acceptance (defaults to true)
-	 * @returns {Promise<Object>} `{ success, data?, message?, user?, error?, details? }` — `user` holds the created profile (incl. `uuid` for confirmation)
+	 * @param credentials - Registration credentials
+	 * @param credentials.name - User's first name
+	 * @param credentials.lastname - User's last name
+	 * @param credentials.email - User's email address
+	 * @param credentials.password - User's password
+	 * @param credentials.invite - Optional referral username
+	 * @param credentials.source - Optional acquisition source tag
+	 * @param credentials.terms - Terms acceptance (defaults to true)
+	 * @returns `{ success, data?, message?, user?, error?, details? }` — `user` holds the created profile (incl. `uuid` for confirmation)
 	 */
-	register: async (credentials) => {
+	register: async (credentials: RegisterCredentials): Promise<RegisterResult> => {
 		try {
 			const response = await apiClient.post('/auth/register', {
 				name: credentials.name,
@@ -132,7 +206,8 @@ export const authApi = {
 				terms: credentials.terms || true
 			})
 			return { success: true, data: response.data, message: response.data.message, user: response.data.user }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.auth.registerFailed'), details: errorData }
@@ -145,13 +220,13 @@ export const authApi = {
 	 * Confirms a fresh registration with the emailed PIN
 	 * (`POST /auth/confirm-registration`, no auth). Marks the email as verified.
 	 *
-	 * @param {Object} credentials - Confirmation credentials
-	 * @param {string} credentials.uuid - UUID returned by `register`
-	 * @param {string} credentials.email - The registered email
-	 * @param {string} credentials.pin - PIN received by email
-	 * @returns {Promise<Object>} `{ success, data?, message?, error?, details? }`
+	 * @param credentials - Confirmation credentials
+	 * @param credentials.uuid - UUID returned by `register`
+	 * @param credentials.email - The registered email
+	 * @param credentials.pin - PIN received by email
+	 * @returns `{ success, data?, message?, error?, details? }`
 	 */
-	confirmRegistration: async (credentials) => {
+	confirmRegistration: async (credentials: ConfirmRegistrationCredentials): Promise<ConfirmRegistrationResult> => {
 		try {
 			const response = await apiClient.post('/auth/confirm-registration', {
 				uuid: credentials.uuid,
@@ -159,7 +234,8 @@ export const authApi = {
 				pin: credentials.pin
 			})
 			return { success: true, data: response.data, message: response.data.message }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return {
@@ -177,13 +253,14 @@ export const authApi = {
 	/**
 	 * Lists the user's registered passkeys (`GET /auth/passkey/list`, requires auth).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data` is the array of passkeys (id, name, created_at, ...)
+	 * @returns `{ success, data?, error? }` — `data` is the array of passkeys (id, name, created_at, ...)
 	 */
-	getPasskeys: async () => {
+	getPasskeys: async (): Promise<ApiResult<unknown[]>> => {
 		try {
 			const response = await apiClient.get('/auth/passkey/list')
 			return { success: true, data: response.data.passkeys }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeysLoadFailed') }
 		}
 	},
@@ -191,14 +268,15 @@ export const authApi = {
 	/**
 	 * Deletes a passkey by ID (`POST /auth/passkey/delete`, requires auth).
 	 *
-	 * @param {string|number} id - Passkey identifier from `getPasskeys`.
-	 * @returns {Promise<Object>} `{ success, error? }`
+	 * @param id - Passkey identifier from `getPasskeys`.
+	 * @returns `{ success, error? }`
 	 */
-	deletePasskey: async (id) => {
+	deletePasskey: async (id: string | number): Promise<ApiResult<unknown>> => {
 		try {
-			const response = await apiClient.post('/auth/passkey/delete', { id })
+			await apiClient.post('/auth/passkey/delete', { id })
 			return { success: true }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyDeleteFailed') }
 		}
 	},
@@ -208,41 +286,50 @@ export const authApi = {
 	 * (`POST /auth/passkey/register-options`, requires auth). The options are
 	 * handed to `react-native-passkey` to run the platform ceremony.
 	 *
-	 * @param {string} name - Display name for the new passkey (e.g. device name).
-	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data` is the WebAuthn `PublicKeyCredentialCreationOptions`
+	 * @param name - Display name for the new passkey (e.g. device name).
+	 * @returns `{ success, data?, error? }` — `data` is the WebAuthn `PublicKeyCredentialCreationOptions`
 	 */
-	getPasskeyRegisterOptions: async (name) => {
+	getPasskeyRegisterOptions: async (name: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/auth/passkey/register-options', { name })
 			return { success: true, data: response.data }
-		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyRegisterOptionsFailed') } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyRegisterOptionsFailed') }
+		}
 	},
 
 	/**
 	 * Verifies the attestation from the platform ceremony and persists the new
 	 * passkey (`POST /auth/passkey/register-verify`, requires auth).
 	 *
-	 * @param {Object} attestation - Attestation response produced by `react-native-passkey`.
-	 * @returns {Promise<Object>} `{ success, data?, error? }`
+	 * @param attestation - Attestation response produced by `react-native-passkey`.
+	 * @returns `{ success, data?, error? }`
 	 */
-	verifyPasskeyRegistration: async (attestation) => {
+	verifyPasskeyRegistration: async (attestation: unknown): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/auth/passkey/register-verify', attestation)
 			return { success: true, data: response.data }
-		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyRegisterVerifyFailed') } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyRegisterVerifyFailed') }
+		}
 	},
 
 	/**
 	 * Fetches WebAuthn request options for passkey login
 	 * (`POST /auth/passkey/login-options`, no auth required).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data` is the WebAuthn `PublicKeyCredentialRequestOptions`
+	 * @returns `{ success, data?, error? }` — `data` is the WebAuthn `PublicKeyCredentialRequestOptions`
 	 */
-	getPasskeyLoginOptions: async () => {
+	getPasskeyLoginOptions: async (): Promise<ApiResult<{ sessionId: string } & Record<string, unknown>>> => {
 		try {
 			const response = await apiClient.post('/auth/passkey/login-options')
 			return { success: true, data: response.data }
-		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyLoginOptionsFailed') } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyLoginOptionsFailed') }
+		}
 	},
 
 	/**
@@ -251,10 +338,10 @@ export const authApi = {
 	 * response mirrors a 200 `login`: `accessToken`, `tokenType` and `me`.
 	 * Skips the password/2FA flow entirely.
 	 *
-	 * @param {Object} assertion - Assertion response produced by `react-native-passkey`.
-	 * @returns {Promise<Object>} `{ success, data?, accessToken?, tokenType?, me?, error? }`
+	 * @param assertion - Assertion response produced by `react-native-passkey`.
+	 * @returns `{ success, data?, accessToken?, tokenType?, me?, error? }`
 	 */
-	verifyPasskeyLogin: async (assertion) => {
+	verifyPasskeyLogin: async (assertion: unknown): Promise<PasskeyLoginResult> => {
 		try {
 			const response = await apiClient.post('/auth/passkey/login-verify', assertion)
 			return {
@@ -264,18 +351,21 @@ export const authApi = {
 				tokenType: response.data.token_type,
 				me: response.data.me,
 			}
-		} catch (error) { return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyLoginVerifyFailed') } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || i18n.t('api.auth.passkeyLoginVerifyFailed') }
+		}
 	},
 
 	/**
 	 * Requests a password reset email (`POST /auth/reset-password`, no auth).
 	 * The backend responds generically whether or not the email exists.
 	 *
-	 * @param {Object} credentials - Reset password credentials
-	 * @param {string} credentials.email - User email
-	 * @returns {Promise<Object>} `{ success, data?, message?, error?, details? }`
+	 * @param credentials - Reset password credentials
+	 * @param credentials.email - User email
+	 * @returns `{ success, data?, message?, error?, details? }`
 	 */
-	resetPassword: async (credentials) => {
+	resetPassword: async (credentials: { email: string }): Promise<ResetPasswordResult> => {
 		try {
 			const response = await apiClient.post('/auth/reset-password', {
 				email: credentials.email
@@ -285,7 +375,8 @@ export const authApi = {
 				data: response.data,
 				message: response.data.message,
 			}
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return {

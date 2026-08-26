@@ -1,5 +1,49 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
+import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer } from '../types/domain'
+
+/** Filtros de `GET /p2p/index`. */
+export type P2PIndexFilters = {
+	page?: number
+	order?: 'asc' | 'desc' | string
+	take?: number
+	type?: 'buy' | 'sell' | string
+	my?: boolean
+	only_kyc?: boolean
+	only_vip?: boolean
+	min?: number
+	max?: number
+	ratio_min?: number
+	ratio_max?: number
+	coin?: string
+	orderBy?: string
+}
+
+/**
+ * Resultado de `p2pApi.index`: además del contrato estándar, el éxito expone
+ * el paginador aplanado (`offers` = `data.data`, más `current_page`/`per_page`/`total`).
+ */
+export type P2PIndexResult =
+	| (ApiSuccess<P2PIndexEnvelope> & {
+		current_page: number
+		per_page: number
+		total: number
+		offers: P2POffer[]
+	})
+	| ApiFailure
+
+/** El detalle llega como la oferta pelada o envuelta en `{ p2p }` — los consumidores aceptan ambas. */
+export type P2PShowPayload = P2POffer | { p2p: P2POffer }
+
+/** Payload de creación de oferta (campos extra pasan tal cual al backend). */
+export type P2PCreateInput = {
+	type: 'buy' | 'sell'
+	coin: string
+	amount: string | number
+	receive: string | number
+	idempotency_key?: string
+} & Record<string, unknown>
 
 // P2P API functions
 export const p2pApi = {
@@ -24,7 +68,7 @@ export const p2pApi = {
 	 * @param {string} [filters.orderBy] - Column to sort by
 	 * @returns {Promise<Object>} `{ success, data?, current_page?, per_page?, total?, offers?, error?, details?, status? }`
 	 */
-	index: async (filters = {}) => {
+	index: async (filters: P2PIndexFilters = {}): Promise<P2PIndexResult> => {
 
 		try {
 			// Build query parameters
@@ -63,7 +107,8 @@ export const p2pApi = {
 				offers: response.data.data
 			}
 
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 
 			// Handle specific API errors
 			if (error.response?.data) {
@@ -86,7 +131,7 @@ export const p2pApi = {
 	 * @param {Object} additionalFilters - Additional filters to apply
 	 * @returns {Promise<Object>} Filtered P2P offers response
 	 */
-	getByType: async (type, additionalFilters = {}) => {
+	getByType: async (type: 'buy' | 'sell', additionalFilters: P2PIndexFilters = {}) => {
 		return p2pApi.index({ ...additionalFilters, type })
 	},
 
@@ -96,7 +141,7 @@ export const p2pApi = {
 	 * @param {Object} additionalFilters - Additional filters to apply
 	 * @returns {Promise<Object>} Filtered P2P offers response
 	 */
-	getByCoin: async (coin, additionalFilters = {}) => {
+	getByCoin: async (coin: string, additionalFilters: P2PIndexFilters = {}) => {
 		return p2pApi.index({ ...additionalFilters, coin })
 	},
 
@@ -107,7 +152,7 @@ export const p2pApi = {
 	 * @param {Object} additionalFilters - Additional filters to apply
 	 * @returns {Promise<Object>} Filtered P2P offers response
 	 */
-	getByAmountRange: async (min, max, additionalFilters = {}) => {
+	getByAmountRange: async (min: number, max: number, additionalFilters: P2PIndexFilters = {}) => {
 		return p2pApi.index({ ...additionalFilters, min, max })
 	},
 
@@ -117,7 +162,7 @@ export const p2pApi = {
 	 * @param {Object} additionalFilters - Additional filters to apply
 	 * @returns {Promise<Object>} Buy offers response
 	 */
-	getBuyOffers: async (coin, additionalFilters = {}) => {
+	getBuyOffers: async (coin: string, additionalFilters: P2PIndexFilters = {}) => {
 		return p2pApi.index({ ...additionalFilters, type: 'buy', coin })
 	},
 
@@ -127,7 +172,7 @@ export const p2pApi = {
 	 * @param {Object} additionalFilters - Additional filters to apply
 	 * @returns {Promise<Object>} Sell offers response
 	 */
-	getSellOffers: async (coin, additionalFilters = {}) => {
+	getSellOffers: async (coin: string, additionalFilters: P2PIndexFilters = {}) => {
 		return p2pApi.index({ ...additionalFilters, type: 'sell', coin })
 	},
 
@@ -138,7 +183,7 @@ export const p2pApi = {
 	 * @param {Object} additionalFilters - Additional filters to apply
 	 * @returns {Promise<Object>} Paginated P2P offers response
 	 */
-	getPaginated: async (page = 1, perPage = 50, additionalFilters = {}) => {
+	getPaginated: async (page: number = 1, perPage: number = 50, additionalFilters: P2PIndexFilters = {}) => {
 		return p2pApi.index({ ...additionalFilters, page, take: perPage })
 	},
 
@@ -150,11 +195,12 @@ export const p2pApi = {
 	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the offer (owner, peer, status, details, ...)
 	 */
-	show: async (p2p_uuid) => {
+	show: async (p2p_uuid: string): Promise<ApiResult<P2PShowPayload>> => {
 		try {
 			const response = await apiClient.get(`/p2p/${p2p_uuid}`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
 	},
@@ -166,11 +212,12 @@ export const p2pApi = {
 	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	cancel: async (p2p_uuid) => {
+	cancel: async (p2p_uuid: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/cancel`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
 		}
 	},
@@ -184,11 +231,14 @@ export const p2pApi = {
 	 * @param {string} [tx_id] - Optional external payment reference/transaction id
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	markPaid: async (p2p_uuid, tx_id = '') => {
+	markPaid: async (p2p_uuid: string, tx_id: string = ''): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/paid`, { tx_id })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -199,11 +249,14 @@ export const p2pApi = {
 	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	confirmReceived: async (p2p_uuid) => {
+	confirmReceived: async (p2p_uuid: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/received`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -214,11 +267,14 @@ export const p2pApi = {
 	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the messages array
 	 */
-	getChat: async (p2p_uuid) => {
+	getChat: async (p2p_uuid: string): Promise<ApiResult<unknown[]>> => {
 		try {
 			const response = await apiClient.get(`/p2p/${p2p_uuid}/chat`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -231,7 +287,7 @@ export const p2pApi = {
 	 * @param {{ message?: string, image?: { uri: string, type?: string, fileName?: string } }} payload - Message payload
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the stored message
 	 */
-	sendChat: async (p2p_uuid, payload) => {
+	sendChat: async (p2p_uuid: string, payload: { message?: string, image?: { uri: string, type?: string, fileName?: string } }): Promise<ApiResult<unknown>> => {
 		try {
 			if (payload.image) {
 				const formData = new FormData()
@@ -250,7 +306,10 @@ export const p2pApi = {
 			}
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/chat`, payload)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -265,7 +324,7 @@ export const p2pApi = {
 	 * @param {Object} data - The offer payload: type ('buy'|'sell'), coin, amount, receive, details, flags (only_kyc, only_vip, private), optional idempotency_key, ...
 	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the created offer
 	 */
-	create: async data => {
+	create: async (data: P2PCreateInput): Promise<ApiResult<P2POffer & { duplicate?: boolean }>> => {
 		try {
 			const response = await apiClient.post('/p2p/create', data)
 			if (response.data && (response.status === 201 || (response.status === 200 && response.data.duplicate))) {
@@ -278,7 +337,8 @@ export const p2pApi = {
 					status: response.status
 				}
 			}
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return {
@@ -308,11 +368,12 @@ export const p2pApi = {
 	 * @param {Object} data - Editable fields: amount, receive, only_vip, message
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the updated offer
 	 */
-	edit: async (p2p_uuid, data) => {
+	edit: async (p2p_uuid: string, data: { amount?: string | number, receive?: string | number, only_vip?: boolean | 0 | 1, message?: string }): Promise<ApiResult<P2POffer>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/edit`, data)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				return {
 					success: false,
@@ -332,11 +393,14 @@ export const p2pApi = {
 	 * @param {Object} payload - The rating payload (star rating, optional comment)
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	rateOffer: async (p2p_uuid, payload) => {
+	rateOffer: async (p2p_uuid: string, payload: Record<string, unknown>): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/rate`, payload)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -345,11 +409,12 @@ export const p2pApi = {
 	 *
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` maps ticks to `{ name, average, average_buy, average_sell, count }`
 	 */
-	getAverages: async () => {
+	getAverages: async (): Promise<ApiResult<P2PMarketAverages>> => {
 		try {
 			const response = await apiClient.get('/p2p/averages')
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.p2p.averagesLoadFailed'), details: errorData, status: error.response.status }
@@ -365,11 +430,14 @@ export const p2pApi = {
 	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	apply: async (p2p_uuid) => {
+	apply: async (p2p_uuid: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/apply`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -382,11 +450,12 @@ export const p2pApi = {
 	 * @param {string} uuid - Target user's UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	peerProfile: async (uuid) => {
+	peerProfile: async (uuid: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.get(`/p2p/user/${uuid}`, { silent: true })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return {
 				success: false,
 				error: error.response?.data?.error || error.response?.data?.message || error.message || i18n.t('api.p2p.profileLoadFailed'),

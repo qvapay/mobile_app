@@ -1,4 +1,27 @@
 import { apiClient } from './client'
+import type { ApiClientError, ApiResult } from '../types/api'
+import type { EmbeddedUser, Transaction } from '../types/domain'
+
+/** Filtros del histórico (`GET /transaction`); los vacíos/null se omiten. */
+export type TransferFilters = {
+	user_id?: string
+	type?: string
+	status?: string
+	start_date?: string
+	end_date?: string
+	page?: string | number
+	take?: string | number
+	search?: string
+}
+
+/** Body de `POST /transaction/transfer`. */
+export type TransferMoneyInput = {
+	amount: string | number
+	description: string
+	to: string
+	pin: string | number
+	idempotencyKey?: string
+}
 
 export const transferApi = {
 
@@ -16,7 +39,7 @@ export const transferApi = {
 	 * @param {string|number} [filters.take] - Items per page
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the paginated transactions payload
 	 */
-	getLatestTransactions: async (filters) => {
+	getLatestTransactions: async (filters?: TransferFilters): Promise<ApiResult<Transaction[]>> => {
 
 		try {
 
@@ -37,7 +60,8 @@ export const transferApi = {
 				status: response.status
 			}
 
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 
 			// Return error response
 			return {
@@ -55,7 +79,7 @@ export const transferApi = {
 	 * @param {number} [take=10] - Maximum number of recent recipients to return
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the recent recipients list
 	 */
-	getLatestSentTransfers: async (take = 10) => {
+	getLatestSentTransfers: async (take: number = 10): Promise<ApiResult<EmbeddedUser[]>> => {
 		try {
 			const response = await apiClient.get(`/transaction/latestusers?take=${take}`)
 			return {
@@ -63,7 +87,8 @@ export const transferApi = {
 				data: response.data,
 				status: response.status
 			}
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return {
 				success: false,
 				error: error.response?.data?.error || error.response?.data?.message || error.message,
@@ -98,7 +123,7 @@ export const transferApi = {
 	 *   "pin": "1111"
 	 * }
 	 */
-	transferMoney: async ({ amount, description, to, pin, idempotencyKey }) => {
+	transferMoney: async ({ amount, description, to, pin, idempotencyKey }: TransferMoneyInput): Promise<ApiResult<Transaction>> => {
 
 		try {
 			const response = await apiClient.post('/transaction/transfer', {
@@ -115,7 +140,8 @@ export const transferApi = {
 				status: response.status
 			}
 
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 
 			return {
 				success: false,
@@ -133,7 +159,7 @@ export const transferApi = {
 	 * @param {string} uuid - Transaction UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the transaction with owner/paid_by info
 	 */
-	getTransactionDetails: async (uuid) => {
+	getTransactionDetails: async (uuid: string): Promise<ApiResult<Transaction>> => {
 		try {
 
 			const response = await apiClient.get(`/transaction/${uuid}`)
@@ -144,7 +170,8 @@ export const transferApi = {
 				status: response.status
 			}
 
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 
 			return {
 				success: false,
@@ -161,7 +188,7 @@ export const transferApi = {
 	 * @param {string} uuid - Transaction UUID
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the PDF payload for sharing/exporting
 	 */
-	getTransactionPDF: async (uuid) => {
+	getTransactionPDF: async (uuid: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.get(`/transaction/${uuid}/pdf`)
 			return {
@@ -169,7 +196,8 @@ export const transferApi = {
 				data: response.data,
 				status: response.status
 			}
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return {
 				success: false,
 				error: error.response?.data?.error || error.response?.data?.message || error.message,

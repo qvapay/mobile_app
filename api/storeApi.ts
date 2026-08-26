@@ -1,19 +1,49 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import type { ApiClientError, ApiResult } from '../types/api'
+
+/** Params de modo de los catálogos (`countries`/`featured`/`favorites`/`categories`/`country`/`brand`...), anexados tal cual al query string. */
+export type StoreCatalogParams = Record<string, string | number | boolean | null | undefined>
+
+/** Body de `purchaseVoucher` (`amount` solo para ofertas de valor variable; `use_satoshis` aplica el cashback en sats como descuento). */
+export type VoucherPurchaseInput = {
+	offer_id: string
+	country: string
+	brand: string
+	amount?: number
+	use_satoshis?: boolean
+}
+
+/** Body de `purchaseTopup` (`use_satoshis` aplica el cashback en sats como descuento). */
+export type TopupPurchaseInput = {
+	offer_id: string
+	phone_number: string
+	country: string
+	amount?: number
+	use_satoshis?: boolean
+}
+
+/** Body de `purchasePhonePackage` (`use_satoshis` aplica el cashback en sats como descuento). */
+export type PhonePackagePurchaseInput = {
+	phone_package_id: string | number
+	phone_number: string
+	use_satoshis?: boolean
+}
 
 /**
  * Wraps a request into the standard `{ success, data, error?, details?, status? }`
  * envelope used by every endpoint in this module.
  *
- * @param {Function} request - Thunk that performs the axios call.
- * @param {string} fallbackError - Localized message used when the backend provides none.
- * @returns {Promise<Object>} The response envelope.
+ * @param request - Thunk that performs the axios call.
+ * @param fallbackError - Localized message used when the backend provides none.
+ * @returns The response envelope.
  */
-const wrap = async (request, fallbackError) => {
+const wrap = async <T = unknown>(request: () => Promise<{ data: T, status: number }>, fallbackError: string): Promise<ApiResult<T>> => {
 	try {
 		const response = await request()
 		return { success: true, data: response.data, status: response.status }
-	} catch (error) {
+	} catch (err) {
+		const error = err as ApiClientError
 		if (error.response?.data) {
 			const errorData = error.response.data
 			return {
@@ -32,10 +62,10 @@ const wrap = async (request, fallbackError) => {
  * — the API in producción rechaza flags sin valor (`?countries=`) con 400;
  * false/null/undefined/'' are dropped.
  *
- * @param {Object} params - Query parameters.
- * @returns {string} URL-encoded query string (may be empty).
+ * @param params - Query parameters.
+ * @returns URL-encoded query string (may be empty).
  */
-const buildQuery = (params) => {
+const buildQuery = (params: StoreCatalogParams | null | undefined): string => {
 	const qs = new URLSearchParams()
 	Object.entries(params || {}).forEach(([k, v]) => {
 		if (v === true) qs.append(k, 'true')
@@ -58,10 +88,10 @@ export const storeApi = {
 	 *   `{ country: 'US' }`   → brands for that country
 	 *   `{ country: 'US', brand: 'amazon' }` → offers for one brand
 	 *
-	 * @param {Object} [params] - Mode params as described above.
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` shape depends on the mode
+	 * @param params - Mode params as described above.
+	 * @returns `{ success, data?, error?, details?, status? }` — `data` shape depends on the mode
 	 */
-	getVoucherCatalog: async (params = {}) => {
+	getVoucherCatalog: async (params: StoreCatalogParams = {}): Promise<ApiResult<unknown>> => {
 		const qs = buildQuery(params)
 		const url = qs ? `/store/voucher-catalog?${qs}` : '/store/voucher-catalog'
 		return wrap(() => apiClient.get(url), i18n.t('api.store.voucherCatalogLoadFailed'))
@@ -72,10 +102,10 @@ export const storeApi = {
 	 * (`POST /store/voucher/purchase`). Validates required fields client-side
 	 * and short-circuits with a local `status: 400` when any is missing.
 	 *
-	 * @param {{ offer_id: string, country: string, brand: string, amount?: number, use_satoshis?: boolean }} body - Purchase payload (`amount` only for variable-value offers; `use_satoshis` applies the sats cashback as discount).
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the purchase with redemption info
+	 * @param body - Purchase payload (`amount` only for variable-value offers; `use_satoshis` applies the sats cashback as discount).
+	 * @returns `{ success, data?, error?, details?, status? }` — `data` is the purchase with redemption info
 	 */
-	purchaseVoucher: async (body) => {
+	purchaseVoucher: async (body: VoucherPurchaseInput): Promise<ApiResult<unknown>> => {
 		if (!body?.offer_id || !body?.country || !body?.brand) { return { success: false, error: i18n.t('api.common.purchaseMissingData'), status: 400 } }
 		return wrap(() => apiClient.post('/store/voucher/purchase', body), i18n.t('api.store.voucherPurchaseFailed'))
 	},
@@ -89,10 +119,10 @@ export const storeApi = {
 	 *   `{ countries: true }` | `{ featured: true }`
 	 *   `{ country: 'CU' }` | `{ country: 'MX', brand: 'telcel', subType? }`
 	 *
-	 * @param {Object} [params] - Mode params as described above.
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` shape depends on the mode
+	 * @param params - Mode params as described above.
+	 * @returns `{ success, data?, error?, details?, status? }` — `data` shape depends on the mode
 	 */
-	getTopupCatalog: async (params = {}) => {
+	getTopupCatalog: async (params: StoreCatalogParams = {}): Promise<ApiResult<unknown>> => {
 		const qs = buildQuery(params)
 		const url = qs ? `/store/topup-catalog?${qs}` : '/store/topup-catalog'
 		return wrap(() => apiClient.get(url), i18n.t('api.store.topupCatalogLoadFailed'))
@@ -103,10 +133,10 @@ export const storeApi = {
 	 * Validates required fields client-side (local `status: 400` when missing).
 	 * For Cuban numbers use `purchasePhonePackage` instead.
 	 *
-	 * @param {{ offer_id: string, phone_number: string, country: string, amount?: number, use_satoshis?: boolean }} body - Top-up payload (`use_satoshis` applies the sats cashback as discount).
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
+	 * @param body - Top-up payload (`use_satoshis` applies the sats cashback as discount).
+	 * @returns `{ success, data?, error?, details?, status? }`
 	 */
-	purchaseTopup: async (body) => {
+	purchaseTopup: async (body: TopupPurchaseInput): Promise<ApiResult<unknown>> => {
 		if (!body?.offer_id || !body?.phone_number || !body?.country) { return { success: false, error: i18n.t('api.store.topupMissingData'), status: 400 } }
 		return wrap(() => apiClient.post('/store/topup', body), i18n.t('api.store.topupPurchaseFailed'))
 	},
@@ -115,10 +145,10 @@ export const storeApi = {
 	 * Purchases a Cubacel phone package for Cuba (`POST /store/phone_package`).
 	 * Validates required fields client-side (local `status: 400` when missing).
 	 *
-	 * @param {{ phone_package_id: string|number, phone_number: string, use_satoshis?: boolean }} body - Package payload (`use_satoshis` applies the sats cashback as discount).
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
+	 * @param body - Package payload (`use_satoshis` applies the sats cashback as discount).
+	 * @returns `{ success, data?, error?, details?, status? }`
 	 */
-	purchasePhonePackage: async (body) => {
+	purchasePhonePackage: async (body: PhonePackagePurchaseInput): Promise<ApiResult<unknown>> => {
 		if (!body?.phone_package_id || !body?.phone_number) { return { success: false, error: i18n.t('api.store.topupMissingData'), status: 400 } }
 		return wrap(() => apiClient.post('/store/phone_package', body), i18n.t('api.store.topupPurchaseFailed'))
 	},
@@ -128,15 +158,15 @@ export const storeApi = {
 	/**
 	 * Lists the user's store purchases — vouchers and top-ups (`GET /store/my`).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the purchases list
+	 * @returns `{ success, data?, error?, details?, status? }` — `data` is the purchases list
 	 */
-	getMyPurchases: async () => wrap(() => apiClient.get('/store/my'), i18n.t('api.common.purchasesLoadFailed')),
+	getMyPurchases: async (): Promise<ApiResult<unknown>> => wrap(() => apiClient.get('/store/my'), i18n.t('api.common.purchasesLoadFailed')),
 
 	/**
 	 * Gets one purchase with its redemption details (`GET /store/my/{id}`).
 	 *
-	 * @param {string|number} id - Purchase identifier from `getMyPurchases`.
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the full purchase (codes, PINs, status)
+	 * @param id - Purchase identifier from `getMyPurchases`.
+	 * @returns `{ success, data?, error?, details?, status? }` — `data` is the full purchase (codes, PINs, status)
 	 */
-	getPurchaseDetail: async (id) => wrap(() => apiClient.get(`/store/my/${id}`), i18n.t('api.store.purchaseDetailLoadFailed')),
+	getPurchaseDetail: async (id: string | number): Promise<ApiResult<unknown>> => wrap(() => apiClient.get(`/store/my/${id}`), i18n.t('api.store.purchaseDetailLoadFailed')),
 }

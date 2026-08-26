@@ -7,16 +7,18 @@
  * justo la duplicación que un refactor de datos debería eliminar.
  */
 import i18n from '../i18n'
+import type { ApiResult } from '../types/api'
 
 /**
  * Error de API con el código HTTP adjunto, para que la política de reintentos
  * pueda distinguir un fallo del cliente de uno del servidor.
- *
- * @property {number|undefined} status - Código HTTP, o `undefined` cuando no hubo respuesta.
  */
 export class ApiError extends Error {
 
-	constructor(message, status) {
+	/** Código HTTP, o `undefined` cuando no hubo respuesta. */
+	status?: number
+
+	constructor(message: string, status?: number) {
 		super(message)
 		this.name = 'ApiError'
 		this.status = status
@@ -26,14 +28,14 @@ export class ApiError extends Error {
 /**
  * Convierte un resultado del contrato en su `data`, o lanza `ApiError`.
  *
- * @param {{ success: boolean, data?: *, error?: string, status?: number }} result - Respuesta de un módulo de `api/`.
- * @returns {*} El `data` del resultado (`null` si venía vacío).
+ * @param result - Respuesta de un módulo de `api/`.
+ * @returns El `data` del resultado (`null` si venía vacío).
  * @throws {ApiError} Si `success` es falso.
  *
  * @example
  * queryFn: () => unwrap(await transferApi.getLatestTransactions({ take: 6 }))
  */
-export const unwrap = (result) => {
+export const unwrap = <T>(result: ApiResult<T> | null | undefined): T | null => {
 
 	if (!result?.success) {
 		throw new ApiError(result?.error || i18n.t('errors.unexpected'), result?.status)
@@ -63,15 +65,15 @@ export const unwrap = (result) => {
  * scroll infinito del histórico rebotaba en el cuarto swipe y se quedaba
  * mudo). Se reintenta con la espera larga de `retryDelay`.
  *
- * @param {number} failureCount - Intentos fallidos hasta ahora (React Query lo pasa).
- * @param {ApiError|Error} error - Error lanzado por `unwrap`.
- * @returns {boolean} Si conviene reintentar.
+ * @param failureCount - Intentos fallidos hasta ahora (React Query lo pasa).
+ * @param error - Error lanzado por `unwrap` (`ApiError`, o `Error` ajeno sin `status`).
+ * @returns Si conviene reintentar.
  */
-export const shouldRetry = (failureCount, error) => {
+export const shouldRetry = (failureCount: number, error: unknown): boolean => {
 
 	if (failureCount >= 2) return false
 
-	const status = error?.status
+	const status = (error as ApiError | null | undefined)?.status
 	if (status === 429) return true
 	if (typeof status === 'number' && status >= 400 && status < 500) return false
 
@@ -85,13 +87,13 @@ export const shouldRetry = (failureCount, error) => {
  * backend (ventanas de 5s): reintentar en caliente solo quemaría el bucket
  * otra vez. El resto usa el backoff exponencial corto habitual.
  *
- * @param {number} attemptIndex - Reintento en curso, empezando en 0 (React Query lo pasa).
- * @param {ApiError|Error} error - Error del intento anterior.
- * @returns {number} Milisegundos a esperar antes del siguiente intento.
+ * @param attemptIndex - Reintento en curso, empezando en 0 (React Query lo pasa).
+ * @param error - Error del intento anterior.
+ * @returns Milisegundos a esperar antes del siguiente intento.
  */
-export const retryDelay = (attemptIndex, error) => {
+export const retryDelay = (attemptIndex: number, error: unknown): number => {
 
-	if (error?.status === 429) return 2500
+	if ((error as ApiError | null | undefined)?.status === 429) return 2500
 
 	return Math.min(1000 * 2 ** attemptIndex, 5000)
 }

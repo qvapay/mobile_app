@@ -1,19 +1,52 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import type { ApiClientError, ApiResult } from '../types/api'
+
+/** Filtros de `getStores`: slug de categoría y paginación. */
+export type MarketStoresParams = { category?: string, page?: number, take?: number }
+
+/** Filtros de `getCatalog`; `shop` limita a los productos de una tienda. */
+export type MarketCatalogParams = {
+	category?: string
+	kind?: string
+	q?: string
+	country?: string
+	min?: number
+	max?: number
+	shop?: string
+	sort?: string
+	page?: number
+	take?: number
+}
+
+/** Body de `createOrder` (el checkout del marketplace). */
+export type MarketOrderInput = {
+	product_uuid: string
+	variant_uuid?: string
+	quantity?: number
+	note?: string
+	shipping_address_id?: string
+	gift_card_code?: string
+	idempotency_key: string
+}
+
+/** Filtros de `getOrders`: estado y paginación. */
+export type MarketOrdersParams = { status?: string, page?: number, take?: number }
 
 /**
  * Wraps a request into the standard `{ success, data, error?, details?, status? }`
  * envelope used by every endpoint in this module.
  *
- * @param {Function} request - Thunk that performs the axios call.
- * @param {string} fallbackError - Localized message used when the backend provides none.
- * @returns {Promise<Object>} The response envelope.
+ * @param request - Thunk that performs the axios call.
+ * @param fallbackError - Localized message used when the backend provides none.
+ * @returns The response envelope.
  */
-const wrap = async (request, fallbackError) => {
+const wrap = async <T = unknown>(request: () => Promise<{ data: T, status: number }>, fallbackError: string): Promise<ApiResult<T>> => {
 	try {
 		const response = await request()
 		return { success: true, data: response.data, status: response.status }
-	} catch (error) {
+	} catch (err) {
+		const error = err as ApiClientError
 		if (error.response?.data) {
 			const errorData = error.response.data
 			return {
@@ -32,10 +65,10 @@ const wrap = async (request, fallbackError) => {
  * API in producción rechaza flags sin valor (`?featured=`) con 400;
  * false/null/undefined/'' are dropped.
  *
- * @param {Object} params - Query parameters.
- * @returns {string} URL-encoded query string (may be empty).
+ * @param params - Query parameters.
+ * @returns URL-encoded query string (may be empty).
  */
-const buildQuery = (params) => {
+const buildQuery = (params: Record<string, unknown> | null | undefined): string => {
 	const qs = new URLSearchParams()
 	Object.entries(params || {}).forEach(([k, v]) => {
 		if (v === true) qs.append(k, 'true')
@@ -53,10 +86,10 @@ export const marketApi = {
 	/**
 	 * Lists approved (active) stores (`GET /market/stores`). Public.
 	 *
-	 * @param {{ category?: string, page?: number, take?: number }} [params] - Optional category slug and pagination.
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ stores, total, page, take }`; each store carries `product_count` and up to 4 `product_images`.
+	 * @param params - Optional category slug and pagination.
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ stores, total, page, take }`; each store carries `product_count` and up to 4 `product_images`.
 	 */
-	getStores: async (params = {}) => {
+	getStores: async (params: MarketStoresParams = {}): Promise<ApiResult<unknown>> => {
 		const qs = buildQuery(params)
 		const url = qs ? `/market/stores?${qs}` : '/market/stores'
 		return wrap(() => apiClient.get(url), i18n.t('api.market.storesLoadFailed'))
@@ -67,10 +100,10 @@ export const marketApi = {
 	 * (`GET /market/stores/{slug}`). Public. More products paginate via
 	 * `getCatalog({ shop: slug, page })`.
 	 *
-	 * @param {string} slug - Store slug.
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ store, products }` (store includes real `rating_avg`/`rating_count`).
+	 * @param slug - Store slug.
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ store, products }` (store includes real `rating_avg`/`rating_count`).
 	 */
-	getStore: async (slug) => {
+	getStore: async (slug: string): Promise<ApiResult<unknown>> => {
 		if (!slug) return { success: false, error: i18n.t('api.market.storeInvalid'), status: 400 }
 		return wrap(() => apiClient.get(`/market/stores/${encodeURIComponent(slug)}`), i18n.t('api.market.storeLoadFailed'))
 	},
@@ -79,10 +112,10 @@ export const marketApi = {
 	 * Fetches a product's full public sheet with variants and option axes
 	 * (`GET /market/products/{uuid}`). Public.
 	 *
-	 * @param {string} uuid - Product uuid.
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ product, shop }`.
+	 * @param uuid - Product uuid.
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ product, shop }`.
 	 */
-	getProduct: async (uuid) => {
+	getProduct: async (uuid: string): Promise<ApiResult<unknown>> => {
 		if (!uuid) return { success: false, error: i18n.t('api.market.productInvalid'), status: 400 }
 		return wrap(() => apiClient.get(`/market/products/${encodeURIComponent(uuid)}`), i18n.t('api.market.productLoadFailed'))
 	},
@@ -91,10 +124,10 @@ export const marketApi = {
 	 * Cross-store product catalog with filters and ranking
 	 * (`GET /market/catalog`). Public.
 	 *
-	 * @param {{ category?: string, kind?: string, q?: string, country?: string, min?: number, max?: number, shop?: string, sort?: string, page?: number, take?: number }} [params] - Catalog filters; `shop` limits to one store's products.
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ products, total, page, take }`.
+	 * @param params - Catalog filters; `shop` limits to one store's products.
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ products, total, page, take }`.
 	 */
-	getCatalog: async (params = {}) => {
+	getCatalog: async (params: MarketCatalogParams = {}): Promise<ApiResult<unknown>> => {
 		const qs = buildQuery(params)
 		const url = qs ? `/market/catalog?${qs}` : '/market/catalog'
 		return wrap(() => apiClient.get(url), i18n.t('api.market.catalogLoadFailed'))
@@ -104,10 +137,10 @@ export const marketApi = {
 	 * Federated store search (`GET /shop/search`). Public. Returns products
 	 * AND stores (`shops[]`) matching the query.
 	 *
-	 * @param {string} q - Search text (2-80 chars server-side).
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` includes `{ products, shops, total }`.
+	 * @param q - Search text (2-80 chars server-side).
+	 * @returns `{ success, data?, error?, status? }` — `data` includes `{ products, shops, total }`.
 	 */
-	search: async (q) => {
+	search: async (q: string): Promise<ApiResult<unknown>> => {
 		if (!q || String(q).trim().length < 2) return { success: false, error: i18n.t('api.market.searchTooShort'), status: 400 }
 		return wrap(() => apiClient.get(`/shop/search?${buildQuery({ q: String(q).trim() })}`, { silent: true }), i18n.t('api.market.searchFailed'))
 	},
@@ -117,10 +150,10 @@ export const marketApi = {
 	 * state (`GET /shop/products?uuids=`). Public, max 30 uuids, uncached
 	 * server-side — this is the pre-payment source of truth.
 	 *
-	 * @param {string[]} uuids - Product uuids (deduped/sorted by the caller).
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ products }`.
+	 * @param uuids - Product uuids (deduped/sorted by the caller).
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ products }`.
 	 */
-	getProductsBatch: async (uuids) => {
+	getProductsBatch: async (uuids: string[]): Promise<ApiResult<unknown>> => {
 		if (!Array.isArray(uuids) || uuids.length === 0) return { success: false, error: i18n.t('api.market.verifyCartEmpty'), status: 400 }
 		return wrap(() => apiClient.get(`/shop/products?uuids=${encodeURIComponent(uuids.join(','))}`, { silent: true }), i18n.t('api.market.verifyCartFailed'))
 	},
@@ -131,10 +164,10 @@ export const marketApi = {
 	 * the global loading bar. Idempotent per `idempotency_key` (a duplicate
 	 * returns 200 with `duplicate: true`).
 	 *
-	 * @param {{ product_uuid: string, variant_uuid?: string, quantity?: number, note?: string, shipping_address_id?: string, gift_card_code?: string, idempotency_key: string }} body - Order payload.
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ order, transaction_uuid }` on 201.
+	 * @param body - Order payload.
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ order, transaction_uuid }` on 201.
 	 */
-	createOrder: async (body) => {
+	createOrder: async (body: MarketOrderInput): Promise<ApiResult<unknown>> => {
 		if (!body?.product_uuid || !body?.idempotency_key) { return { success: false, error: i18n.t('api.common.purchaseMissingData'), status: 400 } }
 		return wrap(() => apiClient.post('/market/order', body, { silent: true }), i18n.t('api.common.checkoutProcessFailed'))
 	},
@@ -143,10 +176,10 @@ export const marketApi = {
 	 * Lists the user's marketplace purchases as buyer
 	 * (`GET /market/orders`, Bearer auth).
 	 *
-	 * @param {{ status?: string, page?: number, take?: number }} [params] - Optional status filter and pagination.
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ orders, total, page, take }`.
+	 * @param params - Optional status filter and pagination.
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ orders, total, page, take }`.
 	 */
-	getOrders: async (params = {}) => {
+	getOrders: async (params: MarketOrdersParams = {}): Promise<ApiResult<unknown>> => {
 		const qs = buildQuery(params)
 		const url = qs ? `/market/orders?${qs}` : '/market/orders'
 		return wrap(() => apiClient.get(url), i18n.t('api.common.purchasesLoadFailed'))

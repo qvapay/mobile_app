@@ -1,5 +1,100 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
+import type { User } from '../types/domain'
+
+/**
+ * Resultado de `userApi.requestKYCSession`: el éxito trae `sessionToken` extra
+ * (para el SDK nativo) además de `data` (la URL hospedada de verificación).
+ */
+export type KYCSessionResult = (ApiSuccess<string> & { sessionToken: string | null }) | ApiFailure
+
+/** Estado de KYC del usuario (`GET /user/kyc`, desenvuelto de `data.data`). */
+export type KYCStatusPayload = {
+	uuid: string
+	kyc: boolean
+	kyc_status: 'none' | 'pending' | 'approved' | 'declined'
+}
+
+/** Resultado de `userApi.getKYCStatus`: el éxito trae `raw` (body sin desenvolver) extra. */
+export type KYCStatusResult = (ApiSuccess<KYCStatusPayload> & { raw: unknown }) | ApiFailure
+
+/** Datos de verificación de teléfono (`POST /user/verify/phone`, flujo en 2 pasos). */
+export type PhoneVerificationInput = {
+	/** The phone number. */
+	phone: string
+	/** The country code. */
+	country: string
+	/** The verification code (verification step only). */
+	code?: string
+	/** Whether this is the verification step. */
+	verify?: boolean
+}
+
+/** Body de `PUT /user/update/password`. */
+export type PasswordChangeInput = {
+	/** The current password. */
+	old_password: string
+	/** The new password (min 8 chars). */
+	new_password: string
+}
+
+/** Parámetros de `userApi.registerCompany` (registro de empresa, multipart). */
+export type CompanyRegisterInput = {
+	/** Flat form fields (see enterpriseForm.buildRegisterFields). */
+	fields: Record<string, string>
+	/** Statutes PDF from the document picker. */
+	file: { uri: string, name?: string }
+}
+
+/** Body de `POST /user/gold` (compra de Gold Check con saldo). */
+export type GoldPurchaseInput = {
+	/** The target user's UUID. */
+	uuid: string
+	/** The subscription duration. */
+	duration: string
+}
+
+/** Body de `POST /user/payment-methods`. */
+export type PaymentMethodInput = {
+	/** Coin tick. */
+	coin: string
+	/** Coin-specific form fields. */
+	details: Record<string, unknown>
+}
+
+/**
+ * Resultado de `userApi.createPaymentMethod`: `success` se calcula como
+ * boolean (`status === 200/201`), no como literal — de ahí la forma propia.
+ */
+export type PaymentMethodCreateResult = { success: boolean, data?: unknown, status?: number } | ApiFailure
+
+/** Secreto TOTP recién generado (`POST /auth/create-2fa` sin body). */
+export type TwoFactorSecretPayload = {
+	secret: string
+	/** Para pintar el QR en el authenticator. */
+	otpauth_url: string
+}
+
+/** Body de `POST /user/gold/validate-receipt`. */
+export type GoldReceiptInput = {
+	/** The purchase receipt/token. */
+	receipt: string
+	/** 'ios' or 'android'. */
+	platform: string
+	/** The product ID. */
+	productId: string
+	/** The transaction ID. */
+	transactionId: string
+}
+
+/** Parámetros de `userApi.uploadAvatar` (multipart `file` + `type`). */
+export type AvatarUploadInput = {
+	/** The local image file. */
+	file: { uri: string, name?: string, type?: string }
+	/** Which image slot to replace. */
+	uploadType?: 'avatar' | 'cover'
+}
 
 export const userApi = {
 
@@ -8,29 +103,35 @@ export const userApi = {
 	 * fetches the online status of tracked users (P2P peers/chats). Sent with
 	 * `silent: true` so the periodic ping never flashes the global loading bar.
 	 *
-	 * @param {string[]} trackedUserIds - Array of user UUIDs to check (max 100)
-	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data.statuses` maps uuid → online boolean
+	 * @param trackedUserIds - Array of user UUIDs to check (max 100)
+	 * @returns `{ success, data?, error? }` — `data.statuses` maps uuid → online boolean
 	 */
-	heartbeat: async (trackedUserIds = []) => {
+	heartbeat: async (trackedUserIds: string[] = []): Promise<ApiResult<unknown>> => {
 		try {
 			const body = trackedUserIds.length > 0 ? { trackedUserIds } : {}
 			const response = await apiClient.post('/user/heartbeat', body, { silent: true })
 			return { success: true, data: response.data }
-		} catch (error) { return { success: false, error: error.message } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message }
+		}
 	},
 
 	/**
 	 * Searches for a user by uuid, username, email or verified phone number
 	 * (`POST /user/search`). Used to resolve transfer recipients.
 	 *
-	 * @param {string} search - The uuid, username, email or verified phone number to look up
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the matched public profile
+	 * @param search - The uuid, username, email or verified phone number to look up
+	 * @returns `{ success, data?, error?, status? }` — `data` is the matched public profile
 	 */
-	searchUser: async (search) => {
+	searchUser: async (search: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/search`, { query: search })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -39,13 +140,14 @@ export const userApi = {
 	 * `sessionToken` (when the backend sends it) feeds the native verification SDK;
 	 * without it the caller falls back to opening the hosted URL in the browser.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, sessionToken?, error?, status? }` — `data` is the verification URL string
+	 * @returns `{ success, data?, sessionToken?, error?, status? }` — `data` is the verification URL string
 	 */
-	requestKYCSession: async () => {
+	requestKYCSession: async (): Promise<KYCSessionResult> => {
 		try {
 			const response = await apiClient.post(`/user/kyc`)
 			return { success: true, data: response.data?.data, sessionToken: response.data?.session_token || null, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.kycSessionFailed'), status: error.response.status }
@@ -57,39 +159,48 @@ export const userApi = {
 	/**
 	 * Gets the current user's KYC status (`GET /user/kyc`).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, raw?, error?, status? }` — `data` is `{ uuid, kyc: boolean, kyc_status: 'none'|'pending'|'approved'|'declined' }`, `raw` the unwrapped response body
+	 * @returns `{ success, data?, raw?, error?, status? }` — `data` is `{ uuid, kyc: boolean, kyc_status: 'none'|'pending'|'approved'|'declined' }`, `raw` the unwrapped response body
 	 */
-	getKYCStatus: async () => {
+	getKYCStatus: async (): Promise<KYCStatusResult> => {
 		try {
 			const response = await apiClient.get(`/user/kyc`)
 			return { success: true, data: response.data?.data, raw: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status, details: error.response?.data } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status, details: error.response?.data }
+		}
 	},
 
 	/**
 	 * Gets the current user's extended profile (`GET /user/extended`) —
 	 * the full account payload used across Home and Settings.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the extended profile
+	 * @returns `{ success, data?, error?, status? }` — `data` is the extended profile
 	 */
-	getUserProfile: async () => {
+	getUserProfile: async (): Promise<ApiResult<User>> => {
 		try {
 			const response = await apiClient.get(`/user/extended`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Updates the current user's profile fields (`POST /user/update`).
 	 *
-	 * @param {Object} userData - Partial profile fields to update (name, bio, username, ...)
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the updated profile
+	 * @param userData - Partial profile fields to update (name, bio, username, ...)
+	 * @returns `{ success, data?, error?, status? }` — `data` is the updated profile
 	 */
-	updateUser: async (userData) => {
+	updateUser: async (userData: Record<string, unknown>): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/update`, userData)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -97,14 +208,14 @@ export const userApi = {
 	 * Two-step flow: first call sends the code (delivered via Telegram, not SMS),
 	 * second call passes `code` + `verify` to confirm it.
 	 *
-	 * @param {Object} phoneData - The phone verification data
-	 * @param {string} phoneData.phone - The phone number
-	 * @param {string} phoneData.country - The country code
-	 * @param {string} [phoneData.code] - The verification code (verification step only)
-	 * @param {boolean} [phoneData.verify] - Whether this is the verification step
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param phoneData - The phone verification data
+	 * @param phoneData.phone - The phone number
+	 * @param phoneData.country - The country code
+	 * @param phoneData.code - The verification code (verification step only)
+	 * @param phoneData.verify - Whether this is the verification step
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	verifyPhone: async (phoneData) => {
+	verifyPhone: async (phoneData: PhoneVerificationInput): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/verify/phone`, phoneData)
 			return {
@@ -112,7 +223,8 @@ export const userApi = {
 				data: response.data,
 				status: response.status
 			}
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return { success: false, error: error.message, status: error.response?.status }
 		}
 	},
@@ -122,68 +234,83 @@ export const userApi = {
 	 * Gotcha: removal is `PUT /user/verify/phone` (same path as verification,
 	 * different method) — there is no DELETE route.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	removePhone: async () => {
+	removePhone: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.put(`/user/verify/phone`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Gets a one-time deep link to the QvaPay Telegram bot that binds the
 	 * user's Telegram account (`GET /user/verify/telegram`).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` contains the verification link
+	 * @returns `{ success, data?, error?, status? }` — `data` contains the verification link
 	 */
-	getTelegramVerificationLink: async () => {
+	getTelegramVerificationLink: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.get(`/user/verify/telegram`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Unlinks the Telegram account (`PUT /user/verify/telegram` — PUT means
 	 * "remove" here, mirroring `removePhone`).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	removeTelegram: async () => {
+	removeTelegram: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.put(`/user/verify/telegram`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Changes the account password (`PUT /user/update/password`).
 	 * Requires the current password. Existing sessions stay valid.
 	 *
-	 * @param {Object} passwordData - The password data
-	 * @param {string} passwordData.old_password - The current password
-	 * @param {string} passwordData.new_password - The new password (min 8 chars)
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param passwordData - The password data
+	 * @param passwordData.old_password - The current password
+	 * @param passwordData.new_password - The new password (min 8 chars)
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	changePassword: async (passwordData) => {
+	changePassword: async (passwordData: PasswordChangeInput): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.put(`/user/update/password`, passwordData)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Gets the user's enterprise registrations and their approval status (`GET /user/company`).
 	 * Mirrors the web's Ajustes → Empresa panel.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ companies: [{ uuid, company_name, director_name, email, activity, employee_count, country, status, statutes_sent, created_at, updated_at }] }`
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ companies: [{ uuid, company_name, director_name, email, activity, employee_count, country, status, statutes_sent, created_at, updated_at }] }`
 	 */
-	getCompanies: async () => {
+	getCompanies: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.get(`/user/company`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -192,12 +319,12 @@ export const userApi = {
 	 * user becomes the company owner. `file` is the statutes PDF from the
 	 * document picker (`{ uri, name }`).
 	 *
-	 * @param {Object} params
-	 * @param {Object<string, string>} params.fields - Flat form fields (see enterpriseForm.buildRegisterFields).
-	 * @param {{uri: string, name?: string}} params.file - Statutes PDF.
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — 409 = solicitud activa/empresa aprobada duplicada
+	 * @param params
+	 * @param params.fields - Flat form fields (see enterpriseForm.buildRegisterFields).
+	 * @param params.file - Statutes PDF.
+	 * @returns `{ success, data?, error?, status? }` — 409 = solicitud activa/empresa aprobada duplicada
 	 */
-	registerCompany: async ({ fields, file }) => {
+	registerCompany: async ({ fields, file }: CompanyRegisterInput): Promise<ApiResult<unknown>> => {
 		try {
 			const formData = new FormData()
 			Object.entries(fields).forEach(([key, value]) => {
@@ -211,7 +338,8 @@ export const userApi = {
 			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
 			const response = await apiClient.post('/user/company', formData, config)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.companySubmitFailed'), status: error.response.status }
@@ -223,23 +351,26 @@ export const userApi = {
 	/**
 	 * Gets referral data — invited users list and earnings (`GET /user/referrals`).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	getReferrals: async () => {
+	getReferrals: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.get(`/user/referrals`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Tracks a referral-share attempt for analytics (`POST /user/referrals/share`).
 	 * Fire-and-forget: failures resolve to `{ success: false }` with no error detail.
 	 *
-	 * @param {string} channel - The share channel (sms, telegram, x, facebook, link)
-	 * @returns {Promise<Object>} `{ success, data? }`
+	 * @param channel - The share channel (sms, telegram, x, facebook, link)
+	 * @returns `{ success, data? }`
 	 */
-	trackShareAttempt: async (channel) => {
+	trackShareAttempt: async (channel: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/referrals/share`, { channel })
 			return { success: true, data: response.data }
@@ -251,13 +382,16 @@ export const userApi = {
 	 * Unwraps `response.data.user`, so `data` is the user object with
 	 * `golden_check` / expiration fields.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	getGoldCheckStatus: async () => {
+	getGoldCheckStatus: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.get(`/user/gold`)
 			return { success: true, data: response.data.user, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
@@ -265,28 +399,32 @@ export const userApi = {
 	 * Can gift it to another user via `uuid`. For App Store / Play purchases
 	 * see `validateGoldReceipt` instead.
 	 *
-	 * @param {Object} purchaseData - The purchase data
-	 * @param {string} purchaseData.uuid - The target user's UUID
-	 * @param {string} purchaseData.duration - The subscription duration
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param purchaseData - The purchase data
+	 * @param purchaseData.uuid - The target user's UUID
+	 * @param purchaseData.duration - The subscription duration
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	purchaseGold: async (purchaseData) => {
+	purchaseGold: async (purchaseData: GoldPurchaseInput): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/gold`, purchaseData)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Gets the user's saved payment methods for P2P offers (`GET /user/payment-methods`).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the list of payment methods
+	 * @returns `{ success, data?, error?, status? }` — `data` is the list of payment methods
 	 */
-	getPaymentMethods: async () => {
+	getPaymentMethods: async (): Promise<ApiResult<unknown[]>> => {
 		try {
 			const response = await apiClient.get(`/user/payment-methods`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodsLoadFailed'), details: errorData, status: error.response.status }
@@ -299,14 +437,15 @@ export const userApi = {
 	 * Creates a new payment method (`POST /user/payment-methods`).
 	 * `success` is only true on a 200/201 response.
 	 *
-	 * @param {{ coin: string, details: Object }} payload - Coin tick plus the coin-specific form fields
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the created payment method
+	 * @param payload - Coin tick plus the coin-specific form fields
+	 * @returns `{ success, data?, error?, status? }` — `data` is the created payment method
 	 */
-	createPaymentMethod: async (payload) => {
+	createPaymentMethod: async (payload: PaymentMethodInput): Promise<PaymentMethodCreateResult> => {
 		try {
 			const response = await apiClient.post(`/user/payment-methods`, payload)
 			return { success: response.status === 201 || response.status === 200, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodCreateFailed'), details: errorData, status: error.response.status }
@@ -318,14 +457,15 @@ export const userApi = {
 	/**
 	 * Deletes a payment method (`DELETE /user/payment-methods` with `{ id }` in the request body).
 	 *
-	 * @param {string|number} id - The payment method identifier
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param id - The payment method identifier
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	deletePaymentMethod: async (id) => {
+	deletePaymentMethod: async (id: string | number): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.delete(`/user/payment-methods`, { data: { id } })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodDeleteFailed'), details: errorData, status: error.response.status }
@@ -338,13 +478,14 @@ export const userApi = {
 	 * Gets the user's saved QvaPay contacts (`GET /user/contact`).
 	 * Unwraps `response.data.contacts`; `data` is always an array (empty on odd payloads).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the contacts array
+	 * @returns `{ success, data?, error?, status? }` — `data` is the contacts array
 	 */
-	getContacts: async () => {
+	getContacts: async (): Promise<ApiResult<unknown[]>> => {
 		try {
 			const response = await apiClient.get(`/user/contact`)
 			return { success: true, data: response.data?.contacts ?? [], status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactsLoadFailed'), details: errorData, status: error.response.status }
@@ -356,15 +497,16 @@ export const userApi = {
 	/**
 	 * Adds another QvaPay user as a contact (`POST /user/contact`).
 	 *
-	 * @param {string} contact_uuid - The UUID of the user to add as contact
-	 * @param {string} name - The display name for the contact
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the created contact
+	 * @param contact_uuid - The UUID of the user to add as contact
+	 * @param name - The display name for the contact
+	 * @returns `{ success, data?, error?, status? }` — `data` is the created contact
 	 */
-	addContact: async (contact_uuid, name) => {
+	addContact: async (contact_uuid: string, name: string): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/contact`, { contact_uuid, name })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactAddFailed'), details: errorData, status: error.response.status }
@@ -376,14 +518,15 @@ export const userApi = {
 	/**
 	 * Toggles the favorite flag on a contact (`PATCH /user/contact`).
 	 *
-	 * @param {number} contact_id - The contact ID
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data.favorite` is the new boolean state
+	 * @param contact_id - The contact ID
+	 * @returns `{ success, data?, error?, status? }` — `data.favorite` is the new boolean state
 	 */
-	toggleFavoriteContact: async (contact_id) => {
+	toggleFavoriteContact: async (contact_id: number): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.patch(`/user/contact`, { contact_id })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactFavoriteFailed'), status: error.response.status }
@@ -395,14 +538,15 @@ export const userApi = {
 	/**
 	 * Deletes a contact (`DELETE /user/contact` with `{ contact_id }` in the request body).
 	 *
-	 * @param {string|number} contactId - The contact ID
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param contactId - The contact ID
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	deleteContact: async (contactId) => {
+	deleteContact: async (contactId: string | number): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.delete(`/user/contact`, { data: { contact_id: contactId } })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.contactDeleteFailed'), details: errorData, status: error.response.status }
@@ -415,14 +559,15 @@ export const userApi = {
 	 * Matches device contacts against QvaPay users (`POST /user/contacts/sync`).
 	 * Only sends phone numbers the user consented to share (see ContactsDisclosureModal).
 	 *
-	 * @param {string[]} phoneNumbers - Array of normalized phone numbers
-	 * @returns {Promise<Object>} `{ success, data?, error? }` — `data.matches` is `[{ phone, user }]`
+	 * @param phoneNumbers - Array of normalized phone numbers
+	 * @returns `{ success, data?, error? }` — `data.matches` is `[{ phone, user }]`
 	 */
-	syncContacts: async (phoneNumbers) => {
+	syncContacts: async (phoneNumbers: string[]): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/user/contacts/sync', { phones: phoneNumbers })
 			return { success: true, data: response.data }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				return { success: false, error: error.response.data.error || i18n.t('api.user.contactsSyncFailed') }
 			}
@@ -435,13 +580,14 @@ export const userApi = {
 	 * with an empty body, requires auth). Nothing is persisted yet — the secret
 	 * only sticks after `activate2FA` verifies a code against it.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` holds `secret` and `otpauth_url` (for the QR code)
+	 * @returns `{ success, data?, error?, status? }` — `data` holds `secret` and `otpauth_url` (for the QR code)
 	 */
-	generate2FA: async () => {
+	generate2FA: async (): Promise<ApiResult<TwoFactorSecretPayload>> => {
 		try {
 			const response = await apiClient.post('/auth/create-2fa', {})
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.twoFactorGenerateFailed'), details: errorData, status: error.response.status }
@@ -455,16 +601,17 @@ export const userApi = {
 	 * The backend verifies the TOTP code against the secret from `generate2FA`
 	 * and saves it; from then on login requires a 6-digit TOTP instead of the email PIN.
 	 *
-	 * @param {Object} data - The 2FA activation data
-	 * @param {string} data.code - The 6-digit TOTP code from the authenticator app
-	 * @param {string} data.secret - The secret returned by `generate2FA`
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param data - The 2FA activation data
+	 * @param data.code - The 6-digit TOTP code from the authenticator app
+	 * @param data.secret - The secret returned by `generate2FA`
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	activate2FA: async ({ code, secret }) => {
+	activate2FA: async ({ code, secret }: { code: string, secret: string }): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/auth/create-2fa', { code, secret })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.twoFactorActivateFailed'), details: errorData, status: error.response.status }
@@ -477,13 +624,14 @@ export const userApi = {
 	 * Deactivates TOTP 2FA for the current user (`POST /auth/reset-2fa`, requires auth).
 	 * Login falls back to the emailed 4-digit PIN afterwards.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @returns `{ success, data?, error?, status? }`
 	 */
-	deactivate2FA: async () => {
+	deactivate2FA: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/auth/reset-2fa', {})
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.twoFactorDeactivateFailed'), details: errorData, status: error.response.status }
@@ -499,18 +647,19 @@ export const userApi = {
 	 * with Apple/Google and activates Gold server-side — the source of truth
 	 * is the returned `golden_expire`, never the local IAP state.
 	 *
-	 * @param {Object} receiptData - The receipt data
-	 * @param {string} receiptData.receipt - The purchase receipt/token
-	 * @param {string} receiptData.platform - 'ios' or 'android'
-	 * @param {string} receiptData.productId - The product ID
-	 * @param {string} receiptData.transactionId - The transaction ID
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` includes `golden_expire`
+	 * @param receiptData - The receipt data
+	 * @param receiptData.receipt - The purchase receipt/token
+	 * @param receiptData.platform - 'ios' or 'android'
+	 * @param receiptData.productId - The product ID
+	 * @param receiptData.transactionId - The transaction ID
+	 * @returns `{ success, data?, error?, status? }` — `data` includes `golden_expire`
 	 */
-	validateGoldReceipt: async (receiptData) => {
+	validateGoldReceipt: async (receiptData: GoldReceiptInput): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post(`/user/gold/validate-receipt`, receiptData)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.common.purchaseValidateFailed'), details: errorData, status: error.response.status }
@@ -523,12 +672,12 @@ export const userApi = {
 	 * Uploads the user's avatar or cover photo (`POST /user/avatar`,
 	 * multipart/form-data with `file` + `type` fields).
 	 *
-	 * @param {Object} params
-	 * @param {{ uri: string, name?: string, type?: string }} params.file - The local image file
-	 * @param {'avatar'|'cover'} [params.uploadType='avatar'] - Which image slot to replace
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` includes the new `url` and `path`
+	 * @param params
+	 * @param params.file - The local image file
+	 * @param params.uploadType - Which image slot to replace (default 'avatar')
+	 * @returns `{ success, data?, error?, status? }` — `data` includes the new `url` and `path`
 	 */
-	uploadAvatar: async ({ file, uploadType = 'avatar' }) => {
+	uploadAvatar: async ({ file, uploadType = 'avatar' }: AvatarUploadInput): Promise<ApiResult<unknown>> => {
 		try {
 			const formData = new FormData()
 			formData.append('file', {
@@ -540,7 +689,8 @@ export const userApi = {
 			const config = { headers: { 'Content-Type': 'multipart/form-data' } }
 			const response = await apiClient.post('/user/avatar', formData, config)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.imageUploadFailed'), details: errorData, status: error.response.status }
@@ -552,26 +702,32 @@ export const userApi = {
 	/**
 	 * Gets server-side notification preferences (`GET /user/notifications`).
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` maps notification channels to booleans
+	 * @returns `{ success, data?, error?, status? }` — `data` maps notification channels to booleans
 	 */
-	getNotificationSettings: async () => {
+	getNotificationSettings: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.get('/user/notifications')
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 	/**
 	 * Updates server-side notification preferences (`POST /user/notifications`).
 	 *
-	 * @param {Object} settings - The notification settings to update
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the saved settings
+	 * @param settings - The notification settings to update
+	 * @returns `{ success, data?, error?, status? }` — `data` is the saved settings
 	 */
-	updateNotificationSettings: async (settings) => {
+	updateNotificationSettings: async (settings: Record<string, unknown>): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/user/notifications', settings)
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) { return { success: false, error: error.message, status: error.response?.status } }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
+		}
 	},
 
 }

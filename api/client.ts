@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { AxiosError } from 'axios'
 import { Platform } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 import * as Keychain from 'react-native-keychain'
@@ -26,18 +27,18 @@ const BIOMETRIC_SERVICE = 'com.qvapay.biometrics'
 const APP_LOCK_SERVICE = 'com.qvapay.applock'
 
 // Loading callbacks for global loading bar
-let _loadingStart = null
-let _loadingStop = null
+let _loadingStart: (() => void) | null = null
+let _loadingStop: (() => void) | null = null
 
 /**
  * Wires the global loading bar (LoadingContext) into this client.
  * Called by `LoadingBridge` in App.tsx; every non-silent request then
  * starts/stops the bar through these callbacks.
  *
- * @param {Function} start - Invoked when a request begins.
- * @param {Function} stop - Invoked when a request settles (success or error).
+ * @param start - Invoked when a request begins.
+ * @param stop - Invoked when a request settles (success or error).
  */
-export const registerLoadingCallbacks = (start, stop) => {
+export const registerLoadingCallbacks = (start: () => void, stop: () => void) => {
 	_loadingStart = start
 	_loadingStop = stop
 }
@@ -95,7 +96,7 @@ apiClient.interceptors.request.use(
 		} catch (err) { /* token retrieval failed */ }
 		return reqConfig
 	},
-	(error) => {
+	(error: AxiosError) => {
 		if (!error.config?.silent && _loadingStop) { _loadingStop() }
 		return Promise.reject(error)
 	}
@@ -116,7 +117,7 @@ apiClient.interceptors.response.use(
 		if (!response.config?.silent && _loadingStop) { _loadingStop() }
 		return response
 	},
-	async (error) => {
+	async (error: AxiosError) => {
 		if (!error.config?.silent && _loadingStop) { _loadingStop() }
 		// Handle common errors
 		if (error.response) {
@@ -156,9 +157,9 @@ apiClient.interceptors.response.use(
  * Stores the bearer auth token in the Keychain (service `com.qvapay.auth`).
  * Fails silently — on a storage error the previous token (if any) survives.
  *
- * @param {string} token - Personal access token returned by `/auth/login`.
+ * @param token - Personal access token returned by `/auth/login`.
  */
-export const setAuthToken = async (token) => {
+export const setAuthToken = async (token: string) => {
 	try {
 		await Keychain.setGenericPassword('token', token, { service: KEYCHAIN_SERVICE })
 	} catch (error) { /* token store failed */ }
@@ -212,11 +213,11 @@ export const getSupportedBiometryType = async () => {
  * The entry is device-only (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`) — it never syncs
  * to iCloud or device backups.
  *
- * @param {string} email - Account email, stored as the Keychain username.
- * @param {string} password - Account password, stored as the Keychain secret.
+ * @param email - Account email, stored as the Keychain username.
+ * @param password - Account password, stored as the Keychain secret.
  * @returns {Promise<boolean>} True when stored successfully.
  */
-export const setBiometricCredentials = async (email, password) => {
+export const setBiometricCredentials = async (email: string, password: string) => {
 	try {
 		await Keychain.setGenericPassword(email, password, {
 			service: BIOMETRIC_SERVICE,
@@ -294,10 +295,10 @@ export const hasBiometricCredentials = async () => {
  * AppLockContext to gate the UI behind LockScreen. Device-only entry,
  * never synced or backed up.
  *
- * @param {string} pin - The PIN chosen by the user.
+ * @param pin - The PIN chosen by the user.
  * @returns {Promise<boolean>} True when stored successfully.
  */
-export const setAppLockPin = async (pin) => {
+export const setAppLockPin = async (pin: string) => {
 	try {
 		await Keychain.setGenericPassword('applock', pin, {
 			service: APP_LOCK_SERVICE,

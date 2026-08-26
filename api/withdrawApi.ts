@@ -1,5 +1,38 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
+import type { ApiClientError, ApiResult } from '../types/api'
+
+/** Parámetros de `withdrawApi.withdraw` (paso 2 del flujo de retiro). */
+export type WithdrawInput = {
+	/** Amount in USD (ignored with source 'satoshis'). */
+	amount?: number | string
+	/** Coin ticker (e.g., "BANK", "BTCLN", etc.). */
+	coin: string
+	/** Withdrawal details object (form fields). */
+	details: Record<string, unknown>
+	/** User's 4-digit PIN or 6-digit OTP. */
+	pin: number | string
+	/** Payment method (defaults to coin ticker). */
+	payMethod?: string
+	/** Optional personal note for the withdrawal. */
+	note?: string
+	/** Funds origin (default balance). */
+	source?: 'balance' | 'satoshis'
+	/** Sats to redeem when source is 'satoshis'. */
+	amountSats?: number
+	/** Per-attempt key (`[A-Za-z0-9._-]{8,64}`) — see `helpers/idempotency.js`. */
+	idempotencyKey?: string
+}
+
+/** Payload decodificado de `POST /lightning/decode` (BOLT11 o Lightning Address). */
+export type LightningDecodePayload = {
+	kind: string
+	amount_sat?: number
+	description?: string
+	expires_at?: string
+	min_sat?: number
+	max_sat?: number
+}
 
 export const withdrawApi = {
 
@@ -11,13 +44,14 @@ export const withdrawApi = {
 	 * persisted and emailed). Users with TOTP 2FA can skip this and use
 	 * their 6-digit code instead.
 	 *
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
+	 * @returns `{ success, data?, error?, details?, status? }`
 	 */
-	requestPin: async () => {
+	requestPin: async (): Promise<ApiResult<unknown>> => {
 		try {
 			const response = await apiClient.post('/user/reset-pin')
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return {
@@ -43,26 +77,35 @@ export const withdrawApi = {
 	 * `pin` travels as a string so TOTP codes with leading zeros stay intact
 	 * (the backend does `String(pin)` anyway).
 	 *
-	 * @param {Object} params
-	 * @param {number|string} [params.amount] - Amount in USD (ignored with source 'satoshis')
-	 * @param {string} params.coin - Coin ticker (e.g., "BANK", "BTCLN", etc.)
-	 * @param {Object} params.details - Withdrawal details object (form fields)
-	 * @param {number|string} params.pin - User's 4-digit PIN or 6-digit OTP
-	 * @param {string} [params.payMethod] - Payment method (defaults to coin ticker)
-	 * @param {string} [params.note] - Optional personal note for the withdrawal
-	 * @param {'balance'|'satoshis'} [params.source] - Funds origin (default balance)
-	 * @param {number} [params.amountSats] - Sats to redeem when source is 'satoshis'
-	 * @param {string} [params.idempotencyKey] - Per-attempt key (`[A-Za-z0-9._-]{8,64}`);
+	 * @param params
+	 * @param params.amount - Amount in USD (ignored with source 'satoshis')
+	 * @param params.coin - Coin ticker (e.g., "BANK", "BTCLN", etc.)
+	 * @param params.details - Withdrawal details object (form fields)
+	 * @param params.pin - User's 4-digit PIN or 6-digit OTP
+	 * @param params.payMethod - Payment method (defaults to coin ticker)
+	 * @param params.note - Optional personal note for the withdrawal
+	 * @param params.source - Funds origin (default balance)
+	 * @param params.amountSats - Sats to redeem when source is 'satoshis'
+	 * @param params.idempotencyKey - Per-attempt key (`[A-Za-z0-9._-]{8,64}`);
 	 *   a retried request that already completed returns the ORIGINAL withdrawal with
 	 *   `duplicate: true`, and a retry while the original is in flight gets
 	 *   `409 { code: 'DUPLICATE_REQUEST' }` (see `helpers/idempotency.js`)
-	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }` — `data` is the created withdrawal + transaction
+	 * @returns `{ success, data?, error?, details?, status? }` — `data` is the created withdrawal + transaction
 	 */
-	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats, idempotencyKey }) => {
+	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats, idempotencyKey }: WithdrawInput): Promise<ApiResult<unknown>> => {
 
 		try {
 
-			const payload = {
+			const payload: {
+				pay_method: string
+				details: Record<string, unknown>
+				pin: string
+				source?: 'satoshis'
+				amount_sats?: number
+				amount?: number
+				idempotency_key?: string
+				note?: string
+			} = {
 				pay_method: payMethod || coin,
 				details: details || {},
 				pin: String(pin),
@@ -77,8 +120,9 @@ export const withdrawApi = {
 			const response = await apiClient.post('/withdraw', payload)
 			return { success: true, data: response.data, status: response.status }
 
-		} catch (error) {
+		} catch (err) {
 
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
 				return {
@@ -99,14 +143,15 @@ export const withdrawApi = {
 	 * invoice — or the min/max range of a Lightning Address — before submitting.
 	 * Purely informational: failures should never block the flow.
 	 *
-	 * @param {string} invoice - BOLT11 / Lightning Address / LNURL-pay target
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is `{ kind, amount_sat?, description?, expires_at?, min_sat?, max_sat? }`
+	 * @param invoice - BOLT11 / Lightning Address / LNURL-pay target
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ kind, amount_sat?, description?, expires_at?, min_sat?, max_sat? }`
 	 */
-	decodeLightning: async (invoice) => {
+	decodeLightning: async (invoice: string): Promise<ApiResult<LightningDecodePayload>> => {
 		try {
 			const response = await apiClient.post('/lightning/decode', { invoice }, { silent: true })
 			return { success: true, data: response.data, status: response.status }
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			if (error.response?.data) {
 				return { success: false, error: error.response.data.error || i18n.t('api.withdraw.lightningInvalid'), status: error.response.status }
 			}

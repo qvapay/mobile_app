@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { QueryClient } from '@tanstack/react-query'
+import type { InfiniteData, Query } from '@tanstack/react-query'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
+import type { PersistedClient } from '@tanstack/react-query-persist-client'
 import { shouldRetry, retryDelay } from './unwrap'
 
 // La versión sale de app.json —la fuente de verdad del proyecto— y no de
@@ -40,15 +42,15 @@ export const queryClient = new QueryClient({
  * (que cacheaba la primera página) y, al restaurar, `getNextPageParam` ve esa
  * página llena y el scroll infinito continúa desde la 2 con normalidad.
  *
- * @param {Object} persistedClient - Cliente deshidratado que va camino del storage.
- * @returns {Object} El mismo cliente con las queries infinitas recortadas.
+ * @param persistedClient - Cliente deshidratado que va camino del storage.
+ * @returns El mismo cliente con las queries infinitas recortadas.
  */
-export const trimInfiniteQueries = (persistedClient) => ({
+export const trimInfiniteQueries = (persistedClient: PersistedClient): PersistedClient => ({
 	...persistedClient,
 	clientState: {
 		...persistedClient.clientState,
 		queries: persistedClient.clientState.queries.map(query => {
-			const data = query.state?.data
+			const data = query.state?.data as InfiniteData<unknown> | undefined
 			// La forma { pages, pageParams } identifica a una query infinita
 			if (!Array.isArray(data?.pages) || data.pages.length <= 1) return query
 			return {
@@ -68,10 +70,10 @@ export const trimInfiniteQueries = (persistedClient) => ({
  * p. ej. el histórico de transacciones filtrado o buscado, cuya combinación de
  * filtros es efímera y llenaría el storage de variantes muertas.
  *
- * @param {Object} query - Query candidata a deshidratarse.
- * @returns {boolean} Si debe persistirse.
+ * @param query - Query candidata a deshidratarse.
+ * @returns Si debe persistirse.
  */
-export const shouldPersistQuery = (query) => query.state.status === 'success' && query.meta?.noPersist !== true
+export const shouldPersistQuery = (query: Query): boolean => query.state.status === 'success' && query.meta?.noPersist !== true
 
 /**
  * Persistencia en AsyncStorage: es lo que reemplaza la hidratación en frío de

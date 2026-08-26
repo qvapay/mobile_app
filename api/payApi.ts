@@ -1,4 +1,6 @@
 import { apiClient } from './client'
+import type { ApiClientError, ApiResult } from '../types/api'
+import type { Transaction } from '../types/domain'
 
 export const payApi = {
 
@@ -8,13 +10,13 @@ export const payApi = {
 	 * balance and settles the transaction; typically reached via the Pay
 	 * screen from a `qvapay.com/pay/{uuid}` deep link or QR scan.
 	 *
-	 * @param {string} uuid - Transaction UUID
-	 * @param {string} [comment] - Optional reaction/mood ('loved' | 'happy' | 'sad' | 'thumbsy' | '')
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the paid transaction
+	 * @param uuid - Transaction UUID
+	 * @param comment - Optional reaction/mood ('loved' | 'happy' | 'sad' | 'thumbsy' | '')
+	 * @returns `{ success, data?, error?, status? }` — `data` is the paid transaction
 	 *
 	 * Example request body: { "comment": "loved" }
 	 */
-	payTransaction: async (uuid, comment = '') => {
+	payTransaction: async (uuid: string, comment: string = ''): Promise<ApiResult<Transaction>> => {
 		try {
 			const response = await apiClient.post(`/transaction/${uuid}/pay`, { comment })
 			return {
@@ -22,7 +24,8 @@ export const payApi = {
 				data: response.data,
 				status: response.status
 			}
-		} catch (error) {
+		} catch (err) {
+			const error = err as ApiClientError
 			return {
 				success: false,
 				error: error.response?.data?.error || error.response?.data?.message || error.message,
