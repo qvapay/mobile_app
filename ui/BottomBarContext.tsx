@@ -1,7 +1,12 @@
 import { createContext, use } from 'react'
+import type { ReactNode } from 'react'
 import { useSharedValue } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
-const BottomBarContext = createContext()
+/** Valor del contexto: el shared value que anima AnimatedTabBar. */
+export type BottomBarContextValue = { bottomBarVisible: SharedValue<number> }
+
+const BottomBarContext = createContext<BottomBarContextValue | undefined>(undefined)
 
 /**
  * Provides `bottomBarVisible`, a Reanimated shared value (1 = shown, 0 = hidden)
@@ -9,7 +14,7 @@ const BottomBarContext = createContext()
  * scroll-driven show/hide runs on the UI thread with zero re-renders.
  * Wrapped around the bottom tabs in MainStack.
  */
-export const BottomBarProvider = ({ children }) => {
+export const BottomBarProvider = ({ children }: { children: ReactNode }) => {
 	const bottomBarVisible = useSharedValue(1)
 	return (
 		<BottomBarContext.Provider value={{ bottomBarVisible }}>
@@ -21,9 +26,9 @@ export const BottomBarProvider = ({ children }) => {
 /**
  * Accessor for the bottom-bar shared value; throws outside BottomBarProvider.
  *
- * @returns {{ bottomBarVisible: import('react-native-reanimated').SharedValue<number> }}
+ * @returns El shared value del bottom bar.
  */
-export const useBottomBar = () => {
+export const useBottomBar = (): BottomBarContextValue => {
 	const context = use(BottomBarContext)
 	if (!context) { throw new Error('useBottomBar must be used within a BottomBarProvider') }
 	return context
