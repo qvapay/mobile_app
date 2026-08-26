@@ -5,15 +5,36 @@ import QPCoin from '../../ui/particles/QPCoin'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { sanitizeAmountInput } from '../../helpers/amountInput'
 
-const formatBalance = (val) => {
+import type { Coin, Decimal } from '../../types/domain'
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+
+const formatBalance = (val?: Decimal | null) => {
 	if (!val) return '0.00'
-	return parseFloat(val).toFixed(2)
+	// Decimal = string | number; parseFloat solo acepta string (el number llega
+	// coaccionado en runtime, igual que antes de tipar)
+	return parseFloat(val as string).toFixed(2)
+}
+
+type WithdrawAmountCardProps = {
+	amountQUSD: string
+	amountCoin: string
+	onChangeQUSD: (value: string) => void
+	onChangeAmountCoin: (value: string) => void
+	selectedCoin: Coin | null
+	balance?: Decimal | null
+	currency: string
+	onOpenCoinPicker: () => void
+	locked?: boolean
+	lockedCaption?: string
+	theme: Theme
+	textStyles: TextStyles
 }
 
 // The QUSD ⇄ coin swap card: amount to withdraw, amount to receive, and coin selector.
 // `locked` freezes both inputs (e.g. a scanned BOLT11 invoice fixes the amount) and
 // `lockedCaption` explains why below the card.
-const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, locked, lockedCaption, theme, textStyles }) => {
+const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, locked, lockedCaption, theme, textStyles }: WithdrawAmountCardProps) => {
 	const { t } = useTranslation()
 	return (
 	<View style={{ backgroundColor: theme.colors.primary + '18', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 10, borderWidth: 2, borderColor: theme.colors.primary }}>

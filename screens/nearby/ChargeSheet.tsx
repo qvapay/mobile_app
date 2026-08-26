@@ -11,18 +11,30 @@ import { useTextStyles } from '../../theme/themeUtils'
 import AmountInput from '../../ui/AmountInput'
 import QPButton from '../../ui/particles/QPButton'
 
+// Tipos de dominio
+import type { Decimal } from '../../types/domain'
+
+type ChargeSheetProps = {
+	/** Prefill (e.g. amount typed in Keypad). */
+	initialAmount?: string
+	/** Shown by AmountInput (el balance del perfil puede no estar hidratado aún). */
+	balance?: Decimal
+	onConfirm: (amount: string) => void
+	onClose: () => void
+}
+
 /**
  * Charge-mode sheet for NearbyPay. Rendered as an internal animated overlay —
  * NOT a navigation route — so the radar screen never blurs and the transport
  * keeps announcing while the user types the amount.
  *
- * @param {object} props
- * @param {string} [props.initialAmount] - Prefill (e.g. amount typed in Keypad).
- * @param {number|string} props.balance - Shown by AmountInput.
- * @param {(amount: string) => void} props.onConfirm
- * @param {() => void} props.onClose
+ * @param props
+ * @param [props.initialAmount] - Prefill (e.g. amount typed in Keypad).
+ * @param props.balance - Shown by AmountInput.
+ * @param props.onConfirm
+ * @param props.onClose
  */
-const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }) => {
+const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }: ChargeSheetProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -52,7 +64,9 @@ const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }) => {
 					{t('misc.nearby.sheet.subtitle')}
 				</Text>
 
-				<AmountInput amount={amount} onAmountChange={setAmount} balance={balance} placeholder={t('misc.nearby.sheet.amountPlaceholder')} />
+				{/* AmountInput declara `balance` obligatorio, pero tolera undefined en
+				    runtime (formatBalance devuelve '0.00'): cast local, sin cambio de comportamiento */}
+				<AmountInput amount={amount} onAmountChange={setAmount} balance={balance as Decimal} placeholder={t('misc.nearby.sheet.amountPlaceholder')} />
 
 				<QPButton
 					title={canConfirm ? t('misc.nearby.sheet.chargeAmount', { amount }) : t('misc.nearby.sheet.charge')}

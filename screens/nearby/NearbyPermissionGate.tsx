@@ -11,15 +11,23 @@ import { useTextStyles } from '../../theme/themeUtils'
 // UI
 import QPButton from '../../ui/particles/QPButton'
 
+// Nearby
+import type { NearbySessionState } from '../../nearby/useNearbyPeers'
+
+/** Solo los estados bloqueantes de la sesión llegan a esta pantalla. */
+type NearbyPermissionGateProps = {
+	state: Extract<NearbySessionState, 'permission_denied' | 'unavailable' | 'error'>
+}
+
 /**
  * Blocking state for the radar: permissions denied or hardware unavailable.
  * The iOS Local Network prompt can't be re-triggered programmatically, so
  * denial routes the user to the system Settings pane.
  *
- * @param {object} props
- * @param {'permission_denied'|'unavailable'|'error'} props.state
+ * @param props
+ * @param props.state - Blocking session state ('permission_denied' | 'unavailable' | 'error').
  */
-const NearbyPermissionGate = ({ state }) => {
+const NearbyPermissionGate = ({ state }: NearbyPermissionGateProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()

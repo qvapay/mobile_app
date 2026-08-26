@@ -3,8 +3,22 @@ import { useTranslation } from 'react-i18next'
 
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+
 // Bitcoin orange, mismo tono del pill de sats del header (MainStack / PhoneTopupBrand)
 const SATS_COLOR = '#F7931A'
+
+type WithdrawSatsCardProps = {
+	amountSats: string
+	onChangeAmountSats: (text: string) => void
+	availableSats: number
+	btcPrice: number
+	minSats: number
+	locked?: boolean
+	theme: Theme
+	textStyles: TextStyles
+}
 
 /**
  * Amount card for redeeming cashback satoshis over Lightning (Withdraw with
@@ -12,7 +26,7 @@ const SATS_COLOR = '#F7931A'
  * at the live BTC price, an integer sats input with a MAX chip, and a locked
  * read-only mode when the scanned invoice already fixes the amount.
  */
-const WithdrawSatsCard = ({ amountSats, onChangeAmountSats, availableSats, btcPrice, minSats, locked, theme, textStyles }) => {
+const WithdrawSatsCard = ({ amountSats, onChangeAmountSats, availableSats, btcPrice, minSats, locked, theme, textStyles }: WithdrawSatsCardProps) => {
 
 	const { t } = useTranslation()
 	const satsNumber = Number(amountSats) || 0

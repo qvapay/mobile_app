@@ -14,7 +14,30 @@ import QPAvatar from '../../ui/particles/QPAvatar'
 // Helpers
 import { displayName } from '../../helpers/displayName'
 
+// Nearby
+import type { NearbyPeer } from '../../nearby/peersReducer'
+import type { RadarPosition } from '../../nearby/radarLayout'
+
 export const BUBBLE_SIZE = 76
+
+/**
+ * Forma del perfil verificado que la burbuja lee. `peer.server` viaja como
+ * `Record<string, unknown>` (payload crudo de `/user/search`), así que se
+ * estrecha localmente a los campos que se pintan.
+ */
+type PeerProfile = {
+	username?: string | null
+	name?: string | null
+	image?: string | null
+	vip?: boolean | number | null
+	golden_check?: boolean | number | null
+}
+
+type PeerBubbleProps = {
+	peer: NearbyPeer
+	position: RadarPosition
+	onPress: (peer: NearbyPeer) => void
+}
 
 /**
  * A nearby user floating on the radar. Renders ONLY the server-verified
@@ -24,15 +47,17 @@ export const BUBBLE_SIZE = 76
  * Positioned absolutely by the parent from radarLayout; QPPressable is the
  * app's Fabric-safe pressable (never wrap Pressable in Animated).
  *
- * @param {object} props
- * @param {object} props.peer - Peer entry from useNearbyPeers (verified).
- * @param {{ x: number, y: number }} props.position - Bubble center.
- * @param {(peer: object) => void} props.onPress
+ * @param props
+ * @param props.peer - Peer entry from useNearbyPeers (verified).
+ * @param props.position - Bubble center.
+ * @param props.onPress
  */
-const PeerBubble = ({ peer, position, onPress }) => {
+const PeerBubble = ({ peer, position, onPress }: PeerBubbleProps) => {
 
 	const { theme } = useTheme()
-	const profile = peer.server
+	// El padre solo monta burbujas de peers verificados, así que `server` no es
+	// null aquí (el tipo del reducer sí lo admite mientras se resuelve)
+	const profile = peer.server as PeerProfile
 	const isCharging = peer.mode === 'charge' && peer.amount
 
 	return (

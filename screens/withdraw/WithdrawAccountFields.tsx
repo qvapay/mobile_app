@@ -4,6 +4,20 @@ import { useTranslation } from 'react-i18next'
 import QPInput from '../../ui/particles/QPInput'
 import QPPressable from '../../ui/particles/QPPressable'
 import { keyFromFieldName } from './withdrawFees'
+import type { WorkingForm } from './withdrawFees'
+
+import type { CoinWorkingField } from '../../types/domain'
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+
+type WithdrawAccountFieldsProps = {
+	workingFields: CoinWorkingField[]
+	workingForm: WorkingForm
+	onChangeField: (key: string, value: string) => void
+	multilineKeys?: string[]
+	theme: Theme
+	textStyles: TextStyles
+}
 
 // Dynamic "account data" inputs driven by the selected coin's working_data fields.
 // `type: select` fields render as option chips (the backend validates the value
@@ -13,7 +27,7 @@ import { keyFromFieldName } from './withdrawFees'
 // payloads — e.g. the BTCLN wallet field with a BOLT11 invoice — so they wrap
 // instead of scrolling, and disable autocapitalize/autocorrect that would
 // corrupt them.
-const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], theme, textStyles }) => {
+const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], theme, textStyles }: WithdrawAccountFieldsProps) => {
 	const { t } = useTranslation()
 	return (
 	<View style={{ marginTop: 20 }}>

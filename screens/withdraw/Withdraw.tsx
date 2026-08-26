@@ -17,7 +17,9 @@ import WithdrawAccountFields from './WithdrawAccountFields'
 import WithdrawDestinationSelector from './WithdrawDestinationSelector'
 import PinConfirmStep from '../transaction/PinConfirmStep'
 import { isCryptoCoin } from './withdrawDestination'
+import type { WithdrawDestination } from './withdrawDestination'
 import { calculateFee, grossFromNet, getSelectFeePct, keyFromFieldName } from './withdrawFees'
+import type { WorkingForm } from './withdrawFees'
 import useCoins from '../../hooks/useCoins'
 import usePinEntry from '../../hooks/usePinEntry'
 
@@ -26,8 +28,8 @@ import useKycGate, { KYC_WITHDRAW_THRESHOLD } from '../../hooks/useKycGate'
 import KycGateModal from '../../ui/KycGateModal'
 
 // API
-import apiClient from '../../api/client'
 import { withdrawApi } from '../../api/withdrawApi'
+import type { LightningDecodePayload } from '../../api/withdrawApi'
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el débito
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
@@ -37,6 +39,12 @@ import { useAuth } from '../../auth/AuthContext'
 
 // Toast
 import { toast } from 'sonner-native'
+
+// Types
+import type { ScrollView } from 'react-native'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
+import type { Coin, CoinWorkingField } from '../../types/domain'
 
 // Quick coin pills for withdraw
 const DEFAULT_WITHDRAW_COINS = [
@@ -51,7 +59,7 @@ const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
 const MIN_SATS_REDEEM = 100
 
 // USD (neto) -> cantidad en coin
-const usdToCoin = (usdNet, coin) => {
+const usdToCoin = (usdNet: number, coin: Coin | null | undefined): number => {
 	if (!coin) return 0
 	const price = Number(coin.price)
 	if (!coin.stable && price > 0) return usdNet / price
@@ -59,23 +67,34 @@ const usdToCoin = (usdNet, coin) => {
 }
 
 // Cantidad en coin -> USD (neto)
-const coinToUsd = (coinAmount, coin) => {
+const coinToUsd = (coinAmount: number, coin: Coin | null | undefined): number => {
 	if (!coin) return 0
 	const price = Number(coin.price)
 	if (!coin.stable && price > 0) return coinAmount * price
 	return coinAmount
 }
 
+/** Acción del reducer genérico: `field` y `value` correlacionados por clave. */
+type SetFieldAction<S> = { [K in keyof S]: { type: 'set', field: K, value: S[K] } }[keyof S]
+
+/** Slices de estado relacionados que comparten el reducer de abajo. */
+type AmountState = { amountQUSD: string, amountCoin: string }
+type CoinState = { availableCoins: Coin[], selectedCoin: Coin | null, showCoinPicker: boolean }
+type PinFlowState = { showPinStep: boolean, sendingPin: boolean, sendingWithdraw: boolean }
+
 // Generic field setter for the related-state slices below
-function setFieldReducer(state, action) {
+function setFieldReducer<S extends object>(state: S, action: SetFieldAction<S>): S {
 	switch (action.type) {
 		case 'set':
-			return { ...state, [action.field]: action.value }
+			// La clave computada ensancha el tipo del literal: se reafirma S
+			return { ...state, [action.field]: action.value } as S
 		default:
 			return state
 	}
 }
-const initialPinFlow = { showPinStep: false, sendingPin: false, sendingWithdraw: false }
+const initialPinFlow: PinFlowState = { showPinStep: false, sendingPin: false, sendingWithdraw: false }
+
+type WithdrawProps = NativeStackScreenProps<RootStackParamList, 'Withdraw'>
 
 /**
  * Withdraw balance into a payout coin/method — two steps: form, then PIN/OTP confirm.
@@ -93,7 +112,7 @@ const initialPinFlow = { showPinStep: false, sendingPin: false, sendingWithdraw:
  * Confirmation uses an emailed PIN (`withdrawApi.requestPin`) or a 6-digit TOTP,
  * then submits `POST /withdraw`.
  */
-const Withdraw = ({ navigation, route }) => {
+const Withdraw = ({ navigation, route }: WithdrawProps) => {
 
 	// Contexts
 	const { user, updateUser } = useAuth()
@@ -112,7 +131,7 @@ const Withdraw = ({ navigation, route }) => {
 	const containerStyles = createContainerStyles(theme)
 
 	// Scroll del form — el paso de PIN aparece debajo del fold y hay que llevarlo a la vista
-	const scrollViewRef = useRef(null)
+	const scrollViewRef = useRef<ScrollView>(null)
 
 	// Clave de idempotencia del intento: sobrevive a timeouts, 5xx y toques
 	// repetidos — solo rota tras éxito confirmado. Si un intento falla por
@@ -121,28 +140,28 @@ const Withdraw = ({ navigation, route }) => {
 	const idempotencyKeyRef = useRef(makeIdempotencyKey())
 
 	// Amount swap (same-named setters keep every call site unchanged)
-	const [amountState, dispatchAmount] = useReducer(setFieldReducer, { amountQUSD: '', amountCoin: '' })
+	const [amountState, dispatchAmount] = useReducer(setFieldReducer<AmountState>, { amountQUSD: '', amountCoin: '' })
 	const { amountQUSD, amountCoin } = amountState
-	const setAmountQUSD = (value) => dispatchAmount({ type: 'set', field: 'amountQUSD', value })
-	const setAmountCoin = (value) => dispatchAmount({ type: 'set', field: 'amountCoin', value })
+	const setAmountQUSD = (value: string) => dispatchAmount({ type: 'set', field: 'amountQUSD', value })
+	const setAmountCoin = (value: string) => dispatchAmount({ type: 'set', field: 'amountCoin', value })
 
 	// Coin selection
-	const [coinState, dispatchCoin] = useReducer(setFieldReducer, { availableCoins: [], selectedCoin: null, showCoinPicker: false })
+	const [coinState, dispatchCoin] = useReducer(setFieldReducer<CoinState>, { availableCoins: [], selectedCoin: null, showCoinPicker: false })
 	const { availableCoins, selectedCoin, showCoinPicker } = coinState
-	const setAvailableCoins = (value) => dispatchCoin({ type: 'set', field: 'availableCoins', value })
-	const setSelectedCoin = (value) => dispatchCoin({ type: 'set', field: 'selectedCoin', value })
-	const setShowCoinPicker = (value) => dispatchCoin({ type: 'set', field: 'showCoinPicker', value })
+	const setAvailableCoins = (value: Coin[]) => dispatchCoin({ type: 'set', field: 'availableCoins', value })
+	const setSelectedCoin = (value: Coin | null) => dispatchCoin({ type: 'set', field: 'selectedCoin', value })
+	const setShowCoinPicker = (value: boolean) => dispatchCoin({ type: 'set', field: 'showCoinPicker', value })
 
-	const [workingForm, setWorkingForm] = useState({})
+	const [workingForm, setWorkingForm] = useState<WorkingForm>({})
 	const [balance] = useState(user?.balance || 0)
 	const currency = 'QUSD'
 
 	// PIN/OTP step flags
-	const [pinFlow, dispatchPin] = useReducer(setFieldReducer, initialPinFlow)
+	const [pinFlow, dispatchPin] = useReducer(setFieldReducer<PinFlowState>, initialPinFlow)
 	const { showPinStep, sendingPin, sendingWithdraw } = pinFlow
-	const setShowPinStep = (value) => dispatchPin({ type: 'set', field: 'showPinStep', value })
-	const setSendingPin = (value) => dispatchPin({ type: 'set', field: 'sendingPin', value })
-	const setSendingWithdraw = (value) => dispatchPin({ type: 'set', field: 'sendingWithdraw', value })
+	const setShowPinStep = (value: boolean) => dispatchPin({ type: 'set', field: 'showPinStep', value })
+	const setSendingPin = (value: boolean) => dispatchPin({ type: 'set', field: 'sendingPin', value })
+	const setSendingWithdraw = (value: boolean) => dispatchPin({ type: 'set', field: 'sendingWithdraw', value })
 
 	// PIN/OTP state (entered code, method toggle, code length) — box mechanics live in QPCodeInput
 	const { pin, setPin, twoFactorMethod, codeLength, codeInputRef, handleMethodToggle } = usePinEntry()
@@ -157,12 +176,12 @@ const Withdraw = ({ navigation, route }) => {
 	const lnAmountSats = Number(route?.params?.lnAmountSats) || 0
 
 	// Origen de fondos para BTCLN: balance USD o redención de sats de cashback
-	const [source, setSource] = useState('balance')
+	const [source, setSource] = useState<'balance' | 'satoshis'>('balance')
 	const [amountSats, setAmountSats] = useState(lnAmountSats > 0 ? String(lnAmountSats) : '')
-	const [lnInfo, setLnInfo] = useState(null)
+	const [lnInfo, setLnInfo] = useState<LightningDecodePayload | null>(null)
 
 	// Crypto destination gate (own wallet vs third parties)
-	const [destination, setDestination] = useState(null)
+	const [destination, setDestination] = useState<WithdrawDestination | null>(null)
 	const isCrypto = isCryptoCoin(selectedCoin)
 
 	const isBTCLN = selectedCoin?.tick === 'BTCLN'
@@ -214,17 +233,18 @@ const Withdraw = ({ navigation, route }) => {
 	// destino al campo `wallet` del working_data, monto derivado de la factura (si trae),
 	// y decode informativo (descripción/expiración) con fallo silencioso.
 	const applyLnPrefill = useEffectEvent(() => {
+		// Los casts de `lnInvoice`: el efecto de abajo solo dispara este evento con la factura presente
 		const walletField = workingFields.find((field) => (field.name || '').toLowerCase() === 'wallet')
-		if (walletField) { setWorkingForm((prev) => ({ ...prev, [keyFromFieldName(walletField.name)]: lnInvoice })) }
+		if (walletField) { setWorkingForm((prev) => ({ ...prev, [keyFromFieldName(walletField.name)]: lnInvoice as string })) }
 		if (lnAmountSats > 0) { handleChangeAmountCoin((lnAmountSats / 1e8).toFixed(8)) }
-		withdrawApi.decodeLightning(lnInvoice).then((res) => { if (res.success) { setLnInfo(res.data) } }).catch(() => { })
+		withdrawApi.decodeLightning(lnInvoice as string).then((res) => { if (res.success) { setLnInfo(res.data as LightningDecodePayload) } }).catch(() => { })
 	})
 	useEffect(() => {
 		if (lnInvoice && selectedCoin?.tick === 'BTCLN') { applyLnPrefill() }
 	}, [lnInvoice, selectedCoin])
 
 	// QUSD bruto -> cantidad en coin (descontando fee)
-	const handleChangeQUSD = (value) => {
+	const handleChangeQUSD = (value: string) => {
 		setAmountQUSD(value)
 		const num = Number(value)
 		if (selectedCoin && !isNaN(num) && num > 0) {
@@ -238,7 +258,7 @@ const Withdraw = ({ navigation, route }) => {
 	}
 
 	// Cantidad en coin -> QUSD bruto requerido (sumando fee)
-	const handleChangeAmountCoin = (value) => {
+	const handleChangeAmountCoin = (value: string) => {
 		setAmountCoin(value)
 		const coinAmt = Number(value)
 		if (selectedCoin && !isNaN(coinAmt) && coinAmt > 0) {
@@ -251,11 +271,12 @@ const Withdraw = ({ navigation, route }) => {
 	}
 
 	// Working data parsing
-	const workingFields = useMemo(() => {
+	const workingFields = useMemo<CoinWorkingField[]>(() => {
 		if (!selectedCoin || !selectedCoin.working_data) { return [] }
 		try {
-			const raw = typeof selectedCoin.working_data === 'string' ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
-			return Array.isArray(raw) ? raw : []
+			// La columna Json puede llegar ya parseada o como string JSON
+			const raw: unknown = typeof selectedCoin.working_data === 'string' ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
+			return Array.isArray(raw) ? raw as CoinWorkingField[] : []
 		} catch (e) {
 			return []
 		}
@@ -300,7 +321,7 @@ const Withdraw = ({ navigation, route }) => {
 		})
 	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, workingFields, workingForm])
 
-	const handleCoinSelect = (coin) => {
+	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
 		setShowCoinPicker(false)
 		setDestination(null)
@@ -344,7 +365,7 @@ const Withdraw = ({ navigation, route }) => {
 		try {
 			setSendingWithdraw(true)
 			// Build details with original field names from working_data
-			const details = {}
+			const details: Record<string, string> = {}
 			for (const field of workingFields) {
 				const key = keyFromFieldName(field.name)
 				details[field.name] = workingForm[key] || ''
@@ -352,7 +373,8 @@ const Withdraw = ({ navigation, route }) => {
 			// Ante el 409 "en proceso" se espera y reintenta una vez con la MISMA clave
 			const result = await callWithDuplicateRetry(() => withdrawApi.withdraw({
 				amount: amountQUSD,
-				coin: selectedCoin.tick,
+				// El botón que abre el paso de PIN exige isFormValid ⇒ hay moneda
+				coin: selectedCoin!.tick,
 				details,
 				pin,
 				...(sourceSats && { source: 'satoshis', amountSats: Number(amountSats) }),
@@ -364,7 +386,8 @@ const Withdraw = ({ navigation, route }) => {
 				if (sourceSats) {
 					toast.success(t('withdraw.index.toasts.redeemed.title'), { description: t('withdraw.index.toasts.redeemed.description', { sats: Number(amountSats).toLocaleString() }) })
 					// El backend devuelve los sats restantes fresh — reflejarlos sin refetch
-					const satoshisLeft = result.data?.data?.satoshis
+					// (`data` del ApiResult es `unknown`: se estrecha a la forma que se lee)
+					const satoshisLeft = (result.data as { data?: { satoshis?: number } } | undefined)?.data?.satoshis
 					if (typeof satoshisLeft === 'number') { updateUser({ satoshis: satoshisLeft }) }
 				} else {
 					toast.success(t('withdraw.index.toasts.withdrawn.title'), { description: t('withdraw.index.toasts.withdrawn.description', { amount: amountQUSD }) })
@@ -522,7 +545,9 @@ const Withdraw = ({ navigation, route }) => {
 					{isBTCLN && lnInfo?.kind === 'bolt11' && (
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 6 }]}>
 							{lnInfo.description ? t('withdraw.index.lightningDescription', { description: lnInfo.description }) : t('withdraw.index.lightningInvoice')}
-							{lnInfo.expires_at ? t('withdraw.index.lightningExpires', { minutes: Math.max(0, Math.round((lnInfo.expires_at - Date.now()) / 60000)) }) : ''}
+							{/* `expires_at` viaja declarado como string en el payload del decode
+							    pero la resta lo trata como epoch ms — se preserva el cálculo tal cual */}
+							{lnInfo.expires_at ? t('withdraw.index.lightningExpires', { minutes: Math.max(0, Math.round(((lnInfo.expires_at as unknown as number) - Date.now()) / 60000)) }) : ''}
 						</Text>
 					)}
 
@@ -562,7 +587,8 @@ const Withdraw = ({ navigation, route }) => {
 				defaultCoins={DEFAULT_WITHDRAW_COINS}
 			/>
 
-			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
+			{/* useKycGate expone `string | null` y el modal declara `string | undefined` */}
+			<KycGateModal visible={gateVisible} message={gateMessage as string} onClose={closeGate} />
 		</>
 	)
 }

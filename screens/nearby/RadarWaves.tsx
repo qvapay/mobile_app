@@ -9,11 +9,20 @@ const WAVE_COUNT = 3
 const WAVE_DURATION_MS = 2400
 const WAVE_STAGGER_MS = 800
 
+type WaveProps = {
+	/** Ripple index — staggers the loop start. */
+	index: number
+	/** Diameter the ripple starts from. */
+	size: number
+	/** Border color of the ring. */
+	color: string
+}
+
 /**
  * One expanding radar ripple: scales 1→3 while fading .5→0 on the UI thread,
  * staggered by its index so the three waves breathe continuously.
  */
-const Wave = ({ index, size, color }) => {
+const Wave = ({ index, size, color }: WaveProps) => {
 
 	const progress = useSharedValue(0)
 
@@ -45,10 +54,10 @@ const Wave = ({ index, size, color }) => {
  * Concentric sonar waves emanating from the self avatar at the radar center.
  * Purely decorative — pointerEvents none so peer bubbles stay tappable.
  *
- * @param {object} props
- * @param {number} [props.size=120] - Diameter the waves start from.
+ * @param props
+ * @param [props.size=120] - Diameter the waves start from.
  */
-const RadarWaves = ({ size = 120 }) => {
+const RadarWaves = ({ size = 120 }: { size?: number }) => {
 
 	const { theme } = useTheme()
 

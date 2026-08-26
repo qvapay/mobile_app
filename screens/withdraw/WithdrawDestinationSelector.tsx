@@ -6,6 +6,17 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import QPButton from '../../ui/particles/QPButton'
 import QPPressable from '../../ui/particles/QPPressable'
 
+import type { WithdrawDestination } from './withdrawDestination'
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+
+type WithdrawDestinationSelectorProps = {
+	destination: WithdrawDestination | null
+	onSelect: (destination: WithdrawDestination | null) => void
+	theme: Theme
+	textStyles: TextStyles
+}
+
 /**
  * Destination gate for crypto withdrawals, mirroring the web wizard's
  * DestinationStep: the user must declare whether the funds go to their own
@@ -14,13 +25,13 @@ import QPPressable from '../../ui/particles/QPPressable'
  * third-party payouts) with a CTA back to the personal-wallet path; picking
  * the personal wallet also shows the exchanges/third-party-systems warning.
  *
- * @param {object} props
- * @param {null|'personal'|'third_party'} props.destination - Current selection.
- * @param {function} props.onSelect - Receives 'personal', 'third_party' or null (dismiss the notice).
- * @param {object} props.theme - Theme from useTheme (passed down like the other withdraw cards).
- * @param {object} props.textStyles - Memoized text styles from the parent screen.
+ * @param props
+ * @param props.destination - Current selection.
+ * @param props.onSelect - Receives 'personal', 'third_party' or null (dismiss the notice).
+ * @param props.theme - Theme from useTheme (passed down like the other withdraw cards).
+ * @param props.textStyles - Memoized text styles from the parent screen.
  */
-const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles }) => {
+const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles }: WithdrawDestinationSelectorProps) => {
 
 	const { t } = useTranslation()
 
@@ -43,10 +54,12 @@ const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles 
 		)
 	}
 
+	// `as const` fija `key` a la unión de destinos y `icon` a nombres del
+	// glyphmap FA6 (ambos se pierden si se ensanchan a string)
 	const options = [
 		{ key: 'personal', icon: 'wallet', title: t('withdraw.destination.personalTitle'), subtitle: t('withdraw.destination.personalSubtitle') },
 		{ key: 'third_party', icon: 'users', title: t('withdraw.destination.thirdPartyTitle'), subtitle: t('withdraw.destination.thirdPartySubtitle') },
-	]
+	] as const
 
 	return (
 		<View style={styles.container}>
@@ -61,8 +74,10 @@ const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles 
 							styles.optionCard,
 							{ backgroundColor: theme.colors.surface },
 							selected
+								// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de
+								// runtime pre-existente que se preserva; el cast es solo de tipos
 								? { borderWidth: 1.5, borderColor: theme.colors.primary }
-								: theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+								: (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
 						]}
 					>
 						<View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '20' }]}>

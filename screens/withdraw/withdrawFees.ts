@@ -11,29 +11,44 @@
  *   (e.g. USD Cash province logistics) applied as a % of the gross amount.
  */
 
-// Slugified key used by the form state for a working_data field name
-export const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+import type { Coin, CoinWorkingField, Decimal } from '../../types/domain'
 
-const round2 = (n) => Math.round(n * 100) / 100
+/** Subconjunto de la coin del que depende la matemática de comisiones. */
+export type FeeCoin = Pick<Coin, 'fee_out' | 'fee_out_gold' | 'fee_out_fixed'>
+
+/** `fee_out_fixed` ya normalizado: escalar, tupla `[umbral, fijo]` o nada. */
+export type FeeOutFixed = number | [Decimal, Decimal] | null
+
+/** Estado del formulario de destino: clave slug → valor tecleado/elegido. */
+export type WorkingForm = Record<string, string>
+
+/** Opciones de tarifa comunes a `calculateFee` / `grossFromNet`. */
+export type FeeOptions = { isGold?: boolean, selectFeePct?: number }
+
+// Slugified key used by the form state for a working_data field name
+export const keyFromFieldName = (name: string): string => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+
+const round2 = (n: number): number => Math.round(n * 100) / 100
 
 // `fee_out_fixed` is a Prisma Json column — normally arrives parsed, but the
 // web wizard guards against the JSON-string form too, so we do the same
-export const parseFeeOutFixed = (raw) => {
+export const parseFeeOutFixed = (raw: Coin['fee_out_fixed']): FeeOutFixed => {
 	if (typeof raw === 'string') {
-		try { return JSON.parse(raw) } catch (e) { return null }
+		// JSON.parse devuelve `any`: la forma real es la misma unión de la columna
+		try { return JSON.parse(raw) as FeeOutFixed } catch (e) { return null }
 	}
 	return raw ?? null
 }
 
 // Percent rate for the user tier (GOLD gets fee_out_gold, like the server)
-export const feeOutRate = (coin, isGold = false) => {
+export const feeOutRate = (coin: FeeCoin | null | undefined, isGold = false): number => {
 	const rate = isGold ? Number(coin?.fee_out_gold) : Number(coin?.fee_out)
 	return Number.isFinite(rate) ? rate : 0
 }
 
 // Sum of per-option logistics surcharge (% of gross) from `type: select`
 // fields, matched by the chosen value in the slug-keyed form state
-export const getSelectFeePct = (workingFields, workingForm) => {
+export const getSelectFeePct = (workingFields: CoinWorkingField[] | null | undefined, workingForm: WorkingForm | null | undefined): number => {
 	if (!Array.isArray(workingFields)) return 0
 	let pct = 0
 	for (const field of workingFields) {
@@ -48,18 +63,18 @@ export const getSelectFeePct = (workingFields, workingForm) => {
 
 /**
  * Total fee (in QUSD, rounded to cents) for a gross amount on a coin.
- * @param {number} amount - Gross QUSD amount the user withdraws.
- * @param {object} coin - Coin from /coins/v2 (fee_out, fee_out_gold, fee_out_fixed).
- * @param {{ isGold?: boolean, selectFeePct?: number }} [opts]
+ * @param amount - Gross QUSD amount the user withdraws.
+ * @param coin - Coin from /coins/v2 (fee_out, fee_out_gold, fee_out_fixed).
+ * @param [opts]
  */
-export const calculateFee = (amount, coin, { isGold = false, selectFeePct = 0 } = {}) => {
+export const calculateFee = (amount: Decimal | null | undefined, coin: FeeCoin | null | undefined, { isGold = false, selectFeePct = 0 }: FeeOptions = {}): number => {
 	if (!coin) return 0
 	const amountNum = Number(amount)
 	if (!Number.isFinite(amountNum) || amountNum <= 0) return 0
 
 	const rate = feeOutRate(coin, isGold)
 	const fixed = parseFeeOutFixed(coin.fee_out_fixed)
-	let base
+	let base: number
 	if (Array.isArray(fixed) && fixed.length >= 2) {
 		const threshold = Number(fixed[0]) || 0
 		const fixedAmount = Number(fixed[1]) || 0
@@ -77,7 +92,7 @@ export const calculateFee = (amount, coin, { isGold = false, selectFeePct = 0 } 
  * re-derivation): the select surcharge folds into the effective % rate.
  * Returns 0 when the fee configuration can't be satisfied (rate >= 100%).
  */
-export const grossFromNet = (netUsd, coin, { isGold = false, selectFeePct = 0 } = {}) => {
+export const grossFromNet = (netUsd: Decimal | null | undefined, coin: FeeCoin | null | undefined, { isGold = false, selectFeePct = 0 }: FeeOptions = {}): number => {
 	if (!coin) return 0
 	const net = Number(netUsd)
 	if (!Number.isFinite(net) || net <= 0) return 0

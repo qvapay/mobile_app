@@ -23,10 +23,13 @@ import QPButton from '../../ui/particles/QPButton'
 import { useNearbyPeers } from '../../nearby/useNearbyPeers'
 import { buildPaymeUrl } from '../../nearby/protocol'
 import { layoutPeers } from '../../nearby/radarLayout'
+import type { AnnounceUser, PaymentResultMessage } from '../../nearby/protocol'
+import type { NearbyPeer } from '../../nearby/peersReducer'
 
 // API + helpers
 import { userApi } from '../../api/userApi'
 import { parseQRData } from '../../helpers'
+import type { QRIntent } from '../../helpers'
 
 // Screen components
 import RadarWaves from './RadarWaves'
@@ -37,8 +40,18 @@ import NearbyPermissionGate from './NearbyPermissionGate'
 // Routes
 import { ROUTES } from '../../routes'
 
+// Types
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
+import type { Theme } from '../../theme/ThemeContext'
+
 const SELF_AVATAR_SIZE = 96
 const HAPTIC_OPTS = { enableVibrateFallback: true, ignoreAndroidSystemSettings: false }
+
+/** Overlay de "pago recibido": monto anunciado por el pagador + confirmación server-side. */
+type ReceivedOverlay = { amount: string, confirmed: boolean }
+
+type NearbyPayProps = NativeStackScreenProps<RootStackParamList, 'NearbyPay'>
 
 /**
  * NearbyPay — AirDrop-style radar to pay QvaPay users around you.
@@ -52,7 +65,7 @@ const HAPTIC_OPTS = { enableVibrateFallback: true, ignoreAndroidSystemSettings: 
  * - prefill_amount: amount typed in the Keypad before opening the radar —
  *   used to prefill charge mode and direct payments to browsing peers.
  */
-const NearbyPay = ({ navigation, route }) => {
+const NearbyPay = ({ navigation, route }: NearbyPayProps) => {
 
 	const { prefill_amount } = route.params || {}
 	const { t } = useTranslation()
@@ -64,13 +77,13 @@ const NearbyPay = ({ navigation, route }) => {
 	const [radarSize, setRadarSize] = useState({ width: 0, height: 0 })
 	const [showChargeSheet, setShowChargeSheet] = useState(false)
 	// null | { amount, confirmed }
-	const [receivedOverlay, setReceivedOverlay] = useState(null)
+	const [receivedOverlay, setReceivedOverlay] = useState<ReceivedOverlay | null>(null)
 
 	/**
 	 * A payer acked their transfer. UNTRUSTED — show "Confirmando…" and only
 	 * flip to confirmed once /user/extended returns the fresh balance.
 	 */
-	const handlePaymentReceived = useCallback(async (msg) => {
+	const handlePaymentReceived = useCallback(async (msg: PaymentResultMessage) => {
 		setReceivedOverlay({ amount: msg.amount, confirmed: false })
 		const result = await userApi.getUserProfile()
 		if (result.success && result.data) {
@@ -80,30 +93,35 @@ const NearbyPay = ({ navigation, route }) => {
 	}, [updateUser])
 
 	const { state, peers, pendingCount, chargeMode, startCharging, stopCharging } = useNearbyPeers({
+		// El perfil local tiene `uuid` opcional (puede venir de caché parcial) y
+		// `image: string | null`; el announce exige uuid — cast local, el hook ya
+		// guarda contra la ausencia de uuid antes de arrancar los transportes
 		enabled: true,
-		user,
+		user: user as AnnounceUser | null,
 		onPaymentReceived: handlePaymentReceived,
 	})
 
 	/** Tap on a verified peer → same routing branches as a scanned QR. */
-	const handlePeerPress = (peer) => {
+	const handlePeerPress = (peer: NearbyPeer) => {
 		ReactNativeHapticFeedback.trigger('impactMedium', HAPTIC_OPTS)
 
 		const amount = peer.mode === 'charge' && peer.amount
 			? peer.amount
-			: (parseFloat(prefill_amount) > 0 ? prefill_amount : null)
+			: (parseFloat(prefill_amount as string) > 0 ? (prefill_amount as string) : null)
 
-		const parsed = parseQRData(buildPaymeUrl(peer.uuid, amount))
+		// buildPaymeUrl siempre produce una URL payme: se estrecha la unión de
+		// QRIntent a esa rama (uuid/amount siguen opcionales en ella)
+		const parsed = parseQRData(buildPaymeUrl(peer.uuid, amount)) as Extract<QRIntent, { type: 'payme' }> | null
 		if (!parsed) { return }
 
 		if (parsed.amount) {
-			navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsed.uuid, send_amount: parsed.amount })
+			navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsed.uuid as string, send_amount: parsed.amount })
 		} else {
 			navigation.navigate(ROUTES.SEND, { user_uuid: parsed.uuid })
 		}
 	}
 
-	const handleConfirmCharge = (amount) => {
+	const handleConfirmCharge = (amount: string) => {
 		setShowChargeSheet(false)
 		startCharging(amount)
 	}
@@ -156,7 +174,7 @@ const NearbyPay = ({ navigation, route }) => {
 					{/* Charge mode: banner or CTA */}
 					<View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
 						{chargeMode.active ? (
-							<View style={[styles.chargeBanner, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+							<View style={[styles.chargeBanner, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
 								<FontAwesome6 name="bolt" size={16} color={theme.colors.primary} iconStyle="solid" />
 								<Text style={[textStyles.body, { color: theme.colors.primaryText, flex: 1, marginLeft: 10, fontFamily: theme.typography.fontFamily.medium }]}>
 									{t('misc.nearby.charging', { amount: chargeMode.amount })}
@@ -180,7 +198,7 @@ const NearbyPay = ({ navigation, route }) => {
 			{/* Charge amount sheet (internal overlay — the screen never blurs) */}
 			{showChargeSheet && (
 				<ChargeSheet
-					initialAmount={parseFloat(prefill_amount) > 0 ? prefill_amount : ''}
+					initialAmount={parseFloat(prefill_amount as string) > 0 ? prefill_amount : ''}
 					balance={user?.balance}
 					onConfirm={handleConfirmCharge}
 					onClose={() => setShowChargeSheet(false)}
