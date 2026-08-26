@@ -23,20 +23,22 @@ import {
 	addEventListener,
 } from 'munim-bluetooth'
 import { SERVICE_TYPE, parseMessage, serializeMessage, utf8ToHex, hexToUtf8 } from '../protocol'
+import type { AnnounceMessage, NearbyMessage } from '../protocol'
+import type { NearbyTransport } from '../useNearbyPeers'
 
 /**
  * Creates the Multipeer NearbyTransport (see useNearbyPeers for the contract).
- * @returns {import('../useNearbyPeers').NearbyTransport}
+ * @returns The transport instance.
  */
-export const createMultipeerTransport = () => {
+export const createMultipeerTransport = (): NearbyTransport => {
 
-	let subscriptions = []
-	let currentAnnounce = null
-	let selfUuid = null
+	let subscriptions: (() => void)[] = []
+	let currentAnnounce: AnnounceMessage | null = null
+	let selfUuid: string | null = null
 	let paused = false
 	let running = false
 
-	const sendTo = async (msg, peerIds) => {
+	const sendTo = async (msg: NearbyMessage, peerIds?: string[]) => {
 		const raw = serializeMessage(msg)
 		if (!raw) { return false }
 		try {
@@ -54,7 +56,7 @@ export const createMultipeerTransport = () => {
 
 		/**
 		 * Starts advertising + browsing simultaneously (mutual radar).
-		 * @param {object} opts - { selfUuid, announce, onPeerFound, onPeerLost, onMessage, onStateChange }
+		 * @param opts - { selfUuid, announce, onPeerFound, onPeerLost, onMessage, onStateChange }
 		 */
 		start: async ({ selfUuid: uuid, announce, onPeerFound, onPeerLost, onMessage, onStateChange }) => {
 			if (running) { return }
@@ -73,7 +75,8 @@ export const createMultipeerTransport = () => {
 				addEventListener('multipeerPeerFound', (peer) => {
 					const info = (peer.discoveryInfo || []).find(e => e.key === 'uuid')
 					const peerUuid = (info?.value || peer.displayName || '').toLowerCase()
-					if (selfUuid < peerUuid) { inviteMultipeerPeer(peer.id) }
+					// selfUuid siempre está seteado antes de registrar los listeners (start)
+					if ((selfUuid as string) < peerUuid) { inviteMultipeerPeer(peer.id) }
 				}),
 
 				addEventListener('multipeerPeerLost', ({ peerId }) => onPeerLost(peerId)),
@@ -101,7 +104,7 @@ export const createMultipeerTransport = () => {
 			onStateChange('starting')
 			startMultipeerSession({
 				serviceType: SERVICE_TYPE,
-				displayName: selfUuid,
+				displayName: selfUuid as string,
 				discoveryInfo: [{ key: 'uuid', value: selfUuid }],
 				autoInvite: false,
 				autoAcceptInvitations: true,
@@ -112,18 +115,13 @@ export const createMultipeerTransport = () => {
 		/**
 		 * Re-broadcasts the announce to every connected peer (e.g. charge mode
 		 * toggled). Muted while paused.
-		 * @param {object} announce
+		 * @param announce - Announce vigente a re-difundir.
 		 */
 		updateAnnounce: (announce) => {
 			currentAnnounce = announce
 			if (!paused && running) { sendTo({ ...announce, ts: Date.now() }) }
 		},
 
-		/**
-		 * @param {string} peerId
-		 * @param {object} msg
-		 * @returns {Promise<boolean>}
-		 */
 		send: (peerId, msg) => sendTo(msg, [peerId]),
 
 		pause: () => { paused = true },
@@ -137,7 +135,7 @@ export const createMultipeerTransport = () => {
 		stop: async () => {
 			if (!running) { return }
 			running = false
-			await sendTo({ v: 1, t: 'bye', ts: Date.now() })
+			await sendTo({ v: 1, t: 'bye', ts: Date.now() } as NearbyMessage)
 			subscriptions.forEach(unsub => unsub())
 			subscriptions = []
 			currentAnnounce = null

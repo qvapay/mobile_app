@@ -5,12 +5,13 @@
  */
 import { Platform } from 'react-native'
 import { createMultipeerTransport } from './MultipeerTransport'
+import type { NearbyTransport } from '../useNearbyPeers'
 
 /**
  * Transports available on this device, in messaging-priority order.
- * @returns {Array<object>} NearbyTransport instances.
+ * @returns NearbyTransport instances.
  */
-export const getTransports = () => {
+export const getTransports = (): NearbyTransport[] => {
 	if (Platform.OS === 'ios') {
 		return [createMultipeerTransport()]
 	}

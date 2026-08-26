@@ -1,4 +1,6 @@
+import type { LinkingOptions } from '@react-navigation/native'
 import { ROUTES } from './routes'
+import type { RootStackParamList } from './types/navigation'
 
 /**
  * React Navigation linking config, wired into NavigationContainer in App.tsx.
@@ -15,7 +17,7 @@ import { ROUTES } from './routes'
  * `pendingDeepLinkRef` stashes the URL (see hooks/useAppNavigation) and
  * replays it with navigation.reset() right after login.
  */
-const linking = {
+const linking: LinkingOptions<RootStackParamList> = {
 	prefixes: [
 		'https://qvapay.com',
 		'https://www.qvapay.com',

@@ -11,17 +11,20 @@
  */
 import { Platform, PermissionsAndroid } from 'react-native'
 
+/** Outcome of the platform permission gate. */
+export type NearbyPermissionResult = 'granted' | 'denied' | 'unavailable'
+
 /**
  * Ensures the platform permissions needed before starting a transport.
- * @returns {Promise<'granted'|'denied'|'unavailable'>}
  */
-export const ensureNearbyPermissions = async () => {
+export const ensureNearbyPermissions = async (): Promise<NearbyPermissionResult> => {
 
 	if (Platform.OS === 'ios') { return 'granted' }
 
 	// Android — phase 2 (BLE). Kept here so the gate UI is already wired.
 	try {
-		if (Platform.Version >= 31) {
+		// Platform.Version is number on Android (string only on iOS, ruled out above)
+		if ((Platform.Version as number) >= 31) {
 			const result = await PermissionsAndroid.requestMultiple([
 				PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
 				PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,

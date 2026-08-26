@@ -19,7 +19,9 @@ import { userApi } from '../api/userApi'
 import playSound from '../helpers/playSound'
 import { useSettings } from '../settings/SettingsContext'
 import { buildAnnounce, buildPaymentResult, ANNOUNCE_TTL_MS } from './protocol'
+import type { AnnounceMessage, AnnounceUser, NearbyMessage, PaymentResultMessage } from './protocol'
 import { peersReducer, initialPeersState, selectVerifiedPeers, selectPendingCount } from './peersReducer'
+import type { TransportId } from './peersReducer'
 import { getTransports } from './transports'
 import { ensureNearbyPermissions } from './permissions'
 import { setActiveSession, clearActiveSession } from './session'
@@ -27,48 +29,65 @@ import { setActiveSession, clearActiveSession } from './session'
 const HAPTIC_OPTS = { enableVibrateFallback: true, ignoreAndroidSystemSettings: false }
 const TTL_SWEEP_INTERVAL_MS = 5000
 
-/**
- * @typedef {Object} NearbyTransport
- * @property {'multipeer'|'ble'} id
- * @property {() => Promise<boolean>} isAvailable
- * @property {(opts: object) => Promise<void>} start
- * @property {(announce: object) => void} updateAnnounce
- * @property {(peerId: string, msg: object) => Promise<boolean>} send
- * @property {() => void} pause
- * @property {() => void} resume
- * @property {() => Promise<void>} stop
- */
+/** Options a transport's `start` receives from the hook. */
+export type NearbyTransportStartOpts = {
+	selfUuid: string
+	announce: AnnounceMessage
+	onPeerFound: (peerId: string, announce: AnnounceMessage) => void
+	onPeerLost: (peerId: string) => void
+	onMessage: (peerId: string, msg: NearbyMessage) => void
+	onStateChange: (transportState: string, error?: unknown) => void
+}
+
+/** Contract every proximity transport implements (Multipeer today, BLE in phase 2). */
+export type NearbyTransport = {
+	id: TransportId
+	isAvailable: () => Promise<boolean>
+	start: (opts: NearbyTransportStartOpts) => Promise<void>
+	updateAnnounce: (announce: AnnounceMessage) => void
+	send: (peerId: string, msg: NearbyMessage) => Promise<boolean>
+	pause: () => void
+	resume: () => void
+	stop: () => Promise<void>
+}
+
+/** Radar session state exposed to the NearbyPay screen. */
+export type NearbySessionState = 'idle' | 'starting' | 'scanning' | 'unavailable' | 'permission_denied' | 'error'
+
+type ChargeMode = { active: boolean, amount: string | null }
+
+type UseNearbyPeersOpts = {
+	/** Master switch (screen mounted + user ready). */
+	enabled: boolean
+	/** Authenticated user (uuid, username, name, …). */
+	user: AnnounceUser | null | undefined
+	/**
+	 * Fired when a payer acks a transfer — UNTRUSTED, show "Confirmando…" until
+	 * a server balance refetch confirms.
+	 */
+	onPaymentReceived?: (msg: PaymentResultMessage) => void
+}
 
 /**
- * @param {object} opts
- * @param {boolean} opts.enabled - Master switch (screen mounted + user ready).
- * @param {object} opts.user - Authenticated user (uuid, username, name, …).
- * @param {(msg: { amount: string, txUuid?: string }) => void} [opts.onPaymentReceived]
- *   Fired when a payer acks a transfer — UNTRUSTED, show "Confirmando…" until
- *   a server balance refetch confirms.
- * @returns {{
- *   state: 'idle'|'starting'|'scanning'|'unavailable'|'permission_denied'|'error',
- *   peers: Array<object>,
- *   pendingCount: number,
- *   chargeMode: { active: boolean, amount: string|null },
- *   startCharging: (amount: string) => void,
- *   stopCharging: () => void,
- * }}
+ * Runs the NearbyPay radar session.
+ *
+ * Returns the session state, the verified peers (arrival order), the count of
+ * peers still resolving, and the charge-mode controls.
  * The payment ack channel (notifyPaymentSent) is exposed through
  * nearby/session.js instead of the return value, so SendConfirm can reach it
  * without threading props through navigation.
  */
-export const useNearbyPeers = ({ enabled, user, onPaymentReceived }) => {
+export const useNearbyPeers = ({ enabled, user, onPaymentReceived }: UseNearbyPeersOpts) => {
 
 	const [peersState, dispatch] = useReducer(peersReducer, initialPeersState)
-	const [state, setState] = useState('idle')
-	const [chargeMode, setChargeMode] = useState({ active: false, amount: null })
+	const [state, setState] = useState<NearbySessionState>('idle')
+	const [chargeMode, setChargeMode] = useState<ChargeMode>({ active: false, amount: null })
 
 	const { sounds } = useSettings()
-	const transportsRef = useRef([])
+	const transportsRef = useRef<NearbyTransport[]>([])
 	const peersStateRef = useRef(peersState)
 	const chargeModeRef = useRef(chargeMode)
-	const resolveCacheRef = useRef(new Map()) // uuid → profile | 'pending'
+	const resolveCacheRef = useRef(new Map<string, Record<string, unknown> | 'pending'>()) // uuid → profile | 'pending'
 	const callbacksRef = useRef({ onPaymentReceived })
 	const soundsRef = useRef(sounds)
 	// user/enabled live in refs so startAll keeps a stable identity — a balance
@@ -85,7 +104,7 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }) => {
 	enabledRef.current = enabled
 
 	/** Resolves an announced uuid against the server (cached per session). */
-	const resolvePeer = useCallback(async (uuid) => {
+	const resolvePeer = useCallback(async (uuid: string) => {
 		const cache = resolveCacheRef.current
 		const cached = cache.get(uuid)
 		if (cached === 'pending') { return }
@@ -95,8 +114,8 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }) => {
 		}
 		cache.set(uuid, 'pending')
 		const result = await userApi.searchUser(uuid)
-		const profile = result.success && Array.isArray(result.data) ? result.data[0] : null
-		if (profile && (profile.uuid || '').toLowerCase() === uuid) {
+		const profile = (result.success && Array.isArray(result.data) ? result.data[0] : null) as Record<string, unknown> | null
+		if (profile && ((profile.uuid as string | undefined) || '').toLowerCase() === uuid) {
 			cache.set(uuid, profile)
 			dispatch({ type: 'SERVER_PROFILE_RESOLVED', uuid, profile })
 			ReactNativeHapticFeedback.trigger('impactMedium', HAPTIC_OPTS)
@@ -108,7 +127,7 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }) => {
 
 	const currentAnnounce = useCallback(() => {
 		const { active, amount } = chargeModeRef.current
-		return buildAnnounce(userRef.current, active ? 'charge' : 'browse', amount)
+		return buildAnnounce(userRef.current as AnnounceUser, active ? 'charge' : 'browse', amount)
 	}, [])
 
 	const stopAll = useCallback(async () => {
@@ -130,7 +149,7 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }) => {
 			return
 		}
 
-		const transports = getTransports()
+		const transports = getTransports() as NearbyTransport[]
 		const availability = await Promise.all(transports.map(transport => transport.isAvailable()))
 		const available = transports.filter((_, i) => availability[i])
 		if (available.length === 0) {
@@ -217,7 +236,7 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }) => {
 		return () => clearInterval(interval)
 	}, [])
 
-	const startCharging = useCallback((amount) => {
+	const startCharging = useCallback((amount: string) => {
 		setChargeMode({ active: true, amount })
 		chargeModeRef.current = { active: true, amount }
 		transportsRef.current.forEach(tr => tr.updateAnnounce(currentAnnounce()))

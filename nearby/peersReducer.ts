@@ -7,43 +7,55 @@
  * as identity. Dedupe across transports (phase 2): a channel with messaging
  * (multipeer) wins over ble for the same uuid.
  */
+import type { AnnounceMessage, NearbyMode } from './protocol'
+
+/** Transport identifiers, in messaging-priority order. */
+export type TransportId = 'multipeer' | 'ble'
 
 /** Transport preference when the same user is reachable through several. */
-const TRANSPORT_PRIORITY = { multipeer: 2, ble: 1 }
+const TRANSPORT_PRIORITY: Record<TransportId, number> = { multipeer: 2, ble: 1 }
 
-export const initialPeersState = {}
+export type NearbyPeer = {
+	/** Lowercased user uuid (dedupe key). */
+	uuid: string
+	/** Transport-level peer identifier. */
+	peerId: string
+	/** 'multipeer' | 'ble'. */
+	transportId: TransportId
+	/** Last valid announce payload (UNTRUSTED). */
+	announced: AnnounceMessage
+	/** Server-resolved profile (what the UI renders). */
+	server: Record<string, unknown> | null
+	/** True once `server` is set. */
+	verified: boolean
+	mode: NearbyMode
+	/** Charge amount when mode === 'charge'. */
+	amount: string | null
+	/** Epoch ms of the last announce/message. */
+	lastSeen: number
+	/** Phase 3: UWB meters. */
+	distance: number | null
+	/** Arrival index (stable radar ring slot). */
+	order: number
+}
 
-/**
- * @typedef {Object} NearbyPeer
- * @property {string} uuid - Lowercased user uuid (dedupe key).
- * @property {string} peerId - Transport-level peer identifier.
- * @property {string} transportId - 'multipeer' | 'ble'.
- * @property {object} announced - Last valid announce payload (UNTRUSTED).
- * @property {object|null} server - Server-resolved profile (what the UI renders).
- * @property {boolean} verified - True once `server` is set.
- * @property {'browse'|'charge'} mode
- * @property {string|null} amount - Charge amount when mode === 'charge'.
- * @property {number} lastSeen - Epoch ms of the last announce/message.
- * @property {number|null} distance - Phase 3: UWB meters.
- * @property {number} order - Arrival index (stable radar ring slot).
- */
+/** Map `uuid → peer`. */
+export type PeersState = Record<string, NearbyPeer>
 
-/**
- * Reducer actions:
- *   PEER_ANNOUNCE            { peerId, transportId, announce, now }
- *   PEER_LOST                { peerId, transportId }
- *   SERVER_PROFILE_RESOLVED  { uuid, profile }
- *   SERVER_PROFILE_FAILED    { uuid }
- *   PEER_DISTANCE            { uuid, distance }
- *   TTL_SWEEP                { now, ttlMs }
- *   RESET                    {}
- *
- * @param {Object<string, NearbyPeer>} state
- * @param {{ type: string, [key: string]: * }} action
- * @returns {Object<string, NearbyPeer>}
- */
-export const peersReducer = (state, action) => {
-	
+/** Discriminated union of every reducer action. */
+export type PeersAction =
+	| { type: 'PEER_ANNOUNCE', peerId: string, transportId: TransportId, announce: AnnounceMessage, now: number }
+	| { type: 'PEER_LOST', peerId: string, transportId: TransportId }
+	| { type: 'SERVER_PROFILE_RESOLVED', uuid: string, profile: Record<string, unknown> }
+	| { type: 'SERVER_PROFILE_FAILED', uuid: string }
+	| { type: 'PEER_DISTANCE', uuid: string, distance: number }
+	| { type: 'TTL_SWEEP', now: number, ttlMs: number }
+	| { type: 'RESET' }
+
+export const initialPeersState: PeersState = {}
+
+export const peersReducer = (state: PeersState, action: PeersAction): PeersState => {
+
 	switch (action.type) {
 
 		case 'PEER_ANNOUNCE': {
@@ -68,7 +80,7 @@ export const peersReducer = (state, action) => {
 					server: existing ? existing.server : null,
 					verified: existing ? existing.verified : false,
 					mode: announce.mode,
-					amount: announce.mode === 'charge' ? announce.amount : null,
+					amount: announce.mode === 'charge' ? (announce.amount as string | null) : null,
 					lastSeen: now,
 					distance: existing ? existing.distance : null,
 					order,
@@ -127,14 +139,10 @@ export const peersReducer = (state, action) => {
 
 /**
  * Verified peers in stable arrival order — what the radar renders.
- * @param {Object<string, NearbyPeer>} state
- * @returns {Array<NearbyPeer>}
  */
-export const selectVerifiedPeers = (state) => Object.values(state).filter(p => p.verified).sort((a, b) => a.order - b.order)
+export const selectVerifiedPeers = (state: PeersState): NearbyPeer[] => Object.values(state).filter(p => p.verified).sort((a, b) => a.order - b.order)
 
 /**
  * Count of peers found but not yet server-resolved (UI: "resolviendo…").
- * @param {Object<string, NearbyPeer>} state
- * @returns {number}
  */
-export const selectPendingCount = (state) => Object.values(state).filter(p => !p.verified).length
+export const selectPendingCount = (state: PeersState): number => Object.values(state).filter(p => !p.verified).length

@@ -13,12 +13,39 @@ const GOLDEN_ANGLE_DEG = 137.50776405003785
 /** How many peers fit per ring before spilling to the next one. */
 export const PEERS_PER_RING = 4
 
+/** The subset of a peer the layout needs. */
+export type RadarPeer = {
+	uuid: string
+	distance?: number | null
+}
+
+/** Layout options for `layoutPeers`. */
+export type RadarLayoutOptions = {
+	/** Radar area width. */
+	width: number
+	/** Radar area height. */
+	height: number
+	/** Keep-out radius around the self avatar (default 60). */
+	centerRadius?: number
+	/** Peer bubble radius, kept inside bounds (default 36). */
+	bubbleRadius?: number
+	/** Phase 3: distance mapped to full radius (default 3). */
+	maxDistanceMeters?: number
+}
+
+/** A computed bubble center. */
+export type RadarPosition = {
+	uuid: string
+	x: number
+	y: number
+}
+
 /**
  * Cheap deterministic 32-bit hash (FNV-1a) of a string.
- * @param {string} str
- * @returns {number} Unsigned 32-bit integer.
+ *
+ * @returns Unsigned 32-bit integer.
  */
-export const hashString = (str) => {
+export const hashString = (str: string): number => {
 	let hash = 0x811c9dc5
 	for (let i = 0; i < str.length; i++) {
 		hash ^= str.charCodeAt(i)
@@ -30,10 +57,10 @@ export const hashString = (str) => {
 /**
  * Angle (radians) for a peer: golden-angle steps seeded by the uuid hash so
  * the same user always appears on the same bearing across sessions.
- * @param {string} uuid
- * @returns {number} Radians in [0, 2π).
+ *
+ * @returns Radians in [0, 2π).
  */
-export const angleForUuid = (uuid) => {
+export const angleForUuid = (uuid: string): number => {
 	const steps = hashString(uuid) % 360
 	const deg = (steps * GOLDEN_ANGLE_DEG) % 360
 	return (deg * Math.PI) / 180
@@ -42,16 +69,11 @@ export const angleForUuid = (uuid) => {
 /**
  * Lays out verified peers around the centered self-avatar.
  *
- * @param {Array<{ uuid: string, distance?: number|null }>} peers - In arrival order (stable).
- * @param {object} opts
- * @param {number} opts.width - Radar area width.
- * @param {number} opts.height - Radar area height.
- * @param {number} [opts.centerRadius=60] - Keep-out radius around the self avatar.
- * @param {number} [opts.bubbleRadius=36] - Peer bubble radius (kept inside bounds).
- * @param {number} [opts.maxDistanceMeters=3] - Phase 3: distance mapped to full radius.
- * @returns {Array<{ uuid: string, x: number, y: number }>} Bubble centers.
+ * @param peers - In arrival order (stable).
+ * @param opts - Radar dimensions and radii.
+ * @returns Bubble centers.
  */
-export const layoutPeers = (peers, { width, height, centerRadius = 60, bubbleRadius = 36, maxDistanceMeters = 3 }) => {
+export const layoutPeers = (peers: RadarPeer[], { width, height, centerRadius = 60, bubbleRadius = 36, maxDistanceMeters = 3 }: RadarLayoutOptions): RadarPosition[] => {
 
 	const cx = width / 2
 	const cy = height / 2
@@ -60,7 +82,7 @@ export const layoutPeers = (peers, { width, height, centerRadius = 60, bubbleRad
 	const ringGap = (maxR - centerRadius - bubbleRadius) / ringCount
 
 	return peers.map((peer, index) => {
-		
+
 		const ring = Math.floor(index / PEERS_PER_RING)
 		let radius = centerRadius + bubbleRadius + ringGap * (ring + 0.5)
 

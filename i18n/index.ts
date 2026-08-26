@@ -15,27 +15,36 @@
  */
 import 'intl-pluralrules' // Hermes no trae Intl.PluralRules; el entry es no-op donde ya existe
 import i18n from 'i18next'
+import type { InitOptions } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import resources from './resources'
 
-export const SUPPORTED_LANGUAGES = ['es', 'en', 'pt']
-export const DEFAULT_LANGUAGE = 'es'
+export const SUPPORTED_LANGUAGES = ['es', 'en', 'pt'] as const
+
+/** Código de idioma soportado por la app. */
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
+
+export const DEFAULT_LANGUAGE: SupportedLanguage = 'es'
+
+/** Tag de locale de fechas por idioma soportado. */
+export type DateLocale = 'es-ES' | 'en-US' | 'pt-BR'
 
 // Tag de locale para fechas por idioma soportado
-const DATE_LOCALES = { es: 'es-ES', en: 'en-US', pt: 'pt-BR' }
+const DATE_LOCALES: Record<SupportedLanguage, DateLocale> = { es: 'es-ES', en: 'en-US', pt: 'pt-BR' }
 
 /**
  * Idioma del dispositivo reducido a los soportados, vía Intl (respaldado por
  * el locale del sistema en Hermes iOS/Android — sin dependencia nativa).
  * En iOS el sistema negocia contra CFBundleLocalizations y en Android 13+
  * contra locales_config.xml (selectores por-app de Ajustes incluidos).
- * @returns {'es'|'en'|'pt'} 'es' cuando el idioma del sistema no está soportado.
+ *
+ * @returns 'es' cuando el idioma del sistema no está soportado.
  */
-export const getDeviceLanguage = () => {
+export const getDeviceLanguage = (): SupportedLanguage => {
 	try {
 		const locale = Intl.DateTimeFormat().resolvedOptions().locale || ''
 		const code = locale.toLowerCase().split(/[-_]/)[0]
-		return SUPPORTED_LANGUAGES.includes(code) ? code : DEFAULT_LANGUAGE
+		return (SUPPORTED_LANGUAGES as readonly string[]).includes(code) ? (code as SupportedLanguage) : DEFAULT_LANGUAGE
 	} catch (error) {
 		return DEFAULT_LANGUAGE
 	}
@@ -43,20 +52,19 @@ export const getDeviceLanguage = () => {
 
 /**
  * Resuelve la preferencia persistida al idioma efectivo.
- * @param {'auto'|'es'|'en'|'pt'|null|undefined} pref - `language.currentLanguage` de Settings.
- * @returns {'es'|'en'|'pt'}
+ *
+ * @param pref - `language.currentLanguage` de Settings ('auto'|'es'|'en'|'pt'|null|undefined).
  */
-export const resolveLanguage = (pref) => {
+export const resolveLanguage = (pref: string | null | undefined): SupportedLanguage => {
 	if (!pref || pref === 'auto') { return getDeviceLanguage() }
-	return SUPPORTED_LANGUAGES.includes(pref) ? pref : DEFAULT_LANGUAGE
+	return (SUPPORTED_LANGUAGES as readonly string[]).includes(pref) ? (pref as SupportedLanguage) : DEFAULT_LANGUAGE
 }
 
 /**
  * Tag de locale para fechas (`toLocaleDateString`/`toLocaleString`) acorde al
  * idioma ACTIVO de i18next. Sustituye a los 'es-ES' hardcodeados.
- * @returns {'es-ES'|'en-US'|'pt-BR'}
  */
-export const getDateLocale = () => DATE_LOCALES[i18n.language] || DATE_LOCALES[DEFAULT_LANGUAGE]
+export const getDateLocale = (): DateLocale => DATE_LOCALES[i18n.language as SupportedLanguage] || DATE_LOCALES[DEFAULT_LANGUAGE]
 
 i18n
 	.use(initReactI18next)
@@ -71,6 +79,9 @@ i18n
 		// Namespace único ('translation'); los ':' nunca separan namespaces en las claves
 		nsSeparator: false,
 		react: { useSuspense: false },
-	})
+		// Cast local: i18next 26 tipa la opción como `initAsync` (v24 renombró
+		// `initImmediate`), pero con recursos empaquetados el init es síncrono
+		// igualmente — se mantiene la clave original sin cambio de runtime.
+	} as InitOptions)
 
 export default i18n
