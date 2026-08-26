@@ -13,6 +13,72 @@ import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
 // i18n fuera de React: resolver EN CALL TIME, nunca a nivel de módulo
 import i18n from '../../i18n'
 
+// Tipos
+import type { ApiResult } from '../../types/api'
+import type { PricePoint } from '../../api/coinsApi'
+import type { Coin, EnrichedCoin, P2PMarketAverages } from '../../types/domain'
+
+/** Fila de la tarjeta de mercado P2P (una por raíl con datos). */
+export type P2pPair = {
+	tick: string
+	name: string
+	buy: number
+	sell: number
+	count: number
+}
+
+/**
+ * Stock crudo de `stocksApi.index()` (el módulo lo declara `unknown[]`: el
+ * endpoint no tiene contrato tipado todavía).
+ */
+export type RawStock = {
+	symbol: string
+	name?: string
+	icon?: string
+	iconStyle?: string
+	image?: string | null
+	price?: number
+	change?: number
+	changeDollar?: number
+}
+
+/** Fila normalizada del explorador de stocks (lo que pinta ExploreRow). */
+export type StockRow = {
+	tick: string
+	name?: string
+	icon?: string
+	iconStyle?: string
+	image: string | null
+	price?: number
+	change?: number
+	changeDollar?: number
+}
+
+/**
+ * Cotización extendida de un stock (`stocksApi.show`, declarado `unknown`):
+ * los campos que lee StockDetail.
+ */
+export type StockQuote = {
+	symbol?: string
+	name?: string
+	price?: number
+	change?: number
+	changeDollar?: number
+	open?: number
+	high?: number
+	low?: number
+	previousClose?: number
+	volume?: number
+	fiftyTwoWeekHigh?: number
+	fiftyTwoWeekLow?: number
+	exchange?: string
+	type?: string
+	description?: string
+	sector?: string
+	industry?: string
+	ceo?: string
+}
+
 /**
  * Raíz de las claves del dashboard de Invest. El resumen de ahorros NO cuelga
  * de aquí: vive bajo `['savings', …]` porque lo comparte el BalanceCard del
@@ -30,10 +96,9 @@ const SPARKLINE_COUNT = 5
  * Convierte el mapa de medias P2P en las filas de la tarjeta de mercado,
  * respetando el orden de `P2P_COINS` y saltándose raíles sin datos.
  *
- * @param {Object} averages - Respuesta de `/p2p/averages` (mapa por tick).
- * @returns {Array<{ tick, name, buy, sell, count }>}
+ * @param averages - Respuesta de `/p2p/averages` (mapa por tick).
  */
-export const mapP2pPairs = (averages) => P2P_COINS.flatMap(tick => {
+export const mapP2pPairs = (averages?: P2PMarketAverages | null): P2pPair[] => P2P_COINS.flatMap(tick => {
 	const d = averages?.[tick]
 	if (!d) return []
 	return [{ tick, name: d.name || tick, buy: d.average_buy || 0, sell: d.average_sell || 0, count: d.count || 0 }]
@@ -42,10 +107,9 @@ export const mapP2pPairs = (averages) => P2P_COINS.flatMap(tick => {
 /**
  * Normaliza los stocks del backend a la forma que pinta ExploreRow.
  *
- * @param {Array} stocks - Respuesta de `stocksApi.index()`.
- * @returns {Array}
+ * @param stocks - Respuesta de `stocksApi.index()`.
  */
-export const mapStocks = (stocks) => (stocks || []).map(s => ({
+export const mapStocks = (stocks?: RawStock[] | null): StockRow[] => (stocks || []).map(s => ({
 	tick: s.symbol,
 	name: s.name,
 	icon: s.icon,
@@ -61,12 +125,16 @@ export const mapStocks = (stocks) => (stocks || []).map(s => ({
  * sparkline). Un histórico fallido deja su moneda sin enriquecer en vez de
  * tumbar la lista entera.
  *
- * @param {Array} rawCoins - Monedas de `coinsApi.index`.
- * @param {string[]} ticks - Ticks pedidos, alineados con `historyResults`.
- * @param {Array} historyResults - Respuestas contrato de `priceHistory`.
- * @returns {Array} Monedas con `price/change/changeDollar/priceHistory` donde hubo datos.
+ * @param rawCoins - Monedas de `coinsApi.index`.
+ * @param ticks - Ticks pedidos, alineados con `historyResults`.
+ * @param historyResults - Respuestas contrato de `priceHistory`.
+ * @returns Monedas con `price/change/changeDollar/priceHistory` donde hubo datos.
  */
-export const enrichCoins = (rawCoins, ticks, historyResults) => rawCoins.map(coin => {
+export const enrichCoins = (
+	rawCoins: Coin[],
+	ticks: string[],
+	historyResults: ApiResult<PricePoint[]>[],
+): EnrichedCoin[] => rawCoins.map(coin => {
 	const idx = ticks.indexOf(coin.tick)
 	if (idx === -1) return coin
 	const res = historyResults[idx]
@@ -102,7 +170,9 @@ export const useP2pAveragesQuery = () => useQuery({
 /** Stocks del explorador. */
 export const useStocksQuery = () => useQuery({
 	queryKey: ['invest', 'stocks'],
-	queryFn: async () => mapStocks(unwrap(await stocksApi.index())),
+	// `stocksApi.index` declara `unknown[]` (endpoint sin contrato tipado):
+	// se estrecha aquí a la forma que mapStocks realmente lee
+	queryFn: async () => mapStocks(unwrap(await stocksApi.index()) as RawStock[] | null),
 	placeholderData: previous => previous,
 })
 
@@ -117,15 +187,16 @@ export const useSavingsMovementsQuery = (take = 20) => useQuery({
 })
 
 /** Cotización extendida de un stock. */
-export const useStockQuery = (symbol) => useQuery({
+export const useStockQuery = (symbol: string) => useQuery({
 	queryKey: ['invest', 'stock', symbol],
-	queryFn: async () => unwrap(await stocksApi.show(symbol)),
+	// Igual que en `index`: el módulo declara `unknown` y aquí se le da forma
+	queryFn: async () => unwrap(await stocksApi.show(symbol)) as StockQuote | null,
 	enabled: !!symbol,
 	placeholderData: previous => previous,
 })
 
 /** Histórico de precio de un stock por timeframe (cambiarlo no vacía el gráfico). */
-export const useStockHistoryQuery = (symbol, timeframe) => useQuery({
+export const useStockHistoryQuery = (symbol: string, timeframe: string) => useQuery({
 	queryKey: ['invest', 'stock-history', symbol, timeframe],
 	queryFn: async () => {
 		const data = unwrap(await stocksApi.priceHistory(symbol, timeframe))
@@ -141,12 +212,15 @@ export const useStockHistoryQuery = (symbol, timeframe) => useQuery({
  * de staleTime hace que tapear las pills de timeframe no queme la cuota —
  * reemplaza al Map de sesión que tenía CoinDetail.
  *
- * @param {string} tick - Tick de la moneda.
- * @param {string} timeframe - '1H' | '24H' | '1W' | '1M' | '1Y' | 'ALL'.
- * @param {{ enabled?: boolean }} [options]
- * @returns {import('@tanstack/react-query').UseQueryResult}
+ * @param tick - Tick de la moneda.
+ * @param timeframe - '1H' | '24H' | '1W' | '1M' | '1Y' | 'ALL'.
+ * @param options
  */
-export const useCoinHistoryQuery = (tick, timeframe, { enabled = true } = {}) => useQuery({
+export const useCoinHistoryQuery = (
+	tick: string,
+	timeframe: string,
+	{ enabled = true }: { enabled?: boolean } = {},
+) => useQuery({
 	queryKey: ['coins', 'history', tick, timeframe],
 	queryFn: async () => {
 		const data = unwrap(await coinsApi.priceHistory(tick, timeframe))
@@ -168,11 +242,6 @@ export const useCoinHistoryQuery = (tick, timeframe, { enabled = true } = {}) =>
  * Devuelve la misma forma que consumía la versión anterior de `Invest.jsx`
  * (reducer + fetch manual), incluido el `isLoading` del loader inicial: solo
  * cuando no hay NADA que pintar en el explorador.
- *
- * @returns {{
- *   savings: Object|null, coins: Array, stocks: Array, p2pData: Array,
- *   isLoading: boolean, refreshing: boolean, onRefresh: Function,
- * }}
  */
 export const useInvestDashboard = () => {
 

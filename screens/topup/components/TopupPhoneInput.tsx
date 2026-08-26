@@ -4,21 +4,31 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import QPPhoneInput from '../../../ui/QPPhoneInput'
 
+import type { Theme } from '../../../theme/ThemeContext'
+import type { TextStyles } from '../../../theme/themeUtils'
+
 // Destino fijo: las recargas por tienda son solo para números cubanos
 const CUBA = { flag: '🇨🇺', dial: '+53' }
+
+type TopupPhoneInputProps = {
+	/** Local digits as typed (no dial code). */
+	phoneNumber: string
+	/** Whether the number passes the Cuban mobile pattern. */
+	phoneValid: boolean
+	onChangePhone: (text: string) => void
+	/** E.164 numbers previously topped up. */
+	recentNumbers?: string[]
+	/** Called with the E.164 number of a tapped chip. */
+	onPickRecent?: (phone: string) => void
+	theme: Theme
+	textStyles: TextStyles
+}
 
 /**
  * Recipient phone input for store-billed top-ups: +53 locked chip, validation
  * hint and a row of recently used numbers (chips) for one-tap reuse.
- *
- * @param {object} props
- * @param {string} props.phoneNumber - Local digits as typed (no dial code).
- * @param {boolean} props.phoneValid - Whether the number passes the Cuban mobile pattern.
- * @param {(text: string) => void} props.onChangePhone
- * @param {string[]} [props.recentNumbers] - E.164 numbers previously topped up.
- * @param {(phone: string) => void} [props.onPickRecent] - Called with the E.164 number of a tapped chip.
  */
-const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers = [], onPickRecent, theme, textStyles }) => {
+const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers = [], onPickRecent, theme, textStyles }: TopupPhoneInputProps) => {
 	const { t } = useTranslation()
 	return (
 	<View style={styles.section}>
@@ -60,7 +70,7 @@ const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers
 						style={[
 							styles.recentChip,
 							{ backgroundColor: theme.colors.surface },
-							theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+							(theme as Theme & { mode?: 'light' | 'dark' }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
 						]}
 					>
 						<FontAwesome6 name="clock-rotate-left" size={10} color={theme.colors.tertiaryText} iconStyle="solid" />

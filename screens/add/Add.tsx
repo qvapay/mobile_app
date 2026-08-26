@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, useReducer } from 'react'
+import type { ComponentProps } from 'react'
 import { StyleSheet, Text, View, Pressable, Linking } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -45,15 +46,38 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Toast
 import { toast } from 'sonner-native'
 
+// Tipos
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
+import type { ApiClientError } from '../../types/api'
+import type { Coin } from '../../types/domain'
+import type { CardFeeMode } from '../../helpers/cardFeeMode'
+import type { Wallet } from '../../helpers/walletDeeplinks'
+import type { DepositStatus, TopupOrder } from './DepositDetailsModal'
+
+type AddProps = NativeStackScreenProps<RootStackParamList, 'Add'>
+
+/** Acción única de los tres slices de estado de abajo. */
+type FieldAction = { type: 'set', field: string, value: unknown }
+
 // Generic field setter for the related-state slices below
-function setFieldReducer(state, action) {
+function setFieldReducer<S extends object>(state: S, action: FieldAction): S {
 	switch (action.type) {
 		case 'set':
-			return { ...state, [action.field]: action.value }
+			return { ...state, [action.field]: action.value } as S
 		default:
 			return state
 	}
 }
+
+/** Slice del formulario: catálogo disponible, moneda elegida y monto tecleado. */
+type FormState = { availableCoins: Coin[], selectedCoin: Coin | null, amount: string }
+
+/** Slice del flujo de depósito: modal, orden creada y estado en vivo. */
+type DepositState = { showDepositModal: boolean, topupData: TopupOrder | null, depositStatus: DepositStatus }
+
+/** Slice del picker de wallets instaladas. */
+type WalletState = { installedWallets: Wallet[], showWalletPicker: boolean }
 
 // Quick coin pills for deposit
 const DEFAULT_DEPOSIT_COINS = [
@@ -72,7 +96,10 @@ const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
  * Crypto deposits detect installed wallets (Trust Wallet & co.) and can open them
  * pre-filled via universal links (`helpers/walletDeeplinks`).
  */
-const Add = ({ navigation }) => {
+// `navigation` se desestructura pero la pantalla no navega a ningún sitio (todo
+// ocurre en modales): se conserva la desestructuración y se marca con `_` según
+// la convención del eslint del proyecto
+const Add = ({ navigation: _navigation }: AddProps) => {
 
 	// User Context
 	const { user } = useAuth()
@@ -85,31 +112,31 @@ const Add = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
 	// Coin/amount form (same-named setters keep every call site unchanged)
-	const [form, dispatchForm] = useReducer(setFieldReducer, { availableCoins: [], selectedCoin: null, amount: '' })
+	const [form, dispatchForm] = useReducer(setFieldReducer<FormState>, { availableCoins: [], selectedCoin: null, amount: '' })
 	const { availableCoins, selectedCoin, amount } = form
-	const setAvailableCoins = (value) => dispatchForm({ type: 'set', field: 'availableCoins', value })
-	const setSelectedCoin = (value) => dispatchForm({ type: 'set', field: 'selectedCoin', value })
-	const setAmount = (value) => dispatchForm({ type: 'set', field: 'amount', value })
+	const setAvailableCoins = (value: Coin[] | null | undefined) => dispatchForm({ type: 'set', field: 'availableCoins', value })
+	const setSelectedCoin = (value: Coin | null) => dispatchForm({ type: 'set', field: 'selectedCoin', value })
+	const setAmount = (value: string) => dispatchForm({ type: 'set', field: 'amount', value })
 
 	// Deposit flow
-	const [deposit, dispatchDeposit] = useReducer(setFieldReducer, { showDepositModal: false, topupData: null, depositStatus: 'pending' })
+	const [deposit, dispatchDeposit] = useReducer(setFieldReducer<DepositState>, { showDepositModal: false, topupData: null, depositStatus: 'pending' })
 	const { showDepositModal, topupData, depositStatus } = deposit
-	const setShowDepositModal = (value) => dispatchDeposit({ type: 'set', field: 'showDepositModal', value })
-	const setTopupData = (value) => dispatchDeposit({ type: 'set', field: 'topupData', value })
-	const setDepositStatus = (value) => dispatchDeposit({ type: 'set', field: 'depositStatus', value })
+	const setShowDepositModal = (value: boolean) => dispatchDeposit({ type: 'set', field: 'showDepositModal', value })
+	const setTopupData = (value: TopupOrder | null) => dispatchDeposit({ type: 'set', field: 'topupData', value })
+	const setDepositStatus = (value: DepositStatus) => dispatchDeposit({ type: 'set', field: 'depositStatus', value })
 
 	// Wallet picker
-	const [wallet, dispatchWallet] = useReducer(setFieldReducer, { installedWallets: [], showWalletPicker: false })
+	const [wallet, dispatchWallet] = useReducer(setFieldReducer<WalletState>, { installedWallets: [], showWalletPicker: false })
 	const { installedWallets, showWalletPicker } = wallet
-	const setInstalledWallets = (value) => dispatchWallet({ type: 'set', field: 'installedWallets', value })
-	const setShowWalletPicker = (value) => dispatchWallet({ type: 'set', field: 'showWalletPicker', value })
+	const setInstalledWallets = (value: Wallet[]) => dispatchWallet({ type: 'set', field: 'installedWallets', value })
+	const setShowWalletPicker = (value: boolean) => dispatchWallet({ type: 'set', field: 'showWalletPicker', value })
 
 	const [isLoading, setIsLoading] = useState(false)
-	const [error, setError] = useState(null)
+	const [error, setError] = useState<string | null>(null)
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 
 	// SSE connection for real-time deposit status updates
-	const handleDepositStatusChange = useCallback((newStatus) => {
+	const handleDepositStatusChange = useCallback((newStatus: DepositStatus) => {
 		setDepositStatus(newStatus)
 		if (newStatus === 'paid') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
@@ -171,7 +198,12 @@ const Add = ({ navigation }) => {
 	// instante en vez de esperar un viaje a la red en cada entrada
 	useEffect(() => {
 		if (coinCatalog.length) {
-			setAvailableCoins(filterCardFromCatalog(coinCatalog, cardEligible))
+			// OJO (pre-existente, NO tocado): `useCoins` devuelve una lista PLANA de
+			// monedas y `filterCardFromCatalog` espera el catálogo AGRUPADO
+			// (`{ name, coins }`), así que hoy no filtra nada — la moneda CARD la
+			// sigue ocultando el gate real del backend. Casts locales, sin cambiar
+			// el comportamiento
+			setAvailableCoins(filterCardFromCatalog(coinCatalog as unknown as { coins?: { tick?: string }[] }[], cardEligible) as unknown as Coin[])
 			setError(null)
 		} else if (!loadingCoins) {
 			// Sin catálogo y sin carga en curso: la red falló y no había copia
@@ -182,12 +214,12 @@ const Add = ({ navigation }) => {
 	// Modo de fee del depósito CARD: 'on_top' (default, el fee se suma al cobro) o
 	// 'included' (paga exacto lo tecleado y se acredita el neto). Solo viaja en el
 	// POST cuando el método es CARD; el selector se pinta si además el fee es > 0.
-	const [feeMode, setFeeMode] = useState('on_top')
+	const [feeMode, setFeeMode] = useState<CardFeeMode>('on_top')
 	const isCardCoin = selectedCoin?.tick === 'CARD'
 	const cardFeeRate = isCardCoin ? cardFeeRateFor(selectedCoin, user) : 0
 
 	// Handle coin selection
-	const handleCoinSelect = (coin) => {
+	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
 		setFeeMode('on_top')
 		setShowCoinPicker(false)
@@ -197,7 +229,7 @@ const Add = ({ navigation }) => {
 	// creada. Éxito → "processing" (el crédito real lo hace el webhook y llega por
 	// SSE como 'paid'); cancelar deja el modal abierto con el botón para reintentar
 	// (el PaymentIntent vive los mismos 30 min que la orden).
-	const launchCardSheet = useCallback(async (data) => {
+	const launchCardSheet = useCallback(async (data: TopupOrder) => {
 		const result = await presentCardDeposit({ topupData: data, theme, user })
 		if (result.status === 'paid') { setDepositStatus('processing') }
 		else if (result.status === 'failed') { toast.error(t('add.index.toasts.cardPaymentTitle'), { description: result.message }) }
@@ -208,7 +240,7 @@ const Add = ({ navigation }) => {
 		const amountValue = parseFloat(amount)
 		if (isNaN(amountValue) || amountValue <= 0) { toast.error(t('add.index.toasts.invalidAmount')); return }
 		if (!selectedCoin || !amount) { toast.error(t('add.index.toasts.missingCoinOrAmount')); return }
-		if (amountValue < parseFloat(selectedCoin.min_in)) { toast.error(t('add.index.toasts.minAmount', { name: selectedCoin.name, min: selectedCoin.min_in })); return }
+		if (amountValue < parseFloat(selectedCoin.min_in as string)) { toast.error(t('add.index.toasts.minAmount', { name: selectedCoin.name, min: selectedCoin.min_in })); return }
 		try {
 			setIsLoading(true)
 			setError(null)
@@ -230,7 +262,7 @@ const Add = ({ navigation }) => {
 			} else { toast.error(t('add.index.toasts.createFailed')) }
 		} catch (err) {
 			// El gate de tarjeta y el tope diario responden 400/429 con mensaje propio
-			const serverMessage = err?.response?.data?.error
+			const serverMessage = (err as ApiClientError)?.response?.data?.error
 			setError(serverMessage || t('add.index.errors.createRetry'))
 		}
 		finally { setIsLoading(false) }
@@ -238,7 +270,7 @@ const Add = ({ navigation }) => {
 
 	// Countdown timer state
 	const [countdown, setCountdown] = useState(1800)
-	const countdownRef = useRef(null)
+	const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
 	// Start countdown when deposit modal opens
 	useEffect(() => {
@@ -247,7 +279,7 @@ const Add = ({ navigation }) => {
 			countdownRef.current = setInterval(() => {
 				setCountdown(prev => {
 					if (prev <= 1) {
-						clearInterval(countdownRef.current)
+						clearInterval(countdownRef.current!)
 						return 0
 					}
 					return prev - 1
@@ -281,7 +313,8 @@ const Add = ({ navigation }) => {
 					onAmountChange={setAmount}
 					placeholder={t('add.index.amountPlaceholder')}
 					style={{ marginTop: 0 }}
-					balance={user.balance}
+					// Pantalla solo alcanzable autenticado: aserción, sin tocar el runtime
+				balance={user!.balance!}
 				/>
 
 				{/* Coin Selection */}
@@ -365,13 +398,15 @@ const Add = ({ navigation }) => {
 			<WalletPickerSheet
 				visible={showWalletPicker}
 				wallets={installedWallets}
+				// El sheet solo se abre con una orden cripto ya emitida (hay wallet y
+				// coin); el tipo del prop los pide obligatorios — cast local
 				ctx={{
 					address: topupData?.wallet,
 					amount: topupData?.value,
 					memo: topupData?.memo,
 					coin: topupData?.coin,
 					network: topupData?.network || selectedCoin?.network,
-				}}
+				} as ComponentProps<typeof WalletPickerSheet>['ctx']}
 				onClose={() => setShowWalletPicker(false)}
 			/>
 

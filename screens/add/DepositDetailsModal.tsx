@@ -9,15 +9,72 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { getFirstChunk, truncateWalletAddress, copyTextToClipboard, formatCryptoAmount } from '../../helpers'
 
+// Tipos
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+import type { Coin } from '../../types/domain'
+import type { Wallet } from '../../helpers/walletDeeplinks'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
+
+/**
+ * Orden de depósito devuelta por `POST /topup` (`response.data.data`). El
+ * endpoint sirve tres flujos con campos distintos — cripto/banco (wallet + QR),
+ * PayPal (`redirect_url`) y tarjeta (`client_secret`) — así que todo es opcional.
+ */
+export type TopupOrder = {
+	transaction_uuid?: string
+	coin?: string
+	network?: string | null
+	wallet?: string
+	memo?: string
+	value?: number | string
+	credited?: number | string
+	price?: number | string
+	redirect_url?: string
+	client_secret?: string
+	publishable_key?: string
+	account_name?: string
+	routing_number?: string
+	account_number?: string
+}
+
+/** Estado del depósito que llega por SSE (`useTransactionSSE`). */
+export type DepositStatus = 'pending' | 'processing' | 'paid' | 'expired' | 'failed' | (string & {})
+
+type DepositDetailsModalProps = {
+	visible: boolean
+	onClose: () => void
+	amount: string
+	selectedCoin: Coin | null
+	topupData: TopupOrder | null
+	depositStatus: DepositStatus
+	countdown: number
+	sseConnected: boolean
+	installedWallets: Wallet[]
+	onOpenWalletPicker: () => void
+	onPayWithCard: () => void
+	theme: Theme
+	textStyles: TextStyles
+}
+
 // Format countdown as MM:SS
-const formatCountdown = (seconds) => {
+const formatCountdown = (seconds: number) => {
 	const mins = Math.floor(seconds / 60)
 	const secs = seconds % 60
 	return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 // One row of the deposit-details card with optional copy button
-const DetailRow = ({ label, value, copyValue, last, theme, textStyles }) => (
+type DetailRowProps = {
+	label: string
+	value?: string
+	copyValue?: string | null
+	last?: boolean
+	theme: Theme
+	textStyles: TextStyles
+}
+
+const DetailRow = ({ label, value, copyValue, last, theme, textStyles }: DetailRowProps) => (
 	<View style={[styles.detailRow, last && { borderBottomWidth: 0 }]}>
 		<View style={styles.detailLeft}>
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{label}</Text>
@@ -35,7 +92,7 @@ const DetailRow = ({ label, value, copyValue, last, theme, textStyles }) => (
 	</View>
 )
 
-const ImportantWarnings = ({ items, theme, textStyles }) => {
+const ImportantWarnings = ({ items, theme, textStyles }: { items: string[], theme: Theme, textStyles: TextStyles }) => {
 	const { t } = useTranslation()
 	return (
 		<View style={[styles.warningsCard, { backgroundColor: theme.colors.danger + '10', borderColor: theme.colors.danger + '30' }]}>
@@ -55,7 +112,7 @@ const ImportantWarnings = ({ items, theme, textStyles }) => {
 }
 
 // PayPal redirect deposit flow
-const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme, textStyles }) => {
+const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme, textStyles }: Pick<DepositDetailsModalProps, 'amount' | 'topupData' | 'depositStatus' | 'countdown' | 'theme' | 'textStyles'>) => {
 	const { t } = useTranslation()
 	return (
 		<>
@@ -70,7 +127,9 @@ const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme,
 
 			<QPButton
 				title={t('add.modal.paypal.openButton')}
-				onPress={() => Linking.openURL(topupData.redirect_url)}
+				// `redirect_url` es opcional en el tipo pero este cuerpo solo se pinta
+				// cuando existe (la rama la decide DepositDetailsModal): aserción
+				onPress={() => Linking.openURL(topupData!.redirect_url!)}
 				icon="arrow-up-right-from-square"
 				iconStyle="solid"
 				iconColor={theme.colors.almostWhite}
@@ -103,7 +162,7 @@ const PaypalDepositBody = ({ amount, topupData, depositStatus, countdown, theme,
 
 // Card deposit flow (Stripe PaymentSheet): la hoja nativa se presenta desde Add;
 // aquí solo el resumen de la orden y el botón para (re)abrirla mientras siga viva.
-const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWithCard, theme, textStyles }) => {
+const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWithCard, theme, textStyles }: Pick<DepositDetailsModalProps, 'amount' | 'topupData' | 'depositStatus' | 'countdown' | 'onPayWithCard' | 'theme' | 'textStyles'>) => {
 
 	const { t } = useTranslation()
 
@@ -154,7 +213,7 @@ const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWit
 }
 
 // Crypto / bank deposit flow
-const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPicker, theme, textStyles }) => {
+const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPicker, theme, textStyles }: Pick<DepositDetailsModalProps, 'amount' | 'topupData' | 'installedWallets' | 'onOpenWalletPicker' | 'theme' | 'textStyles'>) => {
 	const { t } = useTranslation()
 	return (
 	<>
@@ -166,13 +225,16 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 					style={{ backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' }}
 					size={280}
 					padding={12}
-					pieceSize={8}
+					// `pieceSize` está fuera del contrato del componente SVG (lo calcula
+					// él a partir de `size`): se conserva el prop tal cual y solo se tipa
+					// vía spread. `errorCorrectionLevel` viene de los tipos de `qrcode`,
+					// que no están instalados, y `backgroundColor` tampoco está en
+					// SvgProps: mismo tratamiento
+					{...{ pieceSize: 8, errorCorrectionLevel: 'H', backgroundColor: '#FFFFFF' }}
 					isPiecesGlued
 					pieceBorderRadius={2}
 					pieceCornerType={'cut'}
-					errorCorrectionLevel={'H'}
 					preserveAspectRatio="none"
-					backgroundColor={'#FFFFFF'}
 					color={'#000000'}
 					outerEyesOptions={{ borderRadius: 2, color: theme.colors.primary }}
 				/>
@@ -233,7 +295,7 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 }
 
 // El texto vive como CLAVE de i18n y se resuelve en render (constante de módulo)
-const STATUS_BANNERS = {
+const STATUS_BANNERS: Record<string, { icon: FontAwesome6SolidIconName, color: 'warning' | 'success' | 'danger', textKey: string }> = {
 	processing: { icon: 'spinner', color: 'warning', textKey: 'add.modal.status.processing' },
 	paid: { icon: 'circle-check', color: 'success', textKey: 'add.modal.status.paid' },
 	expired: { icon: 'clock', color: 'danger', textKey: 'add.modal.status.expired' },
@@ -241,12 +303,12 @@ const STATUS_BANNERS = {
 }
 
 // Deposit details bottom sheet: QR / PayPal redirect, address + amount details, warnings.
-const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData, depositStatus, countdown, sseConnected, installedWallets, onOpenWalletPicker, onPayWithCard, theme, textStyles }) => {
+const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData, depositStatus, countdown, sseConnected, installedWallets, onOpenWalletPicker, onPayWithCard, theme, textStyles }: DepositDetailsModalProps) => {
 
 	const { t } = useTranslation()
 	const isCardDeposit = topupData?.coin === 'CARD'
 
-	const getCountdownColor = (seconds) => {
+	const getCountdownColor = (seconds: number) => {
 		if (seconds < 60) return theme.colors.danger
 		if (seconds < 300) return theme.colors.warning
 		return theme.colors.primary

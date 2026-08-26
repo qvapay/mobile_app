@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import type { ImageStyle, RefreshControlProps, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -24,23 +26,62 @@ import QPSvgUri from '../../ui/particles/QPSvgUri'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
+
+// Tipos
+import type { CompositeScreenProps } from '@react-navigation/native'
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { MainTabParamList, RootStackParamList } from '../../types/navigation'
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+import type { EnrichedCoin, SavingsSummary } from '../../types/domain'
+import type { P2pPair } from './investQueries'
+
+/** Invest es un tab de MainStack y navega también a rutas del stack raíz. */
+type InvestProps = CompositeScreenProps<
+	BottomTabScreenProps<MainTabParamList, 'Invest'>,
+	NativeStackScreenProps<RootStackParamList>
+>
+
+/**
+ * `StyleSheet.create` es una función IDENTIDAD, pero su tipo solo admite
+ * objetos de estilo; estas hojas mezclan estilos estáticos con builders que
+ * reciben el theme (`cardBorder(theme)`). El alias tipado deja convivir ambos
+ * sin tocar el runtime: se sigue emitiendo `StyleSheet.create({ … })`.
+ */
+type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: Theme) => ViewStyle)>
+
+/**
+ * OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así que
+ * la comparación contra 'light' es siempre falsa en runtime y el borde claro de
+ * las cards nunca se pinta. Se conserva tal cual con un cast local.
+ */
+const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
 
 // Explore tabs (labels = claves i18n resueltas en render)
-const EXPLORE_TABS = [
+const EXPLORE_TABS: { key: string, labelKey: string, icon: FontAwesome6SolidIconName }[] = [
 	{ key: 'popular', labelKey: 'invest.dashboard.tabs.popular', icon: 'star' },
 	{ key: 'stocks', labelKey: 'invest.dashboard.tabs.stocks', icon: 'chart-line' },
 ]
 
 // --- Sub-components ---
 
-const SavingsCard = ({ savings, theme, textStyles, onPress }) => {
+type SavingsCardProps = {
+	savings: SavingsSummary | null
+	theme: Theme
+	textStyles: TextStyles
+	onPress: () => void
+}
+
+const SavingsCard = ({ savings, theme, textStyles, onPress }: SavingsCardProps) => {
 	const { t } = useTranslation()
 	// El balance puede ser negativo (deuda gestionada desde admin): danger + signo
 	const isDebt = Number(savings?.balance || 0) < 0
 	const balance = formatMoney(savings?.balance)
 	const rate = savings?.currentRate || 0
 	return (
-		<Pressable onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme), { opacity: pressed ? 0.85 : 1 }]}>
+		<Pressable onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme), { opacity: pressed ? 0.85 : 1 }]}>
 			<View style={styles.savingsRow}>
 				<View style={styles.savingsInfo}>
 					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>{t('invest.dashboard.savings')}</Text>
@@ -55,10 +96,19 @@ const SavingsCard = ({ savings, theme, textStyles, onPress }) => {
 	)
 }
 
-const SectionCard = ({ title, icon, theme, rightLabel, onSeeAll, children }) => {
+type SectionCardProps = {
+	title: string
+	icon: FontAwesome6SolidIconName
+	theme: Theme
+	rightLabel?: string
+	onSeeAll?: () => void
+	children?: ReactNode
+}
+
+const SectionCard = ({ title, icon, theme, rightLabel, onSeeAll, children }: SectionCardProps) => {
 	const { t } = useTranslation()
 	return (
-		<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
+		<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
 			<View style={styles.sectionHeader}>
 				<View style={styles.cardHeader}>
 					<FontAwesome6 name={icon} size={16} color={theme.colors.primary} iconStyle="solid" />
@@ -75,7 +125,15 @@ const SectionCard = ({ title, icon, theme, rightLabel, onSeeAll, children }) => 
 	)
 }
 
-const FilterChip = ({ label, icon, selected, theme, onPress }) => (
+type FilterChipProps = {
+	label: string
+	icon: FontAwesome6SolidIconName
+	selected: boolean
+	theme: Theme
+	onPress: () => void
+}
+
+const FilterChip = ({ label, icon, selected, theme, onPress }: FilterChipProps) => (
 	<Pressable
 		onPress={onPress}
 		style={[
@@ -90,7 +148,30 @@ const FilterChip = ({ label, icon, selected, theme, onPress }) => (
 	</Pressable>
 )
 
-const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }) => {
+/**
+ * Fila del explorador: sirve tanto a una cripto enriquecida como a un stock,
+ * así que su forma es la UNIÓN de los campos que ambas superficies traen.
+ */
+type ExploreRowItem = {
+	tick: string
+	name?: string
+	price?: string | number
+	change?: number
+	icon?: string
+	iconStyle?: string
+	image?: string | null
+	priceHistory?: { value: number }[]
+}
+
+type ExploreRowProps = {
+	item: ExploreRowItem
+	theme: Theme
+	textStyles: TextStyles
+	isLast: boolean
+	isCrypto: boolean
+}
+
+const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowProps) => {
 
 	const price = Number(item.price || 0)
 	const change = item.change || 0
@@ -107,7 +188,8 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }) => {
 				</View>
 			) : (
 				<View style={[styles.stockIcon, { backgroundColor: theme.colors.primary + '12' }]}>
-					<FontAwesome6 name={item.icon} size={16} color={theme.colors.primary} iconStyle={item.iconStyle} />
+					{/* Los stocks traen icono y estilo como strings sueltos del backend: casts locales para casar con la unión discriminada de FontAwesome6 */}
+					<FontAwesome6 name={item.icon as FontAwesome6SolidIconName} size={16} color={theme.colors.primary} iconStyle={item.iconStyle as 'solid'} />
 				</View>
 			)}
 			<View style={styles.itemInfo}>
@@ -116,7 +198,7 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }) => {
 			</View>
 			{isCrypto && (
 				<View style={styles.sparklineContainer}>
-					{item.priceHistory?.length > 1 && (
+					{(item.priceHistory?.length as number) > 1 && (
 						<Sparkline data={item.priceHistory} width={60} height={24} color={trendColor} />
 					)}
 				</View>
@@ -141,7 +223,14 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }) => {
 	)
 }
 
-const P2PRow = ({ pair, theme, textStyles, isLast }) => {
+type P2PRowProps = {
+	pair: P2pPair
+	theme: Theme
+	textStyles: TextStyles
+	isLast: boolean
+}
+
+const P2PRow = ({ pair, theme, textStyles, isLast }: P2PRowProps) => {
 	const { t } = useTranslation()
 	return (
 		<View style={[styles.itemRow, !isLast && styles.itemBorder(theme)]}>
@@ -174,7 +263,7 @@ const P2PRow = ({ pair, theme, textStyles, isLast }) => {
  * already-fetched summary), StockDetail (with `initialData` for instant paint)
  * or the P2P tab pre-filtered by coin.
  */
-const Invest = ({ navigation }) => {
+const Invest = ({ navigation }: InvestProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -186,7 +275,9 @@ const Invest = ({ navigation }) => {
 
 	if (isLoading) return <QPLoader />
 
-	const exploreItems = exploreTab === 'popular' ? coins.slice(0, 5) : stocks
+	// La lista mezcla criptos enriquecidas y stocks: se lee por la forma común
+	// (ExploreRowItem) — cast local, la pestaña activa decide qué campos hay
+	const exploreItems = (exploreTab === 'popular' ? coins.slice(0, 5) : stocks) as ExploreRowItem[]
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -194,14 +285,16 @@ const Invest = ({ navigation }) => {
 				style={styles.scroll}
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
-				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 			>
 				{/* Savings */}
 				<SavingsCard
 					savings={savings}
 					theme={theme}
 					textStyles={textStyles}
-					onPress={() => navigation.navigate(ROUTES.SAVINGS_SCREEN, { savings })}
+					// `Savings.savings` está modelado como `Record<string, unknown>`
+					// en types/navigation: el resumen viaja igual, solo se tipa
+					onPress={() => navigation.navigate(ROUTES.SAVINGS_SCREEN, { savings: savings as unknown as Record<string, unknown> })}
 				/>
 
 				{/* Explore: Cripto + Stocks */}
@@ -236,7 +329,7 @@ const Invest = ({ navigation }) => {
 									icon: item.icon,
 									iconStyle: item.iconStyle,
 									image: item.image,
-									initialData: item,
+									initialData: item as unknown as Record<string, unknown>,
 								})}
 							>
 								<ExploreRow {...rowProps} />
@@ -247,7 +340,7 @@ const Invest = ({ navigation }) => {
 								onPress={() => navigation.navigate(ROUTES.COIN_DETAIL_SCREEN, {
 									tick: item.tick,
 									name: item.name,
-									initialData: item,
+									initialData: item as unknown as EnrichedCoin,
 								})}
 							>
 								<ExploreRow {...rowProps} />
@@ -272,7 +365,7 @@ const Invest = ({ navigation }) => {
 	)
 }
 
-const styles = StyleSheet.create({
+const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	scroll: {
 		flex: 1,
 	},
@@ -286,7 +379,7 @@ const styles = StyleSheet.create({
 		borderRadius: 14,
 		padding: 12,
 	},
-	cardBorder: (theme) => ({
+	cardBorder: (theme: Theme) => ({
 		borderWidth: 1,
 		borderColor: theme.colors.border,
 	}),
@@ -332,7 +425,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		gap: 10,
 	},
-	itemBorder: (theme) => ({
+	itemBorder: (theme: Theme) => ({
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: theme.colors.border + '60',
 	}),

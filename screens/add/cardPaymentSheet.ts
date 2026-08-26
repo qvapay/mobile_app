@@ -1,6 +1,27 @@
 import { initStripe, initPaymentSheet, presentPaymentSheet } from '@stripe/stripe-react-native'
 import i18n from '../../i18n'
 
+import type { Theme } from '../../theme/ThemeContext'
+import type { User } from '../../types/domain'
+
+/** Campos de la orden `POST /topup` que necesita la hoja de pago. */
+export type CardTopupData = {
+	client_secret?: string
+	publishable_key?: string
+} | null | undefined
+
+export type CardDepositParams = {
+	topupData: CardTopupData
+	theme: Theme
+	user: User | null | undefined
+}
+
+/** Resultado de presentar el PaymentSheet. */
+export type CardDepositResult = {
+	status: 'paid' | 'canceled' | 'failed'
+	message?: string
+}
+
 /**
  * Depósito con tarjeta (moneda CARD): monta y presenta el PaymentSheet nativo
  * de Stripe sobre el PaymentIntent que devolvió `POST /topup` (la respuesta
@@ -12,18 +33,16 @@ import i18n from '../../i18n'
 
 // La publishable key llega del servidor y no cambia entre órdenes: no
 // reinicializar el SDK nativo en cada depósito.
-let initializedKey = null
+let initializedKey: string | null = null
 
 /**
  * Presenta el PaymentSheet para una orden de depósito CARD.
  *
- * @param {Object} params
- * @param {Object} params.topupData - Data de `POST /topup` (client_secret, publishable_key, value).
- * @param {Object} params.theme - Theme activo (colores del sheet).
- * @param {Object} params.user - Usuario autenticado (email de recibo).
- * @returns {Promise<{status: 'paid'|'canceled'|'failed', message?: string}>}
+ * @param params.topupData - Data de `POST /topup` (client_secret, publishable_key, value).
+ * @param params.theme - Theme activo (colores del sheet).
+ * @param params.user - Usuario autenticado (email de recibo).
  */
-export async function presentCardDeposit({ topupData, theme, user }) {
+export async function presentCardDeposit({ topupData, theme, user }: CardDepositParams): Promise<CardDepositResult> {
 
 	const { client_secret, publishable_key } = topupData || {}
 	if (!client_secret || !publishable_key) { return { status: 'failed', message: i18n.t('add.cardSheet.initFailed') } }
@@ -39,7 +58,10 @@ export async function presentCardDeposit({ topupData, theme, user }) {
 			initializedKey = publishable_key
 		}
 
-		const isDark = theme.mode !== 'light'
+		// OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así
+		// que `mode` es siempre undefined y esta hoja se pinta SIEMPRE en oscuro,
+		// incluso en tema claro. Se conserva tal cual con un cast local.
+		const isDark = (theme as Theme & { mode?: 'light' | 'dark' }).mode !== 'light'
 		const { error: initError } = await initPaymentSheet({
 			paymentIntentClientSecret: client_secret,
 			merchantDisplayName: 'QvaPay',

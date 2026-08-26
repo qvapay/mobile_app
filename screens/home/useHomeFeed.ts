@@ -11,6 +11,8 @@ import { unwrap } from '../../api/unwrap'
 
 // Update prompt
 import { maybePromptUpdate } from '../../helpers/versionCheck'
+import type { UpdateCheckResult } from '../../helpers/versionCheck'
+import type { EmbeddedUser, Transaction } from '../../types/domain'
 
 // Queries del feed
 import {
@@ -38,14 +40,7 @@ import {
  * estado vacío.
  *
  * Devuelve la misma forma que la versión anterior basada en `useEffect` +
- * reducer, para que `Home.jsx` no tenga que cambiar.
- *
- * @returns {{
- *   latestTransactions: Array, latestSentTransfersUsers: Array,
- *   latestBlogPosts: Array, watchlistData: Array, promo: Object|null,
- *   updateInfo: Object|null, txLoading: boolean, txError: boolean,
- *   refreshing: boolean, onRefresh: Function, dismissUpdate: Function,
- * }}
+ * reducer, para que `Home.tsx` no tenga que cambiar.
  */
 export default function useHomeFeed() {
 
@@ -56,7 +51,7 @@ export default function useHomeFeed() {
 	// como flanco de subida para recargar el resumen de ahorros, así que solo
 	// debe activarse en un tirón del usuario, no en cada revalidación de fondo
 	const [refreshing, setRefreshing] = useState(false)
-	const [updateInfo, setUpdateInfo] = useState(null)
+	const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null)
 
 	// El perfil se pide como query para que entre en el refresco conjunto, pero
 	// su resultado vive en AuthContext, no aquí
@@ -85,8 +80,11 @@ export default function useHomeFeed() {
 	useEffect(() => {
 		const list = transactions.data
 		if (!list?.length) return
-		const avatarUrls = list.flatMap(t => {
-			const img = (t.paid_by_user || t.user)?.image
+		const avatarUrls = list.flatMap((t: Transaction) => {
+			// `paid_by_user` no está en el contrato de Transaction (la lista manda
+			// `PaidBy` y el detalle `paid_by`): se deja EXACTAMENTE igual y se tipa
+			// con un cast local — el camino real que se usa hoy es `t.user`
+			const img = ((t as Transaction & { paid_by_user?: EmbeddedUser | null }).paid_by_user || t.user)?.image
 			return img ? [{ uri: `https://media.qvapay.com/${img}` }] : []
 		})
 		if (avatarUrls.length > 0) FastImage.preload(avatarUrls)

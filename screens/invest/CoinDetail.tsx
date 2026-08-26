@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import type { ImageStyle, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // i18n (locale de fechas del scrubbing)
@@ -30,6 +31,30 @@ import PriceChartPro from '../../ui/charts/PriceChartPro'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import QPFitText from '../../ui/particles/QPFitText'
 
+// Tipos
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
+import type { Theme } from '../../theme/ThemeContext'
+import type { EnrichedCoin } from '../../types/domain'
+import type { RawPricePoint } from '../../ui/charts/PriceChart'
+import type { ScrubPoint } from '../../ui/charts/PriceChartPro'
+
+type CoinDetailProps = NativeStackScreenProps<RootStackParamList, 'CoinDetail'>
+
+/**
+ * `StyleSheet.create` es una función IDENTIDAD, pero su tipo solo admite
+ * objetos de estilo; esta hoja mezcla estáticos con builders que reciben el
+ * theme (`cardBorder(theme)`). El alias tipado los deja convivir sin tocar el
+ * runtime: se sigue emitiendo `StyleSheet.create({ … })`.
+ */
+type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: Theme) => ViewStyle)>
+
+/**
+ * OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así que
+ * la comparación contra 'light' es siempre falsa en runtime y el borde claro de
+ * las cards nunca se pinta. Se conserva tal cual con un cast local.
+ */
+const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
 
 // Whitelist del backend (/coins/price-history) — cualquier otro valor cae a 24H.
 // Son VALORES del API; el label visible es `invest.timeframes.<valor>`
@@ -37,7 +62,7 @@ const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y', 'ALL']
 
 // Cambio 24H calculado de un historial (para enriquecer el header cuando la
 // fila de origen no venía enriquecida)
-const statsFromHistory = (history) => {
+const statsFromHistory = (history?: { value?: number | string }[] | null) => {
 	if (!history?.length) return null
 	const first = Number(history[0]?.value || 0)
 	const last = Number(history[history.length - 1]?.value || 0)
@@ -48,7 +73,7 @@ const statsFromHistory = (history) => {
 	}
 }
 
-const formatPrice = (p) => {
+const formatPrice = (p?: number | string | null) => {
 	const n = Number(p || 0)
 	if (!n) return '—'
 	return '$' + (n >= 1
@@ -58,7 +83,7 @@ const formatPrice = (p) => {
 
 // Fecha/hora del punto bajo el dedo durante el scrubbing (time = unix seconds
 // del backend; defensivo con ms)
-const formatScrubTime = (t) => {
+const formatScrubTime = (t: number) => {
 	const ms = t > 1e12 ? t : t * 1000
 	const date = new Date(ms)
 	const locale = getDateLocale()
@@ -67,7 +92,7 @@ const formatScrubTime = (t) => {
 }
 
 // --- Sub-components ---
-const TimeframePill = ({ label, active, theme, onPress }) => (
+const TimeframePill = ({ label, active, theme, onPress }: { label: string, active: boolean, theme: Theme, onPress: () => void }) => (
 	<Pressable onPress={onPress} style={[styles.pill, active ? { backgroundColor: theme.colors.primary } : { backgroundColor: theme.colors.surface }]}>
 		<Text style={[styles.pillText, { color: active ? theme.colors.buttonText : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.semiBold }]}>
 			{label}
@@ -75,7 +100,7 @@ const TimeframePill = ({ label, active, theme, onPress }) => (
 	</Pressable>
 )
 
-const StatRow = ({ label, value, theme, isLast }) => (
+const StatRow = ({ label, value, theme, isLast }: { label: string, value: string, theme: Theme, isLast?: boolean }) => (
 	<View style={[styles.statRow, !isLast && styles.statBorder(theme)]}>
 		<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{label}</Text>
 		<Text style={[styles.statValue, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{value}</Text>
@@ -96,9 +121,13 @@ const StatRow = ({ label, value, theme, isLast }) => (
  * CTAs: Depositar (Add) y Mercado P2P pre-filtrado — el spot compra/venta
  * llegará cuando el backend lo soporte.
  */
-const CoinDetail = ({ navigation, route }) => {
+const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 
 	const { tick, name, initialData } = route.params
+	// `initialData` se declara `Coin | EnrichedCoin`: quien navega aquí (Invest y
+	// la watchlist del Home) siempre manda la fila ya enriquecida, que es la
+	// única que trae `priceHistory` — alias tipado, mismo objeto
+	const initialCoin = initialData as EnrichedCoin | undefined
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
@@ -115,9 +144,9 @@ const CoinDetail = ({ navigation, route }) => {
 	// pills no repite peticiones y el gráfico anterior queda como placeholder.
 	// Con initialData enriquecida, el 24H inicial ni siquiera va a la red
 	const historyQuery = useCoinHistoryQuery(tick, timeframe, {
-		enabled: timeframe !== '24H' || !initialData?.priceHistory?.length,
+		enabled: timeframe !== '24H' || !initialCoin?.priceHistory?.length,
 	})
-	const priceHistory = historyQuery.data || (timeframe === '24H' ? initialData?.priceHistory || [] : [])
+	const priceHistory: { time?: string | number, value: number }[] = historyQuery.data || (timeframe === '24H' ? initialCoin?.priceHistory || [] : [])
 	const isLoading = !priceHistory.length && historyQuery.isFetching
 
 	// Capacidades/comisiones frescas del catálogo — la MISMA query del
@@ -126,7 +155,7 @@ const CoinDetail = ({ navigation, route }) => {
 
 	// Enriquecimiento 24H para el header cuando la fila no venía enriquecida:
 	// se congela la primera vez que hay historial 24H disponible
-	const [stats24, setStats24] = useState(() => statsFromHistory(initialData?.priceHistory))
+	const [stats24, setStats24] = useState(() => statsFromHistory(initialCoin?.priceHistory))
 	useEffect(() => {
 		if (!stats24 && timeframe === '24H' && historyQuery.data) {
 			setStats24(statsFromHistory(historyQuery.data))
@@ -138,14 +167,16 @@ const CoinDetail = ({ navigation, route }) => {
 	const coin = useMemo(() => {
 		const fresh = coinsQuery.data?.find((c) => c.tick === tick) || null
 		const base = { ...(fresh || {}), ...(initialData || {}) }
-		if (!initialData?.priceHistory?.length && stats24) {
+		// Se lee `initialData` (y no el alias `initialCoin`) para que las deps del
+		// memo sigan siendo exactamente las de antes
+		if (!(initialData as EnrichedCoin | undefined)?.priceHistory?.length && stats24) {
 			return { ...base, price: base.price || stats24.price, change: stats24.change, changeDollar: stats24.changeDollar }
 		}
 		return base
 	}, [coinsQuery.data, initialData, stats24, tick])
 	// Punto bajo el dedo durante el scrubbing PRO — el header muestra su
 	// precio/fecha en vez del precio live (estilo Robinhood)
-	const [scrub, setScrub] = useState(null)
+	const [scrub, setScrub] = useState<ScrubPoint | null>(null)
 
 	// Derivados: precio del coin (o último punto del historial 24H) + cambio 24H
 	const price = Number(coin?.price || 0)
@@ -155,7 +186,7 @@ const CoinDetail = ({ navigation, route }) => {
 	const trendColor = isPositive ? theme.colors.successText : theme.colors.danger
 
 	// Cambiar de timeframe es cambiar de query; el header no cambia
-	const handleTimeframeChange = useCallback((tf) => { setTimeframe(tf) }, [])
+	const handleTimeframeChange = useCallback((tf: string) => { setTimeframe(tf) }, [])
 
 	// Máx/mín del periodo visible
 	const values = priceHistory.map((p) => Number(p.value)).filter(Boolean)
@@ -199,9 +230,9 @@ const CoinDetail = ({ navigation, route }) => {
 					{priceHistory.length > 1 ? (
 						isGold ? (
 							// Más alto que el básico: el eje de tiempo ocupa una franja abajo
-							<PriceChartPro data={priceHistory} trendColor={trendColor} onScrub={setScrub} height={230} />
+							<PriceChartPro data={priceHistory as RawPricePoint[]} trendColor={trendColor} onScrub={setScrub} height={230} />
 						) : (
-							<PriceChart data={priceHistory} trendColor={trendColor} height={200} />
+							<PriceChart data={priceHistory as RawPricePoint[]} trendColor={trendColor} height={200} />
 						)
 					) : (
 						<View style={[styles.chartPlaceholder, { height: 200 }]}>
@@ -262,7 +293,7 @@ const CoinDetail = ({ navigation, route }) => {
 				</View>
 
 				{/* Estadísticas del periodo + capacidades */}
-				<View style={[styles.card, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
+				<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
 					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('invest.common.statistics')}</Text>
 					<StatRow label={t('invest.coinDetail.periodHigh', { timeframe: t(`invest.timeframes.${timeframe}`) })} value={formatPrice(periodHigh)} theme={theme} />
 					<StatRow label={t('invest.coinDetail.periodLow', { timeframe: t(`invest.timeframes.${timeframe}`) })} value={formatPrice(periodLow)} theme={theme} />
@@ -274,7 +305,7 @@ const CoinDetail = ({ navigation, route }) => {
 				</View>
 
 				{/* Spot: teaser de futuro */}
-				<View style={[styles.card, styles.spotTeaser, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
+				<View style={[styles.card, styles.spotTeaser, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
 					<FontAwesome6 name="chart-line" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[styles.spotTeaserText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
 						{t('invest.coinDetail.spotTeaser')}
@@ -285,7 +316,7 @@ const CoinDetail = ({ navigation, route }) => {
 	)
 }
 
-const styles = StyleSheet.create({
+const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	scroll: {
 		flex: 1,
 	},
@@ -360,7 +391,7 @@ const styles = StyleSheet.create({
 		padding: 12,
 		marginHorizontal: 16,
 	},
-	cardBorder: (theme) => ({
+	cardBorder: (theme: Theme) => ({
 		borderWidth: 1,
 		borderColor: theme.colors.border,
 	}),
@@ -373,7 +404,7 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		paddingVertical: 10,
 	},
-	statBorder: (theme) => ({
+	statBorder: (theme: Theme) => ({
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: theme.colors.border + '60',
 	}),

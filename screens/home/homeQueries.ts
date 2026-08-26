@@ -1,4 +1,6 @@
 import { Platform } from 'react-native'
+// Cast local: `isPad` solo existe en el tipo iOS (en Android es undefined, igual que en runtime)
+import type { PlatformIOSStatic } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 
 // APIs
@@ -9,8 +11,22 @@ import { promoApi } from '../../api/promoApi'
 
 import { unwrap } from '../../api/unwrap'
 
+import type { PricePoint } from '../../api/coinsApi'
+
 // i18n fuera de render: el mensaje se resuelve en call time (nunca a nivel de módulo)
 import i18n from '../../i18n'
+
+/**
+ * Fila de la watchlist del Home. NO es una `Coin` del catálogo: la construye
+ * el cliente a partir del histórico 24h, así que solo trae tick/precio/cambio
+ * y los puntos crudos del sparkline.
+ */
+export type WatchlistCoin = {
+	tick: string
+	price: number
+	change: number
+	priceHistory: PricePoint[]
+}
 
 /**
  * Raíz de las claves del feed de Home.
@@ -40,8 +56,8 @@ export { useQuickPayQuery } from '../../hooks/useQuickPayQuery'
 
 /** Últimas entradas del blog (WordPress). */
 export const useBlogQuery = () => useQuery({
-	queryKey: ['home', 'blog', Platform.isPad ? 4 : 3],
-	queryFn: async () => unwrap(await blogApi.getLatestPosts(Platform.isPad ? 4 : 3)),
+	queryKey: ['home', 'blog', (Platform as PlatformIOSStatic).isPad ? 4 : 3],
+	queryFn: async () => unwrap(await blogApi.getLatestPosts((Platform as PlatformIOSStatic).isPad ? 4 : 3)),
 	// El blog cambia poco y no es crítico: no merece un viaje en cada montaje
 	staleTime: 10 * 60 * 1000,
 	placeholderData: previous => previous,
@@ -54,7 +70,7 @@ export const useWatchlistQuery = () => useQuery({
 		const results = await Promise.all(
 			WATCHLIST_COINS.map(tick => coinsApi.priceHistory(tick, '24H'))
 		)
-		const data = results.map((result, i) => {
+		const data: WatchlistCoin[] = results.map((result, i) => {
 			const tick = WATCHLIST_COINS[i]
 			if (!result.success || !result.data?.length) {
 				return { tick, price: 0, change: 0, priceHistory: [] }

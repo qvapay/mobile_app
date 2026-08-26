@@ -1,19 +1,28 @@
 import { Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
+import type { Theme } from '../../../theme/ThemeContext'
+import type { TextStyles } from '../../../theme/themeUtils'
+
+type TopupCardProps = {
+	/** CUP amount label from TOPUP_CATALOG (e.g. '$100 CUP'). */
+	label: string
+	/** Localized store price (e.g. 'US$0.99'); undefined while loading. */
+	price?: string
+	selected: boolean
+	/** Backend reports the product as not purchasable. */
+	unavailable?: boolean
+	onPress: () => void
+	theme: Theme
+	textStyles: TextStyles
+}
+
 /**
  * Selectable amount card for one top-up product: CUP amount on top, localized
  * store price (from react-native-iap) below. While the store price hasn't
  * loaded yet a small spinner takes its place.
- *
- * @param {object} props
- * @param {string} props.label - CUP amount label from TOPUP_CATALOG (e.g. '$100 CUP').
- * @param {string} [props.price] - Localized store price (e.g. 'US$0.99'); undefined while loading.
- * @param {boolean} props.selected
- * @param {boolean} [props.unavailable] - Backend reports the product as not purchasable.
- * @param {function} props.onPress
  */
-const TopupCard = ({ label, price, selected, unavailable = false, onPress, theme, textStyles }) => {
+const TopupCard = ({ label, price, selected, unavailable = false, onPress, theme, textStyles }: TopupCardProps) => {
 	const { t } = useTranslation()
 	return (
 	<Pressable
@@ -23,7 +32,9 @@ const TopupCard = ({ label, price, selected, unavailable = false, onPress, theme
 			styles.card,
 			selected
 				? { backgroundColor: theme.colors.primary + '12', borderWidth: 1.5, borderColor: theme.colors.primary }
-				: { backgroundColor: theme.colors.surface, borderWidth: 1.5, borderColor: 'transparent', ...(theme.mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }) },
+				// OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`,
+				// así que este spread condicional nunca se aplica. Cast local
+				: { backgroundColor: theme.colors.surface, borderWidth: 1.5, borderColor: 'transparent', ...((theme as Theme & { mode?: 'light' | 'dark' }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }) },
 			unavailable && { opacity: 0.4 },
 		]}
 	>

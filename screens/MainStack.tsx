@@ -10,7 +10,21 @@ const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Ve
 // Tab Navigators: native for iOS 26+ (liquid glass), JS-based for Android and older iOS
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable'
-const Tab = supportsLiquidGlass ? createNativeBottomTabNavigator() : createBottomTabNavigator()
+import type { BottomTabNavigationOptions, BottomTabTypeBag } from '@react-navigation/bottom-tabs'
+import type { TypedNavigator } from '@react-navigation/native'
+import type { MainTabParamList, RootStackParamList } from '../types/navigation'
+
+/**
+ * Los dos navigators (nativo iOS 26+ vs JS) tienen tipos distintos, así que el
+ * ternario se tipa por el JS-based: es el que fija el contrato de
+ * `Tab.Navigator`/`Tab.Screen` sobre MainTabParamList. `Config = undefined`
+ * selecciona la variante dinámica de TypedNavigator (la de `<Tab.Screen>`),
+ * no la estática de `createBottomTabNavigator({ screens })`.
+ */
+const Tab = (supportsLiquidGlass
+	? createNativeBottomTabNavigator()
+	: createBottomTabNavigator<MainTabParamList>()
+) as unknown as TypedNavigator<BottomTabTypeBag<MainTabParamList>, undefined>
 
 // Routes
 import { ROUTES } from '../routes'
@@ -43,9 +57,18 @@ import AnimatedTabBar from '../ui/AnimatedTabBar'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
+
+// Tipos
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+
+type MainStackProps = NativeStackScreenProps<RootStackParamList, 'MainStack'>
+
+/** Icono de un tab por plataforma: SF Symbol en iOS 26+, FontAwesome6 en el resto. */
+type TabIconConfig = { ios: string, android: FontAwesome6SolidIconName, label: string }
 
 // Tab icon config per screen: iOS uses sfSymbol, Android uses FontAwesome6
-const TAB_ICONS = {
+const TAB_ICONS: Record<string, TabIconConfig> = {
 	[ROUTES.HOME_SCREEN]: { ios: 'wallet.pass.fill', android: 'wallet', label: 'Inicio' },
 	[ROUTES.INVEST_SCREEN]: { ios: 'bitcoinsign.circle.fill', android: 'bitcoin-sign', label: 'Invertir' },
 	[ROUTES.KEYPAD_SCREEN]: { ios: 'dollarsign.circle.fill', android: 'dollar-sign', label: 'Enviar' },
@@ -53,18 +76,18 @@ const TAB_ICONS = {
 	[ROUTES.STORE_SCREEN]: { ios: 'storefront.fill', android: 'store', label: 'Tienda' },
 }
 
-const getTabIcon = (routeName) => {
+const getTabIcon = (routeName: string) => {
 	const config = TAB_ICONS[routeName]
 	if (supportsLiquidGlass) {
 		return { type: 'sfSymbol', name: config.ios }
 	}
-	return ({ color, size }) => (
+	return ({ color, size }: { color: string, size?: number }) => (
 		<FontAwesome6 name={config.android} size={size || 22} color={color} iconStyle="solid" />
 	)
 }
 
 // Main Stack
-const MainStack = ({ navigation }) => {
+const MainStack = ({ navigation }: MainStackProps) => {
 
 	// Contexts
 	const { user, isAuthenticated } = useAuth()
@@ -135,7 +158,10 @@ const MainStack = ({ navigation }) => {
 		}),
 	}), [theme, showLabels, insets.top, insets.bottom, user, containerStyles, navigation, t])
 
-	// Memoized per-screen options
+	// Memoized per-screen options.
+	// OJO: los `unstable_header*Items` (iOS 26 liquid glass) no están en
+	// `BottomTabNavigationOptions`, y los spreads condicionales los dejan como
+	// props opcionales extra — de ahí el cast en cada `options={…}` del JSX.
 	const homeOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.home') : '',
 		tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
@@ -146,11 +172,11 @@ const MainStack = ({ navigation }) => {
 				<View style={{ marginLeft: 10 }}>
 					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
 						<Text style={textStyles.h4}>{displayName(user)}</Text>
-						{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 16, height: 16 }} />)}
-						{user.golden_check && (<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />)}
-						{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 16, height: 16 }} />)}
+						{user!.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 16, height: 16 }} />)}
+						{user!.golden_check && (<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />)}
+						{user!.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 16, height: 16 }} />)}
 					</View>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user.username}</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user!.username}</Text>
 				</View>
 			</Pressable>
 		),
@@ -164,11 +190,11 @@ const MainStack = ({ navigation }) => {
 						<View style={{ marginLeft: 8 }}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
 								<Text style={textStyles.h4}>{displayName(user)}</Text>
-								{user.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 14, height: 14 }} />)}
-								{user.golden_check && (<FontAwesome6 name="crown" size={11} color={theme.colors.gold} iconStyle="solid" />)}
-								{user.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 14, height: 14 }} />)}
+								{user!.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 14, height: 14 }} />)}
+								{user!.golden_check && (<FontAwesome6 name="crown" size={11} color={theme.colors.gold} iconStyle="solid" />)}
+								{user!.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 14, height: 14 }} />)}
 							</View>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user.username}</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user!.username}</Text>
 						</View>
 					</Pressable>
 				),
@@ -181,10 +207,10 @@ const MainStack = ({ navigation }) => {
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 16 }}>
 					<FontAwesome6 name="bolt" size={14} color="#F7931A" iconStyle="solid" />
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
-						{showBalance ? (user.satoshis || 0).toLocaleString() : '***'}
+						{showBalance ? (user!.satoshis || 0).toLocaleString() : '***'}
 					</Text>
 				</View>
-				{!user.golden_check && (
+				{!user!.golden_check && (
 					<Pressable style={{ marginRight: 16 }} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
 						<FontAwesome6 name="crown" size={20} color={theme.colors.gold} iconStyle="solid" />
 					</Pressable>
@@ -203,13 +229,13 @@ const MainStack = ({ navigation }) => {
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
 							<FontAwesome6 name="bolt" size={14} color="#F7931A" iconStyle="solid" />
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
-								{showBalance ? (user.satoshis || 0).toLocaleString() : '***'}
+								{showBalance ? (user!.satoshis || 0).toLocaleString() : '***'}
 							</Text>
 						</View>
 					),
 					hidesSharedBackground: true,
 				},
-				...(!user.golden_check ? [{
+				...(!user!.golden_check ? [{
 					type: 'custom',
 					element: (
 						<Pressable onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
@@ -275,7 +301,7 @@ const MainStack = ({ navigation }) => {
 
 	return (
 		<BottomBarProvider>
-			<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN }] })}>
+			<ErrorBoundary onReset={() => navigation.reset({ index: 0, routes: [{ name: ROUTES.HOME_SCREEN as unknown as keyof RootStackParamList }] })}>
 				<Tab.Navigator
 					initialRouteName={ROUTES.HOME_SCREEN}
 					backBehavior='initialRoute'
@@ -286,35 +312,35 @@ const MainStack = ({ navigation }) => {
 					<Tab.Screen
 						name={ROUTES.HOME_SCREEN}
 						component={Home}
-						options={homeOptions}
+						options={homeOptions as unknown as BottomTabNavigationOptions}
 						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.INVEST_SCREEN}
 						component={Invest}
-						options={investOptions}
+						options={investOptions as unknown as BottomTabNavigationOptions}
 						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.KEYPAD_SCREEN}
 						component={Keypad}
-						options={keypadOptions}
+						options={keypadOptions as unknown as BottomTabNavigationOptions}
 						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.P2P_SCREEN}
 						component={P2P}
-						options={p2pOptions}
+						options={p2pOptions as unknown as BottomTabNavigationOptions}
 						listeners={hapticTabListeners}
 					/>
 
 					<Tab.Screen
 						name={ROUTES.STORE_SCREEN}
 						component={Store}
-						options={storeOptions}
+						options={storeOptions as unknown as BottomTabNavigationOptions}
 						listeners={hapticTabListeners}
 					/>
 

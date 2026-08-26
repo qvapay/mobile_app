@@ -25,7 +25,29 @@ import { useQuery } from '@tanstack/react-query'
 
 // IAP
 import { useIAP } from 'react-native-iap'
+import type { Product, Purchase } from 'react-native-iap'
 import { TOPUP_SKUS, TOPUP_CATALOG, getIAPErrorMessage, isAlreadyOwnedError } from '../../helpers/iap'
+
+// Tipos
+import type { ApiFailure, ApiSuccess } from '../../types/api'
+import type { TopupHistoryItem } from './components/TopupHistory'
+
+/** Respuesta de `GET /topup/products` (el módulo la declara `unknown`). */
+type TopupProductsResponse = { products?: { productId: string, available?: boolean }[] }
+
+/** Respuesta de `GET /topup/history`: lista suelta o envuelta en `topups`. */
+type TopupHistoryResponse = { topups?: TopupHistoryItem[] } | TopupHistoryItem[]
+
+/** Cuerpo de `POST /topup/validate-receipt` que la pantalla inspecciona. */
+type ValidateReceiptBody = { success?: boolean, pending?: boolean, error?: string }
+
+/**
+ * `Purchase` de react-native-iap 15 (OpenIAP) ya NO declara
+ * `transactionReceipt`: el recibo unificado viaja en `purchaseToken` (JWS en
+ * iOS). La lectura de abajo se conserva EXACTAMENTE como estaba y solo se tipa
+ * con este cast local — cambiarla sería tocar el flujo de consumo.
+ */
+type PurchaseWithLegacyReceipt = Purchase & { transactionReceipt?: string | null }
 
 // Números móviles cubanos: empiezan con 5, 8 dígitos locales
 const CUBAN_MOBILE = /^5\d{7}$/
@@ -56,15 +78,15 @@ const TopupScreen = () => {
 	const contentPadding = useContentPadding(30)
 
 	const [phoneNumber, setPhoneNumber] = useState('')
-	const [selectedSku, setSelectedSku] = useState(TOPUP_SKUS?.[0] || null)
-	const [recentNumbers, setRecentNumbers] = useState([])
+	const [selectedSku, setSelectedSku] = useState<string | null>(TOPUP_SKUS?.[0] || null)
+	const [recentNumbers, setRecentNumbers] = useState<string[]>([])
 	// Lecturas en React Query (la mecánica IAP de compra/consumo no se toca):
 	// disponibilidad por SKU (null = backend aún no respondió → todo disponible)
 	// e historial de recargas, que se refetchea tras cada compra confirmada
 	const availabilityQuery = useQuery({
 		queryKey: ['topup', 'availability'],
 		queryFn: async () => {
-			const data = unwrap(await topupApi.getTopupProducts())
+			const data = unwrap(await topupApi.getTopupProducts()) as TopupProductsResponse | null
 			if (!Array.isArray(data?.products)) return null
 			return Object.fromEntries(data.products.map((p) => [p.productId, p.available !== false]))
 		},
@@ -75,8 +97,8 @@ const TopupScreen = () => {
 	const historyQuery = useQuery({
 		queryKey: ['topup', 'history'],
 		queryFn: async () => {
-			const data = unwrap(await topupApi.getTopupHistory())
-			return data?.topups || data || []
+			const data = unwrap(await topupApi.getTopupHistory()) as TopupHistoryResponse | null
+			return (data as { topups?: TopupHistoryItem[] })?.topups || (data as TopupHistoryItem[]) || []
 		},
 		placeholderData: previous => previous,
 	})
@@ -86,7 +108,7 @@ const TopupScreen = () => {
 	const [isPurchasing, setIsPurchasing] = useState(false)
 
 	// Teléfono E.164 de la compra en vuelo (el estado puede cambiar durante el sheet nativo)
-	const pendingPhoneRef = useRef(null)
+	const pendingPhoneRef = useRef<string | null>(null)
 	// La recuperación de compras sin consumir corre una sola vez por montaje
 	const recoveredRef = useRef(false)
 	// Evita recuperaciones concurrentes (mount + already-owned a la vez)
@@ -95,7 +117,7 @@ const TopupScreen = () => {
 	const phoneDigits = phoneNumber.replace(/\D/g, '')
 	const phoneValid = CUBAN_MOBILE.test(phoneDigits)
 
-	const saveRecentNumber = useCallback(async (phone) => {
+	const saveRecentNumber = useCallback(async (phone: string) => {
 		setRecentNumbers((prev) => {
 			const next = [phone, ...prev.filter((p) => p !== phone)].slice(0, MAX_RECENT_NUMBERS)
 			AsyncStorage.setItem(RECENT_NUMBERS_KEY, JSON.stringify(next)).catch(() => { })
@@ -104,19 +126,24 @@ const TopupScreen = () => {
 	}, [])
 
 	// Valida el receipt con backend y, solo si la recarga se confirma, consume la compra
-	const handleValidatedPurchase = useCallback(async (purchase, phoneE164) => {
-		const receipt = Platform.OS === 'ios' ? purchase.transactionReceipt : purchase.purchaseToken
+	const handleValidatedPurchase = useCallback(async (purchase: Purchase, phoneE164: string | null) => {
+		// Ver PurchaseWithLegacyReceipt: `transactionReceipt` salió del tipo en
+		// react-native-iap 15; la lectura se conserva igual y solo se tipa
+		const receipt = Platform.OS === 'ios' ? (purchase as PurchaseWithLegacyReceipt).transactionReceipt : purchase.purchaseToken
 		if (!receipt) return
 
 		const result = await topupApi.validateTopupReceipt({
 			receipt,
-			platform: Platform.OS,
+			platform: Platform.OS as 'ios' | 'android',
 			productId: purchase.productId || purchase.id,
-			transactionId: purchase.transactionId || purchase.id || purchase.purchaseToken,
-			phoneNumber: phoneE164,
+			transactionId: (purchase.transactionId || purchase.id || purchase.purchaseToken) as string,
+			phoneNumber: phoneE164 as string,
 		})
 
-		if (result.success && result.data?.success) {
+		// El contrato de api/ es una unión discriminada (éxito trae `data`, fallo
+		// trae `error`) y esta pantalla lee ambos lados sin estrechar, igual que
+		// antes: casts locales sobre el MISMO objeto
+		if (result.success && (result.data as ValidateReceiptBody | undefined)?.success) {
 			const { finishTransaction } = require('react-native-iap')
 			await finishTransaction({ purchase, isConsumable: true })
 			await AsyncStorage.removeItem(PENDING_PHONE_KEY).catch(() => { })
@@ -129,14 +156,14 @@ const TopupScreen = () => {
 			})
 			if (phoneE164) saveRecentNumber(phoneE164)
 			loadHistory()
-		} else if (result.data?.pending || result.status === 202) {
+		} else if ((result as ApiSuccess<ValidateReceiptBody>).data?.pending || result.status === 202) {
 			// NO consumir: el backend consume server-side cuando la recarga se confirme
 			toast.info(t('topup.index.toasts.pending.title'), {
 				description: t('topup.index.toasts.pending.description'),
 			})
 			loadHistory()
 		} else {
-			toast.error(result.error || result.data?.error || t('topup.index.toasts.validateFailed'))
+			toast.error((result as ApiFailure).error || (result as ApiSuccess<ValidateReceiptBody>).data?.error || t('topup.index.toasts.validateFailed'))
 		}
 	}, [saveRecentNumber, loadHistory, t])
 
@@ -151,7 +178,7 @@ const TopupScreen = () => {
 			const { getAvailablePurchases } = require('react-native-iap')
 			const purchases = await getAvailablePurchases()
 			const topupSkus = new Set(TOPUP_SKUS || [])
-			const orphaned = (purchases || []).filter((p) => topupSkus.has(p.productId || p.id))
+			const orphaned: Purchase[] = (purchases || []).filter((p: Purchase) => topupSkus.has(p.productId || p.id))
 			if (!orphaned.length) return 0
 			const phone = pendingPhoneRef.current || await AsyncStorage.getItem(PENDING_PHONE_KEY)
 			// Secuencial: validate-receipt tiene rate limit de 1 req/10s por usuario
@@ -190,7 +217,7 @@ const TopupScreen = () => {
 				}
 				return
 			}
-			const message = getIAPErrorMessage(error)
+			const message = getIAPErrorMessage(error as Parameters<typeof getIAPErrorMessage>[0])
 			if (message) toast.error(message)
 		},
 	})
@@ -218,14 +245,15 @@ const TopupScreen = () => {
 	}, [connected, recoverOrphanedPurchases])
 
 	// Precio localizado por SKU desde la tienda
-	const priceForSku = useCallback((sku) => {
-		const product = products?.find((p) => (p.id || p.productId) === sku)
+	const priceForSku = useCallback((sku: string) => {
+		// `productId` es el alias legacy de `id` en el tipo Product de OpenIAP
+		const product = products?.find((p) => ((p as Product & { productId?: string }).id || (p as Product & { productId?: string }).productId) === sku)
 		return product?.displayPrice
 	}, [products])
 
 	const selectedPrice = selectedSku ? priceForSku(selectedSku) : null
 
-	const skuUnavailable = useCallback((sku) => availability != null && availability[sku] === false, [availability])
+	const skuUnavailable = useCallback((sku: string) => availability != null && availability[sku] === false, [availability])
 
 	const canBuy = useMemo(
 		() => phoneValid && !!selectedSku && connected && !isPurchasing && !skuUnavailable(selectedSku),
@@ -253,12 +281,12 @@ const TopupScreen = () => {
 			})
 		} catch (error) {
 			setIsPurchasing(false)
-			const message = getIAPErrorMessage(error)
+			const message = getIAPErrorMessage(error as Parameters<typeof getIAPErrorMessage>[0])
 			if (message) toast.error(message)
 		}
 	}, [phoneValid, selectedSku, phoneDigits, user?.uuid, requestPurchase, t])
 
-	const handlePickRecent = useCallback((phone) => {
+	const handlePickRecent = useCallback((phone: string) => {
 		setPhoneNumber(String(phone).replace(/^\+53/, ''))
 	}, [])
 

@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Linking, Modal, Pressable, TextInput, useWindowDimensions } from 'react-native'
+import type { ImageStyle, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -39,10 +40,45 @@ import { timeAgo, formatMoney } from '../../helpers'
 import { sanitizeAmountInput, parseAmountInput } from '../../helpers/amountInput'
 import { useKeyboardHeight } from '../../hooks/useKeyboardHeight'
 
-// The deposit/withdraw modal is one piece of state: which operation, the amount, and its loading flag
-const initialModal = { type: null, amount: '', loading: false }
+// Tipos
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../../types/navigation'
+import type { Theme } from '../../theme/ThemeContext'
+import type { SavingsMovement, SavingsSummary } from '../../types/domain'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
-function modalReducer(state, action) {
+type SavingsProps = NativeStackScreenProps<RootStackParamList, 'Savings'>
+
+/**
+ * `StyleSheet.create` es una función IDENTIDAD, pero su tipo solo admite
+ * objetos de estilo; esta hoja mezcla estáticos con builders que reciben el
+ * theme (`cardBorder(theme)`). El alias tipado los deja convivir sin tocar el
+ * runtime: se sigue emitiendo `StyleSheet.create({ … })`.
+ */
+type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: Theme) => ViewStyle)>
+
+/**
+ * OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así que
+ * la comparación contra 'light' es siempre falsa en runtime y el borde claro de
+ * las cards nunca se pinta. Se conserva tal cual con un cast local.
+ */
+const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
+
+/** Operación abierta en el modal (null = cerrado). */
+type ModalType = 'deposit' | 'withdraw' | null
+
+type ModalState = { type: ModalType, amount: string, loading: boolean }
+
+type ModalAction =
+	| { type: 'open', modalType: Exclude<ModalType, null> }
+	| { type: 'close' }
+	| { type: 'setAmount', amount: string }
+	| { type: 'setLoading', loading: boolean }
+
+// The deposit/withdraw modal is one piece of state: which operation, the amount, and its loading flag
+const initialModal: ModalState = { type: null, amount: '', loading: false }
+
+function modalReducer(state: ModalState, action: ModalAction): ModalState {
 	switch (action.type) {
 		case 'open':
 			return { type: action.modalType, amount: '', loading: false }
@@ -65,7 +101,7 @@ function modalReducer(state, action) {
  * centered card modal, then refresh both the savings summary and the wallet balance.
  * The balance can be negative (admin-managed debt) — rendered in danger color.
  */
-const Savings = ({ route }) => {
+const Savings = ({ route }: SavingsProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -80,7 +116,9 @@ const Savings = ({ route }) => {
 	const queryClient = useQueryClient()
 	const summaryQuery = useSavingsSummaryQuery()
 	const movementsQuery = useSavingsMovementsQuery(20)
-	const savings = summaryQuery.data || route.params?.savings || null
+	// `route.params.savings` está modelado como `Record<string, unknown>` en
+	// types/navigation: es el mismo resumen que la query — cast local
+	const savings = summaryQuery.data || (route.params?.savings as SavingsSummary | undefined) || null
 	const transactions = movementsQuery.data || []
 	const isLoading = !savings && summaryQuery.isPending
 
@@ -94,7 +132,7 @@ const Savings = ({ route }) => {
 	// Gate de KYC — el backend rechaza depósitos y retiros de ahorro sin KYC
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
 
-	const openModal = (type) => {
+	const openModal = (type: Exclude<ModalType, null>) => {
 		if (!requireKyc({ message: t('invest.savings.kycGateMessage') })) return
 		dispatchModal({ type: 'open', modalType: type })
 	}
@@ -143,7 +181,7 @@ const Savings = ({ route }) => {
 				toast.error(res.error || t('invest.savings.toasts.operationError'))
 			}
 		} catch (e) {
-			toast.error(e.message || t('invest.savings.toasts.networkError'))
+			toast.error((e as Error)?.message || t('invest.savings.toasts.networkError'))
 		} finally { dispatchModal({ type: 'setLoading', loading: false }) }
 	}
 
@@ -199,7 +237,7 @@ const Savings = ({ route }) => {
 
 				{/* Stats */}
 				{(Number(totalDeposited) > 0 || Number(totalWithdrawn) > 0 || Number(totalEarned) > 0) && (
-					<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
+					<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
 						<StatRow label={t('invest.savings.totalDeposited')} value={`$${totalDeposited}`} theme={theme} />
 						<StatRow label={t('invest.savings.totalWithdrawn')} value={`$${totalWithdrawn}`} theme={theme} />
 						<StatRow label={t('invest.savings.earnings')} value={`$${totalEarned}`} theme={theme} valueColor={theme.colors.successText} isLast />
@@ -212,7 +250,7 @@ const Savings = ({ route }) => {
 				{/* Activity */}
 				<Text style={[textStyles.h3, styles.sectionTitle]}>{t('invest.savings.activity')}</Text>
 				{transactions.length > 0 ? (
-					<View style={[styles.activityCard, { backgroundColor: theme.colors.surface }, theme.mode === 'light' && styles.cardBorder(theme)]}>
+					<View style={[styles.activityCard, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
 						{transactions.map((tx, index) => (
 							<ActivityRow key={tx.id} tx={tx} theme={theme} isLast={index === transactions.length - 1} />
 						))}
@@ -325,12 +363,13 @@ const Savings = ({ route }) => {
 				</Pressable>
 			</Modal>
 
-			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
+			{/* `useKycGate` entrega `string | null` y el modal declara `string | undefined`: cast local */}
+			<KycGateModal visible={gateVisible} message={gateMessage as string | undefined} onClose={closeGate} />
 		</View>
 	)
 }
 
-const StatRow = ({ label, value, theme, valueColor, isLast }) => (
+const StatRow = ({ label, value, theme, valueColor, isLast }: { label: string, value: string, theme: Theme, valueColor?: string, isLast?: boolean }) => (
 	<View style={[styles.statRow, !isLast && styles.statBorder(theme)]}>
 		<Text style={[styles.statLabel, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{label}</Text>
 		<Text style={[styles.statValue, { color: valueColor || theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{value}</Text>
@@ -338,13 +377,13 @@ const StatRow = ({ label, value, theme, valueColor, isLast }) => (
 )
 
 // Las etiquetas son claves i18n resueltas en render (constante de módulo)
-const txConfig = {
+const txConfig: Record<string, { icon: FontAwesome6SolidIconName, color: string, labelKey: string }> = {
 	deposit: { icon: 'arrow-down', color: '#10B981', labelKey: 'invest.savings.txTypes.deposit' },
 	withdrawal: { icon: 'arrow-up', color: '#F59E0B', labelKey: 'invest.savings.txTypes.withdrawal' },
 	earning: { icon: 'coins', color: '#8B5CF6', labelKey: 'invest.savings.txTypes.earning' },
 }
 
-const ActivityRow = ({ tx, theme, isLast }) => {
+const ActivityRow = ({ tx, theme, isLast }: { tx: SavingsMovement, theme: Theme, isLast: boolean }) => {
 	const { t } = useTranslation()
 	const config = txConfig[tx.type] || txConfig.deposit
 	const isPositive = tx.type === 'deposit' || tx.type === 'earning'
@@ -366,7 +405,7 @@ const ActivityRow = ({ tx, theme, isLast }) => {
 	)
 }
 
-const styles = StyleSheet.create({
+const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	scroll: {
 		flex: 1,
 	},
@@ -413,7 +452,7 @@ const styles = StyleSheet.create({
 		padding: 12,
 		marginBottom: 8,
 	},
-	cardBorder: (theme) => ({
+	cardBorder: (theme: Theme) => ({
 		borderWidth: 1,
 		borderColor: theme.colors.border,
 	}),
@@ -423,7 +462,7 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		paddingVertical: 10,
 	},
-	statBorder: (theme) => ({
+	statBorder: (theme: Theme) => ({
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: theme.colors.border + '60',
 	}),

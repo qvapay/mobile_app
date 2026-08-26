@@ -32,6 +32,18 @@ import { toast } from 'sonner-native'
 // Amount input logic (pure, unit-tested in keypadAmount.test.js)
 import { applyKeypadKey } from './keypadAmount'
 
+// Tipos
+import type { CompositeScreenProps } from '@react-navigation/native'
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { MainTabParamList, RootStackParamList } from '../../types/navigation'
+
+/** Keypad es un tab de MainStack que navega a rutas del stack raíz (Send/Receive/NearbyPay). */
+type KeypadProps = CompositeScreenProps<
+	BottomTabScreenProps<MainTabParamList, 'Keypad'>,
+	NativeStackScreenProps<RootStackParamList>
+>
+
 // Constants
 const MIN_FONT_SIZE = 40
 const MAX_FONT_SIZE = 80
@@ -40,13 +52,13 @@ const VIBRATION_DURATION = 50
 
 /**
  * Calculator-style amount pad (center bottom tab) used to start a payment.
- * Pure key handling lives in `keypadAmount.js` (unit-tested); this screen only
+ * Pure key handling lives in `keypadAmount.ts` (unit-tested); this screen only
  * validates the amount against the user's balance and routes to Send
  * (`ROUTES.SEND`, param `send_amount`) or Receive (`ROUTES.RECEIVE`, param
  * `receive_amount`) — it performs no API calls itself.
  * The amount font shrinks as digits grow; key presses vibrate on iOS only.
  */
-export default function Keypad({ navigation }) {
+export default function Keypad({ navigation }: KeypadProps) {
 
 	// Contexts
 	const { user } = useAuth()
@@ -79,7 +91,7 @@ export default function Keypad({ navigation }) {
 	}, [])
 
 	// Calculate font size based on amount length
-	const calculateFontSize = useCallback((currentAmount) => {
+	const calculateFontSize = useCallback((currentAmount: string) => {
 		const baseSize = MAX_FONT_SIZE
 		const decreaseFactor = FONT_SIZE_DECREASE_FACTOR
 		// Count only numeric characters for font size calculation
@@ -89,12 +101,12 @@ export default function Keypad({ navigation }) {
 	}, [])
 
 	// Update font size
-	const animateFontSize = useCallback((newSize) => {
+	const animateFontSize = useCallback((newSize: number) => {
 		setFontSize(newSize)
 	}, [])
 
 	// Handle key press
-	const handleKeyPress = useCallback((key) => {
+	const handleKeyPress = useCallback((key: string) => {
 
 		triggerHapticFeedback()
 
@@ -139,7 +151,9 @@ export default function Keypad({ navigation }) {
 			return
 		}
 
-		if (user?.balance && numericAmount > user.balance) {
+		// `balance` es Decimal (string | number según endpoint): la comparación
+		// se deja EXACTA — JS coacciona el string — y solo se tipa el operando
+		if (user?.balance && numericAmount > (user.balance as number)) {
 			toast.error(t('keypad.toasts.insufficientBalance.title'), { description: t('keypad.toasts.insufficientBalance.description') })
 			return
 		}
@@ -167,7 +181,7 @@ export default function Keypad({ navigation }) {
 	}, [amount, navigation])
 
 	// Render individual key
-	const renderKey = useCallback((key, index) => {
+	const renderKey = useCallback((key: string, index: number) => {
 
 		const isBackspace = key === 'backspace'
 		const accessibilityLabel = isBackspace ? t('keypad.a11y.deleteKeyLabel') : t('keypad.a11y.numberKeyLabel', { digit: key })

@@ -15,10 +15,9 @@ const MAX_DECIMAL_PLACES = 2   // currency → 2 decimals
  * Is `next` (the candidate amount after pressing a digit key) acceptable?
  * Enforces the digit limit on the INTEGER part only and at most 2 decimals;
  * rejects a bare "0" so a digit press can't produce "00".
- * @param {string} next - Candidate amount string, e.g. "123.4".
- * @returns {boolean}
+ * @param next - Candidate amount string, e.g. "123.4".
  */
-export function isValidNumericAmount(next) {
+export function isValidNumericAmount(next: string): boolean {
 
 	// Reject a bare "0" — prevents "00" and staying at zero via a digit press.
 	if (next === '0') { return false }
@@ -35,14 +34,16 @@ export function isValidNumericAmount(next) {
 	return true
 }
 
+/** Tecla del keypad: un dígito, el punto decimal o el borrado. */
+export type KeypadKey = string
+
 /**
  * Given the current amount string and a pressed key, returns the next amount
  * string. Returns the amount UNCHANGED when the key is rejected.
- * @param {string} amount - Current amount; "0" represents empty.
- * @param {string} key - '0'-'9' | '.' | 'backspace'.
- * @returns {string}
+ * @param amount - Current amount; "0" represents empty.
+ * @param key - '0'-'9' | '.' | 'backspace'.
  */
-export function applyKeypadKey(amount, key) {
+export function applyKeypadKey(amount: string, key: KeypadKey): string {
 
 	// Backspace only ever shortens — never blocked. Falls back to "0" when emptied.
 	if (key === 'backspace') { return amount.slice(0, -1) || '0' }

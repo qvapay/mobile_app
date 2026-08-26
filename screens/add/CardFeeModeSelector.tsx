@@ -11,6 +11,21 @@ import { cardDepositPreview } from '../../helpers/cardFeeMode'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+// Tipos
+import type { CardFeeMode } from '../../helpers/cardFeeMode'
+
+type CardFeeModeSelectorProps = {
+	/** Porcentaje de fee aplicable (ya resuelto por tier GOLD). */
+	feeRate: number
+	/** Monto tecleado, tal cual llega del input. */
+	amount: string
+	value: CardFeeMode
+	onChange: (mode: CardFeeMode) => void
+}
+
+/** Preview en vivo que devuelve `cardDepositPreview` (null sin monto válido). */
+type FeePreview = { pays: number, credited: number } | null
+
 /**
  * Selector del modo de fee para depósitos con tarjeta (paridad con el wizard
  * web de /topup): dos radio-cards — "Fee aparte" (se suma al cobro, default) y
@@ -21,24 +36,24 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
  * Solo se pinta cuando el método elegido es CARD y el fee aplicable es > 0
  * (esa condición vive en Add.jsx).
  */
-const CardFeeModeSelector = ({ feeRate, amount, value, onChange }) => {
+const CardFeeModeSelector = ({ feeRate, amount, value, onChange }: CardFeeModeSelectorProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 
-	const options = [
+	const options: { mode: CardFeeMode, title: string, subtitle: (p: FeePreview) => string }[] = [
 		{
 			mode: 'on_top',
 			title: t('add.feeMode.onTopTitle'),
-			subtitle: (p) => p
+			subtitle: (p: FeePreview) => p
 				? t('add.feeMode.preview', { pays: p.pays.toFixed(2), credited: p.credited.toFixed(2) })
 				: t('add.feeMode.onTopHint', { rate: feeRate }),
 		},
 		{
 			mode: 'included',
 			title: t('add.feeMode.includedTitle'),
-			subtitle: (p) => p
+			subtitle: (p: FeePreview) => p
 				? t('add.feeMode.preview', { pays: p.pays.toFixed(2), credited: p.credited.toFixed(2) })
 				: t('add.feeMode.includedHint', { rate: feeRate }),
 		},
