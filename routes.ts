@@ -118,7 +118,10 @@ export const ROUTES = {
 
 	// Terms and Conditions
 	TERMS_AND_CONDITIONS: "https://www.qvapay.com/terms"
-}
+} as const
+
+/** Union of every navigable screen name (excludes the TERMS_AND_CONDITIONS URL). */
+export type RouteName = Exclude<(typeof ROUTES)[keyof typeof ROUTES], typeof ROUTES.TERMS_AND_CONDITIONS>
 
 /**
  * Bottom-tab definitions consumed by ui/BottomBar: `key` is the tab's route
@@ -145,4 +148,4 @@ export const navItems = [
 		key: 'Store',
 		name: 'store'
 	},
-]
+] as const
