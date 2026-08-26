@@ -1,11 +1,29 @@
 import { View, Text, Pressable } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import type { FontAwesome6SolidIconName } from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
 import { reduceStringInside, copyTextToClipboard } from "../../helpers"
 
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+import type { P2POffer } from "../../types/domain"
+import type { StatusMessage } from "./useP2POfferDetail"
+
+/** Par etiqueta/valor de los datos de pago del anunciante (cuatro alias históricos). */
+type OfferDetail = { name?: string, key?: string, value?: string, val?: string }
+
+type P2POfferDetailsCardProps = {
+	p2p: P2POffer | null
+	/** Solo llega en `revision`: el resto de la guía activa vive en P2PTradeProgress. */
+	statusMessage?: StatusMessage | null
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
+
 // Detect the icon to render for a P2P offer details field by its label
-const getDetailIcon = (name) => {
+const getDetailIcon = (name: string | undefined) => {
 	const key = String(name || "").toLowerCase()
 	if (key.includes("wallet") || key.includes("dirección") || key.includes("direccion") || key.includes("address")) return "wallet"
 	if (key.includes("tarjeta") || key.includes("card")) return "credit-card"
@@ -20,7 +38,7 @@ const getDetailIcon = (name) => {
 
 // Payment-details card + TX id row + status banner (the screen only passes
 // statusMessage for `revision` — active-trade guidance lives in P2PTradeProgress).
-const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerStyles }) => {
+const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerStyles }: P2POfferDetailsCardProps) => {
 
 	const { t } = useTranslation()
 
@@ -28,7 +46,7 @@ const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerS
 		<>
 			{p2p && p2p.details && (() => {
 				const rawDetails = (p2p && (p2p.details || p2p.Details)) || null
-				const details = Array.isArray(rawDetails)
+				const details: OfferDetail[] = Array.isArray(rawDetails)
 					? rawDetails
 					: (rawDetails && typeof rawDetails === "object") ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) : []
 
@@ -79,7 +97,7 @@ const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerS
 						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
 							{p2p.tx_id}
 						</Text>
-						<Pressable onPress={() => copyTextToClipboard(p2p.tx_id)} hitSlop={8}>
+						<Pressable onPress={() => copyTextToClipboard(p2p.tx_id as string)} hitSlop={8}>
 							<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
 						</Pressable>
 					</View>
@@ -89,7 +107,8 @@ const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerS
 			{/* Status Message — prominent card with colored left border */}
 			{statusMessage && (
 				<View style={[containerStyles.card, { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 4, paddingVertical: 12, paddingHorizontal: 12, borderLeftWidth: 3, borderLeftColor: statusMessage.color }]}>
-					<FontAwesome6 name={statusMessage.icon} size={16} color={statusMessage.color} iconStyle="solid" />
+					{/* Nombre dinámico: lo compone useP2POfferDetail según el estado */}
+					<FontAwesome6 name={statusMessage.icon as FontAwesome6SolidIconName} size={16} color={statusMessage.color} iconStyle="solid" />
 					<Text style={[textStyles.h6, { color: statusMessage.color, flex: 1, fontWeight: '600' }]}>{statusMessage.text}</Text>
 				</View>
 			)}

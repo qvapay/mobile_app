@@ -30,11 +30,39 @@ import { useAuth } from "../../auth/AuthContext"
 // Routes
 import { ROUTES } from "../../routes"
 
-const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")
-const normalizeNumber = (val) => val.replace(",", ".")
+import type { NativeStackScreenProps } from "@react-navigation/native-stack"
+import type { RootStackParamList } from "../../types/navigation"
+import type { Coin, CoinWorkingField, P2POffer } from "../../types/domain"
+import type { SavedPaymentMethod, SavedMethodDetail } from "./SavedMethodsModal"
+
+/** Estado del formulario de creación (montos como string: son inputs). */
+export type P2PCreateFormState = {
+	type: "buy" | "sell"
+	amount: string
+	receive: string
+	message: string
+	advancedOpen: boolean
+	onlyVIP: boolean
+	privateOffer: boolean
+}
+
+/** Setter por campo del formulario, atado al tipo de cada uno. */
+export type SetP2PCreateField = <K extends keyof P2PCreateFormState>(field: K, value: P2PCreateFormState[K]) => void
+
+/** Slice del selector de moneda. */
+type CoinState = { availableCoins: Coin[], selectedCoin: Coin | null, showCoinPicker: boolean }
+
+/** Slice del picker de métodos guardados. */
+type SavedState = { showSavedMethods: boolean, savedMethods: SavedPaymentMethod[], savedMethodsLoading: boolean }
+
+/** Acción genérica del reducer de campo, atada a las claves del slice que gobierna. */
+type SetFieldAction<S> = { [K in keyof S]: { type: "set", field: K, value: S[K] } }[keyof S]
+
+const keyFromFieldName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")
+const normalizeNumber = (val: string) => val.replace(",", ".")
 
 // Generic field setter for the related-state slices below
-function setFieldReducer(state, action) {
+function setFieldReducer<S extends object>(state: S, action: SetFieldAction<S>): S {
 	switch (action.type) {
 		case "set":
 			return { ...state, [action.field]: action.value }
@@ -51,7 +79,7 @@ function setFieldReducer(state, action) {
  * (`GET /user/payment-methods`). Gated by `user.p2p_enabled` (P2PRequirementsGate);
  * on 201 it navigates straight to the created offer (P2POffer).
  */
-const P2PCreate = ({ navigation }) => {
+const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P2PCreate'>) => {
 
 	// Idioma activo
 	const { t } = useTranslation()
@@ -66,27 +94,28 @@ const P2PCreate = ({ navigation }) => {
 	const containerStyles = createContainerStyles(theme)
 
 	// Offer form
-	const [form, dispatchForm] = useReducer(setFieldReducer, { type: "buy", amount: "", receive: "", message: "", advancedOpen: false, onlyVIP: false, privateOffer: false })
+	const [form, dispatchForm] = useReducer(setFieldReducer<P2PCreateFormState>, { type: "buy", amount: "", receive: "", message: "", advancedOpen: false, onlyVIP: false, privateOffer: false } as P2PCreateFormState)
 	const { type, amount, receive, message, onlyVIP, privateOffer } = form
-	const setFormField = (field, value) => dispatchForm({ type: "set", field, value })
+	const setFormField: SetP2PCreateField = (field, value) => dispatchForm({ type: "set", field, value } as SetFieldAction<P2PCreateFormState>)
 
 	// Coins selector (same-named setters keep call sites unchanged)
-	const [coin, dispatchCoin] = useReducer(setFieldReducer, { availableCoins: [], selectedCoin: null, showCoinPicker: false })
+	const [coin, dispatchCoin] = useReducer(setFieldReducer<CoinState>, { availableCoins: [], selectedCoin: null, showCoinPicker: false } as CoinState)
 	const { availableCoins, selectedCoin, showCoinPicker } = coin
-	const setAvailableCoins = (value) => dispatchCoin({ type: "set", field: "availableCoins", value })
-	const setSelectedCoin = (value) => dispatchCoin({ type: "set", field: "selectedCoin", value })
-	const setShowCoinPicker = (value) => dispatchCoin({ type: "set", field: "showCoinPicker", value })
+	const setAvailableCoins = (value: Coin[]) => dispatchCoin({ type: "set", field: "availableCoins", value })
+	const setSelectedCoin = (value: Coin | null) => dispatchCoin({ type: "set", field: "selectedCoin", value })
+	const setShowCoinPicker = (value: boolean) => dispatchCoin({ type: "set", field: "showCoinPicker", value })
 
 	// Saved payment methods picker
-	const [saved, dispatchSaved] = useReducer(setFieldReducer, { showSavedMethods: false, savedMethods: [], savedMethodsLoading: false })
+	const [saved, dispatchSaved] = useReducer(setFieldReducer<SavedState>, { showSavedMethods: false, savedMethods: [], savedMethodsLoading: false } as SavedState)
 	const { showSavedMethods, savedMethods, savedMethodsLoading } = saved
-	const setShowSavedMethods = (value) => dispatchSaved({ type: "set", field: "showSavedMethods", value })
-	const setSavedMethods = (value) => dispatchSaved({ type: "set", field: "savedMethods", value })
-	const setSavedMethodsLoading = (value) => dispatchSaved({ type: "set", field: "savedMethodsLoading", value })
+	const setShowSavedMethods = (value: boolean) => dispatchSaved({ type: "set", field: "showSavedMethods", value })
+	const setSavedMethods = (value: SavedPaymentMethod[]) => dispatchSaved({ type: "set", field: "savedMethods", value })
+	const setSavedMethodsLoading = (value: boolean) => dispatchSaved({ type: "set", field: "savedMethodsLoading", value })
 
 	const [isSending, setIsSending] = useState(false)
-	const [workingForm, setWorkingForm] = useState({})
-	const [p2pEnabled] = useState(user.p2p_enabled)
+	const [workingForm, setWorkingForm] = useState<Record<string, string>>({})
+	// El `!` es solo de tipos: la pantalla vive tras el gate de sesión iniciada
+	const [p2pEnabled] = useState(user!.p2p_enabled)
 
 	// Clave de idempotencia del intento: sobrevive a timeouts, 5xx y toques
 	// repetidos — solo rota tras éxito confirmado (evita ofertas dobles y el
@@ -94,9 +123,11 @@ const P2PCreate = ({ navigation }) => {
 	const idempotencyKeyRef = useRef(makeIdempotencyKey())
 
 	// Button label derived from type + amount
+	// `amount` es el string del input y se compara con 0 por coerción (JS lo hace
+	// numérico): los casts preservan esa comparación tal cual, sin envolver en Number()
 	const buttonText = type === "buy"
-		? t('p2p.create.buyButton', { amount: amount > 0 ? "$" + amount : "" })
-		: t('p2p.create.sellButton', { amount: amount > 0 ? "$" + amount : "" })
+		? t('p2p.create.buyButton', { amount: (amount as unknown as number) > 0 ? "$" + amount : "" })
+		: t('p2p.create.sellButton', { amount: (amount as unknown as number) > 0 ? "$" + amount : "" })
 
 	// Catálogo desde la caché compartida (useCoins): sin espera al abrir
 	useEffect(() => {
@@ -104,14 +135,14 @@ const P2PCreate = ({ navigation }) => {
 	}, [coinCatalog])
 
 	// Handle coin selection
-	const handleCoinSelect = (selected) => {
+	const handleCoinSelect = (selected: Coin) => {
 		setSelectedCoin(selected)
 		setShowCoinPicker(false)
 		setWorkingForm({})
 	}
 
 	// Working data parsing (same logic as Withdraw)
-	const workingFields = useMemo(() => {
+	const workingFields = useMemo<CoinWorkingField[]>(() => {
 		if (!selectedCoin || !selectedCoin.working_data) { return [] }
 		try {
 			const raw = typeof selectedCoin.working_data === "string" ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
@@ -183,7 +214,9 @@ const P2PCreate = ({ navigation }) => {
 						? t('p2p.create.toasts.createdDuplicate')
 						: t('p2p.create.toasts.created'),
 				})
-				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: res.data.p2p.uuid })
+				// OJO: el backend envuelve la oferta creada en `{ p2p }`, pero p2pApi.create
+				// la tipa como la oferta PELADA — cast local, sin tocar el tipo compartido
+				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: (res.data as unknown as { p2p: P2POffer }).p2p.uuid })
 			} else if (isNetworkFailure(res)) {
 				toast.error(t('p2p.create.toasts.networkError'), { description: `${res.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {
@@ -192,7 +225,7 @@ const P2PCreate = ({ navigation }) => {
 			}
 
 		} catch (err) {
-			toast.error(t('p2p.create.toasts.createErrorTitle'), { description: err.message })
+			toast.error(t('p2p.create.toasts.createErrorTitle'), { description: (err as Error).message })
 		} finally { setIsSending(false) }
 	}
 
@@ -206,40 +239,42 @@ const P2PCreate = ({ navigation }) => {
 		userApi.getPaymentMethods()
 			.then((res) => {
 				if (res.success) {
-					const raw = Array.isArray(res.data) ? res.data : (res.data?.methods || [])
+					// userApi.getPaymentMethods tipa `data` genérico: el array llega pelado
+					// o envuelto en `{ methods }` según la versión del backend
+					const raw: SavedPaymentMethod[] = Array.isArray(res.data) ? res.data as SavedPaymentMethod[] : ((res.data as { methods?: SavedPaymentMethod[] } | undefined)?.methods || [])
 					const filtered = raw.filter((m) => {
-						const tick = m?.coin?.tick || m?.tick || m?.coin || m?.ticker
+						const tick = (m?.coin as { tick?: string } | undefined)?.tick || m?.tick || m?.coin || m?.ticker
 						return String(tick || "").toLowerCase() === String(selectedCoin?.tick || "").toLowerCase()
 					})
 					setSavedMethods(filtered)
 					setShowSavedMethods(true)
 				} else { toast.error(res.error || t('p2p.create.toasts.methodsLoadFailed')) }
 			})
-			.catch((e) => { toast.error(e.message || t('p2p.create.toasts.networkError')) })
+			.catch((e: Error) => { toast.error(e.message || t('p2p.create.toasts.networkError')) })
 			.finally(() => setSavedMethodsLoading(false))
 	}
 
 	// Apply saved method into working form
-	const handleSelectSavedMethod = (method) => {
+	const handleSelectSavedMethod = (method: SavedPaymentMethod) => {
 		try {
 			const rawDetails = (method && (method.details || method.Details)) || null
-			let detailsArray = []
+			let detailsArray: SavedMethodDetail[] = []
 			if (Array.isArray(rawDetails)) {
 				detailsArray = rawDetails.map((d) => ({ name: d.name || d.key, value: String(d.value ?? d.val ?? "") }))
 			} else if (rawDetails && typeof rawDetails === "object") { detailsArray = Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) }
-			const nextForm = {}
+			const nextForm: Record<string, string> = {}
 			workingFields.forEach((field) => {
 				const key = keyFromFieldName(field.name)
 				const found = detailsArray.find((d) => String(d.name).toLowerCase() === String(field.name).toLowerCase())
-				nextForm[key] = found ? found.value : ""
+				nextForm[key] = found ? found.value! : ""
 			})
 			setWorkingForm(nextForm)
 			setShowSavedMethods(false)
-		} catch (e) { toast.error(e.message || t('p2p.create.toasts.methodApplyFailed')) }
+		} catch (e) { toast.error((e as Error).message || t('p2p.create.toasts.methodApplyFailed')) }
 	}
 
 	if (!p2pEnabled) {
-		return <P2PRequirementsGate user={user} navigation={navigation} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
+		return <P2PRequirementsGate user={user!} navigation={navigation} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
 	}
 
 	return (
@@ -267,7 +302,7 @@ const P2PCreate = ({ navigation }) => {
 					onChangeWorkingField={(key, value) => setWorkingForm((prev) => ({ ...prev, [key]: value }))}
 					onOpenCoinPicker={() => setShowCoinPicker(true)}
 					onLaunchSavedMethods={lauchSavedPaymentMethods}
-					user={user}
+					user={user!}
 					theme={theme}
 					textStyles={textStyles}
 					containerStyles={containerStyles}

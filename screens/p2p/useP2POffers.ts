@@ -14,15 +14,41 @@ import { toast } from "sonner-native"
 // al cambiar de idioma
 import i18n from "../../i18n"
 
+import type { P2PIndexFilters } from "../../api/p2pApi"
+import type { P2POffer } from "../../types/domain"
+
 const PAGE_SIZE = 30
+
+/** Estado de la lista del marketplace (paginación y guardas viven en refs, fuera de aquí). */
+type ListState = {
+	p2pOffers: P2POffer[]
+	isLoading: boolean
+	error: string | null
+	refreshing: boolean
+}
+
+/**
+ * Acciones del reducer como unión discriminada. `start.kind` distingue las tres
+ * entradas posibles: tirón del usuario, scroll infinito y carga inicial.
+ */
+type ListAction =
+	| { type: "start", kind: "refresh" | "more" | "initial" }
+	| { type: "setOffers", offers: P2POffer[] }
+	| { type: "hydrate", offers: P2POffer[] | null | undefined }
+	| { type: "appendOffers", offers: P2POffer[] }
+	| { type: "error", error: string }
+	| { type: "finish" }
+
+/** Petición que llegó mientras había otra en vuelo (coalescing). */
+type PendingFetch = { pageNum: number, isRefresh: boolean }
 
 // Espera antes de refetchear al cambiar filtros: agrupa los toques seguidos en
 // una sola petición (el índice permite 10/min por usuario)
 const FILTER_DEBOUNCE_MS = 350
 
-const initialList = { p2pOffers: [], isLoading: false, error: null, refreshing: false }
+const initialList: ListState = { p2pOffers: [], isLoading: false, error: null, refreshing: false }
 
-function listReducer(state, action) {
+function listReducer(state: ListState, action: ListAction): ListState {
 	switch (action.type) {
 		case "start":
 			// kind: 'refresh' | 'more' | 'initial'
@@ -56,19 +82,23 @@ function listReducer(state, action) {
  * `my` filter active, the user's own offers are pushed to the home-screen widget
  * (helpers/widgetBridge).
  *
- * @param {object} params
- * @param {object} params.apiFilters - Query params from useP2PFilters; read through a ref, so a changed
+ * @param params.apiFilters - Query params from useP2PFilters; read through a ref, so a changed
  *   object alone does NOT refetch — refreshes are driven by `quickKey` or explicit calls.
- * @param {boolean} params.p2pEnabled - Gate from user settings; nothing is fetched while false.
- * @param {string} params.quickKey - Key derived from the quick filters (type, coin, sort, showMine);
+ * @param params.p2pEnabled - Gate from user settings; nothing is fetched while false.
+ * @param params.quickKey - Key derived from the quick filters (type, coin, sort, showMine);
  *   a change auto-refreshes page 1 (skipped on first render — the mount effect covers it).
- * @returns {object} List API:
+ * @returns List API:
  *   `p2pOffers`, `isLoading` (initial/load-more), `error`, `refreshing`,
  *   `availableCoins` + `loadingCoins` (coin picker),
  *   `fetchP2POffers(pageNum, isRefresh)` (used by the screen to apply modal filters),
  *   `onRefresh` (pull-to-refresh) and `handleLoadMore` (list end reached).
  */
-export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
+export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
+	apiFilters: P2PIndexFilters
+	/** `user.p2p_enabled` llega del backend como boolean o 0/1. */
+	p2pEnabled?: boolean | number
+	quickKey: string
+}) {
 
 	const [list, dispatchList] = useReducer(listReducer, initialList)
 	const { p2pOffers, isLoading, error, refreshing } = list
@@ -83,7 +113,7 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	apiFiltersRef.current = apiFilters
 	const inFlightRef = useRef(false)
 	// Última petición que llegó mientras había otra en vuelo
-	const pendingFetchRef = useRef(null)
+	const pendingFetchRef = useRef<PendingFetch | null>(null)
 	// Flipped on the first successful fetch — blocks late cache hydration
 	const hasFreshOffersRef = useRef(false)
 
@@ -101,7 +131,7 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	const marketAverages = averagesQuery.data || null
 
 	// Get the Latest P2P Offers
-	const fetchP2POffers = useCallback(async (pageNum = 1, isRefresh = false) => {
+	const fetchP2POffers = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
 		// Si ya hay uno en vuelo, en vez de descartar la petición se anota como
 		// pendiente y se relanza al terminar: cambiar de filtro mientras carga
 		// dejaba la lista mostrando el filtro anterior
@@ -163,14 +193,14 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }) {
 	// React puede descartar o repetir un render, y una escritura de ref hecha
 	// ahí se escaparía de trabajo que nunca llega a pintarse. Va antes que los
 	// efectos que disparan fetch, así que ya está puesta cuando hacen falta.
-	const fetchRef = useRef(null)
+	const fetchRef = useRef<typeof fetchP2POffers | null>(null)
 	useEffect(() => { fetchRef.current = fetchP2POffers })
 
 	// Cold-start hydration: paint the cached marketplace while the fetch
 	// revalidates (el snapshot llega restaurado por el persister global)
 	useEffect(() => {
 		if (!p2pEnabled) return
-		const offers = queryClient.getQueryData(P2P_OFFERS_SNAPSHOT_KEY)
+		const offers = queryClient.getQueryData<P2POffer[]>(P2P_OFFERS_SNAPSHOT_KEY)
 		if (offers && !hasFreshOffersRef.current) { dispatchList({ type: "hydrate", offers }) }
 	}, [p2pEnabled, queryClient])
 

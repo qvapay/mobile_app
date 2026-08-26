@@ -4,8 +4,21 @@ import { useTranslation } from "react-i18next"
 
 import QPButton from "../../ui/particles/QPButton"
 
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+
+type P2PApplyModalProps = {
+	visible: boolean
+	onClose: () => void
+	onConfirm: () => void
+	loading?: boolean
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
+
 // Confirmation modal before applying to an offer (prevents accidental taps).
-const P2PApplyModal = ({ visible, onClose, onConfirm, loading, theme, textStyles, containerStyles }) => {
+const P2PApplyModal = ({ visible, onClose, onConfirm, loading, theme, textStyles, containerStyles }: P2PApplyModalProps) => {
 
 	const { t } = useTranslation()
 

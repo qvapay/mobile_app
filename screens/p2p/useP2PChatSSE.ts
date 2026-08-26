@@ -1,9 +1,23 @@
 import { useState, useEffect, useRef } from "react"
+import type { MutableRefObject } from "react"
 import { AppState } from "react-native"
 import EventSource from "react-native-sse"
 
 import config from "../../config"
 import { getAuthToken } from "../../api/client"
+
+import type { ChatMessage } from "./useP2PChat"
+
+/** Tipos de evento propios del stream (además de los estándar de react-native-sse). */
+type ChatStreamEvent = "init"
+
+/** Dependencias inyectadas en el gestor imperativo del stream. */
+type ChatStreamParams = {
+	p2p_uuid: string
+	setConnected: (value: boolean) => void
+	fetchChat: () => void
+	appendMessage: (message: ChatMessage) => void
+}
 
 // Mirrors the web fallback scheme (app/(dashboard)/p2p/[uuid]/chat.js in qpweb)
 const INIT_TIMEOUT_MS = 5000 // no `init` event within this window → assume the stream is down
@@ -18,25 +32,23 @@ const ACTIVE_STATUSES = ["open", "processing", "paid"]
  * down in `dispose()`. Lives outside the hook so the effect owns a single
  * resource with a single cleanup.
  *
- * @param {object} params
- * @param {string} params.p2p_uuid - Offer UUID.
- * @param {function} params.setConnected - Receives the stream-connected boolean.
- * @param {function} params.fetchChat - Full history refetch (catch-up + fallback poll).
- * @param {function} params.appendMessage - Appends one parsed message.
- * @returns {{ dispose: () => void }}
+ * @param params.p2p_uuid - Offer UUID.
+ * @param params.setConnected - Receives the stream-connected boolean.
+ * @param params.fetchChat - Full history refetch (catch-up + fallback poll).
+ * @param params.appendMessage - Appends one parsed message.
  */
-function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }) {
+function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }: ChatStreamParams): { dispose: () => void } {
 
-	let es = null
-	let pollInterval = null
-	let initTimeout = null
-	let retryTimeout = null
-	let disposeTimer = null
-	let dyingEs = null
+	let es: EventSource<ChatStreamEvent> | null = null
+	let pollInterval: ReturnType<typeof setInterval> | null = null
+	let initTimeout: ReturnType<typeof setTimeout> | null = null
+	let retryTimeout: ReturnType<typeof setTimeout> | null = null
+	let disposeTimer: ReturnType<typeof setTimeout> | null = null
+	let dyingEs: EventSource<ChatStreamEvent> | null = null
 	let disposed = false
 	let appActive = AppState.currentState === "active"
 
-	const emitConnected = (value) => {
+	const emitConnected = (value: boolean) => {
 		if (!disposed) setConnected(value)
 	}
 
@@ -45,21 +57,21 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }) {
 		pollInterval = setInterval(() => { fetchChat() }, FALLBACK_POLL_MS)
 	}
 	const stopPolling = () => {
-		clearInterval(pollInterval)
+		clearInterval(pollInterval as ReturnType<typeof setInterval>)
 		pollInterval = null
 	}
 	const clearTimers = () => {
-		clearTimeout(initTimeout)
-		clearTimeout(retryTimeout)
+		clearTimeout(initTimeout as ReturnType<typeof setTimeout>)
+		clearTimeout(retryTimeout as ReturnType<typeof setTimeout>)
 		initTimeout = null
 		retryTimeout = null
 	}
-	const disposeStream = (stream) => {
+	const disposeStream = (stream: EventSource<ChatStreamEvent>) => {
 		stream.removeAllEventListeners()
 		stream.close()
 	}
 	const closeStream = () => {
-		clearTimeout(initTimeout)
+		clearTimeout(initTimeout as ReturnType<typeof setTimeout>)
 		initTimeout = null
 		const dying = es
 		es = null
@@ -94,7 +106,7 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }) {
 	}
 
 	const onInit = () => {
-		clearTimeout(initTimeout)
+		clearTimeout(initTimeout as ReturnType<typeof setTimeout>)
 		initTimeout = null
 		stopPolling()
 		emitConnected(true)
@@ -102,8 +114,8 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }) {
 		fetchChat()
 	}
 
-	const onMessage = (event) => {
-		try { appendMessage(JSON.parse(event.data)) } catch { /* ignore malformed */ }
+	const onMessage = (event: { data?: string | null }) => {
+		try { appendMessage(JSON.parse(event.data as string)) } catch { /* ignore malformed */ }
 	}
 
 	const connectSSE = async () => {
@@ -146,7 +158,7 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }) {
 		appStateSub.remove()
 		clearTimers()
 		stopPolling()
-		clearTimeout(disposeTimer)
+		clearTimeout(disposeTimer as ReturnType<typeof setTimeout>)
 		disposeTimer = null
 		// dispose() never runs inside the stream's `error` dispatch, so the deferred-
 		// close dance isn't needed here — flush any dying stream synchronously.
@@ -162,15 +174,20 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }) {
  * The stream only pushes NEW messages — history still loads via `getChat`.
  * Falls back to 10s polling when the stream is unavailable and retries it every 60s.
  *
- * @param {string} p2p_uuid - Offer UUID.
- * @param {string|undefined} status - Current offer status; the stream only runs on active statuses.
- * @param {function} appendMessage - From useP2PChat: appends one message with id dedup.
- * @param {function} fetchChat - From useP2PChat: full history refetch (used for catch-up + fallback).
- * @param {object} connectedRef - Screen-owned ref mirroring the connected state, so the
+ * @param params.p2p_uuid - Offer UUID.
+ * @param params.status - Current offer status; the stream only runs on active statuses.
+ * @param params.appendMessage - From useP2PChat: appends one message with id dedup.
+ * @param params.fetchChat - From useP2PChat: full history refetch (used for catch-up + fallback).
+ * @param params.connectedRef - Screen-owned ref mirroring the connected state, so the
  *   offer-detail 5s interval can skip its chat fetch without re-creating itself.
- * @returns {{ isStreamConnected: boolean }}
  */
-export default function useP2PChatSSE({ p2p_uuid, status, appendMessage, fetchChat, connectedRef }) {
+export default function useP2PChatSSE({ p2p_uuid, status, appendMessage, fetchChat, connectedRef }: {
+	p2p_uuid: string
+	status?: string
+	appendMessage: (message: ChatMessage) => void
+	fetchChat: () => void
+	connectedRef?: MutableRefObject<boolean>
+}): { isStreamConnected: boolean } {
 
 	const [isStreamConnected, setIsStreamConnected] = useState(false)
 
@@ -182,7 +199,7 @@ export default function useP2PChatSSE({ p2p_uuid, status, appendMessage, fetchCh
 		fetchChatRef.current = fetchChat
 	}, [appendMessage, fetchChat])
 
-	const isActive = ACTIVE_STATUSES.includes(status)
+	const isActive = ACTIVE_STATUSES.includes(status as string)
 
 	useEffect(() => {
 		if (!p2p_uuid || !isActive) return

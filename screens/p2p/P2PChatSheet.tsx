@@ -1,8 +1,26 @@
 import { View, Pressable, Modal, StyleSheet } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
+import type { EdgeInsets } from "react-native-safe-area-context"
+
 import P2PChatPanel from "./P2PChatPanel"
+import type { P2PChatPanelProps } from "./P2PChatPanel"
 import P2PPeerRow from "./P2PPeerRow"
+
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+
+type P2PChatSheetProps = {
+	visible: boolean
+	onClose: () => void
+	keyboardHeight: number
+	insets: EdgeInsets
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+	/** Todo el estado del chat lo sigue poseyendo la PANTALLA (badge de no leídos). */
+	chatPanelProps: Omit<P2PChatPanelProps, 'theme' | 'textStyles' | 'containerStyles' | 'show_header' | 'wrapStyle'>
+}
 
 /**
  * Chat as a bottom sheet in the app's canonical sheet language (QPCoinPicker):
@@ -13,7 +31,7 @@ import P2PPeerRow from "./P2PPeerRow"
  * The SCREEN keeps owning the useP2PChat state: messages keep flowing
  * (SSE/poll) while the sheet is closed and the unread badge stays accurate.
  */
-const P2PChatSheet = ({ visible, onClose, keyboardHeight, insets, theme, textStyles, containerStyles, chatPanelProps }) => (
+const P2PChatSheet = ({ visible, onClose, keyboardHeight, insets, theme, textStyles, containerStyles, chatPanelProps }: P2PChatSheetProps) => (
 	<Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
 		<Pressable style={styles.sheetOverlay} onPress={onClose}>
 			{/* El onPress vacío absorbe los toques: sin él, tocar la hoja cerraría el chat */}

@@ -4,9 +4,28 @@ import { useTranslation } from "react-i18next"
 
 import QPCoin from "../../ui/particles/QPCoin"
 import { SORT_OPTIONS } from "./useP2PFilters"
+import type { FilterCoin, P2PFilterBadge } from "./useP2PFilters"
+
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles } from "../../theme/themeUtils"
+
+type P2PFilterBarProps = {
+	selectedCoin: FilterCoin | null
+	sortIndex: number
+	showSortMenu: boolean
+	activeFilterBadges: P2PFilterBadge[]
+	onOpenCoinPicker: () => void
+	onClearCoin: () => void
+	onToggleSortMenu: () => void
+	onSelectSort: (index: number) => void
+	onClearSort: () => void
+	onRemoveBadge: (badge: P2PFilterBadge) => void
+	theme: Theme
+	textStyles: TextStyles
+}
 
 // Quick filters bar (type / coin / sort) + the sort menu + active filter badges.
-const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadges, onOpenCoinPicker, onClearCoin, onToggleSortMenu, onSelectSort, onClearSort, onRemoveBadge, theme, textStyles }) => {
+const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadges, onOpenCoinPicker, onClearCoin, onToggleSortMenu, onSelectSort, onClearSort, onRemoveBadge, theme, textStyles }: P2PFilterBarProps) => {
 
 	const { t } = useTranslation()
 

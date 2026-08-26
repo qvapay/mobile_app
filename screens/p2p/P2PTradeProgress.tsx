@@ -7,10 +7,28 @@ import QPInput from "../../ui/particles/QPInput"
 
 import usePaymentWindow from "./usePaymentWindow"
 
+import type { TFunction } from "i18next"
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+import type { P2POffer, P2PStatus } from "../../types/domain"
+
+type P2PTradeProgressProps = {
+	p2p: P2POffer | null
+	status: P2PStatus
+	isPayer: boolean
+	isReceiver: boolean
+	canMarkPaid: boolean
+	txIdInput: string
+	setTxIdInput: (value: string) => void
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
+
 // Trade lifecycle steps: the payer pays → marks it → the receiver releases.
 // Builder (no module-level copy): resolved with t() per render so the stepper
 // re-labels itself on a live language switch.
-const getSteps = (t) => [t('p2p.tradeProgress.steps.payment'), t('p2p.tradeProgress.steps.confirmation'), t('p2p.tradeProgress.steps.release')]
+const getSteps = (t: TFunction): string[] => [t('p2p.tradeProgress.steps.payment'), t('p2p.tradeProgress.steps.confirmation'), t('p2p.tradeProgress.steps.release')]
 
 /**
  * Trade-room progress card (industry pattern: the Binance/OKX order screen):
@@ -25,7 +43,7 @@ const getSteps = (t) => [t('p2p.tradeProgress.steps.payment'), t('p2p.tradeProgr
  * Renders only on processing/paid/completed; open, cancelled and revision keep
  * their own surfaces.
  */
-const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdInput, setTxIdInput, theme, textStyles, containerStyles }) => {
+const P2PTradeProgress = ({ p2p, status, isPayer, isReceiver, canMarkPaid, txIdInput, setTxIdInput, theme, textStyles, containerStyles }: P2PTradeProgressProps) => {
 
 	const { t } = useTranslation()
 

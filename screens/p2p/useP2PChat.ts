@@ -1,5 +1,7 @@
 import { Animated } from "react-native"
+import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from "react-native"
 import { launchImageLibrary } from "react-native-image-picker"
+import type { Asset } from "react-native-image-picker"
 import { useReducer, useEffect, useRef, useCallback } from "react"
 
 // API
@@ -15,23 +17,57 @@ import i18n from "../../i18n"
 // Constants
 const MAX_IMAGE_SIZE_MB = 5
 
+/**
+ * Mensaje del chat de un trade (`GET /p2p/{uuid}/chat`). `peer_id` es el uuid
+ * de QUIEN escribe (así decide el panel el lado de la burbuja); el cuerpo llega
+ * como `message` y a veces como `text` según la ruta que lo emitió.
+ */
+export type ChatMessage = {
+	id: number | string
+	peer_id?: string
+	message?: string | null
+	text?: string | null
+	/** Ruta del adjunto en media.qvapay.com. */
+	image?: string | null
+	created_at?: string
+}
+
 // Sort chat messages oldest → newest (created_at, falling back to numeric id)
-const sortMessagesAscending = (messagesArray) => {
+const sortMessagesAscending = (messagesArray: unknown): ChatMessage[] => {
 	if (!Array.isArray(messagesArray)) return []
-	return [...messagesArray].sort((a, b) => {
-		const aTime = a.created_at ? new Date(a.created_at).getTime() : (parseInt(a.id, 10) || 0)
-		const bTime = b.created_at ? new Date(b.created_at).getTime() : (parseInt(b.id, 10) || 0)
+	return [...(messagesArray as ChatMessage[])].sort((a, b) => {
+		// `id` puede llegar number: parseInt lo coacciona igual — el cast es solo de tipos
+		const aTime = a.created_at ? new Date(a.created_at).getTime() : (parseInt(a.id as string, 10) || 0)
+		const bTime = b.created_at ? new Date(b.created_at).getTime() : (parseInt(b.id as string, 10) || 0)
 		return aTime - bTime
 	})
 }
 
 // Sticker message helpers — stickers travel as `:sticker:<name>.webm|gif` message bodies
 /** Returns true when a chat message body encodes a QvaPay sticker. */
-export const isSticker = (message) => typeof message === "string" && message.startsWith(":sticker:")
+export const isSticker = (message: unknown): boolean => typeof message === "string" && message.startsWith(":sticker:")
 /** Extracts the bare sticker name (no prefix / extension) from a sticker message body. */
-export const getStickerName = (message) => message.replace(":sticker:", "").replace(/\.(webm|gif)$/, "")
+export const getStickerName = (message: string): string => message.replace(":sticker:", "").replace(/\.(webm|gif)$/, "")
 
-const initialChat = {
+/** Estado del chat: mensajes + redactor + paneles. */
+type ChatState = {
+	messages: ChatMessage[]
+	loading: boolean
+	error: string | null
+	text: string
+	selectedImage: Asset | null
+	sendingImage: boolean
+	showStickerPanel: boolean
+	/** Ids de los mensajes con la hora desplegada (tap sobre la burbuja). */
+	visibleTimestamps: Set<ChatMessage['id']>
+}
+
+type ChatAction =
+	| { [K in keyof ChatState]: { type: "set", field: K, value: ChatState[K] } }[keyof ChatState]
+	| { type: "toggleTimestamp", id: ChatMessage['id'] }
+	| { type: "appendMessage", message: ChatMessage | null | undefined }
+
+const initialChat: ChatState = {
 	messages: [],
 	loading: false,
 	error: null,
@@ -42,7 +78,7 @@ const initialChat = {
 	visibleTimestamps: new Set(),
 }
 
-function chatReducer(state, action) {
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
 	switch (action.type) {
 		case "set":
 			return { ...state, [action.field]: action.value }
@@ -80,9 +116,8 @@ function chatReducer(state, action) {
  * stream is down. Auto-scroll bookkeeping lives in `autoScrollRef` (never rendered)
  * so drag tracking doesn't re-render the whole thread.
  *
- * @param {object} params
- * @param {string} params.p2p_uuid - Offer UUID whose chat to load.
- * @returns {object} Chat API for the P2POffer screen:
+ * @param params.p2p_uuid - Offer UUID whose chat to load.
+ * @returns Chat API for the P2POffer screen:
  *   state — `messages` (ascending), `chatLoading`, `chatError`, `chatText`,
  *   `selectedImage`, `sendingImage`, `showStickerPanel`, `visibleTimestamps`;
  *   setters — `setChatText`, `setSelectedImage`, `setShowStickerPanel`;
@@ -92,13 +127,13 @@ function chatReducer(state, action) {
  *   `toggleTimestamp`; scroll handlers — `onChatScrollBeginDrag`, `onChatScroll`,
  *   `onChatMomentumScrollEnd`, `onChatContentSizeChange`.
  */
-export default function useP2PChat({ p2p_uuid }) {
+export default function useP2PChat({ p2p_uuid }: { p2p_uuid: string }) {
 
 	const [chat, dispatch] = useReducer(chatReducer, initialChat)
-	const set = useCallback((field, value) => dispatch({ type: "set", field, value }), [])
+	const set = useCallback(<K extends keyof ChatState>(field: K, value: ChatState[K]) => dispatch({ type: "set", field, value } as ChatAction), [])
 
-	const chatScrollRef = useRef(null)
-	const messageAnimations = useRef({})
+	const chatScrollRef = useRef<ScrollView | null>(null)
+	const messageAnimations = useRef<Record<ChatMessage['id'], Animated.Value>>({})
 	const autoScrollRef = useRef(true)
 
 	// Fetch chat
@@ -108,17 +143,19 @@ export default function useP2PChat({ p2p_uuid }) {
 			set("error", null)
 			const response = await p2pApi.getChat(p2p_uuid)
 			if (response.success) {
-				const raw = response.data?.chat || response.data
+				// El endpoint devuelve el array pelado o envuelto en `{ chat }` según
+				// la ruta; el módulo de API lo tipa `unknown[]`, de ahí el cast local.
+				const raw = (response.data as { chat?: unknown } | undefined)?.chat || response.data
 				set("messages", sortMessagesAscending(raw))
 			}
 		} catch (err) {
-			set("error", err.message)
-			toast.error(i18n.t('p2p.common.errorTitle'), { description: err.message })
+			set("error", (err as Error).message)
+			toast.error(i18n.t('p2p.common.errorTitle'), { description: (err as Error).message })
 		} finally { set("loading", false) }
 	}, [p2p_uuid, set])
 
 	// Append a single message pushed over SSE (deduped by id, kept in ascending order)
-	const appendMessage = useCallback((message) => dispatch({ type: "appendMessage", message }), [])
+	const appendMessage = useCallback((message: ChatMessage) => dispatch({ type: "appendMessage", message }), [])
 
 	// Load chat on mount (and reload if the offer being viewed changes)
 	useEffect(() => {
@@ -144,7 +181,7 @@ export default function useP2PChat({ p2p_uuid }) {
 				chatScrollRef.current?.scrollToEnd({ animated: true })
 			}
 			else { toast.error(i18n.t('p2p.chat.toasts.sendFailed'), { description: String(res.error || "") }) }
-		} catch (e) { toast.error(i18n.t('p2p.common.errorTitle'), { description: e.message }) }
+		} catch (e) { toast.error(i18n.t('p2p.common.errorTitle'), { description: (e as Error).message }) }
 	}
 
 	// Open image picker
@@ -181,7 +218,7 @@ export default function useP2PChat({ p2p_uuid }) {
 			const res = await p2pApi.sendChat(p2p_uuid, {
 				message: chat.text.trim() || undefined,
 				image: {
-					uri: chat.selectedImage.uri,
+					uri: chat.selectedImage.uri!,
 					type: chat.selectedImage.type || "image/jpeg",
 					fileName: chat.selectedImage.fileName || "photo.jpg",
 				},
@@ -195,14 +232,14 @@ export default function useP2PChat({ p2p_uuid }) {
 				toast.error(i18n.t('p2p.chat.toasts.sendFailed'), { description: String(res.error || "") })
 			}
 		} catch (e) {
-			toast.error(i18n.t('p2p.common.errorTitle'), { description: e.message })
+			toast.error(i18n.t('p2p.common.errorTitle'), { description: (e as Error).message })
 		} finally {
 			set("sendingImage", false)
 		}
 	}
 
 	// Send sticker message
-	const handleSendSticker = async (stickerName) => {
+	const handleSendSticker = async (stickerName: string) => {
 		set("showStickerPanel", false)
 		try {
 			const res = await p2pApi.sendChat(p2p_uuid, { message: `:sticker:${stickerName}.gif` })
@@ -213,12 +250,12 @@ export default function useP2PChat({ p2p_uuid }) {
 				toast.error(i18n.t('p2p.chat.toasts.sendFailed'), { description: String(res.error || "") })
 			}
 		} catch (e) {
-			toast.error(i18n.t('p2p.common.errorTitle'), { description: e.message })
+			toast.error(i18n.t('p2p.common.errorTitle'), { description: (e as Error).message })
 		}
 	}
 
 	// Toggle a message's timestamp with a fade/slide animation
-	const toggleTimestamp = (messageId) => {
+	const toggleTimestamp = (messageId: ChatMessage['id']) => {
 		if (!messageAnimations.current[messageId]) { messageAnimations.current[messageId] = new Animated.Value(0) }
 		const isCurrentlyVisible = chat.visibleTimestamps.has(messageId)
 		Animated.timing(messageAnimations.current[messageId], {
@@ -231,7 +268,7 @@ export default function useP2PChat({ p2p_uuid }) {
 
 	// Scroll bookkeeping — pause auto-scroll while the user reads back, resume near bottom
 	const onChatScrollBeginDrag = () => { autoScrollRef.current = false }
-	const checkNearBottom = (e) => {
+	const checkNearBottom = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
 		const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent
 		const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y)
 		if (distanceFromBottom < 50) { autoScrollRef.current = true }
@@ -251,9 +288,9 @@ export default function useP2PChat({ p2p_uuid }) {
 		showStickerPanel: chat.showStickerPanel,
 		visibleTimestamps: chat.visibleTimestamps,
 		// setters used by the composer / panel
-		setChatText: (v) => set("text", v),
-		setSelectedImage: (v) => set("selectedImage", v),
-		setShowStickerPanel: (v) => set("showStickerPanel", v),
+		setChatText: (v: string) => set("text", v),
+		setSelectedImage: (v: Asset | null) => set("selectedImage", v),
+		setShowStickerPanel: (v: boolean) => set("showStickerPanel", v),
 		// refs
 		chatScrollRef,
 		messageAnimations,

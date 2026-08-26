@@ -6,8 +6,27 @@ import QPButton from "../../ui/particles/QPButton"
 import QPInput from "../../ui/particles/QPInput"
 import { sanitizeAmountInput } from "../../helpers/amountInput"
 
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+import type { P2POffer, User } from "../../types/domain"
+import type { EditState, SetEditField } from "./useP2POfferDetail"
+
+type P2PEditModalProps = {
+	visible: boolean
+	onClose: () => void
+	edit: EditState
+	setEdit: SetEditField
+	p2p: P2POffer | null
+	user: User | null
+	onSubmit: () => void
+	windowHeight: number
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
+
 // Edit-offer modal for the owner of an open offer (amount / receive / message / VIP).
-const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, windowHeight, theme, textStyles, containerStyles }) => {
+const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, windowHeight, theme, textStyles, containerStyles }: P2PEditModalProps) => {
 
 	const { t } = useTranslation()
 
@@ -44,7 +63,9 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 						/>
 
 						{/* Balance warning for SELL offers */}
-						{p2p?.type === "sell" && parseFloat(edit.amount || 0) > parseFloat(p2p?.amount || 0) && (parseFloat(edit.amount || 0) - parseFloat(p2p?.amount || 0)) > parseFloat(user?.balance || 0) && (
+						{/* Los decimales del backend viajan como string|number: parseFloat acepta
+						    ambos en runtime — los casts de abajo son solo de tipos */}
+						{p2p?.type === "sell" && parseFloat((edit.amount || 0) as string) > parseFloat((p2p?.amount || 0) as string) && (parseFloat((edit.amount || 0) as string) - parseFloat((p2p?.amount || 0) as string)) > parseFloat((user?.balance || 0) as string) && (
 							<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 4 }]}>
 								{t('p2p.editModal.insufficientBalance')}
 							</Text>

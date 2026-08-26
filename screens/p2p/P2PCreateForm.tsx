@@ -6,12 +6,34 @@ import QPCoin from '../../ui/particles/QPCoin'
 import QPInput from '../../ui/particles/QPInput'
 import QPSwitch from '../../ui/particles/QPSwitch'
 
-const keyFromFieldName = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles, ContainerStyles } from '../../theme/themeUtils'
+import type { Coin, CoinWorkingField, User } from '../../types/domain'
+import type { P2PCreateFormState, SetP2PCreateField } from './P2PCreate'
+
+type P2PCreateFormProps = {
+	form: P2PCreateFormState
+	onField: SetP2PCreateField
+	selectedCoin: Coin | null
+	/** Campos de destino de la moneda (`working_data`), ya parseados por la pantalla. */
+	workingFields: CoinWorkingField[]
+	/** Valores tecleados, indexados por la clave normalizada del nombre del campo. */
+	workingForm: Record<string, string>
+	onChangeWorkingField: (key: string, value: string) => void
+	onOpenCoinPicker: () => void
+	onLaunchSavedMethods: () => void
+	user: User
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
+
+const keyFromFieldName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 // Create-offer form body: type switch, QUSD⇄coin amounts, live ratio, per-coin
 // account fields, advanced options and the optional GOLD custom message.
-const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, user, theme, textStyles, containerStyles }) => {
+const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, user, theme, textStyles, containerStyles }: P2PCreateFormProps) => {
 
 	const { t } = useTranslation()
 	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer } = form

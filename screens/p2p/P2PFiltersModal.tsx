@@ -9,9 +9,26 @@ import QPSplitButton from "../../ui/particles/QPSplitButton"
 import { createContainerStyles } from "../../theme/themeUtils"
 import { sanitizeAmountInput } from "../../helpers/amountInput"
 
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles } from "../../theme/themeUtils"
+import type { P2PFiltersState } from "./useP2PFilters"
+
+type P2PFiltersModalProps = {
+	visible: boolean
+	onClose: () => void
+	filters: P2PFiltersState
+	setFilter: <K extends keyof P2PFiltersState>(field: K, value: P2PFiltersState[K]) => void
+	onOpenCoinPicker: () => void
+	onClear: () => void
+	onApply: () => void
+	windowHeight: number
+	theme: Theme
+	textStyles: TextStyles
+}
+
 // Modal de filtros: mis ofertas, moneda, "quiero operar $X", rango de tasa y VIP.
 // El lado del mercado (Comprar/Vender) NO está aquí: vive en el switch del TopBar.
-const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicker, onClear, onApply, windowHeight, theme, textStyles }) => {
+const P2PFiltersModal = ({ visible, onClose, filters, setFilter, onOpenCoinPicker, onClear, onApply, windowHeight, theme, textStyles }: P2PFiltersModalProps) => {
 
 	const { t } = useTranslation()
 	const { selectedCoin, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters

@@ -1,13 +1,31 @@
 import { View, Text, Pressable } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
+import type { StyleProp, ViewStyle } from "react-native"
+
 import QPAvatar from "../../ui/particles/QPAvatar"
 import { displayName } from "../../helpers/displayName"
+
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles } from "../../theme/themeUtils"
+import type { P2PUser } from "../../types/domain"
+import type { PeerStats } from "./p2pQueries"
+
+type P2PPeerRowProps = {
+	targetUser?: P2PUser | null
+	wrapStyle?: StyleProp<ViewStyle>
+	peerStats?: PeerStats | null
+	peerReviewsCount?: number
+	isOnline?: boolean
+	onPress: (user: P2PUser) => void
+	theme: Theme
+	textStyles: TextStyles
+}
 
 // Single-row peer block: tappable avatar + name with stats inline.
 // When peerStats is available it surfaces rating / completion / completed ops,
 // otherwise it falls back to the @username line.
-const P2PPeerRow = ({ targetUser, wrapStyle, peerStats, peerReviewsCount, isOnline, onPress, theme, textStyles }) => {
+const P2PPeerRow = ({ targetUser, wrapStyle, peerStats, peerReviewsCount, isOnline, onPress, theme, textStyles }: P2PPeerRowProps) => {
 
 	if (!targetUser) return null
 

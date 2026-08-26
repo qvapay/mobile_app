@@ -1,4 +1,5 @@
 import { FlashList } from "@shopify/flash-list"
+import type { FlashListProps } from "@shopify/flash-list"
 import { useEffect, useReducer, useCallback, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
 import { useTranslation } from "react-i18next"
@@ -40,6 +41,43 @@ import { useOnlineStatus } from "../../hooks/OnlineStatusContext"
 // Bottom bar hide on scroll (Android only)
 import { useBottomBar } from "../../ui/BottomBarContext"
 
+import type { NativeScrollEvent, NativeSyntheticEvent, RefreshControlProps } from "react-native"
+import type { ComponentType, ReactElement } from "react"
+import type { CompositeScreenProps, NavigationProp } from "@react-navigation/native"
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs"
+import type { NativeStackScreenProps } from "@react-navigation/native-stack"
+import type { MainTabParamList, RootStackParamList } from "../../types/navigation"
+// `P2POffer` ya nombra al COMPONENTE de item importado arriba: el tipo entra con alias
+import type { Coin, P2POffer as P2POfferModel } from "../../types/domain"
+import type { P2PFilterBadge } from "./useP2PFilters"
+
+/**
+ * P2P vive en el bottom-tab de MainStack pero navega al stack raíz
+ * (P2PCreate/P2POffer), de ahí el composite.
+ */
+type P2PScreenProps = CompositeScreenProps<
+	BottomTabScreenProps<MainTabParamList, 'P2P'>,
+	NativeStackScreenProps<RootStackParamList>
+>
+
+/** Visibilidad de los tres modales de la pantalla. */
+type ModalsState = { showFiltersModal: boolean, showCoinPicker: boolean, showSortMenu: boolean }
+
+type ModalsAction = { type: "set", field: keyof ModalsState, value: boolean }
+
+/**
+ * P2POfferItem y P2PRequirementsGate tipan su `navigation` como el
+ * `NavigationProp` del stack RAÍZ; aquí llega la composite del tab, que navega
+ * a las mismas rutas pero no es asignable estructuralmente. Alias del cast.
+ */
+type RootNav = NavigationProp<RootStackParamList>
+
+/**
+ * FlashList 2 ya no declara `estimatedItemSize` (mide sola), pero la pantalla lo
+ * sigue pasando: se preserva el runtime tal cual ensanchando el tipo del componente.
+ */
+const OffersFlashList = FlashList as ComponentType<FlashListProps<P2POfferModel> & { estimatedItemSize?: number }>
+
 // Default popular coins for quick select pills
 const DEFAULT_POPULAR_COINS = [
 	{ tick: "BANK_CUP", label: "CUP" },
@@ -49,7 +87,7 @@ const DEFAULT_POPULAR_COINS = [
 ]
 const RECENT_COINS_KEY = "qp_recent_p2p_coins"
 
-function modalsReducer(state, action) {
+function modalsReducer(state: ModalsState, action: ModalsAction): ModalsState {
 	switch (action.type) {
 		case "set":
 			return { ...state, [action.field]: action.value }
@@ -60,7 +98,7 @@ function modalsReducer(state, action) {
 
 // Quitar un badge cambia los filtros, y de eso ya se encarga el refetch con
 // debounce del quickKey: forzar aquí otro fetch costaba dos peticiones
-const handleRemoveBadge = (badge) => { badge.onRemove() }
+const handleRemoveBadge = (badge: P2PFilterBadge) => { badge.onRemove() }
 
 /**
  * P2P marketplace tab: paginated FlashList of buy/sell offers with filters.
@@ -70,7 +108,7 @@ const handleRemoveBadge = (badge) => { badge.onRemove() }
  * Offer creators/peers are tracked for live online presence, and the filter bar
  * hides on scroll (Twitter-style) along with the Android bottom bar.
  */
-const P2P = ({ navigation, route }) => {
+const P2P = ({ navigation, route }: P2PScreenProps) => {
 
 	// Idioma activo (el switch del header y el vacío se re-renderizan al cambiar)
 	const { t } = useTranslation()
@@ -104,12 +142,13 @@ const P2P = ({ navigation, route }) => {
 	const { bottomBarVisible } = useBottomBar()
 
 	// p2p access gate
-	const p2pEnabled = user.p2p_enabled
+	// El `!` es solo de tipos: el tab solo se monta con sesión iniciada
+	const p2pEnabled = user!.p2p_enabled
 
 	// Filters + derived API filters/badges
 	const initialCoin = route?.params?.coin ? { tick: route.params.coin, name: route.params.coinName || route.params.coin, logo: route.params.coin } : null
 	const { filters, setFilter, resetFilters, hasActiveFilters, apiFilters, activeFilterBadges } = useP2PFilters(initialCoin)
-	const { typeFilter, selectedCoin, sortIndex, showMine } = filters
+	const { typeFilter, selectedCoin, sortIndex, showMine: _showMine } = filters
 
 	// Offers list + pagination + fetch
 	// Todos los filtros son de servidor: cualquiera de ellos debe refetchear
@@ -119,9 +158,9 @@ const P2P = ({ navigation, route }) => {
 	// Modal visibility
 	const [modals, dispatchModals] = useReducer(modalsReducer, { showFiltersModal: false, showCoinPicker: false, showSortMenu: false })
 	const { showFiltersModal, showCoinPicker, showSortMenu } = modals
-	const setShowFiltersModal = (value) => dispatchModals({ type: "set", field: "showFiltersModal", value })
-	const setShowCoinPicker = (value) => dispatchModals({ type: "set", field: "showCoinPicker", value })
-	const setShowSortMenu = (value) => dispatchModals({ type: "set", field: "showSortMenu", value })
+	const setShowFiltersModal = (value: boolean) => dispatchModals({ type: "set", field: "showFiltersModal", value })
+	const setShowCoinPicker = (value: boolean) => dispatchModals({ type: "set", field: "showCoinPicker", value })
+	const setShowSortMenu = (value: boolean) => dispatchModals({ type: "set", field: "showSortMenu", value })
 	// El picker de moneda se abre a veces desde el modal de filtros (y ese modal
 	// se cierra, porque dos modales a la vez dan problemas): se anota para
 	// devolver al usuario donde estaba, elija moneda o descarte
@@ -136,7 +175,7 @@ const P2P = ({ navigation, route }) => {
 
 	// Track P2P offer users for online status
 	useEffect(() => {
-		const ids = p2pOffers.flatMap(o => [o.User?.uuid, o.Peer?.uuid]).filter(Boolean)
+		const ids = p2pOffers.flatMap(o => [o.User?.uuid, o.Peer?.uuid]).filter(Boolean) as string[]
 		const unique = [...new Set(ids)]
 		if (unique.length) trackUsers(unique)
 		return () => { if (unique.length) untrackUsers(unique) }
@@ -165,14 +204,14 @@ const P2P = ({ navigation, route }) => {
 	// sintiera lento y elástico en vez de limpio.
 	const filterBarTarget = useRef(1)
 
-	const setBarsVisible = useCallback((visible) => {
+	const setBarsVisible = useCallback((visible: number) => {
 		if (filterBarTarget.current === visible) return
 		filterBarTarget.current = visible
 		filterBarVisible.value = withTiming(visible, { duration: 250 })
 		bottomBarVisible.value = withTiming(visible, { duration: 250 })
 	}, [filterBarVisible, bottomBarVisible])
 
-	const handleScroll = useCallback((event) => {
+	const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
 		const currentY = event.nativeEvent.contentOffset.y
 		const diff = currentY - lastScrollY.value
 
@@ -280,11 +319,11 @@ const P2P = ({ navigation, route }) => {
 		)
 	}
 
-	const renderOffer = ({ item }) => (
-		<P2POffer offer={item} navigation={navigation} marketAverage={marketAverages?.[item.coin]} />
+	const renderOffer = ({ item }: { item: P2POfferModel }) => (
+		<P2POffer offer={item} navigation={navigation as unknown as RootNav} marketAverage={marketAverages?.[item.coin]} />
 	)
 
-	if (!p2pEnabled) { return <P2PRequirementsGate user={user} navigation={navigation} theme={theme} textStyles={textStyles} containerStyles={containerStyles} /> }
+	if (!p2pEnabled) { return <P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} /> }
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -298,7 +337,7 @@ const P2P = ({ navigation, route }) => {
 					onOpenCoinPicker={() => setShowCoinPicker(true)}
 					onClearCoin={() => setFilter("selectedCoin", null)}
 					onToggleSortMenu={() => setShowSortMenu(!showSortMenu)}
-					onSelectSort={(idx) => { setFilter("sortIndex", idx); setShowSortMenu(false) }}
+					onSelectSort={(idx: number) => { setFilter("sortIndex", idx); setShowSortMenu(false) }}
 					onClearSort={() => setFilter("sortIndex", 0)}
 					onRemoveBadge={handleRemoveBadge}
 					theme={theme}
@@ -306,13 +345,15 @@ const P2P = ({ navigation, route }) => {
 				/>
 			</Animated.View>
 
-			<FlashList
+			<OffersFlashList
 				data={p2pOffers}
 				renderItem={renderOffer}
 				keyExtractor={(item) => item.uuid}
 				onScroll={handleScroll}
 				scrollEventThrottle={16}
-				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
+				// createHiddenRefreshControl se tipa ReactElement genérico; la lista exige
+				// el elemento parametrizado con RefreshControlProps — cast solo de tipos
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={contentPadding}
 				onEndReached={handleLoadMore}
@@ -348,7 +389,9 @@ const P2P = ({ navigation, route }) => {
 				onClose={closeCoinPicker}
 				onSelect={(coin) => { setFilter("selectedCoin", coin); closeCoinPicker() }}
 				coins={availableCoins}
-				selectedCoin={selectedCoin}
+				/* El filtro guarda una moneda SINTÉTICA cuando llega por route.params
+				   (solo tick/name/logo): el picker la tipa como Coin completa */
+				selectedCoin={selectedCoin as Coin | null}
 				isLoading={loadingCoins}
 				showFees={false}
 				recentKey={RECENT_COINS_KEY}

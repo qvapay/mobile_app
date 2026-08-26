@@ -13,7 +13,12 @@ import usePaymentWindow from "./usePaymentWindow"
  * Urgency by color: green while comfortable, warning under 15 minutes, danger
  * under 5 and at zero.
  */
-const P2PHeaderTimer = ({ expiresAt }) => {
+type P2PHeaderTimerProps = {
+	/** ISO del fin de la ventana de pago; null/undefined = no se pinta nada. */
+	expiresAt?: string | null
+}
+
+const P2PHeaderTimer = ({ expiresAt }: P2PHeaderTimerProps) => {
 
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)

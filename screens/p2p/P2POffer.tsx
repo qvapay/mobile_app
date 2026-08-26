@@ -43,6 +43,13 @@ import P2PConfirmModal from "./P2PConfirmModal"
 import P2PTradeProgress from "./P2PTradeProgress"
 import P2PActionBar from "./P2PActionBar"
 
+import type { ReactElement } from "react"
+import type { RefreshControlProps } from "react-native"
+import type { NavigationProp } from "@react-navigation/native"
+import type { NativeStackScreenProps } from "@react-navigation/native-stack"
+import type { RootStackParamList } from "../../types/navigation"
+import type { P2PConfirmConfig } from "./P2PConfirmModal"
+
 /**
  * P2P offer detail + trade room — orchestrates the offer-detail hook, the chat hook
  * and the presentational sections (progress / details / modals / action bar). The
@@ -56,7 +63,7 @@ import P2PActionBar from "./P2PActionBar"
  * The share header item is configured in App.tsx — iOS 26 liquid-glass via
  * `unstable_headerRightItems`, `headerRight` fallback on Android.
  */
-const P2POffer = ({ route }) => {
+const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffer'>) => {
 
 	const { t } = useTranslation()
 	const { user } = useAuth()
@@ -78,7 +85,9 @@ const P2POffer = ({ route }) => {
 	const chatStreamLiveRef = useRef(false)
 
 	// Offer lifecycle, derived flags and trade actions (chat fetch injected for polling/refresh)
-	const offer = useP2POfferDetail({ p2p_uuid, user, navigation, fetchChat: chat.fetchChat, chatStreamLiveRef })
+	// `useNavigation()` devuelve el prop tipado por la declaración global, cuyo
+	// getState() se estrecha distinto al NavigationProp<RootStackParamList> puro
+	const offer = useP2POfferDetail({ p2p_uuid, user, navigation: navigation as unknown as NavigationProp<RootStackParamList>, fetchChat: chat.fetchChat, chatStreamLiveRef })
 
 	// Real-time chat over SSE while the trade is active; falls back to polling if the stream drops
 	useP2PChatSSE({
@@ -106,7 +115,7 @@ const P2POffer = ({ route }) => {
 	// leídos. El baseline de "visto" se fija con el histórico inicial (la carga
 	// no cuenta como no leído); abrir la hoja marca todo como visto.
 	const [chatOpen, setChatOpen] = useState(false)
-	const [chatSeenCount, setChatSeenCount] = useState(null)
+	const [chatSeenCount, setChatSeenCount] = useState<number | null>(null)
 	const wasChatLoadingRef = useRef(false)
 	useEffect(() => {
 		if (chatSeenCount === null) {
@@ -138,7 +147,9 @@ const P2POffer = ({ route }) => {
 			<View style={containerStyles.subContainer}>
 				<View style={[containerStyles.card, { alignItems: "center", justifyContent: "center" }]}>
 					<Text style={[textStyles.h5, { color: theme.colors.danger }]}>{t('p2p.offer.loadFailed')}</Text>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{String(error.error || error.message || error)}</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{/* OJO: el hook solo guarda strings en `error` — los accesos .error/.message
+						    son restos defensivos que nunca disparan; el cast preserva el runtime */}
+						{String((error as { error?: string, message?: string }).error || (error as { error?: string, message?: string }).message || error)}</Text>
 				</View>
 			</View>
 		)
@@ -147,7 +158,7 @@ const P2POffer = ({ route }) => {
 	return (
 		<View style={containerStyles.subContainer}>
 			<View style={[{ flex: 1 }, keyboardVisible && { paddingBottom: keyboardHeight }]}>
-				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh)} >
+				<ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>} >
 
 					{/* Una sola card arriba: la informativa (open/cancelled/revision) se
 					    TRANSFORMA en la card de trade al aplicar — el swap anima la salida
@@ -264,7 +275,7 @@ const P2POffer = ({ route }) => {
 				{confirmModal && (() => {
 					const counterpartyName = counterparty?.username ? `@${counterparty.username}` : t('p2p.offer.counterpartyFallback')
 					const railAmount = `${p2p?.receive} ${p2p?.Coin?.name || ""}`.trim()
-					const configs = {
+					const configs: Record<'cancel' | 'markPaid' | 'received', P2PConfirmConfig> = {
 						cancel: {
 							icon: "ban", iconColor: theme.colors.danger,
 							title: t('p2p.offer.confirm.cancel.title'),

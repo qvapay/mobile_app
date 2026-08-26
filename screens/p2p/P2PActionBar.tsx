@@ -1,8 +1,41 @@
 import { View, Text, StyleSheet } from "react-native"
 import { useTranslation } from "react-i18next"
+import type { EdgeInsets } from "react-native-safe-area-context"
 
 import QPButton from "../../ui/particles/QPButton"
 import QPRate from "../../ui/particles/QPRate"
+
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+import type { P2POffer } from "../../types/domain"
+import type { TradeActionLoading } from "./useP2POfferDetail"
+
+type P2PActionBarProps = {
+	p2p: P2POffer | null
+	isOwner: boolean
+	isPayer: boolean
+	isReceiver: boolean
+	canApply: boolean
+	canCancel: boolean
+	canMarkPaid: boolean
+	canConfirmReceived: boolean
+	canRatePeer: boolean
+	loading: TradeActionLoading
+	txIdInput: string
+	rating: number
+	onApply: () => void
+	onCancel: () => void
+	onMarkPaid: () => void
+	onConfirmReceived: () => void
+	onEdit: () => void
+	onShare: () => void
+	onRate: (rating: number) => void
+	keyboardVisible: boolean
+	insets: EdgeInsets
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
 
 // Fixed bottom action bar — surfaces only the actions valid for the viewer's role
 // and the offer's current status (apply / cancel / mark-paid / confirm / edit+share / rate).
@@ -12,7 +45,7 @@ const P2PActionBar = ({
 	loading, txIdInput, rating,
 	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate,
 	keyboardVisible, insets, theme, textStyles, containerStyles,
-}) => {
+}: P2PActionBarProps) => {
 
 	const { t } = useTranslation()
 

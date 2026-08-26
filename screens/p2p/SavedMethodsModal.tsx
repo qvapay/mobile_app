@@ -3,8 +3,39 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
 
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+
+/**
+ * Método de pago guardado (`GET /user/payment-methods`). Los detalles llegan en
+ * `details` o `Details`, como array de pares o como mapa plano — ambos se pintan.
+ */
+export type SavedPaymentMethod = {
+	id?: number | string
+	uuid?: string
+	name?: string
+	coin?: { tick?: string, name?: string } | string
+	tick?: string
+	ticker?: string
+	details?: SavedMethodDetail[] | Record<string, unknown> | null
+	Details?: SavedMethodDetail[] | Record<string, unknown> | null
+}
+
+/** Par etiqueta/valor de un método guardado: el backend ha usado los cuatro nombres. */
+export type SavedMethodDetail = { name?: string, key?: string, value?: string, val?: string }
+
+type SavedMethodsModalProps = {
+	visible: boolean
+	onClose: () => void
+	loading?: boolean
+	methods?: SavedPaymentMethod[]
+	onSelect: (method: SavedPaymentMethod) => void
+	theme: Theme
+	textStyles: TextStyles
+}
+
 // Picker for the user's saved payment methods (filtered to the selected coin).
-const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme, textStyles }) => {
+const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme, textStyles }: SavedMethodsModalProps) => {
 
 	const { t } = useTranslation()
 
@@ -25,9 +56,10 @@ const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme
 						</View>
 					) : (methods || []).length > 0 ? (
 						(methods || []).map((method) => {
-							const name = method?.name || method?.coin?.name || t('p2p.savedMethods.fallbackName')
+							// `coin` puede venir como objeto o como tick suelto — solo el objeto tiene `name`
+							const name = method?.name || (method?.coin as { name?: string } | undefined)?.name || t('p2p.savedMethods.fallbackName')
 							const rawDetails = (method && (method.details || method.Details)) || null
-							const methodDetails = Array.isArray(rawDetails) ? rawDetails : rawDetails && typeof rawDetails === 'object' ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
+							const methodDetails: SavedMethodDetail[] = Array.isArray(rawDetails) ? rawDetails : rawDetails && typeof rawDetails === 'object' ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
 							return (
 								<Pressable key={method.id || method.uuid || JSON.stringify(method)} style={[styles.coinItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} onPress={() => onSelect(method)}>
 									<View style={{ flex: 1 }}>

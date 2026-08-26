@@ -1,7 +1,41 @@
 import { useReducer, useMemo, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 
+import type { P2PIndexFilters } from "../../api/p2pApi"
+import type { Coin } from "../../types/domain"
+
 const PAGE_SIZE = 30
+
+/** Opción de orden: `labelKey` se resuelve con t() en render (nunca en módulo). */
+export type SortOption = {
+	labelKey: string
+	orderBy: string
+	orderType: 'asc' | 'desc'
+}
+
+/** Moneda del picker: el catálogo completo, o el `{ tick, name, logo }` sintético que arma P2P.tsx desde route.params. */
+export type FilterCoin = Pick<Coin, 'tick'> & Partial<Coin>
+
+/** Estado de los filtros del marketplace (los numéricos viven como string: son inputs). */
+export type P2PFiltersState = {
+	typeFilter: 'buy' | 'sell' | null
+	selectedCoin: FilterCoin | null
+	sortIndex: number
+	showMine: boolean
+	/** "Quiero operar $X" — viaja al backend como `min`. */
+	opAmount: string
+	ratioMin: string
+	ratioMax: string
+	onlyVip: boolean
+}
+
+/** Campo de `P2PFiltersState` con su valor: mantiene `setFilter` honesto por clave. */
+export type P2PFilterAction = {
+	[K in keyof P2PFiltersState]: { type: "set", field: K, value: P2PFiltersState[K] }
+}[keyof P2PFiltersState] | { type: "reset" }
+
+/** Badge de filtro activo pintado en la barra (tocarlo limpia su campo). */
+export type P2PFilterBadge = { key: string, label: string, onRemove: () => void }
 
 /**
  * Orden de la lista. Todos se resuelven en el servidor: desde 2026-08-16 el
@@ -10,7 +44,7 @@ const PAGE_SIZE = 30
  * El copy no vive aquí: `labelKey` se resuelve con t() en el render (constante
  * de módulo — un literal quedaría congelado en el idioma del arranque).
  */
-export const SORT_OPTIONS = [
+export const SORT_OPTIONS: SortOption[] = [
 	{ labelKey: "p2p.filters.sort.recent", orderBy: "updated_at", orderType: "desc" },
 	{ labelKey: "p2p.filters.sort.amountDesc", orderBy: "amount", orderType: "desc" },
 	{ labelKey: "p2p.filters.sort.amountAsc", orderBy: "amount", orderType: "asc" },
@@ -18,7 +52,7 @@ export const SORT_OPTIONS = [
 	{ labelKey: "p2p.filters.sort.reputation", orderBy: "rating", orderType: "desc" },
 ]
 
-const initialFilters = {
+const initialFilters: P2PFiltersState = {
 	typeFilter: null,
 	selectedCoin: null,
 	sortIndex: 0,
@@ -32,7 +66,7 @@ const initialFilters = {
 	onlyVip: false,
 }
 
-function filtersReducer(state, action) {
+function filtersReducer(state: P2PFiltersState, action: P2PFilterAction): P2PFiltersState {
 	switch (action.type) {
 		case "set":
 			return { ...state, [action.field]: action.value }
@@ -45,7 +79,7 @@ function filtersReducer(state, action) {
 	}
 }
 
-const num = (value) => {
+const num = (value: string): number | null => {
 	const parsed = parseFloat(value)
 	return Number.isFinite(parsed) ? parsed : null
 }
@@ -65,18 +99,19 @@ const num = (value) => {
  * lista podía salir vacía teniendo resultados más allá) y se revirtió en
  * cuanto el servidor pasó a soportarlos.
  *
- * @param {object|null} initialCoin - Preselected coin (e.g. from navigation params); only `tick` is read.
- * @returns {object} Filter API: `filters`, `setFilter`, `resetFilters`, `orderBy`,
+ * @param initialCoin - Preselected coin (e.g. from navigation params); only `tick` is read.
+ * @returns Filter API: `filters`, `setFilter`, `resetFilters`, `orderBy`,
  *   `orderType`, `hasActiveFilters`, `apiFilters`, `activeFilterBadges`.
  */
-export default function useP2PFilters(initialCoin) {
+export default function useP2PFilters(initialCoin: FilterCoin | null) {
 
 	// Idioma activo: los badges son copy de render y deben recalcularse al cambiarlo
 	const { t } = useTranslation()
 
 	const [filters, dispatch] = useReducer(filtersReducer, { ...initialFilters, selectedCoin: initialCoin })
 	// Stable identities (dispatch is stable) so consumers can list them in deps safely.
-	const setFilter = useCallback((field, value) => dispatch({ type: "set", field, value }), [])
+	// La firma genérica ata `value` al campo: setFilter("showMine", "sí") no compila.
+	const setFilter = useCallback(<K extends keyof P2PFiltersState>(field: K, value: P2PFiltersState[K]) => dispatch({ type: "set", field, value } as P2PFilterAction), [])
 	const resetFilters = useCallback(() => dispatch({ type: "reset" }), [])
 
 	const { typeFilter, selectedCoin, sortIndex, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
@@ -100,13 +135,15 @@ export default function useP2PFilters(initialCoin) {
 	// Todos los filtros viajan al servidor: filtrarlos en el cliente solo
 	// alcanzaba a la página cargada, así que una lista podía salir vacía
 	// teniendo resultados en las siguientes
-	const apiFilters = useMemo(() => {
+	const apiFilters = useMemo<P2PIndexFilters>(() => {
+		// `type: null` viaja tal cual (p2pApi.index lo descarta con su guard de
+		// verdad); el cast conserva ese runtime sin ensanchar P2PIndexFilters.
 		const out = {
 			take: PAGE_SIZE,
 			order: orderType,
 			orderBy,
 			type: typeFilter,
-		}
+		} as P2PIndexFilters
 		if (showMine) { out.my = true }
 		if (selectedCoin?.tick) { out.coin = selectedCoin.tick }
 		// "Quiero operar $X" → ofertas con al menos ese monto
@@ -121,8 +158,8 @@ export default function useP2PFilters(initialCoin) {
 	}, [typeFilter, selectedCoin?.tick, opAmount, ratioMin, ratioMax, onlyVip, showMine, orderBy, orderType])
 
 	// Active filter badges (modal filters only) — onRemove clears that field
-	const activeFilterBadges = useMemo(() => {
-		const badges = []
+	const activeFilterBadges = useMemo<P2PFilterBadge[]>(() => {
+		const badges: P2PFilterBadge[] = []
 		if (showMine) badges.push({ key: "showMine", label: t('p2p.filters.myOffers'), onRemove: () => setFilter("showMine", false) })
 		if (opAmount !== "") badges.push({ key: "opAmount", label: t('p2p.filters.badges.operate', { amount: opAmount }), onRemove: () => setFilter("opAmount", "") })
 		if (ratioMin !== "") badges.push({ key: "ratioMin", label: t('p2p.filters.badges.rateMin', { value: ratioMin }), onRemove: () => setFilter("ratioMin", "") })

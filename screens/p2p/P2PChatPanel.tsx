@@ -3,12 +3,62 @@ import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import FastImage from "@d11/react-native-fast-image"
 import { useTranslation } from "react-i18next"
 
+import type { NativeScrollEvent, NativeSyntheticEvent, StyleProp, ViewStyle } from "react-native"
+import type { RefObject } from "react"
+import type { Asset } from "react-native-image-picker"
+
 import QPAvatar from "../../ui/particles/QPAvatar"
 import P2PPeerRow from "./P2PPeerRow"
 import ChatMessageText from "./ChatMessageText"
 import { isSticker, getStickerName } from "./useP2PChat"
+import type { ChatMessage } from "./useP2PChat"
 import { getShortDateTime, copyTextToClipboard } from "../../helpers"
 import ReactNativeHapticFeedback from "react-native-haptic-feedback"
+
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+import type { P2PUser, User } from "../../types/domain"
+import type { PeerStats } from "./p2pQueries"
+
+/** Todo el estado y los handlers vienen de useP2PChat: el panel es presentacional. */
+export type P2PChatPanelProps = {
+	user: User | null
+	counterparty?: P2PUser | null
+	peerStats?: PeerStats | null
+	peerReviewsCount?: number
+	isUserOnline: (uuid?: string) => boolean
+	openPeerProfile: (user: P2PUser) => void
+	messages: ChatMessage[]
+	chatLoading: boolean
+	chatError: string | null
+	chatText: string
+	setChatText: (value: string) => void
+	selectedImage: Asset | null
+	setSelectedImage: (value: Asset | null) => void
+	sendingImage: boolean
+	showStickerPanel: boolean
+	setShowStickerPanel: (value: boolean) => void
+	visibleTimestamps: Set<ChatMessage['id']>
+	chatScrollRef: RefObject<ScrollView | null>
+	/** Animated.Value por mensaje para el despliegue de la hora (ref, nunca estado). */
+	messageAnimations: RefObject<Record<ChatMessage['id'], Animated.Value>>
+	handleSendChat: () => void
+	handlePickImage: () => void
+	handleSendImage: () => void
+	handleSendSticker: (name: string) => void
+	toggleTimestamp: (id: ChatMessage['id']) => void
+	onChatScrollBeginDrag: () => void
+	onChatScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void
+	onChatMomentumScrollEnd: (event: NativeSyntheticEvent<NativeScrollEvent>) => void
+	onChatContentSizeChange: () => void
+	/** Off cuando el host pinta su propia fila de contraparte (la hoja del chat). */
+	show_header?: boolean
+	/** Anula el chrome de card cuando el panel vive dentro de una superficie que ya lo pone. */
+	wrapStyle?: StyleProp<ViewStyle>
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
 
 // Stickers list (GOLD exclusive)
 const P2P_STICKERS = [
@@ -32,7 +82,7 @@ const P2PChatPanel = ({
 	onChatScrollBeginDrag, onChatScroll, onChatMomentumScrollEnd, onChatContentSizeChange,
 	show_header = true, wrapStyle = null,
 	theme, textStyles, containerStyles,
-}) => {
+}: P2PChatPanelProps) => {
 
 	const { t } = useTranslation()
 
@@ -93,7 +143,7 @@ const P2PChatPanel = ({
 					// grupo no debe llevar marginBottom o se despega de su propio stack).
 					messages.map((m, idx) => {
 
-						const fromMe = (msg) => !!(msg?.peer_id && user?.uuid && msg.peer_id === user.uuid)
+						const fromMe = (msg: ChatMessage | null) => !!(msg?.peer_id && user?.uuid && msg.peer_id === user.uuid)
 						const mine = fromMe(m)
 						const prevMessage = idx > 0 ? messages[idx - 1] : null
 						const nextMessage = idx < messages.length - 1 ? messages[idx + 1] : null

@@ -1,15 +1,26 @@
 import { Text } from "react-native"
+import type { StyleProp, TextStyle } from "react-native"
 import ReactNativeHapticFeedback from "react-native-haptic-feedback"
 
 import { copyTextToClipboard, detectCopyableText } from "../../helpers"
+import type { CopyableMatch } from "../../helpers"
+
+type ChatMessageTextProps = {
+	text: string
+	textStyle?: StyleProp<TextStyle>
+	highlightColor?: string
+}
+
+/** Trozo del mensaje ya partido: texto plano o fragmento copiable con su tipo. */
+type MessagePart = { text: string, copyable: boolean, type?: CopyableMatch['type'] }
 
 // Chat message text with tappable patterns (phones, cards, emails)
-const ChatMessageText = ({ text, textStyle, highlightColor }) => {
+const ChatMessageText = ({ text, textStyle, highlightColor }: ChatMessageTextProps) => {
 
 	const matches = detectCopyableText(text)
 	if (matches.length === 0) return <Text style={textStyle}>{text}</Text>
 
-	const parts = []
+	const parts: MessagePart[] = []
 	let cursor = 0
 	for (const m of matches) {
 		if (m.start > cursor) parts.push({ text: text.slice(cursor, m.start), copyable: false })

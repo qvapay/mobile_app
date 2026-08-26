@@ -1,8 +1,35 @@
 import { View, Text, Pressable, Modal, StyleSheet } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import type { FontAwesome6SolidIconName } from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
 import QPButton from "../../ui/particles/QPButton"
+
+import type { Theme } from "../../theme/ThemeContext"
+import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+
+/** Config visual de una acción confirmable (la arma P2POffer por acción pendiente). */
+export type P2PConfirmConfig = {
+	icon: string
+	iconColor: string
+	title: string
+	body: string
+	/** Aviso de seguridad opcional (solo en los pasos irreversibles). */
+	warning?: string
+	confirmLabel: string
+	confirmBg: string
+	confirmTextColor: string
+	loading?: boolean
+}
+
+type P2PConfirmModalProps = P2PConfirmConfig & {
+	visible: boolean
+	onClose: () => void
+	onConfirm: () => void
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
 
 /**
  * Themed confirmation for trade actions (cancel / mark-paid / release funds).
@@ -15,7 +42,7 @@ const P2PConfirmModal = ({
 	icon, iconColor, title, body, warning,
 	confirmLabel, confirmBg, confirmTextColor,
 	theme, textStyles, containerStyles,
-}) => {
+}: P2PConfirmModalProps) => {
 
 	const { t } = useTranslation()
 
@@ -24,7 +51,8 @@ const P2PConfirmModal = ({
 			<Pressable style={containerStyles.modalOverlay} onPress={() => !loading && onClose()}>
 				<Pressable onPress={() => { }} style={containerStyles.modalCard}>
 
-					<FontAwesome6 name={icon} size={40} color={iconColor} iconStyle="solid" style={styles.icon} />
+					{/* `icon` lo elige la pantalla por acción: nombre dinámico fuera del union de glifos */}
+					<FontAwesome6 name={icon as FontAwesome6SolidIconName} size={40} color={iconColor} iconStyle="solid" style={styles.icon} />
 
 					<Text style={[textStyles.h3, { color: theme.colors.primaryText, textAlign: "center", marginBottom: 8 }]}>{title}</Text>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center", lineHeight: 22, marginBottom: warning ? 12 : 20 }]}>{body}</Text>
