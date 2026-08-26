@@ -79,6 +79,7 @@ This mobile application is the primary gateway to QvaPay. Built with **React Nat
 | Layer | Technology |
 |-------|-----------|
 | ⚛️ Framework | React Native 0.84.1 (Fabric) + React 19.2.3 |
+| 🔤 Language | **TypeScript 6** — the entire app is `.ts`/`.tsx` (only `index.js` stays JS) |
 | 🧭 Navigation | React Navigation 7 (native stack + bottom tabs, iOS 26 liquid-glass ready) |
 | 🗄️ Server state | **TanStack Query 5** + AsyncStorage persister (24h offline cache, versioned buster) |
 | 🎛️ App state | Context API (Auth, Settings, Theme, AppLock, OnlineStatus, Loading) |
@@ -141,6 +142,7 @@ npm run android       # Run on Android emulator
 | `npm run ios:device` | Run on a physical iPhone |
 | `npm run pods` | Install CocoaPods |
 | `npm run lint` | Run ESLint |
+| `npm run typecheck` | Type-check the whole app (`tsc --noEmit`) |
 | `npm run test` | Run Jest tests (~900+) |
 | `npm run i18n:check` | Validate translation key parity + placeholders + plurals |
 | `npm run i18n:usage` | Verify every `t('...')` key exists in the bundles |
@@ -153,6 +155,7 @@ npm run android       # Run on Android emulator
 
 ### ✅ Completed
 
+- [x] **Full TypeScript migration** — every screen, hook, context and API module is typed
 - [x] **React Query data layer** — offline-first persisted cache, instant cold starts
 - [x] **Multi-language support (ES/EN/PT-BR)** — full i18next sweep, ~1,900 keys per language
 - [x] **Lightning / spendable satoshis** — LN withdrawals, sats discounts, bolt11 scanning
@@ -179,7 +182,6 @@ npm run android       # Run on Android emulator
 
 ### 🔨 In Progress
 
-- [ ] TypeScript migration (`App.tsx` first, expanding)
 - [ ] Backend error prose localization (server responses still Spanish-only)
 - [ ] Nearby Pay — proximity payments radar (phase 1: iOS Multipeer ✅, phase 2: BLE)
 
@@ -194,7 +196,32 @@ npm run android       # Run on Android emulator
 
 ## 🤝 Contributions
 
-We welcome contributions! Please open an issue or submit a pull request. All code should follow our established coding style and pass linting tests (`npm run lint` + `npm run test` + `npm run i18n:check`).
+We welcome contributions! Please open an issue or submit a pull request.
+
+**New code must be written in TypeScript.** The app is fully migrated — every screen, hook, context
+and API module is `.ts`/`.tsx`, and the only remaining `.js` file is `index.js`, the entry point React
+Native requires under that name. Pull requests that add or rename files back to plain `.js`/`.jsx`
+won't be merged. Test files stay `.test.js` on purpose.
+
+When you touch a module, keep it typed end to end: give new endpoints a real return type in its `api/`
+module, declare payload entities in `types/domain.ts`, and register new screens in the
+`RootStackParamList` of `types/navigation.ts`. Babel strips types without checking them, so
+`npm run typecheck` is what actually guards the migration — it runs in CI on every pull request.
+
+Before opening a PR, make sure the following pass:
+
+```bash
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit
+npm run test        # Jest
+npm run i18n:check  # translation key parity (if you touched any copy)
+```
+
+New user-facing copy is never a literal string: it's born as a key in `i18n/locales/` for **all three
+languages** (es / en / pt-BR), following `i18n/CONVENTIONS.md`.
+
+Branch from `main`, and rebase rather than merge if `main` moves under you — it keeps the diff to what
+you actually changed.
 
 ## 🛡️ Security & Compliance
 
