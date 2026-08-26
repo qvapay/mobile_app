@@ -203,6 +203,7 @@ export const getSupportedBiometryType = async () => {
 		const type = await Keychain.getSupportedBiometryType()
 		return type // 'FaceID', 'TouchID', 'Fingerprint', or null
 	} catch (error) {
+		console.warn('[biometrics] getSupportedBiometryType failed:', error instanceof Error ? error.message : error)
 		return null
 	}
 }
