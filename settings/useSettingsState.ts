@@ -2,15 +2,20 @@ import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { STORAGE_KEYS, DEFAULT_SETTINGS } from './settingsConstants'
+import type { Settings } from './settingsConstants'
+
+// Vista "ancha" para los accesos dinámicos por clave: la forma estricta la
+// da `Settings`; este cast local permite indexar por string sin perderla.
+const KEYS = STORAGE_KEYS as Record<string, string>
 
 /**
  * Loads every settings category from its own AsyncStorage key in parallel.
  * Missing or unparsable categories come back as `null` so `mergeWithDefaults`
  * can fill them in; a total storage failure resolves to `{}` (all defaults).
  *
- * @returns {Promise<Object>} Map of category name → stored object or `null`.
+ * @returns Map of category name → stored object or `null`.
  */
-const loadAllSettings = async () => {
+const loadAllSettings = async (): Promise<Record<string, unknown>> => {
 	try {
 		const [
 			notifications,
@@ -62,20 +67,20 @@ const loadAllSettings = async () => {
  * Merges stored settings over `DEFAULT_SETTINGS`, category by category, so
  * new keys added in app updates get their defaults without wiping user choices.
  *
- * @param {Object} storedSettings - Output of `loadAllSettings` (or an import payload).
- * @returns {Object} Complete settings object with every category populated.
+ * @param storedSettings - Output of `loadAllSettings` (or an import payload).
+ * @returns Complete settings object with every category populated.
  */
-const mergeWithDefaults = (storedSettings) => {
-	const merged = { ...DEFAULT_SETTINGS }
+const mergeWithDefaults = (storedSettings: Record<string, unknown>): Settings => {
+	const merged: Record<string, unknown> = { ...DEFAULT_SETTINGS }
 	Object.keys(storedSettings).forEach(category => {
 		if (storedSettings[category]) {
 			merged[category] = {
-				...merged[category],
-				...storedSettings[category]
+				...(merged[category] as object),
+				...(storedSettings[category] as object)
 			}
 		}
 	})
-	return merged
+	return merged as Settings
 }
 
 /**
@@ -97,7 +102,7 @@ const mergeWithDefaults = (storedSettings) => {
  *   settings: Object,
  *   isLoading: boolean,
  *   error: string|null,
- *   updateSettings: Function,
+ *   updateSettings: (category: string, newSettings: Object) => Promise<{ success: boolean, error?: string }>,
  *   updateSetting: Function,
  *   resetSettings: Function,
  *   exportSettings: Function,
@@ -110,9 +115,9 @@ const mergeWithDefaults = (storedSettings) => {
 export default function useSettingsState() {
 
 	// State for settings
-	const [settings, setSettings] = useState(DEFAULT_SETTINGS)
+	const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
 	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState(null)
+	const [error, setError] = useState<string | null>(null)
 
 	// Initialize settings on app start
 	useEffect(() => {
@@ -147,11 +152,11 @@ export default function useSettingsState() {
 	 * Merges several values into one settings category and persists that
 	 * category to its AsyncStorage key (see the storage-key gotcha above).
 	 *
-	 * @param {string} category - Category name, e.g. 'appearance'.
-	 * @param {Object} newSettings - Partial category object to merge in.
-	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 * @param category - Category name, e.g. 'appearance'.
+	 * @param newSettings - Partial category object to merge in.
+	 * @returns `{ success, error? }`
 	 */
-	const updateSettings = async (category, newSettings) => {
+	const updateSettings = async (category: string, newSettings: Record<string, unknown>) => {
 
 		try {
 
@@ -161,22 +166,23 @@ export default function useSettingsState() {
 			const updatedSettings = {
 				...settings,
 				[category]: {
-					...settings[category],
+					...(settings as Record<string, unknown>)[category] as object,
 					...newSettings
 				}
-			}
+			} as Settings
 
 			setSettings(updatedSettings)
 
 			// Save to storage
 			await AsyncStorage.setItem(
-				STORAGE_KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
-				JSON.stringify(updatedSettings[category])
+				KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
+				JSON.stringify((updatedSettings as Record<string, unknown>)[category])
 			)
 
 			return { success: true }
 
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string }
 			setError('Failed to update settings')
 			return { success: false, error: err.message }
 		}
@@ -185,12 +191,12 @@ export default function useSettingsState() {
 	/**
 	 * Sets a single key within a category and persists the whole category.
 	 *
-	 * @param {string} category - Category name, e.g. 'security'.
-	 * @param {string} key - Setting key within the category, e.g. 'autoLockTimeout'.
-	 * @param {*} value - New value.
-	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 * @param category - Category name, e.g. 'security'.
+	 * @param key - Setting key within the category, e.g. 'autoLockTimeout'.
+	 * @param value - New value.
+	 * @returns `{ success, error? }`
 	 */
-	const updateSetting = async (category, key, value) => {
+	const updateSetting = async (category: string, key: string, value: unknown) => {
 
 		try {
 
@@ -200,22 +206,23 @@ export default function useSettingsState() {
 			const updatedSettings = {
 				...settings,
 				[category]: {
-					...settings[category],
+					...(settings as Record<string, unknown>)[category] as object,
 					[key]: value
 				}
-			}
+			} as Settings
 
 			setSettings(updatedSettings)
 
 			// Save to storage
 			await AsyncStorage.setItem(
-				STORAGE_KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
-				JSON.stringify(updatedSettings[category])
+				KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
+				JSON.stringify((updatedSettings as Record<string, unknown>)[category])
 			)
 
 			return { success: true }
 
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string }
 			setError('Failed to update setting')
 			return { success: false, error: err.message }
 		}
@@ -225,10 +232,10 @@ export default function useSettingsState() {
 	 * Resets one category (writes its defaults to storage) or, with no argument,
 	 * ALL settings — clearing every `STORAGE_KEYS` entry from AsyncStorage.
 	 *
-	 * @param {string|null} [category] - Category to reset, or null/omitted for everything.
-	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 * @param category - Category to reset, or null/omitted for everything.
+	 * @returns `{ success, error? }`
 	 */
-	const resetSettings = async (category = null) => {
+	const resetSettings = async (category: string | null = null) => {
 
 		try {
 
@@ -238,14 +245,14 @@ export default function useSettingsState() {
 				// Reset specific category
 				const updatedSettings = {
 					...settings,
-					[category]: DEFAULT_SETTINGS[category]
-				}
+					[category]: (DEFAULT_SETTINGS as Record<string, unknown>)[category]
+				} as Settings
 
 				setSettings(updatedSettings)
 
 				await AsyncStorage.setItem(
-					STORAGE_KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
-					JSON.stringify(DEFAULT_SETTINGS[category])
+					KEYS[category.toUpperCase()] || STORAGE_KEYS.SETTINGS,
+					JSON.stringify((DEFAULT_SETTINGS as Record<string, unknown>)[category])
 				)
 			} else {
 				// Reset all settings
@@ -261,7 +268,8 @@ export default function useSettingsState() {
 
 			return { success: true }
 
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string }
 			setError('Failed to reset settings')
 			return { success: false, error: err.message }
 		}
@@ -284,7 +292,8 @@ export default function useSettingsState() {
 			}
 
 			return { success: true, data: settingsData }
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string }
 			setError('Failed to export settings')
 			return { success: false, error: err.message }
 		}
@@ -294,10 +303,10 @@ export default function useSettingsState() {
 	 * Imports a payload produced by `exportSettings`: validates it, merges it
 	 * over the defaults, and persists every category to its own storage key.
 	 *
-	 * @param {{ settings: Object }} settingsData - Export payload to restore.
-	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 * @param settingsData - Export payload to restore.
+	 * @returns `{ success, error? }`
 	 */
-	const importSettings = async (settingsData) => {
+	const importSettings = async (settingsData: { settings: Record<string, unknown> } | null | undefined) => {
 
 		try {
 
@@ -331,7 +340,8 @@ export default function useSettingsState() {
 
 			return { success: true }
 
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string }
 			setError('Failed to import settings')
 			return { success: false, error: err.message }
 		}
@@ -343,14 +353,14 @@ export default function useSettingsState() {
 	/**
 	 * Reads a single setting with a fallback, never throwing.
 	 *
-	 * @param {string} category - Category name.
-	 * @param {string} key - Setting key within the category.
-	 * @param {*} [defaultValue=null] - Returned when the value is missing/nullish.
-	 * @returns {*} The stored value or `defaultValue`.
+	 * @param category - Category name.
+	 * @param key - Setting key within the category.
+	 * @param defaultValue - Returned when the value is missing/nullish.
+	 * @returns The stored value or `defaultValue`.
 	 */
-	const getSetting = (category, key, defaultValue = null) => {
+	const getSetting = (category: string, key: string, defaultValue: unknown = null): unknown => {
 		try {
-			return settings[category]?.[key] ?? defaultValue
+			return (settings as Record<string, Record<string, unknown> | undefined>)[category]?.[key] ?? defaultValue
 		} catch (err) {
 			// error getting setting
 			return defaultValue
@@ -360,11 +370,11 @@ export default function useSettingsState() {
 	/**
 	 * Boolean shorthand for `getSetting(category, key, false)`.
 	 *
-	 * @param {string} category - Category name.
-	 * @param {string} key - Setting key within the category.
-	 * @returns {boolean}
+	 * @param category - Category name.
+	 * @param key - Setting key within the category.
+	 * @returns Si el ajuste está activo (los valores de estos toggles son booleanos).
 	 */
-	const isSettingEnabled = (category, key) => { return getSetting(category, key, false) }
+	const isSettingEnabled = (category: string, key: string) => { return getSetting(category, key, false) as boolean }
 
 	return {
 

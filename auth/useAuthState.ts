@@ -23,6 +23,10 @@ import { queryClient, persister } from '../api/queryClient'
 // i18n (call time: los setError corren en callbacks async, fuera de render)
 import i18n from '../i18n'
 
+// Tipos
+import type { Me, User } from '../types/domain'
+import type { LoginCredentials, RegisterCredentials, ConfirmRegistrationCredentials } from '../api/authApi'
+
 // Storage keys
 const STORAGE_KEYS = { USER_DATA: 'user_data' }
 
@@ -31,11 +35,11 @@ const STORAGE_KEYS = { USER_DATA: 'user_data' }
  * passkey login and the registration wizard via `completeSession`).
  * Also derives `cover_photo_url` from the raw `cover` media path.
  *
- * @param {Object} me - `me` object returned by the auth endpoints.
- * @param {string} email - Email used to log in (the API omits it here).
- * @returns {Object} User object as stored in state and AsyncStorage.
+ * @param me - `me` object returned by the auth endpoints.
+ * @param email - Email used to log in (the API omits it here).
+ * @returns User object as stored in state and AsyncStorage.
  */
-const mapMeToUser = (me, email) => ({
+const mapMeToUser = (me: Me, email?: string) => ({
 	uuid: me.uuid,
 	email,
 	username: me.username,
@@ -93,12 +97,15 @@ const clearAuthData = async () => {
 }
 
 // isAuthenticated / user / token move together on login & logout — one session slice
-const initialSession = { isAuthenticated: false, user: null, token: null }
+type Session = { isAuthenticated: boolean, user: User | null, token: string | null }
+type SessionAction = { type: 'set', field: keyof Session, value: Session[keyof Session] }
 
-function sessionReducer(state, action) {
+const initialSession: Session = { isAuthenticated: false, user: null, token: null }
+
+function sessionReducer(state: Session, action: SessionAction): Session {
 	switch (action.type) {
 		case 'set':
-			return { ...state, [action.field]: action.value }
+			return { ...state, [action.field]: action.value } as Session
 		default:
 			return state
 	}
@@ -114,34 +121,24 @@ function sessionReducer(state, action) {
  * Side effects on session changes: links/unlinks the user with OneSignal
  * (uuid + kyc/vip/gold tags) and pushes the balance to home-screen widgets.
  *
- * @returns {{
- *   isAuthenticated: boolean,
- *   user: Object|null,
- *   token: string|null,
- *   isLoading: boolean,
- *   error: string|null,
- *   login: Function,
- *   loginWithPasskey: Function,
- *   logout: Function,
- *   register: Function,
- *   updateUser: Function,
- *   clearError: Function,
- *   requestPin: Function,
- *   confirmRegistration: Function,
- *   completeSession: Function,
- * }}
+ * @returns Estado (`isAuthenticated`, `user`, `token`, `isLoading`, `error`)
+ *   y acciones (`login`, `loginWithPasskey`, `logout`, `register`, `updateUser`,
+ *   `clearError`, `requestPin`, `confirmRegistration`, `completeSession`) —
+ *   el tipo exacto lo da la inferencia.
  */
 export default function useAuthState() {
 
 	// Session slice (same-named setters keep every call site unchanged)
 	const [session, dispatchSession] = useReducer(sessionReducer, initialSession)
 	const { isAuthenticated, user, token } = session
-	const setIsAuthenticated = (value) => dispatchSession({ type: 'set', field: 'isAuthenticated', value })
-	const setUser = (value) => dispatchSession({ type: 'set', field: 'user', value })
-	const setToken = (value) => dispatchSession({ type: 'set', field: 'token', value })
+	const setIsAuthenticated = (value: boolean) => dispatchSession({ type: 'set', field: 'isAuthenticated', value })
+	const setUser = (value: User | null) => dispatchSession({ type: 'set', field: 'user', value })
+	const setToken = (value: string | null) => dispatchSession({ type: 'set', field: 'token', value })
 
 	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState(null)
+	// `undefined` admitido a propósito: varios caminos hacen setError(apiResponse.error)
+	// con error opcional — normalizarlo a null sería un cambio de runtime
+	const [error, setError] = useState<string | null | undefined>(null)
 
 	// Espejo del user para que `updateUser` pueda ser ESTABLE (deps []): si la
 	// función se recreara con cada cambio de `user`, todo efecto que dependa de
@@ -150,7 +147,7 @@ export default function useAuthState() {
 	// AuthContext con updates contra pantallas congeladas por enableFreeze,
 	// que pierden el contexto y revientan con "useAuth must be used within an
 	// AuthProvider" segundos después de arrancar
-	const userRef = useRef(null)
+	const userRef = useRef<User | null>(null)
 	useEffect(() => { userRef.current = user }, [user])
 
 	// Initialize auth state on app start
@@ -188,7 +185,7 @@ export default function useAuthState() {
 			}
 
 			// Hydrate from cache so the UI can render immediately
-			let cachedUser = null
+			let cachedUser: User | null = null
 			try {
 				const raw = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA)
 				if (raw) { cachedUser = JSON.parse(raw) }
@@ -234,13 +231,12 @@ export default function useAuthState() {
 	 * authenticates silently and completes the session only after its optional
 	 * phone-verification step).
 	 *
-	 * @param {Object} params
-	 * @param {string} params.accessToken - Bearer token from the API.
-	 * @param {Object} params.me - `me` payload from the API.
-	 * @param {string} [params.email] - Login email; falls back to `me.email`.
-	 * @returns {Promise<Object>} The mapped user object now held in state.
+	 * @param params.accessToken - Bearer token from the API.
+	 * @param params.me - `me` payload from the API.
+	 * @param params.email - Login email; falls back to `me.email`.
+	 * @returns The mapped user object now held in state.
 	 */
-	const completeSession = async ({ accessToken, me, email }) => {
+	const completeSession = async ({ accessToken, me, email }: { accessToken: string, me: Me, email?: string }) => {
 
 		const userData = mapMeToUser(me, email || me.email)
 
@@ -279,7 +275,7 @@ export default function useAuthState() {
 	 *   has_otp?: boolean, security_warning?: string|null, error?: string,
 	 *   details?: Object, action?: string }>}
 	 */
-	const login = async (credentials) => {
+	const login = async (credentials: LoginCredentials) => {
 
 		try {
 
@@ -297,12 +293,15 @@ export default function useAuthState() {
 			if (apiResponse.status === 202) { return { success: true, status: apiResponse.status, notified: apiResponse.notified, has_otp: apiResponse.has_otp } }
 
 			// Extract data from API response and establish the session
+			// (el 200 completo siempre trae ambos; el tipo los deja opcionales
+			// porque comparte forma con el 202)
 			const { accessToken, me } = apiResponse
-			await completeSession({ accessToken, me, email: credentials.email })
+			await completeSession({ accessToken: accessToken as string, me: me as Me, email: credentials.email })
 
 			return { success: true, security_warning: apiResponse.security_warning || null }
 
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string, details?: unknown }
 			setError(i18n.t('hooks.authState.loginFailedRetry'))
 			return { success: false, error: err.message, details: err.details }
 		} finally { setIsLoading(false) }
@@ -328,7 +327,7 @@ export default function useAuthState() {
 			const optionsResult = await authApi.getPasskeyLoginOptions()
 			if (!optionsResult.success) { return { success: false, error: optionsResult.error } }
 
-			const { sessionId, ...options } = optionsResult.data
+			const { sessionId, ...options } = optionsResult.data!
 
 			// 2. Authenticate with device passkey
 			const { Passkey } = require('react-native-passkey')
@@ -340,11 +339,12 @@ export default function useAuthState() {
 
 			// 4. Store credentials (same as regular login)
 			const { accessToken, me } = verifyResult
-			await completeSession({ accessToken, me, email: me.email })
+			await completeSession({ accessToken: accessToken as string, me: me as Me, email: me?.email })
 
 			return { success: true }
 
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string, code?: string }
 			// User cancelled or passkey not available
 			if (err?.message?.includes('cancel') || err?.code === 'ERR_PASSKEY_CANCELLED') {
 				return { success: false, error: null } // silent cancel
@@ -357,10 +357,10 @@ export default function useAuthState() {
 	/**
 	 * Requests a login 2FA PIN to be sent to the user (email delivery).
 	 *
-	 * @param {{ email: string, password: string }} credentials
-	 * @returns {Promise<{ success: boolean, message?: string, error?: string }>}
+	 * @param credentials - Email y password de la cuenta.
+	 * @returns `{ success, message?, error? }`
 	 */
-	const requestPin = async (credentials) => {
+	const requestPin = async (credentials: { email: string, password: string }) => {
 
 		try {
 
@@ -368,13 +368,16 @@ export default function useAuthState() {
 			const apiResponse = await authApi.requestPin(credentials)
 
 			if (apiResponse.success) {
-				return { success: true, message: apiResponse.message }
+				// `message` no existe en la respuesta de requestPin (campo muerto
+				// pre-existente); el cast preserva el runtime tal cual
+				return { success: true, message: (apiResponse as { message?: string }).message }
 			} else {
 				setError(apiResponse.error)
 				return { success: false, error: apiResponse.error }
 			}
 		}
-		catch (err) {
+		catch (e) {
+			const err = e as { message?: string }
 			setError(i18n.t('hooks.authState.requestPinFailed'))
 			return { success: false, error: err.message }
 		} finally { setIsLoading(false) }
@@ -410,7 +413,8 @@ export default function useAuthState() {
 
 			return { success: true }
 
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string }
 			setError(i18n.t('hooks.authState.logoutFailed'))
 			return { success: false, error: err.message }
 		} finally { setIsLoading(false) }
@@ -420,10 +424,10 @@ export default function useAuthState() {
 	 * Registers a new account. Does NOT create a session — the account still needs
 	 * email confirmation (`confirmRegistration`) and the wizard signs in afterwards.
 	 *
-	 * @param {Object} credentials - Registration payload (name, email, password, ...).
-	 * @returns {Promise<{ success: boolean, message?: string, user?: Object, error?: string }>}
+	 * @param credentials - Registration payload (name, email, password, ...).
+	 * @returns `{ success, message?, user?, error? }`
 	 */
-	const register = async (credentials) => {
+	const register = async (credentials: RegisterCredentials) => {
 
 		try {
 
@@ -461,10 +465,10 @@ export default function useAuthState() {
 	/**
 	 * Confirms a fresh registration with the PIN emailed to the user.
 	 *
-	 * @param {{ email: string, pin: string }} credentials
-	 * @returns {Promise<{ success: boolean, message?: string, error?: string, details?: Object }>}
+	 * @param credentials - `{ uuid, email, pin }` del registro recién creado.
+	 * @returns `{ success, message?, error?, details? }`
 	 */
-	const confirmRegistration = async (credentials) => {
+	const confirmRegistration = async (credentials: ConfirmRegistrationCredentials) => {
 		try {
 			const apiResponse = await authApi.confirmRegistration(credentials)
 			if (apiResponse.success) {
@@ -478,7 +482,8 @@ export default function useAuthState() {
 				}
 			}
 		}
-		catch (err) {
+		catch (e) {
+			const err = e as { message?: string }
 			setError(i18n.t('hooks.authState.confirmRegistrationFailed'))
 			return {
 				success: false,
@@ -493,10 +498,10 @@ export default function useAuthState() {
 	 * home-screen widgets with the latest balance. Local only — call the relevant
 	 * API endpoint first; this just keeps the client copy in sync.
 	 *
-	 * @param {Object} newUserData - Partial user fields to merge over the current user.
-	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 * @param newUserData - Partial user fields to merge over the current user.
+	 * @returns `{ success, error? }`
 	 */
-	const updateUser = useCallback(async (newUserData) => {
+	const updateUser = useCallback(async (newUserData: Partial<User>) => {
 		try {
 			const updatedUser = { ...userRef.current, ...newUserData }
 			await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
@@ -505,7 +510,8 @@ export default function useAuthState() {
 			updateWidgetBalance(updatedUser.balance, updatedUser.username)
 			reloadWidgets()
 			return { success: true }
-		} catch (err) {
+		} catch (e) {
+			const err = e as { message?: string }
 			setError(i18n.t('hooks.authState.updateUserFailed'))
 			return { success: false, error: err.message }
 		}

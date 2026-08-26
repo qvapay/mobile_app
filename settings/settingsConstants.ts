@@ -70,7 +70,7 @@ export const DEFAULT_SETTINGS = {
 
 	// Appearance settings
 	appearance: {
-		theme: 'dark', // light, dark, auto
+		theme: 'dark' as 'light' | 'dark' | 'auto',
 		fontSize: 'medium', // small, medium, large, extraLarge
 		accentColor: 'default', // id from ACCENT_COLORS (theme/ThemeContext.js) — applied only for GOLD users
 		appIcon: 'default', // id from APP_ICONS (helpers/appIcon.js) — applied only for GOLD users
@@ -85,7 +85,7 @@ export const DEFAULT_SETTINGS = {
 	// ('auto' sigue el idioma del dispositivo; settings/LanguageSync.jsx lo
 	// aplica al singleton de i18next en runtime)
 	language: {
-		currentLanguage: 'auto',
+		currentLanguage: 'auto' as 'auto' | 'es' | 'en' | 'pt',
 		region: 'ES',
 		dateFormat: 'DD/MM/YYYY',
 		timeFormat: '12h', // 12h, 24h
@@ -133,7 +133,7 @@ export const DEFAULT_SETTINGS = {
 	// Roundup (micro pagos) settings
 	roundup: {
 		enabled: false,
-		destination: null, // 'savings' or 'donations'
+		destination: null as 'savings' | 'donations' | null,
 	},
 
 	// Sound and haptic settings
@@ -156,3 +156,9 @@ export const DEFAULT_SETTINGS = {
 		successVibration: true
 	}
 }
+
+/** Forma completa de los ajustes (derivada del catálogo de defaults). */
+export type Settings = typeof DEFAULT_SETTINGS
+
+/** Nombre de categoría de ajustes ('notifications' | 'security' | ...). */
+export type SettingsCategory = keyof Settings

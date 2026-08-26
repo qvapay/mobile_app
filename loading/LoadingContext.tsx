@@ -1,6 +1,15 @@
 import { createContext, use, useState, useRef, useCallback, useMemo } from 'react'
+import type { ReactNode } from 'react'
 
-const LoadingContext = createContext()
+/** Reference-counted loading state + controls that drive `GlobalLoadingBar`. */
+export type LoadingContextValue = {
+	isLoading: boolean
+	startLoading: () => void
+	stopLoading: () => void
+	resetLoading: () => void
+}
+
+const LoadingContext = createContext<LoadingContextValue | undefined>(undefined)
 
 // Anti-flicker floor: once shown, the bar stays visible at least this long
 const MIN_DISPLAY_MS = 300
@@ -16,14 +25,12 @@ const MIN_DISPLAY_MS = 300
  * Wiring: App.tsx's `LoadingBridge` passes `startLoading`/`stopLoading` to the
  * axios client via `registerLoadingCallbacks`, so every request drives the bar
  * automatically unless it opts out with `{ silent: true }` in its config.
- *
- * @param {{ children: React.ReactNode }} props
  */
-export const LoadingProvider = ({ children }) => {
+export const LoadingProvider = ({ children }: { children: ReactNode }) => {
 
 	const countRef = useRef(0)
-	const showTimeRef = useRef(null)
-	const hideTimerRef = useRef(null)
+	const showTimeRef = useRef<number | null>(null)
+	const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const [isLoading, setIsLoading] = useState(false)
 
 	const startLoading = useCallback(() => {
@@ -65,7 +72,7 @@ export const LoadingProvider = ({ children }) => {
 		setIsLoading(false)
 	}, [])
 
-	const value = useMemo(() => ({ isLoading, startLoading, stopLoading, resetLoading }), [isLoading, startLoading, stopLoading, resetLoading])
+	const value = useMemo<LoadingContextValue>(() => ({ isLoading, startLoading, stopLoading, resetLoading }), [isLoading, startLoading, stopLoading, resetLoading])
 
 	return (
 		<LoadingContext.Provider value={value}>
@@ -77,9 +84,9 @@ export const LoadingProvider = ({ children }) => {
 /**
  * Consumes the loading context. Throws if used outside a `LoadingProvider`.
  *
- * @returns {{ isLoading: boolean, startLoading: () => void, stopLoading: () => void, resetLoading: () => void }}
+ * @returns `isLoading` plus the `startLoading`/`stopLoading`/`resetLoading` controls.
  */
-export const useLoading = () => {
+export const useLoading = (): LoadingContextValue => {
 	const context = use(LoadingContext)
 	if (!context) { throw new Error('useLoading must be used within a LoadingProvider') }
 	return context

@@ -1,5 +1,7 @@
 import { createContext, use, useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { AppState } from 'react-native'
+import type { AppStateStatus } from 'react-native'
 import i18n from '../i18n'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
@@ -11,7 +13,23 @@ import {
 	removeAppLockPin,
 } from '../api/client'
 
-const AppLockContext = createContext()
+/** Result shape of every unlock/enable/disable/change operation. */
+export type AppLockResult = { success: boolean, error?: string }
+
+/** App-lock state + actions exposed by `useAppLock`. */
+export type AppLockContextValue = {
+	isLocked: boolean
+	appLockEnabled: boolean
+	unlockWithBiometrics: () => Promise<AppLockResult>
+	unlockWithPin: (enteredPin: string) => Promise<AppLockResult>
+	lock: () => void
+	enableAppLock: (pin: string) => Promise<AppLockResult>
+	disableAppLock: () => Promise<AppLockResult>
+	changeAppLockPin: (oldPin: string, newPin: string) => Promise<AppLockResult>
+	updateAutoLockTimeout: (minutes: number) => Promise<void>
+}
+
+const AppLockContext = createContext<AppLockContextValue | undefined>(undefined)
 
 /**
  * PIN-based app lock that gates the UI behind `LockScreen` (rendered by
@@ -29,10 +47,8 @@ const AppLockContext = createContext()
  *   Face ID / Touch ID prompt.
  * - `isLocked` is exposed AND-ed with `isAuthenticated`, so logging out
  *   dismisses the lock screen automatically.
- *
- * @param {{ children: React.ReactNode }} props
  */
-export const AppLockProvider = ({ children }) => {
+export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
 	const { security, isLoading: settingsLoading, updateSetting } = useSettings()
@@ -41,8 +57,8 @@ export const AppLockProvider = ({ children }) => {
 	const [appLockEnabled, setAppLockEnabled] = useState(false)
 
 	const isInitializedRef = useRef(false)
-	const appStateRef = useRef(AppState.currentState)
-	const backgroundTimestampRef = useRef(null)
+	const appStateRef = useRef<AppStateStatus>(AppState.currentState)
+	const backgroundTimestampRef = useRef<number | null>(null)
 
 	// Initialize: check if app lock PIN exists
 	useEffect(() => {
@@ -93,10 +109,8 @@ export const AppLockProvider = ({ children }) => {
 	/**
 	 * Unlocks via Face ID / Touch ID. Success = the biometric-protected Keychain
 	 * entry could be read (the OS prompt IS the authentication).
-	 *
-	 * @returns {Promise<{ success: boolean, error?: string }>}
 	 */
-	const unlockWithBiometrics = useCallback(async () => {
+	const unlockWithBiometrics = useCallback(async (): Promise<AppLockResult> => {
 		try {
 			const credentials = await getBiometricCredentials()
 			if (credentials) {
@@ -111,11 +125,8 @@ export const AppLockProvider = ({ children }) => {
 
 	/**
 	 * Unlocks by comparing the entered PIN with the one stored in the Keychain.
-	 *
-	 * @param {string} enteredPin
-	 * @returns {Promise<{ success: boolean, error?: string }>}
 	 */
-	const unlockWithPin = useCallback(async (enteredPin) => {
+	const unlockWithPin = useCallback(async (enteredPin: string): Promise<AppLockResult> => {
 		try {
 			const storedPin = await getAppLockPin()
 			if (storedPin && enteredPin === storedPin) {
@@ -138,11 +149,8 @@ export const AppLockProvider = ({ children }) => {
 	/**
 	 * Enables app lock by storing a new PIN in the Keychain. Does not lock
 	 * immediately — the lock arms on the next timeout/cold start (or via `lock`).
-	 *
-	 * @param {string} pin
-	 * @returns {Promise<{ success: boolean, error?: string }>}
 	 */
-	const enableAppLock = useCallback(async (pin) => {
+	const enableAppLock = useCallback(async (pin: string): Promise<AppLockResult> => {
 		const stored = await setAppLockPin(pin)
 		if (stored) {
 			setAppLockEnabled(true)
@@ -152,7 +160,7 @@ export const AppLockProvider = ({ children }) => {
 	}, [])
 
 	// Disable app lock
-	const disableAppLock = useCallback(async () => {
+	const disableAppLock = useCallback(async (): Promise<AppLockResult> => {
 		await removeAppLockPin()
 		setAppLockEnabled(false)
 		setIsLocked(false)
@@ -162,11 +170,10 @@ export const AppLockProvider = ({ children }) => {
 	/**
 	 * Changes the app-lock PIN after verifying the current one.
 	 *
-	 * @param {string} oldPin - Current PIN (must match the stored value).
-	 * @param {string} newPin - Replacement PIN.
-	 * @returns {Promise<{ success: boolean, error?: string }>}
+	 * @param oldPin - Current PIN (must match the stored value).
+	 * @param newPin - Replacement PIN.
 	 */
-	const changeAppLockPin = useCallback(async (oldPin, newPin) => {
+	const changeAppLockPin = useCallback(async (oldPin: string, newPin: string): Promise<AppLockResult> => {
 		const storedPin = await getAppLockPin()
 		if (storedPin !== oldPin) {
 			return { success: false, error: i18n.t('misc.lock.errors.currentPinWrong') }
@@ -179,11 +186,11 @@ export const AppLockProvider = ({ children }) => {
 	}, [])
 
 	// Update auto lock timeout in settings
-	const updateAutoLockTimeout = useCallback(async (minutes) => {
+	const updateAutoLockTimeout = useCallback(async (minutes: number) => {
 		await updateSetting('security', 'autoLockTimeout', minutes)
 	}, [updateSetting])
 
-	const value = useMemo(() => ({
+	const value = useMemo<AppLockContextValue>(() => ({
 		isLocked: isLocked && isAuthenticated, // derived: logging out clears the lock
 		appLockEnabled,
 		unlockWithBiometrics,
@@ -205,19 +212,11 @@ export const AppLockProvider = ({ children }) => {
 /**
  * Consumes the app-lock context. Throws if used outside an `AppLockProvider`.
  *
- * @returns {{
- *   isLocked: boolean,
- *   appLockEnabled: boolean,
- *   unlockWithBiometrics: Function,
- *   unlockWithPin: Function,
- *   lock: () => void,
- *   enableAppLock: Function,
- *   disableAppLock: Function,
- *   changeAppLockPin: Function,
- *   updateAutoLockTimeout: (minutes: number) => Promise<void>,
- * }}
+ * @returns Lock state (`isLocked`, `appLockEnabled`) and actions
+ *   (`unlockWithBiometrics`, `unlockWithPin`, `lock`, `enableAppLock`,
+ *   `disableAppLock`, `changeAppLockPin`, `updateAutoLockTimeout`).
  */
-export const useAppLock = () => {
+export const useAppLock = (): AppLockContextValue => {
 	const context = use(AppLockContext)
 	if (!context) { throw new Error('useAppLock must be used within an AppLockProvider') }
 	return context

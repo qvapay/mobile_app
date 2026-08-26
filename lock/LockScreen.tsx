@@ -19,11 +19,19 @@ import FaceIDIcon from '../ui/particles/FaceIDIcon'
 
 // UI
 import QPCodeInput from '../ui/particles/QPCodeInput'
+import type { QPCodeInputHandle } from '../ui/particles/QPCodeInput'
 
 // Biometric type + availability are detected together in one effect
-const initialBiometrics = { type: null, available: false }
+type BiometricsState = {
+	type: string | null
+	available: boolean
+}
 
-function biometricsReducer(state, action) {
+type BiometricsAction = { type: 'detected', biometryType: string | null, available: boolean }
+
+const initialBiometrics: BiometricsState = { type: null, available: false }
+
+function biometricsReducer(state: BiometricsState, action: BiometricsAction): BiometricsState {
 	switch (action.type) {
 		case 'detected':
 			return { type: action.biometryType, available: action.available }
@@ -53,7 +61,7 @@ const LockScreen = () => {
 	const [error, setError] = useState('')
 	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
 	const { type: biometryType, available: biometricsAvailable } = biometrics
-	const codeInputRef = useRef(null)
+	const codeInputRef = useRef<QPCodeInputHandle | null>(null)
 	const shakeAnim = useRef(new Animated.Value(0)).current
 
 	// Check biometric availability when lock screen appears
@@ -107,7 +115,7 @@ const LockScreen = () => {
 
 	// Verify the entered PIN — QPCodeInput's onFilled fires the moment the 4th digit
 	// lands (no state round-trip through an effect).
-	const verifyPin = async (code) => {
+	const verifyPin = async (code: string) => {
 		const result = await unlockWithPin(code)
 		if (!result.success) {
 			setError(t('misc.lock.errors.wrongPin'))
@@ -117,7 +125,7 @@ const LockScreen = () => {
 		}
 	}
 
-	const handleChangePin = (code) => {
+	const handleChangePin = (code: string) => {
 		setPin(code)
 		setError('')
 	}

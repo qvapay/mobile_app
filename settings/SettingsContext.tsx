@@ -1,9 +1,13 @@
 import { createContext, use } from 'react'
+import type { ReactNode } from 'react'
 
 import useSettingsState from './useSettingsState'
 
+/** Valor del contexto: exactamente lo que devuelve `useSettingsState`. */
+export type SettingsContextValue = ReturnType<typeof useSettingsState>
+
 // Create the Settings Context
-const SettingsContext = createContext()
+const SettingsContext = createContext<SettingsContextValue | undefined>(undefined)
 
 /**
  * Provides app-wide user settings (notifications, security, privacy, appearance,
@@ -13,9 +17,8 @@ const SettingsContext = createContext()
  * Settings are non-secret and persist per category in AsyncStorage; secrets
  * (auth token, biometric creds, app-lock PIN) live in the Keychain instead.
  *
- * @param {{ children: React.ReactNode }} props
  */
-export const SettingsProvider = ({ children }) => {
+export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
 	const value = useSettingsState()
 
@@ -29,13 +32,13 @@ export const SettingsProvider = ({ children }) => {
 /**
  * Consumes the settings context. Throws if used outside a `SettingsProvider`.
  *
- * @returns {ReturnType<import('./useSettingsState').default>} `settings`,
+ * @returns `settings`,
  *   `isLoading`, `error`, the mutation helpers (`updateSettings`, `updateSetting`,
  *   `resetSettings`, `importSettings`, `exportSettings`, `clearError`), read
  *   helpers (`getSetting`, `isSettingEnabled`) and per-category shortcuts
  *   (`appearance`, `security`, `sounds`, ...).
  */
-export const useSettings = () => {
+export const useSettings = (): SettingsContextValue => {
 	const context = use(SettingsContext)
 	if (!context) { throw new Error('useSettings must be used within a SettingsProvider') }
 	return context

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 
 import { getSupportedBiometryType, hasBiometricCredentials } from '../../api/client'
 
@@ -12,12 +13,12 @@ import { getSupportedBiometryType, hasBiometricCredentials } from '../../api/cli
  * `setHasBiometrics` is exposed so screens can flip the flag right after
  * enrolling/removing credentials without re-mounting.
  *
- * @returns {{ biometryType: string|null, hasBiometrics: boolean, setHasBiometrics: Function }}
- *   `biometryType` is 'FaceID' | 'TouchID' | 'Fingerprint' | null (unsupported).
+ * @returns `biometryType` ('FaceID' | 'TouchID' | 'Fingerprint' | null when
+ *   unsupported), `hasBiometrics` and its setter.
  */
-export default function useBiometricSupport() {
+export default function useBiometricSupport(): { biometryType: string | null, hasBiometrics: boolean, setHasBiometrics: Dispatch<SetStateAction<boolean>> } {
 
-	const [biometryType, setBiometryType] = useState(null)
+	const [biometryType, setBiometryType] = useState<string | null>(null)
 	const [hasBiometrics, setHasBiometrics] = useState(false)
 
 	useEffect(() => {

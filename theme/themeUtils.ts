@@ -1,16 +1,17 @@
 import { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
+import type { Theme } from './ThemeContext'
 
 /**
  * Converts a `#RRGGBB` hex color into an `rgba()` string. Needed for accent
  * tints (backgrounds/borders at low opacity) now that `theme.colors.primary`
  * is user-selectable and can no longer be hardcoded as rgba literals.
  *
- * @param {string} hex - Color in `#RRGGBB` format.
- * @param {number} [alpha=1] - Opacity between 0 and 1.
- * @returns {string} The `rgba(r, g, b, a)` string.
+ * @param hex - Color in `#RRGGBB` format.
+ * @param alpha - Opacity between 0 and 1.
+ * @returns The `rgba(r, g, b, a)` string.
  */
-export const hexToRgba = (hex, alpha = 1) => {
+export const hexToRgba = (hex: string, alpha: number = 1) => {
 	const h = hex.replace('#', '')
 	const r = parseInt(h.slice(0, 2), 16)
 	const g = parseInt(h.slice(2, 4), 16)
@@ -24,10 +25,10 @@ export const hexToRgba = (hex, alpha = 1) => {
  * already carry the user's font scale (baked into `theme.typography`).
  * Prefer the memoized `useTextStyles` inside components.
  *
- * @param {Object} theme - Theme object from `createTheme`.
- * @returns {Object} StyleSheet of text styles.
+ * @param theme - Theme object from `createTheme`.
+ * @returns StyleSheet of text styles (tipo por inferencia: claves reales).
  */
-export const createTextStyles = (theme) => StyleSheet.create({
+export const createTextStyles = (theme: Theme) => StyleSheet.create({
 	text: {
 		color: theme.colors.primaryText,
 		fontFamily: theme.typography.fontFamily.regular,
@@ -108,10 +109,10 @@ export const createTextStyles = (theme) => StyleSheet.create({
  * modal pattern (`modalOverlay` + `modalCard`). Prefer the memoized
  * `useContainerStyles` inside components.
  *
- * @param {Object} theme - Theme object from `createTheme`.
- * @returns {Object} StyleSheet of container styles.
+ * @param theme - Theme object from `createTheme`.
+ * @returns StyleSheet of container styles (tipo por inferencia: claves reales).
  */
-export const createContainerStyles = (theme) => StyleSheet.create({
+export const createContainerStyles = (theme: Theme) => StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: theme.colors.background
@@ -207,8 +208,12 @@ export const createContainerStyles = (theme) => StyleSheet.create({
  * ThemeProvider calls these once and exposes them as `styles.text` /
  * `styles.container`, so screens rarely need to call them directly.
  *
- * @param {Object} theme - Theme object from `createTheme`.
- * @returns {Object} Memoized StyleSheet.
+ * @param theme - Theme object from `createTheme`.
+ * @returns Memoized StyleSheet.
  */
-export const useTextStyles = (theme) => { return useMemo(() => createTextStyles(theme), [theme]) }
-export const useContainerStyles = (theme) => { return useMemo(() => createContainerStyles(theme), [theme]) }
+export const useTextStyles = (theme: Theme) => { return useMemo(() => createTextStyles(theme), [theme]) }
+export const useContainerStyles = (theme: Theme) => { return useMemo(() => createContainerStyles(theme), [theme]) }
+
+/** StyleSheets compartidos, con sus claves reales (para tipar props/casts). */
+export type TextStyles = ReturnType<typeof createTextStyles>
+export type ContainerStyles = ReturnType<typeof createContainerStyles>

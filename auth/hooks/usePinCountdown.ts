@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import i18n from '../../i18n'
 
 // mm:ss formatter — pure, so it lives at module scope instead of being rebuilt each render
-const format = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
+const format = (s: number): string => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
 
 /**
  * Drives the "Solicitar PIN" cooldown timer: `start(seconds)` disables the
@@ -16,16 +16,16 @@ const format = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 
  * trigger reconciliation on every tick.
  * See https://react.dev/reference/react/useRef
  *
- * @returns {{ label: string, isDisabled: boolean, start: (seconds?: number) => void }}
- *   `label` is either the localized "Solicitar PIN" or the remaining time; `start` defaults to 60s.
+ * @returns `label` (either the localized "Solicitar PIN" or the remaining
+ *   time), `isDisabled`, and `start` (defaults to 60s).
  */
-export default function usePinCountdown() {
+export default function usePinCountdown(): { label: string, isDisabled: boolean, start: (seconds?: number) => void } {
 
 	// Initializer runs at mount, so the label resolves in the active language
 	const [label, setLabel] = useState(() => i18n.t('hooks.pinCountdown.requestPin'))
 	const [isDisabled, setIsDisabled] = useState(false)
 	const remainingRef = useRef(0)
-	const intervalRef = useRef(null)
+	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
 	const stop = () => {
 		if (intervalRef.current) {
@@ -34,7 +34,7 @@ export default function usePinCountdown() {
 		}
 	}
 
-	const start = (seconds = 60) => {
+	const start = (seconds: number = 60) => {
 		stop()
 		remainingRef.current = seconds
 		setIsDisabled(true)
