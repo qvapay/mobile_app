@@ -1,4 +1,5 @@
 import { Platform, RefreshControl } from 'react-native'
+import type { RefreshControlProps } from 'react-native'
 import type { ReactElement } from 'react'
 
 /**
@@ -15,7 +16,7 @@ import type { ReactElement } from 'react'
  * @param onRefresh - Pull-to-refresh callback.
  * @returns A RefreshControl to pass as `refreshControl`.
  */
-export const createHiddenRefreshControl = (_refreshing: boolean, onRefresh: () => void): ReactElement => (
+export const createHiddenRefreshControl = (_refreshing: boolean, onRefresh: () => void): ReactElement<RefreshControlProps> => (
     <RefreshControl
         refreshing={false}
         onRefresh={onRefresh}

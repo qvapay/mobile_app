@@ -1,0 +1,129 @@
+import { useState, useEffect } from 'react'
+import { View, Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+
+// Lottie
+import LottieView from 'lottie-react-native'
+
+// Context and Theme
+import { useTheme } from '../../theme/ThemeContext'
+import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
+
+// Settings
+import { useSettings } from '../../settings/SettingsContext'
+
+// UI Particles
+import QPButton from '../../ui/particles/QPButton'
+import TransactionSticker from '../../ui/particles/TransactionSticker'
+
+// Stickers
+import { parseTransactionDescription } from '../../helpers/stickers'
+
+// Sound
+import playSound from '../../helpers/playSound'
+
+// Routes
+import { ROUTES } from '../../routes'
+
+// Push prompt
+import usePushPrompt from '../../hooks/usePushPrompt'
+import PushPromptModal from '../../ui/PushPromptModal'
+
+// In-app review
+import { maybeRequestReview } from '../../helpers/inAppReview'
+
+// Tipos
+import type { RootStackParamList } from '../../types/navigation'
+
+type Props = NativeStackScreenProps<RootStackParamList, 'SendSuccess'>
+
+/**
+ * Post-transfer success screen (Lottie check + optional sticker echo) with a button
+ * back to the home screen.
+ * Route params: `amount`, `recipient`, `description` — sticker descriptions render
+ * their animation. Plays the "money out" sound when enabled in settings, and uses
+ * the single post-transaction slot for either the push-notification prompt or an
+ * in-app review request — never both.
+ */
+const SendSuccess = ({ navigation, route }: Props) => {
+
+	const { description = '' } = route?.params || {}
+	const parsedDescription = parseTransactionDescription(description)
+
+	// Contexts
+	const { t } = useTranslation()
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+	const containerStyles = createContainerStyles(theme)
+	const insets = useSafeAreaInsets()
+	const { sounds } = useSettings()
+	const { shouldShowPostTxPrompt, enablePush, dismissPostTxPrompt } = usePushPrompt()
+
+	// Push prompt state
+	const [showPushPrompt, setShowPushPrompt] = useState(false)
+
+	// Play money out sound on mount
+	useEffect(() => {
+		if (sounds.enabled && sounds.transactionSound) {
+			playSound('money_out')
+		}
+	}, [sounds.enabled, sounds.transactionSound])
+
+	// Show push prompt with delay after mount
+	useEffect(() => {
+		if (!shouldShowPostTxPrompt) return
+		const timer = setTimeout(() => setShowPushPrompt(true), 1500)
+		return () => clearTimeout(timer)
+	}, [shouldShowPostTxPrompt])
+
+	// Request in-app review — only if push prompt isn't taking this slot
+	useEffect(() => {
+		if (shouldShowPostTxPrompt) return
+		const timer = setTimeout(() => { maybeRequestReview() }, 2500)
+		return () => clearTimeout(timer)
+	}, [shouldShowPostTxPrompt])
+
+	// Render
+	return (
+		<View style={[containerStyles.subContainer, { justifyContent: 'space-between' }]}>
+
+			<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+				<LottieView source={require('../../assets/lotties/completed.json')} autoPlay loop={false} style={{ width: 500, height: 350 }} />
+				<Text style={textStyles.h2}>{t('transactions.sendSuccess.title')}</Text>
+				<Text style={[textStyles.h6, { textAlign: 'center', paddingHorizontal: 20, color: theme.colors.secondaryText }]}>
+					{t('transactions.sendSuccess.subtitle')}
+				</Text>
+				{parsedDescription.type === 'sticker' && (
+					<View style={{ marginTop: 20 }}>
+						<TransactionSticker name={parsedDescription.sticker} size={96} />
+					</View>
+				)}
+			</View>
+
+			<View style={[containerStyles.bottomButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
+				<QPButton
+					title={t('transactions.sendSuccess.backHome')}
+					onPress={() => navigation.navigate(ROUTES.MAIN_STACK)}
+					textStyle={{ color: theme.colors.buttonText }}
+				/>
+			</View>
+
+			<PushPromptModal
+				visible={showPushPrompt}
+				onAccept={() => {
+					enablePush()
+					dismissPostTxPrompt()
+					setShowPushPrompt(false)
+				}}
+				onDismiss={() => {
+					dismissPostTxPrompt()
+					setShowPushPrompt(false)
+				}}
+			/>
+		</View>
+	)
+}
+
+export default SendSuccess
