@@ -23,7 +23,12 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 
 enableFreeze(true)
 
-const Stack = createNativeStackNavigator()
+// Contrato ruta → params (types/navigation.ts); su declaración global también
+// tipa useNavigation() en todo el árbol
+import type { RootStackParamList } from './types/navigation'
+import type { User } from './types/domain'
+
+const Stack = createNativeStackNavigator<RootStackParamList>()
 
 // Auth Context
 import { AuthProvider, useAuth } from './auth/AuthContext'
@@ -145,7 +150,7 @@ const getHeaderOptions = (title: string, options?: {
 })
 
 type ScreenConfig = {
-	name: string
+	name: keyof RootStackParamList
 	component: React.ComponentType<any>
 	options?: any
 }
@@ -283,11 +288,11 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 ]
 
 // P2P Offer header: avatar linking to own P2P profile, built from render-time navigation + user
-const p2pOfferScreenOptions = (navigation: any, user: any) => ({
+const p2pOfferScreenOptions = (navigation: ReturnType<typeof useAppNavigation>['navigation'], user: User | null) => ({
 	...getHeaderOptions(''),
 	// Android fallback
 	headerRight: () => (
-		<Pressable onPress={() => navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: user.uuid })}>
+		<Pressable onPress={() => navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: user?.uuid as string })}>
 			<QPAvatar user={user} size={32} />
 		</Pressable>
 	),
@@ -296,7 +301,7 @@ const p2pOfferScreenOptions = (navigation: any, user: any) => ({
 		unstable_headerRightItems: () => [{
 			type: 'custom' as const,
 			element: (
-				<Pressable onPress={() => navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: user.uuid })}>
+				<Pressable onPress={() => navigation.navigate(ROUTES.P2P_USER_SCREEN, { uuid: user?.uuid as string })}>
 					<QPAvatar user={user} size={28} />
 				</Pressable>
 			),
