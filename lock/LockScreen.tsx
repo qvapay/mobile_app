@@ -236,8 +236,13 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: 1,
 	},
+	// El contenedor padre centra en el eje horizontal (alignItems: 'center'), así que
+	// sin un ancho propio esta fila se encogería al contenido y las cajas `flex: 1` de
+	// QPCodeInput colapsarían a rayas verticales
 	pinContainer: {
 		marginTop: 24,
+		width: '100%',
+		maxWidth: 280,
 	},
 })
 

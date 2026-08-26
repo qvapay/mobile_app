@@ -5,7 +5,7 @@
  * mock.contexts (the `this` of each call identifies which box was focused).
  * @jest-environment node
  */
-import { TextInput } from 'react-native'
+import { StyleSheet, TextInput } from 'react-native'
 import { act, create } from 'react-test-renderer'
 
 jest.mock('../../theme/ThemeContext', () => {
@@ -122,5 +122,19 @@ describe('QPCodeInput', () => {
 		focusMock.mockClear()
 		await act(async () => { ref.current.focus(2) })
 		expect(focusedBoxes()).toContain(getBoxes(tree)[2].instance)
+	})
+
+	// Regresión: las cajas son `flex: 1`, cuya base es el contenido. Bajo un padre que
+	// centre en horizontal (LockScreen) la fila se encoge y sin `minWidth` cada caja
+	// vacía queda del ancho del placeholder — el PIN se ve como cuatro rayas
+	test('every box keeps a minimum width so it cannot collapse to a stripe', async () => {
+		const four = await render()
+		for (const box of getBoxes(four)) {
+			expect(StyleSheet.flatten(box.props.style).minWidth).toBeGreaterThan(0)
+		}
+		const six = await render({ length: 6 })
+		for (const box of getBoxes(six)) {
+			expect(StyleSheet.flatten(box.props.style).minWidth).toBeGreaterThan(0)
+		}
 	})
 })

@@ -148,14 +148,19 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		gap: 8,
 	},
+	// `flex: 1` reparte el ancho disponible, pero su base es el contenido: dentro de un
+	// padre encogido (uno que centre en el eje horizontal) una caja vacía mediría lo que
+	// ocupa el placeholder. `minWidth` es el suelo que evita ese colapso a rayas
 	box: {
 		flex: 1,
+		minWidth: 44,
 		height: 60,
 		borderRadius: 12,
 		textAlign: 'center',
 	},
 	boxSmall: {
 		flex: 1,
+		minWidth: 32,
 		height: 52,
 		borderRadius: 10,
 		textAlign: 'center',
