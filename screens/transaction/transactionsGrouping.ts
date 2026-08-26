@@ -8,25 +8,33 @@
  * respeta esa regla: `i18n/index.js` tampoco importa nada nativo.
  */
 import i18n, { getDateLocale } from '../../i18n'
+import type { Transaction } from '../../types/domain'
+
+/** Ítem aplanado que consume la FlashList del histórico: separador de día o transacción. */
+export type TransactionListItem =
+	| { type: 'header', key: string, label: string }
+	| { type: 'tx', transaction: Transaction, groupIndex: number, groupSize: number }
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+const startOfDay = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
 /**
  * Etiqueta humana del día en el idioma activo: "Hoy"/"Today", "Ayer"/"Yesterday",
  * "16 de agosto"/"August 16" y, si el año no es el corriente, con año.
  *
- * @param {string|number|Date} dateInput - Fecha de la transacción.
- * @param {Date} [now] - Inyectable en tests; por defecto, ahora.
- * @returns {string} Etiqueta del separador.
+ * @param dateInput - Fecha de la transacción.
+ * @param now - Inyectable en tests; por defecto, ahora.
+ * @returns Etiqueta del separador.
  */
-export const dayLabel = (dateInput, now = new Date()) => {
+export const dayLabel = (dateInput: string | number | Date, now: Date = new Date()): string => {
 
 	const date = new Date(dateInput)
-	if (isNaN(date)) return i18n.t('common.dates.earlier')
+	// isNaN coerce el Date vía valueOf (mismo runtime); el cast solo calla al type checker
+	if (isNaN(date as unknown as number)) return i18n.t('common.dates.earlier')
 
-	const daysAgo = Math.round((startOfDay(now) - startOfDay(date)) / DAY_MS)
+	// La resta Date - Date coerce vía valueOf (mismo runtime); los casts solo callan al type checker
+	const daysAgo = Math.round(((startOfDay(now) as unknown as number) - (startOfDay(date) as unknown as number)) / DAY_MS)
 	if (daysAgo === 0) return i18n.t('common.dates.today')
 	if (daysAgo === 1) return i18n.t('common.dates.yesterday')
 
@@ -47,20 +55,19 @@ export const dayLabel = (dateInput, now = new Date()) => {
  * grupo que le digan, así que basta con contarle el grupo del día en vez de
  * la lista entera.
  *
- * @param {Array} transactions - Transacciones con `updated_at`.
- * @param {Date} [now] - Inyectable en tests; por defecto, ahora.
- * @returns {Array<{ type: 'header', key: string, label: string }
- *   | { type: 'tx', transaction: Object, groupIndex: number, groupSize: number }>}
+ * @param transactions - Transacciones con `updated_at`.
+ * @param now - Inyectable en tests; por defecto, ahora.
+ * @returns Ítems aplanados (separadores + transacciones posicionadas).
  */
-export const groupTransactionsByDay = (transactions, now = new Date()) => {
+export const groupTransactionsByDay = (transactions: Transaction[], now: Date = new Date()): TransactionListItem[] => {
 
 	// Primera pasada: partir en grupos por día calendario (consecutivos: la
 	// lista viene ordenada por fecha, así que un día nunca reaparece)
-	const groups = []
-	let currentKey = null
+	const groups: { key: string, label: string, transactions: Transaction[] }[] = []
+	let currentKey: string | null = null
 	for (const transaction of transactions) {
 		const date = new Date(transaction.updated_at)
-		const key = isNaN(date) ? 'sin-fecha' : `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+		const key = isNaN(date as unknown as number) ? 'sin-fecha' : `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 		if (key !== currentKey) {
 			currentKey = key
 			groups.push({ key, label: dayLabel(transaction.updated_at, now), transactions: [] })
@@ -69,7 +76,7 @@ export const groupTransactionsByDay = (transactions, now = new Date()) => {
 	}
 
 	// Segunda pasada: aplanar con posiciones relativas al grupo
-	const items = []
+	const items: TransactionListItem[] = []
 	for (const group of groups) {
 		items.push({ type: 'header', key: `day-${group.key}`, label: group.label })
 		group.transactions.forEach((transaction, i) => {

@@ -1,6 +1,8 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 
 import { ROUTES } from '../../routes'
 import QPCoin from '../../ui/particles/QPCoin'
@@ -10,8 +12,18 @@ import { useTextStyles } from '../../theme/themeUtils'
 import { DetailRow, CardHeader } from './transactionDetailUi'
 import { getShortDateTime, statusText, p2pTypeText, getFirstChunk, copyTextToClipboard, truncateWalletAddress } from '../../helpers'
 
+import type { Transaction } from '../../types/domain'
+import type { RootStackParamList } from '../../types/navigation'
+
+/**
+ * OJO: en FontAwesome 6 el icono se llama `bell-concierge`; `concierge-bell` es
+ * el nombre de FA5 y no existe en el glyphmap, así que la cabecera de la tarjeta
+ * de servicio se pinta sin icono. Se conserva el valor (cero cambios de runtime).
+ */
+const SERVICE_ICON = 'concierge-bell' as FontAwesome6SolidIconName
+
 // Parse a JSON-or-object details blob into DetailRows
-const renderDetailsBlob = (blob) => {
+const renderDetailsBlob = (blob: unknown) => {
 	try {
 		const data = typeof blob === 'string' ? JSON.parse(blob) : blob
 		if (data && typeof data === 'object') {
@@ -23,10 +35,16 @@ const renderDetailsBlob = (blob) => {
 	return null
 }
 
+type RelatedTransactionCardsProps = {
+	/** La TRANSACCIÓN (el traductor se llama `tr` en este archivo), ya normalizada a minúsculas. */
+	t: Transaction
+	navigation: NativeStackNavigationProp<RootStackParamList>
+}
+
 // Renders the object cards related to a transaction: crypto deposit, P2P, withdraw,
 // service, cart and merchant app. Each only shows when present on the transaction.
 // The `t` prop is the TRANSACTION — the translator is aliased to `tr`.
-const RelatedTransactionCards = ({ t, navigation }) => {
+const RelatedTransactionCards = ({ t, navigation }: RelatedTransactionCardsProps) => {
 
 	const { t: tr } = useTranslation()
 	const { theme } = useTheme()
@@ -54,7 +72,9 @@ const RelatedTransactionCards = ({ t, navigation }) => {
 					<DetailRow label={tr('transactions.detail.related.address')}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 							<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{truncateWalletAddress(t.wallet.wallet || '')}</Text>
-							<Pressable onPress={() => copyTextToClipboard(t.wallet.wallet)}>
+							{/* Las aserciones repiten el guard `t.wallet && …` de arriba: el
+							    estrechamiento de TS no sobrevive dentro del callback */}
+							<Pressable onPress={() => copyTextToClipboard(t.wallet!.wallet)}>
 								<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
 							</Pressable>
 						</View>
@@ -64,7 +84,7 @@ const RelatedTransactionCards = ({ t, navigation }) => {
 						<DetailRow label={tr('transactions.detail.related.txHash')}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 								<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{truncateWalletAddress(t.wallet.txid)}</Text>
-								<Pressable onPress={() => copyTextToClipboard(t.wallet.txid)}>
+								<Pressable onPress={() => copyTextToClipboard(t.wallet!.txid!)}>
 									<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
 								</Pressable>
 							</View>
@@ -97,7 +117,7 @@ const RelatedTransactionCards = ({ t, navigation }) => {
 					<DetailRow label={tr('transactions.detail.id')} last>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 							<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{getFirstChunk(t.p2p.uuid)}</Text>
-							<Pressable onPress={() => navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: t.p2p.uuid })}>
+							<Pressable onPress={() => navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: t.p2p!.uuid })}>
 								<FontAwesome6 name="arrow-up-right-from-square" size={12} color={theme.colors.primary} iconStyle="solid" />
 							</Pressable>
 						</View>
@@ -126,7 +146,7 @@ const RelatedTransactionCards = ({ t, navigation }) => {
 						<DetailRow label={tr('transactions.detail.related.txHash')}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 								<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{truncateWalletAddress(t.withdraw.tx_id)}</Text>
-								<Pressable onPress={() => copyTextToClipboard(t.withdraw.tx_id)}>
+								<Pressable onPress={() => copyTextToClipboard(t.withdraw!.tx_id!)}>
 									<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
 								</Pressable>
 							</View>
@@ -142,7 +162,7 @@ const RelatedTransactionCards = ({ t, navigation }) => {
 			{/* Service Card (Phone topup, etc.) */}
 			{t.service && (
 				<View style={[styles.detailsCard, { backgroundColor: theme.colors.surface, marginTop: 16 }]}>
-					<CardHeader icon="concierge-bell" title={tr('transactions.detail.related.service')} color={theme.colors.warning} badge={statusText(t.service.status)} badgeColor={getStatusColor(t.service.status, theme)} />
+					<CardHeader icon={SERVICE_ICON} title={tr('transactions.detail.related.service')} color={theme.colors.warning} badge={statusText(t.service.status)} badgeColor={getStatusColor(t.service.status, theme)} />
 
 					{t.service.service && <DetailRow label={tr('transactions.detail.related.serviceLabel')} value={t.service.service.name} />}
 
@@ -171,7 +191,7 @@ const RelatedTransactionCards = ({ t, navigation }) => {
 						<DetailRow label={tr('transactions.detail.related.tracking')}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 								<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{t.cart.tracking_code}</Text>
-								<Pressable onPress={() => copyTextToClipboard(t.cart.tracking_code)}>
+								<Pressable onPress={() => copyTextToClipboard(t.cart!.tracking_code!)}>
 									<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
 								</Pressable>
 							</View>

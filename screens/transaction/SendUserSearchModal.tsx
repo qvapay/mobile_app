@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import type { ComponentProps, ComponentType } from 'react'
 import { View, Text, Modal, FlatList } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -25,8 +26,26 @@ import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 // Helpers
 import { displayFullName } from '../../helpers/displayName'
 
+// Tipos
+import type { SendCarouselUser } from './sendQueries'
+
+/**
+ * QPInput extiende TextInputProps, que no declara `disabled` (React Native usa
+ * `editable`). La pantalla lo pasa desde antes de la migración y el TextInput lo
+ * ignora en runtime; el cast local conserva el prop tal cual, sin tocar el
+ * componente compartido.
+ */
+const QPInputWithDisabled = QPInput as ComponentType<ComponentProps<typeof QPInput> & { disabled?: boolean }>
+
+type SendUserSearchModalProps = {
+	visible: boolean
+	onClose: () => void
+	carouselUsers: SendCarouselUser[]
+	onSelect: (user: SendCarouselUser) => void
+}
+
 // Self-contained "send to" user search: live-filters the carousel + queries the API.
-const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
+const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }: SendUserSearchModalProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -34,7 +53,7 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 	const containerStyles = createContainerStyles(theme)
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 	const [userSearch, setUserSearch] = useState('')
-	const [searchResults, setSearchResults] = useState([])
+	const [searchResults, setSearchResults] = useState<SendCarouselUser[]>([])
 	const [isSearching, setIsSearching] = useState(false)
 
 	// Track search results for online status
@@ -65,18 +84,20 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 			setIsSearching(true)
 			const result = await userApi.searchUser(userSearch)
 			if (result.success) {
-				setSearchResults(result.data || [])
+				// `searchUser` tipa el cuerpo como unknown: `POST /user/search` devuelve
+				// la lista de perfiles que consume el carrusel
+				setSearchResults((result.data as SendCarouselUser[] | null) || [])
 			} else {
 				setSearchResults([])
 				toast.error(t('transactions.common.errorTitle'), { description: result.error })
 			}
 		} catch (err) {
 			setSearchResults([])
-			toast.error(t('transactions.common.errorTitle'), { description: err.message })
+			toast.error(t('transactions.common.errorTitle'), { description: (err as Error).message })
 		} finally { setIsSearching(false) }
 	}
 
-	const handleSelect = (selectedUser) => {
+	const handleSelect = (selectedUser: SendCarouselUser) => {
 		onSelect(selectedUser)
 		setUserSearch('')
 		setSearchResults([])
@@ -107,7 +128,7 @@ const SendUserSearchModal = ({ visible, onClose, carouselUsers, onSelect }) => {
 				<View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
 					<View style={{ flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.primary, backgroundColor: theme.colors.surface, alignItems: 'center', height: 50 }}>
 						<View style={{ flex: 1 }}>
-							<QPInput
+							<QPInputWithDisabled
 								placeholder={t('transactions.userSearch.placeholder')}
 								value={userSearch}
 								onChangeText={setUserSearch}

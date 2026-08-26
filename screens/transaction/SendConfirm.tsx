@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useEffectEvent, useReducer } from 'react'
 import { View, Text } from 'react-native'
+import type { ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // i18n en call time para los toasts disparados dentro de efectos (usar el `t`
 // del hook ahí obligaría a re-correr el fetch del destinatario al cambiar idioma)
@@ -45,8 +47,18 @@ import { getActiveSession } from '../../nearby/session'
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el envío
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
 
+// Tipos
+import type { SendCarouselUser } from './sendQueries'
+import type { RootStackParamList } from '../../types/navigation'
+
+/** Flags del sub-flujo de PIN/OTP. */
+type PinFlowState = { showPinStep: boolean, sendingPin: boolean }
+
+/** Acción del setter genérico: escribe `value` en `field` del slice. */
+type FieldAction<S> = { type: 'set', field: keyof S, value: S[keyof S] }
+
 // PIN/OTP entry sub-flow state — one cohesive unit
-function pinFlowReducer(state, action) {
+function pinFlowReducer(state: PinFlowState, action: FieldAction<PinFlowState>): PinFlowState {
 	switch (action.type) {
 		case 'set':
 			return { ...state, [action.field]: action.value }
@@ -54,7 +66,9 @@ function pinFlowReducer(state, action) {
 			return state
 	}
 }
-const initialPinFlow = { showPinStep: false, sendingPin: false }
+const initialPinFlow: PinFlowState = { showPinStep: false, sendingPin: false }
+
+type Props = NativeStackScreenProps<RootStackParamList, 'SendConfirm'>
 
 /**
  * Transfer confirmation: shows recipient + amount, then a PIN/OTP step before sending.
@@ -64,7 +78,7 @@ const initialPinFlow = { showPinStep: false, sendingPin: false }
  * and executes the transfer with `POST /transaction/transfer`.
  * On success it navigates to SendSuccess with the transfer summary.
  */
-const SendConfirm = ({ navigation, route }) => {
+const SendConfirm = ({ navigation, route }: Props) => {
 
 	// Contexts
 	const { t } = useTranslation()
@@ -82,21 +96,21 @@ const SendConfirm = ({ navigation, route }) => {
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
 	// States
-	const [recipientUser, setRecipientUser] = useState(null)
+	const [recipientUser, setRecipientUser] = useState<SendCarouselUser | null>(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const [isLoadingUser, setIsLoadingUser] = useState(true)
 
 	// PIN/OTP flow flags (same-named setters keep every call site unchanged)
 	const [pinFlow, dispatchPin] = useReducer(pinFlowReducer, initialPinFlow)
 	const { showPinStep, sendingPin } = pinFlow
-	const setShowPinStep = (value) => dispatchPin({ type: 'set', field: 'showPinStep', value })
-	const setSendingPin = (value) => dispatchPin({ type: 'set', field: 'sendingPin', value })
+	const setShowPinStep = (value: boolean) => dispatchPin({ type: 'set', field: 'showPinStep', value })
+	const setSendingPin = (value: boolean) => dispatchPin({ type: 'set', field: 'sendingPin', value })
 
 	// PIN/OTP state (entered code, method toggle, code length) — box mechanics live in QPCodeInput
 	const { pin, setPin, twoFactorMethod, codeLength, codeInputRef, handleMethodToggle } = usePinEntry()
 
 	const hasOTP = !!user?.two_factor_secret
-	const scrollViewRef = useRef(null)
+	const scrollViewRef = useRef<ScrollView | null>(null)
 
 	// Clave de idempotencia del intento: nace con la pantalla de confirmación y
 	// sobrevive a timeouts, 5xx y toques repetidos — solo rota tras éxito confirmado
@@ -121,8 +135,9 @@ const SendConfirm = ({ navigation, route }) => {
 				setIsLoadingUser(true)
 				const result = await userApi.searchUser(user_uuid)
 				if (cancelled) return
-				if (result.success && result.data.length > 0) {
-					setRecipientUser(result.data[0])
+				// `searchUser` tipa el cuerpo como unknown: el endpoint devuelve la lista de perfiles
+				if (result.success && (result.data as SendCarouselUser[]).length > 0) {
+					setRecipientUser((result.data as SendCarouselUser[])[0])
 				} else {
 					toast.error(i18n.t('transactions.common.errorTitle'), { description: i18n.t('transactions.sendConfirm.recipientNotFound') })
 					navigation.goBack()
@@ -190,22 +205,26 @@ const SendConfirm = ({ navigation, route }) => {
 			const result = await callWithDuplicateRetry(() => transferApi.transferMoney({
 				amount: send_amount,
 				description: description,
-				to: recipientUser.uuid,
+				// El render corta antes con `if (!recipientUser)`, pero el estrechamiento
+				// no alcanza a este handler (se define arriba del guard)
+				to: recipientUser!.uuid,
 				pin: pin,
 				idempotencyKey: idempotencyKeyRef.current
 			}))
 
 			if (result.success) {
 				idempotencyKeyRef.current = makeIdempotencyKey()
-				getActiveSession()?.notifyPaymentSent({ toUuid: recipientUser.uuid, amount: send_amount, txUuid: result.data?.uuid })
-				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser, description: description })
+				getActiveSession()?.notifyPaymentSent({ toUuid: recipientUser!.uuid, amount: send_amount, txUuid: result.data?.uuid })
+				// `amount`/`recipient` son params muertos (SendSuccess solo lee `description`),
+				// modelados en navigation.ts tal cual viajan — el cast solo los acomoda
+				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser as Record<string, unknown>, description: description })
 			} else if (isNetworkFailure(result)) {
 				toast.error(t('transactions.sendConfirm.toasts.networkErrorTitle'), { description: `${result.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {
 				toast.error(t('transactions.sendConfirm.toasts.transactionErrorTitle'), { description: result.error || t('transactions.sendConfirm.toasts.transactionFailed') })
 			}
 		} catch (error) {
-			toast.error(t('transactions.common.errorTitle'), { description: error.message || t('transactions.sendConfirm.toasts.unexpectedError') })
+			toast.error(t('transactions.common.errorTitle'), { description: (error as Error).message || t('transactions.sendConfirm.toasts.unexpectedError') })
 		} finally { setIsLoading(false) }
 	}
 
@@ -317,7 +336,9 @@ const SendConfirm = ({ navigation, route }) => {
 
 			</View>
 
-			<KycGateModal visible={gateVisible} message={gateMessage} onClose={closeGate} />
+			{/* useKycGate expone `string | null` y el modal declara `string | undefined`
+			    (mismo cast que ui/ActionButtons) */}
+			<KycGateModal visible={gateVisible} message={gateMessage as string | undefined} onClose={closeGate} />
 
 		</QPKeyboardView>
 	)

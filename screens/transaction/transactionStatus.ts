@@ -1,5 +1,7 @@
+import type { Theme } from '../../theme/ThemeContext'
+
 // Status colors helper — shared by the transaction detail screen + its related cards
-export const getStatusColor = (status, theme) => {
+export const getStatusColor = (status: string, theme: Theme): string => {
 	switch (status) {
 		case 'paid': case 'completed': case 'received': return theme.colors.success
 		case 'pending': case 'open': case 'processing': case 'unpaid': return theme.colors.warning

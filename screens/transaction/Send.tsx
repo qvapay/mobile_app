@@ -1,6 +1,7 @@
 import { useState, useEffect, useReducer } from 'react'
 import { View, Text, ScrollView, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // Context and Theme
 import { useAuth } from '../../auth/AuthContext'
@@ -35,6 +36,7 @@ import { userApi } from '../../api/userApi'
 
 // Carrusel de destinatarios (React Query: recientes + contactos en paralelo)
 import { useSendCarousel } from './sendQueries'
+import type { SendCarouselUser } from './sendQueries'
 
 // Toast
 import { toast } from 'sonner-native'
@@ -45,8 +47,15 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Online Status
 import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 
+// Tipos
+import type { Decimal } from '../../types/domain'
+import type { RootStackParamList } from '../../types/navigation'
+
+/** Acción del setter genérico: escribe `value` en `field` del slice. */
+type FieldAction<S> = { type: 'set', field: keyof S, value: S[keyof S] }
+
 // Generic field setter for the related-state slices below
-function setFieldReducer(state, action) {
+function setFieldReducer<S extends object>(state: S, action: FieldAction<S>): S {
 	switch (action.type) {
 		case 'set':
 			return { ...state, [action.field]: action.value }
@@ -54,6 +63,14 @@ function setFieldReducer(state, action) {
 			return state
 	}
 }
+
+/** Formulario de la transferencia (monto + nota, que puede ser un sticker). */
+type SendForm = { amount: string, description: string }
+
+/** Destinatario: el perfil ya resuelto y el uuid/username que llega por params o QR. */
+type SendRecipient = { userFound: SendCarouselUser | null, incomingUserUuid: string | null }
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Send'>
 
 /**
  * Send-money screen: pick a recipient, amount and an optional note or sticker.
@@ -63,7 +80,7 @@ function setFieldReducer(state, action) {
  * Stickers persist inside the description as `:sticker:<name>` (helpers/stickers).
  * No money moves here — it hands off to SendConfirm with amount, uuid and description.
  */
-const Send = ({ navigation, route }) => {
+const Send = ({ navigation, route }: Props) => {
 
 	// Context
 	const { t } = useTranslation()
@@ -75,16 +92,16 @@ const Send = ({ navigation, route }) => {
 	const { send_amount, user_uuid = null } = route.params || {}
 
 	// Transfer form (amount + message) — same-named setters keep call sites unchanged
-	const [form, dispatchForm] = useReducer(setFieldReducer, { amount: send_amount || '', description: '' })
+	const [form, dispatchForm] = useReducer(setFieldReducer<SendForm>, { amount: send_amount || '', description: '' })
 	const { amount, description } = form
-	const setAmount = (value) => dispatchForm({ type: 'set', field: 'amount', value })
-	const setDescription = (value) => dispatchForm({ type: 'set', field: 'description', value })
+	const setAmount = (value: string) => dispatchForm({ type: 'set', field: 'amount', value })
+	const setDescription = (value: string) => dispatchForm({ type: 'set', field: 'description', value })
 
 	// Recipient selection (resolved user + incoming uuid)
-	const [recipient, dispatchRecipient] = useReducer(setFieldReducer, { userFound: null, incomingUserUuid: user_uuid || null })
+	const [recipient, dispatchRecipient] = useReducer(setFieldReducer<SendRecipient>, { userFound: null, incomingUserUuid: user_uuid || null })
 	const { userFound, incomingUserUuid } = recipient
-	const setUserFound = (value) => dispatchRecipient({ type: 'set', field: 'userFound', value })
-	const setIncomingUserUuid = (value) => dispatchRecipient({ type: 'set', field: 'incomingUserUuid', value })
+	const setUserFound = (value: SendCarouselUser | null) => dispatchRecipient({ type: 'set', field: 'userFound', value })
+	const setIncomingUserUuid = (value: string | null) => dispatchRecipient({ type: 'set', field: 'incomingUserUuid', value })
 
 	// Carousel of recent recipients + saved contacts (shared query with Home)
 	const carouselUsers = useSendCarousel()
@@ -116,8 +133,10 @@ const Send = ({ navigation, route }) => {
 		if (incomingUserUuid) {
 			const fetchUserData = async () => {
 				try {
+					// `searchUser` tipa el cuerpo como unknown: el endpoint devuelve la lista
+					// de perfiles (el `?.` del original cubre la respuesta sin cuerpo)
 					const result = await userApi.searchUser(incomingUserUuid)
-					if (result.success && result.data?.length > 0) { setUserFound(result.data[0]) }
+					if (result.success && (result.data as SendCarouselUser[])?.length > 0) { setUserFound((result.data as SendCarouselUser[])[0]) }
 				} catch { /* error fetching user data */ }
 			}
 			fetchUserData()
@@ -129,12 +148,13 @@ const Send = ({ navigation, route }) => {
 		try {
 			setIsLoading(true)
 			navigation.navigate(ROUTES.SEND_CONFIRM, {
-				user_uuid: userFound.uuid,
+				// El botón solo se habilita con `userFound !== null` (`sendEnabled`)
+				user_uuid: userFound!.uuid,
 				send_amount: amount,
 				description: description
 			})
 		} catch (err) {
-			toast.error(t('transactions.common.errorTitle'), { description: err.message })
+			toast.error(t('transactions.common.errorTitle'), { description: (err as Error).message })
 		} finally { setIsLoading(false) }
 	}
 
@@ -154,7 +174,9 @@ const Send = ({ navigation, route }) => {
 			>
 
 				{/* Amount Input Component */}
-				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance} placeholder={incomingUserUuid ? t('transactions.send.amountPlaceholder') : t('transactions.send.amountPlaceholderTo')} />
+				{/* `balance` está declarado obligatorio en AmountInput aunque su
+				    formateador ya acepta undefined (`formatBalance` devuelve '0.00') */}
+				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance as Decimal} placeholder={incomingUserUuid ? t('transactions.send.amountPlaceholder') : t('transactions.send.amountPlaceholderTo')} />
 
 				{/** Latest sent transfers users */}
 				<View style={{ marginVertical: 20, gap: 10 }}>
@@ -202,7 +224,8 @@ const Send = ({ navigation, route }) => {
 							<TransactionSticker name={parsedDescription.sticker} size={56} />
 							<View style={{ flex: 1 }}>
 								<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{t('transactions.send.stickerSelected')}</Text>
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{parsedDescription.sticker.replace('.webm', '')}</Text>
+								{/* `type === 'sticker'` implica `sticker` no nulo (el tipo no lo discrimina) */}
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{parsedDescription.sticker!.replace('.webm', '')}</Text>
 							</View>
 							<QPPressable onPress={() => setDescription('')} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }} accessibilityLabel={t('transactions.send.removeStickerA11y')}>
 								<FontAwesome6 name="xmark" size={16} color={theme.colors.primaryText} iconStyle="solid" />

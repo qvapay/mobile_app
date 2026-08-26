@@ -1,7 +1,12 @@
 import { useState, useCallback, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
+import type { ReactElement } from 'react'
 import { View, Text, ActivityIndicator, Pressable, Platform, useWindowDimensions } from 'react-native'
+import type { RefreshControlProps } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
+import type { FlashListProps } from '@shopify/flash-list'
+import type { ComponentType } from 'react'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // Contexts
 import { useTheme } from '../../theme/ThemeContext'
@@ -10,6 +15,7 @@ import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 // Data
 import useTransactionsList from './useTransactionsList'
 import { groupTransactionsByDay } from './transactionsGrouping'
+import type { TransactionListItem } from './transactionsGrouping'
 
 // UI
 import QPTransaction from '../../ui/particles/QPTransaction'
@@ -22,10 +28,31 @@ import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// The filter-modal draft (pending filters + selected period preset) is one unit
-const initialDraft = { filters: {}, period: null }
+// Tipos
+import type { TransactionsFilters } from './transactionsQueries'
+import type { RootStackParamList } from '../../types/navigation'
 
-function draftReducer(state, action) {
+/** Rango ISO que produce un preset de periodo del modal. */
+type PeriodRange = { date_from: string, date_to: string }
+
+/**
+ * Borrador del modal de filtros: los mismos query params planos que viajan a la
+ * query, más el índice del preset de periodo seleccionado.
+ */
+type DraftState = { filters: TransactionsFilters, period: number | null }
+
+/** Acciones del borrador (una por gesto del modal). */
+type DraftAction =
+	| { type: 'seed', filters: TransactionsFilters, period: number | null }
+	| { type: 'updateFilter', key: string, value: string | undefined }
+	| { type: 'setPeriod', idx: number, range: PeriodRange }
+	| { type: 'clearPeriod' }
+	| { type: 'clearAll' }
+
+// The filter-modal draft (pending filters + selected period preset) is one unit
+const initialDraft: DraftState = { filters: {}, period: null }
+
+function draftReducer(state: DraftState, action: DraftAction): DraftState {
 	switch (action.type) {
 		case 'seed':
 			return { filters: { ...action.filters }, period: action.period }
@@ -51,6 +78,15 @@ function draftReducer(state, action) {
 }
 
 /**
+ * FlashList 2 ya no declara `estimatedItemSize` (mide sola), pero la pantalla lo
+ * sigue pasando desde la v1 y la lista lo ignora. Cast local para conservar el
+ * prop sin tocar el runtime.
+ */
+const TransactionsFlashList = FlashList as ComponentType<FlashListProps<TransactionListItem> & { estimatedItemSize?: number }>
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Transactions'>
+
+/**
  * Full transaction history with search, filters and infinite scroll (FlashList).
  * Pages through `GET /transaction` (20 per page); accepts `route.params.showSearch`
  * to open with the search bar already visible.
@@ -64,10 +100,10 @@ function draftReducer(state, action) {
  * (SF Symbols, liquid-glass) with a `headerRight` fallback on Android.
  * The filter modal edits a draft that only takes effect on "Aplicar".
  */
-const Transactions = ({ navigation, route }) => {
+const Transactions = ({ navigation, route }: Props) => {
 
 	// Applied filter state
-	const [filters, setFilters] = useState({})
+	const [filters, setFilters] = useState<TransactionsFilters>({})
 	const [showFilters, setShowFilters] = useState(false)
 
 	// Search state
@@ -77,7 +113,7 @@ const Transactions = ({ navigation, route }) => {
 	// Draft filter state (only applied on "Aplicar")
 	const [draft, dispatchDraft] = useReducer(draftReducer, initialDraft)
 	// Currently-applied period preset — only read when seeding the draft, never rendered
-	const selectedPeriodRef = useRef(null)
+	const selectedPeriodRef = useRef<number | null>(null)
 
 	// Paginated history for the applied filters
 	const { transactions, isPending, isFetchingNextPage, refreshing, onRefresh, loadMore } = useTransactionsList(filters)
@@ -181,7 +217,7 @@ const Transactions = ({ navigation, route }) => {
 	}
 
 	// Handle search submit
-	const handleSearch = useCallback((text) => {
+	const handleSearch = useCallback((text: string) => {
 		const term = text.trim()
 		setFilters(current => {
 			const next = { ...current }
@@ -209,7 +245,9 @@ const Transactions = ({ navigation, route }) => {
 					/>
 				</View>
 			)}
-			<FlashList
+			{/* `createHiddenRefreshControl` declara `ReactElement` (props `unknown`) y la
+			    lista pide `ReactElement<RefreshControlProps>` — mismo cast que Home */}
+			<TransactionsFlashList
 				data={listItems}
 				getItemType={(item) => item.type}
 				renderItem={({ item }) => (
@@ -222,7 +260,7 @@ const Transactions = ({ navigation, route }) => {
 				ListFooterComponent={renderFooter}
 				onEndReached={loadMore}
 				onEndReachedThreshold={0.3}
-				refreshControl={createHiddenRefreshControl(refreshing, onRefresh)}
+				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 				showsVerticalScrollIndicator={false}
 				estimatedItemSize={70}
 			/>

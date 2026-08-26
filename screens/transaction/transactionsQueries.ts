@@ -4,6 +4,15 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { transferApi } from '../../api/transferApi'
 import { unwrap } from '../../api/unwrap'
 
+// Tipos
+import type { Transaction } from '../../types/domain'
+
+/**
+ * Filtros aplicados del histórico tal y como viajan a `GET /transaction`
+ * (query params planos, siempre string: fechas ISO, montos saneados, status…).
+ */
+export type TransactionsFilters = Record<string, string>
+
 export const PAGE_SIZE = 20
 
 /**
@@ -15,21 +24,21 @@ export const PAGE_SIZE = 20
  * arranca la query nueva sola. El hash de claves es estable ante el orden de
  * las propiedades, así que `{a,b}` y `{b,a}` son la misma query.
  *
- * @param {Object} [filters] - Filtros aplicados (search, date_from, status…).
- * @returns {Array} Query key jerárquica bajo la raíz `['transactions']`.
+ * @param filters - Filtros aplicados (search, date_from, status…).
+ * @returns Query key jerárquica bajo la raíz `['transactions']`.
  */
-export const transactionsListKey = (filters = {}) => ['transactions', 'list', filters]
+export const transactionsListKey = (filters: TransactionsFilters = {}): (string | TransactionsFilters)[] => ['transactions', 'list', filters]
 
 /**
  * Política de paginación: hay página siguiente solo si la última vino llena.
  * Es el mismo criterio del `hasMoreRef` anterior (`length >= PAGE_SIZE`).
  *
- * @param {Array} lastPage - Ítems de la última página recibida.
- * @param {Array[]} _allPages - Todas las páginas (no se usa).
- * @param {number} lastPageParam - Número de la última página pedida.
- * @returns {number|undefined} Página siguiente, o `undefined` si no hay más.
+ * @param lastPage - Ítems de la última página recibida.
+ * @param _allPages - Todas las páginas (no se usa).
+ * @param lastPageParam - Número de la última página pedida.
+ * @returns Página siguiente, o `undefined` si no hay más.
  */
-export const getNextPage = (lastPage, _allPages, lastPageParam) =>
+export const getNextPage = (lastPage: Transaction[], _allPages: Transaction[][], lastPageParam: number): number | undefined =>
 	lastPage.length >= PAGE_SIZE ? lastPageParam + 1 : undefined
 
 // Recorte a primera página para el pull-to-refresh — compartido con los
@@ -44,10 +53,10 @@ export { trimToFirstPage } from '../../api/queryUtils'
  * página sin filtrar. El recorte a una página al persistir lo hace el
  * `serialize` de `api/queryClient.js` para cualquier query infinita.
  *
- * @param {Object} [filters] - Filtros aplicados; viajan como query params.
- * @returns {import('@tanstack/react-query').UseInfiniteQueryResult}
+ * @param filters - Filtros aplicados; viajan como query params.
+ * @returns UseInfiniteQueryResult con páginas de transacciones.
  */
-export const useTransactionsInfiniteQuery = (filters = {}) => useInfiniteQuery({
+export const useTransactionsInfiniteQuery = (filters: TransactionsFilters = {}) => useInfiniteQuery({
 	queryKey: transactionsListKey(filters),
 	queryFn: async ({ pageParam }) => {
 		const data = unwrap(await transferApi.getLatestTransactions({

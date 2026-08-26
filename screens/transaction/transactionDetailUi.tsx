@@ -1,11 +1,20 @@
 import { View, Text, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
+import type { ReactNode } from 'react'
 
 import { useTheme } from '../../theme/ThemeContext'
 import { useTextStyles } from '../../theme/themeUtils'
 
+type DetailRowProps = {
+	label: string
+	value?: string | number | null
+	last?: boolean
+	children?: ReactNode
+}
+
 // One label/value (or custom children) row. Self-contained so call sites stay simple.
-export const DetailRow = ({ label, value, last, children }) => {
+export const DetailRow = ({ label, value, last, children }: DetailRowProps) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	return (
@@ -16,8 +25,16 @@ export const DetailRow = ({ label, value, last, children }) => {
 	)
 }
 
+type CardHeaderProps = {
+	icon: FontAwesome6SolidIconName
+	title: string
+	color: string
+	badge?: string | null
+	badgeColor?: string
+}
+
 // Card header with icon + optional status badge.
-export const CardHeader = ({ icon, title, color, badge, badgeColor }) => {
+export const CardHeader = ({ icon, title, color, badge, badgeColor }: CardHeaderProps) => {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)

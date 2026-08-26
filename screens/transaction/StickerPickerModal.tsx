@@ -10,8 +10,16 @@ import TransactionSticker from '../../ui/particles/TransactionSticker'
 // Stickers
 import { QVAPAY_STICKERS } from '../../helpers/stickers'
 
+type StickerPickerModalProps = {
+	visible: boolean
+	onClose: () => void
+	/** Recibe el nombre de fichero del sticker (`joy.webm`). */
+	onSelect: (sticker: string) => void
+	isGold: boolean
+}
+
 // Sticker grid picker (GOLD-gated). Calls onSelect(stickerName) on tap.
-const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
+const StickerPickerModal = ({ visible, onClose, onSelect, isGold }: StickerPickerModalProps) => {
 
 	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
@@ -20,7 +28,10 @@ const StickerPickerModal = ({ visible, onClose, onSelect, isGold }) => {
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={themeStyles.container.modalOverlay} onPress={onClose}>
-				<Pressable style={[themeStyles.container.modalCard, { padding: 16 }, theme.mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { }}>
+				{/* OJO: el tema NO expone `mode` (solo `isDark`), así que esta condición
+				    es siempre falsa y el borde de modo claro nunca se pinta. Se preserva
+				    tal cual (cero cambios de runtime); el cast documenta el hueco. */}
+				<Pressable style={[themeStyles.container.modalCard, { padding: 16 }, (theme as { mode?: string }).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => { }}>
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
 						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('transactions.stickers.title')}</Text>
 						<QPPressable onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.elevation, justifyContent: 'center', alignItems: 'center' }}>

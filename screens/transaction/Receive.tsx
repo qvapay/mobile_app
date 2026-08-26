@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, Share, ScrollView, Pressable, useWindowDimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // QR Code
 import QRCodeStyled from 'react-native-qrcode-styled'
+import type { ComponentProps, ComponentType } from 'react'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
@@ -21,7 +23,24 @@ import ProfileContainer from '../../ui/ProfileContainer'
 import { copyTextToClipboard } from '../../helpers'
 import QPFitText from '../../ui/particles/QPFitText'
 
-const Receive = ({ navigation, route }) => {
+// Tipos
+import type { RootStackParamList } from '../../types/navigation'
+
+/**
+ * Dos huecos de tipos de `react-native-qrcode-styled`, ambos resueltos aquí sin
+ * tocar el runtime:
+ * - la variante SVG hace `Omit<PieceOptions, 'pieceSize'>` (deriva el tamaño de
+ *   pieza de `size`), así que el `pieceSize` de esta pantalla se ignora;
+ * - sus `QRCodeOptions` vienen de `qrcode`, que no trae tipos ni tiene
+ *   `@types/qrcode` instalado, así que `errorCorrectionLevel` no es visible;
+ * - `backgroundColor` solo existe en la variante canvas (aquí el fondo blanco
+ *   lo pinta el `style` de la tarjeta).
+ */
+const QRCode = QRCodeStyled as ComponentType<ComponentProps<typeof QRCodeStyled> & { pieceSize?: number, errorCorrectionLevel?: string, backgroundColor?: string }>
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Receive'>
+
+const Receive = ({ navigation, route }: Props) => {
 
 	const { receive_amount } = route.params || {}
 	const { t } = useTranslation()
@@ -34,7 +53,9 @@ const Receive = ({ navigation, route }) => {
 
 	// Build QR URL: https://www.qvapay.com/payme/{username}/{amount}
 	const identifier = user?.username || user?.uuid || ''
-	const amount = parseFloat(receive_amount) || 0
+	// `receive_amount` es opcional: sin él, parseFloat(undefined) da NaN y el `|| 0`
+	// lo absorbe — el cast conserva ese camino tal cual
+	const amount = parseFloat(receive_amount as string) || 0
 	const qrUrl = amount > 0 ? `https://www.qvapay.com/payme/${identifier}/${amount}` : `https://www.qvapay.com/payme/${identifier}`
 
 	// Share link
@@ -70,7 +91,7 @@ const Receive = ({ navigation, route }) => {
 				{/* QR Code — tap to copy link */}
 				<View style={styles.qrSection}>
 					<Pressable onPress={() => copyTextToClipboard(qrUrl)} style={({ pressed }) => [styles.qrCard, { opacity: pressed ? 0.85 : 1 }]}>
-						<QRCodeStyled
+						<QRCode
 							data={qrUrl}
 							style={styles.qrInner}
 							size={qrSize}

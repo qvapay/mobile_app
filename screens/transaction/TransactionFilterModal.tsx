@@ -7,6 +7,9 @@ import { createContainerStyles } from '../../theme/themeUtils'
 import { sanitizeAmountInput } from '../../helpers/amountInput'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
+
 // Status options for filter chips — i18n keys resolved in render (module
 // constants would freeze the boot language)
 const STATUS_OPTIONS = [
@@ -69,8 +72,25 @@ const SORT_DIR_OPTIONS = [
 	{ labelKey: 'transactions.filters.sortDir.asc', value: 'asc' },
 ]
 
+/** Rango ISO que produce un preset de periodo. */
+type PeriodRange = { date_from: string, date_to: string }
+
+/**
+ * Borrador de filtros del modal: los mismos query params planos de
+ * `TransactionsFilters`, pero durante la edición una clave deseleccionada se
+ * escribe como `undefined` antes de que el reducer del padre la borre.
+ */
+type DraftFilters = Partial<Record<string, string | undefined>>
+
+type ChipProps = {
+	label: string
+	selected: boolean
+	onPress: () => void
+	theme: Theme
+}
+
 // Chip component
-const Chip = ({ label, selected, onPress, theme }) => (
+const Chip = ({ label, selected, onPress, theme }: ChipProps) => (
 	<Pressable onPress={onPress} style={[styles.chip, selected ? { backgroundColor: theme.colors.primary } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]}>
 		<Text style={[styles.chipText, { color: selected ? '#FFFFFF' : theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
 			{label}
@@ -78,8 +98,25 @@ const Chip = ({ label, selected, onPress, theme }) => (
 	</Pressable>
 )
 
+type TransactionFilterModalProps = {
+	visible: boolean
+	draftFilters: DraftFilters
+	/** Índice del preset de periodo seleccionado, o `null` si no hay ninguno. */
+	draftPeriod: number | null
+	/** `undefined` como valor = deseleccionar ese filtro. */
+	onUpdateDraft: (key: string, value: string | undefined) => void
+	onSetPeriod: (idx: number, range: PeriodRange) => void
+	onClearPeriod: () => void
+	onClear: () => void
+	onApply: () => void
+	onClose: () => void
+	theme: Theme
+	textStyles: TextStyles
+	windowHeight: number
+}
+
 // Transaction filter modal — fully controlled by the parent's draft state.
-const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDraft, onSetPeriod, onClearPeriod, onClear, onApply, onClose, theme, textStyles, windowHeight }) => {
+const TransactionFilterModal = ({ visible, draftFilters, draftPeriod, onUpdateDraft, onSetPeriod, onClearPeriod, onClear, onApply, onClose, theme, textStyles, windowHeight }: TransactionFilterModalProps) => {
 
 	const { t } = useTranslation()
 	const containerStyles = createContainerStyles(theme)

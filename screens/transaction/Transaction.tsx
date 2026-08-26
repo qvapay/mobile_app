@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
+import type { ReactElement } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
+import type { RefreshControlProps } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // Async Storage
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -45,21 +48,35 @@ import { getStatusColor } from './transactionStatus'
 import RelatedTransactionCards from './RelatedTransactionCards'
 import QPFitText from '../../ui/particles/QPFitText'
 
+// Tipos
+import type { Transaction as TransactionModel, TxP2P, TxCart, TxService } from '../../types/domain'
+import type { RootStackParamList } from '../../types/navigation'
+
+/**
+ * Relaciones en forma LISTA (PascalCase) que esta pantalla normaliza pero que
+ * `types/domain.ts` aún no modela con ese nombre: `P2P` y `Cart` (el tipo solo
+ * declara sus gemelas en minúscula) y `BuyedService`, tipado allí como `object`.
+ * Se leen vía cast local, sin tocar el tipo compartido.
+ */
+type ListShapeExtras = { P2P?: TxP2P | null, Cart?: TxCart | null, BuyedService?: TxService | null }
+
 // Cache key prefix for transactions
 const TRANSACTION_CACHE_KEY = 'transaction_cache_'
 
 // Normalize transaction data: list API returns PascalCase, detail API returns lowercase
-const normalizeTransaction = (tx) => ({
+const normalizeTransaction = (tx: TransactionModel): TransactionModel => ({
 	...tx,
 	user: tx.user ?? tx.User ?? null,
 	paid_by: tx.paid_by ?? tx.PaidBy ?? null,
 	app: tx.app ?? tx.App ?? null,
 	wallet: tx.wallet ?? tx.Wallet ?? null,
-	p2p: tx.p2p ?? tx.P2P ?? null,
-	cart: tx.cart ?? tx.Cart ?? null,
+	p2p: tx.p2p ?? (tx as ListShapeExtras).P2P ?? null,
+	cart: tx.cart ?? (tx as ListShapeExtras).Cart ?? null,
 	withdraw: tx.withdraw ?? tx.Withdraw ?? null,
-	service: tx.service ?? tx.BuyedService ?? null,
+	service: tx.service ?? (tx as ListShapeExtras).BuyedService ?? null,
 })
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Transaction'>
 
 /**
  * Transaction detail / receipt screen.
@@ -70,9 +87,12 @@ const normalizeTransaction = (tx) => ({
  * The header goes transparent when the counterparty's cover image is shown;
  * sticker descriptions (`:sticker:<name>`) render their animation.
  */
-const Transaction = ({ route, navigation }) => {
+const Transaction = ({ route, navigation }: Props) => {
 
-	const { transaction } = route.params
+	// Discrepancia documentada en types/navigation.ts: el tap del push de OneSignal
+	// manda `{ uuid }` sin `transaction` y esta pantalla solo lee `transaction`.
+	// Se tipa lo que hay (el camino roto se conserva tal cual).
+	const { transaction } = route.params as { transaction: TransactionModel }
 	const [transactionDetails, setTransactionDetails] = useState(normalizeTransaction(transaction))
 	const [loading, setLoading] = useState(false)
 
@@ -100,7 +120,8 @@ const Transaction = ({ route, navigation }) => {
 			navigation.setOptions({
 				headerTransparent: true,
 				headerStyle: { backgroundColor: 'transparent' },
-				...(otherUserEarly.cover_photo_url && { headerTintColor: theme.colors.almostWhite }),
+				// `cover_photo_url` viaja en el perfil extendido y no está en EmbeddedUser
+				...((otherUserEarly as { cover_photo_url?: string | null }).cover_photo_url && { headerTintColor: theme.colors.almostWhite }),
 			})
 		}
 	}, [otherUserEarly, navigation, theme])
@@ -112,7 +133,9 @@ const Transaction = ({ route, navigation }) => {
 		try {
 			const response = await transferApi.getTransactionDetails(transaction.uuid)
 			if (response.success) {
-				const freshData = response.data.data
+				// El endpoint envuelve la transacción en otro `data` (`{ data: {...} }`);
+				// `transferApi` tipa el cuerpo como la transacción pelada
+				const freshData = (response.data as unknown as { data: TransactionModel }).data
 				setTransactionDetails(freshData)
 				try {
 					await AsyncStorage.setItem(cacheKey, JSON.stringify(freshData))
@@ -153,7 +176,8 @@ const Transaction = ({ route, navigation }) => {
 	const otherUser = isPaidByMe ? transactionDetails.user : transactionDetails.paid_by
 
 	// Format amount
-	const amountFloat = parseFloat(transactionDetails.amount)
+	// Los decimales del backend viajan como string o number (alias Decimal)
+	const amountFloat = parseFloat(transactionDetails.amount as string)
 	const amountFixed = amountFloat.toFixed(2)
 
 	// Handle PDF download — `downloading` is a re-entrancy guard only (never shown in
@@ -195,7 +219,10 @@ const Transaction = ({ route, navigation }) => {
 
 	return (
 		<View style={containerStyles.container}>
-			<ScrollView style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction)} contentInsetAdjustmentBehavior="never">
+			{/* Cast del refreshControl: `createHiddenRefreshControl` declara
+			    `ReactElement` (props `unknown`) y ScrollView pide
+			    `ReactElement<RefreshControlProps>` — el elemento ES un RefreshControl */}
+			<ScrollView style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction) as ReactElement<RefreshControlProps>} contentInsetAdjustmentBehavior="never">
 
 				{/* Profile Container */}
 				{otherUser && <ProfileContainer user={otherUser} />}

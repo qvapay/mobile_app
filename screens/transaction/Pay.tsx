@@ -2,6 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // i18n en call time para el fetch inicial (usar el `t` del hook dentro del
 // useCallback re-dispararía el fetch de la factura al cambiar idioma)
@@ -35,6 +36,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
 // FastImage for merchant logos
 import FastImage from '@d11/react-native-fast-image'
@@ -43,8 +45,16 @@ import FastImage from '@d11/react-native-fast-image'
 import LottieView from 'lottie-react-native'
 import QPFitText from '../../ui/particles/QPFitText'
 
+// Tipos
+import type { Transaction as TransactionModel } from '../../types/domain'
+import type { Theme } from '../../theme/ThemeContext'
+import type { RootStackParamList } from '../../types/navigation'
+
+/** Reacción opcional que acompaña al pago de la factura. */
+type Mood = { value: string, icon: FontAwesome6SolidIconName, labelKey: string, color: string }
+
 // i18n keys resolved in render — a module constant would freeze the boot language
-const MOODS = [
+const MOODS: Mood[] = [
 	{ value: '', icon: 'face-meh-blank', labelKey: 'transactions.pay.moods.none', color: '#9CA3AF' },
 	{ value: 'loved', icon: 'heart', labelKey: 'transactions.pay.moods.loved', color: '#F472B6' },
 	{ value: 'happy', icon: 'face-smile', labelKey: 'transactions.pay.moods.happy', color: '#34D399' },
@@ -53,7 +63,7 @@ const MOODS = [
 ]
 
 // Normalize detail-API shape (lowercase keys) for rendering
-const normalize = (tx) => ({
+const normalize = (tx: TransactionModel): TransactionModel => ({
 	...tx,
 	user: tx.user ?? tx.User ?? null,
 	paid_by: tx.paid_by ?? tx.PaidBy ?? null,
@@ -61,7 +71,7 @@ const normalize = (tx) => ({
 })
 
 // Status colors helper
-const getStatusColor = (status, theme) => {
+const getStatusColor = (status: string, theme: Theme): string => {
 	switch (status) {
 		case 'paid': case 'completed': case 'received': return theme.colors.success
 		case 'pending': case 'open': case 'processing': return theme.colors.warning
@@ -70,8 +80,11 @@ const getStatusColor = (status, theme) => {
 	}
 }
 
+/** Acción del setter genérico: escribe `value` en `field` del slice. */
+type FieldAction<S> = { type: 'set', field: keyof S, value: S[keyof S] }
+
 // Generic field setter for the two related-state slices below
-function setFieldReducer(state, action) {
+function setFieldReducer<S extends object>(state: S, action: FieldAction<S>): S {
 	switch (action.type) {
 		case 'set':
 			return { ...state, [action.field]: action.value }
@@ -79,6 +92,14 @@ function setFieldReducer(state, action) {
 			return state
 	}
 }
+
+/** Carga de la factura (`GET /transaction/{uuid}`). */
+type LoadState = { transaction: TransactionModel | null, loading: boolean, loadError: string | null }
+
+/** Ejecución del pago (`POST /transaction/{uuid}/pay`). */
+type PayState = { paying: boolean, payError: string | null, success: boolean }
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Pay'>
 
 /**
  * Merchant invoice payment sheet — presented as a transparentModal sliding from the
@@ -89,7 +110,7 @@ function setFieldReducer(state, action) {
  * invoices are view-only. If it can't go back (cold-start deep link) closing resets
  * navigation to MainStack.
  */
-const Pay = ({ route, navigation }) => {
+const Pay = ({ route, navigation }: Props) => {
 
 	const { uuid } = route.params || {}
 
@@ -101,18 +122,18 @@ const Pay = ({ route, navigation }) => {
 	const insets = useSafeAreaInsets()
 
 	// Invoice load state (same-named setters keep every call site unchanged)
-	const [loadState, dispatchLoad] = useReducer(setFieldReducer, { transaction: null, loading: true, loadError: null })
+	const [loadState, dispatchLoad] = useReducer(setFieldReducer<LoadState>, { transaction: null, loading: true, loadError: null })
 	const { transaction, loading, loadError } = loadState
-	const setTransaction = (value) => dispatchLoad({ type: 'set', field: 'transaction', value })
-	const setLoading = (value) => dispatchLoad({ type: 'set', field: 'loading', value })
-	const setLoadError = (value) => dispatchLoad({ type: 'set', field: 'loadError', value })
+	const setTransaction = (value: TransactionModel | null) => dispatchLoad({ type: 'set', field: 'transaction', value })
+	const setLoading = (value: boolean) => dispatchLoad({ type: 'set', field: 'loading', value })
+	const setLoadError = (value: string | null) => dispatchLoad({ type: 'set', field: 'loadError', value })
 
 	// Pay-action state
-	const [payState, dispatchPay] = useReducer(setFieldReducer, { paying: false, payError: null, success: false })
+	const [payState, dispatchPay] = useReducer(setFieldReducer<PayState>, { paying: false, payError: null, success: false })
 	const { paying, payError, success } = payState
-	const setPaying = (value) => dispatchPay({ type: 'set', field: 'paying', value })
-	const setPayError = (value) => dispatchPay({ type: 'set', field: 'payError', value })
-	const setSuccess = (value) => dispatchPay({ type: 'set', field: 'success', value })
+	const setPaying = (value: boolean) => dispatchPay({ type: 'set', field: 'paying', value })
+	const setPayError = (value: string | null) => dispatchPay({ type: 'set', field: 'payError', value })
+	const setSuccess = (value: boolean) => dispatchPay({ type: 'set', field: 'success', value })
 
 	const [selectedMood, setSelectedMood] = useState('')
 
@@ -124,21 +145,25 @@ const Pay = ({ route, navigation }) => {
 		try {
 			const response = await transferApi.getTransactionDetails(uuid)
 			if (response.success) {
-				setTransaction(normalize(response.data.data))
+				// El endpoint envuelve la transacción en otro `data` (`{ data: {...} }`);
+				// `transferApi` tipa el cuerpo como la transacción pelada
+				setTransaction(normalize((response.data as unknown as { data: TransactionModel }).data))
 			} else {
 				setLoadError(response.error || i18n.t('transactions.pay.invoiceLoadFailed'))
 			}
 		} catch (error) {
-			setLoadError(error?.message || i18n.t('transactions.pay.invoiceLoadError'))
+			setLoadError((error as Error)?.message || i18n.t('transactions.pay.invoiceLoadError'))
 		} finally { setLoading(false) }
 	}, [uuid])
 
 	useEffect(() => { fetchTransaction() }, [fetchTransaction])
 
 	// Derived
-	const amountFloat = parseFloat(transaction?.amount || 0)
+	// Los decimales del backend viajan como string o number (alias Decimal); el
+	// `|| 0` del original cubre la factura aún no cargada
+	const amountFloat = parseFloat((transaction?.amount || 0) as string)
 	const amountFixed = amountFloat.toFixed(2)
-	const balanceFloat = parseFloat(user?.balance || 0)
+	const balanceFloat = parseFloat((user?.balance || 0) as string)
 	const hasEnough = balanceFloat >= amountFloat
 	const isOwn = transaction?.user?.uuid && user?.uuid && transaction.user.uuid === user.uuid
 	const alreadyPaid = transaction?.status && transaction.status !== 'pending'
@@ -170,7 +195,7 @@ const Pay = ({ route, navigation }) => {
 				toast.error(t('transactions.common.errorTitle'), { description: result.error || t('transactions.pay.payFailed') })
 			}
 		} catch (error) {
-			setPayError(error?.message || t('transactions.pay.payError'))
+			setPayError((error as Error)?.message || t('transactions.pay.payError'))
 		} finally { setPaying(false) }
 	}
 
@@ -211,7 +236,8 @@ const Pay = ({ route, navigation }) => {
 	// Merchant (app) data
 	const app = transaction.app
 	const merchantName = app?.name || transaction.user?.name || 'QvaPay'
-	const merchantLogo = app?.logo ? { uri: mediaUrl(app.logo) } : null
+	// `mediaUrl` solo devuelve null con un path vacío, que el ternario ya descarta
+	const merchantLogo = app?.logo ? { uri: mediaUrl(app.logo) as string } : null
 
 	return (
 		<View style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>

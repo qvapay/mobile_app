@@ -6,8 +6,22 @@ import TransactionSticker from '../../ui/particles/TransactionSticker'
 import ProfileContainerHorizontal from '../../ui/ProfileContainerHorizontal'
 import QPFitText from '../../ui/particles/QPFitText'
 
+import type { P2PUser } from '../../types/domain'
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles, ContainerStyles } from '../../theme/themeUtils'
+
+type TransferSummaryCardsProps = {
+	recipientUser: Partial<P2PUser> | null
+	sendAmount: string
+	description: string
+	isUserOnline: (userId?: string | null) => boolean
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
+
 // Read-only transfer summary: amount, recipient, optional message, and fee/total.
-const TransferSummaryCards = ({ recipientUser, sendAmount, description, isUserOnline, theme, textStyles, containerStyles }) => {
+const TransferSummaryCards = ({ recipientUser, sendAmount, description, isUserOnline, theme, textStyles, containerStyles }: TransferSummaryCardsProps) => {
 
 	const { t } = useTranslation()
 	const parsedDescription = parseTransactionDescription(description)
@@ -28,7 +42,10 @@ const TransferSummaryCards = ({ recipientUser, sendAmount, description, isUserOn
 					{t('transactions.summary.recipient')}
 				</Text>
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-					<ProfileContainerHorizontal user={recipientUser} isOnline={isUserOnline(recipientUser?.uuid)} />
+					{/* `recipientUser` arranca en `null` mientras se resuelve el perfil y
+					    ProfileContainerHorizontal solo declara `undefined` (su default `{}`
+					    no cubre `null`). Cast local para no tocar el runtime existente. */}
+					<ProfileContainerHorizontal user={recipientUser as Partial<P2PUser> | undefined} isOnline={isUserOnline(recipientUser?.uuid)} />
 				</View>
 			</View>
 
@@ -42,7 +59,9 @@ const TransferSummaryCards = ({ recipientUser, sendAmount, description, isUserOn
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
 							<TransactionSticker name={parsedDescription.sticker} size={72} />
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-								{parsedDescription.sticker.replace('.webm', '')}
+								{/* `type === 'sticker'` garantiza `sticker` no nulo, pero
+								    ParsedTransactionDescription no es unión discriminada */}
+								{parsedDescription.sticker!.replace('.webm', '')}
 							</Text>
 						</View>
 					) : (

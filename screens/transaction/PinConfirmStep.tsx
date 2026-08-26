@@ -1,8 +1,29 @@
 import { View, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import type { RefObject } from 'react'
 
 import QPSwitch from '../../ui/particles/QPSwitch'
-import QPCodeInput from '../../ui/particles/QPCodeInput'
+import QPCodeInput, { type QPCodeInputHandle } from '../../ui/particles/QPCodeInput'
+
+import type { TwoFactorMethod } from '../../hooks/usePinEntry'
+import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles, ContainerStyles } from '../../theme/themeUtils'
+
+type PinConfirmStepProps = {
+	pin: string
+	onChangePin: (code: string) => void
+	codeLength: number
+	twoFactorMethod: TwoFactorMethod
+	hasOTP: boolean
+	sendingPin: boolean
+	onMethodToggle: (side: 'left' | 'right' | null) => void
+	onRequestPin: () => void
+	onBoxFocus?: (index: number) => void
+	codeInputRef?: RefObject<QPCodeInputHandle | null>
+	theme: Theme
+	textStyles: TextStyles
+	containerStyles: ContainerStyles
+}
 
 /**
  * PIN / OTP entry card for confirming a money operation (transfer, withdraw).
@@ -10,19 +31,19 @@ import QPCodeInput from '../../ui/particles/QPCodeInput'
  * digit-box mechanics live in QPCodeInput (secure mode). Re-keys the code input
  * by method so PIN ↔ OTP swaps rebuild the grid at the right length.
  *
- * @param {object} props
- * @param {string} props.pin - Entered code (controlled by the parent).
- * @param {function} props.onChangePin - Receives the full updated code string.
- * @param {number} props.codeLength - 4 (email PIN) or 6 (TOTP).
- * @param {'pin'|'otp'} props.twoFactorMethod - Active method.
- * @param {boolean} props.hasOTP - Show the PIN ↔ OTP switch.
- * @param {boolean} props.sendingPin - Disables the "Solicitar PIN" link while requesting.
- * @param {function} props.onMethodToggle - QPSwitch side handler ('left' | 'right').
- * @param {function} props.onRequestPin - Emails a fresh PIN (withdrawApi.requestPin).
- * @param {function} [props.onBoxFocus] - Box focus callback (e.g. scroll-into-view).
- * @param {object} [props.codeInputRef] - Ref to QPCodeInput ({ focus(index) }).
+ * @param props
+ * @param props.pin - Entered code (controlled by the parent).
+ * @param props.onChangePin - Receives the full updated code string.
+ * @param props.codeLength - 4 (email PIN) or 6 (TOTP).
+ * @param props.twoFactorMethod - Active method ('pin' | 'otp').
+ * @param props.hasOTP - Show the PIN ↔ OTP switch.
+ * @param props.sendingPin - Disables the "Solicitar PIN" link while requesting.
+ * @param props.onMethodToggle - QPSwitch side handler ('left' | 'right').
+ * @param props.onRequestPin - Emails a fresh PIN (withdrawApi.requestPin).
+ * @param [props.onBoxFocus] - Box focus callback (e.g. scroll-into-view).
+ * @param [props.codeInputRef] - Ref to QPCodeInput ({ focus(index) }).
  */
-const PinConfirmStep = ({ pin, onChangePin, codeLength, twoFactorMethod, hasOTP, sendingPin, onMethodToggle, onRequestPin, onBoxFocus, codeInputRef, theme, textStyles, containerStyles }) => {
+const PinConfirmStep = ({ pin, onChangePin, codeLength, twoFactorMethod, hasOTP, sendingPin, onMethodToggle, onRequestPin, onBoxFocus, codeInputRef, theme, textStyles, containerStyles }: PinConfirmStepProps) => {
 
 	const { t } = useTranslation()
 

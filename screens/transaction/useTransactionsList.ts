@@ -5,7 +5,10 @@ import {
 	transactionsListKey,
 	trimToFirstPage,
 	useTransactionsInfiniteQuery,
+	type TransactionsFilters,
 } from './transactionsQueries'
+
+import type { Transaction } from '../../types/domain'
 
 /**
  * Owns the paginated transaction history for `Transactions.jsx`: una query
@@ -20,13 +23,17 @@ import {
  * `refreshing` es estado propio (no `isRefetching`): solo debe activarse en un
  * tirón del usuario, no en la revalidación de fondo de cada montaje.
  *
- * @param {Object} filters - Filtros aplicados (search, date_from, status…).
- * @returns {{
- *   transactions: Array, isPending: boolean, isFetchingNextPage: boolean,
- *   refreshing: boolean, onRefresh: Function, loadMore: Function,
- * }}
+ * @param filters - Filtros aplicados (search, date_from, status…).
+ * @returns `{ transactions, isPending, isFetchingNextPage, refreshing, onRefresh, loadMore }`
  */
-export default function useTransactionsList(filters) {
+export default function useTransactionsList(filters: TransactionsFilters): {
+	transactions: Transaction[]
+	isPending: boolean
+	isFetchingNextPage: boolean
+	refreshing: boolean
+	onRefresh: () => Promise<void>
+	loadMore: () => void
+} {
 
 	const queryClient = useQueryClient()
 	const [refreshing, setRefreshing] = useState(false)

@@ -5,19 +5,33 @@ import { useQuery } from '@tanstack/react-query'
 import { userApi } from '../../api/userApi'
 import { unwrap } from '../../api/unwrap'
 
+// Tipos
+import type { EmbeddedUser } from '../../types/domain'
+
 // La fuente "enviados recientes" es LA MISMA query del pago rápido del Home:
 // compartir la clave `['home', 'quickpay']` deduplica la petición entre ambas
 // pantallas y hace que cualquiera de las dos refresque a la otra
 import { useQuickPayQuery } from '../../hooks/useQuickPayQuery'
 
+/**
+ * Usuario del carrusel de destinatarios: subset embebido más `lastname`
+ * (la búsqueda local del modal de Send filtra por él).
+ */
+export type SendCarouselUser = EmbeddedUser & { lastname?: string | null }
+
+/** Fila cruda del endpoint de contactos: el usuario viaja anidado en `Contact`. */
+type ContactRow = { Contact?: SendCarouselUser | null } | null
+
 /** Contactos guardados con avatar (el carrusel es puramente visual). */
 export const useContactsQuery = () => useQuery({
 	queryKey: ['contacts'],
 	queryFn: async () => {
-		const data = unwrap(await userApi.getContacts())
-		// El endpoint ha devuelto ambas formas: lista directa o { contacts: [...] }
+		// El módulo api tipa el cuerpo como unknown[]; el cast local fija las dos
+		// formas que ha devuelto el endpoint: lista directa o { contacts: [...] }
+		const data = unwrap(await userApi.getContacts()) as ContactRow[] | { contacts?: ContactRow[] } | null
 		const list = Array.isArray(data) ? data : (data?.contacts || [])
-		return list.map(c => c?.Contact || {}).filter(u => u.uuid && u.image)
+		// El filter garantiza uuid + image presentes — el cast solo lo hace visible al tipo
+		return list.map((c): Partial<SendCarouselUser> => c?.Contact || {}).filter(u => u.uuid && u.image) as SendCarouselUser[]
 	},
 	placeholderData: previous => previous,
 })
@@ -26,13 +40,13 @@ export const useContactsQuery = () => useQuery({
  * Mezcla del carrusel: enviados recientes primero, luego contactos, deduplicado
  * por uuid y solo usuarios con avatar. Pura para poder testearla sola.
  *
- * @param {Array} [sent] - Destinatarios recientes (ya filtrados por imagen).
- * @param {Array} [contacts] - Contactos guardados.
- * @returns {Array} Usuarios únicos con imagen, en orden de relevancia.
+ * @param sent - Destinatarios recientes (ya filtrados por imagen).
+ * @param contacts - Contactos guardados.
+ * @returns Usuarios únicos con imagen, en orden de relevancia.
  */
-export const mergeCarousel = (sent = [], contacts = []) => {
-	const seen = new Set()
-	const combined = []
+export const mergeCarousel = (sent: SendCarouselUser[] = [], contacts: SendCarouselUser[] = []): SendCarouselUser[] => {
+	const seen = new Set<string>()
+	const combined: SendCarouselUser[] = []
 	for (const u of [...sent, ...contacts]) {
 		if (u?.uuid && u.image && !seen.has(u.uuid)) {
 			seen.add(u.uuid)
@@ -49,9 +63,9 @@ export const mergeCarousel = (sent = [], contacts = []) => {
  * pinta igual, y React Query conserva el último dato bueno de cada una (antes,
  * un fallo parcial escribía en caché la mezcla incompleta).
  *
- * @returns {Array} Usuarios del carrusel, listos para renderizar.
+ * @returns Usuarios del carrusel, listos para renderizar.
  */
-export const useSendCarousel = () => {
+export const useSendCarousel = (): SendCarouselUser[] => {
 
 	const sent = useQuickPayQuery()
 	const contacts = useContactsQuery()
