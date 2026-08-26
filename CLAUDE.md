@@ -202,7 +202,7 @@ UI conventions:
 - `/scripts/`: `release-android.sh`, `sync-version.js`
 
 ### Key Dependencies
-React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), **TanStack Query 5** (`@tanstack/react-query` + `react-query-persist-client` + `query-async-storage-persister`), **i18next 26 + react-i18next 17** (+ `intl-pluralrules` para Hermes), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `@shopify/react-native-skia` 2 (only the aurora loading veil), `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (`App.tsx` is currently the only TS file).
+React Native 0.84.1, React 19.2.3, React Navigation 7 (`native-stack` + `bottom-tabs`), **TanStack Query 5** (`@tanstack/react-query` + `react-query-persist-client` + `query-async-storage-persister`), **i18next 26 + react-i18next 17** (+ `intl-pluralrules` para Hermes), Axios 1.16, `@shopify/flash-list` 2, AsyncStorage 3, `react-native-keychain` 10, `@d11/react-native-fast-image`, Lottie 7, Reanimated 4.4 + `react-native-worklets`, `@shopify/react-native-skia` 2 (only the aurora loading veil), `react-native-nitro-modules` + `nitro-image`, Vision Camera 5 + `vision-camera-barcode-scanner` (QR), Gesture Handler 3, Linear Gradient, **sonner-native** (toasts), FontAwesome6, SVG, `react-native-onesignal` 5, `react-native-iap` 15, `react-native-passkey` 3, `react-native-sse` (SSE for transactions), `react-native-haptic-feedback`, `react-native-edge-to-edge`, `react-native-version-check`, `react-native-international-phone-number`, ESLint 9, Jest 30, TypeScript 6 (toda la app en TS salvo `index.js`).
 
 OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc81`.
 
@@ -290,7 +290,10 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 
 ## Development Notes
 
-- `.jsx` everywhere (~145 files); `App.tsx` is the only TypeScript file — migration not really started
+- **TypeScript en toda la app** (`.ts`/`.tsx`; el único `.js` que queda es `index.js`, el entry point que RN espera con ese nombre). Los tests siguen en `.test.js` a propósito. `npm run typecheck` (`tsc --noEmit`) corre en CI junto a lint y jest — Babel borra los tipos sin comprobarlos, así que sin ese script la migración no vigilaría nada
+- **Tipos compartidos en `/types/`**: `api.ts` (`ApiResult<T>` — unión discriminada por `success`, más `ApiClientError`), `domain.ts` (User/Me, Coin, Transaction, P2POffer, SavingsSummary…, con `Decimal = string | number` porque los decimales del backend viajan como string, y `BoolInt = 0 | 1`), `navigation.ts` (`RootStackParamList` + `MainTabParamList` + `SettingsStackParamList`, con declaración global de `ReactNavigation.RootParamList` para que `useNavigation()` quede tipado sin genéricos) y `axios.d.ts` (augmentation de `config.silent`)
+- Al añadir un endpoint: tipar su `T` en el módulo de `api/` y, si el payload es una entidad, declararla en `types/domain.ts`. Los returns que se salen del contrato estándar se modelan como unión local en su módulo (ver `P2PIndexResult` en `api/p2pApi.ts`), no ensanchando `ApiResult`
+- Al añadir una pantalla: registrar sus params en `RootStackParamList` y tiparla con `NativeStackScreenProps<RootStackParamList, 'Ruta'>` (las de pestaña, con `CompositeScreenProps`)
 - Functional components + hooks only (no class components beyond `ErrorBoundary`)
 - **UI multilenguaje (es/en/pt-BR) vía i18next** — ver sección "i18n" arriba; copy nuevo SIEMPRE nace como clave en `i18n/locales/` (los 3 idiomas) siguiendo `i18n/CONVENTIONS.md`, nunca como literal
 - Token lives in Keychain (`com.qvapay.auth`) — AsyncStorage is only used for non-secret settings
