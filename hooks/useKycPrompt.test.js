@@ -1,9 +1,9 @@
 /**
  * Behavior tests del nudge de KYC (useKycPrompt): visibilidad del banner según
- * el estado del usuario (sin kyc / declined / verificado), descartes con
- * cooldown, gracia de 48h tras abrir una sesión de Didit, y el flag
- * módulo-level markKycSessionStarted — node environment con AsyncStorage y
- * AuthContext mockeados (ver useSettingsState.test.js para el harness).
+ * el estado del usuario (sin kyc / retenido / verificado), descartes con
+ * cooldown, gracia de 48h tras abrir una sesión de Didit, y los flags
+ * módulo-level markKycSessionStarted / markKycOnHold — node environment con
+ * AsyncStorage y AuthContext mockeados (ver useSettingsState.test.js para el harness).
  * @jest-environment node
  */
 const storage = {}
@@ -13,6 +13,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 		getMany: jest.fn(async (keys) => Object.fromEntries(keys.map((k) => [k, storage[k] ?? null]))),
 		setMany: jest.fn(async (pairs) => { Object.assign(storage, pairs) }),
 		setItem: jest.fn(async (k, v) => { storage[k] = v }),
+		removeItem: jest.fn(async (k) => { delete storage[k] }),
 	},
 }))
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
@@ -20,7 +21,7 @@ jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import { useAuth } from '../auth/AuthContext'
-import useKycPrompt, { markKycSessionStarted } from './useKycPrompt'
+import useKycPrompt, { markKycSessionStarted, markKycOnHold } from './useKycPrompt'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -54,10 +55,27 @@ describe('visibilidad del banner', () => {
 		expect(value.shouldShowBanner).toBe(false)
 	})
 
-	test('una verificación rechazada es caso de soporte, no de nag', async () => {
+	test('un rechazo ordinario SÍ se sigue empujando: el backend deja reintentar', async () => {
+		// Antes bastaba kyc_status='declined' para callar el banner, y esa columna la
+		// comparten el retén de compliance y un "la foto salió borrosa". Al segundo hay
+		// que seguir empujándolo o se pierde la verificación por nada.
+		useAuth.mockReturnValue({ user: { kyc: false, kyc_status: 'declined' } })
+		const value = await renderHook()
+		expect(value.shouldShowBanner).toBe(true)
+	})
+
+	test('un caso RETENIDO por el equipo no se nagea', async () => {
+		await markKycOnHold(true)
 		useAuth.mockReturnValue({ user: { kyc: false, kyc_status: 'declined' } })
 		const value = await renderHook()
 		expect(value.shouldShowBanner).toBe(false)
+	})
+
+	test('levantar el retén vuelve a habilitar el banner', async () => {
+		await markKycOnHold(true)
+		await markKycOnHold(false)
+		const value = await renderHook()
+		expect(value.shouldShowBanner).toBe(true)
 	})
 
 	test('kyc_status pending expone isPending y sigue sin kyc', async () => {

@@ -6,14 +6,34 @@ import type { User } from '../types/domain'
 /**
  * Resultado de `userApi.requestKYCSession`: el éxito trae `sessionToken` extra
  * (para el SDK nativo) además de `data` (la URL hospedada de verificación).
+ *
+ * `sessionToken` es `null` en una sesión REUTILIZADA (el backend solo lo obtiene al
+ * crearla), y en el fallo `reason` distingue los dos 403 del servidor.
  */
-export type KYCSessionResult = (ApiSuccess<string> & { sessionToken: string | null }) | ApiFailure
+export type KYCSessionResult = | (ApiSuccess<string> & { sessionToken: string | null }) | (ApiFailure & { reason?: KYCHoldReason })
 
-/** Estado de KYC del usuario (`GET /user/kyc`, desenvuelto de `data.data`). */
+/** Por qué el servidor retiene una verificación: bloqueo de compliance o tope de intentos. */
+export type KYCHoldReason = 'compliance' | 'limit'
+
+/**
+ * Estado de KYC del usuario (`GET /user/kyc?detail=1`, desenvuelto de `data.data`).
+ *
+ * Los tres últimos campos solo llegan con `?detail=1` y con el usuario sin verificar
+ * (y solo desde un backend al día — por eso son opcionales). Son los que MANDAN:
+ * `kyc_status` es historial, no estado. El backend escribe `pending` al CREAR la sesión
+ * y nunca lo revierte, así que un usuario con la sesión caducada sigue en `pending`
+ * para siempre; tomarlo por "en revisión" es lo que dejaba la pantalla sin salida.
+ */
 export type KYCStatusPayload = {
 	uuid: string
 	kyc: boolean
 	kyc_status: 'none' | 'pending' | 'approved' | 'declined'
+	/** Estado real de la sesión en el proveedor — solo etiqueta, nunca decisión. */
+	session_status?: string | null
+	/** El caso lo tiene retenido el equipo: no hay nada que el usuario pueda hacer. */
+	on_hold?: boolean
+	/** Puede abrir o continuar una sesión ahora mismo. */
+	can_retry?: boolean
 }
 
 /** Resultado de `userApi.getKYCStatus`: el éxito trae `raw` (body sin desenvolver) extra. */
@@ -140,30 +160,43 @@ export const userApi = {
 	 * `sessionToken` (when the backend sends it) feeds the native verification SDK;
 	 * without it the caller falls back to opening the hosted URL in the browser.
 	 *
-	 * @returns `{ success, data?, sessionToken?, error?, status? }` — `data` is the verification URL string
+	 * @param refresh - salta la cache de sesiones del backend (`?refresh=1`): la salida
+	 *   para quien tiene cacheada una sesión que el proveedor ya borró y aterriza en un 404.
+	 * @returns `{ success, data?, sessionToken?, error?, reason?, status? }` — `data` is the verification URL string
 	 */
-	requestKYCSession: async (): Promise<KYCSessionResult> => {
+	requestKYCSession: async ({ refresh = false }: { refresh?: boolean } = {}): Promise<KYCSessionResult> => {
 		try {
-			const response = await apiClient.post(`/user/kyc`)
+			const response = await apiClient.post(`/user/kyc${refresh ? '?refresh=1' : ''}`)
 			return { success: true, data: response.data?.data, sessionToken: response.data?.session_token || null, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
 			if (error.response?.data) {
 				const errorData = error.response.data
-				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.kycSessionFailed'), status: error.response.status }
+				return {
+					success: false,
+					error: errorData.error || errorData.message || i18n.t('api.user.kycSessionFailed'),
+					// Distingue los dos 403: 'compliance'/'limit' retienen de verdad, y sin
+					// reason un 403 no debe leerse como caso cerrado.
+					reason: errorData.reason as KYCHoldReason | undefined,
+					status: error.response.status,
+				}
 			}
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
 	/**
-	 * Gets the current user's KYC status (`GET /user/kyc`).
+	 * Gets the current user's KYC status (`GET /user/kyc?detail=1`).
 	 *
-	 * @returns `{ success, data?, raw?, error?, status? }` — `data` is `{ uuid, kyc: boolean, kyc_status: 'none'|'pending'|'approved'|'declined' }`, `raw` the unwrapped response body
+	 * Siempre con `detail=1`: sin él la respuesta trae solo `kyc_status`, que es historial
+	 * y no estado (ver `KYCStatusPayload`). El detalle añade `on_hold`/`can_retry`, que son
+	 * los que deciden si la pantalla ofrece un botón o una espera.
+	 *
+	 * @returns `{ success, data?, raw?, error?, status? }` — `data` is `KYCStatusPayload`, `raw` the unwrapped response body
 	 */
 	getKYCStatus: async (): Promise<KYCStatusResult> => {
 		try {
-			const response = await apiClient.get(`/user/kyc`)
+			const response = await apiClient.get(`/user/kyc?detail=1`)
 			return { success: true, data: response.data?.data, raw: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError

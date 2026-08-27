@@ -114,7 +114,9 @@ describe('userApi KYC', () => {
 
 		const result = await userApi.getKYCStatus()
 
-		expect(apiClient.get).toHaveBeenCalledWith('/user/kyc')
+		// Siempre con detail=1: sin él la respuesta no trae on_hold/can_retry, que es lo
+		// que decide si la pantalla ofrece un botón o una espera.
+		expect(apiClient.get).toHaveBeenCalledWith('/user/kyc?detail=1')
 		expect(result).toEqual({ success: true, data: body.data, raw: body, status: 200 })
 	})
 

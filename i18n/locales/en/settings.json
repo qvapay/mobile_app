@@ -426,19 +426,40 @@
 			"sessionFailed": "Couldn't get the verification session",
 			"genericError": "An error occurred",
 			"approved": "Identity verified!",
-			"cameraDenied": "We need camera access to verify your identity. Enable it in your system settings."
+			"cameraDenied": "We need camera access to verify your identity. Enable it in your system settings.",
+			"rateLimited": "We're setting up your verification. Try again in a few seconds.",
+			"providerDown": "We couldn't check your verification status. Please try again."
 		},
 		"verified": {
 			"title": "Identity verified!",
 			"body": "Thanks for completing the verification. You can now enjoy all the benefits."
 		},
-		"pending": {
+		"review": {
 			"title": "Verification under review",
 			"body": "We're reviewing your information. We'll let you know as soon as it's ready — it usually takes just a few minutes."
 		},
-		"declined": {
-			"title": "Verification declined",
-			"body": "We couldn't complete your verification. Write to us at <0>soporte@qvapay.com</0> and we'll help you sort it out."
+		"manualReview": {
+			"title": "Verification under manual review",
+			"body": "Our team is reviewing your case. It can take up to 3 business days and there's nothing else for you to do. If you have questions, write to us at <0>soporte@qvapay.com</0>."
+		},
+		"retry": {
+			"body": "Your last attempt didn't pass. It's usually a blurry photo, glare, or an expired document. Use good lighting and make sure every detail is readable.",
+			"button": "Try again"
+		},
+		"sessionStatus": {
+			"label": "Your session status: {{status}}",
+			"notStarted": "Not started yet",
+			"inProgress": "In progress",
+			"awaitingUser": "Waiting for you",
+			"submitted": "Documents received",
+			"processing": "Automatic review",
+			"inReview": "Manual review",
+			"declined": "Declined",
+			"approved": "Approved"
+		},
+		"actions": {
+			"newLinkHint": "Verification won't open or says it doesn't exist?",
+			"newLink": "Generate a new link"
 		},
 		"idle": {
 			"title": "Identity verification",

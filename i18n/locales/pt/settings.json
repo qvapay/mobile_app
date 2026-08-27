@@ -426,23 +426,44 @@
 			"sessionFailed": "Não foi possível obter a sessão de verificação",
 			"genericError": "Ocorreu um erro",
 			"approved": "Identidade verificada!",
-			"cameraDenied": "Precisamos de acesso à câmera para verificar sua identidade. Ative-o nos ajustes do sistema."
+			"cameraDenied": "Precisamos de acesso à câmera para verificar sua identidade. Ative nas configurações do sistema.",
+			"rateLimited": "Estamos preparando sua verificação. Tente novamente em alguns segundos.",
+			"providerDown": "Não foi possível verificar o status da sua verificação. Tente novamente."
 		},
 		"verified": {
 			"title": "Identidade verificada!",
 			"body": "Obrigado por concluir a verificação. Agora você pode aproveitar todos os benefícios."
 		},
-		"pending": {
+		"review": {
 			"title": "Verificação em análise",
-			"body": "Estamos analisando suas informações. Vamos avisar você assim que estiver pronta — normalmente leva só alguns minutos."
+			"body": "Estamos analisando suas informações. Avisaremos assim que estiver pronta — normalmente leva apenas alguns minutos."
 		},
-		"declined": {
-			"title": "Verificação recusada",
-			"body": "Não conseguimos concluir sua verificação. Escreva para <0>soporte@qvapay.com</0> e vamos ajudar você a resolver."
+		"manualReview": {
+			"title": "Verificação em análise manual",
+			"body": "Nossa equipe está analisando o seu caso. Pode levar até 3 dias úteis e você não precisa fazer mais nada. Em caso de dúvidas, escreva para <0>soporte@qvapay.com</0>."
+		},
+		"retry": {
+			"body": "Sua tentativa anterior não passou. Costuma ser foto tremida ou com reflexo, ou documento vencido. Use boa iluminação e garanta que todos os dados fiquem legíveis.",
+			"button": "Tentar de novo"
+		},
+		"sessionStatus": {
+			"label": "Status da sua sessão: {{status}}",
+			"notStarted": "Ainda não iniciada",
+			"inProgress": "Em andamento",
+			"awaitingUser": "Aguardando você",
+			"submitted": "Documentos recebidos",
+			"processing": "Em análise automática",
+			"inReview": "Em análise manual",
+			"declined": "Recusada",
+			"approved": "Aprovada"
+		},
+		"actions": {
+			"newLinkHint": "A verificação não abre ou diz que não existe?",
+			"newLink": "Gere um novo link"
 		},
 		"idle": {
 			"title": "Verificação de identidade",
-			"body": "Verifique sua identidade para acessar todos os benefícios do QvaPay.",
+			"body": "Verifique sua identidade para acessar todos os benefícios da QvaPay.",
 			"benefits": {
 				"higherLimits": "Limites de transação mais altos",
 				"betterP2P": "Melhores oportunidades no P2P",

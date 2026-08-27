@@ -31,6 +31,7 @@ import usePushPrompt from '../../hooks/usePushPrompt'
 
 // Flujo de verificación de identidad nativo (SDK embebido, fallback a navegador)
 import useKycVerification from '../../hooks/useKycVerification'
+import { markKycOnHold } from '../../hooks/useKycPrompt'
 
 // Atribución de instalación (Android Install Referrer): código del referidor
 // y source de adquisición capturados en el primer arranque
@@ -338,10 +339,11 @@ const RegisterScreen = ({ navigation }: NativeStackScreenProps<RootStackParamLis
 		if (isPushEnabled) { finish() } else { goTo(STEPS.indexOf('push')) }
 	}
 
-	// Lanza el flujo de verificación NATIVO (useKycVerification). Un resultado
-	// terminal avanza el wizard (aprobada/en revisión — nada más que hacer aquí);
-	// cancelar se queda en el paso con el "Ahora no" disponible; solo el fallback
-	// a navegador conserva el estado kycOpened de la vuelta manual
+	// Lanza el flujo de verificación NATIVO (useKycVerification). Solo se avanza el
+	// wizard cuando ya no queda nada que hacer aquí (aprobada, en revisión, retenida);
+	// un rechazo ordinario o un estado ilegible se quedan en el paso, que sigue
+	// ofreciendo reintentar y "Ahora no". Solo el fallback a navegador conserva el
+	// estado kycOpened de la vuelta manual
 	const handleStartKyc = async () => {
 		setIsLoading(true)
 		try {
@@ -351,21 +353,27 @@ const RegisterScreen = ({ navigation }: NativeStackScreenProps<RootStackParamLis
 				if (resp.outcome === 'approved') {
 					toast.success(t('auth.register.toasts.kycApproved'))
 					goToPushOrFinish()
-				} else if (resp.outcome === 'pending' || resp.outcome === 'declined') {
-					// declined también se comunica como revisión (política: la revisión
-					// manual la resuelve el equipo, no es un rechazo terminal en el alta)
+				} else if (resp.outcome === 'pending') {
 					toast.info(t('auth.register.toasts.kycInReview'))
 					goToPushOrFinish()
+				} else if (resp.outcome === 'declined') {
+					// El backend deja reintentar un rechazo ordinario (foto borrosa,
+					// documento vencido): decirle "en revisión" y empujarlo al siguiente
+					// paso le quitaba la única oportunidad de repetirlo aquí mismo.
+					toast.error(t('auth.register.toasts.kycRetry'))
 				}
-				// cancelled: sin ruido, el paso sigue ofreciendo verificar o "Ahora no"
+				// cancelled / unknown: sin ruido, el paso sigue ofreciendo verificar o "Ahora no"
 			} else if (resp.kind === 'browser') {
 				setKycOpened(true)
 			} else if (resp.kind === 'request-error') {
-				// 400 ya verificado, 409 en revisión, 403 rechazado — nada accionable
+				// 400 ya verificado y 409 en revisión: nada que hacer en el alta.
 				if (resp.status === 409 || resp.status === 400) {
 					if (resp.status === 409) toast.info(t('auth.register.toasts.kycInReview'))
 					goToPushOrFinish()
-				} else if (resp.status === 403) {
+				} else if (resp.status === 403 && resp.reason) {
+					// Retén real (compliance o tope de intentos). Un 403 sin reason no es
+					// un caso cerrado, así que cae al toast reintentable de abajo.
+					markKycOnHold(true)
 					toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
 					goToPushOrFinish()
 				} else {
