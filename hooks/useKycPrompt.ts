@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
 	BANNER_DISMISS_COUNT: 'kyc_banner_dismiss_count',
 	BANNER_LAST_DISMISS: 'kyc_banner_last_dismiss',
 	SESSION_STARTED_AT: 'kyc_session_started_at',
+	ON_HOLD: 'kyc_on_hold',
 }
 
 // Empuje sutil pero persistente: más intentos y menos cooldown que el banner
@@ -29,18 +30,35 @@ export const markKycSessionStarted = async (): Promise<void> => {
 }
 
 /**
+ * Registra si el servidor tiene el caso RETENIDO (`on_hold`: bloqueo de compliance o
+ * demasiados intentos). Es lo único que silencia el banner por rechazo.
+ *
+ * Antes se silenciaba con `kyc_status === 'declined'`, y esa columna la comparten el
+ * retén de compliance y un simple "la foto salió borrosa" — al segundo el backend sí
+ * le deja reintentar, así que dejar de empujarlo era perder la verificación por nada.
+ * Lo escriben las superficies que hablan con `/user/kyc` (pantalla de Ajustes, registro).
+ */
+export const markKycOnHold = async (onHold: boolean): Promise<void> => {
+	try {
+		if (onHold) await AsyncStorage.setItem(STORAGE_KEYS.ON_HOLD, '1')
+		else await AsyncStorage.removeItem(STORAGE_KEYS.ON_HOLD)
+	} catch { /* storage write failed */ }
+}
+
+/**
  * Decide cuándo empujar al usuario sin KYC hacia la verificación de identidad
  * (espejo móvil del SecuritySetupBanner de la web).
  *
- * El banner se muestra solo si: el usuario NO tiene kyc, su verificación no
- * fue rechazada (`kyc_status !== 'declined'` — eso es un caso de soporte, no
- * de nag), no agotó los descartes (5, con cooldown de 5 días entre muestras)
- * y no abrió una sesión de Didit en las últimas 48h (gracia para el webhook).
- * Todos los flags arrancan en "no mostrar" hasta que AsyncStorage carga
- * (`ready`), para que nada parpadee en el primer render.
+ * El banner se muestra solo si: el usuario NO tiene kyc, su caso no está RETENIDO
+ * por el servidor (`markKycOnHold` — eso sí es de soporte, no de nag; un rechazo
+ * ordinario se reintenta y por tanto se sigue empujando), no agotó los descartes
+ * (5, con cooldown de 5 días entre muestras) y no abrió una sesión de Didit en las
+ * últimas 48h (gracia para el webhook). Todos los flags arrancan en "no mostrar"
+ * hasta que AsyncStorage carga (`ready`), para que nada parpadee en el primer render.
  *
  * @returns `{ shouldShowBanner, isPending, dismissBanner }` —
- *   `isPending` = kyc_status 'pending' (Didit en revisión, sin nada accionable).
+ *   `isPending` = kyc_status 'pending', que el backend escribe al CREAR la sesión:
+ *   señal débil, NO significa que haya algo en revisión.
  */
 const useKycPrompt = (): {
 	shouldShowBanner: boolean
@@ -53,6 +71,7 @@ const useKycPrompt = (): {
 	const [dismissCount, setDismissCount] = useState(MAX_BANNER_DISMISSALS)
 	const [lastDismiss, setLastDismiss] = useState(0)
 	const [sessionStartedAt, setSessionStartedAt] = useState(0)
+	const [onHold, setOnHold] = useState(false)
 	const [ready, setReady] = useState(false)
 
 	useEffect(() => {
@@ -62,10 +81,12 @@ const useKycPrompt = (): {
 					STORAGE_KEYS.BANNER_DISMISS_COUNT,
 					STORAGE_KEYS.BANNER_LAST_DISMISS,
 					STORAGE_KEYS.SESSION_STARTED_AT,
+					STORAGE_KEYS.ON_HOLD,
 				])
 				setDismissCount(parseInt(values[STORAGE_KEYS.BANNER_DISMISS_COUNT] || '0', 10))
 				setLastDismiss(parseInt(values[STORAGE_KEYS.BANNER_LAST_DISMISS] || '0', 10))
 				setSessionStartedAt(parseInt(values[STORAGE_KEYS.SESSION_STARTED_AT] || '0', 10))
+				setOnHold(values[STORAGE_KEYS.ON_HOLD] === '1')
 			} catch { /* storage read failed */ }
 			finally { setReady(true) }
 		}
@@ -77,7 +98,7 @@ const useKycPrompt = (): {
 	const shouldShowBanner = ready
 		&& !!user
 		&& !user.kyc
-		&& user.kyc_status !== 'declined'
+		&& !onHold
 		&& dismissCount < MAX_BANNER_DISMISSALS
 		&& (Date.now() - lastDismiss > BANNER_COOLDOWN_MS)
 		&& (Date.now() - sessionStartedAt > SESSION_GRACE_MS)

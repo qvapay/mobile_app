@@ -15,7 +15,7 @@ jest.mock('../AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../hooks/usePinCountdown', () => jest.fn())
 jest.mock('../../hooks/useStepTransitions', () => jest.fn())
 jest.mock('../../hooks/usePushPrompt', () => jest.fn())
-jest.mock('../../hooks/useKycPrompt', () => ({ markKycSessionStarted: jest.fn() }))
+jest.mock('../../hooks/useKycPrompt', () => ({ markKycSessionStarted: jest.fn(), markKycOnHold: jest.fn() }))
 jest.mock('../../helpers/installReferrer', () => ({ getStoredAttribution: jest.fn(), mapSourceToEnum: jest.fn() }))
 jest.mock('../../api/authApi', () => ({ authApi: { login: jest.fn() } }))
 jest.mock('../../api/userApi', () => ({ userApi: { verifyPhone: jest.fn(), requestKYCSession: jest.fn() } }))
@@ -45,6 +45,7 @@ import useStepTransitions from '../../hooks/useStepTransitions'
 import usePushPrompt from '../../hooks/usePushPrompt'
 import { authApi } from '../../api/authApi'
 import { userApi } from '../../api/userApi'
+import { markKycOnHold } from '../../hooks/useKycPrompt'
 import { setAuthToken } from '../../api/client'
 import { getStoredAttribution, mapSourceToEnum } from '../../helpers/installReferrer'
 import { toast } from 'sonner-native'
@@ -339,6 +340,24 @@ describe('KYC step', () => {
 		await goToKycStep(tree)
 		await press(tree, 'Verificar identidad')
 		expect(toast.error).toHaveBeenCalledWith('Error interno')
+		expect(button(tree, 'Verificar identidad')).toBeDefined()
+	})
+
+	test('a 403 WITH reason is a real hold: it advances to the push step', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: false, status: 403, reason: 'compliance', error: 'Revisión manual' })
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		expect(markKycOnHold).toHaveBeenCalledWith(true)
+		expect(button(tree, 'Activar notificaciones')).toBeDefined()
+	})
+
+	test('a 403 WITHOUT reason is not a closed case: the step stays retryable', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: false, status: 403, error: 'No se pudo' })
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		expect(markKycOnHold).not.toHaveBeenCalled()
 		expect(button(tree, 'Verificar identidad')).toBeDefined()
 	})
 })

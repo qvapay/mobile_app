@@ -42,10 +42,10 @@ beforeEach(() => {
 	userApi.requestKYCSession.mockResolvedValue({ success: true, data: SESSION_URL, sessionToken: 'tok.en.jwt', status: 200 })
 })
 
-const launch = async () => {
+const launch = async (options) => {
 	const value = await renderHook()
 	let result
-	await act(async () => { result = await value.launchKyc() })
+	await act(async () => { result = await value.launchKyc(options) })
 	return result
 }
 
@@ -78,6 +78,24 @@ describe('flujo nativo', () => {
 		const result = await launch()
 		expect(result).toEqual({ kind: 'native', outcome: 'cancelled' })
 		expect(updateUser).not.toHaveBeenCalled()
+		// Cancelar en el primer segundo no puede silenciar el nudge del Home 48h
+		expect(markKycSessionStarted).not.toHaveBeenCalled()
+	})
+
+	test('estado ilegible: NO se inventa un pending local', async () => {
+		// El atajo de antes (cualquier completed no-Approved/Declined => pending) era lo
+		// que dejaba a un usuario mirando "en revisión" sin nada en revisión.
+		startVerification.mockResolvedValue({ type: 'completed', session: { sessionId: 's1', status: 'Whatever' } })
+		const result = await launch()
+		expect(result).toEqual({ kind: 'native', outcome: 'unknown' })
+		expect(updateUser).not.toHaveBeenCalled()
+	})
+
+	test('completed sin sesión: también es unknown, no pending', async () => {
+		startVerification.mockResolvedValue({ type: 'completed' })
+		const result = await launch()
+		expect(result).toEqual({ kind: 'native', outcome: 'unknown' })
+		expect(updateUser).not.toHaveBeenCalled()
 	})
 })
 
@@ -106,13 +124,32 @@ describe('fallback a navegador', () => {
 	})
 })
 
+describe('sesión nueva forzada', () => {
+	test('refresh viaja al backend para saltar su caché de sesiones', async () => {
+		// La salida de quien aterriza en el "esta sesión no existe" del proveedor.
+		await launch({ refresh: true })
+		expect(userApi.requestKYCSession).toHaveBeenCalledWith({ refresh: true })
+	})
+
+	test('sin argumentos no se fuerza nada', async () => {
+		await launch()
+		expect(userApi.requestKYCSession).toHaveBeenCalledWith({ refresh: false })
+	})
+})
+
 describe('errores del POST /user/kyc', () => {
 	test('propaga status y mensaje sin lanzar el SDK', async () => {
 		userApi.requestKYCSession.mockResolvedValue({ success: false, status: 409, error: 'En revisión' })
 		const result = await launch()
-		expect(result).toEqual({ kind: 'request-error', status: 409, message: 'En revisión' })
+		expect(result).toEqual({ kind: 'request-error', status: 409, reason: undefined, message: 'En revisión' })
 		expect(startVerification).not.toHaveBeenCalled()
 		expect(markKycSessionStarted).not.toHaveBeenCalled()
+	})
+
+	test('propaga el reason que separa el 403 retenido del que no lo es', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: false, status: 403, reason: 'limit', error: 'Revisión manual' })
+		const result = await launch()
+		expect(result).toEqual({ kind: 'request-error', status: 403, reason: 'limit', message: 'Revisión manual' })
 	})
 
 	test('una excepción del SDK degrada a sdk-error, nunca revienta la pantalla', async () => {

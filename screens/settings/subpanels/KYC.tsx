@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Linking, AppState } from 'react-native'
+import { View, Text, StyleSheet, Linking, AppState, Pressable } from 'react-native'
 import { Trans, useTranslation } from 'react-i18next'
 
 // Theme
@@ -15,6 +15,12 @@ import { userApi } from '../../../api/userApi'
 
 // Flujo de verificación nativo (SDK embebido, con fallback a navegador)
 import useKycVerification from '../../../hooks/useKycVerification'
+
+// Derivación de la fase (pura, testeada aparte)
+import { deriveKycView, phaseForRequestError } from './kycPhase'
+
+// Nudge del Home: recordar si el caso está retenido
+import { markKycOnHold } from '../../../hooks/useKycPrompt'
 
 // Lottie
 import LottieView from 'lottie-react-native'
@@ -32,30 +38,47 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles } from '../../../theme/themeUtils'
+import type { KycView } from './kycPhase'
 
-/** Los cuatro estados de la pantalla + la carga inicial. */
-type KycScreenStatus = 'loading' | 'verified' | 'pending' | 'declined' | 'idle'
+// Mientras la verificación está en manos del proveedor o del equipo se re-consulta
+// cada 12s (mismo ritmo que el StepKyc de la web) — el webhook puede aprobar en
+// segundos si el flujo fue automático, y la revisión manual se resuelve a mano
+const WAITING_POLL_MS = 12000
 
-// Mientras la verificación está en revisión se re-consulta cada 12s (mismo
-// ritmo que el StepKyc de la web) — el webhook de Didit puede aprobar en
-// segundos si el flujo fue automático
-const PENDING_POLL_MS = 12000
+// Estado de la sesión en el proveedor → clave de traducción. Solo se pinta como
+// etiqueta secundaria en las pantallas de espera: NUNCA decide qué se muestra
+// (el backend lo calcula por precedencia sobre todas las sesiones del usuario,
+// así que puede venir de una vieja).
+const SESSION_STATUS_KEYS: Record<string, string> = {
+	'Not Started': 'settings.kyc.sessionStatus.notStarted',
+	'In Progress': 'settings.kyc.sessionStatus.inProgress',
+	'Awaiting User': 'settings.kyc.sessionStatus.awaitingUser',
+	'Submitted': 'settings.kyc.sessionStatus.submitted',
+	'Resubmitted': 'settings.kyc.sessionStatus.submitted',
+	'Processing': 'settings.kyc.sessionStatus.processing',
+	'In Review': 'settings.kyc.sessionStatus.inReview',
+	'Declined': 'settings.kyc.sessionStatus.declined',
+	'Approved': 'settings.kyc.sessionStatus.approved',
+}
 
 /**
- * Verificación de identidad (KYC vía Didit). Cuatro estados según
- * `GET /user/kyc` → `{ kyc, kyc_status: none|pending|approved|declined }`:
+ * Verificación de identidad (KYC vía Didit). La fase la decide el SERVIDOR, con
+ * `GET /user/kyc?detail=1` → `{ kyc, kyc_status, session_status, on_hold, can_retry }`,
+ * traducida por `deriveKycView`:
  *
- * - `verified`  — kyc true: Lottie de verificado.
- * - `pending`   — verificación en revisión: sin CTA, polling cada 12s.
- * - `declined`  — rechazada: caso de soporte, sin re-intento self-service
- *                 (el backend responde 403 a nuevas sesiones).
- * - `idle`      — sin verificar: beneficios + CTA que lanza el flujo NATIVO
- *                 de verificación (useKycVerification) sin salir de la app.
+ * - `verified`      — Lottie de verificado.
+ * - `review`        — documentos en manos del proveedor: sin CTA, polling cada 12s.
+ * - `manual_review` — retenido por el equipo (compliance o demasiados intentos):
+ *                     sin CTA, mailto a soporte, y polling por si aprueban a mano.
+ * - `idle`          — beneficios + CTA que lanza el flujo NATIVO de verificación
+ *                     (useKycVerification) sin salir de la app. Tras un rechazo
+ *                     ordinario se ofrece reintentar: el backend lo permite.
  *
- * El flujo nativo devuelve el resultado en línea (approved/pending/declined →
- * transición de estado inmediata). Solo en el fallback a navegador (backend
- * viejo sin session_token) sobrevive el re-check por AppState al volver, y los
- * códigos del POST se mapean: 409 → pending, 403 → declined, 400 → refresca.
+ * OJO con `kyc_status`: el backend lo pone en 'pending' al CREAR la sesión y no lo
+ * revierte nunca, así que NO significa "en revisión" (ver `kycPhase.ts`).
+ *
+ * El flujo nativo devuelve el resultado en línea. Solo en el fallback a navegador
+ * (sesión reutilizada, sin `session_token`) sobrevive el re-check por AppState.
  */
 const KYC = () => {
 
@@ -73,33 +96,49 @@ const KYC = () => {
 	// Flujo de verificación nativo
 	const { launchKyc, launching } = useKycVerification()
 
-	// States: 'loading' | 'verified' | 'pending' | 'declined' | 'idle'
-	const [status, setStatus] = useState<KycScreenStatus>('loading')
+	// null mientras carga el estado inicial
+	const [view, setView] = useState<KycView | null>(null)
+	// Se abrió una sesión en esta visita: habilita el re-check por AppState y el
+	// enlace de "generar uno nuevo" (la sesión pudo borrarse desde el proveedor)
+	const [sessionOpened, setSessionOpened] = useState(false)
 	const sessionOpenedRef = useRef(false)
+	// Último valor escrito del flag de retén: el polling corre cada 12s y no tiene
+	// sentido reescribir AsyncStorage con lo mismo una y otra vez
+	const onHoldRef = useRef<boolean | null>(null)
+
+	const syncOnHold = useCallback((onHold: boolean) => {
+		if (onHoldRef.current === onHold) return
+		onHoldRef.current = onHold
+		markKycOnHold(onHold)
+	}, [])
+
+	const openedSession = useCallback(() => {
+		sessionOpenedRef.current = true
+		setSessionOpened(true)
+	}, [])
 
 	const checkStatus = useCallback(async () => {
-		try {
-			const resp = await userApi.getKYCStatus()
-			if (resp.success && resp.data) {
-				if (resp.data.kyc) {
-					setStatus('verified')
-					// Refresca el flag local para que badges/gates reaccionen sin
-					// esperar al próximo /user/extended
-					if (!user?.kyc) updateUser({ kyc: true, kyc_status: 'approved' })
-				} else if (resp.data.kyc_status === 'pending') {
-					setStatus('pending')
-				} else if (resp.data.kyc_status === 'declined') {
-					setStatus('declined')
-				} else {
-					setStatus('idle')
-				}
-				return
-			}
-			setStatus(user?.kyc ? 'verified' : 'idle')
-		} catch {
-			setStatus(user?.kyc ? 'verified' : 'idle')
+		const resp = await userApi.getKYCStatus()
+
+		// Un fallo de red NO cambia de pantalla: antes cualquier tropiezo del polling
+		// mandaba a 'idle' y además mataba el intervalo. Con caché vacía se asume idle,
+		// que es la fase con salida.
+		if (!resp.success || !resp.data) {
+			setView(prev => prev ?? { phase: user?.kyc ? 'verified' : 'idle', retryable: false, sessionStatus: null })
+			return
 		}
-	}, [user?.kyc, updateUser])
+
+		const next = deriveKycView(resp.data)
+		setView(next)
+
+		// Refresca el flag local para que badges/gates reaccionen sin esperar al
+		// próximo /user/extended
+		if (resp.data.kyc && !user?.kyc) updateUser({ kyc: true, kyc_status: 'approved' })
+
+		// El banner del Home no debe nagear a quien está retenido, pero sí a quien
+		// puede reintentar tras un rechazo ordinario.
+		syncOnHold(next.phase === 'manual_review')
+	}, [user?.kyc, updateUser, syncOnHold])
 
 	// Estado inicial
 	useEffect(() => { checkStatus() }, [checkStatus])
@@ -114,49 +153,65 @@ const KYC = () => {
 		return () => sub.remove()
 	}, [checkStatus])
 
-	// Polling mientras está en revisión
+	// Polling mientras se espera a alguien: al proveedor o al equipo
 	useEffect(() => {
-		if (status !== 'pending') return
-		const poll = setInterval(checkStatus, PENDING_POLL_MS)
+		if (view?.phase !== 'review' && view?.phase !== 'manual_review') return
+		const poll = setInterval(checkStatus, WAITING_POLL_MS)
 		return () => clearInterval(poll)
-	}, [status, checkStatus])
+	}, [view?.phase, checkStatus])
 
-	// Lanza el flujo nativo y traduce su resultado al estado de la pantalla
-	const requestVerification = useCallback(async () => {
-		const resp = await launchKyc()
+	// Lanza el flujo nativo y traduce su resultado a la fase de la pantalla
+	const requestVerification = useCallback(async ({ refresh = false } = {}) => {
+		const resp = await launchKyc({ refresh })
 
 		if (resp.kind === 'native') {
 			if (resp.outcome === 'approved') {
-				setStatus('verified')
+				setView({ phase: 'verified', retryable: false, sessionStatus: 'Approved' })
 				toast.success(t('settings.kyc.toasts.approved'))
 			} else if (resp.outcome === 'pending') {
-				setStatus('pending')
+				setView({ phase: 'review', retryable: false, sessionStatus: 'Submitted' })
 				toast.info(t('settings.kyc.toasts.inReview'))
-			} else if (resp.outcome === 'declined') {
-				setStatus('declined')
+			} else if (resp.outcome === 'declined' || resp.outcome === 'unknown') {
+				// Un rechazo NO es terminal (el backend deja reintentar salvo retén) y un
+				// estado ilegible tampoco se inventa: en ambos casos manda el servidor.
+				checkStatus()
 			}
-			// cancelled: el usuario cerró el flujo, se queda en idle sin ruido
+			// cancelled: el usuario cerró el flujo, se queda como está sin ruido
 			return
 		}
 
 		if (resp.kind === 'browser') {
 			// Fallback a la URL hospedada: el resultado llega al volver (AppState)
-			sessionOpenedRef.current = true
+			openedSession()
 			return
 		}
 
 		if (resp.kind === 'request-error') {
-			// El backend codifica el estado en el status HTTP
-			if (resp.status === 409) {
-				setStatus('pending')
-				toast.info(t('settings.kyc.toasts.inReview'))
-			} else if (resp.status === 403) {
-				setStatus('declined')
-			} else if (resp.status === 400) {
-				checkStatus()
-			} else {
-				toast.error(t('settings.kyc.toasts.errorTitle'), { description: resp.message || t('settings.kyc.toasts.sessionFailed') })
+
+			// 400 = ya verificado: que lo confirme el servidor.
+			if (resp.status === 400) { checkStatus(); return }
+			// Transitorios: se avisa y la pantalla se queda donde está, con su botón.
+			if (resp.status === 429) { toast.info(t('settings.kyc.toasts.rateLimited')); return }
+			if (resp.status === 502) { toast.error(t('settings.kyc.toasts.errorTitle'), { description: t('settings.kyc.toasts.providerDown') }); return }
+
+			const phase = phaseForRequestError(resp.status, resp.reason)
+
+			if (phase === 'manual_review') {
+				setView(prev => ({ phase, retryable: false, sessionStatus: prev?.sessionStatus ?? null }))
+				syncOnHold(true)
+				return
 			}
+
+			if (phase === 'review') {
+				setView(prev => ({ phase, retryable: false, sessionStatus: prev?.sessionStatus ?? null }))
+				toast.info(t('settings.kyc.toasts.inReview'))
+				return
+			}
+
+			// Resto (incluido el 403 sin reason, que NO es un caso cerrado): error
+			// reintentable desde el propio botón. Sin toast esto sería un click que no
+			// hace nada visible.
+			toast.error(t('settings.kyc.toasts.errorTitle'), { description: resp.message || t('settings.kyc.toasts.sessionFailed') })
 			return
 		}
 
@@ -166,12 +221,19 @@ const KYC = () => {
 		} else {
 			toast.error(t('settings.kyc.toasts.errorTitle'), { description: resp.message || t('settings.kyc.toasts.genericError') })
 		}
-	}, [launchKyc, checkStatus, t])
+	}, [launchKyc, checkStatus, openedSession, syncOnHold, t])
 
-	if (status === 'loading') return <QPLoader />
+	if (!view) return <QPLoader />
+
+	const statusKey = view.sessionStatus ? SESSION_STATUS_KEYS[view.sessionStatus] : null
+	const sessionLabel = statusKey
+		? <Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 12 }]}>
+			{t('settings.kyc.sessionStatus.label', { status: t(statusKey) })}
+		</Text>
+		: null
 
 	// Verified state
-	if (status === 'verified') {
+	if (view.phase === 'verified') {
 		return (
 			<View style={containerStyles.subContainer}>
 				<View style={styles.center}>
@@ -184,45 +246,47 @@ const KYC = () => {
 		)
 	}
 
-	// En revisión (Didit procesando / revisión manual)
-	if (status === 'pending') {
+	// En revisión — documentos enviados, la pelota está en el proveedor
+	if (view.phase === 'review') {
 		return (
 			<View style={containerStyles.subContainer}>
 				<View style={styles.center}>
 					<LottieView source={require('../../../assets/lotties/looking.json')} autoPlay loop style={styles.lottie} />
-					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 10, textAlign: 'center' }]}>{t('settings.kyc.pending.title')}</Text>
+					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 10, textAlign: 'center' }]}>{t('settings.kyc.review.title')}</Text>
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>
-						{t('settings.kyc.pending.body')}
+						{t('settings.kyc.review.body')}
 					</Text>
+					{sessionLabel}
 				</View>
 			</View>
 		)
 	}
 
-	// Rechazada — caso de soporte, sin re-intento self-service
-	if (status === 'declined') {
+	// Revisión manual — el equipo retiene el caso; no hay nada self-service
+	if (view.phase === 'manual_review') {
 		return (
 			<View style={containerStyles.subContainer}>
 				<View style={styles.center}>
-					<View style={[styles.declinedIcon, { backgroundColor: theme.colors.danger + '18' }]}>
-						<FontAwesome6 name="shield-halved" size={40} color={theme.colors.danger} iconStyle="solid" />
+					<View style={[styles.declinedIcon, { backgroundColor: theme.colors.warning + '18' }]}>
+						<FontAwesome6 name="shield-halved" size={40} color={theme.colors.warning} iconStyle="solid" />
 					</View>
-					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 18, textAlign: 'center' }]}>{t('settings.kyc.declined.title')}</Text>
+					<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 18, textAlign: 'center' }]}>{t('settings.kyc.manualReview.title')}</Text>
 					{/* La frase vive en UNA clave; el email tocable entra como <0> vía Trans */}
 					<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6 }]}>
 						<Trans
-							i18nKey="settings.kyc.declined.body"
+							i18nKey="settings.kyc.manualReview.body"
 							components={[
 								<Text style={{ color: theme.colors.primary }} onPress={() => Linking.openURL('mailto:soporte@qvapay.com')} />,
 							]}
 						/>
 					</Text>
+					{sessionLabel}
 				</View>
 			</View>
 		)
 	}
 
-	// Not verified state
+	// Not verified state — con salida: siempre hay botón
 	return (
 		<View style={[containerStyles.subContainer, { justifyContent: 'space-between', paddingHorizontal: 20 }]}>
 
@@ -231,7 +295,7 @@ const KYC = () => {
 
 				<Text style={[textStyles.h1, { color: theme.colors.primaryText, marginTop: 10 }]}>{t('settings.kyc.idle.title')}</Text>
 				<Text style={[textStyles.h3, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 6, marginBottom: 24 }]}>
-					{t('settings.kyc.idle.body')}
+					{view.retryable ? t('settings.kyc.retry.body') : t('settings.kyc.idle.body')}
 				</Text>
 
 				<View style={[containerStyles.card, { width: '100%' }]}>
@@ -243,11 +307,22 @@ const KYC = () => {
 
 			<View style={containerStyles.bottomButtonContainer}>
 				<QPButton
-					title={launching ? t('settings.kyc.idle.opening') : t('settings.kyc.idle.verifyButton')}
-					onPress={requestVerification}
+					title={launching ? t('settings.kyc.idle.opening') : (view.retryable ? t('settings.kyc.retry.button') : t('settings.kyc.idle.verifyButton'))}
+					onPress={() => requestVerification()}
 					loading={launching}
 					textStyle={{ color: theme.colors.almostWhite }}
 				/>
+
+				{/* Salida para quien aterriza en el "no existe" del proveedor: la sesión pudo
+				    borrarse o reenviarse desde su panel, y refresh=1 salta la caché */}
+				{sessionOpened && (
+					<Pressable onPress={() => requestVerification({ refresh: true })} disabled={launching} style={{ paddingVertical: 12 }}>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
+							{t('settings.kyc.actions.newLinkHint')}{' '}
+							<Text style={{ color: theme.colors.primary }}>{t('settings.kyc.actions.newLink')}</Text>
+						</Text>
+					</Pressable>
+				)}
 			</View>
 
 		</View>
