@@ -114,8 +114,8 @@ const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }: Offe
 					<View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4, gap: 8 }}>
 						{offer.period && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{offer.period}</Text>}
 						{isPhonePackage && offer.external && <Text style={[textStyles.caption, { color: '#f59e0b' }]}>{t('store.topupStep1.subTypes.EXTERIOR')}</Text>}
-						{benefits.map((b, i) => (
-							<Text key={i} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{b}</Text>
+						{benefits.map((b) => (
+							<Text key={b} style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>{b}</Text>
 						))}
 					</View>
 				)}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigation } from "@react-navigation/native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -11,7 +11,6 @@ import { createContainerStyles, createTextStyles } from "../../theme/themeUtils"
 // UI Particles
 import P2POfferItem from "../../ui/P2POfferItem"
 import QPLoader from "../../ui/particles/QPLoader"
-import QPPressable from "../../ui/particles/QPPressable"
 
 // Icons
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
@@ -19,8 +18,8 @@ import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 // Lottie
 import LottieView from "lottie-react-native"
 
-// Reanimated — anima el swap card informativa ↔ card de trade y la burbuja del chat
-import Animated, { FadeIn, FadeInDown, FadeOutUp, ZoomIn } from "react-native-reanimated"
+// Reanimated — anima el swap card informativa ↔ card de trade
+import Animated, { FadeIn, FadeInDown, FadeOutUp } from "react-native-reanimated"
 
 // User context
 import { useAuth } from "../../auth/AuthContext"
@@ -34,12 +33,12 @@ import useP2PChat from "./useP2PChat"
 import useP2PChatSSE from "./useP2PChatSSE"
 import useP2POfferDetail from "./useP2POfferDetail"
 import P2POfferDetailsCard from "./P2POfferDetailsCard"
-import P2PChatSheet from "./P2PChatSheet"
+import P2POfferChatDock from "./P2POfferChatDock"
+import P2POfferConfirm from "./P2POfferConfirm"
 import P2PHeaderTimer from "./P2PHeaderTimer"
 import P2PPeerRow from "./P2PPeerRow"
 import P2PEditModal from "./P2PEditModal"
 import P2PApplyModal from "./P2PApplyModal"
-import P2PConfirmModal from "./P2PConfirmModal"
 import P2PTradeProgress from "./P2PTradeProgress"
 import P2PActionBar from "./P2PActionBar"
 
@@ -48,7 +47,6 @@ import type { RefreshControlProps } from "react-native"
 import type { NavigationProp } from "@react-navigation/native"
 import type { NativeStackScreenProps } from "@react-navigation/native-stack"
 import type { RootStackParamList } from "../../types/navigation"
-import type { P2PConfirmConfig } from "./P2PConfirmModal"
 
 /**
  * P2P offer detail + trade room — orchestrates the offer-detail hook, the chat hook
@@ -110,24 +108,6 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 
 	// Keyboard height tracking
 	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
-
-	// Chat como hoja aparte (patrón Binance/OKX): burbuja flotante + badge de no
-	// leídos. El baseline de "visto" se fija con el histórico inicial (la carga
-	// no cuenta como no leído); abrir la hoja marca todo como visto.
-	const [chatOpen, setChatOpen] = useState(false)
-	const [chatSeenCount, setChatSeenCount] = useState<number | null>(null)
-	const wasChatLoadingRef = useRef(false)
-	useEffect(() => {
-		if (chatSeenCount === null) {
-			if (wasChatLoadingRef.current && !chat.chatLoading) setChatSeenCount(chat.messages.length)
-			else if (chat.messages.length > 0) setChatSeenCount(chat.messages.length)
-		}
-		wasChatLoadingRef.current = chat.chatLoading
-	}, [chat.chatLoading, chat.messages.length, chatSeenCount])
-	useEffect(() => {
-		if (chatOpen) setChatSeenCount(chat.messages.length)
-	}, [chatOpen, chat.messages.length])
-	const chatUnread = chatSeenCount == null ? 0 : Math.max(0, chat.messages.length - chatSeenCount)
 
 	// Timer de la ventana de pago en el CENTRO del header (el título de la ruta
 	// va vacío): se setea UNA vez por ventana — P2PHeaderTimer se auto-tickea,
@@ -272,77 +252,22 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 				/>
 
 				{/* Trade-action confirmation (cancel / mark-paid / release) with explicit summary + warning */}
-				{confirmModal && (() => {
-					const counterpartyName = counterparty?.username ? `@${counterparty.username}` : t('p2p.offer.counterpartyFallback')
-					const railAmount = `${p2p?.receive} ${p2p?.Coin?.name || ""}`.trim()
-					const configs: Record<'cancel' | 'markPaid' | 'received', P2PConfirmConfig> = {
-						cancel: {
-							icon: "ban", iconColor: theme.colors.danger,
-							title: t('p2p.offer.confirm.cancel.title'),
-							body: t('p2p.offer.confirm.cancel.body'),
-							confirmLabel: t('p2p.offer.confirm.cancel.confirmLabel'), confirmBg: theme.colors.danger, confirmTextColor: theme.colors.almostWhite,
-							loading: loading.cancel,
-						},
-						markPaid: {
-							icon: "money-bill-wave", iconColor: theme.colors.primary,
-							title: t('p2p.offer.confirm.markPaid.title'),
-							body: t('p2p.offer.confirm.markPaid.body', { amount: railAmount, counterparty: counterpartyName }),
-							warning: t('p2p.offer.confirm.markPaid.warning'),
-							confirmLabel: t('p2p.offer.confirm.markPaid.confirmLabel'), confirmBg: theme.colors.successFill, confirmTextColor: theme.colors.successFillText,
-							loading: loading.markPaid,
-						},
-						received: {
-							icon: "lock-open", iconColor: theme.colors.warning,
-							title: t('p2p.offer.confirm.release.title'),
-							body: t('p2p.offer.confirm.release.body', { amount: p2p?.amount, counterparty: counterpartyName }),
-							warning: t('p2p.offer.confirm.release.warning', { amount: railAmount }),
-							confirmLabel: t('p2p.offer.confirm.release.confirmLabel'), confirmBg: theme.colors.primary, confirmTextColor: theme.colors.almostWhite,
-							loading: loading.received,
-						},
-					}
-					return (
-						<P2PConfirmModal
-							visible
-							onClose={closeConfirmModal}
-							onConfirm={confirmModalAction}
-							{...configs[confirmModal]}
-							theme={theme}
-							textStyles={textStyles}
-							containerStyles={containerStyles}
-						/>
-					)
-				})()}
+				<P2POfferConfirm
+					action={confirmModal}
+					onClose={closeConfirmModal}
+					onConfirm={confirmModalAction}
+					p2p={p2p}
+					counterparty={counterparty}
+					loading={loading}
+					theme={theme}
+					textStyles={textStyles}
+					containerStyles={containerStyles}
+				/>
 
-				{/* Burbuja flotante del chat — entra al arrancar el trade, badge de no leídos */}
-				{p2p && status !== "open" && (
-					<Animated.View entering={ZoomIn.delay(150).duration(220)} style={{ position: "absolute", right: 0, bottom: insets.bottom + 88 }}>
-						<QPPressable
-							onPress={() => setChatOpen(true)}
-							style={{
-								width: 56, height: 56, borderRadius: 16, borderCurve: "continuous",
-								backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center",
-								shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 6,
-							}}
-						>
-							<FontAwesome6 name="comment-dots" size={22} color={theme.colors.almostWhite} iconStyle="solid" />
-							{chatUnread > 0 && (
-								<View style={{
-									position: "absolute", top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10,
-									paddingHorizontal: 5, backgroundColor: theme.colors.danger, alignItems: "center", justifyContent: "center",
-								}}>
-									<Text style={[textStyles.h7, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.xs }]}>
-										{chatUnread > 9 ? "9+" : chatUnread}
-									</Text>
-								</View>
-							)}
-						</QPPressable>
-					</Animated.View>
-				)}
-
-				{/* Chat en hoja propia (pageSheet iOS / modal Android) */}
-				<P2PChatSheet
-					visible={chatOpen}
-					onClose={() => setChatOpen(false)}
+				{/* Burbuja flotante del chat + hoja del chat (badge de no leídos incluido) */}
+				<P2POfferChatDock
+					enabled={!!p2p && status !== "open"}
+					chat={chat}
 					keyboardHeight={keyboardHeight}
 					insets={insets}
 					theme={theme}

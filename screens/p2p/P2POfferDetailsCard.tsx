@@ -59,12 +59,12 @@ const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerS
 							<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>{t('p2p.details.paymentData')}</Text>
 						</View>
 						<View style={{ gap: 8 }}>
-							{details.map((d, idx) => {
+							{details.map((d) => {
 								const fullValue = d.value || d.val || ""
 								const fieldName = d.name || d.key
 								const isWallet = fieldName === "Wallet" || d.key === "Wallet"
 								return (
-									<View key={idx} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 24 }}>
+									<View key={fieldName || fullValue} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 24 }}>
 										<View style={{ width: 22, alignItems: 'center', marginRight: 6 }}>
 											<FontAwesome6 name={getDetailIcon(fieldName)} size={14} color={theme.colors.secondaryText} iconStyle="solid" />
 										</View>

@@ -181,8 +181,8 @@ const WelcomeKinetic = ({ onSecretLongPress, actions }: WelcomeKineticProps) => 
 
 			{/* Marquesinas diagonales de fondo */}
 			<View style={[styles.marqueeField, { width: width * 1.6, left: -width * 0.3 }]} pointerEvents="none">
-				{columns.map((column, i) => (
-					<View key={i} style={styles.marqueeColumn}>
+				{columns.map((column) => (
+					<View key={column.duration} style={styles.marqueeColumn}>
 						<MarqueeColumn {...column} theme={theme} frozen={reducedMotion} />
 					</View>
 				))}

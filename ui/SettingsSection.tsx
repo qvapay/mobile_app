@@ -63,7 +63,7 @@ const SettingsSection = ({ title, items, navigation }: SettingsSectionProps) => 
 		<View style={styles.section}>
 			<Text style={[textStyles.h7, styles.heading, { color: theme.colors.secondaryText }]}>{title}</Text>
 			{enabledItems.map((item, index) => (
-				<View key={item.screen || index}>
+				<View key={item.screen || item.title}>
 					{index > 0 && (
 						<View style={{ backgroundColor: theme.colors.elevation }}>
 							<View style={[styles.separator, { backgroundColor: theme.colors.border }]} />

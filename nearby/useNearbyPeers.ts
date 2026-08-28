@@ -96,12 +96,20 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }: UseNearbyPe
 	const userRef = useRef(user)
 	const enabledRef = useRef(enabled)
 
-	peersStateRef.current = peersState
-	chargeModeRef.current = chargeMode
-	callbacksRef.current = { onPaymentReceived }
-	soundsRef.current = sounds
-	userRef.current = user
-	enabledRef.current = enabled
+	// Espejo de los valores frescos para los callbacks de identidad estable. Va
+	// en un EFECTO y no en el cuerpo del render: React puede descartar o repetir
+	// un render, y escribir el ref desde uno que nunca llega a commit dejaría el
+	// ref con un valor que la UI jamás mostró.
+	// Declarado ANTES que el resto de efectos del hook, así que los que leen
+	// estos refs (AppState, foco, transportes) siguen viendo el valor del commit.
+	useEffect(() => {
+		peersStateRef.current = peersState
+		chargeModeRef.current = chargeMode
+		callbacksRef.current = { onPaymentReceived }
+		soundsRef.current = sounds
+		userRef.current = user
+		enabledRef.current = enabled
+	})
 
 	/** Resolves an announced uuid against the server (cached per session). */
 	const resolvePeer = useCallback(async (uuid: string) => {

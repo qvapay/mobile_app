@@ -263,9 +263,9 @@ const Home = ({ navigation }: HomeProps) => {
 									<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>{t('home.quickPay.sendFirst')}</Text>
 								)}
 							</Pressable>
-							{latestSentTransfersUsers.map((transferUser, index) => (
-								<Pressable key={index} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: transferUser.uuid, send_amount: '0.00' })}>
-									<QPAvatar key={index} user={transferUser} size={56} isOnline={isUserOnline(transferUser.uuid)} />
+							{latestSentTransfersUsers.map((transferUser) => (
+								<Pressable key={transferUser.uuid} onPress={() => navigation.navigate(ROUTES.SEND, { user_uuid: transferUser.uuid, send_amount: '0.00' })}>
+									<QPAvatar user={transferUser} size={56} isOnline={isUserOnline(transferUser.uuid)} />
 								</Pressable>
 							))}
 						</View>

@@ -18,15 +18,18 @@ const SANCTIONED_ISO2 = new Set(['AF', 'BY', 'IQ', 'IR', 'KP', 'LY', 'MM', 'SD',
 
 // Lista de países elegibles para constitución de empresa: el dataset de la app
 // (labels/countries) deduplicado por código ISO-2 y sin jurisdicciones sancionadas
-const seenCodes = new Set()
-export const COMPANY_COUNTRIES = countries
-	.filter((c) => {
-		if (SANCTIONED_ISO2.has(c.code) || seenCodes.has(c.code)) { return false }
-		seenCodes.add(c.code)
-		return true
-	})
-	.map(({ name, code }) => ({ name, code }))
-	.sort((a, b) => a.name.localeCompare(b.name))
+// (una sola pasada; el Set de deduplicación muere con la IIFE en vez de
+// quedarse vivo a nivel de módulo)
+export const COMPANY_COUNTRIES: { name: string, code: string }[] = (() => {
+	const seenCodes = new Set<string>()
+	const eligible: { name: string, code: string }[] = []
+	for (const { name, code } of countries) {
+		if (SANCTIONED_ISO2.has(code) || seenCodes.has(code)) { continue }
+		seenCodes.add(code)
+		eligible.push({ name, code })
+	}
+	return eligible.sort((a, b) => a.name.localeCompare(b.name))
+})()
 
 // Rangos de empleados — los values viajan tal cual al endpoint (mismos que el wizard web)
 export const EMPLOYEE_RANGES = [

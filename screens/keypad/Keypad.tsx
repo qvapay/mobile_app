@@ -181,14 +181,14 @@ export default function Keypad({ navigation }: KeypadProps) {
 	}, [amount, navigation])
 
 	// Render individual key
-	const renderKey = useCallback((key: string, index: number) => {
+	const renderKey = useCallback((key: string) => {
 
 		const isBackspace = key === 'backspace'
 		const accessibilityLabel = isBackspace ? t('keypad.a11y.deleteKeyLabel') : t('keypad.a11y.numberKeyLabel', { digit: key })
 
 		return (
 			<Pressable
-				key={index}
+				key={key}
 				style={({ pressed }) => [styles.keyButton, pressed && styles.keyButtonPressed, !theme.isDark ? { borderColor: theme.colors.primary, borderWidth: 0.3 } : {}]}
 				onPress={() => handleKeyPress(key)}
 				accessibilityRole="button"
@@ -244,7 +244,7 @@ export default function Keypad({ navigation }: KeypadProps) {
 			<View style={styles.keypadSection}>
 				{keys.map((row, rowIndex) => (
 					<View key={rowIndex} style={styles.keypadRow}>
-						{row.map((key, keyIndex) => renderKey(key, keyIndex))}
+						{row.map((key) => renderKey(key))}
 					</View>
 				))}
 			</View>

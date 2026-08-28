@@ -208,8 +208,8 @@ const Send = ({ navigation, route }: Props) => {
 								<QPPressable style={{ backgroundColor: theme.colors.elevation, height: 56, width: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }} onPress={() => setIsSearchModalVisible(true)}>
 									<FontAwesome6 name="magnifying-glass" size={24} color={theme.colors.primary} iconStyle="solid" />
 								</QPPressable>
-								{carouselUsers.map((carouselUser, index) => (
-									<Pressable key={carouselUser.uuid || index} onPress={() => setIncomingUserUuid(carouselUser.uuid)}>
+								{carouselUsers.map((carouselUser) => (
+									<Pressable key={carouselUser.uuid} onPress={() => setIncomingUserUuid(carouselUser.uuid)}>
 										<QPAvatar user={carouselUser} size={56} isOnline={isUserOnline(carouselUser.uuid)} />
 									</Pressable>
 								))}

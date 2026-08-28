@@ -66,8 +66,8 @@ const SavedMethodsModal = ({ visible, onClose, loading, methods, onSelect, theme
 										<Text style={textStyles.h4}>{name}</Text>
 										{methodDetails.length > 0 && (
 											<View style={{ marginTop: 6, gap: 4 }}>
-												{methodDetails.slice(0, 4).map((d, idx) => (
-													<View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+												{methodDetails.slice(0, 4).map((d) => (
+													<View key={d.name || d.key} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 														<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
 														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
 													</View>

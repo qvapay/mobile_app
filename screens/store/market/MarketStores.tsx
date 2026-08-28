@@ -101,11 +101,15 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 	}, [search])
 
 	// Chips solo de categorías realmente presentes (como la web)
-	const presentCategories = useMemo(
-		// El filtro descarta los vacíos; el cast recupera `string[]` tras el predicado laxo
-		() => [...new Set(stores.map(s => s.category).filter(c => c && MARKET_CATEGORIES[c]))] as string[],
-		[stores],
-	)
+	const presentCategories = useMemo(() => {
+		// Una pasada sobre las tiendas alimentando el Set directamente: el
+		// estrechamiento dentro del if da `string[]` sin cast
+		const present = new Set<string>()
+		for (const s of stores) {
+			if (s.category && MARKET_CATEGORIES[s.category]) { present.add(s.category) }
+		}
+		return [...present]
+	}, [stores])
 
 	const filteredStores = useMemo(() => {
 		const q = search.trim().toLowerCase()

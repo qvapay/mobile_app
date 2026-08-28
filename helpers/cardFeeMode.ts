@@ -18,8 +18,6 @@ import type { Coin, Decimal, User } from '../types/domain'
 /** Modo de fee del depósito CARD. */
 export type CardFeeMode = 'on_top' | 'included'
 
-export const FEE_MODES: CardFeeMode[] = ['on_top', 'included']
-
 /** Redondeo a 2 decimales idéntico al del backend (Number(x.toFixed(2))). */
 export function round2(n: number | string): number { return Number(Number(n).toFixed(2)) }
 

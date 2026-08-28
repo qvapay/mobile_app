@@ -210,7 +210,13 @@ const MarketStore = ({ navigation, route }: NativeStackScreenProps<RootStackPara
 			: null,
 		store.sales_count ? t('market.store.sales', { count: store.sales_count }) : null,
 	].filter(Boolean).join(' · ')
-	const socials = Object.entries(store.socials || {}).map(([network, value]) => ({ network, href: socialHref(network, value) })).filter(s => s.href) as { network: string, href: string }[]
+	// Una pasada: se resuelve el href y solo se conservan las redes con enlace
+	// válido (el tipo sale del push, sin cast)
+	const socials: { network: string, href: string }[] = []
+	for (const [network, value] of Object.entries(store.socials || {})) {
+		const href = socialHref(network, value)
+		if (href) { socials.push({ network, href }) }
+	}
 	const hasMore = catalogTotal != null && products.length < catalogTotal
 
 	const renderProduct = ({ item }: { item: MarketProductDetail }) => (

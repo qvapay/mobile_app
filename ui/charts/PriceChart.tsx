@@ -29,10 +29,18 @@ export const formatAxisPrice = (value: unknown) => {
 }
 
 // Normaliza el historial del backend ({ time, value }) a números
-export const toChartPoints = (data?: RawPricePoint[] | null): ChartPricePoint[] =>
-	(data || [])
-		.map((point) => ({ time: Number(point.time), value: Number(point.value) }))
-		.filter((point) => Number.isFinite(point.time) && Number.isFinite(point.value))
+export const toChartPoints = (data?: RawPricePoint[] | null): ChartPricePoint[] => {
+	// Una sola pasada sobre el histórico (puede traer cientos/miles de puntos y
+	// se re-normaliza en cada cambio de timeframe): se convierte y se descarta
+	// el punto no finito en el mismo paso, sin array intermedio
+	const points: ChartPricePoint[] = []
+	for (const raw of data || []) {
+		const time = Number(raw.time)
+		const value = Number(raw.value)
+		if (Number.isFinite(time) && Number.isFinite(value)) { points.push({ time, value }) }
+	}
+	return points
+}
 
 type LiveDotProps = {
 	x: number

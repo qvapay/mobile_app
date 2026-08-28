@@ -21,11 +21,6 @@ export const PROTOCOL_VERSION = 1
 /** Multipeer serviceType: 1-15 chars, [a-z0-9-] only. */
 export const SERVICE_TYPE = 'qvapay-nearby'
 
-/** Phase 2 — QvaPay's own 128-bit GATT service/characteristic UUIDs. */
-export const BLE_SERVICE_UUID = '0000f0a1-9d3a-4f2e-b1c7-4a1e6b2c8d5f'
-export const BLE_CHAR_ANNOUNCE_UUID = '0000f0a2-9d3a-4f2e-b1c7-4a1e6b2c8d5f'
-export const BLE_CHAR_INBOX_UUID = '0000f0a3-9d3a-4f2e-b1c7-4a1e6b2c8d5f'
-
 /** A peer with no fresh announce for this long is swept from the radar. */
 export const ANNOUNCE_TTL_MS = 15000
 

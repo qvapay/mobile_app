@@ -141,19 +141,19 @@ const Transactions = ({ navigation, route }: Props) => {
 
 	// Toggle search
 	const toggleSearch = useCallback(() => {
-		setShowSearch(prev => {
-			if (prev && searchText) {
-				// Closing search — clear search text and drop the search filter
-				setSearchText('')
-				setFilters(current => {
-					const next = { ...current }
-					delete next.search
-					return next
-				})
-			}
-			return !prev
-		})
-	}, [searchText])
+		// Los otros setters van FUERA del updater: React puede invocarlo más de
+		// una vez, y un updater debe limitarse a calcular el siguiente estado
+		if (showSearch && searchText) {
+			// Closing search — clear search text and drop the search filter
+			setSearchText('')
+			setFilters(current => {
+				const next = { ...current }
+				delete next.search
+				return next
+			})
+		}
+		setShowSearch(prev => !prev)
+	}, [showSearch, searchText])
 
 	// Header buttons (search + filter)
 	useLayoutEffect(() => {

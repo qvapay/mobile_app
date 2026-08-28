@@ -159,7 +159,7 @@ const Telegram = () => {
                                 { icon: 'shield-halved', text: t('settings.telegram.linked.item2') },
                                 { icon: 'handshake', text: t('settings.telegram.linked.item3') },
                             ] as IconItem[]).map((item, index) => (
-                                <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < 2 ? 10 : 0 }}>
+                                <View key={item.text} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < 2 ? 10 : 0 }}>
                                     <FontAwesome6 name={item.icon} size={14} color={theme.colors.successText} iconStyle="solid" />
                                     <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
                                         {item.text}
@@ -178,7 +178,7 @@ const Telegram = () => {
                                 { icon: 'bell', text: t('settings.telegram.unlinked.item2') },
                                 { icon: 'handshake', text: t('settings.telegram.unlinked.item3') },
                             ] as IconItem[]).map((item, index) => (
-                                <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < 2 ? 10 : 0 }}>
+                                <View key={item.text} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < 2 ? 10 : 0 }}>
                                     <FontAwesome6 name={item.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
                                     <Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
                                         {item.text}

@@ -30,8 +30,14 @@ export const useContactsQuery = () => useQuery({
 		// formas que ha devuelto el endpoint: lista directa o { contacts: [...] }
 		const data = unwrap(await userApi.getContacts()) as ContactRow[] | { contacts?: ContactRow[] } | null
 		const list = Array.isArray(data) ? data : (data?.contacts || [])
-		// El filter garantiza uuid + image presentes — el cast solo lo hace visible al tipo
-		return list.map((c): Partial<SendCarouselUser> => c?.Contact || {}).filter(u => u.uuid && u.image) as SendCarouselUser[]
+		// Una pasada: desanida el Contact y descarta en el acto los que no tienen
+		// uuid + image — el estrechamiento del if sustituye al cast
+		const users: SendCarouselUser[] = []
+		for (const row of list) {
+			const contact = row?.Contact
+			if (contact?.uuid && contact.image) { users.push(contact) }
+		}
+		return users
 	},
 	placeholderData: previous => previous,
 })

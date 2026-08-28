@@ -1,13 +1,9 @@
-import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import FastImage from '@d11/react-native-fast-image'
-
-// Toast
-import { toast } from 'sonner-native'
 
 // Contexts
 import { useAuth } from '../../../auth/AuthContext'
@@ -17,25 +13,18 @@ import { createContainerStyles, createTextStyles } from '../../../theme/themeUti
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import AddressPicker, { formatAddress } from '../../../ui/store/AddressPicker'
-import NewAddressForm, { EMPTY_US_ADDRESS, validateUsAddress, buildAddressBody } from '../../../ui/store/NewAddressForm'
+import NewAddressForm, { EMPTY_US_ADDRESS, validateUsAddress } from '../../../ui/store/NewAddressForm'
+import MarketCartShopGroup from './MarketCartShopGroup'
 
 // Routes & API
 import { ROUTES } from '../../../routes'
 import { marketApi } from '../../../api/marketApi'
 import { shopApi } from '../../../api/shopApi'
-import { userApi } from '../../../api/userApi'
-import { mediaUrl } from '../../../helpers/mediaUrl'
 
 // Cart core
 import useMarketCart from './useMarketCart'
-import {
-	PROBLEM_LABELS,
-	enrichCartItems,
-	groupByShop,
-	mapOrderError,
-	isAbortingOrderError,
-	makeIdemKey,
-} from './marketCheckout'
+import useCartCheckout from './useCartCheckout'
+import { enrichCartItems, groupByShop } from './marketCheckout'
 
 import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles } from '../../../theme/themeUtils'
@@ -43,8 +32,6 @@ import type { RootStackParamList } from '../../../types/navigation'
 import type { ShippingAddress } from '../../../ui/store/AddressPicker'
 import type { UsAddressForm } from '../../../ui/store/NewAddressForm'
 import type { CartLineStatus, FreshProduct } from './marketCheckout'
-import type { MarketOrderInput } from '../../../api/marketApi'
-import type { ApiFailure, ApiSuccess } from '../../../types/api'
 
 // OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
 // pre-existente que se preserva tal cual; el alias es solo de tipos.
@@ -59,9 +46,6 @@ type ShippingAction =
 	| { type: 'useNew' }
 	| { type: 'setForm', value: UsAddressForm | ((prev: UsAddressForm) => UsAddressForm) }
 
-// `setTimeout` está tipado como `() => void`; el `resolve` de la promesa recibe
-// un valor. Cast de tipos, el temporizador se arma igual.
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve as () => void, ms))
 const money = (v: number | string | null | undefined) => `$${Number(v || 0).toFixed(2)}`
 
 function shippingReducer(state: ShippingState, action: ShippingAction): ShippingState {
@@ -128,7 +112,7 @@ const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, on
 const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'MarketCart'>) => {
 
 	const { t } = useTranslation()
-	const { user, updateUser } = useAuth()
+	const { user } = useAuth()
 	const { theme } = useTheme()
 	const containerStyles = createContainerStyles(theme)
 	const textStyles = createTextStyles(theme)
@@ -139,25 +123,15 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 	// null = revalidando (o sin red); mapa uuid → producto fresco al resolver
 	const [freshMap, setFreshMap] = useState<Record<string, FreshProduct> | null>(null)
 	const [offline, setOffline] = useState(false)
-	const [paying, setPaying] = useState(false)
 	const [confirmVisible, setConfirmVisible] = useState(false)
-	// key → 'paying' | 'done' | { error }
+	// key → 'paying' | 'done' | { error }. Vive aquí porque `enrichCartItems` lo lee.
 	const [statuses, setStatuses] = useState<Record<string, CartLineStatus>>({})
-	const [succeededCount, setSucceededCount] = useState(0)
 
 	const [addresses, setAddresses] = useState<ShippingAddress[]>([])
 	const [shipping, dispatchShipping] = useReducer(shippingReducer, { selectedUuid: null, useNewAddress: false, form: EMPTY_US_ADDRESS })
 	const { selectedUuid, useNewAddress, form } = shipping
 	const selectedSaved = selectedUuid ? addresses.find(a => a.uuid === selectedUuid) : null
 	const selectedAddress = useNewAddress ? form : selectedSaved
-
-	// Una clave de idempotencia por línea y por montaje: un reintento (incluso
-	// tras un timeout) reutiliza la misma clave y el backend no duplica la orden.
-	const idemRef = useRef<Record<string, string>>({})
-	const idemKeyFor = (key: string) => {
-		if (!idemRef.current[key]) idemRef.current[key] = makeIdemKey()
-		return idemRef.current[key]
-	}
 
 	// Revalidación batch al montar, al volver al foco y cuando cambia el set.
 	// En fallo de red NO se marca nada como 'gone': banner + pago bloqueado.
@@ -228,88 +202,17 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 	const enoughBalance = balance >= total
 	const revalidating = freshMap === null && !offline && items.length > 0
 
+	// Checkout: una orden por línea, secuencial e idempotente
+	const { paying, succeededCount, payAll } = useCartCheckout({
+		payable, anyPhysical, useNewAddress, selectedUuid, form, navigation, setStatuses,
+		remove, revalidate,
+		onAddressCreated: (address) => {
+			setAddresses(prev => [...prev, address])
+			dispatchShipping({ type: 'selectExisting', value: address.uuid })
+		},
+	})
+
 	const canPay = !paying && !revalidating && !offline && payable.length > 0 && enoughBalance && addressReady && !anyShipBlocked
-
-	const payAll = async () => {
-		setConfirmVisible(false)
-		setPaying(true)
-
-		// Dirección nueva: se crea UNA vez y todas las órdenes físicas la reusan
-		// (mandar new_address por orden duplicaría la dirección en cada compra)
-		let addressUuid = !useNewAddress ? selectedUuid : null
-		if (anyPhysical && !addressUuid && useNewAddress) {
-			// `buildAddressBody` normaliza phone/line2 a `null` y añade `country`, y el
-			// input de shopApi los declara `string?` sin `country`: incompatibilidad
-			// REAL entre módulos ya migrados — se castea aquí, el body viaja intacto
-			const res = await shopApi.createShippingAddress(buildAddressBody(form) as unknown as Parameters<typeof shopApi.createShippingAddress>[0])
-			// `shopApi.createShippingAddress` devuelve `unknown`: solo se lee `address`
-			const createdUuid = res.success ? (res.data as { address?: ShippingAddress } | undefined)?.address?.uuid : null
-			if (!createdUuid) {
-						toast.error(t('market.cart.toasts.addressErrorTitle'), { description: (res as ApiFailure).error || t('market.cart.toasts.addressSaveFailed') })
-				setPaying(false)
-				return
-			}
-			addressUuid = createdUuid
-			setAddresses(prev => [...prev, (res as ApiSuccess<{ address: ShippingAddress }>).data!.address])
-			dispatchShipping({ type: 'selectExisting', value: createdUuid })
-		}
-
-		let succeeded = 0
-		let failed = 0
-		let aborted = false
-		// Secuencial a propósito: cada orden abre una transacción Serializable que
-		// puede escribir la fila del usuario de fees — en paralelo se pisan
-		for (const entry of payable) {
-			if (aborted) break
-			setStatuses(s => ({ ...s, [entry.key]: 'paying' }))
-			const payload: MarketOrderInput = {
-				product_uuid: entry.item.product_uuid,
-				quantity: entry.qty,
-				idempotency_key: idemKeyFor(entry.key),
-			}
-			if (entry.item.variant_uuid) payload.variant_uuid = entry.item.variant_uuid
-			if (entry.isPhysical && addressUuid) payload.shipping_address_id = addressUuid
-
-			let outcome: { ok: true } | { ok: false, error: string, raw?: string } | null = null
-			for (let attempt = 0; attempt < 4; attempt++) {
-				const res = await marketApi.createOrder(payload)
-				if (res.status === 429) { await sleep(5000); continue }
-				outcome = res.success ? { ok: true } : { ok: false, error: mapOrderError(res.status, res.error), raw: res.error }
-				break
-			}
-			if (!outcome) outcome = { ok: false, error: t('market.checkout.errors.busy') }
-
-			if (outcome.ok) {
-				succeeded++
-				setStatuses(s => ({ ...s, [entry.key]: 'done' }))
-				remove(entry.key)
-			} else {
-				failed++
-				setStatuses(s => ({ ...s, [entry.key]: { error: outcome.error } }))
-				// Sin saldo, las líneas restantes fallarían igual: quedan intactas
-				if (isAbortingOrderError(outcome.raw)) aborted = true
-			}
-		}
-
-		setPaying(false)
-		setSucceededCount(n => n + succeeded)
-
-		// Refrescar el balance local tras el gasto
-		if (succeeded > 0) {
-			const profile = await userApi.getUserProfile()
-			if (profile.success && profile.data) updateUser(profile.data)
-		}
-
-		if (failed === 0 && succeeded > 0) {
-			toast.success(t('market.cart.toasts.confirmed', { count: succeeded }))
-			navigation.replace(ROUTES.MARKET_ORDERS)
-		} else if (succeeded > 0) {
-			toast.warning(t('market.cart.toasts.partial', { count: succeeded, failed }))
-			await revalidate()
-		} else if (failed > 0) {
-			toast.error(t('market.cart.toasts.allFailed'))
-		}
-	}
 
 	// ── Vacío ──
 	if (items.length === 0) {
@@ -363,91 +266,17 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 				{/* Grupos por tienda */}
 				<View style={{ gap: 14 }}>
 					{byShop.map(group => (
-						<View
+						<MarketCartShopGroup
 							key={group.name}
-							style={[styles.shopCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
-						>
-							<Pressable
-								disabled={!group.slug}
-								onPress={() => navigation.navigate(ROUTES.MARKET_STORE, { slug: group.slug as string })}
-								style={styles.shopHeader}
-							>
-								<Text style={[textStyles.h6, { fontWeight: '600' }]} numberOfLines={1}>{group.name}</Text>
-								{!!group.slug && <Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>{t('market.cart.viewStore')}</Text>}
-							</Pressable>
-
-							{group.entries.map(e => {
-								const image = mediaUrl(e.variant?.image || e.fresh?.main_image || e.item.image)
-								const title = e.fresh?.title || e.item.title
-								const errored = typeof e.status === 'object' && e.status?.error
-								return (
-									<View key={e.key} style={[styles.itemRow, e.problem && { opacity: 0.6 }]}>
-										<View style={[styles.itemImage, { backgroundColor: theme.colors.elevationLight }]}>
-											{image && (
-												<FastImage source={{ uri: image }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />
-											)}
-										</View>
-										<View style={{ flex: 1 }}>
-											<Pressable onPress={() => navigation.navigate(ROUTES.MARKET_PRODUCT, { uuid: e.item.product_uuid })}>
-												<Text style={[textStyles.h6, { fontWeight: '500' }]} numberOfLines={1}>{title}</Text>
-											</Pressable>
-											{!!e.item.variant_label && (
-												<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 1 }]} numberOfLines={1}>
-													{e.item.variant_label}
-												</Text>
-											)}
-
-											{e.problem ? (
-												<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 3, fontWeight: '500' }]}>
-													{t(PROBLEM_LABELS[e.problem])}
-												</Text>
-											) : (
-												<View style={styles.qtyRow}>
-													<Pressable
-														disabled={paying || e.qty <= 1}
-														onPress={() => setQty(e.key, e.qty - 1)}
-														style={[styles.qtyBtn, { backgroundColor: theme.colors.elevationLight }, e.qty <= 1 && { opacity: 0.4 }]}
-													>
-														<FontAwesome6 name="minus" size={10} color={theme.colors.primaryText} iconStyle="solid" />
-													</Pressable>
-													<Text style={[textStyles.h6, styles.qtyValue]}>{e.qty}</Text>
-													<Pressable
-														disabled={paying || e.qty >= e.maxQty}
-														onPress={() => setQty(e.key, e.qty + 1)}
-														style={[styles.qtyBtn, { backgroundColor: theme.colors.elevationLight }, e.qty >= e.maxQty && { opacity: 0.4 }]}
-													>
-														<FontAwesome6 name="plus" size={10} color={theme.colors.primaryText} iconStyle="solid" />
-													</Pressable>
-													{!!e.fresh?.track_inventory && e.maxQty < 999 && (
-														<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginLeft: 8 }]}>{t('market.cart.stockLeft', { qty: e.maxQty })}</Text>
-													)}
-												</View>
-											)}
-
-											{e.shipBlocked && (
-												<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 3, fontWeight: '500' }]}>
-													{t('market.cart.itemShipBlocked')}
-												</Text>
-											)}
-											{!!errored && (
-												<Text style={[textStyles.caption, { color: theme.colors.danger, marginTop: 3, fontWeight: '500' }]}>
-													{(e.status as { error: string }).error}
-												</Text>
-											)}
-											{e.status === 'paying' && (
-												<Text style={[textStyles.caption, { color: theme.colors.primary, marginTop: 3, fontWeight: '500' }]}>{t('market.cart.processing')}</Text>
-											)}
-										</View>
-										<View style={styles.itemRight}>
-											<Text style={[textStyles.h6, { fontWeight: '600' }]}>{money(e.unitPrice * e.qty)}</Text>
-											<Pressable disabled={paying} onPress={() => remove(e.key)} hitSlop={8}>
-												<FontAwesome6 name="trash-can" size={13} color={theme.colors.tertiaryText} iconStyle="solid" />
-											</Pressable>
-										</View>
-									</View>
-								)
-							})}
-						</View>
+							group={group}
+							paying={paying}
+							onSetQty={setQty}
+							onRemove={remove}
+							navigation={navigation}
+							money={money}
+							theme={theme}
+							textStyles={textStyles}
+						/>
 					))}
 				</View>
 
@@ -530,7 +359,7 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 				total={total}
 				count={payable.length}
 				addressSummary={addressSummary}
-				onPay={payAll}
+				onPay={() => { setConfirmVisible(false); payAll() }}
 				onClose={() => setConfirmVisible(false)}
 				theme={theme}
 				textStyles={textStyles}
@@ -544,50 +373,6 @@ const styles = StyleSheet.create({
 		padding: 12,
 		borderRadius: 12,
 		marginBottom: 12,
-	},
-	shopCard: {
-		borderRadius: 14,
-		paddingHorizontal: 12,
-		paddingBottom: 4,
-	},
-	shopHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingVertical: 10,
-	},
-	itemRow: {
-		flexDirection: 'row',
-		gap: 10,
-		paddingVertical: 10,
-	},
-	itemImage: {
-		width: 56,
-		height: 56,
-		borderRadius: 10,
-		overflow: 'hidden',
-	},
-	itemRight: {
-		alignItems: 'flex-end',
-		justifyContent: 'space-between',
-		paddingBottom: 2,
-	},
-	qtyRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 6,
-	},
-	qtyBtn: {
-		width: 26,
-		height: 26,
-		borderRadius: 8,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	qtyValue: {
-		minWidth: 30,
-		textAlign: 'center',
-		fontWeight: '600',
 	},
 	summaryCard: {
 		padding: 14,

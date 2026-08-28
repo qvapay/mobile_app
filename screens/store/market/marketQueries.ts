@@ -62,9 +62,6 @@ export type MarketOrder = {
 /** Página de `GET /market/orders` tal y como la normaliza la query infinita. */
 export type OrdersPage = { orders: MarketOrder[], total: number | null }
 
-/** Raíz de las claves del marketplace (Seller Shops). */
-export const MARKET_QUERY_KEY = ['market']
-
 export const ORDERS_PAGE_SIZE = 20
 
 /**

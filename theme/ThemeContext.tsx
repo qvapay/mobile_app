@@ -289,8 +289,10 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
 	}, [themeMode, fontSizeKey, accentKey, accentAllowed])
 
 	// Keep a ref to updateSettings so the memoized context value never uses a stale closure
+	// (la escritura va en un efecto: el cuerpo del render debe ser puro y sus
+	// únicos lectores son handlers de evento, siempre posteriores al commit)
 	const updateSettingsRef = useRef(updateSettings)
-	updateSettingsRef.current = updateSettings
+	useEffect(() => { updateSettingsRef.current = updateSettings })
 
 	const changeThemeMode = async (mode: ThemeMode) => {
 

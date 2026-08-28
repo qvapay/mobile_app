@@ -228,8 +228,8 @@ const CashDeliveryCard = ({ navigation }: { navigation: NavigationProp<RootStack
 					<HavanaMapArt palette={palette} />
 
 					{/* Courier fleet */}
-					{COURIERS.map((courier, index) => (
-						<Courier key={index} {...courier} scaleX={scaleX} accent={theme.colors.primary} />
+					{COURIERS.map((courier) => (
+						<Courier key={courier.initialDelay} {...courier} scaleX={scaleX} accent={theme.colors.primary} />
 					))}
 
 					{/* Title overlay */}

@@ -172,7 +172,7 @@ const Passkeys = () => {
                             { icon: 'face-smile', text: t('settings.passkeys.howItWorks.step3') },
                             { icon: 'check', text: t('settings.passkeys.howItWorks.step4') },
                         ] as { icon: FontAwesome6SolidIconName, text: string }[]).map((step, i) => (
-                            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i < 3 ? 12 : 0 }}>
+                            <View key={step.text} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i < 3 ? 12 : 0 }}>
                                 <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.background, alignItems: 'center', justifyContent: 'center' }}>
                                     <FontAwesome6 name={step.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
                                 </View>

@@ -52,12 +52,16 @@ type CoinGroupLike = { coins?: { tick?: string }[] }
 export function filterCardFromCatalog<G extends CoinGroupLike>(catalog: G[] | null | undefined, eligible: boolean): G[] | null | undefined {
 	if (eligible || !Array.isArray(catalog)) { return catalog }
 	let changed = false
-	const filtered = catalog
-		.map(group => {
-			if (!group?.coins?.some(c => c.tick === 'CARD')) { return group }
+	// Una sola pasada: se poda CARD del grupo y se decide en el acto si el grupo
+	// sobrevive — el orden de los grupos y el flag `changed` no cambian.
+	const filtered: G[] = []
+	for (const group of catalog) {
+		let next = group
+		if (group?.coins?.some(c => c.tick === 'CARD')) {
 			changed = true
-			return { ...group, coins: group.coins.filter(c => c.tick !== 'CARD') }
-		})
-		.filter(group => !group?.coins || group.coins.length > 0)
+			next = { ...group, coins: group.coins.filter(c => c.tick !== 'CARD') }
+		}
+		if (!next?.coins || next.coins.length > 0) { filtered.push(next) }
+	}
 	return changed ? filtered : catalog
 }

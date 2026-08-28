@@ -306,8 +306,8 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 									</View>
 									{!!details && details.length > 0 && (
 										<View style={{ marginTop: 8, gap: 4 }}>
-											{details.slice(0, 4).map((d, idx) => (
-												<View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+											{details.slice(0, 4).map((d) => (
+												<View key={d.name || d.key} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
 													{d.name === "Wallet" ? (
 														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{reduceStringInside((d.value || d.val) as string, 8)}</Text>

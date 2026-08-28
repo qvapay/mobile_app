@@ -79,7 +79,7 @@ const DeleteAccount = () => {
 						{t('settings.deleteAccount.consequencesTitle')}
 					</Text>
 					{CONSEQUENCES.map((item, index) => (
-						<View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < CONSEQUENCES.length - 1 ? 14 : 0 }}>
+						<View key={item.text} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: index < CONSEQUENCES.length - 1 ? 14 : 0 }}>
 							<FontAwesome6 name={item.icon} size={16} color={theme.colors.danger} iconStyle="solid" />
 							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12, flex: 1 }]}>
 								{t(item.text)}

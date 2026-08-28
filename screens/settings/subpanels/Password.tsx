@@ -149,7 +149,7 @@ const Password = () => {
 						{ icon: 'font', text: t('settings.password.requirements.uppercase') },
 						{ icon: 'hashtag', text: t('settings.password.requirements.number') },
 					] as { icon: FontAwesome6SolidIconName, text: string }[]).map((req, index) => (
-						<View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: index < 2 ? 10 : 0 }}>
+						<View key={req.text} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: index < 2 ? 10 : 0 }}>
 							<FontAwesome6 name={req.icon} size={14} color={theme.colors.primary} iconStyle="solid" />
 							<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginLeft: 12 }]}>
 								{req.text}

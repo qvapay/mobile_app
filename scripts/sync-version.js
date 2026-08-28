@@ -23,12 +23,24 @@ if (!versionName || !versionCode) {
 	process.exit(1)
 }
 
-// Sync package.json version
+// Sync package.json version.
+// Reemplazo TEXTUAL del primer `"version"` (el de nivel superior), como ya se
+// hace con el pbxproj: un round-trip por JSON.parse + JSON.stringify reescribe
+// el fichero ENTERO con la indentación de stringify (2 espacios) en vez de los
+// tabs del repo, y convierte un bump de una línea en un diff de 250.
 const packageJsonPath = path.join(root, 'package.json')
-const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
-if (packageJson.version !== versionName) {
-	packageJson.version = versionName
-	fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n', 'utf8')
+const packageJsonRaw = fs.readFileSync(packageJsonPath, 'utf8')
+if (JSON.parse(packageJsonRaw).version !== versionName) {
+	const patched = packageJsonRaw.replace(/"version":\s*"[^"]*"/, `"version": "${versionName}"`)
+	// Red de seguridad: si el reemplazo textual fallara, no dejar el manifiesto
+	// roto ni a medias — se sale con error en vez de escribir algo inválido
+	let patchedVersion
+	try { patchedVersion = JSON.parse(patched).version } catch { patchedVersion = null }
+	if (patchedVersion !== versionName) {
+		console.error('No se pudo actualizar "version" en package.json — revísalo a mano')
+		process.exit(1)
+	}
+	fs.writeFileSync(packageJsonPath, patched, 'utf8')
 	console.log(`Synced version: ${versionName} → package.json`)
 }
 

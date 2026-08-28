@@ -62,7 +62,7 @@ const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadge
 			{showSortMenu && (
 				<View style={styles.activeBadgesBar}>
 					{SORT_OPTIONS.map((option, idx) => (
-						<Pressable key={idx} style={[styles.activeBadge, { backgroundColor: sortIndex === idx ? theme.colors.primary : theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => onSelectSort(idx)}>
+						<Pressable key={option.labelKey} style={[styles.activeBadge, { backgroundColor: sortIndex === idx ? theme.colors.primary : theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => onSelectSort(idx)}>
 							<Text style={[textStyles.caption, { color: sortIndex === idx ? theme.colors.almostWhite : theme.colors.primaryText, fontSize: theme.typography.fontSize.xs }]}>{t(option.labelKey)}</Text>
 						</Pressable>
 					))}

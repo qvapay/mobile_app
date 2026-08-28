@@ -110,7 +110,9 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 	// Latest apiFilters + in-flight flag kept in refs so fetchP2POffers can have a
 	// stable identity (empty deps) — letting the effects below depend on it honestly.
 	const apiFiltersRef = useRef(apiFilters)
-	apiFiltersRef.current = apiFilters
+	// En un efecto, no en render (el render debe ser puro) — el mismo idioma que
+	// `fetchRef` más abajo. Corre antes que los efectos que disparan el fetch.
+	useEffect(() => { apiFiltersRef.current = apiFilters })
 	const inFlightRef = useRef(false)
 	// Última petición que llegó mientras había otra en vuelo
 	const pendingFetchRef = useRef<PendingFetch | null>(null)
