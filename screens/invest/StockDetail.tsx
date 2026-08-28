@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
+import { useContainerStyles } from '../../theme/themeUtils'
 
 // API
 import { useStockQuery, useStockHistoryQuery } from './investQueries'
@@ -18,7 +18,7 @@ import PriceChart from '../../ui/charts/PriceChart'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import QPSvgUri from '../../ui/particles/QPSvgUri'
-import QPFitText from '../../ui/particles/QPFitText'
+import QPBalance from '../../ui/particles/QPBalance'
 
 // Tipos
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -92,7 +92,6 @@ const StockDetail = ({ route }: StockDetailProps) => {
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
-	const textStyles = useTextStyles(theme)
 
 	const [timeframe, setTimeframe] = useState('24H')
 
@@ -134,9 +133,14 @@ const StockDetail = ({ route }: StockDetailProps) => {
 						)}
 					</View>
 					<Text style={[styles.symbolText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{symbol}</Text>
-					<QPFitText style={[textStyles.amount]}>
-						${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-					</QPFitText>
+					{/* El "$" lo pinta QPBalance aparte: gris, semiBold y un paso menor
+					    que las cifras — mismo héroe que el balance del Home */}
+					<QPBalance
+						formattedAmount={price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+						fontSize={theme.typography.fontSize.display}
+						theme={theme}
+						style={styles.heroPrice}
+					/>
 					<View style={[styles.changeBadge, { backgroundColor: trendColor + '18' }]}>
 						<FontAwesome6 name={isPositive ? 'caret-up' : 'caret-down'} size={11} color={trendColor} iconStyle="solid" />
 						<Text style={[styles.changeBadgeText, { color: trendColor, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
@@ -233,6 +237,11 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginBottom: 4,
+	},
+	// QPBalance trae el alto/margen del keypad — aquí el héroe es compacto
+	heroPrice: {
+		height: 'auto',
+		marginBottom: 0,
 	},
 	symbolText: {},
 	changeBadge: {

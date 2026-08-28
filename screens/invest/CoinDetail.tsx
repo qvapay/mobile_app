@@ -23,6 +23,7 @@ import { useAuth } from '../../auth/AuthContext'
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
 import QPCoin from '../../ui/particles/QPCoin'
+import QPBalance from '../../ui/particles/QPBalance'
 import QPPressable from '../../ui/particles/QPPressable'
 import PriceChart from '../../ui/charts/PriceChart'
 import PriceChartPro from '../../ui/charts/PriceChartPro'
@@ -73,12 +74,20 @@ const statsFromHistory = (history?: { value?: number | string }[] | null) => {
 	}
 }
 
-const formatPrice = (p?: number | string | null) => {
+// Cifras del precio SIN símbolo: en el héroe el "$" lo pinta QPBalance aparte
+// (gris, semiBold y un paso menor que el número), como el resto de la app
+const formatPriceDigits = (p?: number | string | null) => {
 	const n = Number(p || 0)
 	if (!n) return '—'
-	return '$' + (n >= 1
+	return n >= 1
 		? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-		: n.toFixed(4))
+		: n.toFixed(4)
+}
+
+// Con símbolo pegado, para el texto corrido de las filas de estadísticas
+const formatPrice = (p?: number | string | null) => {
+	const digits = formatPriceDigits(p)
+	return digits === '—' ? digits : '$' + digits
 }
 
 // Fecha/hora del punto bajo el dedo durante el scrubbing (time = unix seconds
@@ -184,6 +193,8 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 	const changeDollar = Number(coin?.changeDollar || 0)
 	const isPositive = change >= 0
 	const trendColor = isPositive ? theme.colors.successText : theme.colors.danger
+	// Cifras del héroe (el punto bajo el dedo manda durante el scrubbing)
+	const heroPrice = formatPriceDigits(scrub ? scrub.value : price)
 
 	// Cambiar de timeframe es cambiar de query; el header no cambia
 	const handleTimeframeChange = useCallback((tf: string) => { setTimeframe(tf) }, [])
@@ -207,7 +218,12 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 				<View style={styles.headerSection}>
 					<QPCoin coin={tick} size={56} />
 					<Text style={[styles.symbolText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{tick}</Text>
-					<QPFitText style={[textStyles.amount]}>{formatPrice(scrub ? scrub.value : price)}</QPFitText>
+					{/* Sin precio aún no hay símbolo que pintar: el guion va solo */}
+					{heroPrice === '—' ? (
+						<QPFitText style={[textStyles.amount]}>{heroPrice}</QPFitText>
+					) : (
+						<QPBalance formattedAmount={heroPrice} fontSize={theme.typography.fontSize.display} theme={theme} style={styles.heroPrice} />
+					)}
 					{scrub ? (
 						<View style={[styles.changeBadge, { backgroundColor: theme.colors.surface }]}>
 							<FontAwesome6 name="clock" size={11} color={theme.colors.secondaryText} iconStyle="solid" />
@@ -336,6 +352,11 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	},
 	symbolText: {
 		marginTop: 4,
+	},
+	// QPBalance trae el alto/margen del keypad — aquí el héroe es compacto
+	heroPrice: {
+		height: 'auto',
+		marginBottom: 0,
 	},
 	changeBadge: {
 		flexDirection: 'row',

@@ -9,6 +9,9 @@ import { useAuth } from '../../auth/AuthContext'
 import { userApi } from '../../api/userApi'
 import { unwrap } from '../../api/unwrap'
 
+// Sonido de dinero entrante (espejo del money_out de SendSuccess)
+import useIncomingMoneySound from '../../hooks/useIncomingMoneySound'
+
 // Update prompt
 import { maybePromptUpdate } from '../../helpers/versionCheck'
 import type { UpdateCheckResult } from '../../helpers/versionCheck'
@@ -67,6 +70,9 @@ export default function useHomeFeed() {
 	const watchlist = useWatchlistQuery()
 	const promo = usePromoQuery()
 	const announcement = useAnnouncementQuery()
+
+	// Un cobro nuevo en la lista hace sonar la moneda (money_in)
+	useIncomingMoneySound(transactions.data)
 
 	// Volcar el perfil recién traído en el contexto de autenticación
 	useEffect(() => {

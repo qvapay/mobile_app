@@ -12,6 +12,7 @@ jest.mock('react-native', () => ({
 jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }))
 jest.mock('react-native-haptic-feedback', () => ({ trigger: jest.fn() }))
 jest.mock('../helpers/playSound', () => jest.fn())
+jest.mock('../hooks/useIncomingMoneySound', () => ({ markIncomingSoundPlayed: jest.fn() }))
 jest.mock('../settings/SettingsContext', () => ({
 	useSettings: () => ({ sounds: { enabled: true, transactionSound: true } }),
 }))

@@ -14,6 +14,9 @@
 jest.mock('@d11/react-native-fast-image', () => ({ preload: jest.fn() }))
 jest.mock('../../auth/AuthContext', () => ({ useAuth: () => ({ updateUser: jest.fn() }) }))
 jest.mock('../../helpers/versionCheck', () => ({ maybePromptUpdate: jest.fn(async () => null) }))
+// El sonido de dinero entrante tiene su propia suite: aquí solo estorbaría con
+// los contexts de ajustes (AsyncStorage) que este entorno node no monta
+jest.mock('../../hooks/useIncomingMoneySound', () => jest.fn())
 
 jest.mock('../../api/userApi', () => ({ userApi: { getUserProfile: jest.fn() } }))
 jest.mock('../../api/transferApi', () => ({

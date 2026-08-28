@@ -19,17 +19,21 @@ import { ROUTES } from '../routes'
 
 // Helpers
 import playSound from '../helpers/playSound'
+import { markIncomingSoundPlayed } from './useIncomingMoneySound'
+import { isMoneyInPush, pushTransactionUuid, resolvePushTarget } from '../helpers/pushRouting'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
 
 // i18n (fuera de render: los toasts se disparan en efectos/listeners)
 import i18n from '../i18n'
 
+// Caché de servidor (el cliente singleton: este hook vive fuera del árbol de queries)
+import { queryClient } from '../api/queryClient'
+import { trimToFirstPage } from '../api/queryUtils'
+
 // Tipos
 import type { NotificationClickEvent, NotificationWillDisplayEvent } from 'react-native-onesignal'
-
-/** Payload `additionalData` de los pushes de OneSignal que enruta este hook. */
-type PushData = { type?: string, uuid?: string } | undefined
+import type { PushData } from '../helpers/pushRouting'
 
 /** Resultado de helpers/versionCheck.maybePromptUpdate consumido por el modal. */
 type UpdateInfo = { needsUpdate: boolean, currentVersion?: string, latestVersion?: string, storeUrl?: string }
@@ -224,13 +228,25 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 			event.preventDefault()
 			const notification = event.getNotification()
 			const data = notification.additionalData as PushData
+			const moneyIn = isMoneyInPush(data)
 			// Play sound based on notification type
 			if (sounds?.enabled) {
-				if (sounds?.transactionSound && (data?.type === 'transaction' || data?.type === 'transfer')) {
+				if (sounds?.transactionSound && moneyIn) {
+					// El refresco de la lista traerá la misma transacción: se marca
+					// para que useIncomingMoneySound no vuelva a sonar por ella
+					markIncomingSoundPlayed(pushTransactionUuid(data))
 					playSound('money_in')
 				} else {
 					playSound('notification')
 				}
+			}
+			// Un cobro con la app delante: saldo e histórico al día sin esperar a
+			// que el usuario tire de la pantalla (el recorte a página 1 deja el
+			// refresco del histórico infinito en UNA petición)
+			if (moneyIn) {
+				queryClient.invalidateQueries({ queryKey: ['home'] })
+				queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
+				queryClient.invalidateQueries({ queryKey: ['transactions'] })
 			}
 			toast.info(notification.title || 'QvaPay', { description: notification.body || undefined })
 			notification.display()
@@ -241,13 +257,12 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 			const data = event.notification?.additionalData as PushData
 			if (!data?.type || !isAuthenticated) return
 
-			if (data.type === 'transaction' && data.uuid) {
-				navigation.navigate(ROUTES.TRANSACTION, { uuid: data.uuid })
-			} else if (data.type === 'p2p' && data.uuid) {
-				navigation.navigate(ROUTES.P2P_OFFER_SCREEN, { p2p_uuid: data.uuid })
-			} else if (data.type === 'transfer') {
-				navigation.navigate(ROUTES.TRANSACTIONS)
-			}
+			const target = resolvePushTarget(data)
+			if (!target) return
+			// El par ruta/params se resuelve en RUNTIME desde el payload, así que
+			// no hay forma de casarlo con RootStackParamList en compilación
+			const navigate = navigation.navigate as unknown as (screen: string, params?: Record<string, unknown>) => void
+			if (target.params) { navigate(target.screen, target.params) } else { navigate(target.screen) }
 		}
 
 		OneSignal.Notifications.addEventListener('foregroundWillDisplay', onForeground)

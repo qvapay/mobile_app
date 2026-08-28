@@ -14,6 +14,8 @@ jest.mock('../../theme/ThemeContext', () => {
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
+jest.mock('../../settings/SettingsContext', () => ({ useSettings: () => ({ sounds: { enabled: true, transactionSound: true } }) }))
+jest.mock('../../helpers/playSound', () => jest.fn())
 jest.mock('../../helpers/walletDeeplinks', () => ({ detectInstalledWallets: jest.fn() }))
 jest.mock('../../helpers/inAppReview', () => ({ maybeRequestReview: jest.fn() }))
 jest.mock('../../ui/QPKeyboardView', () => {
@@ -47,6 +49,7 @@ import { maybeRequestReview } from '../../helpers/inAppReview'
 import apiClient from '../../api/client'
 import { presentCardDeposit } from './cardPaymentSheet'
 import useTransactionSSE from '../../hooks/useTransactionSSE'
+import playSound from '../../helpers/playSound'
 import { toast } from 'sonner-native'
 import Add from './Add'
 
@@ -342,6 +345,12 @@ describe('real-time deposit status over SSE', () => {
 		expect(tree.root.findByType('DepositDetailsModal').props.visible).toBe(false)
 		await act(async () => { jest.advanceTimersByTime(1500) })
 		expect(maybeRequestReview).toHaveBeenCalled()
+	})
+
+	test('a paid status plays the coin sound right away', async () => {
+		await openInvoice()
+		await act(async () => { sseCallback('paid') })
+		expect(playSound).toHaveBeenCalledWith('money_in')
 	})
 
 	test('an expired status zeroes the 30-minute countdown', async () => {

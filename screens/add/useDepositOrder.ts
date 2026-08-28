@@ -24,6 +24,7 @@ import { useTheme } from '../../theme/ThemeContext'
 
 // Context
 import { useAuth } from '../../auth/AuthContext'
+import { useSettings } from '../../settings/SettingsContext'
 
 // Depósito con tarjeta (Stripe PaymentSheet)
 import { presentCardDeposit } from './cardPaymentSheet'
@@ -34,6 +35,10 @@ import { trimToFirstPage } from '../../api/queryUtils'
 
 // Hooks
 import useTransactionSSE from '../../hooks/useTransactionSSE'
+import { markIncomingSoundPlayed } from '../../hooks/useIncomingMoneySound'
+
+// Sonido de dinero entrante
+import playSound from '../../helpers/playSound'
 
 // In-app review
 import { maybeRequestReview } from '../../helpers/inAppReview'
@@ -85,6 +90,7 @@ type DepositOrderArgs = {
 export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode }: DepositOrderArgs) {
 
 	const { user } = useAuth()
+	const { sounds } = useSettings()
 	const { theme } = useTheme()
 	const queryClient = useQueryClient()
 	const { t } = useTranslation()
@@ -114,6 +120,11 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 		setDepositStatus(newStatus)
 		if (newStatus === 'paid') {
 			if (countdownRef.current) clearInterval(countdownRef.current)
+			// La moneda suena AL INSTANTE, junto al toast: el refresco de la lista
+			// llegaría después. Se marca el uuid para que useIncomingMoneySound no
+			// la repita cuando el mismo depósito aparezca en el histórico
+			markIncomingSoundPlayed(topupData?.transaction_uuid)
+			if (sounds?.enabled && sounds?.transactionSound) { playSound('money_in') }
 			toast.success(t('add.index.toasts.paymentConfirmed.title'), { description: t('add.index.toasts.paymentConfirmed.description') })
 			// Refresca las lecturas de servidor en React Query: con enableFreeze los
 			// observadores sobreviven al fondo y sin invalidación seguirían mostrando
@@ -132,7 +143,7 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 			if (countdownRef.current) clearInterval(countdownRef.current)
 			setCountdown(0)
 		} else if (newStatus === 'failed') { if (countdownRef.current) clearInterval(countdownRef.current) }
-	}, [queryClient, t])
+	}, [queryClient, t, topupData?.transaction_uuid, sounds?.enabled, sounds?.transactionSound])
 
 	const { isConnected: sseConnected } = useTransactionSSE(
 		showDepositModal ? topupData?.transaction_uuid : null,

@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { userApi } from '../api/userApi'
 import playSound from '../helpers/playSound'
+import { markIncomingSoundPlayed } from '../hooks/useIncomingMoneySound'
 import { useSettings } from '../settings/SettingsContext'
 import { buildAnnounce, buildPaymentResult, ANNOUNCE_TTL_MS } from './protocol'
 import type { AnnounceMessage, AnnounceUser, NearbyMessage, PaymentResultMessage } from './protocol'
@@ -182,6 +183,8 @@ export const useNearbyPeers = ({ enabled, user, onPaymentReceived }: UseNearbyPe
 
 			onMessage: (peerId, msg) => {
 				if (msg.t === 'payment_result') {
+					// Marcado para que el refresco del histórico no repita la moneda
+					markIncomingSoundPlayed(msg.txUuid)
 					if (soundsRef.current?.enabled && soundsRef.current?.transactionSound) { playSound('money_in') }
 					ReactNativeHapticFeedback.trigger('notificationSuccess', HAPTIC_OPTS)
 					callbacksRef.current.onPaymentReceived?.(msg)
