@@ -24,11 +24,13 @@
 		A4C6241C9C09420B9B5C2957 /* Rubik-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E49E54F8521A475FBBDE6436 /* Rubik-Italic.ttf */; };
 		B15C8D6CB1614B5DA682984A /* Rubik-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F830386247324584A758F99F /* Rubik-Regular.ttf */; };
 		BDE8A477E53F40B6930662FD /* money_in.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 03197938F21847F3BA47AD8F /* money_in.mp3 */; };
+		A1C4E2F09D6B41F7A8B30C11 /* money_in.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1C4E2F09D6B41F7A8B30C12 /* money_in.caf */; };
 		CBBEEC46E19B43BCAF779D1F /* Rubik-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8E9D94C077544204A97C61B0 /* Rubik-Black.ttf */; };
 		CF67CAB6313CBE64618CB206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		D01923873AFB4AF4A0DEC6B9 /* Rubik-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E8F0AB89ECF41FE9DBC1216 /* Rubik-Medium.ttf */; };
 		D6D1005CBECE4537BF0BA741 /* Rubik-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FF340230807742DD96C8FB8E /* Rubik-ExtraBold.ttf */; };
 		F162D84EB401402DA05A14F7 /* money_out.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9B210220A594402FA688441D /* money_out.mp3 */; };
+		A1C4E2F09D6B41F7A8B30C21 /* money_out.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1C4E2F09D6B41F7A8B30C22 /* money_out.caf */; };
 		W1000010000000000000000A /* QvaPayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000001000000000000000A /* QvaPayWidgetBundle.swift */; };
 		W1000011000000000000000A /* P2PRatesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000002000000000000000A /* P2PRatesWidget.swift */; };
 		W1000012000000000000000A /* QvaPayAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000003000000000000000A /* QvaPayAPI.swift */; };
@@ -68,6 +70,7 @@
 
 /* Begin PBXFileReference section */
 		03197938F21847F3BA47AD8F /* money_in.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_in.mp3; path = ../assets/sounds/money_in.mp3; sourceTree = "<group>"; };
+		A1C4E2F09D6B41F7A8B30C12 /* money_in.caf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_in.caf; path = ../assets/sounds/money_in.caf; sourceTree = "<group>"; };
 		0721CD292AEB4B83975ACAAD /* notification.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notification.mp3; path = ../assets/sounds/notification.mp3; sourceTree = "<group>"; };
 		12ACF633161A4FABBAEE647B /* Rubik-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-BoldItalic.ttf"; path = "../assets/fonts/Rubik-BoldItalic.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* QvaPay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QvaPay.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -86,6 +89,7 @@
 		8E9D94C077544204A97C61B0 /* Rubik-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Black.ttf"; path = "../assets/fonts/Rubik-Black.ttf"; sourceTree = "<group>"; };
 		99059718B7394C3883C4903A /* Rubik-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Bold.ttf"; path = "../assets/fonts/Rubik-Bold.ttf"; sourceTree = "<group>"; };
 		9B210220A594402FA688441D /* money_out.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_out.mp3; path = ../assets/sounds/money_out.mp3; sourceTree = "<group>"; };
+		A1C4E2F09D6B41F7A8B30C22 /* money_out.caf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_out.caf; path = ../assets/sounds/money_out.caf; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718A1B2C3D4 /* QvaPay.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = QvaPay.entitlements; path = QvaPay/QvaPay.entitlements; sourceTree = "<group>"; };
 		C02C8B1814194B3F9B8D38C0 /* Rubik-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-SemiBold.ttf"; path = "../assets/fonts/Rubik-SemiBold.ttf"; sourceTree = "<group>"; };
 		DCD46B1CF6A891714EE9EA8F /* Pods-QvaPay.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-QvaPay.debug.xcconfig"; path = "Target Support Files/Pods-QvaPay/Pods-QvaPay.debug.xcconfig"; sourceTree = "<group>"; };
@@ -172,8 +176,10 @@
 				C02C8B1814194B3F9B8D38C0 /* Rubik-SemiBold.ttf */,
 				F113463BD7074ADABB90FFFD /* Rubik-SemiBoldItalic.ttf */,
 				03197938F21847F3BA47AD8F /* money_in.mp3 */,
+				A1C4E2F09D6B41F7A8B30C12 /* money_in.caf */,
 				0721CD292AEB4B83975ACAAD /* notification.mp3 */,
 				9B210220A594402FA688441D /* money_out.mp3 */,
+				A1C4E2F09D6B41F7A8B30C22 /* money_out.caf */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -335,8 +341,10 @@
 				21B80A3051704DD8A6AB1317 /* Rubik-SemiBold.ttf in Resources */,
 				29E48705002D461B84EA169F /* Rubik-SemiBoldItalic.ttf in Resources */,
 				BDE8A477E53F40B6930662FD /* money_in.mp3 in Resources */,
+				A1C4E2F09D6B41F7A8B30C11 /* money_in.caf in Resources */,
 				80A19C15F0F44B52A1E98F14 /* notification.mp3 in Resources */,
 				F162D84EB401402DA05A14F7 /* money_out.mp3 in Resources */,
+				A1C4E2F09D6B41F7A8B30C21 /* money_out.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -469,7 +477,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;
-				CURRENT_PROJECT_VERSION = 2403;
+				CURRENT_PROJECT_VERSION = 2500;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				ENABLE_BITCODE = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -481,7 +489,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.3;
+				MARKETING_VERSION = 2.5.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -507,7 +515,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;
-				CURRENT_PROJECT_VERSION = 2403;
+				CURRENT_PROJECT_VERSION = 2500;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = QvaPay/Info.plist;
@@ -518,7 +526,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.3;
+				MARKETING_VERSION = 2.5.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -760,7 +768,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPayWidgets/QvaPayWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2403;
+				CURRENT_PROJECT_VERSION = 2500;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
@@ -772,7 +780,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.4.3;
+				MARKETING_VERSION = 2.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -791,7 +799,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPayWidgets/QvaPayWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2403;
+				CURRENT_PROJECT_VERSION = 2500;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
@@ -803,7 +811,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.4.3;
+				MARKETING_VERSION = 2.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

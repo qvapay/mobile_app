@@ -1,0 +1,4 @@
+<resources>
+    <string name="channel_money_in">Money received</string>
+    <string name="channel_money_out">Money sent</string>
+</resources>

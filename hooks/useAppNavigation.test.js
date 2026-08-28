@@ -196,15 +196,12 @@ describe('foreground deep links while unauthenticated', () => {
 })
 
 describe('OneSignal listeners', () => {
-	const makeForegroundEvent = (title, body, data) => ({
-		preventDefault: jest.fn(),
-		getNotification: () => ({
-			title,
-			body,
-			additionalData: data,
-			display: jest.fn(),
-		}),
-	})
+	// La notificación se construye UNA vez: los tests miran su `display`, así que
+	// getNotification() tiene que devolver siempre el mismo objeto
+	const makeForegroundEvent = (title, body, data) => {
+		const notification = { title, body, additionalData: data, display: jest.fn() }
+		return { preventDefault: jest.fn(), notification, getNotification: () => notification }
+	}
 
 	test('foreground notifications become toasts and transaction ones play money_in', async () => {
 		await renderAppNav()
@@ -229,13 +226,26 @@ describe('OneSignal listeners', () => {
 		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactions'] })
 	})
 
+	// El canal de Android (qp_money_in/qp_money_out) trae el sonido de moneda:
+	// publicar la notificación con la app delante la haría sonar dos veces
+	test('a money push is not displayed in the tray while the app is in foreground', async () => {
+		await renderAppNav()
+		const money = makeForegroundEvent('Cobro', '+$5.00', { type: 'transfer_received', transaction_uuid: 't-9' })
+		const other = makeForegroundEvent('Chat', 'nuevo mensaje', { type: 'p2p_chat', p2p_uuid: 'p-1' })
+		await act(async () => { oneSignalListeners.foregroundWillDisplay(money) })
+		await act(async () => { oneSignalListeners.foregroundWillDisplay(other) })
+		expect(money.notification.display).not.toHaveBeenCalled()
+		expect(other.notification.display).toHaveBeenCalled()
+	})
+
 	test('an outgoing transfer push is not treated as money in', async () => {
 		await renderAppNav()
 		const event = makeForegroundEvent('Transferencia enviada', '-$5.00', {
 			type: 'transfer_sent', transaction_uuid: 't-9',
 		})
 		await act(async () => { oneSignalListeners.foregroundWillDisplay(event) })
-		expect(playSound).toHaveBeenCalledWith('notification')
+		// Ni money_in ni el tono genérico: el envío ya sonó en SendSuccess
+		expect(playSound).not.toHaveBeenCalled()
 		expect(queryClient.invalidateQueries).not.toHaveBeenCalled()
 	})
 

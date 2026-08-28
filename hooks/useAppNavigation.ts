@@ -20,7 +20,7 @@ import { ROUTES } from '../routes'
 // Helpers
 import playSound from '../helpers/playSound'
 import { markIncomingSoundPlayed } from './useIncomingMoneySound'
-import { isMoneyInPush, pushTransactionUuid, resolvePushTarget } from '../helpers/pushRouting'
+import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushTarget } from '../helpers/pushRouting'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
 
@@ -236,7 +236,9 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 					// para que useIncomingMoneySound no vuelva a sonar por ella
 					markIncomingSoundPlayed(pushTransactionUuid(data))
 					playSound('money_in')
-				} else {
+				} else if (!isMoneySoundPush(data)) {
+					// El dinero que SALE ya sonó en la pantalla que lo mandó
+					// (SendSuccess): su push no vuelve a sonar con la app delante
 					playSound('notification')
 				}
 			}
@@ -249,7 +251,11 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 				queryClient.invalidateQueries({ queryKey: ['transactions'] })
 			}
 			toast.info(notification.title || 'QvaPay', { description: notification.body || undefined })
-			notification.display()
+			// Con la app delante, una push de dinero NO se muestra en la bandeja:
+			// su canal lleva el sonido de moneda (qp_money_in/qp_money_out) y al
+			// publicarla sonaría OTRA VEZ encima de la que acaba de sonar aquí.
+			// El toast ya es la presentación en primer plano
+			if (!isMoneySoundPush(data)) { notification.display() }
 		}
 
 		// Notification tapped: navigate to the right screen

@@ -3,7 +3,7 @@
  * (`transfer_received`, `p2p_applied`, `cart_stage`…) y los legacy.
  * @jest-environment node
  */
-import { isMoneyInPush, pushTransactionUuid, resolvePushTarget } from './pushRouting'
+import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushTarget } from './pushRouting'
 
 describe('isMoneyInPush', () => {
 
@@ -13,10 +13,25 @@ describe('isMoneyInPush', () => {
 		expect(isMoneyInPush({ type: 'transfer' })).toBe(true)
 	})
 
+	test('los fondos recibidos de un P2P también', () => {
+		expect(isMoneyInPush({ type: 'p2p_completed' })).toBe(true)
+		expect(isMoneyInPush({ type: 'p2p_partial_completed' })).toBe(true)
+	})
+
 	test('lo que sale de la cuenta, o no es dinero, no', () => {
 		expect(isMoneyInPush({ type: 'transfer_sent' })).toBe(false)
 		expect(isMoneyInPush({ type: 'p2p_chat' })).toBe(false)
 		expect(isMoneyInPush(undefined)).toBe(false)
+	})
+})
+
+describe('isMoneySoundPush', () => {
+
+	test('entradas y salidas comparten los canales con sonido de moneda', () => {
+		expect(isMoneySoundPush({ type: 'transfer_received' })).toBe(true)
+		expect(isMoneySoundPush({ type: 'transfer_sent' })).toBe(true)
+		expect(isMoneySoundPush({ type: 'invite_sent' })).toBe(true)
+		expect(isMoneySoundPush({ type: 'p2p_chat' })).toBe(false)
 	})
 })
 
@@ -42,8 +57,10 @@ describe('resolvePushTarget', () => {
 		expect(resolvePushTarget({ type: 'transfer' })).toEqual({ screen: 'Transactions' })
 	})
 
-	test('cualquier evento p2p lleva a la oferta', () => {
+	test('cualquier evento p2p lleva a la oferta, aunque sea dinero entrante', () => {
 		expect(resolvePushTarget({ type: 'p2p_partial_paid', p2p_uuid: 'p-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
+		expect(resolvePushTarget({ type: 'p2p_completed', p2p_uuid: 'p-1' }))
 			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
 		expect(resolvePushTarget({ type: 'p2p_chat' })).toBeNull()
 	})
