@@ -21,7 +21,7 @@ import QPSwitch from "../../ui/particles/QPSwitch"
 import P2PRequirementsGate from "./P2PRequirementsGate"
 import P2PFilterBar from "./P2PFilterBar"
 import P2PFiltersModal from "./P2PFiltersModal"
-import useP2PFilters from "./useP2PFilters"
+import useP2PFilters, { SORT_OPTIONS } from "./useP2PFilters"
 import useP2POffers from "./useP2POffers"
 
 // Icons
@@ -165,13 +165,44 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	// se cierra, porque dos modales a la vez dan problemas): se anota para
 	// devolver al usuario donde estaba, elija moneda o descarte
 	const returnToFiltersRef = useRef(false)
+	// "Mejor tasa" solo existe con una moneda elegida (los ratios de monedas
+	// distintas no son comparables): elegirlo sin moneda abre el picker y deja el
+	// orden anotado para aplicarlo en cuanto se elija una. Descartar el picker
+	// cancela el orden en vez de dejarlo pedido y sin efecto.
+	const pendingSortRef = useRef<number | null>(null)
 	const closeCoinPicker = useCallback(() => {
 		setShowCoinPicker(false)
+		pendingSortRef.current = null
 		if (returnToFiltersRef.current) {
 			returnToFiltersRef.current = false
 			setShowFiltersModal(true)
 		}
 	}, [])
+
+	const handleSelectCoin = useCallback((coin: Coin) => {
+		setFilter("selectedCoin", coin)
+		// Se lee ANTES de cerrar: closeCoinPicker limpia el pendiente
+		const pendingSort = pendingSortRef.current
+		if (pendingSort != null) { setFilter("sortIndex", pendingSort) }
+		closeCoinPicker()
+	}, [setFilter, closeCoinPicker])
+
+	const handleSelectSort = useCallback((index: number) => {
+		setShowSortMenu(false)
+		if (SORT_OPTIONS[index]?.requiresCoin && !selectedCoin?.tick) {
+			pendingSortRef.current = index
+			setShowCoinPicker(true)
+			return
+		}
+		setFilter("sortIndex", index)
+	}, [selectedCoin?.tick, setFilter])
+
+	// Quitar la moneda deja sin sentido un orden que la exige: se vuelve al de
+	// por defecto en vez de dejar un badge de orden que no se está aplicando
+	const handleClearCoin = useCallback(() => {
+		setFilter("selectedCoin", null)
+		if (SORT_OPTIONS[sortIndex]?.requiresCoin) { setFilter("sortIndex", 0) }
+	}, [sortIndex, setFilter])
 
 	// Track P2P offer users for online status
 	useEffect(() => {
@@ -276,8 +307,10 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 			headerTitle: () => (
 				<View style={styles.headerSwitchWrap}>
 					<QPSwitch
-						value={typeFilter === "sell" ? "left" : typeFilter === "buy" ? "right" : null}
-						onChange={(side) => setFilter("typeFilter", side === "left" ? "sell" : side === "right" ? "buy" : null)}
+						value={typeFilter === "sell" ? "left" : "right"}
+						/* El lado del mercado es un modo, no un filtro: volver a tocar
+						   el lado activo (QPSwitch responde con null) no lo apaga */
+						onChange={(side) => { if (side) { setFilter("typeFilter", side === "left" ? "sell" : "buy") } }}
 						leftText={t('p2p.common.buy')}
 						rightText={t('p2p.common.sell')}
 						leftColor={theme.colors.danger}
@@ -335,9 +368,9 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 					showSortMenu={showSortMenu}
 					activeFilterBadges={activeFilterBadges}
 					onOpenCoinPicker={() => setShowCoinPicker(true)}
-					onClearCoin={() => setFilter("selectedCoin", null)}
+					onClearCoin={handleClearCoin}
 					onToggleSortMenu={() => setShowSortMenu(!showSortMenu)}
-					onSelectSort={(idx: number) => { setFilter("sortIndex", idx); setShowSortMenu(false) }}
+					onSelectSort={handleSelectSort}
 					onClearSort={() => setFilter("sortIndex", 0)}
 					onRemoveBadge={handleRemoveBadge}
 					theme={theme}
@@ -387,7 +420,7 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 			<QPCoinPicker
 				visible={showCoinPicker}
 				onClose={closeCoinPicker}
-				onSelect={(coin) => { setFilter("selectedCoin", coin); closeCoinPicker() }}
+				onSelect={handleSelectCoin}
 				coins={availableCoins}
 				/* El filtro guarda una moneda SINTÉTICA cuando llega por route.params
 				   (solo tick/name/logo): el picker la tipa como Coin completa */
