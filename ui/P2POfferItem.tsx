@@ -127,15 +127,18 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const rateValue = amountNum > 0 ? Number(offer.receive) / amountNum : null
 	const rate = rateValue != null ? rateValue.toFixed(2) : '—'
 
-	// Contexto de mercado: cuánto se aleja esta tasa de la media 24h de su
-	// moneda. Para quien COMPRA una oferta de venta, más tasa es mejor; en una
-	// oferta de compra es al revés — de ahí que se compare contra la media del
-	// mismo lado y se invierta el signo según el tipo
+	// Contexto de mercado: cuánto se aleja esta tasa de la media 24h de su misma
+	// moneda y lado. El signo se lee SIEMPRE desde quien TOMA la oferta, que es
+	// quien decide en la lista: en una de venta paga `receive` por cada QUSD
+	// (menos tasa = más barato = mejor), y en una de compra lo recibe (más tasa =
+	// mejor). Estaba al revés, así que una oferta de venta cara se pintaba en
+	// verde — el mismo signo invertido que devolvía las peores primero al ordenar
+	// por tasa (ver `best_rate` en useP2PFilters)
 	const marketAvg = marketAverage
 		? Number(offer.type === 'buy' ? marketAverage.average_buy : marketAverage.average_sell) || null
 		: null
 	const ratePremium = (marketAvg && rateValue) ? ((rateValue - marketAvg) / marketAvg) * 100 : null
-	const rateEdge = ratePremium == null ? null : (offer.type === 'buy' ? -ratePremium : ratePremium)
+	const rateEdge = ratePremium == null ? null : (offer.type === 'buy' ? ratePremium : -ratePremium)
 	// Solo se señala cuando la diferencia es significativa (±1%)
 	const rateBetter = rateEdge != null && rateEdge >= 1
 	const rateWorse = rateEdge != null && rateEdge <= -1

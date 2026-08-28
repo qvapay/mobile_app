@@ -61,11 +61,19 @@ const P2PFilterBar = ({ selectedCoin, sortIndex, showSortMenu, activeFilterBadge
 			{/* Sort Menu */}
 			{showSortMenu && (
 				<View style={styles.activeBadgesBar}>
-					{SORT_OPTIONS.map((option, idx) => (
-						<Pressable key={option.labelKey} style={[styles.activeBadge, { backgroundColor: sortIndex === idx ? theme.colors.primary : theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => onSelectSort(idx)}>
-							<Text style={[textStyles.caption, { color: sortIndex === idx ? theme.colors.almostWhite : theme.colors.primaryText, fontSize: theme.typography.fontSize.xs }]}>{t(option.labelKey)}</Text>
-						</Pressable>
-					))}
+					{SORT_OPTIONS.map((option, idx) => {
+						const active = sortIndex === idx
+						// "Mejor tasa" necesita una moneda: se marca con el icono para
+						// que abrir el picker al tocarlo no salga de la nada
+						const needsCoin = !!option.requiresCoin && !selectedCoin
+						const tint = active ? theme.colors.almostWhite : theme.colors.primaryText
+						return (
+							<Pressable key={option.labelKey} style={[styles.activeBadge, { backgroundColor: active ? theme.colors.primary : theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }]} onPress={() => onSelectSort(idx)}>
+								<Text style={[textStyles.caption, { color: tint, fontSize: theme.typography.fontSize.xs }]}>{t(option.labelKey)}</Text>
+								{needsCoin && <FontAwesome6 name="coins" size={9} color={active ? theme.colors.almostWhite : theme.colors.secondaryText} iconStyle="solid" />}
+							</Pressable>
+						)
+					})}
 				</View>
 			)}
 

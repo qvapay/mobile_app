@@ -197,8 +197,9 @@ describe('counterparty row', () => {
 })
 
 describe('contexto de mercado', () => {
-	// La señal se invierte según el lado: en una oferta de VENTA (yo compro)
-	// una tasa más alta me da más moneda; en una de COMPRA es al revés
+	// La señal se lee desde quien TOMA la oferta: en una de VENTA paga `receive`
+	// por cada QUSD (menos tasa = más barato = a favor); en una de COMPRA lo
+	// recibe (más tasa = a favor). Mismo signo que el orden `best_rate`
 	const withAvg = (offer, avg) => renderItem(offer, { marketAverage: avg })
 	const AVG = { average_buy: 100, average_sell: 100 }
 
@@ -206,17 +207,18 @@ describe('contexto de mercado', () => {
 		expect(plainText(renderItem(makeOffer({ amount: '1', receive: '120' })))).not.toContain('%')
 	})
 
-	test('una oferta de venta con tasa por encima del mercado se marca a favor', () => {
-		expect(plainText(withAvg(makeOffer({ type: 'sell', amount: '1', receive: '110' }), AVG))).toContain('+10.0%')
+	test('una oferta de venta con tasa por debajo del mercado se marca a favor', () => {
+		// Pagas 90 por el QUSD que el mercado cobra a 100
+		expect(plainText(withAvg(makeOffer({ type: 'sell', amount: '1', receive: '90' }), AVG))).toContain('+10.0%')
 	})
 
-	test('una oferta de venta con tasa por debajo se marca en contra', () => {
-		expect(plainText(withAvg(makeOffer({ type: 'sell', amount: '1', receive: '90' }), AVG))).toContain('-10.0%')
+	test('una oferta de venta con tasa por encima se marca en contra', () => {
+		expect(plainText(withAvg(makeOffer({ type: 'sell', amount: '1', receive: '110' }), AVG))).toContain('-10.0%')
 	})
 
 	test('en una oferta de compra el signo se invierte', () => {
-		// receive alto en una oferta de compra = peor para quien la toma
-		expect(plainText(withAvg(makeOffer({ type: 'buy', amount: '1', receive: '110' }), AVG))).toContain('-10.0%')
+		// receive alto en una oferta de compra = recibes más = mejor para quien la toma
+		expect(plainText(withAvg(makeOffer({ type: 'buy', amount: '1', receive: '110' }), AVG))).toContain('+10.0%')
 	})
 
 	test('las diferencias por debajo del 1% no se señalan (ruido)', () => {

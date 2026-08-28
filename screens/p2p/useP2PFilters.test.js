@@ -24,12 +24,15 @@ const renderFilters = (initialCoin = null) => {
 const set = (f, field, value) => act(() => { f.current.setFilter(field, value) })
 
 describe('initial state', () => {
-	test('defaults: recent sort, page size 30, no filters active', () => {
+	test('defaults: Comprar, recent sort, page size 30, no filters active', () => {
 		const f = renderFilters()
 		expect(f.current.hasActiveFilters).toBeFalsy()
 		expect(f.current.orderBy).toBe('updated_at')
 		expect(f.current.orderType).toBe('desc')
-		expect(f.current.apiFilters).toEqual({ take: 30, order: 'desc', orderBy: 'updated_at', type: null })
+		// El lado del mercado arranca elegido: nunca es null (el switch del
+		// TopBar es un modo, y sin lado la lista mezclaba compras y ventas)
+		expect(f.current.filters.typeFilter).toBe('sell')
+		expect(f.current.apiFilters).toEqual({ take: 30, order: 'desc', orderBy: 'updated_at', type: 'sell' })
 	})
 })
 
@@ -71,7 +74,8 @@ describe('apiFilters', () => {
 
 describe('orden', () => {
 	test('todos los órdenes son de servidor y mantienen la paginación de 30', () => {
-		const f = renderFilters()
+		// Con moneda elegida: `best_rate` la exige y sin ella se degradaría
+		const f = renderFilters({ tick: 'BANK_CUP' })
 		SORT_OPTIONS.forEach((option, index) => {
 			set(f, 'sortIndex', index)
 			expect(f.current.apiFilters).toMatchObject({
@@ -84,9 +88,31 @@ describe('orden', () => {
 
 	test('usa los campos ordenables que el backend acepta', () => {
 		// Lista blanca del servidor: updated_at, created_at, amount, receive,
-		// ratio, rating, trades
-		const valid = ['updated_at', 'created_at', 'amount', 'receive', 'ratio', 'rating', 'trades']
+		// ratio, rating, trades, best_rate
+		const valid = ['updated_at', 'created_at', 'amount', 'receive', 'ratio', 'rating', 'trades', 'best_rate']
 		SORT_OPTIONS.forEach(o => expect(valid).toContain(o.orderBy))
+	})
+
+	test('"mejor tasa" pide best_rate, no ratio (ratio desc devolvía las peores en Comprar)', () => {
+		const bestRate = SORT_OPTIONS.find(o => o.labelKey === 'p2p.filters.sort.bestRate')
+		expect(bestRate).toMatchObject({ orderBy: 'best_rate', orderType: 'desc', requiresCoin: true })
+	})
+
+	test('best_rate sin moneda se degrada al orden por defecto (el backend responde 400)', () => {
+		const f = renderFilters()
+		const index = SORT_OPTIONS.findIndex(o => o.requiresCoin)
+		set(f, 'sortIndex', index)
+		expect(f.current.apiFilters.orderBy).toBe('updated_at')
+		// Y vuelve a aplicarse en cuanto hay moneda
+		set(f, 'selectedCoin', { tick: 'BANK_CUP' })
+		expect(f.current.apiFilters.orderBy).toBe('best_rate')
+	})
+
+	test('best_rate no viaja con "mis ofertas" (mide la conveniencia de quien toma)', () => {
+		const f = renderFilters({ tick: 'BANK_CUP' })
+		set(f, 'sortIndex', SORT_OPTIONS.findIndex(o => o.requiresCoin))
+		set(f, 'showMine', true)
+		expect(f.current.apiFilters.orderBy).toBe('updated_at')
 	})
 })
 

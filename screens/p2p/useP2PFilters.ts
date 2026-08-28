@@ -11,6 +11,8 @@ export type SortOption = {
 	labelKey: string
 	orderBy: string
 	orderType: 'asc' | 'desc'
+	/** El orden solo es aplicable con una moneda elegida (ver `best_rate`). */
+	requiresCoin?: boolean
 }
 
 /** Moneda del picker: el catálogo completo, o el `{ tick, name, logo }` sintético que arma P2P.tsx desde route.params. */
@@ -18,7 +20,13 @@ export type FilterCoin = Pick<Coin, 'tick'> & Partial<Coin>
 
 /** Estado de los filtros del marketplace (los numéricos viven como string: son inputs). */
 export type P2PFiltersState = {
-	typeFilter: 'buy' | 'sell' | null
+	/**
+	 * Lado del mercado. NUNCA es null: el switch del TopBar es un modo, no un
+	 * filtro — sin lado elegido la lista mezclaba compras y ventas mientras la
+	 * píldora del switch se quedaba transparente, y volver a tocar el lado ya
+	 * activo devolvía a ese estado sin nombre.
+	 */
+	typeFilter: 'buy' | 'sell'
 	selectedCoin: FilterCoin | null
 	sortIndex: number
 	showMine: boolean
@@ -41,6 +49,17 @@ export type P2PFilterBadge = { key: string, label: string, onRemove: () => void 
  * Orden de la lista. Todos se resuelven en el servidor: desde 2026-08-16 el
  * backend ordena `ratio` (receive/amount), `rating` y `trades` en SQL con
  * paginación real, así que no queda nada que ordenar en el cliente.
+ *
+ * "Mejor tasa" NO ordena por `ratio`: el ratio es siempre "moneda por USD",
+ * pero su dirección se invierte según el lado del mercado — en una oferta de
+ * venta (pestaña Comprar) el ratio es lo que PAGAS por dólar, así que menos es
+ * mejor; en una de compra es lo que RECIBES, y más es mejor. Pedir `ratio` desc
+ * devolvía por tanto las PEORES ofertas primero en la pestaña Comprar. El
+ * backend expone `best_rate`, que normaliza el signo por tipo para que `desc`
+ * sea siempre "mejor primero" — y exige `type` y `coin` (entre monedas
+ * distintas los ratios no son comparables: 400 CUP/USD vs 1.2 MLC/USD
+ * ordenarían por moneda, no por tasa), de ahí el `requiresCoin`.
+ *
  * El copy no vive aquí: `labelKey` se resuelve con t() en el render (constante
  * de módulo — un literal quedaría congelado en el idioma del arranque).
  */
@@ -48,12 +67,14 @@ export const SORT_OPTIONS: SortOption[] = [
 	{ labelKey: "p2p.filters.sort.recent", orderBy: "updated_at", orderType: "desc" },
 	{ labelKey: "p2p.filters.sort.amountDesc", orderBy: "amount", orderType: "desc" },
 	{ labelKey: "p2p.filters.sort.amountAsc", orderBy: "amount", orderType: "asc" },
-	{ labelKey: "p2p.filters.sort.bestRate", orderBy: "ratio", orderType: "desc" },
+	{ labelKey: "p2p.filters.sort.bestRate", orderBy: "best_rate", orderType: "desc", requiresCoin: true },
 	{ labelKey: "p2p.filters.sort.reputation", orderBy: "rating", orderType: "desc" },
 ]
 
 const initialFilters: P2PFiltersState = {
-	typeFilter: null,
+	// Comprar por defecto (lado izquierdo del switch = ofertas de VENTA ajenas),
+	// como en los P2P de la industria: se entra a comprar
+	typeFilter: "sell",
 	selectedCoin: null,
 	sortIndex: 0,
 	showMine: false,
@@ -116,7 +137,15 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 
 	const { typeFilter, selectedCoin, sortIndex, showMine, opAmount, ratioMin, ratioMax, onlyVip } = filters
 
-	const sortOption = SORT_OPTIONS[sortIndex] || SORT_OPTIONS[0]
+	// Orden efectivo: `best_rate` se degrada al de por defecto cuando no es
+	// aplicable — sin moneda, o en "Mis ofertas" (mide la conveniencia de QUIEN
+	// TOMA la oferta, no la del dueño; el backend responde 400 en ambos casos).
+	// La pantalla pide la moneda ANTES de aplicarlo, así que esto es la red de
+	// seguridad: sin ella saldría una petición que el servidor rechaza y la
+	// lista quedaría vacía.
+	const rawSortOption = SORT_OPTIONS[sortIndex] || SORT_OPTIONS[0]
+	const sortUnavailable = !!rawSortOption.requiresCoin && (!selectedCoin?.tick || showMine)
+	const sortOption = sortUnavailable ? SORT_OPTIONS[0] : rawSortOption
 	const orderBy = sortOption.orderBy
 	const orderType = sortOption.orderType
 
@@ -136,14 +165,12 @@ export default function useP2PFilters(initialCoin: FilterCoin | null) {
 	// alcanzaba a la página cargada, así que una lista podía salir vacía
 	// teniendo resultados en las siguientes
 	const apiFilters = useMemo<P2PIndexFilters>(() => {
-		// `type: null` viaja tal cual (p2pApi.index lo descarta con su guard de
-		// verdad); el cast conserva ese runtime sin ensanchar P2PIndexFilters.
-		const out = {
+		const out: P2PIndexFilters = {
 			take: PAGE_SIZE,
 			order: orderType,
 			orderBy,
 			type: typeFilter,
-		} as P2PIndexFilters
+		}
 		if (showMine) { out.my = true }
 		if (selectedCoin?.tick) { out.coin = selectedCoin.tick }
 		// "Quiero operar $X" → ofertas con al menos ese monto
