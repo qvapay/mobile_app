@@ -361,3 +361,31 @@ export type SavingsMovement = {
 
 /** Item del carrusel de pago rápido; `image` garantizado no vacío (useQuickPayQuery filtra). */
 export type QuickPayUser = EmbeddedUser & { image: string }
+
+// ---------------------------------------------------------------------------
+// Announcements (`GET /announcement`)
+// ---------------------------------------------------------------------------
+
+/**
+ * Aviso global vigente, gestionado desde el panel admin de qpweb
+ * (`/admin/announcements`) — la misma fuente que pinta el banner del dashboard
+ * web. Solo hay uno activo a la vez; el backend ya filtra por la ventana
+ * `starts_at`/`ends_at` y devuelve `null` cuando no toca ninguno.
+ *
+ * NO confundir con la promo (`promoApi`): la promo es una oferta comercial con
+ * logo y sin descarte; el aviso es comunicación operativa, descartable.
+ */
+export type Announcement = {
+	/** Identidad del aviso: la clave de descarte cuelga de aquí, así que uno nuevo vuelve a aparecer. */
+	id: string
+	/** Parte en negritas. */
+	title: string
+	message?: string
+	cta_label?: string | null
+	/** Ruta interna (`/p2p`) o URL absoluta `https://`. */
+	cta_url?: string | null
+	/** Días que dura el descarte; 0 = para siempre. */
+	dismiss_days: number
+	/** ISO 8601, o null si el aviso no caduca. Lo usa la app para no resucitar uno caducado desde la caché persistida. */
+	ends_at?: string | null
+}

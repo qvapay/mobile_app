@@ -23,15 +23,16 @@ import {
 	useBlogQuery,
 	useWatchlistQuery,
 	usePromoQuery,
+	useAnnouncementQuery,
 } from './homeQueries'
 
 /**
  * Owns the Home feed data: perfil (`GET /user/extended`), últimas transacciones
  * y destinatarios recientes (`transferApi`), entradas del blog (WordPress REST),
- * la watchlist de 24h (BTC/ETH/LTC/SOL) y los banners de promoción. `onRefresh`
- * lo revalida todo y además comprueba si hay actualización en la tienda
- * (`helpers/versionCheck`), cuyo resultado va a `updateInfo` para
- * `UpdatePromptModal`.
+ * la watchlist de 24h (BTC/ETH/LTC/SOL), el banner de promoción y el aviso
+ * global gestionado desde el panel admin. `onRefresh` lo revalida todo y además
+ * comprueba si hay actualización en la tienda (`helpers/versionCheck`), cuyo
+ * resultado va a `updateInfo` para `UpdatePromptModal`.
  *
  * Cada fuente es una query independiente bajo `['home', …]`, persistida en
  * AsyncStorage por el `PersistQueryClientProvider` de `App.tsx`: la pantalla se
@@ -65,6 +66,7 @@ export default function useHomeFeed() {
 	const blog = useBlogQuery()
 	const watchlist = useWatchlistQuery()
 	const promo = usePromoQuery()
+	const announcement = useAnnouncementQuery()
 
 	// Volcar el perfil recién traído en el contexto de autenticación
 	useEffect(() => {
@@ -95,8 +97,15 @@ export default function useHomeFeed() {
 		? null
 		: (promo.data || null)
 
+	// Ni un aviso pasado de fecha. El backend ya filtra por su ventana, pero en
+	// arranque en frío la pantalla pinta lo persistido ANTES de revalidar, y ahí
+	// `ends_at` es lo único que evita enseñar un aviso que ya terminó
+	const announcementLive = announcement.data && (!announcement.data.ends_at || Date.parse(announcement.data.ends_at) > Date.now())
+		? announcement.data
+		: null
+
 	/**
-	 * Pull-to-refresh: revalida las seis fuentes EN PARALELO. La versión anterior
+	 * Pull-to-refresh: revalida todas las fuentes EN PARALELO. La versión anterior
 	 * encadenaba seis `await`, acumulando una latencia tras otra.
 	 */
 	const onRefresh = useCallback(async () => {
@@ -119,6 +128,7 @@ export default function useHomeFeed() {
 		latestBlogPosts: blog.data || [],
 		watchlistData: watchlist.data || [],
 		promo: promoFresh,
+		announcement: announcementLive,
 		updateInfo,
 		txLoading: transactions.isPending,
 		txError: transactions.isError,

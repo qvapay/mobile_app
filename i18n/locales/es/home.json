@@ -7,6 +7,9 @@
 		"push": {
 			"text": "Recibe alertas de tus pagos al instante",
 			"action": "Activar"
+		},
+		"announcement": {
+			"dismiss": "Descartar aviso"
 		}
 	},
 	"sections": {

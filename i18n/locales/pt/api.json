@@ -108,5 +108,8 @@
 	},
 	"promo": {
 		"promoLoadFailed": "Não foi possível obter a promoção"
+	},
+	"announcement": {
+		"loadFailed": "Não foi possível obter o aviso"
 	}
 }

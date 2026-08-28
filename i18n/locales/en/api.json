@@ -108,5 +108,8 @@
 	},
 	"promo": {
 		"promoLoadFailed": "Couldn't load the promo"
+	},
+	"announcement": {
+		"loadFailed": "Couldn't load the announcement"
 	}
 }

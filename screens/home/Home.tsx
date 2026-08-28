@@ -13,7 +13,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// Home feed data (profile, transactions, quick-pay, blog, watchlist, promo)
+// Home feed data (profile, transactions, quick-pay, blog, watchlist, promo, aviso)
 import useHomeFeed from './useHomeFeed'
 
 // UI Particles
@@ -25,6 +25,7 @@ import BlogPostCard from '../../ui/BlogPostCard'
 import QPSectionHeader from '../../ui/particles/QPSectionHeader'
 import WatchlistCard from '../../ui/WatchlistCard'
 import PromoBanner from '../../ui/PromoBanner'
+import AnnouncementBanner from '../../ui/AnnouncementBanner'
 import CashDeliveryCard from '../../ui/CashDeliveryCard'
 import TransactionSkeleton from '../../ui/TransactionSkeleton'
 import EmptyTransactions from '../../ui/EmptyTransactions'
@@ -214,6 +215,7 @@ const Home = ({ navigation }: HomeProps) => {
 		latestBlogPosts,
 		watchlistData,
 		promo,
+		announcement,
 		updateInfo,
 		txLoading,
 		txError,
@@ -235,6 +237,11 @@ const Home = ({ navigation }: HomeProps) => {
 			    `ReactElement` (props `unknown`) y ScrollView pide
 			    `ReactElement<RefreshControlProps>` — el elemento ES un RefreshControl */}
 			<ScrollView style={styles.scrollView} contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}>
+
+				{/* Aviso global del panel admin (misma fuente que la barra del
+				    dashboard web). Va ENCIMA de la promo y es otra cosa: esto es
+				    comunicación operativa y se descarta; la promo es una oferta */}
+				<AnnouncementBanner announcement={announcement} navigation={navigation as unknown as RootNav} />
 
 				{/* `promo` viaja como `unknown` desde promoApi (el endpoint no está
 				    tipado): se estrecha aquí a la forma que lee el banner */}

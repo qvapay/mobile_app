@@ -7,6 +7,9 @@
 		"push": {
 			"text": "Receba alertas dos seus pagamentos na hora",
 			"action": "Ativar"
+		},
+		"announcement": {
+			"dismiss": "Dispensar aviso"
 		}
 	},
 	"sections": {

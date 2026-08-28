@@ -2,12 +2,12 @@
  * Tests del feed de Home sobre React Query.
  *
  * El test que de verdad importa es el del refresco EN PARALELO. La versión
- * anterior encadenaba seis `await` (perfil → transacciones → quick-pay → blog →
+ * anterior encadenaba los `await` (perfil → transacciones → quick-pay → blog →
  * watchlist → promo), acumulando una latencia tras otra en cada tirón; este
  * test falla contra aquella implementación y pasa contra esta.
  *
  * La técnica: se bloquea la respuesta de TODAS las APIs con una compuerta sin
- * resolver y se comprueba que las seis llamadas ya han salido. Encadenadas,
+ * resolver y se comprueba que todas las llamadas ya han salido. Encadenadas,
  * solo habría salido la primera.
  * @jest-environment node
  */
@@ -22,6 +22,7 @@ jest.mock('../../api/transferApi', () => ({
 jest.mock('../../api/blogApi', () => ({ blogApi: { getLatestPosts: jest.fn() } }))
 jest.mock('../../api/coinsApi', () => ({ coinsApi: { priceHistory: jest.fn() } }))
 jest.mock('../../api/promoApi', () => ({ promoApi: { getPromo: jest.fn() } }))
+jest.mock('../../api/announcementApi', () => ({ announcementApi: { getAnnouncement: jest.fn() } }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -32,6 +33,7 @@ import { transferApi } from '../../api/transferApi'
 import { blogApi } from '../../api/blogApi'
 import { coinsApi } from '../../api/coinsApi'
 import { promoApi } from '../../api/promoApi'
+import { announcementApi } from '../../api/announcementApi'
 import useHomeFeed from './useHomeFeed'
 
 // Llamadas registradas y compuerta que retiene las respuestas
@@ -51,6 +53,7 @@ const wire = () => {
 	transferApi.getLatestSentTransfers = record('quickpay', ok([]))
 	blogApi.getLatestPosts = record('blog', ok([]))
 	promoApi.getPromo = record('promo', ok(null))
+	announcementApi.getAnnouncement = record('announcement', ok(null))
 	// La watchlist pide 4 monedas; cuenta como una sola fuente
 	coinsApi.priceHistory = jest.fn(async () => {
 		started.push('watchlist')
@@ -97,7 +100,7 @@ afterEach(async () => {
 })
 
 describe('refresco', () => {
-	test('las seis fuentes salen EN PARALELO, no encadenadas', async () => {
+	test('todas las fuentes salen EN PARALELO, no encadenadas', async () => {
 		const feed = await renderFeed()
 
 		// Las APIs retienen su respuesta 100ms. La compuerta se abre SOLA: si
@@ -115,7 +118,7 @@ describe('refresco', () => {
 
 		// Encadenado, a los 20ms solo constaría la primera fuente
 		expect(new Set(started)).toEqual(
-			new Set(['profile', 'transactions', 'quickpay', 'blog', 'watchlist', 'promo'])
+			new Set(['profile', 'transactions', 'quickpay', 'blog', 'watchlist', 'promo', 'announcement'])
 		)
 
 		await act(async () => { await refreshDone })
@@ -142,9 +145,9 @@ describe('forma devuelta', () => {
 	test('mantiene el contrato que consume Home.jsx', async () => {
 		const feed = await renderFeed()
 		expect(Object.keys(feed.current).sort()).toEqual([
-			'dismissUpdate', 'latestBlogPosts', 'latestSentTransfersUsers',
-			'latestTransactions', 'onRefresh', 'promo', 'refreshing',
-			'txError', 'txLoading', 'updateInfo', 'watchlistData',
+			'announcement', 'dismissUpdate', 'latestBlogPosts',
+			'latestSentTransfersUsers', 'latestTransactions', 'onRefresh', 'promo',
+			'refreshing', 'txError', 'txLoading', 'updateInfo', 'watchlistData',
 		])
 	})
 
@@ -154,5 +157,38 @@ describe('forma devuelta', () => {
 		expect(Array.isArray(feed.current.latestSentTransfersUsers)).toBe(true)
 		expect(Array.isArray(feed.current.latestBlogPosts)).toBe(true)
 		expect(Array.isArray(feed.current.watchlistData)).toBe(true)
+	})
+})
+
+describe('aviso global', () => {
+
+	// React Query notifica vía notifyManager (setTimeout): sin asentar con un
+	// temporizador real, el harness lee el render anterior al de los datos
+	const settle = async () => { await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) }) }
+
+	test('un aviso vigente llega tal cual a la pantalla', async () => {
+		const aviso = { id: '7', title: 'Mantenimiento', dismiss_days: 3, ends_at: null }
+		announcementApi.getAnnouncement = jest.fn(async () => ok(aviso))
+		const feed = await renderFeed()
+		await settle()
+		expect(feed.current.announcement).toEqual(aviso)
+	})
+
+	test('uno con ends_at futuro también', async () => {
+		const aviso = { id: '8', title: 'Vigente', dismiss_days: 0, ends_at: new Date(Date.now() + 60_000).toISOString() }
+		announcementApi.getAnnouncement = jest.fn(async () => ok(aviso))
+		const feed = await renderFeed()
+		await settle()
+		expect(feed.current.announcement).toEqual(aviso)
+	})
+
+	test('uno YA caducado no se resucita desde la caché persistida', async () => {
+		// El backend nunca lo mandaría, pero en arranque en frío la pantalla pinta
+		// lo persistido antes de revalidar: ahí `ends_at` es la única defensa
+		const aviso = { id: '9', title: 'Terminado', dismiss_days: 0, ends_at: new Date(Date.now() - 60_000).toISOString() }
+		announcementApi.getAnnouncement = jest.fn(async () => ok(aviso))
+		const feed = await renderFeed()
+		await settle()
+		expect(feed.current.announcement).toBeNull()
 	})
 })

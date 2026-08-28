@@ -71,13 +71,13 @@ GestureHandlerRootView
 
 **Todas las LECTURAS de servidor viven en React Query** (queries por dominio en módulos `*Queries.js` junto a sus pantallas); las mutaciones de dinero y los flujos en vivo siguen siendo llamadas directas a `api/` (ver "Fuera a propósito"). Piezas centrales:
 
-- **`api/unwrap.js`**: traduce el contrato `{ success, data, error, status }` de los 15 módulos de `api/` a valor-o-`ApiError` (React Query necesita promesas que rechazan). `shouldRetry`: nunca 4xx (**excepto 429**, el único que el tiempo arregla — el token bucket del backend se rellena solo), siempre 5xx **y `status: undefined`** (500/red llegan sin código porque el interceptor rechaza sin `.response`). `retryDelay`: 429 espera 2.5s fijos (calzado con las ventanas de refill de 5s del backend); el resto backoff exponencial acotado a 5s. Máx 2 reintentos.
+- **`api/unwrap.js`**: traduce el contrato `{ success, data, error, status }` de los 16 módulos de `api/` a valor-o-`ApiError` (React Query necesita promesas que rechazan). `shouldRetry`: nunca 4xx (**excepto 429**, el único que el tiempo arregla — el token bucket del backend se rellena solo), siempre 5xx **y `status: undefined`** (500/red llegan sin código porque el interceptor rechaza sin `.response`). `retryDelay`: 429 espera 2.5s fijos (calzado con las ventanas de refill de 5s del backend); el resto backoff exponencial acotado a 5s. Máx 2 reintentos.
 - **`api/queryClient.js`**: `staleTime: 0` por defecto (cada montaje revalida; las queries que pueden permitirse datos viejos lo suben caso a caso), `gcTime` 24h (DEBE cubrir la persistencia o el GC ganaría al persister), `refetchOnWindowFocus` off (no hay foco de ventana en RN). **Persister** a AsyncStorage (`@qpquery:v1`, 24h, `buster` = versión de app.json) con dos políticas globales: `shouldPersistQuery` excluye queries con **`meta: { noPersist: true }`** (histórico filtrado/buscado, carrito asistido, disponibilidad IAP), y el `serialize` **recorta toda query infinita a su primera página** antes de escribirla (persistir N páginas obligaría al próximo arranque a revalidarlas todas en cadena).
 - **`api/queryUtils.js`**: `trimToFirstPage` — el pull-to-refresh de una query infinita hace `setQueryData(key, trimToFirstPage)` + `refetch()` para que un refresh sea UNA petición y no una cadena de refetches por página (Transactions, MarketOrders).
 - **Logout**: `clearAuthData` hace `queryClient.clear()` + `persister.removeClient()` — sin esto, los datos de la cuenta anterior sobrevivirían en memoria y en disco.
 
 **Raíces de claves** (jerárquicas: `refetchQueries(root)` refresca el dominio entero):
-`['home', …]` feed del Home (transactions/quickpay/blog/watchlist/promo/profile) | `['transactions','list',filters]` histórico infinito (los filtros VAN EN LA CLAVE: filtrar = cambiar de query) | `['savings', …]` resumen + movimientos | `['invest', …]` dashboard + stocks/históricos | `['coins', kind|history]` catálogo de monedas e históricos | `['store', …]` catálogos Zendit + compras | `['market', …]` Seller Shops | `['assisted', …]` Personal Shopper | `['p2p', …]` monedas/medias/snapshot/perfiles | `['topup', …]` recargas IAP | `['user','referrals']` | `['contacts']`
+`['home', …]` feed del Home (transactions/quickpay/blog/watchlist/promo/announcement/profile) | `['transactions','list',filters]` histórico infinito (los filtros VAN EN LA CLAVE: filtrar = cambiar de query) | `['savings', …]` resumen + movimientos | `['invest', …]` dashboard + stocks/históricos | `['coins', kind|history]` catálogo de monedas e históricos | `['store', …]` catálogos Zendit + compras | `['market', …]` Seller Shops | `['assisted', …]` Personal Shopper | `['p2p', …]` monedas/medias/snapshot/perfiles | `['topup', …]` recargas IAP | `['user','referrals']` | `['contacts']`
 
 **Queries compartidas entre pantallas** (misma clave = una petición y una caché): `['home','quickpay']` (fila de pago rápido del Home + carrusel de Send — vive en `hooks/useQuickPayQuery.js` para no arrastrar el feed entero a los tests de Send), `['savings','summary']` (`hooks/useSavingsSummaryQuery.js`: BalanceCard + Invest + Savings — un depósito/retiro invalida `['savings']` y las tres superficies se actualizan), `['coins', kind]` (`hooks/useCoins.js`, reescrito sobre RQ: Add/Withdraw/P2PCreate/PaymentMethods + picker del P2P), `['invest','coins']` (dashboard + CoinDetail), `['store','topup-countries']` (portada de tienda + PhoneTopupIndex).
 
@@ -138,7 +138,7 @@ The client also owns three Keychain services and exports their helpers:
 | `com.qvapay.biometrics` | Face ID / Touch ID login creds (email + password)          |
 | `com.qvapay.applock`    | App-lock PIN                                               |
 
-**API modules** (15 total):
+**API modules** (16 total):
 - `authApi.js`: login (with 2FA), register, confirmRegistration, requestPin, logout, resetPassword, passkey register/verify
 - `userApi.js`: searchUser, getUserProfile (`/user/extended`), updateUser, KYC, verifyPhone/Telegram, password, deletion, payment methods, contacts, referrals, gold, avatar
 - `p2pApi.js`: index, show, create, cancel, markPaid, confirmReceived, getChat, sendChat, rateOffer, user profile
@@ -151,7 +151,8 @@ The client also owns three Keychain services and exports their helpers:
 - `shopApi.js`: assisted shopping (Personal Shopper) — parse store URL (`POST /shop/assisted-shopping/product`), product by uuid, recent shelf, cart (GET/POST + DELETE `/cart/product/{uuid}`; quantity encoded by repetition server-side), tax quote (`POST /checkout/quote` — state tax rates live server-side only), checkout, orders (`GET /orders`, `/orders/{id}`), shipping addresses CRUD (`/user/shipping-addresses`). Amazon fee 0% / eBay +1%; US-only shipping; $20 minimum
 - `topupApi.js`: store-billed mobile top-ups (Google Play / App Store consumable one-time products). `/topup/products` (backend availability), `/topup/validate-receipt` (backend verifies receipt + executes the top-up; only a `success` response lets the client consume via `finishTransaction({ purchase, isConsumable: true })` — `pending`/202 is consumed server-side), `/topup/history`, `/topup/{id}/status`. SKU catalog in `helpers/iap.js` (`TOPUP_SKUS`/`TOPUP_CATALOG`)
 - `coinsApi.js`: enabled coins (in/out filters)
-- `promoApi.js`: promo banners shown across the app
+- `promoApi.js`: promo banners shown across the app (oferta comercial; hoy una constante en el backend)
+- `announcementApi.js`: aviso global vigente (`GET /announcement`) — comunicación operativa gestionada desde `/admin/announcements` de qpweb, la MISMA fuente que la barra de avisos del dashboard web. No confundir con `promoApi`: el aviso se descarta (`dismiss_days`, clave por id en AsyncStorage) y tiene ventana de fechas
 - `blogApi.js`: WordPress REST API (uses native `fetch`, not axios)
 
 ### i18n (es/en/pt-BR — i18next)
@@ -242,7 +243,7 @@ OneSignal app ID is hardcoded in `App.tsx`: `8f69c017-b7e7-40b2-903b-11ce7ac5cc8
 
 **Store** (`/api/store/`): GET `/store/voucher-catalog` (mode params: `countries`/`featured`/`favorites`/`categories`/`country`+`brand`), POST `/store/voucher/purchase`, GET `/store/topup-catalog`, POST `/store/topup`, POST `/store/phone_package` (Cubacel), GET `/store/my`, GET `/store/my/{id}`, GET `/store/giftcards`
 
-**Other**: POST `/withdraw`, POST `/topup`, GET `/coins/v2`, POST `/saving/deposit`, POST `/saving/withdraw`, GET `/pay/{uuid}`, POST `/pay/{uuid}`
+**Other**: POST `/withdraw`, POST `/topup`, GET `/coins/v2`, POST `/saving/deposit`, POST `/saving/withdraw`, GET `/pay/{uuid}`, POST `/pay/{uuid}`, GET `/announcement`
 
 **Merchant API** (`/api/v2/`): balance, create_invoice, modify_invoice, charge, transactions, authorize_payments
 

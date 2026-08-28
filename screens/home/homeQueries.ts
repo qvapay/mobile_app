@@ -8,6 +8,7 @@ import { transferApi } from '../../api/transferApi'
 import { blogApi } from '../../api/blogApi'
 import { coinsApi } from '../../api/coinsApi'
 import { promoApi } from '../../api/promoApi'
+import { announcementApi } from '../../api/announcementApi'
 
 import { unwrap } from '../../api/unwrap'
 
@@ -97,5 +98,16 @@ export const useWatchlistQuery = () => useQuery({
 export const usePromoQuery = () => useQuery({
 	queryKey: ['home', 'promo'],
 	queryFn: async () => unwrap(await promoApi.getPromo()),
+	staleTime: 5 * 60 * 1000,
+})
+
+/**
+ * Aviso global vigente, o null. Distinto de la promo: esto es comunicación
+ * operativa gestionada desde el panel admin de qpweb (`/admin/announcements`),
+ * la misma que pinta la barra del dashboard web.
+ */
+export const useAnnouncementQuery = () => useQuery({
+	queryKey: ['home', 'announcement'],
+	queryFn: async () => unwrap(await announcementApi.getAnnouncement()),
 	staleTime: 5 * 60 * 1000,
 })
