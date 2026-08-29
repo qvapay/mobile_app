@@ -362,7 +362,7 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	)
 
 	if (!p2pEnabled || requirement) {
-		return <P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} serverMissing={requirement} />
+		return <P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} serverMissing={requirement} onRetry={requirement ? onRefresh : undefined} />
 	}
 
 	return (

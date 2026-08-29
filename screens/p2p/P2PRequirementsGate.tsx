@@ -27,11 +27,16 @@ type P2PRequirementsGateProps = {
 	 * cacheada del usuario diga que está hecho.
 	 */
 	serverMissing?: P2PRequirementKey | null
+	/**
+	 * Callback opcional para reintentar el acceso tras completar un requisito
+	 * (red de seguridad cuando serverMissing indica desfase con el backend).
+	 */
+	onRetry?: () => void
 }
 
 // Shown when the user hasn't met the P2P requirements (KYC + phone + telegram).
 // Shared by the P2P marketplace and the create-offer screens.
-const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerStyles, serverMissing = null }: P2PRequirementsGateProps) => {
+const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerStyles, serverMissing = null, onRetry }: P2PRequirementsGateProps) => {
 
 	const { t } = useTranslation()
 
@@ -95,6 +100,15 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 						{t('p2p.requirements.accountBlocked')}
 					</Text>
 				)}
+
+				{onRetry && (
+					<QPPressable
+						style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+						onPress={onRetry}
+					>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryButtonText }]}>{t('p2p.requirements.retry')}</Text>
+					</QPPressable>
+				)}
 			</ScrollView>
 		</View>
 	)
@@ -112,6 +126,15 @@ const styles = StyleSheet.create({
 		padding: 16,
 		borderRadius: 12,
 		marginBottom: 10,
+		width: '100%',
+	},
+	retryButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		padding: 14,
+		borderRadius: 12,
+		marginTop: 16,
 		width: '100%',
 	},
 })

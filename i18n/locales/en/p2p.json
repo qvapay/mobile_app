@@ -43,6 +43,7 @@
 		"title": "P2P requirements",
 		"subtitle": "Complete the following steps to access the P2P market ({{done}}/3)",
 		"accountBlocked": "If you already completed these steps, your account doesn't have P2P access yet. Contact us from Help and we'll review it.",
+		"retry": "Try Again",
 		"kyc": {
 			"label": "Identity verification",
 			"description": "Complete identity verification to trade on P2P"

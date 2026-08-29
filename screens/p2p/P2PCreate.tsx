@@ -118,7 +118,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 	// El `!` es solo de tipos: la pantalla vive tras el gate de sesión iniciada
 	// Los mismos cuatro requisitos que gatean el mercado: /p2p/create los vuelve
 	// a comprobar, así que sin esto el formulario se rellena para nada
-	const [p2pEnabled] = useState(() => missingP2PRequirements(user!).length === 0)
+	const p2pEnabled = useMemo(() => missingP2PRequirements(user!).length === 0, [user])
 
 	// Clave de idempotencia del intento: sobrevive a timeouts, 5xx y toques
 	// repetidos — solo rota tras éxito confirmado (evita ofertas dobles y el
