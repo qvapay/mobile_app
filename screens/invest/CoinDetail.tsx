@@ -194,7 +194,10 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 	const isPositive = change >= 0
 	const trendColor = isPositive ? theme.colors.successText : theme.colors.danger
 	// Cifras del héroe (el punto bajo el dedo manda durante el scrubbing)
-	const heroPrice = formatPriceDigits(scrub ? scrub.value : price)
+	const heroValue = Number(scrub ? scrub.value : price)
+	const heroPrice = formatPriceDigits(heroValue)
+	// Las monedas por debajo de $1 necesitan 4 decimales para no colapsar a 0.00
+	const heroFractionDigits = Math.abs(heroValue) >= 1 ? 2 : 4
 
 	// Cambiar de timeframe es cambiar de query; el header no cambia
 	const handleTimeframeChange = useCallback((tf: string) => { setTimeframe(tf) }, [])
@@ -222,7 +225,11 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 					{heroPrice === '—' ? (
 						<QPFitText style={[textStyles.amount]}>{heroPrice}</QPFitText>
 					) : (
-						<QPBalance formattedAmount={heroPrice} fontSize={theme.typography.fontSize.display} theme={theme} style={styles.heroPrice} />
+						/* Durante el scrubbing el precio debe seguir al dedo AL
+						   INSTANTE: animar cada frame sería a la vez ilegible y
+						   caro, así que el rodillo solo entra al soltar o al
+						   cambiar de timeframe */
+						<QPBalance animated={!scrub} amount={heroValue} fractionDigits={heroFractionDigits} fontSize={theme.typography.fontSize.display} theme={theme} style={styles.heroPrice} />
 					)}
 					{scrub ? (
 						<View style={[styles.changeBadge, { backgroundColor: theme.colors.surface }]}>

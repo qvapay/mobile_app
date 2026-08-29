@@ -1,6 +1,6 @@
 import { FlashList } from "@shopify/flash-list"
 import type { FlashListProps } from "@shopify/flash-list"
-import { useEffect, useReducer, useCallback, useMemo, useRef } from "react"
+import { useEffect, useLayoutEffect, useReducer, useCallback, useMemo, useRef } from "react"
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ActivityIndicator } from "react-native"
 import { useTranslation } from "react-i18next"
 
@@ -298,8 +298,13 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	// Configure header buttons locally to avoid non-serializable params.
 	// El switch Comprar/Vender vive en el TopBar como headerTitle (patrón de
 	// los P2P de la industria: el lado del mercado se elige arriba del todo,
-	// no entre los filtros)
-	useEffect(() => {
+	// no entre los filtros).
+	// useLayoutEffect y NO useEffect: es la convención del repo para setOptions
+	// (Transactions, Transaction, Onboard, PhoneTopupBrand…), y evita que el
+	// header JS de Android llegue a pintarse con la forma heredada de MainStack.
+	// OJO: en iOS 26+ el header es nativo y esto NO evita el brinco del avatar
+	// — ver la nota de abajo.
+	useLayoutEffect(() => {
 		navigation.setOptions({
 			// El header reparte el ancho entre izquierda/título/derecha, así que
 			// con 1 elemento a la izquierda y 2 a la derecha el título nunca cae
