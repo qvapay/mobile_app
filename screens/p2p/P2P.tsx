@@ -19,6 +19,7 @@ import P2POffer from "../../ui/P2POfferItem"
 import QPCoinPicker from "../../ui/QPCoinPicker"
 import QPSwitch from "../../ui/particles/QPSwitch"
 import P2PRequirementsGate from "./P2PRequirementsGate"
+import { missingP2PRequirements } from "./p2pRequirements"
 import P2PFilterBar from "./P2PFilterBar"
 import P2PFiltersModal from "./P2PFiltersModal"
 import useP2PFilters, { SORT_OPTIONS } from "./useP2PFilters"
@@ -141,9 +142,13 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	// Bottom bar (Android scroll-hide)
 	const { bottomBarVisible } = useBottomBar()
 
-	// p2p access gate
+	// p2p access gate: el backend exige los CUATRO requisitos antes de servir
+	// /p2p/index (cuenta habilitada, KYC, teléfono y Telegram). Comprobarlos
+	// aquí evita pedir un listado que va a volver 400 — y el 400 que llegue
+	// igualmente (perfil local desfasado) lo traduce `requirement`.
 	// El `!` es solo de tipos: el tab solo se monta con sesión iniciada
-	const p2pEnabled = user!.p2p_enabled
+	const missingRequirements = useMemo(() => missingP2PRequirements(user!), [user])
+	const p2pEnabled = missingRequirements.length === 0
 
 	// Filters + derived API filters/badges
 	const initialCoin = route?.params?.coin ? { tick: route.params.coin, name: route.params.coinName || route.params.coin, logo: route.params.coin } : null
@@ -153,7 +158,7 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	// Offers list + pagination + fetch
 	// Todos los filtros son de servidor: cualquiera de ellos debe refetchear
 	const quickKey = JSON.stringify(apiFilters)
-	const { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, marketAverages, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
+	const { p2pOffers, isLoading, error, requirement, refreshing, availableCoins, loadingCoins, marketAverages, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
 
 	// Modal visibility
 	const [modals, dispatchModals] = useReducer(modalsReducer, { showFiltersModal: false, showCoinPicker: false, showSortMenu: false })
@@ -356,7 +361,9 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 		<P2POffer offer={item} navigation={navigation as unknown as RootNav} marketAverage={marketAverages?.[item.coin]} />
 	)
 
-	if (!p2pEnabled) { return <P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} /> }
+	if (!p2pEnabled || requirement) {
+		return <P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} serverMissing={requirement} />
+	}
 
 	return (
 		<View style={containerStyles.subContainer}>

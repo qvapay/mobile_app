@@ -103,6 +103,22 @@ describe('errors', () => {
 		expect(result.current.error).toBe('Error de conexión')
 		expect(toast.error).toHaveBeenCalledWith('Error de conexión')
 	})
+
+	// El 400 por requisitos NO es un fallo de carga: la pantalla cambia a la
+	// portada de requisitos, así que no se pone un toast rojo encima
+	test('un 400 por KYC se expone como requisito y no se toastea', async () => {
+		p2pApi.index.mockResolvedValue({ success: false, status: 400, error: 'Debes completar el KYC para acceder al P2P' })
+		const { result } = await renderOffers()
+		expect(result.current.requirement).toBe('kyc')
+		expect(toast.error).not.toHaveBeenCalled()
+	})
+
+	test('un 400 de validación de filtros sigue siendo un fallo de carga', async () => {
+		p2pApi.index.mockResolvedValue({ success: false, status: 400, error: "Parámetro 'page' inválido" })
+		const { result } = await renderOffers()
+		expect(result.current.requirement).toBeNull()
+		expect(toast.error).toHaveBeenCalledWith("Parámetro 'page' inválido")
+	})
 })
 
 describe('pagination', () => {

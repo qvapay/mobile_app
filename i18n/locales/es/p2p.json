@@ -42,6 +42,7 @@
 	"requirements": {
 		"title": "Requisitos para P2P",
 		"subtitle": "Completa los siguientes pasos para acceder al mercado P2P ({{done}}/3)",
+		"accountBlocked": "Si ya completaste estos pasos, tu cuenta aún no tiene acceso al P2P. Escríbenos desde Ayuda y lo revisamos.",
 		"kyc": {
 			"label": "Verificación de identidad",
 			"description": "Completa la verificación de identidad para operar en P2P"

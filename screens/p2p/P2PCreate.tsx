@@ -12,6 +12,7 @@ import QPCoinPicker from "../../ui/QPCoinPicker"
 import P2PCreateForm from "./P2PCreateForm"
 import SavedMethodsModal from "./SavedMethodsModal"
 import P2PRequirementsGate from "./P2PRequirementsGate"
+import { missingP2PRequirements } from "./p2pRequirements"
 
 // Toast
 import { toast } from "sonner-native"
@@ -115,7 +116,9 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 	const [isSending, setIsSending] = useState(false)
 	const [workingForm, setWorkingForm] = useState<Record<string, string>>({})
 	// El `!` es solo de tipos: la pantalla vive tras el gate de sesión iniciada
-	const [p2pEnabled] = useState(user!.p2p_enabled)
+	// Los mismos cuatro requisitos que gatean el mercado: /p2p/create los vuelve
+	// a comprobar, así que sin esto el formulario se rellena para nada
+	const [p2pEnabled] = useState(() => missingP2PRequirements(user!).length === 0)
 
 	// Clave de idempotencia del intento: sobrevive a timeouts, 5xx y toques
 	// repetidos — solo rota tras éxito confirmado (evita ofertas dobles y el
