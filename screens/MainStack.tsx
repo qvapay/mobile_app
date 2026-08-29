@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pressable, View, Text, Image, Platform } from 'react-native'
+import { Pressable, View, Text, Platform } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -29,9 +29,6 @@ const Tab = (supportsLiquidGlass
 // Routes
 import { ROUTES } from '../routes'
 
-// Helpers
-import { displayName } from '../helpers/displayName'
-
 // Tab Screens
 import Home from './home/Home'
 import Invest from './invest/Invest'
@@ -50,7 +47,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 
 // UI Components
-import QPAvatar from '../ui/particles/QPAvatar'
+import HeaderIdentity from '../ui/HeaderIdentity'
 import ErrorBoundary from '../ui/ErrorBoundary'
 import { BottomBarProvider } from '../ui/BottomBarContext'
 import AnimatedTabBar from '../ui/AnimatedTabBar'
@@ -99,7 +96,6 @@ const MainStack = ({ navigation }: MainStackProps) => {
 	const insets = useSafeAreaInsets()
 	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
 	const textStyles = useMemo(() => createTextStyles(theme), [theme])
-	const qvapayLogo = theme.isDark ? require('../assets/images/ui/qvapay-logo-white.png') : require('../assets/images/ui/logo-qvapay.png')
 
 	// Memoized screen options to prevent liquid glass flash on iOS
 	// TopBar height: 56 + insets.top
@@ -111,9 +107,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 		headerTintColor: theme.colors.primaryText,
 		// Android fallback
 		headerLeft: () => (
-			<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-				<QPAvatar user={user} size={32} />
-			</Pressable>
+			<HeaderIdentity user={user} style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} />
 		),
 		headerRight: () => (
 			<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
@@ -125,9 +119,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 			unstable_headerLeftItems: () => [{
 				type: 'custom',
 				element: (
-					<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-						<QPAvatar user={user} size={28} />
-					</Pressable>
+					<HeaderIdentity user={user} native onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} />
 				),
 				hidesSharedBackground: true,
 			}],
@@ -165,42 +157,6 @@ const MainStack = ({ navigation }: MainStackProps) => {
 	const homeOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.home') : '',
 		tabBarIcon: getTabIcon(ROUTES.HOME_SCREEN),
-		// Android fallback
-		headerLeft: () => (
-			<Pressable style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)}>
-				<QPAvatar user={user} size={36} />
-				<View style={{ marginLeft: 10 }}>
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-						<Text style={textStyles.h4}>{displayName(user)}</Text>
-						{user!.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 16, height: 16 }} />)}
-						{user!.golden_check && (<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />)}
-						{user!.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 16, height: 16 }} />)}
-					</View>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -5 }]}>@{user!.username}</Text>
-				</View>
-			</Pressable>
-		),
-		// iOS 26+ native header items (liquid glass compatible)
-		...(supportsLiquidGlass && {
-			unstable_headerLeftItems: () => [{
-				type: 'custom',
-				element: (
-					<Pressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-						<QPAvatar user={user} size={36} />
-						<View style={{ marginLeft: 8 }}>
-							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-								<Text style={textStyles.h4}>{displayName(user)}</Text>
-								{user!.kyc && (<Image source={require('../assets/images/ui/blue-badge.png')} style={{ width: 14, height: 14 }} />)}
-								{user!.golden_check && (<FontAwesome6 name="crown" size={11} color={theme.colors.gold} iconStyle="solid" />)}
-								{user!.role === 'admin' && (<Image source={qvapayLogo} style={{ width: 14, height: 14 }} />)}
-							</View>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: -3 }]}>@{user!.username}</Text>
-						</View>
-					</Pressable>
-				),
-				hidesSharedBackground: true,
-			}],
-		}),
 		// Android fallback
 		headerRight: () => (
 			<View style={containerStyles.headerRight}>
@@ -252,7 +208,7 @@ const MainStack = ({ navigation }: MainStackProps) => {
 				},
 			],
 		}),
-	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, qvapayLogo, t])
+	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, t])
 
 	const investOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.invest') : '',
@@ -266,10 +222,31 @@ const MainStack = ({ navigation }: MainStackProps) => {
 		tabBarIcon: getTabIcon(ROUTES.KEYPAD_SCREEN),
 	}), [showLabels, t])
 
+	// El switch Comprar/Vender vive centrado en el header de P2P (P2P.tsx), así
+	// que aquí la identidad se reduce al avatar — mismo tamaño que en el resto
+	// de pestañas para que la barra siga leyéndose igual.
 	const p2pOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.p2p') : '',
 		tabBarIcon: getTabIcon(ROUTES.P2P_SCREEN),
-	}), [showLabels, t])
+		// P2P.tsx lo repite en su setOptions (junto al switch), pero ahí llega un
+		// frame tarde: sin esto el header entra alineado a la izquierda (default
+		// de Android) y se recoloca al montar la pantalla.
+		headerTitleAlign: 'center' as const,
+		// Android fallback
+		headerLeft: () => (
+			<HeaderIdentity user={user} avatarOnly style={containerStyles.headerLeft} onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} />
+		),
+		// iOS 26+ native header items (liquid glass compatible)
+		...(supportsLiquidGlass && {
+			unstable_headerLeftItems: () => [{
+				type: 'custom',
+				element: (
+					<HeaderIdentity user={user} avatarOnly native onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK)} />
+				),
+				hidesSharedBackground: true,
+			}],
+		}),
+	}), [showLabels, containerStyles, user, navigation, t])
 
 	const storeOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.store') : '',
