@@ -134,7 +134,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 				{/* Page 1: Main Balance */}
 				<Pressable onPress={toggleShowBalance} style={[styles.page, { width: cardWidth }]}>
 					{showBalance ? (
-						<QPBalance formattedAmount={Number(balance || 0).toFixed(2)} fontSize={60} theme={theme} />
+						<QPBalance amount={Number(balance || 0)} fontSize={60} theme={theme} />
 					) : (
 						<QPFitText style={[textStyles.amount, { color: theme.colors.primaryText }]}>
 							{getHiddenBalance()}
@@ -146,7 +146,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 				<Pressable onPress={() => navigation?.navigate('Savings')} style={[styles.page, { width: cardWidth }]} >
 					{showBalance ? (
 						<View style={styles.savingsContent}>
-							<QPBalance formattedAmount={Number(savings.balance ?? 0).toFixed(2)} fontSize={60} theme={theme} />
+							<QPBalance amount={Number(savings.balance ?? 0)} fontSize={60} theme={theme} />
 							<Text style={[styles.rateLabel, { color: theme.colors.successText, fontFamily: theme.typography.fontFamily.medium }]}>
 								{savings.rate}%
 							</Text>

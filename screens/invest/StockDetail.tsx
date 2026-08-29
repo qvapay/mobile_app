@@ -136,7 +136,7 @@ const StockDetail = ({ route }: StockDetailProps) => {
 					{/* El "$" lo pinta QPBalance aparte: gris, semiBold y un paso menor
 					    que las cifras — mismo héroe que el balance del Home */}
 					<QPBalance
-						formattedAmount={price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+						amount={price}
 						fontSize={theme.typography.fontSize.display}
 						theme={theme}
 						style={styles.heroPrice}

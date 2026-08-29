@@ -207,7 +207,7 @@ const Savings = ({ route }: SavingsProps) => {
 					{/* Mismo particle que el BalanceCard del Home: símbolo gris menor,
 					    cifras en negro/blanco (o danger si hay deuda — QPBalance lo
 					    detecta por el prefijo "-") */}
-					<QPBalance formattedAmount={savingsBalance.toFixed(2)} fontSize={60} theme={theme} style={styles.heroBalance} />
+					<QPBalance amount={savingsBalance} fontSize={60} theme={theme} style={styles.heroBalance} />
 					<Text style={[styles.heroRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
 						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('invest.common.perYear')}
 					</Text>

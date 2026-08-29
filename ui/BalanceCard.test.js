@@ -66,8 +66,9 @@ beforeEach(() => {
 test('shows the main balance and the fetched savings balance with its APY', async () => {
 	const tree = await renderCard()
 	const balances = tree.root.findAllByType('QPBalance')
-	expect(balances[0].props.formattedAmount).toBe('123.45')
-	expect(balances[1].props.formattedAmount).toBe('50.00')
+	// El héroe recibe el importe CRUDO: formatea y rueda los dígitos él mismo
+	expect(balances[0].props.amount).toBe(123.45)
+	expect(balances[1].props.amount).toBe(50)
 	expect(JSON.stringify(tree.toJSON())).toContain('"4.2"') // rendered next to the % sign
 })
 
@@ -102,5 +103,5 @@ test('a failed savings fetch leaves the card rendering with defaults', async () 
 	savingApi.getSummary.mockResolvedValue({ success: false, error: 'x' })
 	const tree = await renderCard()
 	const balances = tree.root.findAllByType('QPBalance')
-	expect(balances[1].props.formattedAmount).toBe('0.00')
+	expect(balances[1].props.amount).toBe(0)
 })
