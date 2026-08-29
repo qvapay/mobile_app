@@ -14,6 +14,9 @@ import { toast } from "sonner-native"
 // al cambiar de idioma
 import i18n from "../../i18n"
 
+import { requirementFromApiError } from "./p2pRequirements"
+
+import type { P2PRequirementKey } from "./p2pRequirements"
 import type { P2PIndexFilters } from "../../api/p2pApi"
 import type { P2POffer } from "../../types/domain"
 
@@ -24,6 +27,8 @@ type ListState = {
 	p2pOffers: P2POffer[]
 	isLoading: boolean
 	error: string | null
+	/** Requisito que el backend exige (400) — la pantalla pinta la portada de requisitos. */
+	requirement: P2PRequirementKey | null
 	refreshing: boolean
 }
 
@@ -36,7 +41,7 @@ type ListAction =
 	| { type: "setOffers", offers: P2POffer[] }
 	| { type: "hydrate", offers: P2POffer[] | null | undefined }
 	| { type: "appendOffers", offers: P2POffer[] }
-	| { type: "error", error: string }
+	| { type: "error", error: string, requirement?: P2PRequirementKey | null }
 	| { type: "finish" }
 
 /** Petición que llegó mientras había otra en vuelo (coalescing). */
@@ -46,13 +51,13 @@ type PendingFetch = { pageNum: number, isRefresh: boolean }
 // una sola petición (el índice permite 10/min por usuario)
 const FILTER_DEBOUNCE_MS = 350
 
-const initialList: ListState = { p2pOffers: [], isLoading: false, error: null, refreshing: false }
+const initialList: ListState = { p2pOffers: [], isLoading: false, error: null, requirement: null, refreshing: false }
 
 function listReducer(state: ListState, action: ListAction): ListState {
 	switch (action.type) {
 		case "start":
 			// kind: 'refresh' | 'more' | 'initial'
-			return { ...state, refreshing: action.kind === "refresh", isLoading: action.kind === "more", error: null }
+			return { ...state, refreshing: action.kind === "refresh", isLoading: action.kind === "more", error: null, requirement: null }
 		case "setOffers":
 			return { ...state, p2pOffers: action.offers }
 		case "hydrate":
@@ -61,7 +66,7 @@ function listReducer(state: ListState, action: ListAction): ListState {
 		case "appendOffers":
 			return { ...state, p2pOffers: [...state.p2pOffers, ...action.offers] }
 		case "error":
-			return { ...state, error: action.error }
+			return { ...state, error: action.error, requirement: action.requirement || null }
 		case "finish":
 			return { ...state, isLoading: false, refreshing: false }
 		default:
@@ -84,11 +89,13 @@ function listReducer(state: ListState, action: ListAction): ListState {
  *
  * @param params.apiFilters - Query params from useP2PFilters; read through a ref, so a changed
  *   object alone does NOT refetch — refreshes are driven by `quickKey` or explicit calls.
- * @param params.p2pEnabled - Gate from user settings; nothing is fetched while false.
+ * @param params.p2pEnabled - Gate de acceso (los cuatro requisitos, ver p2pRequirements);
+ *   nothing is fetched while false.
  * @param params.quickKey - Key derived from the quick filters (type, coin, sort, showMine);
  *   a change auto-refreshes page 1 (skipped on first render — the mount effect covers it).
  * @returns List API:
- *   `p2pOffers`, `isLoading` (initial/load-more), `error`, `refreshing`,
+ *   `p2pOffers`, `isLoading` (initial/load-more), `error`, `requirement` (el 400 del
+ *   backend por KYC/teléfono/Telegram/acceso, ya traducido a clave de requisito), `refreshing`,
  *   `availableCoins` + `loadingCoins` (coin picker),
  *   `fetchP2POffers(pageNum, isRefresh)` (used by the screen to apply modal filters),
  *   `onRefresh` (pull-to-refresh) and `handleLoadMore` (list end reached).
@@ -101,7 +108,7 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 }) {
 
 	const [list, dispatchList] = useReducer(listReducer, initialList)
-	const { p2pOffers, isLoading, error, refreshing } = list
+	const { p2pOffers, isLoading, error, requirement, refreshing } = list
 
 	// Pagination cursors — read only inside the fetch/load-more handlers, never rendered
 	const pageRef = useRef(1)
@@ -166,8 +173,13 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 				hasMoreRef.current = newData.length >= PAGE_SIZE
 				pageRef.current = pageNum
 			} else {
-				dispatchList({ type: "error", error: response.error || i18n.t('p2p.market.toasts.loadFailed') })
-				toast.error(response.error || i18n.t('p2p.market.toasts.loadFailed'))
+				// Un 400 por requisitos (KYC, teléfono, Telegram, acceso deshabilitado)
+				// no es un fallo de carga: la pantalla cambia a la portada de
+				// requisitos, así que no se grita con un toast rojo encima
+				const requirement = requirementFromApiError(response.error, response.status)
+				const message = response.error || i18n.t('p2p.market.toasts.loadFailed')
+				dispatchList({ type: "error", error: message, requirement })
+				if (!requirement) { toast.error(message) }
 			}
 		} catch (err) {
 			dispatchList({ type: "error", error: i18n.t('p2p.market.toasts.connectionError') })
@@ -234,5 +246,5 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 		if (!isLoading && hasMoreRef.current) { fetchP2POffers(pageRef.current + 1) }
 	}, [isLoading, fetchP2POffers])
 
-	return { p2pOffers, isLoading, error, refreshing, availableCoins, loadingCoins, marketAverages, fetchP2POffers, onRefresh, handleLoadMore }
+	return { p2pOffers, isLoading, error, requirement, refreshing, availableCoins, loadingCoins, marketAverages, fetchP2POffers, onRefresh, handleLoadMore }
 }

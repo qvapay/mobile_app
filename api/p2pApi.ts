@@ -115,7 +115,10 @@ export const p2pApi = {
 				const errorData = error.response.data
 				return {
 					success: false,
-					error: errorData.message || i18n.t('api.p2p.offersLoadFailed'),
+					// El backend manda la razón en `error` (los requisitos de acceso
+					// al P2P entre ellas); `message` es el nombre que usan otros
+					// endpoints — se aceptan los dos antes del genérico
+					error: errorData.error || errorData.message || i18n.t('api.p2p.offersLoadFailed'),
 					details: errorData,
 					status: error.response.status
 				}

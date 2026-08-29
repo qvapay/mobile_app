@@ -1,5 +1,5 @@
 /**
- * Behavior tests for the P2P offer creation screen: the p2p_enabled gate, the
+ * Behavior tests for the P2P offer creation screen: the requirements gate, the
  * coin catalog, publish validations (amounts, ratio fields from working_data),
  * the `POST /p2p/create` payload (201 contract) and the saved payment methods
  * picker — node environment with every collaborator mocked (see
@@ -79,7 +79,9 @@ const pressPublish = (tree) => act(async () => { publishButton(tree).props.onPre
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	useAuth.mockReturnValue({ user: { p2p_enabled: true, kyc: 1 } })
+	// Usuario que cumple los CUATRO requisitos del backend: con cualquiera sin
+	// cumplir, la pantalla es la portada de requisitos y no el formulario
+	useAuth.mockReturnValue({ user: { p2p_enabled: true, kyc: 1, phone_verified: 1, telegram_id: '123' } })
 	coinsApi.index.mockResolvedValue({ data: [] })
 	p2pApi.create.mockResolvedValue({ success: true, status: 201, data: { p2p: { uuid: 'offer-1' } } })
 	userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [] })
@@ -88,6 +90,15 @@ beforeEach(() => {
 describe('requirements gate and coin catalog', () => {
 	test('users without p2p_enabled only see the requirements gate', async () => {
 		useAuth.mockReturnValue({ user: { p2p_enabled: false } })
+		const tree = await renderCreate()
+		expect(tree.root.findByType('P2PRequirementsGate')).toBeDefined()
+		expect(tree.root.findAllByType('P2PCreateForm')).toHaveLength(0)
+	})
+
+	// /p2p/create comprueba los mismos cuatro requisitos que el mercado: sin KYC
+	// el formulario solo llevaría a un 400
+	test('sin KYC tampoco se llega al formulario', async () => {
+		useAuth.mockReturnValue({ user: { p2p_enabled: true, kyc: 0, phone_verified: 1, telegram_id: '123' } })
 		const tree = await renderCreate()
 		expect(tree.root.findByType('P2PRequirementsGate')).toBeDefined()
 		expect(tree.root.findAllByType('P2PCreateForm')).toHaveLength(0)
