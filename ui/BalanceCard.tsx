@@ -20,6 +20,9 @@ import { useSettings } from '../settings/SettingsContext'
 // Resumen de ahorros (React Query, query compartida con el dashboard de Invest)
 import { useSavingsSummaryQuery } from '../hooks/useSavingsSummaryQuery'
 
+// Espejo del resumen hacia los widgets de pantalla de inicio
+import { updateWidgetSavings, reloadWidgets } from '../helpers/widgetBridge'
+
 // Particles
 import QPBalance from './particles/QPBalance'
 import QPFitText from './particles/QPFitText'
@@ -76,6 +79,19 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 		balance: summary.data ? (summary.data.balance ?? 0) : null,
 		rate: summary.data?.rate ?? DEFAULT_RATE,
 	}
+
+	// El widget grande pinta un bloque de ahorro, y su dato NO viaja con el
+	// perfil (updateWidgetBalance): se publica aqui, que es la superficie que el
+	// widget replica y esta montada siempre que hay sesion. El await antes de
+	// recargar evita que reloadAllTimelines() adelante a la escritura.
+	useEffect(() => {
+		if (savings.balance == null) return
+		const publish = async () => {
+			await updateWidgetSavings(savings.balance, savings.rate)
+			reloadWidgets()
+		}
+		publish()
+	}, [savings.balance, savings.rate])
 
 	// Load balance visibility setting on component mount
 	useEffect(() => {

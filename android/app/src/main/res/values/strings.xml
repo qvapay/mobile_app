@@ -6,4 +6,14 @@
     <!-- Nombres de los canales de notificación de dinero (visibles en Ajustes de Android) -->
     <string name="channel_money_in">Dinero recibido</string>
     <string name="channel_money_out">Dinero enviado</string>
+    <!-- Etiquetas de los widgets de balance (las mismas de ui.actionButtons en i18n) -->
+    <string name="widget_action_deposit">Depositar</string>
+    <string name="widget_action_withdraw">Extraer</string>
+    <string name="widget_action_send">Enviar</string>
+    <string name="widget_action_trade">Comerciar</string>
+    <string name="widget_savings_title">Ahorros</string>
+    <string name="widget_savings_deposit">Depositar</string>
+    <string name="widget_savings_withdraw">Retirar</string>
+    <string name="widget_balance_label">Balance disponible</string>
+    <string name="widget_rate_suffix">%1$s%% anual</string>
 </resources>

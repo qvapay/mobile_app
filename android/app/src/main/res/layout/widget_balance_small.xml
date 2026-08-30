@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget de balance, tamano 4x2 (el layout por defecto del proveedor). -->
+<!-- Widget de balance, tamano 2x2. Ver widget_balance.xml (4x2) y widget_balance_large.xml (4x4). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_balance_container"
     android:layout_width="match_parent"
@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/app_name"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:textColor="@color/widget_secondary_text" />
 
         <TextView
@@ -57,7 +57,7 @@
             android:id="@+id/hero_symbol"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="5dp"
+            android:layout_marginEnd="3dp"
             android:adjustViewBounds="true"
             android:tint="@color/widget_secondary_text"
             android:contentDescription="@null" />
@@ -84,15 +84,15 @@
         <LinearLayout
             android:id="@+id/btn_deposit"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="46dp"
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
             android:background="@drawable/widget_tile">
 
             <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
                 android:src="@drawable/ic_widget_deposit"
                 android:contentDescription="@string/widget_action_deposit" />
 
@@ -101,33 +101,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:text="@string/widget_action_deposit"
-                android:textSize="10sp"
-                android:textColor="@color/widget_primary_text"
-                android:maxLines="1" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/btn_withdraw"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:layout_marginStart="10dp"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:background="@drawable/widget_tile">
-
-            <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
-                android:src="@drawable/ic_widget_withdraw"
-                android:contentDescription="@string/widget_action_withdraw" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:text="@string/widget_action_withdraw"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:textColor="@color/widget_primary_text"
                 android:maxLines="1" />
         </LinearLayout>
@@ -135,16 +109,16 @@
         <LinearLayout
             android:id="@+id/btn_send"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="46dp"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="8dp"
             android:orientation="vertical"
             android:gravity="center"
             android:background="@drawable/widget_tile">
 
             <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
                 android:src="@drawable/ic_widget_send"
                 android:contentDescription="@string/widget_action_send" />
 
@@ -153,33 +127,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:text="@string/widget_action_send"
-                android:textSize="10sp"
-                android:textColor="@color/widget_primary_text"
-                android:maxLines="1" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/btn_trade"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:layout_marginStart="10dp"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:background="@drawable/widget_tile">
-
-            <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
-                android:src="@drawable/ic_widget_trade"
-                android:contentDescription="@string/widget_action_trade" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:text="@string/widget_action_trade"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:textColor="@color/widget_primary_text"
                 android:maxLines="1" />
         </LinearLayout>

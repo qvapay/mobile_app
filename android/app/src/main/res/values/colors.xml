@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tokens de los widgets de pantalla de inicio, calcados de theme/ThemeContext.tsx.
+  Este fichero es el tema CLARO (configuracion por defecto); values-night/colors.xml
+  trae el oscuro. Los widgets siguen la apariencia del SISTEMA, no el ajuste de
+  tema de la app: ese vive en AsyncStorage, fuera del alcance del launcher.
+-->
+<resources>
+    <color name="widget_background">#FFFFFFFF</color>
+    <color name="widget_tile">#FFE8E9F2</color>
+    <color name="widget_primary_text">#FF1A1A1A</color>
+    <color name="widget_secondary_text">#FF6C757D</color>
+    <color name="widget_pill_fill">#FFE8E9F2</color>
+    <!-- En claro el menta de marca no aguanta sobre blanco: solido oscuro con tinta blanca -->
+    <color name="widget_success_fill">#FF15803D</color>
+    <color name="widget_success_fill_text">#FFFFFFFF</color>
+    <color name="widget_success_text">#FF15803D</color>
+    <color name="widget_success_pill_fill">#1F15803D</color>
+    <color name="widget_divider">#336C757D</color>
+</resources>

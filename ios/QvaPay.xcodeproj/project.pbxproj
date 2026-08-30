@@ -19,18 +19,18 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		80A19C15F0F44B52A1E98F14 /* notification.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 0721CD292AEB4B83975ACAAD /* notification.mp3 */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		A1C4E2F09D6B41F7A8B30C11 /* money_in.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1C4E2F09D6B41F7A8B30C12 /* money_in.caf */; };
+		A1C4E2F09D6B41F7A8B30C21 /* money_out.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1C4E2F09D6B41F7A8B30C22 /* money_out.caf */; };
 		A318F63EDC4646A6BC353698 /* Rubik-MediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 744F72DE4FF142C5B9489AC9 /* Rubik-MediumItalic.ttf */; };
 		A480A40C4ECB40CDBFF36BD2 /* Rubik-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F5CBF97365B148819C5AB0B4 /* Rubik-ExtraBoldItalic.ttf */; };
 		A4C6241C9C09420B9B5C2957 /* Rubik-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E49E54F8521A475FBBDE6436 /* Rubik-Italic.ttf */; };
 		B15C8D6CB1614B5DA682984A /* Rubik-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F830386247324584A758F99F /* Rubik-Regular.ttf */; };
 		BDE8A477E53F40B6930662FD /* money_in.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 03197938F21847F3BA47AD8F /* money_in.mp3 */; };
-		A1C4E2F09D6B41F7A8B30C11 /* money_in.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1C4E2F09D6B41F7A8B30C12 /* money_in.caf */; };
 		CBBEEC46E19B43BCAF779D1F /* Rubik-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8E9D94C077544204A97C61B0 /* Rubik-Black.ttf */; };
 		CF67CAB6313CBE64618CB206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		D01923873AFB4AF4A0DEC6B9 /* Rubik-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E8F0AB89ECF41FE9DBC1216 /* Rubik-Medium.ttf */; };
 		D6D1005CBECE4537BF0BA741 /* Rubik-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FF340230807742DD96C8FB8E /* Rubik-ExtraBold.ttf */; };
 		F162D84EB401402DA05A14F7 /* money_out.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9B210220A594402FA688441D /* money_out.mp3 */; };
-		A1C4E2F09D6B41F7A8B30C21 /* money_out.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1C4E2F09D6B41F7A8B30C22 /* money_out.caf */; };
 		W1000010000000000000000A /* QvaPayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000001000000000000000A /* QvaPayWidgetBundle.swift */; };
 		W1000011000000000000000A /* P2PRatesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000002000000000000000A /* P2PRatesWidget.swift */; };
 		W1000012000000000000000A /* QvaPayAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000003000000000000000A /* QvaPayAPI.swift */; };
@@ -38,6 +38,10 @@
 		W1000014000000000000000A /* BalanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000007000000000000000A /* BalanceWidget.swift */; };
 		W1000015000000000000000A /* P2POffersWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000008000000000000000A /* P2POffersWidget.swift */; };
 		W1000071000000000000000A /* QvaPayWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = W1000006000000000000000A /* QvaPayWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		W1000080000000000000000A /* Rubik-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8E9D94C077544204A97C61B0 /* Rubik-Black.ttf */; };
+		W1000081000000000000000A /* Rubik-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E8F0AB89ECF41FE9DBC1216 /* Rubik-Medium.ttf */; };
+		W1000082000000000000000A /* Rubik-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C02C8B1814194B3F9B8D38C0 /* Rubik-SemiBold.ttf */; };
+		W1000083000000000000000A /* Rubik-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F830386247324584A758F99F /* Rubik-Regular.ttf */; };
 		W2000010000000000000000A /* SharedStorageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000001000000000000000A /* SharedStorageBridge.swift */; };
 		W2000011000000000000000A /* SharedStorageBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000002000000000000000A /* SharedStorageBridge.m */; };
 		W2000012000000000000000A /* AppIconChanger.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000003000000000000000A /* AppIconChanger.swift */; };
@@ -70,7 +74,6 @@
 
 /* Begin PBXFileReference section */
 		03197938F21847F3BA47AD8F /* money_in.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_in.mp3; path = ../assets/sounds/money_in.mp3; sourceTree = "<group>"; };
-		A1C4E2F09D6B41F7A8B30C12 /* money_in.caf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_in.caf; path = ../assets/sounds/money_in.caf; sourceTree = "<group>"; };
 		0721CD292AEB4B83975ACAAD /* notification.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = notification.mp3; path = ../assets/sounds/notification.mp3; sourceTree = "<group>"; };
 		12ACF633161A4FABBAEE647B /* Rubik-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-BoldItalic.ttf"; path = "../assets/fonts/Rubik-BoldItalic.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* QvaPay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QvaPay.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -89,8 +92,9 @@
 		8E9D94C077544204A97C61B0 /* Rubik-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Black.ttf"; path = "../assets/fonts/Rubik-Black.ttf"; sourceTree = "<group>"; };
 		99059718B7394C3883C4903A /* Rubik-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Bold.ttf"; path = "../assets/fonts/Rubik-Bold.ttf"; sourceTree = "<group>"; };
 		9B210220A594402FA688441D /* money_out.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_out.mp3; path = ../assets/sounds/money_out.mp3; sourceTree = "<group>"; };
-		A1C4E2F09D6B41F7A8B30C22 /* money_out.caf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_out.caf; path = ../assets/sounds/money_out.caf; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718A1B2C3D4 /* QvaPay.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = QvaPay.entitlements; path = QvaPay/QvaPay.entitlements; sourceTree = "<group>"; };
+		A1C4E2F09D6B41F7A8B30C12 /* money_in.caf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_in.caf; path = ../assets/sounds/money_in.caf; sourceTree = "<group>"; };
+		A1C4E2F09D6B41F7A8B30C22 /* money_out.caf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = money_out.caf; path = ../assets/sounds/money_out.caf; sourceTree = "<group>"; };
 		C02C8B1814194B3F9B8D38C0 /* Rubik-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-SemiBold.ttf"; path = "../assets/fonts/Rubik-SemiBold.ttf"; sourceTree = "<group>"; };
 		DCD46B1CF6A891714EE9EA8F /* Pods-QvaPay.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-QvaPay.debug.xcconfig"; path = "Target Support Files/Pods-QvaPay/Pods-QvaPay.debug.xcconfig"; sourceTree = "<group>"; };
 		E49E54F8521A475FBBDE6436 /* Rubik-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Italic.ttf"; path = "../assets/fonts/Rubik-Italic.ttf"; sourceTree = "<group>"; };
@@ -352,6 +356,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				W1000080000000000000000A /* Rubik-Black.ttf in Resources */,
+				W1000081000000000000000A /* Rubik-Medium.ttf in Resources */,
+				W1000082000000000000000A /* Rubik-SemiBold.ttf in Resources */,
+				W1000083000000000000000A /* Rubik-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
