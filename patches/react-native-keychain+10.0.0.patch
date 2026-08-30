@@ -1,0 +1,37 @@
+diff --git a/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt b/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt
+index a4e7b3d..7e1badf 100644
+--- a/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt
++++ b/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt
+@@ -23,9 +23,29 @@ object DeviceAvailability {
+   }
+ 
+   fun isStrongBiometricAuthAvailable(context: Context): Boolean {
+-    return BiometricManager.from(context)
+-      .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
+-      BiometricManager.BIOMETRIC_SUCCESS
++    if (BiometricManager.from(context)
++            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
++        BiometricManager.BIOMETRIC_SUCCESS
++    ) {
++      return true
++    }
++
++    // Fallback for Xiaomi/MIUI where BiometricManager.canAuthenticate(BIOMETRIC_STRONG)
++    // is known to return false positives (error 12 or -1) even when fingerprint hardware
++    // is present and enrolled. MIUI implements the deprecated FingerprintManager correctly,
++    // so we check it directly on devices manufactured by Xiaomi (covers Xiaomi, Redmi and POCO).
++    if (Build.MANUFACTURER.equals("xiaomi", ignoreCase = true)) {
++      if (!isFingerprintAuthAvailable(context)) return false
++      return try {
++        @Suppress("DEPRECATION")
++        val fm = context.getSystemService(Context.FINGERPRINT_SERVICE)
++          as? android.hardware.fingerprint.FingerprintManager
++        fm?.hasEnrolledFingerprints() == true
++      } catch (e: Exception) {
++        false
++      }
++    }
++    return false
+   }
+ 
+   fun isDevicePasscodeAvailable(context: Context): Boolean {

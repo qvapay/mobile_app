@@ -26,7 +26,8 @@
 		"preios:device": "node scripts/sync-version.js",
 		"preios:build": "node scripts/sync-version.js",
 		"preandroid": "node scripts/sync-version.js",
-		"doctor": "npx react-doctor@latest"
+		"doctor": "npx react-doctor@latest",
+		"postinstall": "patch-package --error-on-fail"
 	},
 	"dependencies": {
 		"@adrianso/react-native-device-brightness": "^1.2.7",
@@ -66,7 +67,7 @@
 		"react-native-image-picker": "^8.2.1",
 		"react-native-in-app-review": "^4.4.2",
 		"react-native-international-phone-number": "^0.11.10",
-		"react-native-keychain": "^10.0.0",
+		"react-native-keychain": "10.0.0",
 		"react-native-linear-gradient": "^2.8.3",
 		"react-native-nitro-image": "^0.15.0",
 		"react-native-nitro-modules": "^0.35.9",
@@ -113,6 +114,7 @@
 		"eslint-plugin-react-hooks": "^7.1.1",
 		"eslint-plugin-react-native": "^5.0.0",
 		"jest": "^30.4.2",
+		"patch-package": "^8.0.1",
 		"prettier": "^3.8.3",
 		"react-doctor": "^0.9.6",
 		"react-native-svg-transformer": "^1.5.3",
