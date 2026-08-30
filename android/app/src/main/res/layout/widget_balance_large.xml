@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget de balance, tamano 4x2 (el layout por defecto del proveedor). -->
+<!-- Widget de balance, tamano 4x4: cuenta + bloque de ahorro. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_balance_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="14dp"
+    android:padding="16dp"
     android:background="@drawable/widget_container">
 
     <LinearLayout
@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/app_name"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textColor="@color/widget_secondary_text" />
 
         <TextView
@@ -71,6 +71,15 @@
             android:contentDescription="@string/widget_balance_label" />
     </LinearLayout>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="7dp"
+        android:text="@string/widget_balance_label"
+        android:textSize="12sp"
+        android:textColor="@color/widget_secondary_text" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -84,15 +93,15 @@
         <LinearLayout
             android:id="@+id/btn_deposit"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
             android:background="@drawable/widget_tile">
 
             <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_widget_deposit"
                 android:contentDescription="@string/widget_action_deposit" />
 
@@ -101,7 +110,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:text="@string/widget_action_deposit"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textColor="@color/widget_primary_text"
                 android:maxLines="1" />
         </LinearLayout>
@@ -109,7 +118,7 @@
         <LinearLayout
             android:id="@+id/btn_withdraw"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
             android:layout_marginStart="10dp"
             android:orientation="vertical"
@@ -117,8 +126,8 @@
             android:background="@drawable/widget_tile">
 
             <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_widget_withdraw"
                 android:contentDescription="@string/widget_action_withdraw" />
 
@@ -127,7 +136,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:text="@string/widget_action_withdraw"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textColor="@color/widget_primary_text"
                 android:maxLines="1" />
         </LinearLayout>
@@ -135,7 +144,7 @@
         <LinearLayout
             android:id="@+id/btn_send"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
             android:layout_marginStart="10dp"
             android:orientation="vertical"
@@ -143,8 +152,8 @@
             android:background="@drawable/widget_tile">
 
             <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_widget_send"
                 android:contentDescription="@string/widget_action_send" />
 
@@ -153,7 +162,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:text="@string/widget_action_send"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textColor="@color/widget_primary_text"
                 android:maxLines="1" />
         </LinearLayout>
@@ -161,7 +170,7 @@
         <LinearLayout
             android:id="@+id/btn_trade"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:layout_weight="1"
             android:layout_marginStart="10dp"
             android:orientation="vertical"
@@ -169,8 +178,8 @@
             android:background="@drawable/widget_tile">
 
             <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_widget_trade"
                 android:contentDescription="@string/widget_action_trade" />
 
@@ -179,9 +188,124 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:text="@string/widget_action_trade"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textColor="@color/widget_primary_text"
                 android:maxLines="1" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/savings_block"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="@color/widget_divider" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_savings_title"
+                    android:textSize="11sp"
+                    android:textColor="@color/widget_secondary_text" />
+
+                <TextView
+                    android:id="@+id/savings_amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="$0.00"
+                    android:textSize="20sp"
+                    android:textColor="@color/widget_primary_text"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/savings_rate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="@color/widget_success_text"
+                android:paddingStart="9dp"
+                android:paddingEnd="9dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:background="@drawable/widget_success_pill" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/btn_savings_deposit"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/widget_savings_action">
+
+                <ImageView
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:src="@drawable/ic_widget_savings_in"
+                    android:contentDescription="@string/widget_savings_deposit" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/widget_savings_deposit"
+                    android:textSize="13sp"
+                    android:textColor="@color/widget_success_fill_text"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_savings_withdraw"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+            android:layout_marginStart="10dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/widget_savings_action">
+
+                <ImageView
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:src="@drawable/ic_widget_savings_out"
+                    android:contentDescription="@string/widget_savings_withdraw" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/widget_savings_withdraw"
+                    android:textSize="13sp"
+                    android:textColor="@color/widget_success_fill_text"
+                    android:maxLines="1" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tema OSCURO de los widgets. Ver values/colors.xml para el contrato. -->
+<resources>
+    <color name="widget_background">#FF0E0E1C</color>
+    <color name="widget_tile">#FF1E2039</color>
+    <color name="widget_primary_text">#FFF7F7F7</color>
+    <color name="widget_secondary_text">#FF9DA3B4</color>
+    <color name="widget_pill_fill">#249DA3B4</color>
+    <color name="widget_success_fill">#FF7BFFB1</color>
+    <color name="widget_success_fill_text">#FF0E0E1C</color>
+    <color name="widget_success_text">#FF7BFFB1</color>
+    <color name="widget_success_pill_fill">#247BFFB1</color>
+    <color name="widget_divider">#299DA3B4</color>
+</resources>

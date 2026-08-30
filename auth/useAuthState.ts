@@ -197,7 +197,10 @@ export default function useAuthState() {
 				setUser(cachedUser)
 				if (cachedUser.uuid) { OneSignal.login(cachedUser.uuid) }
 				if (cachedUser.balance != null && cachedUser.username) {
-					updateWidgetBalance(cachedUser.balance, cachedUser.username)
+					// El await NO es opcional: reloadWidgets dispara
+					// reloadAllTimelines() y en paralelo puede adelantar a la
+					// escritura del App Group, repintando el widget con lo viejo
+					await updateWidgetBalance(cachedUser.balance, cachedUser.username)
 					reloadWidgets()
 				}
 			}
@@ -208,7 +211,7 @@ export default function useAuthState() {
 				if (userData.data.cover && !userData.data.cover_photo_url) { userData.data.cover_photo_url = `https://media.qvapay.com/${userData.data.cover}` }
 				try { await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData.data)) } catch (_) { /* cache write failed */ }
 				setUser(userData.data)
-				updateWidgetBalance(userData.data.balance, userData.data.username)
+				await updateWidgetBalance(userData.data.balance, userData.data.username)
 				reloadWidgets()
 				if (userData.data.uuid) { OneSignal.login(userData.data.uuid) }
 			} else if (userData.status === 401 || userData.status === 403) {
@@ -507,7 +510,7 @@ export default function useAuthState() {
 			await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
 			setUser(updatedUser)
 			// Update home screen widgets with latest balance
-			updateWidgetBalance(updatedUser.balance, updatedUser.username)
+			await updateWidgetBalance(updatedUser.balance, updatedUser.username)
 			reloadWidgets()
 			return { success: true }
 		} catch (e) {

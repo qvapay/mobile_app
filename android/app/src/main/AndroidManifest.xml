@@ -230,7 +230,11 @@
               android:resource="@xml/balance_widget_info" />
       </receiver>
 
-      <!-- P2P Offers Widget -->
+      <!-- Widgets de P2P (Ofertas y Tasas) retirados del selector por ahora.
+           El codigo sigue en widget/P2POffersWidget.kt y widget/P2PRatesWidget.kt
+           con sus layouts: para reactivarlos basta con descomentar. -->
+      <!--
+      <!- - P2P Offers Widget - ->
       <receiver
           android:name=".widget.P2POffersWidget"
           android:exported="true">
@@ -242,7 +246,7 @@
               android:resource="@xml/p2p_offers_widget_info" />
       </receiver>
 
-      <!-- P2P Rates Widget -->
+      <!- - P2P Rates Widget - ->
       <receiver
           android:name=".widget.P2PRatesWidget"
           android:exported="true">
@@ -253,5 +257,6 @@
               android:name="android.appwidget.provider"
               android:resource="@xml/p2p_rates_widget_info" />
       </receiver>
+      -->
     </application>
 </manifest>

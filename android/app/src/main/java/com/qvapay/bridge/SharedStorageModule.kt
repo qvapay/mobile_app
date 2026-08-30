@@ -25,8 +25,11 @@ class SharedStorageModule(reactContext: ReactApplicationContext) :
             // Trigger widget updates
             val appWidgetManager = AppWidgetManager.getInstance(reactApplicationContext)
 
-            // Update balance widgets
-            if (key == "balance") {
+            // Update balance widgets. `savings` alimenta el bloque de ahorro
+            // del tamano grande: sin escucharla, publicar el resumen no
+            // repintaria nada en Android (reloadWidgets es no-op aqui a
+            // proposito, el refresco lo dispara este modulo).
+            if (key == "balance" || key == "savings") {
                 val balanceComponent = ComponentName(reactApplicationContext, BalanceWidget::class.java)
                 val balanceIds = appWidgetManager.getAppWidgetIds(balanceComponent)
                 if (balanceIds.isNotEmpty()) {

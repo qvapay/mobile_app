@@ -59,8 +59,8 @@ struct P2POffersProvider: TimelineProvider {
                 uuid: item["uuid"] as? String ?? "",
                 type: item["type"] as? String ?? "",
                 coin: item["coin"] as? String ?? "",
-                amount: item["amount"] as? Double ?? 0,
-                receive: item["receive"] as? Double ?? 0,
+                amount: widgetDouble(item["amount"]),
+                receive: widgetDouble(item["receive"]),
                 status: item["status"] as? String ?? ""
             )
         }

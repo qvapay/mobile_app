@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo del widget. En API 31+ el sistema impone su propio radio: ver drawable-v31/. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="16dp" />
+    <solid android:color="@color/widget_background" />
+</shape>

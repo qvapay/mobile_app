@@ -1,4 +1,16 @@
 <resources>
     <string name="channel_money_in">Money received</string>
     <string name="channel_money_out">Money sent</string>
+    <string name="widget_p2p_rates_description">QvaPay P2P buy and sell rates</string>
+    <string name="widget_balance_description">Your QvaPay balance with quick actions</string>
+    <string name="widget_p2p_offers_description">Your active QvaPay P2P offers</string>
+    <string name="widget_action_deposit">Deposit</string>
+    <string name="widget_action_withdraw">Withdraw</string>
+    <string name="widget_action_send">Send</string>
+    <string name="widget_action_trade">Trade</string>
+    <string name="widget_savings_title">Savings</string>
+    <string name="widget_savings_deposit">Deposit</string>
+    <string name="widget_savings_withdraw">Withdraw</string>
+    <string name="widget_balance_label">Available balance</string>
+    <string name="widget_rate_suffix">%1$s%% a year</string>
 </resources>

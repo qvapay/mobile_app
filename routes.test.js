@@ -54,6 +54,13 @@ describe('linking config', () => {
 		expect(linking.config.screens[ROUTES.PAY_SCREEN]).toBe('pay/:uuid')
 	})
 
+	test('maps the home-screen widget shortcuts', () => {
+		expect(linking.config.screens[ROUTES.ADD]).toBe('add')
+		expect(linking.config.screens[ROUTES.WITHDRAW]).toBe('withdraw')
+		expect(linking.config.screens[ROUTES.SEND]).toBe('send')
+		expect(linking.config.screens[ROUTES.SAVINGS_SCREEN]).toBe('savings')
+	})
+
 	test('maps home and p2p tabs inside MainStack', () => {
 		const main = linking.config.screens[ROUTES.MAIN_STACK]
 		expect(main.screens[ROUTES.HOME_SCREEN]).toBe('home')
