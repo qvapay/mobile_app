@@ -14,7 +14,7 @@ jest.mock('react-native', () => ({
 }))
 
 import { NativeModules, Platform } from 'react-native'
-import { updateWidgetBalance, updateWidgetP2POffers, reloadWidgets } from './widgetBridge'
+import { updateWidgetBalance, updateWidgetSavings, updateWidgetP2POffers, reloadWidgets } from './widgetBridge'
 
 const { SharedStorage } = NativeModules
 const NOW = new Date('2026-07-07T12:00:00.000Z').getTime()
@@ -36,6 +36,20 @@ describe('updateWidgetBalance', () => {
 		expect(JSON.parse(json)).toEqual({ balance: 123.45, username: 'erich', updatedAt: NOW })
 	})
 
+	// Regresion: el backend manda los decimales como string y el widget de iOS
+	// los lee con `as? Double`, que devuelve nil ante un NSString -> $0.00 fijo
+	test('normalizes a decimal-string balance to a number', async () => {
+		await updateWidgetBalance('1964.45', 'erich')
+		const json = JSON.parse(SharedStorage.setWidgetData.mock.calls[0][1])
+		expect(json.balance).toBe(1964.45)
+	})
+
+	test('falls back to 0 on an unparseable balance', async () => {
+		await updateWidgetBalance('no soy un numero', 'erich')
+		const json = JSON.parse(SharedStorage.setWidgetData.mock.calls[0][1])
+		expect(json.balance).toBe(0)
+	})
+
 	test('defaults nullish balance/username', async () => {
 		await updateWidgetBalance(undefined, undefined)
 		const json = JSON.parse(SharedStorage.setWidgetData.mock.calls[0][1])
@@ -46,6 +60,29 @@ describe('updateWidgetBalance', () => {
 	test('fails silently when the native write throws', async () => {
 		SharedStorage.setWidgetData.mockRejectedValue(new Error('no app group'))
 		await expect(updateWidgetBalance(1, 'x')).resolves.toBeUndefined()
+	})
+})
+
+describe('updateWidgetSavings', () => {
+	// Clave APARTE de `balance`: el widget grande esconde su bloque de ahorro
+	// mientras no exista, en vez de pintar un $0.00 que no es real
+	test('writes the savings snapshot under its own key', async () => {
+		await updateWidgetSavings(842.1, 3.75)
+		const [key, json] = SharedStorage.setWidgetData.mock.calls[0]
+		expect(key).toBe('savings')
+		expect(JSON.parse(json)).toEqual({ balance: 842.1, rate: 3.75, updatedAt: NOW })
+	})
+
+	test('normalizes decimal-strings like the balance path', async () => {
+		await updateWidgetSavings('842.10', '3.75')
+		const json = JSON.parse(SharedStorage.setWidgetData.mock.calls[0][1])
+		expect(json.balance).toBe(842.1)
+		expect(json.rate).toBe(3.75)
+	})
+
+	test('fails silently when the native write throws', async () => {
+		SharedStorage.setWidgetData.mockRejectedValue(new Error('no app group'))
+		await expect(updateWidgetSavings(1, 1)).resolves.toBeUndefined()
 	})
 })
 
@@ -66,8 +103,9 @@ describe('updateWidgetP2POffers', () => {
 		expect(SharedStorage.setWidgetData.mock.calls[0][0]).toBe('p2p_offers')
 		expect(json.count).toBe(7)
 		expect(json.offers).toHaveLength(5)
+		// amount/receive salen del backend como string y se normalizan a number
 		expect(json.offers[0]).toEqual({
-			uuid: 'uuid-1', type: 'buy', coin: 'BANK_MLC', amount: '10.00', receive: '9.50', status: 'open',
+			uuid: 'uuid-1', type: 'buy', coin: 'BANK_MLC', amount: 10, receive: 9.5, status: 'open',
 		})
 	})
 

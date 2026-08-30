@@ -68,3 +68,17 @@ struct CoinPair: Identifiable {
         }
     }
 }
+
+// MARK: - Decimales del backend
+
+/// Los importes de QvaPay viajan como string ("1964.45") o como número según
+/// el endpoint. `as? Double` devuelve nil ante un NSString, así que leerlos
+/// directamente pintaba 0 en todos los widgets. Acepta ambas formas.
+///
+/// - Parameter value: Valor crudo salido de `JSONSerialization`.
+/// - Returns: El Double equivalente, o 0 si no se puede interpretar.
+func widgetDouble(_ value: Any?) -> Double {
+    if let number = value as? NSNumber { return number.doubleValue }
+    if let string = value as? String { return Double(string) ?? 0 }
+    return 0
+}
