@@ -39,6 +39,7 @@ import LanguageSync from './settings/LanguageSync'
 
 // App Lock
 import { AppLockProvider } from './lock/AppLockContext'
+import { WalletProvider } from './wallet/WalletContext'
 import LockScreen from './lock/LockScreen'
 
 // Online Status
@@ -447,14 +448,16 @@ function App() {
 										<LanguageSync />
 										<ThemeProviderWithSettings>
 											<LoadingBridge>
-												<AppLockProvider>
-													<NavigationWrapper>
-														<GlobalLoadingBar />
-														<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-														<Toaster position="top-center" />
-													</NavigationWrapper>
-													<LockScreen />
-												</AppLockProvider>
+												<WalletProvider>
+													<AppLockProvider>
+														<NavigationWrapper>
+															<GlobalLoadingBar />
+															<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+															<Toaster position="top-center" />
+														</NavigationWrapper>
+														<LockScreen />
+													</AppLockProvider>
+												</WalletProvider>
 											</LoadingBridge>
 										</ThemeProviderWithSettings>
 									</SettingsProvider>

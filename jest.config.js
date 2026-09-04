@@ -19,9 +19,10 @@ module.exports = {
   },
   // El preset ignora todo node_modules salvo react-native*, pero
   // number-flow-react-native publica ESM (lib/module) y TS (src) sin compilar a
-  // CJS: sin esta excepción cualquier suite que lo importe de verdad revienta
+  // CJS, y el stack cripto de la wallet (@scure/@noble v2, viem) es ESM puro:
+  // sin estas excepciones cualquier suite que los importe de verdad revienta
   // con "Cannot use import statement outside a module".
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|number-flow-react-native)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|number-flow-react-native|@scure|@noble|viem|abitype|ox|micro-packed)/)',
   ],
 };
