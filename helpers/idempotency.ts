@@ -9,14 +9,21 @@ import i18n from '../i18n'
 import type { ApiResult } from '../types/api'
 
 /**
- * Genera una clave de idempotencia. No asumimos `crypto.randomUUID` en
- * Hermes: timestamp + dos segmentos aleatorios cumplen el shape del backend
- * y la clave va namespaceada por usuario/endpoint en el servidor.
+ * Genera una clave de idempotencia. Desde el polyfill de quick-crypto
+ * (`polyfills.ts`) hay `crypto.getRandomValues` real; el fallback a
+ * `Math.random` solo queda para jest node, donde no corre el polyfill.
  *
  * @returns Clave que cumple `[A-Za-z0-9._-]{8,64}`.
  */
 export function makeIdempotencyKey(): string {
-	const rand = () => Math.random().toString(36).slice(2, 12)
+	const rand = (): string => {
+		const cryptoGlobal = (globalThis as { crypto?: { getRandomValues?: (b: Uint8Array) => Uint8Array } }).crypto
+		if (cryptoGlobal?.getRandomValues) {
+			const bytes = cryptoGlobal.getRandomValues(new Uint8Array(8))
+			return Array.from(bytes, b => (b % 36).toString(36)).join('')
+		}
+		return Math.random().toString(36).slice(2, 10)
+	}
 	return `${Date.now()}-${rand()}-${rand()}`
 }
 

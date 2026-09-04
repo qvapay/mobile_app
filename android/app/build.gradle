@@ -26,6 +26,13 @@ def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+// keystore.properties (gitignorado) manda; si falta, caemos a las project
+// properties (~/.gradle/gradle.properties, convencion RN). Sin ninguna de las
+// dos, el signing release queda vacio en vez de tumbar la evaluacion con
+// file(null) — el debug build no necesita esas credenciales.
+def keystoreProp = { String name ->
+    keystoreProperties[name] ?: (project.hasProperty(name) ? project.property(name) : null)
+}
 
 // Read version from app.json (single source of truth)
 def appJson = new groovy.json.JsonSlurper().parse(file("../../app.json"))
@@ -123,10 +130,12 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile file(keystoreProperties['MYAPP_UPLOAD_STORE_FILE'])
-            storePassword keystoreProperties['MYAPP_UPLOAD_STORE_PASSWORD']
-            keyAlias keystoreProperties['MYAPP_UPLOAD_KEY_ALIAS']
-            keyPassword keystoreProperties['MYAPP_UPLOAD_KEY_PASSWORD']
+            if (keystoreProp('MYAPP_UPLOAD_STORE_FILE') != null) {
+                storeFile file(keystoreProp('MYAPP_UPLOAD_STORE_FILE'))
+                storePassword keystoreProp('MYAPP_UPLOAD_STORE_PASSWORD')
+                keyAlias keystoreProp('MYAPP_UPLOAD_KEY_ALIAS')
+                keyPassword keystoreProp('MYAPP_UPLOAD_KEY_PASSWORD')
+            }
         }
     }
     buildTypes {
