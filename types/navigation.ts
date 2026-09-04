@@ -110,6 +110,12 @@ export type RootStackParamList = {
 	}
 	CoinDetail: { tick: string, name?: string, initialData?: Coin | EnrichedCoin }
 
+	// ── Wallet self-custody (branch crypto) ───────────────────────────────
+	WalletOnboarding: undefined
+	/** El mnemonic NUNCA viaja por params: Backup lo crea/lee él mismo (quiz interno). */
+	WalletBackup: undefined
+	WalletImport: undefined
+
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined
 	PhoneTopupBrand: { country?: CountryParam, countryCode?: string, brandSlug?: string } | undefined

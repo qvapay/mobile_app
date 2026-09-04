@@ -19,7 +19,8 @@
 		"orderNumber": "Pedido #{{id}}",
 		"assistedShopping": "Compras assistidas",
 		"assistedCheckout": "Confirmar compra",
-		"assistedOrders": "Meus pedidos"
+		"assistedOrders": "Meus pedidos",
+		"walletImport": "Importar wallet"
 	},
 	"tabs": {
 		"home": "Início",

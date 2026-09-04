@@ -1,0 +1,107 @@
+import { StyleSheet, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner-native'
+import Clipboard from '@react-native-clipboard/clipboard'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// Theme
+import { useTheme } from '../../../theme/ThemeContext'
+import { createTextStyles } from '../../../theme/themeUtils'
+
+// Wallet
+import { useWallet } from '../../../wallet/WalletContext'
+import type { WalletAddresses } from '../../../wallet/derive'
+
+// UI
+import QPPressable from '../../../ui/particles/QPPressable'
+
+// Helpers
+import { truncateWalletAddress } from '../../../helpers'
+
+// Navigation
+import { useNavigation } from '@react-navigation/native'
+import { ROUTES } from '../../../routes'
+
+import type { Theme } from '../../../theme/ThemeContext'
+
+const FAMILIES: Array<{ key: keyof WalletAddresses, labelKey: string }> = [
+	{ key: 'tron', labelKey: 'crypto.wallet.families.tron' },
+	{ key: 'evm', labelKey: 'crypto.wallet.families.evm' },
+	{ key: 'btc', labelKey: 'crypto.wallet.families.btc' },
+]
+
+/**
+ * Card de la wallet self-custody en el dashboard del tab Crypto (detrás de
+ * `useSelfCustodyFlag`). Tres estados: sin wallet (CTA crear/importar),
+ * backup pendiente (retomarlo) y activa (direcciones con copy; balances
+ * on-chain llegan en la Fase 3).
+ */
+const WalletCard = () => {
+
+	const { t } = useTranslation()
+	const { theme } = useTheme()
+	const textStyles = createTextStyles(theme)
+	const navigation = useNavigation()
+
+	const { isReady, hasWallet, isBackedUp, addresses } = useWallet()
+
+	if (!isReady) return null
+
+	const copy = (value: string) => {
+		Clipboard.setString(value)
+		toast.success(t('crypto.wallet.card.copied'))
+	}
+
+	return (
+		<View style={[styles.card, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+			<View style={styles.header}>
+				<View style={[styles.icon, { backgroundColor: theme.colors.primary + '15' }]}>
+					<FontAwesome6 name="key" size={16} color={theme.colors.primary} iconStyle="solid" />
+				</View>
+				<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('crypto.wallet.card.title')}</Text>
+			</View>
+
+			{!hasWallet ? (
+				<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_ONBOARDING)} style={styles.ctaRow}>
+					<Text style={[textStyles.h5, styles.ctaText, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.card.subtitle')}</Text>
+					<Text style={[textStyles.h5, { color: theme.colors.primary }]}>{t('crypto.wallet.card.create')}</Text>
+				</QPPressable>
+			) : !isBackedUp ? (
+				<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_BACKUP)} style={styles.ctaRow}>
+					<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" />
+					<Text style={[textStyles.h5, styles.ctaText, { color: theme.colors.warning }]}>{t('crypto.wallet.card.resumeBackup')}</Text>
+					<FontAwesome6 name="chevron-right" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+				</QPPressable>
+			) : addresses && (
+				<View style={styles.addresses}>
+					{FAMILIES.map(family => (
+						<QPPressable key={family.key} onPress={() => copy(addresses[family.key])} style={[styles.addressRow, { borderTopColor: theme.colors.border + '60' }]}>
+							<Text style={[textStyles.h6, styles.familyLabel, { color: theme.colors.secondaryText }]}>{t(family.labelKey)}</Text>
+							<Text style={[textStyles.h5, styles.address, { color: theme.colors.primaryText }]} numberOfLines={1}>
+								{truncateWalletAddress(addresses[family.key], 8)}
+							</Text>
+							<FontAwesome6 name="copy" size={13} color={theme.colors.secondaryText} iconStyle="regular" />
+						</QPPressable>
+					))}
+				</View>
+			)}
+		</View>
+	)
+}
+
+const cardBorder = (theme: Theme) =>
+	!theme.isDark ? { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border } : null
+
+const styles = StyleSheet.create({
+	card: { borderRadius: 14, padding: 12 },
+	header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+	icon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+	ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+	ctaText: { flex: 1 },
+	addresses: { marginTop: 2 },
+	addressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderTopWidth: StyleSheet.hairlineWidth },
+	familyLabel: { width: 92 },
+	address: { flex: 1 },
+})
+
+export default WalletCard

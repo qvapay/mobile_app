@@ -94,5 +94,47 @@
 		"latencyMs": "{{ms}} ms",
 		"failures_one": "{{count}} failure",
 		"failures_other": "{{count}} failures"
+	},
+	"wallet": {
+		"card": {
+			"title": "My Wallet",
+			"subtitle": "Your keys, your funds. QvaPay can’t touch them.",
+			"create": "Create or import",
+			"resumeBackup": "Finish your backup to activate it",
+			"copied": "Address copied"
+		},
+		"onboarding": {
+			"title": "Your wallet, your keys",
+			"point1": "Keys are generated and stored only on this phone.",
+			"point2": "QvaPay never sees your secret phrase and can’t move your funds.",
+			"point3": "If you lose the 12-word phrase, nobody can recover it. Not even QvaPay.",
+			"create": "Create new wallet",
+			"import": "I already have a phrase"
+		},
+		"backup": {
+			"title": "Your secret phrase",
+			"warning": "Write it on paper, in order. Anyone with these 12 words controls your funds. Don’t keep it in screenshots or the clipboard.",
+			"reveal": "Show words",
+			"continue": "I wrote it down",
+			"quizTitle": "Confirm it",
+			"quizSubtitle": "Tap word #{{position}}",
+			"quizError": "Not that one. Check your backup and start over.",
+			"done": "Backup confirmed",
+			"createFailed": "Couldn’t create the wallet. Try again."
+		},
+		"import": {
+			"title": "Import wallet",
+			"subtitle": "Type your 12 or 24-word phrase separated by spaces.",
+			"placeholder": "recovery phrase…",
+			"invalid": "That phrase isn’t valid. Check the words and their order.",
+			"cta": "Import",
+			"done": "Wallet imported",
+			"failed": "Couldn’t import the wallet."
+		},
+		"families": {
+			"evm": "ETH · BSC · Base",
+			"tron": "TRON",
+			"btc": "Bitcoin"
+		}
 	}
 }

@@ -94,5 +94,47 @@
 		"latencyMs": "{{ms}} ms",
 		"failures_one": "{{count}} falha",
 		"failures_other": "{{count}} falhas"
+	},
+	"wallet": {
+		"card": {
+			"title": "Minha Wallet",
+			"subtitle": "Suas chaves, seus fundos. A QvaPay não pode tocá-los.",
+			"create": "Criar ou importar",
+			"resumeBackup": "Conclua seu backup para ativá-la",
+			"copied": "Endereço copiado"
+		},
+		"onboarding": {
+			"title": "Sua wallet, suas chaves",
+			"point1": "As chaves são geradas e guardadas apenas neste telefone.",
+			"point2": "A QvaPay nunca vê sua frase secreta nem pode mover seus fundos.",
+			"point3": "Se você perder a frase de 12 palavras, ninguém pode recuperá-la. Nem a QvaPay.",
+			"create": "Criar wallet nova",
+			"import": "Já tenho uma frase"
+		},
+		"backup": {
+			"title": "Sua frase secreta",
+			"warning": "Escreva-a em papel, em ordem. Qualquer pessoa com essas 12 palavras controla seus fundos. Não a guarde em capturas nem na área de transferência.",
+			"reveal": "Mostrar palavras",
+			"continue": "Já anotei",
+			"quizTitle": "Confirme",
+			"quizSubtitle": "Toque na palavra nº {{position}}",
+			"quizError": "Não é essa. Revise seu backup e comece de novo.",
+			"done": "Backup confirmado",
+			"createFailed": "Não foi possível criar a wallet. Tente de novo."
+		},
+		"import": {
+			"title": "Importar wallet",
+			"subtitle": "Digite sua frase de 12 ou 24 palavras separadas por espaços.",
+			"placeholder": "frase de recuperação…",
+			"invalid": "Essa frase não é válida. Revise as palavras e a ordem.",
+			"cta": "Importar",
+			"done": "Wallet importada",
+			"failed": "Não foi possível importar a wallet."
+		},
+		"families": {
+			"evm": "ETH · BSC · Base",
+			"tron": "TRON",
+			"btc": "Bitcoin"
+		}
 	}
 }

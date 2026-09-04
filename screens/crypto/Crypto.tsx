@@ -10,6 +10,8 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
 import { useCryptoDashboard } from './cryptoQueries'
+import WalletCard from './wallet/WalletCard'
+import useSelfCustodyFlag from '../../hooks/useSelfCustodyFlag'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -271,6 +273,7 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const textStyles = useTextStyles(theme)
 
 	const { savings, coins, stocks, p2pData, isLoading, refreshing, onRefresh } = useCryptoDashboard()
+	const selfCustody = useSelfCustodyFlag()
 	const [exploreTab, setExploreTab] = useState('popular')
 
 	if (isLoading) return <QPLoader />
@@ -296,6 +299,9 @@ const Crypto = ({ navigation }: CryptoProps) => {
 					// en types/navigation: el resumen viaja igual, solo se tipa
 					onPress={() => navigation.navigate(ROUTES.SAVINGS_SCREEN, { savings: savings as unknown as Record<string, unknown> })}
 				/>
+
+				{/* Wallet self-custody (rollout gradual detrás del flag) */}
+				{selfCustody && <WalletCard />}
 
 				{/* Explore: Cripto + Stocks */}
 				<SectionCard title={t('crypto.dashboard.explore')} icon="lightbulb" theme={theme}>
