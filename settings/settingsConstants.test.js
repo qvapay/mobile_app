@@ -20,6 +20,7 @@ describe('DEFAULT_SETTINGS', () => {
 	test('covers every settings category the app reads', () => {
 		expect(Object.keys(DEFAULT_SETTINGS).sort()).toEqual([
 			'appearance',
+			'crypto',
 			'investment',
 			'language',
 			'notifications',

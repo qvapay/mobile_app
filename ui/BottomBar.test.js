@@ -16,7 +16,7 @@ import { act, create } from 'react-test-renderer'
 import { useSettings } from '../settings/SettingsContext'
 import BottomBar from './BottomBar'
 
-const ROUTE_NAMES = ['Home', 'Invest', 'Keypad', 'P2P', 'Store']
+const ROUTE_NAMES = ['Home', 'Crypto', 'Keypad', 'P2P', 'Store']
 
 const makeProps = (index = 0) => {
 	const routes = ROUTE_NAMES.map(name => ({ key: `${name}-key`, name }))
@@ -50,7 +50,7 @@ test('renders one tab per route with the navItems icons', () => {
 
 test('shows the Spanish labels only when the appearance setting is on', () => {
 	const labeled = JSON.stringify(renderBar(makeProps()).toJSON())
-	;['Inicio', 'Invertir', 'Enviar', 'P2P', 'Tienda'].forEach(label => expect(labeled).toContain(label))
+	;['Inicio', 'Cripto', 'Enviar', 'P2P', 'Tienda'].forEach(label => expect(labeled).toContain(label))
 
 	useSettings.mockReturnValue({ settings: { appearance: { bottomBarLabels: false } } })
 	const bare = JSON.stringify(renderBar(makeProps()).toJSON())

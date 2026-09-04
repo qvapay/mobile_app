@@ -17,7 +17,7 @@ import esCommon from './locales/es/common.json'
 import esErrors from './locales/es/errors.json'
 import esHome from './locales/es/home.json'
 import esHooks from './locales/es/hooks.json'
-import esInvest from './locales/es/invest.json'
+import esCrypto from './locales/es/crypto.json'
 import esKeypad from './locales/es/keypad.json'
 import esMarket from './locales/es/market.json'
 import esMisc from './locales/es/misc.json'
@@ -40,7 +40,7 @@ import enCommon from './locales/en/common.json'
 import enErrors from './locales/en/errors.json'
 import enHome from './locales/en/home.json'
 import enHooks from './locales/en/hooks.json'
-import enInvest from './locales/en/invest.json'
+import enCrypto from './locales/en/crypto.json'
 import enKeypad from './locales/en/keypad.json'
 import enMarket from './locales/en/market.json'
 import enMisc from './locales/en/misc.json'
@@ -63,7 +63,7 @@ import ptCommon from './locales/pt/common.json'
 import ptErrors from './locales/pt/errors.json'
 import ptHome from './locales/pt/home.json'
 import ptHooks from './locales/pt/hooks.json'
-import ptInvest from './locales/pt/invest.json'
+import ptCrypto from './locales/pt/crypto.json'
 import ptKeypad from './locales/pt/keypad.json'
 import ptMarket from './locales/pt/market.json'
 import ptMisc from './locales/pt/misc.json'
@@ -88,7 +88,7 @@ const resources = {
 			errors: esErrors,
 			home: esHome,
 			hooks: esHooks,
-			invest: esInvest,
+			crypto: esCrypto,
 			keypad: esKeypad,
 			market: esMarket,
 			misc: esMisc,
@@ -113,7 +113,7 @@ const resources = {
 			errors: enErrors,
 			home: enHome,
 			hooks: enHooks,
-			invest: enInvest,
+			crypto: enCrypto,
 			keypad: enKeypad,
 			market: enMarket,
 			misc: enMisc,
@@ -138,7 +138,7 @@ const resources = {
 			errors: ptErrors,
 			home: ptHome,
 			hooks: ptHooks,
-			invest: ptInvest,
+			crypto: ptCrypto,
 			keypad: ptKeypad,
 			market: ptMarket,
 			misc: ptMisc,

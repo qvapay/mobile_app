@@ -9,7 +9,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
-import { useInvestDashboard } from './investQueries'
+import { useCryptoDashboard } from './cryptoQueries'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -36,11 +36,11 @@ import type { MainTabParamList, RootStackParamList } from '../../types/navigatio
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
 import type { EnrichedCoin, SavingsSummary } from '../../types/domain'
-import type { P2pPair } from './investQueries'
+import type { P2pPair } from './cryptoQueries'
 
-/** Invest es un tab de MainStack y navega también a rutas del stack raíz. */
-type InvestProps = CompositeScreenProps<
-	BottomTabScreenProps<MainTabParamList, 'Invest'>,
+/** Crypto es un tab de MainStack y navega también a rutas del stack raíz. */
+type CryptoProps = CompositeScreenProps<
+	BottomTabScreenProps<MainTabParamList, 'Crypto'>,
 	NativeStackScreenProps<RootStackParamList>
 >
 
@@ -61,8 +61,8 @@ const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' 
 
 // Explore tabs (labels = claves i18n resueltas en render)
 const EXPLORE_TABS: { key: string, labelKey: string, icon: FontAwesome6SolidIconName }[] = [
-	{ key: 'popular', labelKey: 'invest.dashboard.tabs.popular', icon: 'star' },
-	{ key: 'stocks', labelKey: 'invest.dashboard.tabs.stocks', icon: 'chart-line' },
+	{ key: 'popular', labelKey: 'crypto.dashboard.tabs.popular', icon: 'star' },
+	{ key: 'stocks', labelKey: 'crypto.dashboard.tabs.stocks', icon: 'chart-line' },
 ]
 
 // --- Sub-components ---
@@ -84,9 +84,9 @@ const SavingsCard = ({ savings, theme, textStyles, onPress }: SavingsCardProps) 
 		<Pressable onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme), { opacity: pressed ? 0.85 : 1 }]}>
 			<View style={styles.savingsRow}>
 				<View style={styles.savingsInfo}>
-					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>{t('invest.dashboard.savings')}</Text>
+					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.dashboard.savings')}</Text>
 					<Text style={[textStyles.h1, styles.savingsBalance, isDebt && { color: theme.colors.danger }]}>{balance}</Text>
-					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('invest.common.perYear')}</Text>
+					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('crypto.common.perYear')}</Text>
 				</View>
 				<View style={[styles.savingsIcon, { backgroundColor: theme.colors.primary + '15' }]}>
 					<FontAwesome6 name="vault" size={24} color={theme.colors.primary} iconStyle="solid" />
@@ -116,7 +116,7 @@ const SectionCard = ({ title, icon, theme, rightLabel, onSeeAll, children }: Sec
 				</View>
 				{onSeeAll && (
 					<Pressable onPress={onSeeAll} hitSlop={8}>
-						<Text style={[styles.seeAll, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{rightLabel || t('invest.dashboard.seeAll')}</Text>
+						<Text style={[styles.seeAll, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{rightLabel || t('crypto.dashboard.seeAll')}</Text>
 					</Pressable>
 				)}
 			</View>
@@ -237,7 +237,7 @@ const P2PRow = ({ pair, theme, textStyles, isLast }: P2PRowProps) => {
 			<QPCoin coin={pair.tick} size={32} />
 			<View style={styles.p2pInfo}>
 				<Text style={[textStyles.h4, styles.itemName]}>{pair.name}</Text>
-				<Text style={[styles.itemSub, { color: theme.colors.secondaryText }]}>{t('invest.dashboard.offers', { count: pair.count })}</Text>
+				<Text style={[styles.itemSub, { color: theme.colors.secondaryText }]}>{t('crypto.dashboard.offers', { count: pair.count })}</Text>
 			</View>
 			<View style={styles.p2pPriceCol}>
 				<View style={styles.p2pPriceRow}>
@@ -256,21 +256,21 @@ const P2PRow = ({ pair, theme, textStyles, isLast }: P2PRowProps) => {
 // --- Main Component ---
 
 /**
- * Invest tab dashboard: savings summary, popular crypto, stocks and P2P market averages.
- * Los datos viven en React Query (`useInvestDashboard`): cuatro queries en
+ * Crypto tab dashboard: savings summary, popular crypto, stocks and P2P market averages.
+ * Los datos viven en React Query (`useCryptoDashboard`): cuatro queries en
  * paralelo persistidas por separado; el resumen de ahorros es la query
  * compartida con BalanceCard. Rows navigate to Savings (passing the
  * already-fetched summary), StockDetail (with `initialData` for instant paint)
  * or the P2P tab pre-filtered by coin.
  */
-const Invest = ({ navigation }: InvestProps) => {
+const Crypto = ({ navigation }: CryptoProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	const { savings, coins, stocks, p2pData, isLoading, refreshing, onRefresh } = useInvestDashboard()
+	const { savings, coins, stocks, p2pData, isLoading, refreshing, onRefresh } = useCryptoDashboard()
 	const [exploreTab, setExploreTab] = useState('popular')
 
 	if (isLoading) return <QPLoader />
@@ -298,7 +298,7 @@ const Invest = ({ navigation }: InvestProps) => {
 				/>
 
 				{/* Explore: Cripto + Stocks */}
-				<SectionCard title={t('invest.dashboard.explore')} icon="lightbulb" theme={theme}>
+				<SectionCard title={t('crypto.dashboard.explore')} icon="lightbulb" theme={theme}>
 					<View style={styles.chipRow}>
 						{EXPLORE_TABS.map((tab) => (
 							<FilterChip
@@ -347,17 +347,17 @@ const Invest = ({ navigation }: InvestProps) => {
 							</Pressable>
 						)
 					})}
-					{exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('invest.dashboard.empty')}</Text>}
+					{exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
 				</SectionCard>
 
 				{/* P2P Mercado */}
-				<SectionCard title={t('invest.common.p2pMarket')} icon="scale-balanced" theme={theme} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)}>
+				<SectionCard title={t('crypto.common.p2pMarket')} icon="scale-balanced" theme={theme} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)}>
 					{p2pData.length > 0 ? p2pData.map((pair, i) => (
 						<Pressable key={pair.tick} onPress={() => navigation.navigate(ROUTES.P2P_SCREEN, { coin: pair.tick, coinName: pair.name })}>
 							<P2PRow pair={pair} theme={theme} textStyles={textStyles} isLast={i === p2pData.length - 1} />
 						</Pressable>
 					)) : (
-						<Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('invest.dashboard.empty')}</Text>
+						<Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>
 					)}
 				</SectionCard>
 			</ScrollView>
@@ -504,4 +504,4 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	},
 })
 
-export default Invest
+export default Crypto

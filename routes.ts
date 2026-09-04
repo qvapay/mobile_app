@@ -33,7 +33,7 @@ export const ROUTES = {
 
 	// Home Screens
 	HOME_SCREEN: "Home",
-	INVEST_SCREEN: "Invest",
+	CRYPTO_SCREEN: "Crypto",
 	KEYPAD_SCREEN: "Keypad",
 	STORE_SCREEN: "Store",
 	PHONE_TOPUP_INDEX: "PhoneTopupIndex",
@@ -133,7 +133,7 @@ export const navItems = [
 		name: 'wallet'
 	},
 	{
-		key: 'Invest',
+		key: 'Crypto',
 		name: 'bitcoin-sign'
 	},
 	{

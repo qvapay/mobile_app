@@ -71,7 +71,7 @@ const marqueeColumns = (t: TFunction): MarqueeColumnConfig[] => [
 	},
 	{
 		duration: 30000, reverse: false, items: [
-			{ Icon: BnbIcon, label: 'BNB' }, { label: t('welcome.kinetic.marquee.store') }, { label: 'Invest' },
+			{ Icon: BnbIcon, label: 'BNB' }, { label: t('welcome.kinetic.marquee.store') }, { label: 'Crypto' },
 			{ Icon: UsdtIcon, label: 'USDT' }, { label: 'SQP' }, { label: 'Crypto' },
 		]
 	},

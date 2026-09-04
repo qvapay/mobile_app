@@ -4,7 +4,7 @@
  * Los dos que de verdad importan: las cuatro fuentes salen EN PARALELO (la
  * técnica de la compuerta, como en useHomeFeed.test), y el pull-to-refresh
  * revalida AMBAS raíces — el dashboard propio y el resumen de ahorros
- * compartido con BalanceCard, que no cuelga de `['invest']`.
+ * compartido con BalanceCard, que no cuelga de `['crypto']`.
  * @jest-environment node
  */
 jest.mock('../../api/coinsApi', () => ({ coinsApi: { index: jest.fn(), priceHistory: jest.fn() } }))
@@ -20,7 +20,7 @@ import { coinsApi } from '../../api/coinsApi'
 import { p2pApi } from '../../api/p2pApi'
 import { stocksApi } from '../../api/stocksApi'
 import { savingApi } from '../../api/savingApi'
-import { mapP2pPairs, mapStocks, enrichCoins, useInvestDashboard } from './investQueries'
+import { mapP2pPairs, mapStocks, enrichCoins, useCryptoDashboard } from './cryptoQueries'
 
 const ok = (data) => ({ success: true, data, status: 200 })
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -54,7 +54,7 @@ const renderDashboard = async () => {
 	})
 	const result = { current: null }
 	const Harness = () => {
-		result.current = useInvestDashboard()
+		result.current = useCryptoDashboard()
 		return null
 	}
 	let tree
@@ -103,7 +103,7 @@ describe('carga y refresco', () => {
 		await act(async () => { await dashboard.current.onRefresh() })
 		await settle()
 
-		// Las dos raíces: ['invest', …] y ['savings', 'summary']
+		// Las dos raíces: ['crypto', …] y ['savings', 'summary']
 		expect(new Set(started)).toEqual(new Set(['savings', 'coins', 'stocks', 'p2p']))
 	})
 

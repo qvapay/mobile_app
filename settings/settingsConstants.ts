@@ -20,7 +20,10 @@ export const STORAGE_KEYS = {
 	P2P_SETTINGS: 'p2p_settings',
 	INVESTMENT_SETTINGS: 'investment_settings',
 	STORE_SETTINGS: 'store_settings',
-	ROUNDUP_SETTINGS: 'roundup_settings'
+	ROUNDUP_SETTINGS: 'roundup_settings',
+	// Nombrada exactamente como la categoría para que el write path
+	// (`KEYS[category.toUpperCase()]`) resuelva y la categoría persista.
+	CRYPTO: 'crypto_settings'
 }
 
 /**
@@ -128,6 +131,11 @@ export const DEFAULT_SETTINGS = {
 		sortBy: 'popularity', // popularity, price, rating, newest
 		filterByRating: 0,
 		showOutOfStock: false
+	},
+
+	// Crypto wallet (self-custody) settings
+	crypto: {
+		selfCustody: false,
 	},
 
 	// Roundup (micro pagos) settings

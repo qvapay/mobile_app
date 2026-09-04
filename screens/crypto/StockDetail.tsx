@@ -8,7 +8,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles } from '../../theme/themeUtils'
 
 // API
-import { useStockQuery, useStockHistoryQuery } from './investQueries'
+import { useStockQuery, useStockHistoryQuery } from './cryptoQueries'
 
 // UI
 import QPButton from '../../ui/particles/QPButton'
@@ -25,7 +25,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../types/navigation'
 import type { Theme } from '../../theme/ThemeContext'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
-import type { StockQuote } from './investQueries'
+import type { StockQuote } from './cryptoQueries'
 
 type StockDetailProps = NativeStackScreenProps<RootStackParamList, 'StockDetail'>
 
@@ -44,7 +44,7 @@ type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: The
  */
 const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
 
-// Valores del API de histórico; el label visible es `invest.timeframes.<valor>`
+// Valores del API de histórico; el label visible es `crypto.timeframes.<valor>`
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y']
 
 // Format volume: 45230000 → "45.2M"
@@ -165,7 +165,7 @@ const StockDetail = ({ route }: StockDetailProps) => {
 					{TIMEFRAMES.map((tf) => (
 						<TimeframePill
 							key={tf}
-							label={t(`invest.timeframes.${tf}`)}
+							label={t(`crypto.timeframes.${tf}`)}
 							active={timeframe === tf}
 							theme={theme}
 							onPress={() => handleTimeframeChange(tf)}
@@ -175,35 +175,35 @@ const StockDetail = ({ route }: StockDetailProps) => {
 
 				{/* Buy / Sell Buttons */}
 				<View style={styles.buttonRow}>
-					<QPButton title={t('invest.stockDetail.buy')} style={styles.actionButton} disabled onPress={() => { }} />
+					<QPButton title={t('crypto.stockDetail.buy')} style={styles.actionButton} disabled onPress={() => { }} />
 					{/* OJO (pre-existente, NO tocado): QPButton no tiene prop `outline`
 					    (la suya es `outlined`), así que este botón nunca se pinta
 					    outlined. Se conserva el prop y solo se tipa vía spread */}
-					<QPButton title={t('invest.stockDetail.sell')} style={styles.actionButton} {...{ outline: true }} disabled onPress={() => { }} />
+					<QPButton title={t('crypto.stockDetail.sell')} style={styles.actionButton} {...{ outline: true }} disabled onPress={() => { }} />
 				</View>
 
 				{/* Statistics */}
 				{stock && (
 					<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
-						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('invest.common.statistics')}</Text>
-						<StatRow label={t('invest.stockDetail.open')} value={formatPrice(stock.open)} theme={theme} />
-						<StatRow label={t('invest.stockDetail.previousClose')} value={formatPrice(stock.previousClose)} theme={theme} />
-						<StatRow label={t('invest.stockDetail.dayHigh')} value={formatPrice(stock.high)} theme={theme} />
-						<StatRow label={t('invest.stockDetail.dayLow')} value={formatPrice(stock.low)} theme={theme} />
-						<StatRow label={t('invest.stockDetail.volume')} value={formatVolume(stock.volume)} theme={theme} />
-						<StatRow label={t('invest.stockDetail.fiftyTwoWeekHigh')} value={formatPrice(stock.fiftyTwoWeekHigh)} theme={theme} />
-						<StatRow label={t('invest.stockDetail.fiftyTwoWeekLow')} value={formatPrice(stock.fiftyTwoWeekLow)} theme={theme} isLast />
+						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('crypto.common.statistics')}</Text>
+						<StatRow label={t('crypto.stockDetail.open')} value={formatPrice(stock.open)} theme={theme} />
+						<StatRow label={t('crypto.stockDetail.previousClose')} value={formatPrice(stock.previousClose)} theme={theme} />
+						<StatRow label={t('crypto.stockDetail.dayHigh')} value={formatPrice(stock.high)} theme={theme} />
+						<StatRow label={t('crypto.stockDetail.dayLow')} value={formatPrice(stock.low)} theme={theme} />
+						<StatRow label={t('crypto.stockDetail.volume')} value={formatVolume(stock.volume)} theme={theme} />
+						<StatRow label={t('crypto.stockDetail.fiftyTwoWeekHigh')} value={formatPrice(stock.fiftyTwoWeekHigh)} theme={theme} />
+						<StatRow label={t('crypto.stockDetail.fiftyTwoWeekLow')} value={formatPrice(stock.fiftyTwoWeekLow)} theme={theme} isLast />
 					</View>
 				)}
 
 				{/* About */}
 				{stock?.description ? (
 					<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
-						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('invest.stockDetail.about')}</Text>
+						<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('crypto.stockDetail.about')}</Text>
 						<Text style={[styles.description, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{stock.description}</Text>
-						{stock.sector ? <StatRow label={t('invest.stockDetail.sector')} value={stock.sector} theme={theme} /> : null}
-						{stock.exchange ? <StatRow label={t('invest.stockDetail.exchange')} value={stock.exchange} theme={theme} /> : null}
-						{stock.type ? <StatRow label={t('invest.stockDetail.type')} value={stock.type} theme={theme} isLast /> : null}
+						{stock.sector ? <StatRow label={t('crypto.stockDetail.sector')} value={stock.sector} theme={theme} /> : null}
+						{stock.exchange ? <StatRow label={t('crypto.stockDetail.exchange')} value={stock.exchange} theme={theme} /> : null}
+						{stock.type ? <StatRow label={t('crypto.stockDetail.type')} value={stock.type} theme={theme} isLast /> : null}
 					</View>
 				) : null}
 			</ScrollView>

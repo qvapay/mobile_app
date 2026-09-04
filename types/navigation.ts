@@ -23,9 +23,9 @@ export type CountryParam = { code?: string } & Record<string, unknown>
 /** Tabs dentro de MainStack (screens/MainStack.jsx). */
 export type MainTabParamList = {
 	Home: undefined
-	Invest: undefined
+	Crypto: undefined
 	Keypad: undefined
-	/** Preselección de moneda al saltar desde Invest/CoinDetail. */
+	/** Preselección de moneda al saltar desde Crypto/CoinDetail. */
 	P2P: { coin?: string, coinName?: string } | undefined
 	Store: undefined
 }
@@ -96,7 +96,7 @@ export type RootStackParamList = {
 	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
 	P2PCreate: undefined
 
-	// ── Invest ────────────────────────────────────────────────────────────
+	// ── Crypto ────────────────────────────────────────────────────────────
 	Savings: { action?: 'deposit' | 'withdraw', savings?: Record<string, unknown> } | undefined
 	StockDetail: {
 		symbol: string

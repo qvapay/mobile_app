@@ -86,9 +86,9 @@ import Scan from './screens/scan/Scan'
 import NearbyPay from './screens/nearby/NearbyPay'
 
 // Invest Screens
-import Savings from './screens/invest/Savings'
-import StockDetail from './screens/invest/StockDetail'
-import CoinDetail from './screens/invest/CoinDetail'
+import Savings from './screens/crypto/Savings'
+import StockDetail from './screens/crypto/StockDetail'
+import CoinDetail from './screens/crypto/CoinDetail'
 
 // InOut Screens
 import Add from './screens/add/Add'

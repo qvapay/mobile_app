@@ -84,7 +84,7 @@ export type StockQuote = {
  * de aquí: vive bajo `['savings', …]` porque lo comparte el BalanceCard del
  * Home — el refresco de Invest revalida ambas raíces.
  */
-export const INVEST_QUERY_KEY = ['invest']
+export const CRYPTO_QUERY_KEY = ['crypto']
 
 // Raíles P2P que muestra la tarjeta de mercado
 export const P2P_COINS = ['BANK_CUP', 'BANK_MLC', 'CLASICA', 'BANDECPREPAGO', 'ETECSA', 'TROPIPAY', 'ZELLE', 'BOLSATM']
@@ -147,8 +147,8 @@ export const enrichCoins = (
 })
 
 /** Cripto populares del explorador, con sparklines para las primeras. */
-export const useInvestCoinsQuery = () => useQuery({
-	queryKey: ['invest', 'coins'],
+export const useCryptoCoinsQuery = () => useQuery({
+	queryKey: ['crypto', 'coins'],
 	queryFn: async () => {
 		const rawCoins = unwrap(await coinsApi.index({ category_id: 1, trade: 1 })) || []
 		if (!rawCoins.length) return []
@@ -162,14 +162,14 @@ export const useInvestCoinsQuery = () => useQuery({
 
 /** Medias de compra/venta del mercado P2P por raíl. */
 export const useP2pAveragesQuery = () => useQuery({
-	queryKey: ['invest', 'p2p-averages'],
+	queryKey: ['crypto', 'p2p-averages'],
 	queryFn: async () => mapP2pPairs(unwrap(await p2pApi.getAverages())),
 	placeholderData: previous => previous,
 })
 
 /** Stocks del explorador. */
 export const useStocksQuery = () => useQuery({
-	queryKey: ['invest', 'stocks'],
+	queryKey: ['crypto', 'stocks'],
 	// `stocksApi.index` declara `unknown[]` (endpoint sin contrato tipado):
 	// se estrecha aquí a la forma que mapStocks realmente lee
 	queryFn: async () => mapStocks(unwrap(await stocksApi.index()) as RawStock[] | null),
@@ -188,7 +188,7 @@ export const useSavingsMovementsQuery = (take = 20) => useQuery({
 
 /** Cotización extendida de un stock. */
 export const useStockQuery = (symbol: string) => useQuery({
-	queryKey: ['invest', 'stock', symbol],
+	queryKey: ['crypto', 'stock', symbol],
 	// Igual que en `index`: el módulo declara `unknown` y aquí se le da forma
 	queryFn: async () => unwrap(await stocksApi.show(symbol)) as StockQuote | null,
 	enabled: !!symbol,
@@ -197,7 +197,7 @@ export const useStockQuery = (symbol: string) => useQuery({
 
 /** Histórico de precio de un stock por timeframe (cambiarlo no vacía el gráfico). */
 export const useStockHistoryQuery = (symbol: string, timeframe: string) => useQuery({
-	queryKey: ['invest', 'stock-history', symbol, timeframe],
+	queryKey: ['crypto', 'stock-history', symbol, timeframe],
 	queryFn: async () => {
 		const data = unwrap(await stocksApi.priceHistory(symbol, timeframe))
 		return Array.isArray(data) ? data : []
@@ -226,7 +226,7 @@ export const useCoinHistoryQuery = (
 		const data = unwrap(await coinsApi.priceHistory(tick, timeframe))
 		// Un historial de 0-1 puntos no pinta gráfico: se trata como fallo para
 		// no cachear basura (mismo criterio que el Map anterior)
-		if (!Array.isArray(data) || data.length < 2) { throw new Error(i18n.t('invest.queries.historyNoData')) }
+		if (!Array.isArray(data) || data.length < 2) { throw new Error(i18n.t('crypto.queries.historyNoData')) }
 		return data
 	},
 	enabled: enabled && !!tick,
@@ -243,7 +243,7 @@ export const useCoinHistoryQuery = (
  * (reducer + fetch manual), incluido el `isLoading` del loader inicial: solo
  * cuando no hay NADA que pintar en el explorador.
  */
-export const useInvestDashboard = () => {
+export const useCryptoDashboard = () => {
 
 	const queryClient = useQueryClient()
 
@@ -252,7 +252,7 @@ export const useInvestDashboard = () => {
 	const [refreshing, setRefreshing] = useState(false)
 
 	const savings = useSavingsSummaryQuery()
-	const coins = useInvestCoinsQuery()
+	const coins = useCryptoCoinsQuery()
 	const stocks = useStocksQuery()
 	const p2p = useP2pAveragesQuery()
 
@@ -261,7 +261,7 @@ export const useInvestDashboard = () => {
 		try {
 			// Dos raíces: el dashboard propio y el resumen de ahorros compartido
 			await Promise.all([
-				queryClient.refetchQueries({ queryKey: INVEST_QUERY_KEY }),
+				queryClient.refetchQueries({ queryKey: CRYPTO_QUERY_KEY }),
 				queryClient.refetchQueries({ queryKey: ['savings'] }),
 			])
 		} catch { /* los datos anteriores siguen en pantalla */ }

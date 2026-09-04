@@ -29,7 +29,8 @@ const loadAllSettings = async (): Promise<Record<string, unknown>> => {
 			store,
 			sounds,
 			vibration,
-			roundup
+			roundup,
+			crypto
 		] = await Promise.all([
 			AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATIONS),
 			AsyncStorage.getItem(STORAGE_KEYS.SECURITY),
@@ -42,7 +43,8 @@ const loadAllSettings = async (): Promise<Record<string, unknown>> => {
 			AsyncStorage.getItem(STORAGE_KEYS.STORE_SETTINGS),
 			AsyncStorage.getItem(STORAGE_KEYS.SOUNDS),
 			AsyncStorage.getItem(STORAGE_KEYS.VIBRATION),
-			AsyncStorage.getItem(STORAGE_KEYS.ROUNDUP_SETTINGS)
+			AsyncStorage.getItem(STORAGE_KEYS.ROUNDUP_SETTINGS),
+			AsyncStorage.getItem(STORAGE_KEYS.CRYPTO)
 		])
 
 		return {
@@ -57,7 +59,8 @@ const loadAllSettings = async (): Promise<Record<string, unknown>> => {
 			store: store ? JSON.parse(store) : null,
 			sounds: sounds ? JSON.parse(sounds) : null,
 			vibration: vibration ? JSON.parse(vibration) : null,
-			roundup: roundup ? JSON.parse(roundup) : null
+			roundup: roundup ? JSON.parse(roundup) : null,
+			crypto: crypto ? JSON.parse(crypto) : null
 		}
 
 	} catch (err) { return {} }

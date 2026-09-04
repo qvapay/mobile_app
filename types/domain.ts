@@ -50,6 +50,8 @@ export type Me = {
 	image?: string | null
 	average_rating?: number
 	role?: string
+	/** Flags de features servidos por el backend (rollout remoto). */
+	features?: { self_custody?: boolean | BoolInt } & Record<string, unknown>
 } & Record<string, unknown>
 
 /**
@@ -84,6 +86,8 @@ export type User = {
 	image?: string | null
 	average_rating?: number
 	role?: string
+	/** Flags de features servidos por el backend (rollout remoto). */
+	features?: { self_custody?: boolean | BoolInt } & Record<string, unknown>
 } & Record<string, unknown>
 
 // ---------------------------------------------------------------------------
@@ -132,7 +136,7 @@ export type Coin = {
 }
 
 /**
- * Coin enriquecida por el CLIENTE (investQueries/homeQueries): precio spot
+ * Coin enriquecida por el CLIENTE (cryptoQueries/homeQueries): precio spot
  * sobrescrito + variación calculada contra el histórico. No viene del backend.
  */
 export type EnrichedCoin = Coin & {

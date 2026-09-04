@@ -18,7 +18,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 // Navigation labels in Spanish
 const navLabels: Record<string, string> = {
     'Home': 'Inicio',
-    'Invest': 'Invertir',
+    'Crypto': 'Cripto',
     'Keypad': 'Enviar',
     'P2P': 'P2P',
     'Store': 'Tienda'
