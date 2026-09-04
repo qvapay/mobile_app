@@ -89,6 +89,7 @@ export const ROUTES = {
 	APP_LOCK: "AppLock",
 	PASSKEYS: "Passkeys",
 	ROUNDUP: "Roundup",
+	RPC_NODES: "RpcNodes",
 	ENTERPRISE: "Enterprise",
 	ENTERPRISE_REGISTER: "EnterpriseRegister",
 

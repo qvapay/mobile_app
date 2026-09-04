@@ -1,0 +1,73 @@
+{
+	"version": 1,
+	"updated_at": "2026-09-03T00:00:00Z",
+	"chains": {
+		"tron": {
+			"kind": "tron",
+			"native": { "symbol": "TRX", "decimals": 6 },
+			"explorer": "https://tronscan.org/#/transaction/{tx}",
+			"tokens": [
+				{ "symbol": "USDT", "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "decimals": 6 }
+			],
+			"rpcs": [
+				{ "url": "https://tron.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
+				{ "url": "https://api.trongrid.io", "priority": 10, "owner": "trongrid" },
+				{ "url": "https://tron-rpc.publicnode.com", "priority": 20, "owner": "publicnode", "api": "jsonrpc" }
+			]
+		},
+		"bsc": {
+			"kind": "evm",
+			"chainId": 56,
+			"native": { "symbol": "BNB", "decimals": 18 },
+			"explorer": "https://bscscan.com/tx/{tx}",
+			"tokens": [
+				{ "symbol": "USDT", "address": "0x55d398326f99059fF775485246999027B3197955", "decimals": 18 },
+				{ "symbol": "USDC", "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", "decimals": 18 }
+			],
+			"rpcs": [
+				{ "url": "https://bsc.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
+				{ "url": "https://bsc-dataseed.bnbchain.org", "priority": 10, "owner": "bnbchain" },
+				{ "url": "https://bsc-rpc.publicnode.com", "priority": 20, "owner": "publicnode" }
+			]
+		},
+		"ethereum": {
+			"kind": "evm",
+			"chainId": 1,
+			"native": { "symbol": "ETH", "decimals": 18 },
+			"explorer": "https://etherscan.io/tx/{tx}",
+			"tokens": [
+				{ "symbol": "USDT", "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7", "decimals": 6 },
+				{ "symbol": "USDC", "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "decimals": 6 }
+			],
+			"rpcs": [
+				{ "url": "https://eth.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
+				{ "url": "https://ethereum-rpc.publicnode.com", "priority": 10, "owner": "publicnode" },
+				{ "url": "https://eth.drpc.org", "priority": 20, "owner": "drpc" }
+			]
+		},
+		"base": {
+			"kind": "evm",
+			"chainId": 8453,
+			"native": { "symbol": "ETH", "decimals": 18 },
+			"explorer": "https://basescan.org/tx/{tx}",
+			"tokens": [
+				{ "symbol": "USDC", "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "decimals": 6 }
+			],
+			"rpcs": [
+				{ "url": "https://base.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
+				{ "url": "https://mainnet.base.org", "priority": 10, "owner": "base" },
+				{ "url": "https://base-rpc.publicnode.com", "priority": 20, "owner": "publicnode" }
+			]
+		},
+		"bitcoin": {
+			"kind": "btc",
+			"native": { "symbol": "BTC", "decimals": 8 },
+			"explorer": "https://mempool.space/tx/{tx}",
+			"rpcs": [
+				{ "url": "https://btc.qvapay.com/api", "priority": 0, "owner": "qvapay", "enabled": false, "api": "esplora" },
+				{ "url": "https://mempool.space/api", "priority": 10, "owner": "mempool", "api": "esplora" },
+				{ "url": "https://blockstream.info/api", "priority": 20, "owner": "blockstream", "api": "esplora" }
+			]
+		}
+	}
+}

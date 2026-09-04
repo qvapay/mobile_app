@@ -32,7 +32,8 @@
 			"gold": "GOLD",
 			"security": "SEGURANÇA",
 			"notifications": "NOTIFICAÇÕES",
-			"payments": "PAGAMENTOS"
+			"payments": "PAGAMENTOS",
+			"advanced": "AVANÇADO"
 		},
 		"items": {
 			"theme": "Tema",
@@ -53,7 +54,8 @@
 			"notifications": "Envio de notificações",
 			"paymentMethods": "Métodos de pagamento",
 			"contacts": "Contatos",
-			"roundup": "Arredondamentos"
+			"roundup": "Arredondamentos",
+			"nodes": "Nós"
 		},
 		"status": {
 			"active": "Ativo"

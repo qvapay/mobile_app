@@ -82,5 +82,17 @@
 	},
 	"queries": {
 		"historyNoData": "Not enough price history data"
+	},
+	"nodes": {
+		"title": "Nodes",
+		"subtitle": "Which RPC each chain uses, with its latency and failures.",
+		"probe": "Probe now",
+		"probing": "Probing…",
+		"active": "Active",
+		"disabled": "Off",
+		"unmeasured": "Not measured",
+		"latencyMs": "{{ms}} ms",
+		"failures_one": "{{count}} failure",
+		"failures_other": "{{count}} failures"
 	}
 }

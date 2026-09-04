@@ -52,6 +52,8 @@ export type SettingsStackParamList = {
 	AppLock: undefined
 	Passkeys: undefined
 	Roundup: undefined
+	/** Oculta: solo con flag self-custody o en dev (plan crypto). */
+	RpcNodes: undefined
 	Enterprise: undefined
 	EnterpriseRegister: undefined
 }

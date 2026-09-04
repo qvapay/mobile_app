@@ -200,6 +200,7 @@ UI conventions:
 - `/helpers/`: `dataCache.js` (LEGACY — solo `clearDataCache()` en el logout; ver Development Notes), `iap.js` (StoreKit/IAP), `inAppReview.js`, `playSound.js`, `stickers.js` (QvaPay sticker catalog), `versionCheck.js` (drives `UpdatePromptModal`), `walletDeeplinks.js` (Trust Wallet & co. universal links for deposits), `widgetBridge.js` (iOS/Android home-screen widgets)
 - `/helpers.js`: legacy utilities (timeAgo, parseQRData, formatMoney, dates — Spanish locale)
 - `/assets/`: images, Rubik fonts, Lottie animations
+- `/wallet/`: wallet self-custody (en construcción, branch crypto — plan en `~/.claude/plans/`). `registry/`: `types.ts` + `bundled.json` (fallback empaquetado; NINGUNA URL de RPC vive fuera de él), `useRegistry` (RQ `['wallet','registry']`, TTL 1h, fuente = repo `qvapay/rpc-registry` con espejo rpc.qvapay.com; el remoto solo gana si su `version` >= bundled), `rpcRouter.ts` (PURO, cero react-native: prioridad → salud → latencia, circuit breaker 3 fallos/2min, rota solo en errores de infraestructura, deps inyectadas para tests node) y `appRpcRouter.ts` (singleton + salud persistida en `@qpwallet:rpc-health` + `useAppRpcRouter`). Regla dura: en `wallet/` solo `keystore.ts` y `appRpcRouter.ts` pueden tocar react-native/AsyncStorage; todo lo demás se testea con `@jest-environment node`. Pantalla de vigilancia: Ajustes → Avanzado → Nodos (`subpanels/RpcNodes.tsx`, visible solo con `useSelfCustodyFlag` o dev)
 - `/scripts/`: `release-android.sh`, `sync-version.js`
 
 ### Key Dependencies
@@ -296,6 +297,7 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 - Al añadir un endpoint: tipar su `T` en el módulo de `api/` y, si el payload es una entidad, declararla en `types/domain.ts`. Los returns que se salen del contrato estándar se modelan como unión local en su módulo (ver `P2PIndexResult` en `api/p2pApi.ts`), no ensanchando `ApiResult`
 - Al añadir una pantalla: registrar sus params en `RootStackParamList` y tiparla con `NativeStackScreenProps<RootStackParamList, 'Ruta'>` (las de pestaña, con `CompositeScreenProps`)
 - Functional components + hooks only (no class components beyond `ErrorBoundary`)
+- **`polyfills.ts` es el PRIMER import de `index.js`**: `install()` de react-native-quick-crypto parchea `global.crypto` (getRandomValues/subtle, C++/Nitro) y `global.Buffer` antes de evaluar cualquier otro módulo — @scure/bip39, @noble y viem dependen de ello. En dev revienta al arrancar si el polyfill no quedó instalado. El flag de rollout de la wallet es `crypto.selfCustody` (SettingsContext) OR `features.self_custody` del backend, vía `hooks/useSelfCustodyFlag`
 - **UI multilenguaje (es/en/pt-BR) vía i18next** — ver sección "i18n" arriba; copy nuevo SIEMPRE nace como clave en `i18n/locales/` (los 3 idiomas) siguiendo `i18n/CONVENTIONS.md`, nunca como literal
 - Token lives in Keychain (`com.qvapay.auth`) — AsyncStorage is only used for non-secret settings
 - API base URL switches on `__DEV__`; dev IP `192.168.0.10:3000` in `config.js` may need updating per machine

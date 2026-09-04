@@ -82,5 +82,17 @@
 	},
 	"queries": {
 		"historyNoData": "Historial sin datos suficientes"
+	},
+	"nodes": {
+		"title": "Nodos",
+		"subtitle": "Qué RPC usa cada cadena, con su latencia y sus fallos.",
+		"probe": "Probar ahora",
+		"probing": "Midiendo…",
+		"active": "Activo",
+		"disabled": "Apagado",
+		"unmeasured": "Sin medir",
+		"latencyMs": "{{ms}} ms",
+		"failures_one": "{{count}} fallo",
+		"failures_other": "{{count}} fallos"
 	}
 }

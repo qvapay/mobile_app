@@ -8,6 +8,7 @@ import { useAuth } from '../../auth/AuthContext'
 
 // Settings Context
 import { useSettings } from '../../settings/SettingsContext'
+import useSelfCustodyFlag from '../../hooks/useSelfCustodyFlag'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -94,6 +95,9 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 	// Mientras hay búsqueda activa solo se muestran los resultados — el perfil,
 	// el logout y el pie quedan fuera para no ensuciar la lista.
 	const [query, setQuery] = useState('')
+	const selfCustody = useSelfCustodyFlag()
+	const showAdvanced = __DEV__ || selfCustody
+
 	const visibleSettings = filterSettings(settings, query, t)
 	const searching = query.trim().length > 0
 	const noResults = searching && Object.keys(visibleSettings).length === 0
@@ -248,6 +252,21 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 					}))
 					return <SettingsSection key={categoryKey} title={t(category.title)} items={items} navigation={navigation} />
 				})}
+
+				{/* Sección oculta del plan crypto: fuera del catálogo estático (y de la
+				    búsqueda) a propósito — solo aparece con el flag self-custody o en dev. */}
+				{!searching && showAdvanced && (
+					<SettingsSection
+						title={t('settings.menu.groups.advanced')}
+						items={[{
+							title: t('settings.menu.items.nodes'),
+							screen: ROUTES.RPC_NODES,
+							icon: 'server',
+							color: '#64748B',
+						}]}
+						navigation={navigation}
+					/>
+				)}
 
 				{!searching && <AlertDrawer
 					buttonLabel={t('settings.menu.logout.button')}

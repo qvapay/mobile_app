@@ -36,6 +36,7 @@ import Contacts from './subpanels/Contacts'
 import AppLock from './subpanels/AppLock'
 import Passkeys from './subpanels/Passkeys'
 import Roundup from './subpanels/Roundup'
+import RpcNodes from './subpanels/RpcNodes'
 import Enterprise from './subpanels/Enterprise'
 import EnterpriseRegister from './subpanels/enterprise/EnterpriseRegister'
 
@@ -85,6 +86,7 @@ const SettingsStack = ({ navigation: _navigation }: NativeStackScreenProps<RootS
 			<Stack.Screen name={ROUTES.APP_LOCK} component={AppLock} />
 			<Stack.Screen name={ROUTES.PASSKEYS} component={Passkeys} />
 			<Stack.Screen name={ROUTES.ROUNDUP} component={Roundup} />
+			<Stack.Screen name={ROUTES.RPC_NODES} component={RpcNodes} />
 			<Stack.Screen name={ROUTES.ENTERPRISE} component={Enterprise} />
 			<Stack.Screen name={ROUTES.ENTERPRISE_REGISTER} component={EnterpriseRegister} />
 
