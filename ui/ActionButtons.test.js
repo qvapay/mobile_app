@@ -55,7 +55,7 @@ afterEach(() => { mockUser = { kyc: true } })
 
 test('renderiza los 4 tiles de la cuenta y las 2 pills de ahorros', () => {
 	const tree = renderRow()
-	expect(labelsOf(tree)).toEqual(['Depositar', 'Extraer', 'Enviar', 'Comerciar', 'Depositar', 'Retirar'])
+	expect(labelsOf(tree)).toEqual(['Depositar', 'Extraer', 'Enviar', 'P2P', 'Depositar', 'Retirar'])
 })
 
 test('los tiles de la cuenta navegan a Add / Withdraw / Send / P2P', () => {
@@ -65,7 +65,7 @@ test('los tiles de la cuenta navegan a Add / Withdraw / Send / P2P', () => {
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.WITHDRAW)
 	pressByLabel(tree, 'Enviar')
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.SEND)
-	pressByLabel(tree, 'Comerciar')
+	pressByLabel(tree, 'P2P')
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.P2P_SCREEN)
 	pressByLabel(tree, 'Depositar', 0)
 	expect(navigation.navigate).toHaveBeenLastCalledWith(ROUTES.ADD)
