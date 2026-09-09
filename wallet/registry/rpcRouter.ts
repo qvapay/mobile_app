@@ -63,8 +63,12 @@ export type ProbeRequest = (
 	timeoutMs: number,
 ) => Promise<void>
 
-/** Ping mínimo por dialecto; lanza si el endpoint no responde algo sano. */
-const defaultProbeRequest: ProbeRequest = async (_chainKey, chain, rpc, timeoutMs) => {
+/**
+ * Ping mínimo por dialecto; lanza si el endpoint no responde algo sano.
+ * Exportado para que la pantalla Nodos valide un nodo escrito a mano antes
+ * de guardarlo (un nodo custom muerto no debe llegar al router).
+ */
+export const probeRpc: ProbeRequest = async (_chainKey, chain, rpc, timeoutMs) => {
 	const controller = new AbortController()
 	const timer = setTimeout(() => controller.abort(), timeoutMs)
 	try {
@@ -107,7 +111,7 @@ type RouterDeps = {
 
 export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps = {}) => {
 	const now = deps.now ?? Date.now
-	const probeRequest = deps.probeRequest ?? defaultProbeRequest
+	const probeRequest = deps.probeRequest ?? probeRpc
 	const health: HealthMap = { ...(deps.initialHealth ?? {}) }
 
 	const emit = () => { deps.onHealthChange?.({ ...health }) }

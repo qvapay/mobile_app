@@ -136,6 +136,8 @@ export const DEFAULT_SETTINGS = {
 	// Crypto wallet (self-custody) settings
 	crypto: {
 		selfCustody: false,
+		/** Nodos RPC del usuario por cadena (Ajustes → Nodos → "Añadir nodo"). No es secreto. */
+		customRpcs: {} as Record<string, string[]>,
 	},
 
 	// Roundup (micro pagos) settings

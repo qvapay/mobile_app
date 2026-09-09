@@ -93,7 +93,30 @@
 		"unmeasured": "Sin medir",
 		"latencyMs": "{{ms}} ms",
 		"failures_one": "{{count}} fallo",
-		"failures_other": "{{count}} fallos"
+		"failures_other": "{{count}} fallos",
+		"custom": "Tuyo",
+		"addNode": "Añadir nodo",
+		"removeNode": "Quitar nodo",
+		"add": {
+			"title": "Nodo para {{chain}}",
+			"subtitle": "URL https de un RPC de {{chain}}. Se prueba antes de guardar y tendrá prioridad sobre los del registro.",
+			"placeholder": "https://…",
+			"save": "Probar y guardar",
+			"testing": "Probando…",
+			"cancel": "Cancelar",
+			"errors": {
+				"invalid": "URL no válida",
+				"insecure": "Solo se admiten URLs https",
+				"credentials": "La URL no puede llevar usuario ni contraseña",
+				"duplicate": "Ese nodo ya está en la lista",
+				"limit": "Máximo {{count}} nodos por cadena",
+				"unreachable": "El nodo no respondió a la prueba"
+			}
+		},
+		"toasts": {
+			"added": "Nodo añadido",
+			"removed": "Nodo eliminado"
+		}
 	},
 	"wallet": {
 		"card": {

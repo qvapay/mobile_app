@@ -93,7 +93,30 @@
 		"unmeasured": "Sem medição",
 		"latencyMs": "{{ms}} ms",
 		"failures_one": "{{count}} falha",
-		"failures_other": "{{count}} falhas"
+		"failures_other": "{{count}} falhas",
+		"custom": "Seu",
+		"addNode": "Adicionar nó",
+		"removeNode": "Remover nó",
+		"add": {
+			"title": "Nó para {{chain}}",
+			"subtitle": "URL https de um RPC de {{chain}}. É testado antes de salvar e terá prioridade sobre os do registro.",
+			"placeholder": "https://…",
+			"save": "Testar e salvar",
+			"testing": "Testando…",
+			"cancel": "Cancelar",
+			"errors": {
+				"invalid": "URL inválida",
+				"insecure": "Só são aceitas URLs https",
+				"credentials": "A URL não pode conter usuário nem senha",
+				"duplicate": "Esse nó já está na lista",
+				"limit": "No máximo {{count}} nós por cadeia",
+				"unreachable": "O nó não respondeu ao teste"
+			}
+		},
+		"toasts": {
+			"added": "Nó adicionado",
+			"removed": "Nó removido"
+		}
 	},
 	"wallet": {
 		"card": {

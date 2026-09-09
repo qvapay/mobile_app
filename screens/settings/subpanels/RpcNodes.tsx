@@ -1,27 +1,38 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner-native'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+
+// Settings
+import { useSettings } from '../../../settings/SettingsContext'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 
 // Wallet registry
-import { useAppRpcRouter, subscribeRpcHealth } from '../../../wallet/registry/appRpcRouter'
-import { useRegistry } from '../../../wallet/registry/useRegistry'
+import { useAppRpcRouter, useEffectiveRegistry, subscribeRpcHealth } from '../../../wallet/registry/appRpcRouter'
+import { CUSTOM_RPC_OWNER, addCustomRpc, removeCustomRpc } from '../../../wallet/registry/customRpcs'
+import type { CustomRpcMap } from '../../../wallet/registry/customRpcs'
 import type { HealthMap } from '../../../wallet/registry/rpcRouter'
-import type { RegistryRpc } from '../../../wallet/registry/types'
+import type { RegistryChain, RegistryRpc } from '../../../wallet/registry/types'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPPressable from '../../../ui/particles/QPPressable'
+import RpcNodeAddModal from './RpcNodeAddModal'
 
 import type { Theme } from '../../../theme/ThemeContext'
+
+const NO_CUSTOM: CustomRpcMap = {}
 
 /**
  * Pantalla oculta (Ajustes → Avanzado → Nodos, visible solo con el flag
  * self-custody o en dev): qué RPC usa cada cadena de la wallet, con latencia
- * y fallos en vivo. Sirve para vigilar el flip de los nodos propios del
- * registro remoto (priority 0) desde el teléfono, sin publicar versión.
+ * y fallos en vivo, más el alta/baja de nodos del usuario (`crypto.customRpcs`,
+ * que van delante de todo en el router). Sirve también para vigilar el flip
+ * de los nodos propios del registro remoto (priority 0) sin publicar versión.
  */
 const RpcNodes = () => {
 
@@ -30,11 +41,14 @@ const RpcNodes = () => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
-	const registry = useRegistry()
+	const registry = useEffectiveRegistry()
 	const router = useAppRpcRouter()
+	const { getSetting, updateSetting } = useSettings()
+	const customRpcs = getSetting('crypto', 'customRpcs', NO_CUSTOM) as CustomRpcMap
 
 	const [health, setHealth] = useState<HealthMap>(() => router.getHealth())
 	const [probing, setProbing] = useState(false)
+	const [adding, setAdding] = useState<{ chainKey: string, chain: RegistryChain } | null>(null)
 
 	useEffect(() => subscribeRpcHealth(setHealth), [])
 
@@ -45,6 +59,21 @@ const RpcNodes = () => {
 
 	// Primera medición al entrar: sin ella la pantalla nace "Sin medir".
 	useEffect(() => { probeAll() }, [probeAll])
+
+	const addNode = useCallback(async (chainKey: string, url: string) => {
+		const result = await updateSetting('crypto', 'customRpcs', addCustomRpc(customRpcs, chainKey, url))
+		if (!result.success) { toast.error(result.error ?? ''); return }
+		setAdding(null)
+		toast.success(t('crypto.nodes.toasts.added'))
+		// El registro efectivo cambia en el siguiente render; medir entonces
+		// para que la fila nazca con latencia y el pill "Activo" se mueva.
+		setTimeout(() => { router.probe(chainKey).catch(() => {}) }, 0)
+	}, [customRpcs, router, t, updateSetting])
+
+	const removeNode = useCallback(async (chainKey: string, url: string) => {
+		const result = await updateSetting('crypto', 'customRpcs', removeCustomRpc(customRpcs, chainKey, url))
+		if (result.success) toast.success(t('crypto.nodes.toasts.removed'))
+	}, [customRpcs, t, updateSetting])
 
 	const dotColor = (rpc: RegistryRpc): string => {
 		if (rpc.enabled === false) return theme.colors.secondaryText + '55'
@@ -73,12 +102,13 @@ const RpcNodes = () => {
 						{chain.rpcs.map(rpc => {
 							const h = health[rpc.url]
 							const isActive = active?.url === rpc.url && rpc.enabled !== false
+							const isCustom = rpc.owner === CUSTOM_RPC_OWNER
 							return (
 								<View key={rpc.url} style={[styles.row, { borderTopColor: theme.colors.border + '60' }]}>
 									<View style={[styles.dot, { backgroundColor: dotColor(rpc) }]} />
 									<View style={styles.rowBody}>
-										<Text style={[textStyles.h5, { color: theme.colors.primaryText }]} numberOfLines={1}>
-											{rpc.owner}
+										<Text style={[textStyles.h5, { color: isCustom ? theme.colors.primary : theme.colors.primaryText }]} numberOfLines={1}>
+											{isCustom ? t('crypto.nodes.custom') : rpc.owner}
 											<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>  {rpc.url.replace('https://', '')}</Text>
 										</Text>
 										<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
@@ -91,13 +121,34 @@ const RpcNodes = () => {
 										</Text>
 									</View>
 									{isActive && (
-										<Text style={[textStyles.h7, styles.activePill, { color: theme.colors.success, borderColor: theme.colors.success }]}>
+										<Text style={[textStyles.h7, styles.activePill, { color: theme.colors.successText, borderColor: theme.colors.successText }]}>
 											{t('crypto.nodes.active')}
 										</Text>
+									)}
+									{isCustom && (
+										<QPPressable
+											variant="opacity"
+											onPress={() => removeNode(chainKey, rpc.url)}
+											style={styles.trash}
+											accessibilityRole="button"
+											accessibilityLabel={t('crypto.nodes.removeNode')}
+										>
+											<FontAwesome6 name="trash" size={14} color={theme.colors.danger} iconStyle="solid" />
+										</QPPressable>
 									)}
 								</View>
 							)
 						})}
+
+						<QPPressable
+							variant="opacity"
+							onPress={() => setAdding({ chainKey, chain })}
+							style={[styles.addRow, { borderTopColor: theme.colors.border + '60' }]}
+							accessibilityRole="button"
+						>
+							<FontAwesome6 name="plus" size={12} color={theme.colors.primary} iconStyle="solid" />
+							<Text style={[textStyles.h6, { color: theme.colors.primary }]}>{t('crypto.nodes.addNode')}</Text>
+						</QPPressable>
 					</View>
 				)
 			})}
@@ -107,6 +158,8 @@ const RpcNodes = () => {
 				onPress={probeAll}
 				disabled={probing}
 			/>
+
+			<RpcNodeAddModal target={adding} customRpcs={customRpcs} onClose={() => setAdding(null)} onAdd={addNode} />
 		</ScrollView>
 	)
 }
@@ -124,6 +177,8 @@ const styles = StyleSheet.create({
 	rowBody: { flex: 1, gap: 2 },
 	dot: { width: 8, height: 8, borderRadius: 4 },
 	activePill: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
+	trash: { padding: 6 },
+	addRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, paddingBottom: 2, borderTopWidth: StyleSheet.hairlineWidth },
 })
 
 export default RpcNodes

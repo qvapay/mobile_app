@@ -93,7 +93,30 @@
 		"unmeasured": "Not measured",
 		"latencyMs": "{{ms}} ms",
 		"failures_one": "{{count}} failure",
-		"failures_other": "{{count}} failures"
+		"failures_other": "{{count}} failures",
+		"custom": "Yours",
+		"addNode": "Add node",
+		"removeNode": "Remove node",
+		"add": {
+			"title": "Node for {{chain}}",
+			"subtitle": "An https RPC URL for {{chain}}. It is tested before saving and takes priority over the registry nodes.",
+			"placeholder": "https://…",
+			"save": "Test and save",
+			"testing": "Testing…",
+			"cancel": "Cancel",
+			"errors": {
+				"invalid": "Invalid URL",
+				"insecure": "Only https URLs are allowed",
+				"credentials": "The URL cannot include a username or password",
+				"duplicate": "That node is already listed",
+				"limit": "Up to {{count}} nodes per chain",
+				"unreachable": "The node did not respond to the test"
+			}
+		},
+		"toasts": {
+			"added": "Node added",
+			"removed": "Node removed"
+		}
 	},
 	"wallet": {
 		"card": {

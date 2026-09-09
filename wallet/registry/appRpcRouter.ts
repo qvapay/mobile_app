@@ -6,9 +6,12 @@
  * Este es el ÚNICO archivo de wallet/registry que toca almacenamiento de la
  * app; el router en sí (rpcRouter.ts) queda puro y testeable en node.
  */
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
+import { useSettings } from '../../settings/SettingsContext'
+import { applyCustomRpcs } from './customRpcs'
+import type { CustomRpcMap } from './customRpcs'
 import { createRpcRouter } from './rpcRouter'
 import type { HealthMap, RpcRouter } from './rpcRouter'
 import { bundledRegistry, useRegistry } from './useRegistry'
@@ -48,12 +51,29 @@ export const subscribeRpcHealth = (listener: (health: HealthMap) => void): (() =
 	return () => { listeners.delete(listener) }
 }
 
+const NO_CUSTOM: CustomRpcMap = {}
+
+/**
+ * Registro EFECTIVO: remoto (o bundled) con los nodos del usuario
+ * (`crypto.customRpcs` en SettingsContext) delante de cada cadena. Es lo que
+ * ven el router y la pantalla Nodos — nunca consumir `useRegistry` a pelo
+ * desde UI, o los nodos custom desaparecerían de la lista.
+ */
+export const useEffectiveRegistry = (): RpcRegistry => {
+	const registry = useRegistry()
+	const { getSetting } = useSettings()
+	const custom = getSetting('crypto', 'customRpcs', NO_CUSTOM) as CustomRpcMap
+	return useMemo(() => applyCustomRpcs(registry, custom), [registry, custom])
+}
+
 /**
  * Router listo para componentes: sigue el registro efectivo (remoto o
- * bundled) en cada cambio. La identidad del router es estable de por vida.
+ * bundled + nodos del usuario) en cada cambio. La identidad del router es
+ * estable de por vida. Debe montarlo alguien vivo toda la sesión
+ * (WalletProvider): sin ese enganche el singleton se quedaría con el bundled.
  */
 export const useAppRpcRouter = (): RpcRouter => {
-	const registry = useRegistry()
+	const registry = useEffectiveRegistry()
 	useEffect(() => { setCurrentRegistry(registry) }, [registry])
 	return getAppRpcRouter()
 }

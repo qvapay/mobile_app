@@ -16,7 +16,7 @@ import { createMnemonic, isValidMnemonic, mnemonicToSeed, normalizeMnemonic } fr
 import { deriveAddresses } from './derive'
 import type { WalletAddresses } from './derive'
 import { getWalletMnemonic, hasWalletMnemonic, removeWalletMnemonic, setWalletMnemonic } from './keystore'
-import { getAppRpcRouter } from './registry/appRpcRouter'
+import { useAppRpcRouter } from './registry/appRpcRouter'
 import { walletApi } from '../api/walletApi'
 
 /** Metadata pública (direcciones + backup); el secreto vive solo en Keychain. */
@@ -98,11 +98,15 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 		return () => { cancelled = true }
 	}, [persistMeta])
 
+	// El singleton del router sigue el registro efectivo (remoto + nodos del
+	// usuario) desde aquí, que vive toda la sesión — no solo desde la pantalla
+	// Nodos, o la wallet hablaría con el bundled hasta que alguien la abriera.
+	const router = useAppRpcRouter()
+
 	// Probe de RPCs: al armar la wallet y cada 10 min en foreground. Solo con
 	// wallet creada — sin ella no hay tráfico on-chain que optimizar.
 	useEffect(() => {
 		if (!meta) return
-		const router = getAppRpcRouter()
 		router.probe().catch(() => {})
 		let interval: ReturnType<typeof setInterval> | null = null
 		const arm = () => { if (!interval) interval = setInterval(() => router.probe().catch(() => {}), PROBE_INTERVAL_MS) }
@@ -110,7 +114,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 		arm()
 		const sub = AppState.addEventListener('change', state => { state === 'active' ? arm() : disarm() })
 		return () => { disarm(); sub.remove() }
-	}, [meta])
+	}, [meta, router])
 
 	const createWallet = useCallback(async (): Promise<string | null> => {
 		if (metaRef.current) return null // ya hay wallet: jamás pisarla
