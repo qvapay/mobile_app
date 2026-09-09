@@ -1,72 +1,748 @@
 {
-	"version": 1,
-	"updated_at": "2026-09-03T00:00:00Z",
+	"$schema": "./schema.json",
+	"version": 4,
+	"updated_at": "2026-09-08T17:15:23Z",
 	"chains": {
-		"tron": {
-			"kind": "tron",
-			"native": { "symbol": "TRX", "decimals": 6 },
-			"explorer": "https://tronscan.org/#/transaction/{tx}",
+		"ethereum": {
+			"kind": "evm",
+			"chainId": 1,
+			"name": "Ethereum",
+			"native": {
+				"symbol": "ETH",
+				"decimals": 18
+			},
+			"explorer": "https://etherscan.io/tx/{tx}",
 			"tokens": [
-				{ "symbol": "USDT", "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "decimals": 6 }
+				{
+					"symbol": "USDT",
+					"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+					"decimals": 6
+				},
+				{
+					"symbol": "USDC",
+					"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+					"decimals": 6
+				}
 			],
 			"rpcs": [
-				{ "url": "https://tron.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
-				{ "url": "https://api.trongrid.io", "priority": 10, "owner": "trongrid" },
-				{ "url": "https://tron-rpc.publicnode.com", "priority": 20, "owner": "publicnode", "api": "jsonrpc" }
+				{
+					"url": "https://eth.qvapay.com",
+					"priority": 0,
+					"owner": "qvapay",
+					"enabled": false
+				},
+				{
+					"url": "https://ethereum-rpc.publicnode.com",
+					"priority": 10,
+					"owner": "publicnode"
+				},
+				{
+					"url": "https://eth.drpc.org",
+					"priority": 20,
+					"owner": "drpc"
+				},
+				{
+					"url": "https://public.1rpc.io/eth",
+					"priority": 30,
+					"owner": "1rpc"
+				},
+				{
+					"url": "https://eth-mainnet.g.alchemy.com/public",
+					"priority": 40,
+					"owner": "alchemy"
+				},
+				{
+					"url": "https://mainnet.gateway.tenderly.co",
+					"priority": 50,
+					"owner": "tenderly"
+				},
+				{
+					"url": "https://eth-mainnet.public.blastapi.io",
+					"priority": 60,
+					"owner": "blastapi"
+				},
+				{
+					"url": "https://rpc.mevblocker.io",
+					"priority": 70,
+					"owner": "mevblocker"
+				},
+				{
+					"url": "https://eth.merkle.io",
+					"priority": 80,
+					"owner": "merkle"
+				},
+				{
+					"url": "https://ethereum-public.nodies.app",
+					"priority": 90,
+					"owner": "nodies"
+				},
+				{
+					"url": "https://ethereum.public.blockpi.network/v1/rpc/public",
+					"priority": 100,
+					"owner": "blockpi"
+				},
+				{
+					"url": "https://eth.api.pocket.network",
+					"priority": 110,
+					"owner": "pocket"
+				},
+				{
+					"url": "https://ethereum-mainnet.gateway.tatum.io",
+					"priority": 120,
+					"owner": "tatum"
+				},
+				{
+					"url": "https://public-eth.nownodes.io",
+					"priority": 130,
+					"owner": "nownodes"
+				},
+				{
+					"url": "https://api.zan.top/eth-mainnet",
+					"priority": 140,
+					"owner": "zan"
+				},
+				{
+					"url": "https://eth.rpc.blxrbdn.com",
+					"priority": 150,
+					"owner": "bloxroute"
+				},
+				{
+					"url": "https://nodes.mewapi.io/rpc/eth",
+					"priority": 160,
+					"owner": "mew"
+				},
+				{
+					"url": "https://ethereum.reth.rs/rpc",
+					"priority": 170,
+					"owner": "paradigm"
+				},
+				{
+					"url": "https://ethereum-json-rpc.stakely.io",
+					"priority": 180,
+					"owner": "stakely"
+				},
+				{
+					"url": "https://eth.api.onfinality.io/public",
+					"priority": 190,
+					"owner": "onfinality"
+				},
+				{
+					"url": "https://eth.blockrazor.xyz",
+					"priority": 200,
+					"owner": "blockrazor"
+				},
+				{
+					"url": "https://0xrpc.io/eth",
+					"priority": 210,
+					"owner": "0xrpc"
+				},
+				{
+					"url": "https://ethereum.blinklabs.xyz",
+					"priority": 220,
+					"owner": "blinklabs"
+				},
+				{
+					"url": "https://mainnet.rpc.sentio.xyz",
+					"priority": 230,
+					"owner": "sentio"
+				},
+				{
+					"url": "https://ethereum-rpc.polkachu.com",
+					"priority": 240,
+					"owner": "polkachu"
+				},
+				{
+					"url": "https://rpc.solidrpc.io/public/evm/1",
+					"priority": 250,
+					"owner": "solidrpc"
+				},
+				{
+					"url": "https://ethereum-rpc.blockreq.com/v1/rpc/public",
+					"priority": 260,
+					"owner": "blockreq"
+				},
+				{
+					"url": "https://rpc-eth.blockmachine.io",
+					"priority": 270,
+					"owner": "blockmachine"
+				}
 			]
 		},
 		"bsc": {
 			"kind": "evm",
 			"chainId": 56,
-			"native": { "symbol": "BNB", "decimals": 18 },
+			"name": "BNB Smart Chain",
+			"native": {
+				"symbol": "BNB",
+				"decimals": 18
+			},
 			"explorer": "https://bscscan.com/tx/{tx}",
 			"tokens": [
-				{ "symbol": "USDT", "address": "0x55d398326f99059fF775485246999027B3197955", "decimals": 18 },
-				{ "symbol": "USDC", "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", "decimals": 18 }
+				{
+					"symbol": "USDT",
+					"address": "0x55d398326f99059fF775485246999027B3197955",
+					"decimals": 18
+				},
+				{
+					"symbol": "USDC",
+					"address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+					"decimals": 18
+				}
 			],
 			"rpcs": [
-				{ "url": "https://bsc.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
-				{ "url": "https://bsc-dataseed.bnbchain.org", "priority": 10, "owner": "bnbchain" },
-				{ "url": "https://bsc-rpc.publicnode.com", "priority": 20, "owner": "publicnode" }
+				{
+					"url": "https://bsc.qvapay.com",
+					"priority": 0,
+					"owner": "qvapay",
+					"enabled": false
+				},
+				{
+					"url": "https://bsc-dataseed.bnbchain.org",
+					"priority": 10,
+					"owner": "bnbchain"
+				},
+				{
+					"url": "https://bsc-dataseed1.bnbchain.org",
+					"priority": 20,
+					"owner": "bnbchain"
+				},
+				{
+					"url": "https://bsc-dataseed2.bnbchain.org",
+					"priority": 30,
+					"owner": "bnbchain"
+				},
+				{
+					"url": "https://bsc-dataseed3.bnbchain.org",
+					"priority": 40,
+					"owner": "bnbchain"
+				},
+				{
+					"url": "https://bsc-dataseed4.bnbchain.org",
+					"priority": 50,
+					"owner": "bnbchain"
+				},
+				{
+					"url": "https://bsc-dataseed-public.bnbchain.org",
+					"priority": 60,
+					"owner": "bnbchain"
+				},
+				{
+					"url": "https://bsc-dataseed1.defibit.io",
+					"priority": 70,
+					"owner": "defibit"
+				},
+				{
+					"url": "https://bsc-dataseed2.defibit.io",
+					"priority": 80,
+					"owner": "defibit"
+				},
+				{
+					"url": "https://bsc-dataseed3.defibit.io",
+					"priority": 90,
+					"owner": "defibit"
+				},
+				{
+					"url": "https://bsc-dataseed4.defibit.io",
+					"priority": 100,
+					"owner": "defibit"
+				},
+				{
+					"url": "https://bsc-dataseed1.ninicoin.io",
+					"priority": 110,
+					"owner": "ninicoin"
+				},
+				{
+					"url": "https://bsc-dataseed2.ninicoin.io",
+					"priority": 120,
+					"owner": "ninicoin"
+				},
+				{
+					"url": "https://bsc-dataseed3.ninicoin.io",
+					"priority": 130,
+					"owner": "ninicoin"
+				},
+				{
+					"url": "https://bsc-dataseed4.ninicoin.io",
+					"priority": 140,
+					"owner": "ninicoin"
+				},
+				{
+					"url": "https://bsc-dataseed.nariox.org",
+					"priority": 150,
+					"owner": "nariox"
+				},
+				{
+					"url": "https://bsc-rpc.publicnode.com",
+					"priority": 160,
+					"owner": "publicnode"
+				},
+				{
+					"url": "https://bsc.nodereal.io",
+					"priority": 170,
+					"owner": "nodereal"
+				},
+				{
+					"url": "https://binance.nodereal.io",
+					"priority": 180,
+					"owner": "nodereal"
+				},
+				{
+					"url": "https://rpc-bsc.48.club",
+					"priority": 190,
+					"owner": "48club"
+				},
+				{
+					"url": "https://0.48.club",
+					"priority": 200,
+					"owner": "48club"
+				},
+				{
+					"url": "https://bnb-mainnet.g.alchemy.com/public",
+					"priority": 210,
+					"owner": "alchemy"
+				},
+				{
+					"url": "https://bsc-mainnet.public.blastapi.io",
+					"priority": 220,
+					"owner": "blastapi"
+				},
+				{
+					"url": "https://bsc.merkle.io",
+					"priority": 230,
+					"owner": "merkle"
+				},
+				{
+					"url": "https://bsc.api.pocket.network",
+					"priority": 240,
+					"owner": "pocket"
+				},
+				{
+					"url": "https://bsc-mainnet.gateway.tatum.io",
+					"priority": 250,
+					"owner": "tatum"
+				},
+				{
+					"url": "https://public-bsc.nownodes.io",
+					"priority": 260,
+					"owner": "nownodes"
+				},
+				{
+					"url": "https://api.zan.top/bsc-mainnet",
+					"priority": 270,
+					"owner": "zan"
+				},
+				{
+					"url": "https://bsc.rpc.blxrbdn.com",
+					"priority": 280,
+					"owner": "bloxroute"
+				},
+				{
+					"url": "https://bsc.blockrazor.xyz",
+					"priority": 290,
+					"owner": "blockrazor"
+				},
+				{
+					"url": "https://bsc.rpc.sentio.xyz",
+					"priority": 300,
+					"owner": "sentio"
+				},
+				{
+					"url": "https://public-bsc-mainnet.fastnode.io",
+					"priority": 310,
+					"owner": "fastnode"
+				},
+				{
+					"url": "https://rpc.solidrpc.io/public/evm/56",
+					"priority": 320,
+					"owner": "solidrpc"
+				},
+				{
+					"url": "https://rpc-bsc.blockmachine.io",
+					"priority": 330,
+					"owner": "blockmachine"
+				},
+				{
+					"url": "https://rpc.swiftnodes.io/rpc/bsc",
+					"priority": 340,
+					"owner": "swiftnodes"
+				}
 			]
 		},
-		"ethereum": {
+		"polygon": {
 			"kind": "evm",
-			"chainId": 1,
-			"native": { "symbol": "ETH", "decimals": 18 },
-			"explorer": "https://etherscan.io/tx/{tx}",
+			"chainId": 137,
+			"name": "Polygon PoS",
+			"native": {
+				"symbol": "POL",
+				"decimals": 18
+			},
+			"explorer": "https://polygonscan.com/tx/{tx}",
 			"tokens": [
-				{ "symbol": "USDT", "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7", "decimals": 6 },
-				{ "symbol": "USDC", "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "decimals": 6 }
+				{
+					"symbol": "USDT",
+					"address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+					"decimals": 6
+				},
+				{
+					"symbol": "USDC",
+					"address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+					"decimals": 6
+				},
+				{
+					"symbol": "USDC.e",
+					"address": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+					"decimals": 6
+				}
 			],
 			"rpcs": [
-				{ "url": "https://eth.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
-				{ "url": "https://ethereum-rpc.publicnode.com", "priority": 10, "owner": "publicnode" },
-				{ "url": "https://eth.drpc.org", "priority": 20, "owner": "drpc" }
+				{
+					"url": "https://polygon.qvapay.com",
+					"priority": 0,
+					"owner": "qvapay",
+					"enabled": false
+				},
+				{
+					"url": "https://polygon-bor-rpc.publicnode.com",
+					"priority": 10,
+					"owner": "publicnode"
+				},
+				{
+					"url": "https://polygon-bor.publicnode.com",
+					"priority": 20,
+					"owner": "publicnode"
+				},
+				{
+					"url": "https://polygon.drpc.org",
+					"priority": 30,
+					"owner": "drpc"
+				},
+				{
+					"url": "https://public.1rpc.io/matic",
+					"priority": 40,
+					"owner": "1rpc"
+				},
+				{
+					"url": "https://polygon.gateway.tenderly.co",
+					"priority": 50,
+					"owner": "tenderly"
+				},
+				{
+					"url": "https://gateway.tenderly.co/public/polygon",
+					"priority": 60,
+					"owner": "tenderly"
+				},
+				{
+					"url": "https://tenderly.rpc.polygon.community",
+					"priority": 70,
+					"owner": "tenderly"
+				},
+				{
+					"url": "https://rpc-mainnet.matic.quiknode.pro",
+					"priority": 80,
+					"owner": "quicknode"
+				},
+				{
+					"url": "https://poly.api.pocket.network",
+					"priority": 90,
+					"owner": "pocket"
+				},
+				{
+					"url": "https://polygon-mainnet.gateway.tatum.io",
+					"priority": 100,
+					"owner": "tatum"
+				},
+				{
+					"url": "https://polygon-mainnet-bor.gateway.tatum.io",
+					"priority": 110,
+					"owner": "tatum"
+				},
+				{
+					"url": "https://api.zan.top/polygon-mainnet",
+					"priority": 120,
+					"owner": "zan"
+				},
+				{
+					"url": "https://matic.rpc.sentio.xyz",
+					"priority": 130,
+					"owner": "sentio"
+				},
+				{
+					"url": "https://rpc.private.mev-x.com/polygon",
+					"priority": 140,
+					"owner": "mev-x"
+				},
+				{
+					"url": "https://rpc.solidrpc.io/public/evm/137",
+					"priority": 150,
+					"owner": "solidrpc"
+				},
+				{
+					"url": "https://polygon-bor-rpc.blockreq.com/v1/rpc/public",
+					"priority": 160,
+					"owner": "blockreq"
+				},
+				{
+					"url": "https://rpc-polygon.blockmachine.io",
+					"priority": 170,
+					"owner": "blockmachine"
+				},
+				{
+					"url": "https://rpc.swiftnodes.io/rpc/polygon",
+					"priority": 180,
+					"owner": "swiftnodes"
+				}
 			]
 		},
 		"base": {
 			"kind": "evm",
 			"chainId": 8453,
-			"native": { "symbol": "ETH", "decimals": 18 },
+			"name": "Base",
+			"native": {
+				"symbol": "ETH",
+				"decimals": 18
+			},
 			"explorer": "https://basescan.org/tx/{tx}",
 			"tokens": [
-				{ "symbol": "USDC", "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "decimals": 6 }
+				{
+					"symbol": "USDC",
+					"address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+					"decimals": 6
+				},
+				{
+					"symbol": "USDT",
+					"address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+					"decimals": 6
+				}
 			],
 			"rpcs": [
-				{ "url": "https://base.qvapay.com", "priority": 0, "owner": "qvapay", "enabled": false },
-				{ "url": "https://mainnet.base.org", "priority": 10, "owner": "base" },
-				{ "url": "https://base-rpc.publicnode.com", "priority": 20, "owner": "publicnode" }
+				{
+					"url": "https://base.qvapay.com",
+					"priority": 0,
+					"owner": "qvapay",
+					"enabled": false
+				},
+				{
+					"url": "https://mainnet.base.org",
+					"priority": 10,
+					"owner": "base"
+				},
+				{
+					"url": "https://developer-access-mainnet.base.org",
+					"priority": 20,
+					"owner": "base"
+				},
+				{
+					"url": "https://mainnet-preconf.base.org",
+					"priority": 30,
+					"owner": "base"
+				},
+				{
+					"url": "https://base-rpc.publicnode.com",
+					"priority": 40,
+					"owner": "publicnode"
+				},
+				{
+					"url": "https://base.drpc.org",
+					"priority": 50,
+					"owner": "drpc"
+				},
+				{
+					"url": "https://public.1rpc.io/base",
+					"priority": 60,
+					"owner": "1rpc"
+				},
+				{
+					"url": "https://base-mainnet.g.alchemy.com/public",
+					"priority": 70,
+					"owner": "alchemy"
+				},
+				{
+					"url": "https://base.gateway.tenderly.co",
+					"priority": 80,
+					"owner": "tenderly"
+				},
+				{
+					"url": "https://base-mainnet.public.blastapi.io",
+					"priority": 90,
+					"owner": "blastapi"
+				},
+				{
+					"url": "https://base.merkle.io",
+					"priority": 100,
+					"owner": "merkle"
+				},
+				{
+					"url": "https://base-public.nodies.app",
+					"priority": 110,
+					"owner": "nodies"
+				},
+				{
+					"url": "https://base.public.blockpi.network/v1/rpc/public",
+					"priority": 120,
+					"owner": "blockpi"
+				},
+				{
+					"url": "https://base.api.pocket.network",
+					"priority": 130,
+					"owner": "pocket"
+				},
+				{
+					"url": "https://api.zan.top/base-mainnet",
+					"priority": 140,
+					"owner": "zan"
+				},
+				{
+					"url": "https://base.rpc.blxrbdn.com",
+					"priority": 150,
+					"owner": "bloxroute"
+				},
+				{
+					"url": "https://base.rpc.sentio.xyz",
+					"priority": 160,
+					"owner": "sentio"
+				},
+				{
+					"url": "https://rpc.baseazul.dev",
+					"priority": 170,
+					"owner": "baseazul"
+				},
+				{
+					"url": "https://base-rpc.polkachu.com",
+					"priority": 180,
+					"owner": "polkachu"
+				},
+				{
+					"url": "https://rpc.solidrpc.io/public/evm/8453",
+					"priority": 190,
+					"owner": "solidrpc"
+				},
+				{
+					"url": "https://base-rpc.blockreq.com/v1/rpc/public",
+					"priority": 200,
+					"owner": "blockreq"
+				},
+				{
+					"url": "https://rpc-base.blockmachine.io",
+					"priority": 210,
+					"owner": "blockmachine"
+				},
+				{
+					"url": "https://rpc.swiftnodes.io/rpc/base",
+					"priority": 220,
+					"owner": "swiftnodes"
+				}
+			]
+		},
+		"tron": {
+			"kind": "tron",
+			"chainId": 728126428,
+			"name": "TRON",
+			"native": {
+				"symbol": "TRX",
+				"decimals": 6
+			},
+			"explorer": "https://tronscan.org/#/transaction/{tx}",
+			"tokens": [
+				{
+					"symbol": "USDT",
+					"address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+					"decimals": 6
+				},
+				{
+					"symbol": "USDC",
+					"address": "TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8",
+					"decimals": 6
+				}
+			],
+			"rpcs": [
+				{
+					"url": "https://tron.qvapay.com",
+					"priority": 0,
+					"owner": "qvapay",
+					"enabled": false
+				},
+				{
+					"url": "https://api.trongrid.io",
+					"priority": 10,
+					"owner": "trongrid"
+				},
+				{
+					"url": "https://tron-rpc.publicnode.com",
+					"priority": 20,
+					"owner": "publicnode"
+				},
+				{
+					"url": "https://api.tronstack.io",
+					"priority": 30,
+					"owner": "tronstack"
+				},
+				{
+					"url": "https://api.trongrid.io/jsonrpc",
+					"priority": 100,
+					"owner": "trongrid",
+					"api": "jsonrpc"
+				},
+				{
+					"url": "https://tron-evm-rpc.publicnode.com",
+					"priority": 110,
+					"owner": "publicnode",
+					"api": "jsonrpc"
+				}
 			]
 		},
 		"bitcoin": {
 			"kind": "btc",
-			"native": { "symbol": "BTC", "decimals": 8 },
+			"name": "Bitcoin",
+			"native": {
+				"symbol": "BTC",
+				"decimals": 8
+			},
 			"explorer": "https://mempool.space/tx/{tx}",
+			"tokens": [],
 			"rpcs": [
-				{ "url": "https://btc.qvapay.com/api", "priority": 0, "owner": "qvapay", "enabled": false, "api": "esplora" },
-				{ "url": "https://mempool.space/api", "priority": 10, "owner": "mempool", "api": "esplora" },
-				{ "url": "https://blockstream.info/api", "priority": 20, "owner": "blockstream", "api": "esplora" }
+				{
+					"url": "https://btc.qvapay.com/api",
+					"priority": 0,
+					"owner": "qvapay",
+					"enabled": false,
+					"api": "esplora"
+				},
+				{
+					"url": "https://mempool.space/api",
+					"priority": 10,
+					"owner": "mempool",
+					"api": "esplora"
+				},
+				{
+					"url": "https://blockstream.info/api",
+					"priority": 20,
+					"owner": "blockstream",
+					"api": "esplora"
+				},
+				{
+					"url": "https://mempool.second.tech/api",
+					"priority": 30,
+					"owner": "second",
+					"api": "esplora"
+				},
+				{
+					"url": "https://mempool.bitaroo.net/api",
+					"priority": 40,
+					"owner": "bitaroo",
+					"api": "esplora"
+				},
+				{
+					"url": "https://mempool.ninja/api",
+					"priority": 50,
+					"owner": "mempool-ninja",
+					"api": "esplora"
+				},
+				{
+					"url": "https://mempool.bitcoin-21.org/api",
+					"priority": 60,
+					"owner": "bitcoin-21",
+					"api": "esplora"
+				}
 			]
 		}
 	}

@@ -1,8 +1,8 @@
 /**
  * Registro remoto de RPCs con fallback empaquetado.
  *
- * Fuente de verdad: repo qvapay/rpc-registry (espejo en rpc.qvapay.com, luego
- * raw.githubusercontent.com). TTL 1h — un flip de `enabled` en un commit llega
+ * Fuente de verdad: repo qvapay/rpc-registry vía raw.githubusercontent.com
+ * (el espejo rpc.qvapay.com está pendiente de montar). TTL 1h — un flip de `enabled` en un commit llega
  * a todos los clientes en su próximo refresh sin publicar versión. Si la red
  * falla o el payload no valida, gana `bundled.json` (o el último remoto bueno,
  * que React Query conserva y persiste a disco: el registro no es secreto).
@@ -12,8 +12,13 @@ import { useQuery } from '@tanstack/react-query'
 import bundledJson from './bundled.json'
 import type { RpcRegistry } from './types'
 
+/**
+ * Solo GitHub raw por ahora. El espejo `https://rpc.qvapay.com/registry.json`
+ * queda para más adelante: mientras no exista, tenerlo delante costaba el
+ * timeout completo (5s) en cada refresh antes de caer a la fuente que sí
+ * responde. Cuando se monte, va PRIMERO en este array.
+ */
 const REGISTRY_URLS = [
-	'https://rpc.qvapay.com/registry.json',
 	'https://raw.githubusercontent.com/qvapay/rpc-registry/main/registry.json',
 ]
 

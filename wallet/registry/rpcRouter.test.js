@@ -161,8 +161,8 @@ describe('isRetryableRpcError', () => {
 })
 
 describe('bundled.json', () => {
-	test('cubre las 5 cadenas v1 con la forma del contrato', () => {
-		expect(Object.keys(bundled.chains).sort()).toEqual(['base', 'bitcoin', 'bsc', 'ethereum', 'tron'])
+	test('cubre las 6 cadenas v4 con la forma del contrato', () => {
+		expect(Object.keys(bundled.chains).sort()).toEqual(['base', 'bitcoin', 'bsc', 'ethereum', 'polygon', 'tron'])
 		for (const [key, chain] of Object.entries(bundled.chains)) {
 			expect(['evm', 'tron', 'btc']).toContain(chain.kind)
 			expect(chain.explorer).toContain('{tx}')
