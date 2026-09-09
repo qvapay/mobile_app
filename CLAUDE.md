@@ -13,7 +13,7 @@ QvaPay is a React Native mobile fintech app (RN 0.84.1, React 19.2.3) providing 
 npm run android          # Run on Android (auto-syncs version first)
 npm run ios              # Run on iOS (auto-syncs version first)
 npm run ios:build        # Build iOS (iPhone 16 simulator, auto-syncs version)
-npm run ios:device       # Run on a physical iPhone (hardcoded UDID, auto-syncs version)
+npm run ios:device       # Physical iPhone via xcodebuild + devicectl (scripts/run-ios-device.sh; `-- <udid>` for another phone, METRO=0 skips Metro). The RN CLI lists the iPhone as offline, hence the bypass
 npm run pods             # cd ios && pod install (required after native dep changes)
 npm run start            # Start Metro bundler
 
@@ -36,7 +36,7 @@ npm run android:publish[:internal|:production]  # gradle publishBundle to Play t
 npm run version:sync     # Sync version across iOS/Android/app.json (auto-runs before ios/android)
 ```
 
-**Node.js requirement**: >= 22.11. CocoaPods required for iOS. `npm run version:sync` reads **`app.json`** (`version` + `versionCode`) and writes them into `package.json` and `ios/QvaPay.xcodeproj/project.pbxproj`; Android reads `app.json` directly via Gradle — all version bumps go through `app.json`. The version also feeds the React Query persister `buster`, so bumping it invalidates the whole persisted query cache on update.
+**Node.js requirement**: >= 22.11. **Ruby 3.3.9 via rbenv** (pinned in `.ruby-version`; `Gemfile.lock` was generated with Bundler 2.4.22 — `gem install bundler:2.4.22 && bundle install`). CocoaPods required for iOS (`bundle exec pod install`). `npm run version:sync` reads **`app.json`** (`version` + `versionCode`) and writes them into `package.json` and `ios/QvaPay.xcodeproj/project.pbxproj`; Android reads `app.json` directly via Gradle — all version bumps go through `app.json`. The version also feeds the React Query persister `buster`, so bumping it invalidates the whole persisted query cache on update.
 
 **Testing gotcha**: devDeps use jest 30 but the `react-native` preset bundles jest 29 packages — they clash in the default environment. Pattern: extract pure logic into a plain module and test it with a `@jest-environment node` docblock (see `screens/keypad/keypadAmount.js` + `.test.js`).
 
@@ -297,7 +297,7 @@ Regular: 1 | KYC: 3 | VIP: 5 | Gold: 10 | Company: 100 | Admin: 1000
 - Al añadir un endpoint: tipar su `T` en el módulo de `api/` y, si el payload es una entidad, declararla en `types/domain.ts`. Los returns que se salen del contrato estándar se modelan como unión local en su módulo (ver `P2PIndexResult` en `api/p2pApi.ts`), no ensanchando `ApiResult`
 - Al añadir una pantalla: registrar sus params en `RootStackParamList` y tiparla con `NativeStackScreenProps<RootStackParamList, 'Ruta'>` (las de pestaña, con `CompositeScreenProps`)
 - Functional components + hooks only (no class components beyond `ErrorBoundary`)
-- **`polyfills.ts` es el PRIMER import de `index.js`**: `install()` de react-native-quick-crypto parchea `global.crypto` (getRandomValues/subtle, C++/Nitro) y `global.Buffer` antes de evaluar cualquier otro módulo — @scure/bip39, @noble y viem dependen de ello. En dev revienta al arrancar si el polyfill no quedó instalado. El flag de rollout de la wallet es `crypto.selfCustody` (SettingsContext) OR `features.self_custody` del backend, vía `hooks/useSelfCustodyFlag`
+- **`polyfills.ts` es el PRIMER import de `index.js`**: `install()` de react-native-quick-crypto parchea `global.crypto` (getRandomValues/subtle, C++/Nitro) y `global.Buffer` antes de evaluar cualquier otro módulo — @scure/bip39, @noble y viem dependen de ello. En dev revienta al arrancar si el polyfill no quedó instalado. **`react-native-quick-base64` debe ser dependencia DIRECTA en package.json**: es peer dep nativa de quick-crypto y el autolinking de RN solo enlaza dependencias directas — como transitiva su pod no entra al binario y la app muere en el arranque con "'QuickBase64' could not be found". El flag de rollout de la wallet es `crypto.selfCustody` (SettingsContext) OR `features.self_custody` del backend, vía `hooks/useSelfCustodyFlag`
 - **UI multilenguaje (es/en/pt-BR) vía i18next** — ver sección "i18n" arriba; copy nuevo SIEMPRE nace como clave en `i18n/locales/` (los 3 idiomas) siguiendo `i18n/CONVENTIONS.md`, nunca como literal
 - Token lives in Keychain (`com.qvapay.auth`) — AsyncStorage is only used for non-secret settings
 - API base URL switches on `__DEV__`; dev IP `192.168.0.10:3000` in `config.js` may need updating per machine
