@@ -19,7 +19,7 @@ import { useAuth } from '../../auth/AuthContext'
 // API
 import { transferApi } from '../../api/transferApi'
 import { getAuthToken } from '../../api/client'
-import config from '../../config'
+import { getApiBaseUrl } from '../../api/apiHost'
 
 // PDF download
 import ReactNativeBlobUtil from 'react-native-blob-util'
@@ -194,7 +194,7 @@ const Transaction = ({ route, navigation }: Props) => {
 				return
 			}
 
-			const url = `${config.API_BASE_URL}/transaction/${transactionDetails.uuid}/pdf`
+			const url = `${getApiBaseUrl()}/transaction/${transactionDetails.uuid}/pdf`
 			const dirs = ReactNativeBlobUtil.fs.dirs
 			const filePath = `${dirs.CacheDir}/transaction-${transactionDetails.uuid}.pdf`
 			const res = await ReactNativeBlobUtil.config({

@@ -125,7 +125,7 @@ If a deep link arrives while unauthenticated, the URL is stashed in `pendingDeep
 
 ### API Layer (`/api/`)
 **Axios client** (`client.js`):
-- Base URL from `/config.js`: dev `http://192.168.0.10:3000/api`, prod `https://api.qvapay.com`. Fallback constant: `https://www.qvapay.com/api` (not yet wired into retry logic).
+- Base URL from `/config.ts`: dev `http://192.168.0.10:3000/api`, prod `https://api.qvapay.com`. **Dev fallback (`api/apiHost.ts`)**: la primera petición sondea `/status` de la LAN; si no hay respuesta en 15s (`API_DEV_PROBE_TIMEOUT`), el cliente ENTERO pasa a producción el resto de la sesión (cualquier respuesta HTTP, incluso 5xx, mantiene la LAN). Prod nunca sondea. El interceptor de request fija `baseURL` por petición vía `ensureApiHost()`; SSE y PDF leen `getApiBaseUrl()` en call time — nunca copiar `config.API_BASE_URL` a nivel de módulo.
 - Timeout 20s. Headers: `X-QvaPay-Client: QvaPayAPP`, `X-QvaPay-Client-Version` (app version), `-Platform` (**`Platform.OS` — `ios`/`android`**, the backend register endpoint keys the Turnstile-captcha exemption on it), `-Platform-Version` (OS version), `-Build` (build number), `-Device` (device model), `-Device-Name` (user-assigned name, ASCII-sanitized — raw non-ASCII header values crash the native HTTP stacks), plus a real `User-Agent` (`QvaPayAPP/<version> (<os> <osVersion>; <model>)`).
 - Request interceptor pulls bearer token from **Keychain** (service `com.qvapay.auth`), not AsyncStorage. Triggers the global loading bar unless `silent: true`.
 - Response interceptor: 403 clears the keychain token; 500 returns `"Ha ocurrido un error, contacte a soporte"`; network errors return `"No se ha podido conectar con el servidor"`. All in Spanish.

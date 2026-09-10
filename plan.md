@@ -13,7 +13,7 @@ npx jest wallet/           # 41 tests: router + nodos custom + vectores de deriv
 ```
 
 - Android necesita SDK (`ANDROID_HOME` o `android/local.properties` con `sdk.dir=...`, gitignorado). **El build Android aún no se ha validado con quick-crypto** — primera cosa a comprobar en un equipo con SDK: `cd android && ./gradlew assembleDebug`.
-- `config.ts`: la IP dev del backend (`192.168.0.10:3000`) puede necesitar ajuste por máquina.
+- `config.ts`: la IP dev del backend (`192.168.0.10:3000`) puede necesitar ajuste por máquina. Si no responde en 15s, el build debug cae solo a api.qvapay.com (`api/apiHost.ts`).
 - El script `ios:build` apunta al simulador "iPhone 16"; con Xcode nuevo usar destino existente (iPhone 17/Air) o `-destination 'generic/platform=iOS Simulator'`.
 
 ## Estado: qué está HECHO (commits `2e843b7..ecd1ed3`)
