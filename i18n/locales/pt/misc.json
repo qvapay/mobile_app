@@ -40,7 +40,7 @@
 	},
 	"lock": {
 		"enterPin": "Digite seu PIN de segurança",
-		"orEnterPin": "ou digite seu PIN",
+		"greeting": "Olá, {{name}}",
 		"unlock": {
 			"faceId": "Desbloquear com Face ID",
 			"touchId": "Desbloquear com Touch ID",
@@ -55,6 +55,9 @@
 			"savePin": "Não foi possível salvar o PIN",
 			"currentPinWrong": "PIN atual incorreto",
 			"updatePin": "Não foi possível atualizar o PIN"
+		},
+		"a11y": {
+			"pinProgress": "PIN: {{entered}} de {{total}} dígitos"
 		}
 	}
 }
