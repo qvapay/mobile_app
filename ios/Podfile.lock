@@ -4238,7 +4238,7 @@ SPEC CHECKSUMS:
   GoogleToolboxForMac: d1a2cbf009c453f4d6ded37c105e2f67a32206d8
   GoogleUtilities: 766ace00c6b10d8148408f329d10c4f051931850
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
-  hermes-engine: 03d2c750a59c9cee534ad710bf47b5b82808d130
+  hermes-engine: f8323d6179af462af35107dd71f47802cf7e85f7
   libavif: 84bbb62fb232c3018d6f1bab79beea87e35de7b7
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
@@ -4256,8 +4256,8 @@ SPEC CHECKSUMS:
   OneSignalXCFramework: 48e5b7c5b51d4e67bab3405229f963efde1a3894
   openiap: 15b2c855d1c670d1d7afb765bee781f6d638c18c
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
-  QuickCrypto: c61285ba7bce52a41b1171439811446e0319d39c
-  RCT-Folly: 38311bd9e5d61195cb52d899eca7bbe75aff4d59
+  QuickCrypto: 7167ad44151b7ac09fdcdde5ab78a8e4da2cadb7
+  RCT-Folly: 9e4e1ae78413fb0387567f5dc5d5d5672f23f457
   RCTDeprecation: 7489702d717ceea80e271eeacb3fbca39fa3c056
   RCTRequired: 1cceac389e77dc5826c681cb782d864b0ed623fc
   RCTSwiftUI: afc0a0a635860da1040a0b894bfd529da06d7810
