@@ -17,7 +17,6 @@ import useSelfCustodyFlag from '../../hooks/useSelfCustodyFlag'
 import { ROUTES } from '../../routes'
 
 // Helpers
-import { formatMoney } from '../../helpers'
 
 // UI
 import QPLoader from '../../ui/particles/QPLoader'
@@ -37,7 +36,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { MainTabParamList, RootStackParamList } from '../../types/navigation'
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
-import type { EnrichedCoin, SavingsSummary } from '../../types/domain'
+import type { EnrichedCoin } from '../../types/domain'
 import type { P2pPair } from './cryptoQueries'
 
 /** Crypto es un tab de MainStack y navega también a rutas del stack raíz. */
@@ -68,35 +67,6 @@ const EXPLORE_TABS: { key: string, labelKey: string, icon: FontAwesome6SolidIcon
 ]
 
 // --- Sub-components ---
-
-type SavingsCardProps = {
-	savings: SavingsSummary | null
-	theme: Theme
-	textStyles: TextStyles
-	onPress: () => void
-}
-
-const SavingsCard = ({ savings, theme, textStyles, onPress }: SavingsCardProps) => {
-	const { t } = useTranslation()
-	// El balance puede ser negativo (deuda gestionada desde admin): danger + signo
-	const isDebt = Number(savings?.balance || 0) < 0
-	const balance = formatMoney(savings?.balance)
-	const rate = savings?.currentRate || 0
-	return (
-		<Pressable onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme), { opacity: pressed ? 0.85 : 1 }]}>
-			<View style={styles.savingsRow}>
-				<View style={styles.savingsInfo}>
-					<Text style={[styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.dashboard.savings')}</Text>
-					<Text style={[textStyles.h1, styles.savingsBalance, isDebt && { color: theme.colors.danger }]}>{balance}</Text>
-					<Text style={[styles.savingsRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}><Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('crypto.common.perYear')}</Text>
-				</View>
-				<View style={[styles.savingsIcon, { backgroundColor: theme.colors.primary + '15' }]}>
-					<FontAwesome6 name="vault" size={24} color={theme.colors.primary} iconStyle="solid" />
-				</View>
-			</View>
-		</Pressable>
-	)
-}
 
 type SectionCardProps = {
 	title: string
@@ -258,12 +228,12 @@ const P2PRow = ({ pair, theme, textStyles, isLast }: P2PRowProps) => {
 // --- Main Component ---
 
 /**
- * Crypto tab dashboard: savings summary, popular crypto, stocks and P2P market averages.
- * Los datos viven en React Query (`useCryptoDashboard`): cuatro queries en
- * paralelo persistidas por separado; el resumen de ahorros es la query
- * compartida con BalanceCard. Rows navigate to Savings (passing the
- * already-fetched summary), StockDetail (with `initialData` for instant paint)
- * or the P2P tab pre-filtered by coin.
+ * Crypto tab dashboard: wallet self-custody (flag), popular crypto, stocks
+ * and P2P market averages. Los datos viven en React Query
+ * (`useCryptoDashboard`): tres queries en paralelo persistidas por separado.
+ * El ahorro ya no vive aquí (se llega desde el BalanceCard del Home). Rows
+ * navigate to StockDetail (with `initialData` for instant paint) or the P2P
+ * tab pre-filtered by coin.
  */
 const Crypto = ({ navigation }: CryptoProps) => {
 
@@ -272,7 +242,7 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	const { savings, coins, stocks, p2pData, isLoading, refreshing, onRefresh } = useCryptoDashboard()
+	const { coins, stocks, p2pData, isLoading, refreshing, onRefresh } = useCryptoDashboard()
 	const selfCustody = useSelfCustodyFlag()
 	const [exploreTab, setExploreTab] = useState('popular')
 
@@ -290,16 +260,6 @@ const Crypto = ({ navigation }: CryptoProps) => {
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 			>
-				{/* Savings */}
-				<SavingsCard
-					savings={savings}
-					theme={theme}
-					textStyles={textStyles}
-					// `Savings.savings` está modelado como `Record<string, unknown>`
-					// en types/navigation: el resumen viaja igual, solo se tipa
-					onPress={() => navigation.navigate(ROUTES.SAVINGS_SCREEN, { savings: savings as unknown as Record<string, unknown> })}
-				/>
-
 				{/* Wallet self-custody (rollout gradual detrás del flag) */}
 				{selfCustody && <WalletCard />}
 
@@ -402,28 +362,6 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 		marginBottom: 8,
 	},
 	seeAll: {},
-	// Savings
-	savingsRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-	},
-	savingsInfo: {
-		flex: 1,
-	},
-	savingsBalance: {
-		marginTop: 4,
-	},
-	savingsRate: {
-		marginTop: 2,
-	},
-	savingsIcon: {
-		width: 52,
-		height: 52,
-		borderRadius: 26,
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
 	// Item rows
 	itemRow: {
 		flexDirection: 'row',

@@ -19,7 +19,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { coinsApi } from '../../api/coinsApi'
 import { p2pApi } from '../../api/p2pApi'
 import { stocksApi } from '../../api/stocksApi'
-import { savingApi } from '../../api/savingApi'
 import { mapP2pPairs, mapStocks, enrichCoins, useCryptoDashboard } from './cryptoQueries'
 
 const ok = (data) => ({ success: true, data, status: 200 })
@@ -36,7 +35,6 @@ const wire = () => {
 		await gate
 		return payload
 	})
-	savingApi.getSummary = record('savings', ok({ balance: 120, rate: 4, currentRate: 4 }))
 	coinsApi.index = record('coins', ok([{ tick: 'BTC' }, { tick: 'ETH' }]))
 	stocksApi.index = record('stocks', ok([{ symbol: 'AAPL', name: 'Apple', price: 200, change: 1 }]))
 	p2pApi.getAverages = record('p2p', ok({ ZELLE: { name: 'Zelle', average_buy: 1.1, average_sell: 0.9, count: 4 } }))
@@ -83,12 +81,12 @@ afterEach(async () => {
 })
 
 describe('carga y refresco', () => {
-	test('las cuatro fuentes salen EN PARALELO, no encadenadas', async () => {
+	test('las tres fuentes salen EN PARALELO, no encadenadas', async () => {
 		// Las APIs retienen su respuesta; se mira ANTES de que llegue ninguna
 		gate = new Promise(resolve => setTimeout(resolve, 100))
 		const dashboard = await renderDashboard()
 
-		expect(new Set(started)).toEqual(new Set(['savings', 'coins', 'stocks', 'p2p']))
+		expect(new Set(started)).toEqual(new Set(['coins', 'stocks', 'p2p']))
 
 		// Abierta la compuerta, las respuestas aterrizan con normalidad
 		await act(async () => { await gate })
@@ -96,15 +94,14 @@ describe('carga y refresco', () => {
 		expect(dashboard.current.coins.length).toBeGreaterThan(0)
 	})
 
-	test('el refresco revalida el dashboard Y el resumen de ahorros compartido', async () => {
+	test('el refresco revalida solo la raíz del dashboard (el ahorro ya no vive aquí)', async () => {
 		const dashboard = await renderDashboard()
 
 		started = []
 		await act(async () => { await dashboard.current.onRefresh() })
 		await settle()
 
-		// Las dos raíces: ['crypto', …] y ['savings', 'summary']
-		expect(new Set(started)).toEqual(new Set(['savings', 'coins', 'stocks', 'p2p']))
+		expect(new Set(started)).toEqual(new Set(['coins', 'stocks', 'p2p']))
 	})
 
 	test('refreshing sube y baja solo en el tirón', async () => {
@@ -126,9 +123,8 @@ describe('carga y refresco', () => {
 	test('mantiene el contrato que consume Invest.jsx, sin listas undefined', async () => {
 		const dashboard = await renderDashboard()
 		expect(Object.keys(dashboard.current).sort()).toEqual([
-			'coins', 'isLoading', 'onRefresh', 'p2pData', 'refreshing', 'savings', 'stocks',
+			'coins', 'isLoading', 'onRefresh', 'p2pData', 'refreshing', 'stocks',
 		])
-		expect(dashboard.current.savings).toMatchObject({ balance: 120 })
 		expect(dashboard.current.p2pData).toEqual([
 			{ tick: 'ZELLE', name: 'Zelle', buy: 1.1, sell: 0.9, count: 4 },
 		])

@@ -8,7 +8,6 @@ import { savingApi } from '../../api/savingApi'
 import { stocksApi } from '../../api/stocksApi'
 
 import { unwrap } from '../../api/unwrap'
-import { useSavingsSummaryQuery } from '../../hooks/useSavingsSummaryQuery'
 
 // i18n fuera de React: resolver EN CALL TIME, nunca a nivel de módulo
 import i18n from '../../i18n'
@@ -251,7 +250,6 @@ export const useCryptoDashboard = () => {
 	// revalidaciones de fondo
 	const [refreshing, setRefreshing] = useState(false)
 
-	const savings = useSavingsSummaryQuery()
 	const coins = useCryptoCoinsQuery()
 	const stocks = useStocksQuery()
 	const p2p = useP2pAveragesQuery()
@@ -259,17 +257,12 @@ export const useCryptoDashboard = () => {
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
 		try {
-			// Dos raíces: el dashboard propio y el resumen de ahorros compartido
-			await Promise.all([
-				queryClient.refetchQueries({ queryKey: CRYPTO_QUERY_KEY }),
-				queryClient.refetchQueries({ queryKey: ['savings'] }),
-			])
+			await queryClient.refetchQueries({ queryKey: CRYPTO_QUERY_KEY })
 		} catch { /* los datos anteriores siguen en pantalla */ }
 		finally { setRefreshing(false) }
 	}, [queryClient])
 
 	return {
-		savings: savings.data || null,
 		coins: coins.data || [],
 		stocks: stocks.data || [],
 		p2pData: p2p.data || [],
