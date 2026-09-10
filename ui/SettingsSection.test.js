@@ -8,6 +8,7 @@ jest.mock('../theme/ThemeContext', () => {
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('./particles/SettingsItem', () => 'SettingsItem')
+jest.mock('./particles/SettingsToggleRow', () => 'SettingsToggleRow')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -65,4 +66,19 @@ test('forwards the tint color and status accessories to each row', () => {
 	expect(rows[0].props.verified).toBe(true)
 	expect(rows[0].props.pill).toBeUndefined()
 	expect(rows[1].props.pill).toBe('Activo')
+})
+
+test('a toggle item renders a SettingsToggleRow sharing the group corners and separators', () => {
+	const onValueChange = jest.fn()
+	const items = [
+		{ title: 'Wallet', subtitle: 'Beta', icon: 'wallet', color: '#F59E0B', toggle: { value: true, onValueChange } },
+		{ title: 'Nodos', icon: 'server', screen: 'RpcNodes' },
+	]
+	const tree = renderSection({ items })
+	const toggle = tree.root.findByType('SettingsToggleRow')
+	expect(toggle.props).toMatchObject({ title: 'Wallet', subtitle: 'Beta', icon: 'wallet', value: true, index: 0, totalItems: 2 })
+	toggle.props.onValueChange(false)
+	expect(onValueChange).toHaveBeenCalledWith(false)
+	const nav = tree.root.findByType('SettingsItem')
+	expect(nav.props).toMatchObject({ screen: 'RpcNodes', index: 1, totalItems: 2 })
 })

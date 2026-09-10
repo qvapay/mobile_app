@@ -55,7 +55,9 @@
 			"paymentMethods": "Payment methods",
 			"contacts": "Contacts",
 			"roundup": "Round-ups",
-			"nodes": "Nodes"
+			"nodes": "Nodes",
+			"selfCustody": "Self-custody wallet",
+			"selfCustodyHint": "Beta · shows My Wallet in the Crypto tab"
 		},
 		"status": {
 			"active": "Active"

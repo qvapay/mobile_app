@@ -55,7 +55,9 @@
 			"paymentMethods": "Métodos de pago",
 			"contacts": "Contactos",
 			"roundup": "Micro pagos",
-			"nodes": "Nodos"
+			"nodes": "Nodos",
+			"selfCustody": "Wallet self-custody",
+			"selfCustodyHint": "Beta · muestra Mi Wallet en el tab Crypto"
 		},
 		"status": {
 			"active": "Activo"

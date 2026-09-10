@@ -80,7 +80,7 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 
 	// Contexts
 	const { user, logout, updateUser } = useAuth()
-	const { updateSettings } = useSettings()
+	const { updateSettings, getSetting, updateSetting } = useSettings()
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -254,16 +254,30 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 				})}
 
 				{/* Sección oculta del plan crypto: fuera del catálogo estático (y de la
-				    búsqueda) a propósito — solo aparece con el flag self-custody o en dev. */}
+				    búsqueda) a propósito — solo aparece con el flag self-custody o en dev.
+				    El interruptor enciende el ajuste local `crypto.selfCustody` (la otra
+				    vía es el flag remoto `features.self_custody` de /user/extended). */}
 				{!searching && showAdvanced && (
 					<SettingsSection
 						title={t('settings.menu.groups.advanced')}
-						items={[{
-							title: t('settings.menu.items.nodes'),
-							screen: ROUTES.RPC_NODES,
-							icon: 'server',
-							color: '#64748B',
-						}]}
+						items={[
+							{
+								title: t('settings.menu.items.selfCustody'),
+								subtitle: t('settings.menu.items.selfCustodyHint'),
+								icon: 'wallet',
+								color: '#F59E0B',
+								toggle: {
+									value: Boolean(getSetting('crypto', 'selfCustody', false)),
+									onValueChange: value => { updateSetting('crypto', 'selfCustody', value) },
+								},
+							},
+							{
+								title: t('settings.menu.items.nodes'),
+								screen: ROUTES.RPC_NODES,
+								icon: 'server',
+								color: '#64748B',
+							},
+						]}
 						navigation={navigation}
 					/>
 				)}

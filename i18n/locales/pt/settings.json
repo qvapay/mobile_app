@@ -55,7 +55,9 @@
 			"paymentMethods": "Métodos de pagamento",
 			"contacts": "Contatos",
 			"roundup": "Arredondamentos",
-			"nodes": "Nós"
+			"nodes": "Nós",
+			"selfCustody": "Carteira self-custody",
+			"selfCustodyHint": "Beta · mostra Minha Carteira na aba Crypto"
 		},
 		"status": {
 			"active": "Ativo"
