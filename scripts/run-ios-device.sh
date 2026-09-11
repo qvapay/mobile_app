@@ -39,6 +39,17 @@ if [ "${METRO:-1}" != "0" ] && ! lsof -iTCP:8081 -sTCP:LISTEN >/dev/null 2>&1; t
   (cd "$ROOT" && nohup npx react-native start >/dev/null 2>&1 &)
 fi
 
+# react-native-quick-crypto NO trae su OpenSSL estático en el tarball de npm: lo
+# descarga el podspec durante `pod install` y lo deja DENTRO de node_modules, así
+# que cualquier `npm install` se lo lleva por delante. Sin esta comprobación el
+# build compila entero y muere al final copiando un xcframework que no existe
+# ("rsync error: .../QuickCryptoOpenSSL.xcframework/ios-arm64/*").
+OPENSSL_XCF="$ROOT/node_modules/react-native-quick-crypto/ios/openssl/QuickCryptoOpenSSL.xcframework"
+if [ ! -d "$OPENSSL_XCF" ]; then
+  echo "▸ Falta el OpenSSL de quick-crypto (lo borra npm install) — corriendo pod install"
+  (cd "$ROOT/ios" && { bundle exec pod install || pod install; })
+fi
+
 # SKIP_BUNDLING: en Debug la app carga el JS desde Metro, así que el bundle
 # embebido (1-2 min + avisos de hermesc) sobra. react-native-xcode.sh escribe
 # ip.txt (la IP de Metro para el iPhone) ANTES de mirar este flag, así que el
