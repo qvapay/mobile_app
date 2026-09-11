@@ -203,6 +203,12 @@ export default function useAuthState() {
 					await updateWidgetBalance(cachedUser.balance, cachedUser.username)
 					reloadWidgets()
 				}
+				// Con sesión cacheada la app ya puede pintar: soltar el arranque AQUÍ y no
+				// en el finally, que espera la respuesta de /user/extended (hasta 20s de
+				// timeout). Con app-lock armado, esa espera retrasaba la pantalla de bloqueo
+				// y su prompt biométrico varios segundos en arranque frío (issue #47).
+				// Sin usuario cacheado se sigue esperando al perfil para no pintar con user=null.
+				setIsLoading(false)
 			}
 
 			// Refresh profile in the background. Only logout on real auth rejection.

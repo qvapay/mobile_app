@@ -12,6 +12,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 import { useSettings } from '../settings/SettingsContext'
 import { useAppLock } from './AppLockContext'
+import { useKeyboardHeight } from '../hooks/useKeyboardHeight'
 import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
 
 // Icons
@@ -56,6 +57,10 @@ const LockScreen = () => {
 	const insets = useSafeAreaInsets()
 	const { security } = useSettings()
 	const { isLocked, unlockWithBiometrics, unlockWithPin } = useAppLock()
+	// Este Modal lleva `statusBarTranslucent` y el manifest usa `adjustNothing`: en Android
+	// el teclado NO redimensiona la ventana y tapaba las cajas del PIN (issue #47). Se sigue
+	// la altura a mano, como QPKeyboardView, y se cede ese espacio abajo
+	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
 	const [pin, setPin] = useState('')
 	const [error, setError] = useState('')
@@ -157,7 +162,7 @@ const LockScreen = () => {
 			onRequestClose={() => { }}
 		>
 			<SystemBars style={theme.isDark ? 'light' : 'dark'} />
-			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: keyboardVisible ? keyboardHeight : insets.bottom }]}>
 
 				{/* Title */}
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
