@@ -34,6 +34,11 @@ const WalletOnboarding = ({ navigation }: Props) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
+	// El cuerpo escala con el ajuste de tamaño de fuente, así que ni el interlineado
+	// ni el icono se fijan en píxeles: se derivan del tipo (h4 = fontSize.lg).
+	const iconSize = theme.typography.fontSize.lg
+	const lineHeight = Math.round(iconSize * 1.35)
+
 	return (
 		<View style={[containerStyles.subContainer, styles.container]}>
 
@@ -47,8 +52,10 @@ const WalletOnboarding = ({ navigation }: Props) => {
 			<View style={styles.points}>
 				{POINTS.map(point => (
 					<View key={point.key} style={styles.point}>
-						<FontAwesome6 name={point.icon} size={18} color={theme.colors.secondaryText} iconStyle="solid" />
-						<Text style={[textStyles.h4, styles.pointText, { color: theme.colors.secondaryText }]}>{t(point.key)}</Text>
+						<View style={[styles.pointIcon, { height: lineHeight }]}>
+							<FontAwesome6 name={point.icon} size={iconSize} color={theme.colors.secondaryText} iconStyle="solid" />
+						</View>
+						<Text style={[textStyles.h4, styles.pointText, { lineHeight, color: theme.colors.secondaryText }]}>{t(point.key)}</Text>
 					</View>
 				))}
 			</View>
@@ -68,7 +75,13 @@ const styles = StyleSheet.create({
 	centered: { textAlign: 'center' },
 	points: { gap: 18, flex: 1 },
 	point: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingRight: 10 },
-	pointText: { flex: 1, lineHeight: 21 },
+	// Caja de ancho FIJO para el icono: los glifos de FA6 no miden lo mismo
+	// (mobile-screen estrecho, triangle-exclamation ancho) y sin ella las tres
+	// líneas de texto arrancan en x distintas. El alto = interlineado de la
+	// primera línea, para que el icono quede centrado CON ESA línea y no con el
+	// bloque entero (que es de 1 o 2 líneas según el punto).
+	pointIcon: { width: 24, alignItems: 'center', justifyContent: 'center' },
+	pointText: { flex: 1 },
 	actions: { gap: 10 },
 })
 

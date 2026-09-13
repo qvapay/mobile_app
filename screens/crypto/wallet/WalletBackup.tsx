@@ -57,6 +57,10 @@ const WalletBackup = ({ navigation }: Props) => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 
+	// Interlineado derivado del tipo (h5 = fontSize.md) para que escale con el
+	// ajuste de tamaño de fuente; la caja del icono usa el mismo alto.
+	const warnLineHeight = Math.round(theme.typography.fontSize.md * 1.35)
+
 	const { hasWallet, isBackedUp, createWallet, revealMnemonic, markBackedUp } = useWallet()
 
 	const [mnemonic, setMnemonic] = useState<string | null>(null)
@@ -123,8 +127,10 @@ const WalletBackup = ({ navigation }: Props) => {
 				<>
 					<Text style={textStyles.h1}>{t('crypto.wallet.backup.title')}</Text>
 					<View style={[styles.warning, { backgroundColor: theme.colors.danger + '12' }]}>
-						<FontAwesome6 name="triangle-exclamation" size={16} color={theme.colors.danger} iconStyle="solid" />
-						<Text style={[textStyles.h5, styles.warningText, { color: theme.colors.primaryText }]}>{t('crypto.wallet.backup.warning')}</Text>
+						<View style={[styles.warningIcon, { height: warnLineHeight }]}>
+							<FontAwesome6 name="triangle-exclamation" size={16} color={theme.colors.danger} iconStyle="solid" />
+						</View>
+						<Text style={[textStyles.h5, styles.warningText, { lineHeight: warnLineHeight, color: theme.colors.primaryText }]}>{t('crypto.wallet.backup.warning')}</Text>
 					</View>
 
 					<View style={styles.grid}>
@@ -167,7 +173,10 @@ const styles = StyleSheet.create({
 	loading: { alignItems: 'center', justifyContent: 'center' },
 	content: { gap: 14, paddingBottom: 40 },
 	warning: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, alignItems: 'flex-start' },
-	warningText: { flex: 1, lineHeight: 19 },
+	// Caja fija centrada en la PRIMERA línea: sin ella el glifo se alinea con el
+	// alto del bloque de texto y queda flotando respecto al renglón.
+	warningIcon: { width: 20, alignItems: 'center', justifyContent: 'center' },
+	warningText: { flex: 1 },
 	grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 	wordChip: { flexDirection: 'row', gap: 6, alignItems: 'center', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, flexBasis: '31%', flexGrow: 1 },
 	options: { gap: 10, marginTop: 10 },
