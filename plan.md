@@ -9,7 +9,7 @@ git checkout crypto
 npm install                # Node >= 22.11
 npm run pods               # iOS (la 1ª vez puede pedir: pod install --repo-update)
 npm run typecheck && npm test && npm run lint && npm run i18n:check && npm run i18n:usage
-npx jest wallet/           # 41 tests: router + nodos custom + vectores de derivación
+npx jest wallet/           # 72 tests: router, nodos custom, derivación, quiz, adaptadores de saldo, catálogo de activos
 ```
 
 - Android necesita SDK (`ANDROID_HOME` o `android/local.properties` con `sdk.dir=...`, gitignorado). **El build Android aún no se ha validado con quick-crypto** — primera cosa a comprobar en un equipo con SDK: `cd android && ./gradlew assembleDebug`.
@@ -40,11 +40,21 @@ npx jest wallet/           # 41 tests: router + nodos custom + vectores de deriv
 - [ ] **Espejo `https://rpc.qvapay.com/registry.json`** — APLAZADO a propósito: por ahora solo nodos públicos + nodos custom del usuario. Cuando se monte (Cloudflare Pages), va PRIMERO en `REGISTRY_URLS` de `wallet/registry/useRegistry.ts` (se quitó del array porque, caído, costaba el timeout de 5s en cada refresh).
 - [x] **Nodos custom del usuario** (2026-09-09): `wallet/registry/customRpcs.ts` (puro: validar/normalizar https, mapa inmutable, `applyCustomRpcs` los pone delante con `owner: 'user'` y priority -1, por debajo del 0 de qvapay), ajuste `crypto.customRpcs` en SettingsContext, `useEffectiveRegistry` en `appRpcRouter.ts` (remoto/bundled + custom — es lo que consumen router y pantalla; `useRegistry` a pelo ya no se usa desde UI) y alta/baja en Ajustes → Nodos (`RpcNodeAddModal`: se prueba contra el nodo con `probeRpc` ANTES de guardar; tope 5 por cadena). `WalletProvider` monta `useAppRpcRouter` para que el singleton siga el registro efectivo toda la sesión (antes solo lo enganchaba la pantalla Nodos: la wallet hablaba con el bundled hasta abrirla).
 - [ ] **Validar build Android** en equipo con SDK (quick-crypto compiló solo en iOS).
-- [ ] **qpweb: `POST /wallet/addresses`** — modelo Prisma `UserWallet` (user_id, family `evm|tron|btc`, address, unique por user+family) + endpoint `withAuth` + migración. El móvil ya lo llama best-effort y tolera el 404.
+- [ ] **qpweb: `POST /wallet/addresses` + `GET /wallet/history`** — CÓDIGO HECHO en qpweb (2026-09-12, sin commit): `app/api/wallet/{addresses,history}`, `scripts/wallet/history/` (Etherscan V2 / TronGrid / Esplora, caché Redis 30s, ArcJet 30/min), modelo `UserWallet`. Falta: aplicar `prisma/migrations/user-wallets-2026-09-12.sql`, env `ETHERSCAN_API_KEY` (obligatoria EVM; verificar que el plan cubre BSC/Base) + `TRONGRID_API_KEY`, deploy. **Decisión pendiente**: `/api/wallet/` no está en `KYC_EXEMPT_API_PREFIXES` → sin KYC el registro de direcciones da 403 (el móvil lo tolera; el historial es GET y pasa). El móvil registra direcciones una vez por cuenta+sesión (WalletContext) y el historial cae a "ver en explorador" con 404/503.
 - [ ] Backend: mandar `features.self_custody` en `/user/extended` para el rollout remoto del flag.
 
-## Fase 3 — Receive + balances + histórico (siguiente)
+## Fase 3 — Receive + balances + histórico (CÓDIGO HECHO 2026-09-12, falta aceptación en device)
 
+**Hecho** (decisiones del usuario: solo lectura + Recibir, Enviar visible "próximamente"; historial por proxy qpweb; lista base + gestionar; mercado P2P a botón del header del tab P2P):
+- `wallet/chains/` PURO: `http.ts` (errores con `status`/`retryable` que entiende el router; 429 rota), `evm.ts` (eth_getBalance + balanceOf por eth_call, sin viem), `tron.ts` (dialecto HTTP TronGrid y jsonrpc; base58check↔hex20), `btc.ts` (Esplora confirmado+mempool), `units.ts` (bigint exacto), `index.ts` (`fetchAllBalances`: una llamada de router por cadena, una cadena caída conserva su saldo previo). Verificado EN VIVO contra las 6 cadenas del bundled.
+- `wallet/assets.ts` PURO: activo = moneda EN una red (id `chain:native|chain:contract`), `DEFAULT_ASSETS` (USDT-TRON, USDT-BSC, BTC, ETH, ETH-Base, BNB, TRX), ticks QvaPay de precio/logo (BNB=BNBBSC, POL=MATICMAINNET), visibilidad (prefs `crypto.visibleAssets` > base > con saldo), orden por USD, URLs de explorador.
+- `screens/crypto/wallet/walletQueries.ts`: `['wallet','balances',…]` (30s + refetchInterval solo enfocada + foreground, noPersist), `['wallet','history',assetId,address]` infinita noPersist (auto-pagina páginas vacías con cursor), precios de `['coins','all']`.
+- UI: `WalletHome` (tab Crypto: total + Enviar/Recibir/P2P + lista + Gestionar; explorador de precios al final; card P2P fuera), `WalletAsset` (detalle + actividad → explorador), `WalletReceive` (selector → QR + aviso de red; EVM avisa que la dirección es compartida), `WalletManageAssets` (switch por activo agrupado por red), `P2PMarketModal` en el tab P2P. Quiz de backup: 4 preguntas, baraja con entropía segura (`seed.ts` `buildQuiz`).
+- Bug arreglado de paso: `probeRpc` añadía `/jsonrpc` a nodos TRON que ya lo traían (los marcaba caídos).
+
+**Pendiente de Fase 3**: aceptación en device (1 USDT TRC-20 visible < 60s); histórico real cuando qpweb despliegue; revisar a ojo el header del P2P en Android pequeño (3 iconos + switch centrado, `headerSwitchWidth`); ETH interno (txlistinternal) no sale en el historial EVM.
+
+Plan original (referencia):
 - `wallet/chains/index.ts`: interfaz `ChainAdapter` + factory por `kind` del registry.
 - `wallet/chains/evm.ts` (viem con transporte custom sobre `router.call(chainKey, fn)`): balance nativo (`eth_getBalance`), `balanceOf` ERC-20 de los tokens del registry, histórico por `getLogs` de `Transfer` (topic con la address, ventanas de bloques).
 - `wallet/chains/tron.ts` (HTTP TronGrid-style vía fetch + router): `/wallet/getaccount` (TRX), `triggerconstantcontract` balanceOf USDT, histórico `/v1/accounts/{addr}/transactions/trc20`.
@@ -88,3 +98,27 @@ Swap, on-ramp fiat, Solana, WalletConnect, cloud backup, indexer propio, multi-c
 - Ninguna URL de RPC fuera de `wallet/registry/bundled.json`
 - `npm run lint` (0 errores) + `typecheck` + `test` en verde
 - Actualizar `CLAUDE.md` (y este plan.md) al cerrar cada fase
+
+
+Flaws detectados:
+
+Huecos en lo que ya está "hecho" (no están en plan.md)
+
+1. Se puede ver la frase sin pedir PIN. Al retomar un backup pendiente, revealMnemonic() enseña las 12 palabras sin pasar por el bloqueo de la app (AppLockContext). Eso incumple la regla dura del plan.
+2. No hay pantalla para eliminar la wallet ni para volver a ver la frase. deleteWallet existe en el contexto pero ninguna pantalla lo usa. Tampoco hay forma de ver la frase después de hacer el backup.
+3. No se bloquean las capturas de pantalla en backup ni en importación (FLAG_SECURE en Android, desenfoque en el selector de apps de iOS).
+4. Contador "/12" fijo en la importación, aunque se aceptan frases de 24 palabras.
+5. Falta una decisión de producto: la wallet va con el teléfono, no con la cuenta. Si alguien entra con otra cuenta de QvaPay, ve la wallet del anterior. Además, las direcciones solo se registran al crear o importar, así que nunca quedan asociadas a esa segunda cuenta.
+
+Pendientes del plan
+
+- Validar en el dispositivo (bloques A–G) y la prueba con Trust Wallet.
+- Build de Android: ahora el SDK está en este equipo (ANDROID_HOME está definido), así que ya se puede comprobar ./gradlew assembleDebug con quick-crypto.
+- qpweb: POST /wallet/addresses no existe todavía: no hay app/api/wallet ni modelo UserWallet.
+- qpweb: features.self_custody en /user/extended tampoco existe todavía.
+- Filtro de Sentry para frases y llaves (beforeSend, regla 7): no hay nada configurado.
+- Espejo rpc.qvapay.com: aplazado a propósito.
+- Fase 3: adaptadores por cadena (EVM, TRON, BTC), consultas de saldos e histórico, pantalla Receive con QR, y la card con el total en USD. Se da por cerrada cuando 1 USDT TRC-20 aparece en menos de 60 s.
+- Fase 4: enviar. Incluye mostrar lo que se va a firmar antes de firmar, firma tras PIN, validar la dirección de destino, avisar si falta TRX para el gas y evitar el doble envío. Primero USDT en TRON, luego BSC/ETH/Base y BTC al final.
+- Fase 5: mover dinero entre el saldo QvaPay y la wallet, en los dos sentidos, sin teclear direcciones.
+- Fase 6: usar nodos propios y activarlos desde rpc-registry.
