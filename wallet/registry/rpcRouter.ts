@@ -82,7 +82,10 @@ export const probeRpc: ProbeRequest = async (_chainKey, chain, rpc, timeoutMs) =
 				headers: { 'Content-Type': 'application/json', ...rpc.headers },
 			})
 		} else {
-			const url = chain.kind === 'tron' ? `${rpc.url}/jsonrpc` : rpc.url
+			// Los nodos jsonrpc de TRON se registran ya con `/jsonrpc` (bundled v4):
+			// añadirlo a ciegas probaba `/jsonrpc/jsonrpc` y los marcaba caídos
+			const base = rpc.url.replace(/\/+$/, '')
+			const url = chain.kind === 'tron' && !base.endsWith('/jsonrpc') ? `${base}/jsonrpc` : rpc.url
 			res = await fetch(url, {
 				method: 'POST',
 				signal: controller.signal,
