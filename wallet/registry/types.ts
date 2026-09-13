@@ -29,6 +29,8 @@ export type RegistryRpc = {
 
 export type RegistryChain = {
 	kind: ChainKind
+	/** Nombre legible de la red ("BNB Smart Chain"). */
+	name?: string
 	/** Solo EVM. */
 	chainId?: number
 	native: { symbol: string, decimals: number }
