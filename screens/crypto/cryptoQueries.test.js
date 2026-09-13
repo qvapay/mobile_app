@@ -81,12 +81,12 @@ afterEach(async () => {
 })
 
 describe('carga y refresco', () => {
-	test('las tres fuentes salen EN PARALELO, no encadenadas', async () => {
+	test('las fuentes del explorador salen EN PARALELO, no encadenadas', async () => {
 		// Las APIs retienen su respuesta; se mira ANTES de que llegue ninguna
 		gate = new Promise(resolve => setTimeout(resolve, 100))
 		const dashboard = await renderDashboard()
 
-		expect(new Set(started)).toEqual(new Set(['coins', 'stocks', 'p2p']))
+		expect(new Set(started)).toEqual(new Set(['coins', 'stocks']))
 
 		// Abierta la compuerta, las respuestas aterrizan con normalidad
 		await act(async () => { await gate })
@@ -101,7 +101,7 @@ describe('carga y refresco', () => {
 		await act(async () => { await dashboard.current.onRefresh() })
 		await settle()
 
-		expect(new Set(started)).toEqual(new Set(['coins', 'stocks', 'p2p']))
+		expect(new Set(started)).toEqual(new Set(['coins', 'stocks']))
 	})
 
 	test('refreshing sube y baja solo en el tirón', async () => {
@@ -120,13 +120,10 @@ describe('carga y refresco', () => {
 		expect(dashboard.current.refreshing).toBe(false)
 	})
 
-	test('mantiene el contrato que consume Invest.jsx, sin listas undefined', async () => {
+	test('mantiene el contrato que consume Crypto.tsx (sin P2P: vive en su tab), sin listas undefined', async () => {
 		const dashboard = await renderDashboard()
 		expect(Object.keys(dashboard.current).sort()).toEqual([
-			'coins', 'isLoading', 'onRefresh', 'p2pData', 'refreshing', 'stocks',
-		])
-		expect(dashboard.current.p2pData).toEqual([
-			{ tick: 'ZELLE', name: 'Zelle', buy: 1.1, sell: 0.9, count: 4 },
+			'coins', 'isLoading', 'onRefresh', 'refreshing', 'stocks',
 		])
 	})
 })

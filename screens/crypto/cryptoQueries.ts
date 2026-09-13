@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 // APIs
 import { coinsApi } from '../../api/coinsApi'
-import { p2pApi } from '../../api/p2pApi'
 import { savingApi } from '../../api/savingApi'
 import { stocksApi } from '../../api/stocksApi'
 
@@ -85,7 +84,7 @@ export type StockQuote = {
  */
 export const CRYPTO_QUERY_KEY = ['crypto']
 
-// Raíles P2P que muestra la tarjeta de mercado
+// Raíles P2P que muestra el modal de mercado (P2PMarketModal, tab P2P)
 export const P2P_COINS = ['BANK_CUP', 'BANK_MLC', 'CLASICA', 'BANDECPREPAGO', 'ETECSA', 'TROPIPAY', 'ZELLE', 'BOLSATM']
 
 // Cuántas monedas del explorador llevan sparkline (una petición de histórico cada una)
@@ -159,13 +158,6 @@ export const useCryptoCoinsQuery = () => useQuery({
 	placeholderData: previous => previous,
 })
 
-/** Medias de compra/venta del mercado P2P por raíl. */
-export const useP2pAveragesQuery = () => useQuery({
-	queryKey: ['crypto', 'p2p-averages'],
-	queryFn: async () => mapP2pPairs(unwrap(await p2pApi.getAverages())),
-	placeholderData: previous => previous,
-})
-
 /** Stocks del explorador. */
 export const useStocksQuery = () => useQuery({
 	queryKey: ['crypto', 'stocks'],
@@ -234,9 +226,9 @@ export const useCoinHistoryQuery = (
 })
 
 /**
- * Owns the Invest dashboard data: resumen de ahorros (query compartida con
- * BalanceCard), cripto populares con sparklines, stocks y medias P2P — cuatro
+ * Owns the Crypto explorer data: cripto populares con sparklines y stocks —
  * queries independientes que salen EN PARALELO y se persisten por separado.
+ * Las medias P2P viven en el tab P2P (`useP2pMarketAveragesQuery` + `mapP2pPairs`).
  *
  * Devuelve la misma forma que consumía la versión anterior de `Invest.jsx`
  * (reducer + fetch manual), incluido el `isLoading` del loader inicial: solo
@@ -252,7 +244,6 @@ export const useCryptoDashboard = () => {
 
 	const coins = useCryptoCoinsQuery()
 	const stocks = useStocksQuery()
-	const p2p = useP2pAveragesQuery()
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
@@ -265,7 +256,6 @@ export const useCryptoDashboard = () => {
 	return {
 		coins: coins.data || [],
 		stocks: stocks.data || [],
-		p2pData: p2p.data || [],
 		// Loader de pantalla completa solo mientras el explorador no tenga nada
 		// que pintar (ni de red ni de la caché persistida)
 		isLoading: coins.isPending && stocks.isPending,

@@ -37,7 +37,6 @@ import type { MainTabParamList, RootStackParamList } from '../../types/navigatio
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
 import type { EnrichedCoin } from '../../types/domain'
-import type { P2pPair } from './cryptoQueries'
 
 /** Crypto es un tab de MainStack y navega también a rutas del stack raíz. */
 type CryptoProps = CompositeScreenProps<
@@ -195,45 +194,15 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowPro
 	)
 }
 
-type P2PRowProps = {
-	pair: P2pPair
-	theme: Theme
-	textStyles: TextStyles
-	isLast: boolean
-}
-
-const P2PRow = ({ pair, theme, textStyles, isLast }: P2PRowProps) => {
-	const { t } = useTranslation()
-	return (
-		<View style={[styles.itemRow, !isLast && styles.itemBorder(theme)]}>
-			<QPCoin coin={pair.tick} size={32} />
-			<View style={styles.p2pInfo}>
-				<Text style={[textStyles.h4, styles.itemName]}>{pair.name}</Text>
-				<Text style={[styles.itemSub, { color: theme.colors.secondaryText }]}>{t('crypto.dashboard.offers', { count: pair.count })}</Text>
-			</View>
-			<View style={styles.p2pPriceCol}>
-				<View style={styles.p2pPriceRow}>
-					<FontAwesome6 name="caret-up" size={9} color={theme.colors.successText} iconStyle="solid" />
-					<Text style={[styles.p2pPrice, { color: theme.colors.successText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{pair.buy.toFixed(2)}</Text>
-				</View>
-				<View style={styles.p2pPriceRow}>
-					<FontAwesome6 name="caret-down" size={9} color={theme.colors.danger} iconStyle="solid" />
-					<Text style={[styles.p2pPrice, { color: theme.colors.danger, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>{pair.sell.toFixed(2)}</Text>
-				</View>
-			</View>
-		</View>
-	)
-}
-
 // --- Main Component ---
 
 /**
- * Crypto tab dashboard: wallet self-custody (flag), popular crypto, stocks
- * and P2P market averages. Los datos viven en React Query
- * (`useCryptoDashboard`): tres queries en paralelo persistidas por separado.
+ * Crypto tab: home de la wallet self-custody (flag) arriba y, al final, el
+ * explorador de precios (cripto populares + stocks). Las medias del mercado
+ * P2P viven ahora en el tab P2P (botón del header → P2PMarketModal). Los
+ * datos del explorador viven en React Query (`useCryptoDashboard`).
  * El ahorro ya no vive aquí (se llega desde el BalanceCard del Home). Rows
- * navigate to StockDetail (with `initialData` for instant paint) or the P2P
- * tab pre-filtered by coin.
+ * navigate to StockDetail / CoinDetail (with `initialData` for instant paint).
  */
 const Crypto = ({ navigation }: CryptoProps) => {
 
@@ -242,7 +211,7 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	const { coins, stocks, p2pData, isLoading, refreshing, onRefresh } = useCryptoDashboard()
+	const { coins, stocks, isLoading, refreshing, onRefresh } = useCryptoDashboard()
 	const selfCustody = useSelfCustodyFlag()
 	const [exploreTab, setExploreTab] = useState('popular')
 
@@ -316,16 +285,6 @@ const Crypto = ({ navigation }: CryptoProps) => {
 					{!isLoading && exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
 				</SectionCard>
 
-				{/* P2P Mercado */}
-				<SectionCard title={t('crypto.common.p2pMarket')} icon="scale-balanced" theme={theme} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)}>
-					{p2pData.length > 0 ? p2pData.map((pair, i) => (
-						<Pressable key={pair.tick} onPress={() => navigation.navigate(ROUTES.P2P_SCREEN, { coin: pair.tick, coinName: pair.name })}>
-							<P2PRow pair={pair} theme={theme} textStyles={textStyles} isLast={i === p2pData.length - 1} />
-						</Pressable>
-					)) : (
-						<Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>
-					)}
-				</SectionCard>
 			</ScrollView>
 		</View>
 	)
@@ -397,20 +356,6 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 		borderRadius: 20,
 	},
 	chipText: {},
-	// P2P
-	p2pInfo: {
-		flex: 1,
-	},
-	p2pPriceCol: {
-		alignItems: 'flex-end',
-		gap: 2,
-	},
-	p2pPriceRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 4,
-	},
-	p2pPrice: {},
 	priceCol: {
 		width: 100,
 		alignItems: 'flex-end',
