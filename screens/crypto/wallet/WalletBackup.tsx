@@ -10,7 +10,8 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import { pickQuizPositions } from '../../../wallet/seed'
+import { buildQuiz, QUIZ_QUESTIONS } from '../../../wallet/seed'
+import type { QuizQuestion } from '../../../wallet/seed'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -23,30 +24,9 @@ import type { RootStackParamList } from '../../../types/navigation'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletBackup'>
 
-const QUIZ_COUNT = 3
-const QUIZ_OPTIONS = 3
-
-type QuizQuestion = { position: number, options: string[] }
-
-/** Baraja UI (no criptográfica: solo desordena opciones visibles). */
-const shuffle = <T,>(items: T[]): T[] => {
-	const result = items.slice()
-	for (let i = result.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1))
-		;[result[i], result[j]] = [result[j], result[i]]
-	}
-	return result
-}
-
-const buildQuiz = (words: string[]): QuizQuestion[] =>
-	pickQuizPositions(words.length, QUIZ_COUNT).map(position => {
-		const decoys = shuffle(words.filter((_, index) => index !== position)).slice(0, QUIZ_OPTIONS - 1)
-		return { position, options: shuffle([words[position], ...decoys]) }
-	})
-
 /**
  * Crea la wallet (o retoma un backup pendiente) y verifica el respaldo con
- * un quiz de 3 palabras ANTES de desbloquear el resto de la wallet. El
+ * un quiz de 4 palabras ANTES de desbloquear el resto de la wallet. El
  * mnemonic vive solo en el estado local de esta pantalla: no viaja por
  * params de navegación ni queda en ningún contexto.
  */
@@ -159,7 +139,7 @@ const WalletBackup = ({ navigation }: Props) => {
 							</QPPressable>
 						))}
 					</View>
-					<Text style={[textStyles.h6, styles.progress, { color: theme.colors.secondaryText }]}>{quizIndex + 1}/{QUIZ_COUNT}</Text>
+					<Text style={[textStyles.h6, styles.progress, { color: theme.colors.secondaryText }]}>{quizIndex + 1}/{QUIZ_QUESTIONS}</Text>
 				</>
 			)}
 		</ScrollView>
