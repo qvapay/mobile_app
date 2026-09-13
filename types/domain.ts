@@ -393,3 +393,30 @@ export type Announcement = {
 	/** ISO 8601, o null si el aviso no caduca. Lo usa la app para no resucitar uno caducado desde la caché persistida. */
 	ends_at?: string | null
 }
+
+// ---------------------------------------------------------------------------
+// Wallet self-custody (historial on-chain vía proxy de qpweb)
+// ---------------------------------------------------------------------------
+
+/** Movimiento on-chain normalizado por `GET /wallet/history` (misma forma en todas las cadenas). */
+export type WalletTx = {
+	hash: string
+	/** Unix en SEGUNDOS. */
+	time: number
+	direction: 'in' | 'out' | 'self'
+	from: string | null
+	to: string | null
+	/** Decimal humano, siempre positivo ('12.5'). */
+	amount: string
+	symbol: string
+	/** null = nativo. */
+	contract: string | null
+	/** En unidades del nativo de la cadena; null si no se conoce. */
+	fee: string | null
+	status: 'confirmed' | 'pending' | 'failed'
+}
+
+export type WalletHistoryPage = {
+	items: WalletTx[]
+	next_cursor: string | null
+}

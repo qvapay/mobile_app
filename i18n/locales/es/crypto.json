@@ -153,10 +153,54 @@
 			"done": "Wallet importada",
 			"failed": "No se pudo importar la wallet."
 		},
-		"families": {
-			"evm": "ETH · BSC · Base",
-			"tron": "TRON",
-			"btc": "Bitcoin"
+		"home": {
+			"totalLabel": "Balance de tu wallet",
+			"showBalance": "Mostrar saldo",
+			"hideBalance": "Ocultar saldo",
+			"actions": {
+				"send": "Enviar",
+				"receive": "Recibir",
+				"p2p": "P2P"
+			},
+			"sendSoon": "Enviar desde tu wallet llega muy pronto.",
+			"staleChains_one": "No pudimos actualizar {{count}} red. Ves su último saldo conocido.",
+			"staleChains_other": "No pudimos actualizar {{count}} redes. Ves su último saldo conocido.",
+			"loadError": "No se pudieron cargar los saldos de tu wallet.",
+			"manageAssets": "Gestionar activos"
+		},
+		"asset": {
+			"direction": {
+				"in": "Recibido",
+				"out": "Enviado",
+				"self": "A ti mismo"
+			},
+			"from": "De {{address}}",
+			"to": "A {{address}}",
+			"status": {
+				"pending": "Pendiente",
+				"failed": "Fallida"
+			},
+			"notFound": "Este activo no está disponible.",
+			"price": "1 {{symbol}} ≈ {{price}}",
+			"explorer": "Explorador",
+			"activity": "Actividad",
+			"historyUnavailable": "El historial todavía no está disponible aquí. Puedes verlo en el explorador de la red.",
+			"historyError": "No pudimos cargar el historial.",
+			"openExplorer": "Ver en el explorador",
+			"empty": "Aún no tienes movimientos de {{symbol}} en esta red.",
+			"explorerFailed": "No se pudo abrir el explorador."
+		},
+		"receive": {
+			"pickTitle": "¿Qué quieres recibir?",
+			"change": "Cambiar activo",
+			"copy": "Copiar",
+			"share": "Compartir",
+			"shareMessage": "Mi dirección para recibir {{asset}} en {{network}}: {{address}}",
+			"warning": "Envía solo {{asset}} por la red {{network}}. Si usas otra red, los fondos se pueden perder.",
+			"evmNote": "Esta dirección es la misma en Ethereum, BNB Chain, Base y Polygon, pero cada red tiene su propio saldo."
+		},
+		"manage": {
+			"subtitle": "Elige qué activos ves en tu wallet. Los que reciban fondos aparecen solos."
 		}
 	}
 }

@@ -93,6 +93,9 @@ import CoinDetail from './screens/crypto/CoinDetail'
 import WalletOnboarding from './screens/crypto/wallet/WalletOnboarding'
 import WalletBackup from './screens/crypto/wallet/WalletBackup'
 import WalletImport from './screens/crypto/wallet/WalletImport'
+import WalletAsset from './screens/crypto/wallet/WalletAsset'
+import WalletReceive from './screens/crypto/wallet/WalletReceive'
+import WalletManageAssets from './screens/crypto/wallet/WalletManageAssets'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -245,6 +248,10 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.WALLET_ONBOARDING, component: WalletOnboarding, options: getHeaderOptions('') },
 	{ name: ROUTES.WALLET_BACKUP, component: WalletBackup, options: getHeaderOptions('') },
 	{ name: ROUTES.WALLET_IMPORT, component: WalletImport, options: getHeaderOptions(t('navigation.headers.walletImport')) },
+	// El título real (símbolo · red) lo fija la pantalla al resolver el activo
+	{ name: ROUTES.WALLET_ASSET, component: WalletAsset, options: getHeaderOptions('') },
+	{ name: ROUTES.WALLET_RECEIVE, component: WalletReceive, options: getHeaderOptions(t('navigation.headers.walletReceive')) },
+	{ name: ROUTES.WALLET_MANAGE_ASSETS, component: WalletManageAssets, options: getHeaderOptions(t('navigation.headers.walletManageAssets')) },
 
 	// QR Scan Screen
 	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', headerShown: false } },

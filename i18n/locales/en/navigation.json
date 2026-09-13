@@ -20,7 +20,9 @@
 		"assistedShopping": "Assisted shopping",
 		"assistedCheckout": "Confirm purchase",
 		"assistedOrders": "My orders",
-		"walletImport": "Import wallet"
+		"walletImport": "Import wallet",
+		"walletReceive": "Receive",
+		"walletManageAssets": "Manage assets"
 	},
 	"tabs": {
 		"home": "Home",

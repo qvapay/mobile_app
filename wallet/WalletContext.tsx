@@ -18,6 +18,7 @@ import type { WalletAddresses } from './derive'
 import { getWalletMnemonic, hasWalletMnemonic, removeWalletMnemonic, setWalletMnemonic } from './keystore'
 import { useAppRpcRouter } from './registry/appRpcRouter'
 import { walletApi } from '../api/walletApi'
+import { useAuth } from '../auth/AuthContext'
 
 /** Metadata pública (direcciones + backup); el secreto vive solo en Keychain. */
 const WALLET_META_KEY = '@qpwallet:meta'
@@ -116,13 +117,26 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 		return () => { disarm(); sub.remove() }
 	}, [meta, router])
 
+	// Registro de direcciones públicas una vez por cuenta y sesión: cubre las
+	// wallets creadas antes de que el endpoint existiera (el POST inicial dio
+	// 404) y el cambio de cuenta en el mismo teléfono. Upsert idempotente.
+	const { isAuthenticated, user } = useAuth()
+	const registeredForRef = useRef<string | null>(null)
+	useEffect(() => {
+		const userKey = user?.uuid ?? null
+		if (!isAuthenticated || !userKey || !meta) return
+		const registrationKey = `${userKey}:${meta.addresses.evm}`
+		if (registeredForRef.current === registrationKey) return
+		registeredForRef.current = registrationKey
+		walletApi.registerAddresses(meta.addresses).catch(() => {})
+	}, [isAuthenticated, user?.uuid, meta])
+
 	const createWallet = useCallback(async (): Promise<string | null> => {
 		if (metaRef.current) return null // ya hay wallet: jamás pisarla
 		const mnemonic = createMnemonic()
 		if (!(await setWalletMnemonic(mnemonic))) return null
 		const addresses = deriveAddresses(mnemonicToSeed(mnemonic))
 		await persistMeta({ addresses, backedUp: false })
-		walletApi.registerAddresses(addresses).catch(() => {})
 		return mnemonic
 	}, [persistMeta])
 
@@ -133,7 +147,6 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 		if (!(await setWalletMnemonic(mnemonic))) return false
 		const addresses = deriveAddresses(mnemonicToSeed(mnemonic))
 		await persistMeta({ addresses, backedUp: true })
-		walletApi.registerAddresses(addresses).catch(() => {})
 		return true
 	}, [persistMeta])
 

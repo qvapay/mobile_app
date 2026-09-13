@@ -138,6 +138,8 @@ export const DEFAULT_SETTINGS = {
 		selfCustody: false,
 		/** Nodos RPC del usuario por cadena (Ajustes → Nodos → "Añadir nodo"). No es secreto. */
 		customRpcs: {} as Record<string, string[]>,
+		/** "Gestionar activos": id de activo (`bsc:0x…`, `tron:native`) → visible. Solo lo que el usuario tocó. */
+		visibleAssets: {} as Record<string, boolean>,
 	},
 
 	// Roundup (micro pagos) settings

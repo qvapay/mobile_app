@@ -100,6 +100,9 @@ export const ROUTES = {
 	WALLET_ONBOARDING: "WalletOnboarding",
 	WALLET_BACKUP: "WalletBackup",
 	WALLET_IMPORT: "WalletImport",
+	WALLET_ASSET: "WalletAsset",
+	WALLET_RECEIVE: "WalletReceive",
+	WALLET_MANAGE_ASSETS: "WalletManageAssets",
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	MARKET_STORES: "MarketStores",

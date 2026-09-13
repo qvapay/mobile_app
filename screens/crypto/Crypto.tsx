@@ -10,7 +10,7 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
 import { useCryptoDashboard } from './cryptoQueries'
-import WalletCard from './wallet/WalletCard'
+import WalletHome from './wallet/WalletHome'
 import useSelfCustodyFlag from '../../hooks/useSelfCustodyFlag'
 
 // Routes
@@ -19,7 +19,7 @@ import { ROUTES } from '../../routes'
 // Helpers
 
 // UI
-import QPLoader from '../../ui/particles/QPLoader'
+import QPSkeleton from '../../ui/particles/QPSkeleton'
 import QPCoin from '../../ui/particles/QPCoin'
 import Sparkline from '../../ui/Sparkline'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
@@ -246,8 +246,6 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const selfCustody = useSelfCustodyFlag()
 	const [exploreTab, setExploreTab] = useState('popular')
 
-	if (isLoading) return <QPLoader />
-
 	// La lista mezcla criptos enriquecidas y stocks: se lee por la forma común
 	// (ExploreRowItem) — cast local, la pestaña activa decide qué campos hay
 	const exploreItems = (exploreTab === 'popular' ? coins.slice(0, 5) : stocks) as ExploreRowItem[]
@@ -260,8 +258,9 @@ const Crypto = ({ navigation }: CryptoProps) => {
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 			>
-				{/* Wallet self-custody (rollout gradual detrás del flag) */}
-				{selfCustody && <WalletCard />}
+				{/* Wallet self-custody (rollout gradual detrás del flag): total,
+				    activos por red y gestión. Los precios quedan al final. */}
+				{selfCustody && <WalletHome refreshSignal={refreshing} />}
 
 				{/* Explore: Cripto + Stocks */}
 				<SectionCard title={t('crypto.dashboard.explore')} icon="lightbulb" theme={theme}>
@@ -313,7 +312,8 @@ const Crypto = ({ navigation }: CryptoProps) => {
 							</Pressable>
 						)
 					})}
-					{exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
+					{isLoading && [0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={44} borderRadius={10} style={styles.exploreSkeleton} />)}
+					{!isLoading && exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
 				</SectionCard>
 
 				{/* P2P Mercado */}
@@ -338,7 +338,6 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	scrollContent: {
 		paddingBottom: 100,
 		gap: 10,
-		paddingTop: 4,
 	},
 	// Cards
 	card: {
@@ -442,6 +441,9 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	},
 	changeBadgeText: {},
 	// Common
+	exploreSkeleton: {
+		marginVertical: 5,
+	},
 	emptyText: {
 		textAlign: 'center',
 		paddingVertical: 16,

@@ -153,10 +153,54 @@
 			"done": "Wallet imported",
 			"failed": "Couldn’t import the wallet."
 		},
-		"families": {
-			"evm": "ETH · BSC · Base",
-			"tron": "TRON",
-			"btc": "Bitcoin"
+		"home": {
+			"totalLabel": "Wallet balance",
+			"showBalance": "Show balance",
+			"hideBalance": "Hide balance",
+			"actions": {
+				"send": "Send",
+				"receive": "Receive",
+				"p2p": "P2P"
+			},
+			"sendSoon": "Sending from your wallet is coming very soon.",
+			"staleChains_one": "We couldn't update {{count}} network. You're seeing its last known balance.",
+			"staleChains_other": "We couldn't update {{count}} networks. You're seeing their last known balance.",
+			"loadError": "Couldn't load your wallet balances.",
+			"manageAssets": "Manage assets"
+		},
+		"asset": {
+			"direction": {
+				"in": "Received",
+				"out": "Sent",
+				"self": "To yourself"
+			},
+			"from": "From {{address}}",
+			"to": "To {{address}}",
+			"status": {
+				"pending": "Pending",
+				"failed": "Failed"
+			},
+			"notFound": "This asset is not available.",
+			"price": "1 {{symbol}} ≈ {{price}}",
+			"explorer": "Explorer",
+			"activity": "Activity",
+			"historyUnavailable": "History isn't available here yet. You can see it in the network explorer.",
+			"historyError": "We couldn't load the history.",
+			"openExplorer": "View in explorer",
+			"empty": "No {{symbol}} activity on this network yet.",
+			"explorerFailed": "Couldn't open the explorer."
+		},
+		"receive": {
+			"pickTitle": "What do you want to receive?",
+			"change": "Change asset",
+			"copy": "Copy",
+			"share": "Share",
+			"shareMessage": "My address to receive {{asset}} on {{network}}: {{address}}",
+			"warning": "Only send {{asset}} on the {{network}} network. Funds sent on another network may be lost.",
+			"evmNote": "This address is the same on Ethereum, BNB Chain, Base and Polygon, but each network has its own balance."
+		},
+		"manage": {
+			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically."
 		}
 	}
 }

@@ -1,7 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner-native'
-import Clipboard from '@react-native-clipboard/clipboard'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -10,13 +8,9 @@ import { createTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import type { WalletAddresses } from '../../../wallet/derive'
 
 // UI
 import QPPressable from '../../../ui/particles/QPPressable'
-
-// Helpers
-import { truncateWalletAddress } from '../../../helpers'
 
 // Navigation
 import { useNavigation } from '@react-navigation/native'
@@ -24,17 +18,12 @@ import { ROUTES } from '../../../routes'
 
 import type { Theme } from '../../../theme/ThemeContext'
 
-const FAMILIES: Array<{ key: keyof WalletAddresses, labelKey: string }> = [
-	{ key: 'tron', labelKey: 'crypto.wallet.families.tron' },
-	{ key: 'evm', labelKey: 'crypto.wallet.families.evm' },
-	{ key: 'btc', labelKey: 'crypto.wallet.families.btc' },
-]
 
 /**
  * Card de la wallet self-custody en el dashboard del tab Crypto (detrás de
- * `useSelfCustodyFlag`). Tres estados: sin wallet (CTA crear/importar),
- * backup pendiente (retomarlo) y activa (direcciones con copy; balances
- * on-chain llegan en la Fase 3).
+ * `useSelfCustodyFlag`) para los dos estados previos a la wallet activa: sin
+ * wallet (CTA crear/importar) y backup pendiente (retomarlo). Con la wallet
+ * respaldada no pinta nada: manda WalletHome (saldo + activos).
  */
 const WalletCard = () => {
 
@@ -43,14 +32,10 @@ const WalletCard = () => {
 	const textStyles = createTextStyles(theme)
 	const navigation = useNavigation()
 
-	const { isReady, hasWallet, isBackedUp, addresses } = useWallet()
+	const { isReady, hasWallet, isBackedUp } = useWallet()
 
-	if (!isReady) return null
-
-	const copy = (value: string) => {
-		Clipboard.setString(value)
-		toast.success(t('crypto.wallet.card.copied'))
-	}
+	// Sin hidratar no se decide nada; activa y respaldada, manda WalletHome
+	if (!isReady || (hasWallet && isBackedUp)) return null
 
 	return (
 		<View style={[styles.card, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
@@ -80,19 +65,7 @@ const WalletCard = () => {
 					<Text style={[textStyles.h5, styles.ctaText, { color: theme.colors.warning }]}>{t('crypto.wallet.card.resumeBackup')}</Text>
 					<FontAwesome6 name="chevron-right" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 				</QPPressable>
-			) : addresses && (
-				<View style={styles.addresses}>
-					{FAMILIES.map(family => (
-						<QPPressable key={family.key} onPress={() => copy(addresses[family.key])} style={[styles.addressRow, { borderTopColor: theme.colors.border + '60' }]}>
-							<Text style={[textStyles.h6, styles.familyLabel, { color: theme.colors.secondaryText }]}>{t(family.labelKey)}</Text>
-							<Text style={[textStyles.h5, styles.address, { color: theme.colors.primaryText }]} numberOfLines={1}>
-								{truncateWalletAddress(addresses[family.key], 8)}
-							</Text>
-							<FontAwesome6 name="copy" size={13} color={theme.colors.secondaryText} iconStyle="regular" />
-						</QPPressable>
-					))}
-				</View>
-			)}
+			) : null}
 		</View>
 	)
 }
@@ -109,10 +82,6 @@ const styles = StyleSheet.create({
 	// píldora/círculo queda para estado, el squircle para acción.
 	ctaIcon: { width: 34, height: 34, borderRadius: 12, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
 	ctaText: { flex: 1 },
-	addresses: { marginTop: 2 },
-	addressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderTopWidth: StyleSheet.hairlineWidth },
-	familyLabel: { width: 92 },
-	address: { flex: 1 },
 })
 
 export default WalletCard

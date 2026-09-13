@@ -153,10 +153,54 @@
 			"done": "Wallet importada",
 			"failed": "Não foi possível importar a wallet."
 		},
-		"families": {
-			"evm": "ETH · BSC · Base",
-			"tron": "TRON",
-			"btc": "Bitcoin"
+		"home": {
+			"totalLabel": "Saldo da sua carteira",
+			"showBalance": "Mostrar saldo",
+			"hideBalance": "Ocultar saldo",
+			"actions": {
+				"send": "Enviar",
+				"receive": "Receber",
+				"p2p": "P2P"
+			},
+			"sendSoon": "Enviar da sua carteira chega muito em breve.",
+			"staleChains_one": "Não conseguimos atualizar {{count}} rede. Você vê o último saldo conhecido.",
+			"staleChains_other": "Não conseguimos atualizar {{count}} redes. Você vê o último saldo conhecido.",
+			"loadError": "Não foi possível carregar os saldos da sua carteira.",
+			"manageAssets": "Gerenciar ativos"
+		},
+		"asset": {
+			"direction": {
+				"in": "Recebido",
+				"out": "Enviado",
+				"self": "Para você mesmo"
+			},
+			"from": "De {{address}}",
+			"to": "Para {{address}}",
+			"status": {
+				"pending": "Pendente",
+				"failed": "Falhou"
+			},
+			"notFound": "Este ativo não está disponível.",
+			"price": "1 {{symbol}} ≈ {{price}}",
+			"explorer": "Explorador",
+			"activity": "Atividade",
+			"historyUnavailable": "O histórico ainda não está disponível aqui. Você pode vê-lo no explorador da rede.",
+			"historyError": "Não foi possível carregar o histórico.",
+			"openExplorer": "Ver no explorador",
+			"empty": "Você ainda não tem movimentações de {{symbol}} nesta rede.",
+			"explorerFailed": "Não foi possível abrir o explorador."
+		},
+		"receive": {
+			"pickTitle": "O que você quer receber?",
+			"change": "Trocar ativo",
+			"copy": "Copiar",
+			"share": "Compartilhar",
+			"shareMessage": "Meu endereço para receber {{asset}} na rede {{network}}: {{address}}",
+			"warning": "Envie apenas {{asset}} pela rede {{network}}. Fundos enviados por outra rede podem ser perdidos.",
+			"evmNote": "Este endereço é o mesmo em Ethereum, BNB Chain, Base e Polygon, mas cada rede tem seu próprio saldo."
+		},
+		"manage": {
+			"subtitle": "Escolha quais ativos você vê na sua carteira. Os que receberem fundos aparecem sozinhos."
 		}
 	}
 }

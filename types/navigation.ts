@@ -115,6 +115,11 @@ export type RootStackParamList = {
 	/** El mnemonic NUNCA viaja por params: Backup lo crea/lee él mismo (quiz interno). */
 	WalletBackup: undefined
 	WalletImport: undefined
+	/** `assetId` = `${chainKey}:native` | `${chainKey}:${contract}` (wallet/assets.ts). */
+	WalletAsset: { assetId: string }
+	/** Sin assetId abre el selector de activo. */
+	WalletReceive: { assetId?: string } | undefined
+	WalletManageAssets: undefined
 
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined
