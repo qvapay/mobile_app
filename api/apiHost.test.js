@@ -8,14 +8,14 @@
 jest.mock('../config', () => ({
 	__esModule: true,
 	default: {
-		API_BASE_URL: 'http://192.168.0.10:3000/api',
+		API_BASE_URL: 'http://10.0.0.208:3000/api',
 		API_PROD_URL: 'https://api.qvapay.com',
 		API_DEV_PROBE_TIMEOUT: 50,
 		API_TIMEOUT: 20000,
 	},
 }))
 
-const LOCAL = 'http://192.168.0.10:3000/api'
+const LOCAL = 'http://10.0.0.208:3000/api'
 const PROD = 'https://api.qvapay.com'
 
 const originalEnv = process.env.NODE_ENV
