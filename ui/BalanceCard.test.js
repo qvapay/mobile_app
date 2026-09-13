@@ -18,6 +18,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useSettings } from '../settings/SettingsContext'
 import { savingApi } from '../api/savingApi'
 import BalanceCard from './BalanceCard'
+import BalanceHero from './BalanceHero'
 
 const getSetting = jest.fn()
 const updateSetting = jest.fn()
@@ -45,7 +46,8 @@ const renderCard = async (props = {}) => {
 	return tree
 }
 
-const pages = (tree) => tree.root.findAll(node => typeof node.props.onPress === 'function')
+// Las páginas del pager son héroes compartidos (BalanceHero): se buscan por tipo
+const pages = (tree) => tree.root.findAllByType(BalanceHero)
 
 afterEach(() => {
 	for (const client of clients) {
