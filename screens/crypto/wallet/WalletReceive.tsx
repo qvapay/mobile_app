@@ -137,6 +137,8 @@ const WalletReceive = ({ navigation, route }: Props) => {
 				</View>
 			</View>
 
+			<View style={styles.spacer} />
+
 			<View style={styles.buttons}>
 				<View style={styles.button}><QPButton title={t('crypto.wallet.receive.copy')} icon="copy" onPress={copy} /></View>
 				<View style={styles.button}><QPButton title={t('crypto.wallet.receive.share')} icon="share-nodes" onPress={share} outlined /></View>
@@ -150,7 +152,8 @@ const styles = StyleSheet.create({
 	pickerCard: { borderRadius: 14, paddingHorizontal: 12 },
 	pickerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	pickerInfo: { flex: 1 },
-	content: { alignItems: 'center', gap: 16, paddingTop: 8, paddingBottom: 40 },
+	content: { alignItems: 'center', gap: 16, paddingTop: 8, paddingBottom: 24, flexGrow: 1 },
+	spacer: { flex: 1 },
 	assetChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20 },
 	qrCard: { borderRadius: 16, padding: 10, backgroundColor: '#FFFFFF', overflow: 'hidden' },
 	qrInner: { backgroundColor: '#FFFFFF' },
