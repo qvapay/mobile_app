@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import Animated, { LinearTransition } from 'react-native-reanimated'
 
 // Theme
 import { useTheme } from '../../../../theme/ThemeContext'
@@ -8,6 +9,7 @@ import { useTextStyles } from '../../../../theme/themeUtils'
 // UI
 import QPPressable from '../../../../ui/particles/QPPressable'
 import AssetIcon from './AssetIcon'
+import AmountFlow from './AmountFlow'
 
 // Wallet
 import { assetPrice } from '../../../../wallet/assets'
@@ -25,7 +27,9 @@ type Props = {
 /**
  * Fila de activo: logo+red · símbolo + red y precio · cantidad + valor USD.
  * Con saldo oculto (ajuste `privacy.showBalance`) se enmascaran cantidad y
- * valor, no el precio (es dato público).
+ * valor, no el precio (es dato público). Cantidad y USD ruedan (AmountFlow)
+ * y la fila anima su posición: al refrescar, un activo que sube de valor se
+ * desliza a su sitio en vez de saltar (la lista se ordena por USD).
  */
 const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) => {
 
@@ -34,6 +38,7 @@ const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) 
 	const price = assetPrice(asset, prices)
 
 	return (
+		<Animated.View layout={LinearTransition.duration(350)}>
 		<QPPressable
 			onPress={() => onPress(asset)}
 			style={[styles.row, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}
@@ -57,14 +62,15 @@ const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) 
 			</View>
 
 			<View style={styles.amounts}>
-				<Text style={[textStyles.h4, { color: theme.colors.primaryText }]} numberOfLines={1}>
-					{showBalance ? asset.amountLabel : '••••'}
-				</Text>
-				<Text style={[styles.sub, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1}>
-					{showBalance ? (asset.usd === null ? '—' : formatUsd(asset.usd)) : '••••'}
-				</Text>
+				{showBalance
+					? <AmountFlow amount={asset.amount} style={[textStyles.h4, { color: theme.colors.primaryText }]} />
+					: <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>••••</Text>}
+				{showBalance && asset.usd !== null
+					? <AmountFlow amount={String(asset.usd)} prefix="$" fractionDigits={2} style={[styles.sub, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]} />
+					: <Text style={[styles.sub, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{showBalance ? '—' : '••••'}</Text>}
 			</View>
 		</QPPressable>
+		</Animated.View>
 	)
 }
 
