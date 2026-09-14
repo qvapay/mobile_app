@@ -10,7 +10,7 @@
 const API_PROD_URL = 'https://api.qvapay.com'
 
 const config = {
-	API_BASE_URL: __DEV__ ? 'http://10.0.0.208:3000/api' : API_PROD_URL,
+	API_BASE_URL: __DEV__ ? 'http://10.0.0.239:3000/api' : API_PROD_URL,
 	API_PROD_URL,
 	// Dev only: how long to wait for the LAN backend before falling back (ms)
 	API_DEV_PROBE_TIMEOUT: 15000,
