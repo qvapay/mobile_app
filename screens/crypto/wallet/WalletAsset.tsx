@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
@@ -17,7 +17,7 @@ import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, explorerAddressUrl, explorerTxUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
-import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistoryQuery } from './walletQueries'
+import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
 import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import type { ApiError } from '../../../api/unwrap'
@@ -43,10 +43,6 @@ import type { WalletTx } from '../../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletAsset'>
 
-/** Auto-paginación: pedir páginas hasta tener esto visible… */
-const MIN_VISIBLE_ITEMS = 10
-/** …sin pasar de estas páginas encadenadas solas. */
-const MAX_AUTO_PAGES = 5
 
 const DIRECTION_ICON: Record<WalletTx['direction'], FontAwesome6SolidIconName> = {
 	in: 'arrow-down',
@@ -135,8 +131,8 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	// "Mostrar" en la fila de ocultos revela el dust solo mientras dura esta pantalla
 	const [revealDust, setRevealDust] = useState(false)
 
-	const history = useWalletHistoryQuery(asset)
-	const allItems = useMemo(() => history.data?.pages.flatMap(page => page.items) ?? [], [history.data])
+	const history = useWalletHistory(asset)
+	const allItems = history.items
 	const priceForDust = asset ? assetPrice(asset, prices) : null
 	const { visible: items, dust } = useMemo(
 		() => (hideDust && !revealDust ? splitDust(allItems, priceForDust) : { visible: allItems, dust: [] as WalletTx[] }),
@@ -145,16 +141,8 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const hiddenDustCount = hideDust && !revealDust ? dust.length : 0
 	const historyStatus = (history.error as ApiError | null)?.status
 	const historyUnavailable = history.isError && allItems.length === 0
-	const pageCount = history.data?.pages.length ?? 0
 
-	// El proxy filtra por página (txs de valor 0, contratos que no son
-	// transferencias) y puede devolver páginas vacías CON cursor: sin esto una
-	// lista corta se quedaría en "sin movimientos" y el onEndReached de una
-	// lista vacía nunca dispara. Tope de páginas para no vaciar la cuota.
-	const { hasNextPage, isFetchingNextPage, fetchNextPage } = history
-	useEffect(() => {
-		if (hasNextPage && !isFetchingNextPage && allItems.length < MIN_VISIBLE_ITEMS && pageCount < MAX_AUTO_PAGES) fetchNextPage()
-	}, [hasNextPage, isFetchingNextPage, allItems.length, pageCount, fetchNextPage])
+	const { hasMore, isLoadingMore, loadMore } = history
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -221,7 +209,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 
 			<Text style={[textStyles.h3, styles.sectionTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.asset.activity')}</Text>
 
-			{((history.isPending && history.fetchStatus === 'fetching') || (allItems.length === 0 && isFetchingNextPage)) && (
+			{history.isInitialLoading && (
 				<View style={styles.historySkeleton}>
 					{[0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={48} borderRadius={12} />)}
 				</View>
@@ -239,7 +227,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				</View>
 			)}
 
-			{history.isSuccess && allItems.length === 0 && !hasNextPage && (
+			{history.isReady && !history.isError && allItems.length === 0 && !hasMore && (
 				<View style={[styles.emptyBox, { backgroundColor: theme.colors.surface }]}>
 					<FontAwesome6 name="inbox" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[textStyles.h5, styles.emptyText, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.asset.empty', { symbol: asset.symbol })}</Text>
@@ -264,10 +252,10 @@ const WalletAsset = ({ navigation, route }: Props) => {
 								<Text style={[textStyles.h6, { color: theme.colors.primary }]}>{t('crypto.wallet.asset.dustShow')}</Text>
 							</QPPressable>
 						)}
-						{isFetchingNextPage && allItems.length > 0 && <ActivityIndicator style={styles.footer} color={theme.colors.primary} />}
+						{isLoadingMore && allItems.length > 0 && <ActivityIndicator style={styles.footer} color={theme.colors.primary} />}
 					</>
 				}
-				onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
+				onEndReached={() => { if (hasMore && !isLoadingMore) loadMore() }}
 				onEndReachedThreshold={0.5}
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={styles.listContent}

@@ -15,6 +15,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import { shortAddress } from '../../crypto/wallet/walletFormat'
+import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -86,6 +87,7 @@ const WalletSettings = () => {
 		setDeleting(true)
 		try {
 			await deleteWallet()
+			await clearHistoryCaches()
 			// Saldos/historial de la wallet borrada no deben sobrevivir en memoria
 			queryClient.removeQueries({ queryKey: ['wallet', 'balances'] })
 			queryClient.removeQueries({ queryKey: ['wallet', 'history'] })
