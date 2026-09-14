@@ -400,6 +400,8 @@ export type Announcement = {
 
 /** Movimiento on-chain normalizado por `GET /wallet/history` (misma forma en todas las cadenas). */
 export type WalletTx = {
+	/** 'fee' = llamada a contrato propia (enviar un token, approve…): solo se quemó la comisión, `amount` es esa comisión en el nativo. Ausente = transferencia. */
+	kind?: 'transfer' | 'fee'
 	hash: string
 	/** Unix en SEGUNDOS. */
 	time: number

@@ -189,7 +189,9 @@
 			"historyError": "Não foi possível carregar o histórico.",
 			"openExplorer": "Ver no explorador",
 			"empty": "Você ainda não tem movimentações de {{symbol}} nesta rede.",
-			"explorerFailed": "Não foi possível abrir o explorador."
+			"explorerFailed": "Não foi possível abrir o explorador.",
+			"feeEntry": "Taxa de rede",
+			"feeEntrySub": "Chamada ao contrato {{address}}"
 		},
 		"receive": {
 			"pickTitle": "O que você quer receber?",

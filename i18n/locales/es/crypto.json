@@ -189,7 +189,9 @@
 			"historyError": "No pudimos cargar el historial.",
 			"openExplorer": "Ver en el explorador",
 			"empty": "Aún no tienes movimientos de {{symbol}} en esta red.",
-			"explorerFailed": "No se pudo abrir el explorador."
+			"explorerFailed": "No se pudo abrir el explorador.",
+			"feeEntry": "Comisión de red",
+			"feeEntrySub": "Llamada al contrato {{address}}"
 		},
 		"receive": {
 			"pickTitle": "¿Qué quieres recibir?",

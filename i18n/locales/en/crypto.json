@@ -189,7 +189,9 @@
 			"historyError": "We couldn't load the history.",
 			"openExplorer": "View in explorer",
 			"empty": "No {{symbol}} activity on this network yet.",
-			"explorerFailed": "Couldn't open the explorer."
+			"explorerFailed": "Couldn't open the explorer.",
+			"feeEntry": "Network fee",
+			"feeEntrySub": "Contract call {{address}}"
 		},
 		"receive": {
 			"pickTitle": "What do you want to receive?",

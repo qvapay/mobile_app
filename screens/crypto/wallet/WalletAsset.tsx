@@ -58,21 +58,26 @@ type TxRowProps = { tx: WalletTx, theme: Theme, onPress: (tx: WalletTx) => void 
 const TxRow = ({ tx, theme, onPress }: TxRowProps) => {
 	const { t } = useTranslation()
 	const failed = tx.status === 'failed'
-	const tint = failed ? theme.colors.danger : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
+	const isFee = tx.kind === 'fee'
+	// Comisión: fila atenuada (no es dinero que fue a nadie, se quemó en la red)
+	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
+	const iconColor = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
 	const counterpart = tx.direction === 'in' ? tx.from : tx.to
 	const sign = tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
 
 	return (
 		<QPPressable onPress={() => onPress(tx)} style={[styles.txRow, { borderBottomColor: theme.colors.border + '40' }]}>
-			<View style={[styles.txIcon, { backgroundColor: (failed ? theme.colors.danger : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary) + '18' }]}>
-				<FontAwesome6 name={failed ? 'xmark' : DIRECTION_ICON[tx.direction]} size={14} color={failed ? theme.colors.danger : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary} iconStyle="solid" />
+			<View style={[styles.txIcon, { backgroundColor: iconColor + '18' }]}>
+				<FontAwesome6 name={failed ? 'xmark' : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={14} color={iconColor} iconStyle="solid" />
 			</View>
 			<View style={styles.txInfo}>
 				<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }} numberOfLines={1}>
-					{t(`crypto.wallet.asset.direction.${tx.direction}`)}
+					{isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)}
 				</Text>
 				<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.txSub]} numberOfLines={1}>
-					{counterpart ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: shortAddress(counterpart) })} · ` : ''}{timeAgo(tx.time * 1000)}
+					{isFee
+						? `${t('crypto.wallet.asset.feeEntrySub', { address: shortAddress(tx.to) })} · `
+						: counterpart ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: shortAddress(counterpart) })} · ` : ''}{timeAgo(tx.time * 1000)}
 				</Text>
 			</View>
 			<View style={styles.txAmounts}>
