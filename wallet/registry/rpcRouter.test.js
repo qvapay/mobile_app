@@ -118,6 +118,17 @@ describe('call', () => {
 		expect(seen).toEqual(['https://api.trongrid.io', 'https://tron-rpc.publicnode.com'])
 	})
 
+	test('accept descarta dialectos que no sirven para la llamada', async () => {
+		const registry = { version: 1, updated_at: '', chains: { tron: { kind: 'tron', native: { symbol: 'TRX', decimals: 6 }, explorer: '', rpcs: [
+			{ url: 'https://a/jsonrpc', priority: 0, owner: 'x', api: 'jsonrpc' },
+			{ url: 'https://b', priority: 10, owner: 'x' },
+		] } } }
+		const router = createRpcRouter(() => registry)
+		const used = await router.call('tron', async rpc => rpc.url, { accept: rpc => rpc.api !== 'jsonrpc' })
+		expect(used).toBe('https://b')
+		await expect(router.call('tron', async rpc => rpc.url, { accept: () => false })).rejects.toThrow(AllRpcsFailedError)
+	})
+
 	test('un error de negocio NO rota: se relanza tal cual', async () => {
 		const { router } = makeRouter(makeRegistry(RPCS()))
 		const seen = []

@@ -17,6 +17,19 @@ export const formatUnits = (value: bigint, decimals: number): string => {
 }
 
 /**
+ * Decimal humano tecleado ('1', '0.5', '12,5', ' 1.000000 ') → unidades
+ * mínimas. Lanza si no es un número, es negativo o trae más decimales de los
+ * que admite el activo (no se redondea: en dinero, redondear es inventar).
+ */
+export const parseUnits = (input: string, decimals: number): bigint => {
+	const text = input.trim().replace(',', '.')
+	if (!/^\d*(\.\d*)?$/.test(text) || text === '' || text === '.') throw new RangeError(`units: cantidad inválida '${input}'`)
+	const [whole = '', fraction = ''] = text.split('.')
+	if (fraction.length > decimals) throw new RangeError(`units: máximo ${decimals} decimales`)
+	return BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt((fraction || '0').padEnd(decimals, '0'))
+}
+
+/**
  * Cantidad para PINTAR: pocos decimales significativos según magnitud, sin
  * redondear hacia arriba (mostrar más saldo del que hay es peor que menos).
  */

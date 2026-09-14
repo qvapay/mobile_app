@@ -173,10 +173,17 @@ export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps
 	/**
 	 * Ejecuta `fn` contra el mejor RPC, rotando (máx MAX_ATTEMPTS endpoints
 	 * distintos) solo en errores de infraestructura. `fn` recibe un
-	 * AbortSignal con timeout de 8s y DEBE pasarlo a su fetch.
+	 * AbortSignal con timeout de 8s y DEBE pasarlo a su fetch. `accept`
+	 * filtra candidatos por dialecto antes de elegir.
 	 */
-	const call = async <T>(chainKey: string, fn: (rpc: RegistryRpc, signal: AbortSignal) => Promise<T>): Promise<T> => {
-		const candidates = orderedCandidates(chainOf(chainKey))
+	const call = async <T>(
+		chainKey: string,
+		fn: (rpc: RegistryRpc, signal: AbortSignal) => Promise<T>,
+		{ accept }: { accept?: (rpc: RegistryRpc) => boolean } = {},
+	): Promise<T> => {
+		// `accept` descarta dialectos que no sirven para esta llamada (p. ej. los
+		// nodos jsonrpc de TRON no construyen ni difunden transacciones)
+		const candidates = orderedCandidates(chainOf(chainKey)).filter(rpc => !accept || accept(rpc))
 		const usable = candidates.filter(r => !isBroken(r.url))
 		const queue = (usable.length > 0 ? usable : candidates).slice(0, MAX_ATTEMPTS)
 		const errors: unknown[] = []
