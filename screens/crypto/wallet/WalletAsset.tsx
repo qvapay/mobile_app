@@ -16,6 +16,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, explorerAddressUrl, explorerTxUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
+import { splitDust } from '../../../wallet/dust'
 import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistoryQuery } from './walletQueries'
 import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
@@ -130,11 +131,20 @@ const WalletAsset = ({ navigation, route }: Props) => {
 
 	const { getSetting } = useSettings()
 	const showBalance = getSetting('privacy', 'showBalance', true) as boolean
+	const hideDust = getSetting('crypto', 'hideDust', true) as boolean
+	// "Mostrar" en la fila de ocultos revela el dust solo mientras dura esta pantalla
+	const [revealDust, setRevealDust] = useState(false)
 
 	const history = useWalletHistoryQuery(asset)
-	const items = useMemo(() => history.data?.pages.flatMap(page => page.items) ?? [], [history.data])
+	const allItems = useMemo(() => history.data?.pages.flatMap(page => page.items) ?? [], [history.data])
+	const priceForDust = asset ? assetPrice(asset, prices) : null
+	const { visible: items, dust } = useMemo(
+		() => (hideDust && !revealDust ? splitDust(allItems, priceForDust) : { visible: allItems, dust: [] as WalletTx[] }),
+		[allItems, hideDust, revealDust, priceForDust],
+	)
+	const hiddenDustCount = hideDust && !revealDust ? dust.length : 0
 	const historyStatus = (history.error as ApiError | null)?.status
-	const historyUnavailable = history.isError && items.length === 0
+	const historyUnavailable = history.isError && allItems.length === 0
 	const pageCount = history.data?.pages.length ?? 0
 
 	// El proxy filtra por página (txs de valor 0, contratos que no son
@@ -143,8 +153,8 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	// lista vacía nunca dispara. Tope de páginas para no vaciar la cuota.
 	const { hasNextPage, isFetchingNextPage, fetchNextPage } = history
 	useEffect(() => {
-		if (hasNextPage && !isFetchingNextPage && items.length < MIN_VISIBLE_ITEMS && pageCount < MAX_AUTO_PAGES) fetchNextPage()
-	}, [hasNextPage, isFetchingNextPage, items.length, pageCount, fetchNextPage])
+		if (hasNextPage && !isFetchingNextPage && allItems.length < MIN_VISIBLE_ITEMS && pageCount < MAX_AUTO_PAGES) fetchNextPage()
+	}, [hasNextPage, isFetchingNextPage, allItems.length, pageCount, fetchNextPage])
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -211,7 +221,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 
 			<Text style={[textStyles.h3, styles.sectionTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.asset.activity')}</Text>
 
-			{((history.isPending && history.fetchStatus === 'fetching') || (items.length === 0 && isFetchingNextPage)) && (
+			{((history.isPending && history.fetchStatus === 'fetching') || (allItems.length === 0 && isFetchingNextPage)) && (
 				<View style={styles.historySkeleton}>
 					{[0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={48} borderRadius={12} />)}
 				</View>
@@ -229,7 +239,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				</View>
 			)}
 
-			{history.isSuccess && items.length === 0 && !hasNextPage && (
+			{history.isSuccess && allItems.length === 0 && !hasNextPage && (
 				<View style={[styles.emptyBox, { backgroundColor: theme.colors.surface }]}>
 					<FontAwesome6 name="inbox" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[textStyles.h5, styles.emptyText, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.asset.empty', { symbol: asset.symbol })}</Text>
@@ -245,7 +255,18 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				keyExtractor={(tx, index) => `${tx.hash}:${index}`}
 				renderItem={({ item }) => <TxRow tx={item} theme={theme} onPress={openTx} />}
 				ListHeaderComponent={header}
-				ListFooterComponent={isFetchingNextPage && items.length > 0 ? <ActivityIndicator style={styles.footer} color={theme.colors.primary} /> : null}
+				ListFooterComponent={
+					<>
+						{hiddenDustCount > 0 && (
+							<QPPressable onPress={() => setRevealDust(true)} style={styles.dustRow} accessibilityRole="button">
+								<FontAwesome6 name="eye-slash" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
+								<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('crypto.wallet.asset.dustHidden', { count: hiddenDustCount })}</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.primary }]}>{t('crypto.wallet.asset.dustShow')}</Text>
+							</QPPressable>
+						)}
+						{isFetchingNextPage && allItems.length > 0 && <ActivityIndicator style={styles.footer} color={theme.colors.primary} />}
+					</>
+				}
 				onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
 				onEndReachedThreshold={0.5}
 				showsVerticalScrollIndicator={false}
@@ -276,6 +297,7 @@ const styles = StyleSheet.create({
 	priceLine: { marginTop: 4 },
 	txAmounts: { alignItems: 'flex-end', maxWidth: '50%' },
 	footer: { paddingVertical: 16 },
+	dustRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
 })
 
 export default WalletAsset

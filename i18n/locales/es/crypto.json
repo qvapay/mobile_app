@@ -191,7 +191,10 @@
 			"empty": "Aún no tienes movimientos de {{symbol}} en esta red.",
 			"explorerFailed": "No se pudo abrir el explorador.",
 			"feeEntry": "Comisión de red",
-			"feeEntrySub": "Llamada al contrato {{address}}"
+			"feeEntrySub": "Llamada al contrato {{address}}",
+			"dustHidden_one": "{{count}} movimiento pequeño oculto",
+			"dustHidden_other": "{{count}} movimientos pequeños ocultos",
+			"dustShow": "Mostrar"
 		},
 		"receive": {
 			"pickTitle": "¿Qué quieres recibir?",
@@ -203,7 +206,9 @@
 			"evmNote": "Esta dirección es la misma en Ethereum, BNB Chain, Base y Polygon, pero cada red tiene su propio saldo."
 		},
 		"manage": {
-			"subtitle": "Elige qué activos ves en tu wallet. Los que reciban fondos aparecen solos."
+			"subtitle": "Elige qué activos ves en tu wallet. Los que reciban fondos aparecen solos.",
+			"hideDust": "Ocultar movimientos pequeños",
+			"hideDustHint": "Entradas de menos de $0.01: casi siempre spam o intentos de que copies una dirección falsa."
 		},
 		"auth": {
 			"title": "Confirma que eres tú",

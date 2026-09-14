@@ -191,7 +191,10 @@
 			"empty": "No {{symbol}} activity on this network yet.",
 			"explorerFailed": "Couldn't open the explorer.",
 			"feeEntry": "Network fee",
-			"feeEntrySub": "Contract call {{address}}"
+			"feeEntrySub": "Contract call {{address}}",
+			"dustHidden_one": "{{count}} small transfer hidden",
+			"dustHidden_other": "{{count}} small transfers hidden",
+			"dustShow": "Show"
 		},
 		"receive": {
 			"pickTitle": "What do you want to receive?",
@@ -203,7 +206,9 @@
 			"evmNote": "This address is the same on Ethereum, BNB Chain, Base and Polygon, but each network has its own balance."
 		},
 		"manage": {
-			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically."
+			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically.",
+			"hideDust": "Hide small transfers",
+			"hideDustHint": "Incoming transfers under $0.01: almost always spam or an attempt to get you to copy a fake address."
 		},
 		"auth": {
 			"title": "Confirm it’s you",

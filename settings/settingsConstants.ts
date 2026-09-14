@@ -140,6 +140,8 @@ export const DEFAULT_SETTINGS = {
 		customRpcs: {} as Record<string, string[]>,
 		/** "Gestionar activos": id de activo (`bsc:0x…`, `tron:native`) → visible. Solo lo que el usuario tocó. */
 		visibleAssets: {} as Record<string, boolean>,
+		/** Ocultar entradas de menos de $0.01 en la actividad (dust / address poisoning). */
+		hideDust: true,
 	},
 
 	// Roundup (micro pagos) settings

@@ -11,6 +11,9 @@ import { isAssetVisible } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
 import { useWalletAssets } from './walletQueries'
 
+// Settings
+import { useSettings } from '../../../settings/SettingsContext'
+
 // UI
 import AssetIcon from './components/AssetIcon'
 
@@ -29,6 +32,8 @@ const WalletManageAssets = () => {
 	const containerStyles = useContainerStyles(theme)
 
 	const { all, prefs, setAssetVisible } = useWalletAssets()
+	const { getSetting, updateSetting } = useSettings()
+	const hideDust = getSetting('crypto', 'hideDust', true) as boolean
 
 	const groups = useMemo(() => {
 		const byChain = new Map<string, AssetView[]>()
@@ -39,6 +44,15 @@ const WalletManageAssets = () => {
 	return (
 		<ScrollView style={containerStyles.subContainer} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 			<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.manage.subtitle')}</Text>
+
+			{/* Dust: entradas de menos de $0.01 (spam / address poisoning) fuera de la actividad */}
+			<View style={[styles.card, styles.dustCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
+				<View style={styles.info}>
+					<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('crypto.wallet.manage.hideDust')}</Text>
+					<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{t('crypto.wallet.manage.hideDustHint')}</Text>
+				</View>
+				<Switch value={hideDust} onValueChange={value => { updateSetting('crypto', 'hideDust', value) }} trackColor={{ false: theme.colors.tertiaryText, true: theme.colors.primary }} />
+			</View>
 
 			{groups.map(group => (
 				<View key={group[0].chainKey} style={styles.group}>
@@ -75,6 +89,7 @@ const styles = StyleSheet.create({
 	group: { gap: 6 },
 	groupTitle: { letterSpacing: 0.6, marginLeft: 4 },
 	card: { borderRadius: 14, paddingHorizontal: 12 },
+	dustCard: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
 	info: { flex: 1 },
 })
