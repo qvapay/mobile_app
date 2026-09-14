@@ -6,7 +6,7 @@
  * dura 5 del plan: el persister escribe AsyncStorage sin cifrar). El registry
  * (`['wallet','registry']`) sí persiste: no es dato del usuario.
  */
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { AppState } from 'react-native'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useIsFocused } from '@react-navigation/native'
@@ -22,7 +22,7 @@ import { getAppRpcRouter, useEffectiveRegistry } from '../../../wallet/registry/
 import { fetchAllBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
 import { addressForKind, buildAssetCatalog, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
-import type { AssetView, AssetVisibility, PriceMap, WalletAsset } from '../../../wallet/assets'
+import type { AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 
 // Settings + catálogo de monedas (precios USD)
 import { useSettings } from '../../../settings/SettingsContext'
@@ -33,6 +33,15 @@ export const WALLET_HISTORY_KEY = ['wallet', 'history']
 
 /** Frescura de saldos: un depósito entrante debe verse en < 60s con la pantalla abierta. */
 const BALANCES_STALE_MS = 30_000
+
+/**
+ * Frescura del historial. Larga a propósito: el historial NO se repide por
+ * tiempo sino cuando el SALDO del activo cambia (todo movimiento nuevo mueve
+ * el saldo, y el saldo ya se consulta cada 30s directo a la cadena). Así el
+ * proxy de qpweb solo recibe una petición por activo y por movimiento real,
+ * más el pull-to-refresh explícito del usuario.
+ */
+const HISTORY_STALE_MS = 5 * 60_000
 
 const NO_PREFS: AssetVisibility = {}
 
@@ -74,6 +83,21 @@ export const useWalletBalancesQuery = () => {
 		const sub = AppState.addEventListener('change', state => { if (state === 'active') refetch() })
 		return () => sub.remove()
 	}, [isFocused, addresses, refetch])
+
+	// Saldo que cambia = movimiento nuevo: invalida el historial de ESE activo
+	// (y solo de ese). La primera pasada no compara con nada: no hay historial
+	// en caché que refrescar.
+	const previousRef = useRef<RawBalances | null>(null)
+	const balances = query.data?.balances
+	useEffect(() => {
+		if (!balances) return
+		const previous = previousRef.current
+		previousRef.current = balances
+		if (!previous) return
+		for (const [id, value] of Object.entries(balances)) {
+			if (previous[id] !== value) queryClient.invalidateQueries({ queryKey: [...WALLET_HISTORY_KEY, id] })
+		}
+	}, [balances, queryClient])
 
 	return query
 }
@@ -138,7 +162,9 @@ export const useWalletAssets = () => {
 }
 
 /**
- * Historial paginado de un activo en su red (proxy qpweb). Sin reintentos en
+ * Historial paginado de un activo en su red (proxy qpweb). Se sirve de
+ * memoria mientras el saldo no cambie (ver HISTORY_STALE_MS y la
+ * invalidación por saldo en useWalletBalancesQuery). Sin reintentos en
  * 404/503: significan "backend sin desplegar / sin proveedor", no un fallo
  * transitorio — la pantalla ofrece el explorador.
  */
@@ -159,7 +185,7 @@ export const useWalletHistoryQuery = (asset: WalletAsset | undefined) => {
 		getNextPageParam: last => last.next_cursor ?? undefined,
 		enabled: !!asset && !!address,
 		retry: (failureCount, error) => (error as ApiError)?.status !== 503 && shouldRetry(failureCount, error),
-		staleTime: BALANCES_STALE_MS,
+		staleTime: HISTORY_STALE_MS,
 		meta: { noPersist: true },
 	})
 }

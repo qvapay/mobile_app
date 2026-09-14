@@ -107,7 +107,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	const finish = useCallback((txid: string) => {
 		queryClient.invalidateQueries({ queryKey: WALLET_BALANCES_KEY })
-		queryClient.invalidateQueries({ queryKey: WALLET_HISTORY_KEY })
+		// Solo el historial del activo enviado: el resto sigue de memoria
+		queryClient.invalidateQueries({ queryKey: [...WALLET_HISTORY_KEY, assetId] })
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
 	}, [queryClient, navigation, assetId, amount, to])
 
