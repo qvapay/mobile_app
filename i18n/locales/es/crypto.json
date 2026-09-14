@@ -166,7 +166,8 @@
 			"staleChains_one": "No pudimos actualizar {{count}} red. Ves su último saldo conocido.",
 			"staleChains_other": "No pudimos actualizar {{count}} redes. Ves su último saldo conocido.",
 			"loadError": "No se pudieron cargar los saldos de tu wallet.",
-			"manageAssets": "Gestionar activos"
+			"manageAssets": "Gestionar activos",
+			"security": "Seguridad"
 		},
 		"asset": {
 			"direction": {
@@ -207,7 +208,9 @@
 			"sendSubtitle": "Enviar {{amount}} {{symbol}} a {{address}}",
 			"noPin": "Para firmar desde tu wallet necesitas un PIN de bloqueo. Créalo en Ajustes → Bloqueo y vuelve.",
 			"createPin": "Crear PIN de bloqueo",
-			"cancel": "Cancelar"
+			"cancel": "Cancelar",
+			"revealSubtitle": "Ver la frase secreta de tu wallet",
+			"deleteSubtitle": "Eliminar la wallet de este teléfono"
 		},
 		"send": {
 			"pickTitle": "¿Qué quieres enviar?",
@@ -253,6 +256,32 @@
 			},
 			"btcSoonNote": "Bitcoin se podrá enviar muy pronto.",
 			"feeNative": "{{amount}} {{symbol}}"
+		},
+		"settings": {
+			"title": "Mi wallet",
+			"subtitle": "Tus llaves viven solo en este teléfono.",
+			"addresses": "Direcciones",
+			"families": {
+				"tron": "TRON",
+				"evm": "ETH · BSC · Base",
+				"btc": "Bitcoin"
+			},
+			"phrase": "Frase secreta",
+			"phraseHint": "12 palabras. Quien las tenga controla tus fondos. Solo se muestran tras verificar tu identidad.",
+			"reveal": "Ver frase secreta",
+			"hide": "Ocultar",
+			"revealHint": "Se oculta sola en 60 segundos o al salir de la app. No hagas capturas.",
+			"revealFailed": "No se pudo leer la frase. Inténtalo de nuevo.",
+			"notBackedUp": "Todavía no confirmaste tu respaldo. Hazlo desde el tab Crypto antes de recibir fondos.",
+			"dangerZone": "Zona de peligro",
+			"deleteHint": "Quita la wallet de este teléfono. Cerrar sesión NO la elimina. Los fondos siguen en la cadena y solo se recuperan con la frase.",
+			"delete": "Eliminar wallet",
+			"deleted": "Wallet eliminada de este teléfono",
+			"confirmTitle": "¿Eliminar la wallet?",
+			"confirmBody": "Es irreversible. Sin tu frase de 12 palabras, nadie (ni QvaPay) puede recuperar los fondos.",
+			"confirmAck": "Tengo mi frase secreta guardada",
+			"confirmDelete": "Eliminar definitivamente",
+			"noWallet": "No hay ninguna wallet en este teléfono."
 		}
 	}
 }

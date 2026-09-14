@@ -54,6 +54,8 @@ export type SettingsStackParamList = {
 	Roundup: undefined
 	/** Oculta: solo con flag self-custody o en dev (plan crypto). */
 	RpcNodes: undefined
+	/** Oculta como RpcNodes: direcciones, ver frase y eliminar wallet (gate PIN). */
+	WalletSettings: undefined
 	Enterprise: undefined
 	EnterpriseRegister: undefined
 }

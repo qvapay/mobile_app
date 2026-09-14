@@ -57,7 +57,9 @@
 			"roundup": "Round-ups",
 			"nodes": "Nodes",
 			"selfCustody": "Self-custody wallet",
-			"selfCustodyHint": "Beta · shows My Wallet in the Crypto tab"
+			"selfCustodyHint": "Beta · shows My Wallet in the Crypto tab",
+			"walletSettings": "My wallet",
+			"walletSettingsHint": "Addresses, secret phrase and delete"
 		},
 		"status": {
 			"active": "Active"

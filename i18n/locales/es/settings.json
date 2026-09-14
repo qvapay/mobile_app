@@ -57,7 +57,9 @@
 			"roundup": "Micro pagos",
 			"nodes": "Nodos",
 			"selfCustody": "Wallet self-custody",
-			"selfCustodyHint": "Beta · muestra Mi Wallet en el tab Crypto"
+			"selfCustodyHint": "Beta · muestra Mi Wallet en el tab Crypto",
+			"walletSettings": "Mi wallet",
+			"walletSettingsHint": "Direcciones, frase secreta y eliminar"
 		},
 		"status": {
 			"active": "Activo"

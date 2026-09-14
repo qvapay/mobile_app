@@ -166,7 +166,8 @@
 			"staleChains_one": "We couldn't update {{count}} network. You're seeing its last known balance.",
 			"staleChains_other": "We couldn't update {{count}} networks. You're seeing their last known balance.",
 			"loadError": "Couldn't load your wallet balances.",
-			"manageAssets": "Manage assets"
+			"manageAssets": "Manage assets",
+			"security": "Security"
 		},
 		"asset": {
 			"direction": {
@@ -207,7 +208,9 @@
 			"sendSubtitle": "Send {{amount}} {{symbol}} to {{address}}",
 			"noPin": "Signing from your wallet requires an app-lock PIN. Create it in Settings → App lock and come back.",
 			"createPin": "Create app-lock PIN",
-			"cancel": "Cancel"
+			"cancel": "Cancel",
+			"revealSubtitle": "View your wallet’s secret phrase",
+			"deleteSubtitle": "Delete the wallet from this phone"
 		},
 		"send": {
 			"pickTitle": "What do you want to send?",
@@ -253,6 +256,32 @@
 			},
 			"btcSoonNote": "Sending Bitcoin is coming very soon.",
 			"feeNative": "{{amount}} {{symbol}}"
+		},
+		"settings": {
+			"title": "My wallet",
+			"subtitle": "Your keys live only on this phone.",
+			"addresses": "Addresses",
+			"families": {
+				"tron": "TRON",
+				"evm": "ETH · BSC · Base",
+				"btc": "Bitcoin"
+			},
+			"phrase": "Secret phrase",
+			"phraseHint": "12 words. Anyone who has them controls your funds. Shown only after verifying your identity.",
+			"reveal": "View secret phrase",
+			"hide": "Hide",
+			"revealHint": "Hides itself after 60 seconds or when you leave the app. Don’t take screenshots.",
+			"revealFailed": "Couldn’t read the phrase. Try again.",
+			"notBackedUp": "You haven’t confirmed your backup yet. Do it from the Crypto tab before receiving funds.",
+			"dangerZone": "Danger zone",
+			"deleteHint": "Removes the wallet from this phone. Logging out does NOT remove it. Funds stay on-chain and can only be recovered with the phrase.",
+			"delete": "Delete wallet",
+			"deleted": "Wallet removed from this phone",
+			"confirmTitle": "Delete the wallet?",
+			"confirmBody": "This can’t be undone. Without your 12-word phrase, no one (not even QvaPay) can recover the funds.",
+			"confirmAck": "I have my secret phrase saved",
+			"confirmDelete": "Delete permanently",
+			"noWallet": "There’s no wallet on this phone."
 		}
 	}
 }

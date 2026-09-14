@@ -17,6 +17,7 @@ import type { QuizQuestion } from '../../../wallet/seed'
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPLoader from '../../../ui/particles/QPLoader'
+import WalletAuthModal from './components/WalletAuthModal'
 
 // Navigation
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -48,24 +49,28 @@ const WalletBackup = ({ navigation }: Props) => {
 	const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null)
 	const [quizIndex, setQuizIndex] = useState(0)
 
-	// Obtiene el mnemonic: crea la wallet si no existe, o lo relee si quedó
-	// un backup a medias. Si ya está respaldada, aquí no se pinta nada.
-	useEffect(() => {
-		let cancelled = false
-		const load = async () => {
-			const value = hasWallet ? await revealMnemonic() : await createWallet()
-			if (cancelled) return
-			if (!value) {
-				toast.error(t('crypto.wallet.backup.createFailed'))
-				navigation.goBack()
-				return
-			}
-			setMnemonic(value)
+	// Retomar un backup relee una seed que YA existe: pasa por el gate de
+	// PIN/biometría (regla dura 2). Crear una nueva no lo necesita: no hay
+	// nada que proteger todavía.
+	const [authVisible, setAuthVisible] = useState(false)
+
+	const load = useCallback(async () => {
+		const value = hasWallet ? await revealMnemonic() : await createWallet()
+		if (!value) {
+			toast.error(t('crypto.wallet.backup.createFailed'))
+			navigation.goBack()
+			return
 		}
-		if (!isBackedUp) load()
-		return () => { cancelled = true }
+		setMnemonic(value)
 		// Solo al montar: hasWallet cambia en cuanto createWallet persiste y
 		// re-disparar recrearía el flujo con la wallet ya existente.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
+
+	useEffect(() => {
+		if (isBackedUp) return
+		if (hasWallet) setAuthVisible(true)
+		else load()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
@@ -95,7 +100,17 @@ const WalletBackup = ({ navigation }: Props) => {
 	}, [quiz, quizIndex, words, markBackedUp, navigation, t])
 
 	if (!mnemonic) {
-		return <View style={[containerStyles.subContainer, styles.loading]}><QPLoader /></View>
+		return (
+			<View style={[containerStyles.subContainer, styles.loading]}>
+				{!authVisible && <QPLoader />}
+				<WalletAuthModal
+					visible={authVisible}
+					subtitle={t('crypto.wallet.auth.revealSubtitle')}
+					onClose={() => { setAuthVisible(false); navigation.goBack() }}
+					onAuthorized={() => { setAuthVisible(false); load() }}
+				/>
+			</View>
+		)
 	}
 
 	const question = quiz?.[quizIndex]

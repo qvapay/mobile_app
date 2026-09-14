@@ -133,12 +133,21 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 						/>
 					))}
 
-				<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_MANAGE_ASSETS)} style={[styles.manage, { borderTopColor: theme.colors.border + '60' }]} accessibilityRole="button">
-					<FontAwesome6 name="sliders" size={13} color={theme.colors.primary} iconStyle="solid" />
-					<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }}>
-						{t('crypto.wallet.home.manageAssets')}
-					</Text>
-				</QPPressable>
+				<View style={[styles.footerRow, { borderTopColor: theme.colors.border + '60' }]}>
+					<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_MANAGE_ASSETS)} style={styles.manage} accessibilityRole="button">
+						<FontAwesome6 name="sliders" size={13} color={theme.colors.primary} iconStyle="solid" />
+						<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }}>
+							{t('crypto.wallet.home.manageAssets')}
+						</Text>
+					</QPPressable>
+					<View style={[styles.footerDivider, { backgroundColor: theme.colors.border + '60' }]} />
+					<QPPressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.WALLET_SETTINGS, initial: false })} style={styles.manage} accessibilityRole="button">
+						<FontAwesome6 name="shield-halved" size={13} color={theme.colors.primary} iconStyle="solid" />
+						<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }}>
+							{t('crypto.wallet.home.security')}
+						</Text>
+					</QPPressable>
+				</View>
 			</View>
 		</View>
 	)
@@ -148,7 +157,9 @@ const styles = StyleSheet.create({
 	container: { gap: 12 },
 	notice: { textAlign: 'center', paddingHorizontal: 20 },
 	assetsCard: { borderRadius: 14, paddingHorizontal: 12, paddingTop: 2 },
-	manage: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth },
+	footerRow: { flexDirection: 'row', alignItems: 'stretch', borderTopWidth: StyleSheet.hairlineWidth },
+	footerDivider: { width: StyleSheet.hairlineWidth, marginVertical: 10 },
+	manage: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
 	skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
 	skeletonText: { flex: 1, gap: 6 },
 	skeletonAmounts: { alignItems: 'flex-end', gap: 6 },

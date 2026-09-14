@@ -166,7 +166,8 @@
 			"staleChains_one": "Não conseguimos atualizar {{count}} rede. Você vê o último saldo conhecido.",
 			"staleChains_other": "Não conseguimos atualizar {{count}} redes. Você vê o último saldo conhecido.",
 			"loadError": "Não foi possível carregar os saldos da sua carteira.",
-			"manageAssets": "Gerenciar ativos"
+			"manageAssets": "Gerenciar ativos",
+			"security": "Segurança"
 		},
 		"asset": {
 			"direction": {
@@ -207,7 +208,9 @@
 			"sendSubtitle": "Enviar {{amount}} {{symbol}} para {{address}}",
 			"noPin": "Para assinar da sua carteira você precisa de um PIN de bloqueio. Crie em Ajustes → Bloqueio e volte.",
 			"createPin": "Criar PIN de bloqueio",
-			"cancel": "Cancelar"
+			"cancel": "Cancelar",
+			"revealSubtitle": "Ver a frase secreta da sua carteira",
+			"deleteSubtitle": "Excluir a carteira deste telefone"
 		},
 		"send": {
 			"pickTitle": "O que você quer enviar?",
@@ -253,6 +256,32 @@
 			},
 			"btcSoonNote": "Enviar Bitcoin chega muito em breve.",
 			"feeNative": "{{amount}} {{symbol}}"
+		},
+		"settings": {
+			"title": "Minha carteira",
+			"subtitle": "Suas chaves vivem somente neste telefone.",
+			"addresses": "Endereços",
+			"families": {
+				"tron": "TRON",
+				"evm": "ETH · BSC · Base",
+				"btc": "Bitcoin"
+			},
+			"phrase": "Frase secreta",
+			"phraseHint": "12 palavras. Quem as tiver controla seus fundos. Só aparecem após verificar sua identidade.",
+			"reveal": "Ver frase secreta",
+			"hide": "Ocultar",
+			"revealHint": "Se oculta sozinha em 60 segundos ou ao sair do app. Não tire capturas de tela.",
+			"revealFailed": "Não foi possível ler a frase. Tente de novo.",
+			"notBackedUp": "Você ainda não confirmou seu backup. Faça isso na aba Crypto antes de receber fundos.",
+			"dangerZone": "Zona de perigo",
+			"deleteHint": "Remove a carteira deste telefone. Sair da conta NÃO a remove. Os fundos continuam na rede e só se recuperam com a frase.",
+			"delete": "Excluir carteira",
+			"deleted": "Carteira removida deste telefone",
+			"confirmTitle": "Excluir a carteira?",
+			"confirmBody": "É irreversível. Sem sua frase de 12 palavras, ninguém (nem a QvaPay) pode recuperar os fundos.",
+			"confirmAck": "Tenho minha frase secreta guardada",
+			"confirmDelete": "Excluir definitivamente",
+			"noWallet": "Não há nenhuma carteira neste telefone."
 		}
 	}
 }

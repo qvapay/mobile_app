@@ -9,6 +9,7 @@ import { useAuth } from '../../auth/AuthContext'
 // Settings Context
 import { useSettings } from '../../settings/SettingsContext'
 import useSelfCustodyFlag from '../../hooks/useSelfCustodyFlag'
+import { useWallet } from '../../wallet/WalletContext'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -96,6 +97,7 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 	// el logout y el pie quedan fuera para no ensuciar la lista.
 	const [query, setQuery] = useState('')
 	const selfCustody = useSelfCustodyFlag()
+	const { hasWallet } = useWallet()
 	const showAdvanced = __DEV__ || selfCustody
 
 	const visibleSettings = filterSettings(settings, query, t)
@@ -271,6 +273,14 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 									onValueChange: value => { updateSetting('crypto', 'selfCustody', value) },
 								},
 							},
+							// Solo con wallet creada: direcciones, ver frase y eliminar (gate PIN)
+							...(hasWallet ? [{
+								title: t('settings.menu.items.walletSettings'),
+								subtitle: t('settings.menu.items.walletSettingsHint'),
+								screen: ROUTES.WALLET_SETTINGS,
+								icon: 'key' as const,
+								color: '#8B5CF6',
+							}] : []),
 							{
 								title: t('settings.menu.items.nodes'),
 								screen: ROUTES.RPC_NODES,

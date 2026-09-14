@@ -57,7 +57,9 @@
 			"roundup": "Arredondamentos",
 			"nodes": "Nós",
 			"selfCustody": "Carteira self-custody",
-			"selfCustodyHint": "Beta · mostra Minha Carteira na aba Crypto"
+			"selfCustodyHint": "Beta · mostra Minha Carteira na aba Crypto",
+			"walletSettings": "Minha carteira",
+			"walletSettingsHint": "Endereços, frase secreta e excluir"
 		},
 		"status": {
 			"active": "Ativo"

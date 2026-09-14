@@ -90,6 +90,7 @@ export const ROUTES = {
 	PASSKEYS: "Passkeys",
 	ROUNDUP: "Roundup",
 	RPC_NODES: "RpcNodes",
+	WALLET_SETTINGS: "WalletSettings",
 	ENTERPRISE: "Enterprise",
 	ENTERPRISE_REGISTER: "EnterpriseRegister",
 
