@@ -161,6 +161,10 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 			} else if (parsedData?.uuid && parsedData?.amount) {
 				navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.uuid, send_amount: parsedData.amount })
 			}
+		} else if (parsedData?.type === 'address' && route.params?.returnTo === 'WalletSend') {
+			// Vuelve a WalletSend (ya en el stack): navigate a una ruta existente
+			// retrocede hasta ella fusionando los params, sin apilar otra copia
+			navigation.navigate(ROUTES.WALLET_SEND, { assetId: route.params.assetId, address: parsedData.address })
 		} else if (parsedData?.type === 'lightning') {
 			// Factura/destino Lightning → extracción BTCLN con el destino prellenado
 			navigation.replace(ROUTES.WITHDRAW, {

@@ -201,6 +201,58 @@
 		},
 		"manage": {
 			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically."
+		},
+		"auth": {
+			"title": "Confirm it’s you",
+			"sendSubtitle": "Send {{amount}} {{symbol}} to {{address}}",
+			"noPin": "Signing from your wallet requires an app-lock PIN. Create it in Settings → App lock and come back.",
+			"createPin": "Create app-lock PIN",
+			"cancel": "Cancel"
+		},
+		"send": {
+			"pickTitle": "What do you want to send?",
+			"toLabel": "To",
+			"toPlaceholder": "{{network}} address",
+			"paste": "Paste",
+			"scan": "Scan",
+			"amountLabel": "Amount",
+			"available": "Available: {{amount}} {{symbol}}",
+			"max": "MAX",
+			"continue": "Continue",
+			"fromLabel": "From",
+			"networkFee": "Network fee",
+			"feeFree": "Free (account resources)",
+			"feeLimit": "Max authorized",
+			"total": "Total",
+			"viaNetwork": "on the {{network}} network",
+			"activatesAccount": "The destination account doesn’t exist yet: the network charges 1 TRX to activate it.",
+			"irreversible": "On-chain transfers can’t be cancelled or reversed. Double-check the address.",
+			"confirm": "Confirm and sign",
+			"signing": "Signing…",
+			"broadcasting": "Sending to the network…",
+			"retry": "Retry",
+			"back": "Back",
+			"alreadySent": "This transaction was already on the network.",
+			"successTitle": "Sent",
+			"successSubtitle": "The transaction is on the network. It confirms in a few seconds.",
+			"hashCopied": "Hash copied",
+			"copyHash": "Copy hash",
+			"done": "Done",
+			"errors": {
+				"invalidAddress": "That’s not a valid {{network}} address.",
+				"ownAddress": "That’s your own address.",
+				"amountZero": "Amount must be greater than zero.",
+				"amountInvalid": "Invalid amount (max {{decimals}} decimals).",
+				"insufficient": "Not enough {{symbol}}.",
+				"verifyFailed": "The node returned a transaction different from the one requested. Nothing was signed. Try again or switch nodes in Settings → Nodes.",
+				"noNodes": "No TRON node is responding. Check your connection and try again.",
+				"nodeInsufficient": "The network rejected the transaction for insufficient balance.",
+				"generic": "Couldn’t send: {{message}}",
+				"unknown": "Couldn’t send. Please try again.",
+				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount."
+			},
+			"btcSoonNote": "Sending Bitcoin is coming very soon.",
+			"feeNative": "{{amount}} {{symbol}}"
 		}
 	}
 }

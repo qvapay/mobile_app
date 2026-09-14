@@ -18,6 +18,7 @@ import { addressForKind, assetPrice, explorerAddressUrl, explorerTxUrl } from '.
 import { displayAmount } from '../../../wallet/chains/units'
 import { usePriceMap, useWalletAssets, useWalletHistoryQuery } from './walletQueries'
 import { formatUsd, shortAddress } from './walletFormat'
+import { canSendAsset } from './walletSendActions'
 import type { ApiError } from '../../../api/unwrap'
 
 // Settings
@@ -185,7 +186,14 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			</View>
 
 			<View style={styles.actions}>
-				<Action theme={theme} icon="paper-plane" label={t('crypto.wallet.home.actions.send')} dimmed onPress={() => toast(t('crypto.wallet.home.sendSoon'))} />
+				<Action
+					theme={theme}
+					icon="paper-plane"
+					label={t('crypto.wallet.home.actions.send')}
+					// Bitcoin aún no firma: avisa "próximamente"
+					dimmed={!canSendAsset(asset)}
+					onPress={() => !canSendAsset(asset) ? toast(t('crypto.wallet.home.sendSoon')) : isBackedUp ? navigation.navigate(ROUTES.WALLET_SEND, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP)}
+				/>
 				<Action
 					theme={theme}
 					icon="qrcode"

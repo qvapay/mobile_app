@@ -103,6 +103,9 @@ export const ROUTES = {
 	WALLET_ASSET: "WalletAsset",
 	WALLET_RECEIVE: "WalletReceive",
 	WALLET_MANAGE_ASSETS: "WalletManageAssets",
+	WALLET_SEND: "WalletSend",
+	WALLET_SEND_CONFIRM: "WalletSendConfirm",
+	WALLET_SEND_SUCCESS: "WalletSendSuccess",
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	MARKET_STORES: "MarketStores",

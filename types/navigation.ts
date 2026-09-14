@@ -81,7 +81,8 @@ export type RootStackParamList = {
 	Receive: { receive_amount?: string } | undefined
 	NearbyPay: { prefill_amount?: string } | undefined
 	Pay: { uuid: string }
-	Scan: { view?: 'scan' | 'show' } | undefined
+	/** `returnTo`: una dirección escaneada vuelve a esa pantalla por params (WalletSend). */
+	Scan: { view?: 'scan' | 'show', returnTo?: 'WalletSend', assetId?: string } | undefined
 
 	// ── Transacciones ─────────────────────────────────────────────────────
 	Transactions: { showSearch?: boolean } | undefined
@@ -120,6 +121,11 @@ export type RootStackParamList = {
 	/** Sin assetId abre el selector de activo. */
 	WalletReceive: { assetId?: string } | undefined
 	WalletManageAssets: undefined
+	/** Sin assetId abre el selector; `address` la trae el escáner de vuelta. */
+	WalletSend: { assetId?: string, address?: string } | undefined
+	/** `amount` en decimal humano ya validado por WalletSend. */
+	WalletSendConfirm: { assetId: string, to: string, amount: string }
+	WalletSendSuccess: { assetId: string, txid: string, amount: string, to: string }
 
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined

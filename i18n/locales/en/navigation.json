@@ -22,7 +22,9 @@
 		"assistedOrders": "My orders",
 		"walletImport": "Import wallet",
 		"walletReceive": "Receive",
-		"walletManageAssets": "Manage assets"
+		"walletManageAssets": "Manage assets",
+		"walletSend": "Send",
+		"walletSendConfirm": "Confirm send"
 	},
 	"tabs": {
 		"home": "Home",

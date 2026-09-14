@@ -201,6 +201,58 @@
 		},
 		"manage": {
 			"subtitle": "Escolha quais ativos você vê na sua carteira. Os que receberem fundos aparecem sozinhos."
+		},
+		"auth": {
+			"title": "Confirme que é você",
+			"sendSubtitle": "Enviar {{amount}} {{symbol}} para {{address}}",
+			"noPin": "Para assinar da sua carteira você precisa de um PIN de bloqueio. Crie em Ajustes → Bloqueio e volte.",
+			"createPin": "Criar PIN de bloqueio",
+			"cancel": "Cancelar"
+		},
+		"send": {
+			"pickTitle": "O que você quer enviar?",
+			"toLabel": "Destino",
+			"toPlaceholder": "Endereço em {{network}}",
+			"paste": "Colar",
+			"scan": "Escanear",
+			"amountLabel": "Quantidade",
+			"available": "Disponível: {{amount}} {{symbol}}",
+			"max": "MAX",
+			"continue": "Continuar",
+			"fromLabel": "De",
+			"networkFee": "Taxa de rede",
+			"feeFree": "Grátis (recursos da conta)",
+			"feeLimit": "Máximo autorizado",
+			"total": "Total",
+			"viaNetwork": "pela rede {{network}}",
+			"activatesAccount": "A conta de destino ainda não existe: a rede cobra 1 TRX para ativá-la.",
+			"irreversible": "Envios na rede não podem ser cancelados nem revertidos. Confira o endereço.",
+			"confirm": "Confirmar e assinar",
+			"signing": "Assinando…",
+			"broadcasting": "Enviando para a rede…",
+			"retry": "Tentar de novo",
+			"back": "Voltar",
+			"alreadySent": "Esta transação já estava na rede.",
+			"successTitle": "Enviado",
+			"successSubtitle": "A transação está na rede. Confirma em alguns segundos.",
+			"hashCopied": "Hash copiado",
+			"copyHash": "Copiar hash",
+			"done": "Pronto",
+			"errors": {
+				"invalidAddress": "Esse não é um endereço válido de {{network}}.",
+				"ownAddress": "É o seu próprio endereço.",
+				"amountZero": "A quantidade deve ser maior que zero.",
+				"amountInvalid": "Quantidade inválida (máximo {{decimals}} decimais).",
+				"insufficient": "Você não tem {{symbol}} suficiente.",
+				"verifyFailed": "O nó devolveu uma transação diferente da pedida. Nada foi assinado. Tente de novo ou troque de nó em Ajustes → Nós.",
+				"noNodes": "Nenhum nó da TRON responde. Verifique sua conexão e tente de novo.",
+				"nodeInsufficient": "A rede rejeitou a transação por saldo insuficiente.",
+				"generic": "Não foi possível enviar: {{message}}",
+				"unknown": "Não foi possível enviar. Tente de novo.",
+				"noGasForFee": "Você precisa de {{needed}} {{symbol}} para a taxa e tem {{have}}. Deposite {{symbol}} na sua carteira ou reduza a quantidade."
+			},
+			"btcSoonNote": "Enviar Bitcoin chega muito em breve.",
+			"feeNative": "{{amount}} {{symbol}}"
 		}
 	}
 }

@@ -91,7 +91,7 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	const requireBackup = (next: () => void) => () => (isBackedUp ? next() : navigation.navigate(ROUTES.WALLET_BACKUP))
 
 	const actions: WalletAction[] = [
-		{ icon: 'paper-plane', label: t('crypto.wallet.home.actions.send'), dimmed: true, onPress: () => toast(t('crypto.wallet.home.sendSoon')) },
+		{ icon: 'paper-plane', label: t('crypto.wallet.home.actions.send'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SEND, undefined)) },
 		{ icon: 'qrcode', label: t('crypto.wallet.home.actions.receive'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_RECEIVE, undefined)) },
 		{ icon: 'arrow-right-arrow-left', label: t('crypto.wallet.home.actions.p2p'), onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]

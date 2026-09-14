@@ -11,10 +11,14 @@ import type { Coin } from './types/domain'
 export type LightningIntent = { type: 'lightning', invoice: string, amountSats: number | null }
 
 /** Intent de pago parseado por `parseQRData`. */
+/** Dirección on-chain suelta (o con prefijo de esquema) para la wallet self-custody. */
+export type AddressIntent = { type: 'address', family: 'tron' | 'evm' | 'btc', address: string }
+
 export type QRIntent =
 	| { type: 'pay', uuid: string }
 	| { type: 'payme', username?: string, uuid?: string, amount?: string }
 	| LightningIntent
+	| AddressIntent
 
 /** Categoría del catálogo `/coins/v2` ('Bank' | 'Criptomonedas' | 'E-Wallet'). */
 type CoinCategory = { name: string, coins: Coin[] }
@@ -96,6 +100,23 @@ const bolt11AmountSats = (invoice: string): number | null => {
 }
 
 /**
+ * Dirección suelta o con esquema (`tron:T…`, `ethereum:0x…`, EIP-681 con
+ * `@chainId`/`?value=` recortados). TRON base58 (T + 33), EVM 0x + 40 hex,
+ * BTC bech32 mainnet suelto (bc1…). Un URI `bitcoin:` (BIP-21) sigue dando
+ * null a propósito hasta que la wallet envíe BTC. Nada más: un texto
+ * cualquiera no es una dirección.
+ * @param raw - Payload crudo ya recortado.
+ */
+const parseAddressQR = (raw: string): AddressIntent | null => {
+	const withoutScheme = raw.replace(/^(tron|ethereum):(\/\/)?/i, '')
+	const bare = withoutScheme.split(/[?@]/)[0].trim()
+	if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(bare)) { return { type: 'address', family: 'tron', address: bare } }
+	if (/^0x[0-9a-fA-F]{40}$/.test(bare)) { return { type: 'address', family: 'evm', address: bare } }
+	if (/^bc1[02-9ac-hj-np-z]{11,71}$/i.test(bare)) { return { type: 'address', family: 'btc', address: bare.toLowerCase() } }
+	return null
+}
+
+/**
  * Parses Lightning Network payment targets out of a raw QR payload. Recognizes:
  *   1) Bare BOLT11 mainnet invoices (lnbc..., case-insensitive)
  *   2) lightning:/lnurl:/lnurlp: prefixed payloads (Phoenix, Muun, etc.)
@@ -169,6 +190,12 @@ const parseQRData = (data: unknown): QRIntent | null => {
 	// destruiría un URI bitcoin:...?lightning=<invoice>
 	const lightning = parseLightningQR(raw)
 	if (lightning) { return lightning }
+
+	// Direcciones on-chain (wallet self-custody). Solo la forma: el checksum lo
+	// valida la pantalla de envío con la lib de la cadena. `bitcoin:` sin
+	// lightning= ya devolvió null arriba: aquí solo bech32 mainnet suelto.
+	const address = parseAddressQR(raw)
+	if (address) { return address }
 
 	// Strip query/hash parts to simplify matching
 	const pathOnly = raw.split('?')[0].split('#')[0]
