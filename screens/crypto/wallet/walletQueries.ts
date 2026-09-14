@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { AppState } from 'react-native'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import { useIsFocused } from '@react-navigation/native'
 
 // API
@@ -44,6 +45,31 @@ const BALANCES_STALE_MS = 30_000
 const HISTORY_STALE_MS = 5 * 60_000
 
 const NO_PREFS: AssetVisibility = {}
+
+/**
+ * Activos cuyo historial debe pedirse saltando la caché del proxy (hasta ese
+ * instante). Se arma tras un envío propio y en el pull-to-refresh: una
+ * página cacheada en qpweb justo antes de que el explorador indexara la tx
+ * la escondería durante todo su TTL.
+ */
+const freshUntil = new Map<string, number>()
+const FRESH_WINDOW_MS = 90_000
+/** Lo que tarda el explorador (TronGrid/Etherscan) en indexar una tx recién difundida. */
+const INDEXING_DELAY_MS = 20_000
+
+export const markHistoryFresh = (assetId: string): void => { freshUntil.set(assetId, Date.now() + FRESH_WINDOW_MS) }
+const isHistoryFresh = (assetId: string): boolean => (freshUntil.get(assetId) ?? 0) > Date.now()
+
+/**
+ * Tras un envío propio: no repedir el historial al instante (el explorador
+ * aún no lo tiene y cachearíamos una página sin la tx) sino pasados unos
+ * segundos y saltando la caché del proxy. La invalidación por cambio de
+ * saldo lo cubriría igual, pero llegaría más tarde y sin `fresh`.
+ */
+export const refreshHistoryAfterSend = (queryClient: QueryClient, assetId: string): void => {
+	markHistoryFresh(assetId)
+	setTimeout(() => { queryClient.invalidateQueries({ queryKey: [...WALLET_HISTORY_KEY, assetId] }) }, INDEXING_DELAY_MS)
+}
 
 /**
  * Saldos crudos de todas las cadenas. Refresca cada 30s SOLO con la pantalla
@@ -180,6 +206,7 @@ export const useWalletHistoryQuery = (asset: WalletAsset | undefined) => {
 			address: address!,
 			asset: asset!.contract ?? 'native',
 			cursor: pageParam,
+			fresh: isHistoryFresh(asset!.id),
 		})) ?? { items: [], next_cursor: null },
 		initialPageParam: null as string | null,
 		getNextPageParam: last => last.next_cursor ?? undefined,

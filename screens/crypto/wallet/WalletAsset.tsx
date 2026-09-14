@@ -16,7 +16,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, explorerAddressUrl, explorerTxUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
-import { usePriceMap, useWalletAssets, useWalletHistoryQuery } from './walletQueries'
+import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistoryQuery } from './walletQueries'
 import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import type { ApiError } from '../../../api/unwrap'
@@ -144,8 +144,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
+		if (asset) markHistoryFresh(asset.id)
 		try { await Promise.all([refetchBalances(), history.refetch()]) } finally { setRefreshing(false) }
-	}, [refetchBalances, history])
+	}, [refetchBalances, history, asset])
 
 	useLayoutEffect(() => {
 		if (asset) navigation.setOptions({ headerTitle: `${asset.symbol} · ${asset.chainName}` })

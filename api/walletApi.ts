@@ -12,6 +12,8 @@ export type WalletHistoryParams = {
 	/** 'native' o la dirección del contrato del token. */
 	asset: string
 	cursor?: string | null
+	/** Salta la caché del proxy (tras un envío propio o pull-to-refresh). */
+	fresh?: boolean
 }
 
 /**
@@ -55,12 +57,13 @@ export const walletApi = {
 	 *
 	 * @returns `{ success, data: { items, next_cursor }, error?, status? }`
 	 */
-	getHistory: async ({ chain, address, asset, cursor }: WalletHistoryParams): Promise<ApiResult<WalletHistoryPage>> => {
+	getHistory: async ({ chain, address, asset, cursor, fresh }: WalletHistoryParams): Promise<ApiResult<WalletHistoryPage>> => {
 
 		try {
 
 			const params: Record<string, string> = { chain, address, asset }
 			if (cursor) params.cursor = cursor
+			if (fresh) params.fresh = '1'
 			const response = await apiClient.get('/wallet/history', { params, silent: true })
 			return { success: true, data: response.data?.data ?? { items: [], next_cursor: null }, status: response.status }
 

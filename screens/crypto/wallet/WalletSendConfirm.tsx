@@ -18,7 +18,7 @@ import { displayAmount, formatUnits, parseUnits } from '../../../wallet/chains/u
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
 import { TronVerifyError } from '../../../wallet/tron/tx'
 import { EvmVerifyError } from '../../../wallet/evm/tx'
-import { useWalletAssets, WALLET_BALANCES_KEY, WALLET_HISTORY_KEY } from './walletQueries'
+import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { broadcastSigned, prepareSend, signPrepared } from './walletSendActions'
 import type { PreparedSend, SignedSend } from './walletSendActions'
 import { shortAddress } from './walletFormat'
@@ -107,8 +107,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	const finish = useCallback((txid: string) => {
 		queryClient.invalidateQueries({ queryKey: WALLET_BALANCES_KEY })
-		// Solo el historial del activo enviado: el resto sigue de memoria
-		queryClient.invalidateQueries({ queryKey: [...WALLET_HISTORY_KEY, assetId] })
+		// Solo el historial del activo enviado, diferido y saltando la caché del proxy
+		refreshHistoryAfterSend(queryClient, assetId)
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
 	}, [queryClient, navigation, assetId, amount, to])
 
