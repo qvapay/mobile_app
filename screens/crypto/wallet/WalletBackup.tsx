@@ -10,6 +10,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
+import useSecureScreen from '../../../hooks/useSecureScreen'
 import { buildQuiz, QUIZ_QUESTIONS } from '../../../wallet/seed'
 import type { QuizQuestion } from '../../../wallet/seed'
 
@@ -45,6 +46,8 @@ const WalletBackup = ({ navigation }: Props) => {
 	const { hasWallet, isBackedUp, createWallet, revealMnemonic, markBackedUp } = useWallet()
 
 	const [mnemonic, setMnemonic] = useState<string | null>(null)
+	// Sin capturas mientras las palabras estén en pantalla (también durante el quiz)
+	useSecureScreen(mnemonic !== null)
 	const [revealed, setRevealed] = useState(false)
 	const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null)
 	const [quizIndex, setQuizIndex] = useState(0)

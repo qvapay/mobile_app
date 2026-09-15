@@ -86,6 +86,7 @@
 		"react-native-reanimated": "^4.5.3",
 		"react-native-safe-area-context": "^5.8.0",
 		"react-native-screens": "^4.25.2",
+		"react-native-screenshot-prevent": "^1.2.2",
 		"react-native-sound": "^0.13.0",
 		"react-native-sse": "^1.2.1",
 		"react-native-svg": "^15.15.5",

@@ -20,3 +20,10 @@ jest.mock('@didit-protocol/sdk-react-native', () => ({
 	startVerificationWithWorkflow: jest.fn(async () => ({ type: 'cancelled' })),
 	VerificationStatus: { Approved: 'Approved', Pending: 'Pending', Declined: 'Declined' },
 }))
+
+// Módulo nativo de bloqueo de capturas: sin binario en jest, stub inerte
+jest.mock('react-native-screenshot-prevent', () => ({
+	__esModule: true,
+	default: { enabled: () => {}, enableSecureView: () => {}, disableSecureView: () => {}, addListener: () => ({ remove: () => {} }) },
+	addListener: () => ({ remove: () => {} }),
+}))

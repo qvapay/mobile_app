@@ -17,6 +17,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { disableWalletBiometrics, enableWalletBiometrics } from '../../../wallet/keystore'
 import { getSupportedBiometryType } from '../../../api/client'
 import { useSettings } from '../../../settings/SettingsContext'
+import useSecureScreen from '../../../hooks/useSecureScreen'
 import { shortAddress } from '../../crypto/wallet/walletFormat'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
 
@@ -67,6 +68,7 @@ const WalletSettings = () => {
 	const [deleting, setDeleting] = useState(false)
 
 	const hide = useCallback(() => setMnemonic(null), [])
+	useSecureScreen(mnemonic !== null)
 
 	// La frase no se queda en pantalla: timeout y ocultado al perder el foreground
 	useEffect(() => {

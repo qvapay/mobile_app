@@ -10,6 +10,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import { isValidMnemonic } from '../../../wallet/seed'
+import useSecureScreen from '../../../hooks/useSecureScreen'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -33,6 +34,7 @@ const WalletImport = ({ navigation }: Props) => {
 	const containerStyles = createContainerStyles(theme)
 
 	const { importWallet } = useWallet()
+	useSecureScreen(true)
 
 	const [phrase, setPhrase] = useState('')
 	const [importing, setImporting] = useState(false)
