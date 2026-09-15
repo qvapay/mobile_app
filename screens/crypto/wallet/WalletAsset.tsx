@@ -194,7 +194,6 @@ const WalletAsset = ({ navigation, route }: Props) => {
 					theme={theme}
 					icon="paper-plane"
 					label={t('crypto.wallet.home.actions.send')}
-					// Bitcoin aún no firma: avisa "próximamente"
 					dimmed={!canSendAsset(asset)}
 					onPress={() => !canSendAsset(asset) ? toast(t('crypto.wallet.home.sendSoon')) : isBackedUp ? navigation.navigate(ROUTES.WALLET_SEND, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP)}
 				/>

@@ -186,6 +186,9 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				<Row theme={theme} label={t('crypto.wallet.send.total')} value={total} last />
 			</View>
 
+			{prepared?.kind === 'btc' && prepared.inner.selection.sendAll && (
+				<Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.btcSendAll', { fee: displayAmount(formatUnits(feeEstimated, 8)) })} />
+			)}
 			{!!prepared?.summary.activatesAccount && (
 				<Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.activatesAccount')} />
 			)}

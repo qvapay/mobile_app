@@ -261,8 +261,8 @@
 				"unknown": "Não foi possível enviar. Tente de novo.",
 				"noGasForFee": "Você precisa de {{needed}} {{symbol}} para a taxa e tem {{have}}. Deposite {{symbol}} na sua carteira ou reduza a quantidade."
 			},
-			"btcSoonNote": "Enviar Bitcoin chega muito em breve.",
-			"feeNative": "{{amount}} {{symbol}}"
+			"feeNative": "{{amount}} {{symbol}}",
+			"btcSendAll": "Você está enviando todo o saldo: a taxa de rede ({{fee}} BTC) é descontada da quantidade."
 		},
 		"settings": {
 			"title": "Minha carteira",

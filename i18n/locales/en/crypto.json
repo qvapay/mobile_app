@@ -261,8 +261,8 @@
 				"unknown": "Couldn’t send. Please try again.",
 				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount."
 			},
-			"btcSoonNote": "Sending Bitcoin is coming very soon.",
-			"feeNative": "{{amount}} {{symbol}}"
+			"feeNative": "{{amount}} {{symbol}}",
+			"btcSendAll": "You’re sending your whole balance: the network fee ({{fee}} BTC) is deducted from the amount."
 		},
 		"settings": {
 			"title": "My wallet",

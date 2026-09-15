@@ -13,14 +13,16 @@ import { broadcastTronTransaction, isValidTronAddress, prepareTronSend, signTron
 import type { PreparedTronSend } from '../../../wallet/tron/tx'
 import { broadcastEvmTransaction, getEvmFeeData, isValidEvmAddress, NATIVE_TRANSFER_GAS, prepareEvmSend, signEvmTransaction } from '../../../wallet/evm/tx'
 import type { PreparedEvmSend, SignedEvmTx } from '../../../wallet/evm/tx'
+import { broadcastBtcTransaction, isValidBtcAddress, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
+import type { PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
 import type { WalletAsset } from '../../../wallet/assets'
 
-/** Un activo se puede enviar si su cadena es TRON o EVM (Bitcoin: siguiente tanda). */
-export const canSendAsset = (asset: Pick<WalletAsset, 'kind'>): boolean => asset.kind === 'tron' || asset.kind === 'evm'
+/** Todas las familias del registry envían: TRON, EVM y Bitcoin. */
+export const canSendAsset = (asset: Pick<WalletAsset, 'kind'>): boolean => asset.kind === 'tron' || asset.kind === 'evm' || asset.kind === 'btc'
 
 /** Validación LOCAL del destino por familia (checksum incluido). */
 export const isValidAddressFor = (kind: WalletAsset['kind'], address: string): boolean =>
-	kind === 'tron' ? isValidTronAddress(address) : kind === 'evm' ? isValidEvmAddress(address) : false
+	kind === 'tron' ? isValidTronAddress(address) : kind === 'evm' ? isValidEvmAddress(address) : isValidBtcAddress(address)
 
 export type SendIntent = {
 	chainKey: string
@@ -49,11 +51,13 @@ export type SendSummary = {
 export type PreparedSend =
 	| { kind: 'tron', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedTronSend }
 	| { kind: 'evm', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedEvmSend }
+	| { kind: 'btc', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedBtcSend }
 
 /** Firma retenida solo para re-difundir la MISMA tx (mismo hash) tras un fallo de red. */
 export type SignedSend =
 	| { kind: 'tron', signature: string }
 	| { kind: 'evm', signed: SignedEvmTx }
+	| { kind: 'btc', signed: SignedBtcTx }
 
 export const prepareSend = async (chain: RegistryChain, intent: SendIntent): Promise<PreparedSend> => {
 	const router = getAppRpcRouter()
@@ -77,13 +81,22 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent): Pro
 			summary: { amount, feeEstimated: inner.fee.estimatedWei, feeMax: inner.fee.maxWei, activatesAccount: false, expiresAt: null },
 		}
 	}
+	if (chain.kind === 'btc') {
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareBtcSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount }, { signal }))
+		// Con "enviar todo" la cantidad verificada es total − fee: lo que de verdad recibe el destino
+		return {
+			kind: 'btc', chain, intent, inner,
+			summary: { amount: inner.selection.amount, feeEstimated: inner.selection.fee, feeMax: null, activatesAccount: false, expiresAt: null },
+		}
+	}
 	throw new Error(`wallet: enviar en ${chain.kind} aún no está disponible`)
 }
 
 /**
  * Reserva de gas para el botón MAX de un NATIVO: lo que costaría la propia
  * transferencia con la fee actual, con margen. TRON no lo necesita aquí
- * (reserva fija en WalletSend); EVM lee la fee del nodo.
+ * (reserva fija en WalletSend); EVM lee la fee del nodo; Bitcoin no reserva
+ * nada: MAX = todo el saldo y la fee se descuenta del envío ("enviar todo").
  */
 export const estimateNativeReserve = async (chain: RegistryChain, chainKey: string): Promise<bigint> => {
 	if (chain.kind !== 'evm') return 0n
@@ -99,6 +112,7 @@ export const signPrepared = async (prepared: PreparedSend): Promise<SignedSend> 
 	const privateKey = derivePrivateKey(mnemonicToSeed(mnemonic), prepared.kind)
 	try {
 		if (prepared.kind === 'tron') return { kind: 'tron', signature: signTronTransaction(prepared.inner.tx.raw_data_hex, privateKey) }
+		if (prepared.kind === 'btc') return { kind: 'btc', signed: signBtcTransaction(prepared.inner, privateKey) }
 		return { kind: 'evm', signed: await signEvmTransaction(prepared.inner, privateKey) }
 	} finally {
 		privateKey.fill(0)
@@ -115,6 +129,9 @@ export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend
 	if (prepared.kind === 'evm' && signed.kind === 'evm') {
 		const result = await router.call(prepared.intent.chainKey, (rpc, signal) => broadcastEvmTransaction(rpc, signed.signed, { signal }))
 		return { txid: result.hash, duplicate: result.duplicate }
+	}
+	if (prepared.kind === 'btc' && signed.kind === 'btc') {
+		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastBtcTransaction(rpc, signed.signed, { signal }))
 	}
 	throw new Error('wallet: firma y transacción de cadenas distintas')
 }

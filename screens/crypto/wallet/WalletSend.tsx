@@ -115,7 +115,8 @@ const WalletSend = ({ navigation, route }: Props) => {
 	const setMax = useCallback(() => {
 		if (!asset) return
 		let max = balanceUnits
-		if (asset.contract === null) {
+		// Bitcoin: MAX = todo el saldo, la fee se descuenta del envío ("enviar todo")
+		if (asset.contract === null && asset.kind !== 'btc') {
 			const reserve = asset.kind === 'tron' ? TRX_MAX_RESERVE_SUN : (nativeReserve ?? 0n)
 			max = max > reserve ? max - reserve : 0n
 		}
@@ -149,7 +150,6 @@ const WalletSend = ({ navigation, route }: Props) => {
 						</QPPressable>
 					))}
 				</View>
-				<Text style={[textStyles.h6, styles.note, { color: theme.colors.tertiaryText }]}>{t('crypto.wallet.send.btcSoonNote')}</Text>
 			</ScrollView>
 		)
 	}
@@ -240,7 +240,6 @@ const styles = StyleSheet.create({
 	card: { borderRadius: 14, paddingHorizontal: 12 },
 	pickerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	pickerInfo: { flex: 1 },
-	note: { textAlign: 'center', paddingHorizontal: 12 },
 	scroll: { flex: 1 },
 	content: { paddingTop: 4, paddingBottom: 16 },
 	footer: { paddingTop: 8, paddingBottom: 24 },

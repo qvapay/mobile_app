@@ -261,8 +261,8 @@
 				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
 				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad."
 			},
-			"btcSoonNote": "Bitcoin se podrá enviar muy pronto.",
-			"feeNative": "{{amount}} {{symbol}}"
+			"feeNative": "{{amount}} {{symbol}}",
+			"btcSendAll": "Envías todo tu saldo: la comisión de red ({{fee}} BTC) se descuenta de la cantidad."
 		},
 		"settings": {
 			"title": "Mi wallet",
