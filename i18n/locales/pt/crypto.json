@@ -289,6 +289,15 @@
 			"confirmAck": "Tenho minha frase secreta guardada",
 			"confirmDelete": "Excluir definitivamente",
 			"noWallet": "Não há nenhuma carteira neste telefone."
+		},
+		"txDetail": {
+			"confirmed": "Confirmada",
+			"usdNow": "≈ {{value}} ao preço de hoje",
+			"date": "Data",
+			"network": "Rede",
+			"contract": "Contrato",
+			"hash": "Hash",
+			"pendingHint": "Está na rede aguardando bloco. No Bitcoin pode levar alguns minutos; nas outras, segundos."
 		}
 	}
 }

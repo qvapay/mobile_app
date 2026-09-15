@@ -14,7 +14,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
-import { addressForKind, assetPrice, explorerAddressUrl, explorerTxUrl } from '../../../wallet/assets'
+import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
 import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
@@ -160,7 +160,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 		Linking.openURL(url).catch(() => toast.error(t('crypto.wallet.asset.explorerFailed')))
 	}, [t])
 
-	const openTx = useCallback((tx: WalletTx) => openUrl(explorerTxUrl(chain, tx.hash)), [chain, openUrl])
+	const openTx = useCallback((tx: WalletTx) => navigation.navigate(ROUTES.WALLET_TX_DETAIL, { assetId, tx }), [navigation, assetId])
 
 	if (!asset) {
 		return (

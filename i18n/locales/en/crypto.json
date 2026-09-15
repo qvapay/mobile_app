@@ -289,6 +289,15 @@
 			"confirmAck": "I have my secret phrase saved",
 			"confirmDelete": "Delete permanently",
 			"noWallet": "There’s no wallet on this phone."
+		},
+		"txDetail": {
+			"confirmed": "Confirmed",
+			"usdNow": "≈ {{value}} at today’s price",
+			"date": "Date",
+			"network": "Network",
+			"contract": "Contract",
+			"hash": "Hash",
+			"pendingHint": "It’s on the network waiting for a block. Bitcoin can take a few minutes; other networks, seconds."
 		}
 	}
 }

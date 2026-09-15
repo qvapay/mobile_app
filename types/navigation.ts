@@ -15,6 +15,7 @@
  * - `MarketProduct.slug`: llega por deep link, nunca se lee.
  */
 import type { NavigatorScreenParams } from '@react-navigation/native'
+import type { WalletTx } from './domain'
 import type { Coin, EnrichedCoin, Transaction } from './domain'
 
 /** Metadatos de país que viajan a las pantallas de marca (forma variable: catálogo completo o `{ code, ...country_meta }`). */
@@ -128,6 +129,8 @@ export type RootStackParamList = {
 	/** `amount` en decimal humano ya validado por WalletSend. */
 	WalletSendConfirm: { assetId: string, to: string, amount: string }
 	WalletSendSuccess: { assetId: string, txid: string, amount: string, to: string }
+	/** Movimiento ya cargado en la actividad (serializable): no se vuelve a pedir. */
+	WalletTxDetail: { assetId: string, tx: WalletTx }
 
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined

@@ -24,7 +24,8 @@
 		"walletReceive": "Receber",
 		"walletManageAssets": "Gerenciar ativos",
 		"walletSend": "Enviar",
-		"walletSendConfirm": "Confirmar envio"
+		"walletSendConfirm": "Confirmar envio",
+		"walletTxDetail": "Movimentação"
 	},
 	"tabs": {
 		"home": "Início",
