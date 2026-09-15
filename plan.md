@@ -92,6 +92,8 @@ Plan original (referencia):
 
 ## Fase 5 — Puente con saldo QvaPay (½ semana)
 
+**CÓDIGO HECHO 2026-09-15 (falta aceptación en device)**: `findAssetForCoin`/`findCoinForAsset` en `wallet/assets.ts` (moneda de `/coins/v2` ↔ activo por red+símbolo; BTCLN y redes sin wallet quedan fuera). "Pagar desde Mi Wallet" en `DepositDetailsModal` (solo con wallet respaldada y moneda con puente) → `WalletSendConfirm` con la dirección de depósito y el importe redondeado HACIA ARRIBA a los decimales del activo (`roundUpToDecimals`; el backend acredita solo el importe exacto). "Desde tu saldo QvaPay" en `WalletReceive` → `Withdraw` con `preselectedCoin` + `prefillAddress` (rellena el campo `Wallet` y marca destino 'personal'). Aceptación: round trip saldo → wallet → saldo sin teclear una dirección.
+
 - "Pasar a saldo QvaPay": `useDepositOrder` (screens/add) genera la dirección de depósito → prefilar Send desde Mi Wallet en vez del deep link a Trust (`WalletPickerSheet` es el precedente).
 - "Sacar a Mi Wallet": `Withdraw` con destino prellenado desde `WalletContext.addresses`.
 - **Aceptación**: round trip saldo → wallet → saldo sin teclear una dirección.
