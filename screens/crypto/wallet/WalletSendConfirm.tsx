@@ -20,11 +20,12 @@ import { TronVerifyError } from '../../../wallet/tron/tx'
 import { EvmVerifyError } from '../../../wallet/evm/tx'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { broadcastSigned, prepareSend, signPrepared } from './walletSendActions'
-import type { PreparedSend, SignedSend } from './walletSendActions'
+import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
 import { shortAddress } from './walletFormat'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPPressable from '../../../ui/particles/QPPressable'
 import AssetIcon from './components/AssetIcon'
 import WalletAuthModal from './components/WalletAuthModal'
 
@@ -74,6 +75,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	const [prepared, setPrepared] = useState<PreparedSend | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [authVisible, setAuthVisible] = useState(false)
+	// Nivel de comisión elegido: cambiarlo reconstruye la tx (nuevo gas/tasa, misma intención)
+	const [feeTier, setFeeTier] = useState<FeeTier>('normal')
 	const signedRef = useRef<SignedSend | null>(null)
 	const inFlightRef = useRef(false)
 
@@ -82,13 +85,13 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		setPhase('preparing'); setError(null); signedRef.current = null
 		try {
 			const intent = { chainKey: asset.chainKey, from: addressForKind(addresses, asset.kind), to, amount: parseUnits(amount, asset.decimals), contract: asset.contract }
-			setPrepared(await prepareSend(chain, intent))
+			setPrepared(await prepareSend(chain, intent, feeTier))
 			setPhase('ready')
 		} catch (err) {
 			setPhase('error')
 			setError(describeError(err, t))
 		}
-	}, [asset, addresses, chain, to, amount, t])
+	}, [asset, addresses, chain, to, amount, feeTier, t])
 
 	useEffect(() => { prepare() }, [prepare])
 
@@ -180,6 +183,34 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				<Row theme={theme} label={t('crypto.wallet.send.toLabel')} value={to} mono />
 				<Row theme={theme} label={t('crypto.wallet.send.fromLabel')} value={addresses ? addressForKind(addresses, asset.kind) : ''} mono />
 				<Row theme={theme} label={t('crypto.wallet.send.networkFee')} value={phase === 'preparing' ? '…' : feeEstimated === 0n ? t('crypto.wallet.send.feeFree') : fee(feeEstimated)} />
+				{!!prepared && prepared.summary.feeOptions.length > 0 && (
+					<View style={styles.tiers}>
+						{prepared.summary.feeOptions.map(option => {
+							const selected = option.tier === feeTier
+							return (
+								<QPPressable
+									key={option.tier}
+									onPress={() => { if (!busy && option.tier !== feeTier) setFeeTier(option.tier) }}
+									style={[styles.tier, selected ? { backgroundColor: theme.colors.primary } : { backgroundColor: theme.colors.elevation }]}
+									accessibilityRole="button"
+									accessibilityState={{ selected }}
+								>
+									<Text style={{ color: selected ? theme.colors.buttonText : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xs }}>
+										{t(`crypto.wallet.send.feeTiers.${option.tier}`)}
+									</Text>
+									<Text style={{ color: selected ? theme.colors.buttonText : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }} numberOfLines={1}>
+										{fee(option.feeEstimated)}
+									</Text>
+									{option.etaMinutes !== null && (
+										<Text style={{ color: selected ? theme.colors.buttonText : theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }}>
+											{t('crypto.wallet.send.feeEta', { minutes: option.etaMinutes })}
+										</Text>
+									)}
+								</QPPressable>
+							)
+						})}
+					</View>
+				)}
 				{feeMax !== null && feeMax > feeEstimated && (
 					<Row theme={theme} label={t('crypto.wallet.send.feeLimit')} value={fee(feeMax)} />
 				)}
@@ -252,6 +283,8 @@ const styles = StyleSheet.create({
 	card: { borderRadius: 14, paddingHorizontal: 14 },
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	rowValue: { flex: 1, textAlign: 'right' },
+	tiers: { flexDirection: 'row', gap: 8, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'transparent' },
+	tier: { flex: 1, borderRadius: 12, borderCurve: 'continuous', paddingVertical: 8, paddingHorizontal: 6, alignItems: 'center', gap: 2 },
 	notice: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, alignItems: 'flex-start' },
 	noticeIcon: { marginTop: 2 },
 	noticeText: { flex: 1 },

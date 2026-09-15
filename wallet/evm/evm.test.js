@@ -146,3 +146,20 @@ describe('broadcastEvmTransaction', () => {
 		expect(isRetryableRpcError(err)).toBe(false)
 	})
 })
+
+describe('niveles de fee', () => {
+	const { tierPriority, prepareEvmSend: prepare } = require('./tx')
+	test('prioridad por nivel: doble, igual, mitad con suelo de 1 gwei', () => {
+		expect(tierPriority(gwei(2), 'fast')).toBe(gwei(4))
+		expect(tierPriority(gwei(2), 'normal')).toBe(gwei(2))
+		expect(tierPriority(gwei(2), 'slow')).toBe(gwei(1))
+		expect(tierPriority(gwei(1), 'slow')).toBe(gwei(1))
+	})
+	test('prepare con tier fast construye con prioridad doble y expone feeByTier', async () => {
+		mockRpc({ eth_getTransactionCount: () => '0x0', eth_getBlockByNumber: () => ({ baseFeePerGas: hex(gwei(1)) }), eth_maxPriorityFeePerGas: () => hex(gwei(2)) })
+		const prepared = await prepare(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 1n, contract: null }, { tier: 'fast' })
+		expect(prepared.tier).toBe('fast')
+		expect(prepared.tx.maxPriorityFeePerGas).toBe(gwei(4))
+		expect(prepared.feeByTier).toEqual({ fast: 21_000n * gwei(5), normal: 21_000n * gwei(3), slow: 21_000n * gwei(2) })
+	})
+})

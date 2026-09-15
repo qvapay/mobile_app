@@ -266,7 +266,13 @@
 				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
-			"btcSendAll": "You’re sending your whole balance: the network fee ({{fee}} BTC) is deducted from the amount."
+			"btcSendAll": "You’re sending your whole balance: the network fee ({{fee}} BTC) is deducted from the amount.",
+			"feeTiers": {
+				"fast": "Fast",
+				"normal": "Normal",
+				"slow": "Economy"
+			},
+			"feeEta": "~{{minutes}} min"
 		},
 		"settings": {
 			"title": "My wallet",

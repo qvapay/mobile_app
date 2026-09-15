@@ -21,8 +21,14 @@ import type { RegistryRpc } from '../registry/types'
 /** Salida por debajo de esto no se crea (polvo): el cambio se deja en la fee. */
 export const DUST_SATS = 546n
 
-/** Bloques objetivo para la fee: ~30 min; más barato que "próximo bloque" sin quedarse atascado. */
-export const FEE_TARGET_BLOCKS = 3
+export type FeeTier = 'fast' | 'normal' | 'slow'
+
+/** Bloques objetivo por nivel: ~10 min, ~30 min, ~1 h. */
+export const FEE_TIER_TARGETS: Record<FeeTier, number> = { fast: 1, normal: 3, slow: 6 }
+export const FEE_TIER_ETA_MINUTES: Record<FeeTier, number> = { fast: 10, normal: 30, slow: 60 }
+
+/** Bloques objetivo por defecto (Normal): más barato que "próximo bloque" sin quedarse atascado. */
+export const FEE_TARGET_BLOCKS = FEE_TIER_TARGETS.normal
 
 /** Tope duro de fee absoluta (0.005 BTC): por encima, algo está mal. */
 export const MAX_FEE_SATS = 500_000n
@@ -56,7 +62,13 @@ export type BtcSelection = {
 	sendAll: boolean
 }
 
-export type PreparedBtcSend = { intent: BtcSendIntent, selection: BtcSelection }
+export type PreparedBtcSend = {
+	intent: BtcSendIntent
+	selection: BtcSelection
+	tier: FeeTier
+	/** sat/vB por nivel, para mostrar las tres opciones sin volver al nodo. */
+	feeRates: Record<FeeTier, number>
+}
 
 export class BtcVerifyError extends Error {
 	constructor(message: string) { super(message); this.name = 'BtcVerifyError' }
@@ -137,23 +149,41 @@ export const getBtcUtxos = async (rpc: RegistryRpc, address: string, deps: Deps 
 	return (rows ?? []).map(row => ({ txid: row.txid, vout: row.vout, value: BigInt(row.value), confirmed: !!row.status?.confirmed }))
 }
 
-/** sat/vB para `FEE_TARGET_BLOCKS`; si el nodo no lo da, 1 sat/vB (mínimo de relay). */
-export const getBtcFeeRate = async (rpc: RegistryRpc, deps: Deps = {}): Promise<number> => {
-	try {
-		const estimates = await getJson<Record<string, number>>(`${base(rpc)}/fee-estimates`, { signal: deps.signal, headers: rpc.headers })
-		const rate = estimates?.[String(FEE_TARGET_BLOCKS)] ?? estimates?.['2'] ?? estimates?.['1']
-		return typeof rate === 'number' && rate > 0 ? Math.max(rate, MIN_FEE_RATE) : MIN_FEE_RATE
-	} catch {
+/** sat/vB por nivel a partir de `/fee-estimates` (mapa bloques → sat/vB). PURO. */
+export const feeRatesFromEstimates = (estimates: Record<string, number> | null | undefined): Record<FeeTier, number> => {
+	const at = (target: number): number => {
+		// Si el nodo no trae ese objetivo exacto, el más cercano por debajo (más rápido) que exista
+		for (let t = target; t >= 1; t--) {
+			const rate = estimates?.[String(t)]
+			if (typeof rate === 'number' && rate > 0) return Math.max(rate, MIN_FEE_RATE)
+		}
 		return MIN_FEE_RATE
+	}
+	const fast = at(FEE_TIER_TARGETS.fast)
+	const normal = Math.min(at(FEE_TIER_TARGETS.normal), fast)
+	const slow = Math.min(at(FEE_TIER_TARGETS.slow), normal)
+	return { fast, normal, slow }
+}
+
+/** sat/vB por nivel; si el nodo no responde, 1 sat/vB en todos (mínimo de relay). */
+export const getBtcFeeRates = async (rpc: RegistryRpc, deps: Deps = {}): Promise<Record<FeeTier, number>> => {
+	try {
+		return feeRatesFromEstimates(await getJson<Record<string, number>>(`${base(rpc)}/fee-estimates`, { signal: deps.signal, headers: rpc.headers }))
+	} catch {
+		return { fast: MIN_FEE_RATE, normal: MIN_FEE_RATE, slow: MIN_FEE_RATE }
 	}
 }
 
-export const prepareBtcSend = async (rpc: RegistryRpc, intent: BtcSendIntent, deps: Deps = {}): Promise<PreparedBtcSend> => {
+/** Compatibilidad: la tasa del nivel Normal. */
+export const getBtcFeeRate = async (rpc: RegistryRpc, deps: Deps = {}): Promise<number> => (await getBtcFeeRates(rpc, deps)).normal
+
+export const prepareBtcSend = async (rpc: RegistryRpc, intent: BtcSendIntent, deps: Deps & { tier?: FeeTier } = {}): Promise<PreparedBtcSend> => {
 	if (!isValidBtcAddress(intent.to)) throw new ChainHttpError('btc: destino inválido', { retryable: false })
-	const [utxos, feeRate] = await Promise.all([getBtcUtxos(rpc, intent.from, deps), getBtcFeeRate(rpc, deps)])
-	const selection = selectUtxos(utxos, intent.amount, feeRate)
+	const tier = deps.tier ?? 'normal'
+	const [utxos, feeRates] = await Promise.all([getBtcUtxos(rpc, intent.from, deps), getBtcFeeRates(rpc, deps)])
+	const selection = selectUtxos(utxos, intent.amount, feeRates[tier])
 	if (selection.fee > MAX_FEE_SATS) throw new ChainHttpError(`btc: comisión anómala (${selection.fee} sats)`, { retryable: false })
-	return { intent, selection }
+	return { intent, selection, tier, feeRates }
 }
 
 // ---------------------------------------------------------------------------

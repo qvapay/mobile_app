@@ -266,7 +266,13 @@
 				"noGasForFee": "Você precisa de {{needed}} {{symbol}} para a taxa e tem {{have}}. Deposite {{symbol}} na sua carteira ou reduza a quantidade."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
-			"btcSendAll": "Você está enviando todo o saldo: a taxa de rede ({{fee}} BTC) é descontada da quantidade."
+			"btcSendAll": "Você está enviando todo o saldo: a taxa de rede ({{fee}} BTC) é descontada da quantidade.",
+			"feeTiers": {
+				"fast": "Rápido",
+				"normal": "Normal",
+				"slow": "Econômico"
+			},
+			"feeEta": "~{{minutes}} min"
 		},
 		"settings": {
 			"title": "Minha carteira",

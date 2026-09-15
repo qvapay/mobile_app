@@ -13,8 +13,8 @@ import { broadcastTronTransaction, isValidTronAddress, prepareTronSend, signTron
 import type { PreparedTronSend } from '../../../wallet/tron/tx'
 import { broadcastEvmTransaction, getEvmFeeData, isValidEvmAddress, NATIVE_TRANSFER_GAS, prepareEvmSend, signEvmTransaction } from '../../../wallet/evm/tx'
 import type { PreparedEvmSend, SignedEvmTx } from '../../../wallet/evm/tx'
-import { broadcastBtcTransaction, isValidBtcAddress, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
-import type { PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
+import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, isValidBtcAddress, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
+import type { FeeTier, PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
 import type { WalletAsset } from '../../../wallet/assets'
 
 /** Todas las familias del registry envían: TRON, EVM y Bitcoin. */
@@ -34,6 +34,11 @@ export type SendIntent = {
 	contract: string | null
 }
 
+export type { FeeTier }
+
+/** Una opción de comisión: importe estimado en el nativo y, si se conoce, minutos hasta confirmar. */
+export type FeeOption = { tier: FeeTier, feeEstimated: bigint, etaMinutes: number | null }
+
 /** Lo que la pantalla de confirmación pinta, igual para todas las cadenas. */
 export type SendSummary = {
 	/** Cantidad verificada en unidades mínimas (sale de la tx construida/decodificada, no del formulario). */
@@ -46,6 +51,10 @@ export type SendSummary = {
 	activatesAccount: boolean
 	/** Vigencia de la tx construida (ms epoch); null = sin expiración (EVM). */
 	expiresAt: number | null
+	/** Nivel de comisión con el que se construyó (null = la cadena no lo permite elegir: TRON). */
+	feeTier: FeeTier | null
+	/** Opciones Rápido/Normal/Económico para cambiar de nivel (vacío en TRON). */
+	feeOptions: FeeOption[]
 }
 
 export type PreparedSend =
@@ -59,7 +68,7 @@ export type SignedSend =
 	| { kind: 'evm', signed: SignedEvmTx }
 	| { kind: 'btc', signed: SignedBtcTx }
 
-export const prepareSend = async (chain: RegistryChain, intent: SendIntent): Promise<PreparedSend> => {
+export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier: FeeTier = 'normal'): Promise<PreparedSend> => {
 	const router = getAppRpcRouter()
 	if (chain.kind === 'tron') {
 		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareTronSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount, contract: intent.contract }, { signal }), { accept: TRON_TX_RPC })
@@ -67,26 +76,33 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent): Pro
 		const amount = contract.type === 'TransferContract' ? contract.amount : intent.amount
 		return {
 			kind: 'tron', chain, intent, inner,
-			summary: { amount, feeEstimated: inner.fee.burnSun, feeMax: inner.fee.feeLimitSun > 0n ? inner.fee.feeLimitSun : null, activatesAccount: inner.fee.activatesAccount, expiresAt: Number(inner.raw.expiration) },
+			summary: { amount, feeEstimated: inner.fee.burnSun, feeMax: inner.fee.feeLimitSun > 0n ? inner.fee.feeLimitSun : null, activatesAccount: inner.fee.activatesAccount, expiresAt: Number(inner.raw.expiration), feeTier: null, feeOptions: [] },
 		}
 	}
 	if (chain.kind === 'evm') {
 		if (!chain.chainId) throw new Error(`wallet: la cadena ${intent.chainKey} no declara chainId`)
 		const evmIntent = { chainId: chain.chainId, from: intent.from, to: intent.to, amount: intent.amount, contract: intent.contract }
-		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareEvmSend(rpc, chain, evmIntent, { signal }))
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareEvmSend(rpc, chain, evmIntent, { signal, tier }))
 		// Lo verificado en EVM es la tx construida: value (nativo) o calldata (token) salen de ella
 		const amount = intent.contract ? intent.amount : inner.tx.value ?? 0n
 		return {
 			kind: 'evm', chain, intent, inner,
-			summary: { amount, feeEstimated: inner.fee.estimatedWei, feeMax: inner.fee.maxWei, activatesAccount: false, expiresAt: null },
+			summary: {
+				amount, feeEstimated: inner.fee.estimatedWei, feeMax: inner.fee.maxWei, activatesAccount: false, expiresAt: null, feeTier: inner.tier,
+				feeOptions: (['fast', 'normal', 'slow'] as FeeTier[]).map(t => ({ tier: t, feeEstimated: inner.feeByTier[t], etaMinutes: null })),
+			},
 		}
 	}
 	if (chain.kind === 'btc') {
-		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareBtcSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount }, { signal }))
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareBtcSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount }, { signal, tier }))
 		// Con "enviar todo" la cantidad verificada es total − fee: lo que de verdad recibe el destino
 		return {
 			kind: 'btc', chain, intent, inner,
-			summary: { amount: inner.selection.amount, feeEstimated: inner.selection.fee, feeMax: null, activatesAccount: false, expiresAt: null },
+			summary: {
+				amount: inner.selection.amount, feeEstimated: inner.selection.fee, feeMax: null, activatesAccount: false, expiresAt: null, feeTier: inner.tier,
+				// Mismo tamaño de tx, distinta tasa: con "enviar todo" cambia lo enviado, no el tamaño
+				feeOptions: (['fast', 'normal', 'slow'] as FeeTier[]).map(t => ({ tier: t, feeEstimated: feeFor(estimateVsize(inner.selection.inputs.length, inner.selection.change > 0n ? 2 : 1), inner.feeRates[t]), etaMinutes: FEE_TIER_ETA_MINUTES[t] })),
+			},
 		}
 	}
 	throw new Error(`wallet: enviar en ${chain.kind} aún no está disponible`)

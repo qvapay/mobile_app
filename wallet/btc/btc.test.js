@@ -147,3 +147,15 @@ describe('Esplora', () => {
 		expect(isRetryableRpcError(busy)).toBe(true)
 	})
 })
+
+describe('niveles de fee', () => {
+	const { feeRatesFromEstimates } = require('./tx')
+	test('fast/normal/slow desde fee-estimates, monótonos y con suelo de 1', () => {
+		expect(feeRatesFromEstimates({ '1': 4, '2': 3, '3': 2, '6': 0.5 })).toEqual({ fast: 4, normal: 2, slow: 1 })
+		// objetivo ausente → el más cercano por debajo que exista
+		expect(feeRatesFromEstimates({ '1': 5, '4': 3 })).toEqual({ fast: 5, normal: 5, slow: 3 })
+		expect(feeRatesFromEstimates(null)).toEqual({ fast: 1, normal: 1, slow: 1 })
+		// nunca "normal" más caro que "fast"
+		expect(feeRatesFromEstimates({ '1': 2, '3': 9, '6': 1 })).toEqual({ fast: 2, normal: 2, slow: 1 })
+	})
+})

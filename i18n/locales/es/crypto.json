@@ -266,7 +266,13 @@
 				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
-			"btcSendAll": "Envías todo tu saldo: la comisión de red ({{fee}} BTC) se descuenta de la cantidad."
+			"btcSendAll": "Envías todo tu saldo: la comisión de red ({{fee}} BTC) se descuenta de la cantidad.",
+			"feeTiers": {
+				"fast": "Rápido",
+				"normal": "Normal",
+				"slow": "Económico"
+			},
+			"feeEta": "~{{minutes}} min"
 		},
 		"settings": {
 			"title": "Mi wallet",

@@ -81,6 +81,18 @@ export type EvmSendIntent = {
 	contract: string | null
 }
 
+export type FeeTier = 'fast' | 'normal' | 'slow'
+
+/**
+ * Prioridad por nivel sobre la sugerida por el nodo: Económico la mitad (sin
+ * bajar de 1 gwei), Rápido el doble. En legacy (gasPrice) se escala el precio.
+ */
+export const tierPriority = (suggested: bigint, tier: FeeTier): bigint => {
+	if (tier === 'fast') return suggested * 2n
+	if (tier === 'slow') { const half = suggested / 2n; return half > MIN_PRIORITY_FEE_WEI ? half : MIN_PRIORITY_FEE_WEI }
+	return suggested
+}
+
 export type EvmFeeEstimate = {
 	gasLimit: bigint
 	/** Lo que se espera pagar (wei): gas × (base + priority) o gas × gasPrice. */
@@ -94,6 +106,9 @@ export type PreparedEvmSend = {
 	intent: EvmSendIntent
 	tx: TransactionSerializable
 	fee: EvmFeeEstimate
+	tier: FeeTier
+	/** Fee estimada (wei) por nivel con el mismo gas, para mostrar las opciones sin volver al nodo. */
+	feeByTier: Record<FeeTier, bigint>
 }
 
 type Deps = { signal?: AbortSignal }
@@ -123,7 +138,8 @@ export const getEvmFeeData = async (rpc: RegistryRpc, deps: Deps = {}): Promise<
  * `ChainHttpError` no reintentable con el mensaje del nodo si la estimación
  * revierte (saldo de token insuficiente, contrato pausado…).
  */
-export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, intent: EvmSendIntent, deps: Deps = {}): Promise<PreparedEvmSend> => {
+export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, intent: EvmSendIntent, deps: Deps & { tier?: FeeTier } = {}): Promise<PreparedEvmSend> => {
+	const tier = deps.tier ?? 'normal'
 	if (!isValidEvmAddress(intent.to)) throw new ChainHttpError('evm: destino inválido', { retryable: false })
 	if (intent.amount <= 0n) throw new ChainHttpError('evm: cantidad inválida', { retryable: false })
 	if (chain.chainId !== intent.chainId) throw new ChainHttpError('evm: chainId no coincide con la red', { retryable: false })
@@ -148,13 +164,19 @@ export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, int
 	}
 
 	const base = { chainId: intent.chainId, nonce: Number(hexToBigInt(nonceHex)), to, value, data, gas: gasLimit }
+	const tiers: FeeTier[] = ['fast', 'normal', 'slow']
 	if (feeData.eip1559) {
-		const maxFeePerGas = feeData.baseFee * 2n + feeData.priorityFee
-		const tx: TransactionSerializable = { ...base, type: 'eip1559', maxFeePerGas, maxPriorityFeePerGas: feeData.priorityFee }
-		return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * (feeData.baseFee + feeData.priorityFee), maxWei: gasLimit * maxFeePerGas, eip1559: true } }
+		const priority = tierPriority(feeData.priorityFee, tier)
+		const maxFeePerGas = feeData.baseFee * 2n + priority
+		const tx: TransactionSerializable = { ...base, type: 'eip1559', maxFeePerGas, maxPriorityFeePerGas: priority }
+		const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * (feeData.baseFee + tierPriority(feeData.priorityFee, t))])) as Record<FeeTier, bigint>
+		return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * (feeData.baseFee + priority), maxWei: gasLimit * maxFeePerGas, eip1559: true }, tier, feeByTier }
 	}
-	const tx: TransactionSerializable = { ...base, type: 'legacy', gasPrice: feeData.gasPrice }
-	return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * feeData.gasPrice, maxWei: gasLimit * feeData.gasPrice, eip1559: false } }
+	// Legacy: el "priority" es el propio gasPrice escalado
+	const gasPrice = tierPriority(feeData.gasPrice, tier)
+	const tx: TransactionSerializable = { ...base, type: 'legacy', gasPrice }
+	const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * tierPriority(feeData.gasPrice, t)])) as Record<FeeTier, bigint>
+	return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * gasPrice, maxWei: gasLimit * gasPrice, eip1559: false }, tier, feeByTier }
 }
 
 // ---------------------------------------------------------------------------
