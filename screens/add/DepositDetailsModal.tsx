@@ -270,12 +270,12 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 				iconStyle="solid"
 				iconColor={theme.colors.almostWhite}
 				textStyle={{ color: theme.colors.almostWhite }}
-				style={{ marginBottom: installedWallets.length > 0 ? 10 : 16 }}
+				style={{ marginBottom: 16 }}
 			/>
 		)}
 
-		{/* Open in installed wallet */}
-		{installedWallets.length > 0 && (
+		{/* Open in installed wallet — solo si NO hay wallet propia para esta moneda: con ella el deep link a Trust & co. es redundante */}
+		{!onPayFromWallet && installedWallets.length > 0 && (
 			<QPButton
 				title={t('add.modal.crypto.openWalletButton')}
 				onPress={onOpenWalletPicker}
