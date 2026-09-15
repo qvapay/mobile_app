@@ -219,7 +219,9 @@
 			"createPin": "Crear PIN de bloqueo",
 			"cancel": "Cancelar",
 			"revealSubtitle": "Ver la frase secreta de tu wallet",
-			"deleteSubtitle": "Eliminar la wallet de este teléfono"
+			"deleteSubtitle": "Eliminar la wallet de este teléfono",
+			"bioPrompt": "Confirma para firmar con tu wallet",
+			"biometricsSubtitle": "Activar Face ID / Touch ID para tu wallet"
 		},
 		"send": {
 			"pickTitle": "¿Qué quieres enviar?",
@@ -290,7 +292,12 @@
 			"confirmBody": "Es irreversible. Sin tu frase de 12 palabras, nadie (ni QvaPay) puede recuperar los fondos.",
 			"confirmAck": "Tengo mi frase secreta guardada",
 			"confirmDelete": "Eliminar definitivamente",
-			"noWallet": "No hay ninguna wallet en este teléfono."
+			"noWallet": "No hay ninguna wallet en este teléfono.",
+			"security": "Seguridad",
+			"biometricsFaceId": "Usar Face ID",
+			"biometricsTouchId": "Usar Touch ID / huella",
+			"biometricsHint": "Como atajo del PIN al enviar y ver la frase. Si cambias tu cara o huella, vuelve a pedir el PIN.",
+			"biometricsFailed": "No se pudo activar la biometría en este dispositivo."
 		},
 		"txDetail": {
 			"confirmed": "Confirmada",

@@ -219,7 +219,9 @@
 			"createPin": "Criar PIN de bloqueio",
 			"cancel": "Cancelar",
 			"revealSubtitle": "Ver a frase secreta da sua carteira",
-			"deleteSubtitle": "Excluir a carteira deste telefone"
+			"deleteSubtitle": "Excluir a carteira deste telefone",
+			"bioPrompt": "Confirme para assinar com sua carteira",
+			"biometricsSubtitle": "Ativar Face ID / Touch ID para sua carteira"
 		},
 		"send": {
 			"pickTitle": "O que você quer enviar?",
@@ -290,7 +292,12 @@
 			"confirmBody": "É irreversível. Sem sua frase de 12 palavras, ninguém (nem a QvaPay) pode recuperar os fundos.",
 			"confirmAck": "Tenho minha frase secreta guardada",
 			"confirmDelete": "Excluir definitivamente",
-			"noWallet": "Não há nenhuma carteira neste telefone."
+			"noWallet": "Não há nenhuma carteira neste telefone.",
+			"security": "Segurança",
+			"biometricsFaceId": "Usar Face ID",
+			"biometricsTouchId": "Usar Touch ID / digital",
+			"biometricsHint": "Como atalho do PIN ao enviar e ver a frase. Se você mudar seu rosto ou digital, ele pede o PIN de novo.",
+			"biometricsFailed": "Não foi possível ativar a biometria neste dispositivo."
 		},
 		"txDetail": {
 			"confirmed": "Confirmada",

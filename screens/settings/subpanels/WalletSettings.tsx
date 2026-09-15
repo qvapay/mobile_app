@@ -14,6 +14,9 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
+import { disableWalletBiometrics, enableWalletBiometrics } from '../../../wallet/keystore'
+import { getSupportedBiometryType } from '../../../api/client'
+import { useSettings } from '../../../settings/SettingsContext'
 import { shortAddress } from '../../crypto/wallet/walletFormat'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
 
@@ -31,7 +34,7 @@ const FAMILIES = [
 /** La frase revelada se oculta sola pasado esto (y al irse la app a segundo plano). */
 const REVEAL_TIMEOUT_MS = 60_000
 
-type Pending = 'reveal' | 'delete' | null
+type Pending = 'reveal' | 'delete' | 'biometrics' | null
 
 /**
  * Ajustes → Avanzado → Mi wallet: direcciones públicas, ver la frase secreta
@@ -52,6 +55,10 @@ const WalletSettings = () => {
 	const queryClient = useQueryClient()
 
 	const { hasWallet, isBackedUp, addresses, revealMnemonic, deleteWallet } = useWallet()
+	const { getSetting, updateSetting } = useSettings()
+	const walletBiometrics = getSetting('crypto', 'walletBiometrics', true) as boolean
+	const [biometryType, setBiometryType] = useState<string | null>(null)
+	useEffect(() => { getSupportedBiometryType().then(setBiometryType) }, [])
 
 	const [pending, setPending] = useState<Pending>(null)
 	const [mnemonic, setMnemonic] = useState<string | null>(null)
@@ -79,8 +86,18 @@ const WalletSettings = () => {
 		} else if (action === 'delete') {
 			setAcknowledged(false)
 			setConfirmDelete(true)
+		} else if (action === 'biometrics') {
+			// Encender exige el PIN (si no, un teléfono desbloqueado bastaría para armarla)
+			if (await enableWalletBiometrics()) updateSetting('crypto', 'walletBiometrics', true)
+			else toast.error(t('crypto.wallet.settings.biometricsFailed'))
 		}
-	}, [pending, revealMnemonic, t])
+	}, [pending, revealMnemonic, updateSetting, t])
+
+	const toggleBiometrics = useCallback((value: boolean) => {
+		if (value) { setPending('biometrics'); return }
+		updateSetting('crypto', 'walletBiometrics', false)
+		disableWalletBiometrics()
+	}, [updateSetting])
 
 	const performDelete = useCallback(async () => {
 		if (!acknowledged || deleting) return
@@ -111,7 +128,7 @@ const WalletSettings = () => {
 	}
 
 	const words = mnemonic?.split(' ') ?? []
-	const authSubtitle = pending === 'delete' ? t('crypto.wallet.auth.deleteSubtitle') : t('crypto.wallet.auth.revealSubtitle')
+	const authSubtitle = pending === 'delete' ? t('crypto.wallet.auth.deleteSubtitle') : pending === 'biometrics' ? t('crypto.wallet.auth.biometricsSubtitle') : t('crypto.wallet.auth.revealSubtitle')
 
 	return (
 		<ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -163,6 +180,20 @@ const WalletSettings = () => {
 				)}
 			</View>
 
+			{/* Biometría propia de la wallet */}
+			{!!biometryType && (
+				<>
+					<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.security').toUpperCase()}</Text>
+					<View style={[styles.card, styles.cardPadded, styles.switchRow, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+						<View style={styles.switchTexts}>
+							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t(biometryType === 'FaceID' ? 'crypto.wallet.settings.biometricsFaceId' : 'crypto.wallet.settings.biometricsTouchId')}</Text>
+							<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.biometricsHint')}</Text>
+						</View>
+						<Switch value={walletBiometrics} onValueChange={toggleBiometrics} trackColor={{ false: theme.colors.tertiaryText, true: theme.colors.primary }} />
+					</View>
+				</>
+			)}
+
 			{/* Eliminar */}
 			<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.dangerZone').toUpperCase()}</Text>
 			<View style={[styles.card, styles.cardPadded, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
@@ -203,6 +234,8 @@ const styles = StyleSheet.create({
 	sectionTitle: { letterSpacing: 0.6, marginLeft: 4, marginBottom: 6, marginTop: 14 },
 	card: { borderRadius: 14, paddingHorizontal: 12 },
 	cardPadded: { paddingVertical: 14, gap: 12 },
+	switchRow: { flexDirection: 'row', alignItems: 'center' },
+	switchTexts: { flex: 1, gap: 2 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
 	familyLabel: { width: 96 },
 	address: { flex: 1 },

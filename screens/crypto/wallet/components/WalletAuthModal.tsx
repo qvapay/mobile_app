@@ -11,7 +11,8 @@ import { useTextStyles } from '../../../../theme/themeUtils'
 
 // Seguridad: PIN de bloqueo y credenciales biométricas (Keychain)
 import { useSettings } from '../../../../settings/SettingsContext'
-import { getAppLockPin, getBiometricCredentials, getSupportedBiometryType, hasAppLockPin, hasBiometricCredentials } from '../../../../api/client'
+import { getAppLockPin, getSupportedBiometryType, hasAppLockPin } from '../../../../api/client'
+import { authenticateWalletBiometrics, enableWalletBiometrics, hasWalletBiometrics } from '../../../../wallet/keystore'
 
 // UI
 import QPButton from '../../../../ui/particles/QPButton'
@@ -38,10 +39,15 @@ const MAX_ATTEMPTS = 5
  * Gate de identidad antes de leer la seed (regla dura 2 del plan: el
  * Keychain de la wallet no lleva access control; la protección es de capa de
  * app). Reutiliza el PIN de Ajustes → Bloqueo (mismo teclado que el
- * LockScreen) con Face ID/Touch ID como atajo cuando está activo. Sin PIN de
- * bloqueo no hay gate posible: se pide crearlo antes del primer envío.
- * Cinco fallos cierran el modal — no hay lockout persistente porque el PIN
- * solo desbloquea una firma local, no una cuenta.
+ * LockScreen) con Face ID/Touch ID como atajo. La biometría es PROPIA de la
+ * wallet (marcador en Keychain, `wallet/keystore`), independiente de cómo se
+ * inició sesión; se arma sola tras el primer PIN correcto si el ajuste
+ * `crypto.walletBiometrics` está encendido. Con biometría disponible el
+ * prompt sale primero y el PIN queda de respaldo (sin autofocus: el teclado
+ * y el prompt se pelean por el foco). Sin PIN de bloqueo no hay gate
+ * posible: se pide crearlo antes del primer envío. Cinco fallos cierran el
+ * modal — no hay lockout persistente porque el PIN solo desbloquea una firma
+ * local, no una cuenta.
  */
 const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) => {
 
@@ -49,57 +55,73 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const navigation = useNavigation<NavigationProp<RootStackParamList>>()
-	const { security } = useSettings()
+	const { getSetting } = useSettings()
+	const biometricsWanted = getSetting('crypto', 'walletBiometrics', true) as boolean
 
 	const [hasPin, setHasPin] = useState<boolean | null>(null)
+	/** Tipo soportado por el dispositivo (null = sin biometría). */
 	const [biometryType, setBiometryType] = useState<string | null>(null)
+	/** Marcador propio de la wallet presente: se puede pedir biometría. */
+	const [bioArmed, setBioArmed] = useState(false)
+	/** true mientras el prompt del sistema está en pantalla: el PIN no se enfoca. */
+	const [prompting, setPrompting] = useState(false)
 	const [pin, setPin] = useState('')
 	const [error, setError] = useState('')
 	const [attempts, setAttempts] = useState(0)
-	const [busy, setBusy] = useState(false)
+	const busyRef = useRef(false)
 	const codeInputRef = useRef<QPCodeInputHandle | null>(null)
 
-	// Al abrir: ¿hay PIN de bloqueo? ¿biometría disponible y activada?
+	// Al abrir: ¿hay PIN de bloqueo? ¿biometría soportada y armada para la wallet?
 	useEffect(() => {
 		if (!visible) return
 		let cancelled = false
-		setPin(''); setError(''); setAttempts(0); setBusy(false)
+		setPin(''); setError(''); setAttempts(0); setPrompting(false); busyRef.current = false
 		const detect = async () => {
-			const [pinExists, type, credentials] = await Promise.all([hasAppLockPin(), getSupportedBiometryType(), hasBiometricCredentials()])
+			const [pinExists, type, armed] = await Promise.all([hasAppLockPin(), getSupportedBiometryType(), hasWalletBiometrics()])
 			if (cancelled) return
 			setHasPin(pinExists)
-			setBiometryType(pinExists && type && credentials && security.biometricsEnabled ? type : null)
+			setBiometryType(pinExists ? type : null)
+			setBioArmed(pinExists && !!type && biometricsWanted && armed)
 		}
 		detect()
 		return () => { cancelled = true }
-	}, [visible, security.biometricsEnabled])
+	}, [visible, biometricsWanted])
 
 	const authorizeWithBiometrics = useCallback(async () => {
-		if (busy) return
-		setBusy(true)
+		if (busyRef.current) return
+		busyRef.current = true
+		setPrompting(true)
 		try {
-			// El prompt del sistema ES la autenticación: leer la entrada protegida solo funciona si pasó
-			const credentials = await getBiometricCredentials()
-			if (credentials) { onAuthorized(); return }
-		} catch { /* cancelado o fallido: queda el PIN */ }
-		finally { setBusy(false) }
-	}, [busy, onAuthorized])
+			if (await authenticateWalletBiometrics(t('crypto.wallet.auth.bioPrompt'))) { onAuthorized(); return }
+			// Cancelado, fallido o marcador invalidado: al PIN
+			setBioArmed(await hasWalletBiometrics())
+			setTimeout(() => codeInputRef.current?.focus(0), 150)
+		} finally {
+			setPrompting(false)
+			busyRef.current = false
+		}
+	}, [onAuthorized, t])
 
-	// Atajo biométrico automático al abrir, como el LockScreen
+	// Con biometría armada el prompt sale primero; el PIN no se enfoca hasta que falle o se cancele
 	useEffect(() => {
-		if (!visible || !biometryType) return
-		const timer = setTimeout(() => { authorizeWithBiometrics() }, 400)
+		if (!visible || !bioArmed) return
+		const timer = setTimeout(() => { authorizeWithBiometrics() }, 350)
 		return () => clearTimeout(timer)
-		// Solo al detectar biometría: re-armar con cada cambio de `busy` relanzaría el prompt
+		// Solo al armarse: re-armar con cada render relanzaría el prompt
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [visible, biometryType])
+	}, [visible, bioArmed])
 
 	const verifyPin = async (code: string) => {
-		if (busy) return
-		setBusy(true)
+		if (busyRef.current) return
+		busyRef.current = true
 		try {
 			const stored = await getAppLockPin()
-			if (stored && code === stored) { onAuthorized(); return }
+			if (stored && code === stored) {
+				// Primer PIN correcto con biometría soportada y deseada: armar el marcador (best-effort)
+				if (biometryType && biometricsWanted && !bioArmed) enableWalletBiometrics().catch(() => {})
+				onAuthorized()
+				return
+			}
 			const next = attempts + 1
 			setAttempts(next)
 			setPin('')
@@ -110,7 +132,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 			setError(t('misc.lock.errors.verifyPin'))
 			setPin('')
 		} finally {
-			setBusy(false)
+			busyRef.current = false
 		}
 	}
 
@@ -138,9 +160,10 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 						</View>
 					) : hasPin === true ? (
 						<>
-							<QPCodeInput ref={codeInputRef} length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus disabled={busy} boxColor={theme.colors.background} />
+							{/* Sin biometría armada el PIN se enfoca solo; con ella, el prompt va primero y el foco llega si falla */}
+							<QPCodeInput ref={codeInputRef} length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus={!bioArmed} boxColor={theme.colors.background} />
 							<Text style={[textStyles.h6, styles.error, { color: theme.colors.danger }]}>{error || ' '}</Text>
-							{biometryType && (
+							{biometryType && bioArmed && !prompting && (
 								<Pressable onPress={authorizeWithBiometrics} style={styles.biometric} hitSlop={8} accessibilityRole="button">
 									{biometryType === 'FaceID'
 										? <FaceIDIcon size={22} color={theme.colors.primary} />

@@ -219,7 +219,9 @@
 			"createPin": "Create app-lock PIN",
 			"cancel": "Cancel",
 			"revealSubtitle": "View your wallet’s secret phrase",
-			"deleteSubtitle": "Delete the wallet from this phone"
+			"deleteSubtitle": "Delete the wallet from this phone",
+			"bioPrompt": "Confirm to sign with your wallet",
+			"biometricsSubtitle": "Enable Face ID / Touch ID for your wallet"
 		},
 		"send": {
 			"pickTitle": "What do you want to send?",
@@ -290,7 +292,12 @@
 			"confirmBody": "This can’t be undone. Without your 12-word phrase, no one (not even QvaPay) can recover the funds.",
 			"confirmAck": "I have my secret phrase saved",
 			"confirmDelete": "Delete permanently",
-			"noWallet": "There’s no wallet on this phone."
+			"noWallet": "There’s no wallet on this phone.",
+			"security": "Security",
+			"biometricsFaceId": "Use Face ID",
+			"biometricsTouchId": "Use Touch ID / fingerprint",
+			"biometricsHint": "As a PIN shortcut when sending and viewing the phrase. If you change your face or fingerprint, it asks for the PIN again.",
+			"biometricsFailed": "Couldn’t enable biometrics on this device."
 		},
 		"txDetail": {
 			"confirmed": "Confirmed",

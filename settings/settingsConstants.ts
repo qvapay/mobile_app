@@ -142,6 +142,8 @@ export const DEFAULT_SETTINGS = {
 		visibleAssets: {} as Record<string, boolean>,
 		/** Ocultar entradas de menos de $0.01 en la actividad (dust / address poisoning). */
 		hideDust: true,
+		/** Face ID / Touch ID como atajo del PIN al firmar y ver la frase (marcador propio en Keychain). */
+		walletBiometrics: true,
 	},
 
 	// Roundup (micro pagos) settings
