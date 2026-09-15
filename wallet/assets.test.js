@@ -11,6 +11,8 @@ import {
 	DEFAULT_ASSETS,
 	explorerAddressUrl,
 	explorerTxUrl,
+	findAssetForCoin,
+	findCoinForAsset,
 	isAssetVisible,
 	sortAssets,
 	toAssetView,
@@ -92,5 +94,40 @@ describe('exploradores', () => {
 		expect(explorerAddressUrl(bundled.chains.tron, 'TX')).toBe('https://tronscan.org/#/address/TX')
 		expect(explorerAddressUrl(bundled.chains.bitcoin, 'bc1q')).toBe('https://mempool.space/address/bc1q')
 		expect(byId['bitcoin:native']).toBeDefined()
+	})
+})
+
+describe('puente con el catálogo de QvaPay', () => {
+	const COINS = [
+		{ tick: 'USDT', network: 'TRON' }, { tick: 'USDTBSC', network: 'BSC' }, { tick: 'USDCTRC20', network: 'TRON' },
+		{ tick: 'BNBBSC', network: 'BSC' }, { tick: 'TRX', network: 'TRON' }, { tick: 'ETH', network: 'ETH' },
+		{ tick: 'USDCBASE', network: 'BASE' }, { tick: 'USDTMATIC', network: 'POL' }, { tick: 'MATICMAINNET', network: null },
+		{ tick: 'BTC', network: 'BTC' }, { tick: 'BTCLN', network: 'BTC' }, { tick: 'USDTSOL', network: 'SOL' }, { tick: 'EURCBASE', network: 'BASE' },
+	]
+	const id = (tick) => findAssetForCoin(catalog, COINS.find(c => c.tick === tick))?.id ?? null
+
+	test('moneda → activo por red y símbolo', () => {
+		expect(id('USDT')).toBe(find('tron', 'USDT').id)
+		expect(id('USDTBSC')).toBe(find('bsc', 'USDT').id)
+		expect(id('USDCTRC20')).toBe(find('tron', 'USDC').id)
+		expect(id('BNBBSC')).toBe('bsc:native')
+		expect(id('TRX')).toBe('tron:native')
+		expect(id('ETH')).toBe('ethereum:native')
+		expect(id('USDCBASE')).toBe(find('base', 'USDC').id)
+		expect(id('USDTMATIC')).toBe(find('polygon', 'USDT').id)
+		expect(id('BTC')).toBe('bitcoin:native')
+	})
+
+	test('sin puente: Lightning, redes ajenas, tokens fuera del registry, sin network', () => {
+		expect(id('BTCLN')).toBeNull() // comparte network BTC pero es Lightning, no on-chain
+		expect(id('USDTSOL')).toBeNull()
+		expect(id('EURCBASE')).toBeNull()
+		expect(id('MATICMAINNET')).toBeNull()
+	})
+
+	test('activo → moneda (primera que casa)', () => {
+		expect(findCoinForAsset(COINS, catalog, find('tron', 'USDT')).tick).toBe('USDT')
+		expect(findCoinForAsset(COINS, catalog, find('bsc', 'BNB')).tick).toBe('BNBBSC')
+		expect(findCoinForAsset(COINS, catalog, find('polygon', 'USDC.e'))).toBeNull()
 	})
 })

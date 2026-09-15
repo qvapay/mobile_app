@@ -182,3 +182,15 @@ describe('fetchChainBalances / fetchAllBalances', () => {
 		await expect(fetchAllBalances(router, registry, ADDRESSES, null)).rejects.toThrow()
 	})
 })
+
+describe('roundUpToDecimals', () => {
+	const { roundUpToDecimals } = require('./units')
+	test('recorta hacia arriba, nunca por debajo de lo pedido', () => {
+		expect(roundUpToDecimals('5.1234567', 6)).toBe('5.123457')
+		expect(roundUpToDecimals('5.1234560', 6)).toBe('5.123456')
+		expect(roundUpToDecimals('5', 6)).toBe('5')
+		expect(roundUpToDecimals('0.00000001', 6)).toBe('0.000001')
+		expect(roundUpToDecimals('12,5', 2)).toBe('12.5')
+		expect(() => roundUpToDecimals('abc', 6)).toThrow()
+	})
+})

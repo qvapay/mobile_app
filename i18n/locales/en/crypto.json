@@ -203,7 +203,9 @@
 			"share": "Share",
 			"shareMessage": "My address to receive {{asset}} on {{network}}: {{address}}",
 			"warning": "Only send {{asset}} on the {{network}} network. Funds sent on another network may be lost.",
-			"evmNote": "This address is the same on Ethereum, BNB Chain, Base and Polygon, but each network has its own balance."
+			"evmNote": "This address is the same on Ethereum, BNB Chain, Base and Polygon, but each network has its own balance.",
+			"fromQvaPay": "From your QvaPay balance",
+			"fromQvaPayHint": "Withdraw {{symbol}} from your QvaPay account straight to this address."
 		},
 		"manage": {
 			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically.",

@@ -30,6 +30,22 @@ export const parseUnits = (input: string, decimals: number): bigint => {
 }
 
 /**
+ * Recorta un decimal a `decimals` cifras redondeando HACIA ARRIBA (nunca
+ * menos de lo pedido): para pagar una orden cuyo importe trae más decimales
+ * de los que admite el activo. '5.1234567' con 6 → '5.123457'.
+ */
+export const roundUpToDecimals = (input: string, decimals: number): string => {
+	const text = input.trim().replace(',', '.')
+	if (!/^\d*(\.\d*)?$/.test(text) || text === '' || text === '.') throw new RangeError(`units: cantidad inválida '${input}'`)
+	const [whole = '0', fraction = ''] = text.split('.')
+	const kept = fraction.slice(0, decimals)
+	const dropped = fraction.slice(decimals)
+	let units = BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt((kept || '0').padEnd(decimals, '0'))
+	if (/[1-9]/.test(dropped)) units += 1n
+	return formatUnits(units, decimals)
+}
+
+/**
  * Cantidad para PINTAR: pocos decimales significativos según magnitud, sin
  * redondear hacia arriba (mostrar más saldo del que hay es peor que menos).
  */

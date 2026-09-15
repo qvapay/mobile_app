@@ -206,3 +206,40 @@ export const explorerAddressUrl = (chain: RegistryChain | undefined, address: st
 	if (chain.explorer.includes('/tx/{tx}')) return chain.explorer.replace('/tx/{tx}', `/address/${encoded}`)
 	return null
 }
+
+// ---------------------------------------------------------------------------
+// Puente con el saldo QvaPay: moneda del catálogo (`/coins/v2`) ↔ activo
+// ---------------------------------------------------------------------------
+
+/** `Coin.network` de QvaPay → chainKey del registry. Redes sin wallet (SOL, TON, ARBITRUM…) quedan fuera. */
+const QVAPAY_NETWORK_TO_CHAIN: Record<string, string> = {
+	TRON: 'tron',
+	BSC: 'bsc',
+	ETH: 'ethereum',
+	BASE: 'base',
+	POL: 'polygon',
+	BTC: 'bitcoin',
+}
+
+/** Ticks del catálogo que son el NATIVO de su red (BTCLN no: es Lightning, no on-chain). */
+const NATIVE_COIN_TICKS = new Set(['ETH', 'BNBBSC', 'MATICMAINNET', 'TRX', 'BTC'])
+
+/**
+ * Activo de la wallet que corresponde a una moneda de depósito/retiro de
+ * QvaPay (por red + símbolo: USDT en TRON = `USDT (TRC20)`, etc.). null si la
+ * red o el token no están en el registry — entonces no hay puente y el
+ * usuario sigue con el flujo normal.
+ */
+export const findAssetForCoin = (catalog: WalletAsset[], coin: { tick: string, network?: string | null }): WalletAsset | null => {
+	const chainKey = coin.network ? QVAPAY_NETWORK_TO_CHAIN[coin.network.toUpperCase()] : undefined
+	if (!chainKey) return null
+	const tick = coin.tick.toUpperCase()
+	if (NATIVE_COIN_TICKS.has(tick)) return catalog.find(a => a.chainKey === chainKey && a.contract === null) ?? null
+	const symbol = tick.startsWith('USDT') ? 'USDT' : tick.startsWith('USDC') ? 'USDC' : null
+	if (!symbol) return null
+	return catalog.find(a => a.chainKey === chainKey && a.contract !== null && a.symbol.toUpperCase() === symbol) ?? null
+}
+
+/** Inversa: la moneda del catálogo que casa con un activo (para prellenar un retiro hacia la wallet). */
+export const findCoinForAsset = <C extends { tick: string, network?: string | null }>(coins: C[], catalog: WalletAsset[], asset: WalletAsset): C | null =>
+	coins.find(coin => findAssetForCoin(catalog, coin)?.id === asset.id) ?? null

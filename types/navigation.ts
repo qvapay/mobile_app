@@ -94,7 +94,8 @@ export type RootStackParamList = {
 
 	// ── Depósito / retiro ─────────────────────────────────────────────────
 	Add: undefined
-	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string } | undefined
+	/** `prefillAddress`: destino ya escrito (retiro hacia la propia wallet self-custody, destino 'personal'). */
+	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string } | undefined
 
 	// ── P2P ───────────────────────────────────────────────────────────────
 	P2POffer: { p2p_uuid: string }

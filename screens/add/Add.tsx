@@ -28,6 +28,13 @@ import { cardFeeRateFor } from '../../helpers/cardFeeMode'
 // Orden de depósito: creación, modal, cuenta atrás y seguimiento en vivo
 import useDepositOrder from './useDepositOrder'
 
+// Wallet self-custody: pagar el depósito desde la propia wallet (Fase 5 del plan crypto)
+import { useWallet } from '../../wallet/WalletContext'
+import { useAssetCatalog } from '../crypto/wallet/walletQueries'
+import { findAssetForCoin } from '../../wallet/assets'
+import { roundUpToDecimals } from '../../wallet/chains/units'
+import { ROUTES } from '../../routes'
+
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -72,10 +79,10 @@ const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
  * Crypto deposits detect installed wallets (Trust Wallet & co.) and can open them
  * pre-filled via universal links (`helpers/walletDeeplinks`).
  */
-// `navigation` se desestructura pero la pantalla no navega a ningún sitio (todo
+// `navigation` solo se usa para el puente con la wallet self-custody (todo
 // ocurre en modales): se conserva la desestructuración y se marca con `_` según
 // la convención del eslint del proyecto
-const Add = ({ navigation: _navigation }: AddProps) => {
+const Add = ({ navigation }: AddProps) => {
 
 	// User Context
 	const { user } = useAuth()
@@ -121,6 +128,21 @@ const Add = ({ navigation: _navigation }: AddProps) => {
 		handleTopup, launchCardSheet,
 		isLoading, error, setError,
 	} = useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode })
+
+	// Puente con la wallet self-custody: si la moneda del depósito casa con un
+	// activo de la wallet (misma red y token) y hay wallet respaldada, el modal
+	// ofrece pagar desde ella — Enviar se abre con dirección y cantidad puestas
+	const { hasWallet, isBackedUp } = useWallet()
+	const assetCatalog = useAssetCatalog()
+	const walletAsset = useMemo(() => (selectedCoin ? findAssetForCoin(assetCatalog, selectedCoin) : null), [assetCatalog, selectedCoin])
+	const payFromWallet = hasWallet && isBackedUp && walletAsset && topupData?.wallet && topupData.value != null
+		? () => {
+			setShowDepositModal(false)
+			// Nunca por debajo de lo pedido: el backend acredita solo el importe exacto
+			const value = roundUpToDecimals(String(topupData.value), walletAsset.decimals)
+			navigation.navigate(ROUTES.WALLET_SEND_CONFIRM, { assetId: walletAsset.id, to: topupData.wallet as string, amount: value })
+		}
+		: undefined
 
 	// Catálogo desde la caché compartida (useCoins): la lista aparece al
 	// instante en vez de esperar un viaje a la red en cada entrada
@@ -232,6 +254,7 @@ const Add = ({ navigation: _navigation }: AddProps) => {
 				sseConnected={sseConnected}
 				installedWallets={installedWallets}
 				onOpenWalletPicker={() => setShowWalletPicker(true)}
+				onPayFromWallet={payFromWallet}
 				onPayWithCard={() => topupData?.client_secret && launchCardSheet(topupData)}
 				theme={theme}
 				textStyles={textStyles}

@@ -70,6 +70,8 @@ function setFieldReducer<S extends object>(state: S, action: SetFieldAction<S>):
 type WithdrawFormParams = {
 	/** Moneda preseleccionada (p. ej. USDCASH desde CashDeliveryCard). */
 	preselectedCoin?: string
+	/** Dirección de destino ya conocida (la wallet self-custody del usuario): rellena `Wallet` y marca destino 'personal'. */
+	prefillAddress?: string
 	/** Factura Lightning escaneada (Scan → parseLightningQR). */
 	lnInvoice?: string
 	/** Monto en sats que trae la factura (0 = factura sin monto). */
@@ -82,7 +84,7 @@ type WithdrawFormParams = {
  * @param params - `route.params` relevantes (preselección y factura Lightning).
  * @returns Estado del formulario, handlers y derivados de validación.
  */
-export default function useWithdrawForm({ preselectedCoin, lnInvoice, lnAmountSats = 0 }: WithdrawFormParams) {
+export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInvoice, lnAmountSats = 0 }: WithdrawFormParams) {
 
 	const { user } = useAuth()
 	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('out')
@@ -174,6 +176,7 @@ export default function useWithdrawForm({ preselectedCoin, lnInvoice, lnAmountSa
 		if (lnInvoice && selectedCoin?.tick === 'BTCLN') { applyLnPrefill() }
 	}, [lnInvoice, selectedCoin])
 
+
 	// QUSD bruto -> cantidad en coin (descontando fee)
 	const handleChangeQUSD = (value: string) => {
 		setAmountQUSD(value)
@@ -215,6 +218,20 @@ export default function useWithdrawForm({ preselectedCoin, lnInvoice, lnAmountSa
 
 	// Recargo % por opción elegida en campos `select` (p. ej. logística por
 	// provincia de USDCASH) — el servidor lo suma al fee, la vista previa también
+	// Retiro hacia la propia wallet self-custody: dirección en el campo `Wallet`
+	// y destino 'personal' (es suya), una sola vez, cuando la moneda
+	// preseleccionada ya resolvió sus campos
+	const didPrefillAddressRef = useRef(false)
+	useEffect(() => {
+		if (!prefillAddress || didPrefillAddressRef.current) return
+		if (!selectedCoin || (preselectedCoin && selectedCoin.tick !== preselectedCoin)) return
+		const walletField = workingFields.find((field) => (field.name || '').toLowerCase() === 'wallet')
+		if (!walletField) return
+		didPrefillAddressRef.current = true
+		setWorkingForm((prev) => ({ ...prev, [keyFromFieldName(walletField.name)]: prefillAddress }))
+		setDestination('personal')
+	}, [prefillAddress, preselectedCoin, selectedCoin, workingFields])
+
 	const selectFeePct = useMemo(() => getSelectFeePct(workingFields, workingForm), [workingFields, workingForm])
 
 	// Fee total de la vista previa (para el desglose bajo la tarjeta de monto)

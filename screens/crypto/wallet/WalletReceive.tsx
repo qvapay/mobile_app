@@ -12,7 +12,9 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import { addressForKind, isDefaultAsset } from '../../../wallet/assets'
+import { addressForKind, findCoinForAsset, isDefaultAsset } from '../../../wallet/assets'
+import useCoins from '../../../hooks/useCoins'
+import { ROUTES } from '../../../routes'
 import type { WalletAsset } from '../../../wallet/assets'
 import { useAssetCatalog } from './walletQueries'
 
@@ -57,6 +59,11 @@ const WalletReceive = ({ navigation, route }: Props) => {
 	)
 
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
+
+	// Puente con el saldo QvaPay: si la moneda existe en el catálogo de retiros,
+	// "Desde tu saldo QvaPay" abre el retiro con esta dirección ya escrita
+	const { coins: withdrawCoins } = useCoins('out')
+	const bridgeCoin = useMemo(() => (asset ? findCoinForAsset(withdrawCoins, catalog, asset) : null), [withdrawCoins, catalog, asset])
 	const assetLabel = asset ? (asset.contract && TOKEN_STANDARD[asset.chainKey] ? `${asset.symbol} (${TOKEN_STANDARD[asset.chainKey]})` : asset.symbol) : ''
 
 	const copy = useCallback(() => {
@@ -137,6 +144,23 @@ const WalletReceive = ({ navigation, route }: Props) => {
 				</View>
 			</View>
 
+			{!!bridgeCoin && !!address && (
+				<QPPressable
+					onPress={() => navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: bridgeCoin.tick, prefillAddress: address })}
+					style={[styles.bridge, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
+					accessibilityRole="button"
+				>
+					<View style={[styles.bridgeIcon, { backgroundColor: theme.colors.primary + '15' }]}>
+						<FontAwesome6 name="building-columns" size={15} color={theme.colors.primary} iconStyle="solid" />
+					</View>
+					<View style={styles.bridgeTexts}>
+						<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{t('crypto.wallet.receive.fromQvaPay')}</Text>
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.receive.fromQvaPayHint', { symbol: assetLabel })}</Text>
+					</View>
+					<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
+				</QPPressable>
+			)}
+
 			<View style={styles.spacer} />
 
 			<View style={styles.buttons}>
@@ -161,6 +185,9 @@ const styles = StyleSheet.create({
 	warning: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, alignSelf: 'stretch' },
 	warningIcon: { marginTop: 3 },
 	warningTexts: { flex: 1, gap: 4 },
+	bridge: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, alignSelf: 'stretch' },
+	bridgeIcon: { width: 36, height: 36, borderRadius: 12, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+	bridgeTexts: { flex: 1, gap: 2 },
 	buttons: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
 	button: { flex: 1 },
 })
