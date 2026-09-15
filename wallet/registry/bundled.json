@@ -779,6 +779,12 @@
      "priority": 20,
      "owner": "hiro",
      "api": "hiro"
+    },
+    {
+     "url": "https://stacks-node-api.stacks.co",
+     "priority": 30,
+     "owner": "stacks-foundation",
+     "api": "hiro"
     }
    ]
   }
