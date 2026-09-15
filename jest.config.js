@@ -23,6 +23,6 @@ module.exports = {
   // sin estas excepciones cualquier suite que los importe de verdad revienta
   // con "Cannot use import statement outside a module".
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|number-flow-react-native|@scure|@noble|viem|abitype|ox|micro-packed)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|number-flow-react-native|@scure|@noble|viem|abitype|ox|micro-packed|@stacks|c32check|base-x)/)',
   ],
 };

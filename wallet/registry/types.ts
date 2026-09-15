@@ -5,11 +5,11 @@
  * propios entran con priority 0 y `enabled: false` hasta que sincronizan.
  */
 
-export type ChainKind = 'evm' | 'tron' | 'btc'
+export type ChainKind = 'evm' | 'tron' | 'btc' | 'stacks'
 
 export type RegistryToken = {
 	symbol: string
-	/** Contract address (EVM 0x…, TRON base58). */
+	/** Contract address (EVM 0x…, TRON base58; Stacks: identificador SIP-010 `SP….contrato::asset`). */
 	address: string
 	decimals: number
 }

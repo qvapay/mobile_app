@@ -281,7 +281,8 @@
 			"families": {
 				"tron": "TRON",
 				"evm": "ETH · BSC · Base",
-				"btc": "Bitcoin"
+				"btc": "Bitcoin",
+				"stacks": "Stacks"
 			},
 			"phrase": "Frase secreta",
 			"phraseHint": "12 palavras. Quem as tiver controla seus fundos. Só aparecem após verificar sua identidade.",

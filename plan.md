@@ -98,6 +98,15 @@ Plan original (referencia):
 - "Sacar a Mi Wallet": `Withdraw` con destino prellenado desde `WalletContext.addresses`.
 - **Aceptación**: round trip saldo → wallet → saldo sin teclear una dirección.
 
+## Stacks + QUSD (CÓDIGO HECHO 2026-09-15, falta aceptación en device)
+
+QUSD es el token de QvaPay: SIP-010 en Stacks, contrato `SP14CTSJZNKZ7YTR6C84368J2QXRW8RC20GSQ8KS2.QUSD` (asset `…QUSD::QUSD`, 8 decimales, `transfer(amount, sender, recipient, memo?)`; repo `qvapay/QUSD`; TronDealer es el único que mintea/quema). **El contrato cambia esta semana (versión GENIUS)**: el identificador vive SOLO en el registry (`bundled.json` v5 y `qvapay/rpc-registry`) — se cambia ahí y las apps lo cogen en el próximo refresco (TTL 1 h) sin publicar versión; el historial de qpweb filtra por el identificador que manda la app.
+- Registry: kind `stacks`, dialecto `hiro` (`https://api.hiro.so`, `api.mainnet.hiro.so`; nodo propio `stx.qvapay.com` registrado apagado), explorer `explorer.hiro.so`. Probe `GET /v2/info`. bundled pasa a **v5**: hay que publicar v5 en `qvapay/rpc-registry` (el remoto solo gana con `version >= bundled`).
+- Derivación `m/44'/5757'/0'/0/0` (cuenta 0 de Leather/Xverse), c32check `SP…` vía `@stacks/transactions` (`getAddressFromPublicKey`); vector `abandon…about` → `SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J`. `WalletAddresses` gana `stx` y `stxPublicKey` (pública: la tx sin firmar la necesita y así se construye sin leer la seed); WalletContext re-deriva la metadata anterior a Stacks una vez.
+- Saldos: `/extended/v1/address/{addr}/balances` (STX + tokens en una llamada). QUSD entra en la lista base (2.º), stable = $1; STX sin precio en el catálogo (no suma al total hasta que exista un tick STX).
+- Enviar (`wallet/stacks/tx.ts`): nonce `/extended/v1/address/{addr}/nonces`, fee `POST /v2/fees/transaction` (3 estimaciones = Económico/Normal/Rápido, suelo 0.001 STX, tope 5 STX, 400 = default 0.003), STX por `makeUnsignedSTXTokenTransfer`, QUSD por `makeUnsignedContractCall` con **post-condición `deny` exacta**; tras firmar se re-parsea (payload, args, post-condición, nonce, fee). Broadcast `POST /v2/transactions`. Historial vía qpweb (`chain=stacks`, proveedor Hiro).
+- Aceptación pendiente: recibir QUSD (mint desde QvaPay o desde Leather) y enviarlo desde la app; y STX. No hay coin STX/QUSD en `/coins/v2` todavía → sin puente "Pagar desde Mi Wallet" para Stacks hasta que exista.
+
 ## Fase 6 — Nodos propios (cuando la torre sincronice)
 
 - Cloudflare Tunnel: `tron|bsc|eth|base|btc.qvapay.com` (btc = esplora/Electrs). Solo lectura + broadcast; nunca `personal_*`/`admin_*`/`debug_*`. Rate limit.

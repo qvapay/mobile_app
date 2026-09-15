@@ -27,3 +27,20 @@ jest.mock('react-native-screenshot-prevent', () => ({
 	default: { enabled: () => {}, enableSecureView: () => {}, disableSecureView: () => {}, addListener: () => ({ remove: () => {} }) },
 	addListener: () => ({ remove: () => {} }),
 }))
+
+// AsyncStorage: el ESM del paquete no pasa por el transform y el nativo no existe en
+// jest. Mock en memoria global (las suites que lo mockean por su cuenta siguen mandando).
+jest.mock('@react-native-async-storage/async-storage', () => {
+	const store = new Map()
+	const api = {
+		getItem: jest.fn(async key => (store.has(key) ? store.get(key) : null)),
+		setItem: jest.fn(async (key, value) => { store.set(key, String(value)) }),
+		removeItem: jest.fn(async key => { store.delete(key) }),
+		multiGet: jest.fn(async keys => keys.map(key => [key, store.has(key) ? store.get(key) : null])),
+		multiSet: jest.fn(async pairs => { pairs.forEach(([key, value]) => store.set(key, String(value))) }),
+		multiRemove: jest.fn(async keys => { keys.forEach(key => store.delete(key)) }),
+		getAllKeys: jest.fn(async () => [...store.keys()]),
+		clear: jest.fn(async () => { store.clear() }),
+	}
+	return { __esModule: true, default: api, ...api }
+})

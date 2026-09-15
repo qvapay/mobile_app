@@ -7,6 +7,7 @@
  *   EVM  m/44'/60'/0'/0/0
  *   TRON m/44'/195'/0'/0/0   (secp256k1 + keccak → base58check con prefijo 0x41)
  *   BTC  m/84'/0'/0'/0/0     (P2WPKH bech32)
+ *   STX  m/44'/5757'/0'/0/0  (c32check versión 22 → SP…; la cuenta 0 de Leather/Xverse)
  */
 import { HDKey } from '@scure/bip32'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
@@ -16,11 +17,13 @@ import { p2wpkh } from '@scure/btc-signer'
 import bs58 from 'bs58'
 import { bytesToHex } from 'viem'
 import { privateKeyToAddress } from 'viem/accounts'
+import { getAddressFromPublicKey } from '@stacks/transactions'
 
 export const DERIVATION_PATHS = {
 	evm: "m/44'/60'/0'/0/0",
 	tron: "m/44'/195'/0'/0/0",
 	btc: "m/84'/0'/0'/0/0",
+	stacks: "m/44'/5757'/0'/0/0",
 } as const
 
 export type WalletAddresses = {
@@ -30,6 +33,10 @@ export type WalletAddresses = {
 	tron: string
 	/** Bech32 P2WPKH (bc1q…). */
 	btc: string
+	/** c32check mainnet (SP…). Metadata anterior a Stacks no lo trae: WalletContext re-deriva. */
+	stx: string
+	/** Clave PÚBLICA comprimida (hex) de la cuenta Stacks: la tx sin firmar la necesita y así se construye sin leer la seed. */
+	stxPublicKey: string
 }
 
 type DerivedKey = { privateKey: Uint8Array, publicKey: Uint8Array }
@@ -69,7 +76,13 @@ export const deriveAddresses = (seed: Uint8Array): WalletAddresses => ({
 	evm: evmAddressFromPrivateKey(deriveKey(seed, DERIVATION_PATHS.evm).privateKey),
 	tron: tronAddressFromPrivateKey(deriveKey(seed, DERIVATION_PATHS.tron).privateKey),
 	btc: btcAddressFromPublicKey(deriveKey(seed, DERIVATION_PATHS.btc).publicKey),
+	...stacksAccount(deriveKey(seed, DERIVATION_PATHS.stacks).publicKey),
 })
+
+const stacksAccount = (publicKey: Uint8Array): Pick<WalletAddresses, 'stx' | 'stxPublicKey'> => {
+	const stxPublicKey = bytesToHex(publicKey).slice(2)
+	return { stx: getAddressFromPublicKey(stxPublicKey, 'mainnet'), stxPublicKey }
+}
 
 /**
  * Clave privada para FIRMAR en una familia de cadenas. Solo la llaman los

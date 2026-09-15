@@ -30,7 +30,7 @@ import useDepositOrder from './useDepositOrder'
 
 // Wallet self-custody: pagar el depósito desde la propia wallet (Fase 5 del plan crypto)
 import { useWallet } from '../../wallet/WalletContext'
-import { useAssetCatalog } from '../crypto/wallet/walletQueries'
+import { useAssetCatalog } from '../crypto/wallet/useAssetCatalog'
 import { findAssetForCoin } from '../../wallet/assets'
 import { roundUpToDecimals } from '../../wallet/chains/units'
 import { ROUTES } from '../../routes'

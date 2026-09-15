@@ -15,18 +15,22 @@ import { broadcastEvmTransaction, getEvmFeeData, isValidEvmAddress, NATIVE_TRANS
 import type { PreparedEvmSend, SignedEvmTx } from '../../../wallet/evm/tx'
 import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, isValidBtcAddress, prepareBtcSend, signBtcTransaction } from '../../../wallet/btc/tx'
 import type { FeeTier, PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
+import { broadcastStacksTransaction, isValidStacksAddress, prepareStacksSend, signStacksTransaction } from '../../../wallet/stacks/tx'
+import type { PreparedStacksSend, SignedStacksTx } from '../../../wallet/stacks/tx'
 import type { WalletAsset } from '../../../wallet/assets'
 
-/** Todas las familias del registry envían: TRON, EVM y Bitcoin. */
-export const canSendAsset = (asset: Pick<WalletAsset, 'kind'>): boolean => asset.kind === 'tron' || asset.kind === 'evm' || asset.kind === 'btc'
+/** Todas las familias del registry envían: TRON, EVM, Bitcoin y Stacks. */
+export const canSendAsset = (asset: Pick<WalletAsset, 'kind'>): boolean => ['tron', 'evm', 'btc', 'stacks'].includes(asset.kind)
 
 /** Validación LOCAL del destino por familia (checksum incluido). */
 export const isValidAddressFor = (kind: WalletAsset['kind'], address: string): boolean =>
-	kind === 'tron' ? isValidTronAddress(address) : kind === 'evm' ? isValidEvmAddress(address) : isValidBtcAddress(address)
+	kind === 'tron' ? isValidTronAddress(address) : kind === 'evm' ? isValidEvmAddress(address) : kind === 'stacks' ? isValidStacksAddress(address) : isValidBtcAddress(address)
 
 export type SendIntent = {
 	chainKey: string
 	from: string
+	/** Solo Stacks: clave pública comprimida del remitente (la tx sin firmar la lleva). */
+	fromPublicKey?: string
 	to: string
 	/** Unidades mínimas del activo. */
 	amount: bigint
@@ -61,12 +65,14 @@ export type PreparedSend =
 	| { kind: 'tron', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedTronSend }
 	| { kind: 'evm', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedEvmSend }
 	| { kind: 'btc', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedBtcSend }
+	| { kind: 'stacks', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedStacksSend }
 
 /** Firma retenida solo para re-difundir la MISMA tx (mismo hash) tras un fallo de red. */
 export type SignedSend =
 	| { kind: 'tron', signature: string }
 	| { kind: 'evm', signed: SignedEvmTx }
 	| { kind: 'btc', signed: SignedBtcTx }
+	| { kind: 'stacks', signed: SignedStacksTx }
 
 export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier: FeeTier = 'normal'): Promise<PreparedSend> => {
 	const router = getAppRpcRouter()
@@ -105,6 +111,18 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
 			},
 		}
 	}
+	if (chain.kind === 'stacks') {
+		if (!intent.fromPublicKey) throw new Error('wallet: falta la clave pública Stacks (metadata sin migrar)')
+		const publicKey = intent.fromPublicKey
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareStacksSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount, contract: intent.contract }, publicKey, { signal, tier }))
+		return {
+			kind: 'stacks', chain, intent, inner,
+			summary: {
+				amount: intent.amount, feeEstimated: inner.fee, feeMax: null, activatesAccount: false, expiresAt: null, feeTier: inner.tier,
+				feeOptions: (['fast', 'normal', 'slow'] as FeeTier[]).map(t => ({ tier: t, feeEstimated: inner.feeByTier[t], etaMinutes: null })),
+			},
+		}
+	}
 	throw new Error(`wallet: enviar en ${chain.kind} aún no está disponible`)
 }
 
@@ -129,6 +147,7 @@ export const signPrepared = async (prepared: PreparedSend): Promise<SignedSend> 
 	try {
 		if (prepared.kind === 'tron') return { kind: 'tron', signature: signTronTransaction(prepared.inner.tx.raw_data_hex, privateKey) }
 		if (prepared.kind === 'btc') return { kind: 'btc', signed: signBtcTransaction(prepared.inner, privateKey) }
+		if (prepared.kind === 'stacks') return { kind: 'stacks', signed: signStacksTransaction(prepared.inner, privateKey) }
 		return { kind: 'evm', signed: await signEvmTransaction(prepared.inner, privateKey) }
 	} finally {
 		privateKey.fill(0)
@@ -148,6 +167,9 @@ export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend
 	}
 	if (prepared.kind === 'btc' && signed.kind === 'btc') {
 		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastBtcTransaction(rpc, signed.signed, { signal }))
+	}
+	if (prepared.kind === 'stacks' && signed.kind === 'stacks') {
+		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastStacksTransaction(rpc, signed.signed, { signal }))
 	}
 	throw new Error('wallet: firma y transacción de cadenas distintas')
 }

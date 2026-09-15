@@ -75,6 +75,8 @@ export const probeRpc: ProbeRequest = async (_chainKey, chain, rpc, timeoutMs) =
 		let res: Response
 		if (chain.kind === 'btc' || rpc.api === 'esplora') {
 			res = await fetch(`${rpc.url}/blocks/tip/height`, { signal: controller.signal, headers: rpc.headers })
+		} else if (chain.kind === 'stacks' || rpc.api === 'hiro') {
+			res = await fetch(`${rpc.url}/v2/info`, { signal: controller.signal, headers: rpc.headers })
 		} else if (chain.kind === 'tron' && rpc.api !== 'jsonrpc') {
 			res = await fetch(`${rpc.url}/wallet/getnowblock`, {
 				method: 'POST',

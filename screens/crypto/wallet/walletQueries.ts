@@ -20,9 +20,10 @@ import type { ApiError } from '../../../api/unwrap'
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import { getAppRpcRouter, useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
+import { useAssetCatalog } from './useAssetCatalog'
 import { fetchAllBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
-import { addressForKind, buildAssetCatalog, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
+import { addressForKind, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
 import type { AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 import { applyNewerPages, applyOlderPage, HISTORY_SYNC_MAX_PAGES, overlapsCache } from '../../../wallet/historyMerge'
 import type { HistoryCache } from '../../../wallet/historyMerge'
@@ -148,11 +149,7 @@ export const usePriceMap = (): PriceMap => {
 	}, [coins])
 }
 
-/** Catálogo completo del registro efectivo (remoto/bundled + nodos custom). */
-export const useAssetCatalog = (): WalletAsset[] => {
-	const registry = useEffectiveRegistry()
-	return useMemo(() => buildAssetCatalog(registry), [registry])
-}
+export { useAssetCatalog } from './useAssetCatalog'
 
 /**
  * Todo lo que pinta la home de la wallet: activos valorados, los visibles ya

@@ -18,6 +18,9 @@ jest.mock('../../settings/SettingsContext', () => ({ useSettings: () => ({ sound
 jest.mock('../../helpers/playSound', () => jest.fn())
 jest.mock('../../helpers/walletDeeplinks', () => ({ detectInstalledWallets: jest.fn() }))
 jest.mock('../../helpers/inAppReview', () => ({ maybeRequestReview: jest.fn() }))
+// Puente con la wallet self-custody: sin wallet en estos tests (el botón "Pagar desde Mi Wallet" no aparece)
+jest.mock('../../wallet/WalletContext', () => ({ useWallet: () => ({ hasWallet: false, isBackedUp: false, addresses: null }) }))
+jest.mock('../crypto/wallet/useAssetCatalog', () => ({ useAssetCatalog: () => [] }))
 jest.mock('../../ui/QPKeyboardView', () => {
 	const React = require('react')
 	const { View } = require('react-native')

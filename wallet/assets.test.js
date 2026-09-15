@@ -82,7 +82,7 @@ describe('valoración y visibilidad', () => {
 		const sorted = sortAssets(views).map(v => `${v.chainKey}:${v.symbol}`)
 		expect(sorted.slice(0, 3)).toEqual(['tron:USDT', 'bitcoin:BTC', 'tron:TRX'])
 		// ceros después, en el orden de la lista base
-		expect(sorted.slice(3)).toEqual(['bsc:USDT', 'ethereum:ETH', 'base:ETH', 'bsc:BNB'])
+		expect(sorted.slice(3)).toEqual(['stacks:QUSD', 'bsc:USDT', 'ethereum:ETH', 'base:ETH', 'bsc:BNB'])
 		expect(totalUsd(views)).toBeCloseTo(820 + 92.4 + 15.334, 2)
 	})
 })
@@ -93,6 +93,8 @@ describe('exploradores', () => {
 		expect(explorerAddressUrl(bundled.chains.bsc, '0x1')).toBe('https://bscscan.com/address/0x1')
 		expect(explorerAddressUrl(bundled.chains.tron, 'TX')).toBe('https://tronscan.org/#/address/TX')
 		expect(explorerAddressUrl(bundled.chains.bitcoin, 'bc1q')).toBe('https://mempool.space/address/bc1q')
+		expect(explorerAddressUrl(bundled.chains.stacks, 'SPX')).toBe('https://explorer.hiro.so/address/SPX?chain=mainnet')
+		expect(find('stacks', 'QUSD')).toMatchObject({ stable: true, decimals: 8, contract: 'SP14CTSJZNKZ7YTR6C84368J2QXRW8RC20GSQ8KS2.QUSD::QUSD', networkTick: 'STX', priceTick: 'QUSD' })
 		expect(byId['bitcoin:native']).toBeDefined()
 	})
 })

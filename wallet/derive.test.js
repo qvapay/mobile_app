@@ -64,6 +64,11 @@ describe('deriveAddresses — vectores conocidos', () => {
 	test("BTC m/84'/0'/0'/0/0 (primer address de la spec BIP-84)", () => {
 		expect(addresses.btc).toBe('bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu')
 	})
+
+	test('STX: cuenta 0 de Leather/Xverse (m/44\'/5757\'/0\'/0/0, c32check SP…)', () => {
+		expect(addresses.stx).toBe('SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J')
+		expect(addresses.stxPublicKey).toMatch(/^0[23][0-9a-f]{64}$/)
+	})
 })
 
 describe('derivePrivateKey', () => {

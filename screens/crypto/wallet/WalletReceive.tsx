@@ -30,7 +30,7 @@ import type { RootStackParamList } from '../../../types/navigation'
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletReceive'>
 
 /** Nombre del estándar del token por familia, para el aviso de red ("USDT (TRC-20)"). */
-const TOKEN_STANDARD: Record<string, string> = { tron: 'TRC-20', bsc: 'BEP-20', ethereum: 'ERC-20' }
+const TOKEN_STANDARD: Record<string, string> = { tron: 'TRC-20', bsc: 'BEP-20', ethereum: 'ERC-20', stacks: 'SIP-010' }
 
 /**
  * Recibir en la wallet self-custody. Sin `assetId` lista los activos (qué

@@ -45,6 +45,7 @@ const NATIVE_TICKS: Record<string, string> = {
 	MATIC: 'MATICMAINNET',
 	TRX: 'TRX',
 	BTC: 'BTC',
+	STX: 'STX',
 }
 
 const NETWORK_TICKS: Record<string, string> = {
@@ -54,9 +55,10 @@ const NETWORK_TICKS: Record<string, string> = {
 	polygon: 'MATICMAINNET',
 	tron: 'TRX',
 	bitcoin: 'BTC',
+	stacks: 'STX',
 }
 
-const STABLES = new Set(['USDT', 'USDC', 'USDC.E', 'DAI', 'PYUSD', 'TUSD'])
+const STABLES = new Set(['USDT', 'USDC', 'USDC.E', 'DAI', 'PYUSD', 'TUSD', 'QUSD'])
 
 /** Nombre corto de red para las filas ("BNB Chain" se lee mejor que "BNB Smart Chain"). */
 const SHORT_CHAIN_NAMES: Record<string, string> = {
@@ -74,6 +76,8 @@ const chainDisplayName = (chainKey: string, chain: RegistryChain): string =>
  */
 export const DEFAULT_ASSETS: Array<{ chainKey: string, symbol: string }> = [
 	{ chainKey: 'tron', symbol: 'USDT' },
+	// QUSD (Stacks): el token de QvaPay, segundo en la lista base
+	{ chainKey: 'stacks', symbol: 'QUSD' },
 	{ chainKey: 'bsc', symbol: 'USDT' },
 	{ chainKey: 'bitcoin', symbol: 'BTC' },
 	{ chainKey: 'ethereum', symbol: 'ETH' },
@@ -123,7 +127,7 @@ export const buildAssetCatalog = (registry: RpcRegistry): WalletAsset[] =>
 
 /** Dirección del usuario que corresponde a la familia de la cadena. */
 export const addressForKind = (addresses: WalletAddresses, kind: ChainKind): string =>
-	kind === 'evm' ? addresses.evm : kind === 'tron' ? addresses.tron : addresses.btc
+	kind === 'evm' ? addresses.evm : kind === 'tron' ? addresses.tron : kind === 'stacks' ? addresses.stx : addresses.btc
 
 const defaultRank = (asset: WalletAsset): number =>
 	DEFAULT_ASSETS.findIndex(d => d.chainKey === asset.chainKey && d.symbol === asset.symbol)
@@ -204,6 +208,7 @@ export const explorerAddressUrl = (chain: RegistryChain | undefined, address: st
 	const encoded = encodeURIComponent(address)
 	if (chain.explorer.includes('#/transaction/{tx}')) return chain.explorer.replace('#/transaction/{tx}', `#/address/${encoded}`)
 	if (chain.explorer.includes('/tx/{tx}')) return chain.explorer.replace('/tx/{tx}', `/address/${encoded}`)
+	if (chain.explorer.includes('/txid/{tx}')) return chain.explorer.replace('/txid/{tx}', `/address/${encoded}`)
 	return null
 }
 
@@ -219,10 +224,11 @@ const QVAPAY_NETWORK_TO_CHAIN: Record<string, string> = {
 	BASE: 'base',
 	POL: 'polygon',
 	BTC: 'bitcoin',
+	STX: 'stacks',
 }
 
 /** Ticks del catálogo que son el NATIVO de su red (BTCLN no: es Lightning, no on-chain). */
-const NATIVE_COIN_TICKS = new Set(['ETH', 'BNBBSC', 'MATICMAINNET', 'TRX', 'BTC'])
+const NATIVE_COIN_TICKS = new Set(['ETH', 'BNBBSC', 'MATICMAINNET', 'TRX', 'BTC', 'STX'])
 
 /**
  * Activo de la wallet que corresponde a una moneda de depósito/retiro de
@@ -235,7 +241,7 @@ export const findAssetForCoin = (catalog: WalletAsset[], coin: { tick: string, n
 	if (!chainKey) return null
 	const tick = coin.tick.toUpperCase()
 	if (NATIVE_COIN_TICKS.has(tick)) return catalog.find(a => a.chainKey === chainKey && a.contract === null) ?? null
-	const symbol = tick.startsWith('USDT') ? 'USDT' : tick.startsWith('USDC') ? 'USDC' : null
+	const symbol = tick.startsWith('USDT') ? 'USDT' : tick.startsWith('USDC') ? 'USDC' : tick.startsWith('QUSD') ? 'QUSD' : null
 	if (!symbol) return null
 	return catalog.find(a => a.chainKey === chainKey && a.contract !== null && a.symbol.toUpperCase() === symbol) ?? null
 }

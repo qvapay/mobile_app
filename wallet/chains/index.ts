@@ -14,6 +14,7 @@ import type { RawBalances } from '../assets'
 import { getBtcBalance } from './btc'
 import { getEvmNativeBalance, getEvmTokenBalance } from './evm'
 import { getTronNativeBalance, getTronTokenBalance } from './tron'
+import { ftBalanceOf, getStacksBalances, stxBalanceOf } from './stacks'
 
 type RouterLike = Pick<RpcRouter, 'call'>
 
@@ -34,6 +35,11 @@ export const fetchChainBalances = async (
 
 		if (chain.kind === 'btc') {
 			entries.push(getBtcBalance(rpc, owner, { signal }).then(v => [nativeId, v]))
+		} else if (chain.kind === 'stacks') {
+			// Una sola llamada trae STX y todos los tokens
+			const all = getStacksBalances(rpc, owner, { signal })
+			entries.push(all.then(b => [nativeId, stxBalanceOf(b)]))
+			tokens.forEach(token => entries.push(all.then(b => [tokenAssetId(chainKey, token.address), ftBalanceOf(b, token.address)])))
 		} else if (chain.kind === 'tron') {
 			entries.push(getTronNativeBalance(rpc, owner, { signal }).then(v => [nativeId, v]))
 			tokens.forEach(token => entries.push(

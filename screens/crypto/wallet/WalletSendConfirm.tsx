@@ -84,7 +84,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		if (!asset || !addresses || !chain) return
 		setPhase('preparing'); setError(null); signedRef.current = null
 		try {
-			const intent = { chainKey: asset.chainKey, from: addressForKind(addresses, asset.kind), to, amount: parseUnits(amount, asset.decimals), contract: asset.contract }
+			const intent = { chainKey: asset.chainKey, from: addressForKind(addresses, asset.kind), fromPublicKey: addresses.stxPublicKey, to, amount: parseUnits(amount, asset.decimals), contract: asset.contract }
 			setPrepared(await prepareSend(chain, intent, feeTier))
 			setPhase('ready')
 		} catch (err) {
