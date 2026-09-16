@@ -120,6 +120,37 @@ describe('prepare + firma verificada', () => {
 	})
 })
 
+describe('patrocinada (swap a saldo QvaPay)', () => {
+	test('fee 0 sin pedir estimación, authType sponsored, misma post-condición; la verificación acepta', async () => {
+		mockHiro()
+		const prepared = await prepareStacksSend(RPC, { from: FROM, to: TO, amount: 500_000_000n, contract: QUSD }, ADDR.stxPublicKey, { sponsored: true })
+		expect(prepared.sponsored).toBe(true)
+		expect(prepared.fee).toBe(0n)
+		expect(prepared.feeByTier).toEqual({ slow: 0n, normal: 0n, fast: 0n })
+		expect(calls.some(c => c.url.endsWith('/v2/fees/transaction'))).toBe(false)
+		const signed = signStacksTransaction(prepared, PRIV)
+		const tx = deserializeTransaction(signed.hex)
+		expect(tx.auth.authType).toBe(5)
+		expect(tx.auth.spendingCondition.fee).toBe(0n)
+		expect(tx.postConditionMode).toBe(2)
+		expect(tx.postConditions.values).toHaveLength(1)
+		expect(() => verifySignedStacksTransaction(signed, prepared)).not.toThrow()
+	})
+
+	test('una firma estándar no pasa como patrocinada ni al revés; fee ≠ 0 patrocinada se rechaza', async () => {
+		mockHiro()
+		const sponsored = await prepareStacksSend(RPC, { from: FROM, to: TO, amount: 1n, contract: QUSD }, ADDR.stxPublicKey, { sponsored: true })
+		const standard = await prepareStacksSend(RPC, { from: FROM, to: TO, amount: 1n, contract: QUSD }, ADDR.stxPublicKey)
+		const signedSponsored = signStacksTransaction(sponsored, PRIV)
+		const signedStandard = signStacksTransaction(standard, PRIV)
+		expect(() => verifySignedStacksTransaction(signedStandard, { ...sponsored, fee: standard.fee })).toThrow(/no está patrocinada/)
+		expect(() => verifySignedStacksTransaction(signedSponsored, { ...standard, fee: 0n })).toThrow(/patrocinada inesperada/)
+		expect(() => verifySignedStacksTransaction(signedSponsored, { ...sponsored, fee: 10n })).toThrow(/fee/)
+		// El destino sigue siendo lo verificado: la tesorería la pone el backend en la intención
+		expect(() => verifySignedStacksTransaction(signedSponsored, { ...sponsored, intent: { ...sponsored.intent, to: FROM } })).toThrow(/destino/)
+	})
+})
+
 describe('broadcast', () => {
 	const signed = { hex: '00', txid: 'ab'.repeat(32) }
 	test('txid como JSON string, en mempool = duplicado, rechazo de negocio no rota, 5xx rota', async () => {

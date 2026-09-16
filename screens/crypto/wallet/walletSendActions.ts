@@ -74,7 +74,10 @@ export type SignedSend =
 	| { kind: 'btc', signed: SignedBtcTx }
 	| { kind: 'stacks', signed: SignedStacksTx }
 
-export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier: FeeTier = 'normal'): Promise<PreparedSend> => {
+/** `sponsored` (solo Stacks): tx patrocinada para el swap a saldo — fee 0, sin opciones de fee, y `broadcastSigned` la rechaza. */
+export type PrepareOptions = { sponsored?: boolean }
+
+export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier: FeeTier = 'normal', options: PrepareOptions = {}): Promise<PreparedSend> => {
 	const router = getAppRpcRouter()
 	if (chain.kind === 'tron') {
 		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareTronSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount, contract: intent.contract }, { signal }), { accept: TRON_TX_RPC })
@@ -114,12 +117,13 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
 	if (chain.kind === 'stacks') {
 		if (!intent.fromPublicKey) throw new Error('wallet: falta la clave pública Stacks (metadata sin migrar)')
 		const publicKey = intent.fromPublicKey
-		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareStacksSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount, contract: intent.contract }, publicKey, { signal, tier }))
+		const sponsored = options.sponsored === true
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareStacksSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount, contract: intent.contract }, publicKey, { signal, tier, sponsored }))
 		return {
 			kind: 'stacks', chain, intent, inner,
 			summary: {
-				amount: intent.amount, feeEstimated: inner.fee, feeMax: null, activatesAccount: false, expiresAt: null, feeTier: inner.tier,
-				feeOptions: (['fast', 'normal', 'slow'] as FeeTier[]).map(t => ({ tier: t, feeEstimated: inner.feeByTier[t], etaMinutes: null })),
+				amount: intent.amount, feeEstimated: inner.fee, feeMax: null, activatesAccount: false, expiresAt: null, feeTier: sponsored ? null : inner.tier,
+				feeOptions: sponsored ? [] : (['fast', 'normal', 'slow'] as FeeTier[]).map(t => ({ tier: t, feeEstimated: inner.feeByTier[t], etaMinutes: null })),
 			},
 		}
 	}
@@ -169,6 +173,8 @@ export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend
 		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastBtcTransaction(rpc, signed.signed, { signal }))
 	}
 	if (prepared.kind === 'stacks' && signed.kind === 'stacks') {
+		// Una patrocinada sin co-firma no vale nada en la red y, si valiera, la pagaría el usuario
+		if (prepared.inner.sponsored) throw new Error('wallet: una tx patrocinada no se difunde desde la app')
 		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastStacksTransaction(rpc, signed.signed, { signal }))
 	}
 	throw new Error('wallet: firma y transacción de cadenas distintas')

@@ -14,6 +14,7 @@
 import { secp256k1 } from '@noble/curves/secp256k1.js'
 import {
 	addressToString,
+	AuthType,
 	cvToValue,
 	deserializeTransaction,
 	makeUnsignedContractCall,
@@ -82,13 +83,19 @@ export type PreparedStacksSend = {
 	feeByTier: Record<FeeTier, bigint>
 	/** Clave pública comprimida (hex) que firmará: la verificación exige que el firmante sea `from`. */
 	publicKey: string
+	/**
+	 * Patrocinada (swap a saldo QvaPay): fee 0 y authType sponsored; la co-firma y paga
+	 * la tesorería vía el backend. La app NUNCA difunde una patrocinada: la manda a
+	 * `POST /swap` como hex.
+	 */
+	sponsored: boolean
 }
 
 export class StacksVerifyError extends Error {
 	constructor(message: string) { super(message); this.name = 'StacksVerifyError' }
 }
 
-type Deps = { signal?: AbortSignal, tier?: FeeTier }
+type Deps = { signal?: AbortSignal, tier?: FeeTier, sponsored?: boolean }
 const base = (rpc: RegistryRpc) => rpc.url.replace(/\/+$/, '')
 
 export const getStacksNonce = async (rpc: RegistryRpc, address: string, deps: Deps = {}): Promise<bigint> => {
@@ -128,9 +135,9 @@ export const estimateStacksFee = async (rpc: RegistryRpc, tx: StacksTransactionW
 	}
 }
 
-const buildUnsigned = async (intent: StacksSendIntent, publicKey: string, nonce: bigint, fee: bigint): Promise<StacksTransactionWire> => {
+const buildUnsigned = async (intent: StacksSendIntent, publicKey: string, nonce: bigint, fee: bigint, sponsored = false): Promise<StacksTransactionWire> => {
 	if (intent.contract === null) {
-		return makeUnsignedSTXTokenTransfer({ recipient: intent.to, amount: intent.amount, fee, nonce, publicKey, network: 'mainnet' })
+		return makeUnsignedSTXTokenTransfer({ recipient: intent.to, amount: intent.amount, fee, nonce, publicKey, network: 'mainnet', sponsored })
 	}
 	const { address, name, asset } = parseAssetIdentifier(intent.contract)
 	return makeUnsignedContractCall({
@@ -145,6 +152,7 @@ const buildUnsigned = async (intent: StacksSendIntent, publicKey: string, nonce:
 		nonce,
 		publicKey,
 		network: 'mainnet',
+		sponsored,
 	})
 }
 
@@ -158,11 +166,16 @@ export const prepareStacksSend = async (rpc: RegistryRpc, intent: StacksSendInte
 	if (intent.amount <= 0n) throw new ChainHttpError('stacks: cantidad inválida', { retryable: false })
 	const tier = deps.tier ?? 'normal'
 	const nonce = await getStacksNonce(rpc, intent.from, deps)
+	if (deps.sponsored) {
+		// Patrocinada: fee 0 sin estimar (la pone quien co-firma); mismo payload y post-condición
+		const tx = await buildUnsigned(intent, publicKey, nonce, 0n, true)
+		return { intent, tx, nonce, fee: 0n, tier, feeByTier: { slow: 0n, normal: 0n, fast: 0n }, publicKey, sponsored: true }
+	}
 	const draft = await buildUnsigned(intent, publicKey, nonce, DEFAULT_FEE_USTX)
 	const feeByTier = await estimateStacksFee(rpc, draft, deps)
 	const fee = feeByTier[tier]
 	const tx = await buildUnsigned(intent, publicKey, nonce, fee)
-	return { intent, tx, nonce, fee, tier, feeByTier, publicKey }
+	return { intent, tx, nonce, fee, tier, feeByTier, publicKey, sponsored: false }
 }
 
 // ---------------------------------------------------------------------------
@@ -184,11 +197,15 @@ export const signStacksTransaction = (prepared: PreparedStacksSend, privateKey: 
 	return signed
 }
 
-export const verifySignedStacksTransaction = ({ hex }: SignedStacksTx, { intent, nonce, fee }: PreparedStacksSend): void => {
+export const verifySignedStacksTransaction = ({ hex }: SignedStacksTx, { intent, nonce, fee, sponsored }: PreparedStacksSend): void => {
 	const tx = deserializeTransaction(hex)
+	// authType 4 = estándar, 5 = patrocinada: una firma estándar donde se esperaba patrocinada
+	// pagaría fee del usuario (o al revés, nadie la pagaría)
+	if (tx.auth.authType !== (sponsored ? AuthType.Sponsored : AuthType.Standard)) throw new StacksVerifyError(sponsored ? 'la tx no está patrocinada' : 'tx patrocinada inesperada')
 	const spending = tx.auth.spendingCondition as { nonce: bigint, fee: bigint }
 	if (spending.nonce !== nonce) throw new StacksVerifyError('nonce distinto')
 	if (spending.fee !== fee) throw new StacksVerifyError('fee distinta')
+	if (sponsored && fee !== 0n) throw new StacksVerifyError('fee patrocinada debe ser 0')
 	if (fee > MAX_FEE_USTX) throw new StacksVerifyError('fee por encima del tope')
 
 	const payload = tx.payload
