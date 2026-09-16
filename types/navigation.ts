@@ -132,6 +132,9 @@ export type RootStackParamList = {
 	WalletSendSuccess: { assetId: string, txid: string, amount: string, to: string }
 	/** Movimiento ya cargado en la actividad (serializable): no se vuelve a pedir. */
 	WalletTxDetail: { assetId: string, tx: WalletTx }
+	/** Swap saldo ↔ QUSD; `direction` preselecciona el sentido (out = saldo → wallet). */
+	WalletSwap: { direction?: 'out' | 'in' } | undefined
+	WalletSwapStatus: { uuid: string }
 
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined

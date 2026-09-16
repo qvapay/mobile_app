@@ -14,7 +14,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
-import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/assets'
+import { addressForKind, assetPrice, explorerAddressUrl, isHouseToken } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
 import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
@@ -203,6 +203,14 @@ const WalletAsset = ({ navigation, route }: Props) => {
 					label={t('crypto.wallet.home.actions.receive')}
 					onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_RECEIVE, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP))}
 				/>
+				{isHouseToken(asset) && (
+					<Action
+						theme={theme}
+						icon="arrows-rotate"
+						label={t('crypto.wallet.home.actions.swap')}
+						onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_SWAP, undefined) : navigation.navigate(ROUTES.WALLET_BACKUP))}
+					/>
+				)}
 				<Action theme={theme} icon="up-right-from-square" label={t('crypto.wallet.asset.explorer')} onPress={() => openUrl(address ? explorerAddressUrl(chain, address) : null)} />
 			</View>
 

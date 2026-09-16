@@ -93,6 +93,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	const actions: WalletAction[] = [
 		{ icon: 'paper-plane', label: t('crypto.wallet.home.actions.send'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SEND, undefined)) },
 		{ icon: 'qrcode', label: t('crypto.wallet.home.actions.receive'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_RECEIVE, undefined)) },
+		// Swap saldo ↔ QUSD: mueve saldo custodial a la wallet, así que exige el backup igual que Recibir
+		{ icon: 'arrows-rotate', label: t('crypto.wallet.home.actions.swap'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SWAP, undefined)) },
 		{ icon: 'arrow-right-arrow-left', label: t('crypto.wallet.home.actions.p2p'), onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]
 

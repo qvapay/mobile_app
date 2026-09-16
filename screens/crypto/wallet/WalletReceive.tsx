@@ -12,7 +12,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import { addressForKind, findCoinForAsset, isDefaultAsset } from '../../../wallet/assets'
+import { addressForKind, findCoinForAsset, isDefaultAsset, isHouseToken } from '../../../wallet/assets'
 import useCoins from '../../../hooks/useCoins'
 import { ROUTES } from '../../../routes'
 import type { WalletAsset } from '../../../wallet/assets'
@@ -144,9 +144,10 @@ const WalletReceive = ({ navigation, route }: Props) => {
 				</View>
 			</View>
 
-			{!!bridgeCoin && !!address && (
+			{(!!bridgeCoin || isHouseToken(asset)) && !!address && (
 				<QPPressable
-					onPress={() => navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: bridgeCoin.tick, prefillAddress: address })}
+					// QUSD: el swap (1:1, sin comisión, sin teclear direcciones) sustituye al retiro genérico
+					onPress={() => (isHouseToken(asset) ? navigation.navigate(ROUTES.WALLET_SWAP, { direction: 'out' }) : navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: bridgeCoin!.tick, prefillAddress: address }))}
 					style={[styles.bridge, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
 					accessibilityRole="button"
 				>

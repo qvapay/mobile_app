@@ -111,5 +111,9 @@
 	},
 	"announcement": {
 		"loadFailed": "Não foi possível obter o aviso"
+	},
+	"swap": {
+		"createFailed": "Não foi possível criar o swap",
+		"cancelFailed": "Não foi possível cancelar o swap"
 	}
 }

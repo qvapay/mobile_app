@@ -25,7 +25,9 @@
 		"walletManageAssets": "Gestionar activos",
 		"walletSend": "Enviar",
 		"walletSendConfirm": "Confirmar envío",
-		"walletTxDetail": "Movimiento"
+		"walletTxDetail": "Movimiento",
+		"walletSwap": "Swap",
+		"walletSwapStatus": "Estado del swap"
 	},
 	"tabs": {
 		"home": "Inicio",

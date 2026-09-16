@@ -160,7 +160,8 @@
 			"actions": {
 				"send": "Enviar",
 				"receive": "Receber",
-				"p2p": "P2P"
+				"p2p": "P2P",
+				"swap": "Swap"
 			},
 			"sendSoon": "Enviar da sua carteira chega muito em breve.",
 			"staleChains_one": "Não conseguimos atualizar {{count}} rede. Você vê o último saldo conhecido.",
@@ -314,6 +315,61 @@
 			"contract": "Contrato",
 			"hash": "Hash",
 			"pendingHint": "Está na rede aguardando bloco. No Bitcoin pode levar alguns minutos; nas outras, segundos."
+		},
+		"swap": {
+			"title": "Swap",
+			"directionOut": "Saldo → Carteira",
+			"directionIn": "Carteira → Saldo",
+			"fromLabel": "De",
+			"toLabel": "Para",
+			"balanceQvaPay": "Saldo QvaPay",
+			"walletQusd": "{{symbol}} na sua carteira",
+			"amountLabel": "Valor",
+			"rate": "1 {{symbol}} = 1 USD · Sem taxa",
+			"receive": "Você recebe {{amount}}",
+			"limitToday": "Limite disponível hoje: {{amount}}",
+			"limitUnlimited": "Sem limite (conta verificada)",
+			"sponsoredNote": "A taxa de rede é paga pela QvaPay: você não precisa de STX.",
+			"outNote": "O QUSD chega à sua carteira na rede Stacks em ~1 minuto.",
+			"cta": "Continuar",
+			"ctaIn": "Assinar e enviar",
+			"notRegistered": "Abra sua carteira não custodial para registrar seu endereço Stacks.",
+			"disabled": "O swap não está disponível agora.",
+			"authSubtitle": "Enviar {{amount}} {{symbol}} da sua carteira para o seu saldo QvaPay",
+			"errors": {
+				"amountInvalid": "Use um valor com até duas casas decimais",
+				"belowMin": "O mínimo é {{amount}}",
+				"aboveMax": "O máximo por swap é {{amount}}",
+				"insufficientBalance": "Saldo insuficiente",
+				"insufficientWallet": "{{symbol}} insuficiente na sua carteira",
+				"overLimit": "Excede seu limite disponível hoje ({{amount}})",
+				"createFailed": "Não foi possível criar o swap",
+				"noStacksKey": "Sua carteira não tem a chave Stacks. Abra-a novamente para regenerá-la."
+			},
+			"status": {
+				"pending": "Na fila",
+				"dispatching": "Enviando para a rede",
+				"sent": "Aguardando confirmação",
+				"completed": "Concluído",
+				"failed": "Não foi possível concluir",
+				"refunded": "Reembolsado",
+				"needs_review": "Em análise",
+				"pendingHint": "Processado em menos de um minuto.",
+				"sentHint": "A transação está na rede Stacks; costuma confirmar em alguns minutos.",
+				"completedOut": "O QUSD já está na sua carteira.",
+				"completedIn": "O saldo já está na sua conta QvaPay.",
+				"refundedHint": "O valor voltou para o seu saldo QvaPay.",
+				"failedNonce": "A transação assinada expirou porque sua carteira fez outro envio. Tente de novo.",
+				"failedFunds": "Sua carteira não tinha QUSD suficiente ao processar.",
+				"failedGeneric": "Nada saiu da sua carteira.",
+				"reviewHint": "Um operador está analisando este swap. Avisaremos você.",
+				"txLabel": "Transação",
+				"viewExplorer": "Ver no explorador",
+				"cancel": "Cancelar swap",
+				"cancelled": "Swap cancelado e saldo reembolsado",
+				"retry": "Tentar de novo",
+				"done": "Pronto"
+			}
 		}
 	}
 }

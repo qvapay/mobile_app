@@ -100,6 +100,8 @@ import WalletSend from './screens/crypto/wallet/WalletSend'
 import WalletSendConfirm from './screens/crypto/wallet/WalletSendConfirm'
 import WalletSendSuccess from './screens/crypto/wallet/WalletSendSuccess'
 import WalletTxDetail from './screens/crypto/wallet/WalletTxDetail'
+import WalletSwap from './screens/crypto/wallet/WalletSwap'
+import WalletSwapStatus from './screens/crypto/wallet/WalletSwapStatus'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -261,6 +263,8 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// Sin volver atrás: la tx ya está en la red
 	{ name: ROUTES.WALLET_SEND_SUCCESS, component: WalletSendSuccess, options: { ...getHeaderOptions(''), headerShown: false, gestureEnabled: false } },
 	{ name: ROUTES.WALLET_TX_DETAIL, component: WalletTxDetail, options: getHeaderOptions(t('navigation.headers.walletTxDetail')) },
+	{ name: ROUTES.WALLET_SWAP, component: WalletSwap, options: getHeaderOptions(t('navigation.headers.walletSwap')) },
+	{ name: ROUTES.WALLET_SWAP_STATUS, component: WalletSwapStatus, options: { ...getHeaderOptions(t('navigation.headers.walletSwapStatus')), gestureEnabled: false } },
 
 	// QR Scan Screen
 	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', headerShown: false } },

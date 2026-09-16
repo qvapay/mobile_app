@@ -107,6 +107,15 @@ QUSD es el token de QvaPay: SIP-010 en Stacks, contrato `SP14CTSJZNKZ7YTR6C84368
 - Enviar (`wallet/stacks/tx.ts`): nonce `/extended/v1/address/{addr}/nonces`, fee `POST /v2/fees/transaction` (3 estimaciones = Económico/Normal/Rápido, suelo 0.001 STX, tope 5 STX, 400 = default 0.003), STX por `makeUnsignedSTXTokenTransfer`, QUSD por `makeUnsignedContractCall` con **post-condición `deny` exacta**; tras firmar se re-parsea (payload, args, post-condición, nonce, fee). Broadcast `POST /v2/transactions`. Historial vía qpweb (`chain=stacks`, proveedor Hiro).
 - Aceptación pendiente: recibir QUSD (mint desde QvaPay o desde Leather) y enviarlo desde la app; y STX. No hay coin STX/QUSD en `/coins/v2` todavía → sin puente "Pagar desde Mi Wallet" para Stacks hasta que exista.
 
+## Swap saldo QvaPay ↔ QUSD (CÓDIGO HECHO 2026-09-16 en los tres repos, falta config + aceptación en device)
+
+Primer par de un motor genérico: saldo custodial ↔ QUSD en la wallet, 1:1 sin comisión, sin KYC con topes diario/mensual (decisión de producto; `SWAP_REQUIRE_KYC=on` en qpweb lo revierte — el memo del CCO del 8 sep choca con esto, pendiente de validar con él). Plan completo: `~/.claude/plans/ahora-si-co-o-gracias-cached-scone.md`.
+- **App**: `WalletSwap` (tile "Swap" en el Home de la wallet, acción en `WalletAsset` de QUSD y "Desde tu saldo QvaPay" en `WalletReceive` de QUSD) + `WalletSwapStatus` (polling 5 s a `GET /swap/{uuid}`). OUT = PIN/OTP de cuenta (`useSwapOut`, mecánica del retiro). IN = tx **patrocinada** (`prepareSend(..., { sponsored: true })`: fee 0, authType 5, misma post-condición deny) firmada tras `WalletAuthModal` y enviada como hex (`useSwapIn`); la app NUNCA la difunde. Tesorería y asset del par vienen de `GET /swap/pairs`, nunca del registry local: el cambio a QUSD V2 es config.
+- **qpweb**: tabla `swaps` (migración manual `prisma/migrations/swaps-2026-09-16.sql`), `scripts/swap/{pairs,limits,stacks-verify,decisions,engine}.js`, rutas `/api/swap*`, crons `swap-dispatch` + `swap-confirm` (cada minuto), `/admin/qusd` con swaps + saldo de tesorería. El swap NO mintea ni quema (Move): `supply = Σ balances + QUSD fuera de tesorería`. `flow_code` NULL hasta que el CCO cree `*_SWAP_OUT/IN`. Env: `QUSD_TREASURY_ADDRESS` (obligatoria), `QUSD_CONTRACT_ID`, `SWAP_*`, `HIRO_API_KEY`.
+- **TronDealer**: `app/utils/stx.js` (nonce lock, contrato por env `QUSD_CONTRACT_ID`, `MAIN_STX_WALLET` + `STX_PRIVATE_KEY`/`STACKS_MNEMONIC` con aserción, broadcast que falla de verdad), tabla `stx_outbound` (migración `2026_33`), rutas `/stx/transfer` (idempotente por `reference`, RBF con `rebroadcast`), `/stx/sponsor` (verifica la forma exacta + saldo/nonce del origen antes de pagar la fee), `/stx/outbound/{reference}`; `mint|burn|withdraw` refactorizadas encima. Kill-switch `STX_PAYOUTS_PAUSED`. `npm test` (29 tests).
+- **Orden de despliegue**: TronDealer (migración Supabase + envs + restart `tron-web`) → qpweb (migración MySQL + envs en Vercel + deploy) → app.
+- **Aceptación**: OUT $5 → QUSD en la wallet en < 1 min; IN $5 sin STX en la wallet → saldo acreditado; repetir con la misma clave no duplica; el tope sin KYC bloquea; cancelar un OUT `pending` reembolsa.
+
 ## Fase 6 — Nodos propios (cuando la torre sincronice)
 
 - Cloudflare Tunnel: `tron|bsc|eth|base|btc.qvapay.com` (btc = esplora/Electrs). Solo lectura + broadcast; nunca `personal_*`/`admin_*`/`debug_*`. Rate limit.
@@ -114,7 +123,7 @@ QUSD es el token de QvaPay: SIP-010 en Stacks, contrato `SP14CTSJZNKZ7YTR6C84368
 
 ## Fuera de alcance v1
 
-Swap, on-ramp fiat, Solana, WalletConnect, cloud backup, indexer propio, multi-cuenta HD, delegación de energía TRON, Lightning self-custody.
+Swap entre OTROS pares (solo QUSD ↔ saldo en v1), on-ramp fiat, Solana, WalletConnect, cloud backup, indexer propio, multi-cuenta HD, delegación de energía TRON, Lightning self-custody.
 
 ## Checklist por PR
 
