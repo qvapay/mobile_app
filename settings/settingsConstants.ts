@@ -53,6 +53,8 @@ export const DEFAULT_SETTINGS = {
 	// Security settings
 	security: {
 		biometricsEnabled: false,
+		/** Face ID / Touch ID para el bloqueo de app con marcador propio (no depende del login). Se arma tras el primer PIN correcto. */
+		appLockBiometrics: true,
 		autoLockTimeout: 5, // minutes
 		sessionTimeout: 30, // minutes
 		twoFactorEnabled: false,

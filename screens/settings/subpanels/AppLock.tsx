@@ -9,7 +9,7 @@ import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
 import { useSettings } from '../../../settings/SettingsContext'
 import { useAppLock } from '../../../lock/AppLockContext'
-import { getSupportedBiometryType, hasBiometricCredentials } from '../../../api/client'
+import { getSupportedBiometryType } from '../../../api/client'
 
 // lock subcomponents
 import AppLockEnabledView from './applock/AppLockEnabledView'
@@ -69,7 +69,7 @@ const AppLock = () => {
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const { security } = useSettings()
-	const { appLockEnabled, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout } = useAppLock()
+	const { appLockEnabled, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics } = useAppLock()
 
 	// Setup flow states
 	const [mode, setMode] = useState<AppLockMode>('info') // info | setup | confirm | changePin
@@ -90,9 +90,9 @@ const AppLock = () => {
 
 	useEffect(() => {
 		const checkBiometrics = async () => {
+			// Basta con que el dispositivo la soporte: el bloqueo usa su propio marcador, no las credenciales del login
 			const type = await getSupportedBiometryType()
-			const hasCredentials = await hasBiometricCredentials()
-			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && hasCredentials })
+			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type })
 		}
 		checkBiometrics()
 	}, [])
@@ -207,6 +207,7 @@ const AppLock = () => {
 				security={security}
 				biometricsAvailable={biometricsAvailable}
 				biometryType={biometryType}
+				onToggleBiometrics={enabled => { setAppLockBiometrics(enabled) }}
 				onTimeoutSelect={updateAutoLockTimeout}
 				onChangePin={() => {
 					setMode('changePin')

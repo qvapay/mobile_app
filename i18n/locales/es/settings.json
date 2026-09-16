@@ -121,9 +121,10 @@
 			"timeoutTitle": "Tiempo de bloqueo",
 			"timeoutDescription": "La app se bloqueará después de este tiempo en segundo plano",
 			"biometricEnabled": "{{label}} activado",
-			"biometricHint": "Puedes desbloquear con biometría o PIN",
+			"biometricHint": "Al abrir la app pide {{label}} y entra directo; el PIN queda de respaldo. Se activa sola tras el primer PIN correcto.",
 			"changePinButton": "Cambiar PIN de bloqueo",
-			"disableButton": "Desactivar bloqueo"
+			"disableButton": "Desactivar bloqueo",
+			"biometricToggle": "Desbloquear con {{label}}"
 		},
 		"setup": {
 			"subtitle": "Protege tu app con PIN y biometría",

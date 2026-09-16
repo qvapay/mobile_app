@@ -121,9 +121,10 @@
 			"timeoutTitle": "Auto-lock time",
 			"timeoutDescription": "The app will lock after this long in the background",
 			"biometricEnabled": "{{label}} enabled",
-			"biometricHint": "You can unlock with biometrics or your PIN",
+			"biometricHint": "On opening the app it asks for {{label}} and lets you straight in; the PIN stays as a fallback. It arms itself after the first correct PIN.",
 			"changePinButton": "Change lock PIN",
-			"disableButton": "Disable lock"
+			"disableButton": "Disable lock",
+			"biometricToggle": "Unlock with {{label}}"
 		},
 		"setup": {
 			"subtitle": "Protect your app with a PIN and biometrics",

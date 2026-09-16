@@ -14,9 +14,17 @@ jest.mock('react-native', () => ({
 		}),
 	},
 }))
+// Marcador biométrico propio del bloqueo: Keychain no existe en jest; sin marcador = camino de credenciales de login
+jest.mock('../helpers/biometricMarker', () => ({
+	hasBiometricMarker: jest.fn(async () => false),
+	enableBiometricMarker: jest.fn(async () => true),
+	disableBiometricMarker: jest.fn(async () => {}),
+	authenticateBiometricMarker: jest.fn(async () => false),
+}))
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
 jest.mock('../api/client', () => ({
+	getSupportedBiometryType: jest.fn(async () => null),
 	getBiometricCredentials: jest.fn(),
 	getAppLockPin: jest.fn(),
 	setAppLockPin: jest.fn(),

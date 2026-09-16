@@ -11,7 +11,12 @@ import {
 	setAppLockPin,
 	hasAppLockPin,
 	removeAppLockPin,
+	getSupportedBiometryType,
 } from '../api/client'
+import { authenticateBiometricMarker, disableBiometricMarker, enableBiometricMarker, hasBiometricMarker } from '../helpers/biometricMarker'
+
+/** Marcador biométrico PROPIO del bloqueo: Face ID aunque se entrara con passkey. */
+export const APP_LOCK_BIO_SERVICE = 'com.qvapay.applock.bio'
 
 /** Result shape of every unlock/enable/disable/change operation. */
 export type AppLockResult = { success: boolean, error?: string }
@@ -27,6 +32,8 @@ export type AppLockContextValue = {
 	disableAppLock: () => Promise<AppLockResult>
 	changeAppLockPin: (oldPin: string, newPin: string) => Promise<AppLockResult>
 	updateAutoLockTimeout: (minutes: number) => Promise<void>
+	/** Face ID/Touch ID del bloqueo con marcador propio: encender lo arma, apagar lo borra. */
+	setAppLockBiometrics: (enabled: boolean) => Promise<void>
 }
 
 const AppLockContext = createContext<AppLockContextValue | undefined>(undefined)
@@ -112,6 +119,15 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	 */
 	const unlockWithBiometrics = useCallback(async (): Promise<AppLockResult> => {
 		try {
+			// Marcador propio primero (funciona con cualquier método de login); si no
+			// está armado, las credenciales biométricas del login como antes
+			if (await hasBiometricMarker(APP_LOCK_BIO_SERVICE)) {
+				if (await authenticateBiometricMarker(APP_LOCK_BIO_SERVICE, i18n.t('misc.lock.bioPrompt'))) {
+					setIsLocked(false)
+					return { success: true }
+				}
+				return { success: false, error: i18n.t('misc.lock.errors.biometricCanceled') }
+			}
 			const credentials = await getBiometricCredentials()
 			if (credentials) {
 				setIsLocked(false)
@@ -126,18 +142,26 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	/**
 	 * Unlocks by comparing the entered PIN with the one stored in the Keychain.
 	 */
+	// PIN correcto con biometría soportada y deseada: arma el marcador propio (best-effort)
+	const armBiometrics = useCallback(async () => {
+		if (security.appLockBiometrics === false) return
+		if (!(await getSupportedBiometryType())) return
+		if (!(await hasBiometricMarker(APP_LOCK_BIO_SERVICE))) enableBiometricMarker(APP_LOCK_BIO_SERVICE).catch(() => {})
+	}, [security.appLockBiometrics])
+
 	const unlockWithPin = useCallback(async (enteredPin: string): Promise<AppLockResult> => {
 		try {
 			const storedPin = await getAppLockPin()
 			if (storedPin && enteredPin === storedPin) {
 				setIsLocked(false)
+				armBiometrics()
 				return { success: true }
 			}
 			return { success: false, error: i18n.t('misc.lock.errors.wrongPin') }
 		} catch (error) {
 			return { success: false, error: i18n.t('misc.lock.errors.verifyPin') }
 		}
-	}, [])
+	}, [armBiometrics])
 
 	// Manual lock
 	const lock = useCallback(() => {
@@ -154,14 +178,16 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		const stored = await setAppLockPin(pin)
 		if (stored) {
 			setAppLockEnabled(true)
+			armBiometrics()
 			return { success: true }
 		}
 		return { success: false, error: i18n.t('misc.lock.errors.savePin') }
-	}, [])
+	}, [armBiometrics])
 
 	// Disable app lock
 	const disableAppLock = useCallback(async (): Promise<AppLockResult> => {
 		await removeAppLockPin()
+		await disableBiometricMarker(APP_LOCK_BIO_SERVICE)
 		setAppLockEnabled(false)
 		setIsLocked(false)
 		return { success: true }
@@ -185,6 +211,12 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		return { success: false, error: i18n.t('misc.lock.errors.updatePin') }
 	}, [])
 
+	const setAppLockBiometrics = useCallback(async (enabled: boolean) => {
+		await updateSetting('security', 'appLockBiometrics', enabled)
+		if (enabled) await enableBiometricMarker(APP_LOCK_BIO_SERVICE)
+		else await disableBiometricMarker(APP_LOCK_BIO_SERVICE)
+	}, [updateSetting])
+
 	// Update auto lock timeout in settings
 	const updateAutoLockTimeout = useCallback(async (minutes: number) => {
 		await updateSetting('security', 'autoLockTimeout', minutes)
@@ -200,7 +232,8 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		disableAppLock,
 		changeAppLockPin,
 		updateAutoLockTimeout,
-	}), [isLocked, isAuthenticated, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout])
+		setAppLockBiometrics,
+	}), [isLocked, isAuthenticated, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
 
 	return (
 		<AppLockContext.Provider value={value}>

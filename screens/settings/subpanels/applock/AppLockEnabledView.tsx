@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, Pressable, StyleSheet, Switch } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -12,7 +12,9 @@ import type { Settings } from '../../../../settings/settingsConstants'
 
 type AppLockEnabledViewProps = {
 	security: Settings['security']
+	/** El dispositivo soporta biometría (independiente de cómo se inició sesión). */
 	biometricsAvailable: boolean
+	onToggleBiometrics: (enabled: boolean) => void
 	/** 'FaceID' | 'TouchID' | 'Fingerprint' | null (enum BIOMETRY_TYPE del keychain, comparado como string). */
 	biometryType: string | null
 	onTimeoutSelect: (minutes: number) => void
@@ -33,7 +35,7 @@ const TIMEOUT_OPTIONS = [
 ]
 
 // App-lock enabled state: auto-lock timeout selector, biometric info, change/disable actions.
-const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTimeoutSelect, onChangePin, onDisable, theme, textStyles, containerStyles }: AppLockEnabledViewProps) => {
+const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onToggleBiometrics, onTimeoutSelect, onChangePin, onDisable, theme, textStyles, containerStyles }: AppLockEnabledViewProps) => {
 
 	const { t } = useTranslation()
 
@@ -83,7 +85,7 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 				</View>
 			</View>
 
-			{/* Biometric unlock info */}
+			{/* Biometría propia del bloqueo: interruptor (se arma tras el primer PIN correcto) */}
 			{biometricsAvailable && (
 				<View style={[containerStyles.card, { marginBottom: 16 }]}>
 					<View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -93,9 +95,9 @@ const AppLockEnabledView = ({ security, biometricsAvailable, biometryType, onTim
 							<FontAwesome6 name="fingerprint" size={18} style={{ color: theme.colors.primary, marginRight: 12 }} iconStyle="solid" />
 						)}
 						<Text style={[textStyles.h4, { flex: 1, marginBottom: 0 }]}>
-							{t('settings.appLock.enabled.biometricEnabled', { label: biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : t('settings.biometrics.fingerprint') })}
+							{t('settings.appLock.enabled.biometricToggle', { label: biometryType === 'FaceID' ? 'Face ID' : biometryType === 'TouchID' ? 'Touch ID' : t('settings.biometrics.fingerprint') })}
 						</Text>
-						<FontAwesome6 name="circle-check" size={20} color={theme.colors.successText} iconStyle="solid" />
+						<Switch value={security.appLockBiometrics !== false} onValueChange={onToggleBiometrics} trackColor={{ false: theme.colors.tertiaryText, true: theme.colors.primary }} />
 					</View>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, marginTop: 8 }]}>
 						{t('settings.appLock.enabled.biometricHint')}
