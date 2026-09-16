@@ -14,6 +14,7 @@ import { useAuth } from '../../../auth/AuthContext'
 import { isHouseToken } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { formatUsd, shortAddress } from './walletFormat'
+import { swapTimeline } from './swapModel'
 import { HOME_QUERY_KEY } from '../../home/homeQueries'
 
 // API
@@ -128,6 +129,8 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 				<Text style={[textStyles.h5, styles.hint, { color: theme.colors.secondaryText }]}>{hint}</Text>
 			</View>
 
+			{!!swap && <Timeline theme={theme} swap={swap} />}
+
 			{!!swap && (
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 					<Row theme={theme} label={t('crypto.wallet.swap.fromLabel')} value={swap.direction === 'out' ? t('crypto.wallet.swap.balanceQvaPay') : shortAddress(swap.from_address)} />
@@ -156,6 +159,44 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 	)
 }
 
+/**
+ * Tres pasos como en los exchanges: recibido → en la red → confirmado. El activo late con el
+ * color primario; un final malo (fallo, reembolso, revisión) marca el último paso en su tono.
+ */
+const Timeline = ({ theme, swap }: { theme: ReturnType<typeof useTheme>['theme'], swap: Swap }) => {
+	const { t } = useTranslation()
+	const { active, failedAt } = swapTimeline(swap.status)
+	const steps = [
+		t(swap.direction === 'out' ? 'crypto.wallet.swap.timeline.debited' : 'crypto.wallet.swap.timeline.signed'),
+		t('crypto.wallet.swap.timeline.onChain'),
+		failedAt ? t(`crypto.wallet.swap.status.${swap.status}`) : t(swap.direction === 'out' ? 'crypto.wallet.swap.timeline.inWallet' : 'crypto.wallet.swap.timeline.credited'),
+	]
+	const bad = swap.status === 'failed' ? theme.colors.danger : theme.colors.warning
+	return (
+		<View style={[styles.card, styles.timeline, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
+			{steps.map((label, index) => {
+				const step = index + 1
+				const failed = failedAt !== null && step === 3
+				const done = !failed && active >= step
+				const current = !failed && !done && active === step - 1
+				const color = failed ? bad : done ? (theme.colors.successText ?? theme.colors.success) : current ? theme.colors.primary : theme.colors.tertiaryText
+				return (
+					<View key={label} style={styles.step}>
+						<View style={styles.stepRail}>
+							<View style={[styles.dot, { borderColor: color, backgroundColor: done || failed ? color : 'transparent' }]}>
+								{done && <FontAwesome6 name="check" size={9} color={theme.colors.background} iconStyle="solid" />}
+								{failed && <FontAwesome6 name="exclamation" size={9} color={theme.colors.background} iconStyle="solid" />}
+							</View>
+							{index < steps.length - 1 && <View style={[styles.line, { backgroundColor: done ? color : theme.colors.border }]} />}
+						</View>
+						<Text style={[styles.stepLabel, { color: done || current || failed ? theme.colors.primaryText : theme.colors.tertiaryText, fontFamily: current ? theme.typography.fontFamily.semiBold : theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{label}</Text>
+					</View>
+				)
+			})}
+		</View>
+	)
+}
+
 const Row = ({ theme, label, value }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string }) => (
 	<View style={styles.row}>
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
@@ -174,6 +215,12 @@ const styles = StyleSheet.create({
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	rowValue: { flex: 1, textAlign: 'right' },
 	actions: { gap: 10, marginTop: 8 },
+	timeline: { paddingVertical: 14 },
+	step: { flexDirection: 'row', gap: 12 },
+	stepRail: { alignItems: 'center', width: 18 },
+	dot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+	line: { width: 2, flex: 1, minHeight: 18, marginVertical: 2 },
+	stepLabel: { flex: 1, paddingBottom: 14, marginTop: 0 },
 })
 
 export default WalletSwapStatus
