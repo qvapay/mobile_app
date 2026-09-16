@@ -422,3 +422,58 @@ export type WalletHistoryPage = {
 	items: WalletTx[]
 	next_cursor: string | null
 }
+
+// ── Swap saldo QvaPay ↔ activo on-chain (primer par: QUSD en Stacks) ─────────
+
+export type SwapDirection = 'out' | 'in'
+export type SwapStatus = 'pending' | 'dispatching' | 'sent' | 'completed' | 'failed' | 'refunded' | 'needs_review'
+
+/** Fila de `swaps` tal como la sirve `GET /swap/{uuid}` (BigInt como string). */
+export type Swap = {
+	uuid: string
+	pair: string
+	direction: SwapDirection
+	amount: number
+	amount_base: string | null
+	asset: string
+	from_address: string | null
+	to_address: string
+	txid: string | null
+	explorer: string | null
+	status: SwapStatus
+	/** `nonce` | `funds` | `abort` | `cancelled` | `manual`… — legible solo en failed/refunded. */
+	reason: string | null
+	sponsored_fee_ustx: string | null
+	created_at: string
+	updated_at: string
+	sent_at: string | null
+	completed_at: string | null
+	transaction_uuid?: string | null
+}
+
+export type SwapPair = {
+	id: string
+	base: string
+	quote: string
+	rate: number
+	fee_bps: number
+	min: number
+	max: number
+	decimals: number
+	/** `SP….contrato::asset` del par: con esto (y `treasury`) la app construye la tx del IN. */
+	asset: string
+	contract_id: string
+	asset_name: string
+	treasury: string
+	network: string
+	enabled: boolean
+	disabled_reason: string | null
+}
+
+/** `GET /swap/pairs`. */
+export type SwapPairsPayload = {
+	data: SwapPair[]
+	limits: { kyc: boolean, daily: number | null, monthly: number | null, available: number | null, requires_kyc: boolean }
+	sponsor: { daily_per_user: number, used_today: number, remaining_today: number, max_fee_ustx: number }
+	wallet: { stx: string | null }
+}
