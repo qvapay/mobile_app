@@ -180,7 +180,10 @@ export const isAssetVisible = (view: AssetView, prefs: AssetVisibility): boolean
 	return isDefaultAsset(view) || view.hasBalance
 }
 
-/** Orden de la lista: valor USD desc; a igualdad, orden de la lista base y luego del registry. */
+/** El token de QvaPay va SIEMPRE primero, tenga el saldo que tenga (decisión de producto 2026-09-15). */
+export const isHouseToken = (asset: Pick<WalletAsset, 'chainKey' | 'symbol'>): boolean => asset.chainKey === 'stacks' && asset.symbol.toUpperCase() === 'QUSD'
+
+/** Orden de la lista: QUSD primero; después valor USD desc; a igualdad, orden de la lista base y luego del registry. */
 export const sortAssets = (views: AssetView[]): AssetView[] => {
 	const catalogIndex = new Map(views.map((view, index) => [view.id, index]))
 	const rank = (view: AssetView) => {
@@ -188,6 +191,8 @@ export const sortAssets = (views: AssetView[]): AssetView[] => {
 		return r === -1 ? DEFAULT_ASSETS.length : r
 	}
 	return views.slice().sort((a, b) => {
+		const house = Number(isHouseToken(b)) - Number(isHouseToken(a))
+		if (house !== 0) return house
 		const usdDiff = (b.usd ?? 0) - (a.usd ?? 0)
 		// Diferencias por debajo de un centavo cuentan como empate: el polvo no reordena la lista
 		if (Math.abs(usdDiff) >= 0.01) return usdDiff

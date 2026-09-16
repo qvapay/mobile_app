@@ -80,9 +80,10 @@ describe('valoración y visibilidad', () => {
 		}
 		const views = DEFAULT_ASSETS.map(({ chainKey, symbol }) => toAssetView(find(chainKey, symbol), balances, PRICES))
 		const sorted = sortAssets(views).map(v => `${v.chainKey}:${v.symbol}`)
-		expect(sorted.slice(0, 3)).toEqual(['tron:USDT', 'bitcoin:BTC', 'tron:TRX'])
+		// QUSD (el token de la casa) siempre primero aunque esté en cero; luego por valor
+		expect(sorted.slice(0, 4)).toEqual(['stacks:QUSD', 'tron:USDT', 'bitcoin:BTC', 'tron:TRX'])
 		// ceros después, en el orden de la lista base
-		expect(sorted.slice(3)).toEqual(['stacks:QUSD', 'bsc:USDT', 'ethereum:ETH', 'base:ETH', 'bsc:BNB'])
+		expect(sorted.slice(4)).toEqual(['bsc:USDT', 'ethereum:ETH', 'base:ETH', 'bsc:BNB'])
 		expect(totalUsd(views)).toBeCloseTo(820 + 92.4 + 15.334, 2)
 	})
 })
