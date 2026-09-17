@@ -72,7 +72,7 @@ const WalletSend = ({ navigation, route }: Props) => {
 	// Reserva de gas para MAX en nativos EVM (fee actual del nodo); TRON usa la fija
 	const [nativeReserve, setNativeReserve] = useState<bigint | null>(null)
 	useEffect(() => {
-		if (!asset || asset.contract !== null || asset.kind !== 'evm') { setNativeReserve(null); return }
+		if (!asset || asset.contract !== null || (asset.kind !== 'evm' && asset.kind !== 'solana')) { setNativeReserve(null); return }
 		let cancelled = false
 		const chain = registry.chains[asset.chainKey]
 		estimateNativeReserve(chain, asset.chainKey).then(value => { if (!cancelled) setNativeReserve(value) }).catch(() => { if (!cancelled) setNativeReserve(null) })

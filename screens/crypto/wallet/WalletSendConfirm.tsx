@@ -18,6 +18,8 @@ import { displayAmount, formatUnits, parseUnits } from '../../../wallet/chains/u
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
 import { TronVerifyError } from '../../../wallet/tron/tx'
 import { EvmVerifyError } from '../../../wallet/evm/tx'
+import { StacksVerifyError } from '../../../wallet/stacks/tx'
+import { SolanaExpiredError, SolanaVerifyError } from '../../../wallet/solana/tx'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { broadcastSigned, prepareSend, signPrepared } from './walletSendActions'
 import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
@@ -223,6 +225,9 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 			{!!prepared?.summary.activatesAccount && (
 				<Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.activatesAccount')} />
 			)}
+			{!!prepared?.summary.accountCreationFee && (
+				<Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.createsTokenAccount', { symbol: asset.symbol, fee: fee(prepared.summary.accountCreationFee) })} />
+			)}
 			{insufficientNative && (
 				<Notice theme={theme} icon="triangle-exclamation" color={theme.colors.danger} text={t('crypto.wallet.send.errors.noGasForFee', { needed: displayAmount(formatUnits(feeRequired + sentNative, nativeDecimals)), have: displayAmount(native?.amount ?? '0'), symbol: nativeSymbol })} />
 			)}
@@ -266,7 +271,8 @@ const parseUnitsSafe = (decimal: string, decimals: number): bigint => {
 
 /** Mensaje legible según la capa que falló (verificación, nodos, nodo concreto). */
 const describeError = (err: unknown, t: (key: string, opts?: Record<string, unknown>) => string): string => {
-	if (err instanceof TronVerifyError || err instanceof EvmVerifyError) return t('crypto.wallet.send.errors.verifyFailed')
+	if (err instanceof TronVerifyError || err instanceof EvmVerifyError || err instanceof StacksVerifyError || err instanceof SolanaVerifyError) return t('crypto.wallet.send.errors.verifyFailed')
+	if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 	if (err instanceof AllRpcsFailedError) return t('crypto.wallet.send.errors.noNodes')
 	const message = (err as Error)?.message ?? ''
 	if (/balance is not sufficient|insufficient funds|exceeds balance|insufficient/i.test(message)) return t('crypto.wallet.send.errors.nodeInsufficient')

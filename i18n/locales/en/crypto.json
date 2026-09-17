@@ -264,7 +264,8 @@
 				"nodeInsufficient": "The network rejected the transaction for insufficient balance.",
 				"generic": "Couldn’t send: {{message}}",
 				"unknown": "Couldn’t send. Please try again.",
-				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount."
+				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",
+				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
 			"btcSendAll": "You’re sending your whole balance: the network fee ({{fee}} BTC) is deducted from the amount.",
@@ -273,7 +274,8 @@
 				"normal": "Normal",
 				"slow": "Economy"
 			},
-			"feeEta": "~{{minutes}} min"
+			"feeEta": "~{{minutes}} min",
+			"createsTokenAccount": "The recipient has no {{symbol}} account on Solana yet: this transaction creates it ({{fee}}, included in the fee)."
 		},
 		"settings": {
 			"title": "My wallet",
@@ -283,7 +285,8 @@
 				"tron": "TRON",
 				"evm": "ETH · BSC · Base",
 				"btc": "Bitcoin",
-				"stacks": "Stacks"
+				"stacks": "Stacks",
+				"solana": "Solana"
 			},
 			"phrase": "Secret phrase",
 			"phraseHint": "12 words. Anyone who has them controls your funds. Shown only after verifying your identity.",

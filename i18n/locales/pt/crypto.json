@@ -264,7 +264,8 @@
 				"nodeInsufficient": "A rede rejeitou a transação por saldo insuficiente.",
 				"generic": "Não foi possível enviar: {{message}}",
 				"unknown": "Não foi possível enviar. Tente de novo.",
-				"noGasForFee": "Você precisa de {{needed}} {{symbol}} para a taxa e tem {{have}}. Deposite {{symbol}} na sua carteira ou reduza a quantidade."
+				"noGasForFee": "Você precisa de {{needed}} {{symbol}} para a taxa e tem {{have}}. Deposite {{symbol}} na sua carteira ou reduza a quantidade.",
+				"expired": "A transação expirou antes de ser enviada. Toque em Tentar de novo para prepará-la outra vez."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
 			"btcSendAll": "Você está enviando todo o saldo: a taxa de rede ({{fee}} BTC) é descontada da quantidade.",
@@ -273,7 +274,8 @@
 				"normal": "Normal",
 				"slow": "Econômico"
 			},
-			"feeEta": "~{{minutes}} min"
+			"feeEta": "~{{minutes}} min",
+			"createsTokenAccount": "O destinatário ainda não tem conta de {{symbol}} na Solana: esta transação a cria ({{fee}}, incluído na taxa)."
 		},
 		"settings": {
 			"title": "Minha carteira",
@@ -283,7 +285,8 @@
 				"tron": "TRON",
 				"evm": "ETH · BSC · Base",
 				"btc": "Bitcoin",
-				"stacks": "Stacks"
+				"stacks": "Stacks",
+				"solana": "Solana"
 			},
 			"phrase": "Frase secreta",
 			"phraseHint": "12 palavras. Quem as tiver controla seus fundos. Só aparecem após verificar sua identidade.",

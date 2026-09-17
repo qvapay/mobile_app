@@ -31,6 +31,7 @@ const FAMILIES = [
 	{ key: 'evm', labelKey: 'crypto.wallet.settings.families.evm' },
 	{ key: 'btc', labelKey: 'crypto.wallet.settings.families.btc' },
 	{ key: 'stx', labelKey: 'crypto.wallet.settings.families.stacks' },
+	{ key: 'sol', labelKey: 'crypto.wallet.settings.families.solana' },
 ] as const
 
 /** La frase revelada se oculta sola pasado esto (y al irse la app a segundo plano). */

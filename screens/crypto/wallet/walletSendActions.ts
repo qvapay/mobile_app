@@ -17,14 +17,17 @@ import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, i
 import type { FeeTier, PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
 import { broadcastStacksTransaction, isValidStacksAddress, prepareStacksSend, signStacksTransaction } from '../../../wallet/stacks/tx'
 import type { PreparedStacksSend, SignedStacksTx } from '../../../wallet/stacks/tx'
+import { broadcastSolanaTransaction, prepareSolanaSend, signSolanaTransaction } from '../../../wallet/solana/tx'
+import type { PreparedSolanaSend, SignedSolanaTx } from '../../../wallet/solana/tx'
+import { isValidSolanaAddress } from '../../../wallet/solana/codec'
 import type { WalletAsset } from '../../../wallet/assets'
 
-/** Todas las familias del registry envían: TRON, EVM, Bitcoin y Stacks. */
-export const canSendAsset = (asset: Pick<WalletAsset, 'kind'>): boolean => ['tron', 'evm', 'btc', 'stacks'].includes(asset.kind)
+/** Todas las familias del registry envían: TRON, EVM, Bitcoin, Stacks y Solana. */
+export const canSendAsset = (asset: Pick<WalletAsset, 'kind'>): boolean => ['tron', 'evm', 'btc', 'stacks', 'solana'].includes(asset.kind)
 
 /** Validación LOCAL del destino por familia (checksum incluido). */
 export const isValidAddressFor = (kind: WalletAsset['kind'], address: string): boolean =>
-	kind === 'tron' ? isValidTronAddress(address) : kind === 'evm' ? isValidEvmAddress(address) : kind === 'stacks' ? isValidStacksAddress(address) : isValidBtcAddress(address)
+	kind === 'tron' ? isValidTronAddress(address) : kind === 'evm' ? isValidEvmAddress(address) : kind === 'stacks' ? isValidStacksAddress(address) : kind === 'solana' ? isValidSolanaAddress(address) : isValidBtcAddress(address)
 
 export type SendIntent = {
 	chainKey: string
@@ -53,6 +56,8 @@ export type SendSummary = {
 	feeMax: bigint | null
 	/** Solo TRON: el destino no existe y se paga 1 TRX por activarlo. */
 	activatesAccount: boolean
+	/** Solana: renta de la cuenta de token del destinatario que crea esta tx (incluida en feeEstimated); null si no se crea. */
+	accountCreationFee?: bigint | null
 	/** Vigencia de la tx construida (ms epoch); null = sin expiración (EVM). */
 	expiresAt: number | null
 	/** Nivel de comisión con el que se construyó (null = la cadena no lo permite elegir: TRON). */
@@ -66,6 +71,7 @@ export type PreparedSend =
 	| { kind: 'evm', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedEvmSend }
 	| { kind: 'btc', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedBtcSend }
 	| { kind: 'stacks', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedStacksSend }
+	| { kind: 'solana', chain: RegistryChain, intent: SendIntent, summary: SendSummary, inner: PreparedSolanaSend }
 
 /** Firma retenida solo para re-difundir la MISMA tx (mismo hash) tras un fallo de red. */
 export type SignedSend =
@@ -73,9 +79,15 @@ export type SignedSend =
 	| { kind: 'evm', signed: SignedEvmTx }
 	| { kind: 'btc', signed: SignedBtcTx }
 	| { kind: 'stacks', signed: SignedStacksTx }
+	| { kind: 'solana', signed: SignedSolanaTx }
 
-/** `sponsored` (solo Stacks): tx patrocinada para el swap a saldo — fee 0, sin opciones de fee, y `broadcastSigned` la rechaza. */
-export type PrepareOptions = { sponsored?: boolean }
+/** Opciones de patrocinio: la tx la paga QvaPay y `broadcastSigned` la rechaza (la difunde el backend). */
+export type PrepareOptions = {
+	/** Stacks: tx patrocinada (fee 0, authType sponsored). */
+	sponsored?: boolean
+	/** Solana: dirección del fee payer patrocinador (QvaPay); el usuario firma solo su hueco. */
+	feePayer?: string | null
+}
 
 export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier: FeeTier = 'normal', options: PrepareOptions = {}): Promise<PreparedSend> => {
 	const router = getAppRpcRouter()
@@ -127,6 +139,27 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
 			},
 		}
 	}
+	if (chain.kind === 'solana') {
+		const token = intent.contract ? chain.tokens?.find(t => t.address === intent.contract) : null
+		if (intent.contract && !token) throw new Error(`wallet: token ${intent.contract} fuera del registry`)
+		const decimals = token ? token.decimals : chain.native.decimals
+		// feePayer ajeno = patrocinada (QvaPay paga tarifa y renta); la difunde el backend
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareSolanaSend(rpc, { from: intent.from, to: intent.to, amount: intent.amount, mint: intent.contract, decimals }, { signal, feePayer: options.feePayer ?? null }))
+		const userPays = !inner.sponsored
+		return {
+			kind: 'solana', chain, intent, inner,
+			summary: {
+				amount: intent.amount,
+				feeEstimated: userPays ? inner.feeLamports + inner.rentLamports : 0n,
+				feeMax: null,
+				activatesAccount: false,
+				accountCreationFee: inner.createsTokenAccount ? inner.rentLamports : null,
+				expiresAt: inner.expiresAt,
+				feeTier: null,
+				feeOptions: [],
+			},
+		}
+	}
 	throw new Error(`wallet: enviar en ${chain.kind} aún no está disponible`)
 }
 
@@ -137,6 +170,8 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
  * nada: MAX = todo el saldo y la fee se descuenta del envío ("enviar todo").
  */
 export const estimateNativeReserve = async (chain: RegistryChain, chainKey: string): Promise<bigint> => {
+	// Solana: tarifa base + margen de prioridad (el nativo puede quedar en 0: la cuenta se cierra)
+	if (chain.kind === 'solana') return 20_000n
 	if (chain.kind !== 'evm') return 0n
 	const fee = await getAppRpcRouter().call(chainKey, (rpc, signal) => getEvmFeeData(rpc, { signal }))
 	const perGas = fee.eip1559 ? fee.baseFee * 2n + fee.priorityFee : fee.gasPrice
@@ -152,6 +187,7 @@ export const signPrepared = async (prepared: PreparedSend): Promise<SignedSend> 
 		if (prepared.kind === 'tron') return { kind: 'tron', signature: signTronTransaction(prepared.inner.tx.raw_data_hex, privateKey) }
 		if (prepared.kind === 'btc') return { kind: 'btc', signed: signBtcTransaction(prepared.inner, privateKey) }
 		if (prepared.kind === 'stacks') return { kind: 'stacks', signed: signStacksTransaction(prepared.inner, privateKey) }
+		if (prepared.kind === 'solana') return { kind: 'solana', signed: signSolanaTransaction(prepared.inner, privateKey) }
 		return { kind: 'evm', signed: await signEvmTransaction(prepared.inner, privateKey) }
 	} finally {
 		privateKey.fill(0)
@@ -176,6 +212,10 @@ export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend
 		// Una patrocinada sin co-firma no vale nada en la red y, si valiera, la pagaría el usuario
 		if (prepared.inner.sponsored) throw new Error('wallet: una tx patrocinada no se difunde desde la app')
 		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastStacksTransaction(rpc, signed.signed, { signal }))
+	}
+	if (prepared.kind === 'solana' && signed.kind === 'solana') {
+		if (prepared.inner.sponsored) throw new Error('wallet: una tx patrocinada no se difunde desde la app')
+		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastSolanaTransaction(rpc, signed.signed, { signal }))
 	}
 	throw new Error('wallet: firma y transacción de cadenas distintas')
 }

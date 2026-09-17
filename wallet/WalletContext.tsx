@@ -81,8 +81,8 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 				if (cancelled) return
 				if (raw && hasSeed) {
 					const parsed = JSON.parse(raw) as WalletMeta
-					if (!parsed.addresses.stx || !parsed.addresses.stxPublicKey) {
-						// Metadata anterior a Stacks: re-derivar TODAS las direcciones una vez
+					if (!parsed.addresses.stx || !parsed.addresses.stxPublicKey || !parsed.addresses.sol) {
+						// Metadata anterior a Stacks o a Solana: re-derivar TODAS las direcciones una vez
 						// (mismo camino que la hidratación sin metadata; el backup no cambia)
 						const mnemonic = await getWalletMnemonic()
 						if (!cancelled && mnemonic) { await persistMeta({ ...parsed, addresses: deriveAddresses(mnemonicToSeed(mnemonic)) }) }

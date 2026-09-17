@@ -37,8 +37,8 @@ export const walletApi = {
 		try {
 
 			// Solo direcciones: la clave pública Stacks es metadata local, no se registra
-			const { evm, tron, btc, stx } = addresses
-			const response = await apiClient.post('/wallet/addresses', { evm, tron, btc, stx }, { silent: true })
+			const { evm, tron, btc, stx, sol } = addresses
+			const response = await apiClient.post('/wallet/addresses', { evm, tron, btc, stx, sol }, { silent: true })
 			return { success: true, data: response.data, status: response.status }
 
 		} catch (err) {

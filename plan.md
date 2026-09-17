@@ -116,6 +116,15 @@ Primer par de un motor genérico: saldo custodial ↔ QUSD en la wallet, 1:1 sin
 - **Orden de despliegue**: TronDealer (migración Supabase + envs + restart `tron-web`) → qpweb (migración MySQL + envs en Vercel + deploy) → app. TronDealer prod probado 2026-09-16 con `scripts/stx-swap-probe.mjs` (tester desechable, 0.01 QUSD): validaciones, 3 transfers concurrentes → nonces 23/24/25 sin colisión, replay `duplicate:true`, sponsor confirmado (nonce 26, fee 1000), `ORIGIN_ALREADY_SPONSORED`, `INVALID_SPONSORED_TX`, `ORIGIN_INSUFFICIENT_FUNDS` sin gastar fee. Nunca correr TronDealer local y prod a la vez con la misma tesorería (un solo nonce).
 - **Aceptación**: OUT $5 → QUSD en la wallet en < 1 min; IN $5 sin STX en la wallet → saldo acreditado; repetir con la misma clave no duplica; el tope sin KYC bloquea; cancelar un OUT `pending` reembolsa.
 
+## Solana + USDT gratis para GOLD (F1 CÓDIGO HECHO 2026-09-17; F2 pendiente)
+
+Decisión 2026-09-17: el envío de USDT gratis para GOLD empieza por **Solana** (fee payer nativo) en vez de BSC (MegaFuel/gas drop queda para después). Plan completo: `~/.claude/plans/ahora-si-co-o-gracias-cached-scone.md`.
+- **F1 — Solana en la wallet (hecho)**: sin SDK de Solana en la app. Codec propio en `wallet/solana/codec.ts` (mensaje/tx legacy, compact-u16, PDA de ATA, instrucciones System transfer / ComputeBudget / ATA create idempotente / SPL TransferChecked) validado contra `@solana/web3.js` (tx nativa idéntica byte a byte; tx patrocinada parseada, firma del usuario válida y co-firmable por web3.js). Derivación SLIP-0010 ed25519 `m/44'/501'/0'/0'` (vectores de la spec + `abandon…about` → `HAgk14Jp…DKpqk`, la de Phantom). Registry **v6** con `solana` (RPC oficial + publicnode; nodo QvaPay apagado). Saldos `getBalance` + `getTokenAccountsByOwner`. Envío `wallet/solana/tx.ts`: blockhash (caduca en 60 s → `expiresAt`, se re-prepara), crea la ATA del destino si falta (renta ~0.00204 SOL, avisada), prioridad = mediana con tope, verificación re-decodificando con lista blanca de programas, broadcast `sendTransaction`. `feePayer` ajeno = patrocinada (no se difunde desde la app). QR: Solana Pay y direcciones Stacks/Solana sueltas. Puente con `/coins/v2`: tokens con `network: 'SOL'`, SOL nativo sin network.
+- **qpweb (sin commit)**: `sol` en `/api/wallet/addresses`, historial `chain=solana` (`scripts/wallet/history/solana.js`). **El RPC oficial limita 10 llamadas por método cada 10 s por IP**: en producción `SOLANA_RPC_URL` con clave (Helius).
+- **rpc-registry (sin commit)**: v6 + `solana` en schema y checker.
+- **Aceptación F1**: recibir SOL y USDT-SPL (Phantom/exchange) y verlos con historial; enviar USDT pagando SOL (con y sin cuenta del destino); retiro USDTSOL desde el saldo QvaPay con "Desde tu saldo QvaPay".
+- **F2 (siguiente)**: TronDealer `/api/sol/sponsor` (wallet sponsor dedicada), qpweb `sponsor_grants` + quote/submit/cancel + cron, app `useGaslessSend` en `WalletSendConfirm` para GOLD.
+
 ## Fase 6 — Nodos propios (cuando la torre sincronice)
 
 - Cloudflare Tunnel: `tron|bsc|eth|base|btc.qvapay.com` (btc = esplora/Electrs). Solo lectura + broadcast; nunca `personal_*`/`admin_*`/`debug_*`. Rate limit.
@@ -123,7 +132,7 @@ Primer par de un motor genérico: saldo custodial ↔ QUSD en la wallet, 1:1 sin
 
 ## Fuera de alcance v1
 
-Swap entre OTROS pares (solo QUSD ↔ saldo en v1), on-ramp fiat, Solana, WalletConnect, cloud backup, indexer propio, multi-cuenta HD, delegación de energía TRON, Lightning self-custody.
+Swap entre OTROS pares (solo QUSD ↔ saldo en v1), on-ramp fiat, WalletConnect, cloud backup, indexer propio, multi-cuenta HD, delegación de energía TRON, Lightning self-custody.
 
 ## Checklist por PR
 

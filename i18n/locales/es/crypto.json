@@ -264,7 +264,8 @@
 				"nodeInsufficient": "La red rechazó la transacción por saldo insuficiente.",
 				"generic": "No se pudo enviar: {{message}}",
 				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
-				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad."
+				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad.",
+				"expired": "La transacción caducó antes de enviarse. Pulsa Reintentar para prepararla de nuevo."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
 			"btcSendAll": "Envías todo tu saldo: la comisión de red ({{fee}} BTC) se descuenta de la cantidad.",
@@ -273,7 +274,8 @@
 				"normal": "Normal",
 				"slow": "Económico"
 			},
-			"feeEta": "~{{minutes}} min"
+			"feeEta": "~{{minutes}} min",
+			"createsTokenAccount": "El destinatario aún no tiene cuenta de {{symbol}} en Solana: esta transacción la crea ({{fee}}, incluido en la comisión)."
 		},
 		"settings": {
 			"title": "Mi wallet",
@@ -283,7 +285,8 @@
 				"tron": "TRON",
 				"evm": "ETH · BSC · Base",
 				"btc": "Bitcoin",
-				"stacks": "Stacks"
+				"stacks": "Stacks",
+				"solana": "Solana"
 			},
 			"phrase": "Frase secreta",
 			"phraseHint": "12 palabras. Quien las tenga controla tus fondos. Solo se muestran tras verificar tu identidad.",
