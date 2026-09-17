@@ -172,10 +172,11 @@ describe('isRetryableRpcError', () => {
 })
 
 describe('bundled.json', () => {
-	test('cubre las 7 cadenas v5 con la forma del contrato', () => {
-		expect(Object.keys(bundled.chains).sort()).toEqual(['base', 'bitcoin', 'bsc', 'ethereum', 'polygon', 'stacks', 'tron'])
+	test('cubre las 8 cadenas v6 con la forma del contrato', () => {
+		expect(bundled.version).toBe(6)
+		expect(Object.keys(bundled.chains).sort()).toEqual(['base', 'bitcoin', 'bsc', 'ethereum', 'polygon', 'solana', 'stacks', 'tron'])
 		for (const [key, chain] of Object.entries(bundled.chains)) {
-			expect(['evm', 'tron', 'btc', 'stacks']).toContain(chain.kind)
+			expect(['evm', 'tron', 'btc', 'stacks', 'solana']).toContain(chain.kind)
 			expect(chain.explorer).toContain('{tx}')
 			expect(chain.native.decimals).toBeGreaterThan(0)
 			if (chain.kind === 'evm') expect(chain.chainId).toBeGreaterThan(0)

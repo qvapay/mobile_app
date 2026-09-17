@@ -15,6 +15,7 @@ import { getBtcBalance } from './btc'
 import { getEvmNativeBalance, getEvmTokenBalance } from './evm'
 import { getTronNativeBalance, getTronTokenBalance } from './tron'
 import { ftBalanceOf, getStacksBalances, stxBalanceOf } from './stacks'
+import { getSolanaBalances } from './solana'
 
 type RouterLike = Pick<RpcRouter, 'call'>
 
@@ -40,6 +41,11 @@ export const fetchChainBalances = async (
 			const all = getStacksBalances(rpc, owner, { signal })
 			entries.push(all.then(b => [nativeId, stxBalanceOf(b)]))
 			tokens.forEach(token => entries.push(all.then(b => [tokenAssetId(chainKey, token.address), ftBalanceOf(b, token.address)])))
+		} else if (chain.kind === 'solana') {
+			// Una llamada de saldo nativo + una de todas las cuentas SPL
+			const all = getSolanaBalances(rpc, owner, { signal })
+			entries.push(all.then(b => [nativeId, b.lamports]))
+			tokens.forEach(token => entries.push(all.then(b => [tokenAssetId(chainKey, token.address), b.tokens[token.address] ?? 0n])))
 		} else if (chain.kind === 'tron') {
 			entries.push(getTronNativeBalance(rpc, owner, { signal }).then(v => [nativeId, v]))
 			tokens.forEach(token => entries.push(

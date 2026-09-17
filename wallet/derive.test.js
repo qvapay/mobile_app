@@ -7,7 +7,7 @@
  * importar la misma frase en cualquier wallet da las mismas direcciones.
  */
 import { createMnemonic, isValidMnemonic, mnemonicToSeed, normalizeMnemonic, pickQuizPositions } from './seed'
-import { deriveAddresses, derivePrivateKey, DERIVATION_PATHS } from './derive'
+import { deriveAddresses, deriveEd25519, derivePrivateKey, DERIVATION_PATHS } from './derive'
 
 const toHex = (bytes) => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
 
@@ -68,6 +68,22 @@ describe('deriveAddresses — vectores conocidos', () => {
 	test('STX: cuenta 0 de Leather/Xverse (m/44\'/5757\'/0\'/0/0, c32check SP…)', () => {
 		expect(addresses.stx).toBe('SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J')
 		expect(addresses.stxPublicKey).toMatch(/^0[23][0-9a-f]{64}$/)
+	})
+
+	test("SOL: cuenta 0 de Phantom/Solflare (SLIP-0010 ed25519 m/44'/501'/0'/0')", () => {
+		expect(addresses.sol).toBe('HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk')
+	})
+})
+
+describe('SLIP-0010 ed25519 — vectores de la spec (seed 000102…0f)', () => {
+	const seed = Uint8Array.from({ length: 16 }, (_, i) => i)
+	test("m, m/0' y m/0'/1'", () => {
+		expect(toHex(deriveEd25519(seed, 'm').privateKey)).toBe('2b4be7f19ee27bbf30c667b642d5f4aa69fd169872f8fc3059c08ebae2eb19e7')
+		expect(toHex(deriveEd25519(seed, "m/0'").privateKey)).toBe('68e0fe46dfb67e368c75379acec591dad19df3cde26e63b93a8e704f1dade7a3')
+		expect(toHex(deriveEd25519(seed, "m/0'/1'").privateKey)).toBe('b1d0bad404bf35da785a64ca1ac54b2617211d2777696fbffaf208f746ae84f2')
+	})
+	test('rechaza índices no endurecidos', () => {
+		expect(() => deriveEd25519(seed, "m/0'/1")).toThrow(/endurecidos/)
 	})
 })
 

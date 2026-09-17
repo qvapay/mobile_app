@@ -1,7 +1,7 @@
 {
  "$schema": "./schema.json",
- "version": 5,
- "updated_at": "2026-09-15",
+ "version": 6,
+ "updated_at": "2026-09-17",
  "chains": {
   "ethereum": {
    "kind": "evm",
@@ -785,6 +785,45 @@
      "priority": 30,
      "owner": "stacks-foundation",
      "api": "hiro"
+    }
+   ]
+  },
+  "solana": {
+   "kind": "solana",
+   "name": "Solana",
+   "native": {
+    "symbol": "SOL",
+    "decimals": 9
+   },
+   "explorer": "https://solscan.io/tx/{tx}",
+   "tokens": [
+    {
+     "symbol": "USDT",
+     "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+     "decimals": 6
+    },
+    {
+     "symbol": "USDC",
+     "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "decimals": 6
+    }
+   ],
+   "rpcs": [
+    {
+     "url": "https://sol.qvapay.com",
+     "priority": 0,
+     "owner": "qvapay",
+     "enabled": false
+    },
+    {
+     "url": "https://api.mainnet-beta.solana.com",
+     "priority": 10,
+     "owner": "solana-foundation"
+    },
+    {
+     "url": "https://solana-rpc.publicnode.com",
+     "priority": 20,
+     "owner": "publicnode"
     }
    ]
   }

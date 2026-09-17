@@ -46,6 +46,7 @@ const NATIVE_TICKS: Record<string, string> = {
 	TRX: 'TRX',
 	BTC: 'BTC',
 	STX: 'STX',
+	SOL: 'SOL',
 }
 
 const NETWORK_TICKS: Record<string, string> = {
@@ -56,6 +57,7 @@ const NETWORK_TICKS: Record<string, string> = {
 	tron: 'TRX',
 	bitcoin: 'BTC',
 	stacks: 'STX',
+	solana: 'SOL',
 }
 
 const STABLES = new Set(['USDT', 'USDC', 'USDC.E', 'DAI', 'PYUSD', 'TUSD', 'QUSD'])
@@ -79,11 +81,13 @@ export const DEFAULT_ASSETS: Array<{ chainKey: string, symbol: string }> = [
 	// QUSD (Stacks): el token de QvaPay, segundo en la lista base
 	{ chainKey: 'stacks', symbol: 'QUSD' },
 	{ chainKey: 'bsc', symbol: 'USDT' },
+	{ chainKey: 'solana', symbol: 'USDT' },
 	{ chainKey: 'bitcoin', symbol: 'BTC' },
 	{ chainKey: 'ethereum', symbol: 'ETH' },
 	{ chainKey: 'base', symbol: 'ETH' },
 	{ chainKey: 'bsc', symbol: 'BNB' },
 	{ chainKey: 'tron', symbol: 'TRX' },
+	{ chainKey: 'solana', symbol: 'SOL' },
 ]
 
 /** Todos los activos del registry: por cadena, el nativo y luego sus tokens. */
@@ -127,7 +131,7 @@ export const buildAssetCatalog = (registry: RpcRegistry): WalletAsset[] =>
 
 /** Dirección del usuario que corresponde a la familia de la cadena. */
 export const addressForKind = (addresses: WalletAddresses, kind: ChainKind): string =>
-	kind === 'evm' ? addresses.evm : kind === 'tron' ? addresses.tron : kind === 'stacks' ? addresses.stx : addresses.btc
+	kind === 'evm' ? addresses.evm : kind === 'tron' ? addresses.tron : kind === 'stacks' ? addresses.stx : kind === 'solana' ? addresses.sol : addresses.btc
 
 const defaultRank = (asset: WalletAsset): number =>
 	DEFAULT_ASSETS.findIndex(d => d.chainKey === asset.chainKey && d.symbol === asset.symbol)
@@ -212,6 +216,8 @@ export const explorerAddressUrl = (chain: RegistryChain | undefined, address: st
 	if (!chain?.explorer) return null
 	const encoded = encodeURIComponent(address)
 	if (chain.explorer.includes('#/transaction/{tx}')) return chain.explorer.replace('#/transaction/{tx}', `#/address/${encoded}`)
+	// Solscan llama "account" a las direcciones
+	if (chain.explorer.includes('solscan.io/tx/{tx}')) return chain.explorer.replace('/tx/{tx}', `/account/${encoded}`)
 	if (chain.explorer.includes('/tx/{tx}')) return chain.explorer.replace('/tx/{tx}', `/address/${encoded}`)
 	if (chain.explorer.includes('/txid/{tx}')) return chain.explorer.replace('/txid/{tx}', `/address/${encoded}`)
 	return null
@@ -230,10 +236,15 @@ const QVAPAY_NETWORK_TO_CHAIN: Record<string, string> = {
 	POL: 'polygon',
 	BTC: 'bitcoin',
 	STX: 'stacks',
+	// En /coins/v2 los tokens de Solana llevan network 'SOL' (USDTSOL, USDCSOL)
+	SOL: 'solana',
 }
 
 /** Ticks del catálogo que son el NATIVO de su red (BTCLN no: es Lightning, no on-chain). */
-const NATIVE_COIN_TICKS = new Set(['ETH', 'BNBBSC', 'MATICMAINNET', 'TRX', 'BTC', 'STX'])
+const NATIVE_COIN_TICKS = new Set(['ETH', 'BNBBSC', 'MATICMAINNET', 'TRX', 'BTC', 'STX', 'SOL'])
+
+/** Nativos cuya moneda en el catálogo viene SIN network (el tick ya dice la red). */
+const NATIVE_TICK_CHAIN: Record<string, string> = { SOL: 'solana' }
 
 /**
  * Activo de la wallet que corresponde a una moneda de depósito/retiro de
@@ -242,9 +253,9 @@ const NATIVE_COIN_TICKS = new Set(['ETH', 'BNBBSC', 'MATICMAINNET', 'TRX', 'BTC'
  * usuario sigue con el flujo normal.
  */
 export const findAssetForCoin = (catalog: WalletAsset[], coin: { tick: string, network?: string | null }): WalletAsset | null => {
-	const chainKey = coin.network ? QVAPAY_NETWORK_TO_CHAIN[coin.network.toUpperCase()] : undefined
-	if (!chainKey) return null
 	const tick = coin.tick.toUpperCase()
+	const chainKey = coin.network ? QVAPAY_NETWORK_TO_CHAIN[coin.network.toUpperCase()] : NATIVE_TICK_CHAIN[tick]
+	if (!chainKey) return null
 	if (NATIVE_COIN_TICKS.has(tick)) return catalog.find(a => a.chainKey === chainKey && a.contract === null) ?? null
 	const symbol = tick.startsWith('USDT') ? 'USDT' : tick.startsWith('USDC') ? 'USDC' : tick.startsWith('QUSD') ? 'QUSD' : null
 	if (!symbol) return null

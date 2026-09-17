@@ -37,7 +37,7 @@ export const isValidRegistry = (value: unknown): value is RpcRegistry => {
 	if (chains.length === 0) return false
 	return chains.every(chain =>
 		chain && typeof chain === 'object'
-		&& ['evm', 'tron', 'btc', 'stacks'].includes(chain.kind)
+		&& ['evm', 'tron', 'btc', 'stacks', 'solana'].includes(chain.kind)
 		&& Array.isArray(chain.rpcs)
 		&& chain.rpcs.every(rpc => typeof rpc?.url === 'string' && rpc.url.startsWith('https://') && typeof rpc.priority === 'number'),
 	)

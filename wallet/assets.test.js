@@ -83,7 +83,7 @@ describe('valoración y visibilidad', () => {
 		// QUSD (el token de la casa) siempre primero aunque esté en cero; luego por valor
 		expect(sorted.slice(0, 4)).toEqual(['stacks:QUSD', 'tron:USDT', 'bitcoin:BTC', 'tron:TRX'])
 		// ceros después, en el orden de la lista base
-		expect(sorted.slice(4)).toEqual(['bsc:USDT', 'ethereum:ETH', 'base:ETH', 'bsc:BNB'])
+		expect(sorted.slice(4)).toEqual(['bsc:USDT', 'solana:USDT', 'ethereum:ETH', 'base:ETH', 'bsc:BNB', 'solana:SOL'])
 		expect(totalUsd(views)).toBeCloseTo(820 + 92.4 + 15.334, 2)
 	})
 })
@@ -95,6 +95,10 @@ describe('exploradores', () => {
 		expect(explorerAddressUrl(bundled.chains.tron, 'TX')).toBe('https://tronscan.org/#/address/TX')
 		expect(explorerAddressUrl(bundled.chains.bitcoin, 'bc1q')).toBe('https://mempool.space/address/bc1q')
 		expect(explorerAddressUrl(bundled.chains.stacks, 'SPX')).toBe('https://explorer.hiro.so/address/SPX?chain=mainnet')
+		expect(explorerTxUrl(bundled.chains.solana, 'sig')).toBe('https://solscan.io/tx/sig')
+		expect(explorerAddressUrl(bundled.chains.solana, 'Hx')).toBe('https://solscan.io/account/Hx')
+		expect(find('solana', 'USDT')).toMatchObject({ stable: true, decimals: 6, contract: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', networkTick: 'SOL' })
+		expect(find('solana', 'SOL')).toMatchObject({ id: 'solana:native', decimals: 9, priceTick: 'SOL', logoTick: 'SOL' })
 		expect(find('stacks', 'QUSD')).toMatchObject({ stable: true, decimals: 8, contract: 'SP14CTSJZNKZ7YTR6C84368J2QXRW8RC20GSQ8KS2.QUSD::QUSD', networkTick: 'STX', priceTick: 'QUSD' })
 		expect(byId['bitcoin:native']).toBeDefined()
 	})
@@ -106,6 +110,7 @@ describe('puente con el catálogo de QvaPay', () => {
 		{ tick: 'BNBBSC', network: 'BSC' }, { tick: 'TRX', network: 'TRON' }, { tick: 'ETH', network: 'ETH' },
 		{ tick: 'USDCBASE', network: 'BASE' }, { tick: 'USDTMATIC', network: 'POL' }, { tick: 'MATICMAINNET', network: null },
 		{ tick: 'BTC', network: 'BTC' }, { tick: 'BTCLN', network: 'BTC' }, { tick: 'USDTSOL', network: 'SOL' }, { tick: 'EURCBASE', network: 'BASE' },
+		{ tick: 'SOL', network: null }, { tick: 'USDCSOL', network: 'SOL' }, { tick: 'TRUMP', network: 'SOL' },
 	]
 	const id = (tick) => findAssetForCoin(catalog, COINS.find(c => c.tick === tick))?.id ?? null
 
@@ -119,11 +124,15 @@ describe('puente con el catálogo de QvaPay', () => {
 		expect(id('USDCBASE')).toBe(find('base', 'USDC').id)
 		expect(id('USDTMATIC')).toBe(find('polygon', 'USDT').id)
 		expect(id('BTC')).toBe('bitcoin:native')
+		// Solana: tokens con network 'SOL'; el SOL nativo viene SIN network en /coins/v2
+		expect(id('USDTSOL')).toBe(find('solana', 'USDT').id)
+		expect(id('USDCSOL')).toBe(find('solana', 'USDC').id)
+		expect(id('SOL')).toBe('solana:native')
 	})
 
 	test('sin puente: Lightning, redes ajenas, tokens fuera del registry, sin network', () => {
 		expect(id('BTCLN')).toBeNull() // comparte network BTC pero es Lightning, no on-chain
-		expect(id('USDTSOL')).toBeNull()
+		expect(id('TRUMP')).toBeNull() // token de Solana fuera del registry
 		expect(id('EURCBASE')).toBeNull()
 		expect(id('MATICMAINNET')).toBeNull()
 	})

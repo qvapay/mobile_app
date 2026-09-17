@@ -77,6 +77,22 @@ export const probeRpc: ProbeRequest = async (_chainKey, chain, rpc, timeoutMs) =
 			res = await fetch(`${rpc.url}/blocks/tip/height`, { signal: controller.signal, headers: rpc.headers })
 		} else if (chain.kind === 'stacks' || rpc.api === 'hiro') {
 			res = await fetch(`${rpc.url}/v2/info`, { signal: controller.signal, headers: rpc.headers })
+		} else if (chain.kind === 'solana') {
+			// getHealth responde 200 con {error} si el nodo va atrasado: se trata como caído
+			res = await fetch(rpc.url, {
+				method: 'POST',
+				signal: controller.signal,
+				headers: { 'Content-Type': 'application/json', ...rpc.headers },
+				body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getHealth' }),
+			})
+			if (res.ok) {
+				const body = await res.json().catch(() => null) as { result?: string } | null
+				if (body?.result !== 'ok') {
+					const err = new Error(`probe ${rpc.url}: getHealth ${JSON.stringify(body)?.slice(0, 80)}`) as Error & { status: number }
+					err.status = 503
+					throw err
+				}
+			}
 		} else if (chain.kind === 'tron' && rpc.api !== 'jsonrpc') {
 			res = await fetch(`${rpc.url}/wallet/getnowblock`, {
 				method: 'POST',
