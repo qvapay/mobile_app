@@ -253,8 +253,15 @@ export type BtcBroadcastResult = { txid: string, duplicate: boolean }
  */
 export const broadcastBtcTransaction = async (rpc: RegistryRpc, signed: SignedBtcTx, deps: Deps = {}): Promise<BtcBroadcastResult> => {
 	const res = await fetch(`${base(rpc)}/tx`, { method: 'POST', body: signed.hex, signal: deps.signal, headers: { 'Content-Type': 'text/plain', ...rpc.headers } })
-	const text = (await res.text()).trim()
-	if (res.ok) return { txid: /^[0-9a-f]{64}$/i.test(text) ? text.toLowerCase() : signed.txid, duplicate: false }
-	if (/already in block chain|already known|txn-already-in-mempool|txn-already-known|already have/i.test(text)) return { txid: signed.txid, duplicate: true }
-	throw new ChainHttpError(`btc: broadcast rechazado (${res.status}): ${text.slice(0, 200)}`, { status: res.status, retryable: res.status >= 500 })
+	// El status manda: `fetch` resuelve igual con 4xx/5xx, así que el cuerpo solo
+	// se lee dentro de la rama que le corresponde — el de éxito como txid, el de
+	// error a propósito, para distinguir "ya la conozco" de un rechazo real.
+	if (res.ok) {
+		const txid = (await res.text()).trim()
+		return { txid: /^[0-9a-f]{64}$/i.test(txid) ? txid.toLowerCase() : signed.txid, duplicate: false }
+	} else {
+		const text = (await res.text()).trim()
+		if (/already in block chain|already known|txn-already-in-mempool|txn-already-known|already have/i.test(text)) return { txid: signed.txid, duplicate: true }
+		throw new ChainHttpError(`btc: broadcast rechazado (${res.status}): ${text.slice(0, 200)}`, { status: res.status, retryable: res.status >= 500 })
+	}
 }

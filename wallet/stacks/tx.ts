@@ -249,13 +249,17 @@ export type StacksBroadcastResult = { txid: string, duplicate: boolean }
 export const broadcastStacksTransaction = async (rpc: RegistryRpc, signed: SignedStacksTx, deps: Deps = {}): Promise<StacksBroadcastResult> => {
 	const bytes = Uint8Array.from(signed.hex.match(/../g)!.map(b => parseInt(b, 16)))
 	const res = await fetch(`${base(rpc)}/v2/transactions`, { method: 'POST', body: bytes, signal: deps.signal, headers: { 'Content-Type': 'application/octet-stream', ...rpc.headers } })
-	const text = (await res.text()).trim()
+	// El status manda: `fetch` resuelve igual con 4xx/5xx, así que el cuerpo solo
+	// se lee dentro de la rama que le corresponde — el de éxito como txid, el de
+	// error a propósito, para leer el `reason` de Hiro.
 	if (res.ok) {
-		const txid = text.replace(/^"|"$/g, '').replace(/^0x/, '')
+		const txid = (await res.text()).trim().replace(/^"|"$/g, '').replace(/^0x/, '')
 		return { txid: /^[0-9a-f]{64}$/i.test(txid) ? txid.toLowerCase() : signed.txid, duplicate: false }
+	} else {
+		const text = (await res.text()).trim()
+		let reason = text
+		try { const parsed = JSON.parse(text) as { reason?: string, error?: string }; reason = parsed.reason ?? parsed.error ?? text } catch { /* texto plano */ }
+		if (/AlreadyInMempool|ContractAlreadyExists|already/i.test(reason)) return { txid: signed.txid, duplicate: true }
+		throw new ChainHttpError(`stacks: broadcast rechazado (${res.status}): ${reason.slice(0, 200)}`, { status: res.status, retryable: res.status >= 500 })
 	}
-	let reason = text
-	try { const parsed = JSON.parse(text) as { reason?: string, error?: string }; reason = parsed.reason ?? parsed.error ?? text } catch { /* texto plano */ }
-	if (/AlreadyInMempool|ContractAlreadyExists|already/i.test(reason)) return { txid: signed.txid, duplicate: true }
-	throw new ChainHttpError(`stacks: broadcast rechazado (${res.status}): ${reason.slice(0, 200)}`, { status: res.status, retryable: res.status >= 500 })
 }

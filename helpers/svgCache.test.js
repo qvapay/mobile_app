@@ -19,7 +19,7 @@ beforeEach(() => {
 	clearSvgMemory()
 	AsyncStorage.getItem.mockReset().mockResolvedValue(null)
 	AsyncStorage.setItem.mockReset().mockResolvedValue()
-	global.fetch = jest.fn().mockResolvedValue({ text: async () => '<svg>fresh</svg>' })
+	global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '<svg>fresh</svg>' })
 })
 
 test('un fetch exitoso puebla memoria y AsyncStorage; el sync hit queda disponible', async () => {
@@ -56,13 +56,21 @@ test('dedup: n llamadas concurrentes al mismo URL comparten un solo fetch', asyn
 })
 
 test('un payload sin <svg> resuelve null y NO se cachea (reintento posible)', async () => {
-	global.fetch = jest.fn().mockResolvedValue({ text: async () => '<html>404</html>' })
+	global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '<html>404</html>' })
 	expect(await loadSvg(URI)).toBe(null)
 	expect(AsyncStorage.setItem).not.toHaveBeenCalled()
 	expect(getCachedSvgSync(URI)).toBe(null)
 	// El siguiente intento vuelve a la red (no quedó promesa en vuelo zombie)
-	global.fetch = jest.fn().mockResolvedValue({ text: async () => '<svg>ok</svg>' })
+	global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '<svg>ok</svg>' })
 	expect(await loadSvg(URI)).toBe('<svg>ok</svg>')
+})
+
+test('un 404 del CDN resuelve null aunque su página de error traiga un <svg>', async () => {
+	// fetch resuelve con 4xx: sin mirar el status, la página de error se cachearía como logo
+	global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404, text: async () => '<html><svg>icono del 404</svg></html>' })
+	expect(await loadSvg(URI)).toBe(null)
+	expect(AsyncStorage.setItem).not.toHaveBeenCalled()
+	expect(getCachedSvgSync(URI)).toBe(null)
 })
 
 test('un error de red resuelve null sin romper', async () => {

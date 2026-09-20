@@ -51,7 +51,7 @@ describe('QPCoin', () => {
 	})
 
 	test('a cache miss fetches the SVG, renders it and stores it', async () => {
-		global.fetch = jest.fn().mockResolvedValue({ text: async () => '<svg>fresh</svg>' })
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '<svg>fresh</svg>' })
 		const tree = await render({ coin: 'TRX' })
 		expect(global.fetch).toHaveBeenCalledWith('https://media.qvapay.com/coins/trx.svg')
 		expect(tree.root.findByType('SvgXml').props.xml).toBe('<svg>fresh</svg>')
@@ -65,7 +65,7 @@ describe('QPCoin', () => {
 	})
 
 	test('a payload without an <svg> tag degrades to the lettered placeholder', async () => {
-		global.fetch = jest.fn().mockResolvedValue({ text: async () => 'Not Found' })
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => 'Not Found' })
 		const tree = await render({ coin: 'usdtbsc' })
 		expect(JSON.stringify(tree.toJSON())).toContain('"USD"')
 		expect(AsyncStorage.setItem).not.toHaveBeenCalled()
