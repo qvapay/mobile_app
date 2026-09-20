@@ -21,6 +21,8 @@ type QPCodeInputProps = {
 	secure?: boolean
 	onBoxFocus?: (index: number) => void
 	onFilled?: (code: string) => void
+	/** Fondo de las cajas (por defecto `surface`). Sobre una card `surface` (modales) usar `background`: en oscuro `elevation` es el MISMO color que `surface` y no se distinguen. */
+	boxColor?: string
 }
 
 /**
@@ -46,7 +48,7 @@ type QPCodeInputProps = {
  * @param [props.onBoxFocus] - Called with the box index on focus (e.g. scroll-into-view).
  * @param [props.onFilled] - Called with the full code the moment every box has a digit.
  */
-const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, disabled = false, secure = false, onBoxFocus, onFilled }: QPCodeInputProps) => {
+const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, disabled = false, secure = false, onBoxFocus, onFilled, boxColor }: QPCodeInputProps) => {
 
 	const { theme } = useTheme()
 	const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
@@ -135,7 +137,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 					style={[
 						length > 4 ? styles.boxSmall : styles.box,
 						{
-							backgroundColor: theme.colors.surface,
+							backgroundColor: boxColor ?? theme.colors.surface,
 							color: theme.colors.primaryText,
 							fontSize: length > 4 ? theme.typography.fontSize.xl : theme.typography.fontSize.xxl,
 							fontFamily: theme.typography.fontFamily.semiBold,

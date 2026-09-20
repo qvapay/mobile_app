@@ -302,6 +302,36 @@ PODS:
     - OneSignalXCFramework/OneSignalOutcomes
   - openiap (2.4.4)
   - PromisesObjC (2.4.1)
+  - QuickCrypto (1.1.7):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - NitroModules
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -344,6 +374,7 @@ PODS:
     - React-RCTText (= 0.84.1)
     - React-RCTVibration (= 0.84.1)
   - React-callinvoker (0.84.1)
+  - React-Codegen (0.1.0)
   - React-Core (0.84.1):
     - boost
     - DoubleConversion
@@ -2363,6 +2394,34 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - react-native-quick-base64 (3.0.1):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - react-native-safe-area-context (5.8.1):
     - boost
     - DoubleConversion
@@ -3372,6 +3431,35 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - RNScreenshotPrevent (1.2.2):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - RNSound (0.13.0):
     - boost
     - DoubleConversion
@@ -3797,6 +3885,7 @@ DEPENDENCIES:
   - NitroIap (from `../node_modules/react-native-iap`)
   - NitroImage (from `../node_modules/react-native-nitro-image`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
+  - QuickCrypto (from `../node_modules/react-native-quick-crypto`)
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
@@ -3842,6 +3931,7 @@ DEPENDENCIES:
   - react-native-in-app-review (from `../node_modules/react-native-in-app-review`)
   - react-native-onesignal (from `../node_modules/react-native-onesignal`)
   - react-native-passkey (from `../node_modules/react-native-passkey`)
+  - react-native-quick-base64 (from `../node_modules/react-native-quick-base64`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../node_modules/@shopify/react-native-skia`)"
   - "react-native-vector-icons-fontawesome6 (from `../node_modules/@react-native-vector-icons/fontawesome6`)"
@@ -3887,6 +3977,7 @@ DEPENDENCIES:
   - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
+  - RNScreenshotPrevent (from `../node_modules/react-native-screenshot-prevent`)
   - RNSound (from `../node_modules/react-native-sound`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
@@ -3916,6 +4007,7 @@ SPEC REPOS:
     - OneSignalXCFramework
     - openiap
     - PromisesObjC
+    - React-Codegen
     - SDWebImage
     - SDWebImageAVIFCoder
     - SDWebImageSVGCoder
@@ -3964,6 +4056,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-nitro-image"
   NitroModules:
     :path: "../node_modules/react-native-nitro-modules"
+  QuickCrypto:
+    :path: "../node_modules/react-native-quick-crypto"
   RCT-Folly:
     :podspec: "../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec"
   RCTDeprecation:
@@ -4052,6 +4146,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-onesignal"
   react-native-passkey:
     :path: "../node_modules/react-native-passkey"
+  react-native-quick-base64:
+    :path: "../node_modules/react-native-quick-base64"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-skia:
@@ -4142,6 +4238,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
+  RNScreenshotPrevent:
+    :path: "../node_modules/react-native-screenshot-prevent"
   RNSound:
     :path: "../node_modules/react-native-sound"
   RNSVG:
@@ -4192,6 +4290,7 @@ SPEC CHECKSUMS:
   OneSignalXCFramework: 48e5b7c5b51d4e67bab3405229f963efde1a3894
   openiap: 15b2c855d1c670d1d7afb765bee781f6d638c18c
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
+  QuickCrypto: 7167ad44151b7ac09fdcdde5ab78a8e4da2cadb7
   RCT-Folly: 9e4e1ae78413fb0387567f5dc5d5d5672f23f457
   RCTDeprecation: 7489702d717ceea80e271eeacb3fbca39fa3c056
   RCTRequired: 1cceac389e77dc5826c681cb782d864b0ed623fc
@@ -4200,6 +4299,7 @@ SPEC CHECKSUMS:
   RCTTypeSafety: ee5b2343f1904b18c1c8b26f3e26a3550628a215
   React: 1ba7d364ade7d883a1ec055bfc3606f35fdee17b
   React-callinvoker: df4a74de3f8b09ce3c740a081f519dd227a64706
+  React-Codegen: 4b8b4817cea7a54b83851d4c1f91f79aa73de30a
   React-Core: fd7542f2f80b804eb32bd4ed9a123362c3649ee8
   React-CoreModules: f8f0b9001035bc7d21548b5b1e666e0569424a77
   React-cxxreact: 90b9c6103f45147142cbe58049d68da6cdcd9cb4
@@ -4236,6 +4336,7 @@ SPEC CHECKSUMS:
   react-native-in-app-review: 1516ba69d60d58053b7eb3aaaf8d2a5a74af8b57
   react-native-onesignal: 6b27b4f9d8733165eaa166a304763d7ba7cbdedf
   react-native-passkey: 5a0bfc2b73a8f0d74fd00a12b631072eb9555031
+  react-native-quick-base64: eca82f83cc5fd9e8615d50e789788877ff3f8401
   react-native-safe-area-context: 797130a93d99c8fcfaeeb514e81b9ed2ea0295f7
   react-native-skia: 71dbdcb3c31e351c01b7c73d39c6e73bb1cad13d
   react-native-vector-icons-fontawesome6: 9014730aa0e219382da1f109d47d1a378215cbf8
@@ -4281,6 +4382,7 @@ SPEC CHECKSUMS:
   RNReactNativeHapticFeedback: 8f6dc89cf13406a754487d8f8bd6df4d6feb789b
   RNReanimated: b5c110db1de41abbac5acb7138cab1ba84eb4b69
   RNScreens: 0d856aae26b3179745f19c3bd58f16dbd1d9ddd7
+  RNScreenshotPrevent: 1d843e86cbdb68bb1643f6384e6dbdf42e06ba5c
   RNSound: 80f864773ff8f670fc8f052a3e478cec201d9b43
   RNSVG: a14f58a6be359fd52b3d6eef86c1a6461264dd78
   RNWorklets: 16432d8c65c186246eb2761e9d30373dd17f2ffc

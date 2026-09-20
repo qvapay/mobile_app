@@ -94,6 +94,7 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 	// Mientras hay búsqueda activa solo se muestran los resultados — el perfil,
 	// el logout y el pie quedan fuera para no ensuciar la lista.
 	const [query, setQuery] = useState('')
+
 	const visibleSettings = filterSettings(settings, query, t)
 	const searching = query.trim().length > 0
 	const noResults = searching && Object.keys(visibleSettings).length === 0

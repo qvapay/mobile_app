@@ -1,0 +1,412 @@
+{
+	"common": {
+		"deposit": "Deposit",
+		"withdraw": "Withdraw",
+		"p2pMarket": "P2P market",
+		"perYear": "per year",
+		"statistics": "Statistics"
+	},
+	"timeframes": {
+		"1H": "1H",
+		"24H": "24H",
+		"1W": "1W",
+		"1M": "1M",
+		"1Y": "1Y",
+		"ALL": "ALL"
+	},
+	"dashboard": {
+		"explore": "Explore",
+		"tabs": {
+			"popular": "Popular",
+			"stocks": "Stocks"
+		},
+		"seeAll": "See all",
+		"offers_one": "{{count}} offer",
+		"offers_other": "{{count}} offers",
+		"empty": "No data"
+	},
+	"savings": {
+		"kycGateMessage": "The savings account requires identity verification. It's quick and you only do it once.",
+		"totalDeposited": "Total deposited",
+		"totalWithdrawn": "Total withdrawn",
+		"earnings": "Earnings",
+		"activity": "Activity",
+		"emptyActivity": "Your operations will appear here",
+		"disclaimer": "QvaPay's savings service earns interest on your deposited balance. Funds can be withdrawn at any time. Interest rates are subject to change.",
+		"termsOfService": "Terms of service",
+		"availableBalance": "Available: {{amount}}",
+		"inSavings": "In savings: {{amount}}",
+		"useMax": "Use max",
+		"txTypes": {
+			"deposit": "Deposit",
+			"withdrawal": "Withdrawal",
+			"earning": "Earning"
+		},
+		"toasts": {
+			"minAmount": "The minimum amount is $1.00",
+			"insufficientBalance": "Insufficient balance",
+			"insufficientSavings": "Insufficient savings balance",
+			"depositDone": "Deposit completed",
+			"withdrawDone": "Withdrawal completed",
+			"operationError": "The operation failed",
+			"networkError": "Network error"
+		}
+	},
+	"stockDetail": {
+		"buy": "Buy",
+		"sell": "Sell",
+		"open": "Open",
+		"previousClose": "Previous close",
+		"dayHigh": "Day high",
+		"dayLow": "Day low",
+		"volume": "Volume",
+		"fiftyTwoWeekHigh": "52-week high",
+		"fiftyTwoWeekLow": "52-week low",
+		"about": "About",
+		"sector": "Sector",
+		"exchange": "Exchange",
+		"type": "Type"
+	},
+	"coinDetail": {
+		"goldUpsell": "Explore the price point by point with GOLD",
+		"periodHigh": "High ({{timeframe}})",
+		"periodLow": "Low ({{timeframe}})",
+		"depositFee": "Deposit fee",
+		"withdrawFee": "Withdrawal fee",
+		"deposits": "Deposits",
+		"withdrawals": "Withdrawals",
+		"available": "Available",
+		"notAvailable": "Not available",
+		"spotTeaser": "Spot buy and sell — coming soon"
+	},
+	"queries": {
+		"historyNoData": "Not enough price history data"
+	},
+	"nodes": {
+		"title": "Nodes",
+		"subtitle": "Which RPC each chain uses, with its latency and failures.",
+		"probe": "Probe now",
+		"probing": "Probing…",
+		"active": "Active",
+		"disabled": "Off",
+		"unmeasured": "Not measured",
+		"latencyMs": "{{ms}} ms",
+		"failures_one": "{{count}} failure",
+		"failures_other": "{{count}} failures",
+		"custom": "Yours",
+		"addNode": "Add node",
+		"removeNode": "Remove node",
+		"add": {
+			"title": "Node for {{chain}}",
+			"subtitle": "An https RPC URL for {{chain}}. It is tested before saving and takes priority over the registry nodes.",
+			"placeholder": "https://…",
+			"save": "Test and save",
+			"testing": "Testing…",
+			"cancel": "Cancel",
+			"errors": {
+				"invalid": "Invalid URL",
+				"insecure": "Only https URLs are allowed",
+				"credentials": "The URL cannot include a username or password",
+				"duplicate": "That node is already listed",
+				"limit": "Up to {{count}} nodes per chain",
+				"unreachable": "The node did not respond to the test"
+			}
+		},
+		"toasts": {
+			"added": "Node added",
+			"removed": "Node removed"
+		}
+	},
+	"wallet": {
+		"card": {
+			"title": "My Wallet",
+			"subtitle": "Your keys, your funds. QvaPay can’t touch them.",
+			"create": "Create or import",
+			"resumeBackup": "Finish your backup to activate it",
+			"copied": "Address copied"
+		},
+		"onboarding": {
+			"title": "Your wallet, your keys",
+			"point1": "Keys are generated and stored only on this phone.",
+			"point2": "QvaPay never sees your secret phrase and can’t move your funds.",
+			"point3": "If you lose the 12-word phrase, nobody can recover it. Not even QvaPay.",
+			"create": "Create new wallet",
+			"import": "I already have a phrase"
+		},
+		"backup": {
+			"title": "Your secret phrase",
+			"warning": "Write it on paper, in order. Anyone with these 12 words controls your funds. Don’t keep it in screenshots or the clipboard.",
+			"reveal": "Show words",
+			"continue": "I wrote it down",
+			"quizTitle": "Confirm it",
+			"quizSubtitle": "Tap word #{{position}}",
+			"quizError": "Not that one. Check your backup and start over.",
+			"done": "Backup confirmed",
+			"createFailed": "Couldn’t create the wallet. Try again."
+		},
+		"import": {
+			"title": "Import wallet",
+			"subtitle": "Type your 12 or 24-word phrase separated by spaces.",
+			"placeholder": "recovery phrase…",
+			"invalid": "That phrase isn’t valid. Check the words and their order.",
+			"cta": "Import",
+			"done": "Wallet imported",
+			"failed": "Couldn’t import the wallet."
+		},
+		"home": {
+			"totalLabel": "Wallet balance",
+			"showBalance": "Show balance",
+			"hideBalance": "Hide balance",
+			"actions": {
+				"send": "Send",
+				"receive": "Receive",
+				"p2p": "P2P",
+				"swap": "Swap"
+			},
+			"sendSoon": "Sending from your wallet is coming very soon.",
+			"staleChains_one": "We couldn't update {{count}} network. You're seeing its last known balance.",
+			"staleChains_other": "We couldn't update {{count}} networks. You're seeing their last known balance.",
+			"loadError": "Couldn't load your wallet balances.",
+			"manageAssets": "Manage assets",
+			"security": "Security"
+		},
+		"asset": {
+			"direction": {
+				"in": "Received",
+				"out": "Sent",
+				"self": "To yourself"
+			},
+			"from": "From {{address}}",
+			"to": "To {{address}}",
+			"status": {
+				"pending": "Pending",
+				"failed": "Failed"
+			},
+			"notFound": "This asset is not available.",
+			"price": "1 {{symbol}} ≈ {{price}}",
+			"explorer": "Explorer",
+			"activity": "Activity",
+			"historyUnavailable": "History isn't available here yet. You can see it in the network explorer.",
+			"historyError": "We couldn't load the history.",
+			"openExplorer": "View in explorer",
+			"empty": "No {{symbol}} activity on this network yet.",
+			"explorerFailed": "Couldn't open the explorer.",
+			"feeEntry": "Network fee",
+			"feeEntrySub": "Contract call {{address}}",
+			"dustHidden_one": "{{count}} small transfer hidden",
+			"dustHidden_other": "{{count}} small transfers hidden",
+			"dustShow": "Show"
+		},
+		"receive": {
+			"pickTitle": "What do you want to receive?",
+			"change": "Change asset",
+			"copy": "Copy",
+			"share": "Share",
+			"shareMessage": "My address to receive {{asset}} on {{network}}: {{address}}",
+			"warning": "Only send {{asset}} on the {{network}} network. Funds sent on another network may be lost.",
+			"evmNote": "This address is the same on Ethereum, BNB Chain, Base and Polygon, but each network has its own balance.",
+			"fromQvaPay": "From your QvaPay balance",
+			"fromQvaPayHint": "Withdraw {{symbol}} from your QvaPay account straight to this address."
+		},
+		"manage": {
+			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically.",
+			"hideDust": "Hide small transfers",
+			"hideDustHint": "Incoming transfers under $0.01: almost always spam or an attempt to get you to copy a fake address."
+		},
+		"auth": {
+			"title": "Confirm it’s you",
+			"sendSubtitle": "Send {{amount}} {{symbol}} to {{address}}",
+			"noPin": "Signing from your wallet requires an app-lock PIN. Create it in Settings → App lock and come back.",
+			"createPin": "Create app-lock PIN",
+			"cancel": "Cancel",
+			"revealSubtitle": "View your wallet’s secret phrase",
+			"deleteSubtitle": "Delete the wallet from this phone",
+			"bioPrompt": "Confirm to sign with your wallet",
+			"biometricsSubtitle": "Enable Face ID / Touch ID for your wallet"
+		},
+		"send": {
+			"pickTitle": "What do you want to send?",
+			"toLabel": "To",
+			"toPlaceholder": "{{network}} address",
+			"paste": "Paste",
+			"scan": "Scan",
+			"amountLabel": "Amount",
+			"available": "Available: {{amount}} {{symbol}}",
+			"max": "MAX",
+			"continue": "Continue",
+			"fromLabel": "From",
+			"networkFee": "Network fee",
+			"feeFree": "Free (account resources)",
+			"feeLimit": "Max authorized",
+			"total": "Total",
+			"viaNetwork": "on the {{network}} network",
+			"activatesAccount": "The destination account doesn’t exist yet: the network charges 1 TRX to activate it.",
+			"irreversible": "On-chain transfers can’t be cancelled or reversed. Double-check the address.",
+			"confirm": "Confirm and sign",
+			"signing": "Signing…",
+			"broadcasting": "Sending to the network…",
+			"retry": "Retry",
+			"back": "Back",
+			"alreadySent": "This transaction was already on the network.",
+			"successTitle": "Sent",
+			"successSubtitle": "The transaction is on the network. It confirms in a few seconds.",
+			"hashCopied": "Hash copied",
+			"copyHash": "Copy hash",
+			"done": "Done",
+			"errors": {
+				"invalidAddress": "That’s not a valid {{network}} address.",
+				"ownAddress": "That’s your own address.",
+				"amountZero": "Amount must be greater than zero.",
+				"amountInvalid": "Invalid amount (max {{decimals}} decimals).",
+				"insufficient": "Not enough {{symbol}}.",
+				"verifyFailed": "The node returned a transaction different from the one requested. Nothing was signed. Try again or switch nodes in Settings → Nodes.",
+				"noNodes": "No TRON node is responding. Check your connection and try again.",
+				"nodeInsufficient": "The network rejected the transaction for insufficient balance.",
+				"generic": "Couldn’t send: {{message}}",
+				"unknown": "Couldn’t send. Please try again.",
+				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",
+				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again."
+			},
+			"feeNative": "{{amount}} {{symbol}}",
+			"btcSendAll": "You’re sending your whole balance: the network fee ({{fee}} BTC) is deducted from the amount.",
+			"feeTiers": {
+				"fast": "Fast",
+				"normal": "Normal",
+				"slow": "Economy"
+			},
+			"feeEta": "~{{minutes}} min",
+			"createsTokenAccount": "The recipient has no {{symbol}} account on Solana yet: this transaction creates it ({{fee}}, included in the fee)."
+		},
+		"settings": {
+			"title": "My wallet",
+			"subtitle": "Your keys live only on this phone.",
+			"addresses": "Addresses",
+			"families": {
+				"tron": "TRON",
+				"evm": "ETH · BSC · Base",
+				"btc": "Bitcoin",
+				"stacks": "Stacks",
+				"solana": "Solana"
+			},
+			"phrase": "Secret phrase",
+			"phraseHint": "12 words. Anyone who has them controls your funds. Shown only after verifying your identity.",
+			"reveal": "View secret phrase",
+			"hide": "Hide",
+			"revealHint": "Hides itself after 60 seconds or when you leave the app. Don’t take screenshots.",
+			"revealFailed": "Couldn’t read the phrase. Try again.",
+			"notBackedUp": "You haven’t confirmed your backup yet. Do it from the Crypto tab before receiving funds.",
+			"dangerZone": "Danger zone",
+			"deleteHint": "Removes the wallet from this phone. Logging out does NOT remove it. Funds stay on-chain and can only be recovered with the phrase.",
+			"delete": "Delete wallet",
+			"deleted": "Wallet removed from this phone",
+			"confirmTitle": "Delete the wallet?",
+			"confirmBody": "This can’t be undone. Without your 12-word phrase, no one (not even QvaPay) can recover the funds.",
+			"confirmAck": "I have my secret phrase saved",
+			"confirmDelete": "Delete permanently",
+			"noWallet": "There’s no wallet on this phone.",
+			"security": "Security",
+			"biometricsFaceId": "Use Face ID",
+			"biometricsTouchId": "Use Touch ID / fingerprint",
+			"biometricsHint": "As a PIN shortcut when sending and viewing the phrase. If you change your face or fingerprint, it asks for the PIN again.",
+			"biometricsFailed": "Couldn’t enable biometrics on this device.",
+			"nodesHint": "Which nodes the wallet connects to",
+			"network": "Network"
+		},
+		"txDetail": {
+			"confirmed": "Confirmed",
+			"usdNow": "≈ {{value}} at today’s price",
+			"date": "Date",
+			"network": "Network",
+			"contract": "Contract",
+			"hash": "Hash",
+			"pendingHint": "It’s on the network waiting for a block. Bitcoin can take a few minutes; other networks, seconds."
+		},
+		"swap": {
+			"title": "Swap",
+			"pay": "You pay",
+			"receive": "You receive",
+			"flip": "Flip direction",
+			"max": "MAX",
+			"balanceQvaPay": "QvaPay balance",
+			"walletOn": "Wallet · {{network}}",
+			"toYourWallet": "To your wallet",
+			"toYourBalance": "To your QvaPay balance",
+			"noFee": "No fee",
+			"pickAsset": "Choose asset",
+			"moreSoon": "More networks soon: USDT, USDC and more.",
+			"sponsoredNote": "QvaPay pays the network fee: you don't need STX in your wallet.",
+			"disabled": "Swap is not available right now.",
+			"inUnsupported": "Moving from your wallet to balance on {{network}} is coming soon.",
+			"notRegistered": "Open your non-custodial wallet once to register your address and start swapping.",
+			"loadError": "Couldn't load swap. Check your connection.",
+			"authSubtitle": "Send {{amount}} {{symbol}} from your wallet to your QvaPay balance",
+			"reviewTitle": "Review your swap",
+			"reviewNoticeOut": "Your balance is debited when you confirm with your PIN. The QUSD lands in your wallet on-chain.",
+			"reviewNoticeIn": "You'll sign with your wallet. Your balance is credited once the network confirms.",
+			"confirmOut": "Confirm swap",
+			"confirmIn": "Sign and confirm",
+			"fromLabel": "From",
+			"toLabel": "To",
+			"cta": {
+				"loading": "Loading…",
+				"unavailable": "Swap unavailable",
+				"walletNotRegistered": "Register your wallet",
+				"enterAmount": "Enter an amount",
+				"insufficient": "Insufficient {{symbol}} balance",
+				"belowMin": "Minimum {{amount}}",
+				"aboveMax": "Maximum {{amount}} per swap",
+				"overLimit": "Today's limit: {{amount}}",
+				"review": "Review swap",
+				"retry": "Retry"
+			},
+			"details": {
+				"fee": "QvaPay fee",
+				"free": "Free",
+				"networkFee": "Network fee",
+				"networkFeePaid": "Free · paid by QvaPay",
+				"destination": "Arrives at",
+				"toWallet": "Your wallet · {{address}}",
+				"network": "Network",
+				"eta": "Estimated time",
+				"etaOut": "≈ 1 min",
+				"etaIn": "≈ 2–5 min",
+				"limit": "Available today",
+				"noLimit": "No limit"
+			},
+			"timeline": {
+				"debited": "Balance debited",
+				"signed": "Signature received",
+				"onChain": "Sent to the network",
+				"inWallet": "QUSD in your wallet",
+				"credited": "Balance credited"
+			},
+			"errors": {
+				"createFailed": "Could not create the swap",
+				"noStacksKey": "Your wallet has no Stacks key. Reopen it to regenerate it."
+			},
+			"status": {
+				"pending": "Queued",
+				"dispatching": "Sending to the network",
+				"sent": "Waiting for confirmation",
+				"completed": "Completed",
+				"failed": "Could not complete",
+				"refunded": "Refunded",
+				"needs_review": "Under review",
+				"pendingHint": "Processed in under a minute.",
+				"sentHint": "The transaction is on the network; it usually confirms in a few minutes.",
+				"completedOut": "The QUSD is now in your wallet.",
+				"completedIn": "The balance is now in your QvaPay account.",
+				"refundedHint": "The amount went back to your QvaPay balance.",
+				"failedNonce": "The signed transaction expired because your wallet made another send. Try again.",
+				"failedFunds": "Your wallet didn't have enough QUSD when it was processed.",
+				"failedGeneric": "Nothing left your wallet.",
+				"reviewHint": "An operator is reviewing this swap. We'll let you know.",
+				"txLabel": "Transaction",
+				"cancel": "Cancel swap",
+				"cancelled": "Swap cancelled and balance refunded",
+				"retry": "Retry",
+				"done": "Done"
+			}
+		}
+	}
+}

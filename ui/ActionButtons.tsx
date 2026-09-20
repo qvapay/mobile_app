@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle } from 'react-native-reanimated'
 import type { SharedValue } from 'react-native-reanimated'
 import type { NavigationProp } from '@react-navigation/native'
-import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
@@ -22,6 +21,8 @@ import KycGateModal from './KycGateModal'
 
 // UI
 import QPPressable from './particles/QPPressable'
+import QPActionTile, { ACTION_ROW_HEIGHT } from './particles/QPActionTile'
+import type { ActionTileItem } from './particles/QPActionTile'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -29,16 +30,11 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Routes
 import { ROUTES } from '../routes'
 
-// Misma altura que los botones de acción de Savings (consistencia del par)
-const ROW_HEIGHT = 56
+// Misma altura que los botones de acción de Savings y la botonera de la wallet
+const ROW_HEIGHT = ACTION_ROW_HEIGHT
 
 // Acción de una fila (los tiles de cuenta añaden `dimmed` para el gate KYC)
-type ActionItem = {
-	icon: FontAwesome6SolidIconName
-	label: string
-	onPress: () => void
-	dimmed?: boolean
-}
+type ActionItem = ActionTileItem
 
 type TileProps = ActionItem & {
 	index: number
@@ -46,10 +42,10 @@ type TileProps = ActionItem & {
 	theme: Theme
 }
 
-// Tile de la cuenta principal (icono arriba, label abajo). El desplazamiento
+// Tile de la cuenta principal (QPActionTile: el MISMO de la wallet). El desplazamiento
 // es un parallax escalonado por índice: cada tile sale un poco más lejos que
 // el anterior, siguiendo el dedo en tiempo real (pageProgress 0→1).
-const AccountTile = ({ icon, label, onPress, index, pageProgress, theme, dimmed }: TileProps) => {
+const AccountTile = ({ icon, label, onPress, index, pageProgress, dimmed }: TileProps) => {
 	const style = useAnimatedStyle(() => {
 		const p = pageProgress ? pageProgress.value : 0
 		return {
@@ -62,12 +58,7 @@ const AccountTile = ({ icon, label, onPress, index, pageProgress, theme, dimmed 
 	})
 	return (
 		<Animated.View style={[styles.tileSlot, style]}>
-			<QPPressable onPress={onPress} style={[styles.tile, { backgroundColor: theme.colors.elevation }]}>
-				<FontAwesome6 name={icon} size={17} color={dimmed ? theme.colors.tertiaryText : theme.colors.primaryText} iconStyle="solid" />
-				<Text style={[styles.tileLabel, { color: dimmed ? theme.colors.tertiaryText : theme.colors.primaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
-					{label}
-				</Text>
-			</QPPressable>
+			<QPActionTile icon={icon} label={label} onPress={onPress} dimmed={dimmed} />
 		</Animated.View>
 	)
 }
@@ -205,15 +196,6 @@ const styles = StyleSheet.create({
 	tileSlot: {
 		flex: 1,
 	},
-	tile: {
-		flex: 1,
-		borderRadius: 16,
-		borderCurve: 'continuous',
-		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 5,
-	},
-	tileLabel: {},
 	pill: {
 		flex: 1,
 		borderRadius: 16,

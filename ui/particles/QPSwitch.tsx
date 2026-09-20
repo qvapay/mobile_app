@@ -1,10 +1,11 @@
-import { useRef, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, Pressable, Animated, Easing, StyleSheet } from 'react-native'
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
+import { useAnimatedValue } from '../../hooks/useAnimatedValue'
 
 // Pill animation target per side; everything else sits at the neutral midpoint.
 const POSITION_OFFSET = { left: 0, right: 1 }
@@ -75,7 +76,7 @@ const QPSwitch = ({
 	const controlledValue = value !== undefined ? value : (position !== undefined ? position : undefined)
 	const hasValue = controlledValue !== undefined && controlledValue !== null
 	const initialValue = hasValue ? controlledValue : defaultValue
-	const translate = useRef(new Animated.Value(POSITION_OFFSET[initialValue] ?? NEUTRAL_OFFSET)).current
+	const translate = useAnimatedValue(POSITION_OFFSET[initialValue] ?? NEUTRAL_OFFSET)
 	const [containerWidth, setContainerWidth] = useState(0)
 	// Uncontrolled state only; when controlled, the value is derived from props so
 	// there is no second copy to keep in sync.

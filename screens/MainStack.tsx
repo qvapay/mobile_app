@@ -31,7 +31,7 @@ import { ROUTES } from '../routes'
 
 // Tab Screens
 import Home from './home/Home'
-import Invest from './invest/Invest'
+import Crypto from './crypto/Crypto'
 import Keypad from './keypad/Keypad'
 import P2P from './p2p/P2P'
 import Store from './store/Store'
@@ -67,7 +67,7 @@ type TabIconConfig = { ios: string, android: FontAwesome6SolidIconName, label: s
 // Tab icon config per screen: iOS uses sfSymbol, Android uses FontAwesome6
 const TAB_ICONS: Record<string, TabIconConfig> = {
 	[ROUTES.HOME_SCREEN]: { ios: 'wallet.pass.fill', android: 'wallet', label: 'Inicio' },
-	[ROUTES.INVEST_SCREEN]: { ios: 'bitcoinsign.circle.fill', android: 'bitcoin-sign', label: 'Invertir' },
+	[ROUTES.CRYPTO_SCREEN]: { ios: 'bitcoinsign.circle.fill', android: 'bitcoin-sign', label: 'Cripto' },
 	[ROUTES.KEYPAD_SCREEN]: { ios: 'dollarsign.circle.fill', android: 'dollar-sign', label: 'Enviar' },
 	[ROUTES.P2P_SCREEN]: { ios: 'person.2.fill', android: 'people-group', label: 'P2P' },
 	[ROUTES.STORE_SCREEN]: { ios: 'storefront.fill', android: 'store', label: 'Tienda' },
@@ -210,9 +210,9 @@ const MainStack = ({ navigation }: MainStackProps) => {
 		}),
 	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, t])
 
-	const investOptions = useMemo(() => ({
-		tabBarLabel: showLabels ? t('navigation.tabs.invest') : '',
-		tabBarIcon: getTabIcon(ROUTES.INVEST_SCREEN),
+	const cryptoOptions = useMemo(() => ({
+		tabBarLabel: showLabels ? t('navigation.tabs.crypto') : '',
+		tabBarIcon: getTabIcon(ROUTES.CRYPTO_SCREEN),
 		headerRight: () => null,
 		...(supportsLiquidGlass && { unstable_headerRightItems: () => [] }),
 	}), [showLabels, t])
@@ -294,9 +294,9 @@ const MainStack = ({ navigation }: MainStackProps) => {
 					/>
 
 					<Tab.Screen
-						name={ROUTES.INVEST_SCREEN}
-						component={Invest}
-						options={investOptions as unknown as BottomTabNavigationOptions}
+						name={ROUTES.CRYPTO_SCREEN}
+						component={Crypto}
+						options={cryptoOptions as unknown as BottomTabNavigationOptions}
 						listeners={hapticTabListeners}
 					/>
 

@@ -1,9 +1,10 @@
 import { View, Image, Animated } from 'react-native'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles } from '../../theme/themeUtils'
+import { useAnimatedValue } from '../../hooks/useAnimatedValue'
 
 /**
  * Animated splash: logo fade-in followed by a bounce, over the brand purple.
@@ -19,8 +20,8 @@ const SplashScreen = () => {
 	const containerStyles = createContainerStyles(theme)
 
 	// Animated values
-	const scaleAnim = useRef(new Animated.Value(0.8)).current
-	const opacityAnim = useRef(new Animated.Value(0)).current
+	const scaleAnim = useAnimatedValue(0.8)
+	const opacityAnim = useAnimatedValue(0)
 
 	useEffect(() => {
 		// Initial fade in

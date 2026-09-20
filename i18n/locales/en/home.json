@@ -25,7 +25,7 @@
 	"services": {
 		"topups": "Top-ups",
 		"giftCards": "Gift Cards",
-		"invest": "Invest",
+		"crypto": "Crypto",
 		"p2p": "P2P"
 	},
 	"watchlist": {

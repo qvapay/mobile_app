@@ -22,6 +22,7 @@ import P2PRequirementsGate from "./P2PRequirementsGate"
 import { missingP2PRequirements } from "./p2pRequirements"
 import P2PFilterBar from "./P2PFilterBar"
 import P2PFiltersModal from "./P2PFiltersModal"
+import P2PMarketModal from "./P2PMarketModal"
 import useP2PFilters, { SORT_OPTIONS } from "./useP2PFilters"
 import useP2POffers from "./useP2POffers"
 
@@ -61,8 +62,8 @@ type P2PScreenProps = CompositeScreenProps<
 	NativeStackScreenProps<RootStackParamList>
 >
 
-/** Visibilidad de los tres modales de la pantalla. */
-type ModalsState = { showFiltersModal: boolean, showCoinPicker: boolean, showSortMenu: boolean }
+/** Visibilidad de los modales de la pantalla. */
+type ModalsState = { showFiltersModal: boolean, showCoinPicker: boolean, showSortMenu: boolean, showMarketModal: boolean }
 
 type ModalsAction = { type: "set", field: keyof ModalsState, value: boolean }
 
@@ -132,9 +133,13 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	)
 
 	// Ancho del switch del header: lo más generoso que quepa sin acercarse al
-	// avatar ni a los botones (reservamos ~190px para ellos), con tope para que
-	// en pantallas anchas no se estire de más
-	const headerSwitchWidth = Math.max(132, Math.min(168, windowWidth - 190))
+	// avatar ni a los botones, con tope para que en pantallas anchas no se
+	// estire de más. Con TRES botones (Mercado + Filtros + Crear) el header JS
+	// de Android reserva más a la derecha (~250px entre ambos lados); en iOS
+	// el header es nativo y agrupa los items en su propia píldora
+	const headerSwitchWidth = Platform.OS === 'ios'
+		? Math.max(132, Math.min(168, windowWidth - 190))
+		: Math.max(120, Math.min(168, windowWidth - 250))
 
 	// Online status
 	const { trackUsers, untrackUsers } = useOnlineStatus()
@@ -161,11 +166,12 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	const { p2pOffers, isLoading, error, requirement, refreshing, availableCoins, loadingCoins, marketAverages, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
 
 	// Modal visibility
-	const [modals, dispatchModals] = useReducer(modalsReducer, { showFiltersModal: false, showCoinPicker: false, showSortMenu: false })
-	const { showFiltersModal, showCoinPicker, showSortMenu } = modals
+	const [modals, dispatchModals] = useReducer(modalsReducer, { showFiltersModal: false, showCoinPicker: false, showSortMenu: false, showMarketModal: false })
+	const { showFiltersModal, showCoinPicker, showSortMenu, showMarketModal } = modals
 	const setShowFiltersModal = (value: boolean) => dispatchModals({ type: "set", field: "showFiltersModal", value })
 	const setShowCoinPicker = (value: boolean) => dispatchModals({ type: "set", field: "showCoinPicker", value })
 	const setShowSortMenu = (value: boolean) => dispatchModals({ type: "set", field: "showSortMenu", value })
+	const setShowMarketModal = (value: boolean) => dispatchModals({ type: "set", field: "showMarketModal", value })
 	// El picker de moneda se abre a veces desde el modal de filtros (y ese modal
 	// se cierra, porque dos modales a la vez dan problemas): se anota para
 	// devolver al usuario donde estaba, elija moneda o descarte
@@ -330,21 +336,26 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 					/>
 				</View>
 			),
-			// Solo dos botones: "Mis ofertas" era redundante (vive dentro del
-			// modal de Filtros, que además enciende su icono y muestra el badge
-			// activo) y su ancho hacía que el switch centrado se solapara
+			// Mercado (medias por moneda, antes una card del tab Crypto), Filtros
+			// y Crear. "Mis ofertas" sigue dentro del modal de Filtros. Tres
+			// iconos con separación compacta: con el margen estándar de 20 el
+			// grupo invadía el switch centrado (ver headerSwitchWidth)
 			headerRight: () => (
-				<>
-					<Pressable style={containerStyles.headerRight} onPress={() => setShowFiltersModal(true)}>
-						<FontAwesome6 name="filter" size={20} color={hasActiveFilters ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
+				<View style={[containerStyles.headerRight, styles.headerRightGroup]}>
+					<Pressable style={styles.headerIcon} hitSlop={6} onPress={() => setShowMarketModal(true)} accessibilityLabel={t('p2p.market.headerMarket')}>
+						<FontAwesome6 name="chart-simple" size={19} color={theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
-					<Pressable style={containerStyles.headerRight} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)}>
-						<FontAwesome6 name="plus" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+					<Pressable style={styles.headerIcon} hitSlop={6} onPress={() => setShowFiltersModal(true)} accessibilityLabel={t('p2p.market.headerFilters')}>
+						<FontAwesome6 name="filter" size={19} color={hasActiveFilters ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
 					</Pressable>
-				</>
+					<Pressable style={styles.headerIcon} hitSlop={6} onPress={() => navigation.navigate(ROUTES.P2P_CREATE_SCREEN)} accessibilityLabel={t('p2p.market.headerCreate')}>
+						<FontAwesome6 name="plus" size={23} color={theme.colors.primaryText} iconStyle="solid" />
+					</Pressable>
+				</View>
 			),
 			...(Platform.OS === 'ios' && {
 				unstable_headerRightItems: () => [
+					{ type: 'button', label: t('p2p.market.headerMarket'), icon: { type: 'sfSymbol', name: 'chart.bar' }, onPress: () => setShowMarketModal(true) },
 					{ type: 'button', label: t('p2p.market.headerFilters'), icon: { type: 'sfSymbol', name: 'line.3.horizontal.decrease.circle' }, onPress: () => setShowFiltersModal(true), tintColor: hasActiveFilters ? theme.colors.primary : theme.colors.primaryText },
 					{ type: 'button', label: t('p2p.market.headerCreate'), icon: { type: 'sfSymbol', name: 'plus' }, onPress: () => navigation.navigate(ROUTES.P2P_CREATE_SCREEN) },
 				],
@@ -367,7 +378,14 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	)
 
 	if (!p2pEnabled || requirement) {
-		return <P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} serverMissing={requirement} />
+		// Las medias del mercado son informativas: el botón del header funciona
+		// también sin los requisitos del P2P (sin filtro al elegir moneda)
+		return (
+			<>
+				<P2PRequirementsGate user={user!} navigation={navigation as unknown as RootNav} theme={theme} textStyles={textStyles} containerStyles={containerStyles} serverMissing={requirement} />
+				<P2PMarketModal visible={showMarketModal} onClose={() => setShowMarketModal(false)} onSelectCoin={() => setShowMarketModal(false)} />
+			</>
+		)
 	}
 
 	return (
@@ -428,6 +446,16 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 				textStyles={textStyles}
 			/>
 
+			{/* Mercado P2P: medias por moneda; tocar una filtra la lista */}
+			<P2PMarketModal
+				visible={showMarketModal}
+				onClose={() => setShowMarketModal(false)}
+				onSelectCoin={(tick, name) => {
+					setShowMarketModal(false)
+					setFilter("selectedCoin", { tick, name, logo: tick })
+				}}
+			/>
+
 			{/* Coin Picker Modal */}
 			<QPCoinPicker
 				visible={showCoinPicker}
@@ -447,6 +475,14 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 }
 
 const styles = StyleSheet.create({
+	headerRightGroup: {
+		gap: 4,
+	},
+	headerIcon: {
+		minWidth: 32,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
 	headerTitleContainer: {
 		position: 'absolute',
 		left: 0,

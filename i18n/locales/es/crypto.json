@@ -1,0 +1,412 @@
+{
+	"common": {
+		"deposit": "Depositar",
+		"withdraw": "Retirar",
+		"p2pMarket": "Mercado P2P",
+		"perYear": "anual",
+		"statistics": "Estadísticas"
+	},
+	"timeframes": {
+		"1H": "1H",
+		"24H": "24H",
+		"1W": "1S",
+		"1M": "1M",
+		"1Y": "1A",
+		"ALL": "TODO"
+	},
+	"dashboard": {
+		"explore": "Explorar",
+		"tabs": {
+			"popular": "Populares",
+			"stocks": "Stocks"
+		},
+		"seeAll": "Ver todo",
+		"offers_one": "{{count}} oferta",
+		"offers_other": "{{count}} ofertas",
+		"empty": "Sin datos"
+	},
+	"savings": {
+		"kycGateMessage": "La cuenta de ahorro requiere tener tu identidad verificada. Es rápido y solo se hace una vez.",
+		"totalDeposited": "Total depositado",
+		"totalWithdrawn": "Total retirado",
+		"earnings": "Ganancias",
+		"activity": "Actividad",
+		"emptyActivity": "Las operaciones aparecerán aquí",
+		"disclaimer": "El servicio de ahorros de QvaPay genera intereses sobre tu balance depositado. Los fondos pueden ser retirados en cualquier momento. Las tasas de interés están sujetas a cambios.",
+		"termsOfService": "Términos del servicio",
+		"availableBalance": "Disponible: {{amount}}",
+		"inSavings": "En ahorros: {{amount}}",
+		"useMax": "Usar máximo",
+		"txTypes": {
+			"deposit": "Depósito",
+			"withdrawal": "Retiro",
+			"earning": "Ganancia"
+		},
+		"toasts": {
+			"minAmount": "El monto mínimo es $1.00",
+			"insufficientBalance": "Balance insuficiente",
+			"insufficientSavings": "Balance de ahorros insuficiente",
+			"depositDone": "Depósito realizado",
+			"withdrawDone": "Retiro realizado",
+			"operationError": "Error en la operación",
+			"networkError": "Error de red"
+		}
+	},
+	"stockDetail": {
+		"buy": "Comprar",
+		"sell": "Vender",
+		"open": "Apertura",
+		"previousClose": "Cierre anterior",
+		"dayHigh": "Máximo del día",
+		"dayLow": "Mínimo del día",
+		"volume": "Volumen",
+		"fiftyTwoWeekHigh": "Máx. 52 sem.",
+		"fiftyTwoWeekLow": "Mín. 52 sem.",
+		"about": "Acerca de",
+		"sector": "Sector",
+		"exchange": "Exchange",
+		"type": "Tipo"
+	},
+	"coinDetail": {
+		"goldUpsell": "Explora el precio punto a punto con GOLD",
+		"periodHigh": "Máximo ({{timeframe}})",
+		"periodLow": "Mínimo ({{timeframe}})",
+		"depositFee": "Comisión de depósito",
+		"withdrawFee": "Comisión de retiro",
+		"deposits": "Depósitos",
+		"withdrawals": "Retiros",
+		"available": "Disponible",
+		"notAvailable": "No disponible",
+		"spotTeaser": "Compra y venta spot — próximamente"
+	},
+	"queries": {
+		"historyNoData": "Historial sin datos suficientes"
+	},
+	"nodes": {
+		"title": "Nodos",
+		"subtitle": "Qué RPC usa cada cadena, con su latencia y sus fallos.",
+		"probe": "Probar ahora",
+		"probing": "Midiendo…",
+		"active": "Activo",
+		"disabled": "Apagado",
+		"unmeasured": "Sin medir",
+		"latencyMs": "{{ms}} ms",
+		"failures_one": "{{count}} fallo",
+		"failures_other": "{{count}} fallos",
+		"custom": "Tuyo",
+		"addNode": "Añadir nodo",
+		"removeNode": "Quitar nodo",
+		"add": {
+			"title": "Nodo para {{chain}}",
+			"subtitle": "URL https de un RPC de {{chain}}. Se prueba antes de guardar y tendrá prioridad sobre los del registro.",
+			"placeholder": "https://…",
+			"save": "Probar y guardar",
+			"testing": "Probando…",
+			"cancel": "Cancelar",
+			"errors": {
+				"invalid": "URL no válida",
+				"insecure": "Solo se admiten URLs https",
+				"credentials": "La URL no puede llevar usuario ni contraseña",
+				"duplicate": "Ese nodo ya está en la lista",
+				"limit": "Máximo {{count}} nodos por cadena",
+				"unreachable": "El nodo no respondió a la prueba"
+			}
+		},
+		"toasts": {
+			"added": "Nodo añadido",
+			"removed": "Nodo eliminado"
+		}
+	},
+	"wallet": {
+		"card": {
+			"title": "Mi Wallet",
+			"subtitle": "Tus llaves, tus fondos. QvaPay no puede tocarlos.",
+			"create": "Crear o importar",
+			"resumeBackup": "Completa tu respaldo para activarla",
+			"copied": "Dirección copiada"
+		},
+		"onboarding": {
+			"title": "Tu wallet, tus llaves",
+			"point1": "Las llaves se generan y guardan solo en este teléfono.",
+			"point2": "QvaPay nunca ve tu frase secreta ni puede mover tus fondos.",
+			"point3": "Si pierdes la frase de 12 palabras, nadie puede recuperarla. Ni QvaPay.",
+			"create": "Crear wallet nueva",
+			"import": "Ya tengo una frase"
+		},
+		"backup": {
+			"title": "Tu frase secreta",
+			"warning": "Escríbela en papel, en orden. Cualquiera con estas 12 palabras controla tus fondos. No la guardes en capturas ni en el portapapeles.",
+			"reveal": "Mostrar palabras",
+			"continue": "Ya la escribí",
+			"quizTitle": "Confírmalo",
+			"quizSubtitle": "Toca la palabra #{{position}}",
+			"quizError": "Esa no es. Revisa tu respaldo y vuelve a empezar.",
+			"done": "Respaldo confirmado",
+			"createFailed": "No se pudo crear la wallet. Inténtalo de nuevo."
+		},
+		"import": {
+			"title": "Importar wallet",
+			"subtitle": "Escribe tu frase de 12 o 24 palabras separadas por espacios.",
+			"placeholder": "frase de recuperación…",
+			"invalid": "Esa frase no es válida. Revisa las palabras y el orden.",
+			"cta": "Importar",
+			"done": "Wallet importada",
+			"failed": "No se pudo importar la wallet."
+		},
+		"home": {
+			"totalLabel": "Balance de tu wallet",
+			"showBalance": "Mostrar saldo",
+			"hideBalance": "Ocultar saldo",
+			"actions": {
+				"send": "Enviar",
+				"receive": "Recibir",
+				"p2p": "P2P",
+				"swap": "Swap"
+			},
+			"sendSoon": "Enviar desde tu wallet llega muy pronto.",
+			"staleChains_one": "No pudimos actualizar {{count}} red. Ves su último saldo conocido.",
+			"staleChains_other": "No pudimos actualizar {{count}} redes. Ves su último saldo conocido.",
+			"loadError": "No se pudieron cargar los saldos de tu wallet.",
+			"manageAssets": "Gestionar activos",
+			"security": "Seguridad"
+		},
+		"asset": {
+			"direction": {
+				"in": "Recibido",
+				"out": "Enviado",
+				"self": "A ti mismo"
+			},
+			"from": "De {{address}}",
+			"to": "A {{address}}",
+			"status": {
+				"pending": "Pendiente",
+				"failed": "Fallida"
+			},
+			"notFound": "Este activo no está disponible.",
+			"price": "1 {{symbol}} ≈ {{price}}",
+			"explorer": "Explorador",
+			"activity": "Actividad",
+			"historyUnavailable": "El historial todavía no está disponible aquí. Puedes verlo en el explorador de la red.",
+			"historyError": "No pudimos cargar el historial.",
+			"openExplorer": "Ver en el explorador",
+			"empty": "Aún no tienes movimientos de {{symbol}} en esta red.",
+			"explorerFailed": "No se pudo abrir el explorador.",
+			"feeEntry": "Comisión de red",
+			"feeEntrySub": "Llamada al contrato {{address}}",
+			"dustHidden_one": "{{count}} movimiento pequeño oculto",
+			"dustHidden_other": "{{count}} movimientos pequeños ocultos",
+			"dustShow": "Mostrar"
+		},
+		"receive": {
+			"pickTitle": "¿Qué quieres recibir?",
+			"change": "Cambiar activo",
+			"copy": "Copiar",
+			"share": "Compartir",
+			"shareMessage": "Mi dirección para recibir {{asset}} en {{network}}: {{address}}",
+			"warning": "Envía solo {{asset}} por la red {{network}}. Si usas otra red, los fondos se pueden perder.",
+			"evmNote": "Esta dirección es la misma en Ethereum, BNB Chain, Base y Polygon, pero cada red tiene su propio saldo.",
+			"fromQvaPay": "Desde tu saldo QvaPay",
+			"fromQvaPayHint": "Retira {{symbol}} de tu cuenta QvaPay directo a esta dirección."
+		},
+		"manage": {
+			"subtitle": "Elige qué activos ves en tu wallet. Los que reciban fondos aparecen solos.",
+			"hideDust": "Ocultar movimientos pequeños",
+			"hideDustHint": "Entradas de menos de $0.01: casi siempre spam o intentos de que copies una dirección falsa."
+		},
+		"auth": {
+			"title": "Confirma que eres tú",
+			"sendSubtitle": "Enviar {{amount}} {{symbol}} a {{address}}",
+			"noPin": "Para firmar desde tu wallet necesitas un PIN de bloqueo. Créalo en Ajustes → Bloqueo y vuelve.",
+			"createPin": "Crear PIN de bloqueo",
+			"cancel": "Cancelar",
+			"revealSubtitle": "Ver la frase secreta de tu wallet",
+			"deleteSubtitle": "Eliminar la wallet de este teléfono",
+			"bioPrompt": "Confirma para firmar con tu wallet",
+			"biometricsSubtitle": "Activar Face ID / Touch ID para tu wallet"
+		},
+		"send": {
+			"pickTitle": "¿Qué quieres enviar?",
+			"toLabel": "Destino",
+			"toPlaceholder": "Dirección en {{network}}",
+			"paste": "Pegar",
+			"scan": "Escanear",
+			"amountLabel": "Cantidad",
+			"available": "Disponible: {{amount}} {{symbol}}",
+			"max": "MAX",
+			"continue": "Continuar",
+			"fromLabel": "Desde",
+			"networkFee": "Comisión de red",
+			"feeFree": "Gratis (recursos de la cuenta)",
+			"feeLimit": "Máximo autorizado",
+			"total": "Total",
+			"viaNetwork": "por la red {{network}}",
+			"activatesAccount": "La cuenta destino no existe todavía: la red cobra 1 TRX por activarla.",
+			"irreversible": "Los envíos en cadena no se pueden cancelar ni revertir. Revisa la dirección.",
+			"confirm": "Confirmar y firmar",
+			"signing": "Firmando…",
+			"broadcasting": "Enviando a la red…",
+			"retry": "Reintentar",
+			"back": "Volver",
+			"alreadySent": "Esta transacción ya estaba en la red.",
+			"successTitle": "Enviado",
+			"successSubtitle": "La transacción está en la red. Se confirma en unos segundos.",
+			"hashCopied": "Hash copiado",
+			"copyHash": "Copiar hash",
+			"done": "Listo",
+			"errors": {
+				"invalidAddress": "Esa no es una dirección válida de {{network}}.",
+				"ownAddress": "Es tu propia dirección.",
+				"amountZero": "La cantidad debe ser mayor que cero.",
+				"amountInvalid": "Cantidad inválida (máximo {{decimals}} decimales).",
+				"insufficient": "No tienes suficiente {{symbol}}.",
+				"verifyFailed": "El nodo devolvió una transacción distinta a la pedida. No se firmó nada. Inténtalo de nuevo o cambia de nodo en Ajustes → Nodos.",
+				"noNodes": "Ningún nodo de TRON responde. Revisa tu conexión e inténtalo de nuevo.",
+				"nodeInsufficient": "La red rechazó la transacción por saldo insuficiente.",
+				"generic": "No se pudo enviar: {{message}}",
+				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
+				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad.",
+				"expired": "La transacción caducó antes de enviarse. Pulsa Reintentar para prepararla de nuevo."
+			},
+			"feeNative": "{{amount}} {{symbol}}",
+			"btcSendAll": "Envías todo tu saldo: la comisión de red ({{fee}} BTC) se descuenta de la cantidad.",
+			"feeTiers": {
+				"fast": "Rápido",
+				"normal": "Normal",
+				"slow": "Económico"
+			},
+			"feeEta": "~{{minutes}} min",
+			"createsTokenAccount": "El destinatario aún no tiene cuenta de {{symbol}} en Solana: esta transacción la crea ({{fee}}, incluido en la comisión)."
+		},
+		"settings": {
+			"title": "Mi wallet",
+			"subtitle": "Tus llaves viven solo en este teléfono.",
+			"addresses": "Direcciones",
+			"families": {
+				"tron": "TRON",
+				"evm": "ETH · BSC · Base",
+				"btc": "Bitcoin",
+				"stacks": "Stacks",
+				"solana": "Solana"
+			},
+			"phrase": "Frase secreta",
+			"phraseHint": "12 palabras. Quien las tenga controla tus fondos. Solo se muestran tras verificar tu identidad.",
+			"reveal": "Ver frase secreta",
+			"hide": "Ocultar",
+			"revealHint": "Se oculta sola en 60 segundos o al salir de la app. No hagas capturas.",
+			"revealFailed": "No se pudo leer la frase. Inténtalo de nuevo.",
+			"notBackedUp": "Todavía no confirmaste tu respaldo. Hazlo desde el tab Crypto antes de recibir fondos.",
+			"dangerZone": "Zona de peligro",
+			"deleteHint": "Quita la wallet de este teléfono. Cerrar sesión NO la elimina. Los fondos siguen en la cadena y solo se recuperan con la frase.",
+			"delete": "Eliminar wallet",
+			"deleted": "Wallet eliminada de este teléfono",
+			"confirmTitle": "¿Eliminar la wallet?",
+			"confirmBody": "Es irreversible. Sin tu frase de 12 palabras, nadie (ni QvaPay) puede recuperar los fondos.",
+			"confirmAck": "Tengo mi frase secreta guardada",
+			"confirmDelete": "Eliminar definitivamente",
+			"noWallet": "No hay ninguna wallet en este teléfono.",
+			"security": "Seguridad",
+			"biometricsFaceId": "Usar Face ID",
+			"biometricsTouchId": "Usar Touch ID / huella",
+			"biometricsHint": "Como atajo del PIN al enviar y ver la frase. Si cambias tu cara o huella, vuelve a pedir el PIN.",
+			"biometricsFailed": "No se pudo activar la biometría en este dispositivo.",
+			"nodesHint": "A qué nodos se conecta la wallet",
+			"network": "Red"
+		},
+		"txDetail": {
+			"confirmed": "Confirmada",
+			"usdNow": "≈ {{value}} al precio de hoy",
+			"date": "Fecha",
+			"network": "Red",
+			"contract": "Contrato",
+			"hash": "Hash",
+			"pendingHint": "Está en la red esperando bloque. En Bitcoin puede tardar unos minutos; en el resto, segundos."
+		},
+		"swap": {
+			"title": "Swap",
+			"pay": "Pagas",
+			"receive": "Recibes",
+			"flip": "Invertir sentido",
+			"max": "MÁX",
+			"balanceQvaPay": "Saldo QvaPay",
+			"walletOn": "Wallet · {{network}}",
+			"toYourWallet": "A tu wallet",
+			"toYourBalance": "A tu saldo QvaPay",
+			"noFee": "Sin comisión",
+			"pickAsset": "Elige activo",
+			"moreSoon": "Pronto más redes: USDT, USDC y más.",
+			"sponsoredNote": "QvaPay paga la comisión de red: no necesitas STX en tu wallet.",
+			"disabled": "El swap no está disponible ahora mismo.",
+			"inUnsupported": "Pasar de tu wallet a saldo en {{network}} llega pronto.",
+			"notRegistered": "Abre tu wallet no custodial una vez para registrar tu dirección y poder hacer swaps.",
+			"loadError": "No se pudo cargar el swap. Revisa tu conexión.",
+			"authSubtitle": "Enviar {{amount}} {{symbol}} de tu wallet a tu saldo QvaPay",
+			"reviewTitle": "Revisa tu swap",
+			"reviewNoticeOut": "Se descuenta de tu saldo al confirmar con tu PIN. El QUSD llega a tu wallet en la red.",
+			"reviewNoticeIn": "Firmarás con tu wallet. El saldo se acredita cuando la red confirme.",
+			"confirmOut": "Confirmar swap",
+			"confirmIn": "Firmar y confirmar",
+			"fromLabel": "De",
+			"toLabel": "A",
+			"cta": {
+				"loading": "Cargando…",
+				"unavailable": "Swap no disponible",
+				"walletNotRegistered": "Registra tu wallet",
+				"enterAmount": "Introduce un importe",
+				"insufficient": "Saldo {{symbol}} insuficiente",
+				"belowMin": "Mínimo {{amount}}",
+				"aboveMax": "Máximo {{amount}} por swap",
+				"overLimit": "Límite de hoy: {{amount}}",
+				"review": "Revisar swap",
+				"retry": "Reintentar"
+			},
+			"details": {
+				"fee": "Comisión QvaPay",
+				"free": "Gratis",
+				"networkFee": "Comisión de red",
+				"networkFeePaid": "Gratis · la paga QvaPay",
+				"destination": "Llega a",
+				"toWallet": "Tu wallet · {{address}}",
+				"network": "Red",
+				"eta": "Tiempo estimado",
+				"etaOut": "≈ 1 min",
+				"etaIn": "≈ 2–5 min",
+				"limit": "Disponible hoy",
+				"noLimit": "Sin límite"
+			},
+			"timeline": {
+				"debited": "Saldo descontado",
+				"signed": "Firma recibida",
+				"onChain": "Enviado a la red",
+				"inWallet": "QUSD en tu wallet",
+				"credited": "Saldo acreditado"
+			},
+			"errors": {
+				"createFailed": "No se pudo crear el swap",
+				"noStacksKey": "Tu wallet no tiene la clave de Stacks. Vuelve a abrirla para regenerarla."
+			},
+			"status": {
+				"pending": "En cola",
+				"dispatching": "Enviando a la red",
+				"sent": "Esperando confirmación",
+				"completed": "Completado",
+				"failed": "No se pudo completar",
+				"refunded": "Reembolsado",
+				"needs_review": "En revisión",
+				"pendingHint": "Se procesa en menos de un minuto.",
+				"sentHint": "La transacción está en la red; suele confirmar en unos minutos.",
+				"completedOut": "El QUSD ya está en tu wallet.",
+				"completedIn": "El saldo ya está en tu cuenta QvaPay.",
+				"refundedHint": "El importe volvió a tu saldo QvaPay.",
+				"failedNonce": "La transacción firmada caducó porque tu wallet hizo otro envío. Vuelve a intentarlo.",
+				"failedFunds": "Tu wallet no tenía suficiente QUSD al procesarlo.",
+				"failedGeneric": "No se movió nada de tu wallet.",
+				"reviewHint": "Un operador está revisando este swap. Te avisaremos.",
+				"txLabel": "Transacción",
+				"cancel": "Cancelar swap",
+				"cancelled": "Swap cancelado y saldo reembolsado",
+				"retry": "Reintentar",
+				"done": "Listo"
+			}
+		}
+	}
+}

@@ -339,9 +339,9 @@ const Home = ({ navigation }: HomeProps) => {
 						)}
 						<ServiceCard
 							icon="chart-line"
-							title={t('home.services.invest')}
+							title={t('home.services.crypto')}
 							iconColor="#F59E0B"
-							onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)}
+							onPress={() => navigation.navigate(ROUTES.CRYPTO_SCREEN)}
 							theme={theme}
 						/>
 						<ServiceCard
@@ -356,7 +356,7 @@ const Home = ({ navigation }: HomeProps) => {
 
 				{watchlistData.length > 0 && (
 					<View style={styles.section}>
-						<QPSectionHeader title={t('home.sections.watchlist')} subtitle={t('home.watchlist.seeAll')} iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.INVEST_SCREEN)} />
+						<QPSectionHeader title={t('home.sections.watchlist')} subtitle={t('home.watchlist.seeAll')} iconName="arrow-right" onPress={() => navigation.navigate(ROUTES.CRYPTO_SCREEN)} />
 						<View style={styles.watchlistGrid}>
 							{watchlistData.map(coin => (
 								<WatchlistCard

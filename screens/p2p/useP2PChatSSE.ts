@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react"
 import { AppState } from "react-native"
 import EventSource from "react-native-sse"
 
-import config from "../../config"
+import { getApiBaseUrl } from "../../api/apiHost"
 import { getAuthToken } from "../../api/client"
 
 import type { ChatMessage } from "./useP2PChat"
@@ -123,7 +123,7 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }: Ch
 		const token = await getAuthToken()
 		if (disposed || !appActive || es) return
 
-		es = new EventSource(`${config.API_BASE_URL}/p2p/${p2p_uuid}/chat/stream`, {
+		es = new EventSource(`${getApiBaseUrl()}/p2p/${p2p_uuid}/chat/stream`, {
 			headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
 			pollingInterval: 0, // disable the library's auto-reconnect — retries are ours
 		})

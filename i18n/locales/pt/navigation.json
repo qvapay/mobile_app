@@ -19,11 +19,19 @@
 		"orderNumber": "Pedido #{{id}}",
 		"assistedShopping": "Compras assistidas",
 		"assistedCheckout": "Confirmar compra",
-		"assistedOrders": "Meus pedidos"
+		"assistedOrders": "Meus pedidos",
+		"walletImport": "Importar wallet",
+		"walletReceive": "Receber",
+		"walletManageAssets": "Gerenciar ativos",
+		"walletSend": "Enviar",
+		"walletSendConfirm": "Confirmar envio",
+		"walletTxDetail": "Movimentação",
+		"walletSwap": "Swap",
+		"walletSwapStatus": "Status do swap"
 	},
 	"tabs": {
 		"home": "Início",
-		"invest": "Investir",
+		"crypto": "Cripto",
 		"send": "Enviar",
 		"p2p": "P2P",
 		"store": "Loja"

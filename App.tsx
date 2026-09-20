@@ -39,6 +39,7 @@ import LanguageSync from './settings/LanguageSync'
 
 // App Lock
 import { AppLockProvider } from './lock/AppLockContext'
+import { WalletProvider } from './wallet/WalletContext'
 import LockScreen from './lock/LockScreen'
 
 // Online Status
@@ -86,9 +87,21 @@ import Scan from './screens/scan/Scan'
 import NearbyPay from './screens/nearby/NearbyPay'
 
 // Invest Screens
-import Savings from './screens/invest/Savings'
-import StockDetail from './screens/invest/StockDetail'
-import CoinDetail from './screens/invest/CoinDetail'
+import Savings from './screens/crypto/Savings'
+import StockDetail from './screens/crypto/StockDetail'
+import CoinDetail from './screens/crypto/CoinDetail'
+import WalletOnboarding from './screens/crypto/wallet/WalletOnboarding'
+import WalletBackup from './screens/crypto/wallet/WalletBackup'
+import WalletImport from './screens/crypto/wallet/WalletImport'
+import WalletAsset from './screens/crypto/wallet/WalletAsset'
+import WalletReceive from './screens/crypto/wallet/WalletReceive'
+import WalletManageAssets from './screens/crypto/wallet/WalletManageAssets'
+import WalletSend from './screens/crypto/wallet/WalletSend'
+import WalletSendConfirm from './screens/crypto/wallet/WalletSendConfirm'
+import WalletSendSuccess from './screens/crypto/wallet/WalletSendSuccess'
+import WalletTxDetail from './screens/crypto/wallet/WalletTxDetail'
+import WalletSwap from './screens/crypto/wallet/WalletSwap'
+import WalletSwapStatus from './screens/crypto/wallet/WalletSwapStatus'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -236,6 +249,22 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// Stock Detail Screen
 	{ name: ROUTES.STOCK_DETAIL_SCREEN, component: StockDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
 	{ name: ROUTES.COIN_DETAIL_SCREEN, component: CoinDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
+
+	// Wallet self-custody (branch crypto)
+	{ name: ROUTES.WALLET_ONBOARDING, component: WalletOnboarding, options: getHeaderOptions('') },
+	{ name: ROUTES.WALLET_BACKUP, component: WalletBackup, options: getHeaderOptions('') },
+	{ name: ROUTES.WALLET_IMPORT, component: WalletImport, options: getHeaderOptions(t('navigation.headers.walletImport')) },
+	// El título real (símbolo · red) lo fija la pantalla al resolver el activo
+	{ name: ROUTES.WALLET_ASSET, component: WalletAsset, options: getHeaderOptions('') },
+	{ name: ROUTES.WALLET_RECEIVE, component: WalletReceive, options: getHeaderOptions(t('navigation.headers.walletReceive')) },
+	{ name: ROUTES.WALLET_MANAGE_ASSETS, component: WalletManageAssets, options: getHeaderOptions(t('navigation.headers.walletManageAssets')) },
+	{ name: ROUTES.WALLET_SEND, component: WalletSend, options: getHeaderOptions(t('navigation.headers.walletSend')) },
+	{ name: ROUTES.WALLET_SEND_CONFIRM, component: WalletSendConfirm, options: getHeaderOptions(t('navigation.headers.walletSendConfirm')) },
+	// Sin volver atrás: la tx ya está en la red
+	{ name: ROUTES.WALLET_SEND_SUCCESS, component: WalletSendSuccess, options: { ...getHeaderOptions(''), headerShown: false, gestureEnabled: false } },
+	{ name: ROUTES.WALLET_TX_DETAIL, component: WalletTxDetail, options: getHeaderOptions(t('navigation.headers.walletTxDetail')) },
+	{ name: ROUTES.WALLET_SWAP, component: WalletSwap, options: getHeaderOptions(t('navigation.headers.walletSwap')) },
+	{ name: ROUTES.WALLET_SWAP_STATUS, component: WalletSwapStatus, options: { ...getHeaderOptions(t('navigation.headers.walletSwapStatus')), gestureEnabled: false } },
 
 	// QR Scan Screen
 	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', headerShown: false } },
@@ -447,14 +476,16 @@ function App() {
 										<LanguageSync />
 										<ThemeProviderWithSettings>
 											<LoadingBridge>
-												<AppLockProvider>
-													<NavigationWrapper>
-														<GlobalLoadingBar />
-														<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
-														<Toaster position="top-center" />
-													</NavigationWrapper>
-													<LockScreen />
-												</AppLockProvider>
+												<WalletProvider>
+													<AppLockProvider>
+														<NavigationWrapper>
+															<GlobalLoadingBar />
+															<AppNavigator pendingDeepLinkRef={pendingDeepLinkRef} />
+															<Toaster position="top-center" />
+														</NavigationWrapper>
+														<LockScreen />
+													</AppLockProvider>
+												</WalletProvider>
 											</LoadingBridge>
 										</ThemeProviderWithSettings>
 									</SettingsProvider>

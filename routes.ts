@@ -33,7 +33,7 @@ export const ROUTES = {
 
 	// Home Screens
 	HOME_SCREEN: "Home",
-	INVEST_SCREEN: "Invest",
+	CRYPTO_SCREEN: "Crypto",
 	KEYPAD_SCREEN: "Keypad",
 	STORE_SCREEN: "Store",
 	PHONE_TOPUP_INDEX: "PhoneTopupIndex",
@@ -89,6 +89,8 @@ export const ROUTES = {
 	APP_LOCK: "AppLock",
 	PASSKEYS: "Passkeys",
 	ROUNDUP: "Roundup",
+	RPC_NODES: "RpcNodes",
+	WALLET_SETTINGS: "WalletSettings",
 	ENTERPRISE: "Enterprise",
 	ENTERPRISE_REGISTER: "EnterpriseRegister",
 
@@ -96,6 +98,18 @@ export const ROUTES = {
 	SAVINGS_SCREEN: "Savings",
 	STOCK_DETAIL_SCREEN: "StockDetail",
 	COIN_DETAIL_SCREEN: "CoinDetail",
+	WALLET_ONBOARDING: "WalletOnboarding",
+	WALLET_BACKUP: "WalletBackup",
+	WALLET_IMPORT: "WalletImport",
+	WALLET_ASSET: "WalletAsset",
+	WALLET_RECEIVE: "WalletReceive",
+	WALLET_MANAGE_ASSETS: "WalletManageAssets",
+	WALLET_SEND: "WalletSend",
+	WALLET_SEND_CONFIRM: "WalletSendConfirm",
+	WALLET_SEND_SUCCESS: "WalletSendSuccess",
+	WALLET_TX_DETAIL: "WalletTxDetail",
+	WALLET_SWAP: "WalletSwap",
+	WALLET_SWAP_STATUS: "WalletSwapStatus",
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	MARKET_STORES: "MarketStores",
@@ -133,7 +147,7 @@ export const navItems = [
 		name: 'wallet'
 	},
 	{
-		key: 'Invest',
+		key: 'Crypto',
 		name: 'bitcoin-sign'
 	},
 	{

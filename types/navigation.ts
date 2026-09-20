@@ -15,6 +15,7 @@
  * - `MarketProduct.slug`: llega por deep link, nunca se lee.
  */
 import type { NavigatorScreenParams } from '@react-navigation/native'
+import type { WalletTx } from './domain'
 import type { Coin, EnrichedCoin, Transaction } from './domain'
 
 /** Metadatos de país que viajan a las pantallas de marca (forma variable: catálogo completo o `{ code, ...country_meta }`). */
@@ -23,9 +24,9 @@ export type CountryParam = { code?: string } & Record<string, unknown>
 /** Tabs dentro de MainStack (screens/MainStack.jsx). */
 export type MainTabParamList = {
 	Home: undefined
-	Invest: undefined
+	Crypto: undefined
 	Keypad: undefined
-	/** Preselección de moneda al saltar desde Invest/CoinDetail. */
+	/** Preselección de moneda al saltar desde Crypto/CoinDetail. */
 	P2P: { coin?: string, coinName?: string } | undefined
 	Store: undefined
 }
@@ -52,6 +53,10 @@ export type SettingsStackParamList = {
 	AppLock: undefined
 	Passkeys: undefined
 	Roundup: undefined
+	/** Oculta: solo con flag self-custody o en dev (plan crypto). */
+	RpcNodes: undefined
+	/** Oculta como RpcNodes: direcciones, ver frase y eliminar wallet (gate PIN). */
+	WalletSettings: undefined
 	Enterprise: undefined
 	EnterpriseRegister: undefined
 }
@@ -79,7 +84,8 @@ export type RootStackParamList = {
 	Receive: { receive_amount?: string } | undefined
 	NearbyPay: { prefill_amount?: string } | undefined
 	Pay: { uuid: string }
-	Scan: { view?: 'scan' | 'show' } | undefined
+	/** `returnTo`: una dirección escaneada vuelve a esa pantalla por params (WalletSend). */
+	Scan: { view?: 'scan' | 'show', returnTo?: 'WalletSend', assetId?: string } | undefined
 
 	// ── Transacciones ─────────────────────────────────────────────────────
 	Transactions: { showSearch?: boolean } | undefined
@@ -88,7 +94,8 @@ export type RootStackParamList = {
 
 	// ── Depósito / retiro ─────────────────────────────────────────────────
 	Add: undefined
-	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string } | undefined
+	/** `prefillAddress`: destino ya escrito (retiro hacia la propia wallet self-custody, destino 'personal'). */
+	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string } | undefined
 
 	// ── P2P ───────────────────────────────────────────────────────────────
 	P2POffer: { p2p_uuid: string }
@@ -96,7 +103,7 @@ export type RootStackParamList = {
 	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
 	P2PCreate: undefined
 
-	// ── Invest ────────────────────────────────────────────────────────────
+	// ── Crypto ────────────────────────────────────────────────────────────
 	Savings: { action?: 'deposit' | 'withdraw', savings?: Record<string, unknown> } | undefined
 	StockDetail: {
 		symbol: string
@@ -107,6 +114,27 @@ export type RootStackParamList = {
 		initialData?: Record<string, unknown>
 	}
 	CoinDetail: { tick: string, name?: string, initialData?: Coin | EnrichedCoin }
+
+	// ── Wallet self-custody (branch crypto) ───────────────────────────────
+	WalletOnboarding: undefined
+	/** El mnemonic NUNCA viaja por params: Backup lo crea/lee él mismo (quiz interno). */
+	WalletBackup: undefined
+	WalletImport: undefined
+	/** `assetId` = `${chainKey}:native` | `${chainKey}:${contract}` (wallet/assets.ts). */
+	WalletAsset: { assetId: string }
+	/** Sin assetId abre el selector de activo. */
+	WalletReceive: { assetId?: string } | undefined
+	WalletManageAssets: undefined
+	/** Sin assetId abre el selector; `address` la trae el escáner de vuelta. */
+	WalletSend: { assetId?: string, address?: string } | undefined
+	/** `amount` en decimal humano ya validado por WalletSend. */
+	WalletSendConfirm: { assetId: string, to: string, amount: string }
+	WalletSendSuccess: { assetId: string, txid: string, amount: string, to: string }
+	/** Movimiento ya cargado en la actividad (serializable): no se vuelve a pedir. */
+	WalletTxDetail: { assetId: string, tx: WalletTx }
+	/** Swap saldo ↔ QUSD; `direction` preselecciona el sentido (out = saldo → wallet). */
+	WalletSwap: { direction?: 'out' | 'in' } | undefined
+	WalletSwapStatus: { uuid: string }
 
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined

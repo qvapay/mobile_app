@@ -5,6 +5,7 @@ import DeviceInfo from 'react-native-device-info'
 import * as Keychain from 'react-native-keychain'
 import config from '../config'
 import i18n from '../i18n'
+import { ensureApiHost } from './apiHost'
 
 const version = DeviceInfo.getVersion()
 const buildNumber = DeviceInfo.getBuildNumber()
@@ -53,8 +54,9 @@ export const unregisterLoadingCallbacks = () => {
 
 /**
  * Shared axios instance for every QvaPay API module (except `blogApi`, which
- * uses native `fetch`). Base URL comes from `config.js`: a LAN IP in `__DEV__`,
- * `https://api.qvapay.com` in production. Timeout is 20s.
+ * uses native `fetch`). Base URL comes from `config.ts`: a LAN IP in `__DEV__`
+ * (with an automatic fallback to production if the LAN host does not answer,
+ * see `apiHost.ts`), `https://api.qvapay.com` in production. Timeout is 20s.
  * The `X-QvaPay-Client-*` headers identify the mobile client to the backend:
  * `-Platform` MUST be `ios`/`android` — the register endpoint uses it to skip
  * the Turnstile captcha, never the device name. Model travels in `-Device`;
@@ -79,13 +81,16 @@ const apiClient = axios.create({
 
 /**
  * Request interceptor.
- * Attaches the bearer token from the Keychain (service `com.qvapay.auth`)
- * when one exists — requests simply go out unauthenticated otherwise — and
- * starts the global loading bar unless the request sets `config.silent = true`.
+ * Resolves the effective host (dev: LAN or production fallback — waits for
+ * the one-shot probe on the first requests), attaches the bearer token from
+ * the Keychain (service `com.qvapay.auth`) when one exists — requests simply
+ * go out unauthenticated otherwise — and starts the global loading bar unless
+ * the request sets `config.silent = true`.
  */
 apiClient.interceptors.request.use(
 	async (reqConfig) => {
 		if (!reqConfig.silent && _loadingStart) { _loadingStart() }
+		reqConfig.baseURL = await ensureApiHost()
 		// Idioma activo del cliente, por request (sigue los cambios en vivo):
 		// hoy el backend responde en español, pero este header le permite
 		// localizar sus mensajes en el futuro sin tocar el móvil.

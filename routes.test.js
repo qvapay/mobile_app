@@ -27,7 +27,7 @@ describe('ROUTES', () => {
 
 describe('navItems (bottom tabs)', () => {
 	test('defines the five MainStack tabs in order', () => {
-		expect(navItems.map(i => i.key)).toEqual(['Home', 'Invest', 'Keypad', 'P2P', 'Store'])
+		expect(navItems.map(i => i.key)).toEqual(['Home', 'Crypto', 'Keypad', 'P2P', 'Store'])
 	})
 
 	test('every tab has a FontAwesome icon name', () => {

@@ -84,7 +84,8 @@
 				"complete": "Complete el pago en 30 minutos",
 				"exactAmount": "Envíe exactamente la cantidad indicada",
 				"sameNetwork": "No use una red/token diferente"
-			}
+			},
+			"payFromWalletButton": "Pagar desde Mi Wallet"
 		}
 	}
 }

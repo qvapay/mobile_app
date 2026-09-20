@@ -32,7 +32,8 @@
 			"gold": "GOLD",
 			"security": "SEGURIDAD",
 			"notifications": "NOTIFICACIONES",
-			"payments": "PAGOS"
+			"payments": "PAGOS",
+			"wallet": "WALLET"
 		},
 		"items": {
 			"theme": "Tema",
@@ -53,7 +54,10 @@
 			"notifications": "Envío de notificaciones",
 			"paymentMethods": "Métodos de pago",
 			"contacts": "Contactos",
-			"roundup": "Micro pagos"
+			"roundup": "Micro pagos",
+			"nodes": "Nodos",
+			"walletSettings": "Mi wallet",
+			"walletSettingsHint": "Direcciones, frase secreta y eliminar"
 		},
 		"status": {
 			"active": "Activo"
@@ -75,7 +79,7 @@
 			"button": "Cerrar sesión",
 			"confirmQuestion": "¿Estás seguro de querer cerrar sesión?",
 			"keepBiometricsQuestion": "¿Deseas mantener el acceso biométrico para la próxima vez?",
-			"deleteAll": "Eliminar todo",
+			"deleteAll": "Eliminar",
 			"keepBiometrics": "Mantener biometría",
 			"failed": "No se pudo cerrar sesión. Por favor, inténtalo de nuevo."
 		},
@@ -115,9 +119,10 @@
 			"timeoutTitle": "Tiempo de bloqueo",
 			"timeoutDescription": "La app se bloqueará después de este tiempo en segundo plano",
 			"biometricEnabled": "{{label}} activado",
-			"biometricHint": "Puedes desbloquear con biometría o PIN",
+			"biometricHint": "Al abrir la app pide {{label}} y entra directo; el PIN queda de respaldo. Se activa sola tras el primer PIN correcto.",
 			"changePinButton": "Cambiar PIN de bloqueo",
-			"disableButton": "Desactivar bloqueo"
+			"disableButton": "Desactivar bloqueo",
+			"biometricToggle": "Desbloquear con {{label}}"
 		},
 		"setup": {
 			"subtitle": "Protege tu app con PIN y biometría",

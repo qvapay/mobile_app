@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ComponentRef } from 'react'
-import { Text, Pressable, View, StyleSheet, useWindowDimensions } from 'react-native'
+import { Text, View, StyleSheet, useWindowDimensions } from 'react-native'
 import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import type { SharedValue } from 'react-native-reanimated'
 import type { NavigationProp } from '@react-navigation/native'
@@ -12,7 +12,6 @@ import type { Decimal, SavingsSummary } from '../types/domain'
 
 // Theme Context
 import { useTheme } from '../theme/ThemeContext'
-import { createTextStyles } from '../theme/themeUtils'
 
 // Settings Context
 import { useSettings } from '../settings/SettingsContext'
@@ -23,9 +22,9 @@ import { useSavingsSummaryQuery } from '../hooks/useSavingsSummaryQuery'
 // Espejo del resumen hacia los widgets de pantalla de inicio
 import { updateWidgetSavings, reloadWidgets } from '../helpers/widgetBridge'
 
-// Particles
-import QPBalance from './particles/QPBalance'
-import QPFitText from './particles/QPFitText'
+// Héroe de saldo compartido con la wallet self-custody (mismo look y alto)
+import BalanceHero from './BalanceHero'
+import BalancePagerDots from './BalancePagerDots'
 
 // Tasa anual por defecto mientras el resumen no ha llegado nunca
 const DEFAULT_RATE = 3.75
@@ -56,7 +55,6 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
-	const textStyles = createTextStyles(theme)
 
 	// Ancho vivo: en tablets/plegables la rotación o el resize cambian la ventana
 	const { width: windowWidth } = useWindowDimensions()
@@ -112,13 +110,6 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 		await updateSetting('privacy', 'showBalance', newVisibility)
 	}
 
-	// Generate asterisks based on balance length
-	const getHiddenBalance = () => {
-		if (!balance) return '***'
-		const balanceStr = balance.toString()
-		return '*'.repeat(Math.max(3, balanceStr.length))
-	}
-
 	// Scroll en el UI thread: escribe el progreso continuo (0..1) para que
 	// ActionButtons siga el dedo frame a frame; los dots solo necesitan el
 	// índice discreto (runOnJS únicamente al cruzar de página)
@@ -148,67 +139,25 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 			>
 
 				{/* Page 1: Main Balance */}
-				<Pressable onPress={toggleShowBalance} style={[styles.page, { width: cardWidth }]}>
-					{showBalance ? (
-						<QPBalance amount={Number(balance || 0)} fontSize={60} theme={theme} />
-					) : (
-						<QPFitText style={[textStyles.amount, { color: theme.colors.primaryText }]}>
-							{getHiddenBalance()}
-						</QPFitText>
-					)}
-				</Pressable>
+				<BalanceHero amount={Number(balance || 0)} showBalance={showBalance} onPress={toggleShowBalance} width={cardWidth} />
 
 				{/* Page 2: Savings Balance */}
-				<Pressable onPress={() => navigation?.navigate('Savings')} style={[styles.page, { width: cardWidth }]} >
-					{showBalance ? (
-						<View style={styles.savingsContent}>
-							<QPBalance amount={Number(savings.balance ?? 0)} fontSize={60} theme={theme} />
-							<Text style={[styles.rateLabel, { color: theme.colors.successText, fontFamily: theme.typography.fontFamily.medium }]}>
-								{savings.rate}%
-							</Text>
-						</View>
-					) : (
-						<QPFitText style={[textStyles.amount, { color: theme.colors.primaryText }]}>
-							{getHiddenBalance()}
-						</QPFitText>
-					)}
-				</Pressable>
+				<BalanceHero amount={Number(savings.balance ?? 0)} showBalance={showBalance} onPress={() => navigation?.navigate('Savings')} width={cardWidth}>
+					<Text style={[styles.rateLabel, { color: theme.colors.successText, fontFamily: theme.typography.fontFamily.medium }]}>
+						{savings.rate}%
+					</Text>
+				</BalanceHero>
 			</Animated.ScrollView>
 
-			{/* Pagination Dots */}
-			<View style={styles.dotsContainer}>
-				{[0, 1].map((i) => (<View key={i} style={[styles.dot, { backgroundColor: activeIndex === i ? theme.colors.primaryText : theme.colors.tertiaryText + '40', }]} />))}
-			</View>
+			<BalancePagerDots count={2} activeIndex={activeIndex} />
 		</View>
 	)
 }
 
 const styles = StyleSheet.create({
-	page: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		height: 120,
-		marginVertical: 10,
-	},
-	savingsContent: {
-		alignItems: 'center',
-	},
 	rateLabel: {
 		fontSize: 13,
 		marginTop: -14,
-	},
-	dotsContainer: {
-		flexDirection: 'row',
-		justifyContent: 'center',
-		alignItems: 'center',
-		gap: 6,
-		marginBottom: 4,
-	},
-	dot: {
-		width: 6,
-		height: 6,
-		borderRadius: 3,
 	},
 })
 

@@ -20,7 +20,7 @@ const tPt = i18n.getFixedT('pt')
 describe('settings menu catalog', () => {
 	test('mirrors the web dashboard grouping', () => {
 		expect(Object.keys(settings)).toEqual([
-			'appearance', 'profile', 'gold', 'security', 'notifications', 'payments',
+			'appearance', 'profile', 'gold', 'security', 'notifications', 'payments', 'wallet',
 		])
 	})
 

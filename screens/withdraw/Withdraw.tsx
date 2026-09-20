@@ -89,6 +89,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		isFormValid, resetAmounts,
 	} = useWithdrawForm({
 		preselectedCoin: route?.params?.preselectedCoin,
+		prefillAddress: route?.params?.prefillAddress,
 		lnInvoice: route?.params?.lnInvoice,
 		lnAmountSats,
 	})

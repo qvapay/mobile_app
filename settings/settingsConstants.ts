@@ -20,7 +20,10 @@ export const STORAGE_KEYS = {
 	P2P_SETTINGS: 'p2p_settings',
 	INVESTMENT_SETTINGS: 'investment_settings',
 	STORE_SETTINGS: 'store_settings',
-	ROUNDUP_SETTINGS: 'roundup_settings'
+	ROUNDUP_SETTINGS: 'roundup_settings',
+	// Nombrada exactamente como la categoría para que el write path
+	// (`KEYS[category.toUpperCase()]`) resuelva y la categoría persista.
+	CRYPTO: 'crypto_settings'
 }
 
 /**
@@ -50,6 +53,8 @@ export const DEFAULT_SETTINGS = {
 	// Security settings
 	security: {
 		biometricsEnabled: false,
+		/** Face ID / Touch ID para el bloqueo de app con marcador propio (no depende del login). Se arma tras el primer PIN correcto. */
+		appLockBiometrics: true,
 		autoLockTimeout: 5, // minutes
 		sessionTimeout: 30, // minutes
 		twoFactorEnabled: false,
@@ -128,6 +133,18 @@ export const DEFAULT_SETTINGS = {
 		sortBy: 'popularity', // popularity, price, rating, newest
 		filterByRating: 0,
 		showOutOfStock: false
+	},
+
+	// Crypto wallet (self-custody) settings
+	crypto: {
+		/** Nodos RPC del usuario por cadena (Ajustes → Wallet → Nodos → "Añadir nodo"). No es secreto. */
+		customRpcs: {} as Record<string, string[]>,
+		/** "Gestionar activos": id de activo (`bsc:0x…`, `tron:native`) → visible. Solo lo que el usuario tocó. */
+		visibleAssets: {} as Record<string, boolean>,
+		/** Ocultar entradas de menos de $0.01 en la actividad (dust / address poisoning). */
+		hideDust: true,
+		/** Face ID / Touch ID como atajo del PIN al firmar y ver la frase (marcador propio en Keychain). */
+		walletBiometrics: true,
 	},
 
 	// Roundup (micro pagos) settings

@@ -52,6 +52,8 @@ type DepositDetailsModalProps = {
 	sseConnected: boolean
 	installedWallets: Wallet[]
 	onOpenWalletPicker: () => void
+	/** Presente solo si la moneda casa con un activo de la wallet self-custody respaldada. */
+	onPayFromWallet?: () => void
 	onPayWithCard: () => void
 	theme: Theme
 	textStyles: TextStyles
@@ -213,7 +215,7 @@ const CardDepositBody = ({ amount, topupData, depositStatus, countdown, onPayWit
 }
 
 // Crypto / bank deposit flow
-const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPicker, theme, textStyles }: Pick<DepositDetailsModalProps, 'amount' | 'topupData' | 'installedWallets' | 'onOpenWalletPicker' | 'theme' | 'textStyles'>) => {
+const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPicker, onPayFromWallet, theme, textStyles }: Pick<DepositDetailsModalProps, 'amount' | 'topupData' | 'installedWallets' | 'onOpenWalletPicker' | 'onPayFromWallet' | 'theme' | 'textStyles'>) => {
 	const { t } = useTranslation()
 	return (
 	<>
@@ -259,8 +261,21 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 			</Text>
 		</View>
 
-		{/* Open in installed wallet */}
-		{installedWallets.length > 0 && (
+		{/* Pagar desde la wallet self-custody de la app: abre Enviar ya prellenado */}
+		{!!onPayFromWallet && (
+			<QPButton
+				title={t('add.modal.crypto.payFromWalletButton')}
+				onPress={onPayFromWallet}
+				icon="key"
+				iconStyle="solid"
+				iconColor={theme.colors.almostWhite}
+				textStyle={{ color: theme.colors.almostWhite }}
+				style={{ marginBottom: 16 }}
+			/>
+		)}
+
+		{/* Open in installed wallet — solo si NO hay wallet propia para esta moneda: con ella el deep link a Trust & co. es redundante */}
+		{!onPayFromWallet && installedWallets.length > 0 && (
 			<QPButton
 				title={t('add.modal.crypto.openWalletButton')}
 				onPress={onOpenWalletPicker}
@@ -303,7 +318,7 @@ const STATUS_BANNERS: Record<string, { icon: FontAwesome6SolidIconName, color: '
 }
 
 // Deposit details bottom sheet: QR / PayPal redirect, address + amount details, warnings.
-const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData, depositStatus, countdown, sseConnected, installedWallets, onOpenWalletPicker, onPayWithCard, theme, textStyles }: DepositDetailsModalProps) => {
+const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData, depositStatus, countdown, sseConnected, installedWallets, onOpenWalletPicker, onPayFromWallet, onPayWithCard, theme, textStyles }: DepositDetailsModalProps) => {
 
 	const { t } = useTranslation()
 	const isCardDeposit = topupData?.coin === 'CARD'
@@ -383,7 +398,7 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 					) : topupData?.redirect_url ? (
 						<PaypalDepositBody amount={amount} topupData={topupData} depositStatus={depositStatus} countdown={countdown} theme={theme} textStyles={textStyles} />
 					) : (
-						<CryptoDepositBody amount={amount} topupData={topupData} installedWallets={installedWallets} onOpenWalletPicker={onOpenWalletPicker} theme={theme} textStyles={textStyles} />
+						<CryptoDepositBody amount={amount} topupData={topupData} installedWallets={installedWallets} onOpenWalletPicker={onOpenWalletPicker} onPayFromWallet={onPayFromWallet} theme={theme} textStyles={textStyles} />
 					)}
 
 				</ScrollView>

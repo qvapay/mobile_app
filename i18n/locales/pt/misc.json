@@ -55,6 +55,7 @@
 			"savePin": "Não foi possível salvar o PIN",
 			"currentPinWrong": "PIN atual incorreto",
 			"updatePin": "Não foi possível atualizar o PIN"
-		}
+		},
+		"bioPrompt": "Desbloqueie o QvaPay"
 	}
 }

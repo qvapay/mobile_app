@@ -13,6 +13,11 @@
 		"toasts": {
 			"loadFailed": "Couldn't load P2P offers",
 			"connectionError": "Connection error"
+		},
+		"headerMarket": "Market",
+		"modal": {
+			"subtitle": "Average buy and sell price per coin",
+			"close": "Close"
 		}
 	},
 	"filters": {

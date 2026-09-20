@@ -13,6 +13,11 @@
 		"toasts": {
 			"loadFailed": "Error al cargar las ofertas P2P",
 			"connectionError": "Error de conexión"
+		},
+		"headerMarket": "Mercado",
+		"modal": {
+			"subtitle": "Precio medio de compra y venta por moneda",
+			"close": "Cerrar"
 		}
 	},
 	"filters": {

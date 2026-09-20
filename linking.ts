@@ -11,7 +11,7 @@ import type { RootStackParamList } from './types/navigation'
  *   /pay/:uuid     → Pay (merchant invoice)
  *   /store/:slug   → MarketStore (marketplace storefront)
  *   /store/:slug/:uuid → MarketProduct (public product sheet)
- *   /home, /p2p    → tabs inside MainStack
+ *   /home, /crypto, /p2p → tabs inside MainStack
  *   /add, /withdraw, /send, /savings → accesos directos de los widgets
  *
  * Links that arrive while unauthenticated are NOT resolved here — App.tsx's
@@ -42,6 +42,7 @@ const linking: LinkingOptions<RootStackParamList> = {
 			[ROUTES.MAIN_STACK]: {
 				screens: {
 					[ROUTES.HOME_SCREEN]: 'home',
+					[ROUTES.CRYPTO_SCREEN]: 'crypto',
 					[ROUTES.P2P_SCREEN]: 'p2p',
 				},
 			},

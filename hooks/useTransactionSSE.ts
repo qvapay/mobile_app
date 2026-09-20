@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import EventSource, { type EventSourceEvent } from 'react-native-sse'
-import config from '../config'
+import { getApiBaseUrl } from '../api/apiHost'
 import { getAuthToken } from '../api/client'
 import i18n from '../i18n'
 
@@ -97,7 +97,7 @@ const useTransactionSSE = (
 				const token = await getAuthToken()
 				// Unmounted while awaiting the token — don't open a connection nobody will close
 				if (cancelled) return
-				const url = `${config.API_BASE_URL}/callback/transaction?uuid=${transactionUuid}`
+				const url = `${getApiBaseUrl()}/callback/transaction?uuid=${transactionUuid}`
 
 				es = new EventSource<'init'>(url, {
 					headers: {

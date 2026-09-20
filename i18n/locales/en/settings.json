@@ -32,7 +32,8 @@
 			"gold": "GOLD",
 			"security": "SECURITY",
 			"notifications": "NOTIFICATIONS",
-			"payments": "PAYMENTS"
+			"payments": "PAYMENTS",
+			"wallet": "WALLET"
 		},
 		"items": {
 			"theme": "Theme",
@@ -53,7 +54,10 @@
 			"notifications": "Notification delivery",
 			"paymentMethods": "Payment methods",
 			"contacts": "Contacts",
-			"roundup": "Round-ups"
+			"roundup": "Round-ups",
+			"nodes": "Nodes",
+			"walletSettings": "My wallet",
+			"walletSettingsHint": "Addresses, secret phrase and delete"
 		},
 		"status": {
 			"active": "Active"
@@ -75,7 +79,7 @@
 			"button": "Log out",
 			"confirmQuestion": "Are you sure you want to log out?",
 			"keepBiometricsQuestion": "Do you want to keep biometric access for next time?",
-			"deleteAll": "Remove everything",
+			"deleteAll": "Remove",
 			"keepBiometrics": "Keep biometrics",
 			"failed": "Couldn't log out. Please try again."
 		},
@@ -115,9 +119,10 @@
 			"timeoutTitle": "Auto-lock time",
 			"timeoutDescription": "The app will lock after this long in the background",
 			"biometricEnabled": "{{label}} enabled",
-			"biometricHint": "You can unlock with biometrics or your PIN",
+			"biometricHint": "On opening the app it asks for {{label}} and lets you straight in; the PIN stays as a fallback. It arms itself after the first correct PIN.",
 			"changePinButton": "Change lock PIN",
-			"disableButton": "Disable lock"
+			"disableButton": "Disable lock",
+			"biometricToggle": "Unlock with {{label}}"
 		},
 		"setup": {
 			"subtitle": "Protect your app with a PIN and biometrics",

@@ -11,7 +11,9 @@ import { View, Text, Pressable, Modal, StyleSheet, Animated } from 'react-native
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 import { useSettings } from '../settings/SettingsContext'
-import { useAppLock } from './AppLockContext'
+import { useAppLock, APP_LOCK_BIO_SERVICE } from './AppLockContext'
+import { hasBiometricMarker } from '../helpers/biometricMarker'
+import { useAnimatedValue } from '../hooks/useAnimatedValue'
 import { useKeyboardHeight } from '../hooks/useKeyboardHeight'
 import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
 
@@ -67,21 +69,22 @@ const LockScreen = () => {
 	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
 	const { type: biometryType, available: biometricsAvailable } = biometrics
 	const codeInputRef = useRef<QPCodeInputHandle | null>(null)
-	const shakeAnim = useRef(new Animated.Value(0)).current
+	const shakeAnim = useAnimatedValue(0)
 
 	// Check biometric availability when lock screen appears
 	useEffect(() => {
 		if (!isLocked) return
 		let cancelled = false
 		const checkBiometrics = async () => {
-			const type = await getSupportedBiometryType()
-			const hasCredentials = await hasBiometricCredentials()
+			const [type, hasCredentials, hasMarker] = await Promise.all([getSupportedBiometryType(), hasBiometricCredentials(), hasBiometricMarker(APP_LOCK_BIO_SERVICE)])
 			if (cancelled) return
-			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && hasCredentials && security.biometricsEnabled })
+			// Marcador propio del bloqueo (cualquier login) o, como antes, credenciales del login + ajuste
+			const viaMarker = hasMarker && security.appLockBiometrics !== false
+			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && (viaMarker || (hasCredentials && security.biometricsEnabled)) })
 		}
 		checkBiometrics()
 		return () => { cancelled = true }
-	}, [isLocked, security.biometricsEnabled])
+	}, [isLocked, security.biometricsEnabled, security.appLockBiometrics])
 
 	const handleBiometricUnlock = useCallback(async () => {
 		setError('')

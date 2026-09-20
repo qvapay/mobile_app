@@ -32,7 +32,8 @@
 			"gold": "GOLD",
 			"security": "SEGURANÇA",
 			"notifications": "NOTIFICAÇÕES",
-			"payments": "PAGAMENTOS"
+			"payments": "PAGAMENTOS",
+			"wallet": "CARTEIRA"
 		},
 		"items": {
 			"theme": "Tema",
@@ -53,7 +54,10 @@
 			"notifications": "Envio de notificações",
 			"paymentMethods": "Métodos de pagamento",
 			"contacts": "Contatos",
-			"roundup": "Arredondamentos"
+			"roundup": "Arredondamentos",
+			"nodes": "Nós",
+			"walletSettings": "Minha carteira",
+			"walletSettingsHint": "Endereços, frase secreta e excluir"
 		},
 		"status": {
 			"active": "Ativo"
@@ -75,7 +79,7 @@
 			"button": "Sair",
 			"confirmQuestion": "Tem certeza de que quer sair?",
 			"keepBiometricsQuestion": "Quer manter o acesso biométrico para a próxima vez?",
-			"deleteAll": "Excluir tudo",
+			"deleteAll": "Excluir",
 			"keepBiometrics": "Manter biometria",
 			"failed": "Não foi possível sair. Por favor, tente de novo."
 		},
@@ -115,9 +119,10 @@
 			"timeoutTitle": "Tempo de bloqueio",
 			"timeoutDescription": "O app será bloqueado após esse tempo em segundo plano",
 			"biometricEnabled": "{{label}} ativado",
-			"biometricHint": "Você pode desbloquear com biometria ou PIN",
+			"biometricHint": "Ao abrir o app pede {{label}} e entra direto; o PIN fica como reserva. Ativa-se sozinha após o primeiro PIN correto.",
 			"changePinButton": "Alterar PIN de bloqueio",
-			"disableButton": "Desativar bloqueio"
+			"disableButton": "Desativar bloqueio",
+			"biometricToggle": "Desbloquear com {{label}}"
 		},
 		"setup": {
 			"subtitle": "Proteja seu app com PIN e biometria",

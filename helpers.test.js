@@ -112,6 +112,21 @@ describe('string helpers', () => {
 })
 
 describe('parseQRData', () => {
+	test('direcciones on-chain sueltas o con esquema (wallet self-custody)', () => {
+		expect(parseQRData('TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg')).toEqual({ type: 'address', family: 'tron', address: 'TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg' })
+		expect(parseQRData('tron:TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg')).toEqual({ type: 'address', family: 'tron', address: 'TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg' })
+		expect(parseQRData('ethereum:0x9858EfFD232B4033E47d90003D41EC34EcaEda94@56?value=1')).toEqual({ type: 'address', family: 'evm', address: '0x9858EfFD232B4033E47d90003D41EC34EcaEda94' })
+		expect(parseQRData('BC1QCR8TE4KR609GCAWUTMRZA0J4XV80JY8Z306FYU')).toEqual({ type: 'address', family: 'btc', address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu' })
+		// Un bitcoin: con lightning= sigue siendo Lightning, no dirección
+		expect(parseQRData('bitcoin:bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu?lightning=lnbc1pjxyz')?.type).toBe('lightning')
+		expect(parseQRData('SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J')).toEqual({ type: 'address', family: 'stacks', address: 'SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J' })
+		expect(parseQRData('HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk')).toEqual({ type: 'address', family: 'solana', address: 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk' })
+		// Solana Pay
+		expect(parseQRData('solana:HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk?amount=1&spl-token=Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB')).toEqual({ type: 'address', family: 'solana', address: 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk' })
+		expect(parseQRData('TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJT')).toBeNull()
+		expect(parseQRData('0x1234')).toBeNull()
+	})
+
 	test('rejects non-strings and unrelated payloads', () => {
 		expect(parseQRData(null)).toBeNull()
 		expect(parseQRData(123)).toBeNull()

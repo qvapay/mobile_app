@@ -38,6 +38,10 @@ export const loadSvg = (uri: string, storageKey: string = `svg_cache_uri_${uri}`
 
 		try {
 			const response = await fetch(uri)
+			// fetch resuelve también con 404/5xx: sin este corte, la página de
+			// error del CDN se leería como cuerpo bueno (y si trae un `<svg`
+			// decorativo, quedaría cacheada como si fuera el logo).
+			if (!response.ok) return null
 			const xml = await response.text()
 			if (xml && xml.includes('<svg')) {
 				memory.set(uri, xml)
