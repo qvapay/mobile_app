@@ -130,6 +130,10 @@ export const WALLET_FAMILY_BY_NETWORK: Record<string, string> = { stacks: 'stx',
 /** Redes cuyo sentido IN (firmar desde la wallet) ya sabe hacer la app. */
 export const SWAP_IN_NETWORKS = new Set(['stacks'])
 
+/** El sentido IN no tiene firmante para la red del par: se puede ver, no ejecutar. */
+export const isInUnsupported = (direction: SwapDirection, pair: SwapPairLike | null): boolean =>
+	direction === 'in' && !!pair && !SWAP_IN_NETWORKS.has(pair.network)
+
 /** Pasos de la línea de tiempo del estado: índice del paso activo y si terminó mal. */
 export type SwapTimeline = { active: 0 | 1 | 2 | 3, failedAt: 1 | 2 | null }
 
