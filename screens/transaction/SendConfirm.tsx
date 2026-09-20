@@ -46,6 +46,7 @@ import { getActiveSession } from '../../nearby/session'
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el envío
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
+import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 
 // Tipos
 import type { SendCarouselUser } from './sendQueries'
@@ -114,7 +115,7 @@ const SendConfirm = ({ navigation, route }: Props) => {
 
 	// Clave de idempotencia del intento: nace con la pantalla de confirmación y
 	// sobrevive a timeouts, 5xx y toques repetidos — solo rota tras éxito confirmado
-	const idempotencyKeyRef = useRef(makeIdempotencyKey())
+	const idempotencyKeyRef = useIdempotencyKey()
 
 	// Track recipient for online status
 	useEffect(() => {

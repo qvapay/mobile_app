@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useReducer, useRef } from "react"
+import { useState, useEffect, useMemo, useReducer } from "react"
 import { useTranslation } from "react-i18next"
 
 // Theme
@@ -24,6 +24,7 @@ import { userApi } from "../../api/userApi"
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica la oferta
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from "../../helpers/idempotency"
+import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 
 // User context
 import { useAuth } from "../../auth/AuthContext"
@@ -123,7 +124,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 	// Clave de idempotencia del intento: sobrevive a timeouts, 5xx y toques
 	// repetidos — solo rota tras éxito confirmado (evita ofertas dobles y el
 	// doble débito de las ofertas sell)
-	const idempotencyKeyRef = useRef(makeIdempotencyKey())
+	const idempotencyKeyRef = useIdempotencyKey()
 
 	// Button label derived from type + amount
 	// `amount` es el string del input y se compara con 0 por coerción (JS lo hace

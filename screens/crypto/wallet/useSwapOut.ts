@@ -6,7 +6,7 @@
  * reintenta UNA vez con la misma clave.
  */
 
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
 
@@ -14,6 +14,7 @@ import usePinEntry from '../../../hooks/usePinEntry'
 import { withdrawApi } from '../../../api/withdrawApi'
 import { swapApi } from '../../../api/swapApi'
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../../helpers/idempotency'
+import { useIdempotencyKey } from '../../../hooks/useIdempotencyKey'
 import { useAuth } from '../../../auth/AuthContext'
 import type { Swap } from '../../../types/domain'
 
@@ -31,7 +32,7 @@ export default function useSwapOut({ pairId, amount, toAddress, onCreated }: Arg
 	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
 
-	const idempotencyKeyRef = useRef(makeIdempotencyKey())
+	const idempotencyKeyRef = useIdempotencyKey()
 	const [showPinStep, setShowPinStep] = useState(false)
 	const [sendingPin, setSendingPin] = useState(false)
 	const [submitting, setSubmitting] = useState(false)

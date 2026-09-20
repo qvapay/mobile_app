@@ -9,7 +9,7 @@
  * con la MISMA clave.
  */
 
-import { useEffect, useEffectEvent, useReducer, useRef } from 'react'
+import { useEffect, useEffectEvent, useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import usePinEntry from '../../hooks/usePinEntry'
@@ -21,6 +21,7 @@ import { withdrawApi } from '../../api/withdrawApi'
 
 // Idempotencia: clave estable por intento — un reintento tras timeout no duplica el débito
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
+import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 
 // User Context
 import { useAuth } from '../../auth/AuthContext'
@@ -79,7 +80,7 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 	// repetidos — solo rota tras éxito confirmado. Si un intento falla por
 	// validación (PIN malo, saldo), el servidor libera la clave y reintentar
 	// con datos corregidos procede normal.
-	const idempotencyKeyRef = useRef(makeIdempotencyKey())
+	const idempotencyKeyRef = useIdempotencyKey()
 
 	// PIN/OTP step flags
 	const [pinFlow, dispatchPin] = useReducer(setFieldReducer<PinFlowState>, initialPinFlow)

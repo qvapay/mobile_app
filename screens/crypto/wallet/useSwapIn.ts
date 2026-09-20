@@ -20,6 +20,7 @@ import { prepareSend, signPrepared } from './walletSendActions'
 import type { PreparedSend, SignedSend } from './walletSendActions'
 import { swapApi } from '../../../api/swapApi'
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../../helpers/idempotency'
+import { useIdempotencyKey } from '../../../hooks/useIdempotencyKey'
 import type { AssetView } from '../../../wallet/assets'
 import type { Swap, SwapPair } from '../../../types/domain'
 
@@ -49,7 +50,7 @@ export default function useSwapIn({ pair, asset, amountUnits, amount, onCreated 
 	const preparedRef = useRef<PreparedSend | null>(null)
 	const signedRef = useRef<SignedSend | null>(null)
 	const inFlightRef = useRef(false)
-	const idempotencyKeyRef = useRef(makeIdempotencyKey())
+	const idempotencyKeyRef = useIdempotencyKey()
 
 	const describe = useCallback((err: unknown): string => {
 		if (err instanceof StacksVerifyError) return t('crypto.wallet.send.errors.verifyFailed')
@@ -93,7 +94,7 @@ export default function useSwapIn({ pair, asset, amountUnits, amount, onCreated 
 		}
 		setReason(details?.reason ?? details?.code ?? 'rejected')
 		setError(failure?.error || t('crypto.wallet.swap.errors.createFailed'))
-	}, [pair, amount, onCreated, t])
+	}, [pair, amount, onCreated, t, idempotencyKeyRef])
 
 	/** CTA: construye (o reutiliza) la tx y abre el gate de la wallet. */
 	const start = useCallback(async () => {
