@@ -308,7 +308,9 @@
 			"biometricsFaceId": "Usar Face ID",
 			"biometricsTouchId": "Usar Touch ID / huella",
 			"biometricsHint": "Como atajo del PIN al enviar y ver la frase. Si cambias tu cara o huella, vuelve a pedir el PIN.",
-			"biometricsFailed": "No se pudo activar la biometría en este dispositivo."
+			"biometricsFailed": "No se pudo activar la biometría en este dispositivo.",
+			"nodesHint": "A qué nodos se conecta la wallet",
+			"network": "Red"
 		},
 		"txDetail": {
 			"confirmed": "Confirmada",

@@ -51,7 +51,7 @@ export type Me = {
 	average_rating?: number
 	role?: string
 	/** Flags de features servidos por el backend (rollout remoto). */
-	features?: { self_custody?: boolean | BoolInt } & Record<string, unknown>
+	features?: Record<string, unknown>
 } & Record<string, unknown>
 
 /**
@@ -87,7 +87,7 @@ export type User = {
 	average_rating?: number
 	role?: string
 	/** Flags de features servidos por el backend (rollout remoto). */
-	features?: { self_custody?: boolean | BoolInt } & Record<string, unknown>
+	features?: Record<string, unknown>
 } & Record<string, unknown>
 
 // ---------------------------------------------------------------------------

@@ -308,7 +308,9 @@
 			"biometricsFaceId": "Usar Face ID",
 			"biometricsTouchId": "Usar Touch ID / digital",
 			"biometricsHint": "Como atalho do PIN ao enviar e ver a frase. Se você mudar seu rosto ou digital, ele pede o PIN de novo.",
-			"biometricsFailed": "Não foi possível ativar a biometria neste dispositivo."
+			"biometricsFailed": "Não foi possível ativar a biometria neste dispositivo.",
+			"nodesHint": "A quais nós a carteira se conecta",
+			"network": "Rede"
 		},
 		"txDetail": {
 			"confirmed": "Confirmada",

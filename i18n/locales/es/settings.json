@@ -33,7 +33,7 @@
 			"security": "SEGURIDAD",
 			"notifications": "NOTIFICACIONES",
 			"payments": "PAGOS",
-			"advanced": "AVANZADO"
+			"wallet": "WALLET"
 		},
 		"items": {
 			"theme": "Tema",
@@ -56,8 +56,6 @@
 			"contacts": "Contactos",
 			"roundup": "Micro pagos",
 			"nodes": "Nodos",
-			"selfCustody": "Wallet self-custody",
-			"selfCustodyHint": "Beta · muestra Mi Wallet en el tab Crypto",
 			"walletSettings": "Mi wallet",
 			"walletSettingsHint": "Direcciones, frase secreta y eliminar"
 		},
@@ -81,7 +79,7 @@
 			"button": "Cerrar sesión",
 			"confirmQuestion": "¿Estás seguro de querer cerrar sesión?",
 			"keepBiometricsQuestion": "¿Deseas mantener el acceso biométrico para la próxima vez?",
-			"deleteAll": "Eliminar todo",
+			"deleteAll": "Eliminar",
 			"keepBiometrics": "Mantener biometría",
 			"failed": "No se pudo cerrar sesión. Por favor, inténtalo de nuevo."
 		},

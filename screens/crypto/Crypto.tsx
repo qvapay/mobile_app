@@ -11,7 +11,6 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 // Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
 import { useCryptoDashboard } from './cryptoQueries'
 import WalletHome from './wallet/WalletHome'
-import useSelfCustodyFlag from '../../hooks/useSelfCustodyFlag'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -212,7 +211,6 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const textStyles = useTextStyles(theme)
 
 	const { coins, stocks, isLoading, refreshing, onRefresh } = useCryptoDashboard()
-	const selfCustody = useSelfCustodyFlag()
 	const [exploreTab, setExploreTab] = useState('popular')
 
 	// La lista mezcla criptos enriquecidas y stocks: se lee por la forma común
@@ -227,9 +225,9 @@ const Crypto = ({ navigation }: CryptoProps) => {
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 			>
-				{/* Wallet self-custody (rollout gradual detrás del flag): total,
-				    activos por red y gestión. Los precios quedan al final. */}
-				{selfCustody && <WalletHome refreshSignal={refreshing} />}
+				{/* Wallet self-custody: total, activos por red y gestión. Los
+				    precios quedan al final. */}
+				<WalletHome refreshSignal={refreshing} />
 
 				{/* Explore: Cripto + Stocks */}
 				<SectionCard title={t('crypto.dashboard.explore')} icon="lightbulb" theme={theme}>

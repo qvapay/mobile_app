@@ -308,7 +308,9 @@
 			"biometricsFaceId": "Use Face ID",
 			"biometricsTouchId": "Use Touch ID / fingerprint",
 			"biometricsHint": "As a PIN shortcut when sending and viewing the phrase. If you change your face or fingerprint, it asks for the PIN again.",
-			"biometricsFailed": "Couldn’t enable biometrics on this device."
+			"biometricsFailed": "Couldn’t enable biometrics on this device.",
+			"nodesHint": "Which nodes the wallet connects to",
+			"network": "Network"
 		},
 		"txDetail": {
 			"confirmed": "Confirmed",

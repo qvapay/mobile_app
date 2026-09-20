@@ -31,7 +31,7 @@ export type SettingsMenuGroup = {
 }
 
 /** Grupos del catálogo, en el orden en que se pintan (fijado por settings.test.js). */
-export type SettingsGroupKey = 'appearance' | 'profile' | 'gold' | 'security' | 'notifications' | 'payments'
+export type SettingsGroupKey = 'appearance' | 'profile' | 'gold' | 'security' | 'notifications' | 'payments' | 'wallet'
 
 // Settings Items - grouped to match web dashboard structure.
 // Cada item lleva su icono FontAwesome6 (solid) y un color de tinte fijo para el
@@ -244,6 +244,20 @@ const settings: Record<SettingsGroupKey, SettingsMenuGroup> = {
                 icon: 'coins',
                 color: '#F59E0B',
                 keywords: ['redondeo', 'ahorro', 'roundup', 'centavos', 'round up', 'savings', 'spare change'],
+                enabled: true,
+                notifications: 0,
+            },
+        ],
+    },
+    wallet: {
+        title: 'settings.menu.groups.wallet',
+        options: [
+            {
+                title: 'settings.menu.items.walletSettings',
+                screen: ROUTES.WALLET_SETTINGS,
+                icon: 'wallet',
+                color: '#F59E0B',
+                keywords: ['wallet', 'cartera', 'billetera', 'carteira', 'cripto', 'crypto', 'frase', 'semilla', 'seed', 'direcciones', 'addresses', 'nodos', 'nodes', 'rpc', 'self-custody'],
                 enabled: true,
                 notifications: 0,
             },

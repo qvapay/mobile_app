@@ -33,7 +33,7 @@
 			"security": "SECURITY",
 			"notifications": "NOTIFICATIONS",
 			"payments": "PAYMENTS",
-			"advanced": "ADVANCED"
+			"wallet": "WALLET"
 		},
 		"items": {
 			"theme": "Theme",
@@ -56,8 +56,6 @@
 			"contacts": "Contacts",
 			"roundup": "Round-ups",
 			"nodes": "Nodes",
-			"selfCustody": "Self-custody wallet",
-			"selfCustodyHint": "Beta · shows My Wallet in the Crypto tab",
 			"walletSettings": "My wallet",
 			"walletSettingsHint": "Addresses, secret phrase and delete"
 		},
@@ -81,7 +79,7 @@
 			"button": "Log out",
 			"confirmQuestion": "Are you sure you want to log out?",
 			"keepBiometricsQuestion": "Do you want to keep biometric access for next time?",
-			"deleteAll": "Remove everything",
+			"deleteAll": "Remove",
 			"keepBiometrics": "Keep biometrics",
 			"failed": "Couldn't log out. Please try again."
 		},

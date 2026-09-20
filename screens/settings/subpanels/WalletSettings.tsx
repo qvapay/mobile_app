@@ -5,6 +5,13 @@ import { toast } from 'sonner-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useNavigation } from '@react-navigation/native'
+
+// Routes
+import { ROUTES } from '../../../routes'
+
+// Tipos
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { SettingsStackParamList } from '../../../types/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 
 // Theme
@@ -40,8 +47,8 @@ const REVEAL_TIMEOUT_MS = 60_000
 type Pending = 'reveal' | 'delete' | 'biometrics' | null
 
 /**
- * Ajustes → Avanzado → Mi wallet: direcciones públicas, ver la frase secreta
- * y eliminar la wallet. Las dos acciones sensibles pasan por el gate de
+ * Ajustes → Wallet → Mi wallet: direcciones públicas, ver la frase secreta,
+ * los nodos RPC y eliminar la wallet. Las dos acciones sensibles pasan por el gate de
  * PIN/biometría (WalletAuthModal) ANTES de tocar el Keychain. La frase vive
  * solo en el estado local mientras se muestra, se oculta sola a los 60s y al
  * ir la app a segundo plano. Eliminar exige además confirmar que se tiene el
@@ -54,7 +61,7 @@ const WalletSettings = () => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
-	const navigation = useNavigation()
+	const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList>>()
 	const queryClient = useQueryClient()
 
 	const { hasWallet, isBackedUp, addresses, revealMnemonic, deleteWallet } = useWallet()
@@ -122,12 +129,39 @@ const WalletSettings = () => {
 
 	const copy = (value: string) => { Clipboard.setString(value); toast.success(t('crypto.wallet.card.copied')) }
 
+	// Fila de Nodos: ajuste de RED, no de la wallet — se pinta con y sin wallet
+	// creada, porque elegir a qué nodo se pregunta el saldo no exige tener seed.
+	const nodesSection = (
+		<>
+			<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.network').toUpperCase()}</Text>
+			<View style={[styles.card, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+				<QPPressable onPress={() => navigation.navigate(ROUTES.RPC_NODES)} style={styles.row}>
+					<View style={[styles.rowIcon, { backgroundColor: '#64748B' }]}>
+						<FontAwesome6 name="server" size={13} color="#FFFFFF" iconStyle="solid" />
+					</View>
+					<View style={styles.rowTexts}>
+						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('settings.menu.items.nodes')}</Text>
+						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.nodesHint')}</Text>
+					</View>
+					<FontAwesome6 name="chevron-right" size={13} color={theme.colors.tertiaryText} iconStyle="solid" />
+				</QPPressable>
+			</View>
+		</>
+	)
+
 	if (!hasWallet || !addresses) {
 		return (
-			<View style={[containerStyles.subContainer, styles.empty]}>
-				<FontAwesome6 name="wallet" size={28} color={theme.colors.secondaryText} iconStyle="solid" />
-				<Text style={[textStyles.h4, { color: theme.colors.secondaryText, textAlign: 'center' }]}>{t('crypto.wallet.settings.noWallet')}</Text>
-			</View>
+			<ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+				<View style={styles.header}>
+					<Text style={textStyles.h1}>{t('crypto.wallet.settings.title')}</Text>
+					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.subtitle')}</Text>
+				</View>
+				<View style={[styles.card, styles.cardPadded, styles.emptyCard, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
+					<FontAwesome6 name="wallet" size={26} color={theme.colors.secondaryText} iconStyle="solid" />
+					<Text style={[textStyles.h5, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.noWallet')}</Text>
+				</View>
+				{nodesSection}
+			</ScrollView>
 		)
 	}
 
@@ -198,6 +232,8 @@ const WalletSettings = () => {
 				</>
 			)}
 
+			{nodesSection}
+
 			{/* Eliminar */}
 			<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.dangerZone').toUpperCase()}</Text>
 			<View style={[styles.card, styles.cardPadded, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
@@ -233,7 +269,7 @@ const cardBorder = (theme: Theme) => !theme.isDark ? { borderWidth: StyleSheet.h
 
 const styles = StyleSheet.create({
 	content: { paddingBottom: 40 },
-	empty: { alignItems: 'center', justifyContent: 'center', gap: 12 },
+	emptyCard: { alignItems: 'center' },
 	header: { gap: 4, marginBottom: 18 },
 	sectionTitle: { letterSpacing: 0.6, marginLeft: 4, marginBottom: 6, marginTop: 14 },
 	card: { borderRadius: 14, paddingHorizontal: 12 },
@@ -241,6 +277,8 @@ const styles = StyleSheet.create({
 	switchRow: { flexDirection: 'row', alignItems: 'center' },
 	switchTexts: { flex: 1, gap: 2 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
+	rowIcon: { width: 26, height: 26, borderRadius: 8, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+	rowTexts: { flex: 1, gap: 2 },
 	familyLabel: { width: 96 },
 	address: { flex: 1 },
 	notice: { flexDirection: 'row', gap: 10, padding: 10, borderRadius: 10, alignItems: 'flex-start' },

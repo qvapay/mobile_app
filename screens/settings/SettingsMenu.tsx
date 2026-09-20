@@ -8,8 +8,6 @@ import { useAuth } from '../../auth/AuthContext'
 
 // Settings Context
 import { useSettings } from '../../settings/SettingsContext'
-import useSelfCustodyFlag from '../../hooks/useSelfCustodyFlag'
-import { useWallet } from '../../wallet/WalletContext'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -81,7 +79,7 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 
 	// Contexts
 	const { user, logout, updateUser } = useAuth()
-	const { updateSettings, getSetting, updateSetting } = useSettings()
+	const { updateSettings } = useSettings()
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
@@ -96,9 +94,6 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 	// Mientras hay búsqueda activa solo se muestran los resultados — el perfil,
 	// el logout y el pie quedan fuera para no ensuciar la lista.
 	const [query, setQuery] = useState('')
-	const selfCustody = useSelfCustodyFlag()
-	const { hasWallet } = useWallet()
-	const showAdvanced = __DEV__ || selfCustody
 
 	const visibleSettings = filterSettings(settings, query, t)
 	const searching = query.trim().length > 0
@@ -254,43 +249,6 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 					}))
 					return <SettingsSection key={categoryKey} title={t(category.title)} items={items} navigation={navigation} />
 				})}
-
-				{/* Sección oculta del plan crypto: fuera del catálogo estático (y de la
-				    búsqueda) a propósito — solo aparece con el flag self-custody o en dev.
-				    El interruptor enciende el ajuste local `crypto.selfCustody` (la otra
-				    vía es el flag remoto `features.self_custody` de /user/extended). */}
-				{!searching && showAdvanced && (
-					<SettingsSection
-						title={t('settings.menu.groups.advanced')}
-						items={[
-							{
-								title: t('settings.menu.items.selfCustody'),
-								subtitle: t('settings.menu.items.selfCustodyHint'),
-								icon: 'wallet',
-								color: '#F59E0B',
-								toggle: {
-									value: Boolean(getSetting('crypto', 'selfCustody', false)),
-									onValueChange: value => { updateSetting('crypto', 'selfCustody', value) },
-								},
-							},
-							// Solo con wallet creada: direcciones, ver frase y eliminar (gate PIN)
-							...(hasWallet ? [{
-								title: t('settings.menu.items.walletSettings'),
-								subtitle: t('settings.menu.items.walletSettingsHint'),
-								screen: ROUTES.WALLET_SETTINGS,
-								icon: 'key' as const,
-								color: '#8B5CF6',
-							}] : []),
-							{
-								title: t('settings.menu.items.nodes'),
-								screen: ROUTES.RPC_NODES,
-								icon: 'server',
-								color: '#64748B',
-							},
-						]}
-						navigation={navigation}
-					/>
-				)}
 
 				{!searching && <AlertDrawer
 					buttonLabel={t('settings.menu.logout.button')}

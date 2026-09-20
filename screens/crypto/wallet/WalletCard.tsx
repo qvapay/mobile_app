@@ -20,8 +20,8 @@ import type { Theme } from '../../../theme/ThemeContext'
 
 
 /**
- * Card de la wallet self-custody en el dashboard del tab Crypto (detrás de
- * `useSelfCustodyFlag`) para los dos estados previos a la wallet activa: sin
+ * Card de la wallet self-custody en el dashboard del tab Crypto, para los
+ * dos estados previos a la wallet activa: sin
  * wallet (CTA crear/importar) y backup pendiente (retomarlo). Con la wallet
  * respaldada no pinta nada: manda WalletHome (saldo + activos).
  */

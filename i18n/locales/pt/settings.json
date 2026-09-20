@@ -33,7 +33,7 @@
 			"security": "SEGURANÇA",
 			"notifications": "NOTIFICAÇÕES",
 			"payments": "PAGAMENTOS",
-			"advanced": "AVANÇADO"
+			"wallet": "CARTEIRA"
 		},
 		"items": {
 			"theme": "Tema",
@@ -56,8 +56,6 @@
 			"contacts": "Contatos",
 			"roundup": "Arredondamentos",
 			"nodes": "Nós",
-			"selfCustody": "Carteira self-custody",
-			"selfCustodyHint": "Beta · mostra Minha Carteira na aba Crypto",
 			"walletSettings": "Minha carteira",
 			"walletSettingsHint": "Endereços, frase secreta e excluir"
 		},
@@ -81,7 +79,7 @@
 			"button": "Sair",
 			"confirmQuestion": "Tem certeza de que quer sair?",
 			"keepBiometricsQuestion": "Quer manter o acesso biométrico para a próxima vez?",
-			"deleteAll": "Excluir tudo",
+			"deleteAll": "Excluir",
 			"keepBiometrics": "Manter biometria",
 			"failed": "Não foi possível sair. Por favor, tente de novo."
 		},
