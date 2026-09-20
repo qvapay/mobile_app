@@ -29,6 +29,7 @@ import QPAvatar from '../../ui/particles/QPAvatar'
 // Helpers
 import { getShortDateTime, getFirstChunk, statusText, copyTextToClipboard } from '../../helpers'
 import { mediaUrl } from '../../helpers/mediaUrl'
+import { payInvoiceState } from './payModel'
 
 // Toast & haptics
 import { toast } from 'sonner-native'
@@ -48,6 +49,7 @@ import QPFitText from '../../ui/particles/QPFitText'
 // Tipos
 import type { Transaction as TransactionModel } from '../../types/domain'
 import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
 import type { RootStackParamList } from '../../types/navigation'
 
 /** Reacción opcional que acompaña al pago de la factura. */
@@ -158,16 +160,8 @@ const Pay = ({ route, navigation }: Props) => {
 
 	useEffect(() => { fetchTransaction() }, [fetchTransaction])
 
-	// Derived
-	// Los decimales del backend viajan como string o number (alias Decimal); el
-	// `|| 0` del original cubre la factura aún no cargada
-	const amountFloat = parseFloat((transaction?.amount || 0) as string)
-	const amountFixed = amountFloat.toFixed(2)
-	const balanceFloat = parseFloat((user?.balance || 0) as string)
-	const hasEnough = balanceFloat >= amountFloat
-	const isOwn = transaction?.user?.uuid && user?.uuid && transaction.user.uuid === user.uuid
-	const alreadyPaid = transaction?.status && transaction.status !== 'pending'
-	const canPay = !!transaction && !alreadyPaid && !isOwn && hasEnough
+	// Quién puede pagar esta factura y con qué saldo: reglas puras en `payModel`
+	const { amountFixed, balanceFixed, hasEnough, isOwn, alreadyPaid, canPay } = payInvoiceState(transaction, user)
 
 	// Close / cancel
 	const handleClose = () => {
@@ -180,7 +174,8 @@ const Pay = ({ route, navigation }: Props) => {
 
 	// Pay action
 	const handlePay = async () => {
-		if (!canPay || paying) return
+		// `canPay` ya implica que hay factura; el check explícito es para el compilador
+		if (!canPay || paying || !transaction) return
 		ReactNativeHapticFeedback.trigger('impactMedium', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
 		setPaying(true)
 		setPayError(null)
@@ -233,12 +228,6 @@ const Pay = ({ route, navigation }: Props) => {
 		)
 	}
 
-	// Merchant (app) data
-	const app = transaction.app
-	const merchantName = app?.name || transaction.user?.name || 'QvaPay'
-	// `mediaUrl` solo devuelve null con un path vacío, que el ternario ya descarta
-	const merchantLogo = app?.logo ? { uri: mediaUrl(app.logo) as string } : null
-
 	return (
 		<View style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
 			<Pressable style={styles.overlayPress} onPress={handleClose} />
@@ -253,22 +242,7 @@ const Pay = ({ route, navigation }: Props) => {
 
 				<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingTop: 20 }}>
 
-					{/* Merchant header */}
-					<View style={styles.merchantHeader}>
-						{merchantLogo ? (
-							<FastImage source={merchantLogo} style={styles.merchantLogo} resizeMode={FastImage.resizeMode.cover} />
-						) : transaction.user ? (
-							<QPAvatar user={transaction.user} size={72} />
-						) : (
-							<View style={[styles.merchantLogo, { backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' }]}>
-								<FontAwesome6 name="store" size={28} color={theme.colors.primary} iconStyle="solid" />
-							</View>
-						)}
-						<Text style={[textStyles.h3, { marginTop: 12, textAlign: 'center' }]}>{merchantName}</Text>
-						{app?.desc ? (
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 4, textAlign: 'center' }]} numberOfLines={2}>{app.desc}</Text>
-						) : null}
-					</View>
+					<PayMerchantHeader theme={theme} textStyles={textStyles} transaction={transaction} />
 
 					{/* Amount */}
 					<View style={styles.amountWrap}>
@@ -305,56 +279,21 @@ const Pay = ({ route, navigation }: Props) => {
 
 					</View>
 
-					{/* Balance hint */}
-					{!alreadyPaid && !isOwn && (
-						<View style={[styles.balanceHint, { backgroundColor: hasEnough ? theme.colors.surface : theme.colors.danger + '20' }]}>
-							<FontAwesome6 name={hasEnough ? 'wallet' : 'triangle-exclamation'} size={14} color={hasEnough ? theme.colors.secondaryText : theme.colors.danger} iconStyle="solid" />
-							<Text style={[textStyles.h6, { color: hasEnough ? theme.colors.secondaryText : theme.colors.danger, marginLeft: 8 }]}>
-								{hasEnough ? t('transactions.pay.balanceAvailable', { amount: balanceFloat.toFixed(2) }) : t('transactions.pay.insufficientBalance', { amount: balanceFloat.toFixed(2) })}
-							</Text>
-						</View>
-					)}
+					<PayBalanceHint theme={theme} textStyles={textStyles} visible={!alreadyPaid && !isOwn} hasEnough={hasEnough} balanceFixed={balanceFixed} />
 
-					{/* Reaction selector */}
 					{canPay && !success && (
-						<View style={{ marginTop: 20 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 10 }]}>{t('transactions.pay.moodQuestion')}</Text>
-							<View style={styles.moodsRow}>
-								{MOODS.map((mood) => {
-									const selected = selectedMood === mood.value
-									return (
-										<Pressable key={mood.value || 'none'} onPress={() => setSelectedMood(mood.value)} style={[styles.moodChip, { backgroundColor: selected ? mood.color : theme.colors.surface, borderColor: selected ? mood.color : theme.colors.border }]} >
-											<FontAwesome6 name={mood.icon} size={16} color={selected ? '#fff' : mood.color} iconStyle="solid" />
-											<Text style={[textStyles.h7, { color: selected ? '#fff' : theme.colors.primaryText, marginLeft: 6 }]}>{t(mood.labelKey)}</Text>
-										</Pressable>
-									)
-								})}
-							</View>
-						</View>
+						<PayMoodPicker theme={theme} textStyles={textStyles} selected={selectedMood} onSelect={setSelectedMood} />
 					)}
 
-					{/* Success state */}
-					{success && (
-						<View style={styles.successWrap}>
-							<LottieView source={require('../../assets/lotties/transfer_ok.json')} autoPlay loop={false} style={{ width: 140, height: 140 }} />
-							<Text style={[textStyles.h3, { color: theme.colors.successText, marginTop: 8 }]}>{t('transactions.pay.paymentDone')}</Text>
-						</View>
-					)}
-
-					{/* Pay error */}
-					{payError && !success ? (<Text style={[textStyles.error, { marginTop: 14, textAlign: 'center' }]}>{payError}</Text>) : null}
-
-					{/* Already paid / own transaction info */}
-					{alreadyPaid && (
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 16 }]}>
-							{t('transactions.pay.alreadyPaid', { status: statusText(transaction.status).toLowerCase() })}
-						</Text>
-					)}
-					{isOwn && !alreadyPaid && (
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 16 }]}>
-							{t('transactions.pay.ownInvoice')}
-						</Text>
-					)}
+					<PayOutcome
+						theme={theme}
+						textStyles={textStyles}
+						success={success}
+						payError={payError}
+						alreadyPaid={alreadyPaid}
+						isOwn={isOwn}
+						status={transaction.status}
+					/>
 
 				</ScrollView>
 
@@ -390,6 +329,105 @@ const Pay = ({ route, navigation }: Props) => {
 
 			</View>
 		</View>
+	)
+}
+
+// ---------- Subcomponentes ----------
+
+/** Logo (o avatar, o marcador) del comercio con su nombre y descripción. */
+const PayMerchantHeader = ({ theme, textStyles, transaction }: { theme: Theme, textStyles: TextStyles, transaction: TransactionModel }) => {
+
+	const app = transaction.app
+	// `mediaUrl` solo devuelve null con un path vacío, que el ternario ya descarta
+	const logo = app?.logo ? { uri: mediaUrl(app.logo) as string } : null
+
+	return (
+		<View style={styles.merchantHeader}>
+			{logo ? (
+				<FastImage source={logo} style={styles.merchantLogo} resizeMode={FastImage.resizeMode.cover} />
+			) : transaction.user ? (
+				<QPAvatar user={transaction.user} size={72} />
+			) : (
+				<View style={[styles.merchantLogo, { backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' }]}>
+					<FontAwesome6 name="store" size={28} color={theme.colors.primary} iconStyle="solid" />
+				</View>
+			)}
+			<Text style={[textStyles.h3, { marginTop: 12, textAlign: 'center' }]}>{app?.name || transaction.user?.name || 'QvaPay'}</Text>
+			{app?.desc ? (
+				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 4, textAlign: 'center' }]} numberOfLines={2}>{app.desc}</Text>
+			) : null}
+		</View>
+	)
+}
+
+/** Saldo disponible, en rojo cuando no alcanza. Solo en facturas todavía pagables. */
+const PayBalanceHint = ({ theme, textStyles, visible, hasEnough, balanceFixed }: { theme: Theme, textStyles: TextStyles, visible: boolean, hasEnough: boolean, balanceFixed: string }) => {
+
+	const { t } = useTranslation()
+	if (!visible) return null
+
+	const tone = hasEnough ? theme.colors.secondaryText : theme.colors.danger
+
+	return (
+		<View style={[styles.balanceHint, { backgroundColor: hasEnough ? theme.colors.surface : theme.colors.danger + '20' }]}>
+			<FontAwesome6 name={hasEnough ? 'wallet' : 'triangle-exclamation'} size={14} color={tone} iconStyle="solid" />
+			<Text style={[textStyles.h6, { color: tone, marginLeft: 8 }]}>
+				{hasEnough ? t('transactions.pay.balanceAvailable', { amount: balanceFixed }) : t('transactions.pay.insufficientBalance', { amount: balanceFixed })}
+			</Text>
+		</View>
+	)
+}
+
+/** Reacción opcional que viaja con el pago. */
+const PayMoodPicker = ({ theme, textStyles, selected, onSelect }: { theme: Theme, textStyles: TextStyles, selected: string, onSelect: (mood: string) => void }) => {
+
+	const { t } = useTranslation()
+
+	return (
+		<View style={{ marginTop: 20 }}>
+			<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginBottom: 10 }]}>{t('transactions.pay.moodQuestion')}</Text>
+			<View style={styles.moodsRow}>
+				{MOODS.map((mood) => {
+					const isSelected = selected === mood.value
+					return (
+						<Pressable key={mood.value || 'none'} onPress={() => onSelect(mood.value)} style={[styles.moodChip, { backgroundColor: isSelected ? mood.color : theme.colors.surface, borderColor: isSelected ? mood.color : theme.colors.border }]} >
+							<FontAwesome6 name={mood.icon} size={16} color={isSelected ? '#fff' : mood.color} iconStyle="solid" />
+							<Text style={[textStyles.h7, { color: isSelected ? '#fff' : theme.colors.primaryText, marginLeft: 6 }]}>{t(mood.labelKey)}</Text>
+						</Pressable>
+					)
+				})}
+			</View>
+		</View>
+	)
+}
+
+/** Cierre de la hoja: animación de éxito, error del pago o por qué no se puede pagar. */
+const PayOutcome = ({ theme, textStyles, success, payError, alreadyPaid, isOwn, status }: { theme: Theme, textStyles: TextStyles, success: boolean, payError: string | null, alreadyPaid: boolean, isOwn: boolean, status: string }) => {
+
+	const { t } = useTranslation()
+
+	return (
+		<>
+			{success && (
+				<View style={styles.successWrap}>
+					<LottieView source={require('../../assets/lotties/transfer_ok.json')} autoPlay loop={false} style={{ width: 140, height: 140 }} />
+					<Text style={[textStyles.h3, { color: theme.colors.successText, marginTop: 8 }]}>{t('transactions.pay.paymentDone')}</Text>
+				</View>
+			)}
+
+			{payError && !success ? (<Text style={[textStyles.error, { marginTop: 14, textAlign: 'center' }]}>{payError}</Text>) : null}
+
+			{alreadyPaid && (
+				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 16 }]}>
+					{t('transactions.pay.alreadyPaid', { status: statusText(status).toLowerCase() })}
+				</Text>
+			)}
+			{isOwn && !alreadyPaid && (
+				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 16 }]}>
+					{t('transactions.pay.ownInvoice')}
+				</Text>
+			)}
+		</>
 	)
 }
 
