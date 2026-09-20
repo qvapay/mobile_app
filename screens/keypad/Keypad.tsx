@@ -1,13 +1,13 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
 	StyleSheet,
 	Text,
 	View,
 	Pressable,
 	AccessibilityInfo,
-	Vibration,
 	Platform
 } from 'react-native'
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 
@@ -48,7 +48,6 @@ type KeypadProps = CompositeScreenProps<
 const MIN_FONT_SIZE = 40
 const MAX_FONT_SIZE = 80
 const FONT_SIZE_DECREASE_FACTOR = 4
-const VIBRATION_DURATION = 50
 
 /**
  * Calculator-style amount pad (center bottom tab) used to start a payment.
@@ -56,7 +55,8 @@ const VIBRATION_DURATION = 50
  * validates the amount against the user's balance and routes to Send
  * (`ROUTES.SEND`, param `send_amount`) or Receive (`ROUTES.RECEIVE`, param
  * `receive_amount`) — it performs no API calls itself.
- * The amount font shrinks as digits grow; key presses vibrate on iOS only.
+ * The amount font shrinks as digits grow; every key press fires the same `impactLight`
+ * haptic as the tab bar (Taptic Engine on iOS, vibrator fallback on Android).
  */
 export default function Keypad({ navigation }: KeypadProps) {
 
@@ -72,7 +72,6 @@ export default function Keypad({ navigation }: KeypadProps) {
 
 	// Refs
 	const [fontSize, setFontSize] = useState(MAX_FONT_SIZE)
-	const hapticFeedbackEnabled = useRef(true)
 
 	// Memoized values
 	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
@@ -85,9 +84,9 @@ export default function Keypad({ navigation }: KeypadProps) {
 		['.', '0', 'backspace'],
 	], [])
 
-	// Haptic feedback
+	// Haptic feedback — mismo tic que el cambio de pestaña del BottomBar (MainStack)
 	const triggerHapticFeedback = useCallback(() => {
-		if (hapticFeedbackEnabled.current && Platform.OS === 'ios') { Vibration.vibrate(VIBRATION_DURATION) }
+		ReactNativeHapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
 	}, [])
 
 	// Calculate font size based on amount length
@@ -144,6 +143,7 @@ export default function Keypad({ navigation }: KeypadProps) {
 	const handleSendAmount = useCallback(async () => {
 
 		if (isProcessing) return
+		triggerHapticFeedback()
 		const numericAmount = parseFloat(amount)
 
 		if (numericAmount <= 0) {
@@ -166,19 +166,21 @@ export default function Keypad({ navigation }: KeypadProps) {
 			toast.error(t('keypad.toasts.sendError.title'), { description: t('keypad.toasts.sendError.description') })
 		} finally { setIsProcessing(false) }
 
-	}, [amount, user?.balance, isProcessing, navigation, t])
+	}, [amount, user?.balance, isProcessing, navigation, triggerHapticFeedback, t])
 
 	// Receive amount
 	const handleReceiveAmount = useCallback(() => {
+		triggerHapticFeedback()
 		const numericAmount = parseFloat(amount)
 		navigation.navigate(ROUTES.RECEIVE, { receive_amount: numericAmount.toString() })
-	}, [amount, navigation])
+	}, [amount, navigation, triggerHapticFeedback])
 
 	// Nearby radar — any typed amount travels along as prefill
 	const handleNearby = useCallback(() => {
+		triggerHapticFeedback()
 		const numericAmount = parseFloat(amount)
 		navigation.navigate(ROUTES.NEARBY_PAY, numericAmount > 0 ? { prefill_amount: numericAmount.toString() } : {})
-	}, [amount, navigation])
+	}, [amount, navigation, triggerHapticFeedback])
 
 	// Render individual key
 	const renderKey = useCallback((key: string) => {

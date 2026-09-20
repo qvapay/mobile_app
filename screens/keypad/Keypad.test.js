@@ -18,9 +18,10 @@ jest.mock('../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../ui/particles/QPBalance', () => 'QPBalance')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
+jest.mock('react-native-haptic-feedback', () => ({ __esModule: true, default: { trigger: jest.fn() } }))
 
 import React from 'react'
-import { AccessibilityInfo, Vibration } from 'react-native'
+import { AccessibilityInfo } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { useAuth } from '../../auth/AuthContext'
 import { toast } from 'sonner-native'
@@ -56,7 +57,6 @@ const pressAction = (tree, title) =>
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	jest.spyOn(Vibration, 'vibrate').mockImplementation(() => {})
 	jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {})
 	useAuth.mockReturnValue({ user: { balance: 100 } })
 })
