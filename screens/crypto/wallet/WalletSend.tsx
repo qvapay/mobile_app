@@ -94,9 +94,12 @@ const WalletSend = ({ navigation, route }: Props) => {
 
 	// Validación local; los mensajes se calculan una vez por render, no en cada tecla
 	const toTrimmed = to.trim()
+	const isSelfSend = asset?.kind === 'evm' 
+		? toTrimmed.toLowerCase() === ownAddress?.toLowerCase() 
+		: toTrimmed === ownAddress
 	const toError = !toTrimmed ? null
 		: !asset || !isValidAddressFor(asset.kind, toTrimmed) ? t('crypto.wallet.send.errors.invalidAddress', { network: asset?.chainName ?? '' })
-			: toTrimmed === ownAddress ? t('crypto.wallet.send.errors.ownAddress')
+			: isSelfSend ? t('crypto.wallet.send.errors.ownAddress')
 				: null
 
 	const balanceUnits = asset ? BigInt(asset.amount === '' ? '0' : parseUnitsSafe(asset.amount, asset.decimals)) : 0n

@@ -7,6 +7,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import i18n, { getDateLocale } from './i18n'
 import type { Coin } from './types/domain'
 import { isValidSolanaAddress } from './wallet/solana/codec'
+import { isValidBtcAddress } from './wallet/btc/tx'
 
 /** Intent de pago Lightning parseado de un QR. */
 export type LightningIntent = { type: 'lightning', invoice: string, amountSats: number | null }
@@ -101,20 +102,19 @@ const bolt11AmountSats = (invoice: string): number | null => {
 }
 
 /**
- * Dirección suelta o con esquema (`tron:T…`, `ethereum:0x…`, EIP-681 con
- * `@chainId`/`?value=` recortados). TRON base58 (T + 33), EVM 0x + 40 hex,
- * BTC bech32 mainnet suelto (bc1…). Un URI `bitcoin:` (BIP-21) sigue dando
- * null a propósito hasta que la wallet envíe BTC. Nada más: un texto
+ * Dirección suelta o con esquema (`tron:T…`, `ethereum:0x…`, `bitcoin:bc1…`,
+ * EIP-681 con `@chainId`/`?value=` recortados). TRON base58 (T + 33), EVM 0x + 40 hex,
+ * BTC mainnet (bech32 bc1…, P2SH 3…, legacy 1…). Nada más: un texto
  * cualquiera no es una dirección.
  * @param raw - Payload crudo ya recortado.
  */
 const parseAddressQR = (raw: string): AddressIntent | null => {
 	// `solana:` es el esquema de Solana Pay (solana:<dirección>?amount=…)
-	const withoutScheme = raw.replace(/^(tron|ethereum|solana|stacks):(\/\/)?/i, '')
+	const withoutScheme = raw.replace(/^(bitcoin|tron|ethereum|solana|stacks):(\/\/)?/i, '')
 	const bare = withoutScheme.split(/[?@]/)[0].trim()
 	if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(bare)) { return { type: 'address', family: 'tron', address: bare } }
 	if (/^0x[0-9a-fA-F]{40}$/.test(bare)) { return { type: 'address', family: 'evm', address: bare } }
-	if (/^bc1[02-9ac-hj-np-z]{11,71}$/i.test(bare)) { return { type: 'address', family: 'btc', address: bare.toLowerCase() } }
+	if (isValidBtcAddress(bare)) { return { type: 'address', family: 'btc', address: bare } }
 	if (/^S[PM][0-9A-HJKMNP-TV-Z]{28,41}$/.test(bare)) { return { type: 'address', family: 'stacks', address: bare } }
 	// Al final: base58 de 32 bytes (una TRON también es base58, pero de 25 bytes y ya salió arriba)
 	if (isValidSolanaAddress(bare)) { return { type: 'address', family: 'solana', address: bare } }
