@@ -13,6 +13,7 @@ import { createTextStyles } from '../theme/themeUtils'
 import { useSettings } from '../settings/SettingsContext'
 import { useAppLock, APP_LOCK_BIO_SERVICE } from './AppLockContext'
 import { hasBiometricMarker } from '../helpers/biometricMarker'
+import { useAnimatedValue } from '../hooks/useAnimatedValue'
 import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
 
 // Icons
@@ -63,7 +64,7 @@ const LockScreen = () => {
 	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
 	const { type: biometryType, available: biometricsAvailable } = biometrics
 	const codeInputRef = useRef<QPCodeInputHandle | null>(null)
-	const shakeAnim = useRef(new Animated.Value(0)).current
+	const shakeAnim = useAnimatedValue(0)
 
 	// Check biometric availability when lock screen appears
 	useEffect(() => {

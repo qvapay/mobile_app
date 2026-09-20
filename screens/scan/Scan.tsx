@@ -29,6 +29,7 @@ import { useAuth } from '../../auth/AuthContext'
 
 // Helpers
 import { parseQRData } from '../../helpers'
+import { useAnimatedValue } from '../../hooks/useAnimatedValue'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -105,7 +106,7 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 	const isScanningRef = useRef(initialMode === 'scan')
 
 	// Animation
-	const scanLineAnimation = useRef(new Animated.Value(0)).current
+	const scanLineAnimation = useAnimatedValue(0)
 
 	// Start scanning animation (stable identity so the effect below can depend on it)
 	const startScanAnimation = useCallback(() => {
