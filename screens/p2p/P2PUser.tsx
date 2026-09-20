@@ -10,9 +10,7 @@ import { useTheme } from "../../theme/ThemeContext"
 import { createTextStyles, createContainerStyles } from "../../theme/themeUtils"
 
 // API
-import { p2pApi } from "../../api/p2pApi"
-import { unwrap } from "../../api/unwrap"
-import { useQuery } from "@tanstack/react-query"
+import usePeerProfile from "./usePeerProfile"
 
 // UI
 import QPAvatar from "../../ui/particles/QPAvatar"
@@ -22,9 +20,6 @@ import { createHiddenRefreshControl } from "../../ui/QPRefreshIndicator"
 
 // Icons
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
-
-// Toast
-import { toast } from "sonner-native"
 
 // Routes
 import { ROUTES } from "../../routes"
@@ -44,7 +39,7 @@ import type { RootStackParamList } from "../../types/navigation"
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles } from "../../theme/themeUtils"
 import type { P2POffer as P2POfferModel, P2PUser as P2PUserModel } from "../../types/domain"
-import type { PeerProfilePayload, PeerRanking, PeerRatings, PeerStats, PeerTopCoin } from "./p2pQueries"
+import type { PeerDomain, PeerRanking, PeerRatings, PeerStats, PeerTopCoin } from "./p2pQueries"
 
 /**
  * OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
@@ -52,13 +47,14 @@ import type { PeerProfilePayload, PeerRanking, PeerRatings, PeerStats, PeerTopCo
  */
 type ThemeWithMode = Theme & { mode?: string }
 
+/** El payload trae campos que `P2PUser` no modela (bio, twitter, telegram_verified…). */
+type PeerUser = P2PUserModel & Record<string, unknown>
+
 /** Navegación del stack raíz, tal y como la reciben los subcomponentes de abajo. */
 type RootNav = NativeStackScreenProps<RootStackParamList, 'P2PUser'>['navigation']
 
 // Cover total (status bar incluido) = 20% del alto de pantalla
 const COVER_HEIGHT_RATIO = 0.2
-const DEFAULT_COVER = "https://media.qvapay.com/covers/timeline.jpg"
-const MEDIA_BASE = "https://media.qvapay.com/"
 
 // Los labels se resuelven con t() en el render (`p2p.user.tabs.*`) — sin copy
 // en constantes de módulo
@@ -92,15 +88,6 @@ function formatRatingDate(date: string | null | undefined) {
 	return d.toLocaleDateString(getDateLocale(), { day: "2-digit", month: "short", year: "numeric" })
 }
 
-/** Perfil público completo del trader (usuario, stats, ofertas, reseñas). */
-const usePeerProfileQuery = (uuid: string) => useQuery<PeerProfilePayload | null>({
-	queryKey: ['p2p', 'user', uuid],
-	// peerProfile devuelve `unknown` en el módulo de API — la forma vive en p2pQueries
-	queryFn: async () => unwrap(await p2pApi.peerProfile(uuid)) as PeerProfilePayload | null,
-	enabled: !!uuid,
-	placeholderData: previous => previous,
-})
-
 /**
  * Public P2P trader profile: cover photo, stats, active offers and reviews in tabs.
  * Route params: `uuid` (required) and optional `initialTab` ("offers" | "reviews" | "stats").
@@ -124,41 +111,15 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 	const topOverlay = insets.top
 	const totalCoverHeight = Math.round(windowHeight * COVER_HEIGHT_RATIO)
 
-	// Perfil en React Query (clave por uuid: volver a un trader pinta de caché)
-	const profileQuery = usePeerProfileQuery(uuid)
-	const { data } = profileQuery
-	const loading = profileQuery.isPending
-	const error = profileQuery.error?.message || null
-	const [refreshing, setRefreshing] = useState(false)
+	// Perfil en React Query (clave por uuid: volver a un trader pinta de caché); el hook
+	// desempaqueta el payload con valores por defecto — aquí nada puede llegar "a medias"
+	const profile = usePeerProfile(uuid)
+	const { data, loading, error, refetch: fetchProfile, refreshing, onRefresh } = profile
+	const { user, viewerGold, isSelf, stats, ranking, activeOffers, topCoins, received, sent, domain, coverUri, offersCount, reviewsCount } = profile
+
 	const [activeTab, setActiveTab] = useState(initialTab === "reviews" || initialTab === "stats" ? initialTab : "offers")
 	const [reviewMode, setReviewMode] = useState<'received' | 'sent'>("received")
 
-	const { refetch: fetchProfile } = profileQuery
-	const onRefresh = useCallback(async () => {
-		setRefreshing(true)
-		try {
-			const res = await fetchProfile()
-			if (res.error) toast.error(res.error.message)
-		} finally { setRefreshing(false) }
-	}, [fetchProfile])
-
-	// Source of truth is the server. Never trust a locally-cached flag
-	// (AsyncStorage may keep stringy/stale values that bypass the gate).
-	const viewerGold = data?.viewer_gold === true
-	const isSelf = data?.is_self === true
-	const user = data?.user
-	const stats: PeerStats = data?.stats || {}
-	const ranking = data?.ranking
-	const activeOffers = data?.activeOffers || []
-	const topCoins = data?.topCoins || []
-	const received: PeerRatings = data?.receivedRatings || { items: [], total: 0, distribution: {} }
-	const sent: PeerRatings = data?.sentRatings || { items: [], total: 0 }
-	const domain = data?.domain
-
-	const coverUri = user?.cover ? `${MEDIA_BASE}${user.cover}` : DEFAULT_COVER
-
-	const offersCount = activeOffers.length
-	const reviewsCount = received.total || 0
 
 	// Share the profile — used by both Android header button and iOS native item
 	const handleShare = useCallback(async () => {
@@ -228,99 +189,15 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 					</View>
 				</View>
 
-				{/* Name + verification badges */}
-				<View style={{ alignItems: "center", paddingHorizontal: 16, marginTop: 54 }}>
-					<View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-						<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: "700" }]}>{displayName(user)}</Text>
-						{user?.kyc && <FontAwesome6 name="circle-check" size={16} color={theme.colors.primary} iconStyle="solid" />}
-						{user?.golden_check && <FontAwesome6 name="crown" size={14} color={theme.colors.gold} iconStyle="solid" />}
-						{user?.vip && <FontAwesome6 name="gem" size={14} color={theme.colors.primary} iconStyle="solid" />}
-					</View>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 2 }]}>@{user?.username}</Text>
+				<PeerIdentity theme={theme} textStyles={textStyles} user={user} stats={stats} domain={domain} />
 
-					{/* Verification chips */}
-					<View style={styles.verifRow}>
-						{(user?.phone_verified as boolean) && <VerifChip theme={theme} icon="phone" label={t('p2p.user.chips.phone')} />}
-						{/* `telegram_verified`/`twitter` no están modelados en P2PUser: entran
-						    por el índice `unknown` del payload — casts solo de tipos */}
-						{(user?.telegram_verified as boolean) && <VerifChip theme={theme} icon="telegram" brand label="Telegram" />}
-						{(user?.twitter as boolean) && <VerifChip theme={theme} icon="x-twitter" brand label="X" />}
-					</View>
-
-					{user?.bio ? (
-						<Text style={[textStyles.body, { color: theme.colors.primaryText, textAlign: "center", marginTop: 12, paddingHorizontal: 8 }]}>
-							{user.bio as string}
-						</Text>
-					) : null}
-
-					{/* Inline stats row */}
-					<View style={styles.inlineStatsRow}>
-						<InlineStat theme={theme} icon="star" color={theme.colors.warning} value={Number(stats.averageRating || 0).toFixed(2)} label={t('p2p.user.inline.rating')} />
-						<InlineStat theme={theme} icon="handshake" color={theme.colors.primary} value={stats.completedP2P || 0} label={t('p2p.user.inline.ops')} />
-						<InlineStat theme={theme} icon="calendar" color={theme.colors.secondaryText} value={formatJoinDate(user?.createdAt as string | undefined)} label={t('p2p.user.inline.since')} />
-					</View>
-
-					{/* Social links */}
-					{(domain?.website || domain?.twitter || domain?.instagram || domain?.telegram || domain?.whatsapp) ? (
-						<View style={styles.socialRow}>
-							{domain?.website && <SocialBtn theme={theme} icon="globe" url={domain.website} />}
-							{domain?.twitter && <SocialBtn theme={theme} icon="x-twitter" brand url={`https://x.com/${domain.twitter}`} />}
-							{domain?.instagram && <SocialBtn theme={theme} icon="instagram" brand url={`https://instagram.com/${domain.instagram}`} />}
-							{domain?.telegram && <SocialBtn theme={theme} icon="telegram" brand url={`https://t.me/${domain.telegram}`} />}
-							{domain?.whatsapp && <SocialBtn theme={theme} icon="whatsapp" brand url={`https://wa.me/${domain.whatsapp}`} />}
-						</View>
-					) : null}
-				</View>
-
-				{/* Stat cards */}
-				<View style={styles.cardsGrid}>
-					<StatCard
-						theme={theme}
-						textStyles={textStyles}
-						label={t('p2p.user.cards.operations')}
-						value={Number(stats.completedP2P || 0).toLocaleString(getDateLocale())}
-						icon="arrows-rotate"
-						color={theme.colors.primary}
-					/>
-					<GoldGateCard
-						theme={theme}
-						textStyles={textStyles}
-						unlocked={viewerGold}
-						label={t('p2p.user.cards.volume')}
-						message={t('p2p.user.cards.goldOnly')}
-						sublabel={t('p2p.user.cards.unlockMetrics')}
-						onPressLocked={() => navigation.navigate(ROUTES.GOLD_CHECK)}
-						unlockedCard={(
-							<StatCard
-								theme={theme}
-								textStyles={textStyles}
-								label={t('p2p.user.cards.volume')}
-								value={formatUSD(stats.totalVolume)}
-								sublabel={(stats.volume30d as number) > 0 ? t('p2p.user.cards.volume30d', { amount: formatUSD(stats.volume30d) }) : null}
-								icon="wallet"
-								color={theme.colors.gold}
-							/>
-						)}
-					/>
-					<StatCard
-						theme={theme}
-						textStyles={textStyles}
-						label={t('p2p.user.cards.completionRate')}
-						value={`${stats.completionRate || 0}%`}
-						sublabel={(stats.total as number) > 0 ? `${stats.completed}/${stats.total}` : t('p2p.user.cards.noOps')}
-						icon="circle-check"
-						color={theme.colors.successText}
-					/>
-					<StatCard
-						theme={theme}
-						textStyles={textStyles}
-						label={t('p2p.user.cards.ratings')}
-						value={Number(stats.ratersCount || 0).toLocaleString(getDateLocale())}
-						sublabel={(stats.averageRating as number) > 0 ? `★ ${stats.averageRating}` : t('p2p.user.cards.noData')}
-						icon="star"
-						color={theme.colors.warning}
-					/>
-				</View>
+				<PeerStatCards
+					theme={theme}
+					textStyles={textStyles}
+					stats={stats}
+					viewerGold={viewerGold}
+					onPressUnlock={() => navigation.navigate(ROUTES.GOLD_CHECK)}
+				/>
 
 				{/* Tabs */}
 				<View style={[styles.tabsRow, { borderBottomColor: theme.colors.border }]}>
@@ -390,6 +267,166 @@ const P2PUser = ({ navigation, route }: NativeStackScreenProps<RootStackParamLis
 }
 
 // ---------- Subcomponents ----------
+
+/**
+ * Insignias que acompañan al nombre (KYC, GOLD, VIP), en ese orden.
+ * Data-driven: añadir una insignia es una fila más, no otra rama.
+ */
+const NAME_BADGES = [
+	{ key: 'kyc', field: 'kyc', icon: 'circle-check', size: 16, tone: 'primary' },
+	{ key: 'gold', field: 'golden_check', icon: 'crown', size: 14, tone: 'gold' },
+	{ key: 'vip', field: 'vip', icon: 'gem', size: 14, tone: 'primary' },
+] as const
+
+const PeerNameBadges = ({ theme, user }: { theme: Theme, user?: PeerUser }) => (
+	<>
+		{NAME_BADGES.filter(badge => user?.[badge.field]).map(badge => (
+			<FontAwesome6 key={badge.key} name={badge.icon} size={badge.size} color={theme.colors[badge.tone]} iconStyle="solid" />
+		))}
+	</>
+)
+
+/**
+ * Chips de canal verificado. `telegram_verified`/`twitter` no están modelados en
+ * `P2PUser`: entran por el índice `unknown` del payload — los casts son solo de tipos.
+ */
+const VERIF_CHIPS = [
+	{ key: 'phone', field: 'phone_verified', icon: 'phone', labelKey: 'p2p.user.chips.phone' },
+	{ key: 'telegram', field: 'telegram_verified', icon: 'telegram', brand: true, label: 'Telegram' },
+	{ key: 'twitter', field: 'twitter', icon: 'x-twitter', brand: true, label: 'X' },
+] as const
+
+const PeerVerifChips = ({ theme, user }: { theme: Theme, user?: PeerUser }) => {
+
+	const { t } = useTranslation()
+
+	return (
+		<View style={styles.verifRow}>
+			{VERIF_CHIPS.filter(chip => user?.[chip.field]).map(chip => (
+				<VerifChip key={chip.key} theme={theme} icon={chip.icon} brand={'brand' in chip} label={'labelKey' in chip ? t(chip.labelKey) : chip.label} />
+			))}
+		</View>
+	)
+}
+
+/** Enlaces sociales del dominio verificado; sin ninguno, la fila no se pinta. */
+const SOCIAL_LINKS = [
+	{ key: 'website', field: 'website', icon: 'globe', href: (handle: string) => handle },
+	{ key: 'twitter', field: 'twitter', icon: 'x-twitter', brand: true, href: (handle: string) => `https://x.com/${handle}` },
+	{ key: 'instagram', field: 'instagram', icon: 'instagram', brand: true, href: (handle: string) => `https://instagram.com/${handle}` },
+	{ key: 'telegram', field: 'telegram', icon: 'telegram', brand: true, href: (handle: string) => `https://t.me/${handle}` },
+	{ key: 'whatsapp', field: 'whatsapp', icon: 'whatsapp', brand: true, href: (handle: string) => `https://wa.me/${handle}` },
+] as const
+
+const PeerSocialLinks = ({ theme, domain }: { theme: Theme, domain?: PeerDomain | null }) => {
+
+	const links = SOCIAL_LINKS.flatMap(link => {
+		const handle = domain?.[link.field]
+		return handle ? [{ ...link, url: link.href(handle) }] : []
+	})
+	if (links.length === 0) return null
+
+	return (
+		<View style={styles.socialRow}>
+			{links.map(link => <SocialBtn key={link.key} theme={theme} icon={link.icon} brand={'brand' in link} url={link.url} />)}
+		</View>
+	)
+}
+
+/**
+ * Identidad del trader: nombre con sus insignias, chips de verificación, bio, la fila de
+ * stats en línea y los enlaces sociales del dominio. Todo lo que hay entre la portada y
+ * las tarjetas de métricas.
+ */
+const PeerIdentity = ({ theme, textStyles, user, stats, domain }: { theme: Theme, textStyles: TextStyles, user?: PeerUser, stats: PeerStats, domain?: PeerDomain | null }) => {
+
+	const { t } = useTranslation()
+
+	return (
+		<View style={{ alignItems: "center", paddingHorizontal: 16, marginTop: 54 }}>
+			<View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+				<Text style={[textStyles.h3, { color: theme.colors.primaryText, fontWeight: "700" }]}>{displayName(user)}</Text>
+				<PeerNameBadges theme={theme} user={user} />
+			</View>
+			<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 2 }]}>@{user?.username}</Text>
+
+			<PeerVerifChips theme={theme} user={user} />
+
+			{user?.bio ? (
+				<Text style={[textStyles.body, { color: theme.colors.primaryText, textAlign: "center", marginTop: 12, paddingHorizontal: 8 }]}>
+					{user.bio as string}
+				</Text>
+			) : null}
+
+			{/* Inline stats row */}
+			<View style={styles.inlineStatsRow}>
+				<InlineStat theme={theme} icon="star" color={theme.colors.warning} value={Number(stats.averageRating || 0).toFixed(2)} label={t('p2p.user.inline.rating')} />
+				<InlineStat theme={theme} icon="handshake" color={theme.colors.primary} value={stats.completedP2P || 0} label={t('p2p.user.inline.ops')} />
+				<InlineStat theme={theme} icon="calendar" color={theme.colors.secondaryText} value={formatJoinDate(user?.createdAt as string | undefined)} label={t('p2p.user.inline.since')} />
+			</View>
+
+			<PeerSocialLinks theme={theme} domain={domain} />
+		</View>
+	)
+}
+
+/** Rejilla de cuatro métricas; el volumen va tras el muro GOLD. */
+const PeerStatCards = ({ theme, textStyles, stats, viewerGold, onPressUnlock }: { theme: Theme, textStyles: TextStyles, stats: PeerStats, viewerGold: boolean, onPressUnlock: () => void }) => {
+
+	const { t } = useTranslation()
+
+	return (
+		<View style={styles.cardsGrid}>
+		<StatCard
+			theme={theme}
+			textStyles={textStyles}
+			label={t('p2p.user.cards.operations')}
+			value={Number(stats.completedP2P || 0).toLocaleString(getDateLocale())}
+			icon="arrows-rotate"
+			color={theme.colors.primary}
+		/>
+		<GoldGateCard
+			theme={theme}
+			textStyles={textStyles}
+			unlocked={viewerGold}
+			label={t('p2p.user.cards.volume')}
+			message={t('p2p.user.cards.goldOnly')}
+			sublabel={t('p2p.user.cards.unlockMetrics')}
+			onPressLocked={onPressUnlock}
+			unlockedCard={(
+				<StatCard
+					theme={theme}
+					textStyles={textStyles}
+					label={t('p2p.user.cards.volume')}
+					value={formatUSD(stats.totalVolume)}
+					sublabel={(stats.volume30d as number) > 0 ? t('p2p.user.cards.volume30d', { amount: formatUSD(stats.volume30d) }) : null}
+					icon="wallet"
+					color={theme.colors.gold}
+				/>
+			)}
+		/>
+		<StatCard
+			theme={theme}
+			textStyles={textStyles}
+			label={t('p2p.user.cards.completionRate')}
+			value={`${stats.completionRate || 0}%`}
+			sublabel={(stats.total as number) > 0 ? `${stats.completed}/${stats.total}` : t('p2p.user.cards.noOps')}
+			icon="circle-check"
+			color={theme.colors.successText}
+		/>
+		<StatCard
+			theme={theme}
+			textStyles={textStyles}
+			label={t('p2p.user.cards.ratings')}
+			value={Number(stats.ratersCount || 0).toLocaleString(getDateLocale())}
+			sublabel={(stats.averageRating as number) > 0 ? `★ ${stats.averageRating}` : t('p2p.user.cards.noData')}
+			icon="star"
+			color={theme.colors.warning}
+		/>
+	</View>
+	)
+}
+
 
 // Floating back + share buttons overlaid on the cover (Scan-style top controls)
 const FloatingTopBar = ({ insets, theme: _theme, onBack, onShare }: { insets: EdgeInsets, theme: Theme, onBack: () => void, onShare?: () => void }) => (
