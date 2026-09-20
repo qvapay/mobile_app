@@ -45,6 +45,36 @@ describe('QPCodeInput', () => {
 		expect(focusedBoxes()).toContain(getBoxes(tree)[1].instance)
 	})
 
+	test('fast typing keeps every digit even if the parent has not re-rendered yet', async () => {
+		const onChangeCode = jest.fn()
+		const onFilled = jest.fn()
+		const tree = await render({ code: '', onChangeCode, onFilled })
+		const boxes = getBoxes(tree)
+		// El padre NO re-renderiza entre pulsaciones (es lo que pasa al teclear rápido):
+		// cada closure sigue viendo `code=''`, así que sin el espejo interno cada dígito
+		// pisaba al anterior y el PIN acababa corrido o incompleto
+		await act(async () => {
+			boxes[0].props.onChangeText('1')
+			boxes[1].props.onChangeText('2')
+			boxes[2].props.onChangeText('3')
+			boxes[3].props.onChangeText('4')
+		})
+		expect(onChangeCode).toHaveBeenLastCalledWith('1234')
+		expect(onFilled).toHaveBeenCalledWith('1234')
+	})
+
+	test('backspace reads the latest value, not the stale prop', async () => {
+		const onChangeCode = jest.fn()
+		const tree = await render({ code: '', onChangeCode })
+		const boxes = getBoxes(tree)
+		await act(async () => {
+			boxes[0].props.onChangeText('1')
+			boxes[1].props.onChangeText('2')
+			boxes[1].props.onKeyPress({ nativeEvent: { key: 'Backspace' } })
+		})
+		expect(onChangeCode).toHaveBeenLastCalledWith('1')
+	})
+
 	test('filters out non-numeric characters', async () => {
 		const onChangeCode = jest.fn()
 		const tree = await render({ code: '', onChangeCode })

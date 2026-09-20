@@ -157,7 +157,18 @@ describe('initializeAuth', () => {
 		expect(result.current.user).toEqual(cached)
 		expect(OneSignal.login).toHaveBeenCalledWith('u-123')
 		expect(updateWidgetBalance).toHaveBeenCalledWith(10, 'erich')
-		// finally hasn't run — still loading in the background
+		// The cached session releases the bootstrap right away — the profile refresh
+		// must not hold the splash (and the app-lock prompt) hostage to the network (#47)
+		expect(result.current.isLoading).toBe(false)
+	})
+
+	test('a stored token WITHOUT a cached user keeps loading until the profile refresh settles', async () => {
+		getAuthToken.mockResolvedValue('tok-1')
+		AsyncStorage.getItem.mockResolvedValue(null)
+		userApi.getUserProfile.mockReturnValue(new Promise(() => { })) // never resolves
+		const { result } = await renderHook()
+		expect(result.current.isAuthenticated).toBe(true)
+		expect(result.current.user).toBeNull()
 		expect(result.current.isLoading).toBe(true)
 	})
 

@@ -54,6 +54,18 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 	const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
 	const inputsRef = useRef<Array<TextInput | null>>([])
 
+	// El valor es controlado por el padre, pero un tecleo rápido dispara varios
+	// `onChangeText` ANTES de que ese padre re-renderice: la closure seguiría viendo
+	// el `code` viejo y cada dígito pisaría al anterior (se perdían dígitos y los
+	// que sobrevivían caían corridos de casilla). Este espejo se actualiza en el
+	// mismo tick en que se reporta, así que la pulsación siguiente parte del valor real.
+	const codeRef = useRef(code)
+	useEffect(() => { codeRef.current = code }, [code])
+
+	// Array SIN huecos y de longitud fija: `code.split('')` de un código a medias deja
+	// huecos que `join('')` colapsa, y el dígito terminaba en la casilla equivocada
+	const toChars = (value: string) => Array.from({ length }, (_, i) => value[i] || '')
+
 	useImperativeHandle(ref, () => ({
 		focus: (index = 0) => { inputsRef.current[index]?.focus() },
 	}), [])
@@ -64,10 +76,17 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 		return () => clearTimeout(timer)
 	}, [autoFocus])
 
+	// Emite el nuevo valor y deja el espejo al día en el MISMO tick
+	const emit = (next: string[]) => {
+		const joined = next.join('')
+		codeRef.current = joined
+		onChangeCode(joined)
+		return joined
+	}
+
 	// Report the updated code; fire onFilled exactly when the last empty box gets its digit
 	const report = (next: string[]) => {
-		const joined = next.join('')
-		onChangeCode(joined)
+		const joined = emit(next)
 		if (onFilled && joined.length === length) { onFilled(joined) }
 	}
 
@@ -78,7 +97,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 
 		if (numeric.length > 1) {
 			const digits = numeric.slice(0, length).split('')
-			const next = code.split('')
+			const next = toChars(codeRef.current)
 			digits.forEach((d, i) => { if (index + i < length) next[index + i] = d })
 			report(next)
 			const focusIdx = Math.min(index + digits.length, length - 1)
@@ -86,7 +105,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 			return
 		}
 
-		const next = code.split('')
+		const next = toChars(codeRef.current)
 		next[index] = numeric
 		report(next)
 		if (numeric && index < length - 1) { inputsRef.current[index + 1]?.focus() }
@@ -95,14 +114,15 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 	// Backspace clears the current digit, then steps back
 	const handleKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>, index: number) => {
 		if (e.nativeEvent.key === 'Backspace') {
-			if (code[index]) {
-				const next = code.split('')
+			const current = codeRef.current
+			if (current[index]) {
+				const next = toChars(current)
 				next[index] = ''
-				onChangeCode(next.join(''))
+				emit(next)
 			} else if (index > 0) {
-				const next = code.split('')
+				const next = toChars(current)
 				next[index - 1] = ''
-				onChangeCode(next.join(''))
+				emit(next)
 				inputsRef.current[index - 1]?.focus()
 			}
 		}
