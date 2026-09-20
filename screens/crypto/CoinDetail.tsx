@@ -36,6 +36,7 @@ import QPFitText from '../../ui/particles/QPFitText'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../types/navigation'
 import type { Theme } from '../../theme/ThemeContext'
+import type { TextStyles } from '../../theme/themeUtils'
 import type { EnrichedCoin } from '../../types/domain'
 import type { RawPricePoint } from '../../ui/charts/PriceChart'
 import type { ScrubPoint } from '../../ui/charts/PriceChartPro'
@@ -116,6 +117,190 @@ const StatRow = ({ label, value, theme, isLast }: { label: string, value: string
 	</View>
 )
 
+
+/**
+ * Historial del gráfico, enriquecimiento 24H y capacidades de la moneda.
+ *
+ * Tres fuentes se funden en un solo `coin`: el catálogo fresco (`/coins/v2`, comisiones y
+ * capacidades), la fila que llegó por navegación (precio y cambio ya enriquecidos) y, si
+ * esa fila no venía enriquecida, el 24H calculado del propio historial — que se congela la
+ * primera vez que hay datos para que el header no baile al cambiar de pill.
+ */
+const useCoinDetailData = ({ tick, initialData, initialCoin, timeframe }: { tick: string, initialData: unknown, initialCoin?: EnrichedCoin, timeframe: string }) => {
+
+	// Clave tick+timeframe, 1h de frescura — el endpoint tiene rate limit agresivo y el
+	// backend ya cachea 1h: tapear las pills no repite peticiones y el gráfico anterior
+	// queda como placeholder. Con initialData enriquecida, el 24H inicial ni va a la red
+	const historyQuery = useCoinHistoryQuery(tick, timeframe, {
+		enabled: timeframe !== '24H' || !initialCoin?.priceHistory?.length,
+	})
+	const priceHistory: { time?: string | number, value: number }[] = historyQuery.data || (timeframe === '24H' ? initialCoin?.priceHistory || [] : [])
+
+	// Capacidades/comisiones frescas del catálogo — la MISMA query del dashboard de
+	// Invest, así que venir desde allí es un acierto de caché
+	const coinsQuery = useCryptoCoinsQuery()
+
+	const [stats24, setStats24] = useState(() => statsFromHistory(initialCoin?.priceHistory))
+	useEffect(() => {
+		if (!stats24 && timeframe === '24H' && historyQuery.data) {
+			setStats24(statsFromHistory(historyQuery.data))
+		}
+	}, [stats24, timeframe, historyQuery.data])
+
+	const coin = useMemo(() => {
+		const fresh = coinsQuery.data?.find((c) => c.tick === tick) || null
+		const base = { ...(fresh || {}), ...((initialData as object | undefined) || {}) }
+		if (!(initialData as EnrichedCoin | undefined)?.priceHistory?.length && stats24) {
+			return { ...base, price: base.price || stats24.price, change: stats24.change, changeDollar: stats24.changeDollar }
+		}
+		return base
+	}, [coinsQuery.data, initialData, stats24, tick])
+
+	return {
+		priceHistory,
+		isLoading: !priceHistory.length && historyQuery.isFetching,
+		coin: coin as Partial<EnrichedCoin>,
+	}
+}
+
+/**
+ * Cabecera: logo, símbolo y precio grande. Durante el scrubbing PRO manda el punto bajo el
+ * dedo (precio y hora); si no, el precio live con su insignia de cambio 24H.
+ */
+const CoinHero = ({ tick, price, scrub, trendColor, isPositive, change, changeDollar, theme, textStyles }: { tick: string, price: number, scrub: ScrubPoint | null, trendColor: string, isPositive: boolean, change: number, changeDollar: number, theme: Theme, textStyles: TextStyles }) => {
+
+	const heroValue = Number(scrub ? scrub.value : price)
+	const heroPrice = formatPriceDigits(heroValue)
+	// Las monedas por debajo de $1 necesitan 4 decimales para no colapsar a 0.00
+	const heroFractionDigits = Math.abs(heroValue) >= 1 ? 2 : 4
+
+	return (
+		<View style={styles.headerSection}>
+			<QPCoin coin={tick} size={56} />
+			<Text style={[styles.symbolText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{tick}</Text>
+			{/* Sin precio aún no hay símbolo que pintar: el guion va solo */}
+			{heroPrice === '—' ? (
+				<QPFitText style={[textStyles.amount]}>{heroPrice}</QPFitText>
+			) : (
+				/* Durante el scrubbing el precio debe seguir al dedo AL
+				   INSTANTE: animar cada frame sería a la vez ilegible y
+				   caro, así que el rodillo solo entra al soltar o al
+				   cambiar de timeframe */
+				<QPBalance animated={!scrub} amount={heroValue} fractionDigits={heroFractionDigits} fontSize={theme.typography.fontSize.display} theme={theme} style={styles.heroPrice} />
+			)}
+			{scrub ? (
+				<View style={[styles.changeBadge, { backgroundColor: theme.colors.surface }]}>
+					<FontAwesome6 name="clock" size={11} color={theme.colors.secondaryText} iconStyle="solid" />
+					<Text style={[styles.changeBadgeText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
+						{formatScrubTime(scrub.time)}
+					</Text>
+				</View>
+			) : change !== 0 && (
+				<View style={[styles.changeBadge, { backgroundColor: trendColor + '18' }]}>
+					<FontAwesome6 name={isPositive ? 'caret-up' : 'caret-down'} size={11} color={trendColor} iconStyle="solid" />
+					<Text style={[styles.changeBadgeText, { color: trendColor, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
+						{isPositive ? '+' : ''}{changeDollar >= 1 || changeDollar <= -1 ? changeDollar.toFixed(2) : changeDollar.toFixed(4)} ({isPositive ? '+' : ''}{change.toFixed(2)}%)
+					</Text>
+				</View>
+			)}
+		</View>
+	)
+}
+
+/** Gráfico (PRO con scrubbing para GOLD, básico para el resto) y el upsell de abajo. */
+const CoinChart = ({ data, isGold, isLoading, trendColor, onScrub, onUpsell, theme }: { data: { time?: string | number, value: number }[], isGold: boolean, isLoading: boolean, trendColor: string, onScrub: (point: ScrubPoint | null) => void, onUpsell: () => void, theme: Theme }) => {
+
+	const { t } = useTranslation()
+	const hasChart = data.length > 1
+
+	return (
+		<>
+			<View style={styles.chartContainer}>
+				{hasChart ? (
+					isGold ? (
+						// Más alto que el básico: el eje de tiempo ocupa una franja abajo
+						<PriceChartPro data={data as RawPricePoint[]} trendColor={trendColor} onScrub={onScrub} height={230} />
+					) : (
+						<PriceChart data={data as RawPricePoint[]} trendColor={trendColor} height={200} />
+					)
+				) : (
+					<View style={[styles.chartPlaceholder, { height: 200 }]}>
+						{isLoading && <QPLoader />}
+					</View>
+				)}
+			</View>
+
+			{/* Upsell sutil del gráfico PRO (solo no-GOLD) */}
+			{!isGold && hasChart && (
+				<QPPressable variant="opacity" onPress={onUpsell} style={styles.proUpsell}>
+					<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />
+					<Text style={[styles.proUpsellText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
+						{t('crypto.coinDetail.goldUpsell')}
+					</Text>
+				</QPPressable>
+			)}
+		</>
+	)
+}
+
+/** Lo que hoy se puede hacer con la moneda: depositar y/o ir al mercado P2P. */
+const CoinActions = ({ coin, theme, onDeposit, onP2P }: { coin: Partial<EnrichedCoin>, theme: Theme, onDeposit: () => void, onP2P: () => void }) => {
+
+	const { t } = useTranslation()
+	// Sin dato del catálogo se asume habilitado (la fila de origen no trae capacidades)
+	const canDeposit = coin?.enabled_in === undefined || !!coin?.enabled_in
+	const canP2P = coin?.enabled_p2p === undefined || !!coin?.enabled_p2p
+
+	return (
+		<View style={styles.buttonRow}>
+			{canDeposit && (
+				<QPButton
+					title={t('crypto.common.deposit')}
+					icon="arrow-down"
+					style={styles.actionButton}
+					onPress={onDeposit}
+				/>
+			)}
+			{canP2P && (
+				<QPButton
+					title={t('crypto.common.p2pMarket')}
+					icon="scale-balanced"
+					style={[styles.actionButton, { backgroundColor: theme.colors.surface }]}
+					textStyle={{ color: theme.colors.primaryText }}
+					iconColor={theme.colors.primaryText}
+					// CoinDetail vive en el stack raíz y P2P es un tab DENTRO de
+					// MainStack — sin la forma anidada el navigate no lo resuelve
+					// ningún navigator (desde Invest funciona porque son tabs hermanos)
+					onPress={onP2P}
+				/>
+			)}
+		</View>
+	)
+}
+
+/** Máx/mín del periodo visible y capacidades/comisiones de la moneda. */
+const CoinStatsCard = ({ coin, timeframe, priceHistory, theme }: { coin: Partial<EnrichedCoin>, timeframe: string, priceHistory: { value: number }[], theme: Theme }) => {
+
+	const { t } = useTranslation()
+	const values = priceHistory.map((p) => Number(p.value)).filter(Boolean)
+	const periodHigh = values.length ? Math.max(...values) : 0
+	const periodLow = values.length ? Math.min(...values) : 0
+	const availability = (enabled?: unknown) => enabled ? t('crypto.coinDetail.available') : t('crypto.coinDetail.notAvailable')
+
+	return (
+		<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
+			<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('crypto.common.statistics')}</Text>
+			<StatRow label={t('crypto.coinDetail.periodHigh', { timeframe: t(`crypto.timeframes.${timeframe}`) })} value={formatPrice(periodHigh)} theme={theme} />
+			<StatRow label={t('crypto.coinDetail.periodLow', { timeframe: t(`crypto.timeframes.${timeframe}`) })} value={formatPrice(periodLow)} theme={theme} />
+			{coin?.fee_in != null && <StatRow label={t('crypto.coinDetail.depositFee')} value={`${Number(coin.fee_in)}%`} theme={theme} />}
+			{coin?.fee_out != null && <StatRow label={t('crypto.coinDetail.withdrawFee')} value={`${Number(coin.fee_out)}%`} theme={theme} />}
+			<StatRow label={t('crypto.coinDetail.deposits')} value={availability(coin?.enabled_in)} theme={theme} />
+			<StatRow label={t('crypto.coinDetail.withdrawals')} value={availability(coin?.enabled_out)} theme={theme} />
+			<StatRow label="P2P" value={availability(coin?.enabled_p2p)} theme={theme} isLast />
+		</View>
+	)
+}
+
 // --- Main Component ---
 
 /**
@@ -148,41 +333,8 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 
 	const [timeframe, setTimeframe] = useState('24H')
 
-	// Historial en React Query (clave tick+timeframe, 1h de frescura — el
-	// endpoint tiene rate limit agresivo y el backend ya cachea 1h): tapear las
-	// pills no repite peticiones y el gráfico anterior queda como placeholder.
-	// Con initialData enriquecida, el 24H inicial ni siquiera va a la red
-	const historyQuery = useCoinHistoryQuery(tick, timeframe, {
-		enabled: timeframe !== '24H' || !initialCoin?.priceHistory?.length,
-	})
-	const priceHistory: { time?: string | number, value: number }[] = historyQuery.data || (timeframe === '24H' ? initialCoin?.priceHistory || [] : [])
-	const isLoading = !priceHistory.length && historyQuery.isFetching
+	const { priceHistory, isLoading, coin } = useCoinDetailData({ tick, initialData, initialCoin, timeframe })
 
-	// Capacidades/comisiones frescas del catálogo — la MISMA query del
-	// dashboard de Invest, así que venir desde allí es un acierto de caché
-	const coinsQuery = useCryptoCoinsQuery()
-
-	// Enriquecimiento 24H para el header cuando la fila no venía enriquecida:
-	// se congela la primera vez que hay historial 24H disponible
-	const [stats24, setStats24] = useState(() => statsFromHistory(initialCoin?.priceHistory))
-	useEffect(() => {
-		if (!stats24 && timeframe === '24H' && historyQuery.data) {
-			setStats24(statsFromHistory(historyQuery.data))
-		}
-	}, [stats24, timeframe, historyQuery.data])
-
-	// fresh aporta capacidades/comisiones; initialData y el 24H calculado
-	// conservan el precio/cambio ya enriquecidos (misma precedencia que antes)
-	const coin = useMemo(() => {
-		const fresh = coinsQuery.data?.find((c) => c.tick === tick) || null
-		const base = { ...(fresh || {}), ...(initialData || {}) }
-		// Se lee `initialData` (y no el alias `initialCoin`) para que las deps del
-		// memo sigan siendo exactamente las de antes
-		if (!(initialData as EnrichedCoin | undefined)?.priceHistory?.length && stats24) {
-			return { ...base, price: base.price || stats24.price, change: stats24.change, changeDollar: stats24.changeDollar }
-		}
-		return base
-	}, [coinsQuery.data, initialData, stats24, tick])
 	// Punto bajo el dedo durante el scrubbing PRO — el header muestra su
 	// precio/fecha en vez del precio live (estilo Robinhood)
 	const [scrub, setScrub] = useState<ScrubPoint | null>(null)
@@ -193,22 +345,8 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 	const changeDollar = Number(coin?.changeDollar || 0)
 	const isPositive = change >= 0
 	const trendColor = isPositive ? theme.colors.successText : theme.colors.danger
-	// Cifras del héroe (el punto bajo el dedo manda durante el scrubbing)
-	const heroValue = Number(scrub ? scrub.value : price)
-	const heroPrice = formatPriceDigits(heroValue)
-	// Las monedas por debajo de $1 necesitan 4 decimales para no colapsar a 0.00
-	const heroFractionDigits = Math.abs(heroValue) >= 1 ? 2 : 4
-
 	// Cambiar de timeframe es cambiar de query; el header no cambia
 	const handleTimeframeChange = useCallback((tf: string) => { setTimeframe(tf) }, [])
-
-	// Máx/mín del periodo visible
-	const values = priceHistory.map((p) => Number(p.value)).filter(Boolean)
-	const periodHigh = values.length ? Math.max(...values) : 0
-	const periodLow = values.length ? Math.min(...values) : 0
-
-	const canDeposit = coin?.enabled_in === undefined || !!coin?.enabled_in
-	const canP2P = coin?.enabled_p2p === undefined || !!coin?.enabled_p2p
 
 	return (
 		// Sin padding horizontal en el layout raíz: el ScrollView clipea a sus
@@ -217,62 +355,9 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 		<View style={[containerStyles.subContainer, styles.noHPad]}>
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-				{/* Header: Coin + Price (durante el scrubbing PRO muestra el punto activo) */}
-				<View style={styles.headerSection}>
-					<QPCoin coin={tick} size={56} />
-					<Text style={[styles.symbolText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{tick}</Text>
-					{/* Sin precio aún no hay símbolo que pintar: el guion va solo */}
-					{heroPrice === '—' ? (
-						<QPFitText style={[textStyles.amount]}>{heroPrice}</QPFitText>
-					) : (
-						/* Durante el scrubbing el precio debe seguir al dedo AL
-						   INSTANTE: animar cada frame sería a la vez ilegible y
-						   caro, así que el rodillo solo entra al soltar o al
-						   cambiar de timeframe */
-						<QPBalance animated={!scrub} amount={heroValue} fractionDigits={heroFractionDigits} fontSize={theme.typography.fontSize.display} theme={theme} style={styles.heroPrice} />
-					)}
-					{scrub ? (
-						<View style={[styles.changeBadge, { backgroundColor: theme.colors.surface }]}>
-							<FontAwesome6 name="clock" size={11} color={theme.colors.secondaryText} iconStyle="solid" />
-							<Text style={[styles.changeBadgeText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>
-								{formatScrubTime(scrub.time)}
-							</Text>
-						</View>
-					) : change !== 0 && (
-						<View style={[styles.changeBadge, { backgroundColor: trendColor + '18' }]}>
-							<FontAwesome6 name={isPositive ? 'caret-up' : 'caret-down'} size={11} color={trendColor} iconStyle="solid" />
-							<Text style={[styles.changeBadgeText, { color: trendColor, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }]}>
-								{isPositive ? '+' : ''}{changeDollar >= 1 || changeDollar <= -1 ? changeDollar.toFixed(2) : changeDollar.toFixed(4)} ({isPositive ? '+' : ''}{change.toFixed(2)}%)
-							</Text>
-						</View>
-					)}
-				</View>
+				<CoinHero tick={tick} price={price} scrub={scrub} trendColor={trendColor} isPositive={isPositive} change={change} changeDollar={changeDollar} theme={theme} textStyles={textStyles} />
 
-				{/* Chart — básico para todos, PRO con scrubbing para GOLD */}
-				<View style={styles.chartContainer}>
-					{priceHistory.length > 1 ? (
-						isGold ? (
-							// Más alto que el básico: el eje de tiempo ocupa una franja abajo
-							<PriceChartPro data={priceHistory as RawPricePoint[]} trendColor={trendColor} onScrub={setScrub} height={230} />
-						) : (
-							<PriceChart data={priceHistory as RawPricePoint[]} trendColor={trendColor} height={200} />
-						)
-					) : (
-						<View style={[styles.chartPlaceholder, { height: 200 }]}>
-							{isLoading && <QPLoader />}
-						</View>
-					)}
-				</View>
-
-				{/* Upsell sutil del gráfico PRO (solo no-GOLD) */}
-				{!isGold && priceHistory.length > 1 && (
-					<QPPressable variant="opacity" onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)} style={styles.proUpsell}>
-						<FontAwesome6 name="crown" size={12} color={theme.colors.gold} iconStyle="solid" />
-						<Text style={[styles.proUpsellText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
-							{t('crypto.coinDetail.goldUpsell')}
-						</Text>
-					</QPPressable>
-				)}
+				<CoinChart data={priceHistory} isGold={isGold} isLoading={isLoading} trendColor={trendColor} onScrub={setScrub} onUpsell={() => navigation.navigate(ROUTES.GOLD_CHECK)} theme={theme} />
 
 				{/* Timeframe Pills */}
 				<View style={styles.pillRow}>
@@ -287,45 +372,17 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 					))}
 				</View>
 
-				{/* CTAs: lo que hoy se puede hacer con la moneda en QvaPay */}
-				<View style={styles.buttonRow}>
-					{canDeposit && (
-						<QPButton
-							title={t('crypto.common.deposit')}
-							icon="arrow-down"
-							style={styles.actionButton}
-							onPress={() => navigation.navigate(ROUTES.ADD)}
-						/>
-					)}
-					{canP2P && (
-						<QPButton
-							title={t('crypto.common.p2pMarket')}
-							icon="scale-balanced"
-							style={[styles.actionButton, { backgroundColor: theme.colors.surface }]}
-							textStyle={{ color: theme.colors.primaryText }}
-							iconColor={theme.colors.primaryText}
-							// CoinDetail vive en el stack raíz y P2P es un tab DENTRO de
-							// MainStack — sin la forma anidada el navigate no lo resuelve
-							// ningún navigator (desde Invest funciona porque son tabs hermanos)
-							onPress={() => navigation.navigate(ROUTES.MAIN_STACK, {
-								screen: ROUTES.P2P_SCREEN,
-								params: { coin: tick, coinName: name || coin?.name },
-							})}
-						/>
-					)}
-				</View>
+				<CoinActions
+					coin={coin}
+					theme={theme}
+					onDeposit={() => navigation.navigate(ROUTES.ADD)}
+					onP2P={() => navigation.navigate(ROUTES.MAIN_STACK, {
+						screen: ROUTES.P2P_SCREEN,
+						params: { coin: tick, coinName: name || coin?.name },
+					})}
+				/>
 
-				{/* Estadísticas del periodo + capacidades */}
-				<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
-					<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('crypto.common.statistics')}</Text>
-					<StatRow label={t('crypto.coinDetail.periodHigh', { timeframe: t(`crypto.timeframes.${timeframe}`) })} value={formatPrice(periodHigh)} theme={theme} />
-					<StatRow label={t('crypto.coinDetail.periodLow', { timeframe: t(`crypto.timeframes.${timeframe}`) })} value={formatPrice(periodLow)} theme={theme} />
-					{coin?.fee_in != null && <StatRow label={t('crypto.coinDetail.depositFee')} value={`${Number(coin.fee_in)}%`} theme={theme} />}
-					{coin?.fee_out != null && <StatRow label={t('crypto.coinDetail.withdrawFee')} value={`${Number(coin.fee_out)}%`} theme={theme} />}
-					<StatRow label={t('crypto.coinDetail.deposits')} value={coin?.enabled_in ? t('crypto.coinDetail.available') : t('crypto.coinDetail.notAvailable')} theme={theme} />
-					<StatRow label={t('crypto.coinDetail.withdrawals')} value={coin?.enabled_out ? t('crypto.coinDetail.available') : t('crypto.coinDetail.notAvailable')} theme={theme} />
-					<StatRow label="P2P" value={coin?.enabled_p2p ? t('crypto.coinDetail.available') : t('crypto.coinDetail.notAvailable')} theme={theme} isLast />
-				</View>
+				<CoinStatsCard coin={coin} timeframe={timeframe} priceHistory={priceHistory} theme={theme} />
 
 				{/* Spot: teaser de futuro */}
 				<View style={[styles.card, styles.spotTeaser, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
