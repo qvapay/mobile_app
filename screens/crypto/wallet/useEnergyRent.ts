@@ -190,7 +190,8 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 	useEffect(() => {
 		if (phase !== 'done' && phase !== 'failed' && phase !== 'slow') { return }
 		if (phase !== 'failed' || state.charged === false) { clearPendingOrder() }
-		if (phase !== 'done' || !order || notifiedRef.current === order.uuid) { return }
+		if ((phase !== 'done' && phase !== 'slow') || !order || notifiedRef.current === order.uuid) { return }
+		if (phase === 'slow' && !state.charged) { return }
 		notifiedRef.current = order.uuid
 		queryClient.invalidateQueries({ queryKey: WALLET_TRON_RESOURCES_KEY })
 		onRentedRef.current?.(order)

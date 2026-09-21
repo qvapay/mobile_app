@@ -157,11 +157,13 @@ export const rentReducer = (state: RentState, event: RentEvent): RentState => {
 			}
 		}
 
-		case 'quoting':
-			return { ...state, phase: 'quoting', errorCode: null, errorMessage: null }
+	case 'quoting':
+		if (IN_FLIGHT.includes(state.phase) || state.phase === 'done' || state.phase === 'slow') { return state }
+		return { ...state, phase: 'quoting', errorCode: null, errorMessage: null }
 
-		case 'quoted':
-			return { ...state, phase: 'confirming', quote: event.quote }
+	case 'quoted':
+		if (IN_FLIGHT.includes(state.phase) || state.phase === 'done' || state.phase === 'slow') { return state }
+		return { ...state, phase: 'confirming', quote: event.quote }
 
 		case 'confirm':
 			// Doble tap: si ya hay dinero en vuelo, el segundo toque no existe
@@ -200,25 +202,26 @@ export const rentReducer = (state: RentState, event: RentEvent): RentState => {
 			return { ...state, phase: 'slow' }
 		}
 
-		case 'failed': {
-			const quoteExpiredStreak = event.code === 'QUOTE_EXPIRED' ? state.quoteExpiredStreak + 1 : 0
-			const keep = shouldKeepKeyOnFailure({ code: event.code, http: event.http, quoteExpiredStreak })
-			// El 502 devolvió el saldo: reintentar es una orden NUEVA, no la misma
-			const charged = event.code === 'DELIVERY_FAILED' ? false : state.charged
-			return {
-				...state,
-				phase: 'failed',
-				errorCode: event.code,
-				errorMessage: event.message,
-				charged,
-				key: keep ? state.key : makeIdempotencyKey(),
-				keyParams: keep ? state.keyParams : paramsKeyOf(state.params),
-				quote: event.code === 'QUOTE_EXPIRED' ? null : state.quote,
-				quoteExpiredStreak,
-				polls: 0,
-				pollingSince: null,
-			}
+	case 'failed': {
+		if (IN_FLIGHT.includes(state.phase) || state.phase === 'done' || state.phase === 'slow') { return state }
+		const quoteExpiredStreak = event.code === 'QUOTE_EXPIRED' ? state.quoteExpiredStreak + 1 : 0
+		const keep = shouldKeepKeyOnFailure({ code: event.code, http: event.http, quoteExpiredStreak })
+		// El 502 devolvió el saldo: reintentar es una orden NUEVA, no la misma
+		const charged = event.code === 'DELIVERY_FAILED' ? false : state.charged
+		return {
+			...state,
+			phase: 'failed',
+			errorCode: event.code,
+			errorMessage: event.message,
+			charged,
+			key: keep ? state.key : makeIdempotencyKey(),
+			keyParams: keep ? state.keyParams : paramsKeyOf(state.params),
+			quote: event.code === 'QUOTE_EXPIRED' ? null : state.quote,
+			quoteExpiredStreak,
+			polls: 0,
+			pollingSince: null,
 		}
+	}
 
 		case 'reset':
 			return initialRentState(state.params)
