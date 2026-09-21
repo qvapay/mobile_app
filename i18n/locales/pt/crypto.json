@@ -284,6 +284,18 @@
 				"cta": "Alugar energia",
 				"waiting": "Confirmando a delegação na rede…",
 				"waitingSlow": "A energia já é sua, mas a rede demora um pouco para refletir. Tente de novo em um minuto."
+			},
+			"gasless": {
+				"free": "Grátis · a QvaPay paga",
+				"remaining_one": "Resta {{count}} envio grátis hoje",
+				"remaining_other": "Restam {{count}} envios grátis hoje",
+				"exhausted": "Você já usou seu envio grátis de hoje. Renova às {{time}}.",
+				"goldHook": "Com GOLD, seus envios de USDT e USDC na Solana são grátis.",
+				"goldCta": "Seja GOLD",
+				"sending": "Enviando sem taxa…",
+				"pending": "Enviado. Estamos confirmando na rede.",
+				"walletNotRegistered": "Abra sua carteira para registrá-la e enviar grátis.",
+				"failed": "Não foi possível concluir o envio grátis. Você pode tentar pagando a taxa."
 			}
 		},
 		"settings": {

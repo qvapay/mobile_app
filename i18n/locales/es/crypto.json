@@ -284,6 +284,18 @@
 				"cta": "Alquilar energía",
 				"waiting": "Confirmando la delegación en la red…",
 				"waitingSlow": "La energía ya es tuya, pero la red tarda un poco en reflejarla. Reintenta en un minuto."
+			},
+			"gasless": {
+				"free": "Gratis · la paga QvaPay",
+				"remaining_one": "Te queda {{count}} envío gratis hoy",
+				"remaining_other": "Te quedan {{count}} envíos gratis hoy",
+				"exhausted": "Ya usaste tu envío gratis de hoy. Se renueva a las {{time}}.",
+				"goldHook": "Con GOLD, tus envíos de USDT y USDC en Solana son gratis.",
+				"goldCta": "Hazte GOLD",
+				"sending": "Enviando sin comisión…",
+				"pending": "Enviado. Lo estamos confirmando en la red.",
+				"walletNotRegistered": "Abre tu wallet para registrarla y poder enviar gratis.",
+				"failed": "No pudimos completar el envío gratis. Puedes intentarlo pagando la comisión."
 			}
 		},
 		"settings": {

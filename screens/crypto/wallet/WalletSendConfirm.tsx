@@ -26,6 +26,8 @@ import { useAuth } from '../../../auth/AuthContext'
 import type { FeeTier, PreparedSend } from './walletSendActions'
 import { parseUnitsSafe, sendFeeState } from './sendConfirmModel'
 import useWalletSendTx from './useWalletSendTx'
+import useGaslessSend from './useGaslessSend'
+import type { GaslessState } from './useGaslessSend'
 import type { SendPhase } from './useWalletSendTx'
 import { formatUsd, shortAddress } from './walletFormat'
 
@@ -82,7 +84,11 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
 	}, [navigation, assetId, amount, to])
 
-	const tx = useWalletSendTx({ asset, chain, addresses, to, amount, assetId, onSent, describeError: describe })
+	// Patrocinio: en Solana QvaPay puede pagar el fee de un GOLD. Si hay permiso, la tx
+	// se construye con su pagador y la difunde el backend; si no, envío normal.
+	const gasless = useGaslessSend({ asset, to, amount: asset ? parseUnitsSafe(amount, asset.decimals).toString() : '' })
+
+	const tx = useWalletSendTx({ asset, chain, addresses, to, amount, assetId, onSent, describeError: describe, sponsor: gasless.bridge })
 	const { phase, prepared, error, feeTier, busy } = tx
 
 	// Cuánto exige la red y si el nativo alcanza para pagarlo
@@ -112,6 +118,10 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		return <View style={[containerStyles.subContainer, styles.center]}><ActivityIndicator color={theme.colors.primary} /></View>
 	}
 
+	// Lo decide la tx CONSTRUIDA, no el permiso: si el patrocinio se cayó entre pedirlo
+	// y preparar, la pantalla tiene que volver a enseñar la comisión de verdad
+	const sponsored = prepared?.kind === 'solana' && prepared.inner.sponsored
+
 	const nativeDecimals = chain.native.decimals
 	const nativeSymbol = chain.native.symbol
 	// Lo que se muestra sale de la tx CONSTRUIDA, no del formulario
@@ -132,6 +142,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 			</View>
 
 			<SendSummaryCard
+				sponsored={sponsored}
 				theme={theme}
 				to={to}
 				from={addresses ? addressForKind(addresses, asset.kind) : ''}
@@ -158,6 +169,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				nativeSymbol={nativeSymbol}
 				error={phase === 'error' ? error : null}
 			/>
+
+			<GaslessNotice state={gasless.state} sponsored={sponsored} theme={theme} onGold={() => navigation.navigate(ROUTES.GOLD_CHECK)} />
 
 			<EnergyNotice
 				theme={theme}
@@ -221,13 +234,17 @@ const CONFIRM_LABEL: Partial<Record<SendPhase, string>> = {
  * Tarjeta de resumen: destino, origen, comisión (con sus niveles si la red los ofrece),
  * techo autorizado cuando lo hay y total a debitar.
  */
-const SendSummaryCard = ({ theme, to, from, phase, prepared, feeEstimated, feeMax, feeTier, onPickTier, busy, fee, total }: {
+const SendSummaryCard = ({ theme, to, from, phase, prepared, feeEstimated, feeMax, feeTier, onPickTier, busy, fee, total, sponsored }: {
 	theme: Theme, to: string, from: string, phase: SendPhase, prepared: PreparedSend | null, feeEstimated: bigint,
-	feeMax: bigint | null, feeTier: FeeTier, onPickTier: (tier: FeeTier) => void, busy: boolean, fee: (value: bigint) => string, total: string
+	feeMax: bigint | null, feeTier: FeeTier, onPickTier: (tier: FeeTier) => void, busy: boolean, fee: (value: bigint) => string, total: string,
+	/** La paga QvaPay: no es que la red no cobre, es que no la paga el usuario. */
+	sponsored: boolean
 }) => {
 
 	const { t } = useTranslation()
-	const networkFee = phase === 'preparing' ? '…' : feeEstimated === 0n ? t('crypto.wallet.send.feeFree') : fee(feeEstimated)
+	const networkFee = phase === 'preparing' ? '…'
+		: sponsored ? t('crypto.wallet.send.gasless.free')
+			: feeEstimated === 0n ? t('crypto.wallet.send.feeFree') : fee(feeEstimated)
 	// El techo solo se muestra cuando de verdad difiere de lo estimado (EVM)
 	const showFeeLimit = feeMax !== null && feeMax > feeEstimated
 
@@ -311,6 +328,49 @@ const SendNotices = ({ theme, prepared, symbol, fee, feeEstimated, insufficientN
 			)}
 		</>
 	)
+}
+
+/**
+ * El patrocinio de Solana, contado al usuario.
+ *
+ * Tres estados que merecen decirse y uno que no: cuando hay permiso se recuerda cuántos
+ * envíos gratis le quedan; cuando no es GOLD se le enseña lo que se está perdiendo;
+ * cuando agotó la cuota se le dice a qué hora vuelve. Un `disabled` —el producto apagado
+ * o el backend caído— se calla: no hay nada que el usuario pueda hacer al respecto.
+ */
+const GaslessNotice = ({ state, sponsored, theme, onGold }: { state: GaslessState, sponsored: boolean, theme: Theme, onGold: () => void }) => {
+
+	const { t } = useTranslation()
+
+	if (state.phase === 'pending') {
+		return <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.gasless.pending')} />
+	}
+
+	if (sponsored && state.remainingToday !== null) {
+		return (
+			<Notice
+				theme={theme}
+				icon="circle-info"
+				color={theme.colors.successText}
+				text={t('crypto.wallet.send.gasless.remaining', { count: state.remainingToday })}
+			/>
+		)
+	}
+
+	if (state.phase !== 'ineligible') { return null }
+
+	if (state.reason === 'not_gold') {
+		return <Notice theme={theme} icon="circle-info" color={theme.colors.gold} text={t('crypto.wallet.send.gasless.goldHook')} action={t('crypto.wallet.send.gasless.goldCta')} onPress={onGold} />
+	}
+	if (state.reason === 'quota_exhausted') {
+		const time = state.renewsAt ? new Date(state.renewsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '00:00'
+		return <Notice theme={theme} icon="circle-info" color={theme.colors.secondaryText} text={t('crypto.wallet.send.gasless.exhausted', { time })} />
+	}
+	if (state.reason === 'wallet_not_registered') {
+		return <Notice theme={theme} icon="circle-info" color={theme.colors.secondaryText} text={t('crypto.wallet.send.gasless.walletNotRegistered')} />
+	}
+	// `disabled`: no hay nada que contar ni nada que el usuario pueda hacer
+	return null
 }
 
 /**
