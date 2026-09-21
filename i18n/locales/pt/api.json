@@ -115,5 +115,11 @@
 	"swap": {
 		"createFailed": "Não foi possível criar o swap",
 		"cancelFailed": "Não foi possível cancelar o swap"
+	},
+	"energy": {
+		"pricesFailed": "Não foi possível obter os preços da energia",
+		"quoteFailed": "Não foi possível cotar a energia",
+		"rentFailed": "Não foi possível alugar a energia",
+		"ordersFailed": "Não foi possível obter seus pedidos de energia"
 	}
 }

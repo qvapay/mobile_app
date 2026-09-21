@@ -27,7 +27,9 @@
 		"walletSendConfirm": "Confirmar envio",
 		"walletTxDetail": "Movimentação",
 		"walletSwap": "Swap",
-		"walletSwapStatus": "Status do swap"
+		"walletSwapStatus": "Status do swap",
+		"tronEnergy": "Energia TRON",
+		"energyOrders": "Compras de energia"
 	},
 	"tabs": {
 		"home": "Início",

@@ -25,6 +25,8 @@ import { fetchAllBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
 import { addressForKind, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
 import type { AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
+import { getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
+import type { TronResources } from '../../../wallet/tron/tx'
 import { applyNewerPages, applyOlderPage, HISTORY_SYNC_MAX_PAGES, overlapsCache } from '../../../wallet/historyMerge'
 import type { HistoryCache } from '../../../wallet/historyMerge'
 import { loadHistoryCache, saveHistoryCache } from './historyCache'
@@ -36,6 +38,7 @@ import useCoins from '../../../hooks/useCoins'
 
 export const WALLET_BALANCES_KEY = ['wallet', 'balances']
 export const WALLET_HISTORY_KEY = ['wallet', 'history']
+export const WALLET_TRON_RESOURCES_KEY = ['wallet', 'tron', 'resources']
 
 /** Frescura de saldos: un depósito entrante debe verse en < 60s con la pantalla abierta. */
 const BALANCES_STALE_MS = 30_000
@@ -51,6 +54,9 @@ const HISTORY_STALE_MS = 5 * 60_000
 
 /** Sin ancla (primera sincronización), páginas encadenadas hasta tener esto que mostrar. */
 const HISTORY_FIRST_SCREEN_ITEMS = 10
+
+/** Frescura de los recursos TRON: cortos, porque una delegación recién comprada debe verse ya. */
+const TRON_RESOURCES_STALE_MS = 15_000
 
 const NO_PREFS: AssetVisibility = {}
 
@@ -134,6 +140,37 @@ export const useWalletBalancesQuery = () => {
 	}, [balances, queryClient])
 
 	return query
+}
+
+/**
+ * Energía y ancho de banda de una cuenta TRON, leídos del nodo.
+ *
+ * Frescura corta y `noPersist` como todo lo on-chain, pero por una razón
+ * extra: una delegación de energía recién comprada tarda segundos en verse, y
+ * pintar el medidor viejo tras pagar parece que el dinero se perdió.
+ *
+ * OJO: esto es para la PANTALLA de recursos. La pantalla de confirmar envío
+ * lee los recursos de `prepared.inner.resources`, que salen del mismo nodo que
+ * construyó la transacción — mezclar las dos fuentes hace parpadear el aviso
+ * cuando los nodos van a alturas distintas.
+ */
+export const useTronResourcesQuery = (address: string | null | undefined) => {
+
+	const isFocused = useIsFocused()
+
+	return useQuery<TronResources>({
+		queryKey: [...WALLET_TRON_RESOURCES_KEY, address ?? ''],
+		queryFn: () => getAppRpcRouter().call(
+			'tron',
+			(rpc, signal) => getTronResources(rpc, address!, { signal }),
+			{ accept: TRON_TX_RPC },
+		),
+		enabled: !!address,
+		staleTime: TRON_RESOURCES_STALE_MS,
+		refetchInterval: isFocused ? TRON_RESOURCES_STALE_MS : false,
+		placeholderData: previous => previous,
+		meta: { noPersist: true },
+	})
 }
 
 /** Precio USD por tick del catálogo de QvaPay (misma query `['coins','all']` que el resto de la app). */

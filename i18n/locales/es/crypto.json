@@ -275,7 +275,16 @@
 				"slow": "Económico"
 			},
 			"feeEta": "~{{minutes}} min",
-			"createsTokenAccount": "El destinatario aún no tiene cuenta de {{symbol}} en Solana: esta transacción la crea ({{fee}}, incluido en la comisión)."
+			"createsTokenAccount": "El destinatario aún no tiene cuenta de {{symbol}} en Solana: esta transacción la crea ({{fee}}, incluido en la comisión).",
+			"energy": {
+				"unblocks": "Sin energía, esta transferencia quema {{burn}}. Alquilar {{volume}} de energía por 1 hora cuesta {{price}}.",
+				"unblocksNoPrice": "Sin energía, esta transferencia quema TRX. Alquilar {{volume}} de energía por 1 hora cuesta {{price}}.",
+				"cheaper": "Estás quemando {{burn}} en energía. Alquilarla cuesta {{price}}: te ahorras {{saved}}.",
+				"bandwidth": "Te faltan {{needed}} para el ancho de banda de esta transferencia. Alquilar energía no lo cubre.",
+				"cta": "Alquilar energía",
+				"waiting": "Confirmando la delegación en la red…",
+				"waitingSlow": "La energía ya es tuya, pero la red tarda un poco en reflejarla. Reintenta en un minuto."
+			}
 		},
 		"settings": {
 			"title": "Mi wallet",
@@ -407,6 +416,115 @@
 				"retry": "Reintentar",
 				"done": "Listo"
 			}
+		}
+	},
+	"energy": {
+		"title": "Energía TRON",
+		"resources": {
+			"energy": "Energía",
+			"bandwidth": "Ancho de banda",
+			"ofTotal": "de {{total}}",
+			"explainer": "La energía paga las transferencias de USDT en TRON; el ancho de banda, el tamaño de la transacción. Sin energía, cada envío quema TRX.",
+			"error": "No pudimos leer los recursos de tu cuenta",
+			"refresh": "Actualizar"
+		},
+		"buy": {
+			"title": "Alquilar energía",
+			"subtitle": "Se cobra de tu saldo QvaPay",
+			"unavailable": "El alquiler de energía no está disponible ahora mismo",
+			"amount": "Cuánta energía",
+			"custom": "Otra cantidad",
+			"customHint": "Entre {{min}} y {{max}}",
+			"customInvalid": "La cantidad debe estar entre {{min}} y {{max}}",
+			"duration": "Por cuánto tiempo",
+			"durationHint": "Para enviar ahora mismo, 1 hora sobra y es lo más barato",
+			"target": "Quién la recibe",
+			"targetSelf": "Mi wallet",
+			"targetOther": "Otra dirección",
+			"targetHint": "La energía se delega a la dirección que FIRMA el envío, no a la que recibe el dinero.",
+			"targetPlaceholder": "Dirección TRON (T…)",
+			"invalidAddress": "Esa dirección TRON no es válida",
+			"checkingAddress": "Comprobando la dirección…",
+			"inactiveAddress": "Esa dirección todavía no existe en TRON: tiene que recibir algo antes de poder recibir energía",
+			"price": "Precio",
+			"estimatedPrice": "≈ {{price}}",
+			"cta": "Alquilar",
+			"presets": {
+				"usdt_known": "Una transferencia de USDT",
+				"usdt_knownDetail": "La dirección de destino ya recibió USDT alguna vez",
+				"usdt_new": "Primera transferencia a esa dirección",
+				"usdt_newDetail": "Crear el hueco de su saldo consume el doble de energía"
+			},
+			"durations": {
+				"1h": "1 hora",
+				"1d": "1 día",
+				"3d": "3 días",
+				"7d": "7 días"
+			}
+		},
+		"confirm": {
+			"title": "Confirmar alquiler",
+			"volume": "Energía",
+			"duration": "Duración",
+			"target": "Dirección",
+			"price": "Precio",
+			"balanceAfter": "Saldo después",
+			"priceHeld": "Precio garantizado {{seconds}} s",
+			"quoting": "Calculando el precio…",
+			"cta": "Alquilar",
+			"renting": "Alquilando…",
+			"waiting": "Entregando la energía…",
+			"waitingHint": "El pago ya se hizo. La delegación llega en unos segundos.",
+			"done": "Energía delegada",
+			"doneHint": "{{volume}} de energía durante {{duration}}",
+			"slow": "Cobrada y en curso",
+			"slowHint": "La entrega está tardando más de lo normal. Aparecerá en tus compras de energía en cuanto cierre.",
+			"close": "Cerrar",
+			"cancel": "Cancelar",
+			"retry": "Reintentar",
+			"seeOrders": "Ver mis compras"
+		},
+		"errors": {
+			"INSUFFICIENT_BALANCE": "Tu saldo QvaPay no alcanza para este alquiler",
+			"LIMIT_EXCEEDED": "Superaste el límite diario de energía",
+			"LIMIT_EXCEEDED_KYC": "Superaste el límite diario de energía. Verifica tu identidad para subirlo.",
+			"ADDRESS_NOT_ACTIVATED": "Esa dirección todavía no existe en TRON: tiene que recibir algo antes de poder recibir energía",
+			"INVALID_ADDRESS": "Esa dirección TRON no es válida",
+			"INVALID_VOLUME": "Esa cantidad de energía no se puede alquilar",
+			"INVALID_DURATION": "Esa duración no está disponible",
+			"SANCTIONS_BLOCKED": "No es posible completar esta operación",
+			"QUOTE_EXPIRED": "El precio caducó. Te damos uno nuevo.",
+			"PRICE_ABOVE_MAX": "El precio subió por encima de lo que aceptaste. Inténtalo otra vez.",
+			"DELIVERY_FAILED": "No pudimos entregar la energía y te devolvimos el saldo",
+			"REFUNDED": "No se pudo entregar la energía y te devolvimos el saldo",
+			"PROVIDER_UNAVAILABLE": "El alquiler de energía no está disponible ahora mismo",
+			"RATE_LIMITED": "Demasiados intentos seguidos. Espera unos segundos.",
+			"generic": "No se pudo completar el alquiler"
+		},
+		"orders": {
+			"title": "Compras de energía",
+			"recent": "Últimas compras",
+			"seeAll": "Ver todas",
+			"empty": "Todavía no has alquilado energía",
+			"row": "{{volume}} · {{duration}}",
+			"target": "Dirección",
+			"price": "Precio",
+			"date": "Fecha",
+			"reason": "Motivo",
+			"explorer": "Ver en Tronscan",
+			"pendingBanner": "Tienes una compra de energía en curso",
+			"status": {
+				"pending": "Pendiente",
+				"dispatching": "Entregando",
+				"completed": "Entregada",
+				"refunded": "Reembolsada",
+				"needs_review": "En revisión"
+			}
+		},
+		"assetRow": {
+			"title": "Energía y ancho de banda",
+			"subtitle": "{{energy}} de energía disponible",
+			"subtitleEmpty": "Sin energía: los envíos de USDT queman TRX"
 		}
 	}
 }

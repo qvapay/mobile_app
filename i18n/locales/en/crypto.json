@@ -275,7 +275,16 @@
 				"slow": "Economy"
 			},
 			"feeEta": "~{{minutes}} min",
-			"createsTokenAccount": "The recipient has no {{symbol}} account on Solana yet: this transaction creates it ({{fee}}, included in the fee)."
+			"createsTokenAccount": "The recipient has no {{symbol}} account on Solana yet: this transaction creates it ({{fee}}, included in the fee).",
+			"energy": {
+				"unblocks": "With no energy, this transfer burns {{burn}}. Renting {{volume}} of energy for 1 hour costs {{price}}.",
+				"unblocksNoPrice": "With no energy, this transfer burns TRX. Renting {{volume}} of energy for 1 hour costs {{price}}.",
+				"cheaper": "You're burning {{burn}} on energy. Renting it costs {{price}}: you save {{saved}}.",
+				"bandwidth": "You're {{needed}} short for this transfer's bandwidth. Renting energy doesn't cover that.",
+				"cta": "Rent energy",
+				"waiting": "Confirming the delegation on the network…",
+				"waitingSlow": "The energy is already yours, but the network takes a moment to reflect it. Try again in a minute."
+			}
 		},
 		"settings": {
 			"title": "My wallet",
@@ -407,6 +416,115 @@
 				"retry": "Retry",
 				"done": "Done"
 			}
+		}
+	},
+	"energy": {
+		"title": "TRON energy",
+		"resources": {
+			"energy": "Energy",
+			"bandwidth": "Bandwidth",
+			"ofTotal": "of {{total}}",
+			"explainer": "Energy pays for USDT transfers on TRON; bandwidth pays for the size of the transaction. With no energy, every send burns TRX.",
+			"error": "We couldn't read your account resources",
+			"refresh": "Refresh"
+		},
+		"buy": {
+			"title": "Rent energy",
+			"subtitle": "Charged to your QvaPay balance",
+			"unavailable": "Energy rental isn't available right now",
+			"amount": "How much energy",
+			"custom": "Another amount",
+			"customHint": "Between {{min}} and {{max}}",
+			"customInvalid": "The amount must be between {{min}} and {{max}}",
+			"duration": "For how long",
+			"durationHint": "To send right now, 1 hour is plenty and it's the cheapest",
+			"target": "Who receives it",
+			"targetSelf": "My wallet",
+			"targetOther": "Another address",
+			"targetHint": "Energy is delegated to the address that SIGNS the transfer, not the one receiving the money.",
+			"targetPlaceholder": "TRON address (T…)",
+			"invalidAddress": "That TRON address isn't valid",
+			"checkingAddress": "Checking the address…",
+			"inactiveAddress": "That address doesn't exist on TRON yet: it has to receive something before it can receive energy",
+			"price": "Price",
+			"estimatedPrice": "≈ {{price}}",
+			"cta": "Rent",
+			"presets": {
+				"usdt_known": "One USDT transfer",
+				"usdt_knownDetail": "The destination address has received USDT before",
+				"usdt_new": "First transfer to that address",
+				"usdt_newDetail": "Creating the slot for its balance takes twice the energy"
+			},
+			"durations": {
+				"1h": "1 hour",
+				"1d": "1 day",
+				"3d": "3 days",
+				"7d": "7 days"
+			}
+		},
+		"confirm": {
+			"title": "Confirm rental",
+			"volume": "Energy",
+			"duration": "Duration",
+			"target": "Address",
+			"price": "Price",
+			"balanceAfter": "Balance after",
+			"priceHeld": "Price held for {{seconds}} s",
+			"quoting": "Getting the price…",
+			"cta": "Rent",
+			"renting": "Renting…",
+			"waiting": "Delivering the energy…",
+			"waitingHint": "You've already paid. The delegation lands in a few seconds.",
+			"done": "Energy delegated",
+			"doneHint": "{{volume}} of energy for {{duration}}",
+			"slow": "Charged and in progress",
+			"slowHint": "Delivery is taking longer than usual. It'll show up in your energy purchases as soon as it settles.",
+			"close": "Close",
+			"cancel": "Cancel",
+			"retry": "Try again",
+			"seeOrders": "See my purchases"
+		},
+		"errors": {
+			"INSUFFICIENT_BALANCE": "Your QvaPay balance doesn't cover this rental",
+			"LIMIT_EXCEEDED": "You've hit your daily energy limit",
+			"LIMIT_EXCEEDED_KYC": "You've hit your daily energy limit. Verify your identity to raise it.",
+			"ADDRESS_NOT_ACTIVATED": "That address doesn't exist on TRON yet: it has to receive something before it can receive energy",
+			"INVALID_ADDRESS": "That TRON address isn't valid",
+			"INVALID_VOLUME": "That amount of energy can't be rented",
+			"INVALID_DURATION": "That duration isn't available",
+			"SANCTIONS_BLOCKED": "We can't complete this operation",
+			"QUOTE_EXPIRED": "The price expired. Here's a fresh one.",
+			"PRICE_ABOVE_MAX": "The price rose above what you accepted. Try again.",
+			"DELIVERY_FAILED": "We couldn't deliver the energy and refunded your balance",
+			"REFUNDED": "The energy couldn't be delivered and your balance was refunded",
+			"PROVIDER_UNAVAILABLE": "Energy rental isn't available right now",
+			"RATE_LIMITED": "Too many attempts in a row. Wait a few seconds.",
+			"generic": "We couldn't complete the rental"
+		},
+		"orders": {
+			"title": "Energy purchases",
+			"recent": "Recent purchases",
+			"seeAll": "See all",
+			"empty": "You haven't rented energy yet",
+			"row": "{{volume}} · {{duration}}",
+			"target": "Address",
+			"price": "Price",
+			"date": "Date",
+			"reason": "Reason",
+			"explorer": "View on Tronscan",
+			"pendingBanner": "You have an energy purchase in progress",
+			"status": {
+				"pending": "Pending",
+				"dispatching": "Delivering",
+				"completed": "Delivered",
+				"refunded": "Refunded",
+				"needs_review": "Under review"
+			}
+		},
+		"assetRow": {
+			"title": "Energy and bandwidth",
+			"subtitle": "{{energy}} of energy available",
+			"subtitleEmpty": "No energy: USDT sends burn TRX"
 		}
 	}
 }
