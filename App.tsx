@@ -102,6 +102,8 @@ import WalletSendSuccess from './screens/crypto/wallet/WalletSendSuccess'
 import WalletTxDetail from './screens/crypto/wallet/WalletTxDetail'
 import WalletSwap from './screens/crypto/wallet/WalletSwap'
 import WalletSwapStatus from './screens/crypto/wallet/WalletSwapStatus'
+import WalletEnergy from './screens/crypto/wallet/WalletEnergy'
+import WalletEnergyOrders from './screens/crypto/wallet/WalletEnergyOrders'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -265,6 +267,8 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.WALLET_TX_DETAIL, component: WalletTxDetail, options: getHeaderOptions(t('navigation.headers.walletTxDetail')) },
 	{ name: ROUTES.WALLET_SWAP, component: WalletSwap, options: getHeaderOptions(t('navigation.headers.walletSwap')) },
 	{ name: ROUTES.WALLET_SWAP_STATUS, component: WalletSwapStatus, options: { ...getHeaderOptions(t('navigation.headers.walletSwapStatus')), gestureEnabled: false } },
+	{ name: ROUTES.WALLET_ENERGY, component: WalletEnergy, options: getHeaderOptions(t('navigation.headers.tronEnergy')) },
+	{ name: ROUTES.WALLET_ENERGY_ORDERS, component: WalletEnergyOrders, options: getHeaderOptions(t('navigation.headers.energyOrders')) },
 
 	// QR Scan Screen
 	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', headerShown: false } },

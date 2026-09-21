@@ -98,7 +98,7 @@ const Action = ({ icon, label, onPress, dimmed, theme }: ActionProps) => {
 	return (
 		<QPPressable onPress={onPress} style={[styles.action, { backgroundColor: theme.colors.elevation }]} accessibilityRole="button" accessibilityLabel={label}>
 			<FontAwesome6 name={icon} size={17} color={color} iconStyle="solid" />
-			<Text style={{ color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }}>{label}</Text>
+			<Text numberOfLines={1} style={{ color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }}>{label}</Text>
 		</QPPressable>
 	)
 }
@@ -143,6 +143,10 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const historyUnavailable = history.isError && allItems.length === 0
 
 	const { hasMore, isLoadingMore, loadMore } = history
+
+	// Energía y ancho de banda: solo tienen sentido en TRON, y ahí son la
+	// diferencia entre un envío de USDT gratis y uno que quema ~13 TRX
+	const isTron = asset?.kind === 'tron'
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -209,6 +213,14 @@ const WalletAsset = ({ navigation, route }: Props) => {
 						icon="arrows-rotate"
 						label={t('crypto.wallet.home.actions.swap')}
 						onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_SWAP, undefined) : navigation.navigate(ROUTES.WALLET_BACKUP))}
+					/>
+				)}
+				{isTron && (
+					<Action
+						theme={theme}
+						icon="bolt"
+						label={t('crypto.energy.resources.energy')}
+						onPress={() => navigation.navigate(ROUTES.WALLET_ENERGY, undefined)}
 					/>
 				)}
 				<Action theme={theme} icon="up-right-from-square" label={t('crypto.wallet.asset.explorer')} onPress={() => openUrl(address ? explorerAddressUrl(chain, address) : null)} />
