@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -11,30 +11,36 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
-import { addressForKind, nativeAssetId } from '../../../wallet/assets'
+import { addressForKind, assetPrice, nativeAssetId } from '../../../wallet/assets'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
-import { TronVerifyError } from '../../../wallet/tron/tx'
+import { computeTronBurnBreakdown, TronVerifyError } from '../../../wallet/tron/tx'
 import { EvmVerifyError } from '../../../wallet/evm/tx'
 import { StacksVerifyError } from '../../../wallet/stacks/tx'
 import { SolanaExpiredError, SolanaVerifyError } from '../../../wallet/solana/tx'
-import { useWalletAssets } from './walletQueries'
+import { usePriceMap, useWalletAssets } from './walletQueries'
+import { useEnergyPricesQuery, estimatePrice } from './energyQueries'
+import { rentVolumeFor, shouldOfferRental } from '../../../wallet/tron/energy'
+import type { RentalDecision } from '../../../wallet/tron/energy'
+import { useAuth } from '../../../auth/AuthContext'
 import type { FeeTier, PreparedSend } from './walletSendActions'
-import { sendFeeState } from './sendConfirmModel'
+import { parseUnitsSafe, sendFeeState } from './sendConfirmModel'
 import useWalletSendTx from './useWalletSendTx'
 import type { SendPhase } from './useWalletSendTx'
-import { shortAddress } from './walletFormat'
+import { formatUsd, shortAddress } from './walletFormat'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
 import AssetIcon from './components/AssetIcon'
 import WalletAuthModal from './components/WalletAuthModal'
+import EnergyRentModal from './components/EnergyRentModal'
 
 // Navigation
 import { ROUTES } from '../../../routes'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
+import type { EnergyPriceRow } from '../../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletSendConfirm'>
 
@@ -63,6 +69,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 
+	const { user } = useAuth()
 	const { addresses } = useWallet()
 	const registry = useEffectiveRegistry()
 	const { all } = useWalletAssets()
@@ -85,6 +92,19 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		nativeAmount: native?.amount,
 		nativeDecimals: chain?.native.decimals ?? 18,
 		amount,
+	})
+
+	// --- Energía TRON: ¿este envío quema TRX por no tener energía? ---
+	const prices = usePriceMap()
+	const energyPrices = useEnergyPricesQuery()
+	const [rentOpen, setRentOpen] = useState(false)
+	const energy = useEnergyOffer({
+		prepared,
+		nativeBalanceSun: parseUnitsSafe(native?.amount ?? '0', chain?.native.decimals ?? 6),
+		sentNativeSun: sentNative,
+		trxPriceUsd: native ? assetPrice(native, prices) : null,
+		qvapayBalanceUsd: Number(user?.balance || 0),
+		priceRows: energyPrices.data?.data,
 	})
 
 	if (!asset || !chain) {
@@ -138,6 +158,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				error={phase === 'error' ? error : null}
 			/>
 
+			<EnergyNotice
+				theme={theme}
+				decision={energy?.decision ?? null}
+				fee={fee}
+				phase={phase}
+				rented={tx.energyRented}
+				slow={tx.energySlow}
+				onRent={() => setRentOpen(true)}
+			/>
+
 			<Notice theme={theme} icon="shield-halved" color={theme.colors.secondaryText} text={t('crypto.wallet.send.irreversible')} />
 
 			<View style={styles.spacer} />
@@ -157,6 +187,20 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 			</View>
 
 			<WalletAuthModal visible={tx.authVisible} subtitle={authSubtitle} onClose={tx.closeAuth} onAuthorized={tx.onAuthorized} />
+
+			{!!energy && (
+				<EnergyRentModal
+					visible={rentOpen}
+					// SIEMPRE el remitente: la energía se delega a quien FIRMA, no a
+					// quien recibe el dinero. Pasar `to` aquí sería regalar la compra
+					targetAddress={prepared?.intent.from ?? ''}
+					volume={energy.volume}
+					duration="1h"
+					estimatedUsd={energy.rentPriceUsd}
+					onClose={() => setRentOpen(false)}
+					onRented={() => { setRentOpen(false); tx.onEnergyRented() }}
+				/>
+			)}
 		</ScrollView>
 	)
 }
@@ -165,6 +209,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 const CONFIRM_LABEL: Partial<Record<SendPhase, string>> = {
 	signing: 'crypto.wallet.send.signing',
 	broadcasting: 'crypto.wallet.send.broadcasting',
+	waitingEnergy: 'crypto.wallet.send.energy.waiting',
 }
 
 /**
@@ -263,10 +308,97 @@ const SendNotices = ({ theme, prepared, symbol, fee, feeEstimated, insufficientN
 	)
 }
 
-const Notice = ({ theme, icon, color, text }: { theme: Theme, icon: 'circle-info' | 'triangle-exclamation' | 'shield-halved', color: string, text: string }) => (
+/**
+ * Lo que costaría (o ahorraría) alquilar energía para ESTA transacción.
+ *
+ * Todo sale de `prepared.inner`: los recursos y los precios de red con los
+ * que el nodo construyó la tx. Mezclarlos con una consulta aparte haría
+ * parpadear el aviso cuando dos nodos van a alturas distintas.
+ */
+const useEnergyOffer = ({ prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd, qvapayBalanceUsd, priceRows }: {
+	prepared: PreparedSend | null
+	nativeBalanceSun: bigint
+	sentNativeSun: bigint
+	trxPriceUsd: number | null
+	qvapayBalanceUsd: number
+	priceRows: EnergyPriceRow[] | undefined
+}) => useMemo(() => {
+
+	if (prepared?.kind !== 'tron') { return null }
+	const breakdown = computeTronBurnBreakdown(prepared.inner.fee, prepared.inner.resources, prepared.inner.params)
+	const volume = rentVolumeFor(breakdown.energyShort)
+	// Para enviar ahora mismo, una hora sobra y es lo más barato
+	const rentPriceUsd = volume === null ? null : estimatePrice(priceRows, volume, '1h')
+	const decision = shouldOfferRental({ breakdown, nativeBalanceSun, sentNativeSun, qvapayBalanceUsd, trxPriceUsd, rentPriceUsd })
+	return { breakdown, volume: volume ?? 0, rentPriceUsd, decision }
+
+}, [prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd, qvapayBalanceUsd, priceRows])
+
+/**
+ * El aviso de energía de TRON, que es el único de la pantalla que propone
+ * hacer algo. Tres estados y en ese orden:
+ *
+ * 1. Esperando la delegación recién comprada (y su versión "la red va lenta").
+ * 2. Falta TRX para el ancho de banda: se avisa SIN ofrecer alquiler, porque
+ *    la energía no lo cubre y comprarla no desbloquearía el envío.
+ * 3. Merece la pena alquilar, porque desbloquea el envío o porque ahorra.
+ *
+ * Una vez comprada la energía para este envío, el aviso no vuelve a
+ * ofrecerla: el nodo puede tardar en verla y reofrecerla sería un doble cobro.
+ */
+const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, onRent }: {
+	theme: Theme, decision: RentalDecision | null, fee: (value: bigint) => string,
+	phase: SendPhase, rented: boolean, slow: boolean, onRent: () => void
+}) => {
+
+	const { t } = useTranslation()
+
+	if (phase === 'waitingEnergy') {
+		return <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t('crypto.wallet.send.energy.waiting')} />
+	}
+	if (slow) {
+		return <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t('crypto.wallet.send.energy.waitingSlow')} />
+	}
+	if (!decision || rented) { return null }
+
+	if (decision.reason === 'no') {
+		if (decision.why !== 'bandwidth' || !decision.trxShortSun) { return null }
+		return (
+			<Notice
+				theme={theme}
+				icon="triangle-exclamation"
+				color={theme.colors.warning}
+				text={t('crypto.wallet.send.energy.bandwidth', { needed: fee(decision.trxShortSun) })}
+			/>
+		)
+	}
+
+	const text = decision.reason === 'cheaper'
+		? t('crypto.wallet.send.energy.cheaper', { burn: formatUsd(decision.burnUsd), price: formatUsd(decision.rentUsd), saved: formatUsd(decision.savedUsd) })
+		: decision.burnUsd === null
+			? t('crypto.wallet.send.energy.unblocksNoPrice', { volume: decision.volume.toLocaleString(), price: formatUsd(decision.rentUsd) })
+			: t('crypto.wallet.send.energy.unblocks', { burn: formatUsd(decision.burnUsd), volume: decision.volume.toLocaleString(), price: formatUsd(decision.rentUsd) })
+
+	return (
+		<Notice theme={theme} icon="bolt" color={theme.colors.warning} text={text} action={t('crypto.wallet.send.energy.cta')} onPress={onRent} />
+	)
+}
+
+const Notice = ({ theme, icon, color, text, action, onPress }: {
+	theme: Theme, icon: 'circle-info' | 'triangle-exclamation' | 'shield-halved' | 'bolt', color: string, text: string,
+	/** Con `action` el aviso deja de ser informativo y propone hacer algo. */
+	action?: string, onPress?: () => void
+}) => (
 	<View style={[styles.notice, { backgroundColor: color + '12' }]}>
 		<FontAwesome6 name={icon} size={14} color={color} iconStyle="solid" style={styles.noticeIcon} />
-		<Text style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{text}</Text>
+		<View style={styles.noticeBody}>
+			<Text style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{text}</Text>
+			{!!action && !!onPress && (
+				<QPPressable onPress={onPress} accessibilityRole="button" style={styles.noticeAction}>
+					<Text style={{ color, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.sm }}>{action}</Text>
+				</QPPressable>
+			)}
+		</View>
 	</View>
 )
 
@@ -294,7 +426,9 @@ const styles = StyleSheet.create({
 	tier: { flex: 1, borderRadius: 12, borderCurve: 'continuous', paddingVertical: 8, paddingHorizontal: 6, alignItems: 'center', gap: 2 },
 	notice: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, alignItems: 'flex-start' },
 	noticeIcon: { marginTop: 2 },
+	noticeBody: { flex: 1, gap: 8 },
 	noticeText: { flex: 1 },
+	noticeAction: { alignSelf: 'flex-start', paddingVertical: 2 },
 	actions: { gap: 10, marginTop: 8 },
 })
 

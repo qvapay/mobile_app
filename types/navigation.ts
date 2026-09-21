@@ -16,7 +16,7 @@
  */
 import type { NavigatorScreenParams } from '@react-navigation/native'
 import type { WalletTx } from './domain'
-import type { Coin, EnrichedCoin, Transaction } from './domain'
+import type { Coin, EnergyDuration, EnrichedCoin, Transaction } from './domain'
 
 /** Metadatos de país que viajan a las pantallas de marca (forma variable: catálogo completo o `{ code, ...country_meta }`). */
 export type CountryParam = { code?: string } & Record<string, unknown>
@@ -135,6 +135,9 @@ export type RootStackParamList = {
 	/** Swap saldo ↔ QUSD; `direction` preselecciona el sentido (out = saldo → wallet). */
 	WalletSwap: { direction?: 'out' | 'in' } | undefined
 	WalletSwapStatus: { uuid: string }
+	/** Recursos TRON y alquiler de energía; los params preseleccionan la compra. */
+	WalletEnergy: { address?: string, duration?: EnergyDuration } | undefined
+	WalletEnergyOrders: undefined
 
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined

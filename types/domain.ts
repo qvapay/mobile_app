@@ -423,6 +423,68 @@ export type WalletHistoryPage = {
 	next_cursor: string | null
 }
 
+// ── Alquiler de energía TRON (`/v2/energy`, se cobra del saldo QvaPay) ──────
+
+/** Plazos que vende el proveedor. Para enviar USDT ahora mismo, `1h` sobra. */
+export type EnergyDuration = '1h' | '1d' | '3d' | '7d'
+
+export type EnergyOrderStatus = 'pending' | 'dispatching' | 'completed' | 'refunded' | 'needs_review'
+
+/** Clave de un monto popular de la tabla de precios (la prosa se traduce en la app). */
+export type EnergyPreset = 'usdt_known' | 'usdt_new'
+
+/** Fila de `GET /v2/energy/prices`: un monto popular para una duración. */
+export type EnergyPriceRow = {
+	preset: EnergyPreset
+	/** Prosa del backend, en español. NO se pinta: el copy sale de i18n por `preset`. */
+	title: string
+	detail: string
+	volume: number
+	duration: EnergyDuration
+	price_usd: number
+	/** Precio por unidad de esa duración, para estimar volúmenes fuera de la tabla. */
+	unit_price_usd: number
+}
+
+export type EnergyPricesPayload = {
+	data: EnergyPriceRow[]
+	meta: {
+		durations: EnergyDuration[]
+		min_volume: number
+		max_volume: number
+		presets: Array<{ key: EnergyPreset, volume: number, title: string, detail: string }>
+		note: string
+	}
+}
+
+/** Cotización congelada (90 s, un solo uso) de `POST /v2/energy/quote`. */
+export type EnergyQuote = {
+	quote_id: string
+	volume: number
+	duration: EnergyDuration
+	price_usd: number
+	expires_at: string
+}
+
+/** Orden de energía tal como la serializa el backend. */
+export type EnergyOrder = {
+	uuid: string
+	resource: string
+	/** Dirección que recibe la delegación: la que FIRMA el envío, no la que recibe los fondos. */
+	target_address: string
+	volume: number
+	duration: EnergyDuration
+	price_usd: number
+	status: EnergyOrderStatus
+	/** Solo legible en `refunded` / `needs_review`. */
+	reason: string | null
+	order_id: string | null
+	txid: string | null
+	explorer: string | null
+	created_at: string
+	completed_at: string | null
+}
+
 // ── Swap saldo QvaPay ↔ activo on-chain (primer par: QUSD en Stacks) ─────────
 
 export type SwapDirection = 'out' | 'in'

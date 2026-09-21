@@ -179,9 +179,40 @@ export const verifyTronTransaction = (tx: { txID: string, raw_data_hex: string }
 
 export type TronNodeTx = { txID: string, raw_data_hex: string, raw_data?: unknown, visible?: boolean }
 
-type ChainParams = { energyFeeSun: bigint, bandwidthFeeSun: bigint, createAccountFeeSun: bigint }
+/** Precios que la red cobra por recurso, leídos de `getchainparameters` (sun). */
+export type TronChainParams = { energyFeeSun: bigint, bandwidthFeeSun: bigint, createAccountFeeSun: bigint }
 
-type Resources = { freeBandwidth: bigint, stakedBandwidth: bigint, energy: bigint }
+/**
+ * Recursos de una cuenta TRON. `energy`/`*Bandwidth` son lo DISPONIBLE
+ * (límite − usado); los `*Limit` son el total, y existen solo para pintar
+ * medidores: la aritmética de coste nunca los mira.
+ */
+export type TronResources = {
+	energy: bigint
+	energyLimit: bigint
+	/** Cuota diaria gratuita (600 bytes por defecto en TRON). */
+	freeBandwidth: bigint
+	freeBandwidthLimit: bigint
+	/** Ancho de banda obtenido congelando TRX o recibido por delegación. */
+	stakedBandwidth: bigint
+	stakedBandwidthLimit: bigint
+}
+
+/** Desglose del TRX quemado, por concepto. */
+export type TronBurnBreakdown = {
+	/** Energía que falta comprar/alquilar (0 si la cuenta la tiene toda). */
+	energyShort: bigint
+	/** Sun quemados por esa energía faltante. */
+	energyBurnSun: bigint
+	/** Alguna de las dos bolsas cubre el ancho de banda entero. */
+	bandwidthCovered: boolean
+	/** Sun quemados por ancho de banda (todo o nada). */
+	bandwidthBurnSun: bigint
+	/** Sun del alta de la cuenta destino (solo TRX a cuenta nueva). */
+	activationSun: bigint
+	/** Suma de los tres conceptos. */
+	total: bigint
+}
 
 export type TronFeeEstimate = {
 	/** Energía que consumirá (0 en TRX nativo). */
@@ -201,6 +232,10 @@ export type PreparedTronSend = {
 	tx: TronNodeTx
 	raw: DecodedTronRaw
 	fee: TronFeeEstimate
+	/** Recursos de la cuenta remitente en el momento de construir la tx. */
+	resources: TronResources
+	/** Precios de la red con los que se calculó el quemado. */
+	params: TronChainParams
 }
 
 type Deps = { signal?: AbortSignal, headers?: Record<string, string> }
@@ -221,8 +256,8 @@ const decodeNodeMessage = (value: unknown): string => {
 	try { return String.fromCharCode(...hexToBytes(value)).replace(/[^\x20-\x7e]/g, '') } catch { return value }
 }
 
-export const getTronChainParams = async (rpc: RegistryRpc, deps: Deps = {}): Promise<ChainParams> => {
-	const defaults: ChainParams = { energyFeeSun: DEFAULT_ENERGY_FEE_SUN, bandwidthFeeSun: DEFAULT_BANDWIDTH_FEE_SUN, createAccountFeeSun: DEFAULT_CREATE_ACCOUNT_FEE_SUN }
+export const getTronChainParams = async (rpc: RegistryRpc, deps: Deps = {}): Promise<TronChainParams> => {
+	const defaults: TronChainParams = { energyFeeSun: DEFAULT_ENERGY_FEE_SUN, bandwidthFeeSun: DEFAULT_BANDWIDTH_FEE_SUN, createAccountFeeSun: DEFAULT_CREATE_ACCOUNT_FEE_SUN }
 	try {
 		const res = await post<{ chainParameter?: Array<{ key: string, value?: number }> }>(rpc, '/wallet/getchainparameters', {}, deps)
 		const find = (key: string) => res.chainParameter?.find(p => p.key === key)?.value
@@ -239,13 +274,25 @@ export const getTronChainParams = async (rpc: RegistryRpc, deps: Deps = {}): Pro
 	}
 }
 
-/** Recursos disponibles de la cuenta: `{}` si nunca se activó (todo a 0). */
-export const getTronResources = async (rpc: RegistryRpc, address: string, deps: Deps = {}): Promise<Resources> => {
+/**
+ * Recursos de la cuenta: `{}` si nunca se activó (todo a 0). Devuelve
+ * disponible Y límite de cada recurso — el disponible es lo que decide el
+ * coste, el límite es lo que pinta los medidores de la pantalla de energía.
+ */
+export const getTronResources = async (rpc: RegistryRpc, address: string, deps: Deps = {}): Promise<TronResources> => {
 	const r = await post<{ freeNetLimit?: number, freeNetUsed?: number, NetLimit?: number, NetUsed?: number, EnergyLimit?: number, EnergyUsed?: number }>(
 		rpc, '/wallet/getaccountresource', { address, visible: true }, deps,
 	)
+	const total = (limit?: number) => BigInt(limit ?? 0)
 	const avail = (limit?: number, used?: number) => { const v = BigInt(limit ?? 0) - BigInt(used ?? 0); return v > 0n ? v : 0n }
-	return { freeBandwidth: avail(r.freeNetLimit, r.freeNetUsed), stakedBandwidth: avail(r.NetLimit, r.NetUsed), energy: avail(r.EnergyLimit, r.EnergyUsed) }
+	return {
+		energy: avail(r.EnergyLimit, r.EnergyUsed),
+		energyLimit: total(r.EnergyLimit),
+		freeBandwidth: avail(r.freeNetLimit, r.freeNetUsed),
+		freeBandwidthLimit: total(r.freeNetLimit),
+		stakedBandwidth: avail(r.NetLimit, r.NetUsed),
+		stakedBandwidthLimit: total(r.NetLimit),
+	}
 }
 
 /** ¿Existe la cuenta destino? (un TRX a una cuenta nueva paga la activación). */
@@ -254,26 +301,54 @@ export const tronAccountExists = async (rpc: RegistryRpc, address: string, deps:
 	return !!account?.address
 }
 
+/**
+ * De qué está hecho el TRX que se va a quemar. PURA.
+ *
+ * Existe desglosado y no como un total porque **alquilar energía no paga el
+ * ancho de banda**: una cuenta con energía delegada pero sin banda libre
+ * sigue quemando TRX y sigue sin poder enviar si no tiene ninguno. Un solo
+ * `bigint` agregado no deja distinguir ese caso, y ofrecer ahí un alquiler es
+ * cobrarle al usuario por algo que no le desbloquea nada.
+ *
+ * Dos matices de la red que la aritmética respeta:
+ * - El ancho de banda NO se paga a trozos: o lo cubre una de las dos bolsas
+ *   (gratuita o congelada) entera, o se quema entero. Las bolsas tampoco
+ *   suman entre sí.
+ * - La energía SÍ es proporcional: solo se quema lo que falta.
+ */
+export const computeTronBurnBreakdown = (
+	{ energyNeeded, bandwidthNeeded, activatesAccount }: Pick<TronFeeEstimate, 'energyNeeded' | 'bandwidthNeeded' | 'activatesAccount'>,
+	resources: TronResources,
+	params: TronChainParams,
+): TronBurnBreakdown => {
+	const energyShort = energyNeeded > resources.energy ? energyNeeded - resources.energy : 0n
+	const bandwidthCovered = resources.freeBandwidth >= bandwidthNeeded || resources.stakedBandwidth >= bandwidthNeeded
+	const energyBurnSun = energyShort * params.energyFeeSun
+	const bandwidthBurnSun = bandwidthCovered ? 0n : bandwidthNeeded * params.bandwidthFeeSun
+	const activationSun = activatesAccount ? params.createAccountFeeSun : 0n
+	return {
+		energyShort,
+		energyBurnSun,
+		bandwidthCovered,
+		bandwidthBurnSun,
+		activationSun,
+		total: energyBurnSun + bandwidthBurnSun + activationSun,
+	}
+}
+
 /** Costo en TRX (sun) de una tx con los recursos actuales. PURO. */
 export const computeTronBurn = (
-	{ energyNeeded, bandwidthNeeded, activatesAccount }: Pick<TronFeeEstimate, 'energyNeeded' | 'bandwidthNeeded' | 'activatesAccount'>,
-	resources: Resources,
-	params: ChainParams,
-): bigint => {
-	const energyShort = energyNeeded > resources.energy ? energyNeeded - resources.energy : 0n
-	// El ancho de banda no se paga a trozos: si no cubre entero, se quema entero
-	const bandwidthCovered = resources.freeBandwidth >= bandwidthNeeded || resources.stakedBandwidth >= bandwidthNeeded
-	return energyShort * params.energyFeeSun
-		+ (bandwidthCovered ? 0n : bandwidthNeeded * params.bandwidthFeeSun)
-		+ (activatesAccount ? params.createAccountFeeSun : 0n)
-}
+	partial: Pick<TronFeeEstimate, 'energyNeeded' | 'bandwidthNeeded' | 'activatesAccount'>,
+	resources: TronResources,
+	params: TronChainParams,
+): bigint => computeTronBurnBreakdown(partial, resources, params).total
 
 /**
  * fee_limit de una TRC-20: la energía estimada con un 30% de margen (la
  * estimación de `triggerconstantcontract` es exacta salvo cambios de estado
  * entre estimar y ejecutar), acotado al tope duro. PURO.
  */
-export const computeFeeLimit = (energyNeeded: bigint, params: ChainParams): bigint => {
+export const computeFeeLimit = (energyNeeded: bigint, params: TronChainParams): bigint => {
 	const withMargin = (energyNeeded * 13n / 10n) * params.energyFeeSun
 	const floor = 5n * SUN_PER_TRX
 	const value = withMargin > floor ? withMargin : floor
@@ -301,7 +376,7 @@ export const prepareTronSend = async (rpc: RegistryRpc, intent: TronSendIntent, 
 		const raw = verifyTronTransaction(tx, intent, 0n)
 		const bandwidthNeeded = BigInt(tx.raw_data_hex.length / 2) + SIGNATURE_OVERHEAD_BYTES
 		const partial = { energyNeeded: 0n, bandwidthNeeded, activatesAccount: !exists }
-		return { intent, tx, raw, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun: 0n } }
+		return { intent, tx, raw, resources, params, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun: 0n } }
 	}
 
 	const parameter = encodeTrc20TransferParams(intent.to, intent.amount)
@@ -322,7 +397,7 @@ export const prepareTronSend = async (rpc: RegistryRpc, intent: TronSendIntent, 
 	const raw = verifyTronTransaction(tx, intent, feeLimitSun)
 	const bandwidthNeeded = BigInt(tx.raw_data_hex.length / 2) + SIGNATURE_OVERHEAD_BYTES
 	const partial = { energyNeeded, bandwidthNeeded, activatesAccount: false }
-	return { intent, tx, raw, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun } }
+	return { intent, tx, raw, resources, params, fee: { ...partial, burnSun: computeTronBurn(partial, resources, params), feeLimitSun } }
 }
 
 // ---------------------------------------------------------------------------

@@ -110,6 +110,8 @@ export const ROUTES = {
 	WALLET_TX_DETAIL: "WalletTxDetail",
 	WALLET_SWAP: "WalletSwap",
 	WALLET_SWAP_STATUS: "WalletSwapStatus",
+	WALLET_ENERGY: "WalletEnergy",
+	WALLET_ENERGY_ORDERS: "WalletEnergyOrders",
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	MARKET_STORES: "MarketStores",

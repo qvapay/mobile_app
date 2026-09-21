@@ -16,6 +16,7 @@ import {
 	broadcastTronTransaction,
 	computeFeeLimit,
 	computeTronBurn,
+	computeTronBurnBreakdown,
 	decodeTronRaw,
 	encodeSignedTronTransaction,
 	encodeTrc20TransferParams,
@@ -142,6 +143,34 @@ describe('fees', () => {
 		expect(computeTronBurn(need, { freeBandwidth: 0n, stakedBandwidth: 0n, energy: 100_000n }, PARAMS)).toBe(345_000n)
 		expect(computeTronBurn(need, { freeBandwidth: 100n, stakedBandwidth: 1000n, energy: 65_000n }, PARAMS)).toBe(0n)
 		expect(computeTronBurn({ ...need, energyNeeded: 0n, activatesAccount: true }, { freeBandwidth: 600n, stakedBandwidth: 0n, energy: 0n }, PARAMS)).toBe(1_000_000n)
+	})
+
+	test('computeTronBurnBreakdown: el ancho de banda es todo o nada, y las dos bolsas no suman', () => {
+		const need = { energyNeeded: 65_000n, bandwidthNeeded: 345n, activatesAccount: false }
+		const res = (freeBandwidth, stakedBandwidth = 0n, energy = 0n) => ({ freeBandwidth, stakedBandwidth, energy })
+
+		// La cuota diaria intacta cubre la tx: no se quema banda
+		expect(computeTronBurnBreakdown(need, res(600n), PARAMS)).toMatchObject({ bandwidthCovered: true, bandwidthBurnSun: 0n })
+		// Ya envió hoy y le quedan 255: no cubre, así que se quema ENTERA (no el trozo que falta)
+		expect(computeTronBurnBreakdown(need, res(255n), PARAMS)).toMatchObject({ bandwidthCovered: false, bandwidthBurnSun: 345_000n })
+		// 200 gratis + 200 congelados NO son 400: cada bolsa tiene que cubrirla sola
+		expect(computeTronBurnBreakdown(need, res(200n, 200n), PARAMS).bandwidthCovered).toBe(false)
+		expect(computeTronBurnBreakdown(need, res(0n, 400n), PARAMS).bandwidthCovered).toBe(true)
+
+		// La energía sí es proporcional: solo se quema lo que falta
+		expect(computeTronBurnBreakdown(need, res(600n, 0n, 40_000n), PARAMS)).toMatchObject({ energyShort: 25_000n, energyBurnSun: 2_500_000n })
+
+		// El alta de la cuenta destino va aparte y suma al total
+		const activation = computeTronBurnBreakdown({ ...need, energyNeeded: 0n, activatesAccount: true }, res(600n), PARAMS)
+		expect(activation).toMatchObject({ activationSun: 1_000_000n, total: 1_000_000n })
+	})
+
+	test('computeTronBurnBreakdown: con la energía ya alquilada solo queda el ancho de banda', () => {
+		const need = { energyNeeded: 65_000n, bandwidthNeeded: 345n, activatesAccount: false }
+		// Es el número que la pantalla promete como "después de alquilar pagarás X"
+		const after = computeTronBurnBreakdown(need, { freeBandwidth: 255n, stakedBandwidth: 0n, energy: 132_000n }, PARAMS)
+		expect(after.energyBurnSun).toBe(0n)
+		expect(after.total).toBe(345_000n)
 	})
 
 	test('computeFeeLimit: +30% con suelo de 5 TRX y tope de 100 TRX', () => {
