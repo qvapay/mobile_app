@@ -485,6 +485,62 @@ export type EnergyOrder = {
 	completed_at: string | null
 }
 
+// ── Patrocinio de fees on-chain (QvaPay paga el gas de un envío del usuario) ─
+
+/**
+ * Permiso acotado a UN envío. `fee_payer` viaja desde el backend a propósito: llevar
+ * esa dirección en la app obligaría a publicar versión para rotar la tesorería.
+ */
+export type SponsorGrant = {
+	uuid: string
+	fee_payer: string
+	from: string
+	to: string
+	mint: string
+	amount: string
+	decimals: number
+	expires_at: string
+}
+
+/**
+ * Por qué NO se patrocina. No es un error: el usuario puede enviar igual pagando su
+ * gas, y cada motivo tiene su copy (de `not_gold` sale el gancho de GOLD).
+ */
+export type GaslessIneligibleReason = 'disabled' | 'not_gold' | 'wallet_not_registered' | 'quota_exhausted' | 'grant_spent'
+
+export type GaslessQuote =
+	| { eligible: true, grant: SponsorGrant, remaining_today: number, renews_at: string, duplicate?: boolean }
+	| { eligible: false, reason: GaslessIneligibleReason, remaining_today?: number, renews_at?: string, daily_limit?: number }
+
+export type GaslessSubmitStatus = 'confirmed' | 'pending' | 'authorized' | 'failed' | 'review'
+
+export type GaslessSubmitResult = {
+	status: GaslessSubmitStatus
+	reason: string | null
+	/** El blockhash caducó: reconstruir, re-firmar y reenviar con ESTE mismo permiso. */
+	rebuild: boolean
+	retryable: boolean
+	signature: string | null
+	explorer: string | null
+	message: string | null
+}
+
+export type SponsorGrantState = {
+	uuid: string
+	status: GaslessSubmitStatus | 'expired' | 'cancelled' | 'submitted'
+	to: string
+	mint: string
+	amount: string
+	decimals: number
+	signature: string | null
+	explorer: string | null
+	creates_ata: boolean
+	reason: string | null
+	expires_at: string
+	created_at: string
+	completed_at: string | null
+}
+
 // ── Swap saldo QvaPay ↔ activo on-chain (primer par: QUSD en Stacks) ─────────
 
 export type SwapDirection = 'out' | 'in'

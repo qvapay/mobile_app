@@ -121,5 +121,9 @@
 		"quoteFailed": "Não foi possível cotar a energia",
 		"rentFailed": "Não foi possível alugar a energia",
 		"ordersFailed": "Não foi possível obter seus pedidos de energia"
+	},
+	"wallet": {
+		"gaslessQuoteFailed": "Não foi possível verificar o envio grátis",
+		"gaslessSubmitFailed": "Não foi possível concluir o envio patrocinado"
 	}
 }

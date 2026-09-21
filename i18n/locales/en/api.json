@@ -121,5 +121,9 @@
 		"quoteFailed": "Couldn't quote the energy",
 		"rentFailed": "Couldn't rent the energy",
 		"ordersFailed": "Couldn't load your energy orders"
+	},
+	"wallet": {
+		"gaslessQuoteFailed": "Couldn't check the free send",
+		"gaslessSubmitFailed": "Couldn't complete the sponsored send"
 	}
 }
