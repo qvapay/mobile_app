@@ -81,6 +81,15 @@ describe('rentVolumeFor', () => {
 		expect(rentVolumeFor(200_000n)).toBe(230_000)
 	})
 
+	it('respeta los topes VIVOS del proveedor por encima de las constantes', () => {
+		// Si el proveedor sube el mínimo, pedir el viejo se estrella en un 400
+		// después de que el usuario haya recorrido todo el flujo de confirmación
+		expect(rentVolumeFor(1n, { min: 50_000 })).toBe(50_000)
+		expect(rentVolumeFor(65_000n, { max: 70_000 })).toBe(66_000)
+		// Con un techo por debajo del preset, el preset deja de ser una opción
+		expect(rentVolumeFor(65_000n, { max: 65_500 })).toBeNull()
+	})
+
 	it('no ofrece lo que no cabe en una orden, y NO clampa hacia abajo', () => {
 		expect(rentVolumeFor(BigInt(ENERGY_MAX_VOLUME) + 1n)).toBeNull()
 		// Alquilar el máximo y seguir sin alcanzar es pagar por una tx que falla igual

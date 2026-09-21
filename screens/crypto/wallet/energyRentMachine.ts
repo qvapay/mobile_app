@@ -65,7 +65,8 @@ export type RentEvent =
 	| { type: 'quoting' }
 	/** Precio listo. `null` = se compra al precio vivo, con techo `max_price_usd`. */
 	| { type: 'quoted', quote: EnergyQuote | null }
-	| { type: 'confirm' }
+	/** Confirma la compra con las credenciales ya resueltas por `credentialsFor`. */
+	| { type: 'confirm', key: string, keyParams: string, quote: EnergyQuote | null }
 	/** Respuesta 2xx de `POST /rent`. `http` distingue el 201 del 202. */
 	| { type: 'rented', order: EnergyOrder, http: number, duplicate?: boolean }
 	| { type: 'polled', order: EnergyOrder }
@@ -94,16 +95,52 @@ export const paramsKeyOf = ({ targetAddress, volume, duration }: RentParams): st
  */
 const KEEP_KEY_CODES = new Set(['DUPLICATE_REQUEST', 'RATE_LIMITED', 'QUOTE_EXPIRED'])
 
-/** Un fallo sin respuesta HTTP es de red: la petición pudo llegar, así que la clave se conserva. */
+/**
+ * ¿Se conserva la clave tras este fallo?
+ *
+ * La pregunta de fondo es siempre la misma: **¿pudo haberse cobrado?** Si la
+ * respuesta es "no lo sé", la clave se conserva, porque reintentar con ella es
+ * lo único que convierte un posible doble cobro en un replay inofensivo.
+ *
+ * - Sin respuesta HTTP (red, timeout del cliente): pudo llegar → conservar.
+ * - 5xx sin código NUESTRO: es infraestructura (un 502/504 de gateway con
+ *   cuerpo HTML), el caso canónico de "¿se cobró?" → conservar. Ojo: el 502
+ *   `DELIVERY_FAILED` sí trae código y sí rota, porque ahí el backend nos dice
+ *   que devolvió el saldo y reintentar es una orden nueva.
+ * - 4xx conocidos que no materializan nada → conservar.
+ * - Todo lo demás (validación, límites, códigos desconocidos) → rotar.
+ */
 export const shouldKeepKeyOnFailure = ({ code, http, quoteExpiredStreak }: { code: string | null, http?: number, quoteExpiredStreak: number }): boolean => {
 	if (http === undefined) { return true }
 	if (code === 'QUOTE_EXPIRED') { return quoteExpiredStreak < 2 }
-	return code !== null && KEEP_KEY_CODES.has(code)
+	if (code !== null && KEEP_KEY_CODES.has(code)) { return true }
+	return code === null && http >= 500
 }
 
 /** Una orden ya no va a cambiar: ni polling ni reintentos la mueven. */
 export const isTerminalOrder = (order: EnergyOrder | null): boolean =>
 	order?.status === 'completed' || order?.status === 'refunded'
+
+/**
+ * Con qué clave y con qué cotización sale esta compra.
+ *
+ * `setParams` NO rota la clave si hay dinero en vuelo: el vuelo es del pedido
+ * viejo y su reintento tiene que seguir siendo él. Pero entonces `state.params`
+ * y `state.keyParams` quedan describiendo pedidos distintos, y mandar el nuevo
+ * bajo la clave vieja hace que el backend replique la orden ANTERIOR como
+ * `duplicate: true` — el usuario cree que compró lo segundo y tiene lo primero,
+ * que es el peligro número uno de este módulo.
+ *
+ * Este es el último punto donde se puede poner al día, y lo resuelve el mismo
+ * valor que el hook mete en la petición: lo que se guarda es lo que se manda.
+ */
+export const credentialsFor = (state: RentState): { key: string, keyParams: string, quote: EnergyQuote | null } => {
+	const keyParams = paramsKeyOf(state.params)
+	if (keyParams === state.keyParams) { return { key: state.key, keyParams, quote: state.quote } }
+	// Pedido distinto: clave nueva, y la cotización vieja ya no vale (el backend
+	// la rechazaría con QUOTE_MISMATCH por volumen o duración)
+	return { key: makeIdempotencyKey(), keyParams, quote: null }
+}
 
 export const initialRentState = (params: RentParams): RentState => ({
 	phase: 'idle',
@@ -158,15 +195,20 @@ export const rentReducer = (state: RentState, event: RentEvent): RentState => {
 		}
 
 		case 'quoting':
+			// Recotizar con dinero en vuelo no puede devolver la UI a un estado
+			// que ofrezca confirmar otra vez
+			if (IN_FLIGHT.includes(state.phase)) { return state }
 			return { ...state, phase: 'quoting', errorCode: null, errorMessage: null }
 
 		case 'quoted':
+			if (IN_FLIGHT.includes(state.phase)) { return { ...state, quote: event.quote } }
 			return { ...state, phase: 'confirming', quote: event.quote }
 
 		case 'confirm':
 			// Doble tap: si ya hay dinero en vuelo, el segundo toque no existe
 			if (IN_FLIGHT.includes(state.phase)) { return state }
-			return { ...state, phase: 'renting', errorCode: null, errorMessage: null }
+			// El estado guarda EXACTAMENTE lo que se va a mandar (ver `credentialsFor`)
+			return { ...state, phase: 'renting', errorCode: null, errorMessage: null, key: event.key, keyParams: event.keyParams, quote: event.quote }
 
 		case 'rented': {
 			// 201 entregada · 202 cobrada y en curso · 200 replay de una clave ya
