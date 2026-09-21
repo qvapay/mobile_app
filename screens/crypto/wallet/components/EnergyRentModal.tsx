@@ -33,6 +33,8 @@ type Props = {
 	freezePrice?: boolean
 	onClose: () => void
 	onRented?: (order: EnergyOrder) => void
+	/** Se cobró algo, esté entregado o no: quien ofrece la compra deja de ofrecerla aquí. */
+	onCharged?: (order: EnergyOrder) => void
 	/** Enlace al historial, para la orden que se quedó en curso. */
 	onSeeOrders?: () => void
 }
@@ -51,7 +53,7 @@ const BUSY: RentPhase[] = ['quoting', 'renting', 'polling']
  * ninguna parte: salir de la pantalla de envío perdería la transacción ya
  * construida, que además caduca en ~60 s.
  */
-const EnergyRentModal = ({ visible, targetAddress, volume, duration, estimatedUsd, freezePrice = false, onClose, onRented, onSeeOrders }: Props) => {
+const EnergyRentModal = ({ visible, targetAddress, volume, duration, estimatedUsd, freezePrice = false, onClose, onRented, onCharged, onSeeOrders }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme, styles: themeStyles } = useTheme()
@@ -59,7 +61,7 @@ const EnergyRentModal = ({ visible, targetAddress, volume, duration, estimatedUs
 	const { user } = useAuth()
 
 	const { state, priceUsd, quoteSecondsLeft, confirm, retry } = useEnergyRent({
-		targetAddress, volume, duration, estimatedUsd, freezePrice, active: visible, onRented,
+		targetAddress, volume, duration, estimatedUsd, freezePrice, active: visible, onRented, onCharged,
 	})
 
 	const busy = BUSY.includes(state.phase)

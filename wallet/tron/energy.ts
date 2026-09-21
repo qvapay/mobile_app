@@ -46,6 +46,14 @@ export const ENERGY_SAFETY_MARGIN = 1.15
 /** Por debajo de este ahorro no se molesta al usuario con una compra. */
 export const MIN_SAVINGS_USD = 0.25
 
+/**
+ * Topes del proveedor. Vienen en el `meta` de la tabla de precios; las
+ * constantes de este módulo son solo el fallback. Pedir un volumen fuera de
+ * los topes VIVOS se estrella en un 400 después de que el usuario haya
+ * recorrido todo el flujo.
+ */
+export type EnergyBounds = { min?: number, max?: number }
+
 /** Energía que falta para esta transacción (0 si la cuenta la tiene toda). */
 export const energyShortfall = (energyNeeded: bigint, resources: Pick<TronResources, 'energy'>): bigint =>
 	energyNeeded > resources.energy ? energyNeeded - resources.energy : 0n
@@ -62,15 +70,15 @@ export const energyShortfall = (energyNeeded: bigint, resources: Pick<TronResour
  * se clampa hacia abajo a propósito — alquilar el máximo y seguir sin
  * alcanzar es cobrarle al usuario por una transacción que va a fallar igual.
  */
-export const rentVolumeFor = (shortfall: bigint): number | null => {
+export const rentVolumeFor = (shortfall: bigint, { min = ENERGY_MIN_VOLUME, max = ENERGY_MAX_VOLUME }: EnergyBounds = {}): number | null => {
 	if (shortfall <= 0n) { return null }
 	const needed = Number(shortfall)
-	if (needed <= ENERGY_MIN_VOLUME) { return ENERGY_MIN_VOLUME }
-	const preset = ENERGY_PRESETS.find(value => needed <= value)
+	if (needed <= min) { return min }
+	const preset = ENERGY_PRESETS.find(value => needed <= value && value <= max)
 	if (preset) { return preset }
 	const withMargin = Math.ceil(needed * ENERGY_SAFETY_MARGIN)
-	if (withMargin > ENERGY_MAX_VOLUME) { return null }
-	return Math.ceil(withMargin / 1000) * 1000
+	if (withMargin > max) { return null }
+	return Math.min(Math.ceil(withMargin / 1000) * 1000, max)
 }
 
 /** Sun → USD. `null` si no se conoce el precio del TRX (no se inventa un 0). */
@@ -92,6 +100,8 @@ export type RentalContext = {
 	trxPriceUsd: number | null
 	/** Precio del alquiler para el volumen que tocaría comprar; null si no hay tabla de precios. */
 	rentPriceUsd: number | null
+	/** Topes vivos del proveedor; sin ellos se usan las constantes del módulo. */
+	bounds?: EnergyBounds
 }
 
 export type RentalDecision =
@@ -127,11 +137,11 @@ export type RentalRefusal =
  * final se compara dinero. Un `unblocks` gana siempre a un `cheaper`: cuando
  * la transacción no sale sin alquilar, el ahorro es lo de menos.
  */
-export const shouldOfferRental = ({ breakdown, nativeBalanceSun, sentNativeSun, qvapayBalanceUsd, trxPriceUsd, rentPriceUsd }: RentalContext): RentalDecision => {
+export const shouldOfferRental = ({ breakdown, nativeBalanceSun, sentNativeSun, qvapayBalanceUsd, trxPriceUsd, rentPriceUsd, bounds }: RentalContext): RentalDecision => {
 
 	if (breakdown.energyShort <= 0n) { return { reason: 'no', why: 'no_shortfall' } }
 
-	const volume = rentVolumeFor(breakdown.energyShort)
+	const volume = rentVolumeFor(breakdown.energyShort, bounds)
 	if (volume === null) { return { reason: 'no', why: 'too_much' } }
 
 	// Lo que se seguiría quemando DESPUÉS de alquilar: ancho de banda y alta de

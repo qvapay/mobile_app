@@ -6,6 +6,7 @@
  * acabe invitando a comprar algo que ya se compró.
  */
 import {
+	credentialsFor,
 	initialRentState,
 	isTerminalOrder,
 	POLL_DEADLINE_MS,
@@ -28,11 +29,15 @@ const quote = { quote_id: 'q1', volume: 66_000, duration: '1h', price_usd: 0.55,
 /** Aplica una lista de eventos en orden. */
 const run = (state, ...events) => events.reduce(rentReducer, state)
 
+/** `confirm` tal y como lo emite el hook: con las credenciales ya resueltas. */
+const confirmOf = (state) => ({ type: 'confirm', ...credentialsFor(state) })
+const confirmed = (state) => rentReducer(state, confirmOf(state))
+
 describe('clave de idempotencia', () => {
 
 	it('sobrevive a un fallo de red: la petición pudo llegar', () => {
 		const start = initialRentState(PARAMS)
-		const after = run(start, { type: 'confirm' }, { type: 'failed', code: null, message: 'sin red' })
+		const after = run(confirmed(start), { type: 'failed', code: null, message: 'sin red' })
 		expect(after.key).toBe(start.key)
 	})
 
@@ -86,7 +91,7 @@ describe('clave de idempotencia', () => {
 	})
 
 	it('NO rota al cambiar el pedido con dinero en vuelo', () => {
-		const flying = run(initialRentState(PARAMS), { type: 'confirm' })
+		const flying = confirmed(initialRentState(PARAMS))
 		const after = rentReducer(flying, { type: 'setParams', params: { ...PARAMS, volume: 132_000 } })
 		expect(after.key).toBe(flying.key)
 		expect(after.phase).toBe('renting')
@@ -95,6 +100,48 @@ describe('clave de idempotencia', () => {
 	it('no rota si los parámetros no cambiaron de verdad', () => {
 		const start = initialRentState(PARAMS)
 		expect(rentReducer(start, { type: 'setParams', params: { ...PARAMS } }).key).toBe(start.key)
+	})
+})
+
+describe('credentialsFor — la clave corresponde a lo que se manda', () => {
+
+	it('con los parámetros intactos, reutiliza clave y cotización', () => {
+		const state = run(initialRentState(PARAMS), { type: 'quoted', quote })
+		expect(credentialsFor(state)).toEqual({ key: state.key, keyParams: state.keyParams, quote })
+	})
+
+	it('si los parámetros cambiaron con dinero en vuelo, la compra siguiente NO hereda la clave vieja', () => {
+		// setParams no rota con un vuelo en curso (ese vuelo es del pedido viejo),
+		// así que params y keyParams quedan describiendo pedidos distintos. Mandar
+		// el nuevo con la clave vieja haría que el backend replicase la orden
+		// ANTERIOR como duplicate: el usuario cree que compró 132.000 y tiene 66.000
+		const flying = confirmed(initialRentState(PARAMS))
+		const changed = rentReducer(flying, { type: 'setParams', params: { ...PARAMS, volume: 132_000 } })
+		expect(changed.key).toBe(flying.key)
+
+		const creds = credentialsFor(changed)
+		expect(creds.key).not.toBe(flying.key)
+		expect(creds.keyParams).toContain('132000')
+		// La cotización vieja tampoco vale: el backend la rechazaría por volumen
+		expect(creds.quote).toBeNull()
+	})
+
+	it('el desfase sobrevive a un fallo que conserva la clave, y se resuelve al comprar', () => {
+		// Camino completo del peligro: compra en vuelo → el usuario cambia el
+		// pedido (no rota, el vuelo es del viejo) → la petición muere por red y
+		// CONSERVA la clave → keyParams se queda describiendo el pedido anterior
+		const flying = confirmed(initialRentState(PARAMS))
+		const changed = rentReducer(flying, { type: 'setParams', params: { ...PARAMS, duration: '1d' } })
+		const failed = rentReducer(changed, { type: 'failed', code: null, message: 'sin red' })
+		expect(failed.key).toBe(flying.key)
+		expect(failed.keyParams).not.toBe(`${PARAMS.targetAddress}|66000|1d`)
+
+		// Al confirmar de nuevo, lo que se manda y lo que se guarda coinciden
+		const creds = credentialsFor(failed)
+		expect(creds.key).not.toBe(flying.key)
+		const sent = rentReducer(failed, { type: 'confirm', ...creds })
+		expect(sent.key).toBe(creds.key)
+		expect(sent.keyParams).toBe(`${PARAMS.targetAddress}|66000|1d`)
 	})
 })
 
@@ -107,42 +154,53 @@ describe('shouldKeepKeyOnFailure', () => {
 	it('un código desconocido rota', () => {
 		expect(shouldKeepKeyOnFailure({ code: 'WHATEVER', http: 400, quoteExpiredStreak: 0 })).toBe(false)
 	})
+
+	it('un 5xx de infraestructura CONSERVA: es el caso canónico de "¿se cobró?"', () => {
+		// Un 502/504 de gateway llega con status pero sin código nuestro. El
+		// backend puede haber debitado ya: rotar la clave crearía una segunda orden
+		expect(shouldKeepKeyOnFailure({ code: null, http: 502, quoteExpiredStreak: 0 })).toBe(true)
+		expect(shouldKeepKeyOnFailure({ code: null, http: 504, quoteExpiredStreak: 0 })).toBe(true)
+	})
+
+	it('pero el 502 DELIVERY_FAILED rota, porque ahí el backend dice que devolvió el saldo', () => {
+		expect(shouldKeepKeyOnFailure({ code: 'DELIVERY_FAILED', http: 502, quoteExpiredStreak: 0 })).toBe(false)
+	})
+
+	it('un 4xx sin código no se confunde con un 5xx', () => {
+		expect(shouldKeepKeyOnFailure({ code: null, http: 400, quoteExpiredStreak: 0 })).toBe(false)
+	})
 })
 
 describe('transiciones', () => {
 
 	it('el camino feliz: cotizar, confirmar, entregada', () => {
-		const state = run(initialRentState(PARAMS),
-			{ type: 'quoting' },
-			{ type: 'quoted', quote },
-			{ type: 'confirm' },
-			{ type: 'rented', order: order('completed', { txid: '0xabc' }), http: 201 },
-		)
+		const quoted = run(initialRentState(PARAMS), { type: 'quoting' }, { type: 'quoted', quote })
+		const state = run(confirmed(quoted), { type: 'rented', order: order('completed', { txid: '0xabc' }), http: 201 })
 		expect(state.phase).toBe('done')
 		expect(state.charged).toBe(true)
 		expect(state.order.txid).toBe('0xabc')
 	})
 
 	it('el 202 entra en espera y cierra al completarse', () => {
-		const polling = run(initialRentState(PARAMS), { type: 'confirm' }, { type: 'rented', order: order('dispatching'), http: 202 })
+		const polling = run(confirmed(initialRentState(PARAMS)), { type: 'rented', order: order('dispatching'), http: 202 })
 		expect(polling.phase).toBe('polling')
 		expect(polling.charged).toBe(true)
 		expect(rentReducer(polling, { type: 'polled', order: order('completed') }).phase).toBe('done')
 	})
 
 	it('una orden reembolsada es un fallo, y el saldo ya no está cobrado', () => {
-		const polling = run(initialRentState(PARAMS), { type: 'confirm' }, { type: 'rented', order: order('dispatching'), http: 202 })
+		const polling = run(confirmed(initialRentState(PARAMS)), { type: 'rented', order: order('dispatching'), http: 202 })
 		const after = rentReducer(polling, { type: 'polled', order: order('refunded', { reason: 'provider' }) })
 		expect(after).toMatchObject({ phase: 'failed', errorCode: 'REFUNDED', charged: false })
 	})
 
 	it('una orden en revisión manual queda lenta, no fallida', () => {
-		const polling = run(initialRentState(PARAMS), { type: 'confirm' }, { type: 'rented', order: order('dispatching'), http: 202 })
+		const polling = run(confirmed(initialRentState(PARAMS)), { type: 'rented', order: order('dispatching'), http: 202 })
 		expect(rentReducer(polling, { type: 'polled', order: order('needs_review') }).phase).toBe('slow')
 	})
 
 	it('el tope de espera manda la orden al historial, nunca de vuelta a comprar', () => {
-		const polling = run(initialRentState(PARAMS), { type: 'confirm' }, { type: 'rented', order: order('dispatching'), http: 202 })
+		const polling = run(confirmed(initialRentState(PARAMS)), { type: 'rented', order: order('dispatching'), http: 202 })
 		const started = rentReducer(polling, { type: 'tick', now: 1_000 })
 		expect(started.phase).toBe('polling')
 		expect(rentReducer(started, { type: 'tick', now: 1_000 + POLL_DEADLINE_MS - 1 }).phase).toBe('polling')
@@ -156,15 +214,26 @@ describe('transiciones', () => {
 		expect(rentReducer(start, { type: 'tick', now: 9_999_999 })).toBe(start)
 	})
 
+	it('una recotización tardía no devuelve la UI a confirmar durante un cobro', () => {
+		// `begin()` puede disparar con la compra ya en vuelo; si `quoted` pisara la
+		// fase, el modal reabriría Cancelar y el CTA en mitad de un cargo
+		const renting = confirmed(initialRentState(PARAMS))
+		expect(rentReducer(renting, { type: 'quoted', quote }).phase).toBe('renting')
+		expect(rentReducer(renting, { type: 'quoting' })).toBe(renting)
+
+		const polling = rentReducer(renting, { type: 'rented', order: order('dispatching'), http: 202 })
+		expect(rentReducer(polling, { type: 'quoted', quote }).phase).toBe('polling')
+	})
+
 	it('el doble tap en confirmar no dispara una segunda compra', () => {
-		const first = run(initialRentState(PARAMS), { type: 'confirm' })
-		expect(rentReducer(first, { type: 'confirm' })).toBe(first)
+		const first = confirmed(initialRentState(PARAMS))
+		expect(rentReducer(first, confirmOf(first))).toBe(first)
 		const polling = rentReducer(first, { type: 'rented', order: order('dispatching'), http: 202 })
-		expect(rentReducer(polling, { type: 'confirm' })).toBe(polling)
+		expect(rentReducer(polling, confirmOf(polling))).toBe(polling)
 	})
 
 	it('aplicar dos veces la misma entrega no cobra ni rota dos veces', () => {
-		const once = run(initialRentState(PARAMS), { type: 'confirm' }, { type: 'rented', order: order('completed'), http: 201 })
+		const once = run(confirmed(initialRentState(PARAMS)), { type: 'rented', order: order('completed'), http: 201 })
 		const twice = rentReducer(once, { type: 'rented', order: order('completed'), http: 201 })
 		expect(twice.phase).toBe('done')
 		expect(twice.order).toEqual(once.order)
@@ -172,7 +241,7 @@ describe('transiciones', () => {
 
 	it('ninguna fase terminal vuelve a un estado de compra', () => {
 		const terminals = ['done', 'slow', 'failed']
-		const base = run(initialRentState(PARAMS), { type: 'confirm' }, { type: 'rented', order: order('dispatching'), http: 202 })
+		const base = run(confirmed(initialRentState(PARAMS)), { type: 'rented', order: order('dispatching'), http: 202 })
 		terminals.forEach(phase => {
 			const state = { ...base, phase }
 			expect(rentReducer(state, { type: 'tick', now: Date.now() }).phase).toBe(phase)

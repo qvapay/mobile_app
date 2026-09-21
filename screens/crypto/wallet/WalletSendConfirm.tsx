@@ -105,6 +105,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		trxPriceUsd: native ? assetPrice(native, prices) : null,
 		qvapayBalanceUsd: Number(user?.balance || 0),
 		priceRows: energyPrices.data?.data,
+		bounds: energyPrices.data?.meta,
 	})
 
 	if (!asset || !chain) {
@@ -198,7 +199,11 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 					duration="1h"
 					estimatedUsd={energy.rentPriceUsd}
 					onClose={() => setRentOpen(false)}
+					// El latch se arma al COBRAR, no al entregar: una orden que se
+					// queda en curso no llega a `onRented` y el CTA volvería a salir
+					onCharged={tx.markEnergyRented}
 					onRented={() => { setRentOpen(false); tx.onEnergyRented() }}
+					onSeeOrders={() => { setRentOpen(false); navigation.navigate(ROUTES.WALLET_ENERGY_ORDERS) }}
 				/>
 			)}
 		</ScrollView>
@@ -315,24 +320,27 @@ const SendNotices = ({ theme, prepared, symbol, fee, feeEstimated, insufficientN
  * que el nodo construyó la tx. Mezclarlos con una consulta aparte haría
  * parpadear el aviso cuando dos nodos van a alturas distintas.
  */
-const useEnergyOffer = ({ prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd, qvapayBalanceUsd, priceRows }: {
+const useEnergyOffer = ({ prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd, qvapayBalanceUsd, priceRows, bounds }: {
 	prepared: PreparedSend | null
 	nativeBalanceSun: bigint
 	sentNativeSun: bigint
 	trxPriceUsd: number | null
 	qvapayBalanceUsd: number
 	priceRows: EnergyPriceRow[] | undefined
+	/** Topes vivos del proveedor: si sube el mínimo, pedir el viejo es un 400 tras confirmar. */
+	bounds: { min_volume?: number, max_volume?: number } | undefined
 }) => useMemo(() => {
 
 	if (prepared?.kind !== 'tron') { return null }
 	const breakdown = computeTronBurnBreakdown(prepared.inner.fee, prepared.inner.resources, prepared.inner.params)
-	const volume = rentVolumeFor(breakdown.energyShort)
+	const limits = { min: bounds?.min_volume, max: bounds?.max_volume }
+	const volume = rentVolumeFor(breakdown.energyShort, limits)
 	// Para enviar ahora mismo, una hora sobra y es lo más barato
 	const rentPriceUsd = volume === null ? null : estimatePrice(priceRows, volume, '1h')
-	const decision = shouldOfferRental({ breakdown, nativeBalanceSun, sentNativeSun, qvapayBalanceUsd, trxPriceUsd, rentPriceUsd })
+	const decision = shouldOfferRental({ breakdown, nativeBalanceSun, sentNativeSun, qvapayBalanceUsd, trxPriceUsd, rentPriceUsd, bounds: limits })
 	return { breakdown, volume: volume ?? 0, rentPriceUsd, decision }
 
-}, [prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd, qvapayBalanceUsd, priceRows])
+}, [prepared, nativeBalanceSun, sentNativeSun, trxPriceUsd, qvapayBalanceUsd, priceRows, bounds])
 
 /**
  * El aviso de energía de TRON, que es el único de la pantalla que propone

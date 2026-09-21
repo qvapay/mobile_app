@@ -135,6 +135,13 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	 * distinta, así que reconstruir demasiado pronto devolvería el mismo
 	 * quemado de antes y el aviso invitaría a comprar otra vez.
 	 */
+	/**
+	 * Se cobró una compra de energía para este envío. Arma el latch y punto: la
+	 * entrega puede tardar, fallar o quedarse en revisión, y en cualquiera de
+	 * esos casos volver a ofrecer la compra sería un segundo cargo real.
+	 */
+	const markEnergyRented = useCallback(() => { setEnergyRented(true) }, [])
+
 	const onEnergyRented = useCallback(async () => {
 		setEnergyRented(true)
 		setEnergySlow(false)
@@ -179,6 +186,7 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		onAuthorized,
 		retry,
 		refresh,
+		markEnergyRented,
 		onEnergyRented,
 		energyRented,
 		energySlow,
