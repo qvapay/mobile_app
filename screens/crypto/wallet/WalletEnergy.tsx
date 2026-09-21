@@ -75,6 +75,21 @@ const WalletEnergy = ({ navigation, route }: Props) => {
 	const rows = prices.data?.data
 	const canBuy = !!rows?.length
 
+	/**
+	 * Las dos bolsas de ancho de banda NO suman: una de ellas tiene que cubrir
+	 * la transacción entera o se quema TRX igual (ver `computeTronBurnBreakdown`).
+	 * Enseñar 300 + 300 como "600 disponibles" haría que el medidor contradijera
+	 * al aviso del envío para una transferencia de 350 bytes.
+	 */
+	const bandwidth = useMemo(() => {
+		const free = resources.data?.freeBandwidth ?? 0n
+		const staked = resources.data?.stakedBandwidth ?? 0n
+		const usable = free >= staked ? 'free' : 'staked'
+		return usable === 'free'
+			? { available: free, total: resources.data?.freeBandwidthLimit ?? 0n }
+			: { available: staked, total: resources.data?.stakedBandwidthLimit ?? 0n }
+	}, [resources.data])
+
 	const minVolume = prices.data?.meta?.min_volume ?? ENERGY_MIN_VOLUME
 	const maxVolume = prices.data?.meta?.max_volume ?? ENERGY_MAX_VOLUME
 	const durations = prices.data?.meta?.durations ?? (['1h', '1d', '3d', '7d'] as EnergyDuration[])
@@ -140,9 +155,9 @@ const WalletEnergy = ({ navigation, route }: Props) => {
 					label={t('crypto.energy.resources.bandwidth')}
 					icon="gauge-high"
 					tint={theme.colors.primary}
-					available={(resources.data?.freeBandwidth ?? 0n) + (resources.data?.stakedBandwidth ?? 0n)}
-					total={(resources.data?.freeBandwidthLimit ?? 0n) + (resources.data?.stakedBandwidthLimit ?? 0n)}
-					totalLabel={t('crypto.energy.resources.ofTotal', { total: ((resources.data?.freeBandwidthLimit ?? 0n) + (resources.data?.stakedBandwidthLimit ?? 0n)).toLocaleString() })}
+					available={bandwidth.available}
+					total={bandwidth.total}
+					totalLabel={t('crypto.energy.resources.ofTotal', { total: bandwidth.total.toLocaleString() })}
 				/>
 			</View>
 

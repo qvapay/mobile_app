@@ -25,7 +25,7 @@ import type { ApiFailure } from '../../../types/api'
 import { useAuth } from '../../../auth/AuthContext'
 
 // Estado
-import { initialRentState, pollDelayMs, rentReducer } from './energyRentMachine'
+import { credentialsFor, initialRentState, isTerminalOrder, pollDelayMs, rentReducer } from './energyRentMachine'
 import type { RentParams, RentState } from './energyRentMachine'
 import { clearPendingOrder, savePendingOrder } from './energyPending'
 import { ENERGY_ORDERS_KEY } from './energyQueries'
@@ -39,6 +39,15 @@ const MAX_PRICE_MARGIN = 1.02
 /** Con menos de esto por delante, la cotización se renueva sola. */
 const REQUOTE_BEFORE_MS = 15_000
 
+/**
+ * Respiro mínimo entre recotizaciones. Sin él, una cotización que naciera ya
+ * dentro de la ventana de renovación —reloj del móvil adelantado respecto al
+ * servidor, o un TTL corto— encadenaría `quoted → confirming → begin()` sin
+ * pausa, martilleando `/quote` hasta que el rate limit del backend corta y el
+ * usuario se queda mirando un error que no entiende.
+ */
+const REQUOTE_MIN_GAP_MS = 5_000
+
 type Args = {
 	targetAddress: string
 	volume: number
@@ -51,6 +60,12 @@ type Args = {
 	active: boolean
 	/** La energía ya está delegada en la dirección. */
 	onRented?: (order: EnergyOrder) => void
+	/**
+	 * Se cobró algo por este pedido, esté entregado o no. Quien ofrece la
+	 * compra tiene que dejar de ofrecerla AQUÍ, no al entregarse: una orden
+	 * que acaba en `slow` nunca llega a `onRented` y el CTA volvería a salir.
+	 */
+	onCharged?: (order: EnergyOrder) => void
 }
 
 /** Un 2xx sin cuerpo: no pasa, pero si pasara dejaría la compra colgada para siempre. */
@@ -63,7 +78,7 @@ const failureOf = (result: ApiFailure): { code: string | null, message: string, 
 	http: result.status,
 })
 
-export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, freezePrice = false, active, onRented }: Args) => {
+export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, freezePrice = false, active, onRented, onCharged }: Args) => {
 
 	const queryClient = useQueryClient()
 	const { user, updateUser } = useAuth()
@@ -77,8 +92,11 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 
 	const inFlightRef = useRef(false)
 	const notifiedRef = useRef<string | null>(null)
+	const chargedRef = useRef<string | null>(null)
 	const onRentedRef = useRef(onRented)
+	const onChargedRef = useRef(onCharged)
 	useEffect(() => { onRentedRef.current = onRented }, [onRented])
+	useEffect(() => { onChargedRef.current = onCharged }, [onCharged])
 
 	useEffect(() => { dispatch({ type: 'setParams', params }) }, [params])
 
@@ -106,9 +124,15 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 	const quoteExpiresAt = state.quote ? Date.parse(state.quote.expires_at) : null
 	const quoteSecondsLeft = quoteExpiresAt ? Math.max(0, Math.round((quoteExpiresAt - now) / 1000)) : null
 
+	const lastRequoteRef = useRef(0)
 	useEffect(() => {
 		if (!active || state.phase !== 'confirming' || !quoteExpiresAt) { return }
-		if (quoteExpiresAt - now > REQUOTE_BEFORE_MS) { return }
+		// El reloj se lee aquí y no del estado `now`, que deja de avanzar mientras
+		// se cotiza y dejaría este efecto comparando contra un valor congelado
+		const stamp = Date.now()
+		if (quoteExpiresAt - stamp > REQUOTE_BEFORE_MS) { return }
+		if (stamp - lastRequoteRef.current < REQUOTE_MIN_GAP_MS) { return }
+		lastRequoteRef.current = stamp
 		begin()
 	}, [active, state.phase, quoteExpiresAt, now, begin])
 
@@ -120,16 +144,18 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 		if (inFlightRef.current) { return }
 		const current = stateRef.current
 		if (current.phase === 'renting' || current.phase === 'polling') { return }
-		const price = current.quote?.price_usd ?? estimatedUsd
+		// Lo que se manda y lo que se guarda salen del MISMO sitio
+		const { key, keyParams, quote } = credentialsFor(current)
+		const price = quote?.price_usd ?? estimatedUsd
 		inFlightRef.current = true
-		dispatch({ type: 'confirm' })
+		dispatch({ type: 'confirm', key, keyParams, quote })
 		try {
 			const result = await callWithDuplicateRetry(() => energyApi.rent({
 				targetAddress: current.params.targetAddress,
 				volume: current.params.volume,
 				duration: current.params.duration,
-				idempotencyKey: current.key,
-				quoteId: current.quote?.quote_id,
+				idempotencyKey: key,
+				quoteId: quote?.quote_id,
 				// Se manda SIEMPRE, incluso con cotización: es la protección que no caduca
 				maxPriceUsd: typeof price === 'number' ? Math.ceil(price * MAX_PRICE_MARGIN * 100) / 100 : undefined,
 			}))
@@ -142,7 +168,9 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 				else if (!duplicate && typeof price === 'number') { updateUser({ balance: Number(user?.balance || 0) - price }) }
 				queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY })
 				queryClient.invalidateQueries({ queryKey: ENERGY_ORDERS_KEY })
-				if (order.status === 'pending' || order.status === 'dispatching') { savePendingOrder(order.uuid) }
+				// Cobrada y sin cerrar: la nota en disco es lo que impide que, tras
+				// un cierre de app, el usuario no sepa si pagó y vuelva a comprar
+				if (!isTerminalOrder(order)) { savePendingOrder(order.uuid) }
 			} else {
 				dispatch({ type: 'failed', ...(result.success ? EMPTY_BODY : failureOf(result)) })
 			}
@@ -187,14 +215,33 @@ export const useEnergyRent = ({ targetAddress, volume, duration, estimatedUsd, f
 
 	const phase = state.phase
 	const order = state.order
+	const charged = state.charged
+
+	/**
+	 * El aviso: se ha COBRADO algo para este pedido.
+	 *
+	 * Va atado al cobro y no a la entrega a propósito. Quien escucha esto
+	 * (la pantalla de enviar) lo usa para no volver a ofrecer la compra, y una
+	 * orden que se queda en `slow` —cobrada, sin entregar en el plazo— es
+	 * exactamente el caso en el que reofrecerla sería un segundo cargo real.
+	 */
+	useEffect(() => {
+		if (!charged || !order || chargedRef.current === order.uuid) { return }
+		chargedRef.current = order.uuid
+		onChargedRef.current?.(order)
+	}, [charged, order])
+
 	useEffect(() => {
 		if (phase !== 'done' && phase !== 'failed' && phase !== 'slow') { return }
-		if (phase !== 'failed' || state.charged === false) { clearPendingOrder() }
+		// La nota en disco solo se borra cuando la orden ya no puede sorprender:
+		// entregada, o sin cobro vivo (nunca se cobró, o se reembolsó). En `slow`
+		// se queda, que es justo para lo que existe.
+		if (phase === 'done' || !charged) { clearPendingOrder() }
 		if (phase !== 'done' || !order || notifiedRef.current === order.uuid) { return }
 		notifiedRef.current = order.uuid
 		queryClient.invalidateQueries({ queryKey: WALLET_TRON_RESOURCES_KEY })
 		onRentedRef.current?.(order)
-	}, [phase, order, state.charged, queryClient])
+	}, [phase, order, charged, queryClient])
 
 	const retry = useCallback(() => {
 		// Una cotización caducada se recotiza; el resto reintenta la compra con
