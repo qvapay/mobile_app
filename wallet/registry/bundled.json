@@ -1,7 +1,7 @@
 {
  "$schema": "./schema.json",
- "version": 6,
- "updated_at": "2026-09-17",
+ "version": 7,
+ "updated_at": "2026-09-21",
  "chains": {
   "ethereum": {
    "kind": "evm",
@@ -813,7 +813,7 @@
      "url": "https://sol.qvapay.com",
      "priority": 0,
      "owner": "qvapay",
-     "enabled": false
+     "enabled": true
     },
     {
      "url": "https://api.mainnet-beta.solana.com",
