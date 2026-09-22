@@ -55,7 +55,8 @@ const mockRpc = ({ prio = [{ prioritizationFee: 0 }, { prioritizationFee: 3000 }
 			case 'getLatestBlockhash': return ok({ context: { slot: 1 }, value: { blockhash: BLOCKHASH, lastValidBlockHeight: 1234 } })
 			case 'getRecentPrioritizationFees': return ok(prio)
 			case 'getAccountInfo': return ok({ context: { slot: 1 }, value: accounts[params[0]] ?? null })
-			case 'getMinimumBalanceForRentExemption': return ok(params[0] === 165 ? 2039280 : 890880)
+			// Valores REALES de mainnet (parámetro de renta: 2540 lamports por byte-año)
+			case 'getMinimumBalanceForRentExemption': return ok(params[0] === 165 ? 1488440 : 650240)
 			case 'getBalance': return ok({ context: { slot: 1 }, value: balance })
 			case 'sendTransaction': return send ? send(params, { ok, fail }) : ok('sig')
 			default: throw new Error(`método inesperado ${method}`)
@@ -76,10 +77,10 @@ describe('priorityFeeFrom', () => {
 })
 
 describe('USDT SPL', () => {
-	test('destino sin cuenta de USDT: se crea (renta 0.002 SOL), prioridad y firma verificada', async () => {
+	test('destino sin cuenta de USDT: se crea (renta ~0.0015 SOL), prioridad y firma verificada', async () => {
 		mockRpc({ accounts: { [DEST]: wallet } })
 		const prepared = await prepareSolanaSend(RPC, USDT_INTENT, { now: () => 1000 })
-		expect(prepared).toMatchObject({ feePayer: FROM, sponsored: false, createsTokenAccount: true, rentLamports: 2039280n, computeUnitPrice: 5000n, computeUnitLimit: 80000, lastValidBlockHeight: 1234, expiresAt: 61000 })
+		expect(prepared).toMatchObject({ feePayer: FROM, sponsored: false, createsTokenAccount: true, rentLamports: 1488440n, computeUnitPrice: 5000n, computeUnitLimit: 80000, lastValidBlockHeight: 1234, expiresAt: 61000 })
 		expect(prepared.feeLamports).toBe(LAMPORTS_PER_SIGNATURE + 400n) // 5000 µL × 80 000 CU = 400 lamports
 		expect(calls.map(c => c.method)).toContain('getMinimumBalanceForRentExemption')
 
@@ -94,7 +95,7 @@ describe('USDT SPL', () => {
 	})
 
 	test('destino con cuenta y sin prioridad: una transferencia, tarifa base', async () => {
-		mockRpc({ prio: [{ prioritizationFee: 0 }], accounts: { [DEST]: wallet, [associatedTokenAddress(DEST, USDT)]: { owner: TOKEN_PROGRAM, lamports: 2039280 } } })
+		mockRpc({ prio: [{ prioritizationFee: 0 }], accounts: { [DEST]: wallet, [associatedTokenAddress(DEST, USDT)]: { owner: TOKEN_PROGRAM, lamports: 1488440 } } })
 		const prepared = await prepareSolanaSend(RPC, USDT_INTENT)
 		expect(prepared).toMatchObject({ createsTokenAccount: false, rentLamports: 0n, computeUnitPrice: 0n, feeLamports: 5000n })
 		expect(prepared.message.instructions).toHaveLength(1)
@@ -103,7 +104,7 @@ describe('USDT SPL', () => {
 
 	test('pegar la cuenta de token como destino se rechaza (crearía una ATA de una ATA)', async () => {
 		const ata = associatedTokenAddress(DEST, USDT)
-		mockRpc({ accounts: { [ata]: { owner: TOKEN_PROGRAM, lamports: 2039280 } } })
+		mockRpc({ accounts: { [ata]: { owner: TOKEN_PROGRAM, lamports: 1488440 } } })
 		await expect(prepareSolanaSend(RPC, { ...USDT_INTENT, to: ata })).rejects.toThrow(/cuenta de token/)
 	})
 })
@@ -134,7 +135,7 @@ describe('SOL nativo', () => {
 
 	test('a una cuenta nueva exige el mínimo exento de renta', async () => {
 		mockRpc()
-		await expect(prepareSolanaSend(RPC, { from: FROM, to: DEST, amount: 100n, mint: null, decimals: 9 })).rejects.toThrow(/al menos 890880/)
+		await expect(prepareSolanaSend(RPC, { from: FROM, to: DEST, amount: 100n, mint: null, decimals: 9 })).rejects.toThrow(/al menos 650240/)
 		const prepared = await prepareSolanaSend(RPC, { from: FROM, to: DEST, amount: 1_000_000n, mint: null, decimals: 9 })
 		expect(decodeSolanaTransfer(prepared.message)).toMatchObject({ kind: 'native', from: FROM, to: DEST, amount: 1_000_000n })
 		expect(() => verifySignedSolanaTransaction(signSolanaTransaction(prepared, PRIV), prepared)).not.toThrow()

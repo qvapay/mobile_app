@@ -105,7 +105,11 @@ const rpcCall = <T>(rpc: RegistryRpc, method: string, params: unknown[], signal?
 type AccountInfo = { value: { owner: string, lamports: number } | null }
 
 /**
- * Mínimo exento de renta de una cuenta de sistema (0 bytes de datos), ~890.880 lamports.
+ * Mínimo exento de renta de una cuenta de sistema (0 bytes de datos).
+ *
+ * Se pregunta al nodo y NO se hardcodea: el parámetro de renta de Solana ha bajado de
+ * 3480 a 2540 lamports por byte-año, así que la cifra que todo el mundo cita de memoria
+ * (890.880) es un 37% más alta que la real de hoy (650.240).
  *
  * Importa en los dos extremos de un envío de SOL: una cuenta NUEVA debe recibir al menos
  * esto, y la del remitente no puede quedarse por debajo con saldo distinto de cero. El
