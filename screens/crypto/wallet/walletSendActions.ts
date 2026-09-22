@@ -17,7 +17,7 @@ import { broadcastBtcTransaction, estimateVsize, feeFor, FEE_TIER_ETA_MINUTES, i
 import type { FeeTier, PreparedBtcSend, SignedBtcTx } from '../../../wallet/btc/tx'
 import { broadcastStacksTransaction, isValidStacksAddress, prepareStacksSend, signStacksTransaction } from '../../../wallet/stacks/tx'
 import type { PreparedStacksSend, SignedStacksTx } from '../../../wallet/stacks/tx'
-import { broadcastSolanaTransaction, prepareSolanaSend, signSolanaTransaction } from '../../../wallet/solana/tx'
+import { broadcastSolanaTransaction, getSolanaRentExemptMinimum, prepareSolanaSend, signSolanaTransaction } from '../../../wallet/solana/tx'
 import type { PreparedSolanaSend, SignedSolanaTx } from '../../../wallet/solana/tx'
 import { isValidSolanaAddress } from '../../../wallet/solana/codec'
 import type { WalletAsset } from '../../../wallet/assets'
@@ -170,8 +170,15 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
  * nada: MAX = todo el saldo y la fee se descuenta del envío ("enviar todo").
  */
 export const estimateNativeReserve = async (chain: RegistryChain, chainKey: string): Promise<bigint> => {
-	// Solana: tarifa base + margen de prioridad (el nativo puede quedar en 0: la cuenta se cierra)
-	if (chain.kind === 'solana') return 20_000n
+	// Solana: el mínimo exento de renta MÁS la comisión. Una cuenta que hoy está exenta
+	// no puede quedarse por debajo de ese mínimo con saldo distinto de cero — el runtime
+	// lo rechaza con InsufficientFundsForRent, y el rechazo llega en la simulación como
+	// un "Transaction simulation failed" que no explica nada. Reservar solo la comisión
+	// (lo que se hacía antes) dejaba la cuenta con calderilla y rompía el "enviar todo".
+	if (chain.kind === 'solana') {
+		const minimum = await getAppRpcRouter().call(chainKey, (rpc, signal) => getSolanaRentExemptMinimum(rpc, { signal }))
+		return minimum + 20_000n
+	}
 	if (chain.kind !== 'evm') return 0n
 	const fee = await getAppRpcRouter().call(chainKey, (rpc, signal) => getEvmFeeData(rpc, { signal }))
 	const perGas = fee.eip1559 ? fee.baseFee * 2n + fee.priorityFee : fee.gasPrice

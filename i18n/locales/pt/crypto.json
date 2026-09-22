@@ -265,7 +265,8 @@
 				"generic": "Não foi possível enviar: {{message}}",
 				"unknown": "Não foi possível enviar. Tente de novo.",
 				"noGasForFee": "Você precisa de {{needed}} {{symbol}} para a taxa e tem {{have}}. Deposite {{symbol}} na sua carteira ou reduza a quantidade.",
-				"expired": "A transação expirou antes de ser enviada. Toque em Tentar de novo para prepará-la outra vez."
+				"expired": "A transação expirou antes de ser enviada. Toque em Tentar de novo para prepará-la outra vez.",
+				"solanaRent": "Sobraria pouco SOL: uma conta Solana precisa de um mínimo para continuar existindo. Envie um pouco menos."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
 			"btcSendAll": "Você está enviando todo o saldo: a taxa de rede ({{fee}} BTC) é descontada da quantidade.",

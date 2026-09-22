@@ -265,7 +265,8 @@
 				"generic": "Couldn’t send: {{message}}",
 				"unknown": "Couldn’t send. Please try again.",
 				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",
-				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again."
+				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again.",
+				"solanaRent": "You'd be left with too little SOL: a Solana account needs a minimum to keep existing. Send a bit less."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
 			"btcSendAll": "You’re sending your whole balance: the network fee ({{fee}} BTC) is deducted from the amount.",

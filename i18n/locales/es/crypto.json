@@ -265,7 +265,8 @@
 				"generic": "No se pudo enviar: {{message}}",
 				"unknown": "No se pudo enviar. Inténtalo de nuevo.",
 				"noGasForFee": "Necesitas {{needed}} {{symbol}} para la comisión y tienes {{have}}. Deposita {{symbol}} en tu wallet o reduce la cantidad.",
-				"expired": "La transacción caducó antes de enviarse. Pulsa Reintentar para prepararla de nuevo."
+				"expired": "La transacción caducó antes de enviarse. Pulsa Reintentar para prepararla de nuevo.",
+				"solanaRent": "Te quedaría demasiado poco SOL: una cuenta de Solana necesita un mínimo para seguir existiendo. Envía un poco menos."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
 			"btcSendAll": "Envías todo tu saldo: la comisión de red ({{fee}} BTC) se descuenta de la cantidad.",

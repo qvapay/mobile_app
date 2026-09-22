@@ -476,6 +476,9 @@ const describeError = (err: unknown, t: (key: string, opts?: Record<string, unkn
 	if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
 	if (err instanceof AllRpcsFailedError) return t('crypto.wallet.send.errors.noNodes')
 	const message = (err as Error)?.message ?? ''
+	// La regla de renta de Solana llega como un rechazo de simulación sin explicación:
+	// el mensaje útil lo pone `prepareSolanaSend` antes de firmar
+	if (/seguir existiendo|InsufficientFundsForRent/i.test(message)) return t('crypto.wallet.send.errors.solanaRent')
 	if (/balance is not sufficient|insufficient funds|exceeds balance|insufficient/i.test(message)) return t('crypto.wallet.send.errors.nodeInsufficient')
 	return message ? t('crypto.wallet.send.errors.generic', { message }) : t('crypto.wallet.send.errors.unknown')
 }

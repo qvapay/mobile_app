@@ -104,6 +104,17 @@ const rpcCall = <T>(rpc: RegistryRpc, method: string, params: unknown[], signal?
 
 type AccountInfo = { value: { owner: string, lamports: number } | null }
 
+/**
+ * Mínimo exento de renta de una cuenta de sistema (0 bytes de datos), ~890.880 lamports.
+ *
+ * Importa en los dos extremos de un envío de SOL: una cuenta NUEVA debe recibir al menos
+ * esto, y la del remitente no puede quedarse por debajo con saldo distinto de cero. El
+ * runtime rechaza la transacción con `InsufficientFundsForRent`, y como pasa en la
+ * simulación el usuario solo ve "Transaction simulation failed".
+ */
+export const getSolanaRentExemptMinimum = async (rpc: RegistryRpc, { signal }: { signal?: AbortSignal } = {}): Promise<bigint> =>
+	BigInt(await rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [0], signal))
+
 /** Mediana de las tarifas de prioridad recientes (las no nulas), con tope. PURO. */
 export const priorityFeeFrom = (fees: Array<{ prioritizationFee?: number }> | undefined): bigint => {
 	const values = (fees ?? []).map(f => f.prioritizationFee ?? 0).filter(v => v > 0).sort((a, b) => a - b)
@@ -138,15 +149,18 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 
 	const instructions: Instruction[] = []
 	let rentLamports = 0n
+	let rentMinimum = 0n
+	let senderBalance = 0n
 	let createsTokenAccount = false
 	let computeUnitLimit: number
 
 	if (intent.mint === null) {
+		rentMinimum = await getSolanaRentExemptMinimum(rpc, { signal })
 		if (!toInfo?.value) {
 			// Una cuenta nueva debe quedar exenta de renta o el nodo rechaza la tx
-			const minimum = BigInt(await rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [0], signal))
-			if (intent.amount < minimum) throw new ChainHttpError(`solana: a una dirección nueva hay que enviar al menos ${minimum} lamports`, { retryable: false })
+			if (intent.amount < rentMinimum) throw new ChainHttpError(`solana: a una dirección nueva hay que enviar al menos ${rentMinimum} lamports`, { retryable: false })
 		}
+		senderBalance = BigInt((await rpcCall<{ value: number }>(rpc, 'getBalance', [intent.from, { commitment: 'confirmed' }], signal)).value)
 		computeUnitLimit = COMPUTE_UNITS.native
 		instructions.push(systemTransferIx(intent.from, intent.to, intent.amount))
 	} else {
@@ -171,6 +185,19 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 
 	const message = compileMessage(feePayer, instructions, latest.value.blockhash)
 	const feeLamports = LAMPORTS_PER_SIGNATURE * BigInt(message.numRequiredSignatures) + (computeUnitPrice > 0n ? priorityLamports(computeUnitPrice, computeUnitLimit) : 0n)
+
+	// La regla de renta de Solana: una cuenta que HOY está exenta no puede quedar por
+	// debajo del mínimo con saldo distinto de cero. Vaciarla del todo sí vale (se
+	// cierra), y una que ya estaba por debajo puede seguir operando — solo se prohíbe
+	// cruzar el umbral hacia abajo. Un "enviar todo" que deja 15.000 lamports cae justo
+	// ahí, y el rechazo llega en la simulación como un "Transaction simulation failed"
+	// que no explica nada.
+	if (intent.mint === null && senderBalance >= rentMinimum) {
+		const left = senderBalance - intent.amount - feeLamports
+		if (left > 0n && left < rentMinimum) {
+			throw new ChainHttpError(`solana: te quedarían ${left} lamports y una cuenta necesita ${rentMinimum} para seguir existiendo; envía un poco menos`, { retryable: false })
+		}
+	}
 
 	return {
 		intent,
