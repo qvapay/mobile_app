@@ -8,7 +8,7 @@ import { useTextStyles } from '../../../../../theme/themeUtils'
 
 // UI
 import QPPressable from '../../../../../ui/particles/QPPressable'
-import AssetIcon from '../AssetIcon'
+import QPAssetIcon from '../../../../../ui/particles/QPAssetIcon'
 import SwapSheet from './SwapSheet'
 
 export type SwapAssetOption = { pairId: string, symbol: string, network: string, logoTick: string, networkTick: string | null, balanceLabel: string }
@@ -44,7 +44,7 @@ const SwapAssetSheet = ({ visible, options, selectedPairId, onSelect, onClose }:
 							accessibilityRole="button"
 							accessibilityState={{ selected }}
 						>
-							<AssetIcon logoTick={option.logoTick} networkTick={option.networkTick} size={38} />
+							<QPAssetIcon logoTick={option.logoTick} networkTick={option.networkTick} size={38} />
 							<View style={styles.texts}>
 								<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{option.symbol}</Text>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{option.network}</Text>

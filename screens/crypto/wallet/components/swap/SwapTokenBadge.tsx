@@ -4,7 +4,7 @@ import { Image, StyleSheet, View } from 'react-native'
 import { useTheme } from '../../../../../theme/ThemeContext'
 
 // UI
-import AssetIcon from '../AssetIcon'
+import QPAssetIcon from '../../../../../ui/particles/QPAssetIcon'
 
 /** Qué pinta el icono de un lado del swap: el saldo QvaPay (marca) o un activo de la wallet. */
 export type SwapTokenIcon = { kind: 'balance' } | { kind: 'wallet', logoTick: string, networkTick: string | null }
@@ -14,7 +14,7 @@ const SwapTokenBadge = ({ icon, size = 28, ringColor }: { icon: SwapTokenIcon, s
 
 	const { theme } = useTheme()
 
-	if (icon.kind === 'wallet') return <AssetIcon logoTick={icon.logoTick} networkTick={icon.networkTick} size={size} ringColor={ringColor} />
+	if (icon.kind === 'wallet') return <QPAssetIcon logoTick={icon.logoTick} networkTick={icon.networkTick} size={size} ringColor={ringColor} />
 	return (
 		<View style={[styles.brand, { width: size, height: size, borderRadius: size / 2, backgroundColor: theme.colors.primary }]}>
 			<Image source={require('../../../../../assets/images/ui/qvapay-logo-white.png')} style={{ width: size * 0.58, height: size * 0.58 }} resizeMode="contain" />

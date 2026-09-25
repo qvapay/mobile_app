@@ -1,10 +1,10 @@
 import { StyleSheet, View } from 'react-native'
 
 // Theme
-import { useTheme } from '../../../../theme/ThemeContext'
+import { useTheme } from '../../theme/ThemeContext'
 
 // UI
-import QPCoin from '../../../../ui/particles/QPCoin'
+import QPCoin from './QPCoin'
 
 type Props = {
 	logoTick: string
@@ -20,7 +20,7 @@ type Props = {
  * Trust/SafePal): USDT de TRON y USDT de BNB Chain comparten logo, el badge es
  * lo que evita mandar fondos a la red equivocada.
  */
-const AssetIcon = ({ logoTick, networkTick, size = 40, ringColor }: Props) => {
+const QPAssetIcon = ({ logoTick, networkTick, size = 40, ringColor }: Props) => {
 
 	const { theme } = useTheme()
 	const badge = Math.round(size * 0.42)
@@ -52,4 +52,4 @@ const styles = StyleSheet.create({
 	badge: { position: 'absolute', right: -3, bottom: -3, alignItems: 'center', justifyContent: 'center' },
 })
 
-export default AssetIcon
+export default QPAssetIcon

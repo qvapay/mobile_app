@@ -33,7 +33,7 @@ import QPFitText from '../../../ui/particles/QPFitText'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPSkeleton from '../../../ui/particles/QPSkeleton'
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
-import AssetIcon from './components/AssetIcon'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -179,7 +179,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const header = (
 		<View>
 			<View style={styles.hero}>
-				<AssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
+				<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
 				<QPFitText style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>
 					{showBalance ? `${asset.amountLabel} ${asset.symbol}` : `•••• ${asset.symbol}`}
 				</QPFitText>

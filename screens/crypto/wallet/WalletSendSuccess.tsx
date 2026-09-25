@@ -19,7 +19,7 @@ import { shortAddress } from './walletFormat'
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
-import AssetIcon from './components/AssetIcon'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
 // Navigation
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -54,7 +54,7 @@ const WalletSendSuccess = ({ navigation, route }: Props) => {
 
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 					<View style={styles.amountRow}>
-						{asset && <AssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={34} />}
+						{asset && <QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={34} />}
 						<Text style={[textStyles.h2, { color: theme.colors.primaryText }]}>−{displayAmount(amount)} {asset?.symbol ?? ''}</Text>
 					</View>
 					<Text style={[textStyles.h6, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.asset.to', { address: shortAddress(to, 8, 8) })}</Text>

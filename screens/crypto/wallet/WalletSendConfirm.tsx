@@ -34,7 +34,7 @@ import { formatUsd, shortAddress } from './walletFormat'
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
-import AssetIcon from './components/AssetIcon'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import WalletAuthModal from './components/WalletAuthModal'
 import EnergyRentModal from './components/EnergyRentModal'
 
@@ -136,7 +136,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		<ScrollView style={containerStyles.subContainer} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
 			<View style={styles.hero}>
-				<AssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
+				<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
 				<Text style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>−{displayAmount(verifiedAmount)} {asset.symbol}</Text>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.send.viaNetwork', { network: asset.chainName })}</Text>
 			</View>
