@@ -26,11 +26,8 @@ const find = (chainKey, symbol) => catalog.find(a => a.chainKey === chainKey && 
 const PRICES = { ETH: 2500, BNBBSC: 700, TRX: 0.34, BTC: 77000, MATICMAINNET: 0.1 }
 
 describe('buildAssetCatalog', () => {
-	test('cada activo de la lista base existe en el registry empaquetado', () => {
-		DEFAULT_ASSETS.forEach(({ chainKey, symbol }) => {
-			expect(find(chainKey, symbol)).toBeDefined()
-		})
-	})
+
+	test('cada activo de la lista base existe en el registry empaquetado', () => { DEFAULT_ASSETS.forEach(({ chainKey, symbol }) => { expect(find(chainKey, symbol)).toBeDefined() }) })
 
 	test('ETH, BSC y Base van por separado aunque compartan dirección', () => {
 		expect(find('ethereum', 'ETH').id).toBe('ethereum:native')
@@ -72,6 +69,16 @@ describe('valoración y visibilidad', () => {
 		expect(isAssetVisible(usdcBaseEmpty, { [usdcBase.id]: true })).toBe(true)
 	})
 
+	test('USDC está en la lista base allí donde lo está USDT', () => {
+		// Antes no estaba en NINGUNA red: su fila solo aparecía si ya había saldo, así que
+		// quien quería recibir USDC no encontraba dónde
+		const chains = DEFAULT_ASSETS.filter(a => a.symbol === 'USDT').map(a => a.chainKey)
+		expect(chains.length).toBeGreaterThan(0)
+		for (const chainKey of chains) {
+			expect(DEFAULT_ASSETS).toContainEqual({ chainKey, symbol: 'USDC' })
+		}
+	})
+
 	test('orden: USD desc, empates por lista base; total suma solo lo valorado', () => {
 		const balances = {
 			'tron:native': '45100000', // 45.1 TRX ≈ 15.33
@@ -83,7 +90,7 @@ describe('valoración y visibilidad', () => {
 		// QUSD (el token de la casa) siempre primero aunque esté en cero; luego por valor
 		expect(sorted.slice(0, 4)).toEqual(['stacks:QUSD', 'tron:USDT', 'bitcoin:BTC', 'tron:TRX'])
 		// ceros después, en el orden de la lista base
-		expect(sorted.slice(4)).toEqual(['bsc:USDT', 'solana:USDT', 'ethereum:ETH', 'base:ETH', 'bsc:BNB', 'solana:SOL'])
+		expect(sorted.slice(4)).toEqual(['tron:USDC', 'bsc:USDT', 'bsc:USDC', 'solana:USDT', 'solana:USDC', 'ethereum:ETH', 'base:ETH', 'bsc:BNB', 'solana:SOL'])
 		expect(totalUsd(views)).toBeCloseTo(820 + 92.4 + 15.334, 2)
 	})
 })

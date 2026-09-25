@@ -80,8 +80,14 @@ export const DEFAULT_ASSETS: Array<{ chainKey: string, symbol: string }> = [
 	{ chainKey: 'tron', symbol: 'USDT' },
 	// QUSD (Stacks): el token de QvaPay, segundo en la lista base
 	{ chainKey: 'stacks', symbol: 'QUSD' },
+	// USDC acompaña a USDT en las mismas tres redes: hasta ahora no estaba en la lista base
+	// de NINGUNA, así que su fila solo aparecía si ya había saldo — y quien quería recibir
+	// USDC no encontraba dónde. Cada una junto a su USDT para que el par no se separe.
+	{ chainKey: 'tron', symbol: 'USDC' },
 	{ chainKey: 'bsc', symbol: 'USDT' },
+	{ chainKey: 'bsc', symbol: 'USDC' },
 	{ chainKey: 'solana', symbol: 'USDT' },
+	{ chainKey: 'solana', symbol: 'USDC' },
 	{ chainKey: 'bitcoin', symbol: 'BTC' },
 	{ chainKey: 'ethereum', symbol: 'ETH' },
 	{ chainKey: 'base', symbol: 'ETH' },
