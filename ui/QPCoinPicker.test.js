@@ -1,22 +1,13 @@
 /**
- * Render tests for the full-screen coin picker modal (search, quick pills,
- * recents in AsyncStorage) — node environment with theme, safe-area, storage
- * and child particles mocked (see keypadAmount.test.js for why).
+ * El selector de monedas es, desde el barrido de selectores, un ADAPTADOR sobre
+ * `QPAssetSheet`: la hoja, el buscador y las filas ya no son suyos. Así que lo que aquí se
+ * prueba es exactamente lo que sigue siendo su responsabilidad — traducir una `Coin` del
+ * catálogo a una opción (condiciones, precio, cuánto recibirías) y recordar las recientes.
+ * La hoja tiene sus propios tests en QPAssetSheet.test.js.
  * @jest-environment node
  */
-jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
-	return { useTheme: () => ({ theme: createTheme(true) }) }
-})
-jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView', useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }))
-jest.mock('@react-native-async-storage/async-storage', () => ({
-	getItem: jest.fn(),
-	setItem: jest.fn(),
-}))
-jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
-jest.mock('./particles/QPCoin', () => 'QPCoin')
-jest.mock('./particles/QPInput', () => 'QPInput')
-jest.mock('./QPCoinRow', () => 'QPCoinRow')
+jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(), setItem: jest.fn() }))
+jest.mock('./QPAssetSheet', () => 'QPAssetSheet')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -24,122 +15,114 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import QPCoinPicker from './QPCoinPicker'
 
 const COINS = [
-	{ id: 1, tick: 'BTC', name: 'Bitcoin', logo: 'btc', price: '60000' },
-	{ id: 2, tick: 'TRX', name: 'Tron', logo: 'trx', price: '0.1' },
-	{ id: 3, tick: 'USDTTRC20', name: 'USDT (TRC20)', logo: 'usdt', price: '1' },
+	{ id: 1, tick: 'BTC', name: 'Bitcoin', logo: 'btc', price: '60000', fee_out: 1, min_out: 60 },
+	{ id: 2, tick: 'TRX', name: 'Tron', logo: 'trx', price: '0.1', network: 'TRON' },
+	{ id: 3, tick: 'USDTTRC20', name: 'USDT (TRC20)', logo: 'usdt', price: '1', network: 'TRON' },
 ]
 
+let tree
 const renderPicker = async (props = {}) => {
-	let tree
 	await act(async () => {
-		tree = create(
-			<QPCoinPicker
-				visible
-				onClose={jest.fn()}
-				onSelect={jest.fn()}
-				coins={COINS}
-				{...props}
-			/>
-		)
+		tree = create(<QPCoinPicker visible onClose={jest.fn()} onSelect={jest.fn()} coins={COINS} {...props} />)
 	})
 	return tree
 }
-
-const pressables = (tree) => tree.root.findAll(n => typeof n.props.onPress === 'function')
-// OJO: el overlay y la hoja del bottom sheet son pulsables que CONTIENEN todo
-// el árbol, así que hay que exigir "exactamente uno" para quedarse con la fila
-// o el botón concreto y no con las capas de fondo
-const coinRowPressables = (tree) => pressables(tree).filter(n => n.findAllByType('QPCoinRow').length === 1)
-const pillPressables = (tree) => pressables(tree).filter(n => n.findAllByType('QPCoin').length === 1 && n.findAllByType('QPCoinRow').length === 0)
-const iconPressable = (tree, iconName) => pressables(tree).find(n => {
-	const icons = n.findAllByType('FontAwesome6')
-	return icons.length === 1 && icons[0].props.name === iconName
-})
+const sheet = () => tree.root.findByType('QPAssetSheet').props
+const options = () => sheet().options
 
 beforeEach(() => {
 	jest.clearAllMocks()
 	AsyncStorage.getItem.mockResolvedValue(null)
 })
+afterEach(async () => { if (tree) { await act(async () => tree.unmount()); tree = null } })
 
-test('renders one row per coin forwarding amount, direction and showFees', async () => {
-	const tree = await renderPicker({ amount: '25', direction: 'in', showFees: false })
-	const rows = tree.root.findAllByType('QPCoinRow')
-	expect(rows.map(r => r.props.coin.tick)).toEqual(['BTC', 'TRX', 'USDTTRC20'])
-	expect(rows[0].props.amount).toBe('25')
-	expect(rows[0].props.direction).toBe('in')
-	expect(rows[0].props.showFees).toBe(false)
+test('una opción por moneda, con su identidad y su logo', async () => {
+	await renderPicker()
+	expect(options().map(o => o.id)).toEqual(['BTC', 'TRX', 'USDTTRC20'])
+	expect(options()[0]).toMatchObject({ title: 'Bitcoin', logoTick: 'btc' })
 })
 
-test('shows the loading and empty states', async () => {
-	const loading = await renderPicker({ isLoading: true })
-	expect(JSON.stringify(loading.toJSON())).toContain('Cargando monedas...')
-	const empty = await renderPicker({ coins: [] })
-	expect(JSON.stringify(empty.toJSON())).toContain('No hay monedas disponibles')
+test('el badge de red va en la opción: es lo que distingue el USDT correcto', async () => {
+	await renderPicker()
+	expect(options()[2].networkTick).toBe('TRON')
 })
 
-test('the header search toggle reveals an input that filters by name or tick', async () => {
-	const tree = await renderPicker()
-	expect(tree.root.findAllByType('QPInput')).toHaveLength(0)
-	act(() => { iconPressable(tree, 'magnifying-glass').props.onPress() })
-	const input = tree.root.findByType('QPInput')
-	act(() => { input.props.onChangeText('tron') })
-	expect(tree.root.findAllByType('QPCoinRow').map(r => r.props.coin.tick)).toEqual(['TRX'])
-	act(() => { input.props.onChangeText('usdt') })
-	expect(tree.root.findAllByType('QPCoinRow').map(r => r.props.coin.tick)).toEqual(['USDTTRC20'])
+test('las condiciones se pintan como subtítulo, legibles y en una línea', async () => {
+	await renderPicker({ direction: 'out' })
+	expect(options()[0].subtitle).toBe('1% comisión · mín. $60')
 })
 
-test('selecting a coin row reports the coin and records it as recent', async () => {
+test('sin condiciones, el subtítulo cae a la red', async () => {
+	await renderPicker({ direction: 'out' })
+	expect(options()[1].subtitle).toBe('TRON')
+})
+
+test('con importe, la cifra de la derecha es cuánto recibirías', async () => {
+	await renderPicker({ amount: '120', direction: 'out' })
+	expect(options()[0].value).toBe('0.002')
+	expect(options()[1].value).toBe('1,200')
+})
+
+test('sin importe no se inventa un cero', async () => {
+	await renderPicker()
+	expect(options()[0].value).toBeUndefined()
+})
+
+test('el precio solo aparece cuando NO va 1:1 con el dólar', async () => {
+	await renderPicker()
+	expect(options()[0].valueCaption).toBe('$60,000')
+	// USDT a $1.0000 era puro ruido
+	expect(options()[2].valueCaption).toBeUndefined()
+})
+
+test('showFees=false deja solo la identidad (modo P2P)', async () => {
+	await renderPicker({ amount: '120', showFees: false, direction: 'out' })
+	expect(options()[0].value).toBeUndefined()
+	expect(options()[0].valueCaption).toBeUndefined()
+	expect(options()[0].subtitle).toBeUndefined()
+})
+
+test('la búsqueda también mira el tick y la red, no solo el nombre', async () => {
+	await renderPicker()
+	expect(options()[2].keywords).toContain('USDTTRC20')
+	expect(options()[2].keywords).toContain('TRON')
+})
+
+test('elegir devuelve la MONEDA, no su tick, y la recuerda', async () => {
 	const onSelect = jest.fn()
-	const tree = await renderPicker({ onSelect, recentKey: 'recent_coins' })
-	await act(async () => { coinRowPressables(tree)[1].props.onPress() })
+	await renderPicker({ onSelect, recentKey: 'recent_coins' })
+	await act(async () => { sheet().onSelect('TRX') })
 	expect(onSelect).toHaveBeenCalledWith(COINS[1])
 	expect(AsyncStorage.setItem).toHaveBeenCalledWith('recent_coins', JSON.stringify(['TRX']))
 })
 
-test('quick pills pad the persisted recents with the default coins', async () => {
+test('sin recentKey no se persiste nada', async () => {
+	await renderPicker({ onSelect: jest.fn() })
+	await act(async () => { sheet().onSelect('TRX') })
+	expect(AsyncStorage.setItem).not.toHaveBeenCalled()
+})
+
+test('los accesos rápidos son las recientes, rellenadas con las por defecto y sin repetir', async () => {
 	AsyncStorage.getItem.mockResolvedValue(JSON.stringify(['TRX']))
-	const tree = await renderPicker({
-		recentKey: 'recent_coins',
-		defaultCoins: [{ tick: 'BTC', label: 'Bitcoin' }, { tick: 'TRX', label: 'Tron' }],
-	})
-	const pills = pillPressables(tree)
-	expect(pills).toHaveLength(2) // recent TRX first, BTC default, TRX not duplicated
-	expect(pills[0].findByType('QPCoin').props.coin).toBe('trx')
-	expect(tree.root.findAllByType('QPCoinRow')).toHaveLength(3) // sanity: list still full
+	await renderPicker({ recentKey: 'recent_coins', defaultCoins: [{ tick: 'BTC', label: 'Bitcoin' }, { tick: 'TRX', label: 'Tron' }] })
+	expect(sheet().quick.map(q => q.id)).toEqual(['TRX', 'BTC'])
+	// La lista completa sigue entera
+	expect(options()).toHaveLength(3)
 })
 
-test('tapping a quick pill selects its coin', async () => {
-	const onSelect = jest.fn()
-	const tree = await renderPicker({ onSelect, defaultCoins: [{ tick: 'BTC', label: 'Bitcoin' }] })
-	const pills = pillPressables(tree)
-	expect(pills).toHaveLength(1)
-	await act(async () => { pills[0].props.onPress() })
-	expect(onSelect).toHaveBeenCalledWith(COINS[0])
+test('una clave de recientes corrupta no impide elegir moneda', async () => {
+	AsyncStorage.getItem.mockResolvedValue('{no es json')
+	await renderPicker({ recentKey: 'recent_coins' })
+	expect(options()).toHaveLength(3)
+	expect(sheet().quick).toEqual([])
 })
 
-test('la X, el backdrop y el gesto de cierre llaman a onClose', async () => {
-	const onClose = jest.fn()
-	const tree = await renderPicker({ onClose })
-	act(() => { iconPressable(tree, 'xmark').props.onPress() })
-	// Backdrop: el primer pulsable del árbol es el overlay del bottom sheet
-	act(() => { pressables(tree)[0].props.onPress() })
-	const modal = tree.root.findByProps({ transparent: true })
-	act(() => { modal.props.onRequestClose() })
-	expect(onClose).toHaveBeenCalledTimes(3)
+test('la moneda ya elegida se marca por su tick', async () => {
+	await renderPicker({ selectedCoin: COINS[1] })
+	expect(sheet().selectedId).toBe('TRX')
 })
 
-test('tocar dentro de la hoja NO cierra el selector', async () => {
-	const onClose = jest.fn()
-	const tree = await renderPicker({ onClose })
-	// La hoja es el segundo pulsable: absorbe el toque para que no llegue al
-	// overlay (tocar el grabber o la cabecera cerraba el picker)
-	act(() => { pressables(tree)[1].props.onPress() })
-	expect(onClose).not.toHaveBeenCalled()
-})
-
-test('se presenta como bottom sheet, no como pantalla completa', async () => {
-	const tree = await renderPicker()
-	expect(tree.root.findAllByProps({ presentationStyle: 'pageSheet' })).toHaveLength(0)
-	const modal = tree.root.findByProps({ transparent: true })
-	expect(modal.props.animationType).toBe('slide')
+test('el estado de carga viaja a la hoja', async () => {
+	await renderPicker({ isLoading: true, coins: [] })
+	expect(sheet().loading).toBe(true)
 })

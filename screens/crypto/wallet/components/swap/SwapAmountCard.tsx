@@ -35,6 +35,9 @@ type Props = {
  * Tarjeta de un lado del swap (patrón Uniswap/Jupiter): etiqueta y chips arriba, importe
  * grande a la izquierda con la píldora del activo a la derecha, equivalente en USD y saldo
  * abajo. El lado que recibe no es editable: su importe sale del modelo.
+ *
+ * Abajo a la derecha va SOLO el saldo, sin nombrar el activo: ya está en la píldora de al
+ * lado, y la red en el badge de su icono.
  */
 const SwapAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, disabled, accessibilityLabel }, ref) => {
 
@@ -92,7 +95,7 @@ const SwapAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amoun
 
 			<View style={styles.bottom}>
 				<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{fiatLabel}</Text>
-				<Text style={[textStyles.h6, styles.balance, { color: theme.colors.secondaryText }]} numberOfLines={1}>{token.caption} · {balanceLabel}</Text>
+				<Text style={[textStyles.h6, styles.balance, { color: theme.colors.secondaryText }]} numberOfLines={1}>{balanceLabel}</Text>
 			</View>
 		</View>
 	)
