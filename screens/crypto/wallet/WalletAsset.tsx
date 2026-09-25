@@ -14,12 +14,13 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
-import { addressForKind, assetPrice, explorerAddressUrl, isHouseToken } from '../../../wallet/assets'
+import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
 import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
 import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
+import useCanSwapAsset from './useCanSwapAsset'
 import type { ApiError } from '../../../api/unwrap'
 
 // Settings
@@ -147,6 +148,8 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	// Energía y ancho de banda: solo tienen sentido en TRON, y ahí son la
 	// diferencia entre un envío de USDT gratis y uno que quema ~13 TRX
 	const isTron = asset?.kind === 'tron'
+	// El explorador cede su sitio al intercambio cuando el activo tiene alguna salida
+	const canSwap = useCanSwapAsset(asset)
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -207,12 +210,12 @@ const WalletAsset = ({ navigation, route }: Props) => {
 					label={t('crypto.wallet.home.actions.receive')}
 					onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_RECEIVE, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP))}
 				/>
-				{isHouseToken(asset) && (
+				{canSwap && (
 					<Action
 						theme={theme}
 						icon="arrows-rotate"
 						label={t('crypto.wallet.home.actions.swap')}
-						onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_SWAP, undefined) : navigation.navigate(ROUTES.WALLET_BACKUP))}
+						onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_SWAP, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP))}
 					/>
 				)}
 				{isTron && (
@@ -223,7 +226,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 						onPress={() => navigation.navigate(ROUTES.WALLET_ENERGY, undefined)}
 					/>
 				)}
-				<Action theme={theme} icon="up-right-from-square" label={t('crypto.wallet.asset.explorer')} onPress={() => openUrl(address ? explorerAddressUrl(chain, address) : null)} />
+				{!canSwap && (
+					<Action theme={theme} icon="up-right-from-square" label={t('crypto.wallet.asset.explorer')} onPress={() => openUrl(address ? explorerAddressUrl(chain, address) : null)} />
+				)}
 			</View>
 
 			<Text style={[textStyles.h3, styles.sectionTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.asset.activity')}</Text>

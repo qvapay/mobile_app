@@ -114,13 +114,22 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	// y devolvía el lado de arriba a "Saldo QvaPay".
 	const [pay, setPay] = useState<SwapSideRef | null>(null)
 	const [receive, setReceive] = useState<SwapSideRef | null>(null)
+	const incomingAssetId = route.params?.assetId
 	useEffect(() => {
+		// Llegando desde la pantalla de un activo, ese activo ES lo que se entrega y el saldo
+		// el destino por defecto: es lo que se quiere el 90% de las veces, y cambiarlo cuesta
+		// un toque. Sin esto, tocar "Intercambiar" en USDT-TRON aterrizaba en saldo → QUSD.
+		if (incomingAssetId) {
+			setPay(prev => prev ?? { kind: 'asset', id: incomingAssetId })
+			setReceive(prev => prev ?? BALANCE_SIDE)
+			return
+		}
 		if (!asset) { return }
 		const wallet: SwapSideRef = { kind: 'asset', id: asset.id }
 		const out = (route.params?.direction ?? 'out') === 'out'
 		setPay(prev => prev ?? (out ? BALANCE_SIDE : wallet))
 		setReceive(prev => prev ?? (out ? wallet : BALANCE_SIDE))
-	}, [asset, route.params?.direction])
+	}, [asset, incomingAssetId, route.params?.direction])
 
 	const routed = routeFor({ pay, receive, pairAssetIds, railOut, railIn })
 	const isExchange = routed.mode === 'exchange'

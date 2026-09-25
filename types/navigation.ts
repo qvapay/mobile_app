@@ -139,7 +139,8 @@ export type RootStackParamList = {
 	/** Movimiento ya cargado en la actividad (serializable): no se vuelve a pedir. */
 	WalletTxDetail: { assetId: string, tx: WalletTx }
 	/** Swap saldo ↔ QUSD; `direction` preselecciona el sentido (out = saldo → wallet). */
-	WalletSwap: { direction?: 'out' | 'in' } | undefined
+	/** `assetId`: se llega desde la pantalla de ese activo, que pasa a ser el lado que entrega. */
+	WalletSwap: { direction?: 'out' | 'in', assetId?: string } | undefined
 	WalletSwapStatus: { uuid: string }
 	/** Seguimiento de un intercambio cripto↔cripto. */
 	WalletExchangeStatus: { uuid: string }

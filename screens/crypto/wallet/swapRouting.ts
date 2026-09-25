@@ -102,3 +102,24 @@ export const directionFor = (mode: SwapMode): 'out' | 'in' | null =>
 
 /** Invertir cambia los dos lados de sitio, sea cual sea el motor. */
 export const flip = <T,>(pay: T, receive: T): [T, T] => [receive, pay]
+
+/**
+ * ¿Este activo se puede intercambiar por algo, sea lo que sea?
+ *
+ * Lo usa la pantalla del activo para decidir si enseña "Intercambiar" o el enlace al
+ * explorador. Basta UNA salida: el par custodial, el agregador o el riel de QvaPay. Si no
+ * hay ninguna, ofrecer el botón sería llevar al usuario a una pantalla que solo sabe decirle
+ * que no.
+ *
+ * @param isHouse - Es QUSD: siempre tiene su par custodial publicado.
+ * @param supportedAssetIds - Lo que el proveedor lista (`GET /wallet/exchange/quote`).
+ * @param railAssetIds - Lo que los rieles de depósito/retiro de QvaPay mueven.
+ */
+export const canSwapAsset = ({ assetId, isHouse, supportedAssetIds = [], railAssetIds = [] }: {
+	assetId: string
+	isHouse: boolean
+	supportedAssetIds?: string[]
+	railAssetIds?: string[]
+}): boolean =>
+	isHouse || supportedAssetIds.includes(assetId) || railAssetIds.includes(assetId)
+

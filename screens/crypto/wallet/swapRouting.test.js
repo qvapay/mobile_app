@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-const { assetIdOf, directionFor, flip, isBalance, routeFor } = require('./swapRouting')
+const { assetIdOf, canSwapAsset, directionFor, flip, isBalance, routeFor } = require('./swapRouting')
 
 const BALANCE = { kind: 'balance' }
 const QUSD = { kind: 'asset', id: 'stacks:SP14CTSJZNKZ7YTR6C84368J2QXRW8RC20GSQ8KS2.QUSD::QUSD' }
@@ -96,3 +96,25 @@ describe('utilidades', () => {
 		expect(flip(BALANCE, SOL)).toEqual([SOL, BALANCE])
 	})
 })
+
+describe('¿se puede intercambiar este activo?', () => {
+	const base = { assetId: SOL.id, isHouse: false, supportedAssetIds: [], railAssetIds: [] }
+
+	it('QUSD siempre: tiene su par custodial publicado', () => {
+		expect(canSwapAsset({ ...base, assetId: QUSD.id, isHouse: true })).toBe(true)
+	})
+
+	it('basta con que lo liste el proveedor', () => {
+		expect(canSwapAsset({ ...base, supportedAssetIds: [SOL.id] })).toBe(true)
+	})
+
+	it('o con que lo mueva un riel de QvaPay', () => {
+		expect(canSwapAsset({ ...base, railAssetIds: [SOL.id] })).toBe(true)
+	})
+
+	it('sin ninguna salida, no: el botón llevaría a una pantalla que solo sabe decir que no', () => {
+		expect(canSwapAsset(base)).toBe(false)
+		expect(canSwapAsset({ ...base, supportedAssetIds: [USDT_TRON.id], railAssetIds: [USDT_TRON.id] })).toBe(false)
+	})
+})
+
