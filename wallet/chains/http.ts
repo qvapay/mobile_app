@@ -9,12 +9,38 @@
 export class ChainHttpError extends Error {
 	status?: number
 	retryable?: boolean
-	constructor(message: string, { status, retryable }: { status?: number, retryable?: boolean } = {}) {
+	/** `error.data` crudo del JSON-RPC, por si alguien necesita más que el mensaje. */
+	data?: unknown
+	constructor(message: string, { status, retryable, data }: { status?: number, retryable?: boolean, data?: unknown } = {}) {
 		super(message)
 		this.name = 'ChainHttpError'
 		this.status = status
 		this.retryable = retryable
+		this.data = data
 	}
+}
+
+/**
+ * El motivo de verdad de un error JSON-RPC.
+ *
+ * Solana responde los fallos de preflight con `message: "Transaction simulation failed"`
+ * —que no dice nada— y el motivo REAL en `data.err` (`InsufficientFundsForRent`,
+ * `BlockhashNotFound`, un `InstructionError`…) más los logs del programa. Quedarse con
+ * el `message` deja al usuario, y a quien lee el informe, sin la única pista útil.
+ */
+export const describeRpcErrorData = (data: unknown): string => {
+	const detail = data as { err?: unknown, logs?: string[] } | null | undefined
+	if (!detail || typeof detail !== 'object') { return '' }
+
+	const err = detail.err
+	// `err` puede ser un string ('BlockhashNotFound') o un objeto de una sola clave
+	const reason = typeof err === 'string' ? err
+		: err && typeof err === 'object' ? Object.keys(err)[0] ?? '' : ''
+
+	// El último log suele ser el `Program ... failed: <motivo>` que explica el revert
+	const log = Array.isArray(detail.logs) ? detail.logs.filter(line => /failed|insufficient|error/i.test(line)).slice(-1)[0] : undefined
+
+	return [reason, log].filter(Boolean).join(' — ').slice(0, 220)
 }
 
 type RequestOptions = {
@@ -50,7 +76,7 @@ export const postJson = async <T>(url: string, body: unknown, { signal, headers 
 	return parseJson(res, url) as Promise<T>
 }
 
-type JsonRpcResponse<T> = { result?: T, error?: { code?: number, message?: string } }
+type JsonRpcResponse<T> = { result?: T, error?: { code?: number, message?: string, data?: unknown } }
 
 /** Códigos JSON-RPC que significan "este nodo no puede ahora", no "petición mala". */
 const RETRYABLE_RPC_CODES = new Set([-32005, -32603, -32000, 429])
@@ -60,8 +86,10 @@ export const jsonRpc = async <T>(url: string, method: string, params: unknown[],
 	const payload = await postJson<JsonRpcResponse<T>>(url, { jsonrpc: '2.0', id: 1, method, params }, options)
 	if (payload?.error) {
 		const code = payload.error.code
-		throw new ChainHttpError(`${url}: ${method} → ${payload.error.message ?? code}`, {
+		const detail = describeRpcErrorData(payload.error.data)
+		throw new ChainHttpError(`${url}: ${method} → ${payload.error.message ?? code}${detail ? `: ${detail}` : ''}`, {
 			retryable: code !== undefined && RETRYABLE_RPC_CODES.has(code),
+			data: payload.error.data,
 		})
 	}
 	if (payload?.result === undefined) throw new ChainHttpError(`${url}: ${method} sin result`, { retryable: true })

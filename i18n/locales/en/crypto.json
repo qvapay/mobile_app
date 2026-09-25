@@ -265,7 +265,8 @@
 				"generic": "Couldn’t send: {{message}}",
 				"unknown": "Couldn’t send. Please try again.",
 				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",
-				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again."
+				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again.",
+				"solanaRent": "You'd be left with too little SOL: a Solana account needs a minimum to keep existing. Send a bit less."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
 			"btcSendAll": "You’re sending your whole balance: the network fee ({{fee}} BTC) is deducted from the amount.",
@@ -284,6 +285,18 @@
 				"cta": "Rent energy",
 				"waiting": "Confirming the delegation on the network…",
 				"waitingSlow": "The energy is already yours, but the network takes a moment to reflect it. Try again in a minute."
+			},
+			"gasless": {
+				"free": "Free · QvaPay pays it",
+				"remaining_one": "You have {{count}} free send left today",
+				"remaining_other": "You have {{count}} free sends left today",
+				"exhausted": "You've used your free send for today. It renews at {{time}}.",
+				"goldHook": "With GOLD, your USDT and USDC sends on Solana are free.",
+				"goldCta": "Get GOLD",
+				"sending": "Sending with no fee…",
+				"pending": "Sent. We're confirming it on the network.",
+				"walletNotRegistered": "Open your wallet to register it and send for free.",
+				"failed": "We couldn't complete the free send. You can try paying the fee."
 			}
 		},
 		"settings": {

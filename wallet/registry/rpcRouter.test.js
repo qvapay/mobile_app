@@ -171,19 +171,28 @@ describe('isRetryableRpcError', () => {
 	})
 })
 
+/** Proxies propios ya en producción (verificados antes de encenderse en el registry). */
+const LIVE_QVAPAY_PROXIES = ['solana']
+
 describe('bundled.json', () => {
-	test('cubre las 8 cadenas v6 con la forma del contrato', () => {
-		expect(bundled.version).toBe(6)
+	test('cubre las 8 cadenas v7 con la forma del contrato', () => {
+		// La versión se fija a propósito: es lo que decide si el registro remoto gana
+		// (`remote.version >= bundled.version`), así que subirla es una decisión, no un
+		// detalle. El remoto estuvo dos versiones descartado por quedarse atrás.
+		expect(bundled.version).toBe(7)
 		expect(Object.keys(bundled.chains).sort()).toEqual(['base', 'bitcoin', 'bsc', 'ethereum', 'polygon', 'solana', 'stacks', 'tron'])
 		for (const [key, chain] of Object.entries(bundled.chains)) {
 			expect(['evm', 'tron', 'btc', 'stacks', 'solana']).toContain(chain.kind)
 			expect(chain.explorer).toContain('{tx}')
 			expect(chain.native.decimals).toBeGreaterThan(0)
 			if (chain.kind === 'evm') expect(chain.chainId).toBeGreaterThan(0)
-			// Todo nodo propio nace registrado pero apagado, con la priority 0 reservada
+			// Todo nodo propio nace registrado con la priority 0 reservada, y apagado
+			// hasta que el proxy existe de verdad: encenderlo antes hace que cada
+			// llamada se coma un probe fallido para nada.
 			const qvapay = chain.rpcs.filter(r => r.owner === 'qvapay')
 			expect(qvapay).toHaveLength(1)
-			expect(qvapay[0]).toMatchObject({ priority: 0, enabled: false })
+			expect(qvapay[0].priority).toBe(0)
+			expect(qvapay[0].enabled).toBe(LIVE_QVAPAY_PROXIES.includes(key))
 			// Y siempre hay al menos un público habilitado para arrancar
 			expect(chain.rpcs.filter(r => r.owner !== 'qvapay' && r.enabled !== false).length).toBeGreaterThanOrEqual(2)
 			expect(key).toBeTruthy()

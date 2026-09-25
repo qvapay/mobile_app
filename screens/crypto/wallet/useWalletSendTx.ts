@@ -24,6 +24,7 @@ import type { RegistryChain } from '../../../wallet/registry/types'
 import { refreshHistoryAfterSend, WALLET_BALANCES_KEY } from './walletQueries'
 import { broadcastSigned, prepareSend, signPrepared } from './walletSendActions'
 import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
+import type { SponsorBridge } from './useGaslessSend'
 
 export type SendPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'error'
 
@@ -41,9 +42,14 @@ type Args = {
 	/** La tx llegó a la red: la pantalla navega al éxito. */
 	onSent: (txid: string) => void
 	describeError: (err: unknown) => string
+	/**
+	 * Patrocinio: la tx se construye con el pagador de QvaPay en el hueco 0 y la
+	 * difunde el backend. `null` = envío normal, el usuario paga su gas.
+	 */
+	sponsor?: SponsorBridge | null
 }
 
-export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, onSent, describeError }: Args) => {
+export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, onSent, describeError, sponsor = null }: Args) => {
 
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
@@ -70,13 +76,14 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		setPhase('preparing'); setError(null); signedRef.current = null
 		try {
 			const intent = { chainKey: asset.chainKey, from: addressForKind(addresses, asset.kind), fromPublicKey: addresses.stxPublicKey, to, amount: parseUnits(amount, asset.decimals), contract: asset.contract }
-			setPrepared(await prepareSend(chain, intent, feeTier))
+			// Con patrocinio el hueco 0 es de QvaPay: el usuario firma solo el suyo
+			setPrepared(await prepareSend(chain, intent, feeTier, { feePayer: sponsor?.feePayer ?? null }))
 			setPhase('ready')
 		} catch (err) {
 			setPhase('error')
 			setError(describeError(err))
 		}
-	}, [asset, addresses, chain, to, amount, feeTier, describeError])
+	}, [asset, addresses, chain, to, amount, feeTier, describeError, sponsor?.feePayer])
 
 	useEffect(() => { prepare() }, [prepare])
 
@@ -92,6 +99,20 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	const broadcast = useCallback(async (current: PreparedSend, signed: SignedSend) => {
 		setPhase('broadcasting')
 		try {
+			// Una tx patrocinada NUNCA sale a la red desde aquí: va a medio firmar al
+			// backend, que la co-firma y la emite (`broadcastSigned` lo impide además)
+			if (sponsor && current.kind === 'solana' && signed.kind === 'solana' && current.inner.sponsored) {
+				const outcome = await sponsor.submit(signed.signed.base64)
+				if ('rebuild' in outcome) {
+					// El blockhash caducó antes de llegar: no se gastó nada y el permiso
+					// sigue vivo, así que se reconstruye y se vuelve a firmar
+					signedRef.current = null
+					await prepare()
+					return
+				}
+				finish(outcome.txid)
+				return
+			}
 			const result = await broadcastSigned(current, signed)
 			if (result.duplicate) toast(t('crypto.wallet.send.alreadySent'))
 			finish(result.txid)
@@ -99,7 +120,7 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 			setPhase('error')
 			setError(describeError(err))
 		}
-	}, [finish, t, describeError])
+	}, [finish, t, describeError, sponsor, prepare])
 
 	const onAuthorized = useCallback(async () => {
 		setAuthVisible(false)
