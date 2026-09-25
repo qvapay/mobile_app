@@ -129,6 +129,54 @@ describe('call', () => {
 		await expect(router.call('tron', async rpc => rpc.url, { accept: () => false })).rejects.toThrow(AllRpcsFailedError)
 	})
 
+	test('una LECTURA rota ante cualquier error: repetirla no puede duplicar nada', async () => {
+		// El fallo real: nueve nodos del registry sirven `eth_getBalance` y rechazan
+		// `eth_call` con códigos propios. Sin rotar, moría la cadena entera y los tokens
+		// desaparecían de la pantalla mientras el nativo seguía viéndose.
+		const { router } = makeRouter(makeRegistry(RPCS()))
+		const seen = []
+		const result = await router.call('tron', (rpc) => {
+			seen.push(rpc.url)
+			if (rpc.url === 'https://api.trongrid.io') throw new Error("Method 'eth_call' is available for paid plans")
+			return Promise.resolve('ok')
+		}, { idempotent: true })
+		expect(result).toBe('ok')
+		expect(seen).toHaveLength(2)
+	})
+
+	test('sin marcar idempotente, un nodo que SE NIEGA también rota', async () => {
+		// Medidos en producción: Tatum -16401, zan.top -32012, OnFinality -32029,
+		// publicnode -32602. Ninguno es un error de la petición: es el nodo diciendo que no.
+		for (const message of [
+			"Method 'eth_call' is available for paid plans",
+			'cu limit exceeded; Method "eth_call" is not available',
+			'Too Many Requests, Please apply an OnFinality API key',
+			'Request blocked',
+		]) {
+			const { router } = makeRouter(makeRegistry(RPCS()))
+			const seen = []
+			const result = await router.call('tron', (rpc) => {
+				seen.push(rpc.url)
+				if (seen.length === 1) throw new Error(message)
+				return Promise.resolve('ok')
+			})
+			expect(result).toBe('ok')
+			expect(seen).toHaveLength(2)
+		}
+	})
+
+	test('un error de NEGOCIO sigue sin rotar aunque la lectura no lo sea', async () => {
+		// Rotar aquí gastaría los nodos y cambiaría "fondos insuficientes" por un
+		// "fallaron todos", que no le dice nada a nadie
+		const { router } = makeRouter(makeRegistry(RPCS()))
+		const seen = []
+		await expect(router.call('tron', (rpc) => {
+			seen.push(rpc.url)
+			throw new Error('insufficient funds for transfer')
+		})).rejects.toThrow('insufficient funds')
+		expect(seen).toHaveLength(1)
+	})
+
 	test('un error de negocio NO rota: se relanza tal cual', async () => {
 		const { router } = makeRouter(makeRegistry(RPCS()))
 		const seen = []

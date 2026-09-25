@@ -56,6 +56,27 @@ export const isRetryableRpcError = (err: unknown): boolean => {
 	return typeof e.status === 'number' && e.status >= 500
 }
 
+/**
+ * ¿El nodo se NIEGA a servir, en vez de decir que la petición está mal?
+ *
+ * Medido contra los 101 nodos EVM del registry (24 sep 2026): nueve responden
+ * `eth_getBalance` con normalidad y rechazan `eth_call` con códigos propios de
+ * cada proveedor —Tatum `-16401` "available for paid plans", zan.top `-32012`
+ * "cu limit exceeded", OnFinality `-32029` "Too Many Requests", publicnode
+ * `-32602` "Request blocked" en Solana—. Ninguno es estándar, así que el
+ * mensaje pesa tanto como el código.
+ *
+ * Importa porque ese es EXACTAMENTE el perfil que distingue un token de una
+ * moneda nativa: el saldo nativo entra y los `balanceOf` mueren.
+ */
+const NODE_REFUSAL = /paid plan|cu limit|too many requests|rate.?limit|request blocked|not available|quota|upgrade your/i
+
+export const isNodeRefusal = (err: unknown): boolean => {
+	if (!err || typeof err !== 'object') return false
+	const e = err as { message?: string }
+	return typeof e.message === 'string' && NODE_REFUSAL.test(e.message)
+}
+
 export type ProbeRequest = (
 	chainKey: string,
 	chain: RegistryChain,
@@ -197,7 +218,7 @@ export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps
 	const call = async <T>(
 		chainKey: string,
 		fn: (rpc: RegistryRpc, signal: AbortSignal) => Promise<T>,
-		{ accept }: { accept?: (rpc: RegistryRpc) => boolean } = {},
+		{ accept, idempotent = false }: { accept?: (rpc: RegistryRpc) => boolean, idempotent?: boolean } = {},
 	): Promise<T> => {
 		// `accept` descarta dialectos que no sirven para esta llamada (p. ej. los
 		// nodos jsonrpc de TRON no construyen ni difunden transacciones)
@@ -215,7 +236,10 @@ export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps
 				markSuccess(rpc.url, now() - started)
 				return result
 			} catch (err) {
-				if (!isRetryableRpcError(err)) throw err
+				// Una LECTURA es idempotente: repetirla en otro nodo no puede duplicar nada,
+				// así que ahí cualquier error rota. La regla conservadora existe para no
+				// repetir un broadcast, y eso solo vale para escrituras.
+				if (!idempotent && !isRetryableRpcError(err) && !isNodeRefusal(err)) throw err
 				markFailure(rpc.url)
 				errors.push(err)
 			} finally {

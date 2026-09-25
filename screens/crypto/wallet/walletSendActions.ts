@@ -176,11 +176,11 @@ export const estimateNativeReserve = async (chain: RegistryChain, chainKey: stri
 	// un "Transaction simulation failed" que no explica nada. Reservar solo la comisión
 	// (lo que se hacía antes) dejaba la cuenta con calderilla y rompía el "enviar todo".
 	if (chain.kind === 'solana') {
-		const minimum = await getAppRpcRouter().call(chainKey, (rpc, signal) => getSolanaRentExemptMinimum(rpc, { signal }))
+		const minimum = await getAppRpcRouter().call(chainKey, (rpc, signal) => getSolanaRentExemptMinimum(rpc, { signal }), { idempotent: true })
 		return minimum + 20_000n
 	}
 	if (chain.kind !== 'evm') return 0n
-	const fee = await getAppRpcRouter().call(chainKey, (rpc, signal) => getEvmFeeData(rpc, { signal }))
+	const fee = await getAppRpcRouter().call(chainKey, (rpc, signal) => getEvmFeeData(rpc, { signal }), { idempotent: true })
 	const perGas = fee.eip1559 ? fee.baseFee * 2n + fee.priorityFee : fee.gasPrice
 	return NATIVE_TRANSFER_GAS * perGas * 12n / 10n
 }

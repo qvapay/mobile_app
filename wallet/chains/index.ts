@@ -30,6 +30,9 @@ export const fetchChainBalances = async (
 	const owner = addressForKind(addresses, chain.kind)
 	const tokens = chain.tokens ?? []
 
+	// `idempotent`: leer saldos no puede duplicar nada, así que cualquier error rota de nodo.
+	// Sin esto, un nodo que sirve `eth_getBalance` pero rechaza `eth_call` —hay nueve así en
+	// el registry— mataba la cadena entera: el nativo se veía y los tokens desaparecían.
 	return router.call(chainKey, async (rpc, signal) => {
 		const entries: Array<Promise<[string, bigint]>> = []
 		const nativeId = nativeAssetId(chainKey)
@@ -61,7 +64,7 @@ export const fetchChainBalances = async (
 
 		const resolved = await Promise.all(entries)
 		return Object.fromEntries(resolved.map(([id, value]) => [id, value.toString()]))
-	})
+	}, { idempotent: true })
 }
 
 export type WalletBalancesResult = {
