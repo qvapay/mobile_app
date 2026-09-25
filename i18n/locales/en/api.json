@@ -122,6 +122,13 @@
 		"rentFailed": "Couldn't rent the energy",
 		"ordersFailed": "Couldn't load your energy orders"
 	},
+	"exchange": {
+		"catalogFailed": "Couldn't load the exchange catalog",
+		"quoteFailed": "Couldn't quote the exchange",
+		"createFailed": "Couldn't open the exchange",
+		"detailFailed": "Couldn't get the exchange status",
+		"listFailed": "Couldn't load your exchange history"
+	},
 	"wallet": {
 		"gaslessQuoteFailed": "Couldn't check the free send",
 		"gaslessSubmitFailed": "Couldn't complete the sponsored send"
