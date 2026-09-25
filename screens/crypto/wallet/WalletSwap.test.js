@@ -18,12 +18,23 @@ jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), refreshHistory
 jest.mock('./walletSendActions', () => ({ prepareSend: jest.fn(), signPrepared: jest.fn(), broadcastSigned: jest.fn() }))
 jest.mock('../../../api/swapApi', () => ({ swapApi: { getPairs: jest.fn(), create: jest.fn(), get: jest.fn(), cancel: jest.fn() } }))
 jest.mock('../../../api/withdrawApi', () => ({ withdrawApi: { requestPin: jest.fn() } }))
+// El agregador cripto↔cripto convive en esta pantalla; se simula en su frontera para que
+// estos tests sigan siendo del motor custodial (y para no arrastrar api/client → device-info)
+// Catálogo de monedas vacío: estos tests son del motor custodial, así que los rieles de
+// depósito/retiro quedan cerrados y no cambian ninguna aserción (y no se arrastra api/client)
+jest.mock('../../../hooks/useCoins', () => ({ __esModule: true, default: () => ({ coins: [], isLoading: false }) }))
+jest.mock('../../../api/exchangeApi', () => ({
+	exchangeApi: {
+		catalog: jest.fn(async () => ({ success: true, data: { supported: [], unsupported: {} }, status: 200 })),
+		quote: jest.fn(), create: jest.fn(), get: jest.fn(), list: jest.fn(),
+	},
+}))
 jest.mock('../../../ui/particles/QPButton', () => 'QPButton')
-jest.mock('./components/AssetIcon', () => 'AssetIcon')
+jest.mock('../../../ui/particles/QPAssetIcon', () => 'QPAssetIcon')
 jest.mock('./components/WalletAuthModal', () => 'WalletAuthModal')
 jest.mock('./components/swap/SwapFlipButton', () => { const C = 'SwapFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
 jest.mock('./components/swap/SwapDetails', () => 'SwapDetails')
-jest.mock('./components/swap/SwapAssetSheet', () => 'SwapAssetSheet')
+jest.mock('../../../ui/QPAssetSheet', () => 'QPAssetSheet')
 jest.mock('./components/swap/SwapReviewSheet', () => 'SwapReviewSheet')
 jest.mock('../../transaction/PinConfirmStep', () => 'PinConfirmStep')
 jest.mock('sonner-native', () => ({ toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }) }))
@@ -68,6 +79,7 @@ const input = () => tree.root.findByType(TextInput)
 const footer = () => tree.root.findByType('QPButton')
 const cards = () => tree.root.findAllByType(SwapAmountCard)
 const reviewSheet = () => tree.root.findByType('SwapReviewSheet')
+const assetSheet = () => tree.root.findByType('QPAssetSheet')
 const type = (text) => act(async () => { input().props.onChangeText(text) })
 const press = (node) => act(async () => { node.props.onPress() })
 
@@ -85,6 +97,46 @@ beforeEach(() => {
 afterEach(async () => {
 	if (tree) { await act(async () => { tree.unmount() }); tree = null }
 	queryClient?.clear()
+})
+
+describe('selección de los dos lados', () => {
+
+	test('cada tarjeta abre SU propio selector', async () => {
+		await render()
+		const [payCard, receiveCard] = cards()
+		await press({ props: payCard.props.token })
+		expect(assetSheet().props.title).toBe('¿Qué entregas?')
+		await act(async () => { assetSheet().props.onClose() })
+		await press({ props: receiveCard.props.token })
+		expect(assetSheet().props.title).toBe('¿Qué quieres recibir?')
+	})
+
+	test('elegir en un lado NO toca el otro', async () => {
+		await render()
+		// Estado inicial: saldo → QUSD. Se cambia solo el lado de abajo.
+		await press({ props: cards()[1].props.token })
+		await act(async () => { assetSheet().props.onSelect(QUSD_ASSET.id) })
+		await settle()
+		// El de arriba sigue siendo el saldo, no se ha movido
+		expect(cards()[0].props.token.symbol).toBe('USD')
+	})
+
+	test('la tarjeta refleja lo que elegiste, aunque la combinación no tenga motor', async () => {
+		// El bug: con una combinación que no es saldo↔QUSD, las tarjetas seguían pintando la
+		// vista del motor QUSD, así que elegir otro activo devolvía el lado de arriba al saldo
+		await render()
+		await press({ props: cards()[0].props.token })
+		await act(async () => { assetSheet().props.onSelect(QUSD_ASSET.id) })
+		await settle()
+		expect(cards()[0].props.token.symbol).toBe('QUSD')
+	})
+
+	test('el lado del saldo se llama USD, no "Saldo QvaPay"', async () => {
+		await render()
+		expect(cards()[0].props.token.symbol).toBe('USD')
+		await press({ props: cards()[0].props.token })
+		expect(assetSheet().props.options[0]).toMatchObject({ id: 'balance', title: 'USD' })
+	})
 })
 
 describe('formulario', () => {

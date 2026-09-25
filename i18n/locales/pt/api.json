@@ -122,6 +122,13 @@
 		"rentFailed": "Não foi possível alugar a energia",
 		"ordersFailed": "Não foi possível obter seus pedidos de energia"
 	},
+	"exchange": {
+		"catalogFailed": "Não foi possível obter o catálogo de troca",
+		"quoteFailed": "Não foi possível cotar a troca",
+		"createFailed": "Não foi possível abrir a operação de troca",
+		"detailFailed": "Não foi possível obter o status da troca",
+		"listFailed": "Não foi possível obter seu histórico de trocas"
+	},
 	"wallet": {
 		"gaslessQuoteFailed": "Não foi possível verificar o envio grátis",
 		"gaslessSubmitFailed": "Não foi possível concluir o envio patrocinado"

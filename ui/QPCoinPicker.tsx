@@ -1,14 +1,15 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { StyleSheet, Text, View, Pressable, Modal, ScrollView } from 'react-native'
-import { useTranslation } from 'react-i18next'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import { useTheme } from '../theme/ThemeContext'
-import { createTextStyles } from '../theme/themeUtils'
-import QPCoin from './particles/QPCoin'
-import QPInput from './particles/QPInput'
-import QPCoinRow from './QPCoinRow'
+import { useTranslation } from 'react-i18next'
+
+// UI
+import QPAssetSheet from './QPAssetSheet'
+import type { QPAssetOption } from './QPAssetSheet'
+
+// Helpers
+import { coinConverted, coinTerms, formatCoinAmount, meaningfulCoinPrice } from '../helpers/coinFormat'
+
+// Tipos
 import type { Coin } from '../types/domain'
 
 const MAX_QUICK_PILLS = 3
@@ -30,24 +31,27 @@ type QPCoinPickerProps = {
 }
 
 /**
- * Full-screen coin picker modal (iOS `pageSheet`) used by the Add, Withdraw
- * and PaymentMethods flows. Features a toggleable name/tick search, quick
- * pills (up to 3: recently used coins persisted in AsyncStorage under
- * `recentKey`, padded with `defaultCoins`), and a QPCoinRow list showing
- * fees/min/price and the approximate coin amount for the entered fiat amount.
- * Selecting a coin records it as recent before calling `onSelect`.
+ * Selector de moneda del catálogo de QvaPay (Depositar, Retirar, P2P, Métodos de pago).
+ *
+ * Desde el barrido de selectores es un ADAPTADOR: la hoja, el buscador, las filas y los
+ * accesos rápidos los pone `QPAssetSheet`, que es la misma pieza que usa el intercambio de
+ * la wallet. Aquí solo vive lo que es propio del catálogo de monedas — traducir una `Coin` a
+ * una opción (condiciones, precio, cuánto recibirías) y recordar las recientes.
+ *
+ * Tener dos selectores con dos estéticas hacía que el mismo USDT se viera distinto según
+ * desde dónde se abriera, y que el buscador existiera en uno y no en el otro.
  *
  * @param props
- * @param props.visible - Controls modal visibility.
- * @param props.onClose - Dismiss handler (caller also closes after select).
- * @param props.onSelect - Called with the chosen coin object.
- * @param [props.coins] - Enabled coins from `coinsApi`.
- * @param [props.selectedCoin] - Currently selected coin (highlights its quick pill).
- * @param [props.amount] - Fiat amount used for the per-coin approximation.
- * @param [props.direction='out'] - Which fee/min set to display.
- * @param [props.recentKey] - AsyncStorage key for recents; omit to disable persistence.
- * @param [props.defaultCoins] - Fallback quick pills.
- * @param [props.showFees=true] - Toggle fee/min/approx columns in rows.
+ * @param props.visible - Controla la visibilidad.
+ * @param props.onClose - Cierre (la hoja también cierra al elegir).
+ * @param props.onSelect - Recibe la moneda elegida.
+ * @param [props.coins] - Monedas habilitadas de `coinsApi`.
+ * @param [props.selectedCoin] - La ya elegida: se marca con un check.
+ * @param [props.amount] - Importe en USD para la conversión por moneda.
+ * @param [props.direction='out'] - Qué juego de comisión/mínimo se enseña.
+ * @param [props.recentKey] - Clave de AsyncStorage para las recientes; sin ella no se persisten.
+ * @param [props.defaultCoins] - Accesos rápidos de relleno.
+ * @param [props.showFees=true] - Oculta condiciones y conversión (modo P2P: solo identidad).
  */
 const QPCoinPicker = ({
 	visible,
@@ -62,234 +66,80 @@ const QPCoinPicker = ({
 	defaultCoins = [],
 	showFees = true,
 }: QPCoinPickerProps) => {
+
 	const { t } = useTranslation()
-	const { theme } = useTheme()
-	const textStyles = createTextStyles(theme)
-	const insets = useSafeAreaInsets()
+	const [recentTicks, setRecentTicks] = useState<string[]>([])
 
-	const [coinSearch, setCoinSearch] = useState('')
-	const [showCoinSearch, setShowCoinSearch] = useState(false)
-	const [recentCoins, setRecentCoins] = useState<string[]>([])
-
-	// Load recent coins from AsyncStorage
 	useEffect(() => {
-		if (!recentKey) return
+		if (!recentKey) { return }
 		AsyncStorage.getItem(recentKey).then((stored) => {
-			if (stored) {
-				try {
-					const parsed: unknown = JSON.parse(stored)
-					if (Array.isArray(parsed)) setRecentCoins((parsed as string[]).slice(0, MAX_QUICK_PILLS))
-				} catch (e) { /* ignore */ }
-			}
+			if (!stored) { return }
+			try {
+				const parsed: unknown = JSON.parse(stored)
+				if (Array.isArray(parsed)) { setRecentTicks((parsed as string[]).slice(0, MAX_QUICK_PILLS)) }
+			} catch { /* una clave corrupta no debe impedir elegir moneda */ }
 		})
 	}, [recentKey])
 
-	const saveRecentCoin = useCallback((coinTick: string) => {
-		if (!recentKey) return
-		setRecentCoins((prev) => {
-			const updated = [coinTick, ...prev.filter((tick) => tick !== coinTick)].slice(0, MAX_QUICK_PILLS)
-			AsyncStorage.setItem(recentKey, JSON.stringify(updated))
-			return updated
-		})
-	}, [recentKey])
-
-	// Build quick pills: recent first, then defaults
-	const quickCoinPills = useMemo(() => {
-		if (!coins.length || (!recentKey && !defaultCoins.length)) return []
-		const pills: { tick: string, label: string, coinData: Coin }[] = []
-		for (const tick of recentCoins) {
-			if (pills.length >= MAX_QUICK_PILLS) break
-			const coinData = coins.find((c) => c.tick === tick)
-			if (coinData) pills.push({ tick, label: coinData.name, coinData })
+	const optionFor = useCallback((coin: Coin): QPAssetOption => {
+		const converted = showFees ? coinConverted(coin, amount) : 0
+		const terms = showFees ? coinTerms(t, coin, direction) : []
+		return {
+			id: coin.tick,
+			title: coin.name,
+			// Las condiciones importan más que la red: la red ya la dice el badge del logo
+			subtitle: terms.length ? terms.join(' · ') : (coin.network ?? undefined),
+			logoTick: coin.logo,
+			networkTick: coin.network ?? null,
+			value: converted > 0 ? formatCoinAmount(converted) : undefined,
+			valueCaption: showFees ? (meaningfulCoinPrice(coin.price) ?? undefined) : undefined,
+			// La búsqueda mira también el tick y la red: quien escribe "trc20" o "tron"
+			// espera encontrar el USDT correcto
+			keywords: `${coin.tick} ${coin.network ?? ''}`,
 		}
-		for (const pc of defaultCoins) {
-			if (pills.length >= MAX_QUICK_PILLS) break
-			if (!pills.some((p) => p.tick === pc.tick)) {
-				const coinData = coins.find((c) => c.tick === pc.tick)
-				if (coinData) pills.push({ tick: pc.tick, label: pc.label, coinData })
-			}
+	}, [t, amount, direction, showFees])
+
+	const options = useMemo(() => coins.map(optionFor), [coins, optionFor])
+
+	/** Recientes primero, rellenadas con las por defecto y sin repetir. */
+	const quick = useMemo(() => {
+		if (!coins.length || (!recentKey && !defaultCoins.length)) { return [] }
+		const picked: QPAssetOption[] = []
+		const push = (tick: string, label?: string) => {
+			if (picked.length >= MAX_QUICK_PILLS || picked.some(p => p.id === tick)) { return }
+			const coin = coins.find(c => c.tick === tick)
+			if (coin) { picked.push({ ...optionFor(coin), title: label ?? coin.name }) }
 		}
-		return pills
-	}, [recentCoins, coins, defaultCoins, recentKey])
+		for (const tick of recentTicks) { push(tick) }
+		for (const fallback of defaultCoins) { push(fallback.tick, fallback.label) }
+		return picked
+	}, [coins, recentTicks, defaultCoins, recentKey, optionFor])
 
-	const filteredCoins = useMemo(() => {
-		if (!coinSearch) return coins
-		const q = coinSearch.toLowerCase()
-		return coins.filter((coin) =>
-			coin.name.toLowerCase().includes(q) ||
-			coin.tick.toLowerCase().includes(q)
-		)
-	}, [coins, coinSearch])
-
-	const handleSelect = (coin: Coin) => {
-		saveRecentCoin(coin.tick)
+	const handleSelect = useCallback((tick: string) => {
+		const coin = coins.find(c => c.tick === tick)
+		if (!coin) { return }
+		if (recentKey) {
+			setRecentTicks((prev) => {
+				const updated = [tick, ...prev.filter(x => x !== tick)].slice(0, MAX_QUICK_PILLS)
+				AsyncStorage.setItem(recentKey, JSON.stringify(updated))
+				return updated
+			})
+		}
 		onSelect(coin)
-	}
-
-	// Reset search when modal closes
-	useEffect(() => {
-		if (!visible) {
-			setCoinSearch('')
-			setShowCoinSearch(false)
-		}
-	}, [visible])
+	}, [coins, recentKey, onSelect])
 
 	return (
-		<Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-			{/* Bottom sheet: elegir una moneda no merece levantar una pantalla
-			    completa — así se mantiene a la vista el contexto desde el que se
-			    abrió (los filtros, el formulario de crear oferta…) */}
-			<Pressable style={styles.sheetOverlay} onPress={onClose}>
-				{/* El onPress vacío absorbe los toques: sin él, tocar el grabber, la
-				    cabecera o cualquier hueco de la hoja caía al overlay y cerraba
-				    el selector (mismo patrón que el resto de modales de la app) */}
-				<Pressable
-					style={[styles.sheet, { backgroundColor: theme.colors.background, paddingBottom: insets.bottom || 12 }]}
-					onPress={() => { }}
-				>
-
-					<View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
-
-					{/* Header */}
-				<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-					<Text style={textStyles.h4}>{t('ui.coinPicker.title')}</Text>
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-						<Pressable onPress={() => setShowCoinSearch(!showCoinSearch)}>
-							<FontAwesome6 name="magnifying-glass" size={18} color={showCoinSearch ? theme.colors.primary : theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-						<Pressable onPress={onClose} style={styles.closeButton}>
-							<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					</View>
-				</View>
-
-				{/* Search */}
-				{showCoinSearch && (
-					<View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
-						<QPInput
-							value={coinSearch}
-							onChangeText={setCoinSearch}
-							placeholder={t('ui.coinPicker.searchPlaceholder')}
-							prefixIconName="magnifying-glass"
-						/>
-					</View>
-				)}
-
-				{/* Quick Pills */}
-				{quickCoinPills.length > 0 && (
-					<View style={styles.quickCoinPills}>
-						{quickCoinPills.map((pill) => (
-							<Pressable
-								key={pill.tick}
-								style={[styles.quickCoinPill, {
-									backgroundColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.surface,
-									borderColor: selectedCoin?.tick === pill.tick ? theme.colors.primary : theme.colors.border,
-								}]}
-								onPress={() => handleSelect(pill.coinData)}
-							>
-								<QPCoin coin={pill.coinData.logo} size={16} />
-								<Text style={[textStyles.caption, { fontWeight: '600', color: selectedCoin?.tick === pill.tick ? theme.colors.almostWhite : theme.colors.primaryText }]}>
-									{pill.label}
-								</Text>
-							</Pressable>
-						))}
-					</View>
-				)}
-
-				{/* Coin List */}
-				<ScrollView style={styles.coinList} contentContainerStyle={styles.coinListContent} showsVerticalScrollIndicator={true}>
-					{isLoading ? (
-						<View style={styles.loadingContainer}>
-							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('ui.coinPicker.loading')}</Text>
-						</View>
-					) : filteredCoins.length > 0 ? (
-						filteredCoins.map((coin) => (
-							<Pressable
-								key={coin.id || coin.tick}
-								style={[styles.coinItem, {
-									backgroundColor: theme.colors.surface,
-									borderColor: theme.colors.elevation,
-								}]}
-								onPress={() => handleSelect(coin)}
-							>
-								<QPCoinRow coin={coin} amount={amount} direction={direction} showFees={showFees} />
-							</Pressable>
-						))
-					) : (
-						<View style={styles.loadingContainer}>
-							<Text style={[textStyles.subtitle, { color: theme.colors.secondaryText }]}>{t('ui.coinPicker.empty')}</Text>
-						</View>
-					)}
-				</ScrollView>
-
-				</Pressable>
-			</Pressable>
-		</Modal>
+		<QPAssetSheet
+			visible={visible}
+			title={t('ui.coinPicker.title')}
+			options={options}
+			quick={quick}
+			selectedId={selectedCoin?.tick ?? null}
+			onSelect={handleSelect}
+			onClose={onClose}
+			loading={isLoading}
+		/>
 	)
 }
-
-const styles = StyleSheet.create({
-	sheetOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.5)',
-		justifyContent: 'flex-end',
-	},
-	sheet: {
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
-		borderCurve: 'continuous',
-		maxHeight: '85%',
-		overflow: 'hidden',
-	},
-	grabber: {
-		width: 40,
-		height: 4,
-		borderRadius: 2,
-		alignSelf: 'center',
-		marginTop: 8,
-		marginBottom: 4,
-	},
-	modalHeader: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		paddingHorizontal: 20,
-		paddingVertical: 15,
-		borderBottomWidth: 0.5,
-	},
-	closeButton: { padding: 5 },
-	quickCoinPills: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		gap: 8,
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		justifyContent: 'center',
-	},
-	quickCoinPill: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 6,
-		paddingHorizontal: 12,
-		paddingVertical: 4,
-		borderRadius: 16,
-		borderWidth: 0.5,
-	},
-	coinList: { flexShrink: 1 },
-	coinListContent: { paddingHorizontal: 10, paddingBottom: 20 },
-	coinItem: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 12,
-		borderRadius: 12,
-		marginBottom: 4,
-		borderWidth: 1,
-	},
-	loadingContainer: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		padding: 40,
-	},
-})
 
 export default QPCoinPicker

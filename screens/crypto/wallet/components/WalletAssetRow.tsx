@@ -8,7 +8,7 @@ import { useTextStyles } from '../../../../theme/themeUtils'
 
 // UI
 import QPPressable from '../../../../ui/particles/QPPressable'
-import AssetIcon from './AssetIcon'
+import QPAssetIcon from '../../../../ui/particles/QPAssetIcon'
 import AmountFlow from './AmountFlow'
 
 // Wallet
@@ -45,7 +45,7 @@ const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) 
 			accessibilityRole="button"
 			accessibilityLabel={`${asset.symbol} ${asset.chainName}`}
 		>
-			<AssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} />
+			<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} />
 
 			<View style={styles.info}>
 				<View style={styles.titleRow}>

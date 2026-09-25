@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useReducer } from 'react'
+import { useState, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { ComponentProps } from 'react'
 import { StyleSheet, Text, View, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -82,7 +82,7 @@ const RECENT_DEPOSIT_KEY = 'qp_recent_deposit_coins'
 // `navigation` solo se usa para el puente con la wallet self-custody (todo
 // ocurre en modales): se conserva la desestructuración y se marca con `_` según
 // la convención del eslint del proyecto
-const Add = ({ navigation }: AddProps) => {
+const Add = ({ navigation, route }: AddProps) => {
 
 	// User Context
 	const { user } = useAuth()
@@ -101,6 +101,16 @@ const Add = ({ navigation }: AddProps) => {
 	const setAmount = (value: string) => dispatchForm({ type: 'set', field: 'amount', value })
 
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
+
+	// Moneda prellenada por quien navegó hasta aquí (hoy, la pantalla de intercambio cuando
+	// el destino es el saldo). Una sola vez: después manda lo que el usuario elija.
+	const preselectedCoin = route.params?.preselectedCoin
+	const preselected = useRef(false)
+	useEffect(() => {
+		if (preselected.current || !preselectedCoin || !availableCoins.length) { return }
+		const match = availableCoins.find(coin => coin.tick === preselectedCoin)
+		if (match) { preselected.current = true; setSelectedCoin(match) }
+	}, [preselectedCoin, availableCoins])
 
 	// Depósito con tarjeta: espejo cliente del gate del backend (KYC + Telegram +
 	// teléfono + 30 días + VIP/trustscore) — decide si se PINTA la opción CARD;

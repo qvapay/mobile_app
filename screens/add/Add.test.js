@@ -73,7 +73,7 @@ const renderAdd = async () => {
 	await act(async () => {
 		tree = create(
 			<QueryClientProvider client={client}>
-				<Add navigation={{ navigate: jest.fn() }} />
+				<Add navigation={{ navigate: jest.fn() }} route={{ params: undefined }} />
 			</QueryClientProvider>
 		)
 	})

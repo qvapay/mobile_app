@@ -21,7 +21,7 @@ import { useAssetCatalog } from './walletQueries'
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
-import AssetIcon from './components/AssetIcon'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
 // Navigation
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -90,7 +90,7 @@ const WalletReceive = ({ navigation, route }: Props) => {
 							onPress={() => navigation.setParams({ assetId: item.id })}
 							style={[styles.pickerRow, index < pickerAssets.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}
 						>
-							<AssetIcon logoTick={item.logoTick} networkTick={item.networkTick} size={36} />
+							<QPAssetIcon logoTick={item.logoTick} networkTick={item.networkTick} size={36} />
 							<View style={styles.pickerInfo}>
 								<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{item.symbol}</Text>
 								<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{item.chainName}</Text>
@@ -107,7 +107,7 @@ const WalletReceive = ({ navigation, route }: Props) => {
 		<ScrollView style={containerStyles.subContainer} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
 			<QPPressable onPress={() => navigation.setParams({ assetId: undefined })} style={[styles.assetChip, { backgroundColor: theme.colors.surface }]} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.receive.change')}>
-				<AssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={28} />
+				<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={28} />
 				<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{assetLabel}</Text>
 				<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{asset.chainName}</Text>
 				<FontAwesome6 name="chevron-down" size={11} color={theme.colors.secondaryText} iconStyle="solid" />

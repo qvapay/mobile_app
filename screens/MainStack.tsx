@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// Liquid glass requires iOS 26+
-const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
+// Liquid glass requires iOS 26+ (lo consume también App.tsx: una sola definición)
+export const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
 
 // Tab Navigators: native for iOS 26+ (liquid glass), JS-based for Android and older iOS
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
@@ -210,12 +210,45 @@ const MainStack = ({ navigation }: MainStackProps) => {
 		}),
 	}), [showLabels, showBalance, containerStyles, textStyles, theme, user, navigation, t])
 
+	// Mismo header derecho que Home menos los sats: invitación a GOLD (solo sin
+	// golden_check) + escáner QR.
 	const cryptoOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.crypto') : '',
 		tabBarIcon: getTabIcon(ROUTES.CRYPTO_SCREEN),
-		headerRight: () => null,
-		...(supportsLiquidGlass && { unstable_headerRightItems: () => [] }),
-	}), [showLabels, t])
+		// Android fallback
+		headerRight: () => (
+			<View style={containerStyles.headerRight}>
+				{!user!.golden_check && (
+					<Pressable style={{ marginRight: 16 }} onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
+						<FontAwesome6 name="crown" size={20} color={theme.colors.gold} iconStyle="solid" />
+					</Pressable>
+				)}
+				<Pressable onPress={() => navigation.navigate(ROUTES.SCAN_SCREEN)}>
+					<FontAwesome6 name="qrcode" size={24} color={theme.colors.primaryText} iconStyle="solid" />
+				</Pressable>
+			</View>
+		),
+		// iOS 26+ native header items (liquid glass compatible)
+		...(supportsLiquidGlass && {
+			unstable_headerRightItems: () => [
+				...(!user!.golden_check ? [{
+					type: 'custom',
+					element: (
+						<Pressable onPress={() => navigation.navigate(ROUTES.GOLD_CHECK)}>
+							<FontAwesome6 name="crown" size={18} color={theme.colors.gold} iconStyle="solid" />
+						</Pressable>
+					),
+					hidesSharedBackground: true,
+				}] : []),
+				{
+					type: 'button',
+					label: t('navigation.headerItems.scan'),
+					icon: { type: 'sfSymbol', name: 'qrcode.viewfinder' },
+					onPress: () => navigation.navigate(ROUTES.SCAN_SCREEN),
+				},
+			],
+		}),
+	}), [showLabels, containerStyles, theme, user, navigation, t])
 
 	const keypadOptions = useMemo(() => ({
 		tabBarLabel: showLabels ? t('navigation.tabs.send') : '',

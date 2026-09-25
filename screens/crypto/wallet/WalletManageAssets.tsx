@@ -15,7 +15,7 @@ import { useWalletAssets } from './walletQueries'
 import { useSettings } from '../../../settings/SettingsContext'
 
 // UI
-import AssetIcon from './components/AssetIcon'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
 /**
  * "Gestionar activos": un switch por activo de TODO el registry, agrupado por
@@ -62,7 +62,7 @@ const WalletManageAssets = () => {
 					<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 						{group.map((asset, index) => (
 							<View key={asset.id} style={[styles.row, index < group.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
-								<AssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={34} />
+								<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={34} />
 								<View style={styles.info}>
 									<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{asset.symbol}</Text>
 									{asset.hasBalance && (

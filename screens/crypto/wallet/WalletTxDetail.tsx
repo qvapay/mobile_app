@@ -23,7 +23,7 @@ import { copyTextToClipboard, getShortDateTime } from '../../../helpers'
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
-import AssetIcon from './components/AssetIcon'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
 // Navigation
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -85,7 +85,7 @@ const WalletTxDetail = ({ route }: Props) => {
 
 			<View style={styles.hero}>
 				<View style={styles.heroIcon}>
-					{asset && <AssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />}
+					{asset && <QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />}
 					<View style={[styles.badge, { backgroundColor: tint, borderColor: theme.colors.background }]}>
 						<FontAwesome6 name={failed ? 'xmark' : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={11} color={theme.colors.buttonText} iconStyle="solid" />
 					</View>
