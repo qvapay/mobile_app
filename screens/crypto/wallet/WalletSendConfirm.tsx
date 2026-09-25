@@ -65,7 +65,7 @@ const Row = ({ label, value, theme, mono, last }: { label: string, value: string
  */
 const WalletSendConfirm = ({ navigation, route }: Props) => {
 
-	const { assetId, to, amount } = route.params
+	const { assetId, to, amount, exchangeUuid } = route.params
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -81,8 +81,11 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	const describe = useCallback((err: unknown) => describeError(err, t), [t])
 	const onSent = useCallback((txid: string) => {
+		// Si este envío ES el depósito de un intercambio, el final no es aquí: el usuario
+		// vuelve al seguimiento, que es donde va a ver llegar la otra moneda.
+		if (exchangeUuid) { navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid }); return }
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
-	}, [navigation, assetId, amount, to])
+	}, [navigation, assetId, amount, to, exchangeUuid])
 
 	// Patrocinio: en Solana QvaPay puede pagar el fee de un GOLD. Si hay permiso, la tx
 	// se construye con su pagador y la difunde el backend; si no, envío normal.

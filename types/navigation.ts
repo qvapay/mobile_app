@@ -93,7 +93,8 @@ export type RootStackParamList = {
 	Transaction: { transaction?: Transaction, uuid?: string }
 
 	// ── Depósito / retiro ─────────────────────────────────────────────────
-	Add: undefined
+	/** `preselectedCoin`: tick del catálogo, para llegar con la moneda ya elegida. */
+	Add: { preselectedCoin?: string } | undefined
 	/** `prefillAddress`: destino ya escrito (retiro hacia la propia wallet self-custody, destino 'personal'). */
 	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string } | undefined
 
@@ -128,13 +129,21 @@ export type RootStackParamList = {
 	/** Sin assetId abre el selector; `address` la trae el escáner de vuelta. */
 	WalletSend: { assetId?: string, address?: string } | undefined
 	/** `amount` en decimal humano ya validado por WalletSend. */
-	WalletSendConfirm: { assetId: string, to: string, amount: string }
+	/**
+	 * `exchangeUuid`: el envío es el depósito de un intercambio, así que al confirmarse
+	 * vuelve a su seguimiento y no a la pantalla de éxito genérica — el envío no es el final
+	 * de nada, es el principio del cambio.
+	 */
+	WalletSendConfirm: { assetId: string, to: string, amount: string, exchangeUuid?: string }
 	WalletSendSuccess: { assetId: string, txid: string, amount: string, to: string }
 	/** Movimiento ya cargado en la actividad (serializable): no se vuelve a pedir. */
 	WalletTxDetail: { assetId: string, tx: WalletTx }
 	/** Swap saldo ↔ QUSD; `direction` preselecciona el sentido (out = saldo → wallet). */
 	WalletSwap: { direction?: 'out' | 'in' } | undefined
 	WalletSwapStatus: { uuid: string }
+	/** Seguimiento de un intercambio cripto↔cripto. */
+	WalletExchangeStatus: { uuid: string }
+	WalletExchanges: undefined
 	/** Recursos TRON y alquiler de energía; los params preseleccionan la compra. */
 	WalletEnergy: { address?: string, duration?: EnergyDuration } | undefined
 	WalletEnergyOrders: undefined

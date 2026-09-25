@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 // React Components
 import { Platform, Pressable } from 'react-native'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import React, { useEffect, useMemo, useRef } from 'react'
 
 // OneSignal Push Notifications
@@ -71,7 +72,7 @@ import RecoverPasswordScreen from './auth/screens/RecoverPassword'
 
 // Screens with auth
 import Onboard from './screens/onboard/Onboard'
-import MainStack from './screens/MainStack'
+import MainStack, { supportsLiquidGlass } from './screens/MainStack'
 import Send from './screens/transaction/Send'
 import SendConfirm from './screens/transaction/SendConfirm'
 import SendSuccess from './screens/transaction/SendSuccess'
@@ -102,6 +103,8 @@ import WalletSendSuccess from './screens/crypto/wallet/WalletSendSuccess'
 import WalletTxDetail from './screens/crypto/wallet/WalletTxDetail'
 import WalletSwap from './screens/crypto/wallet/WalletSwap'
 import WalletSwapStatus from './screens/crypto/wallet/WalletSwapStatus'
+import WalletExchangeStatus from './screens/crypto/wallet/WalletExchangeStatus'
+import WalletExchanges from './screens/crypto/wallet/WalletExchanges'
 import WalletEnergy from './screens/crypto/wallet/WalletEnergy'
 import WalletEnergyOrders from './screens/crypto/wallet/WalletEnergyOrders'
 
@@ -265,8 +268,10 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// Sin volver atrás: la tx ya está en la red
 	{ name: ROUTES.WALLET_SEND_SUCCESS, component: WalletSendSuccess, options: { ...getHeaderOptions(''), headerShown: false, gestureEnabled: false } },
 	{ name: ROUTES.WALLET_TX_DETAIL, component: WalletTxDetail, options: getHeaderOptions(t('navigation.headers.walletTxDetail')) },
-	{ name: ROUTES.WALLET_SWAP, component: WalletSwap, options: getHeaderOptions(t('navigation.headers.walletSwap')) },
+	{ name: ROUTES.WALLET_SWAP, component: WalletSwap, options: walletSwapScreenOptions(t) },
 	{ name: ROUTES.WALLET_SWAP_STATUS, component: WalletSwapStatus, options: { ...getHeaderOptions(t('navigation.headers.walletSwapStatus')), gestureEnabled: false } },
+	{ name: ROUTES.WALLET_EXCHANGE_STATUS, component: WalletExchangeStatus, options: { ...getHeaderOptions(t('navigation.headers.walletExchangeStatus')), gestureEnabled: false } },
+	{ name: ROUTES.WALLET_EXCHANGES, component: WalletExchanges, options: getHeaderOptions(t('navigation.headers.walletExchanges')) },
 	{ name: ROUTES.WALLET_ENERGY, component: WalletEnergy, options: getHeaderOptions(t('navigation.headers.tronEnergy')) },
 	{ name: ROUTES.WALLET_ENERGY_ORDERS, component: WalletEnergyOrders, options: getHeaderOptions(t('navigation.headers.energyOrders')) },
 
@@ -319,6 +324,39 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// Accesible Screens
 	{ name: ROUTES.HELP_SCREEN, component: HelpScreen },
 ]
+
+/** El icono lee el tema por su cuenta: así las options de la pantalla no dependen de él y la
+ * lista de pantallas sigue memoizada solo con `t` (options con identidad cambiante
+ * reintroducen el parpadeo del header liquid-glass en iOS). */
+const ExchangeHistoryButton = ({ label, onPress }: { label: string, onPress: () => void }) => {
+	const { theme } = useTheme()
+	return (
+		<Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={label}>
+			<FontAwesome6 name="clock-rotate-left" size={19} color={theme.colors.primaryText} iconStyle="solid" />
+		</Pressable>
+	)
+}
+
+// Swap header: acceso al historial de intercambios. Va aquí y no dentro de la pantalla porque
+// una operación puede quedarse esperando el depósito —con su dirección y su importe exacto— si
+// el usuario cierra la app antes de enviar, y el historial es la única forma de volver a ella.
+//
+// `options` como función para recibir `navigation` sin romper la memoización de la lista de
+// pantallas: la identidad depende solo de `t`, que es lo que exige el header liquid-glass.
+const walletSwapScreenOptions = (t: (key: string, options?: any) => string) => ({ navigation }: any) => ({
+	...getHeaderOptions(t('navigation.headers.walletSwap')),
+	// Android y iOS anteriores a 26
+	headerRight: () => <ExchangeHistoryButton label={t('navigation.headerItems.exchangeHistory')} onPress={() => navigation.navigate(ROUTES.WALLET_EXCHANGES)} />,
+	// iOS 26+: item nativo, compatible con el blur del header
+	...(supportsLiquidGlass && {
+		unstable_headerRightItems: () => [{
+			type: 'button' as const,
+			label: t('navigation.headerItems.exchangeHistory'),
+			icon: { type: 'sfSymbol' as const, name: 'clock.arrow.circlepath' },
+			onPress: () => navigation.navigate(ROUTES.WALLET_EXCHANGES),
+		}],
+	}),
+})
 
 // P2P Offer header: avatar linking to own P2P profile, built from render-time navigation + user
 const p2pOfferScreenOptions = (navigation: ReturnType<typeof useAppNavigation>['navigation'], user: User | null) => ({

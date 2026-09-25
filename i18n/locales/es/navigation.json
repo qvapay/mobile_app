@@ -28,6 +28,8 @@
 		"walletTxDetail": "Movimiento",
 		"walletSwap": "Swap",
 		"walletSwapStatus": "Estado del swap",
+		"walletExchangeStatus": "Intercambio",
+		"walletExchanges": "Intercambios",
 		"tronEnergy": "Energía TRON",
 		"energyOrders": "Compras de energía"
 	},
@@ -40,6 +42,7 @@
 	},
 	"headerItems": {
 		"scan": "Escanear",
-		"cart": "Carrito"
+		"cart": "Carrito",
+		"exchangeHistory": "Historial"
 	}
 }
