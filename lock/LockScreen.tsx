@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // RN
-import { View, Text, Modal, StyleSheet } from 'react-native'
+import { View, Text, Image, Modal, StyleSheet } from 'react-native'
 
 // Context
 import { useTheme } from '../theme/ThemeContext'
@@ -133,10 +133,10 @@ const LockScreen = () => {
 
 	// El glifo del héroe: el que desbloquea si hay biometría, un candado si no
 	const heroIcon = !biometricsAvailable
-		? <FontAwesome6 name="lock" size={44} color={theme.colors.primary} iconStyle="solid" />
+		? <FontAwesome6 name="lock" size={54} color={theme.colors.primary} iconStyle="solid" />
 		: biometryType === 'FaceID'
-			? <FaceIDIcon size={56} color={theme.colors.primary} />
-			: <FontAwesome6 name="fingerprint" size={56} color={theme.colors.primary} iconStyle="solid" />
+			? <FaceIDIcon size={62} color={theme.colors.primary} />
+			: <FontAwesome6 name="fingerprint" size={62} color={theme.colors.primary} iconStyle="solid" />
 
 	if (!isLocked) return null
 
@@ -151,39 +151,56 @@ const LockScreen = () => {
 			<SystemBars style={theme.isDark ? 'light' : 'dark'} />
 			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: keyboardVisible ? keyboardHeight : insets.bottom }]}>
 
-				{/* El héroe: el glifo que desbloquea, respirando sobre su halo. Con biometría
-				    disponible es el botón —tocarlo la pide—; sin ella, solo acompaña. */}
-				<UnlockHalo
-					size={72}
-					onPress={biometricsAvailable ? handleBiometricUnlock : undefined}
-					accessibilityLabel={biometryLabel}
-				>
-					{heroIcon}
-				</UnlockHalo>
-
-				{/* Una sola línea de texto. Antes eran tres —título, etiqueta del icono y
-				    "o introduce tu PIN"— diciendo casi lo mismo alrededor de una raya. */}
-				<Text style={[textStyles.h5, styles.hint, { color: theme.colors.secondaryText }]}>
-					{biometricsAvailable ? t('misc.lock.tapToUnlock', { method: biometryLabel }) : t('misc.lock.enterPin')}
-				</Text>
-
-				<View style={styles.dots}>
-					<PinDots
-						ref={dotsRef}
-						length={4}
-						code={pin}
-						onChangeCode={handleChangePin}
-						onFilled={verifyPin}
+				{/* La marca, en voz baja: recuerda dónde estás sin competir con el héroe */}
+				<View style={styles.brand}>
+					<Image
+						source={theme.isDark
+							? require('../assets/images/ui/qvapay-logo-white.png')
+							: require('../assets/images/ui/logo-qvapay.png')}
+						style={styles.brandLogo}
+						resizeMode="contain"
 					/>
+					<Text style={[styles.brandName, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium }]}>QvaPay</Text>
 				</View>
 
-				{/* Altura reservada: sin ella, el error empuja los puntos al aparecer */}
-				<View style={styles.errorSlot}>
-					{!!error && (
-						<Text style={[textStyles.h6, styles.error, { color: theme.colors.danger }]}>{error}</Text>
-					)}
-				</View>
+				{/* El resto vive centrado en el espacio que queda */}
+				<View style={styles.stage}>
 
+					{/* El héroe: el glifo que desbloquea, respirando sobre su halo. Con biometría
+					    disponible es el botón —tocarlo la pide—; sin ella, solo acompaña. */}
+					<UnlockHalo
+						size={96}
+						onPress={biometricsAvailable ? handleBiometricUnlock : undefined}
+						accessibilityLabel={biometryLabel}
+					>
+						{heroIcon}
+					</UnlockHalo>
+
+					{/* Una sola línea de texto. Antes eran tres —título, etiqueta del icono y
+					    "o introduce tu PIN"— diciendo casi lo mismo alrededor de una raya. */}
+					<Text style={[styles.hint, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.light }]}>
+						{biometricsAvailable ? t('misc.lock.tapToUnlock', { method: biometryLabel }) : t('misc.lock.enterPin')}
+					</Text>
+
+					<View style={styles.dots}>
+						<PinDots
+							ref={dotsRef}
+							length={4}
+							code={pin}
+							onChangeCode={handleChangePin}
+							onFilled={verifyPin}
+							tone={error ? theme.colors.dangerText : undefined}
+						/>
+					</View>
+
+					{/* Altura reservada: sin ella, el error empuja los puntos al aparecer */}
+					<View style={styles.errorSlot}>
+						{!!error && (
+							<Text style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{error}</Text>
+						)}
+					</View>
+
+				</View>
 			</View>
 		</Modal>
 	)
@@ -193,11 +210,16 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		alignItems: 'center',
-		justifyContent: 'center',
 		paddingHorizontal: 24,
+		paddingTop: 24,
 	},
+	// 55%: presente sin disputarle la atención al héroe
+	brand: { flexDirection: 'row', alignItems: 'center', gap: 8, opacity: 0.55, marginTop: 40 },
+	brandLogo: { width: 16, height: 16 },
+	brandName: { fontSize: 14, letterSpacing: 0.2 },
+	stage: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', width: '100%' },
 	// El halo ocupa 200 px y se sale de su caja: el aire de debajo lo cuenta el hint
-	hint: { textAlign: 'center', marginTop: 44 },
+	hint: { textAlign: 'center', marginTop: 44, fontSize: 17, letterSpacing: 0.2 },
 	dots: { marginTop: 36 },
 	errorSlot: { height: 40, justifyContent: 'center' },
 	error: { textAlign: 'center' },

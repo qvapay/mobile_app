@@ -18,8 +18,8 @@ import { useTheme } from '../theme/ThemeContext'
 // UI
 import QPPressable from '../ui/particles/QPPressable'
 
-const GLOW_SIZE = 200
-const PING_SIZE = 108
+const GLOW_SIZE = 260
+const PING_SIZE = 118
 
 /**
  * El héroe del bloqueo: el glifo que desbloquea, sobre un halo que respira.
@@ -42,6 +42,8 @@ const UnlockHalo = ({ size = 56, onPress, disabled = false, accessibilityLabel, 
 
 	const { theme } = useTheme()
 	const reducedMotion = useReducedMotion()
+	// Sobre blanco el mismo valor deja de leerse como luz y pasa a mancha: la mitad
+	const intensity = theme.isDark ? 1 : 0.5
 
 	const breathe = useSharedValue(0)
 	const ping = useSharedValue(0)
@@ -78,8 +80,8 @@ const UnlockHalo = ({ size = 56, onPress, disabled = false, accessibilityLabel, 
 				<Svg width={GLOW_SIZE} height={GLOW_SIZE}>
 					<Defs>
 						<RadialGradient id="unlockGlow">
-							<Stop offset="0" stopColor={theme.colors.primary} stopOpacity="0.5" />
-							<Stop offset="0.6" stopColor={theme.colors.primary} stopOpacity="0.18" />
+							<Stop offset="0" stopColor={theme.colors.primary} stopOpacity={String(0.5 * intensity)} />
+							<Stop offset="0.6" stopColor={theme.colors.primary} stopOpacity={String(0.18 * intensity)} />
 							<Stop offset="1" stopColor={theme.colors.primary} stopOpacity="0" />
 						</RadialGradient>
 					</Defs>

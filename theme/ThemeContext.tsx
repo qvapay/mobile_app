@@ -43,6 +43,10 @@ const colors = {
 		// Verde vivo pero accesible sobre blanco (~5:1 AA); el #00471E anterior
 		// era tan oscuro que los montos "+" leían casi como texto negro
 		successText: "#15803D",
+		// El `danger` de marca (#DB253E) es un RELLENO: como tinta sobre el fondo
+		// oscuro da 3,75:1, por debajo del mínimo legible. Misma distinción que en
+		// los verdes — `danger` para fondos y badges, `dangerText` para tinta.
+		dangerText: "#C41E35",
 		// Relleno verde de botones/pills: en light el menta (#7BFFB1) es
 		// demasiado pálido sobre fondo claro, así que el sólido va oscuro con
 		// tinta blanca; en dark se mantiene el menta de marca con tinta negra
@@ -67,6 +71,7 @@ const colors = {
 	dark: {
 		contrast: "white",
 		successText: "#7BFFB1",
+		dangerText: "#FF6B7D",
 		successFill: "#7BFFB1",
 		successFillText: "#0E0E1C",
 		background: "#0E0E1C",
