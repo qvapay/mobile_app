@@ -25,9 +25,9 @@ export type WalletAsset = {
 	priceTick: string | null
 	/** Stablecoin: sin precio en catálogo vale 1 USD. */
 	stable: boolean
-	/** Tick para el logo de la moneda (media.qvapay.com/coins/{tick}.svg). */
+	/** Nombre del logo de la moneda en el CDN (media.qvapay.com/coins/{logoTick}.svg). */
 	logoTick: string
-	/** Tick para el badge de la red. */
+	/** Nombre del logo de la red para el badge (misma ruta que `logoTick`). */
 	networkTick: string
 }
 
@@ -59,6 +59,20 @@ const NETWORK_TICKS: Record<string, string> = {
 	stacks: 'STX',
 	solana: 'SOL',
 }
+
+/**
+ * Nombre del FICHERO del logo en el CDN (`media.qvapay.com/coins/{logo}.svg`). No siempre
+ * coincide con el tick: en el catálogo de QvaPay la columna `logo` se aparta del tick en
+ * 30 de las 113 monedas, y Polygon es una de ellas — su tick de precio es `MATICMAINNET`
+ * pero su logo se llama `matic`, así que la insignia pedía `maticmainnet.svg`, recibía un
+ * 404 y se caía al placeholder de tres letras. Solo van aquí las divergencias que tocan a
+ * la wallet; el resto de la app ya lee `coin.logo` del backend en vez de adivinarlo.
+ */
+const LOGO_TICKS: Record<string, string> = {
+	MATICMAINNET: 'MATIC',
+}
+
+const logoFor = (tick: string): string => LOGO_TICKS[tick] ?? tick
 
 const STABLES = new Set(['USDT', 'USDC', 'USDC.E', 'DAI', 'PYUSD', 'TUSD', 'QUSD'])
 
@@ -100,7 +114,7 @@ export const DEFAULT_ASSETS: Array<{ chainKey: string, symbol: string }> = [
 export const buildAssetCatalog = (registry: RpcRegistry): WalletAsset[] =>
 	Object.entries(registry.chains).flatMap(([chainKey, chain]) => {
 		const chainName = chainDisplayName(chainKey, chain)
-		const networkTick = NETWORK_TICKS[chainKey] ?? chain.native.symbol
+		const networkTick = logoFor(NETWORK_TICKS[chainKey] ?? chain.native.symbol)
 		const native: WalletAsset = {
 			id: nativeAssetId(chainKey),
 			chainKey,
@@ -111,7 +125,7 @@ export const buildAssetCatalog = (registry: RpcRegistry): WalletAsset[] =>
 			contract: null,
 			priceTick: NATIVE_TICKS[chain.native.symbol] ?? null,
 			stable: false,
-			logoTick: NATIVE_TICKS[chain.native.symbol] ?? chain.native.symbol,
+			logoTick: logoFor(NATIVE_TICKS[chain.native.symbol] ?? chain.native.symbol),
 			networkTick,
 		}
 		const tokens = (chain.tokens ?? []).map<WalletAsset>(token => {

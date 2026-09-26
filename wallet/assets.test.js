@@ -41,6 +41,13 @@ describe('buildAssetCatalog', () => {
 		expect(find('polygon', 'USDC.e')).toMatchObject({ stable: true, logoTick: 'USDC', priceTick: 'USDC' })
 		expect(find('tron', 'USDT')).toMatchObject({ contract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', decimals: 6 })
 	})
+
+	test('el LOGO de Polygon no es su tick de precio: el fichero del CDN se llama matic', () => {
+		// El tick que tiene el precio es MATICMAINNET, pero `maticmainnet.svg` no existe:
+		// pedirlo dejaba la insignia de red en el placeholder de tres letras
+		expect(find('polygon', 'POL')).toMatchObject({ priceTick: 'MATICMAINNET', logoTick: 'MATIC', networkTick: 'MATIC' })
+		expect(find('polygon', 'USDC.e').networkTick).toBe('MATIC')
+	})
 })
 
 describe('valoración y visibilidad', () => {
