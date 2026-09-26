@@ -61,7 +61,6 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 					label={t('withdraw.amountCard.withdraw')}
 					token={{
 						symbol: currency,
-						caption: t('withdraw.amountCard.fromBalance'),
 						icon: { kind: 'wallet', logoTick: 'qusd', networkTick: null },
 					}}
 					amount={amountQUSD}
@@ -83,7 +82,6 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 					hint={selectedCoin?.network ?? undefined}
 					token={{
 						symbol: selectedCoin?.tick ?? t('withdraw.amountCard.coinPlaceholder'),
-						caption: selectedCoin?.name ?? '',
 						icon: selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo, networkTick: selectedCoin.network ?? null } : { kind: 'balance' },
 						onPress: onOpenCoinPicker,
 					}}

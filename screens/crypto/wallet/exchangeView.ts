@@ -91,7 +91,6 @@ const trim = (value: number, max = 8): string => {
 
 const sideFor = (asset: ExchangeAssetLike, showBalance: boolean, onPress?: () => void): SwapSide => ({
 	symbol: asset?.symbol ?? '—',
-	caption: asset?.chainName ?? '',
 	icon: { kind: 'wallet', logoTick: asset?.logoTick ?? '', networkTick: asset?.networkTick ?? null },
 	balance: asset ? (showBalance ? asset.amountLabel : HIDDEN) : '',
 	onPress,
@@ -199,8 +198,8 @@ export const buildExchangeView = (input: ExchangeViewInput): ExchangeView => {
 		ctaEnabled: cta === 'review' && !busy,
 		// Solo se ofrece subir al mínimo si el problema ES el mínimo y se conoce
 		suggestedAmount: cta === 'belowMin' && minAmount ? minAmount : advice?.suggestedMinimum ?? null,
-		reviewFrom: { amount: amountText, symbol: from?.symbol ?? '', caption: from?.chainName ?? '', icon: { kind: 'wallet', logoTick: from?.logoTick ?? '', networkTick: from?.networkTick ?? null } },
-		reviewTo: { amount: receiveAmount, symbol: to?.symbol ?? '', caption: to?.chainName ?? '', icon: { kind: 'wallet', logoTick: to?.logoTick ?? '', networkTick: to?.networkTick ?? null } },
+		reviewFrom: { amount: amountText, symbol: from?.symbol ?? '', icon: { kind: 'wallet', logoTick: from?.logoTick ?? '', networkTick: from?.networkTick ?? null } },
+		reviewTo: { amount: receiveAmount, symbol: to?.symbol ?? '', icon: { kind: 'wallet', logoTick: to?.logoTick ?? '', networkTick: to?.networkTick ?? null } },
 		// Lo que el usuario tiene que entender ANTES de confirmar: durante el cambio sus
 		// fondos los tiene el proveedor, con nombre y apellidos.
 		reviewNotice: quote ? t(`${KEY}custodyNotice`, { provider: quote.provider }) : '',

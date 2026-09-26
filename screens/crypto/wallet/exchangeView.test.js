@@ -58,12 +58,14 @@ describe('estado del botón', () => {
 
 describe('la vista', () => {
 
-	it('pinta los dos lados con su red', () => {
+	it('pinta los dos lados con su red en el badge del icono', () => {
+		// La red ya NO va como texto: la lleva el badge del logo, que es lo que separa el
+		// USDT de TRON del de BNB Chain
 		const v = buildExchangeView(base)
 		expect(v.pay.symbol).toBe('USDT')
-		expect(v.pay.caption).toBe('TRON')
+		expect(v.pay.icon).toMatchObject({ kind: 'wallet', logoTick: 'USDT', networkTick: 'TRX' })
 		expect(v.receive.symbol).toBe('SOL')
-		expect(v.receive.caption).toBe('Solana')
+		expect(v.receive.icon).toMatchObject({ kind: 'wallet', networkTick: 'SOL' })
 	})
 
 	it('respeta el ajuste de ocultar saldo', () => {

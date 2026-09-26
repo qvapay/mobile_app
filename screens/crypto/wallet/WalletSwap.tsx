@@ -270,8 +270,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const selectionView = useMemo(() => {
 		const sideOf = (side: SwapSideRef | null, view: AssetView | null): SwapSide => (
 			isBalance(side)
-				? { symbol: 'USD', caption: t('crypto.wallet.swap.balanceQvaPay'), icon: { kind: 'balance' }, balance: showBalance ? formatUsd(custodial) : '••••' }
-				: { symbol: view?.symbol ?? '—', caption: view?.chainName ?? '', icon: { kind: 'wallet', logoTick: view?.logoTick ?? '', networkTick: view?.networkTick ?? null }, balance: view ? (showBalance ? view.amountLabel : '••••') : '' }
+				? { symbol: 'USD', icon: { kind: 'balance' }, balance: showBalance ? formatUsd(custodial) : '••••' }
+				: { symbol: view?.symbol ?? '—', icon: { kind: 'wallet', logoTick: view?.logoTick ?? '', networkTick: view?.networkTick ?? null }, balance: view ? (showBalance ? view.amountLabel : '••••') : '' }
 		)
 		return {
 			pay: sideOf(pay, payAsset),

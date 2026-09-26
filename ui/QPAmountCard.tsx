@@ -17,7 +17,7 @@ type Props = {
 	label: string
 	/** Texto a la derecha de la etiqueta cuando no hay chips ("A tu wallet · Stacks"). */
 	hint?: string
-	token: { symbol: string, caption: string, icon: QPAssetIconKind, onPress?: () => void }
+	token: { symbol: string, icon: QPAssetIconKind, onPress?: () => void }
 	/** Editable (lado que paga) o calculado (lado que recibe). */
 	amount: string
 	onChangeAmount?: (text: string) => void

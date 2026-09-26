@@ -84,7 +84,6 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 					label={type === 'buy' ? t('p2p.common.buy') : t('p2p.common.sell')}
 					token={{
 						symbol: 'QUSD',
-						caption: t('p2p.create.form.balance'),
 						icon: { kind: 'wallet', logoTick: 'qusd', networkTick: null },
 					}}
 					amount={amount}
@@ -105,7 +104,6 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 					hint={selectedCoin?.network ?? undefined}
 					token={{
 						symbol: selectedCoin?.tick ?? t('p2p.common.coin'),
-						caption: selectedCoin?.name ?? '',
 						icon: selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo, networkTick: selectedCoin.network ?? null } : { kind: 'balance' },
 						onPress: onOpenCoinPicker,
 					}}

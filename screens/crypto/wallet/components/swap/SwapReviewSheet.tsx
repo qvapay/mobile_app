@@ -14,7 +14,7 @@ import SwapSheet from './SwapSheet'
 import QPAssetBadge from '../../../../../ui/particles/QPAssetBadge'
 import type { QPAssetIconKind } from '../../../../../ui/particles/QPAssetBadge'
 
-export type SwapReviewSide = { amount: string, symbol: string, caption: string, icon: QPAssetIconKind }
+export type SwapReviewSide = { amount: string, symbol: string, icon: QPAssetIconKind }
 
 type Props = {
 	visible: boolean
@@ -44,12 +44,11 @@ const SwapReviewSheet = ({ visible, title, from, to, rate, badge, rows, notice, 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 
+	// Sin línea de nombre debajo: el badge ya dice qué activo y en qué red, y el símbolo va
+	// pegado al importe. Repetirlo en texto solo alargaba la hoja
 	const side = (value: SwapReviewSide) => (
 		<View style={styles.side}>
-			<View style={styles.sideTexts}>
-				<QPFitText style={[textStyles.amount, styles.sideAmount, { color: theme.colors.primaryText }]}>{`${value.amount} ${value.symbol}`}</QPFitText>
-				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{value.caption}</Text>
-			</View>
+			<QPFitText style={[textStyles.amount, styles.sideAmount, { color: theme.colors.primaryText }]}>{`${value.amount} ${value.symbol}`}</QPFitText>
 			<QPAssetBadge icon={value.icon} size={40} ringColor={theme.colors.background} />
 		</View>
 	)
@@ -83,10 +82,10 @@ const SwapReviewSheet = ({ visible, title, from, to, rate, badge, rows, notice, 
 
 const styles = StyleSheet.create({
 	content: { gap: 10, paddingBottom: 4 },
-	side: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-	sideTexts: { flex: 1, gap: 2 },
-	sideAmount: { fontSize: 28 },
-	arrow: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+	side: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+	sideAmount: { fontSize: 28, flexShrink: 1 },
+	// `alignSelf` explícito: con ancho fijo en una columna, el elemento se va al borde
+	arrow: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
 	divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
 	notice: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, alignItems: 'flex-start' },
 	noticeIcon: { marginTop: 2 },

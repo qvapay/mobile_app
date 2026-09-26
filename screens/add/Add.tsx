@@ -222,7 +222,6 @@ const Add = ({ navigation, route }: AddProps) => {
 						label={t('add.index.amountPlaceholder')}
 						token={{
 							symbol: 'USD',
-							caption: t('add.index.selectCoinLabel'),
 							icon: { kind: 'balance' },
 						}}
 						amount={amount}
@@ -244,7 +243,6 @@ const Add = ({ navigation, route }: AddProps) => {
 						hint={selectedCoin?.network ?? undefined}
 						token={{
 							symbol: selectedCoin?.tick ?? (loadingCoins ? t('add.index.loadingCoins') : t('add.index.selectCoinPlaceholder')),
-							caption: selectedCoin?.name ?? '',
 							icon: selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo, networkTick: selectedCoin.network ?? null } : { kind: 'balance' },
 							onPress: loadingCoins ? undefined : () => setShowCoinPicker(true),
 						}}
