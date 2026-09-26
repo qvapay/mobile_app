@@ -14,7 +14,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { buildSwapForm, isInUnsupported, percentAmount, sanitizeAmountInput } from './swapModel'
 import { buildSwapView } from './swapView'
 import type { SwapSide } from './swapView'
-import { assetIdOf, directionFor, flip, isBalance, railAmountUsd, routeFor } from './swapRouting'
+import { assetIdOf, directionFor, flip, isBalance, maxChipAllowed, railAmountUsd, routeFor } from './swapRouting'
 import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
@@ -324,15 +324,25 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const onConfirm = isExchange ? exchangeFlow.confirm : swapFlow.onConfirm
 	const confirmDisabled = isExchange ? exchangeFlow.busy : swapFlow.confirmDisabled
 
-	// En el riel no se teclea importe aquí: lo hace la pantalla de retiro/depósito
-	const maxAmount = isRail ? 0 : isExchange ? Number(payAsset?.amount ?? 0) : form.max
-	// En el agregador no hay chip de 100%: el proveedor espera el importe EXACTO cotizado, y
-	// en el nativo "todo" se comería además la comisión de red del propio envío.
-	const chips = maxAmount > 0
-		? PERCENT_CHIPS
-			.filter(p => !(isExchange && p === 100))
+	/**
+	 * El máximo movible, según de dónde salga el dinero.
+	 *
+	 * En los modos QUSD manda `form.max`, que ya cruza saldo, topes del par y cupo del día;
+	 * en el retiro, el saldo QvaPay; en lo demás, el saldo del activo que paga.
+	 */
+	const maxAmount = useMemo(() => {
+		if (isQusd) { return form.max }
+		if (routed.mode === 'withdraw') { return custodial }
+		return Number(payAsset?.amount ?? 0)
+	}, [isQusd, form.max, routed.mode, custodial, payAsset?.amount])
+
+	const chips = useMemo(() => {
+		if (!(maxAmount > 0)) { return undefined }
+		const allowMax = maxChipAllowed({ mode: routed.mode, payIsNative: payAsset?.contract === null })
+		return PERCENT_CHIPS
+			.filter(p => p !== 100 || allowMax)
 			.map(p => ({ key: String(p), label: p === 100 ? t('crypto.wallet.swap.max') : `${p}%`, onPress: () => setAmountText(percentAmount(maxAmount, p)) }))
-		: undefined
+	}, [maxAmount, routed.mode, payAsset?.contract, t])
 
 	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
 

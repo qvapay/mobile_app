@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-const { assetIdOf, canSwapAsset, directionFor, flip, isBalance, railAmountUsd, routeFor } = require('./swapRouting')
+const { assetIdOf, canSwapAsset, directionFor, flip, isBalance, maxChipAllowed, railAmountUsd, routeFor } = require('./swapRouting')
 
 const BALANCE = { kind: 'balance' }
 const QUSD = { kind: 'asset', id: 'stacks:SP14CTSJZNKZ7YTR6C84368J2QXRW8RC20GSQ8KS2.QUSD::QUSD' }
@@ -149,6 +149,31 @@ describe('el importe que viaja al riel', () => {
 		for (const mode of ['qusd-out', 'qusd-in', 'exchange', 'unsupported']) {
 			expect(railAmountUsd({ typed: 10, mode, price: 1 })).toBeNull()
 		}
+	})
+})
+
+describe('el chip de MÁX', () => {
+
+	it('con un NATIVO saliendo de la wallet, no: la comisión de red ya no cabría', () => {
+		for (const mode of ['exchange', 'deposit', 'qusd-in']) {
+			expect(maxChipAllowed({ mode, payIsNative: true })).toBe(false)
+		}
+	})
+
+	it('con un TOKEN sí: el gas se paga en el nativo, que no se toca', () => {
+		for (const mode of ['exchange', 'deposit', 'qusd-in']) {
+			expect(maxChipAllowed({ mode, payIsNative: false })).toBe(true)
+		}
+	})
+
+	it('saliendo del saldo QvaPay siempre: la comisión sale del propio importe', () => {
+		for (const mode of ['qusd-out', 'withdraw']) {
+			expect(maxChipAllowed({ mode, payIsNative: true })).toBe(true)
+		}
+	})
+
+	it('sin camino no hay chips que ofrecer', () => {
+		expect(maxChipAllowed({ mode: 'unsupported', payIsNative: false })).toBe(false)
 	})
 })
 

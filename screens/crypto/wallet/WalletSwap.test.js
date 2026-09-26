@@ -109,6 +109,16 @@ describe('el riel llega con moneda E importe', () => {
 		useWalletAssets.mockReturnValue({ all: [QUSD_ASSET, BTC_ASSET] })
 	})
 
+	test('el riel TAMBIÉN trae los chips de porcentaje', async () => {
+		// Estaban escondidos de cuando el importe no viajaba a Retirar; ahora sí viaja
+		await render()
+		await press({ props: cards()[1].props.token })
+		await act(async () => { assetSheet().props.onSelect(BTC_ASSET.id) })
+		await settle()
+		const chips = cards()[0].props.chips
+		expect(chips.map(c => c.label)).toEqual(['25%', '50%', 'MÁX'])
+	})
+
 	test('saldo → BTC navega a Retirar con la moneda, la dirección Y el importe', async () => {
 		await render()
 		// El lado que recibe pasa a BTC: saldo → BTC es el riel de retiro

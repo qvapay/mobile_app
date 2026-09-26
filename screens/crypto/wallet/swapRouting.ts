@@ -146,3 +146,20 @@ export const railAmountUsd = ({ typed, mode, price }: {
 	return String(Math.round(typed * price * 100) / 100)
 }
 
+/**
+ * ¿Se ofrece el chip de MÁX?
+ *
+ * No cuando lo que se entrega es el NATIVO de su cadena: el 100% deja el saldo en cero y la
+ * comisión de red ya no cabe, así que el envío está garantizado que falla. Ofrecer un botón
+ * que no puede funcionar es peor que no ofrecerlo.
+ *
+ * Con un token sí: la comisión se paga en el nativo, que no se toca. Y con el saldo QvaPay
+ * también —la comisión sale del propio importe— tanto en el swap como en el retiro.
+ */
+export const maxChipAllowed = ({ mode, payIsNative }: { mode: SwapMode, payIsNative: boolean }): boolean => {
+	if (mode === 'unsupported') { return false }
+	// Lo que sale de la wallet paga gas aparte; lo que sale del saldo, no
+	const paysFromWallet = mode === 'exchange' || mode === 'deposit' || mode === 'qusd-in'
+	return !(paysFromWallet && payIsNative)
+}
+
