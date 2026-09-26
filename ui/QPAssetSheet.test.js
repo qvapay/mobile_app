@@ -28,17 +28,12 @@ const OPTIONS = [
 ]
 
 let tree
-// La lista espera a que la hoja termine de subir (esqueleto mientras): en jest no hay
-// animación que avise, así que se deja correr el respaldo por tiempo de QPSheet
 const render = async (props = {}) => {
 	await act(async () => {
 		tree = create(<QPAssetSheet visible options={OPTIONS} onSelect={jest.fn()} onClose={jest.fn()} {...props} />)
 	})
-	await act(async () => { jest.advanceTimersByTime(1000) })
 	return tree
 }
-
-beforeEach(() => { jest.useFakeTimers() })
 const rows = () => tree.root.findAllByType('QPPressable').filter(n => n.props.accessibilityState && 'selected' in n.props.accessibilityState)
 const search = () => tree.root.findByType('QPInput')
 const titles = () => rows().map(r => r.props.accessibilityLabel)
@@ -47,7 +42,7 @@ const listBoxHeight = () => tree.root.findAll(n =>
 	typeof n.props?.style?.height === 'number' && n.findAllByType('FlashList').length === 1
 )[0]?.props.style.height
 
-afterEach(async () => { if (tree) { await act(async () => tree.unmount()); tree = null } jest.useRealTimers() })
+afterEach(async () => { if (tree) { await act(async () => tree.unmount()); tree = null } })
 
 test('una fila por opción', async () => {
 	await render()
@@ -161,7 +156,6 @@ test('la búsqueda se limpia al cerrar: reabrir no hereda un catálogo a medias'
 	expect(titles()).toEqual(['SOL'])
 	await act(async () => { tree.update(<QPAssetSheet visible={false} options={OPTIONS} onSelect={jest.fn()} onClose={jest.fn()} />) })
 	await act(async () => { tree.update(<QPAssetSheet visible options={OPTIONS} onSelect={jest.fn()} onClose={jest.fn()} />) })
-	await act(async () => { jest.advanceTimersByTime(1000) })
 	expect(titles()).toEqual(['USDT', 'SOL', 'USD'])
 })
 
@@ -175,16 +169,4 @@ test('el pie solo aparece sin búsqueda activa', async () => {
 	expect(JSON.stringify(tree.toJSON())).toContain('Más monedas pronto')
 	await act(async () => { search().props.onChangeText('sol') })
 	expect(JSON.stringify(tree.toJSON())).not.toContain('Más monedas pronto')
-})
-
-test('mientras la hoja sube pinta esqueleto, no la lista', async () => {
-	// Montar la lista con sus logos en el mismo frame en que arranca la animación le robaba
-	// cuadros: la hoja subía a tirones
-	await act(async () => {
-		tree = create(<QPAssetSheet visible options={OPTIONS} onSelect={jest.fn()} onClose={jest.fn()} />)
-	})
-	expect(tree.root.findAllByType('FlashList')).toHaveLength(0)
-	expect(rows()).toHaveLength(0)
-	await act(async () => { jest.advanceTimersByTime(1000) })
-	expect(titles()).toEqual(['USDT', 'SOL', 'USD'])
 })

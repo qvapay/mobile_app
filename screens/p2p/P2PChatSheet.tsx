@@ -1,7 +1,7 @@
 import { View, Pressable, Modal, StyleSheet } from "react-native"
 
 import Animated from 'react-native-reanimated'
-import { SHEET_MAX_RATIO, sheetEntering } from '../../ui/QPSheet'
+import { SHEET_ENTERING, SHEET_MAX_RATIO } from '../../ui/QPSheet'
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import type { EdgeInsets } from "react-native-safe-area-context"
@@ -12,8 +12,6 @@ import P2PPeerRow from "./P2PPeerRow"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
-
-const CHAT_ENTERING = sheetEntering()
 
 type P2PChatSheetProps = {
 	visible: boolean
@@ -41,7 +39,7 @@ const P2PChatSheet = ({ visible, onClose, keyboardHeight, insets, theme, textSty
 		<Pressable style={styles.sheetOverlay} onPress={onClose}>
 			{/* El responder absorbe los toques: sin él, tocar la hoja cerraría el chat */}
 			<Animated.View
-				entering={CHAT_ENTERING}
+				entering={SHEET_ENTERING}
 				onStartShouldSetResponder={() => true}
 				style={[styles.sheet, {
 					backgroundColor: theme.colors.surface,
