@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 // UI
 import QPAmountCard from '../../ui/QPAmountCard'
+import type { QPAmountChip } from '../../ui/QPAmountCard'
 import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../ui/particles/QPFlipButton'
 
 // Helpers
@@ -28,6 +29,8 @@ type WithdrawAmountCardProps = {
 	balance?: Decimal | null
 	currency: string
 	onOpenCoinPicker: () => void
+	/** Chips de porcentaje sobre el saldo; los arma la pantalla, como en el swap. */
+	chips?: QPAmountChip[]
 	locked?: boolean
 	lockedCaption?: string
 	theme: Theme
@@ -47,7 +50,7 @@ type WithdrawAmountCardProps = {
  * `locked` congela los dos importes (un BOLT11 escaneado fija la cantidad) y
  * `lockedCaption` explica por qué debajo.
  */
-const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, locked, lockedCaption, theme, textStyles }: WithdrawAmountCardProps) => {
+const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmountCoin, selectedCoin, balance, currency, onOpenCoinPicker, chips, locked, lockedCaption, theme, textStyles }: WithdrawAmountCardProps) => {
 
 	const { t } = useTranslation()
 
@@ -63,6 +66,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 					}}
 					amount={amountQUSD}
 					onChangeAmount={locked ? undefined : (text: string) => onChangeQUSD(sanitizeAmountInput(text))}
+					chips={chips}
 					fiatLabel=""
 					balanceLabel={`${formatBalance(balance)} ${currency}`}
 					disabled={locked}

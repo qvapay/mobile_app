@@ -41,3 +41,29 @@ export function parseAmountInput(text: string | null | undefined): number {
 	const parsed = parseFloat(sanitizeAmountInput(text))
 	return Number.isFinite(parsed) ? parsed : 0
 }
+
+const CENT = 100
+
+/**
+ * Trunca a centavos HACIA ABAJO. Nunca se ofrece mover más de lo que hay: redondear
+ * hacia arriba pondría en el campo un importe que el saldo no cubre.
+ *
+ * El `Math.round(… * 1e6) / 1e6` de en medio absorbe la basura binaria de
+ * multiplicar por 100 antes de truncar (12.34 * 100 da 1233.9999999999998).
+ */
+export const floorCents = (value: number): number => Math.floor(Math.round(value * CENT * 1e6) / 1e6) / CENT
+
+/**
+ * Importe para un chip de porcentaje (25/50/100) sobre el máximo movible.
+ *
+ * El 100% devuelve el máximo EXACTO, sin truncar: es lo único que garantiza que "MAX"
+ * deje el saldo en cero y no en un centavo suelto.
+ *
+ * @returns Cadena con dos decimales, o '' cuando no hay nada que mover (el campo se
+ *   queda vacío en vez de con un '0.00' que parece un importe).
+ */
+export const percentAmount = (max: number, percent: number): string => {
+	const value = percent >= 100 ? max : floorCents((max * percent) / 100)
+	return value > 0 ? value.toFixed(2) : ''
+}
+

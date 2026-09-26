@@ -68,9 +68,10 @@ export type SwapForm = {
 	max: number
 }
 
-const CENT = 100
-/** Trunca a centavos hacia abajo (nunca se ofrece mover más de lo que hay). */
-export const floorCents = (value: number): number => Math.floor(Math.round(value * CENT * 1e6) / 1e6) / CENT
+// Viven en `helpers/amountInput` desde que el retiro monta las mismas tarjetas: se
+// reexportan para no tocar a quien ya las importaba de aquí
+export { floorCents, percentAmount } from '../../../helpers/amountInput'
+import { floorCents } from '../../../helpers/amountInput'
 
 /**
  * Sanea lo que teclea el usuario: coma → punto, solo dígitos y UN punto, máx 2 decimales,
@@ -94,12 +95,6 @@ export const maxSwapAmount = ({ payBalance, pair, limitAvailable }: { payBalance
 	if (!pair) return 0
 	const caps = [Math.max(0, payBalance), pair.max, ...(limitAvailable === null ? [] : [Math.max(0, limitAvailable)])]
 	return floorCents(Math.min(...caps))
-}
-
-/** Importe para un chip de porcentaje (25/50/75/100) sobre el máximo movible. */
-export const percentAmount = (max: number, percent: number): string => {
-	const value = percent >= 100 ? max : floorCents((max * percent) / 100)
-	return value > 0 ? value.toFixed(2) : ''
 }
 
 export const buildSwapForm = ({ direction, amountText, pair, payBalance, limitAvailable, walletReady, loading }: SwapFormInput): SwapForm => {

@@ -186,6 +186,24 @@ describe('coin loading and selection', () => {
 		expect(amountCard(tree).props.selectedCoin.tick).toBe('BANK_CUP')
 	})
 
+	test('los chips de porcentaje llenan el importe sobre el saldo', async () => {
+		const tree = await renderWithdraw({ preselectedCoin: 'USDT' })
+		const chips = amountCard(tree).props.chips
+		expect(chips.map(c => c.label)).toEqual(['25%', '50%', 'MÁX'])
+		await act(async () => { chips[0].onPress() })
+		// El saldo del harness es 150
+		expect(amountCard(tree).props.amountQUSD).toBe('37.50')
+		// MÁX deja el saldo en cero, sin truncar a centavos
+		await act(async () => { amountCard(tree).props.chips[2].onPress() })
+		expect(Number(amountCard(tree).props.amountQUSD)).toBe(150)
+	})
+
+	test('con el importe congelado por una factura no hay chips', async () => {
+		// Un chip que no responde se lee como una pantalla rota
+		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN', lnInvoice: 'lnbc1500n1qqexample', lnAmountSats: 150000 })
+		expect(amountCard(tree).props.chips).toBeUndefined()
+	})
+
 	test('el importe del param llega con la conversión y la comisión ya hechas', async () => {
 		// Llegando desde el intercambio: la moneda Y el importe. Antes solo viajaba la
 		// moneda y el campo quedaba vacío, así que el flujo "solo cambiaba de pantalla"

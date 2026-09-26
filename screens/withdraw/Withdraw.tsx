@@ -1,6 +1,9 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { View, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
+
+// Helpers
+import { percentAmount } from '../../helpers/amountInput'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -38,6 +41,8 @@ const DEFAULT_WITHDRAW_COINS = [
 	{ tick: 'ETECSA', label: 'ETECSA' },
 ]
 const RECENT_WITHDRAW_KEY = 'qp_recent_withdraw_coins'
+
+const PERCENT_CHIPS = [25, 50, 100] as const
 
 type WithdrawProps = NativeStackScreenProps<RootStackParamList, 'Withdraw'>
 
@@ -95,6 +100,22 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		prefillAmount: route?.params?.amount,
 	})
 
+
+	/**
+	 * Chips de porcentaje sobre el saldo, como en el swap de la wallet.
+	 *
+	 * Con el importe congelado por una factura escaneada no salen: no hay nada que elegir,
+	 * y un chip que no responde se lee como una pantalla rota.
+	 */
+	const percentChips = useMemo(() => {
+		const max = Number(balance) || 0
+		if (amountLocked || max <= 0) { return undefined }
+		return PERCENT_CHIPS.map(percent => ({
+			key: String(percent),
+			label: percent === 100 ? t('withdraw.amountCard.max') : `${percent}%`,
+			onPress: () => handleChangeQUSD(percentAmount(max, percent)),
+		}))
+	}, [balance, amountLocked, t, handleChangeQUSD])
 	const {
 		pin, setPin, codeLength, twoFactorMethod, codeInputRef, handleMethodToggle, hasOTP,
 		showPinStep, setShowPinStep, sendingPin, sendingWithdraw,
@@ -168,6 +189,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 						/>
 					) : (
 						<WithdrawAmountCard
+							chips={percentChips}
 							amountQUSD={amountQUSD}
 							amountCoin={amountCoin}
 							onChangeQUSD={handleChangeQUSD}

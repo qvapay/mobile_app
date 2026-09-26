@@ -38,7 +38,8 @@
 		"balance": "Balance:",
 		"receive": "Recibir",
 		"coinPlaceholder": "Moneda",
-		"fromBalance": "De tu saldo"
+		"fromBalance": "De tu saldo",
+		"max": "MÁX"
 	},
 	"satsCard": {
 		"title": "Redimir satoshis",
