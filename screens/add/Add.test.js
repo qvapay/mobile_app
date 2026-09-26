@@ -27,8 +27,9 @@ jest.mock('../../ui/QPKeyboardView', () => {
 	return ({ children, actions }) => React.createElement(View, null, children, actions)
 })
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
-jest.mock('../../ui/AmountInput', () => 'AmountInput')
-jest.mock('../../ui/QPCoinRow', () => 'QPCoinRow')
+jest.mock('../../ui/QPAmountCard', () => 'QPAmountCard')
+// QPFlipButton usa reanimated, que este entorno node no trae
+jest.mock('../../ui/particles/QPFlipButton', () => { const C = 'QPFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
 jest.mock('../../ui/QPCoinPicker', () => 'QPCoinPicker')
 jest.mock('../../ui/WalletPickerSheet', () => 'WalletPickerSheet')
 jest.mock('./DepositDetailsModal', () => 'DepositDetailsModal')
@@ -83,7 +84,7 @@ const renderAdd = async (renderParams) => {
 
 const pickCoinAndAmount = async (tree, coin = USDT, amount = '50') => {
 	await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(coin) })
-	await act(async () => { tree.root.findByType('AmountInput').props.onAmountChange(amount) })
+	await act(async () => { tree.root.findAllByType('QPAmountCard')[0].props.onChangeAmount(amount) })
 }
 
 const pressGenerate = (tree) => act(async () => { tree.root.findByType('QPButton').props.onPress() })
@@ -127,7 +128,7 @@ describe('topup validations', () => {
 		// fixtures viejos, y es sobre la plana sobre la que se busca el tick.
 		mockCoinCatalog = [USDT]
 		const tree = await renderAdd({ preselectedCoin: 'USDT', amount: '25' })
-		expect(tree.root.findByType('AmountInput').props.amount).toBe('25')
+		expect(tree.root.findAllByType('QPAmountCard')[0].props.amount).toBe('25')
 	})
 
 	test('rejects a non-positive amount', async () => {
