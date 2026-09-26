@@ -11,10 +11,10 @@ import QPFitText from '../../../../../ui/particles/QPFitText'
 import SwapDetails from './SwapDetails'
 import type { SwapDetailRow } from './SwapDetails'
 import SwapSheet from './SwapSheet'
-import SwapTokenBadge from './SwapTokenBadge'
-import type { SwapTokenIcon } from './SwapTokenBadge'
+import QPAssetBadge from '../../../../../ui/particles/QPAssetBadge'
+import type { QPAssetIconKind } from '../../../../../ui/particles/QPAssetBadge'
 
-export type SwapReviewSide = { amount: string, symbol: string, caption: string, icon: SwapTokenIcon }
+export type SwapReviewSide = { amount: string, symbol: string, caption: string, icon: QPAssetIconKind }
 
 type Props = {
 	visible: boolean
@@ -50,7 +50,7 @@ const SwapReviewSheet = ({ visible, title, from, to, rate, badge, rows, notice, 
 				<QPFitText style={[textStyles.amount, styles.sideAmount, { color: theme.colors.primaryText }]}>{`${value.amount} ${value.symbol}`}</QPFitText>
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{value.caption}</Text>
 			</View>
-			<SwapTokenBadge icon={value.icon} size={40} ringColor={theme.colors.background} />
+			<QPAssetBadge icon={value.icon} size={40} ringColor={theme.colors.background} />
 		</View>
 	)
 

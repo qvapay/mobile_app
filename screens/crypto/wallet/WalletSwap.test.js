@@ -22,7 +22,7 @@ jest.mock('../../../api/withdrawApi', () => ({ withdrawApi: { requestPin: jest.f
 // estos tests sigan siendo del motor custodial (y para no arrastrar api/client → device-info)
 // Catálogo de monedas vacío: estos tests son del motor custodial, así que los rieles de
 // depósito/retiro quedan cerrados y no cambian ninguna aserción (y no se arrastra api/client)
-jest.mock('../../../hooks/useCoins', () => ({ __esModule: true, default: () => ({ coins: [], isLoading: false }) }))
+jest.mock('../../../hooks/useCoins', () => ({ __esModule: true, default: jest.fn(() => ({ coins: [], isLoading: false })) }))
 jest.mock('../../../api/exchangeApi', () => ({
 	exchangeApi: {
 		catalog: jest.fn(async () => ({ success: true, data: { supported: [], unsupported: {} }, status: 200 })),
@@ -47,6 +47,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '../../../auth/AuthContext'
 import { useWallet } from '../../../wallet/WalletContext'
 import { useWalletAssets } from './walletQueries'
+import useCoins from '../../../hooks/useCoins'
 import { prepareSend, signPrepared, broadcastSigned } from './walletSendActions'
 import { swapApi } from '../../../api/swapApi'
 import { toast } from 'sonner-native'
@@ -97,6 +98,33 @@ beforeEach(() => {
 afterEach(async () => {
 	if (tree) { await act(async () => { tree.unmount() }); tree = null }
 	queryClient?.clear()
+})
+
+describe('el riel llega con moneda E importe', () => {
+	const BTC_COIN = { tick: 'BTC', name: 'Bitcoin', logo: 'btc', network: 'BTC', price: '85000', enabled_out: true, enabled_in: true }
+	const BTC_ASSET = { id: 'bitcoin:native', chainKey: 'bitcoin', chainName: 'Bitcoin', kind: 'btc', symbol: 'BTC', decimals: 8, contract: null, logoTick: 'BTC', networkTick: 'BTC', amount: '0', amountLabel: '0', usd: 0, hasBalance: false, stable: false, priceTick: 'BTC' }
+
+	beforeEach(() => {
+		useCoins.mockReturnValue({ coins: [BTC_COIN], isLoading: false })
+		useWalletAssets.mockReturnValue({ all: [QUSD_ASSET, BTC_ASSET] })
+	})
+
+	test('saldo → BTC navega a Retirar con la moneda, la dirección Y el importe', async () => {
+		await render()
+		// El lado que recibe pasa a BTC: saldo → BTC es el riel de retiro
+		await press({ props: cards()[1].props.token })
+		await act(async () => { assetSheet().props.onSelect(BTC_ASSET.id) })
+		await settle()
+
+		await type('25')
+		await settle()
+
+		await press(footer())
+		expect(navigation.navigate).toHaveBeenCalledWith('Withdraw', expect.objectContaining({
+			preselectedCoin: 'BTC',
+			amount: '25',
+		}))
+	})
 })
 
 describe('selección de los dos lados', () => {

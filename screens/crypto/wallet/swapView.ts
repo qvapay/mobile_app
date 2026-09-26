@@ -11,7 +11,7 @@ import { isInUnsupported } from './swapModel'
 import type { SwapDirection, SwapForm, SwapPairLike } from './swapModel'
 import { formatUsd, shortAddress } from './walletFormat'
 import type { SwapDetailRow } from './components/swap/SwapDetails'
-import type { SwapTokenIcon } from './components/swap/SwapTokenBadge'
+import type { QPAssetIconKind } from '../../../ui/particles/QPAssetBadge'
 
 /** `t` de i18next, reducido a lo que este módulo usa (no arrastra react-i18next a los tests node). */
 type Translate = (key: string, params?: Record<string, unknown>) => string
@@ -22,10 +22,10 @@ export type SwapNoticeIcon = 'gas-pump' | 'triangle-exclamation' | 'wallet'
 export type SwapNotice = { key: string, icon: SwapNoticeIcon, tone: SwapNoticeTone, text: string }
 
 /** Un lado del swap en la hoja de revisión (sin saldo ni selector). */
-export type SwapReviewCard = { amount: string, symbol: string, caption: string, icon: SwapTokenIcon }
+export type SwapReviewCard = { amount: string, symbol: string, caption: string, icon: QPAssetIconKind }
 
 /** Un lado del swap tal cual lo consume `SwapAmountCard`. */
-export type SwapSide = { symbol: string, caption: string, icon: SwapTokenIcon, balance: string, onPress?: () => void }
+export type SwapSide = { symbol: string, caption: string, icon: QPAssetIconKind, balance: string, onPress?: () => void }
 
 /** Lo que la vista necesita saber del activo on-chain del par. */
 export type SwapAssetLike = { symbol: string, amountLabel?: string, logoTick?: string, networkTick?: string | null, chainName?: string } | null | undefined

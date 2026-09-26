@@ -186,6 +186,24 @@ describe('coin loading and selection', () => {
 		expect(amountCard(tree).props.selectedCoin.tick).toBe('BANK_CUP')
 	})
 
+	test('el importe del param llega con la conversión y la comisión ya hechas', async () => {
+		// Llegando desde el intercambio: la moneda Y el importe. Antes solo viajaba la
+		// moneda y el campo quedaba vacío, así que el flujo "solo cambiaba de pantalla"
+		const tree = await renderWithdraw({ preselectedCoin: 'USDT', amount: '25' })
+		const card = amountCard(tree)
+		expect(card.props.selectedCoin.tick).toBe('USDT')
+		expect(card.props.amountQUSD).toBe('25')
+		// USDT a $1 con 1% de comisión: 25 - 0.25 = 24.75
+		expect(Number(card.props.amountCoin)).toBeCloseTo(24.75, 2)
+	})
+
+	test('un importe inválido en el param no escribe nada', async () => {
+		for (const amount of ['0', '-5', 'abc', '']) {
+			const tree = await renderWithdraw({ preselectedCoin: 'USDT', amount })
+			expect(amountCard(tree).props.amountQUSD).toBe('')
+		}
+	})
+
 	test('selecting a coin with an amount already typed recomputes the receive amount', async () => {
 		const tree = await renderWithdraw()
 		await selectCoin(tree, USDCASH)

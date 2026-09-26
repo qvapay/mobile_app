@@ -1,7 +1,7 @@
-import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
+import { View, Text, TextInput } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
-import QPCoin from '../../ui/particles/QPCoin'
+import QPAssetPill from '../../ui/particles/QPAssetPill'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { sanitizeAmountInput } from '../../helpers/amountInput'
 
@@ -63,12 +63,7 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 						style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, padding: 0, margin: 0 }]}
 					/>
 				</View>
-				<View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-						<QPCoin coin="qusd" size={20} />
-						<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
-					</View>
-				</View>
+				<QPAssetPill icon={{ kind: 'wallet', logoTick: 'qusd', networkTick: null }} symbol="QUSD" />
 			</View>
 		</View>
 
@@ -94,20 +89,12 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 						editable={!!selectedCoin && !locked}
 					/>
 				</View>
-				<Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={onOpenCoinPicker} >
-					{selectedCoin ? (
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-							<QPCoin coin={selectedCoin.logo} size={20} />
-							<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
-							<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-						</View>
-					) : (
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('withdraw.amountCard.coinPlaceholder')}</Text>
-							<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-						</View>
-					)}
-				</Pressable>
+				<QPAssetPill
+					icon={selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo, networkTick: selectedCoin.network ?? null } : null}
+					symbol={selectedCoin?.tick}
+					placeholder={t('withdraw.amountCard.coinPlaceholder')}
+					onPress={onOpenCoinPicker}
+				/>
 			</View>
 		</View>
 
@@ -118,15 +105,5 @@ const WithdrawAmountCard = ({ amountQUSD, amountCoin, onChangeQUSD, onChangeAmou
 	</View>
 	)
 }
-
-const styles = StyleSheet.create({
-	currencyButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 12,
-		borderCurve: 'continuous',
-		borderWidth: 0.5
-	},
-})
 
 export default WithdrawAmountCard
