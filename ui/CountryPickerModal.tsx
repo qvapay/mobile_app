@@ -61,7 +61,7 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 						prefixIconName="magnifying-glass"
 						style={{ marginVertical: 0 }}
 					/>
-					<ScrollView style={{ maxHeight: 400 }}>
+					<ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
 						{countries.flatMap((c) => (c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)) ? [
 							<QPPressable
 								variant="opacity"
@@ -84,6 +84,12 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 const styles = StyleSheet.create({
 	modalContent: {
 		maxHeight: '80%',
+	},
+	// Sin alto propio: se encoge dentro del card, que es quien conoce la pantalla. Antes
+	// llevaba `maxHeight: 400` en píxeles, un tope que en pantallas altas dejaba la lista
+	// corta y en las bajas desbordaba el card
+	list: {
+		flexShrink: 1,
 	},
 	modalHeader: {
 		flexDirection: 'row',

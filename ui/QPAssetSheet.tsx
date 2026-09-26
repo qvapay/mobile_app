@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -10,6 +9,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { useTextStyles } from '../theme/themeUtils'
 
 // UI
+import QPSheet, { SHEET_MAX_RATIO } from './QPSheet'
 import QPAssetIcon from './particles/QPAssetIcon'
 import QPInput from './particles/QPInput'
 import QPPressable from './particles/QPPressable'
@@ -77,7 +77,6 @@ const ROW_HEIGHT = 70
 const LIST_PADDING = 12
 const EMPTY_HEIGHT = 140
 /** Cuánto de la pantalla puede ocupar la hoja entera. */
-const MAX_SHEET_RATIO = 0.92
 /**
  * Lo que la hoja gasta por encima de la lista: grabber, cabecera, buscador y la fila de
  * accesos rápidos. Se descuenta para que la lista llegue hasta donde de verdad cabe, en vez
@@ -90,7 +89,6 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
-	const insets = useSafeAreaInsets()
 	const { height: windowHeight } = useWindowDimensions()
 	const [search, setSearch] = useState('')
 
@@ -117,84 +115,69 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 	 * Se calcula a partir de cuántas filas hay, con tope para que la hoja no coma la pantalla:
 	 * una lista corta no deja un hueco enorme y una larga se desplaza.
 	 */
-	const available = windowHeight * MAX_SHEET_RATIO - CHROME_HEIGHT - (insets.bottom || 12)
+	const available = windowHeight * SHEET_MAX_RATIO - CHROME_HEIGHT
 	const listHeight = filtered.length === 0
 		? EMPTY_HEIGHT
 		: Math.min(filtered.length * ROW_HEIGHT + LIST_PADDING, Math.max(available, EMPTY_HEIGHT))
 
 	return (
-		<Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-			<Pressable style={styles.overlay} onPress={onClose}>
-				{/* El onPress vacío absorbe los toques: sin él, tocar el grabber o cualquier
-				    hueco de la hoja caía al overlay y la cerraba */}
-				<Pressable style={[styles.sheet, { backgroundColor: theme.colors.background, paddingBottom: insets.bottom || 12 }]} onPress={() => { }}>
+		<QPSheet visible={visible} title={title ?? t('ui.coinPicker.title')} onClose={onClose}>
 
-					<View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
+			{searchable && (
+				<View style={styles.search}>
+					<QPInput
+						value={search}
+						onChangeText={setSearch}
+						placeholder={t('ui.coinPicker.searchPlaceholder')}
+						prefixIconName="magnifying-glass"
+						autoCorrect={false}
+						autoCapitalize="none"
+					/>
+				</View>
+			)}
 
-					<View style={styles.header}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{title ?? t('ui.coinPicker.title')}</Text>
-						<Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.actions.close')}>
-							<FontAwesome6 name="xmark" size={20} color={theme.colors.primaryText} iconStyle="solid" />
-						</Pressable>
-					</View>
+			{!!quick?.length && !search && (
+				<View style={styles.quick}>
+					{quick.map(option => (
+						<QPPressable
+							key={option.id}
+							onPress={() => { onSelect(option.id); onClose() }}
+							style={[styles.pill, {
+								backgroundColor: option.id === selectedId ? theme.colors.primary : theme.colors.surface,
+								borderColor: option.id === selectedId ? theme.colors.primary : theme.colors.border,
+							}]}
+							accessibilityRole="button"
+						>
+							<QPAssetIcon logoTick={option.logoTick ?? ''} networkTick={option.networkTick} size={18} ringColor={option.id === selectedId ? theme.colors.primary : theme.colors.surface} />
+							<Text style={{ color: option.id === selectedId ? theme.colors.almostWhite : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }}>
+								{option.title}
+							</Text>
+						</QPPressable>
+					))}
+				</View>
+			)}
 
-					{searchable && (
-						<View style={styles.search}>
-							<QPInput
-								value={search}
-								onChangeText={setSearch}
-								placeholder={t('ui.coinPicker.searchPlaceholder')}
-								prefixIconName="magnifying-glass"
-								autoCorrect={false}
-								autoCapitalize="none"
-							/>
-						</View>
+			<View style={{ height: listHeight }}>
+				<FlashList
+					data={filtered}
+					keyExtractor={option => option.id}
+					renderItem={({ item }) => (
+						<Row option={item} selected={item.id === selectedId} onPress={() => { onSelect(item.id); onClose() }} />
 					)}
-
-					{!!quick?.length && !search && (
-						<View style={styles.quick}>
-							{quick.map(option => (
-								<QPPressable
-									key={option.id}
-									onPress={() => { onSelect(option.id); onClose() }}
-									style={[styles.pill, {
-										backgroundColor: option.id === selectedId ? theme.colors.primary : theme.colors.surface,
-										borderColor: option.id === selectedId ? theme.colors.primary : theme.colors.border,
-									}]}
-									accessibilityRole="button"
-								>
-									<QPAssetIcon logoTick={option.logoTick ?? ''} networkTick={option.networkTick} size={18} ringColor={option.id === selectedId ? theme.colors.primary : theme.colors.surface} />
-									<Text style={{ color: option.id === selectedId ? theme.colors.almostWhite : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }}>
-										{option.title}
-									</Text>
-								</QPPressable>
-							))}
-						</View>
+					contentContainerStyle={styles.list}
+					keyboardShouldPersistTaps="handled"
+					ListEmptyComponent={(
+						<Text style={[textStyles.subtitle, styles.empty, { color: theme.colors.secondaryText }]}>
+							{loading ? t('ui.coinPicker.loading') : t('ui.coinPicker.empty')}
+						</Text>
 					)}
+					ListFooterComponent={footnote && !search ? (
+						<Text style={[textStyles.h6, styles.footnote, { color: theme.colors.tertiaryText }]}>{footnote}</Text>
+					) : null}
+				/>
+			</View>
 
-					<View style={{ height: listHeight }}>
-						<FlashList
-							data={filtered}
-							keyExtractor={option => option.id}
-							renderItem={({ item }) => (
-								<Row option={item} selected={item.id === selectedId} onPress={() => { onSelect(item.id); onClose() }} />
-							)}
-							contentContainerStyle={styles.list}
-							keyboardShouldPersistTaps="handled"
-							ListEmptyComponent={(
-								<Text style={[textStyles.subtitle, styles.empty, { color: theme.colors.secondaryText }]}>
-									{loading ? t('ui.coinPicker.loading') : t('ui.coinPicker.empty')}
-								</Text>
-							)}
-							ListFooterComponent={footnote && !search ? (
-								<Text style={[textStyles.h6, styles.footnote, { color: theme.colors.tertiaryText }]}>{footnote}</Text>
-							) : null}
-						/>
-					</View>
-
-				</Pressable>
-			</Pressable>
-		</Modal>
+		</QPSheet>
 	)
 }
 
@@ -246,14 +229,10 @@ const BalanceIcon = ({ theme }: { theme: ReturnType<typeof useTheme>['theme'] })
 )
 
 const styles = StyleSheet.create({
-	overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-	sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderCurve: 'continuous', maxHeight: '92%', overflow: 'hidden' },
-	grabber: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 4 },
-	header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
-	search: { paddingHorizontal: 20, paddingBottom: 8 },
-	quick: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, paddingBottom: 10 },
+	search: { paddingBottom: 8 },
+	quick: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 10 },
 	pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 5, paddingRight: 11, paddingVertical: 5, borderRadius: 16, borderCurve: 'continuous', borderWidth: StyleSheet.hairlineWidth },
-	list: { paddingHorizontal: 16, paddingBottom: 12 },
+	list: { paddingBottom: 12 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderCurve: 'continuous', marginBottom: 8 },
 	disabled: { opacity: 0.45 },
 	texts: { flex: 1, gap: 2 },

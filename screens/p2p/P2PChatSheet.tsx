@@ -1,4 +1,6 @@
 import { View, Pressable, Modal, StyleSheet } from "react-native"
+
+import { SHEET_MAX_RATIO } from '../../ui/QPSheet'
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import type { EdgeInsets } from "react-native-safe-area-context"
@@ -86,7 +88,9 @@ const styles = StyleSheet.create({
 		justifyContent: 'flex-end',
 	},
 	sheet: {
-		height: '90%',
+		// `height` y no `maxHeight`: un chat LLENA la hoja, no se encoge a su contenido.
+		// La proporción sale de `QPSheet` para que no haya dos números de hoja en la app.
+		height: `${SHEET_MAX_RATIO * 100}%`,
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
 		borderCurve: 'continuous',
