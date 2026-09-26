@@ -676,6 +676,8 @@ export type ExchangeOrder = {
 	uuid: string
 	provider: string
 	provider_label: string
+	/** Referencia del proveedor: lo único que sirve para preguntarle por una operación. */
+	provider_order_id: string | null
 	from_asset: string
 	to_asset: string
 	/** Decimales como string: el importe a enviar tiene que ser exacto. */

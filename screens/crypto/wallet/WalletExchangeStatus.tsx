@@ -13,8 +13,10 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 // Wallet
 import { explorerTxUrl } from '../../../wallet/assets'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
+import type { AssetView } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { shortAddress } from './walletFormat'
+import { timeAgo } from '../../../helpers'
 import { useExchangeOrderQuery } from './exchangeQueries'
 import { depositAmountLabel, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
 import type { ExchangePhase } from './exchangeModel'
@@ -22,6 +24,7 @@ import type { ExchangePhase } from './exchangeModel'
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -118,6 +121,16 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 				)}
 			</View>
 
+			{/* El par, lo primero que se mira: qué sale y qué entra, con sus iconos. Es lo que
+			    SafePal y Trust ponen arriba del todo en su seguimiento. */}
+			{!!order && (
+				<View style={[card, styles.pair]}>
+					<PairSide asset={fromAsset} amount={exactAmount} theme={theme} />
+					<FontAwesome6 name="arrow-right" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
+					<PairSide asset={toAsset} amount={order.actual_out ?? order.expected_out ?? '—'} estimated={!order.actual_out} theme={theme} />
+				</View>
+			)}
+
 			{!!order && <Steps order={order} theme={theme} />}
 
 			{/* Lo que hay que hacer AHORA: el importe exacto y la dirección */}
@@ -146,14 +159,15 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
 			{!!order && (
 				<View style={card}>
-					<Row theme={theme} label={t('crypto.wallet.exchange.youSend')} value={`${exactAmount} ${fromAsset?.symbol ?? ''}`.trim()} />
-					<Row
-						theme={theme}
-						label={t('crypto.wallet.exchange.youReceive')}
-						value={`${order.actual_out ?? order.expected_out ?? '—'} ${toAsset?.symbol ?? ''}`.trim()}
-						hint={order.actual_out ? undefined : t('crypto.wallet.exchange.estimated')}
-					/>
 					<Row theme={theme} label={t('crypto.wallet.exchange.providerLabel')} value={order.provider_label} />
+					{!!order.provider_order_id && (
+						<CopyRow
+							theme={theme}
+							label={t('crypto.wallet.exchange.orderId')}
+							value={order.provider_order_id}
+							onCopy={() => copy(order.provider_order_id!)}
+						/>
+					)}
 					<Row theme={theme} label={t('crypto.wallet.exchange.refundLabel')} value={shortAddress(order.refund_address)} />
 				</View>
 			)}
@@ -162,6 +176,14 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			{isDeviationNotable(deviation) && (
 				<Text style={[styles.notice, { color: theme.colors.secondaryText }]}>
 					{t(deviation! < 0 ? 'crypto.wallet.exchange.deviationLess' : 'crypto.wallet.exchange.deviationMore', { percent: Math.abs(deviation! / 100).toFixed(1) })}
+				</Text>
+			)}
+
+			{/* Cuánto lleva y cuánto suele tardar: una espera con referencia se hace corta,
+			    y sin ella cualquier minuto parece que algo va mal */}
+			{!!order && isLive(order.status) && (
+				<Text style={[styles.notice, { color: theme.colors.tertiaryText }]}>
+					{t('crypto.wallet.exchange.started', { time: timeAgo(order.created_at) })} · {t('crypto.wallet.exchange.typicalEta')}
 				</Text>
 			)}
 
@@ -218,6 +240,24 @@ const Steps = ({ order, theme }: { order: NonNullable<ReturnType<typeof useExcha
 	)
 }
 
+/** Un lado del par: icono del activo, importe y símbolo. */
+const PairSide = ({ asset, amount, estimated, theme }: { asset?: AssetView, amount: string, estimated?: boolean, theme: ReturnType<typeof useTheme>['theme'] }) => {
+
+	const textStyles = useTextStyles(theme)
+
+	return (
+		<View style={styles.pairSide}>
+			<QPAssetIcon logoTick={asset?.logoTick ?? ''} networkTick={asset?.networkTick ?? null} size={34} ringColor={theme.colors.surface} />
+			<Text style={[textStyles.h4, styles.pairAmount, { color: theme.colors.primaryText }]} numberOfLines={1}>
+				{estimated ? '≈ ' : ''}{amount}
+			</Text>
+			<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+				{asset?.symbol ?? ''}
+			</Text>
+		</View>
+	)
+}
+
 const Row = ({ theme, label, value, hint }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string, hint?: string }) => (
 	<View style={styles.row}>
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
@@ -252,6 +292,9 @@ const styles = StyleSheet.create({
 	iconWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
 	hint: { textAlign: 'center', paddingHorizontal: 12 },
 	card: { borderRadius: 16, borderCurve: 'continuous', padding: 14, gap: 4 },
+	pair: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 18 },
+	pairSide: { flex: 1, alignItems: 'center', gap: 6 },
+	pairAmount: { textAlign: 'center' },
 	cardTitle: { marginBottom: 4 },
 	steps: { flexDirection: 'row', paddingVertical: 16 },
 	step: { flex: 1, alignItems: 'center' },

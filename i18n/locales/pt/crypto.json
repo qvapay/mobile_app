@@ -501,7 +501,12 @@
 			"viaWithdraw": "Vai pelo saque da QvaPay: comissão nossa, direto para sua carteira.",
 			"viaDeposit": "Vai pelo depósito da QvaPay: você envia da sua carteira e cai no seu saldo.",
 			"ctaWithdraw": "Sacar para sua carteira",
-			"ctaDeposit": "Depositar no seu saldo"
+			"ctaDeposit": "Depositar no seu saldo",
+			"pair": "O que você está trocando",
+			"orderId": "Referência do provedor",
+			"orderIdHint": "Passe para o suporte se algo travar",
+			"started": "Começou há {{time}}",
+			"typicalEta": "Costuma levar de 5 a 30 minutos"
 		}
 	},
 	"energy": {

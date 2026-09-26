@@ -501,7 +501,12 @@
 			"viaWithdraw": "Goes through a QvaPay withdrawal: our fee, straight to your wallet.",
 			"viaDeposit": "Goes through a QvaPay deposit: you send from your wallet and it lands in your balance.",
 			"ctaWithdraw": "Withdraw to your wallet",
-			"ctaDeposit": "Deposit to your balance"
+			"ctaDeposit": "Deposit to your balance",
+			"pair": "What you're swapping",
+			"orderId": "Provider reference",
+			"orderIdHint": "Give it to support if anything gets stuck",
+			"started": "Started {{time}} ago",
+			"typicalEta": "Usually takes 5 to 30 minutes"
 		}
 	},
 	"energy": {
