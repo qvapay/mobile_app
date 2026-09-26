@@ -75,9 +75,15 @@ type Props = {
 /** Alto de una fila: 12+38+12 de la fila más sus 8 de separación. */
 const ROW_HEIGHT = 70
 const LIST_PADDING = 12
-/** Tope del alto de la lista sobre la pantalla, para que la hoja no la tape entera. */
-const MAX_LIST_RATIO = 0.55
 const EMPTY_HEIGHT = 140
+/** Cuánto de la pantalla puede ocupar la hoja entera. */
+const MAX_SHEET_RATIO = 0.92
+/**
+ * Lo que la hoja gasta por encima de la lista: grabber, cabecera, buscador y la fila de
+ * accesos rápidos. Se descuenta para que la lista llegue hasta donde de verdad cabe, en vez
+ * de toparla por una fracción suelta que puede pelearse con el alto de la hoja.
+ */
+const CHROME_HEIGHT = 186
 
 const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, onClose, quick, searchable = true, loading = false, footnote }: Props) => {
 
@@ -111,9 +117,10 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 	 * Se calcula a partir de cuántas filas hay, con tope para que la hoja no coma la pantalla:
 	 * una lista corta no deja un hueco enorme y una larga se desplaza.
 	 */
+	const available = windowHeight * MAX_SHEET_RATIO - CHROME_HEIGHT - (insets.bottom || 12)
 	const listHeight = filtered.length === 0
 		? EMPTY_HEIGHT
-		: Math.min(filtered.length * ROW_HEIGHT + LIST_PADDING, windowHeight * MAX_LIST_RATIO)
+		: Math.min(filtered.length * ROW_HEIGHT + LIST_PADDING, Math.max(available, EMPTY_HEIGHT))
 
 	return (
 		<Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -240,7 +247,7 @@ const BalanceIcon = ({ theme }: { theme: ReturnType<typeof useTheme>['theme'] })
 
 const styles = StyleSheet.create({
 	overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-	sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderCurve: 'continuous', maxHeight: '85%', overflow: 'hidden' },
+	sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderCurve: 'continuous', maxHeight: '92%', overflow: 'hidden' },
 	grabber: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 4 },
 	header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
 	search: { paddingHorizontal: 20, paddingBottom: 8 },

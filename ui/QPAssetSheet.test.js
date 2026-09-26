@@ -59,6 +59,12 @@ test('la lista va dentro de un contenedor con alto EXPLÍCITO', async () => {
 	expect(height).toBeGreaterThan(0)
 })
 
+test('con muchas monedas la hoja aprovecha casi toda la pantalla', async () => {
+	// Antes se topaba al 55% y se quedaba a media altura con el catálogo entero
+	await render({ options: Array.from({ length: 40 }, (_, i) => ({ ...OPTIONS[0], id: `c${i}`, title: `C${i}` })) })
+	expect(listBoxHeight()).toBeGreaterThan(SCREEN_HEIGHT * 0.6)
+})
+
 test('el alto crece con las filas, hasta el tope de pantalla', async () => {
 	await render({ options: OPTIONS.slice(0, 1) })
 	const short = listBoxHeight()

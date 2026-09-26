@@ -1,8 +1,9 @@
-import { View, Text, Pressable, TextInput, Switch, StyleSheet } from 'react-native'
+import { View, Text, Pressable, Switch, StyleSheet } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
 
-import QPCoin from '../../ui/particles/QPCoin'
+import QPAmountCard from '../../ui/QPAmountCard'
+import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../ui/particles/QPFlipButton'
 import QPInput from '../../ui/particles/QPInput'
 import QPSwitch from '../../ui/particles/QPSwitch'
 
@@ -29,14 +30,38 @@ type P2PCreateFormProps = {
 }
 
 const keyFromFieldName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
-import { sanitizeAmountInput } from '../../helpers/amountInput'
+import { percentAmount, sanitizeAmountInput } from '../../helpers/amountInput'
 
 // Create-offer form body: type switch, QUSD⇄coin amounts, live ratio, per-coin
 // account fields, advanced options and the optional GOLD custom message.
+const PERCENT_CHIPS = [25, 50, 100] as const
+
 const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, user, theme, textStyles, containerStyles }: P2PCreateFormProps) => {
 
 	const { t } = useTranslation()
 	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer } = form
+
+	const balance = Number(user?.balance) || 0
+
+	/**
+	 * Porcentajes del saldo, solo al VENDER: comprando se entrega moneda, no saldo, así que
+	 * un chip sobre el saldo QvaPay no significaría nada.
+	 */
+	const chips = type === 'sell' && balance > 0
+		? PERCENT_CHIPS.map(percent => ({
+			key: String(percent),
+			label: percent === 100 ? t('p2p.create.form.max') : `${percent}%`,
+			onPress: () => onField('amount', percentAmount(balance, percent)),
+		}))
+		: undefined
+
+	// La tasa vivía en una línea aparte bajo las tarjetas; ahora ocupa el sitio del saldo
+	// en la segunda, que es donde se mira mientras se teclea
+	const paid = parseFloat(amount)
+	const got = parseFloat(receive)
+	const rateLabel = selectedCoin && paid > 0 && got > 0
+		? `1 QUSD = ${(got / paid).toFixed(4)} ${selectedCoin.tick}`
+		: ''
 
 	return (
 		<>
@@ -51,86 +76,46 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				rightTextColor={theme.colors.successFillText}
 			/>
 
-			{/* Swap Card (Vender / Recibir) */}
-			<View style={{ backgroundColor: theme.colors.elevation, borderRadius: 16, padding: 16, marginTop: 10, marginBottom: 6, borderWidth: 2, borderColor: theme.colors.primary }}>
+			{/* Las dos tarjetas: las MISMAS del swap de la wallet y del retiro. Una oferta P2P
+			    es una conversión, y leerla igual que las otras es lo que evita tener que
+			    aprender tres pantallas para la misma operación. */}
+			<View style={styles.cards}>
+				<QPAmountCard
+					label={type === 'buy' ? t('p2p.common.buy') : t('p2p.common.sell')}
+					token={{
+						symbol: 'QUSD',
+						caption: t('p2p.create.form.balance'),
+						icon: { kind: 'wallet', logoTick: 'qusd', networkTick: null },
+					}}
+					amount={amount}
+					onChangeAmount={(v: string) => onField('amount', sanitizeAmountInput(v))}
+					chips={chips}
+					fiatLabel=""
+					balanceLabel={`$${user?.balance || 0}`}
+					accessibilityLabel={type === 'buy' ? t('p2p.common.buy') : t('p2p.common.sell')}
+				/>
 
-				{/* Vender amount input */}
-				<View style={{ paddingVertical: 2 }}>
-					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-							{type === 'buy' ? t('p2p.common.buy') : t('p2p.common.sell')}
-						</Text>
-						<Pressable onPress={() => { if (type === 'sell') onField('amount', String(user?.balance || 0)) }}>
-							<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-								{t('p2p.create.form.balance')} <Text style={[textStyles.h7, { color: theme.colors.primary, fontWeight: '600' }]}>${user?.balance || 0}</Text>
-							</Text>
-						</Pressable>
-					</View>
-
-					<View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-						<View style={{ flex: 1 }}>
-							<TextInput
-								value={amount}
-								onChangeText={(v) => onField('amount', sanitizeAmountInput(v))}
-								placeholder="0.00"
-								placeholderTextColor={theme.colors.placeholder}
-								keyboardType="decimal-pad"
-								style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontWeight: '600', padding: 0, margin: 0 }]}
-							/>
-						</View>
-						<View style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]}>
-							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-								<QPCoin coin="qusd" size={20} />
-								<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>QUSD</Text>
-							</View>
-						</View>
-					</View>
+				{/* En flujo con márgenes negativos: monta sobre la junta sin medir las tarjetas */}
+				<View style={styles.flipWrap} pointerEvents="box-none">
+					<QPFlipButton accessibilityLabel={type === 'buy' ? t('p2p.create.form.send') : t('p2p.create.form.receive')} />
 				</View>
 
-				{/* Recibir amount input */}
-				<View style={{ paddingTop: 2 }}>
-					<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 2 }]}>
-						{type === 'buy' ? t('p2p.create.form.send') : t('p2p.create.form.receive')}
-					</Text>
-
-					<View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-						<View style={{ flex: 1 }}>
-							<TextInput
-								value={receive}
-								onChangeText={(v) => onField('receive', sanitizeAmountInput(v, 8))}
-								placeholder="0.00"
-								placeholderTextColor={theme.colors.placeholder}
-								keyboardType="decimal-pad"
-								style={[textStyles.h2, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl, fontWeight: '600', padding: 0, margin: 0 }]}
-							/>
-						</View>
-						<Pressable style={[styles.currencyButton, { backgroundColor: theme.colors.elevation, borderColor: theme.colors.border }]} onPress={onOpenCoinPicker}>
-							{selectedCoin ? (
-								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-									<QPCoin coin={selectedCoin.logo} size={20} />
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
-									<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-								</View>
-							) : (
-								<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('p2p.common.coin')}</Text>
-									<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
-								</View>
-							)}
-						</Pressable>
-					</View>
-				</View>
+				<QPAmountCard
+					label={type === 'buy' ? t('p2p.create.form.send') : t('p2p.create.form.receive')}
+					hint={selectedCoin?.network ?? undefined}
+					token={{
+						symbol: selectedCoin?.tick ?? t('p2p.common.coin'),
+						caption: selectedCoin?.name ?? '',
+						icon: selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo, networkTick: selectedCoin.network ?? null } : { kind: 'balance' },
+						onPress: onOpenCoinPicker,
+					}}
+					amount={receive}
+					onChangeAmount={(v: string) => onField('receive', sanitizeAmountInput(v, 8))}
+					fiatLabel=""
+					balanceLabel={rateLabel}
+					accessibilityLabel={type === 'buy' ? t('p2p.create.form.send') : t('p2p.create.form.receive')}
+				/>
 			</View>
-
-			{/* Live Ratio Display */}
-			{selectedCoin && parseFloat(amount) > 0 && parseFloat(receive) > 0 && (
-				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8 }}>
-					<FontAwesome6 name="money-bill-transfer" size={14} color={theme.colors.primary} iconStyle="solid" />
-					<Text style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600' }]}>
-						1 QUSD = {(parseFloat(receive) / parseFloat(amount)).toFixed(4)} {selectedCoin.tick}
-					</Text>
-				</View>
-			)}
 
 			{/* Details: Coin working data */}
 			{selectedCoin && workingFields.length > 0 && (
@@ -196,13 +181,9 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 }
 
 const styles = StyleSheet.create({
-	currencyButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 12,
-		borderCurve: 'continuous',
-		borderWidth: 0.5,
-	},
+	cards: { marginTop: 10, marginBottom: 6 },
+	// Deja 6 px de junta entre las dos tarjetas, igual que en el swap y en el retiro
+	flipWrap: { alignItems: 'center', marginVertical: -(FLIP_BUTTON_SIZE / 2) + 3, zIndex: 2, elevation: 2 },
 	switchRow: {
 		paddingVertical: 4,
 		flexDirection: 'row',
