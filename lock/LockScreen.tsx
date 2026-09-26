@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // RN
-import { View, Text, Pressable, Modal, StyleSheet, Animated } from 'react-native'
+import { View, Text, Modal, StyleSheet } from 'react-native'
 
 // Context
 import { useTheme } from '../theme/ThemeContext'
@@ -13,7 +13,6 @@ import { createTextStyles } from '../theme/themeUtils'
 import { useSettings } from '../settings/SettingsContext'
 import { useAppLock, APP_LOCK_BIO_SERVICE } from './AppLockContext'
 import { hasBiometricMarker } from '../helpers/biometricMarker'
-import { useAnimatedValue } from '../hooks/useAnimatedValue'
 import { useKeyboardHeight } from '../hooks/useKeyboardHeight'
 import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
 
@@ -21,8 +20,9 @@ import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client
 import FaceIDIcon from '../ui/particles/FaceIDIcon'
 
 // UI
-import QPCodeInput from '../ui/particles/QPCodeInput'
-import type { QPCodeInputHandle } from '../ui/particles/QPCodeInput'
+import PinDots from './PinDots'
+import type { PinDotsHandle } from './PinDots'
+import UnlockHalo from './UnlockHalo'
 
 // Biometric type + availability are detected together in one effect
 type BiometricsState = {
@@ -68,8 +68,7 @@ const LockScreen = () => {
 	const [error, setError] = useState('')
 	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
 	const { type: biometryType, available: biometricsAvailable } = biometrics
-	const codeInputRef = useRef<QPCodeInputHandle | null>(null)
-	const shakeAnim = useAnimatedValue(0)
+	const dotsRef = useRef<PinDotsHandle | null>(null)
 
 	// Check biometric availability when lock screen appears
 	useEffect(() => {
@@ -111,25 +110,14 @@ const LockScreen = () => {
 		}
 	}, [isLocked])
 
-	const triggerShake = useCallback(() => {
-		Animated.sequence([
-			Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-			Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
-			Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-			Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
-			Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
-		]).start()
-	}, [shakeAnim])
-
-	// Verify the entered PIN — QPCodeInput's onFilled fires the moment the 4th digit
-	// lands (no state round-trip through an effect).
+	// El PIN se verifica en cuanto cae el cuarto dígito, sin pasar por un efecto
 	const verifyPin = async (code: string) => {
 		const result = await unlockWithPin(code)
 		if (!result.success) {
 			setError(t('misc.lock.errors.wrongPin'))
 			setPin('')
-			triggerShake()
-			setTimeout(() => codeInputRef.current?.focus(0), 300)
+			dotsRef.current?.shake()
+			setTimeout(() => dotsRef.current?.focus(), 300)
 		}
 	}
 
@@ -138,21 +126,17 @@ const LockScreen = () => {
 		setError('')
 	}
 
-	const getBiometryLabel = () => {
-		switch (biometryType) {
-			case 'FaceID': return t('misc.lock.unlock.faceId')
-			case 'TouchID': return t('misc.lock.unlock.touchId')
-			case 'Fingerprint': return t('misc.lock.unlock.fingerprint')
-			default: return t('misc.lock.unlock.biometrics')
-		}
-	}
+	const biometryLabel = biometryType === 'FaceID' ? t('misc.lock.unlock.faceId')
+		: biometryType === 'TouchID' ? t('misc.lock.unlock.touchId')
+			: biometryType === 'Fingerprint' ? t('misc.lock.unlock.fingerprint')
+				: t('misc.lock.unlock.biometrics')
 
-	const getBiometryIcon = () => {
-		if (biometryType === 'FaceID') {
-			return <FaceIDIcon size={48} color={theme.colors.primary} />
-		}
-		return <FontAwesome6 name="fingerprint" size={48} color={theme.colors.primary} iconStyle="solid" />
-	}
+	// El glifo del héroe: el que desbloquea si hay biometría, un candado si no
+	const heroIcon = !biometricsAvailable
+		? <FontAwesome6 name="lock" size={44} color={theme.colors.primary} iconStyle="solid" />
+		: biometryType === 'FaceID'
+			? <FaceIDIcon size={56} color={theme.colors.primary} />
+			: <FontAwesome6 name="fingerprint" size={56} color={theme.colors.primary} iconStyle="solid" />
 
 	if (!isLocked) return null
 
@@ -167,50 +151,38 @@ const LockScreen = () => {
 			<SystemBars style={theme.isDark ? 'light' : 'dark'} />
 			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: keyboardVisible ? keyboardHeight : insets.bottom }]}>
 
-				{/* Title */}
-				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8 }]}>
-					{t('misc.lock.enterPin')}
+				{/* El héroe: el glifo que desbloquea, respirando sobre su halo. Con biometría
+				    disponible es el botón —tocarlo la pide—; sin ella, solo acompaña. */}
+				<UnlockHalo
+					size={72}
+					onPress={biometricsAvailable ? handleBiometricUnlock : undefined}
+					accessibilityLabel={biometryLabel}
+				>
+					{heroIcon}
+				</UnlockHalo>
+
+				{/* Una sola línea de texto. Antes eran tres —título, etiqueta del icono y
+				    "o introduce tu PIN"— diciendo casi lo mismo alrededor de una raya. */}
+				<Text style={[textStyles.h5, styles.hint, { color: theme.colors.secondaryText }]}>
+					{biometricsAvailable ? t('misc.lock.tapToUnlock', { method: biometryLabel }) : t('misc.lock.enterPin')}
 				</Text>
 
-				{/* Biometric button */}
-				{biometricsAvailable && (
-					<View style={styles.biometricSection}>
-						<Pressable style={[styles.biometricButton, { backgroundColor: theme.colors.surface }]} onPress={handleBiometricUnlock} >
-							{getBiometryIcon()}
-						</Pressable>
-						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 12 }]}>
-							{getBiometryLabel()}
-						</Text>
-
-						{/* Separator */}
-						<View style={styles.separatorRow}>
-							<View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
-							<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginHorizontal: 12 }]}>
-								{t('misc.lock.orEnterPin')}
-							</Text>
-							<View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
-						</View>
-					</View>
-				)}
-
-				{/* PIN input — QPCodeInput verifies vía onFilled al caer el 4to dígito */}
-				<Animated.View style={[styles.pinContainer, { transform: [{ translateX: shakeAnim }] }]}>
-					<QPCodeInput
-						ref={codeInputRef}
+				<View style={styles.dots}>
+					<PinDots
+						ref={dotsRef}
 						length={4}
 						code={pin}
 						onChangeCode={handleChangePin}
 						onFilled={verifyPin}
-						secure
 					/>
-				</Animated.View>
+				</View>
 
-				{/* Error message */}
-				{error ? (
-					<Text style={[textStyles.h6, { color: theme.colors.danger, textAlign: 'center', marginTop: 12 }]}>
-						{error}
-					</Text>
-				) : (<></>)}
+				{/* Altura reservada: sin ella, el error empuja los puntos al aparecer */}
+				<View style={styles.errorSlot}>
+					{!!error && (
+						<Text style={[textStyles.h6, styles.error, { color: theme.colors.danger }]}>{error}</Text>
+					)}
+				</View>
 
 			</View>
 		</Modal>
@@ -222,36 +194,13 @@ const styles = StyleSheet.create({
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingHorizontal: 16,
+		paddingHorizontal: 24,
 	},
-	biometricSection: {
-		alignItems: 'center',
-		marginTop: 32,
-	},
-	biometricButton: {
-		width: 80,
-		height: 80,
-		borderRadius: 40,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	separatorRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 24,
-	},
-	separatorLine: {
-		flex: 1,
-		height: 1,
-	},
-	// El contenedor padre centra en el eje horizontal (alignItems: 'center'), así que
-	// sin un ancho propio esta fila se encogería al contenido y las cajas `flex: 1` de
-	// QPCodeInput colapsarían a rayas verticales
-	pinContainer: {
-		marginTop: 24,
-		width: '100%',
-		maxWidth: 280,
-	},
+	// El halo ocupa 200 px y se sale de su caja: el aire de debajo lo cuenta el hint
+	hint: { textAlign: 'center', marginTop: 44 },
+	dots: { marginTop: 36 },
+	errorSlot: { height: 40, justifyContent: 'center' },
+	error: { textAlign: 'center' },
 })
 
 export default LockScreen

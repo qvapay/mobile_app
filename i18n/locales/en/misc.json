@@ -40,6 +40,7 @@
 	},
 	"lock": {
 		"enterPin": "Enter your security PIN",
+		"tapToUnlock": "Tap to unlock with {{method}}",
 		"orEnterPin": "or enter your PIN",
 		"unlock": {
 			"faceId": "Unlock with Face ID",
