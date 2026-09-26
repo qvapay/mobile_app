@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-const { assetIdOf, canSwapAsset, directionFor, flip, isBalance, routeFor } = require('./swapRouting')
+const { assetIdOf, canSwapAsset, directionFor, flip, isBalance, railAmountUsd, routeFor } = require('./swapRouting')
 
 const BALANCE = { kind: 'balance' }
 const QUSD = { kind: 'asset', id: 'stacks:SP14CTSJZNKZ7YTR6C84368J2QXRW8RC20GSQ8KS2.QUSD::QUSD' }
@@ -115,6 +115,40 @@ describe('¿se puede intercambiar este activo?', () => {
 	it('sin ninguna salida, no: el botón llevaría a una pantalla que solo sabe decir que no', () => {
 		expect(canSwapAsset(base)).toBe(false)
 		expect(canSwapAsset({ ...base, supportedAssetIds: [USDT_TRON.id], railAssetIds: [USDT_TRON.id] })).toBe(false)
+	})
+})
+
+describe('el importe que viaja al riel', () => {
+
+	it('en el RETIRO lo tecleado ya son dólares', () => {
+		expect(railAmountUsd({ typed: 25, mode: 'withdraw', price: null })).toBe('25')
+	})
+
+	it('en el DEPÓSITO se convierte por el precio del activo', () => {
+		// Teclear "1" con SOL en el lado que paga llegaba a Depositar como UN DÓLAR
+		expect(railAmountUsd({ typed: 1, mode: 'deposit', price: 116.6 })).toBe('116.6')
+		expect(railAmountUsd({ typed: 15, mode: 'deposit', price: 1 })).toBe('15')
+	})
+
+	it('redondea a centavos: una pantalla de dinero no enseña ocho decimales', () => {
+		expect(railAmountUsd({ typed: 0.37, mode: 'deposit', price: 85661.905 })).toBe('31694.9')
+	})
+
+	it('sin precio conocido NO manda nada: mejor vacío que inventado', () => {
+		expect(railAmountUsd({ typed: 1, mode: 'deposit', price: null })).toBeNull()
+		expect(railAmountUsd({ typed: 1, mode: 'deposit', price: 0 })).toBeNull()
+	})
+
+	it('sin importe válido tampoco', () => {
+		for (const typed of [0, -5, NaN, Infinity]) {
+			expect(railAmountUsd({ typed, mode: 'withdraw', price: 1 })).toBeNull()
+		}
+	})
+
+	it('los modos que no son riel no mandan importe', () => {
+		for (const mode of ['qusd-out', 'qusd-in', 'exchange', 'unsupported']) {
+			expect(railAmountUsd({ typed: 10, mode, price: 1 })).toBeNull()
+		}
 	})
 })
 

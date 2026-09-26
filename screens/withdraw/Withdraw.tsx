@@ -92,6 +92,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		prefillAddress: route?.params?.prefillAddress,
 		lnInvoice: route?.params?.lnInvoice,
 		lnAmountSats,
+		prefillAmount: route?.params?.amount,
 	})
 
 	const {

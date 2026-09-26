@@ -14,14 +14,14 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { buildSwapForm, isInUnsupported, percentAmount, sanitizeAmountInput } from './swapModel'
 import { buildSwapView } from './swapView'
 import type { SwapSide } from './swapView'
-import { assetIdOf, directionFor, flip, isBalance, routeFor } from './swapRouting'
+import { assetIdOf, directionFor, flip, isBalance, railAmountUsd, routeFor } from './swapRouting'
 import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
 import useSwapFlow from './useSwapFlow'
-import { useWalletAssets } from './walletQueries'
+import { usePriceMap, useWalletAssets } from './walletQueries'
 import useCoins from '../../../hooks/useCoins'
-import { addressForKind, findAssetForCoin } from '../../../wallet/assets'
+import { addressForKind, assetPrice, findAssetForCoin } from '../../../wallet/assets'
 
 // Intercambio cripto↔cripto
 import { buildExchangeView } from './exchangeView'
@@ -88,6 +88,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 
 	const { query: pairs, enabledPairs, pair, asset, assetFor, setPairId, registered, walletReady, limitAvailable } = useSwapPairs()
 	const { all } = useWalletAssets()
+	const prices = usePriceMap()
 	const catalog = useExchangeCatalogQuery()
 
 	// assetIds que el BACKEND publica como pares custodiales; de ahí sale el enrutado
@@ -226,6 +227,12 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const railAsset = routed.mode === 'withdraw' ? receiveAsset : payAsset
 	const railCoin = railAsset ? (routed.mode === 'withdraw' ? railOutCoin[railAsset.id] : railInCoin[railAsset.id]) : null
 
+	const railAmount = useMemo(() => railAmountUsd({
+		typed: Number(amountText),
+		mode: routed.mode,
+		price: payAsset ? assetPrice(payAsset, prices) : null,
+	}), [amountText, routed.mode, payAsset, prices])
+
 	const goToRail = useCallback(() => {
 		if (!railCoin || !railAsset) { return }
 		if (routed.mode === 'withdraw') {
@@ -234,11 +241,15 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			navigation.navigate(ROUTES.WITHDRAW, {
 				preselectedCoin: railCoin.tick,
 				...(addresses ? { prefillAddress: addressForKind(addresses, railAsset.kind) } : {}),
+				...(railAmount ? { amount: railAmount } : {}),
 			})
 			return
 		}
-		navigation.navigate(ROUTES.ADD, { preselectedCoin: railCoin.tick })
-	}, [navigation, railCoin, railAsset, routed.mode, addresses])
+		navigation.navigate(ROUTES.ADD, {
+			preselectedCoin: railCoin.tick,
+			...(railAmount ? { amount: railAmount } : {}),
+		})
+	}, [navigation, railCoin, railAsset, routed.mode, addresses, railAmount])
 
 	/**
 	 * Vista que pinta LO QUE EL USUARIO ELIGIÓ, sin motor detrás.

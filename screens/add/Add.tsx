@@ -102,15 +102,27 @@ const Add = ({ navigation, route }: AddProps) => {
 
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 
-	// Moneda prellenada por quien navegó hasta aquí (hoy, la pantalla de intercambio cuando
-	// el destino es el saldo). Una sola vez: después manda lo que el usuario elija.
+	// Moneda e importe prellenados por quien navegó hasta aquí (hoy, la pantalla de
+	// intercambio cuando el destino es el saldo). Una sola vez cada uno: después manda
+	// lo que el usuario elija.
 	const preselectedCoin = route.params?.preselectedCoin
+	const prefillAmount = route.params?.amount
 	const preselected = useRef(false)
 	useEffect(() => {
 		if (preselected.current || !preselectedCoin || !availableCoins.length) { return }
 		const match = availableCoins.find(coin => coin.tick === preselectedCoin)
 		if (match) { preselected.current = true; setSelectedCoin(match) }
 	}, [preselectedCoin, availableCoins])
+
+	// El importe entra tras la moneda: la conversión que enseña la fila la necesita puesta
+	const prefilled = useRef(false)
+	useEffect(() => {
+		if (prefilled.current || !prefillAmount || !selectedCoin) { return }
+		const value = Number(prefillAmount)
+		if (!Number.isFinite(value) || value <= 0) { return }
+		prefilled.current = true
+		setAmount(String(value))
+	}, [prefillAmount, selectedCoin])
 
 	// Depósito con tarjeta: espejo cliente del gate del backend (KYC + Telegram +
 	// teléfono + 30 días + VIP/trustscore) — decide si se PINTA la opción CARD;

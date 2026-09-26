@@ -123,3 +123,26 @@ export const canSwapAsset = ({ assetId, isHouse, supportedAssetIds = [], railAss
 }): boolean =>
 	isHouse || supportedAssetIds.includes(assetId) || railAssetIds.includes(assetId)
 
+/**
+ * El importe que viaja al riel, SIEMPRE en dólares, que es como lo piden Depositar y Retirar.
+ *
+ * En el RETIRO lo tecleado ya son dólares: se entrega el saldo QvaPay. En el DEPÓSITO no —
+ * ahí se teclea el activo—, así que hay que convertirlo por su precio. Sin esa distinción,
+ * escribir "1" con SOL en el lado que paga llegaba a Depositar como un dólar.
+ *
+ * Sin precio conocido devuelve null y no se manda nada: llegar con el campo vacío es mejor
+ * que llegar con una cifra inventada a una pantalla de dinero.
+ */
+export const railAmountUsd = ({ typed, mode, price }: {
+	/** Lo tecleado en el lado que paga. */
+	typed: number
+	mode: SwapMode
+	/** Precio USD del activo que paga; null si no se conoce. Irrelevante en el retiro. */
+	price: number | null
+}): string | null => {
+	if (!Number.isFinite(typed) || typed <= 0) { return null }
+	if (mode === 'withdraw') { return String(typed) }
+	if (mode !== 'deposit' || !price || price <= 0) { return null }
+	return String(Math.round(typed * price * 100) / 100)
+}
+
