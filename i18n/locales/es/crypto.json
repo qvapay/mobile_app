@@ -185,6 +185,7 @@
 			"notFound": "Este activo no está disponible.",
 			"price": "1 {{symbol}} ≈ {{price}}",
 			"explorer": "Explorador",
+			"market": "Mercado",
 			"activity": "Actividad",
 			"historyUnavailable": "El historial todavía no está disponible aquí. Puedes verlo en el explorador de la red.",
 			"historyError": "No pudimos cargar el historial.",

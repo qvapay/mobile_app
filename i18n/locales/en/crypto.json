@@ -185,6 +185,7 @@
 			"notFound": "This asset is not available.",
 			"price": "1 {{symbol}} ≈ {{price}}",
 			"explorer": "Explorer",
+			"market": "Market",
 			"activity": "Activity",
 			"historyUnavailable": "History isn't available here yet. You can see it in the network explorer.",
 			"historyError": "We couldn't load the history.",
