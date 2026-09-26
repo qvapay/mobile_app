@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
+import Animated, { FadeIn } from 'react-native-reanimated'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -9,7 +10,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { useTextStyles } from '../theme/themeUtils'
 
 // UI
-import QPSheet, { SHEET_MAX_RATIO } from './QPSheet'
+import QPSheet, { SHEET_MAX_RATIO, SheetDeferred } from './QPSheet'
 import QPAssetIcon from './particles/QPAssetIcon'
 import QPInput from './particles/QPInput'
 import QPPressable from './particles/QPPressable'
@@ -92,6 +93,13 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 	const { height: windowHeight } = useWindowDimensions()
 	const [search, setSearch] = useState('')
 
+	// Handlers de identidad ESTABLE para las filas memoizadas: quien monta la hoja suele
+	// pasar `onClose` en línea, y cada render suyo (cotizaciones, saldos) repintaría todas
+	// las filas con sus logos aunque nada de ellas cambiara
+	const latest = useRef({ onSelect, onClose })
+	useLayoutEffect(() => { latest.current = { onSelect, onClose } })
+	const pick = useCallback((id: string) => { latest.current.onSelect(id); latest.current.onClose() }, [])
+
 	// Cada apertura empieza limpia: heredar la búsqueda anterior enseña una lista filtrada
 	// que el usuario no pidió y parece un catálogo incompleto
 	useEffect(() => { if (!visible) { setSearch('') } }, [visible])
@@ -119,6 +127,23 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 	const listHeight = filtered.length === 0
 		? EMPTY_HEIGHT
 		: Math.min(filtered.length * ROW_HEIGHT + LIST_PADDING, Math.max(available, EMPTY_HEIGHT))
+	const skeleton = (
+		<View style={styles.list}>
+			{Array.from({ length: Math.min(filtered.length, Math.ceil(listHeight / ROW_HEIGHT)) }, (_, i) => (
+				<View key={i} style={[styles.row, { backgroundColor: theme.colors.surface }]}>
+					<View style={[styles.skeletonIcon, { backgroundColor: theme.colors.elevation }]} />
+					<View style={styles.texts}>
+						<View style={[styles.skeletonLine, styles.skeletonTitle, { backgroundColor: theme.colors.elevation }]} />
+						<View style={[styles.skeletonLine, styles.skeletonSubtitle, { backgroundColor: theme.colors.elevation }]} />
+					</View>
+				</View>
+			))}
+		</View>
+	)
+
+	const renderItem = useCallback(({ item }: { item: QPAssetOption }) => (
+		<Row option={item} selected={item.id === selectedId} onPick={pick} />
+	), [selectedId, pick])
 
 	return (
 		<QPSheet visible={visible} title={title ?? t('ui.coinPicker.title')} onClose={onClose}>
@@ -141,7 +166,7 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 					{quick.map(option => (
 						<QPPressable
 							key={option.id}
-							onPress={() => { onSelect(option.id); onClose() }}
+							onPress={() => pick(option.id)}
 							style={[styles.pill, {
 								backgroundColor: option.id === selectedId ? theme.colors.primary : theme.colors.surface,
 								borderColor: option.id === selectedId ? theme.colors.primary : theme.colors.border,
@@ -158,30 +183,41 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 			)}
 
 			<View style={{ height: listHeight }}>
-				<FlashList
-					data={filtered}
-					keyExtractor={option => option.id}
-					renderItem={({ item }) => (
-						<Row option={item} selected={item.id === selectedId} onPress={() => { onSelect(item.id); onClose() }} />
-					)}
-					contentContainerStyle={styles.list}
-					keyboardShouldPersistTaps="handled"
-					ListEmptyComponent={(
-						<Text style={[textStyles.subtitle, styles.empty, { color: theme.colors.secondaryText }]}>
-							{loading ? t('ui.coinPicker.loading') : t('ui.coinPicker.empty')}
-						</Text>
-					)}
-					ListFooterComponent={footnote && !search ? (
-						<Text style={[textStyles.h6, styles.footnote, { color: theme.colors.tertiaryText }]}>{footnote}</Text>
-					) : null}
-				/>
+				{/* Hasta que la hoja termina de subir, filas de esqueleto del mismo alto: nada salta
+				    cuando llega la lista, y montar sus logos no le roba cuadros a la animación */}
+				<SheetDeferred fallback={skeleton}>
+					<Animated.View entering={LIST_ENTERING} style={styles.fill}>
+						<FlashList
+							data={filtered}
+							keyExtractor={keyOf}
+							extraData={selectedId}
+							renderItem={renderItem}
+							contentContainerStyle={styles.list}
+							keyboardShouldPersistTaps="handled"
+							ListEmptyComponent={(
+								<Text style={[textStyles.subtitle, styles.empty, { color: theme.colors.secondaryText }]}>
+									{loading ? t('ui.coinPicker.loading') : t('ui.coinPicker.empty')}
+								</Text>
+							)}
+							ListFooterComponent={footnote && !search ? (
+								<Text style={[textStyles.h6, styles.footnote, { color: theme.colors.tertiaryText }]}>{footnote}</Text>
+							) : null}
+						/>
+					</Animated.View>
+				</SheetDeferred>
 			</View>
 
 		</QPSheet>
 	)
 }
 
-const Row = ({ option, selected, onPress }: { option: QPAssetOption, selected: boolean, onPress: () => void }) => {
+const keyOf = (option: QPAssetOption) => option.id
+
+/** La lista entra con un fundido corto sobre el esqueleto, no de golpe. */
+const LIST_ENTERING = FadeIn.duration(140)
+
+/** Memoizada: con `pick` estable, una fila solo se repinta si cambia ella o su selección. */
+const Row = memo(({ option, selected, onPick }: { option: QPAssetOption, selected: boolean, onPick: (id: string) => void }) => {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -189,7 +225,7 @@ const Row = ({ option, selected, onPress }: { option: QPAssetOption, selected: b
 
 	return (
 		<QPPressable
-			onPress={() => { if (!disabled) { onPress() } }}
+			onPress={() => { if (!disabled) { onPick(option.id) } }}
 			disabled={disabled}
 			style={[styles.row, disabled && styles.disabled, { backgroundColor: selected ? theme.colors.primary + '14' : theme.colors.surface }]}
 			accessibilityRole="button"
@@ -219,7 +255,7 @@ const Row = ({ option, selected, onPress }: { option: QPAssetOption, selected: b
 			{selected && <FontAwesome6 name="check" size={14} color={theme.colors.primary} iconStyle="solid" />}
 		</QPPressable>
 	)
-}
+})
 
 /** El saldo QvaPay no es una moneda on-chain: lleva isotipo, sin logo ni badge de red. */
 const BalanceIcon = ({ theme }: { theme: ReturnType<typeof useTheme>['theme'] }) => (
@@ -240,6 +276,11 @@ const styles = StyleSheet.create({
 	right: { textAlign: 'right' },
 	empty: { textAlign: 'center', paddingVertical: 40 },
 	footnote: { textAlign: 'center', marginTop: 8 },
+	fill: { flex: 1 },
+	skeletonIcon: { width: 38, height: 38, borderRadius: 19 },
+	skeletonLine: { height: 10, borderRadius: 5, marginVertical: 3 },
+	skeletonTitle: { width: '40%' },
+	skeletonSubtitle: { width: '25%' },
 	balanceIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
 })
 

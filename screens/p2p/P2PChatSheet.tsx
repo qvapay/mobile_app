@@ -1,6 +1,7 @@
 import { View, Pressable, Modal, StyleSheet } from "react-native"
 
-import { SHEET_MAX_RATIO } from '../../ui/QPSheet'
+import Animated from 'react-native-reanimated'
+import { SHEET_MAX_RATIO, sheetEntering } from '../../ui/QPSheet'
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import type { EdgeInsets } from "react-native-safe-area-context"
@@ -11,6 +12,8 @@ import P2PPeerRow from "./P2PPeerRow"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
+
+const CHAT_ENTERING = sheetEntering()
 
 type P2PChatSheetProps = {
 	visible: boolean
@@ -34,11 +37,12 @@ type P2PChatSheetProps = {
  * (SSE/poll) while the sheet is closed and the unread badge stays accurate.
  */
 const P2PChatSheet = ({ visible, onClose, keyboardHeight, insets, theme, textStyles, containerStyles, chatPanelProps }: P2PChatSheetProps) => (
-	<Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 		<Pressable style={styles.sheetOverlay} onPress={onClose}>
-			{/* El onPress vacío absorbe los toques: sin él, tocar la hoja cerraría el chat */}
-			<Pressable
-				onPress={() => { }}
+			{/* El responder absorbe los toques: sin él, tocar la hoja cerraría el chat */}
+			<Animated.View
+				entering={CHAT_ENTERING}
+				onStartShouldSetResponder={() => true}
 				style={[styles.sheet, {
 					backgroundColor: theme.colors.surface,
 					paddingBottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom || 12,
@@ -76,7 +80,7 @@ const P2PChatSheet = ({ visible, onClose, keyboardHeight, insets, theme, textSty
 					containerStyles={containerStyles}
 				/>
 
-			</Pressable>
+			</Animated.View>
 		</Pressable>
 	</Modal>
 )

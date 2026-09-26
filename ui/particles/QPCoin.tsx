@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 
 // Image components
-import { SvgXml, SvgUri } from 'react-native-svg'
+import { SvgUri } from 'react-native-svg'
+import CachedSvgXml from './CachedSvgXml'
 
 // Caché de SVGs compartida (memoria + AsyncStorage + dedup)
 import { getCachedSvgSync, loadSvg } from '../../helpers/svgCache'
@@ -72,7 +73,7 @@ const QPCoin = ({ coin, size = 32 }: QPCoinProps) => {
 	if (svgXml) {
 		return (
 			<View style={[styles.container, { width: size, height: size }]}>
-				<SvgXml xml={svgXml} width={size} height={size} style={styles.svg} />
+				<CachedSvgXml xml={svgXml} width={size} height={size} style={styles.svg} />
 			</View>
 		)
 	}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { SvgXml, SvgUri } from 'react-native-svg'
+import { SvgUri } from 'react-native-svg'
 import type { SvgProps } from 'react-native-svg'
 
 // Caché de SVGs compartida (memoria + AsyncStorage + dedup)
 import { getCachedSvgSync, loadSvg } from '../../helpers/svgCache'
+import CachedSvgXml from './CachedSvgXml'
 
 /**
  * SvgUri con caché. El SvgUri de react-native-svg refetchea el URL en CADA
@@ -15,7 +16,7 @@ import { getCachedSvgSync, loadSvg } from '../../helpers/svgCache'
  *
  * @param props
  * @param props.uri - URL del SVG remoto.
- * Resto de props (width, height, color…) pasan a SvgXml/SvgUri.
+ * Resto de props (width, height, color…) pasan a CachedSvgXml/SvgUri.
  */
 type Props = {
 	uri?: string | null
@@ -43,7 +44,7 @@ const QPSvgUri = ({ uri, ...rest }: Props) => {
 	}, [uri])
 
 	if (!uri || failed) return null
-	if (xml) return <SvgXml xml={xml} {...rest} />
+	if (xml) return <CachedSvgXml xml={xml} {...rest} />
 	return <SvgUri uri={uri} {...rest} />
 }
 
