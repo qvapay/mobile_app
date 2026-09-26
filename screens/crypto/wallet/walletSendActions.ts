@@ -164,6 +164,35 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
 }
 
 /**
+ * Reserva al pulsar MÁX en TRX: el ancho de banda (≈0,35 TRX si no queda gratis) y la
+ * activación de una cuenta nueva (1 TRX).
+ */
+export const TRX_MAX_RESERVE_SUN = 1_400_000n
+
+/**
+ * Lo MÁS que se puede entregar de verdad de un activo. PURO.
+ *
+ * Un MÁX que deja la cuenta sin gas para su propia transacción es el error más común de las
+ * wallets: el botón rellena el campo con el saldo entero y el envío falla después. Así que
+ * MÁX significa "lo más que puedes enviar", no "todo lo que tienes".
+ *
+ * Un token no reserva nada —el gas se paga en el nativo, que no se toca— y Bitcoin tampoco:
+ * ahí la comisión se descuenta del propio envío, así que MÁX es el saldo entero.
+ *
+ * @param reserve - Lo que la cadena exige dejar atrás (`estimateNativeReserve`); en TRON,
+ *   `TRX_MAX_RESERVE_SUN`. Se ignora salvo en el nativo de una cadena que no sea Bitcoin.
+ */
+export const maxSendableUnits = ({ balance, isNative, kind, reserve }: {
+	balance: bigint
+	isNative: boolean
+	kind: string
+	reserve: bigint
+}): bigint => {
+	if (!isNative || kind === 'btc') { return balance }
+	return balance > reserve ? balance - reserve : 0n
+}
+
+/**
  * Reserva de gas para el botón MAX de un NATIVO: lo que costaría la propia
  * transferencia con la fee actual, con margen. TRON no lo necesita aquí
  * (reserva fija en WalletSend); EVM lee la fee del nodo; Bitcoin no reserva

@@ -11,10 +11,14 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 import { useAuth } from '../../../auth/AuthContext'
 import { useSettings } from '../../../settings/SettingsContext'
 import { useWallet } from '../../../wallet/WalletContext'
+import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { buildSwapForm, isInUnsupported, percentAmount, sanitizeAmountInput } from './swapModel'
+import { estimateNativeReserve, maxSendableUnits, TRX_MAX_RESERVE_SUN } from './walletSendActions'
+import { parseAmountSafe } from './exchangeModel'
+import { formatUnits } from '../../../wallet/chains/units'
 import { buildSwapView } from './swapView'
 import type { SwapSide } from './swapView'
-import { assetIdOf, directionFor, flip, isBalance, maxChipAllowed, railAmountUsd, routeFor } from './swapRouting'
+import { assetIdOf, directionFor, flip, isBalance, railAmountUsd, routeFor } from './swapRouting'
 import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
@@ -336,13 +340,32 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		return Number(payAsset?.amount ?? 0)
 	}, [isQusd, form.max, routed.mode, custodial, payAsset?.amount])
 
+	/**
+	 * MÁX en un nativo NO es el saldo entero: es lo más que se puede enviar de verdad, con
+	 * la reserva de gas que exige su cadena descontada — la misma cuenta que hace la
+	 * pantalla de enviar. Esconder el botón, que es lo que hacía antes, era la salida
+	 * perezosa: el usuario lo echa de menos y no entiende por qué falta.
+	 */
+	const nativeReserve = useNativeReserve(payAsset, isQusd)
+
 	const chips = useMemo(() => {
 		if (!(maxAmount > 0)) { return undefined }
-		const allowMax = maxChipAllowed({ mode: routed.mode, payIsNative: payAsset?.contract === null })
-		return PERCENT_CHIPS
-			.filter(p => p !== 100 || allowMax)
-			.map(p => ({ key: String(p), label: p === 100 ? t('crypto.wallet.swap.max') : `${p}%`, onPress: () => setAmountText(percentAmount(maxAmount, p)) }))
-	}, [maxAmount, routed.mode, payAsset?.contract, t])
+		const pct = (p: number) => {
+			if (p !== 100 || !payAsset || payAsset.contract !== null || isQusd) { return percentAmount(maxAmount, p) }
+			const sendable = maxSendableUnits({
+				balance: parseAmountSafe(payAsset.amount, payAsset.decimals),
+				isNative: true,
+				kind: payAsset.kind,
+				reserve: nativeReserve,
+			})
+			return formatUnits(sendable, payAsset.decimals)
+		}
+		return PERCENT_CHIPS.map(p => ({
+			key: String(p),
+			label: p === 100 ? t('crypto.wallet.swap.max') : `${p}%`,
+			onPress: () => setAmountText(pct(p)),
+		}))
+	}, [maxAmount, payAsset, isQusd, nativeReserve, t])
 
 	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
 
@@ -448,6 +471,38 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			/>
 		</KeyboardAvoidingView>
 	)
+}
+
+/**
+ * La reserva de gas del nativo que entrega, pedida a su nodo.
+ *
+ * Solo hace falta para el chip de MÁX, así que se pide cuando de verdad hay un nativo en el
+ * lado que paga: un token no reserva nada y el saldo QvaPay tampoco. Mientras llega vale 0,
+ * y entonces MÁX ofrece el saldo entero — lo mismo que ofrecía la pantalla de enviar antes
+ * de que su reserva cargara.
+ */
+const useNativeReserve = (asset: AssetView | null, skip: boolean): bigint => {
+
+	const registry = useEffectiveRegistry()
+	const [reserve, setReserve] = useState(0n)
+	const isNative = !!asset && asset.contract === null && !skip
+
+	useEffect(() => {
+		if (!isNative || !asset) { setReserve(0n); return }
+		if (asset.kind === 'tron') { setReserve(TRX_MAX_RESERVE_SUN); return }
+		if (asset.kind === 'btc') { setReserve(0n); return }
+		let cancelled = false
+		const chain = registry.chains[asset.chainKey]
+		if (!chain) { return }
+		estimateNativeReserve(chain, asset.chainKey)
+			.then(value => { if (!cancelled) { setReserve(value) } })
+			// Sin reserva conocida, MÁX ofrece el saldo entero y el envío avisará: es lo
+			// mismo que hace la pantalla de enviar, y mejor que quedarse sin botón
+			.catch(() => { if (!cancelled) { setReserve(0n) } })
+		return () => { cancelled = true }
+	}, [isNative, asset, registry])
+
+	return reserve
 }
 
 /**
