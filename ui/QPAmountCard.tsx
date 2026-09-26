@@ -2,15 +2,15 @@ import { forwardRef } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 // Theme
-import { useTheme } from '../../../../../theme/ThemeContext'
-import { useTextStyles } from '../../../../../theme/themeUtils'
+import { useTheme } from '../theme/ThemeContext'
+import { useTextStyles } from '../theme/themeUtils'
 
 // UI
-import QPFitText from '../../../../../ui/particles/QPFitText'
-import QPAssetPill from '../../../../../ui/particles/QPAssetPill'
-import type { QPAssetIconKind } from '../../../../../ui/particles/QPAssetBadge'
+import QPFitText from './particles/QPFitText'
+import QPAssetPill from './particles/QPAssetPill'
+import type { QPAssetIconKind } from './particles/QPAssetBadge'
 
-export type SwapChip = { key: string, label: string, onPress: () => void }
+export type QPAmountChip = { key: string, label: string, onPress: () => void }
 
 type Props = {
 	/** "Pagas" / "Recibes". */
@@ -24,20 +24,23 @@ type Props = {
 	placeholder?: string
 	fiatLabel: string
 	balanceLabel: string
-	chips?: SwapChip[]
+	chips?: QPAmountChip[]
 	disabled?: boolean
 	accessibilityLabel?: string
 }
 
 /**
- * Tarjeta de un lado del swap (patrón Uniswap/Jupiter): etiqueta y chips arriba, importe
- * grande a la izquierda con la píldora del activo a la derecha, equivalente en USD y saldo
- * abajo. El lado que recibe no es editable: su importe sale del modelo.
+ * Tarjeta de un lado de una conversión (patrón Uniswap/Jupiter): etiqueta y chips arriba,
+ * importe grande a la izquierda con la píldora del activo a la derecha, equivalente en USD
+ * y saldo abajo. El lado que recibe no es editable: su importe sale del modelo.
+ *
+ * Nació en el swap de la wallet y vive en `ui/` porque la comparten también el retiro y lo
+ * que venga: una conversión se lee igual la haga quien la haga.
  *
  * Abajo a la derecha va SOLO el saldo, sin nombrar el activo: ya está en la píldora de al
  * lado, y la red en el badge de su icono.
  */
-const SwapAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, disabled, accessibilityLabel }, ref) => {
+const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, disabled, accessibilityLabel }, ref) => {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -102,4 +105,4 @@ const styles = StyleSheet.create({
 	balance: { flexShrink: 1, textAlign: 'right' },
 })
 
-export default SwapAmountCard
+export default QPAmountCard

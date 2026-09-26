@@ -37,7 +37,8 @@
 		"withdraw": "Withdraw",
 		"balance": "Balance:",
 		"receive": "Receive",
-		"coinPlaceholder": "Coin"
+		"coinPlaceholder": "Coin",
+		"fromBalance": "From your balance"
 	},
 	"satsCard": {
 		"title": "Redeem satoshis",

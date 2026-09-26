@@ -32,7 +32,7 @@ jest.mock('../../../api/exchangeApi', () => ({
 jest.mock('../../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../../ui/particles/QPAssetIcon', () => 'QPAssetIcon')
 jest.mock('./components/WalletAuthModal', () => 'WalletAuthModal')
-jest.mock('./components/swap/SwapFlipButton', () => { const C = 'SwapFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
+jest.mock('../../../ui/particles/QPFlipButton', () => { const C = 'QPFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
 jest.mock('./components/swap/SwapDetails', () => 'SwapDetails')
 jest.mock('../../../ui/QPAssetSheet', () => 'QPAssetSheet')
 jest.mock('./components/swap/SwapReviewSheet', () => 'SwapReviewSheet')
@@ -51,7 +51,7 @@ import useCoins from '../../../hooks/useCoins'
 import { prepareSend, signPrepared, broadcastSigned } from './walletSendActions'
 import { swapApi } from '../../../api/swapApi'
 import { toast } from 'sonner-native'
-import SwapAmountCard from './components/swap/SwapAmountCard'
+import QPAmountCard from '../../../ui/QPAmountCard'
 import WalletSwap from './WalletSwap'
 
 const STX = 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R'
@@ -78,7 +78,7 @@ const render = async (params) => {
 const input = () => tree.root.findByType(TextInput)
 // La hoja de revisión está simulada: el único QPButton renderizado es el del pie
 const footer = () => tree.root.findByType('QPButton')
-const cards = () => tree.root.findAllByType(SwapAmountCard)
+const cards = () => tree.root.findAllByType(QPAmountCard)
 const reviewSheet = () => tree.root.findByType('SwapReviewSheet')
 const assetSheet = () => tree.root.findByType('QPAssetSheet')
 const type = (text) => act(async () => { input().props.onChangeText(text) })
@@ -198,7 +198,7 @@ describe('formulario', () => {
 		await act(async () => { cards()[0].props.chips[1].onPress() })
 		expect(input().props.value).toBe('50.00')
 
-		await press(tree.root.findByType('SwapFlipButton'))
+		await press(tree.root.findByType('QPFlipButton'))
 		expect(cards()[0].props.token.symbol).toBe('QUSD')
 		expect(cards()[1].props.token.symbol).toBe('USD')
 		await act(async () => { cards()[0].props.chips[2].onPress() })

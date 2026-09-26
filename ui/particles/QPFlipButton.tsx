@@ -4,18 +4,21 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSprin
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
-import { useTheme } from '../../../../../theme/ThemeContext'
+import { useTheme } from '../../theme/ThemeContext'
 
 // UI
-import QPPressable from '../../../../../ui/particles/QPPressable'
+import QPPressable from './QPPressable'
 
 const SIZE = 44
 
 /**
- * Botón redondo que invierte el sentido, montado a caballo entre las dos tarjetas con un
- * aro del color del fondo (Uniswap). Gira media vuelta en cada toque.
+ * Botón montado a caballo entre las dos tarjetas de una conversión, con un aro del color
+ * del fondo (Uniswap). Gira media vuelta en cada toque.
+ *
+ * Sin `onPress` no es un botón: se queda como indicador del sentido, que es lo que pide un
+ * retiro —donde la dirección no se elige— frente a un swap, donde sí.
  */
-const SwapFlipButton = ({ onPress, disabled, accessibilityLabel }: { onPress: () => void, disabled?: boolean, accessibilityLabel: string }) => {
+const QPFlipButton = ({ onPress, disabled, accessibilityLabel }: { onPress?: () => void, disabled?: boolean, accessibilityLabel: string }) => {
 
 	const { theme } = useTheme()
 	const reducedMotion = useReducedMotion()
@@ -23,13 +26,13 @@ const SwapFlipButton = ({ onPress, disabled, accessibilityLabel }: { onPress: ()
 	const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turns.value * 180}deg` }] }))
 
 	const press = useCallback(() => {
-		if (disabled) return
+		if (disabled || !onPress) return
 		turns.value = reducedMotion ? turns.value + 1 : withSpring(turns.value + 1, { damping: 14, stiffness: 160 })
 		onPress()
 	}, [disabled, reducedMotion, turns, onPress])
 
 	return (
-		<QPPressable onPress={press} style={[styles.button, { backgroundColor: theme.colors.surface, borderColor: theme.colors.background, opacity: disabled ? 0.5 : 1 }]} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
+		<QPPressable onPress={press} disabled={!onPress || !!disabled} accessibilityRole={onPress ? 'button' : 'image'} style={[styles.button, { backgroundColor: theme.colors.surface, borderColor: theme.colors.background, opacity: disabled ? 0.5 : 1 }]} accessibilityLabel={accessibilityLabel}>
 			<Animated.View style={spin}>
 				<FontAwesome6 name="arrow-down" size={16} color={theme.colors.primary} iconStyle="solid" />
 			</Animated.View>
@@ -42,4 +45,4 @@ const styles = StyleSheet.create({
 })
 
 export const FLIP_BUTTON_SIZE = SIZE
-export default SwapFlipButton
+export default QPFlipButton

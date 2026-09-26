@@ -37,7 +37,8 @@
 		"withdraw": "Extraer",
 		"balance": "Balance:",
 		"receive": "Recibir",
-		"coinPlaceholder": "Moneda"
+		"coinPlaceholder": "Moneda",
+		"fromBalance": "De tu saldo"
 	},
 	"satsCard": {
 		"title": "Redimir satoshis",

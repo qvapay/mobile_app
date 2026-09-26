@@ -32,11 +32,11 @@ import { useExchangeCatalogQuery } from './exchangeQueries'
 import QPButton from '../../../ui/particles/QPButton'
 import PinConfirmStep from '../../transaction/PinConfirmStep'
 import WalletAuthModal from './components/WalletAuthModal'
-import SwapAmountCard from './components/swap/SwapAmountCard'
+import QPAmountCard from '../../../ui/QPAmountCard'
 import QPAssetSheet from '../../../ui/QPAssetSheet'
 import type { QPAssetOption } from '../../../ui/QPAssetSheet'
 import SwapDetails from './components/swap/SwapDetails'
-import SwapFlipButton, { FLIP_BUTTON_SIZE } from './components/swap/SwapFlipButton'
+import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../../ui/particles/QPFlipButton'
 import SwapNotices from './components/swap/SwapNotices'
 import SwapReviewSheet from './components/swap/SwapReviewSheet'
 
@@ -66,7 +66,7 @@ const BALANCE_SIDE: SwapSideRef = { kind: 'balance' }
  *                           wallet, con la verificación de firma intacta
  *   saldo ↔ otro activo   → no soportado, y el selector dice por qué
  *
- * Las dos ramas pintan los MISMOS componentes (`SwapAmountCard`, `SwapDetails`,
+ * Las dos ramas pintan los MISMOS componentes (`QPAmountCard`, `SwapDetails`,
  * `SwapNotices`, `SwapReviewSheet`) alimentados por su propio modelo de vista, así que la
  * pantalla sigue siendo cableado: `swapModel`/`swapView` para el motor custodial y
  * `exchangeModel`/`exchangeView` para el agregador.
@@ -349,7 +349,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
 				<View>
-					<SwapAmountCard
+					<QPAmountCard
 						ref={amountRef}
 						label={t('crypto.wallet.swap.pay')}
 						token={view.pay}
@@ -364,9 +364,9 @@ const WalletSwap = ({ navigation, route }: Props) => {
 					/>
 					{/* En flujo con márgenes negativos: monta sobre la junta de las dos tarjetas sin medirlas */}
 					<View style={styles.flipWrap} pointerEvents="box-none">
-						<SwapFlipButton onPress={onFlip} disabled={busy} accessibilityLabel={t('crypto.wallet.swap.flip')} />
+						<QPFlipButton onPress={onFlip} disabled={busy} accessibilityLabel={t('crypto.wallet.swap.flip')} />
 					</View>
-					<SwapAmountCard
+					<QPAmountCard
 						label={t('crypto.wallet.swap.receive')}
 						hint={view.receiveHint}
 						token={view.receive}
