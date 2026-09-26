@@ -181,10 +181,15 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		() => Object.fromEntries(all.filter(a => a.hasBalance).map(a => [a.id, a.amount])),
 		[all],
 	)
+	// Sin catálogo no hay agregador: el 503 de esa ruta ES la señal de que el producto está
+	// apagado (por interruptor o por proveedor caído). Decirlo aquí evita que el usuario
+	// componga un par entero para que la cotización le falle al final. Los otros tres caminos
+	// del swap —QUSD y los dos rieles— no pasan por aquí y siguen funcionando.
 	const unsupportedReason = useMemo(() => {
+		if (catalog.isError) { return t('crypto.wallet.swap.disabled') }
 		const unsupported = catalog.data?.unsupported ?? {}
 		return unsupported[payAsset?.id ?? ''] ?? unsupported[receiveAsset?.id ?? ''] ?? null
-	}, [catalog.data, payAsset?.id, receiveAsset?.id])
+	}, [catalog.isError, catalog.data, payAsset?.id, receiveAsset?.id, t])
 
 	const onExchangeOpened = useCallback((order: ExchangeOrder) => {
 		navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: order.uuid })

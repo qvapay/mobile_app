@@ -2,7 +2,6 @@
  * @jest-environment node
  */
 const {
-	ALLOWS_SEND_MAX,
 	checkAmount,
 	depositAmountLabel,
 	depositAmountRaw,
@@ -57,11 +56,6 @@ describe('validación del importe', () => {
 	it('un decimal a medio teclear no revienta', () => {
 		expect(() => checkAmount({ ...base, input: '1.' })).not.toThrow()
 		expect(() => checkAmount({ ...base, input: '.' })).not.toThrow()
-	})
-
-	it('en este flujo NO hay enviar todo', () => {
-		// El proveedor espera EXACTAMENTE lo cotizado; de más o de menos dispara devolución
-		expect(ALLOWS_SEND_MAX).toBe(false)
 	})
 })
 

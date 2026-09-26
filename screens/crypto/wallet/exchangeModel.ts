@@ -49,16 +49,6 @@ export const checkAmount = ({ input, balance, decimals, minAmount }: {
 	return { ok: true, amount }
 }
 
-/**
- * En este flujo NO hay "enviar todo".
- *
- * El proveedor cotiza para una cantidad concreta y espera EXACTAMENTE esa en la dirección de
- * depósito; enviar de más o de menos dispara recotización o devolución. Y con el nativo hay
- * además que dejar la comisión de red, que "todo" se comería. Se exporta como constante para
- * que la pantalla lo lea de un sitio y no como un `false` suelto.
- */
-export const ALLOWS_SEND_MAX = false
-
 // ── Lectura del estado ─────────────────────────────────────────────────────
 
 /** Fases visibles del seguimiento. El usuario no necesita los nueve estados del backend. */

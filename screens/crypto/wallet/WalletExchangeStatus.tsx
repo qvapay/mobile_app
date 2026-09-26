@@ -87,7 +87,9 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
 	const phase = order ? phaseOf(order.status) : 'working'
 	const icon = ICON[phase]
-	const tone = icon.tone === 'success' ? theme.colors.success : icon.tone === 'warning' ? theme.colors.warning : theme.colors.primary
+	// `successText` y no `success`: el verde menta es un color de RELLENO y sobre el fondo se
+	// lee mal como tinta. Aquí tiñe un icono y un texto, no un badge
+	const tone = icon.tone === 'success' ? theme.colors.successText : icon.tone === 'warning' ? theme.colors.warning : theme.colors.primary
 
 	const exactAmount = order && fromAsset ? depositAmountLabel(order, fromAsset.decimals) : order?.amount_in ?? ''
 	const deviation = order ? (order.deviation_bps ?? deviationBps(order)) : null
@@ -225,7 +227,7 @@ const Steps = ({ order, theme }: { order: NonNullable<ReturnType<typeof useExcha
 	return (
 		<View style={[styles.card, styles.steps, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 			{steps.map((step, index) => {
-				const color = step.done ? theme.colors.success : step.current ? theme.colors.primary : theme.colors.secondaryText
+				const color = step.done ? theme.colors.successText : step.current ? theme.colors.primary : theme.colors.secondaryText
 				return (
 					<View key={step.key} style={styles.step}>
 						<View style={[styles.dot, { backgroundColor: step.done || step.current ? color : 'transparent', borderColor: color }]} />
