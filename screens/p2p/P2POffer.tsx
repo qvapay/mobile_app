@@ -265,11 +265,10 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 				/>
 
 				{/* Burbuja flotante del chat + hoja del chat (badge de no leídos incluido) */}
-				<P2POfferChatDock
-					enabled={!!p2p && status !== "open"}
-					chat={chat}
-					keyboardHeight={keyboardHeight}
-					insets={insets}
+<P2POfferChatDock
+				enabled={!!p2p && status !== "open"}
+				chat={chat}
+				insets={insets}
 					theme={theme}
 					textStyles={textStyles}
 					containerStyles={containerStyles}
