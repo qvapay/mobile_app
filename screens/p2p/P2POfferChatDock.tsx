@@ -81,7 +81,8 @@ const P2POfferChatDock = ({ enabled, chat, chatPanelProps, keyboardHeight, inset
 				</Animated.View>
 			)}
 
-			{/* Chat en hoja propia (pageSheet iOS / modal Android) */}
+			{/* Chat en hoja propia (overlay inline de la pantalla: solo así llegan
+			    los eventos de teclado en Android — ver el docstring de P2PChatSheet) */}
 			<P2PChatSheet
 				visible={chatOpen}
 				onClose={() => setChatOpen(false)}
