@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -25,6 +25,12 @@ type Props = {
 	fiatLabel: string
 	balanceLabel: string
 	chips?: QPAmountChip[]
+	/**
+	 * Calculando el importe de este lado. Solo tiene sentido en el lado que RECIBE: mientras
+	 * se cotiza no hay nada que enseñar ahí, y un hueco en blanco no se distingue de una
+	 * pantalla rota.
+	 */
+	loading?: boolean
 	disabled?: boolean
 	accessibilityLabel?: string
 }
@@ -40,7 +46,7 @@ type Props = {
  * Abajo a la derecha va SOLO el saldo, sin nombrar el activo: ya está en la píldora de al
  * lado, y la red en el badge de su icono.
  */
-const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, disabled, accessibilityLabel }, ref) => {
+const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, loading, disabled, accessibilityLabel }, ref) => {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -79,8 +85,11 @@ const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount,
 						accessibilityLabel={accessibilityLabel ?? label}
 					/>
 				) : (
-					<View style={styles.input}>
-						<QPFitText style={amountStyle}>{amount || placeholder}</QPFitText>
+					<View style={[styles.input, styles.calcRow]}>
+						{/* Con importe previo se atenúa en vez de vaciarse: al cambiar de par sigue
+						    habiendo un número en pantalla, y el giro dice que ya no es el bueno */}
+						<QPFitText style={[amountStyle, loading && styles.stale]}>{amount || (loading ? '' : placeholder)}</QPFitText>
+						{!!loading && <ActivityIndicator size="small" color={theme.colors.secondaryText} style={styles.spinner} />}
 					</View>
 				)}
 				<QPAssetPill icon={token.icon} symbol={token.symbol} onPress={token.onPress} />
@@ -101,6 +110,9 @@ const styles = StyleSheet.create({
 	chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
 	middle: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
 	input: { flex: 1, paddingVertical: 0, justifyContent: 'center' },
+	calcRow: { flexDirection: 'row', alignItems: 'center' },
+	stale: { opacity: 0.35 },
+	spinner: { marginLeft: 8, transform: [{ scale: 0.7 }] },
 	bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
 	balance: { flexShrink: 1, textAlign: 'right' },
 })

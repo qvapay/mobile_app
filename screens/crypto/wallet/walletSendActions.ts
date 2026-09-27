@@ -182,6 +182,20 @@ export const TRX_MAX_RESERVE_SUN = 1_400_000n
  * @param reserve - Lo que la cadena exige dejar atrás (`estimateNativeReserve`); en TRON,
  *   `TRX_MAX_RESERVE_SUN`. Se ignora salvo en el nativo de una cadena que no sea Bitcoin.
  */
+/**
+ * Porcentaje de un saldo EN UNIDADES MÍNIMAS.
+ *
+ * El helper de dólares (`percentAmount`) no vale aquí: devuelve `toFixed(2)`, que REDONDEA.
+ * Con un saldo de 5,436789 USDC, "MÁX" escribía 5,44 —más de lo que hay—, el importe salía
+ * insuficiente y la pantalla dejaba de cotizar sin decir nada; y con 0,00123456 BTC escribía
+ * 0,00, o sea nada. En bigint no hay redondeo ni basura binaria que valga.
+ */
+export const percentOfUnits = (balance: bigint, percent: number): bigint => {
+	if (balance <= 0n) { return 0n }
+	if (percent >= 100) { return balance }
+	return (balance * BigInt(Math.round(percent))) / 100n
+}
+
 export const maxSendableUnits = ({ balance, isNative, kind, reserve }: {
 	balance: bigint
 	isNative: boolean

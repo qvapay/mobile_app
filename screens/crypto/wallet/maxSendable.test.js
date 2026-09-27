@@ -6,7 +6,7 @@
  * la cuenta que lo evita, compartida por la pantalla de enviar y la de intercambiar.
  * @jest-environment node
  */
-const { maxSendableUnits, TRX_MAX_RESERVE_SUN } = require('./walletSendActions')
+const { maxSendableUnits, percentOfUnits, TRX_MAX_RESERVE_SUN } = require('./walletSendActions')
 
 describe('máximo entregable', () => {
 
@@ -30,5 +30,32 @@ describe('máximo entregable', () => {
 
 	it('sin reserva conocida ofrece el saldo entero: el envío ya avisará', () => {
 		expect(maxSendableUnits({ balance: 42n, isNative: true, kind: 'solana', reserve: 0n })).toBe(42n)
+	})
+})
+
+describe('porcentajes en unidades mínimas', () => {
+
+	// El helper de dólares devolvía `toFixed(2)`, que REDONDEA: con estos saldos reales
+	// "MÁX" pedía más de lo que hay y la pantalla dejaba de cotizar sin decir nada
+	it('MÁX es el saldo EXACTO, nunca un céntimo más', () => {
+		const balance = 5_436789n            // 5.436789 USDC (6 decimales)
+		expect(percentOfUnits(balance, 100)).toBe(balance)
+		expect(Number((5.436789).toFixed(2))).toBeGreaterThan(5.436789)   // lo que hacía antes
+	})
+
+	it('no se pierde en saldos diminutos, donde dos decimales son cero', () => {
+		const btc = 123456n                  // 0.00123456 BTC (8 decimales)
+		expect(percentOfUnits(btc, 100)).toBe(btc)
+		expect(percentOfUnits(btc, 50)).toBe(61728n)
+	})
+
+	it('los porcentajes truncan hacia abajo: nunca ofrecen de más', () => {
+		expect(percentOfUnits(7n, 50)).toBe(3n)
+		expect(percentOfUnits(1_000_001n, 25)).toBe(250_000n)
+	})
+
+	it('sin saldo no hay nada que ofrecer', () => {
+		expect(percentOfUnits(0n, 100)).toBe(0n)
+		expect(percentOfUnits(-5n, 50)).toBe(0n)
 	})
 })

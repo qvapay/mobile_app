@@ -13,7 +13,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 import { useWallet } from '../../../wallet/WalletContext'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { buildSwapForm, isInUnsupported, percentAmount, sanitizeAmountInput } from './swapModel'
-import { estimateNativeReserve, maxSendableUnits, TRX_MAX_RESERVE_SUN } from './walletSendActions'
+import { estimateNativeReserve, maxSendableUnits, percentOfUnits, TRX_MAX_RESERVE_SUN } from './walletSendActions'
 import { parseAmountSafe } from './exchangeModel'
 import { formatUnits } from '../../../wallet/chains/units'
 import { buildSwapView } from './swapView'
@@ -353,24 +353,38 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	 */
 	const nativeReserve = useNativeReserve(payAsset, isQusd)
 
+	/**
+	 * Decimales que admite el campo. Los modos con saldo QvaPay son dólares; cuando paga un
+	 * activo de la wallet manda el activo, o el campo se comería lo tecleado: 0.00123456 BTC
+	 * quedaba en 0.00 y no había forma de escribir un importe real.
+	 */
+	const amountDecimals = isQusd || routed.mode === 'withdraw' ? 2 : payAsset?.decimals ?? 2
+
 	const chips = useMemo(() => {
 		if (!(maxAmount > 0)) { return undefined }
+		/**
+		 * Los porcentajes se calculan en UNIDADES MÍNIMAS cuando paga un activo de la wallet.
+		 * El helper de dólares redondea a dos decimales, y eso aquí no es un detalle de
+		 * formato: "MÁX" sobre 5,436789 USDC escribía 5,44 —más de lo que hay— y la pantalla
+		 * se quedaba muda porque el importe no pasaba la validación de saldo.
+		 */
 		const pct = (p: number) => {
-			if (p !== 100 || !payAsset || payAsset.contract !== null || isQusd) { return percentAmount(maxAmount, p) }
-			const sendable = maxSendableUnits({
-				balance: parseAmountSafe(payAsset.amount, payAsset.decimals),
-				isNative: true,
-				kind: payAsset.kind,
-				reserve: nativeReserve,
-			})
-			return formatUnits(sendable, payAsset.decimals)
+			if (!payAsset || isQusd || routed.mode === 'withdraw') { return percentAmount(maxAmount, p) }
+			const isNative = payAsset.contract === null
+			const balance = parseAmountSafe(payAsset.amount, payAsset.decimals)
+			// En el nativo el techo no es el saldo: hay que dejar la reserva de gas de su cadena
+			const ceiling = isNative
+				? maxSendableUnits({ balance, isNative: true, kind: payAsset.kind, reserve: nativeReserve })
+				: balance
+			const units = percentOfUnits(ceiling, p)
+			return units > 0n ? formatUnits(units, payAsset.decimals) : ''
 		}
 		return PERCENT_CHIPS.map(p => ({
 			key: String(p),
 			label: p === 100 ? t('crypto.wallet.swap.max') : `${p}%`,
 			onPress: () => setAmountText(pct(p)),
 		}))
-	}, [maxAmount, payAsset, isQusd, nativeReserve, t])
+	}, [maxAmount, payAsset, isQusd, routed.mode, nativeReserve, t])
 
 	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
 
@@ -392,7 +406,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 						label={t('crypto.wallet.swap.pay')}
 						token={view.pay}
 						amount={amountText}
-						onChangeAmount={(text) => setAmountText(sanitizeAmountInput(text))}
+						onChangeAmount={(text) => setAmountText(sanitizeAmountInput(text, amountDecimals))}
 						placeholder="0.00"
 						fiatLabel={isExchange ? '' : swapView.payFiat}
 						balanceLabel={view.pay.balance}
@@ -409,6 +423,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 						hint={view.receiveHint}
 						token={view.receive}
 						amount={view.receiveAmount}
+						loading={isExchange && exchangeFlow.quoting}
 						placeholder="0.00"
 						fiatLabel={isExchange ? '' : swapView.receiveFiat}
 						balanceLabel={view.receive.balance}

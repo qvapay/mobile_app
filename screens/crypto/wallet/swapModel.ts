@@ -74,11 +74,16 @@ export { floorCents, percentAmount } from '../../../helpers/amountInput'
 import { floorCents } from '../../../helpers/amountInput'
 
 /**
- * Sanea lo que teclea el usuario: coma → punto, solo dígitos y UN punto, máx 2 decimales,
- * sin ceros a la izquierda ('007' → '7', '.5' → '0.5'). Así el formulario nunca tiene un
- * estado "importe inválido": lo que no es un importe no llega a escribirse.
+ * Sanea lo que teclea el usuario: coma → punto, solo dígitos y UN punto, sin ceros a la
+ * izquierda ('007' → '7', '.5' → '0.5'). Así el formulario nunca tiene un estado "importe
+ * inválido": lo que no es un importe no llega a escribirse.
+ *
+ * `maxDecimals` por defecto 2 porque este módulo nació para dólares, pero el intercambio
+ * cripto↔cripto mueve activos de 6, 8, 9 y 18 decimales: con el tope fijo, un importe de
+ * BTC no se podía ni escribir (0.00123456 quedaba en 0.00) y el campo se comía en silencio
+ * lo que el usuario tecleaba.
  */
-export const sanitizeAmountInput = (raw: string): string => {
+export const sanitizeAmountInput = (raw: string, maxDecimals: number = 2): string => {
 	let text = raw.replace(/,/g, '.').replace(/[^0-9.]/g, '')
 	const firstDot = text.indexOf('.')
 	if (firstDot !== -1) text = text.slice(0, firstDot + 1) + text.slice(firstDot + 1).replace(/\./g, '')
@@ -86,7 +91,7 @@ export const sanitizeAmountInput = (raw: string): string => {
 	integer = integer.replace(/^0+(?=\d)/, '')
 	if (decimals !== undefined) {
 		if (integer === '') integer = '0'
-		return `${integer.slice(0, 9)}.${decimals.slice(0, 2)}`
+		return `${integer.slice(0, 9)}.${decimals.slice(0, Math.max(0, maxDecimals))}`
 	}
 	return integer.slice(0, 9)
 }

@@ -20,6 +20,16 @@ describe('sanitizeAmountInput', () => {
 		expect(sanitizeAmountInput('$ 10abc')).toBe('10')
 		expect(sanitizeAmountInput('')).toBe('')
 	})
+
+	test('con los decimales del activo NO se come lo tecleado', () => {
+		// Con el tope fijo de 2, un importe de BTC era imposible de escribir: lo que el
+		// usuario tecleaba desaparecía y la pantalla no cotizaba nada
+		expect(sanitizeAmountInput('0.00123456', 8)).toBe('0.00123456')
+		expect(sanitizeAmountInput('5.436789', 6)).toBe('5.436789')
+		// Y sigue recortando en el decimal que el activo admite, no más allá
+		expect(sanitizeAmountInput('1.123456789', 6)).toBe('1.123456')
+		expect(sanitizeAmountInput('1.9', 0)).toBe('1.')
+	})
 })
 
 describe('máximo y porcentajes', () => {
