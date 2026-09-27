@@ -59,6 +59,18 @@ describe('la tasa y lo que dice el proveedor', () => {
 	it('sin aviso del proveedor no se añade una fila vacía', () => {
 		expect(buildExchangeView(base).notices.find(n => n.key === 'providerWarning')).toBeUndefined()
 	})
+
+	it('cuando no hay cotización, se dice el motivo del servidor y no solo "no disponible"', () => {
+		// El botón seguirá diciendo "Swap no disponible" porque no hay nada que revisar, pero
+		// el aviso explica si hay que esperar un minuto o si ese par no se puede
+		const v = buildExchangeView({ ...base, quote: null, quoteError: 'Demasiadas cotizaciones seguidas' })
+		expect(v.notices.find(n => n.key === 'quoteError').text).toBe('Demasiadas cotizaciones seguidas')
+		expect(ctaFor({ ...base, quote: null })).toBe('noQuote')
+	})
+
+	it('con cotización buena no se cuela ningún aviso de error', () => {
+		expect(buildExchangeView(base).notices.find(n => n.key === 'quoteError')).toBeUndefined()
+	})
 })
 
 describe('estado del botón', () => {

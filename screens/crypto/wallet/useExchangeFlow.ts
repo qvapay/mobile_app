@@ -136,6 +136,12 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 		quoting: quoteQuery.isFetching,
 		// Una cotización caducada no es un fallo que enseñar: la query la renueva sola
 		quoteFailed: quoteQuery.isError && !payload,
+		/**
+		 * Lo que dijo el servidor cuando no se pudo cotizar. La pantalla enseñaba un "Swap no
+		 * disponible" genérico para CUALQUIER fallo —límite de tasa, par sin liquidez,
+		 * proveedor caído—, que no distingue entre esperar un minuto y no poder nunca.
+		 */
+		quoteError: quoteQuery.isError && !payload ? ((quoteQuery.error as Error | null)?.message ?? null) : null,
 		review,
 		openReview: useCallback(() => { clearError(); setReview(true) }, [clearError]),
 		closeReview: useCallback(() => setReview(false), []),

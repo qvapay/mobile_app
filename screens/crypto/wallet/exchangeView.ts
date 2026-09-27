@@ -50,6 +50,8 @@ export type ExchangeViewInput = {
 	cheaper: ExchangeCheaperOrigin | null
 	/** Motivo por el que un activo elegido no se puede intercambiar (viene del backend). */
 	unsupportedReason?: string | null
+	/** Motivo del servidor cuando la cotización falló. */
+	quoteError?: string | null
 	showBalance: boolean
 	/** Hay cotización en vuelo. */
 	quoting: boolean
@@ -134,12 +136,19 @@ const detailRows = ({ t, from, to, quote }: Pick<ExchangeViewInput, 't' | 'from'
  * que en importes pequeños se lleva un porcentaje brutal y el usuario no tiene forma de
  * saberlo mirando la tasa.
  */
-const noticesFor = ({ t, from, quote, advice, cheaper, unsupportedReason }: Pick<ExchangeViewInput, 't' | 'from' | 'quote' | 'advice' | 'cheaper' | 'unsupportedReason'>): SwapNotice[] => {
+const noticesFor = ({ t, from, quote, quoteError, advice, cheaper, unsupportedReason }: Pick<ExchangeViewInput, 't' | 'from' | 'quote' | 'quoteError' | 'advice' | 'cheaper' | 'unsupportedReason'>): SwapNotice[] => {
 	const notices: SwapNotice[] = []
 
 	if (unsupportedReason) {
 		notices.push({ key: 'unsupported', icon: 'triangle-exclamation', tone: 'warning', text: unsupportedReason })
 		return notices
+	}
+
+	// Por qué no hay cotización, con las palabras del servidor. Sin esto el usuario solo
+	// veía un botón que decía "Swap no disponible" y no tenía forma de saber si el problema
+	// era el par, el importe, el proveedor o que había pulsado demasiadas veces
+	if (quoteError) {
+		notices.push({ key: 'quoteError', icon: 'triangle-exclamation', tone: 'warning', text: quoteError })
 	}
 
 	// Lo que el proveedor tenga que decir de ESTE par (red congestionada, activo en

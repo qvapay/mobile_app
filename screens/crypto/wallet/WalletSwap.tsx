@@ -30,6 +30,7 @@ import { addressForKind, assetPrice, findAssetForCoin } from '../../../wallet/as
 // Intercambio cripto↔cripto
 import { buildExchangeView } from './exchangeView'
 import useExchangeFlow from './useExchangeFlow'
+import type { ApiError } from '../../../api/unwrap'
 import { useExchangeCatalogQuery } from './exchangeQueries'
 
 // UI
@@ -181,15 +182,17 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		() => Object.fromEntries(all.filter(a => a.hasBalance).map(a => [a.id, a.amount])),
 		[all],
 	)
-	// Sin catálogo no hay agregador: el 503 de esa ruta ES la señal de que el producto está
-	// apagado (por interruptor o por proveedor caído). Decirlo aquí evita que el usuario
-	// componga un par entero para que la cotización le falle al final. Los otros tres caminos
-	// del swap —QUSD y los dos rieles— no pasan por aquí y siguen funcionando.
+	/**
+	 * El 503 del catálogo —y SOLO el 503— significa que el producto está apagado, por
+	 * interruptor o porque no hay proveedor. Cualquier otro fallo (red, 401, límite de tasa)
+	 * es pasajero y no debe bloquear nada: tratarlos todos igual convertía un tropiezo de una
+	 * petición en un "Swap no disponible" pegado, con la cotización apagada de paso.
+	 */
 	const unsupportedReason = useMemo(() => {
-		if (catalog.isError) { return t('crypto.wallet.swap.disabled') }
+		if ((catalog.error as ApiError | null)?.status === 503) { return t('crypto.wallet.swap.disabled') }
 		const unsupported = catalog.data?.unsupported ?? {}
 		return unsupported[payAsset?.id ?? ''] ?? unsupported[receiveAsset?.id ?? ''] ?? null
-	}, [catalog.isError, catalog.data, payAsset?.id, receiveAsset?.id, t])
+	}, [catalog.error, catalog.data, payAsset?.id, receiveAsset?.id, t])
 
 	const onExchangeOpened = useCallback((order: ExchangeOrder) => {
 		navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: order.uuid })
@@ -211,6 +214,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		minAmount: exchangeFlow.minAmount,
 		cheaper: exchangeFlow.cheaper,
 		unsupportedReason,
+		quoteError: exchangeFlow.quoteError,
 		showBalance,
 		quoting: exchangeFlow.quoting,
 		busy: exchangeFlow.busy,
@@ -416,7 +420,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 					/>
 					{/* En flujo con márgenes negativos: monta sobre la junta de las dos tarjetas sin medirlas */}
 					<View style={styles.flipWrap} pointerEvents="box-none">
-						<QPFlipButton onPress={onFlip} disabled={busy} accessibilityLabel={t('crypto.wallet.swap.flip')} />
+						<QPFlipButton onPress={onFlip} loading={isExchange && exchangeFlow.quoting} disabled={busy} accessibilityLabel={t('crypto.wallet.swap.flip')} />
 					</View>
 					<QPAmountCard
 						label={t('crypto.wallet.swap.receive')}

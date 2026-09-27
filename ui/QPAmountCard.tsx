@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -25,11 +25,7 @@ type Props = {
 	fiatLabel: string
 	balanceLabel: string
 	chips?: QPAmountChip[]
-	/**
-	 * Calculando el importe de este lado. Solo tiene sentido en el lado que RECIBE: mientras
-	 * se cotiza no hay nada que enseñar ahí, y un hueco en blanco no se distingue de una
-	 * pantalla rota.
-	 */
+	/** Calculando: el importe se atenúa. El giro lo pone el botón de en medio. */
 	loading?: boolean
 	disabled?: boolean
 	accessibilityLabel?: string
@@ -85,11 +81,10 @@ const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount,
 						accessibilityLabel={accessibilityLabel ?? label}
 					/>
 				) : (
-					<View style={[styles.input, styles.calcRow]}>
-						{/* Con importe previo se atenúa en vez de vaciarse: al cambiar de par sigue
-						    habiendo un número en pantalla, y el giro dice que ya no es el bueno */}
-						<QPFitText style={[amountStyle, loading && styles.stale]}>{amount || (loading ? '' : placeholder)}</QPFitText>
-						{!!loading && <ActivityIndicator size="small" color={theme.colors.secondaryText} style={styles.spinner} />}
+					<View style={styles.input}>
+						{/* Atenuado, no vaciado: al cambiar de par sigue habiendo un número en
+						    pantalla y el giro del botón dice que ya no es el bueno */}
+						<QPFitText style={[amountStyle, loading && styles.stale]}>{amount || placeholder}</QPFitText>
 					</View>
 				)}
 				<QPAssetPill icon={token.icon} symbol={token.symbol} onPress={token.onPress} />
@@ -110,9 +105,7 @@ const styles = StyleSheet.create({
 	chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
 	middle: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
 	input: { flex: 1, paddingVertical: 0, justifyContent: 'center' },
-	calcRow: { flexDirection: 'row', alignItems: 'center' },
 	stale: { opacity: 0.35 },
-	spinner: { marginLeft: 8, transform: [{ scale: 0.7 }] },
 	bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
 	balance: { flexShrink: 1, textAlign: 'right' },
 })
