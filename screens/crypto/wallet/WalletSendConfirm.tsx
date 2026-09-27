@@ -10,6 +10,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
+import { markDepositSent } from './exchangeDeposit'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, nativeAssetId } from '../../../wallet/assets'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
@@ -83,7 +84,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	const onSent = useCallback((txid: string) => {
 		// Si este envío ES el depósito de un intercambio, el final no es aquí: el usuario
 		// vuelve al seguimiento, que es donde va a ver llegar la otra moneda.
-		if (exchangeUuid) { navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid }); return }
+		//
+		// Se anota en disco ANTES de navegar. El proveedor tarda en ver la transferencia, y
+		// hasta entonces la orden sigue diciendo "esperando tu envío": sin esta nota, el
+		// seguimiento le volvía a ofrecer la dirección y el botón de enviar justo después de
+		// enviar, y un segundo depósito no se cambia, se queda esperando devolución manual.
+		if (exchangeUuid) {
+			markDepositSent(exchangeUuid, txid)
+			navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid, sentTxid: txid })
+			return
+		}
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
 	}, [navigation, assetId, amount, to, exchangeUuid])
 

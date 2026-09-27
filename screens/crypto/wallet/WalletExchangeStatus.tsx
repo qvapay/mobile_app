@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +18,8 @@ import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from '.
 import { shortAddress } from './walletFormat'
 import { timeAgo } from '../../../helpers'
 import { useExchangeOrderQuery } from './exchangeQueries'
-import { depositAmountLabel, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
+import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
+import { clearDepositSent, readDepositSent } from './exchangeDeposit'
 import type { ExchangePhase } from './exchangeModel'
 
 // UI
@@ -55,7 +56,7 @@ const ICON: Record<ExchangePhase, { name: 'arrow-up-from-bracket' | 'arrows-rota
  */
 const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
-	const { uuid } = route.params
+	const { uuid, sentTxid } = route.params
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -90,6 +91,25 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 	// `successText` y no `success`: el verde menta es un color de RELLENO y sobre el fondo se
 	// lee mal como tinta. Aquí tiñe un icono y un texto, no un badge
 	const tone = icon.tone === 'success' ? theme.colors.successText : icon.tone === 'warning' ? theme.colors.warning : theme.colors.primary
+
+	/**
+	 * El hash del depósito que YA se envió. Llega por parámetro al volver del envío y se
+	 * rehidrata del disco al entrar de nuevo: la ventana entre difundir y que el proveedor lo
+	 * vea sobrevive a salir de la pantalla y a cerrar la app.
+	 */
+	const [sent, setSent] = useState<string | null>(sentTxid ?? null)
+	useEffect(() => {
+		let cancelled = false
+		readDepositSent(uuid).then(found => { if (!cancelled && found) { setSent(previous => previous ?? found.txid) } })
+		return () => { cancelled = true }
+	}, [uuid])
+
+	// En cuanto la orden avanza, la nota sobra: el estado real manda
+	useEffect(() => {
+		if (order && order.status !== 'awaiting_deposit') { clearDepositSent(uuid); setSent(null) }
+	}, [order, uuid])
+
+	const deposit = order ? depositViewFor({ status: order.status, sentTxid: sent }) : 'none'
 
 	const exactAmount = order && fromAsset ? depositAmountLabel(order, fromAsset.decimals) : order?.amount_in ?? ''
 	const deviation = order ? (order.deviation_bps ?? deviationBps(order)) : null
@@ -136,7 +156,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			{!!order && <Steps order={order} theme={theme} />}
 
 			{/* Lo que hay que hacer AHORA: el importe exacto y la dirección */}
-			{!!order && order.status === 'awaiting_deposit' && !!order.deposit_address && (
+			{!!order && deposit === 'send' && !!order.deposit_address && (
 				<View style={card}>
 					<Text style={[textStyles.h4, styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.exchange.depositTitle')}</Text>
 
@@ -155,6 +175,22 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
 					<Text style={[styles.warning, { color: theme.colors.warning }]}>
 						{t('crypto.wallet.exchange.depositWarning', { chain: fromAsset?.chainName ?? '' })}
+					</Text>
+				</View>
+			)}
+
+			{/* Ya enviado: ni dirección ni botón. Solo la prueba y la instrucción de no repetir */}
+			{!!order && deposit === 'sent' && (
+				<View style={card}>
+					<Text style={[textStyles.h4, styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.exchange.sentTitle')}</Text>
+					<CopyRow
+						theme={theme}
+						label={t('crypto.wallet.exchange.sentTx')}
+						value={shortAddress(sent ?? '', 10, 10)}
+						onCopy={() => copy(sent ?? '')}
+					/>
+					<Text style={[styles.warning, { color: theme.colors.warning }]}>
+						{t('crypto.wallet.exchange.sentHint', { provider: order.provider_label })}
 					</Text>
 				</View>
 			)}
@@ -207,10 +243,10 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			<View style={styles.spacer} />
 
 			<View style={styles.actions}>
-				{order?.status === 'awaiting_deposit' && !!order.deposit_address && (
+				{deposit === 'send' && !!order?.deposit_address && (
 					<QPButton title={t('crypto.wallet.exchange.sendNow')} onPress={openSend} />
 				)}
-				<QPButton title={t('crypto.wallet.exchange.done')} onPress={() => navigation.popToTop()} outlined={order?.status === 'awaiting_deposit'} />
+				<QPButton title={t('crypto.wallet.exchange.done')} onPress={() => navigation.popToTop()} outlined={deposit === 'send'} />
 			</View>
 		</ScrollView>
 	)

@@ -129,6 +129,22 @@ export const DEVIATION_NOTABLE_BPS = 300
 
 export const isDeviationNotable = (bps: number | null): boolean => bps !== null && Math.abs(bps) >= DEVIATION_NOTABLE_BPS
 
+/**
+ * Qué enseñar en el bloque del depósito. PURO, porque la diferencia entre estos dos estados
+ * es lo que separa un envío de dos.
+ *
+ *   `send`     hay que enviar: dirección, importe exacto y botón.
+ *   `sent`     ya se envió y el proveedor todavía no lo ha visto. NADA de dirección ni de
+ *              botón: el proveedor espera UN importe, y el segundo envío no se cambia.
+ *   `none`     la orden ya avanzó; el depósito dejó de ser el tema.
+ */
+export type DepositView = 'send' | 'sent' | 'none'
+
+export const depositViewFor = ({ status, sentTxid }: { status: ExchangeStatus, sentTxid?: string | null }): DepositView => {
+	if (status !== 'awaiting_deposit') { return 'none' }
+	return sentTxid ? 'sent' : 'send'
+}
+
 // ── Importe a enviar ───────────────────────────────────────────────────────
 
 /**

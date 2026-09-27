@@ -146,7 +146,8 @@ export type RootStackParamList = {
 	WalletSwap: { direction?: 'out' | 'in', assetId?: string } | undefined
 	WalletSwapStatus: { uuid: string }
 	/** Seguimiento de un intercambio cripto↔cripto. */
-	WalletExchangeStatus: { uuid: string }
+	/** `sentTxid`: el depósito acaba de difundirse; el seguimiento no debe volver a pedirlo. */
+	WalletExchangeStatus: { uuid: string, sentTxid?: string }
 	WalletExchanges: undefined
 	/** Recursos TRON y alquiler de energía; los params preseleccionan la compra. */
 	WalletEnergy: { address?: string, duration?: EnergyDuration } | undefined
