@@ -13,7 +13,15 @@ const asset = (over = {}) => ({
 })
 const sol = () => asset({ id: 'solana:native', symbol: 'SOL', chainName: 'Solana', logoTick: 'SOL', networkTick: 'SOL', amountLabel: '0.4', decimals: 9 })
 
-const quote = (over = {}) => ({ provider: 'changenow', amountIn: 100, amountOut: 0.7987, depositFee: 5.54, rate: 0.008, etaMinutes: 12, ...over })
+// La forma REAL que sirve qpweb (`normalizeQuote`). El fixture anterior inventaba `rate` y
+// `etaMinutes`, campos que el backend no manda nunca — y por eso la línea de tasa llevaba
+// vacía desde el primer día sin que ningún test lo notara
+const quote = (over = {}) => ({
+	provider: 'changenow', amountIn: 100, amountOut: 0.7987,
+	depositFee: 5.54, withdrawalFee: 0.0016,
+	speedForecast: '10-60', providerWarning: null,
+	...over,
+})
 
 const base = {
 	t, from: asset(), to: sol(), amountText: '100',
@@ -22,6 +30,36 @@ const base = {
 	minAmount: 12.6, cheaper: null, showBalance: true,
 	quoting: false, busy: false, loading: false,
 }
+
+describe('la tasa y lo que dice el proveedor', () => {
+
+	it('la tasa se deriva de los dos importes: el backend no manda ninguna', () => {
+		const v = buildExchangeView({ ...base, quote: quote({ amountIn: 100, amountOut: 0.7987 }) })
+		expect(v.rate).toBe('1 USDT ≈ 0.007987 SOL')
+	})
+
+	it('sin importe de entrada no se inventa una tasa', () => {
+		expect(buildExchangeView({ ...base, quote: quote({ amountIn: 0 }) }).rate).toBe('')
+		expect(buildExchangeView({ ...base, quote: null }).rate).toBe('')
+	})
+
+	it('la franja de tiempo va tal cual, que es un rango y no un número', () => {
+		const v = buildExchangeView({ ...base, quote: quote({ speedForecast: '10-60' }) })
+		expect(v.rows.find(r => r.key === 'eta').value).toBe('~10-60 min')
+		expect(buildExchangeView({ ...base, quote: quote({ speedForecast: null }) }).rows.find(r => r.key === 'eta')).toBeUndefined()
+	})
+
+	it('el aviso del propio proveedor se enseña, no se tira', () => {
+		const v = buildExchangeView({ ...base, quote: quote({ providerWarning: 'La red TRON está congestionada' }) })
+		const notice = v.notices.find(n => n.key === 'providerWarning')
+		expect(notice.text).toBe('La red TRON está congestionada')
+		expect(notice.tone).toBe('warning')
+	})
+
+	it('sin aviso del proveedor no se añade una fila vacía', () => {
+		expect(buildExchangeView(base).notices.find(n => n.key === 'providerWarning')).toBeUndefined()
+	})
+})
 
 describe('estado del botón', () => {
 

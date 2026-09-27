@@ -124,7 +124,7 @@ const detailRows = ({ t, from, to, quote }: Pick<ExchangeViewInput, 't' | 'from'
 		{ key: 'fee', label: t(`${KEY}networkFee`), value: `${trim(quote.depositFee)} ${from?.symbol ?? ''}`.trim(), highlight: true },
 		{ key: 'provider', label: t(`${KEY}providerLabel`), value: quote.provider },
 	]
-	if (quote.etaMinutes) { rows.push({ key: 'eta', label: t('crypto.wallet.swap.details.eta'), value: `~${quote.etaMinutes} min` }) }
+	if (quote.speedForecast) { rows.push({ key: 'eta', label: t('crypto.wallet.swap.details.eta'), value: `~${quote.speedForecast} min` }) }
 	if (to) { rows.push({ key: 'network', label: t('crypto.wallet.swap.details.network'), value: to.chainName }) }
 	return rows
 }
@@ -134,12 +134,18 @@ const detailRows = ({ t, from, to, quote }: Pick<ExchangeViewInput, 't' | 'from'
  * que en importes pequeños se lleva un porcentaje brutal y el usuario no tiene forma de
  * saberlo mirando la tasa.
  */
-const noticesFor = ({ t, from, advice, cheaper, unsupportedReason }: Pick<ExchangeViewInput, 't' | 'from' | 'advice' | 'cheaper' | 'unsupportedReason'>): SwapNotice[] => {
+const noticesFor = ({ t, from, quote, advice, cheaper, unsupportedReason }: Pick<ExchangeViewInput, 't' | 'from' | 'quote' | 'advice' | 'cheaper' | 'unsupportedReason'>): SwapNotice[] => {
 	const notices: SwapNotice[] = []
 
 	if (unsupportedReason) {
 		notices.push({ key: 'unsupported', icon: 'triangle-exclamation', tone: 'warning', text: unsupportedReason })
 		return notices
+	}
+
+	// Lo que el proveedor tenga que decir de ESTE par (red congestionada, activo en
+	// mantenimiento…). Llegaba en la cotización y se tiraba a la basura
+	if (quote?.providerWarning) {
+		notices.push({ key: 'providerWarning', icon: 'triangle-exclamation', tone: 'warning', text: quote.providerWarning })
 	}
 
 	if (advice && advice.level !== 'ok') {
@@ -191,7 +197,11 @@ export const buildExchangeView = (input: ExchangeViewInput): ExchangeView => {
 		receiveAmount,
 		// Tasa flotante: lo que se enseña es una estimación y se dice así, no se disimula
 		receiveHint: quote ? t(`${KEY}estimated`) : '',
-		rate: quote?.rate ? `1 ${from?.symbol ?? ''} ≈ ${trim(quote.rate, 6)} ${to?.symbol ?? ''}` : '',
+		// La tasa se DERIVA de los dos importes en vez de leerse de un campo: el proveedor no
+		// manda ninguno, y el que este tipo declaraba nunca existió — la línea salía vacía
+		// siempre. Dividir lo que llega entre lo que sale es además la tasa efectiva, ya con
+		// la comisión dentro, que es la que el usuario está comparando
+		rate: quote && quote.amountIn > 0 ? `1 ${from?.symbol ?? ''} ≈ ${trim(quote.amountOut / quote.amountIn, 6)} ${to?.symbol ?? ''}` : '',
 		rows: detailRows(input),
 		notices: noticesFor(input),
 		ctaLabel,

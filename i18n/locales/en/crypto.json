@@ -445,6 +445,7 @@
 			"youSend": "You send",
 			"youReceive": "You receive",
 			"estimated": "estimated",
+			"quoteMissing": "There is no valid quote yet. Wait a moment and try again.",
 			"rate": "Rate",
 			"networkFee": "Source network fee",
 			"minAmount": "Minimum {{amount}} {{symbol}}",

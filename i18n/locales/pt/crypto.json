@@ -445,6 +445,7 @@
 			"youSend": "Você envia",
 			"youReceive": "Você recebe",
 			"estimated": "estimado",
+			"quoteMissing": "Ainda não há uma cotação válida. Aguarde um momento e tente novamente.",
 			"rate": "Taxa",
 			"networkFee": "Taxa de rede de origem",
 			"minAmount": "Mínimo {{amount}} {{symbol}}",

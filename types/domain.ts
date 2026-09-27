@@ -630,9 +630,15 @@ export type ExchangeQuote = {
 	amountOut: number
 	/** Comisión FIJA de la red de origen. No es proporcional: depende solo de la cadena. */
 	depositFee: number
-	rate: number | null
-	/** Minutos que el proveedor estima para el cambio entero. */
-	etaMinutes: number | null
+	/** En la moneda de DESTINO. */
+	withdrawalFee: number
+	/**
+	 * Franja de minutos tal y como la da el proveedor ("10-60"), no un número: es un rango
+	 * y redondearlo a uno solo sería inventar precisión.
+	 */
+	speedForecast: string | null
+	/** Aviso del propio proveedor sobre este par. Se enseña tal cual. */
+	providerWarning: string | null
 }
 
 /** Cuánto se lleva la comisión de depósito, y qué hacer al respecto. */

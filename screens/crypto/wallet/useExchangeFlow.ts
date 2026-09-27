@@ -7,6 +7,8 @@
  * está aquí — es un envío normal de la wallet, y de eso se encarga `WalletSendConfirm`.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner-native'
+import i18n from '../../../i18n'
 
 // Wallet
 import { addressForKind } from '../../../wallet/assets'
@@ -53,13 +55,13 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 	}), [amountText, from, minAmount])
 
 	// Solo se cotiza lo que puede llegar a ejecutarse: teclear no debe gastar el bucket
-	const debounced = useDebounced(check.ok ? check.amount : 0, QUOTE_DEBOUNCE_MS)
+	const quotedAmount = useDebounced(check.ok ? check.amount : 0, QUOTE_DEBOUNCE_MS)
 	const quoteQuery = useExchangeQuoteQuery({
 		fromAssetId: from?.id ?? null,
 		toAssetId: to?.id ?? null,
-		amount: debounced,
+		amount: quotedAmount,
 		balances,
-		enabled: !!from && !!to && !unsupportedReason && debounced > 0,
+		enabled: !!from && !!to && !unsupportedReason && quotedAmount > 0,
 	})
 
 	// El mínimo viaja tanto en el éxito como en el 400 de "por debajo del mínimo": de ahí se
@@ -70,24 +72,42 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 		if (learnedMin && learnedMin !== minAmount) { setMinAmount(learnedMin) }
 	}, [learnedMin, minAmount])
 
+	/**
+	 * Abre la operación. Ningún camino de salida es mudo: un botón de confirmar que no hace
+	 * nada y no dice nada es indistinguible de la app colgada, y aquí hay cuatro motivos
+	 * distintos por los que no se puede seguir.
+	 */
 	const confirm = useCallback(async () => {
-		if (!from || !to || !payload?.quote_id || !check.ok || !addresses) { return }
+		if (!from || !to || !check.ok) { return }
 
-		const payoutAddress = addressForKind(addresses, to.kind)
-		const refundAddress = addressForKind(addresses, from.kind)
-		// Sin dirección de devolución no se abre nada: es adonde vuelve el dinero si falla
-		if (!payoutAddress || !refundAddress) { return }
+		// Sin cotización congelada no hay nada que confirmar: es la que fija el precio y el
+		// importe que el proveedor va a esperar
+		if (!payload?.quote_id) {
+			toast.error(i18n.t('crypto.wallet.exchange.quoteMissing'))
+			return
+		}
+
+		const payoutAddress = addresses ? addressForKind(addresses, to.kind) : null
+		const refundAddress = addresses ? addressForKind(addresses, from.kind) : null
+		// La de devolución es tan obligatoria como la de destino: es adonde vuelve si falla
+		if (!payoutAddress || !refundAddress) {
+			toast.error(i18n.t('crypto.wallet.swap.notRegistered'))
+			return
+		}
 
 		const result = await open({
 			quoteId: payload.quote_id,
 			fromAssetId: from.id,
 			toAssetId: to.id,
-			amount: check.amount,
+			// El importe QUE SE COTIZÓ, no el que hay ahora en el campo. El backend exige que
+			// coincida con la cotización congelada, y entre teclear y confirmar cabe el
+			// debounce: mandar lo tecleado rechazaba la operación por descuadre
+			amount: quotedAmount,
 			payoutAddress,
 			refundAddress,
 		})
 		if (result.ok) { setReview(false) }
-	}, [from, to, payload?.quote_id, check, addresses, open])
+	}, [from, to, payload?.quote_id, check.ok, quotedAmount, addresses, open])
 
 	return {
 		check,
