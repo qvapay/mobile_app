@@ -18,10 +18,22 @@ export class ApiError extends Error {
 	/** Código HTTP, o `undefined` cuando no hubo respuesta. */
 	status?: number
 
-	constructor(message: string, status?: number) {
+	/**
+	 * El cuerpo del error del backend, tal cual (`code`, `reason`, `min_amount`…).
+	 *
+	 * No es decoración: hay 400 que son INFORMACIÓN, no fallos. El "por debajo del mínimo"
+	 * del intercambio trae en `min_amount` el mínimo real del par, que es justo lo que la
+	 * pantalla necesita para decir cuánto hace falta. Perderlo aquí dejaba a la pantalla
+	 * pidiendo la misma cotización imposible una y otra vez, sin enseñar nunca el importe a
+	 * recibir ni el motivo.
+	 */
+	details?: unknown
+
+	constructor(message: string, status?: number, details?: unknown) {
 		super(message)
 		this.name = 'ApiError'
 		this.status = status
+		this.details = details
 	}
 }
 
@@ -38,7 +50,7 @@ export class ApiError extends Error {
 export const unwrap = <T>(result: ApiResult<T> | null | undefined): T | null => {
 
 	if (!result?.success) {
-		throw new ApiError(result?.error || i18n.t('errors.unexpected'), result?.status)
+		throw new ApiError(result?.error || i18n.t('errors.unexpected'), result?.status, result?.details)
 	}
 
 	// React Query trata `undefined` como un fallo de la query ("Query data cannot

@@ -43,10 +43,22 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 	const [review, setReview] = useState(false)
 	const { open, busy, error, clearError } = useExchangeOrder({ onOpened })
 
+	/**
+	 * El mínimo es DEL PAR, no del usuario, y varía muchísimo entre pares: USDT en TRON pide
+	 * 12,36 y USDC en Base 0,455 — veintisiete veces menos. Guardarlo en una sola variable
+	 * hacía que el de un par bloqueara al siguiente: quien empezaba por USDT-TRON (el primer
+	 * activo de la wallet) arrastraba 12,36 a todo lo demás, y como el mínimo apaga la query,
+	 * el efecto no era un aviso sino que el importe a recibir dejaba de cargar.
+	 *
+	 * Por eso va indexado por par, y volver a uno ya visto no cuesta otra ida al servidor.
+	 */
+	const pairKey = `${from?.id ?? ''}|${to?.id ?? ''}`
+	const [minByPair, setMinByPair] = useState<Record<string, number>>({})
+	const minAmount = minByPair[pairKey] ?? null
+
 	// El importe tecleado se valida contra el saldo en unidades mínimas; el mínimo del par lo
 	// aporta la cotización anterior, así que la primera vuelta valida sin él y la segunda ya
 	// con el que el proveedor haya dicho.
-	const [minAmount, setMinAmount] = useState<number | null>(null)
 	const check = useMemo(() => checkAmount({
 		input: amountText,
 		balance: from ? safeBigInt(from.amount, from.decimals) : 0n,
@@ -69,8 +81,14 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 	const payload = quoteQuery.data ?? null
 	const learnedMin = payload?.min_amount ?? minAmountFromError(quoteQuery.error)
 	useEffect(() => {
-		if (learnedMin && learnedMin !== minAmount) { setMinAmount(learnedMin) }
-	}, [learnedMin, minAmount])
+		// `placeholderData` sirve la cotización del par ANTERIOR mientras llega la nueva, para
+		// no vaciar la pantalla al cambiar de activo. Aprender de ella guardaría el mínimo de
+		// un par bajo la clave de otro, que es el mismo veneno con otro nombre
+		if (quoteQuery.isPlaceholderData) { return }
+		if (learnedMin && minByPair[pairKey] !== learnedMin) {
+			setMinByPair(previous => ({ ...previous, [pairKey]: learnedMin }))
+		}
+	}, [learnedMin, pairKey, minByPair, quoteQuery.isPlaceholderData])
 
 	/**
 	 * Abre la operación. Ningún camino de salida es mudo: un botón de confirmar que no hace
