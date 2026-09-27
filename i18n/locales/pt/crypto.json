@@ -289,6 +289,7 @@
 			},
 			"gasless": {
 				"free": "Grátis · a QvaPay paga",
+				"lastFree": "A QvaPay paga este envio: é o seu último grátis de hoje.",
 				"remaining_one": "Resta {{count}} envio grátis hoje",
 				"remaining_other": "Restam {{count}} envios grátis hoje",
 				"exhausted": "Você já usou seu envio grátis de hoje. Renova às {{time}}.",

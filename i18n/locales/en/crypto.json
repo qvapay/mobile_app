@@ -289,6 +289,7 @@
 			},
 			"gasless": {
 				"free": "Free · QvaPay pays it",
+				"lastFree": "QvaPay covers this send — it is your last free one today.",
 				"remaining_one": "You have {{count}} free send left today",
 				"remaining_other": "You have {{count}} free sends left today",
 				"exhausted": "You've used your free send for today. It renews at {{time}}.",

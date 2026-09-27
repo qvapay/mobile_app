@@ -28,6 +28,7 @@ import type { FeeTier, PreparedSend } from './walletSendActions'
 import { parseUnitsSafe, sendFeeState } from './sendConfirmModel'
 import useWalletSendTx from './useWalletSendTx'
 import useGaslessSend from './useGaslessSend'
+import { sponsoredNotice } from './gaslessModel'
 import type { GaslessState } from './useGaslessSend'
 import type { SendPhase } from './useWalletSendTx'
 import { formatUsd, shortAddress } from './walletFormat'
@@ -359,13 +360,16 @@ const GaslessNotice = ({ state, sponsored, theme, onGold }: { state: GaslessStat
 		return <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.gasless.pending')} />
 	}
 
-	if (sponsored && state.remainingToday !== null) {
+	if (sponsored) {
+		const notice = sponsoredNotice(state.remainingToday)
 		return (
 			<Notice
 				theme={theme}
 				icon="circle-info"
 				color={theme.colors.successText}
-				text={t('crypto.wallet.send.gasless.remaining', { count: state.remainingToday })}
+				text={notice === 'remaining'
+					? t('crypto.wallet.send.gasless.remaining', { count: state.remainingToday })
+					: t('crypto.wallet.send.gasless.lastFree')}
 			/>
 		)
 	}
