@@ -2,9 +2,9 @@
  * @jest-environment node
  */
 const {
-	ALLOWS_SEND_MAX,
 	checkAmount,
 	depositAmountLabel,
+	depositViewFor,
 	depositAmountRaw,
 	deviationBps,
 	isDeviationNotable,
@@ -58,10 +58,27 @@ describe('validación del importe', () => {
 		expect(() => checkAmount({ ...base, input: '1.' })).not.toThrow()
 		expect(() => checkAmount({ ...base, input: '.' })).not.toThrow()
 	})
+})
 
-	it('en este flujo NO hay enviar todo', () => {
-		// El proveedor espera EXACTAMENTE lo cotizado; de más o de menos dispara devolución
-		expect(ALLOWS_SEND_MAX).toBe(false)
+describe('qué enseñar en el bloque del depósito', () => {
+
+	it('sin enviar todavía: dirección, importe y botón', () => {
+		expect(depositViewFor({ status: 'awaiting_deposit', sentTxid: null })).toBe('send')
+		expect(depositViewFor({ status: 'awaiting_deposit' })).toBe('send')
+	})
+
+	it('ya enviado y el proveedor sin verlo: NI dirección NI botón', () => {
+		// El proveedor tardó minuto y medio en el caso real. En esa ventana la orden sigue en
+		// `awaiting_deposit`, y volver a ofrecer el envío invita a un segundo depósito que no
+		// se cambia: se queda esperando una devolución manual
+		expect(depositViewFor({ status: 'awaiting_deposit', sentTxid: '0xdead' })).toBe('sent')
+	})
+
+	it('en cuanto la orden avanza, el depósito deja de ser el tema', () => {
+		for (const status of ['confirming', 'exchanging', 'sending', 'completed', 'refunded', 'failed', 'expired', 'needs_review']) {
+			expect(depositViewFor({ status, sentTxid: null })).toBe('none')
+			expect(depositViewFor({ status, sentTxid: '0xdead' })).toBe('none')
+		}
 	})
 })
 

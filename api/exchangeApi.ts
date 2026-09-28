@@ -73,8 +73,8 @@ export const exchangeApi = {
 	 */
 	catalog: async (): Promise<ApiResult<ExchangeCatalogPayload>> => {
 		try {
-			const response = await apiClient.get<ExchangeCatalogPayload>('/wallet/exchange/quote', { silent: true })
-			return { success: true, data: response.data, status: response.status }
+			const response = await apiClient.get<{ data: ExchangeCatalogPayload }>('/wallet/exchange/quote', { silent: true })
+			return { success: true, data: response.data.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.catalogFailed') }
 	},
 

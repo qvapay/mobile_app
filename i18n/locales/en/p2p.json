@@ -71,7 +71,8 @@
 			"detailsTitle": "Additional details:",
 			"advanced": "Advanced options",
 			"privateOffer": "Private offer",
-			"customMessage": "Custom message"
+			"customMessage": "Custom message",
+			"max": "MAX"
 		},
 		"toasts": {
 			"incompleteTitle": "Missing information",

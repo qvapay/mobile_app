@@ -37,6 +37,17 @@ export const interpretSubmit = (outcome: GaslessSubmitResult): SubmitAction => {
  */
 export const consumesGrant = (outcome: GaslessSubmitResult): boolean => outcome.status !== 'authorized'
 
+/**
+ * Qué aviso mostrar cuando el envío VA patrocinado.
+ *
+ * `remaining_today` del backend es lo que queda DESPUÉS de gastar este permiso, así que con
+ * la cuota en 1/día siempre llega como 0. Pintarlo tal cual daba "Te quedan 0 envíos gratis
+ * hoy" justo encima de un envío que sí era gratis: se lee como una negativa y hace dudar de
+ * si el patrocinio se aplicó.
+ */
+export const sponsoredNotice = (remainingToday: number | null): 'remaining' | 'lastFree' =>
+	remainingToday !== null && remainingToday > 0 ? 'remaining' : 'lastFree'
+
 /** Un permiso caducado no se puede canjear: hay que pedir otro. */
 export const isGrantUsable = (expiresAt: string, now: number = Date.now()): boolean => {
 	const expiry = Date.parse(expiresAt)

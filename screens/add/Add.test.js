@@ -27,8 +27,9 @@ jest.mock('../../ui/QPKeyboardView', () => {
 	return ({ children, actions }) => React.createElement(View, null, children, actions)
 })
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
-jest.mock('../../ui/AmountInput', () => 'AmountInput')
-jest.mock('../../ui/QPCoinRow', () => 'QPCoinRow')
+jest.mock('../../ui/QPAmountCard', () => 'QPAmountCard')
+// QPFlipButton usa reanimated, que este entorno node no trae
+jest.mock('../../ui/particles/QPFlipButton', () => { const C = 'QPFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
 jest.mock('../../ui/QPCoinPicker', () => 'QPCoinPicker')
 jest.mock('../../ui/WalletPickerSheet', () => 'WalletPickerSheet')
 jest.mock('./DepositDetailsModal', () => 'DepositDetailsModal')
@@ -66,14 +67,14 @@ let sseCallback = null
 let trees = []
 let clients = []
 
-const renderAdd = async () => {
+const renderAdd = async (renderParams) => {
 	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 	clients.push(client)
 	let tree
 	await act(async () => {
 		tree = create(
 			<QueryClientProvider client={client}>
-				<Add navigation={{ navigate: jest.fn() }} route={{ params: undefined }} />
+				<Add navigation={{ navigate: jest.fn() }} route={{ params: renderParams }} />
 			</QueryClientProvider>
 		)
 	})
@@ -83,7 +84,7 @@ const renderAdd = async () => {
 
 const pickCoinAndAmount = async (tree, coin = USDT, amount = '50') => {
 	await act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(coin) })
-	await act(async () => { tree.root.findByType('AmountInput').props.onAmountChange(amount) })
+	await act(async () => { tree.root.findAllByType('QPAmountCard')[0].props.onChangeAmount(amount) })
 }
 
 const pressGenerate = (tree) => act(async () => { tree.root.findByType('QPButton').props.onPress() })
@@ -120,6 +121,16 @@ test('el catálogo llega de la caché compartida, sin pedirlo al montar', async 
 })
 
 describe('topup validations', () => {
+	test('la moneda Y el importe del param llegan puestos', async () => {
+		// Llegando desde el intercambio: antes solo viajaba la moneda y el campo quedaba
+		// vacío, así que el flujo "solo cambiaba de pantalla".
+		// OJO al catálogo: `useCoins` devuelve la lista PLANA, no la agrupada de los
+		// fixtures viejos, y es sobre la plana sobre la que se busca el tick.
+		mockCoinCatalog = [USDT]
+		const tree = await renderAdd({ preselectedCoin: 'USDT', amount: '25' })
+		expect(tree.root.findAllByType('QPAmountCard')[0].props.amount).toBe('25')
+	})
+
 	test('rejects a non-positive amount', async () => {
 		const tree = await renderAdd()
 		await pickCoinAndAmount(tree, USDT, '0')

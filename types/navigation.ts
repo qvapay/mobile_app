@@ -93,10 +93,13 @@ export type RootStackParamList = {
 	Transaction: { transaction?: Transaction, uuid?: string }
 
 	// ── Depósito / retiro ─────────────────────────────────────────────────
-	/** `preselectedCoin`: tick del catálogo, para llegar con la moneda ya elegida. */
-	Add: { preselectedCoin?: string } | undefined
+	/**
+	 * `preselectedCoin`: tick del catálogo, para llegar con la moneda ya elegida.
+	 * `amount`: importe EN USD, para llegar con el cálculo hecho (lo manda el intercambio).
+	 */
+	Add: { preselectedCoin?: string, amount?: string } | undefined
 	/** `prefillAddress`: destino ya escrito (retiro hacia la propia wallet self-custody, destino 'personal'). */
-	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string } | undefined
+	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string, amount?: string } | undefined
 
 	// ── P2P ───────────────────────────────────────────────────────────────
 	P2POffer: { p2p_uuid: string }
@@ -143,7 +146,8 @@ export type RootStackParamList = {
 	WalletSwap: { direction?: 'out' | 'in', assetId?: string } | undefined
 	WalletSwapStatus: { uuid: string }
 	/** Seguimiento de un intercambio cripto↔cripto. */
-	WalletExchangeStatus: { uuid: string }
+	/** `sentTxid`: el depósito acaba de difundirse; el seguimiento no debe volver a pedirlo. */
+	WalletExchangeStatus: { uuid: string, sentTxid?: string }
 	WalletExchanges: undefined
 	/** Recursos TRON y alquiler de energía; los params preseleccionan la compra. */
 	WalletEnergy: { address?: string, duration?: EnergyDuration } | undefined

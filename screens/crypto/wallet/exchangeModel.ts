@@ -49,16 +49,6 @@ export const checkAmount = ({ input, balance, decimals, minAmount }: {
 	return { ok: true, amount }
 }
 
-/**
- * En este flujo NO hay "enviar todo".
- *
- * El proveedor cotiza para una cantidad concreta y espera EXACTAMENTE esa en la dirección de
- * depósito; enviar de más o de menos dispara recotización o devolución. Y con el nativo hay
- * además que dejar la comisión de red, que "todo" se comería. Se exporta como constante para
- * que la pantalla lo lea de un sitio y no como un `false` suelto.
- */
-export const ALLOWS_SEND_MAX = false
-
 // ── Lectura del estado ─────────────────────────────────────────────────────
 
 /** Fases visibles del seguimiento. El usuario no necesita los nueve estados del backend. */
@@ -138,6 +128,22 @@ const toNumber = (value: string | number | null | undefined): number | null => {
 export const DEVIATION_NOTABLE_BPS = 300
 
 export const isDeviationNotable = (bps: number | null): boolean => bps !== null && Math.abs(bps) >= DEVIATION_NOTABLE_BPS
+
+/**
+ * Qué enseñar en el bloque del depósito. PURO, porque la diferencia entre estos dos estados
+ * es lo que separa un envío de dos.
+ *
+ *   `send`     hay que enviar: dirección, importe exacto y botón.
+ *   `sent`     ya se envió y el proveedor todavía no lo ha visto. NADA de dirección ni de
+ *              botón: el proveedor espera UN importe, y el segundo envío no se cambia.
+ *   `none`     la orden ya avanzó; el depósito dejó de ser el tema.
+ */
+export type DepositView = 'send' | 'sent' | 'none'
+
+export const depositViewFor = ({ status, sentTxid }: { status: ExchangeStatus, sentTxid?: string | null }): DepositView => {
+	if (status !== 'awaiting_deposit') { return 'none' }
+	return sentTxid ? 'sent' : 'send'
+}
 
 // ── Importe a enviar ───────────────────────────────────────────────────────
 

@@ -15,7 +15,7 @@ import type { AssetView } from '../../../wallet/assets'
 import { formatUnits, parseUnits } from '../../../wallet/chains/units'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { usePriceMap, useWalletAssets } from './walletQueries'
-import { canSendAsset, estimateNativeReserve, isValidAddressFor } from './walletSendActions'
+import { canSendAsset, estimateNativeReserve, isValidAddressFor, maxSendableUnits, TRX_MAX_RESERVE_SUN } from './walletSendActions'
 import { formatUsd } from './walletFormat'
 
 // Settings
@@ -32,14 +32,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletSend'>
-
-/**
- * Reserva al pulsar MAX en TRX: el ancho de banda (≈0.35 TRX si no queda
- * gratis) y la activación de una cuenta nueva (1 TRX). Un MAX que deja la
- * cuenta sin gas para la propia tx es el error más común de las wallets.
- * En EVM la reserva se pide al nodo (`estimateNativeReserve`).
- */
-const TRX_MAX_RESERVE_SUN = 1_400_000n
 
 /**
  * Enviar desde la wallet self-custody, paso 1: activo, destino y cantidad.
@@ -114,12 +106,12 @@ const WalletSend = ({ navigation, route }: Props) => {
 
 	const setMax = useCallback(() => {
 		if (!asset) return
-		let max = balanceUnits
-		// Bitcoin: MAX = todo el saldo, la fee se descuenta del envío ("enviar todo")
-		if (asset.contract === null && asset.kind !== 'btc') {
-			const reserve = asset.kind === 'tron' ? TRX_MAX_RESERVE_SUN : (nativeReserve ?? 0n)
-			max = max > reserve ? max - reserve : 0n
-		}
+		const max = maxSendableUnits({
+			balance: balanceUnits,
+			isNative: asset.contract === null,
+			kind: asset.kind,
+			reserve: asset.kind === 'tron' ? TRX_MAX_RESERVE_SUN : (nativeReserve ?? 0n),
+		})
 		setAmount(formatUnits(max, asset.decimals))
 	}, [asset, balanceUnits, nativeReserve])
 

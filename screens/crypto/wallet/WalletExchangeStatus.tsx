@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import { useTranslation } from 'react-i18next'
@@ -13,15 +13,19 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 // Wallet
 import { explorerTxUrl } from '../../../wallet/assets'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
+import type { AssetView } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { shortAddress } from './walletFormat'
+import { timeAgo } from '../../../helpers'
 import { useExchangeOrderQuery } from './exchangeQueries'
-import { depositAmountLabel, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
+import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
+import { clearDepositSent, readDepositSent } from './exchangeDeposit'
 import type { ExchangePhase } from './exchangeModel'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
+import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -52,7 +56,7 @@ const ICON: Record<ExchangePhase, { name: 'arrow-up-from-bracket' | 'arrows-rota
  */
 const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
-	const { uuid } = route.params
+	const { uuid, sentTxid } = route.params
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
@@ -84,7 +88,28 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
 	const phase = order ? phaseOf(order.status) : 'working'
 	const icon = ICON[phase]
-	const tone = icon.tone === 'success' ? theme.colors.success : icon.tone === 'warning' ? theme.colors.warning : theme.colors.primary
+	// `successText` y no `success`: el verde menta es un color de RELLENO y sobre el fondo se
+	// lee mal como tinta. Aquí tiñe un icono y un texto, no un badge
+	const tone = icon.tone === 'success' ? theme.colors.successText : icon.tone === 'warning' ? theme.colors.warning : theme.colors.primary
+
+	/**
+	 * El hash del depósito que YA se envió. Llega por parámetro al volver del envío y se
+	 * rehidrata del disco al entrar de nuevo: la ventana entre difundir y que el proveedor lo
+	 * vea sobrevive a salir de la pantalla y a cerrar la app.
+	 */
+	const [sent, setSent] = useState<string | null>(sentTxid ?? null)
+	useEffect(() => {
+		let cancelled = false
+		readDepositSent(uuid).then(found => { if (!cancelled && found) { setSent(previous => previous ?? found.txid) } })
+		return () => { cancelled = true }
+	}, [uuid])
+
+	// En cuanto la orden avanza, la nota sobra: el estado real manda
+	useEffect(() => {
+		if (order && order.status !== 'awaiting_deposit') { clearDepositSent(uuid); setSent(null) }
+	}, [order, uuid])
+
+	const deposit = order ? depositViewFor({ status: order.status, sentTxid: sent }) : 'none'
 
 	const exactAmount = order && fromAsset ? depositAmountLabel(order, fromAsset.decimals) : order?.amount_in ?? ''
 	const deviation = order ? (order.deviation_bps ?? deviationBps(order)) : null
@@ -118,10 +143,20 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 				)}
 			</View>
 
+			{/* El par, lo primero que se mira: qué sale y qué entra, con sus iconos. Es lo que
+			    SafePal y Trust ponen arriba del todo en su seguimiento. */}
+			{!!order && (
+				<View style={[card, styles.pair]}>
+					<PairSide asset={fromAsset} amount={exactAmount} theme={theme} />
+					<FontAwesome6 name="arrow-right" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
+					<PairSide asset={toAsset} amount={order.actual_out ?? order.expected_out ?? '—'} estimated={!order.actual_out} theme={theme} />
+				</View>
+			)}
+
 			{!!order && <Steps order={order} theme={theme} />}
 
 			{/* Lo que hay que hacer AHORA: el importe exacto y la dirección */}
-			{!!order && order.status === 'awaiting_deposit' && !!order.deposit_address && (
+			{!!order && deposit === 'send' && !!order.deposit_address && (
 				<View style={card}>
 					<Text style={[textStyles.h4, styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.exchange.depositTitle')}</Text>
 
@@ -144,16 +179,33 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 				</View>
 			)}
 
+			{/* Ya enviado: ni dirección ni botón. Solo la prueba y la instrucción de no repetir */}
+			{!!order && deposit === 'sent' && (
+				<View style={card}>
+					<Text style={[textStyles.h4, styles.cardTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.exchange.sentTitle')}</Text>
+					<CopyRow
+						theme={theme}
+						label={t('crypto.wallet.exchange.sentTx')}
+						value={shortAddress(sent ?? '', 10, 10)}
+						onCopy={() => copy(sent ?? '')}
+					/>
+					<Text style={[styles.warning, { color: theme.colors.warning }]}>
+						{t('crypto.wallet.exchange.sentHint', { provider: order.provider_label })}
+					</Text>
+				</View>
+			)}
+
 			{!!order && (
 				<View style={card}>
-					<Row theme={theme} label={t('crypto.wallet.exchange.youSend')} value={`${exactAmount} ${fromAsset?.symbol ?? ''}`.trim()} />
-					<Row
-						theme={theme}
-						label={t('crypto.wallet.exchange.youReceive')}
-						value={`${order.actual_out ?? order.expected_out ?? '—'} ${toAsset?.symbol ?? ''}`.trim()}
-						hint={order.actual_out ? undefined : t('crypto.wallet.exchange.estimated')}
-					/>
 					<Row theme={theme} label={t('crypto.wallet.exchange.providerLabel')} value={order.provider_label} />
+					{!!order.provider_order_id && (
+						<CopyRow
+							theme={theme}
+							label={t('crypto.wallet.exchange.orderId')}
+							value={order.provider_order_id}
+							onCopy={() => copy(order.provider_order_id!)}
+						/>
+					)}
 					<Row theme={theme} label={t('crypto.wallet.exchange.refundLabel')} value={shortAddress(order.refund_address)} />
 				</View>
 			)}
@@ -162,6 +214,14 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			{isDeviationNotable(deviation) && (
 				<Text style={[styles.notice, { color: theme.colors.secondaryText }]}>
 					{t(deviation! < 0 ? 'crypto.wallet.exchange.deviationLess' : 'crypto.wallet.exchange.deviationMore', { percent: Math.abs(deviation! / 100).toFixed(1) })}
+				</Text>
+			)}
+
+			{/* Cuánto lleva y cuánto suele tardar: una espera con referencia se hace corta,
+			    y sin ella cualquier minuto parece que algo va mal */}
+			{!!order && isLive(order.status) && (
+				<Text style={[styles.notice, { color: theme.colors.tertiaryText }]}>
+					{t('crypto.wallet.exchange.started', { time: timeAgo(order.created_at) })} · {t('crypto.wallet.exchange.typicalEta')}
 				</Text>
 			)}
 
@@ -183,10 +243,10 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			<View style={styles.spacer} />
 
 			<View style={styles.actions}>
-				{order?.status === 'awaiting_deposit' && !!order.deposit_address && (
+				{deposit === 'send' && !!order?.deposit_address && (
 					<QPButton title={t('crypto.wallet.exchange.sendNow')} onPress={openSend} />
 				)}
-				<QPButton title={t('crypto.wallet.exchange.done')} onPress={() => navigation.popToTop()} outlined={order?.status === 'awaiting_deposit'} />
+				<QPButton title={t('crypto.wallet.exchange.done')} onPress={() => navigation.popToTop()} outlined={deposit === 'send'} />
 			</View>
 		</ScrollView>
 	)
@@ -203,7 +263,7 @@ const Steps = ({ order, theme }: { order: NonNullable<ReturnType<typeof useExcha
 	return (
 		<View style={[styles.card, styles.steps, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 			{steps.map((step, index) => {
-				const color = step.done ? theme.colors.success : step.current ? theme.colors.primary : theme.colors.secondaryText
+				const color = step.done ? theme.colors.successText : step.current ? theme.colors.primary : theme.colors.secondaryText
 				return (
 					<View key={step.key} style={styles.step}>
 						<View style={[styles.dot, { backgroundColor: step.done || step.current ? color : 'transparent', borderColor: color }]} />
@@ -214,6 +274,24 @@ const Steps = ({ order, theme }: { order: NonNullable<ReturnType<typeof useExcha
 					</View>
 				)
 			})}
+		</View>
+	)
+}
+
+/** Un lado del par: icono del activo, importe y símbolo. */
+const PairSide = ({ asset, amount, estimated, theme }: { asset?: AssetView, amount: string, estimated?: boolean, theme: ReturnType<typeof useTheme>['theme'] }) => {
+
+	const textStyles = useTextStyles(theme)
+
+	return (
+		<View style={styles.pairSide}>
+			<QPAssetIcon logoTick={asset?.logoTick ?? ''} networkTick={asset?.networkTick ?? null} size={34} ringColor={theme.colors.surface} />
+			<Text style={[textStyles.h4, styles.pairAmount, { color: theme.colors.primaryText }]} numberOfLines={1}>
+				{estimated ? '≈ ' : ''}{amount}
+			</Text>
+			<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+				{asset?.symbol ?? ''}
+			</Text>
 		</View>
 	)
 }
@@ -252,6 +330,9 @@ const styles = StyleSheet.create({
 	iconWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
 	hint: { textAlign: 'center', paddingHorizontal: 12 },
 	card: { borderRadius: 16, borderCurve: 'continuous', padding: 14, gap: 4 },
+	pair: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 18 },
+	pairSide: { flex: 1, alignItems: 'center', gap: 6 },
+	pairAmount: { textAlign: 'center' },
 	cardTitle: { marginBottom: 4 },
 	steps: { flexDirection: 'row', paddingVertical: 16 },
 	step: { flex: 1, alignItems: 'center' },

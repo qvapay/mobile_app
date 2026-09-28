@@ -11,32 +11,37 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 import { useAuth } from '../../../auth/AuthContext'
 import { useSettings } from '../../../settings/SettingsContext'
 import { useWallet } from '../../../wallet/WalletContext'
+import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { buildSwapForm, isInUnsupported, percentAmount, sanitizeAmountInput } from './swapModel'
+import { estimateNativeReserve, maxSendableUnits, percentOfUnits, TRX_MAX_RESERVE_SUN } from './walletSendActions'
+import { parseAmountSafe } from './exchangeModel'
+import { formatUnits } from '../../../wallet/chains/units'
 import { buildSwapView } from './swapView'
 import type { SwapSide } from './swapView'
-import { assetIdOf, directionFor, flip, isBalance, routeFor } from './swapRouting'
+import { assetIdOf, directionFor, flip, isBalance, railAmountUsd, routeFor } from './swapRouting'
 import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
 import useSwapFlow from './useSwapFlow'
-import { useWalletAssets } from './walletQueries'
+import { usePriceMap, useWalletAssets } from './walletQueries'
 import useCoins from '../../../hooks/useCoins'
-import { addressForKind, findAssetForCoin } from '../../../wallet/assets'
+import { addressForKind, assetPrice, findAssetForCoin } from '../../../wallet/assets'
 
 // Intercambio cripto↔cripto
 import { buildExchangeView } from './exchangeView'
 import useExchangeFlow from './useExchangeFlow'
+import type { ApiError } from '../../../api/unwrap'
 import { useExchangeCatalogQuery } from './exchangeQueries'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import PinConfirmStep from '../../transaction/PinConfirmStep'
 import WalletAuthModal from './components/WalletAuthModal'
-import SwapAmountCard from './components/swap/SwapAmountCard'
+import QPAmountCard from '../../../ui/QPAmountCard'
 import QPAssetSheet from '../../../ui/QPAssetSheet'
 import type { QPAssetOption } from '../../../ui/QPAssetSheet'
 import SwapDetails from './components/swap/SwapDetails'
-import SwapFlipButton, { FLIP_BUTTON_SIZE } from './components/swap/SwapFlipButton'
+import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../../ui/particles/QPFlipButton'
 import SwapNotices from './components/swap/SwapNotices'
 import SwapReviewSheet from './components/swap/SwapReviewSheet'
 
@@ -66,7 +71,7 @@ const BALANCE_SIDE: SwapSideRef = { kind: 'balance' }
  *                           wallet, con la verificación de firma intacta
  *   saldo ↔ otro activo   → no soportado, y el selector dice por qué
  *
- * Las dos ramas pintan los MISMOS componentes (`SwapAmountCard`, `SwapDetails`,
+ * Las dos ramas pintan los MISMOS componentes (`QPAmountCard`, `SwapDetails`,
  * `SwapNotices`, `SwapReviewSheet`) alimentados por su propio modelo de vista, así que la
  * pantalla sigue siendo cableado: `swapModel`/`swapView` para el motor custodial y
  * `exchangeModel`/`exchangeView` para el agregador.
@@ -88,6 +93,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 
 	const { query: pairs, enabledPairs, pair, asset, assetFor, setPairId, registered, walletReady, limitAvailable } = useSwapPairs()
 	const { all } = useWalletAssets()
+	const prices = usePriceMap()
 	const catalog = useExchangeCatalogQuery()
 
 	// assetIds que el BACKEND publica como pares custodiales; de ahí sale el enrutado
@@ -176,10 +182,17 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		() => Object.fromEntries(all.filter(a => a.hasBalance).map(a => [a.id, a.amount])),
 		[all],
 	)
+	/**
+	 * El 503 del catálogo —y SOLO el 503— significa que el producto está apagado, por
+	 * interruptor o porque no hay proveedor. Cualquier otro fallo (red, 401, límite de tasa)
+	 * es pasajero y no debe bloquear nada: tratarlos todos igual convertía un tropiezo de una
+	 * petición en un "Swap no disponible" pegado, con la cotización apagada de paso.
+	 */
 	const unsupportedReason = useMemo(() => {
+		if ((catalog.error as ApiError | null)?.status === 503) { return t('crypto.wallet.swap.disabled') }
 		const unsupported = catalog.data?.unsupported ?? {}
 		return unsupported[payAsset?.id ?? ''] ?? unsupported[receiveAsset?.id ?? ''] ?? null
-	}, [catalog.data, payAsset?.id, receiveAsset?.id])
+	}, [catalog.error, catalog.data, payAsset?.id, receiveAsset?.id, t])
 
 	const onExchangeOpened = useCallback((order: ExchangeOrder) => {
 		navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: order.uuid })
@@ -201,6 +214,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		minAmount: exchangeFlow.minAmount,
 		cheaper: exchangeFlow.cheaper,
 		unsupportedReason,
+		quoteError: exchangeFlow.quoteError,
 		showBalance,
 		quoting: exchangeFlow.quoting,
 		busy: exchangeFlow.busy,
@@ -226,6 +240,12 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const railAsset = routed.mode === 'withdraw' ? receiveAsset : payAsset
 	const railCoin = railAsset ? (routed.mode === 'withdraw' ? railOutCoin[railAsset.id] : railInCoin[railAsset.id]) : null
 
+	const railAmount = useMemo(() => railAmountUsd({
+		typed: Number(amountText),
+		mode: routed.mode,
+		price: payAsset ? assetPrice(payAsset, prices) : null,
+	}), [amountText, routed.mode, payAsset, prices])
+
 	const goToRail = useCallback(() => {
 		if (!railCoin || !railAsset) { return }
 		if (routed.mode === 'withdraw') {
@@ -234,11 +254,15 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			navigation.navigate(ROUTES.WITHDRAW, {
 				preselectedCoin: railCoin.tick,
 				...(addresses ? { prefillAddress: addressForKind(addresses, railAsset.kind) } : {}),
+				...(railAmount ? { amount: railAmount } : {}),
 			})
 			return
 		}
-		navigation.navigate(ROUTES.ADD, { preselectedCoin: railCoin.tick })
-	}, [navigation, railCoin, railAsset, routed.mode, addresses])
+		navigation.navigate(ROUTES.ADD, {
+			preselectedCoin: railCoin.tick,
+			...(railAmount ? { amount: railAmount } : {}),
+		})
+	}, [navigation, railCoin, railAsset, routed.mode, addresses, railAmount])
 
 	/**
 	 * Vista que pinta LO QUE EL USUARIO ELIGIÓ, sin motor detrás.
@@ -255,8 +279,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const selectionView = useMemo(() => {
 		const sideOf = (side: SwapSideRef | null, view: AssetView | null): SwapSide => (
 			isBalance(side)
-				? { symbol: 'USD', caption: t('crypto.wallet.swap.balanceQvaPay'), icon: { kind: 'balance' }, balance: showBalance ? formatUsd(custodial) : '••••' }
-				: { symbol: view?.symbol ?? '—', caption: view?.chainName ?? '', icon: { kind: 'wallet', logoTick: view?.logoTick ?? '', networkTick: view?.networkTick ?? null }, balance: view ? (showBalance ? view.amountLabel : '••••') : '' }
+				? { symbol: 'USD', icon: { kind: 'balance' }, balance: showBalance ? formatUsd(custodial) : '••••' }
+				: { symbol: view?.symbol ?? '—', icon: { kind: 'wallet', logoTick: view?.logoTick ?? '', networkTick: view?.networkTick ?? null }, balance: view ? (showBalance ? view.amountLabel : '••••') : '' }
 		)
 		return {
 			pay: sideOf(pay, payAsset),
@@ -311,17 +335,61 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const reviewOpen = !isRail && (isExchange ? exchangeFlow.review : swapFlow.review)
 	const closeReview = isExchange ? exchangeFlow.closeReview : swapFlow.closeReview
 	const onConfirm = isExchange ? exchangeFlow.confirm : swapFlow.onConfirm
-	const confirmDisabled = isExchange ? exchangeFlow.busy : swapFlow.confirmDisabled
+	// Intercambio: Confirmar espera a que la cotización sea la del importe tecleado
+	const confirmDisabled = isExchange ? exchangeFlow.busy || !exchangeFlow.ready : swapFlow.confirmDisabled
 
-	// En el riel no se teclea importe aquí: lo hace la pantalla de retiro/depósito
-	const maxAmount = isRail ? 0 : isExchange ? Number(payAsset?.amount ?? 0) : form.max
-	// En el agregador no hay chip de 100%: el proveedor espera el importe EXACTO cotizado, y
-	// en el nativo "todo" se comería además la comisión de red del propio envío.
-	const chips = maxAmount > 0
-		? PERCENT_CHIPS
-			.filter(p => !(isExchange && p === 100))
-			.map(p => ({ key: String(p), label: p === 100 ? t('crypto.wallet.swap.max') : `${p}%`, onPress: () => setAmountText(percentAmount(maxAmount, p)) }))
-		: undefined
+	/**
+	 * El máximo movible, según de dónde salga el dinero.
+	 *
+	 * En los modos QUSD manda `form.max`, que ya cruza saldo, topes del par y cupo del día;
+	 * en el retiro, el saldo QvaPay; en lo demás, el saldo del activo que paga.
+	 */
+	const maxAmount = useMemo(() => {
+		if (isQusd) { return form.max }
+		if (routed.mode === 'withdraw') { return custodial }
+		return Number(payAsset?.amount ?? 0)
+	}, [isQusd, form.max, routed.mode, custodial, payAsset?.amount])
+
+	/**
+	 * MÁX en un nativo NO es el saldo entero: es lo más que se puede enviar de verdad, con
+	 * la reserva de gas que exige su cadena descontada — la misma cuenta que hace la
+	 * pantalla de enviar. Esconder el botón, que es lo que hacía antes, era la salida
+	 * perezosa: el usuario lo echa de menos y no entiende por qué falta.
+	 */
+	const nativeReserve = useNativeReserve(payAsset, isQusd)
+
+	/**
+	 * Decimales que admite el campo. Los modos con saldo QvaPay son dólares; cuando paga un
+	 * activo de la wallet manda el activo, o el campo se comería lo tecleado: 0.00123456 BTC
+	 * quedaba en 0.00 y no había forma de escribir un importe real.
+	 */
+	const amountDecimals = isQusd || routed.mode === 'withdraw' ? 2 : payAsset?.decimals ?? 2
+
+	const chips = useMemo(() => {
+		if (!(maxAmount > 0)) { return undefined }
+		/**
+		 * Los porcentajes se calculan en UNIDADES MÍNIMAS cuando paga un activo de la wallet.
+		 * El helper de dólares redondea a dos decimales, y eso aquí no es un detalle de
+		 * formato: "MÁX" sobre 5,436789 USDC escribía 5,44 —más de lo que hay— y la pantalla
+		 * se quedaba muda porque el importe no pasaba la validación de saldo.
+		 */
+		const pct = (p: number) => {
+			if (!payAsset || isQusd || routed.mode === 'withdraw') { return percentAmount(maxAmount, p) }
+			const isNative = payAsset.contract === null
+			const balance = parseAmountSafe(payAsset.amount, payAsset.decimals)
+			// En el nativo el techo no es el saldo: hay que dejar la reserva de gas de su cadena
+			const ceiling = isNative
+				? maxSendableUnits({ balance, isNative: true, kind: payAsset.kind, reserve: nativeReserve })
+				: balance
+			const units = percentOfUnits(ceiling, p)
+			return units > 0n ? formatUnits(units, payAsset.decimals) : ''
+		}
+		return PERCENT_CHIPS.map(p => ({
+			key: String(p),
+			label: p === 100 ? t('crypto.wallet.swap.max') : `${p}%`,
+			onPress: () => setAmountText(pct(p)),
+		}))
+	}, [maxAmount, payAsset, isQusd, routed.mode, nativeReserve, t])
 
 	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
 
@@ -338,12 +406,12 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
 				<View>
-					<SwapAmountCard
+					<QPAmountCard
 						ref={amountRef}
 						label={t('crypto.wallet.swap.pay')}
 						token={view.pay}
 						amount={amountText}
-						onChangeAmount={(text) => setAmountText(sanitizeAmountInput(text))}
+						onChangeAmount={(text) => setAmountText(sanitizeAmountInput(text, amountDecimals))}
 						placeholder="0.00"
 						fiatLabel={isExchange ? '' : swapView.payFiat}
 						balanceLabel={view.pay.balance}
@@ -353,13 +421,14 @@ const WalletSwap = ({ navigation, route }: Props) => {
 					/>
 					{/* En flujo con márgenes negativos: monta sobre la junta de las dos tarjetas sin medirlas */}
 					<View style={styles.flipWrap} pointerEvents="box-none">
-						<SwapFlipButton onPress={onFlip} disabled={busy} accessibilityLabel={t('crypto.wallet.swap.flip')} />
+						<QPFlipButton onPress={onFlip} loading={isExchange && exchangeFlow.quoting} disabled={busy} accessibilityLabel={t('crypto.wallet.swap.flip')} />
 					</View>
-					<SwapAmountCard
+					<QPAmountCard
 						label={t('crypto.wallet.swap.receive')}
 						hint={view.receiveHint}
 						token={view.receive}
 						amount={view.receiveAmount}
+						loading={isExchange && exchangeFlow.quoting}
 						placeholder="0.00"
 						fiatLabel={isExchange ? '' : swapView.receiveFiat}
 						balanceLabel={view.receive.balance}
@@ -427,6 +496,38 @@ const WalletSwap = ({ navigation, route }: Props) => {
 			/>
 		</KeyboardAvoidingView>
 	)
+}
+
+/**
+ * La reserva de gas del nativo que entrega, pedida a su nodo.
+ *
+ * Solo hace falta para el chip de MÁX, así que se pide cuando de verdad hay un nativo en el
+ * lado que paga: un token no reserva nada y el saldo QvaPay tampoco. Mientras llega vale 0,
+ * y entonces MÁX ofrece el saldo entero — lo mismo que ofrecía la pantalla de enviar antes
+ * de que su reserva cargara.
+ */
+const useNativeReserve = (asset: AssetView | null, skip: boolean): bigint => {
+
+	const registry = useEffectiveRegistry()
+	const [reserve, setReserve] = useState(0n)
+	const isNative = !!asset && asset.contract === null && !skip
+
+	useEffect(() => {
+		if (!isNative || !asset) { setReserve(0n); return }
+		if (asset.kind === 'tron') { setReserve(TRX_MAX_RESERVE_SUN); return }
+		if (asset.kind === 'btc') { setReserve(0n); return }
+		let cancelled = false
+		const chain = registry.chains[asset.chainKey]
+		if (!chain) { return }
+		estimateNativeReserve(chain, asset.chainKey)
+			.then(value => { if (!cancelled) { setReserve(value) } })
+			// Sin reserva conocida, MÁX ofrece el saldo entero y el envío avisará: es lo
+			// mismo que hace la pantalla de enviar, y mejor que quedarse sin botón
+			.catch(() => { if (!cancelled) { setReserve(0n) } })
+		return () => { cancelled = true }
+	}, [isNative, asset, registry])
+
+	return reserve
 }
 
 /**

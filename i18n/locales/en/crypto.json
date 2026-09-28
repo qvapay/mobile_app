@@ -185,6 +185,7 @@
 			"notFound": "This asset is not available.",
 			"price": "1 {{symbol}} ≈ {{price}}",
 			"explorer": "Explorer",
+			"market": "Market",
 			"activity": "Activity",
 			"historyUnavailable": "History isn't available here yet. You can see it in the network explorer.",
 			"historyError": "We couldn't load the history.",
@@ -288,6 +289,7 @@
 			},
 			"gasless": {
 				"free": "Free · QvaPay pays it",
+				"lastFree": "QvaPay covers this send — it is your last free one today.",
 				"remaining_one": "You have {{count}} free send left today",
 				"remaining_other": "You have {{count}} free sends left today",
 				"exhausted": "You've used your free send for today. It renews at {{time}}.",
@@ -438,12 +440,17 @@
 			"depositAmount": "Exact amount",
 			"depositAddress": "Deposit address",
 			"depositWarning": "It has to be this exact amount, from your {{chain}} wallet. More or less and the provider re-quotes or refunds.",
+			"sentTitle": "Deposit sent",
+			"sentHint": "Your transfer is on the network. As soon as {{provider}} sees it, the exchange starts on its own. Do not send again.",
+			"sentTx": "Deposit transaction",
 			"sendNow": "Send now",
 			"copied": "Copied",
 			"refundLabel": "If something fails, it returns to",
 			"youSend": "You send",
 			"youReceive": "You receive",
 			"estimated": "estimated",
+			"quoteMissing": "There is no valid quote yet. Wait a moment and try again.",
+			"quoteUpdating": "Updating the quote for this amount. One moment.",
 			"rate": "Rate",
 			"networkFee": "Source network fee",
 			"minAmount": "Minimum {{amount}} {{symbol}}",
@@ -501,7 +508,12 @@
 			"viaWithdraw": "Goes through a QvaPay withdrawal: our fee, straight to your wallet.",
 			"viaDeposit": "Goes through a QvaPay deposit: you send from your wallet and it lands in your balance.",
 			"ctaWithdraw": "Withdraw to your wallet",
-			"ctaDeposit": "Deposit to your balance"
+			"ctaDeposit": "Deposit to your balance",
+			"pair": "What you're swapping",
+			"orderId": "Provider reference",
+			"orderIdHint": "Give it to support if anything gets stuck",
+			"started": "Started {{time}} ago",
+			"typicalEta": "Usually takes 5 to 30 minutes"
 		}
 	},
 	"energy": {

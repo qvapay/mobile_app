@@ -5,7 +5,7 @@
  * aquí es si el envío gratis del día se conserva o se gasta, y si el usuario acaba
  * reenviando algo que ya salió a la red.
  */
-import { consumesGrant, interpretSubmit, isGrantUsable } from './gaslessModel'
+import { consumesGrant, interpretSubmit, sponsoredNotice, isGrantUsable } from './gaslessModel'
 
 const result = (overrides = {}) => ({ status: 'confirmed', reason: null, rebuild: false, retryable: false, signature: 'SIG', explorer: null, message: null, ...overrides })
 
@@ -73,5 +73,24 @@ describe('isGrantUsable', () => {
 
 	it('una fecha ilegible tampoco', () => {
 		expect(isGrantUsable('mañana')).toBe(false)
+	})
+})
+
+describe('el aviso cuando el envío VA patrocinado', () => {
+
+	it('con envíos de sobra, dice cuántos quedan', () => {
+		expect(sponsoredNotice(3)).toBe('remaining')
+		expect(sponsoredNotice(1)).toBe('remaining')
+	})
+
+	it('con cero restantes NO se anuncia como una negativa: este envío ES gratis', () => {
+		// `remaining_today` es lo que queda DESPUÉS de gastar este permiso, así que con la
+		// cuota en 1/día siempre llega como 0 — y "te quedan 0 envíos gratis" encima de un
+		// envío gratis hace dudar de si el patrocinio se aplicó
+		expect(sponsoredNotice(0)).toBe('lastFree')
+	})
+
+	it('sin dato tampoco se inventa un número', () => {
+		expect(sponsoredNotice(null)).toBe('lastFree')
 	})
 })

@@ -18,11 +18,11 @@ import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client
 
 // Icons
 import FaceIDIcon from '../ui/particles/FaceIDIcon'
+import QPPressable from '../ui/particles/QPPressable'
 
 // UI
 import PinDots from './PinDots'
 import type { PinDotsHandle } from './PinDots'
-import UnlockHalo from './UnlockHalo'
 
 // Biometric type + availability are detected together in one effect
 type BiometricsState = {
@@ -133,10 +133,10 @@ const LockScreen = () => {
 
 	// El glifo del héroe: el que desbloquea si hay biometría, un candado si no
 	const heroIcon = !biometricsAvailable
-		? <FontAwesome6 name="lock" size={54} color={theme.colors.primary} iconStyle="solid" />
+		? <FontAwesome6 name="lock" size={40} color={theme.colors.primary} iconStyle="solid" />
 		: biometryType === 'FaceID'
-			? <FaceIDIcon size={62} color={theme.colors.primary} />
-			: <FontAwesome6 name="fingerprint" size={62} color={theme.colors.primary} iconStyle="solid" />
+			? <FaceIDIcon size={48} color={theme.colors.primary} />
+			: <FontAwesome6 name="fingerprint" size={48} color={theme.colors.primary} iconStyle="solid" />
 
 	if (!isLocked) return null
 
@@ -166,15 +166,11 @@ const LockScreen = () => {
 				{/* El resto vive centrado en el espacio que queda */}
 				<View style={styles.stage}>
 
-					{/* El héroe: el glifo que desbloquea, respirando sobre su halo. Con biometría
+					{/* El héroe: el glifo que desbloquea, solo, sin adornos. Con biometría
 					    disponible es el botón —tocarlo la pide—; sin ella, solo acompaña. */}
-					<UnlockHalo
-						size={96}
-						onPress={biometricsAvailable ? handleBiometricUnlock : undefined}
-						accessibilityLabel={biometryLabel}
-					>
-						{heroIcon}
-					</UnlockHalo>
+					{biometricsAvailable
+						? <QPPressable onPress={handleBiometricUnlock} accessibilityRole="button" accessibilityLabel={biometryLabel} hitSlop={24}>{heroIcon}</QPPressable>
+						: heroIcon}
 
 					{/* Una sola línea de texto. Antes eran tres —título, etiqueta del icono y
 					    "o introduce tu PIN"— diciendo casi lo mismo alrededor de una raya. */}
@@ -218,9 +214,8 @@ const styles = StyleSheet.create({
 	brandLogo: { width: 16, height: 16 },
 	brandName: { fontSize: 14, letterSpacing: 0.2 },
 	stage: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', width: '100%' },
-	// El halo ocupa 200 px y se sale de su caja: el aire de debajo lo cuenta el hint
-	hint: { textAlign: 'center', marginTop: 44, fontSize: 17, letterSpacing: 0.2 },
-	dots: { marginTop: 36 },
+	hint: { textAlign: 'center', marginTop: 28, fontSize: 16, letterSpacing: 0.2 },
+	dots: { marginTop: 32 },
 	errorSlot: { height: 40, justifyContent: 'center' },
 	error: { textAlign: 'center' },
 })

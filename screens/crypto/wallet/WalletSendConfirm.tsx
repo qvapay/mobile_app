@@ -10,6 +10,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
+import { markDepositSent } from './exchangeDeposit'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, nativeAssetId } from '../../../wallet/assets'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
@@ -27,6 +28,7 @@ import type { FeeTier, PreparedSend } from './walletSendActions'
 import { parseUnitsSafe, sendFeeState } from './sendConfirmModel'
 import useWalletSendTx from './useWalletSendTx'
 import useGaslessSend from './useGaslessSend'
+import { sponsoredNotice } from './gaslessModel'
 import type { GaslessState } from './useGaslessSend'
 import type { SendPhase } from './useWalletSendTx'
 import { formatUsd, shortAddress } from './walletFormat'
@@ -83,7 +85,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	const onSent = useCallback((txid: string) => {
 		// Si este envío ES el depósito de un intercambio, el final no es aquí: el usuario
 		// vuelve al seguimiento, que es donde va a ver llegar la otra moneda.
-		if (exchangeUuid) { navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid }); return }
+		//
+		// Se anota en disco ANTES de navegar. El proveedor tarda en ver la transferencia, y
+		// hasta entonces la orden sigue diciendo "esperando tu envío": sin esta nota, el
+		// seguimiento le volvía a ofrecer la dirección y el botón de enviar justo después de
+		// enviar, y un segundo depósito no se cambia, se queda esperando devolución manual.
+		if (exchangeUuid) {
+			markDepositSent(exchangeUuid, txid)
+			navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: exchangeUuid, sentTxid: txid })
+			return
+		}
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
 	}, [navigation, assetId, amount, to, exchangeUuid])
 
@@ -349,13 +360,16 @@ const GaslessNotice = ({ state, sponsored, theme, onGold }: { state: GaslessStat
 		return <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.gasless.pending')} />
 	}
 
-	if (sponsored && state.remainingToday !== null) {
+	if (sponsored) {
+		const notice = sponsoredNotice(state.remainingToday)
 		return (
 			<Notice
 				theme={theme}
 				icon="circle-info"
 				color={theme.colors.successText}
-				text={t('crypto.wallet.send.gasless.remaining', { count: state.remainingToday })}
+				text={notice === 'remaining'
+					? t('crypto.wallet.send.gasless.remaining', { count: state.remainingToday })
+					: t('crypto.wallet.send.gasless.lastFree')}
 			/>
 		)
 	}

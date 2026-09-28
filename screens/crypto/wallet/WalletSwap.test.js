@@ -14,7 +14,7 @@ jest.mock('../../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../../../settings/SettingsContext', () => ({ useSettings: () => ({ getSetting: (_s, _k, fallback) => fallback }) }))
 jest.mock('../../../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../../../wallet/registry/appRpcRouter', () => ({ useEffectiveRegistry: () => ({ chains: { stacks: { kind: 'stacks', native: { symbol: 'STX', decimals: 6 } } } }) }))
-jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), refreshHistoryAfterSend: jest.fn(), WALLET_BALANCES_KEY: ['wallet', 'balances'] }))
+jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), usePriceMap: () => ({ QUSD: 1 }), refreshHistoryAfterSend: jest.fn(), WALLET_BALANCES_KEY: ['wallet', 'balances'] }))
 jest.mock('./walletSendActions', () => ({ prepareSend: jest.fn(), signPrepared: jest.fn(), broadcastSigned: jest.fn() }))
 jest.mock('../../../api/swapApi', () => ({ swapApi: { getPairs: jest.fn(), create: jest.fn(), get: jest.fn(), cancel: jest.fn() } }))
 jest.mock('../../../api/withdrawApi', () => ({ withdrawApi: { requestPin: jest.fn() } }))
@@ -22,7 +22,7 @@ jest.mock('../../../api/withdrawApi', () => ({ withdrawApi: { requestPin: jest.f
 // estos tests sigan siendo del motor custodial (y para no arrastrar api/client → device-info)
 // Catálogo de monedas vacío: estos tests son del motor custodial, así que los rieles de
 // depósito/retiro quedan cerrados y no cambian ninguna aserción (y no se arrastra api/client)
-jest.mock('../../../hooks/useCoins', () => ({ __esModule: true, default: () => ({ coins: [], isLoading: false }) }))
+jest.mock('../../../hooks/useCoins', () => ({ __esModule: true, default: jest.fn(() => ({ coins: [], isLoading: false })) }))
 jest.mock('../../../api/exchangeApi', () => ({
 	exchangeApi: {
 		catalog: jest.fn(async () => ({ success: true, data: { supported: [], unsupported: {} }, status: 200 })),
@@ -32,7 +32,7 @@ jest.mock('../../../api/exchangeApi', () => ({
 jest.mock('../../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../../ui/particles/QPAssetIcon', () => 'QPAssetIcon')
 jest.mock('./components/WalletAuthModal', () => 'WalletAuthModal')
-jest.mock('./components/swap/SwapFlipButton', () => { const C = 'SwapFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
+jest.mock('../../../ui/particles/QPFlipButton', () => { const C = 'QPFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
 jest.mock('./components/swap/SwapDetails', () => 'SwapDetails')
 jest.mock('../../../ui/QPAssetSheet', () => 'QPAssetSheet')
 jest.mock('./components/swap/SwapReviewSheet', () => 'SwapReviewSheet')
@@ -47,10 +47,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '../../../auth/AuthContext'
 import { useWallet } from '../../../wallet/WalletContext'
 import { useWalletAssets } from './walletQueries'
+import useCoins from '../../../hooks/useCoins'
 import { prepareSend, signPrepared, broadcastSigned } from './walletSendActions'
 import { swapApi } from '../../../api/swapApi'
 import { toast } from 'sonner-native'
-import SwapAmountCard from './components/swap/SwapAmountCard'
+import QPAmountCard from '../../../ui/QPAmountCard'
 import WalletSwap from './WalletSwap'
 
 const STX = 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R'
@@ -77,7 +78,7 @@ const render = async (params) => {
 const input = () => tree.root.findByType(TextInput)
 // La hoja de revisión está simulada: el único QPButton renderizado es el del pie
 const footer = () => tree.root.findByType('QPButton')
-const cards = () => tree.root.findAllByType(SwapAmountCard)
+const cards = () => tree.root.findAllByType(QPAmountCard)
 const reviewSheet = () => tree.root.findByType('SwapReviewSheet')
 const assetSheet = () => tree.root.findByType('QPAssetSheet')
 const type = (text) => act(async () => { input().props.onChangeText(text) })
@@ -97,6 +98,43 @@ beforeEach(() => {
 afterEach(async () => {
 	if (tree) { await act(async () => { tree.unmount() }); tree = null }
 	queryClient?.clear()
+})
+
+describe('el riel llega con moneda E importe', () => {
+	const BTC_COIN = { tick: 'BTC', name: 'Bitcoin', logo: 'btc', network: 'BTC', price: '85000', enabled_out: true, enabled_in: true }
+	const BTC_ASSET = { id: 'bitcoin:native', chainKey: 'bitcoin', chainName: 'Bitcoin', kind: 'btc', symbol: 'BTC', decimals: 8, contract: null, logoTick: 'BTC', networkTick: 'BTC', amount: '0', amountLabel: '0', usd: 0, hasBalance: false, stable: false, priceTick: 'BTC' }
+
+	beforeEach(() => {
+		useCoins.mockReturnValue({ coins: [BTC_COIN], isLoading: false })
+		useWalletAssets.mockReturnValue({ all: [QUSD_ASSET, BTC_ASSET] })
+	})
+
+	test('el riel TAMBIÉN trae los chips de porcentaje', async () => {
+		// Estaban escondidos de cuando el importe no viajaba a Retirar; ahora sí viaja
+		await render()
+		await press({ props: cards()[1].props.token })
+		await act(async () => { assetSheet().props.onSelect(BTC_ASSET.id) })
+		await settle()
+		const chips = cards()[0].props.chips
+		expect(chips.map(c => c.label)).toEqual(['25%', '50%', 'MÁX'])
+	})
+
+	test('saldo → BTC navega a Retirar con la moneda, la dirección Y el importe', async () => {
+		await render()
+		// El lado que recibe pasa a BTC: saldo → BTC es el riel de retiro
+		await press({ props: cards()[1].props.token })
+		await act(async () => { assetSheet().props.onSelect(BTC_ASSET.id) })
+		await settle()
+
+		await type('25')
+		await settle()
+
+		await press(footer())
+		expect(navigation.navigate).toHaveBeenCalledWith('Withdraw', expect.objectContaining({
+			preselectedCoin: 'BTC',
+			amount: '25',
+		}))
+	})
 })
 
 describe('selección de los dos lados', () => {
@@ -170,7 +208,7 @@ describe('formulario', () => {
 		await act(async () => { cards()[0].props.chips[1].onPress() })
 		expect(input().props.value).toBe('50.00')
 
-		await press(tree.root.findByType('SwapFlipButton'))
+		await press(tree.root.findByType('QPFlipButton'))
 		expect(cards()[0].props.token.symbol).toBe('QUSD')
 		expect(cards()[1].props.token.symbol).toBe('USD')
 		await act(async () => { cards()[0].props.chips[2].onPress() })

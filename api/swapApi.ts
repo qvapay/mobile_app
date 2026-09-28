@@ -11,6 +11,9 @@ export type SwapCreateInput =
 /** Respuesta de `POST /swap` y `GET /swap/{uuid}`. */
 export type SwapPayload = { data: Swap, balance?: number, duplicate?: boolean }
 
+/** Respuesta de `GET /swap`. `meta` trae el total, NO el número de páginas. */
+export type SwapListPayload = { data: Swap[], meta: { page: number, take: number, total: number } }
+
 const fail = (err: unknown, fallbackKey: string): ApiResult<never> => {
 	const error = err as ApiClientError
 	if (error.response?.data) {
@@ -54,6 +57,18 @@ export const swapApi = {
 	get: async (uuid: string): Promise<ApiResult<SwapPayload>> => {
 		try {
 			const response = await apiClient.get(`/swap/${uuid}`, { silent: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) { return fail(err, 'api.common.networkError') }
+	},
+
+	/**
+	 * Historial de swaps del usuario, más reciente primero. Es la OTRA mitad del historial
+	 * de intercambios: los swaps con el saldo QvaPay no son órdenes de proveedor y viven en
+	 * su propia tabla.
+	 */
+	list: async ({ page = 1, take = 20 }: { page?: number, take?: number } = {}): Promise<ApiResult<SwapListPayload>> => {
+		try {
+			const response = await apiClient.get('/swap', { params: { page, take }, silent: true })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return fail(err, 'api.common.networkError') }
 	},

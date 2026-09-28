@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { ComponentProps } from 'react'
-import { StyleSheet, Text, View, Pressable } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -13,8 +13,8 @@ import { useAuth } from '../../auth/AuthContext'
 // UI
 import QPKeyboardView from '../../ui/QPKeyboardView'
 import QPButton from '../../ui/particles/QPButton'
-import AmountInput from '../../ui/AmountInput'
-import QPCoinRow from '../../ui/QPCoinRow'
+import QPAmountCard from '../../ui/QPAmountCard'
+import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../ui/particles/QPFlipButton'
 import QPCoinPicker from '../../ui/QPCoinPicker'
 import useCoins from '../../hooks/useCoins'
 import WalletPickerSheet from '../../ui/WalletPickerSheet'
@@ -24,6 +24,8 @@ import DepositDetailsModal from './DepositDetailsModal'
 import CardFeeModeSelector from './CardFeeModeSelector'
 import { isCardDepositEligible, filterCardFromCatalog } from '../../helpers/cardDepositEligibility'
 import { cardFeeRateFor } from '../../helpers/cardFeeMode'
+import { coinConverted, coinTerms, formatCoinAmount } from '../../helpers/coinFormat'
+import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 // Orden de depósito: creación, modal, cuenta atrás y seguimiento en vivo
 import useDepositOrder from './useDepositOrder'
@@ -36,7 +38,6 @@ import { roundUpToDecimals } from '../../wallet/chains/units'
 import { ROUTES } from '../../routes'
 
 // Icons
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Tipos
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -102,15 +103,27 @@ const Add = ({ navigation, route }: AddProps) => {
 
 	const [showCoinPicker, setShowCoinPicker] = useState(false)
 
-	// Moneda prellenada por quien navegó hasta aquí (hoy, la pantalla de intercambio cuando
-	// el destino es el saldo). Una sola vez: después manda lo que el usuario elija.
+	// Moneda e importe prellenados por quien navegó hasta aquí (hoy, la pantalla de
+	// intercambio cuando el destino es el saldo). Una sola vez cada uno: después manda
+	// lo que el usuario elija.
 	const preselectedCoin = route.params?.preselectedCoin
+	const prefillAmount = route.params?.amount
 	const preselected = useRef(false)
 	useEffect(() => {
 		if (preselected.current || !preselectedCoin || !availableCoins.length) { return }
 		const match = availableCoins.find(coin => coin.tick === preselectedCoin)
 		if (match) { preselected.current = true; setSelectedCoin(match) }
 	}, [preselectedCoin, availableCoins])
+
+	// El importe entra tras la moneda: la conversión que enseña la fila la necesita puesta
+	const prefilled = useRef(false)
+	useEffect(() => {
+		if (prefilled.current || !prefillAmount || !selectedCoin) { return }
+		const value = Number(prefillAmount)
+		if (!Number.isFinite(value) || value <= 0) { return }
+		prefilled.current = true
+		setAmount(String(value))
+	}, [prefillAmount, selectedCoin])
 
 	// Depósito con tarjeta: espejo cliente del gate del backend (KYC + Telegram +
 	// teléfono + 30 días + VIP/trustscore) — decide si se PINTA la opción CARD;
@@ -128,6 +141,12 @@ const Add = ({ navigation, route }: AddProps) => {
 	// 'included' (paga exacto lo tecleado y se acredita el neto). Solo viaja en el
 	// POST cuando el método es CARD; el selector se pinta si además el fee es > 0.
 	const [feeMode, setFeeMode] = useState<CardFeeMode>('on_top')
+	// Lo que llega, con las condiciones de la moneda al lado: las dos cosas que se miran
+	// mientras se teclea, y que antes vivían dentro de la fila del selector
+	const converted = selectedCoin ? coinConverted(selectedCoin, amount) : 0
+	const receiveAmount = converted > 0 ? formatCoinAmount(converted) : ''
+	const termsLabel = selectedCoin ? coinTerms(t, selectedCoin, 'in').join(' · ') : ''
+
 	const isCardCoin = selectedCoin?.tick === 'CARD'
 	const cardFeeRate = isCardCoin ? cardFeeRateFor(selectedCoin, user) : 0
 
@@ -196,40 +215,41 @@ const Add = ({ navigation, route }: AddProps) => {
 
 			>
 
-				{/* Amount Input Component */}
-				<AmountInput
-					amount={amount}
-					onAmountChange={setAmount}
-					placeholder={t('add.index.amountPlaceholder')}
-					style={{ marginTop: 0 }}
-					// Pantalla solo alcanzable autenticado: aserción, sin tocar el runtime
-				balance={user!.balance!}
-				/>
+				{/* Las dos tarjetas: las MISMAS del swap, el retiro y el P2P. Un depósito es una
+				    conversión más — entregas dólares y recibes moneda. */}
+				<View style={styles.cards}>
+					<QPAmountCard
+						label={t('add.index.amountPlaceholder')}
+						token={{
+							symbol: 'USD',
+							icon: { kind: 'balance' },
+						}}
+						amount={amount}
+						onChangeAmount={(text: string) => setAmount(sanitizeAmountInput(text))}
+						fiatLabel=""
+						balanceLabel={`$${user!.balance ?? 0}`}
+						accessibilityLabel={t('add.index.amountPlaceholder')}
+					/>
 
-				{/* Coin Selection */}
-				<View style={{ marginVertical: 20 }}>
+					{/* En flujo con márgenes negativos: monta sobre la junta sin medir las tarjetas */}
+					<View style={styles.flipWrap} pointerEvents="box-none">
+						<QPFlipButton accessibilityLabel={t('add.index.selectCoinLabel')} />
+					</View>
 
-					{selectedCoin && (
-						<Text style={[textStyles.h5, { color: theme.colors.tertiaryText, marginBottom: 12 }]}>
-							{t('add.index.selectCoinLabel')}
-						</Text>
-					)}
-
-					<Pressable style={[styles.coinSelector, { backgroundColor: theme.colors.surface, borderColor: selectedCoin ? theme.colors.primary : theme.colors.elevation }]} onPress={() => setShowCoinPicker(true)} disabled={loadingCoins} >
-						{selectedCoin ? (
-							<View style={styles.selectedCoin}>
-								<QPCoinRow coin={selectedCoin} amount={amount} direction="in" />
-								<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" style={{ marginLeft: 8 }} />
-							</View>
-						) : (
-							<View style={styles.coinSelectorPlaceholder}>
-								<Text style={[textStyles.subtitle, { color: theme.colors.tertiaryText }]}>
-									{loadingCoins ? t('add.index.loadingCoins') : t('add.index.selectCoinPlaceholder')}
-								</Text>
-								<FontAwesome6 name="chevron-down" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
-							</View>
-						)}
-					</Pressable>
+					{/* No editable: en un depósito eliges la moneda y los dólares, y lo que llega
+					    lo calcula el catálogo. Mismo papel que el lado "Recibes" del swap. */}
+					<QPAmountCard
+						label={t('add.index.selectCoinLabel')}
+						hint={selectedCoin?.network ?? undefined}
+						token={{
+							symbol: selectedCoin?.tick ?? (loadingCoins ? t('add.index.loadingCoins') : t('add.index.selectCoinPlaceholder')),
+							icon: selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo, networkTick: selectedCoin.network ?? null } : { kind: 'balance' },
+							onPress: loadingCoins ? undefined : () => setShowCoinPicker(true),
+						}}
+						amount={receiveAmount}
+						fiatLabel=""
+						balanceLabel={termsLabel}
+					/>
 				</View>
 
 				{/* Fee mode selector — solo para depósitos con tarjeta y fee > 0 */}
@@ -305,25 +325,9 @@ const Add = ({ navigation, route }: AddProps) => {
 }
 
 const styles = StyleSheet.create({
-	coinSelector: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 12,
-		borderRadius: 16,
-		borderWidth: 1,
-	},
-	coinSelectorPlaceholder: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		flex: 1,
-		paddingVertical: 4,
-	},
-	selectedCoin: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		flex: 1,
-	},
+	cards: { marginTop: 4, marginBottom: 16 },
+	// Deja 6 px de junta entre las dos tarjetas, igual que en el swap, el retiro y el P2P
+	flipWrap: { alignItems: 'center', marginVertical: -(FLIP_BUTTON_SIZE / 2) + 3, zIndex: 2, elevation: 2 },
 })
 
 export default Add

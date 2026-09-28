@@ -1,6 +1,8 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+
+import { SHEET_MAX_RATIO } from '../../ui/QPSheet'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
@@ -443,7 +445,8 @@ const styles = StyleSheet.create({
 	sheet: {
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
-		maxHeight: '92%',
+		// La misma proporción que el resto de hojas, de su única fuente
+		maxHeight: `${SHEET_MAX_RATIO * 100}%`,
 		paddingTop: 10,
 	},
 	handle: {

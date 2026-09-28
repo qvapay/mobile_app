@@ -68,16 +68,22 @@ export type SwapForm = {
 	max: number
 }
 
-const CENT = 100
-/** Trunca a centavos hacia abajo (nunca se ofrece mover más de lo que hay). */
-export const floorCents = (value: number): number => Math.floor(Math.round(value * CENT * 1e6) / 1e6) / CENT
+// Viven en `helpers/amountInput` desde que el retiro monta las mismas tarjetas: se
+// reexportan para no tocar a quien ya las importaba de aquí
+export { floorCents, percentAmount } from '../../../helpers/amountInput'
+import { floorCents } from '../../../helpers/amountInput'
 
 /**
- * Sanea lo que teclea el usuario: coma → punto, solo dígitos y UN punto, máx 2 decimales,
- * sin ceros a la izquierda ('007' → '7', '.5' → '0.5'). Así el formulario nunca tiene un
- * estado "importe inválido": lo que no es un importe no llega a escribirse.
+ * Sanea lo que teclea el usuario: coma → punto, solo dígitos y UN punto, sin ceros a la
+ * izquierda ('007' → '7', '.5' → '0.5'). Así el formulario nunca tiene un estado "importe
+ * inválido": lo que no es un importe no llega a escribirse.
+ *
+ * `maxDecimals` por defecto 2 porque este módulo nació para dólares, pero el intercambio
+ * cripto↔cripto mueve activos de 6, 8, 9 y 18 decimales: con el tope fijo, un importe de
+ * BTC no se podía ni escribir (0.00123456 quedaba en 0.00) y el campo se comía en silencio
+ * lo que el usuario tecleaba.
  */
-export const sanitizeAmountInput = (raw: string): string => {
+export const sanitizeAmountInput = (raw: string, maxDecimals: number = 2): string => {
 	let text = raw.replace(/,/g, '.').replace(/[^0-9.]/g, '')
 	const firstDot = text.indexOf('.')
 	if (firstDot !== -1) text = text.slice(0, firstDot + 1) + text.slice(firstDot + 1).replace(/\./g, '')
@@ -85,7 +91,7 @@ export const sanitizeAmountInput = (raw: string): string => {
 	integer = integer.replace(/^0+(?=\d)/, '')
 	if (decimals !== undefined) {
 		if (integer === '') integer = '0'
-		return `${integer.slice(0, 9)}.${decimals.slice(0, 2)}`
+		return `${integer.slice(0, 9)}.${decimals.slice(0, Math.max(0, maxDecimals))}`
 	}
 	return integer.slice(0, 9)
 }
@@ -94,12 +100,6 @@ export const maxSwapAmount = ({ payBalance, pair, limitAvailable }: { payBalance
 	if (!pair) return 0
 	const caps = [Math.max(0, payBalance), pair.max, ...(limitAvailable === null ? [] : [Math.max(0, limitAvailable)])]
 	return floorCents(Math.min(...caps))
-}
-
-/** Importe para un chip de porcentaje (25/50/75/100) sobre el máximo movible. */
-export const percentAmount = (max: number, percent: number): string => {
-	const value = percent >= 100 ? max : floorCents((max * percent) / 100)
-	return value > 0 ? value.toFixed(2) : ''
 }
 
 export const buildSwapForm = ({ direction, amountText, pair, payBalance, limitAvailable, walletReady, loading }: SwapFormInput): SwapForm => {

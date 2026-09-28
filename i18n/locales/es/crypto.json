@@ -185,6 +185,7 @@
 			"notFound": "Este activo no está disponible.",
 			"price": "1 {{symbol}} ≈ {{price}}",
 			"explorer": "Explorador",
+			"market": "Mercado",
 			"activity": "Actividad",
 			"historyUnavailable": "El historial todavía no está disponible aquí. Puedes verlo en el explorador de la red.",
 			"historyError": "No pudimos cargar el historial.",
@@ -288,6 +289,7 @@
 			},
 			"gasless": {
 				"free": "Gratis · la paga QvaPay",
+				"lastFree": "Este envío lo paga QvaPay: es tu último gratis de hoy.",
 				"remaining_one": "Te queda {{count}} envío gratis hoy",
 				"remaining_other": "Te quedan {{count}} envíos gratis hoy",
 				"exhausted": "Ya usaste tu envío gratis de hoy. Se renueva a las {{time}}.",
@@ -438,12 +440,17 @@
 			"depositAmount": "Importe exacto",
 			"depositAddress": "Dirección de depósito",
 			"depositWarning": "Tiene que ser esta cantidad exacta y desde tu wallet de {{chain}}. De más o de menos, el proveedor recotiza o devuelve.",
+			"sentTitle": "Depósito enviado",
+			"sentHint": "Tu envío ya está en la red. En cuanto {{provider}} lo vea, el cambio arranca solo. No envíes otra vez.",
+			"sentTx": "Transacción del envío",
 			"sendNow": "Enviar ahora",
 			"copied": "Copiado",
 			"refundLabel": "Si algo falla, vuelve a",
 			"youSend": "Envías",
 			"youReceive": "Recibes",
 			"estimated": "estimado",
+			"quoteMissing": "No hay una cotización válida todavía. Espera un momento y vuelve a intentarlo.",
+			"quoteUpdating": "Actualizando la cotización para este importe. Espera un momento.",
 			"rate": "Tasa",
 			"networkFee": "Comisión de red de origen",
 			"minAmount": "Mínimo {{amount}} {{symbol}}",
@@ -501,7 +508,12 @@
 			"viaWithdraw": "Va por el retiro de QvaPay: comisión nuestra, directo a tu wallet.",
 			"viaDeposit": "Va por el depósito de QvaPay: mandas desde tu wallet y se acredita en tu saldo.",
 			"ctaWithdraw": "Retirar a tu wallet",
-			"ctaDeposit": "Depositar a tu saldo"
+			"ctaDeposit": "Depositar a tu saldo",
+			"pair": "Lo que cambias",
+			"orderId": "Referencia del proveedor",
+			"orderIdHint": "Dásela a soporte si algo se atasca",
+			"started": "Empezó hace {{time}}",
+			"typicalEta": "Suele tardar entre 5 y 30 minutos"
 		}
 	},
 	"energy": {

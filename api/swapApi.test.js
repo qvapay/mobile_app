@@ -69,3 +69,29 @@ describe('swapApi.getPairs / get / cancel', () => {
 		expect(cancelled.data.balance).toBe(100)
 	})
 })
+
+describe('swapApi.list', () => {
+	test('paginación por query y sobre {data, meta} tal cual lo sirve qpweb', async () => {
+		apiClient.get.mockResolvedValue({
+			data: { data: [{ uuid: 's1', direction: 'out', amount: 5, status: 'completed' }], meta: { page: 1, take: 20, total: 31, remaining: null } },
+			status: 200,
+		})
+		const result = await swapApi.list({ page: 2, take: 20 })
+		expect(apiClient.get).toHaveBeenCalledWith('/swap', { params: { page: 2, take: 20 }, silent: true })
+		expect(result.success).toBe(true)
+		expect(result.data.data).toHaveLength(1)
+		expect(result.data.meta).toMatchObject({ page: 1, take: 20, total: 31 })
+	})
+
+	test('sin argumentos pide la primera página', async () => {
+		apiClient.get.mockResolvedValue({ data: { data: [], meta: { page: 1, take: 20, total: 0 } }, status: 200 })
+		await swapApi.list()
+		expect(apiClient.get).toHaveBeenCalledWith('/swap', { params: { page: 1, take: 20 }, silent: true })
+	})
+
+	test('un fallo no revienta: devuelve el contrato de error', async () => {
+		apiClient.get.mockRejectedValue(apiError(404, { error: 'no encontrado' }))
+		const result = await swapApi.list()
+		expect(result).toMatchObject({ success: false, status: 404, error: 'no encontrado' })
+	})
+})

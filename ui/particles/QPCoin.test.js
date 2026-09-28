@@ -11,7 +11,8 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 	__esModule: true,
 	default: { getItem: jest.fn(), setItem: jest.fn() },
 }))
-jest.mock('react-native-svg', () => ({ __esModule: true, SvgXml: 'SvgXml', SvgUri: 'SvgUri' }))
+jest.mock('react-native-svg', () => ({ __esModule: true, SvgUri: 'SvgUri' }))
+jest.mock('./CachedSvgXml', () => 'SvgXml')
 
 import { StyleSheet } from 'react-native'
 import { act, create } from 'react-test-renderer'

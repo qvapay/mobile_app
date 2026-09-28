@@ -1,4 +1,7 @@
 import { View, Pressable, Modal, StyleSheet } from "react-native"
+
+import Animated from 'react-native-reanimated'
+import { SHEET_ENTERING, SHEET_MAX_RATIO } from '../../ui/QPSheet'
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import type { EdgeInsets } from "react-native-safe-area-context"
@@ -32,11 +35,12 @@ type P2PChatSheetProps = {
  * (SSE/poll) while the sheet is closed and the unread badge stays accurate.
  */
 const P2PChatSheet = ({ visible, onClose, keyboardHeight, insets, theme, textStyles, containerStyles, chatPanelProps }: P2PChatSheetProps) => (
-	<Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+	<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 		<Pressable style={styles.sheetOverlay} onPress={onClose}>
-			{/* El onPress vacío absorbe los toques: sin él, tocar la hoja cerraría el chat */}
-			<Pressable
-				onPress={() => { }}
+			{/* El responder absorbe los toques: sin él, tocar la hoja cerraría el chat */}
+			<Animated.View
+				entering={SHEET_ENTERING}
+				onStartShouldSetResponder={() => true}
 				style={[styles.sheet, {
 					backgroundColor: theme.colors.surface,
 					paddingBottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom || 12,
@@ -74,7 +78,7 @@ const P2PChatSheet = ({ visible, onClose, keyboardHeight, insets, theme, textSty
 					containerStyles={containerStyles}
 				/>
 
-			</Pressable>
+			</Animated.View>
 		</Pressable>
 	</Modal>
 )
@@ -86,7 +90,9 @@ const styles = StyleSheet.create({
 		justifyContent: 'flex-end',
 	},
 	sheet: {
-		height: '90%',
+		// `height` y no `maxHeight`: un chat LLENA la hoja, no se encoge a su contenido.
+		// La proporción sale de `QPSheet` para que no haya dos números de hoja en la app.
+		height: `${SHEET_MAX_RATIO * 100}%`,
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
 		borderCurve: 'continuous',

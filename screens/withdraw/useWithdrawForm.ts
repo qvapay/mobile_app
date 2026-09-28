@@ -70,6 +70,8 @@ function setFieldReducer<S extends object>(state: S, action: SetFieldAction<S>):
 type WithdrawFormParams = {
 	/** Moneda preseleccionada (p. ej. USDCASH desde CashDeliveryCard). */
 	preselectedCoin?: string
+	/** Importe en USD con el que se llega (del intercambio); se aplica una sola vez. */
+	prefillAmount?: string
 	/** Dirección de destino ya conocida (la wallet self-custody del usuario): rellena `Wallet` y marca destino 'personal'. */
 	prefillAddress?: string
 	/** Factura Lightning escaneada (Scan → parseLightningQR). */
@@ -84,7 +86,7 @@ type WithdrawFormParams = {
  * @param params - `route.params` relevantes (preselección y factura Lightning).
  * @returns Estado del formulario, handlers y derivados de validación.
  */
-export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInvoice, lnAmountSats = 0 }: WithdrawFormParams) {
+export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInvoice, lnAmountSats = 0, prefillAmount }: WithdrawFormParams) {
 
 	const { user } = useAuth()
 	const { coins: coinCatalog, isLoading: loadingCoins } = useCoins('out')
@@ -145,6 +147,22 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 
 	}, [coinCatalog, preselectedCoin])
 
+	/**
+	 * Importe con el que se llega desde el intercambio.
+	 *
+	 * Corre DESPUÉS de que la moneda esté puesta —el cálculo necesita su precio y su
+	 * comisión— y pasa por el mismo `handleChangeQUSD` que teclearlo a mano, así que la
+	 * conversión y la comisión salen solas. Una sola vez: después manda el usuario.
+	 */
+	const didPrefillAmountRef = useRef(false)
+	useEffect(() => {
+		if (didPrefillAmountRef.current || !prefillAmount || !selectedCoin) { return }
+		const value = Number(prefillAmount)
+		if (!Number.isFinite(value) || value <= 0) { return }
+		didPrefillAmountRef.current = true
+		handleChangeQUSDRef(String(value))
+	}, [prefillAmount, selectedCoin])
+
 	// La moneda elegida es un objeto capturado: al llegar el catálogo fresco el
 	// selector mostraba el precio nuevo mientras el formulario seguía
 	// calculando comisión y conversión con el viejo. Se refresca en su sitio,
@@ -178,6 +196,8 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 
 
 	// QUSD bruto -> cantidad en coin (descontando fee)
+	const handleChangeQUSDRef = useEffectEvent((value: string) => { handleChangeQUSD(value) })
+
 	const handleChangeQUSD = (value: string) => {
 		setAmountQUSD(value)
 		const num = Number(value)

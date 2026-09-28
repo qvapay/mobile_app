@@ -186,6 +186,42 @@ describe('coin loading and selection', () => {
 		expect(amountCard(tree).props.selectedCoin.tick).toBe('BANK_CUP')
 	})
 
+	test('los chips de porcentaje llenan el importe sobre el saldo', async () => {
+		const tree = await renderWithdraw({ preselectedCoin: 'USDT' })
+		const chips = amountCard(tree).props.chips
+		expect(chips.map(c => c.label)).toEqual(['25%', '50%', 'MÁX'])
+		await act(async () => { chips[0].onPress() })
+		// El saldo del harness es 150
+		expect(amountCard(tree).props.amountQUSD).toBe('37.50')
+		// MÁX deja el saldo en cero, sin truncar a centavos
+		await act(async () => { amountCard(tree).props.chips[2].onPress() })
+		expect(Number(amountCard(tree).props.amountQUSD)).toBe(150)
+	})
+
+	test('con el importe congelado por una factura no hay chips', async () => {
+		// Un chip que no responde se lee como una pantalla rota
+		const tree = await renderWithdraw({ preselectedCoin: 'BTCLN', lnInvoice: 'lnbc1500n1qqexample', lnAmountSats: 150000 })
+		expect(amountCard(tree).props.chips).toBeUndefined()
+	})
+
+	test('el importe del param llega con la conversión y la comisión ya hechas', async () => {
+		// Llegando desde el intercambio: la moneda Y el importe. Antes solo viajaba la
+		// moneda y el campo quedaba vacío, así que el flujo "solo cambiaba de pantalla"
+		const tree = await renderWithdraw({ preselectedCoin: 'USDT', amount: '25' })
+		const card = amountCard(tree)
+		expect(card.props.selectedCoin.tick).toBe('USDT')
+		expect(card.props.amountQUSD).toBe('25')
+		// USDT a $1 con 1% de comisión: 25 - 0.25 = 24.75
+		expect(Number(card.props.amountCoin)).toBeCloseTo(24.75, 2)
+	})
+
+	test('un importe inválido en el param no escribe nada', async () => {
+		for (const amount of ['0', '-5', 'abc', '']) {
+			const tree = await renderWithdraw({ preselectedCoin: 'USDT', amount })
+			expect(amountCard(tree).props.amountQUSD).toBe('')
+		}
+	})
+
 	test('selecting a coin with an amount already typed recomputes the receive amount', async () => {
 		const tree = await renderWithdraw()
 		await selectCoin(tree, USDCASH)

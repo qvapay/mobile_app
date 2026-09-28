@@ -13,6 +13,7 @@
  */
 import { useCallback, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner-native'
 
 // API
 import { exchangeApi } from '../../../api/exchangeApi'
@@ -81,6 +82,10 @@ const useExchangeOrder = ({ onOpened }: { onOpened?: (order: ExchangeOrder) => v
 				const network = isNetworkFailure(result)
 				const message = network ? safeRetryHint() : (result.error || i18n.t('api.exchange.createFailed'))
 				setError(message)
+				// El rechazo se DICE. La hoja de revisión no pinta `error` en ninguna parte, así
+				// que sin esto confirmar simplemente no hacía nada: ni operación, ni motivo, ni
+				// forma de saber si el problema era la cotización, las direcciones o el proveedor
+				toast.error(message)
 				return { ok: false, code, message, canRetry: network || code === 'PROVIDER_UNAVAILABLE' }
 			}
 
@@ -92,6 +97,7 @@ const useExchangeOrder = ({ onOpened }: { onOpened?: (order: ExchangeOrder) => v
 				// medias sería invitar a mandar fondos a ninguna parte.
 				const message = i18n.t('api.exchange.createFailed')
 				setError(message)
+				toast.error(message)
 				return { ok: false, code: 'EMPTY_RESPONSE', message, canRetry: true }
 			}
 			// La clave se rota solo aquí, con el éxito confirmado

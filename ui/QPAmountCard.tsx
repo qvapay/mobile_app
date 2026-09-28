@@ -1,58 +1,55 @@
 import { forwardRef } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
-import { useTheme } from '../../../../../theme/ThemeContext'
-import { useTextStyles } from '../../../../../theme/themeUtils'
+import { useTheme } from '../theme/ThemeContext'
+import { useTextStyles } from '../theme/themeUtils'
 
 // UI
-import QPFitText from '../../../../../ui/particles/QPFitText'
-import QPPressable from '../../../../../ui/particles/QPPressable'
-import SwapTokenBadge from './SwapTokenBadge'
-import type { SwapTokenIcon } from './SwapTokenBadge'
+import QPFitText from './particles/QPFitText'
+import QPAssetPill from './particles/QPAssetPill'
+import type { QPAssetIconKind } from './particles/QPAssetBadge'
 
-export type SwapChip = { key: string, label: string, onPress: () => void }
+export type QPAmountChip = { key: string, label: string, onPress: () => void }
 
 type Props = {
 	/** "Pagas" / "Recibes". */
 	label: string
 	/** Texto a la derecha de la etiqueta cuando no hay chips ("A tu wallet · Stacks"). */
 	hint?: string
-	token: { symbol: string, caption: string, icon: SwapTokenIcon, onPress?: () => void }
+	token: { symbol: string, icon: QPAssetIconKind, onPress?: () => void }
 	/** Editable (lado que paga) o calculado (lado que recibe). */
 	amount: string
 	onChangeAmount?: (text: string) => void
 	placeholder?: string
 	fiatLabel: string
 	balanceLabel: string
-	chips?: SwapChip[]
+	chips?: QPAmountChip[]
+	/** Calculando: el importe se atenúa. El giro lo pone el botón de en medio. */
+	loading?: boolean
 	disabled?: boolean
 	accessibilityLabel?: string
 }
 
 /**
- * Tarjeta de un lado del swap (patrón Uniswap/Jupiter): etiqueta y chips arriba, importe
- * grande a la izquierda con la píldora del activo a la derecha, equivalente en USD y saldo
- * abajo. El lado que recibe no es editable: su importe sale del modelo.
+ * Tarjeta de un lado de una conversión (patrón Uniswap/Jupiter): etiqueta y chips arriba,
+ * importe grande a la izquierda con la píldora del activo a la derecha, equivalente en USD
+ * y saldo abajo. El lado que recibe no es editable: su importe sale del modelo.
+ *
+ * Nació en el swap de la wallet y vive en `ui/` porque la comparten también el retiro y lo
+ * que venga: una conversión se lee igual la haga quien la haga.
  *
  * Abajo a la derecha va SOLO el saldo, sin nombrar el activo: ya está en la píldora de al
  * lado, y la red en el badge de su icono.
  */
-const SwapAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, disabled, accessibilityLabel }, ref) => {
+const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, loading, disabled, accessibilityLabel }, ref) => {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const editable = !!onChangeAmount
 	const amountStyle = { color: amount ? theme.colors.primaryText : theme.colors.placeholder, fontFamily: theme.typography.fontFamily.semiBold, fontSize: 34 }
 
-	const pill = (
-		<View style={[styles.pill, { backgroundColor: theme.colors.background }]}>
-			<SwapTokenBadge icon={token.icon} size={26} ringColor={theme.colors.background} />
-			<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{token.symbol}</Text>
-			{!!token.onPress && <FontAwesome6 name="chevron-down" size={11} color={theme.colors.secondaryText} iconStyle="solid" />}
-		</View>
-	)
+
 
 	return (
 		<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
@@ -85,12 +82,12 @@ const SwapAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amoun
 					/>
 				) : (
 					<View style={styles.input}>
-						<QPFitText style={amountStyle}>{amount || placeholder}</QPFitText>
+						{/* Atenuado, no vaciado: al cambiar de par sigue habiendo un número en
+						    pantalla y el giro del botón dice que ya no es el bueno */}
+						<QPFitText style={[amountStyle, loading && styles.stale]}>{amount || placeholder}</QPFitText>
 					</View>
 				)}
-				{token.onPress
-					? <QPPressable onPress={token.onPress} accessibilityRole="button" accessibilityLabel={token.symbol}>{pill}</QPPressable>
-					: pill}
+				<QPAssetPill icon={token.icon} symbol={token.symbol} onPress={token.onPress} />
 			</View>
 
 			<View style={styles.bottom}>
@@ -108,9 +105,9 @@ const styles = StyleSheet.create({
 	chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
 	middle: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
 	input: { flex: 1, paddingVertical: 0, justifyContent: 'center' },
-	pill: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingLeft: 5, paddingRight: 11, paddingVertical: 5, borderRadius: 20 },
+	stale: { opacity: 0.35 },
 	bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
 	balance: { flexShrink: 1, textAlign: 'right' },
 })
 
-export default SwapAmountCard
+export default QPAmountCard

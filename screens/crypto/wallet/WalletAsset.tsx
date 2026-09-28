@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
 import { FlashList } from '@shopify/flash-list'
@@ -22,6 +22,9 @@ import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import useCanSwapAsset from './useCanSwapAsset'
 import type { ApiError } from '../../../api/unwrap'
+
+// Catálogo de monedas de QvaPay (el mismo que ya alimenta los precios de esta pantalla)
+import useCoins from '../../../hooks/useCoins'
 
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
@@ -92,6 +95,13 @@ const TxRow = ({ tx, theme, onPress }: TxRowProps) => {
 	)
 }
 
+/** Atajo al detalle de mercado en la cabecera (Android e iOS anteriores a 26). */
+const MarketButton = ({ label, color, onPress }: { label: string, color: string, onPress: () => void }) => (
+	<Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={label}>
+		<FontAwesome6 name="chart-line" size={18} color={color} iconStyle="solid" />
+	</Pressable>
+)
+
 type ActionProps = { icon: FontAwesome6SolidIconName, label: string, onPress: () => void, dimmed?: boolean, theme: Theme }
 
 const Action = ({ icon, label, onPress, dimmed, theme }: ActionProps) => {
@@ -126,6 +136,16 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const chain = asset ? registry.chains[asset.chainKey] : undefined
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
 
+	// La moneda del catálogo detrás de este activo, si la hay: es lo que abre el detalle de
+	// mercado. QUSD y STX no están en el catálogo, así que ahí el botón no aparece en vez de
+	// llevar a una pantalla sin precio ni gráfico. Misma query que usa `usePriceMap`, sin
+	// petición extra
+	const { coins } = useCoins('all')
+	const marketCoin = useMemo(
+		() => (asset?.priceTick ? coins.find(coin => coin.tick === asset.priceTick) ?? null : null),
+		[coins, asset?.priceTick],
+	)
+
 	const { getSetting } = useSettings()
 	const showBalance = getSetting('privacy', 'showBalance', true) as boolean
 	const hideDust = getSetting('crypto', 'hideDust', true) as boolean
@@ -159,8 +179,27 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	}, [refetchBalances, history, asset])
 
 	useLayoutEffect(() => {
-		if (asset) navigation.setOptions({ headerTitle: `${asset.symbol} · ${asset.chainName}` })
-	}, [navigation, asset])
+		if (!asset) return
+		const openMarket = marketCoin
+			? () => navigation.navigate(ROUTES.COIN_DETAIL_SCREEN, { tick: marketCoin.tick, name: marketCoin.name, initialData: marketCoin })
+			: null
+		navigation.setOptions({
+			headerTitle: `${asset.symbol} · ${asset.chainName}`,
+			// Atajo al precio: el mismo detalle que abre la moneda desde el listado del tab
+			...(openMarket && {
+				headerRight: () => <MarketButton label={t('crypto.wallet.asset.market')} color={theme.colors.primaryText} onPress={openMarket} />,
+				// iOS 26+: item nativo, compatible con el blur del header
+				...(Platform.OS === 'ios' && {
+					unstable_headerRightItems: () => [{
+						type: 'button',
+						label: t('crypto.wallet.asset.market'),
+						icon: { type: 'sfSymbol', name: 'chart.line.uptrend.xyaxis' },
+						onPress: openMarket,
+					}],
+				}),
+			}),
+		})
+	}, [navigation, asset, marketCoin, theme, t])
 
 	const openUrl = useCallback((url: string | null) => {
 		if (!url) return
