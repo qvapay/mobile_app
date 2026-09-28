@@ -149,7 +149,7 @@ const LockScreen = () => {
 			onRequestClose={() => { }}
 		>
 			<SystemBars style={theme.isDark ? 'light' : 'dark'} />
-			<View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: keyboardVisible ? keyboardHeight : insets.bottom }]}>
+			<View testID="lock-screen" style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: keyboardVisible ? keyboardHeight : insets.bottom }]}>
 
 				{/* La marca, en voz baja: recuerda dónde estás sin competir con el héroe */}
 				<View style={styles.brand}>

@@ -1,0 +1,13 @@
+# Paso "Crea tu PIN" del alta sin cuenta (PIN + confirmación)
+appId: com.qvapay
+---
+- extendedWaitUntil:
+    visible:
+      id: "wallet-pin-setup-pin"
+    timeout: 10000
+- runFlow: type_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-pin-setup-confirm"
+    timeout: 5000
+- runFlow: type_pin.yaml

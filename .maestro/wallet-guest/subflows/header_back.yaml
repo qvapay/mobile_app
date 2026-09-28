@@ -1,0 +1,29 @@
+# Volver a la pantalla anterior (iOS no tiene `back` en Maestro; Android sí).
+# En iOS se toca la flecha nativa del header por su etiqueta, que es el
+# nombre de la ruta anterior (los títulos de esas rutas van vacíos). Por
+# coordenadas fallaba de forma intermitente. TO = ruta destino (WalletOnly
+# por defecto)
+appId: com.qvapay
+---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # Mientras siga el botón: un toque que cae mientras la pantalla
+      # reconfigura su header (refresco de saldos/precios) se pierde, y
+      # retryTapIfNoChange no reintenta porque el precio SÍ cambió
+      - repeat:
+          times: 3
+          while:
+            visible:
+              text: "${typeof TO !== 'undefined' ? TO : 'WalletOnly'}"
+          commands:
+            - tapOn:
+                text: "${typeof TO !== 'undefined' ? TO : 'WalletOnly'}"
+            - waitForAnimationToEnd:
+                timeout: 2000

@@ -5,6 +5,7 @@ import type { AppStateStatus } from 'react-native'
 import i18n from '../i18n'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
+import { useWallet } from '../wallet/WalletContext'
 import {
 	getBiometricCredentials,
 	getAppLockPin,
@@ -52,12 +53,21 @@ const AppLockContext = createContext<AppLockContextValue | undefined>(undefined)
  *   `unlockWithBiometrics`, which reads the login credentials from the
  *   `com.qvapay.biometrics` Keychain entry and thereby triggers the OS
  *   Face ID / Touch ID prompt.
- * - `isLocked` is exposed AND-ed with `isAuthenticated`, so logging out
- *   dismisses the lock screen automatically.
+ * - Lo que se protege es la sesión O la wallet self-custody: sin cuenta pero
+ *   con seed en el teléfono (modo wallet) el bloqueo arma igual.
+ * - `isLocked` is exposed AND-ed with that subject, so logging out without a
+ *   wallet dismisses the lock screen automatically.
  */
 export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 
 	const { isAuthenticated, isLoading: authLoading } = useAuth()
+	const { hasWallet, isReady: walletReady } = useWallet()
+	// Hay algo que proteger: la sesión QvaPay o la seed de la wallet
+	const lockable = isAuthenticated || hasWallet
+	// La wallet cuenta en el arranque en frío, NO al crearla: el alta sin cuenta
+	// crea el PIN justo antes de la seed y bloquear ahí cortaría el backup
+	const hasWalletRef = useRef(hasWallet)
+	useEffect(() => { hasWalletRef.current = hasWallet }, [hasWallet])
 	const { security, isLoading: settingsLoading, updateSetting } = useSettings()
 
 	const [isLocked, setIsLocked] = useState(false)
@@ -69,21 +79,28 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 
 	// Initialize: check if app lock PIN exists
 	useEffect(() => {
-		if (authLoading || settingsLoading) return
+		if (authLoading || settingsLoading || !walletReady) return
 		let cancelled = false
 		const init = async () => {
 			const hasPIN = await hasAppLockPin()
 			if (cancelled) return
 			setAppLockEnabled(hasPIN)
 
-			// Cold start: lock immediately if authenticated and app lock is enabled
-			if (isAuthenticated && hasPIN) { setIsLocked(true) }
-			else if (!hasPIN) { setIsLocked(false) }
+			// SOLO en arranque en frío: bloquear si hay algo que proteger y PIN.
+			// Un login a mitad de sesión (p. ej. desde el modo wallet, que ya pasó
+			// el bloqueo) acaba de autenticarse con contraseña: re-bloquear ahí
+			// pedía el PIN dos veces seguidas. Igual con la wallet recién creada
+			const coldStart = !isInitializedRef.current
+			if (coldStart && (isAuthenticated || hasWalletRef.current) && hasPIN) { setIsLocked(true) }
+			// Sin PIN, o sin nada que proteger (la sesión cayó y no hay wallet): el
+			// bloqueo interno se limpia. Si no, quedaba dormido tras `lockable` y
+			// reaparecía al crear después una wallet de invitado, en pleno backup
+			else if (!hasPIN || (!isAuthenticated && !hasWalletRef.current)) { setIsLocked(false) }
 			isInitializedRef.current = true
 		}
 		init()
 		return () => { cancelled = true }
-	}, [authLoading, settingsLoading, isAuthenticated])
+	}, [authLoading, settingsLoading, walletReady, isAuthenticated])
 
 	// AppState listener for background/foreground transitions
 	useEffect(() => {
@@ -99,7 +116,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 
 			// Coming to foreground: check if should lock
 			if ((prevState === 'background' || prevState === 'inactive') && nextAppState === 'active') {
-				if (backgroundTimestampRef.current && isAuthenticated && appLockEnabled) {
+				if (backgroundTimestampRef.current && lockable && appLockEnabled) {
 					const elapsed = Date.now() - backgroundTimestampRef.current
 					const timeoutMs = (security.autoLockTimeout || 5) * 60 * 1000
 					if (elapsed >= timeoutMs) {
@@ -111,7 +128,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		})
 
 		return () => subscription.remove()
-	}, [isAuthenticated, appLockEnabled, security.autoLockTimeout])
+	}, [lockable, appLockEnabled, security.autoLockTimeout])
 
 	/**
 	 * Unlocks via Face ID / Touch ID. Success = the biometric-protected Keychain
@@ -165,10 +182,10 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 
 	// Manual lock
 	const lock = useCallback(() => {
-		if (isAuthenticated && appLockEnabled) {
+		if (lockable && appLockEnabled) {
 			setIsLocked(true)
 		}
-	}, [isAuthenticated, appLockEnabled])
+	}, [lockable, appLockEnabled])
 
 	/**
 	 * Enables app lock by storing a new PIN in the Keychain. Does not lock
@@ -223,7 +240,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	}, [updateSetting])
 
 	const value = useMemo<AppLockContextValue>(() => ({
-		isLocked: isLocked && isAuthenticated, // derived: logging out clears the lock
+		isLocked: isLocked && lockable, // derived: logging out (sin wallet) clears the lock
 		appLockEnabled,
 		unlockWithBiometrics,
 		unlockWithPin,
@@ -233,7 +250,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		changeAppLockPin,
 		updateAutoLockTimeout,
 		setAppLockBiometrics,
-	}), [isLocked, isAuthenticated, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
+	}), [isLocked, lockable, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
 
 	return (
 		<AppLockContext.Provider value={value}>

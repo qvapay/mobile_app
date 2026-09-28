@@ -1,0 +1,57 @@
+# Importar una frase conocida sin cuenta: entra al modo wallet con direcciones
+# deterministas (vector BIP-39 estándar "abandon … about")
+appId: com.qvapay
+env:
+  PIN: "1234"
+  MNEMONIC: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+---
+- runFlow: subflows/fresh_start.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "welcome-wallet-link"
+    retryTapIfNoChange: true
+- runFlow: subflows/dismiss_logbox.yaml
+# Los botones se habilitan al resolver el PIN en Keychain: reintentar si no cambia
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-onboarding-import"
+    retryTapIfNoChange: true
+- runFlow: subflows/create_pin.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-import-input"
+    retryTapIfNoChange: true
+- inputText: ${MNEMONIC}
+# Sin hideKeyboard: el campo es multilínea (el retorno inserta salto) y la
+# pantalla ya sube el botón por encima del teclado
+- runFlow: subflows/dismiss_logbox.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-import-submit"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "wallet-home-security"
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-home-security"
+    retryTapIfNoChange: true
+# m/44'/60'/0'/0/0 de "abandon … about" = 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
+- assertVisible:
+    text: ".*0x9858EfFD.*EcaEda94.*"
+- takeScreenshot: 08_imported_addresses
+- runFlow: subflows/settings_back.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 5000

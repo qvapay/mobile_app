@@ -87,3 +87,8 @@ yarn-error.log
 /.*/
 !/.github/
 !/.bundle/
+
+# Maestro (E2E): los flujos SÍ se versionan (la regla /.*/ de arriba los ocultaría);
+# las capturas y reportes de cada corrida, no
+!/.maestro/
+.maestro/output/

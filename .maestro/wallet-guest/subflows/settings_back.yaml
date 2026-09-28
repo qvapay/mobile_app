@@ -1,0 +1,15 @@
+# Sale del panel de la wallet (raíz de Ajustes en modo wallet) por su
+# "volver" propio. Mientras siga visible: un toque durante la transición se
+# pierde y retryTapIfNoChange no siempre lo detecta
+appId: com.qvapay
+---
+- repeat:
+    times: 3
+    while:
+      visible:
+        id: "wallet-settings-back"
+    commands:
+      - tapOn:
+          id: "wallet-settings-back"
+      - waitForAnimationToEnd:
+          timeout: 2000

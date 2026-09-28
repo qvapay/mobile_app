@@ -165,6 +165,7 @@ const Onboard = ({ navigation }: Props) => {
 				<Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(200)}>
 					<QPPressable
 						variant="opacity"
+						testID="onboard-skip"
 						onPress={handleCompleteOnboarding}
 						hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
 						<Text style={{ color: theme.colors.primary, fontSize: 13, fontFamily: theme.typography.fontFamily.medium, opacity: 0.7 }}>

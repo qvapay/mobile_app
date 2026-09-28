@@ -1,0 +1,22 @@
+# Arranque limpio: sin sesión, sin wallet, sin PIN (borra datos Y Keychain de la app)
+appId: com.qvapay
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+# Primer arranque: onboarding de bienvenida → Saltar
+- extendedWaitUntil:
+    visible:
+      id: "onboard-skip|welcome-wallet-link"
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: "onboard-skip"
+    commands:
+      - tapOn:
+          id: "onboard-skip"
+- extendedWaitUntil:
+    visible:
+      id: "welcome-wallet-link"
+    timeout: 10000

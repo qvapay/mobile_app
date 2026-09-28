@@ -1,0 +1,58 @@
+# Alta a medias (seed creada, quiz sin hacer) y vuelta atrás: el enlace de
+# Welcome pasa a "Abrir mi wallet" y entra al modo wallet
+appId: com.qvapay
+env:
+  PIN: "1234"
+---
+- runFlow: subflows/fresh_start.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "welcome-wallet-link"
+    retryTapIfNoChange: true
+- runFlow: subflows/dismiss_logbox.yaml
+# Los botones se habilitan al resolver el PIN en Keychain: reintentar si no cambia
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-onboarding-create"
+    retryTapIfNoChange: true
+- runFlow: subflows/create_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-backup-reveal"
+    timeout: 15000
+- runFlow:
+    file: subflows/header_back.yaml
+    env:
+      TO: "Welcome"
+- extendedWaitUntil:
+    visible:
+      id: "welcome-wallet-link"
+    timeout: 5000
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "welcome-wallet-link"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 10000
+# Sin backup confirmado, Recibir manda a terminarlo; releer la seed ya
+# existente pasa por el PIN de la wallet
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-action-receive"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-modal"
+    timeout: 10000
+- runFlow: subflows/type_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-backup-reveal"
+    timeout: 10000
+- takeScreenshot: 09_backup_resume

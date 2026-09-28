@@ -41,6 +41,7 @@ const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) 
 		<Animated.View layout={LinearTransition.duration(350)}>
 		<QPPressable
 			onPress={() => onPress(asset)}
+			testID={`wallet-asset-${asset.id}`}
 			style={[styles.row, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}
 			accessibilityRole="button"
 			accessibilityLabel={`${asset.symbol} ${asset.chainName}`}

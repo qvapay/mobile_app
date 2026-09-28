@@ -27,6 +27,7 @@ jest.mock('react-native-onesignal', () => ({
 jest.mock('sonner-native', () => ({ toast: { info: jest.fn(), success: jest.fn(), error: jest.fn() } }))
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
+jest.mock('../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../helpers/playSound', () => jest.fn())
 jest.mock('../helpers/installReferrer', () => ({ consumeInstallReferrer: jest.fn() }))
 jest.mock('../helpers/versionCheck', () => ({ maybePromptUpdate: jest.fn() }))
@@ -42,6 +43,7 @@ import { useNavigation } from '@react-navigation/native'
 import { toast } from 'sonner-native'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
+import { useWallet } from '../wallet/WalletContext'
 import playSound from '../helpers/playSound'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
 import { maybePromptUpdate } from '../helpers/versionCheck'
@@ -75,6 +77,7 @@ beforeEach(() => {
 	linkingUrlHandler = null
 	useNavigation.mockReturnValue(navigation)
 	useAuth.mockReturnValue({ user: { uuid: 'me' }, isAuthenticated: true, isLoading: false })
+	useWallet.mockReturnValue({ isReady: true, hasWallet: false })
 	useSettings.mockReturnValue({
 		appearance: { firstTime: false },
 		sounds: { enabled: true, transactionSound: true },
@@ -165,6 +168,32 @@ describe('auth ↔ navigation reconciliation', () => {
 		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Welcome' }] })
 		expect(pendingRef.current).toBe(`https://qvapay.com/pay/${P2P_UUID}`)
 		expect(toast.info).toHaveBeenCalledWith('Inicia sesión para pagar la factura')
+	})
+
+	test('unauthenticated users with a wallet on the phone land on WalletOnly', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		useWallet.mockReturnValue({ isReady: true, hasWallet: true })
+		Linking.getInitialURL.mockResolvedValue(null)
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'WalletOnly' }] })
+	})
+
+	test('already on WalletOnly means no reset', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		useWallet.mockReturnValue({ isReady: true, hasWallet: true })
+		navigation.getState.mockReturnValueOnce({ index: 0, routes: [{ name: 'WalletOnly' }] })
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).not.toHaveBeenCalled()
+	})
+
+	test('nothing navigates until the wallet has hydrated', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		useWallet.mockReturnValue({ isReady: false, hasWallet: false })
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).not.toHaveBeenCalled()
 	})
 
 	test('first-time users are left on the onboarding flow (no reset)', async () => {

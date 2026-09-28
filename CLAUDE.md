@@ -24,6 +24,7 @@ npm run i18n:check       # Paridad de claves es/en + placeholders + pares de plu
 npm run i18n:usage       # Toda clave literal t('...') del código existe en el bundle es
 npx jest screens/keypad/keypadAmount.test.js  # Run a single test file
 npm run doctor           # react-doctor diagnostics (also runs in CI: .github/workflows/react-doctor.yml)
+npm run e2e:wallet       # E2E Maestro de la wallet sin cuenta (.maestro/, ver su README; necesita Metro + simulador)
 
 # Release (Android)
 npm run android:bundle      # Bundle release AAB

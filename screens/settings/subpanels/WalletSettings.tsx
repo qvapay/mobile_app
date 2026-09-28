@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { AppState, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
 import Clipboard from '@react-native-clipboard/clipboard'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
 
 // Routes
 import { ROUTES } from '../../../routes'
@@ -24,6 +24,8 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { disableWalletBiometrics, enableWalletBiometrics } from '../../../wallet/keystore'
 import { getSupportedBiometryType } from '../../../api/client'
 import { useSettings } from '../../../settings/SettingsContext'
+import { useAuth } from '../../../auth/AuthContext'
+import { useAppLock } from '../../../lock/AppLockContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
 import { shortAddress } from '../../crypto/wallet/walletFormat'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
@@ -46,6 +48,13 @@ const REVEAL_TIMEOUT_MS = 60_000
 
 type Pending = 'reveal' | 'delete' | 'biometrics' | null
 
+/** Volver propio cuando el panel es la raíz del stack de Ajustes (modo wallet). */
+const renderStackRootBack = (onPress: () => void, color: string, label: string) => () => (
+	<Pressable onPress={onPress} testID="wallet-settings-back" hitSlop={12} accessibilityRole="button" accessibilityLabel={label}>
+		<FontAwesome6 name="chevron-left" size={20} color={color} iconStyle="solid" />
+	</Pressable>
+)
+
 /**
  * Ajustes → Wallet → Mi wallet: direcciones públicas, ver la frase secreta,
  * los nodos RPC y eliminar la wallet. Las dos acciones sensibles pasan por el gate de
@@ -64,7 +73,18 @@ const WalletSettings = () => {
 	const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList>>()
 	const queryClient = useQueryClient()
 
+	// Modo wallet (sin sesión): se entra aquí como PRIMERA pantalla del stack
+	// de Ajustes (el menú de debajo es el de la cuenta) y native-stack no pinta
+	// volver en la raíz de un stack anidado — se pone uno propio que sale del stack
+	const isStackRoot = useNavigationState(state => state.index === 0)
+	useLayoutEffect(() => {
+		if (!isStackRoot) return
+		navigation.setOptions({ headerLeft: renderStackRootBack(() => navigation.goBack(), theme.colors.primaryText, t('common.actions.back')) })
+	}, [isStackRoot, navigation, theme, t])
+
 	const { hasWallet, isBackedUp, addresses, revealMnemonic, deleteWallet } = useWallet()
+	const { isAuthenticated } = useAuth()
+	const { disableAppLock } = useAppLock()
 	const { getSetting, updateSetting } = useSettings()
 	const walletBiometrics = getSetting('crypto', 'walletBiometrics', true) as boolean
 	const [biometryType, setBiometryType] = useState<string | null>(null)
@@ -115,6 +135,12 @@ const WalletSettings = () => {
 		setDeleting(true)
 		try {
 			await deleteWallet()
+			// El marcador biométrico es de ESTA wallet: no debe armar la siguiente
+			await disableWalletBiometrics()
+			// Sin cuenta, el PIN de bloqueo existía solo para la wallet: si sobreviviera, la
+			// próxima alta se saltaría "Crea tu PIN" y la wallet nueva quedaría tras un PIN
+			// que, sin Ajustes de cuenta, no se puede cambiar. Con cuenta protege la sesión
+			if (!isAuthenticated) await disableAppLock()
 			await clearHistoryCaches()
 			// Saldos/historial de la wallet borrada no deben sobrevivir en memoria
 			queryClient.removeQueries({ queryKey: ['wallet', 'balances'] })
@@ -125,7 +151,7 @@ const WalletSettings = () => {
 		} finally {
 			setDeleting(false)
 		}
-	}, [acknowledged, deleting, deleteWallet, queryClient, t, navigation])
+	}, [acknowledged, deleting, deleteWallet, isAuthenticated, disableAppLock, queryClient, t, navigation])
 
 	const copy = (value: string) => { Clipboard.setString(value); toast.success(t('crypto.wallet.card.copied')) }
 
@@ -238,25 +264,27 @@ const WalletSettings = () => {
 			<Text style={[styles.sectionTitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}>{t('crypto.wallet.settings.dangerZone').toUpperCase()}</Text>
 			<View style={[styles.card, styles.cardPadded, { backgroundColor: theme.colors.surface }, cardBorder(theme)]}>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.deleteHint')}</Text>
-				<QPButton title={t('crypto.wallet.settings.delete')} icon="trash" danger outlined onPress={() => setPending('delete')} />
+				<QPButton testID="wallet-settings-delete" title={t('crypto.wallet.settings.delete')} icon="trash" danger outlined onPress={() => setPending('delete')} />
 			</View>
 
 			<WalletAuthModal visible={pending !== null} subtitle={authSubtitle} onClose={() => setPending(null)} onAuthorized={onAuthorized} />
 
 			{/* Segunda confirmación de borrado: hay que reconocer que se tiene la frase */}
 			<Modal visible={confirmDelete} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setConfirmDelete(false)}>
-				<Pressable style={styles.overlay} onPress={() => !deleting && setConfirmDelete(false)}>
-					<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface }]} onPress={() => {}}>
+				{/* accessible={false}: sin él la tarjeta funde a sus hijos en UN elemento
+				    (iOS) y VoiceOver/E2E no llegan al interruptor ni a los botones */}
+				<Pressable style={styles.overlay} onPress={() => !deleting && setConfirmDelete(false)} accessible={false}>
+					<Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface }]} onPress={() => {}} accessible={false}>
 						<View style={[styles.modalIcon, { backgroundColor: theme.colors.danger + '15' }]}>
 							<FontAwesome6 name="trash" size={20} color={theme.colors.danger} iconStyle="solid" />
 						</View>
 						<Text style={[textStyles.h3, styles.centered, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.confirmTitle')}</Text>
 						<Text style={[textStyles.h5, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.settings.confirmBody')}</Text>
-						<Pressable onPress={() => setAcknowledged(v => !v)} style={styles.ackRow} accessibilityRole="switch" accessibilityState={{ checked: acknowledged }}>
+						<Pressable onPress={() => setAcknowledged(v => !v)} testID="wallet-delete-ack" style={styles.ackRow} accessibilityRole="switch" accessibilityState={{ checked: acknowledged }}>
 							<Text style={[textStyles.h5, styles.ackText, { color: theme.colors.primaryText }]}>{t('crypto.wallet.settings.confirmAck')}</Text>
 							<Switch value={acknowledged} onValueChange={setAcknowledged} trackColor={{ false: theme.colors.tertiaryText, true: theme.colors.danger }} />
 						</Pressable>
-						<QPButton title={t('crypto.wallet.settings.confirmDelete')} danger disabled={!acknowledged} loading={deleting} onPress={performDelete} />
+						<QPButton testID="wallet-delete-confirm" title={t('crypto.wallet.settings.confirmDelete')} danger disabled={!acknowledged} loading={deleting} onPress={performDelete} />
 						<QPButton title={t('common.actions.cancel')} outlined disabled={deleting} onPress={() => setConfirmDelete(false)} />
 					</Pressable>
 				</Pressable>

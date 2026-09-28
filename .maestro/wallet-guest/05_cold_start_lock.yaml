@@ -1,0 +1,17 @@
+# Arranque en frío con wallet y sin sesión: bloqueo con PIN → modo wallet
+appId: com.qvapay
+env:
+  PIN: "1234"
+---
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "lock-screen"
+    timeout: 20000
+- takeScreenshot: 05_lock
+- runFlow: subflows/type_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 10000

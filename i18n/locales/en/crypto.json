@@ -514,6 +514,21 @@
 			"orderIdHint": "Give it to support if anything gets stuck",
 			"started": "Started {{time}} ago",
 			"typicalEta": "Usually takes 5 to 30 minutes"
+		},
+		"guest": {
+			"signIn": "Log in",
+			"historyLocked": "Transaction history is available with a QvaPay account.",
+			"pin": {
+				"title": "Create your PIN",
+				"confirmTitle": "Confirm your PIN",
+				"subtitle": "Protect your wallet: we'll ask for it to open the app and before every signature.",
+				"mismatch": "The PINs don't match. Try again."
+			},
+			"upsell": {
+				"title": "Create your QvaPay account",
+				"body": "Transaction history, swaps, P2P and TRON energy. Your wallet stays the same.",
+				"cta": "Create account"
+			}
 		}
 	},
 	"energy": {

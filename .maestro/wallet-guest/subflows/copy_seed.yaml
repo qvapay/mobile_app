@@ -1,0 +1,39 @@
+# Copia las 12 palabras reveladas a output.w1..w12
+appId: com.qvapay
+---
+- copyTextFrom:
+    id: "wallet-seed-word-1"
+- evalScript: ${output.w1 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-2"
+- evalScript: ${output.w2 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-3"
+- evalScript: ${output.w3 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-4"
+- evalScript: ${output.w4 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-5"
+- evalScript: ${output.w5 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-6"
+- evalScript: ${output.w6 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-7"
+- evalScript: ${output.w7 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-8"
+- evalScript: ${output.w8 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-9"
+- evalScript: ${output.w9 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-10"
+- evalScript: ${output.w10 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-11"
+- evalScript: ${output.w11 = maestro.copiedText.trim()}
+- copyTextFrom:
+    id: "wallet-seed-word-12"
+- evalScript: ${output.w12 = maestro.copiedText.trim()}

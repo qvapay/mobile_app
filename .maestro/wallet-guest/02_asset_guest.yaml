@@ -1,0 +1,34 @@
+# Activo TRON sin cuenta: sin historial (invitación), sin swap ni energía, con explorador
+appId: com.qvapay
+env:
+  PIN: "1234"
+---
+- scrollUntilVisible:
+    element:
+      id: "wallet-asset-tron:native"
+    direction: UP
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-asset-tron:native"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "account-upsell-history"
+    timeout: 10000
+- assertVisible:
+    id: "asset-action-send"
+- assertVisible:
+    id: "asset-action-receive"
+- assertVisible:
+    id: "asset-action-explorer"
+- assertNotVisible:
+    id: "asset-action-swap"
+- assertNotVisible:
+    id: "asset-action-energy"
+- takeScreenshot: 02_asset_tron
+- runFlow: subflows/header_back.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 5000

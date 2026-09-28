@@ -17,6 +17,8 @@ export type ActionTileItem = {
 	onPress: () => void
 	/** Atenuado (gate KYC, "próximamente"): sigue siendo tocable para explicar por qué. */
 	dimmed?: boolean
+	/** Identificador para E2E (Maestro). */
+	testID?: string
 }
 
 /**
@@ -24,13 +26,13 @@ export type ActionTileItem = {
  * arriba y label xs debajo. Ocupa todo su contenedor (flex 1): el padre
  * decide la fila (estática en la wallet, animada con parallax en el Home).
  */
-const QPActionTile = ({ icon, label, onPress, dimmed }: ActionTileItem) => {
+const QPActionTile = ({ icon, label, onPress, dimmed, testID }: ActionTileItem) => {
 
 	const { theme } = useTheme()
 	const color = dimmed ? theme.colors.tertiaryText : theme.colors.primaryText
 
 	return (
-		<QPPressable onPress={onPress} style={[styles.tile, { backgroundColor: theme.colors.elevation }]} accessibilityRole="button" accessibilityLabel={label}>
+		<QPPressable onPress={onPress} testID={testID} style={[styles.tile, { backgroundColor: theme.colors.elevation }]} accessibilityRole="button" accessibilityLabel={label}>
 			<FontAwesome6 name={icon} size={17} color={color} iconStyle="solid" />
 			<Text style={{ color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }}>
 				{label}

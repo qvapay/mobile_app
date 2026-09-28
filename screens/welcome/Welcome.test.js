@@ -56,6 +56,9 @@ jest.mock('react-native-svg', () => ({
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }))
 jest.mock('react-native-device-info', () => ({ getVersion: () => '0.0.0' }))
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
+jest.mock('../../ui/particles/QPPressable', () => 'QPPressable')
+jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
+jest.mock('../../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../../assets/images/coins/btc.svg', () => 'BtcSvg')
 jest.mock('../../assets/images/coins/eth.svg', () => 'EthSvg')
 jest.mock('../../assets/images/coins/usdt.svg', () => 'UsdtSvg')
@@ -66,6 +69,7 @@ jest.mock('../../assets/images/coins/ton.svg', () => 'TonSvg')
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import { useSettings } from '../../settings/SettingsContext'
+import { useWallet } from '../../wallet/WalletContext'
 import { ROUTES } from '../../routes'
 import WelcomeScreen from './Welcome'
 import WelcomeKinetic from './WelcomeKinetic'
@@ -86,6 +90,7 @@ beforeEach(() => {
 	jest.clearAllMocks()
 	jest.useFakeTimers()
 	useSettings.mockReturnValue({ updateSetting })
+	useWallet.mockReturnValue({ hasWallet: false })
 	updateSetting.mockResolvedValue()
 })
 
@@ -119,6 +124,21 @@ describe('acciones', () => {
 		expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.LOGIN_SCREEN)
 		act(() => { button(tree, 'Crear cuenta').props.onPress() })
 		expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.REGISTER_SCREEN)
+	})
+
+	test('Solo quiero una wallet abre el alta sin cuenta', () => {
+		const tree = renderWelcome()
+		const link = tree.root.findAllByType('QPPressable').find((p) => p.findAllByType('Text').some((t) => t.props.children === 'Solo quiero una wallet'))
+		act(() => { link.props.onPress() })
+		expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.WALLET_ONBOARDING, { guest: true })
+	})
+
+	test('con la wallet ya en el teléfono, el enlace entra directo al modo wallet', () => {
+		useWallet.mockReturnValue({ hasWallet: true })
+		const tree = renderWelcome()
+		const link = tree.root.findAllByType('QPPressable').find((p) => p.findAllByType('Text').some((t) => t.props.children === 'Abrir mi wallet'))
+		act(() => { link.props.onPress() })
+		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: ROUTES.WALLET_ONLY }] })
 	})
 
 	test('el long-press del headline re-arma el onboarding y resetea a Onboard', async () => {

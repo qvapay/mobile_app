@@ -11,6 +11,8 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 import { useWallet } from '../../../wallet/WalletContext'
 import { isValidMnemonic } from '../../../wallet/seed'
 import useSecureScreen from '../../../hooks/useSecureScreen'
+import { useAuth } from '../../../auth/AuthContext'
+import { finishWalletSetup } from './finishWalletSetup'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -35,6 +37,7 @@ const WalletImport = ({ navigation }: Props) => {
 
 	const { importWallet } = useWallet()
 	useSecureScreen(true)
+	const { isAuthenticated } = useAuth()
 
 	const [phrase, setPhrase] = useState('')
 	const [importing, setImporting] = useState(false)
@@ -52,7 +55,7 @@ const WalletImport = ({ navigation }: Props) => {
 			return
 		}
 		toast.success(t('crypto.wallet.import.done'))
-		navigation.popToTop()
+		finishWalletSetup(navigation, isAuthenticated)
 	}
 
 	return (
@@ -62,6 +65,7 @@ const WalletImport = ({ navigation }: Props) => {
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.import.subtitle')}</Text>
 
 				<TextInput
+					testID="wallet-import-input"
 					style={[styles.input, textStyles.h4, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }, inputBorder(theme)]}
 					multiline
 					autoCapitalize="none"
@@ -83,7 +87,7 @@ const WalletImport = ({ navigation }: Props) => {
 					)}
 				</View>
 
-				<QPButton title={t('crypto.wallet.import.cta')} onPress={handleImport} disabled={!valid} loading={importing} />
+				<QPButton testID="wallet-import-submit" title={t('crypto.wallet.import.cta')} onPress={handleImport} disabled={!valid} loading={importing} />
 			</View>
 		</KeyboardAvoidingView>
 	)

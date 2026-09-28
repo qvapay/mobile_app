@@ -2,7 +2,7 @@
 // prompt, auth → navigation reconciliation, deep-link capture and OneSignal
 // listeners. Extracted from AppNavigator so the component itself only declares
 // routes (see App.tsx).
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Linking } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { OneSignal } from 'react-native-onesignal'
@@ -13,9 +13,11 @@ import { toast } from 'sonner-native'
 // Contexts
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
+import { useWallet } from '../wallet/WalletContext'
 
 // Routes
 import { ROUTES } from '../routes'
+import { resolveRootRoute } from './rootRoute'
 
 // Helpers
 import playSound from '../helpers/playSound'
@@ -100,6 +102,14 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	const { user, isAuthenticated, isLoading: authLoading } = useAuth()
 	const { appearance, sounds, isLoading: settingsLoading } = useSettings()
 	const firstTime = appearance.firstTime
+	const { isReady: walletReady, hasWallet } = useWallet()
+
+	// hasWallet por ref y NO en deps: crear la wallet desde Welcome la flipea a
+	// mitad del quiz de backup, y un reset ahí sacaría al usuario del flujo. El
+	// paso a WalletOnly lo hace el propio flujo al terminar (finishWalletSetup);
+	// aquí solo cuenta en arranque, login y logout
+	const hasWalletRef = useRef(hasWallet)
+	useEffect(() => { hasWalletRef.current = hasWallet }, [hasWallet])
 
 	// State to control minimum splash screen time
 	const [splashReady, setSplashReady] = useState(false)
@@ -138,7 +148,7 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	// sources outside this tree (login screen, logout, background token expiry,
 	// app launch) — so this is a genuine reactive effect, not a faked handler.
 	useEffect(() => {
-		if (splashReady && !authLoading && !settingsLoading) {
+		if (splashReady && !authLoading && !settingsLoading && walletReady) {
 			const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
 			if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
 				// Check for a pending deep link after login
@@ -182,7 +192,10 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 					}
 				}
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK }] })
-			} else if (!isAuthenticated && !firstTime && currentRoute !== ROUTES.WELCOME_SCREEN) {
+			} else if (!isAuthenticated && !firstTime) {
+				// Sin sesión: Welcome, o el modo wallet si la seed vive en el teléfono
+				const target = resolveRootRoute({ firstTime, isAuthenticated, hasWallet: hasWalletRef.current })
+				if (currentRoute === target) return
 				// Capture the current deep link URL before resetting to Welcome
 				Linking.getInitialURL().then((url) => {
 					if (!url) return
@@ -197,10 +210,10 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 						toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeStore'))
 					}
 				})
-				navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME_SCREEN }] })
+				navigation.reset({ index: 0, routes: [{ name: target }] })
 			}
 		}
-	}, [splashReady, authLoading, settingsLoading, isAuthenticated, firstTime, navigation, pendingDeepLinkRef])
+	}, [splashReady, authLoading, settingsLoading, walletReady, isAuthenticated, firstTime, navigation, pendingDeepLinkRef])
 
 	// Listen for foreground deep links while unauthenticated
 	useEffect(() => {
@@ -290,6 +303,8 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 		settingsLoading,
 		firstTime,
 		splashReady,
+		walletReady,
+		hasWallet,
 		updateInfo,
 		dismissUpdate,
 	}
