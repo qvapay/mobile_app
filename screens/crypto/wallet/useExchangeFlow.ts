@@ -97,9 +97,13 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 	 * importe y pulsar Revisar dentro del debounce dejaba confirmar la orden VIEJA: la hoja
 	 * enseñaba lo tecleado y se mandaba lo cotizado antes, con su `quote_id`, y el backend
 	 * lo aceptaba porque ambos cuadraban entre sí.
+	 *
+	 * NO se mira `isFetching`: el refresco periódico (refetchInterval) es del MISMO par e
+	 * importe, y la cotización en pantalla sigue valiendo mientras llega la siguiente;
+	 * bloquear ahí apagaba Confirmar cada 45 s sin enseñar ninguna carga.
 	 */
 	const ready = !!payload?.quote_id && check.ok && quotedAmount === check.amount
-		&& !quoteQuery.isPlaceholderData && !quoteQuery.isFetching
+		&& !quoteQuery.isPlaceholderData
 
 	/**
 	 * Abre la operación. Ningún camino de salida es mudo: un botón de confirmar que no hace
