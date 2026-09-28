@@ -29,6 +29,10 @@ import useCoins from '../../../hooks/useCoins'
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
 
+// Auth: sin sesión (modo wallet) no hay historial, intercambio ni energía — son del backend
+import { useAuth } from '../../../auth/AuthContext'
+import AccountUpsellCard from './components/AccountUpsellCard'
+
 // Helpers
 import { timeAgo } from '../../../helpers'
 
@@ -102,12 +106,12 @@ const MarketButton = ({ label, color, onPress }: { label: string, color: string,
 	</Pressable>
 )
 
-type ActionProps = { icon: FontAwesome6SolidIconName, label: string, onPress: () => void, dimmed?: boolean, theme: Theme }
+type ActionProps = { icon: FontAwesome6SolidIconName, label: string, onPress: () => void, dimmed?: boolean, theme: Theme, testID?: string }
 
-const Action = ({ icon, label, onPress, dimmed, theme }: ActionProps) => {
+const Action = ({ icon, label, onPress, dimmed, theme, testID }: ActionProps) => {
 	const color = dimmed ? theme.colors.tertiaryText : theme.colors.primaryText
 	return (
-		<QPPressable onPress={onPress} style={[styles.action, { backgroundColor: theme.colors.elevation }]} accessibilityRole="button" accessibilityLabel={label}>
+		<QPPressable onPress={onPress} testID={testID} style={[styles.action, { backgroundColor: theme.colors.elevation }]} accessibilityRole="button" accessibilityLabel={label}>
 			<FontAwesome6 name={icon} size={17} color={color} iconStyle="solid" />
 			<Text numberOfLines={1} style={{ color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }}>{label}</Text>
 		</QPPressable>
@@ -129,6 +133,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const containerStyles = useContainerStyles(theme)
 
 	const { addresses, isBackedUp } = useWallet()
+	const { isAuthenticated } = useAuth()
 	const registry = useEffectiveRegistry()
 	const { all, isLoading: balancesLoading, refetch: refetchBalances } = useWalletAssets()
 	const prices = usePriceMap()
@@ -239,6 +244,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				<Action
 					theme={theme}
 					icon="paper-plane"
+					testID="asset-action-send"
 					label={t('crypto.wallet.home.actions.send')}
 					dimmed={!canSendAsset(asset)}
 					onPress={() => !canSendAsset(asset) ? toast(t('crypto.wallet.home.sendSoon')) : isBackedUp ? navigation.navigate(ROUTES.WALLET_SEND, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP)}
@@ -246,6 +252,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				<Action
 					theme={theme}
 					icon="qrcode"
+					testID="asset-action-receive"
 					label={t('crypto.wallet.home.actions.receive')}
 					onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_RECEIVE, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP))}
 				/>
@@ -253,24 +260,28 @@ const WalletAsset = ({ navigation, route }: Props) => {
 					<Action
 						theme={theme}
 						icon="arrows-rotate"
+						testID="asset-action-swap"
 						label={t('crypto.wallet.home.actions.swap')}
 						onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_SWAP, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP))}
 					/>
 				)}
-				{isTron && (
+				{isTron && isAuthenticated && (
 					<Action
 						theme={theme}
 						icon="bolt"
+						testID="asset-action-energy"
 						label={t('crypto.energy.resources.energy')}
 						onPress={() => navigation.navigate(ROUTES.WALLET_ENERGY, undefined)}
 					/>
 				)}
 				{!canSwap && (
-					<Action theme={theme} icon="up-right-from-square" label={t('crypto.wallet.asset.explorer')} onPress={() => openUrl(address ? explorerAddressUrl(chain, address) : null)} />
+					<Action theme={theme} icon="up-right-from-square" testID="asset-action-explorer" label={t('crypto.wallet.asset.explorer')} onPress={() => openUrl(address ? explorerAddressUrl(chain, address) : null)} />
 				)}
 			</View>
 
 			<Text style={[textStyles.h3, styles.sectionTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.asset.activity')}</Text>
+
+			{!isAuthenticated && allItems.length === 0 && <AccountUpsellCard variant="history" />}
 
 			{history.isInitialLoading && (
 				<View style={styles.historySkeleton}>
@@ -290,7 +301,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				</View>
 			)}
 
-			{history.isReady && !history.isError && allItems.length === 0 && !hasMore && (
+			{isAuthenticated && history.isReady && !history.isError && allItems.length === 0 && !hasMore && (
 				<View style={[styles.emptyBox, { backgroundColor: theme.colors.surface }]}>
 					<FontAwesome6 name="inbox" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[textStyles.h5, styles.emptyText, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.asset.empty', { symbol: asset.symbol })}</Text>

@@ -35,6 +35,8 @@ type QPButtonProps = {
 	loadingColor?: string
 	danger?: boolean
 	outlined?: boolean
+	/** Identificador para E2E (Maestro): accessibilityIdentifier en iOS, resource-id en Android. */
+	testID?: string
 }
 
 /**
@@ -52,7 +54,7 @@ type QPButtonProps = {
  * @param [props.danger=false] - Destructive styling.
  * @param [props.outlined=false] - With `danger`, renders the outlined variant.
  */
-const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid', iconColor, disabled = false, loading = false, loadingColor, danger = false, outlined = false }: QPButtonProps) => {
+const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid', iconColor, disabled = false, loading = false, loadingColor, danger = false, outlined = false, testID }: QPButtonProps) => {
 
     // Contexts
     const { theme } = useTheme()
@@ -69,6 +71,7 @@ const QPButton = ({ title, onPress, style, textStyle, icon, iconStyle = 'solid',
     return (
         <QPPressable
             onPress={onPress}
+            testID={testID}
             disabled={disabled || loading}
             style={[
                 styles.container,

@@ -11,6 +11,7 @@ import { useTextStyles } from '../../../../theme/themeUtils'
 
 // Seguridad: PIN de bloqueo y credenciales biométricas (Keychain)
 import { useSettings } from '../../../../settings/SettingsContext'
+import { useAuth } from '../../../../auth/AuthContext'
 import { getAppLockPin, getSupportedBiometryType, hasAppLockPin } from '../../../../api/client'
 import { authenticateWalletBiometrics, enableWalletBiometrics, hasWalletBiometrics } from '../../../../wallet/keystore'
 
@@ -19,6 +20,7 @@ import QPButton from '../../../../ui/particles/QPButton'
 import QPCodeInput from '../../../../ui/particles/QPCodeInput'
 import type { QPCodeInputHandle } from '../../../../ui/particles/QPCodeInput'
 import FaceIDIcon from '../../../../ui/particles/FaceIDIcon'
+import WalletPinSetup from './WalletPinSetup'
 
 // Navigation
 import { ROUTES } from '../../../../routes'
@@ -45,7 +47,9 @@ const MAX_ATTEMPTS = 5
  * `crypto.walletBiometrics` está encendido. Con biometría disponible el
  * prompt sale primero y el PIN queda de respaldo (sin autofocus: el teclado
  * y el prompt se pelean por el foco). Sin PIN de bloqueo no hay gate
- * posible: se pide crearlo antes del primer envío. Cinco fallos cierran el
+ * posible: se pide crearlo antes del primer envío — con cuenta en Ajustes →
+ * Bloqueo; sin cuenta (modo wallet) aquí mismo, porque Ajustes cuelga del
+ * usuario y crearlo ya autoriza la firma. Cinco fallos cierran el
  * modal — no hay lockout persistente porque el PIN solo desbloquea una firma
  * local, no una cuenta.
  */
@@ -56,6 +60,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 	const textStyles = useTextStyles(theme)
 	const navigation = useNavigation<NavigationProp<RootStackParamList>>()
 	const { getSetting } = useSettings()
+	const { isAuthenticated } = useAuth()
 	const biometricsWanted = getSetting('crypto', 'walletBiometrics', true) as boolean
 
 	const [hasPin, setHasPin] = useState<boolean | null>(null)
@@ -143,8 +148,10 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-			<Pressable style={styles.overlay} onPress={onClose}>
-				<Pressable style={[styles.card, { backgroundColor: theme.colors.surface }]} onPress={() => {}}>
+			{/* accessible={false}: un Pressable accesible funde a sus hijos en UN
+			    elemento (iOS) y VoiceOver/E2E no llegarían al PIN ni a los botones */}
+			<Pressable style={styles.overlay} onPress={onClose} accessible={false}>
+				<Pressable testID="wallet-auth-modal" style={[styles.card, { backgroundColor: theme.colors.surface }]} onPress={() => {}} accessible={false}>
 					<View style={styles.header}>
 						<View style={[styles.icon, { backgroundColor: theme.colors.primary + '15' }]}>
 							<FontAwesome6 name="lock" size={18} color={theme.colors.primary} iconStyle="solid" />
@@ -153,7 +160,9 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 						<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.secondaryText }]}>{subtitle}</Text>
 					</View>
 
-					{hasPin === false ? (
+					{hasPin === false && !isAuthenticated ? (
+						<WalletPinSetup onDone={onAuthorized} boxColor={theme.colors.background} />
+					) : hasPin === false ? (
 						<View style={styles.noPin}>
 							<Text style={[textStyles.h5, styles.subtitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.auth.noPin')}</Text>
 							<QPButton title={t('crypto.wallet.auth.createPin')} onPress={goToAppLock} />

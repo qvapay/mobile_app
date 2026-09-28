@@ -513,6 +513,21 @@
 			"orderIdHint": "Dásela a soporte si algo se atasca",
 			"started": "Empezó hace {{time}}",
 			"typicalEta": "Suele tardar entre 5 y 30 minutos"
+		},
+		"guest": {
+			"signIn": "Iniciar sesión",
+			"historyLocked": "El historial de movimientos está disponible con una cuenta QvaPay.",
+			"pin": {
+				"title": "Crea tu PIN",
+				"confirmTitle": "Confirma tu PIN",
+				"subtitle": "Protege tu wallet: lo pediremos para abrir la app y antes de cada firma.",
+				"mismatch": "Los PIN no coinciden. Inténtalo de nuevo."
+			},
+			"upsell": {
+				"title": "Crea tu cuenta QvaPay",
+				"body": "Historial de movimientos, intercambios, P2P y energía TRON. Tu wallet sigue siendo la misma.",
+				"cta": "Crear cuenta"
+			}
 		}
 	},
 	"energy": {

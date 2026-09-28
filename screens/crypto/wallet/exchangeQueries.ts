@@ -40,8 +40,10 @@ const LIVE_POLL_MS = 8_000
  * Qué se puede intercambiar. Su 503 es también la señal de disponibilidad del producto: sin
  * catálogo no se pinta el intercambio (un botón deshabilitado es peor que ninguno).
  */
-export const useExchangeCatalogQuery = () => useQuery<ExchangeCatalogPayload | null>({
+export const useExchangeCatalogQuery = (enabled = true) => useQuery<ExchangeCatalogPayload | null>({
 	queryKey: EXCHANGE_CATALOG_KEY,
+	// Exige sesión: el modo wallet (sin cuenta) lo apaga para no comerse un 401
+	enabled,
 	queryFn: async () => unwrap(await exchangeApi.catalog()),
 	staleTime: CATALOG_STALE_MS,
 	retry: (count, error) => (error as ApiError)?.status !== 503 && shouldRetry(count, error),

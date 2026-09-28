@@ -17,6 +17,8 @@
 	"actions": {
 		"start": "Começar",
 		"createAccount": "Criar conta",
+		"walletOnly": "Só quero uma carteira",
+		"openWallet": "Abrir minha carteira",
 		"terms": "Ao continuar, você aceita nossos <0>Termos e Condições</0>"
 	},
 	"onboard": {

@@ -17,6 +17,8 @@
 	"actions": {
 		"start": "Comenzar",
 		"createAccount": "Crear cuenta",
+		"walletOnly": "Solo quiero una wallet",
+		"openWallet": "Abrir mi wallet",
 		"terms": "Al continuar, aceptas nuestros <0>Términos y Condiciones</0>"
 	},
 	"onboard": {

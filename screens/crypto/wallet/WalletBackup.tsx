@@ -11,6 +11,8 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
+import { useAuth } from '../../../auth/AuthContext'
+import { finishWalletSetup } from './finishWalletSetup'
 import { buildQuiz, QUIZ_QUESTIONS } from '../../../wallet/seed'
 import type { QuizQuestion } from '../../../wallet/seed'
 
@@ -44,6 +46,7 @@ const WalletBackup = ({ navigation }: Props) => {
 	const warnLineHeight = Math.round(theme.typography.fontSize.md * 1.35)
 
 	const { hasWallet, isBackedUp, createWallet, revealMnemonic, markBackedUp } = useWallet()
+	const { isAuthenticated } = useAuth()
 
 	const [mnemonic, setMnemonic] = useState<string | null>(null)
 	// Sin capturas mientras las palabras estén en pantalla (también durante el quiz)
@@ -99,8 +102,8 @@ const WalletBackup = ({ navigation }: Props) => {
 		}
 		await markBackedUp()
 		toast.success(t('crypto.wallet.backup.done'))
-		navigation.popToTop()
-	}, [quiz, quizIndex, words, markBackedUp, navigation, t])
+		finishWalletSetup(navigation, isAuthenticated)
+	}, [quiz, quizIndex, words, markBackedUp, navigation, isAuthenticated, t])
 
 	if (!mnemonic) {
 		return (
@@ -135,24 +138,25 @@ const WalletBackup = ({ navigation }: Props) => {
 						{words.map((word, index) => (
 							<View key={index} style={[styles.wordChip, { backgroundColor: theme.colors.surface }, wordBorder(theme)]}>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{index + 1}</Text>
-								<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{revealed ? word : '••••••'}</Text>
+								<Text testID={`wallet-seed-word-${index + 1}`} style={[textStyles.h5, { color: theme.colors.primaryText }]}>{revealed ? word : '••••••'}</Text>
 							</View>
 						))}
 					</View>
 
 					{!revealed
-						? <QPButton title={t('crypto.wallet.backup.reveal')} icon="eye" onPress={() => setRevealed(true)} />
-						: <QPButton title={t('crypto.wallet.backup.continue')} onPress={startQuiz} />}
+						? <QPButton testID="wallet-backup-reveal" title={t('crypto.wallet.backup.reveal')} icon="eye" onPress={() => setRevealed(true)} />
+						: <QPButton testID="wallet-backup-continue" title={t('crypto.wallet.backup.continue')} onPress={startQuiz} />}
 				</>
 			) : (
 				<>
 					<Text style={textStyles.h1}>{t('crypto.wallet.backup.quizTitle')}</Text>
-					<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
+					{/* E2E: la posición viaja también en el testID (el texto va traducido) */}
+					<Text testID={`wallet-quiz-position-${question.position + 1}`} style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
 						{t('crypto.wallet.backup.quizSubtitle', { position: question.position + 1 })}
 					</Text>
 					<View style={styles.options}>
 						{question.options.map(option => (
-							<QPPressable key={option} onPress={() => answer(option)} style={[styles.option, { backgroundColor: theme.colors.surface }, wordBorder(theme)]}>
+							<QPPressable key={option} testID={`wallet-quiz-option-${option}`} onPress={() => answer(option)} style={[styles.option, { backgroundColor: theme.colors.surface }, wordBorder(theme)]}>
 								<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{option}</Text>
 							</QPPressable>
 						))}

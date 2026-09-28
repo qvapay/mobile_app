@@ -3,6 +3,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated'
 import DeviceInfo from 'react-native-device-info'
 import { Trans, useTranslation } from 'react-i18next'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -11,8 +12,12 @@ import { useTheme } from '../../theme/ThemeContext'
 import { ROUTES } from '../../routes'
 import type { RootStackParamList } from '../../types/navigation'
 
+// Wallet self-custody (no depende de la cuenta)
+import { useWallet } from '../../wallet/WalletContext'
+
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
+import QPPressable from '../../ui/particles/QPPressable'
 
 type WelcomeActionsProps = {
 	navigation: NativeStackNavigationProp<RootStackParamList, 'Welcome'>
@@ -20,8 +25,9 @@ type WelcomeActionsProps = {
 
 /**
  * Bloque de CTAs compartido por las variantes del WelcomeScreen: botón primario
- * (Comenzar → Login), secundario fantasma (Crear cuenta → Register), enlace a
- * los términos y la versión de la app. Entra con un FadeInDown retrasado para
+ * (Comenzar → Login), secundario fantasma (Crear cuenta → Register), un enlace
+ * terciario al modo wallet (wallet self-custody sin cuenta), los términos y la
+ * versión de la app. Entra con un FadeInDown retrasado para
  * ceder el protagonismo al hero de cada variante.
  *
  * @param props
@@ -34,6 +40,14 @@ const WelcomeActions = ({ navigation }: WelcomeActionsProps) => {
 
 	// Idioma activo
 	const { t } = useTranslation()
+
+	// Wallet sin cuenta: alta nueva (con PIN) o, si la seed ya está en el
+	// teléfono (alta a medias o logout), directo al modo wallet
+	const { hasWallet } = useWallet()
+	const openWallet = () => {
+		if (hasWallet) { navigation.reset({ index: 0, routes: [{ name: ROUTES.WALLET_ONLY }] }); return }
+		navigation.navigate(ROUTES.WALLET_ONBOARDING, { guest: true })
+	}
 
 	return (
 		<Animated.View entering={FadeInDown.delay(500).duration(700)} style={styles.container}>
@@ -49,6 +63,13 @@ const WelcomeActions = ({ navigation }: WelcomeActionsProps) => {
 					style={{ backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.primary + '60' }}
 					textStyle={{ fontSize: theme.typography.fontSize.lg, color: theme.colors.primaryText }}
 				/>
+				{/* Terciario y ligero: la cuenta sigue siendo el camino principal */}
+				<QPPressable onPress={openWallet} testID="welcome-wallet-link" style={styles.walletLink} accessibilityRole="button">
+					<FontAwesome6 name="wallet" size={13} color={theme.colors.secondaryText} iconStyle="solid" />
+					<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }}>
+						{t(hasWallet ? 'welcome.actions.openWallet' : 'welcome.actions.walletOnly')}
+					</Text>
+				</QPPressable>
 			</View>
 
 			{/* La frase de términos vive en UNA sola clave (el enlace va como <0> vía
@@ -78,6 +99,17 @@ const styles = StyleSheet.create({
 	},
 	buttons: {
 		gap: 4,
+	},
+	// Aspecto de enlace, caja de botón: mismo alto y margen que QPButton (56 +
+	// 5 arriba/abajo), así ocupa un hueco más de la botonera y el área táctil
+	// es la de un botón
+	walletLink: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 8,
+		height: 56,
+		marginVertical: 5,
 	},
 	terms: {
 		textAlign: 'center',

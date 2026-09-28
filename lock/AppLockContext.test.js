@@ -23,6 +23,7 @@ jest.mock('../helpers/biometricMarker', () => ({
 }))
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
+jest.mock('../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../api/client', () => ({
 	getSupportedBiometryType: jest.fn(async () => null),
 	getBiometricCredentials: jest.fn(),
@@ -36,6 +37,7 @@ import React from 'react'
 import { act, create } from 'react-test-renderer'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
+import { useWallet } from '../wallet/WalletContext'
 import {
 	getBiometricCredentials,
 	getAppLockPin,
@@ -74,6 +76,7 @@ beforeEach(() => {
 	jest.useFakeTimers()
 	appStateHandler = null
 	useAuth.mockReturnValue({ isAuthenticated: true, isLoading: false })
+	useWallet.mockReturnValue({ hasWallet: false, isReady: true })
 	useSettings.mockReturnValue({
 		security: { autoLockTimeout: 5 },
 		isLoading: false,
@@ -112,6 +115,36 @@ describe('cold start', () => {
 		hasAppLockPin.mockResolvedValue(true)
 		useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
 		const lock = await renderAppLock()
+		expect(lock.current.isLocked).toBe(false)
+	})
+
+	test('without a session, a wallet on the phone still locks at cold start', async () => {
+		hasAppLockPin.mockResolvedValue(true)
+		useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
+		useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+		const lock = await renderAppLock()
+		expect(lock.current.isLocked).toBe(true)
+	})
+
+	test('creating the wallet mid-session does not lock (the backup would be cut)', async () => {
+		useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
+		const Harness = ({ onValue }) => { onValue(useAppLock()); return null }
+		let value = null
+		let tree
+		await act(async () => { tree = create(<AppLockProvider><Harness onValue={v => { value = v }} /></AppLockProvider>) })
+		hasAppLockPin.mockResolvedValue(true)
+		await act(async () => { await value.enableAppLock('1234') })
+		useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+		await act(async () => { tree.update(<AppLockProvider><Harness onValue={v => { value = v }} /></AppLockProvider>) })
+		expect(value.isLocked).toBe(false)
+		expect(value.appLockEnabled).toBe(true)
+	})
+
+	test('waits for the wallet to hydrate before deciding', async () => {
+		hasAppLockPin.mockResolvedValue(true)
+		useWallet.mockReturnValue({ hasWallet: false, isReady: false })
+		const lock = await renderAppLock()
+		expect(hasAppLockPin).not.toHaveBeenCalled()
 		expect(lock.current.isLocked).toBe(false)
 	})
 })

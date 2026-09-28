@@ -120,7 +120,10 @@ export type RootStackParamList = {
 	CoinDetail: { tick: string, name?: string, initialData?: Coin | EnrichedCoin }
 
 	// ── Wallet self-custody (branch crypto) ───────────────────────────────
-	WalletOnboarding: undefined
+	/** Raíz del "modo wallet": sin sesión QvaPay pero con wallet en el teléfono. */
+	WalletOnly: undefined
+	/** `guest`: alta sin cuenta desde Welcome (pide crear el PIN antes de la seed). */
+	WalletOnboarding: { guest?: boolean } | undefined
 	/** El mnemonic NUNCA viaja por params: Backup lo crea/lee él mismo (quiz interno). */
 	WalletBackup: undefined
 	WalletImport: undefined

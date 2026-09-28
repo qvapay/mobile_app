@@ -73,7 +73,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
 
-	const { user } = useAuth()
+	const { user, isAuthenticated } = useAuth()
 	const { addresses } = useWallet()
 	const registry = useEffectiveRegistry()
 	const { all } = useWalletAssets()
@@ -100,7 +100,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	// Patrocinio: en Solana QvaPay puede pagar el fee de un GOLD. Si hay permiso, la tx
 	// se construye con su pagador y la difunde el backend; si no, envío normal.
-	const gasless = useGaslessSend({ asset, to, amount: asset ? parseUnitsSafe(amount, asset.decimals).toString() : '' })
+	// Sin sesión (modo wallet) no hay patrocinio: el permiso lo concede el backend
+	const gasless = useGaslessSend({ asset, to, amount: asset ? parseUnitsSafe(amount, asset.decimals).toString() : '', enabled: isAuthenticated })
 
 	const tx = useWalletSendTx({ asset, chain, addresses, to, amount, assetId, onSent, describeError: describe, sponsor: gasless.bridge })
 	const { phase, prepared, error, feeTier, busy } = tx
@@ -116,7 +117,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	// --- Energía TRON: ¿este envío quema TRX por no tener energía? ---
 	const prices = usePriceMap()
-	const energyPrices = useEnergyPricesQuery()
+	// El alquiler se cobra del saldo QvaPay: sin sesión no se pide ni se ofrece
+	const energyPrices = useEnergyPricesQuery(isAuthenticated)
 	const [rentOpen, setRentOpen] = useState(false)
 	const energy = useEnergyOffer({
 		prepared,
@@ -188,7 +190,8 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 			<EnergyNotice
 				theme={theme}
-				decision={energy?.decision ?? null}
+				// Sin sesión solo sobrevive el aviso de ancho de banda: ofrecer un alquiler que no se puede pagar es ruido
+				decision={isAuthenticated || energy?.decision.reason === 'no' ? energy?.decision ?? null : null}
 				fee={fee}
 				phase={phase}
 				rented={tx.energyRented}

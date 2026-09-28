@@ -18,6 +18,9 @@ import { usePriceMap, useWalletAssets } from './walletQueries'
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
 
+// Auth: sin sesión (modo wallet) se ocultan swap y P2P, que viven en el backend
+import { useAuth } from '../../../auth/AuthContext'
+
 // UI
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPSkeleton from '../../../ui/particles/QPSkeleton'
@@ -64,6 +67,7 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	const navigation = useNavigation<Nav>()
 
 	const { isReady, hasWallet, isBackedUp } = useWallet()
+	const { isAuthenticated } = useAuth()
 	const { visible, total, isLoading, isError, failedChains, hasBalances, refetch } = useWalletAssets()
 	const prices = usePriceMap()
 
@@ -90,13 +94,22 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	// Recibir exige el backup confirmado: sin él, perder el teléfono = perder lo recibido
 	const requireBackup = (next: () => void) => () => (isBackedUp ? next() : navigation.navigate(ROUTES.WALLET_BACKUP))
 
-	const actions: WalletAction[] = [
-		{ icon: 'paper-plane', label: t('crypto.wallet.home.actions.send'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SEND, undefined)) },
-		{ icon: 'qrcode', label: t('crypto.wallet.home.actions.receive'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_RECEIVE, undefined)) },
+	// Swap y P2P son del backend (exigen sesión): el modo wallet no los muestra
+	const accountActions: WalletAction[] = [
 		// Swap saldo ↔ QUSD: mueve saldo custodial a la wallet, así que exige el backup igual que Recibir
-		{ icon: 'arrows-rotate', label: t('crypto.wallet.home.actions.swap'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SWAP, undefined)) },
-		{ icon: 'arrow-right-arrow-left', label: t('crypto.wallet.home.actions.p2p'), onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
+		{ icon: 'arrows-rotate', testID: 'wallet-action-swap', label: t('crypto.wallet.home.actions.swap'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SWAP, undefined)) },
+		{ icon: 'arrow-right-arrow-left', testID: 'wallet-action-p2p', label: t('crypto.wallet.home.actions.p2p'), onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]
+
+	const actions: WalletAction[] = [
+		{ icon: 'paper-plane', testID: 'wallet-action-send', label: t('crypto.wallet.home.actions.send'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SEND, undefined)) },
+		{ icon: 'qrcode', testID: 'wallet-action-receive', label: t('crypto.wallet.home.actions.receive'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_RECEIVE, undefined)) },
+		...(isAuthenticated ? accountActions : []),
+	]
+
+	// Sin sesión se entra DIRECTO al panel de la wallet: el menú de Ajustes que
+	// quedaría debajo (initial:false) es el de la cuenta y cuelga del usuario
+	const openSecurity = () => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.WALLET_SETTINGS, initial: !isAuthenticated })
 
 	const notice = failedChains.length > 0 && hasBalances
 		? t('crypto.wallet.home.staleChains', { count: failedChains.length })
@@ -136,14 +149,14 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 					))}
 
 				<View style={[styles.footerRow, { borderTopColor: theme.colors.border + '60' }]}>
-					<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_MANAGE_ASSETS)} style={styles.manage} accessibilityRole="button">
+					<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_MANAGE_ASSETS)} testID="wallet-home-manage" style={styles.manage} accessibilityRole="button">
 						<FontAwesome6 name="sliders" size={13} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }}>
 							{t('crypto.wallet.home.manageAssets')}
 						</Text>
 					</QPPressable>
 					<View style={[styles.footerDivider, { backgroundColor: theme.colors.border + '60' }]} />
-					<QPPressable onPress={() => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.WALLET_SETTINGS, initial: false })} style={styles.manage} accessibilityRole="button">
+					<QPPressable onPress={openSecurity} testID="wallet-home-security" style={styles.manage} accessibilityRole="button">
 						<FontAwesome6 name="shield-halved" size={13} color={theme.colors.primary} iconStyle="solid" />
 						<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }}>
 							{t('crypto.wallet.home.security')}

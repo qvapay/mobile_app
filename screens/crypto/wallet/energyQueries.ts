@@ -39,8 +39,10 @@ export { trimToFirstPage }
  * disponibilidad del producto entero: sin precios no se pinta ningún botón de
  * comprar (uno deshabilitado es peor que ninguno).
  */
-export const useEnergyPricesQuery = () => useQuery<EnergyPricesPayload | null>({
+export const useEnergyPricesQuery = (enabled = true) => useQuery<EnergyPricesPayload | null>({
 	queryKey: ENERGY_PRICES_KEY,
+	// Se cobra del saldo QvaPay: sin sesión (modo wallet) no hay producto
+	enabled,
 	queryFn: async () => unwrap(await energyApi.prices()),
 	staleTime: PRICES_STALE_MS,
 	// El 503 no es un 4xx, así que la política general lo reintentaría dos

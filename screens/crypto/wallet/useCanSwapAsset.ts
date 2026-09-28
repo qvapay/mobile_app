@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
 
+// Auth: todas las salidas de intercambio son del backend
+import { useAuth } from '../../../auth/AuthContext'
+
 // Datos
 import useCoins from '../../../hooks/useCoins'
 import { useExchangeCatalogQuery } from './exchangeQueries'
@@ -22,7 +25,8 @@ import { canSwapAsset } from './swapRouting'
  */
 export const useCanSwapAsset = (asset: WalletAsset | null | undefined): boolean => {
 
-	const catalog = useExchangeCatalogQuery()
+	const { isAuthenticated } = useAuth()
+	const catalog = useExchangeCatalogQuery(isAuthenticated)
 	const { coins } = useCoins('all')
 	const assets = useAssetCatalog()
 
@@ -32,14 +36,14 @@ export const useCanSwapAsset = (asset: WalletAsset | null | undefined): boolean 
 	)
 
 	return useMemo(() => {
-		if (!asset) { return false }
+		if (!asset || !isAuthenticated) { return false }
 		return canSwapAsset({
 			assetId: asset.id,
 			isHouse: isHouseToken(asset),
 			supportedAssetIds: catalog.data?.supported ?? [],
 			railAssetIds,
 		})
-	}, [asset, catalog.data, railAssetIds])
+	}, [asset, isAuthenticated, catalog.data, railAssetIds])
 }
 
 export default useCanSwapAsset

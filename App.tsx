@@ -57,6 +57,7 @@ import { ThemeProvider } from './theme/ThemeContext'
 
 // Routes
 import { ROUTES } from './routes'
+import { resolveRootRoute } from './hooks/rootRoute'
 
 // Deep Linking
 import linking from './linking'
@@ -92,6 +93,7 @@ import Savings from './screens/crypto/Savings'
 import StockDetail from './screens/crypto/StockDetail'
 import CoinDetail from './screens/crypto/CoinDetail'
 import WalletOnboarding from './screens/crypto/wallet/WalletOnboarding'
+import WalletOnly from './screens/crypto/wallet/WalletOnly'
 import WalletBackup from './screens/crypto/wallet/WalletBackup'
 import WalletImport from './screens/crypto/wallet/WalletImport'
 import WalletAsset from './screens/crypto/wallet/WalletAsset'
@@ -184,6 +186,8 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// (los dots + Saltar los inyecta la pantalla vía setOptions)
 	{ name: ROUTES.ONBOARD_SCREEN, component: Onboard, options: getHeaderOptions('') },
 	{ name: ROUTES.WELCOME_SCREEN, component: WelcomeScreen, options: { animation: 'none' } },
+	// Modo wallet (sin sesión, con wallet self-custody): raíz alternativa a Welcome
+	{ name: ROUTES.WALLET_ONLY, component: WalletOnly, options: { animation: 'none' } },
 	{ name: ROUTES.MAIN_STACK, component: MainStack },
 
 	// Add and Withdraw Screens
@@ -400,6 +404,8 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 		settingsLoading,
 		firstTime,
 		splashReady,
+		walletReady,
+		hasWallet,
 		updateInfo,
 		dismissUpdate,
 	} = useAppNavigation(pendingDeepLinkRef)
@@ -419,12 +425,13 @@ const AppNavigator = ({ pendingDeepLinkRef }: { pendingDeepLinkRef: React.RefObj
 	const staticScreens = useMemo(() => buildStaticScreens(t), [t])
 
 	// Show splash screen if still loading or if minimum time hasn't passed
-	if (authLoading || settingsLoading || !splashReady) { return <SplashScreen /> }
+	// La wallet también: sin hidratar no se sabe si la raíz es Welcome o WalletOnly
+	if (authLoading || settingsLoading || !walletReady || !splashReady) { return <SplashScreen /> }
 
 	// Show unauthenticated screens (welcome, login, register)
 	return (
 		<>
-			<Stack.Navigator initialRouteName={firstTime ? ROUTES.ONBOARD_SCREEN : isAuthenticated ? ROUTES.MAIN_STACK : ROUTES.WELCOME_SCREEN} screenOptions={stackScreenOptions}>
+			<Stack.Navigator initialRouteName={resolveRootRoute({ firstTime, isAuthenticated, hasWallet })} screenOptions={stackScreenOptions}>
 				{staticScreens.map(({ name, component, options }) => (
 					<Stack.Screen key={name} name={name} component={component} options={options} />
 				))}
