@@ -24,6 +24,8 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { disableWalletBiometrics, enableWalletBiometrics } from '../../../wallet/keystore'
 import { getSupportedBiometryType } from '../../../api/client'
 import { useSettings } from '../../../settings/SettingsContext'
+import { useAuth } from '../../../auth/AuthContext'
+import { useAppLock } from '../../../lock/AppLockContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
 import { shortAddress } from '../../crypto/wallet/walletFormat'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
@@ -81,6 +83,8 @@ const WalletSettings = () => {
 	}, [isStackRoot, navigation, theme, t])
 
 	const { hasWallet, isBackedUp, addresses, revealMnemonic, deleteWallet } = useWallet()
+	const { isAuthenticated } = useAuth()
+	const { disableAppLock } = useAppLock()
 	const { getSetting, updateSetting } = useSettings()
 	const walletBiometrics = getSetting('crypto', 'walletBiometrics', true) as boolean
 	const [biometryType, setBiometryType] = useState<string | null>(null)
@@ -131,6 +135,12 @@ const WalletSettings = () => {
 		setDeleting(true)
 		try {
 			await deleteWallet()
+			// El marcador biométrico es de ESTA wallet: no debe armar la siguiente
+			await disableWalletBiometrics()
+			// Sin cuenta, el PIN de bloqueo existía solo para la wallet: si sobreviviera, la
+			// próxima alta se saltaría "Crea tu PIN" y la wallet nueva quedaría tras un PIN
+			// que, sin Ajustes de cuenta, no se puede cambiar. Con cuenta protege la sesión
+			if (!isAuthenticated) await disableAppLock()
 			await clearHistoryCaches()
 			// Saldos/historial de la wallet borrada no deben sobrevivir en memoria
 			queryClient.removeQueries({ queryKey: ['wallet', 'balances'] })
@@ -141,7 +151,7 @@ const WalletSettings = () => {
 		} finally {
 			setDeleting(false)
 		}
-	}, [acknowledged, deleting, deleteWallet, queryClient, t, navigation])
+	}, [acknowledged, deleting, deleteWallet, isAuthenticated, disableAppLock, queryClient, t, navigation])
 
 	const copy = (value: string) => { Clipboard.setString(value); toast.success(t('crypto.wallet.card.copied')) }
 

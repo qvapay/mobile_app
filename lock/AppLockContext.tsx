@@ -92,7 +92,10 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 			// pedía el PIN dos veces seguidas. Igual con la wallet recién creada
 			const coldStart = !isInitializedRef.current
 			if (coldStart && (isAuthenticated || hasWalletRef.current) && hasPIN) { setIsLocked(true) }
-			else if (!hasPIN) { setIsLocked(false) }
+			// Sin PIN, o sin nada que proteger (la sesión cayó y no hay wallet): el
+			// bloqueo interno se limpia. Si no, quedaba dormido tras `lockable` y
+			// reaparecía al crear después una wallet de invitado, en pleno backup
+			else if (!hasPIN || (!isAuthenticated && !hasWalletRef.current)) { setIsLocked(false) }
 			isInitializedRef.current = true
 		}
 		init()

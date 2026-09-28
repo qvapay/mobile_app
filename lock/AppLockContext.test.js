@@ -163,6 +163,26 @@ describe('cold start', () => {
 		expect(result.current.isLocked).toBe(false)
 	})
 
+	test('a lock left behind by a dropped session does not resurface on a new guest wallet', async () => {
+		hasAppLockPin.mockResolvedValue(true)
+		const result = { current: null }
+		const Harness = () => {
+			result.current = useAppLock()
+			return null
+		}
+		let tree
+		const render = () => <AppLockProvider><Harness /></AppLockProvider>
+		await act(async () => { tree = create(render()) })
+		expect(result.current.isLocked).toBe(true) // cuenta + PIN en frío
+		// La sesión cae con la pantalla de bloqueo delante y sin wallet
+		useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
+		await act(async () => { tree.update(render()) })
+		// Alta de wallet de invitado: el bloqueo viejo NO vuelve
+		useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+		await act(async () => { tree.update(render()) })
+		expect(result.current.isLocked).toBe(false)
+	})
+
 	test('waits for the wallet to hydrate before deciding', async () => {
 		hasAppLockPin.mockResolvedValue(true)
 		useWallet.mockReturnValue({ hasWallet: false, isReady: false })
