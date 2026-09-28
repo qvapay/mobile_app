@@ -335,7 +335,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const reviewOpen = !isRail && (isExchange ? exchangeFlow.review : swapFlow.review)
 	const closeReview = isExchange ? exchangeFlow.closeReview : swapFlow.closeReview
 	const onConfirm = isExchange ? exchangeFlow.confirm : swapFlow.onConfirm
-	const confirmDisabled = isExchange ? exchangeFlow.busy : swapFlow.confirmDisabled
+	// Intercambio: Confirmar espera a que la cotización sea la del importe tecleado
+	const confirmDisabled = isExchange ? exchangeFlow.busy || !exchangeFlow.ready : swapFlow.confirmDisabled
 
 	/**
 	 * El máximo movible, según de dónde salga el dinero.

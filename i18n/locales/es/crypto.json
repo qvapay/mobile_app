@@ -450,6 +450,7 @@
 			"youReceive": "Recibes",
 			"estimated": "estimado",
 			"quoteMissing": "No hay una cotización válida todavía. Espera un momento y vuelve a intentarlo.",
+			"quoteUpdating": "Actualizando la cotización para este importe. Espera un momento.",
 			"rate": "Tasa",
 			"networkFee": "Comisión de red de origen",
 			"minAmount": "Mínimo {{amount}} {{symbol}}",
