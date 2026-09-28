@@ -1,0 +1,9 @@
+# Desbloqueo con PIN si la pantalla de bloqueo está delante
+appId: com.qvapay
+---
+- runFlow:
+    when:
+      visible:
+        id: "lock-screen"
+    commands:
+      - runFlow: type_pin.yaml

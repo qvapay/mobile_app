@@ -27,7 +27,8 @@
 		"preios:build": "node scripts/sync-version.js",
 		"preandroid": "node scripts/sync-version.js",
 		"doctor": "npx react-doctor@latest",
-		"postinstall": "patch-package --error-on-fail"
+		"postinstall": "patch-package --error-on-fail",
+		"e2e:wallet": "maestro test .maestro --test-output-dir .maestro/output"
 	},
 	"dependencies": {
 		"@adrianso/react-native-device-brightness": "^1.2.7",

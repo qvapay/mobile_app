@@ -1,0 +1,12 @@
+# Solo en dev: el toast de LogBox ("Open debugger to view warnings.") se
+# queda abajo y tapa los botones del pie. Se cierra con su ✕ si está
+appId: com.qvapay
+---
+- runFlow:
+    when:
+      visible:
+        text: ".*Open debugger to view warnings.*"
+    commands:
+      - tapOn:
+          text: ".*Open debugger to view warnings.*"
+          point: "95%,50%"

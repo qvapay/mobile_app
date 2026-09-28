@@ -1,0 +1,87 @@
+# Welcome → "Solo quiero una wallet" → PIN (con un fallo) → seed → quiz → modo wallet
+appId: com.qvapay
+env:
+  PIN: "1234"
+---
+- runFlow: subflows/fresh_start.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "welcome-wallet-link"
+    retryTapIfNoChange: true
+- runFlow: subflows/dismiss_logbox.yaml
+# Los botones se habilitan al resolver el PIN en Keychain: reintentar si no cambia
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-onboarding-create"
+    retryTapIfNoChange: true
+
+# PIN que no coincide: avisa y vuelve al primer paso
+- extendedWaitUntil:
+    visible:
+      id: "wallet-pin-setup-pin"
+    timeout: 10000
+- runFlow: subflows/type_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-pin-setup-confirm"
+    timeout: 5000
+- runFlow:
+    file: subflows/type_pin.yaml
+    env:
+      DIGITS: "9999"
+- extendedWaitUntil:
+    visible:
+      id: "wallet-pin-setup-pin"
+    timeout: 5000
+- assertVisible:
+    id: "wallet-pin-error"
+- runFlow: subflows/type_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-pin-setup-confirm"
+    timeout: 5000
+- runFlow: subflows/type_pin.yaml
+
+# Backup: revelar, copiar las 12 palabras, quiz de 4
+- extendedWaitUntil:
+    visible:
+      id: "wallet-backup-reveal"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-backup-reveal"
+    retryTapIfNoChange: true
+- runFlow: subflows/copy_seed.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-backup-continue"
+    retryTapIfNoChange: true
+- repeat:
+    times: 4
+    commands:
+      - runFlow: subflows/answer_quiz_step.yaml
+
+# Modo wallet: sin swap ni P2P, con la invitación a la cuenta
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 15000
+- assertVisible:
+    id: "wallet-action-send"
+- assertVisible:
+    id: "wallet-action-receive"
+- assertNotVisible:
+    id: "wallet-action-swap"
+- assertNotVisible:
+    id: "wallet-action-p2p"
+- assertVisible:
+    id: "wallet-only-signin"
+- scrollUntilVisible:
+    element:
+      id: "account-upsell-full"
+    direction: DOWN
+- takeScreenshot: 01_wallet_only

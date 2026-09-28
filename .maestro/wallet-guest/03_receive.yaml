@@ -1,0 +1,22 @@
+# Recibir funciona sin cuenta (backup confirmado)
+appId: com.qvapay
+---
+- scrollUntilVisible:
+    element:
+      id: "wallet-action-receive"
+    direction: UP
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-action-receive"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    notVisible:
+      id: "wallet-only-signin"
+    timeout: 5000
+- takeScreenshot: 03_receive
+- runFlow: subflows/header_back.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only-signin"
+    timeout: 5000

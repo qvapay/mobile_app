@@ -1,0 +1,8 @@
+# Teclea el PIN dígito a dígito: las cajas de QPCodeInput saltan de foco en
+# cada carácter y un inputText de golpe pierde dígitos. Acepta DIGITS o PIN
+appId: com.qvapay
+---
+- inputText: "${(typeof DIGITS !== 'undefined' ? DIGITS : PIN).charAt(0)}"
+- inputText: "${(typeof DIGITS !== 'undefined' ? DIGITS : PIN).charAt(1)}"
+- inputText: "${(typeof DIGITS !== 'undefined' ? DIGITS : PIN).charAt(2)}"
+- inputText: "${(typeof DIGITS !== 'undefined' ? DIGITS : PIN).charAt(3)}"

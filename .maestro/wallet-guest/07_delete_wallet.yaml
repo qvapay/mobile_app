@@ -1,0 +1,44 @@
+# Borrar la wallet (PIN + confirmación) devuelve a Welcome
+appId: com.qvapay
+env:
+  PIN: "1234"
+---
+- scrollUntilVisible:
+    element:
+      id: "wallet-home-security"
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-home-security"
+    retryTapIfNoChange: true
+- scrollUntilVisible:
+    element:
+      id: "wallet-settings-delete"
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-settings-delete"
+    retryTapIfNoChange: true
+# Gate de PIN de la wallet
+- runFlow: subflows/type_pin.yaml
+- extendedWaitUntil:
+    visible:
+      id: "wallet-delete-ack"
+    timeout: 5000
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-delete-ack"
+    retryTapIfNoChange: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-delete-confirm"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "welcome-wallet-link"
+    timeout: 10000
+- takeScreenshot: 07_welcome_after_delete

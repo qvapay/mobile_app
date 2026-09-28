@@ -1,0 +1,88 @@
+# Responde el quiz de backup (una rama por posición; si las posiciones salen
+# ascendentes, una pasada responde en cascada y el repeat del caller es respaldo)
+appId: com.qvapay
+---
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-1"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w1}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-2"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w2}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-3"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w3}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-4"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w4}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-5"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w5}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-6"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w6}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-7"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w7}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-8"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w8}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-9"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w9}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-10"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w10}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-11"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w11}"
+- runFlow:
+    when:
+      visible:
+        id: "wallet-quiz-position-12"
+    commands:
+      - tapOn:
+          id: "wallet-quiz-option-${output.w12}"

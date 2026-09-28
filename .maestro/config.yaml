@@ -1,0 +1,16 @@
+# Maestro — E2E sobre el simulador/emulador con la app en dev (Metro corriendo).
+# Correr: npm run e2e:wallet  (o: maestro test .maestro/wallet-guest)
+flows:
+  - wallet-guest/*
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - 01_create_wallet
+    - 02_asset_guest
+    - 03_receive
+    - 04_security_back
+    - 05_cold_start_lock
+    - 06_signin_opens_login
+    - 07_delete_wallet
+    - 08_import_wallet
+    - 09_abandoned_backup
