@@ -86,9 +86,12 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 			if (cancelled) return
 			setAppLockEnabled(hasPIN)
 
-			// Cold start: lock immediately if there is something to protect and app lock is enabled
-			const walletAtColdStart = hasWalletRef.current && !isInitializedRef.current
-			if ((isAuthenticated || walletAtColdStart) && hasPIN) { setIsLocked(true) }
+			// SOLO en arranque en frío: bloquear si hay algo que proteger y PIN.
+			// Un login a mitad de sesión (p. ej. desde el modo wallet, que ya pasó
+			// el bloqueo) acaba de autenticarse con contraseña: re-bloquear ahí
+			// pedía el PIN dos veces seguidas. Igual con la wallet recién creada
+			const coldStart = !isInitializedRef.current
+			if (coldStart && (isAuthenticated || hasWalletRef.current) && hasPIN) { setIsLocked(true) }
 			else if (!hasPIN) { setIsLocked(false) }
 			isInitializedRef.current = true
 		}

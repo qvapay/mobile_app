@@ -128,16 +128,39 @@ describe('cold start', () => {
 
 	test('creating the wallet mid-session does not lock (the backup would be cut)', async () => {
 		useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
-		const Harness = ({ onValue }) => { onValue(useAppLock()); return null }
-		let value = null
+		// Mismo patrón que renderAppLock, pero conservando el árbol para re-renderizar
+		const result = { current: null }
+		const Harness = () => {
+			result.current = useAppLock()
+			return null
+		}
 		let tree
-		await act(async () => { tree = create(<AppLockProvider><Harness onValue={v => { value = v }} /></AppLockProvider>) })
+		await act(async () => { tree = create(<AppLockProvider><Harness /></AppLockProvider>) })
 		hasAppLockPin.mockResolvedValue(true)
-		await act(async () => { await value.enableAppLock('1234') })
+		await act(async () => { await result.current.enableAppLock('1234') })
 		useWallet.mockReturnValue({ hasWallet: true, isReady: true })
-		await act(async () => { tree.update(<AppLockProvider><Harness onValue={v => { value = v }} /></AppLockProvider>) })
-		expect(value.isLocked).toBe(false)
-		expect(value.appLockEnabled).toBe(true)
+		await act(async () => { tree.update(<AppLockProvider><Harness /></AppLockProvider>) })
+		expect(result.current.isLocked).toBe(false)
+		expect(result.current.appLockEnabled).toBe(true)
+	})
+
+	test('signing in mid-session (e.g. from wallet-only) does not re-lock', async () => {
+		useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
+		useWallet.mockReturnValue({ hasWallet: true, isReady: true })
+		hasAppLockPin.mockResolvedValue(true)
+		getAppLockPin.mockResolvedValue('1234')
+		const result = { current: null }
+		const Harness = () => {
+			result.current = useAppLock()
+			return null
+		}
+		let tree
+		await act(async () => { tree = create(<AppLockProvider><Harness /></AppLockProvider>) })
+		expect(result.current.isLocked).toBe(true) // arranque en frío con wallet
+		await act(async () => { await result.current.unlockWithPin('1234') })
+		useAuth.mockReturnValue({ isAuthenticated: true, isLoading: false })
+		await act(async () => { tree.update(<AppLockProvider><Harness /></AppLockProvider>) })
+		expect(result.current.isLocked).toBe(false)
 	})
 
 	test('waits for the wallet to hydrate before deciding', async () => {

@@ -229,6 +229,9 @@ export const useWalletAssets = () => {
 	}
 }
 
+/** Sustituto de refetch cuando la query no puede correr (sin sesión). */
+const noopRefetch = async () => undefined
+
 /**
  * Historial de un activo en su red: DISCO + sincronización por ancla.
  *
@@ -336,6 +339,8 @@ export const useWalletHistory = (asset: WalletAsset | undefined) => {
 		error: query.error,
 		/** Sincronizado al menos una vez o con copia de disco. */
 		isReady: !!data,
-		refetch: query.refetch,
+		// refetch() SÍ dispara una query con enabled:false: sin sesión el
+		// pull-to-refresh pegaría al proxy sin token (401 → estado de error)
+		refetch: isAuthenticated ? query.refetch : noopRefetch,
 	}
 }

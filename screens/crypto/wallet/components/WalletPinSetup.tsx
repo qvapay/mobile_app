@@ -56,10 +56,15 @@ const WalletPinSetup = ({ onDone, boxColor }: Props) => {
 			return
 		}
 		setSaving(true)
-		const result = await enableAppLock(code)
-		setSaving(false)
-		if (result.success) { onDone(); return }
-		setError(result.error || t('misc.lock.errors.savePin'))
+		try {
+			const result = await enableAppLock(code)
+			if (result.success) { onDone(); return }
+			setError(result.error || t('misc.lock.errors.savePin'))
+		} catch {
+			setError(t('misc.lock.errors.savePin'))
+		} finally {
+			setSaving(false)
+		}
 		setConfirmPin('')
 	}
 
