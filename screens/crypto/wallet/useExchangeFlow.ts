@@ -91,6 +91,17 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 	}, [learnedMin, pairKey, minByPair, quoteQuery.isPlaceholderData])
 
 	/**
+	 * La cotización en pantalla es EXACTAMENTE la del importe tecleado: pasó el debounce
+	 * (`quotedAmount` alcanzó al campo) y no es la del importe o par anterior que
+	 * `placeholderData` mantiene visible mientras llega la nueva. Sin esto, cambiar el
+	 * importe y pulsar Revisar dentro del debounce dejaba confirmar la orden VIEJA: la hoja
+	 * enseñaba lo tecleado y se mandaba lo cotizado antes, con su `quote_id`, y el backend
+	 * lo aceptaba porque ambos cuadraban entre sí.
+	 */
+	const ready = !!payload?.quote_id && check.ok && quotedAmount === check.amount
+		&& !quoteQuery.isPlaceholderData && !quoteQuery.isFetching
+
+	/**
 	 * Abre la operación. Ningún camino de salida es mudo: un botón de confirmar que no hace
 	 * nada y no dice nada es indistinguible de la app colgada, y aquí hay cuatro motivos
 	 * distintos por los que no se puede seguir.
@@ -102,6 +113,12 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 		// importe que el proveedor va a esperar
 		if (!payload?.quote_id) {
 			toast.error(i18n.t('crypto.wallet.exchange.quoteMissing'))
+			return
+		}
+		// Segunda red: la hoja ya deshabilita Confirmar hasta `ready`, pero una cotización
+		// que no es la del importe del campo nunca debe abrir una orden
+		if (!ready) {
+			toast.error(i18n.t('crypto.wallet.exchange.quoteUpdating'))
 			return
 		}
 
@@ -125,7 +142,7 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 			refundAddress,
 		})
 		if (result.ok) { setReview(false) }
-	}, [from, to, payload?.quote_id, check.ok, quotedAmount, addresses, open])
+	}, [from, to, payload?.quote_id, check.ok, ready, quotedAmount, addresses, open])
 
 	return {
 		check,
@@ -134,6 +151,8 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 		cheaper: payload?.cheaper_origin ?? null,
 		minAmount,
 		quoting: quoteQuery.isFetching,
+		/** Se puede confirmar: la cotización es la del importe tecleado (ver `ready`). */
+		ready,
 		// Una cotización caducada no es un fallo que enseñar: la query la renueva sola
 		quoteFailed: quoteQuery.isError && !payload,
 		/**

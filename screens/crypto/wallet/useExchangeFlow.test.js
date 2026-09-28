@@ -173,3 +173,39 @@ describe('cuándo se gasta una cotización', () => {
 		s.unmount()
 	})
 })
+
+describe('lo que se confirma es lo que se revisó', () => {
+
+	it('cambiar el importe dentro del debounce no deja confirmar la cotización vieja', async () => {
+		quoteByPair()
+		exchangeApi.create.mockResolvedValue({ success: true, status: 201, data: { uuid: 'o-1' } })
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+		expect(s.flow.ready).toBe(true)
+
+		// El usuario teclea otro importe y pulsa Revisar → Confirmar antes de que acabe el debounce
+		s.rerender({ amountText: '30' })
+		expect(s.flow.ready).toBe(false)
+		await act(async () => { await s.flow.confirm() })
+		expect(exchangeApi.create).not.toHaveBeenCalled()
+
+		// Con la cotización de 30 ya en pantalla, se confirma 30 y su quote_id
+		// (la cotización de 30 sale al acabar el debounce y llega por notifyManager: se sondea)
+		for (let i = 0; i < 10 && !s.flow.ready; i++) { await settle() }
+		expect(s.flow.ready).toBe(true)
+		await act(async () => { await s.flow.confirm() })
+		expect(exchangeApi.create).toHaveBeenCalledTimes(1)
+		expect(exchangeApi.create.mock.calls[0][0]).toMatchObject({ amount: 30, quoteId: 'q-30' })
+		s.unmount()
+	})
+
+	it('la cotización del par anterior (placeholderData) tampoco se puede confirmar', async () => {
+		quoteByPair()
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+		expect(s.flow.ready).toBe(true)
+		s.rerender({ from: USDT_TRON })
+		expect(s.flow.ready).toBe(false)
+		s.unmount()
+	})
+})

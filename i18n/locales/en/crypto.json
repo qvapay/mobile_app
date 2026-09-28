@@ -450,6 +450,7 @@
 			"youReceive": "You receive",
 			"estimated": "estimated",
 			"quoteMissing": "There is no valid quote yet. Wait a moment and try again.",
+			"quoteUpdating": "Updating the quote for this amount. One moment.",
 			"rate": "Rate",
 			"networkFee": "Source network fee",
 			"minAmount": "Minimum {{amount}} {{symbol}}",
