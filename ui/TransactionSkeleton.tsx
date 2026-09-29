@@ -39,15 +39,15 @@ const TransactionSkeleton = ({ index = 0, totalItems = 0 }: TransactionSkeletonP
 		borderBottomLeftRadius: isLast ? 10 : 0,
 		borderBottomRightRadius: isLast ? 10 : 0,
 		marginBottom: isLast ? 10 : 0,
-		// Mismo aire de caja que QPTransaction para que no salte al hidratar
-		...(isFirst && { paddingTop: 14 }),
-		...(isLast && { paddingBottom: 14 }),
+		// Mismo aire por fila que QPTransaction para que no salte al hidratar
+		paddingHorizontal: 12,
+		paddingVertical: 12,
 	}
 
 	return (
 		<View style={[containerStyles.box, { justifyContent: 'space-between' }, containerStyle]}>
-			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-				<QPSkeleton width={48} height={48} borderRadius={24} />
+			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+				<QPSkeleton width={40} height={40} borderRadius={20} />
 				<View style={{ gap: 6 }}>
 					<QPSkeleton width={130} height={14} />
 					<QPSkeleton width={80} height={10} />
