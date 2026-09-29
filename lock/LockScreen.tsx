@@ -1,8 +1,7 @@
-import { useState, useEffect, useEffectEvent, useRef, useCallback, useReducer } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SystemBars } from 'react-native-edge-to-edge'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // RN
 import { View, Text, Image, Modal, StyleSheet } from 'react-native'
@@ -10,38 +9,17 @@ import { View, Text, Image, Modal, StyleSheet } from 'react-native'
 // Context
 import { useTheme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
-import { useSettings } from '../settings/SettingsContext'
-import { useAppLock, APP_LOCK_BIO_SERVICE } from './AppLockContext'
-import { hasBiometricMarker } from '../helpers/biometricMarker'
+import { useAppLock } from './AppLockContext'
 import { useKeyboardHeight } from '../hooks/useKeyboardHeight'
-import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
+import { useLockBiometrics, getBiometryLabelKey } from './useLockBiometrics'
 
 // Icons
-import FaceIDIcon from '../ui/particles/FaceIDIcon'
+import LockHeroIcon from './LockHeroIcon'
 import QPPressable from '../ui/particles/QPPressable'
 
 // UI
 import PinDots from './PinDots'
 import type { PinDotsHandle } from './PinDots'
-
-// Biometric type + availability are detected together in one effect
-type BiometricsState = {
-	type: string | null
-	available: boolean
-}
-
-type BiometricsAction = { type: 'detected', biometryType: string | null, available: boolean }
-
-const initialBiometrics: BiometricsState = { type: null, available: false }
-
-function biometricsReducer(state: BiometricsState, action: BiometricsAction): BiometricsState {
-	switch (action.type) {
-		case 'detected':
-			return { type: action.biometryType, available: action.available }
-		default:
-			return state
-	}
-}
 
 /**
  * Full-screen app-lock overlay: 4-digit PIN entry with optional biometric unlock.
@@ -57,8 +35,7 @@ const LockScreen = () => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
-	const { security } = useSettings()
-	const { isLocked, unlockWithBiometrics, unlockWithPin } = useAppLock()
+	const { isLocked, unlockWithPin } = useAppLock()
 	// Este Modal lleva `statusBarTranslucent` y el manifest usa `adjustNothing`: en Android
 	// el teclado NO redimensiona la ventana y tapaba las cajas del PIN (issue #47). Se sigue
 	// la altura a mano, como QPKeyboardView, y se cede ese espacio abajo
@@ -66,41 +43,10 @@ const LockScreen = () => {
 
 	const [pin, setPin] = useState('')
 	const [error, setError] = useState('')
-	const [biometrics, dispatchBiometrics] = useReducer(biometricsReducer, initialBiometrics)
-	const { type: biometryType, available: biometricsAvailable } = biometrics
 	const dotsRef = useRef<PinDotsHandle | null>(null)
 
-	// Check biometric availability when lock screen appears
-	useEffect(() => {
-		if (!isLocked) return
-		let cancelled = false
-		const checkBiometrics = async () => {
-			const [type, hasCredentials, hasMarker] = await Promise.all([getSupportedBiometryType(), hasBiometricCredentials(), hasBiometricMarker(APP_LOCK_BIO_SERVICE)])
-			if (cancelled) return
-			// Marcador propio del bloqueo (cualquier login) o, como antes, credenciales del login + ajuste
-			const viaMarker = hasMarker && security.appLockBiometrics !== false
-			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && (viaMarker || (hasCredentials && security.biometricsEnabled)) })
-		}
-		checkBiometrics()
-		return () => { cancelled = true }
-	}, [isLocked, security.biometricsEnabled, security.appLockBiometrics])
-
-	const handleBiometricUnlock = useCallback(async () => {
-		setError('')
-		await unlockWithBiometrics()
-	}, [unlockWithBiometrics])
-
-	// Effect Event: reads the latest unlock callback without re-arming the timer
-	const onBiometricAutoPrompt = useEffectEvent(() => { handleBiometricUnlock() })
-
-	// Auto-prompt biometrics when lock screen appears
-	useEffect(() => {
-		if (!isLocked || !biometricsAvailable) return
-		const timer = setTimeout(() => {
-			onBiometricAutoPrompt()
-		}, 500)
-		return () => clearTimeout(timer)
-	}, [isLocked, biometricsAvailable])
+	const clearError = useCallback(() => setError(''), [])
+	const { biometryType, available: biometricsAvailable, unlock: handleBiometricUnlock } = useLockBiometrics(isLocked, clearError)
 
 	// Reset state when lock screen is shown/hidden
 	useEffect(() => {
@@ -126,17 +72,8 @@ const LockScreen = () => {
 		setError('')
 	}
 
-	const biometryLabel = biometryType === 'FaceID' ? t('misc.lock.unlock.faceId')
-		: biometryType === 'TouchID' ? t('misc.lock.unlock.touchId')
-			: biometryType === 'Fingerprint' ? t('misc.lock.unlock.fingerprint')
-				: t('misc.lock.unlock.biometrics')
-
-	// El glifo del héroe: el que desbloquea si hay biometría, un candado si no
-	const heroIcon = !biometricsAvailable
-		? <FontAwesome6 name="lock" size={40} color={theme.colors.primary} iconStyle="solid" />
-		: biometryType === 'FaceID'
-			? <FaceIDIcon size={48} color={theme.colors.primary} />
-			: <FontAwesome6 name="fingerprint" size={48} color={theme.colors.primary} iconStyle="solid" />
+	const biometryLabel = t(getBiometryLabelKey(biometryType))
+	const heroIcon = <LockHeroIcon biometryType={biometryType} biometricsAvailable={biometricsAvailable} color={theme.colors.primary} />
 
 	if (!isLocked) return null
 
