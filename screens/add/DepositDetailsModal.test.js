@@ -22,7 +22,7 @@ jest.mock('react-native-haptic-feedback', () => ({ trigger: jest.fn() }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 import { createTextStyles } from '../../theme/themeUtils'
 import { copyTextToClipboard } from '../../helpers'
 import DepositDetailsModal from './DepositDetailsModal'

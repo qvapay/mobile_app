@@ -5,7 +5,7 @@
  */
 const mockTheme = { mode: 'dark' }
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { useTheme: () => ({ theme: { ...createTheme(mockTheme.mode === 'dark'), mode: mockTheme.mode } }) }
 })
 

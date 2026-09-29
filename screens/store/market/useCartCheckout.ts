@@ -27,15 +27,14 @@ import { shopApi } from '../../../api/shopApi'
 import { userApi } from '../../../api/userApi'
 
 // UI helpers
-import { buildAddressBody } from '../../../ui/store/NewAddressForm'
+import { buildAddressBody } from '../../../ui/store/shippingAddress'
 
 // Cart core
 import { mapOrderError, isAbortingOrderError, makeIdemKey } from './marketCheckout'
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { ShippingAddress } from '../../../ui/store/AddressPicker'
-import type { UsAddressForm } from '../../../ui/store/NewAddressForm'
+import type { ShippingAddress, UsAddressForm } from '../../../ui/store/shippingAddress'
 import type { CartEntry, CartLineStatus } from './marketCheckout'
 import type { MarketOrderInput } from '../../../api/marketApi'
 import type { ApiFailure, ApiSuccess } from '../../../types/api'

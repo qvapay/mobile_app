@@ -9,7 +9,8 @@ import { useTheme } from '../theme/ThemeContext'
 import { useTextStyles } from '../theme/themeUtils'
 
 // UI
-import QPSheet, { SHEET_MAX_RATIO } from './QPSheet'
+import QPSheet from './QPSheet'
+import { SHEET_MAX_RATIO } from './sheetConfig'
 import QPAssetIcon from './particles/QPAssetIcon'
 import QPInput from './particles/QPInput'
 import QPPressable from './particles/QPPressable'

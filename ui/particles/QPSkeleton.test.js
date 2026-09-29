@@ -7,12 +7,12 @@ import { act, create } from 'react-test-renderer'
 
 jest.mock('react-native-reanimated') // manual mock in /__mocks__/react-native-reanimated.js
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 
 import QPSkeleton from './QPSkeleton'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 
 const theme = createTheme(true)
 

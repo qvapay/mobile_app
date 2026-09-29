@@ -1,7 +1,7 @@
 import { View, Pressable, Modal, StyleSheet } from "react-native"
 
 import Animated from 'react-native-reanimated'
-import { SHEET_ENTERING, SHEET_MAX_RATIO } from '../../ui/QPSheet'
+import { SHEET_ENTERING, SHEET_MAX_RATIO } from '../../ui/sheetConfig'
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import type { EdgeInsets } from "react-native-safe-area-context"

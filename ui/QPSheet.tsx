@@ -1,30 +1,13 @@
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Animated, { Easing, SlideInDown } from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
 import { useTextStyles } from '../theme/themeUtils'
-
-/**
- * Cuánto de la pantalla puede ocupar una hoja. UN número, aquí.
- *
- * Antes había cuatro repartidos por la app —80, 90, 92 y un `maxHeight: 400` en píxeles
- * fijos— para el mismo gesto, así que la misma lista subía distinto según desde dónde se
- * abriera. Lo que consume la cabecera de cada hoja se descuenta de este tope, nunca se
- * inventa otra fracción.
- */
-export const SHEET_MAX_RATIO = 0.92
-
-/**
- * Cómo entra una hoja: SOLO ella sube; el velo oscuro lo pone el `fade` del Modal en su
- * sitio. Con `animationType="slide"` subía el overlay entero como un bloque. No hay
- * `exiting`: un Modal desmonta al instante con `visible=false`, así que el cierre es el
- * fundido del Modal. Mismo timing que `ChargeSheet`.
- */
-export const SHEET_ENTERING = SlideInDown.duration(280).easing(Easing.out(Easing.cubic))
+import { SHEET_ENTERING, SHEET_MAX_RATIO } from './sheetConfig'
 
 /**
  * LA hoja inferior de la app: overlay que cierra al tocar fuera, tirador, cabecera con

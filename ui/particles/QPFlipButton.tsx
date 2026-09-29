@@ -9,7 +9,7 @@ import { useTheme } from '../../theme/ThemeContext'
 // UI
 import QPPressable from './QPPressable'
 
-const SIZE = 44
+export const FLIP_BUTTON_SIZE = 44
 
 /**
  * Botón montado a caballo entre las dos tarjetas de una conversión, con un aro del color
@@ -61,10 +61,9 @@ const QPFlipButton = ({ onPress, loading, disabled, accessibilityLabel }: { onPr
 }
 
 const styles = StyleSheet.create({
-	button: { width: SIZE, height: SIZE, borderRadius: 14, borderCurve: 'continuous', borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
+	button: { width: FLIP_BUTTON_SIZE, height: FLIP_BUTTON_SIZE, borderRadius: 14, borderCurve: 'continuous', borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
 	// Aro con un solo lado teñido: al girar se lee como un arco persiguiéndose
 	ring: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
 })
 
-export const FLIP_BUTTON_SIZE = SIZE
 export default QPFlipButton

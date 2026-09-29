@@ -5,7 +5,7 @@
  * @jest-environment node
  */
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('../../ui/particles/QPInput', () => 'QPInput')
@@ -14,7 +14,7 @@ jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 import { createTextStyles } from '../../theme/themeUtils'
 import TransactionFilterModal from './TransactionFilterModal'
 

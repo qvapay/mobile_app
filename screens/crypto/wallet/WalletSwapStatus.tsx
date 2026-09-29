@@ -34,8 +34,8 @@ import type { Swap, SwapStatus as Status } from '../../../types/domain'
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletSwapStatus'>
 
 const TERMINAL: Status[] = ['completed', 'failed', 'refunded', 'needs_review']
-export const swapQueryKey = (uuid: string) => ['swap', 'detail', uuid]
-export const isTerminalSwap = (status: Status | undefined): boolean => !!status && TERMINAL.includes(status)
+const swapQueryKey = (uuid: string) => ['swap', 'detail', uuid]
+const isTerminalSwap = (status: Status | undefined): boolean => !!status && TERMINAL.includes(status)
 
 const ICON: Record<Status, { name: 'clock' | 'paper-plane' | 'hourglass-half' | 'circle-check' | 'circle-xmark' | 'rotate-left' | 'magnifying-glass', tone: 'primary' | 'success' | 'danger' | 'warning' }> = {
 	pending: { name: 'clock', tone: 'primary' },

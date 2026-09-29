@@ -12,8 +12,9 @@ import { createContainerStyles, createTextStyles } from '../../../theme/themeUti
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
-import AddressPicker, { formatAddress } from '../../../ui/store/AddressPicker'
-import NewAddressForm, { EMPTY_US_ADDRESS, validateUsAddress } from '../../../ui/store/NewAddressForm'
+import AddressPicker from '../../../ui/store/AddressPicker'
+import NewAddressForm from '../../../ui/store/NewAddressForm'
+import { formatAddress, EMPTY_US_ADDRESS, validateUsAddress } from '../../../ui/store/shippingAddress'
 import MarketCartShopGroup from './MarketCartShopGroup'
 
 // Routes & API
@@ -29,8 +30,7 @@ import { enrichCartItems, groupByShop } from './marketCheckout'
 import type { Theme } from '../../../theme/ThemeContext'
 import type { TextStyles } from '../../../theme/themeUtils'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { ShippingAddress } from '../../../ui/store/AddressPicker'
-import type { UsAddressForm } from '../../../ui/store/NewAddressForm'
+import type { ShippingAddress, UsAddressForm } from '../../../ui/store/shippingAddress'
 import type { CartLineStatus, FreshProduct } from './marketCheckout'
 
 // OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime

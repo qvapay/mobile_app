@@ -2,7 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect, useCallback, useReducer } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 
-import { SHEET_MAX_RATIO } from '../../ui/QPSheet'
+import { SHEET_MAX_RATIO } from '../../ui/sheetConfig'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 

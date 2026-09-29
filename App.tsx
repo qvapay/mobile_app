@@ -73,7 +73,8 @@ import RecoverPasswordScreen from './auth/screens/RecoverPassword'
 
 // Screens with auth
 import Onboard from './screens/onboard/Onboard'
-import MainStack, { supportsLiquidGlass } from './screens/MainStack'
+import MainStack from './screens/MainStack'
+import { supportsLiquidGlass } from './helpers/liquidGlass'
 import Send from './screens/transaction/Send'
 import SendConfirm from './screens/transaction/SendConfirm'
 import SendSuccess from './screens/transaction/SendSuccess'

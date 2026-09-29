@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer } from 'react'
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -7,7 +7,7 @@ import { toast } from 'sonner-native'
 import { useTranslation } from 'react-i18next'
 import i18n from '../../i18n'
 
-const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
 
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
