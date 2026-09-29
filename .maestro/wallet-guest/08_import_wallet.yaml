@@ -37,10 +37,10 @@ env:
     visible:
       id: "wallet-only"
     timeout: 15000
-- scrollUntilVisible:
-    element:
-      id: "wallet-home-security"
-    direction: DOWN
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "wallet-home-security"
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:

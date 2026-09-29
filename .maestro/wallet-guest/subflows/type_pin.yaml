@@ -6,3 +6,17 @@ appId: com.qvapay
 - inputText: "${(typeof DIGITS !== 'undefined' ? DIGITS : PIN).charAt(1)}"
 - inputText: "${(typeof DIGITS !== 'undefined' ? DIGITS : PIN).charAt(2)}"
 - inputText: "${(typeof DIGITS !== 'undefined' ? DIGITS : PIN).charAt(3)}"
+# Android: tras un PIN correcto la app arma el marcador biométrico, y guardar
+# un secreto con biometría en Android PIDE la huella al escribirlo (iOS no).
+# En E2E se cancela: el marcador queda sin armar y el PIN sigue siendo el gate
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - runFlow:
+          when:
+            visible:
+              id: "com.android.systemui:id/button_negative"
+          commands:
+            - tapOn:
+                id: "com.android.systemui:id/button_negative"

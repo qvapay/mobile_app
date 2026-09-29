@@ -55,6 +55,21 @@ export const useWallet = (): WalletContextValue => {
 	return context
 }
 
+/**
+ * Ejecuta `tick` cada `ms` mientras la app está en foreground (se pausa al ir a
+ * segundo plano y se rearma al volver). Devuelve `dispose`. Vive fuera del
+ * componente a propósito: react-doctor no empareja un timer armado dentro de un
+ * helper del efecto con su limpieza, y lo daba como timer sin limpiar.
+ */
+const startForegroundLoop = (tick: () => void, ms: number): (() => void) => {
+	let interval: ReturnType<typeof setInterval> | null = null
+	const arm = () => { if (!interval) interval = setInterval(tick, ms) }
+	const disarm = () => { if (interval) { clearInterval(interval); interval = null } }
+	arm()
+	const sub = AppState.addEventListener('change', state => { state === 'active' ? arm() : disarm() })
+	return () => { disarm(); sub.remove() }
+}
+
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
 	const [isReady, setIsReady] = useState(false)
@@ -117,12 +132,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 	useEffect(() => {
 		if (!meta) return
 		router.probe().catch(() => {})
-		let interval: ReturnType<typeof setInterval> | null = null
-		const arm = () => { if (!interval) interval = setInterval(() => router.probe().catch(() => {}), PROBE_INTERVAL_MS) }
-		const disarm = () => { if (interval) { clearInterval(interval); interval = null } }
-		arm()
-		const sub = AppState.addEventListener('change', state => { state === 'active' ? arm() : disarm() })
-		return () => { disarm(); sub.remove() }
+		return startForegroundLoop(() => { router.probe().catch(() => {}) }, PROBE_INTERVAL_MS)
 	}, [meta, router])
 
 	// Registro de direcciones públicas una vez por cuenta y sesión: cubre las

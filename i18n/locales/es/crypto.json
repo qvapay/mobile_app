@@ -292,7 +292,7 @@
 				"lastFree": "Este envío lo paga QvaPay: es tu último gratis de hoy.",
 				"remaining_one": "Te queda {{count}} envío gratis hoy",
 				"remaining_other": "Te quedan {{count}} envíos gratis hoy",
-				"exhausted": "Ya usaste tu envío gratis de hoy. Se renueva a las {{time}}.",
+				"exhausted": "Ya usaste tus envíos gratis de hoy. Se renuevan a las {{time}}.",
 				"goldHook": "Con GOLD, tus envíos de USDT y USDC en Solana son gratis.",
 				"goldCta": "Hazte GOLD",
 				"sending": "Enviando sin comisión…",

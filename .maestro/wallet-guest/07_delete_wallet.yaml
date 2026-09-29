@@ -3,19 +3,19 @@ appId: com.qvapay
 env:
   PIN: "1234"
 ---
-- scrollUntilVisible:
-    element:
-      id: "wallet-home-security"
-    direction: DOWN
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "wallet-home-security"
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:
     id: "wallet-home-security"
     retryTapIfNoChange: true
-- scrollUntilVisible:
-    element:
-      id: "wallet-settings-delete"
-    direction: DOWN
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "wallet-settings-delete"
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:

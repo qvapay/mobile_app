@@ -1,0 +1,17 @@
+# Sube hasta que TARGET (testID) sea visible (ver scroll_down_to.yaml: el
+# scrollUntilVisible de Maestro es inestable en Android en ambas direcciones)
+appId: com.qvapay
+---
+- repeat:
+    times: 4
+    while:
+      notVisible:
+        id: ${TARGET}
+    commands:
+      - swipe:
+          direction: DOWN
+          duration: 400
+- extendedWaitUntil:
+    visible:
+      id: ${TARGET}
+    timeout: 10000

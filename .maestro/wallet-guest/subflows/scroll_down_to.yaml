@@ -1,0 +1,16 @@
+# Baja hasta que TARGET (testID) sea visible. Sustituye a scrollUntilVisible
+# hacia abajo: en Android, con el scroll ya al final, no reconocía elementos
+# que estaban en pantalla (fallaba con el botón visible en la captura)
+appId: com.qvapay
+---
+- repeat:
+    times: 4
+    while:
+      notVisible:
+        id: ${TARGET}
+    commands:
+      - scroll
+- extendedWaitUntil:
+    visible:
+      id: ${TARGET}
+    timeout: 10000

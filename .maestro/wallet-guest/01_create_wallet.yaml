@@ -80,8 +80,13 @@ env:
     id: "wallet-action-p2p"
 - assertVisible:
     id: "wallet-only-signin"
-- scrollUntilVisible:
-    element:
+# La tarjeta es lo ÚLTIMO del scroll: scrollUntilVisible con centrado no puede
+# subirla al centro (no queda contenido) y agota el tiempo en Android. Se baja
+# hasta el final y se espera a verla
+- scroll
+- scroll
+- extendedWaitUntil:
+    visible:
       id: "account-upsell-full"
-    direction: DOWN
+    timeout: 10000
 - takeScreenshot: 01_wallet_only

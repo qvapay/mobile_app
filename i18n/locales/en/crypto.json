@@ -292,7 +292,7 @@
 				"lastFree": "QvaPay covers this send — it is your last free one today.",
 				"remaining_one": "You have {{count}} free send left today",
 				"remaining_other": "You have {{count}} free sends left today",
-				"exhausted": "You've used your free send for today. It renews at {{time}}.",
+				"exhausted": "You've used your free sends for today. They renew at {{time}}.",
 				"goldHook": "With GOLD, your USDT and USDC sends on Solana are free.",
 				"goldCta": "Get GOLD",
 				"sending": "Sending with no fee…",
