@@ -21,13 +21,6 @@ jest.mock('@didit-protocol/sdk-react-native', () => ({
 	VerificationStatus: { Approved: 'Approved', Pending: 'Pending', Declined: 'Declined' },
 }))
 
-// Módulo nativo de bloqueo de capturas: sin binario en jest, stub inerte
-jest.mock('react-native-screenshot-prevent', () => ({
-	__esModule: true,
-	default: { enabled: () => {}, enableSecureView: () => {}, disableSecureView: () => {}, addListener: () => ({ remove: () => {} }) },
-	addListener: () => ({ remove: () => {} }),
-}))
-
 // AsyncStorage: el ESM del paquete no pasa por el transform y el nativo no existe en
 // jest. Mock en memoria global (las suites que lo mockean por su cuenta siguen mandando).
 jest.mock('@react-native-async-storage/async-storage', () => {

@@ -23,6 +23,10 @@ import { withdrawApi } from '../../api/withdrawApi'
 import { makeIdempotencyKey, callWithDuplicateRetry, isNetworkFailure, safeRetryHint } from '../../helpers/idempotency'
 import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 
+// Atestación OFAC
+import { withdrawAttestationScope, isAttestationRequiredError } from '../../helpers/ofacCompliance'
+import type { OfacCompliancePayload } from '../../helpers/ofacCompliance'
+
 // User Context
 import { useAuth } from '../../auth/AuthContext'
 
@@ -51,6 +55,9 @@ function setFieldReducer<S extends object>(state: S, action: SetFieldAction<S>):
 }
 const initialPinFlow: PinFlowState = { showPinStep: false, sendingPin: false, sendingWithdraw: false }
 
+/** Atestación OFAC del intento, ligada al tick para el que se certificó. */
+export type WithdrawAttestation = { payload: OfacCompliancePayload, tick: string | null }
+
 /** Lo que el paso de confirmación necesita saber del formulario. */
 type WithdrawSubmitArgs = {
 	amountQUSD: string
@@ -61,6 +68,8 @@ type WithdrawSubmitArgs = {
 	workingForm: WorkingForm
 	/** Scroll del form: el paso de PIN aparece bajo el fold y hay que llevarlo a la vista. */
 	scrollViewRef: React.RefObject<ScrollView | null>
+	/** Atestación firmada en el gate de Continuar (null si la moneda no la exige). */
+	attestationRef: React.RefObject<WithdrawAttestation | null>
 	/** Limpieza del formulario + navegación tras un retiro confirmado. */
 	onSuccess: () => void
 }
@@ -71,7 +80,7 @@ type WithdrawSubmitArgs = {
  * @param args - Datos del formulario ya validado y callback de éxito.
  * @returns Estado del paso de PIN y sus handlers.
  */
-export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, scrollViewRef, onSuccess }: WithdrawSubmitArgs) {
+export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, scrollViewRef, attestationRef, onSuccess }: WithdrawSubmitArgs) {
 
 	const { t } = useTranslation()
 	const { user, updateUser } = useAuth()
@@ -116,6 +125,16 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 			return
 		}
 
+		// La moneda cambió con el paso de PIN abierto: la atestación firmada era para
+		// otro destino. Se cierra el paso para que Continuar vuelva a pedirla.
+		const attestation = attestationRef.current
+		if (withdrawAttestationScope(selectedCoin) && attestation?.tick !== (selectedCoin?.tick ?? null)) {
+			setShowPinStep(false)
+			setPin('')
+			toast.error(t('withdraw.index.toasts.attestationRequired'))
+			return
+		}
+
 		try {
 			setSendingWithdraw(true)
 			// Build details with original field names from working_data
@@ -133,6 +152,7 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 				pin,
 				...(sourceSats && { source: 'satoshis', amountSats: Number(amountSats) }),
 				idempotencyKey: idempotencyKeyRef.current,
+				compliance: attestation?.payload ?? null,
 			}))
 
 			if (result.success) {
@@ -147,9 +167,16 @@ export default function useWithdrawSubmit({ amountQUSD, amountSats, sourceSats, 
 					toast.success(t('withdraw.index.toasts.withdrawn.title'), { description: t('withdraw.index.toasts.withdrawn.description', { amount: amountQUSD }) })
 					updateUser({ balance: Number(user?.balance || 0) - Number(amountQUSD) })
 				}
+				attestationRef.current = null
 				setShowPinStep(false)
 				setPin('')
 				onSuccess()
+			} else if (isAttestationRequiredError((result.details as { code?: unknown } | undefined)?.code)) {
+				// El backend exige la atestación y no la aceptó: vuelta a Continuar ⇒ modal
+				attestationRef.current = null
+				setShowPinStep(false)
+				setPin('')
+				toast.error(result.error || t('withdraw.index.toasts.attestationRequired'))
 			} else if (isNetworkFailure(result)) {
 				toast.error(t('withdraw.index.toasts.networkErrorTitle'), { description: `${result.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {

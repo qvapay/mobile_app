@@ -31,7 +31,8 @@
 			"networkErrorTitle": "Network error",
 			"transactionErrorTitle": "Transaction error",
 			"transactionFailed": "Couldn't complete the transaction",
-			"unexpectedError": "Unexpected error while processing the transaction"
+			"unexpectedError": "Unexpected error while processing the transaction",
+			"attestationRequired": "You must complete the OFAC certification for this transfer"
 		}
 	},
 	"sendSuccess": {

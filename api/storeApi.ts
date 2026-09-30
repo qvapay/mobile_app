@@ -28,6 +28,8 @@ export type PhonePackagePurchaseInput = {
 	phone_package_id: string | number
 	phone_number: string
 	use_satoshis?: boolean
+	/** Nombre y apellidos del destinatario — obligatorio para US persons (CCO). */
+	recipient_name?: string
 }
 
 /**

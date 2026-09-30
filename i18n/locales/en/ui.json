@@ -148,5 +148,10 @@
 		"title": "Open in your wallet",
 		"memoWarning": "Make sure the memo was copied into your wallet before sending.",
 		"empty": "We couldn't detect any installed wallet compatible with this coin."
+	},
+	"ofac": {
+		"languageLabel": "Legal text language",
+		"cancel": "Cancel",
+		"confirm": "Certify and continue"
 	}
 }

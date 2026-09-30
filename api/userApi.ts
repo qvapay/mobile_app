@@ -12,6 +12,13 @@ import type { User } from '../types/domain'
  */
 export type KYCSessionResult = | (ApiSuccess<string> & { sessionToken: string | null }) | (ApiFailure & { reason?: KYCHoldReason })
 
+/**
+ * Ficha CIP (`GET /user/cip`) — solo lo que la app lee. `us_person` es la
+ * autodeclaración del titular y la ÚNICA fuente de "US person" del backend
+ * (no `users.country` ni el país del KYC): decide la atestación de fondeo.
+ */
+export type UserCip = { us_person: boolean }
+
 /** Por qué el servidor retiene una verificación: bloqueo de compliance o tope de intentos. */
 export type KYCHoldReason = 'compliance' | 'limit'
 
@@ -201,6 +208,22 @@ export const userApi = {
 		} catch (err) {
 			const error = err as ApiClientError
 			return { success: false, error: error.message, status: error.response?.status, details: error.response?.data }
+		}
+	},
+
+	/**
+	 * Gets the user's CIP profile (`GET /user/cip`). Only `us_person` is typed:
+	 * the rest (structured address, SSN last4) is PII the app doesn't need.
+	 *
+	 * @returns `{ success, data?, error?, status? }` — `data` is `UserCip`
+	 */
+	getCip: async (): Promise<ApiResult<UserCip>> => {
+		try {
+			const response = await apiClient.get('/user/cip', { silent: true })
+			return { success: true, data: { us_person: response.data?.us_person === true }, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.message, status: error.response?.status }
 		}
 	},
 

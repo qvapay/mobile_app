@@ -28,6 +28,12 @@ import useWithdrawSubmit from './useWithdrawSubmit'
 import useKycGate, { KYC_WITHDRAW_THRESHOLD } from '../../hooks/useKycGate'
 import KycGateModal from '../../ui/KycGateModal'
 
+// Atestación OFAC: CACR con destino Cuba, W-1 en retiros cripto
+import useOfacGate from '../../hooks/useOfacGate'
+import OfacAttestationModal from '../../ui/OfacAttestationModal'
+import { withdrawAttestationScope } from '../../helpers/ofacCompliance'
+import type { WithdrawAttestation } from './useWithdrawSubmit'
+
 // Types
 import type { ScrollView } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -71,6 +77,10 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 
 	// Gate de KYC — intercepta antes del paso de PIN
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
+
+	// Gate OFAC — tras el de KYC; la atestación vale para ESTE intento (ref, ligada al tick)
+	const { requireAttestation, modalProps: ofacModalProps } = useOfacGate()
+	const attestationRef = useRef<WithdrawAttestation | null>(null)
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -121,7 +131,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		showPinStep, setShowPinStep, sendingPin, sendingWithdraw,
 		handleRequestPin, handleWithdraw, handlePinBoxFocus,
 	} = useWithdrawSubmit({
-		amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, scrollViewRef,
+		amountQUSD, amountSats, sourceSats, selectedCoin, workingFields, workingForm, scrollViewRef, attestationRef,
 		onSuccess: () => { resetAmounts(); navigation.goBack() },
 	})
 
@@ -150,7 +160,16 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 									gated: Number(amountQUSD) > KYC_WITHDRAW_THRESHOLD,
 									message: t('withdraw.index.kycGate', { amount: KYC_WITHDRAW_THRESHOLD }),
 								})) return
-								setShowPinStep(true); setPin('')
+								const openPinStep = () => { setShowPinStep(true); setPin('') }
+								// Destino Cuba ⇒ CACR (propósito + 4 casillas); salida cripto ⇒ W-1
+								const scope = withdrawAttestationScope(selectedCoin)
+								const tick = selectedCoin?.tick ?? null
+								attestationRef.current = null
+								if (!requireAttestation(
+									{ required: !!scope, scope: scope ?? 'cuba_value', context: scope === 'crypto_out' ? 'crypto' : 'withdraw', tick },
+									payload => { attestationRef.current = { payload, tick }; openPinStep() },
+								)) return
+								openPinStep()
 							}}
 							disabled={!isFormValid}
 							icon="arrow-right"
@@ -284,6 +303,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 
 			{/* useKycGate expone `string | null` y el modal declara `string | undefined` */}
 			<KycGateModal visible={gateVisible} message={gateMessage as string} onClose={closeGate} />
+			<OfacAttestationModal {...ofacModalProps} />
 		</>
 	)
 }

@@ -30,6 +30,19 @@
 		"postinstall": "patch-package --error-on-fail",
 		"e2e:wallet": "maestro test .maestro --test-output-dir .maestro/output"
 	},
+	"codegenConfig": {
+		"name": "QvaPaySpecs",
+		"type": "components",
+		"jsSrcsDir": "specs",
+		"android": {
+			"javaPackageName": "com.qvapay.specs"
+		},
+		"ios": {
+			"componentProvider": {
+				"QPSecureView": "QPSecureView"
+			}
+		}
+	},
 	"dependencies": {
 		"@adrianso/react-native-device-brightness": "^1.2.7",
 		"@d11/react-native-fast-image": "^8.13.0",

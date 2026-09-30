@@ -11,6 +11,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
+import QPSecureView from '../../../ui/QPSecureView'
 import { useAuth } from '../../../auth/AuthContext'
 import { finishWalletSetup } from './finishWalletSetup'
 import { buildQuiz, QUIZ_QUESTIONS } from '../../../wallet/seed'
@@ -134,14 +135,14 @@ const WalletBackup = ({ navigation }: Props) => {
 						<Text style={[textStyles.h5, styles.warningText, { lineHeight: warnLineHeight, color: theme.colors.primaryText }]}>{t('crypto.wallet.backup.warning')}</Text>
 					</View>
 
-					<View style={styles.grid}>
+					<QPSecureView style={styles.grid}>
 						{words.map((word, index) => (
 							<View key={index} style={[styles.wordChip, { backgroundColor: theme.colors.surface }, wordBorder(theme)]}>
 								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{index + 1}</Text>
 								<Text testID={`wallet-seed-word-${index + 1}`} style={[textStyles.h5, { color: theme.colors.primaryText }]}>{revealed ? word : '••••••'}</Text>
 							</View>
 						))}
-					</View>
+					</QPSecureView>
 
 					{!revealed
 						? <QPButton testID="wallet-backup-reveal" title={t('crypto.wallet.backup.reveal')} icon="eye" onPress={() => setRevealed(true)} />
@@ -154,13 +155,13 @@ const WalletBackup = ({ navigation }: Props) => {
 					<Text testID={`wallet-quiz-position-${question.position + 1}`} style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
 						{t('crypto.wallet.backup.quizSubtitle', { position: question.position + 1 })}
 					</Text>
-					<View style={styles.options}>
+					<QPSecureView style={styles.options}>
 						{question.options.map(option => (
 							<QPPressable key={option} testID={`wallet-quiz-option-${option}`} onPress={() => answer(option)} style={[styles.option, { backgroundColor: theme.colors.surface }, wordBorder(theme)]}>
 								<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{option}</Text>
 							</QPPressable>
 						))}
-					</View>
+					</QPSecureView>
 					<Text style={[textStyles.h6, styles.progress, { color: theme.colors.secondaryText }]}>{quizIndex + 1}/{QUIZ_QUESTIONS}</Text>
 				</>
 			)}

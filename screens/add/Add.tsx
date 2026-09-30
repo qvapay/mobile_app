@@ -29,6 +29,7 @@ import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 // Orden de depósito: creación, modal, cuenta atrás y seguimiento en vivo
 import useDepositOrder from './useDepositOrder'
+import OfacAttestationModal from '../../ui/OfacAttestationModal'
 
 // Wallet self-custody: pagar el depósito desde la propia wallet (Fase 5 del plan crypto)
 import useWalletDepositBridge from './useWalletDepositBridge'
@@ -145,7 +146,7 @@ const Add = ({ navigation, route }: AddProps) => {
 	const {
 		showDepositModal, setShowDepositModal, topupData, depositStatus, countdown, sseConnected,
 		installedWallets, showWalletPicker, setShowWalletPicker,
-		handleTopup, launchCardSheet,
+		handleTopup, launchCardSheet, ofacModalProps,
 		isLoading, error, setError,
 	} = useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode })
 
@@ -291,6 +292,9 @@ const Add = ({ navigation, route }: AddProps) => {
 				} as ComponentProps<typeof WalletPickerSheet>['ctx']}
 				onClose={() => setShowWalletPicker(false)}
 			/>
+
+			{/* Certificación OFAC de fondeo (US persons; BANK siempre) */}
+			<OfacAttestationModal {...ofacModalProps} />
 
 		</>
 	)
