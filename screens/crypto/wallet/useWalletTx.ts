@@ -8,9 +8,12 @@
  * - La firma se retiene en un ref para re-difundir la MISMA tx (mismo hash)
  *   cuando la difusión falla por red; un doble tap nunca firma dos veces.
  * - Si la tx tiene vigencia (TRON ~60 s, blockhash de Solana) y expiró, se
- *   reconstruye antes de firmar: firmar una tx caducada es tirar la firma.
+ *   reconstruye antes de firmar: firmar una tx caducada es tirar la firma. Y si es la RED
+ *   la que la da por caducada al difundir (antes que nuestro reloj), también.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+import { isExpiredBroadcastError } from './txExpiry'
 
 export type TxPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'error'
 
@@ -71,6 +74,14 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			}
 			onSent(result.txid, current, result.duplicate, result.note)
 		} catch (err) {
+			// La red dio la tx por CADUCADA antes que nuestro reloj: no se ejecutó, así que se
+			// reconstruye (y el usuario vuelve a confirmar). Si no, "Reintentar" re-difundiría la
+			// misma tx caducada en bucle
+			if (isExpiredBroadcastError(err)) {
+				signedRef.current = null
+				await prepare()
+				return
+			}
 			setPhase('error')
 			setError(describeError(err))
 		}
