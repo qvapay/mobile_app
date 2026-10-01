@@ -241,8 +241,13 @@ describe('isRetryableRpcError', () => {
 	})
 })
 
-/** Proxies propios ya en producción (verificados antes de encenderse en el registry). */
-const LIVE_QVAPAY_PROXIES = ['solana']
+/**
+ * Proxies propios ya en producción (verificados antes de encenderse en el registry):
+ * - solana: sol.qvapay.com
+ * - tron: tron.qvapay.com → GetBlock FULLNODE-REST (2026-10-01: bloques, cuenta, recompensas,
+ *   SR y brokerage REAL —5 % P2P.org, a diferencia de TronGrid— y rutas vetadas con 403)
+ */
+const LIVE_QVAPAY_PROXIES = ['solana', 'tron']
 
 describe('bundled.json', () => {
 	test('cubre las 8 cadenas v7 con la forma del contrato', () => {
