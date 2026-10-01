@@ -1,13 +1,9 @@
 /**
- * Motor de "enviar" de la wallet: construir → VERIFICAR → firmar → difundir, con sus
- * reintentos.
- *
- * Reglas que este hook sostiene (y por las que vive separado del JSX):
- * - Lo que la pantalla muestra sale de la tx CONSTRUIDA, no del formulario.
- * - La firma se retiene en un ref para poder re-difundir la MISMA tx (mismo hash) cuando
- *   la difusión falla por red; un doble tap nunca firma dos veces (`inFlightRef`).
- * - Si la tx tiene vigencia (TRON ~60 s, el blockhash de Solana) y expiró, se reconstruye
- *   desde cero antes de firmar: firmar una tx caducada es tirar la firma.
+ * Motor de "enviar" de la wallet sobre el núcleo común `useWalletTx`
+ * (construir → VERIFICAR → firmar → difundir, reintentos, vigencia, doble
+ * tap). Aquí vive solo lo propio de un envío: la intención (destino +
+ * importe), el nivel de comisión, el patrocinio de Solana y la espera de la
+ * energía TRON recién alquilada.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -25,8 +21,10 @@ import { refreshHistoryAfterSend, WALLET_BALANCES_KEY } from './walletQueries'
 import { broadcastSigned, prepareSend, signPrepared } from './walletSendActions'
 import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
 import type { SponsorBridge } from './useGaslessSend'
+import useWalletTx from './useWalletTx'
+import type { SubmitResult, TxPhase } from './useWalletTx'
 
-export type SendPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'error'
+export type SendPhase = TxPhase
 
 /** Cuánto se espera a que un nodo vea la energía recién delegada antes de rendirse. */
 const ENERGY_WAIT_DEADLINE_MS = 45_000
@@ -54,14 +52,8 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 
-	const [phase, setPhase] = useState<SendPhase>('preparing')
-	const [prepared, setPrepared] = useState<PreparedSend | null>(null)
-	const [error, setError] = useState<string | null>(null)
-	const [authVisible, setAuthVisible] = useState(false)
 	// Nivel de comisión elegido: cambiarlo reconstruye la tx (nuevo gas/tasa, misma intención)
 	const [feeTier, setFeeTier] = useState<FeeTier>('normal')
-	const signedRef = useRef<SignedSend | null>(null)
-	const inFlightRef = useRef(false)
 	// Latch del alquiler de energía: una vez comprada para ESTE envío, el aviso
 	// no vuelve a ofrecerla aunque el nodo tarde en ver la delegación. Es la
 	// defensa contra el doble cobro que no depende de la red.
@@ -71,84 +63,42 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 	const mountedRef = useRef(true)
 	useEffect(() => () => { mountedRef.current = false }, [])
 
-	const prepare = useCallback(async () => {
-		if (!asset || !addresses || !chain) return
-		setPhase('preparing'); setError(null); signedRef.current = null
-		try {
-			const intent = { chainKey: asset.chainKey, from: addressForKind(addresses, asset.kind), fromPublicKey: addresses.stxPublicKey, to, amount: parseUnits(amount, asset.decimals), contract: asset.contract }
-			// Con patrocinio el hueco 0 es de QvaPay: el usuario firma solo el suyo
-			setPrepared(await prepareSend(chain, intent, feeTier, { feePayer: sponsor?.feePayer ?? null }))
-			setPhase('ready')
-		} catch (err) {
-			setPhase('error')
-			setError(describeError(err))
+	const build = useCallback(() => {
+		const intent = { chainKey: asset!.chainKey, from: addressForKind(addresses!, asset!.kind), fromPublicKey: addresses!.stxPublicKey, to, amount: parseUnits(amount, asset!.decimals), contract: asset!.contract }
+		// Con patrocinio el hueco 0 es de QvaPay: el usuario firma solo el suyo
+		return prepareSend(chain!, intent, feeTier, { feePayer: sponsor?.feePayer ?? null })
+	}, [asset, addresses, chain, to, amount, feeTier, sponsor?.feePayer])
+
+	const submit = useCallback(async (current: PreparedSend, signed: SignedSend): Promise<SubmitResult> => {
+		// Una tx patrocinada NUNCA sale a la red desde aquí: va a medio firmar al
+		// backend, que la co-firma y la emite (`broadcastSigned` lo impide además)
+		if (sponsor && current.kind === 'solana' && signed.kind === 'solana' && current.inner.sponsored) {
+			const outcome = await sponsor.submit(signed.signed.base64)
+			// El blockhash caducó antes de llegar: no se gastó nada y el permiso
+			// sigue vivo, así que se reconstruye y se vuelve a firmar
+			if ('rebuild' in outcome) return { rebuild: true }
+			return { txid: outcome.txid, duplicate: false }
 		}
-	}, [asset, addresses, chain, to, amount, feeTier, describeError, sponsor?.feePayer])
+		return broadcastSigned(current, signed)
+	}, [sponsor])
 
-	useEffect(() => { prepare() }, [prepare])
-
-	const isExpired = useCallback((current: PreparedSend) => current.summary.expiresAt !== null && current.summary.expiresAt <= Date.now(), [])
-
-	const finish = useCallback((txid: string) => {
+	const handleSent = useCallback((txid: string, _prepared: PreparedSend, duplicate: boolean) => {
+		if (duplicate) toast(t('crypto.wallet.send.alreadySent'))
 		queryClient.invalidateQueries({ queryKey: WALLET_BALANCES_KEY })
 		// Solo el historial del activo enviado, diferido y saltando la caché del proxy
 		refreshHistoryAfterSend(queryClient, assetId)
 		onSent(txid)
-	}, [queryClient, assetId, onSent])
+	}, [queryClient, assetId, onSent, t])
 
-	const broadcast = useCallback(async (current: PreparedSend, signed: SignedSend) => {
-		setPhase('broadcasting')
-		try {
-			// Una tx patrocinada NUNCA sale a la red desde aquí: va a medio firmar al
-			// backend, que la co-firma y la emite (`broadcastSigned` lo impide además)
-			if (sponsor && current.kind === 'solana' && signed.kind === 'solana' && current.inner.sponsored) {
-				const outcome = await sponsor.submit(signed.signed.base64)
-				if ('rebuild' in outcome) {
-					// El blockhash caducó antes de llegar: no se gastó nada y el permiso
-					// sigue vivo, así que se reconstruye y se vuelve a firmar
-					signedRef.current = null
-					await prepare()
-					return
-				}
-				finish(outcome.txid)
-				return
-			}
-			const result = await broadcastSigned(current, signed)
-			if (result.duplicate) toast(t('crypto.wallet.send.alreadySent'))
-			finish(result.txid)
-		} catch (err) {
-			setPhase('error')
-			setError(describeError(err))
-		}
-	}, [finish, t, describeError, sponsor, prepare])
-
-	const onAuthorized = useCallback(async () => {
-		setAuthVisible(false)
-		if (!prepared || inFlightRef.current) return
-		inFlightRef.current = true
-		try {
-			if (isExpired(prepared)) { await prepare(); return }
-			setPhase('signing')
-			// Un tick para que el spinner pinte antes del PBKDF2 (síncrono, ~1-2s en Hermes)
-			await new Promise<void>(resolve => setTimeout(resolve, 30))
-			const signed = signedRef.current ?? await signPrepared(prepared)
-			signedRef.current = signed
-			await broadcast(prepared, signed)
-		} catch (err) {
-			setPhase('error')
-			setError(describeError(err))
-		} finally {
-			inFlightRef.current = false
-		}
-	}, [prepared, prepare, broadcast, isExpired, describeError])
-
-	/**
-	 * Reconstruye la tx SIEMPRE, tirando la firma retenida. `retry()` no vale
-	 * para esto: con una firma viva y la tx aún vigente re-difunde la MISMA
-	 * transacción sin pasar por el gate de autenticación, que es lo correcto
-	 * para el botón de reintentar pero no para "he comprado energía, recalcula".
-	 */
-	const refresh = useCallback(() => { signedRef.current = null; return prepare() }, [prepare])
+	const core = useWalletTx<PreparedSend, SignedSend>({
+		ready: !!asset && !!addresses && !!chain,
+		build,
+		sign: signPrepared,
+		submit,
+		onSent: handleSent,
+		describeError,
+	})
+	const { prepared, refresh, setPhase } = core
 
 	/**
 	 * La energía ya se compró. No se reconstruye la tx en el acto: la
@@ -182,36 +132,16 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		if (!mountedRef.current) { return }
 		setEnergySlow(true)
 		await refresh()
-	}, [prepared, refresh])
-
-	const retry = useCallback(() => {
-		// Firmada y aún vigente: re-difundir la MISMA tx; si no, empezar de cero
-		if (prepared && signedRef.current && !isExpired(prepared)) {
-			if (inFlightRef.current) return
-			inFlightRef.current = true
-			broadcast(prepared, signedRef.current).finally(() => { inFlightRef.current = false })
-			return
-		}
-		prepare()
-	}, [prepared, broadcast, prepare, isExpired])
+	}, [prepared, refresh, setPhase])
 
 	return {
-		phase,
-		prepared,
-		error,
+		...core,
 		feeTier,
 		setFeeTier,
-		authVisible,
-		openAuth: useCallback(() => setAuthVisible(true), []),
-		closeAuth: useCallback(() => setAuthVisible(false), []),
-		onAuthorized,
-		retry,
-		refresh,
 		markEnergyRented,
 		onEnergyRented,
 		energyRented,
 		energySlow,
-		busy: phase === 'signing' || phase === 'broadcasting' || phase === 'waitingEnergy',
 	}
 }
 
