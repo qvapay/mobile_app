@@ -181,7 +181,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	)
 	const hiddenDustCount = hideDust && !revealDust ? dust.length : 0
 	const historyStatus = (history.error as ApiError | null)?.status
-	const historyUnavailable = history.isError && allItems.length === 0
+	// 401 sin sesión = qpweb anterior al historial público: se ofrece la cuenta, no un error
+	const historyNeedsAccount = !isAuthenticated && historyStatus === 401 && allItems.length === 0
+	const historyUnavailable = history.isError && allItems.length === 0 && !historyNeedsAccount
 
 	const { hasMore, isLoadingMore, loadMore } = history
 
@@ -314,7 +316,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 
 			<Text style={[textStyles.h3, styles.sectionTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.asset.activity')}</Text>
 
-			{!isAuthenticated && allItems.length === 0 && <AccountUpsellCard variant="history" />}
+			{historyNeedsAccount && <AccountUpsellCard variant="history" />}
 
 			{history.isInitialLoading && (
 				<View style={styles.historySkeleton}>
@@ -334,7 +336,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				</View>
 			)}
 
-			{isAuthenticated && history.isReady && !history.isError && allItems.length === 0 && !hasMore && (
+			{history.isReady && !history.isError && allItems.length === 0 && !hasMore && (
 				<View style={[styles.emptyBox, { backgroundColor: theme.colors.surface }]}>
 					<FontAwesome6 name="inbox" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[textStyles.h5, styles.emptyText, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.asset.empty', { symbol: asset.symbol })}</Text>

@@ -15,7 +15,7 @@ Las capturas y los logs de cada corrida quedan en `.maestro/output/`, que está 
 | Flujo | Qué cubre |
 |---|---|
 | 01_create_wallet | Welcome → "Solo quiero una wallet" → PIN (con un fallo de confirmación) → seed → quiz → WalletOnly sin swap/P2P y con la tarjeta de cuenta |
-| 02_asset_guest | Activo TRON: invitación en lugar del historial; sin swap ni energía; con explorador |
+| 02_asset_guest | Activo TRON: con actividad (historial público); sin swap ni energía; con explorador |
 | 03_receive | Recibir sin cuenta |
 | 04_security_back | Seguridad abre el panel de la wallet como raíz y su "volver" regresa |
 | 05_cold_start_lock | Arranque en frío con wallet y sin sesión → bloqueo con PIN → WalletOnly |
