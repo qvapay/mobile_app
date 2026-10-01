@@ -66,6 +66,9 @@ export const walletApi = {
 			const params: Record<string, string> = { chain, address, asset }
 			if (cursor) params.cursor = cursor
 			if (fresh) params.fresh = '1'
+			// Movimientos de staking (TRON: congelar, votar, cobrar…): opt-in, el servidor no
+			// se los manda a las versiones de la app que no saben pintarlos
+			params.staking = '1'
 			const response = await apiClient.get('/wallet/history', { params, silent: true })
 			return { success: true, data: response.data?.data ?? { items: [], next_cursor: null }, status: response.status }
 

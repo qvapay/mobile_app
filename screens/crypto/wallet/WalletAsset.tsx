@@ -62,31 +62,38 @@ const DIRECTION_ICON: Record<WalletTx['direction'], FontAwesome6SolidIconName> =
 	self: 'arrows-rotate',
 }
 
-type TxRowProps = { tx: WalletTx, theme: Theme, onPress: (tx: WalletTx) => void }
+type TxRowProps = {
+	tx: WalletTx, theme: Theme, onPress: (tx: WalletTx) => void, activity?: StakeActivity | null
+	/** Nombre de validador/SR por dirección (registry): "Votaste · P2P.org" en vez de una dirección. */
+	names?: Record<string, string>
+}
 
-const TxRow = ({ tx, theme, onPress }: TxRowProps) => {
+const TxRow = ({ tx, theme, onPress, activity = null, names }: TxRowProps) => {
 	const { t } = useTranslation()
 	const failed = tx.status === 'failed'
 	const isFee = tx.kind === 'fee'
+	// Meter en staking, salir o votar NO es dinero que se fue: sigue siendo del usuario (sin signo, color neutro)
+	const staked = isNeutralStakeActivity(activity)
 	// Comisión: fila atenuada (no es dinero que fue a nadie, se quemó en la red)
-	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
+	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : staked ? theme.colors.primary : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
 	const iconColor = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
 	const counterpart = tx.direction === 'in' ? tx.from : tx.to
-	const sign = tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
+	const counterpartLabel = counterpart ? names?.[counterpart] ?? shortAddress(counterpart) : null
+	const sign = staked ? '' : tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
 
 	return (
 		<QPPressable onPress={() => onPress(tx)} style={[styles.txRow, { borderBottomColor: theme.colors.border + '40' }]}>
 			<View style={[styles.txIcon, { backgroundColor: iconColor + '18' }]}>
-				<FontAwesome6 name={failed ? 'xmark' : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={14} color={iconColor} iconStyle="solid" />
+				<FontAwesome6 name={failed ? 'xmark' : activity ? STAKE_ACTIVITY_ICON[activity] : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={14} color={iconColor} iconStyle="solid" />
 			</View>
 			<View style={styles.txInfo}>
 				<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }} numberOfLines={1}>
-					{isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)}
+					{activity ? t(`crypto.staking.activity.${activity}`) : isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)}
 				</Text>
 				<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.txSub]} numberOfLines={1}>
 					{isFee
 						? `${t('crypto.wallet.asset.feeEntrySub', { address: shortAddress(tx.to) })} · `
-						: counterpart ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: shortAddress(counterpart) })} · ` : ''}{timeAgo(tx.time * 1000)}
+						: counterpartLabel ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: counterpartLabel })} · ` : ''}{timeAgo(tx.time * 1000)}
 				</Text>
 			</View>
 			<View style={styles.txAmounts}>
@@ -162,6 +169,10 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const [revealDust, setRevealDust] = useState(false)
 
 	const history = useWalletHistory(asset)
+	// Stake accounts propias: convierten un "Enviado" a una de ellas en "Staking"
+	const stakeAccounts = useStakeAccountSet(asset)
+	const stakingConfig = useStakingConfig(asset?.contract === null ? asset.chainKey : undefined)
+	const targetNames = useMemo(() => Object.fromEntries((stakingConfig?.targets ?? []).map(target => [target.id, target.name])), [stakingConfig])
 	const allItems = history.items
 	const priceForDust = asset ? assetPrice(asset, prices) : null
 	const { visible: items, dust } = useMemo(
@@ -337,7 +348,8 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			<FlashList
 				data={items}
 				keyExtractor={(tx, index) => `${tx.hash}:${index}`}
-				renderItem={({ item }) => <TxRow tx={item} theme={theme} onPress={openTx} />}
+				renderItem={({ item }) => <TxRow tx={item} theme={theme} onPress={openTx} activity={stakeActivityOf(item, stakeAccounts)} names={targetNames} />}
+				extraData={[stakeAccounts, targetNames]}
 				ListHeaderComponent={header}
 				ListFooterComponent={
 					<>
