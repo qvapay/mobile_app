@@ -145,6 +145,8 @@ export const DEFAULT_SETTINGS = {
 		hideDust: true,
 		/** Face ID / Touch ID como atajo del PIN al firmar y ver la frase (marcador propio en Keychain). */
 		walletBiometrics: true,
+		/** Staking: familias (`solana`/`tron`/`stacks`) cuyo aviso de riesgos el usuario ya aceptó. */
+		stakingDisclosure: {} as Record<string, boolean>,
 	},
 
 	// Roundup (micro pagos) settings

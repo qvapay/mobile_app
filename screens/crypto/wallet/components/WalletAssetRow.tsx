@@ -64,7 +64,7 @@ const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) 
 
 			<View style={styles.amounts}>
 				{showBalance
-					? <AmountFlow amount={asset.amount} style={[textStyles.h4, { color: theme.colors.primaryText }]} />
+					? <AmountFlow amount={asset.total} style={[textStyles.h4, { color: theme.colors.primaryText }]} />
 					: <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>••••</Text>}
 				{showBalance && asset.usd !== null
 					? <AmountFlow amount={String(asset.usd)} prefix="$" fractionDigits={2} style={[styles.sub, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]} />

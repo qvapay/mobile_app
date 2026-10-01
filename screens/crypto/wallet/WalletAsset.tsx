@@ -21,6 +21,10 @@ import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from
 import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import useCanSwapAsset from './useCanSwapAsset'
+import { isDevBuild, isStakingEntryVisible } from '../../../wallet/staking/capabilities'
+import { isNeutralStakeActivity, STAKE_ACTIVITY_ICON, stakeActivityOf } from '../../../wallet/staking/activity'
+import type { StakeActivity } from '../../../wallet/staking/activity'
+import { useStakeAccountSet, useStakingConfig } from './stakingQueries'
 import type { ApiError } from '../../../api/unwrap'
 
 // Catálogo de monedas de QvaPay (el mismo que ya alimenta los precios de esta pantalla)
@@ -175,6 +179,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const isTron = asset?.kind === 'tron'
 	// El explorador cede su sitio al intercambio cuando el activo tiene alguna salida
 	const canSwap = useCanSwapAsset(asset)
+	// Staking: solo nativos de SOL/TRX/STX, cuando la red ya sabe firmarlo (o en desarrollo). Quien ya
+	// tiene algo en staking (p. ej. STX bloqueado desde otra wallet) entra igual: ahí ve su cuenta atrás
+	const canEarn = !!asset && (isStakingEntryVisible(asset, { dev: isDevBuild() }) || asset.hasStake)
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -228,11 +235,17 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			<View style={styles.hero}>
 				<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
 				<QPFitText style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>
-					{showBalance ? `${asset.amountLabel} ${asset.symbol}` : `•••• ${asset.symbol}`}
+					{showBalance ? `${asset.totalLabel} ${asset.symbol}` : `•••• ${asset.symbol}`}
 				</QPFitText>
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
 					{showBalance && asset.usd !== null ? `≈ ${formatUsd(asset.usd)}` : ' '}
 				</Text>
+				{/* Con staking, el héroe es el TOTAL: se desglosa qué se puede mover ya y qué está trabajando */}
+				{showBalance && asset.hasStake && (
+					<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }, styles.priceLine]}>
+						{t('crypto.staking.asset.available', { amount: asset.amountLabel, symbol: asset.symbol })} · {t('crypto.staking.hub.stakedLine', { amount: asset.stakedLabel, symbol: asset.symbol })}
+					</Text>
+				)}
 				{price !== null && (
 					<Text style={[{ color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.priceLine]}>
 						{t('crypto.wallet.asset.price', { symbol: asset.symbol, price: formatUsd(price, { compactSmall: true }) })}
@@ -272,6 +285,15 @@ const WalletAsset = ({ navigation, route }: Props) => {
 						testID="asset-action-energy"
 						label={t('crypto.energy.resources.energy')}
 						onPress={() => navigation.navigate(ROUTES.WALLET_ENERGY, undefined)}
+					/>
+				)}
+				{canEarn && (
+					<Action
+						theme={theme}
+						icon="seedling"
+						testID="asset-action-earn"
+						label={t('crypto.staking.entry')}
+						onPress={() => navigation.navigate(ROUTES.WALLET_STAKE, { assetId: asset.id })}
 					/>
 				)}
 				{!canSwap && (
