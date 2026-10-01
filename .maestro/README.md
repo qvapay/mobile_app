@@ -23,8 +23,9 @@ Las capturas y los logs de cada corrida quedan en `.maestro/output/`, que está 
 | 07_delete_wallet | Borrar la wallet (PIN + confirmación) → Welcome |
 | 08_import_wallet | Importar "abandon … about" → dirección ETH determinista `0x9858EfFD…EcaEda94` |
 | 09_abandoned_backup | Alta a medias → Welcome "Abrir mi wallet" → retomar el backup pasa por el PIN |
+| 10_staking | Importar "abandon … about" → Ganar → SOL: aviso de riesgos (bloqueado sin marcar), mínimo de 1 SOL visible y con Continuar deshabilitado, selector con los 3 validadores y su APY medido, confirmación preparada contra mainnet (NUNCA firma) → TRX: aviso propio, SR con APY, saldo insuficiente |
 
-Los flujos 02 a 07 dependen del estado que deja el 01 (`executionOrder` en `config.yaml`); el 08 y el 09 arrancan en limpio.
+Los flujos 02 a 07 dependen del estado que deja el 01 (`executionOrder` en `config.yaml`); el 08, el 09 y el 10 arrancan en limpio.
 
 ## Reglas para escribir flujos
 

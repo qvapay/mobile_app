@@ -1,0 +1,244 @@
+# Staking sin cuenta (fases 1 y 2): hub "Ganar" → SOL y TRX → aviso de riesgos → selector
+# con APY medido → mínimo de la red → confirmación preparada contra mainnet.
+#
+# NUNCA FIRMA: la frase "abandon … about" es pública y la red es mainnet. El flujo llega a la
+# pantalla de confirmación (que solo LEE: blockhash, renta, comisión) y vuelve atrás sin tocar
+# "Confirmar" ni teclear el PIN de firma.
+#
+# Depende del saldo de esa wallet pública (2,197 SOL y 0 TRX el 2026-09-30): si alguien la
+# vacía, el tramo de confirmación de SOL se salta solo (condición `enabled`).
+appId: com.qvapay
+env:
+  PIN: "1234"
+  MNEMONIC: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+  ANAGRAM: "4AUED4uj6nSTuANzaAUnGBPJQRmhpDYDwoWJNkoUUBBW"
+  ALCHEMY: "JEJzKYzyYJJjtn6Yb1P7r6YV75TdSNmmJT49sgDoHvmk"
+  STAKING_FACILITIES: "DumiCKHVqoCQKD8roLApzR5Fit8qGV5fVQsJV9sTZk4a"
+  P2P: "TH7Fe1W8CcLeqN4LGfqX1R9EpsnrJBQJij"
+---
+# --- Wallet importada, en el modo wallet (sin cuenta QvaPay) ---
+- runFlow: subflows/fresh_start.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+# Welcome tiene marquesinas animadas: la pantalla "cambia" siempre y retryTapIfNoChange da
+# por bueno un toque perdido. Se reintenta MIENTRAS no aparezca la pantalla siguiente
+- repeat:
+    times: 5
+    while:
+      notVisible:
+        id: "wallet-onboarding-import"
+    commands:
+      - runFlow: subflows/dismiss_logbox.yaml
+      - tapOn:
+          id: "welcome-wallet-link"
+      - waitForAnimationToEnd:
+          timeout: 3000
+- tapOn:
+    id: "wallet-onboarding-import"
+    retryTapIfNoChange: true
+- runFlow: subflows/create_pin.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-import-input"
+    retryTapIfNoChange: true
+- inputText: ${MNEMONIC}
+- runFlow: subflows/dismiss_logbox.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-import-submit"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet-only"
+    timeout: 15000
+
+# --- Hub "Ganar" desde la tarjeta del home de la wallet ---
+# La lista de activos se REORDENA (animada) al llegar los saldos y empuja la tarjeta: un toque
+# en ese instante cae en una fila de activo. Se espera a que se asiente y, si se abrió otra
+# pantalla, se vuelve y se reintenta
+- repeat:
+    times: 4
+    while:
+      notVisible:
+        id: "earn-asset-solana:native"
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: "wallet-only"
+          commands:
+            - back
+      - runFlow:
+          file: subflows/scroll_down_to.yaml
+          env:
+            TARGET: "wallet-home-earn"
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - tapOn:
+          id: "wallet-home-earn"
+      - waitForAnimationToEnd:
+          timeout: 3000
+- extendedWaitUntil:
+    visible:
+      id: "earn-asset-solana:native"
+    timeout: 10000
+- assertVisible:
+    id: "earn-asset-tron:native"
+- takeScreenshot: 10_earn_hub
+
+# --- SOL: ficha de staking → aviso de riesgos (no deja seguir sin marcar) ---
+- tapOn:
+    id: "earn-asset-solana:native"
+    retryTapIfNoChange: true
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "stake-entry"
+- tapOn:
+    id: "stake-entry"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "staking-disclosure"
+    timeout: 5000
+- assertVisible:
+    id: "staking-disclosure-continue"
+    enabled: false
+- tapOn:
+    id: "staking-disclosure-check"
+- assertVisible:
+    id: "staking-disclosure-continue"
+    enabled: true
+- takeScreenshot: 10_sol_disclosure
+- tapOn:
+    id: "staking-disclosure-continue"
+
+# --- Formulario: el mínimo de la red se ve ANTES de escribir ---
+- extendedWaitUntil:
+    visible:
+      id: "stake-form-hint"
+      text: ".*1 SOL.*"
+    timeout: 15000
+
+# --- Selector: los tres validadores, cada uno con su APY medido ---
+- tapOn:
+    id: "stake-target-open"
+- extendedWaitUntil:
+    visible:
+      id: "stake-target-picker"
+    timeout: 5000
+- assertVisible:
+    id: "stake-target-${ANAGRAM}"
+- assertVisible:
+    id: "stake-target-${ALCHEMY}"
+- assertVisible:
+    id: "stake-target-${STAKING_FACILITIES}"
+# La medición pide recompensas reales a la red: puede tardar unos segundos
+- extendedWaitUntil:
+    visible:
+      id: "stake-target-apy-${ANAGRAM}"
+      text: "≈ [3-7][.,]\\d %"
+    timeout: 30000
+- takeScreenshot: 10_sol_picker_apy
+- tapOn:
+    id: "stake-target-${ANAGRAM}"
+
+# --- 0,2 SOL: por debajo del mínimo → aviso y Continuar deshabilitado ---
+- tapOn:
+    id: "stake-amount"
+- inputText: "0.2"
+- extendedWaitUntil:
+    visible:
+      id: "stake-form-error"
+      text: ".*1 SOL.*"
+    timeout: 5000
+- assertVisible:
+    id: "stake-continue"
+    enabled: false
+- takeScreenshot: 10_sol_below_minimum
+
+# --- 1,2 SOL: válido → confirmación PREPARADA contra mainnet (sin firmar) ---
+- eraseText: 10
+- inputText: "1.2"
+- runFlow:
+    when:
+      visible:
+        id: "stake-continue"
+        enabled: true
+    commands:
+      - hideKeyboard
+      - tapOn:
+          id: "stake-continue"
+      # "Confirmar" habilitado = la tx se construyó y se VERIFICÓ (whitelist de instrucciones)
+      - extendedWaitUntil:
+          visible:
+            id: "stake-confirm"
+            enabled: true
+          timeout: 30000
+      - takeScreenshot: 10_sol_confirm_prepared
+      # Se vuelve al formulario SIN tocar "Confirmar"
+      - back
+
+# --- TRX: aviso de riesgos propio de la red (los plazos son distintos) y SR con APY ---
+# Atrás HASTA el hub: formulario y confirmación son pasos de UNA pantalla, así que el número
+# de pantallas por encima depende de si se llegó a confirmar
+- repeat:
+    times: 3
+    while:
+      notVisible:
+        id: "earn-asset-tron:native"
+    commands:
+      - back
+      - waitForAnimationToEnd:
+          timeout: 2000
+- extendedWaitUntil:
+    visible:
+      id: "earn-asset-tron:native"
+    timeout: 10000
+- tapOn:
+    id: "earn-asset-tron:native"
+    retryTapIfNoChange: true
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "stake-entry"
+- tapOn:
+    id: "stake-entry"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "staking-disclosure"
+    timeout: 5000
+- tapOn:
+    id: "staking-disclosure-check"
+- tapOn:
+    id: "staking-disclosure-continue"
+- extendedWaitUntil:
+    visible:
+      id: "stake-form-hint"
+      text: ".*1 TRX.*"
+    timeout: 15000
+- tapOn:
+    id: "stake-target-open"
+- extendedWaitUntil:
+    visible:
+      id: "stake-target-apy-${P2P}"
+      text: "≈ [2-5][.,]\\d %"
+    timeout: 45000
+- takeScreenshot: 10_trx_picker_apy
+- tapOn:
+    id: "stake-target-${P2P}"
+# 0 TRX en la wallet de prueba: cualquier importe es insuficiente → no deja continuar
+- tapOn:
+    id: "stake-amount"
+- inputText: "5"
+- extendedWaitUntil:
+    visible:
+      id: "stake-form-error"
+    timeout: 5000
+- assertVisible:
+    id: "stake-continue"
+    enabled: false
+- takeScreenshot: 10_trx_insufficient

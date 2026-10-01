@@ -14,3 +14,4 @@ executionOrder:
     - 07_delete_wallet
     - 08_import_wallet
     - 09_abandoned_backup
+    - 10_staking
