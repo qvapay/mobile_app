@@ -10,6 +10,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
+  /// Raíz de React Native ya creada. Si iOS descarta la escena (presión de memoria) y la
+  /// reconecta, se cuelga de la ventana nueva en vez de arrancar una SEGUNDA instancia de RN.
+  var reactRootViewController: UIViewController?
 
   /// Aquí solo se prepara la factoría: React Native arranca en `SceneDelegate`, que es
   /// quien tiene la ventana. Desde el SDK de iOS 27 una app sin ciclo de vida por escenas
@@ -61,11 +64,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     self.window = window
     appDelegate.window = window
 
+    // Reconexión de la escena: React Native ya está vivo, se reutiliza su raíz
+    if let existing = appDelegate.reactRootViewController {
+      window.rootViewController = existing
+      window.makeKeyAndVisible()
+      // Un deep link que llega con la reconexión se entrega como con la app abierta
+      if let url = connectionOptions.urlContexts.first?.url {
+        RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+      } else if let activity = connectionOptions.userActivities.first {
+        RCTLinkingManager.application(UIApplication.shared, continue: activity, restorationHandler: { _ in })
+      }
+      return
+    }
+
     factory.startReactNative(
       withModuleName: "QvaPay",
       in: window,
       launchOptions: SceneDelegate.launchOptions(from: connectionOptions)
     )
+    appDelegate.reactRootViewController = window.rootViewController
   }
 
   /// Las claves que lee `RCTLinkingManager.getInitialURL`.
