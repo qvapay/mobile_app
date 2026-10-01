@@ -8,6 +8,7 @@ import { displayAmount, formatUnits } from './units'
 import { encodeBalanceOf, getEvmNativeBalance, getEvmTokenBalance } from './evm'
 import { getTronNativeBalance, getTronTokenBalance, tronJsonRpcUrl, tronToHex20 } from './tron'
 import { esploraBalance, getBtcBalance } from './btc'
+import { ftBalanceOf, stxBalanceOf, stxLockedOf } from './stacks'
 import { ChainHttpError, hexToBigInt, jsonRpc } from './http'
 import { fetchAllBalances, fetchChainBalances } from './index'
 import { isRetryableRpcError } from '../registry/rpcRouter'
@@ -142,6 +143,21 @@ describe('btc', () => {
 		mockFetch(() => jsonResponse({ chain_stats: { funded_txo_sum: 120000, spent_txo_sum: 0 } }))
 		await expect(getBtcBalance({ url: 'https://mempool.space/api/' }, BTC)).resolves.toBe(120000n)
 		expect(calls[0].url).toBe(`https://mempool.space/api/address/${BTC}`)
+	})
+})
+
+describe('stacks', () => {
+	test('STX gastable = total − bloqueado en stacking, nunca negativo', () => {
+		expect(stxBalanceOf({ stx: { balance: '5000000', locked: '0' } })).toBe(5000000n)
+		expect(stxBalanceOf({ stx: { balance: '5000000', locked: '3000000' } })).toBe(2000000n)
+		expect(stxLockedOf({ stx: { balance: '5000000', locked: '3000000' } })).toBe(3000000n)
+		expect(stxBalanceOf({ stx: { balance: '1000', locked: '5000' } })).toBe(0n)
+		expect(stxBalanceOf({})).toBe(0n)
+	})
+
+	test('token SIP-010 ausente = 0', () => {
+		expect(ftBalanceOf({ fungible_tokens: { 'SP1.c::A': { balance: '42' } } }, 'SP1.c::A')).toBe(42n)
+		expect(ftBalanceOf({}, 'SP1.c::A')).toBe(0n)
 	})
 })
 

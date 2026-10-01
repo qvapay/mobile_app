@@ -27,6 +27,39 @@ export type RegistryRpc = {
 	api?: string
 }
 
+/**
+ * Destino de staking destacado: validador (Solana, vote account), Super
+ * Representative (TRON) o pool de stacking (Stacks, principal del operador).
+ * `partner` marca un acuerdo comercial: sube al primer puesto y se etiqueta,
+ * pero NUNCA se preselecciona en silencio (el usuario ve a quién delega).
+ */
+export type RegistryStakeTarget = {
+	/** Vote account (Solana), dirección del SR (TRON) o principal del pool (Stacks). */
+	id: string
+	name: string
+	/** Aparece en la lista corta del selector. */
+	featured?: boolean
+	partner?: boolean
+	/** Solo pools Stacks: en qué se pagan las recompensas. */
+	payout?: 'btc' | 'stx'
+	/** Solo pools Stacks: mínimo que acepta el pool, en micro-STX (string: bigint). */
+	minAmount?: string
+	/** Web del operador (términos del pool, comisiones). */
+	url?: string
+	/**
+	 * Solo Solana: stake accounts REALES delegadas a este validador (grandes y estables) con
+	 * las que se MIDE su APY: lo que cobraron en la última epoch, no una fórmula teórica.
+	 */
+	samples?: string[]
+}
+
+/** Configuración de staking de una cadena. Ausente = la cadena no ofrece staking. */
+export type RegistryStaking = {
+	targets: RegistryStakeTarget[]
+	/** Solo Stacks: contrato PoX vigente (`SP000000000000000000002Q6VF78.pox-5` desde ago-2026). */
+	poxContract?: string
+}
+
 export type RegistryChain = {
 	kind: ChainKind
 	/** Nombre legible de la red ("BNB Smart Chain"). */
@@ -38,6 +71,8 @@ export type RegistryChain = {
 	explorer: string
 	tokens?: RegistryToken[]
 	rpcs: RegistryRpc[]
+	/** Validadores / SR / pools destacados. Añadir un partner = editar el registry, sin publicar app. */
+	staking?: RegistryStaking
 }
 
 export type RpcRegistry = {

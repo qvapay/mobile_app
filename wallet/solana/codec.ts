@@ -21,6 +21,15 @@ export const SYSTEM_PROGRAM = '11111111111111111111111111111111'
 export const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 export const ASSOCIATED_TOKEN_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
 export const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111'
+export const STAKE_PROGRAM = 'Stake11111111111111111111111111111111111111'
+export const VOTE_PROGRAM = 'Vote111111111111111111111111111111111111111'
+export const SYSVAR_CLOCK = 'SysvarC1ock11111111111111111111111111111111'
+export const SYSVAR_RENT = 'SysvarRent111111111111111111111111111111111'
+export const SYSVAR_STAKE_HISTORY = 'SysvarStakeHistory1111111111111111111111111'
+/** Cuenta de config del stake: obsoleta en el programa, pero `DelegateStake` aún la exige en su lista. */
+export const STAKE_CONFIG = 'StakeConfig11111111111111111111111111111111'
+/** `PublicKey.default`: 32 ceros (custodio de un lockup vacío). */
+export const DEFAULT_PUBKEY = SYSTEM_PROGRAM
 
 export class SolanaCodecError extends Error {
 	constructor(message: string) { super(message); this.name = 'SolanaCodecError' }
@@ -47,14 +56,14 @@ export const encodeBase58 = (bytes: Uint8Array): string => base58.encode(bytes)
 export const toBase64 = (bytes: Uint8Array): string => base64.encode(bytes)
 export const fromBase64 = (text: string): Uint8Array => base64.decode(text)
 
-const concat = (...parts: Uint8Array[]): Uint8Array => {
+export const concat = (...parts: Uint8Array[]): Uint8Array => {
 	const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0))
 	let offset = 0
 	for (const part of parts) { out.set(part, offset); offset += part.length }
 	return out
 }
 
-const ASCII = (text: string): Uint8Array => Uint8Array.from(text, ch => ch.charCodeAt(0))
+export const ASCII = (text: string): Uint8Array => Uint8Array.from(text, ch => ch.charCodeAt(0))
 
 export const u64le = (value: bigint): Uint8Array => {
 	if (value < 0n || value > 0xffffffffffffffffn) throw new SolanaCodecError('solana: u64 fuera de rango')
@@ -123,6 +132,17 @@ export const findProgramAddress = (seeds: Uint8Array[], programId: string): { ad
 	throw new SolanaCodecError('solana: sin bump válido para la PDA')
 }
 
+/**
+ * `PublicKey.createWithSeed`: sha256(base · seed · programa). NO es una PDA (no se
+ * comprueba la curva): es una dirección derivada que solo `base` puede crear, así que
+ * la stake account nace con la MISMA firma del usuario, sin un segundo firmante.
+ */
+export const createWithSeed = (base: string, seed: string, programId: string): string => {
+	const seedBytes = ASCII(seed)
+	if (seedBytes.length > 32 || /[^\x20-\x7e]/.test(seed)) throw new SolanaCodecError('solana: semilla inválida (máx 32 bytes ASCII)')
+	return base58.encode(sha256(concat(pubkeyBytes(base), seedBytes, pubkeyBytes(programId))))
+}
+
 /** Cuenta de token asociada (ATA) de `owner` para `mint` en el programa de tokens clásico. */
 export const associatedTokenAddress = (owner: string, mint: string): string =>
 	findProgramAddress([pubkeyBytes(owner), pubkeyBytes(TOKEN_PROGRAM), pubkeyBytes(mint)], ASSOCIATED_TOKEN_PROGRAM).address
@@ -167,6 +187,73 @@ export const transferCheckedIx = ({ source, mint, destination, owner, amount, de
 		{ pubkey: owner, isSigner: true, isWritable: false },
 	],
 	data: concat(Uint8Array.of(12), u64le(amount), Uint8Array.of(decimals)),
+})
+
+// ---------------------------------------------------------------------------
+// Stake program (staking nativo). Layouts contrastados con web3.js 1.98 en los tests.
+// ---------------------------------------------------------------------------
+
+/**
+ * System `CreateAccountWithSeed` (tag 3). La semilla viaja como string bincode (u64 de
+ * longitud + bytes). Con `base === from` la lista lleva solo 2 cuentas: la firma del
+ * pagador ya es la de la base.
+ */
+export const createAccountWithSeedIx = ({ from, newAccount, base, seed, lamports, space, owner }: {
+	from: string, newAccount: string, base: string, seed: string, lamports: bigint, space: number, owner: string
+}): Instruction => {
+	const seedBytes = ASCII(seed)
+	const keys: AccountMeta[] = [{ pubkey: from, isSigner: true, isWritable: true }, { pubkey: newAccount, isSigner: false, isWritable: true }]
+	if (base !== from) keys.push({ pubkey: base, isSigner: true, isWritable: false })
+	return {
+		programId: SYSTEM_PROGRAM,
+		keys,
+		data: concat(u32le(3), pubkeyBytes(base), u64le(BigInt(seedBytes.length)), seedBytes, u64le(lamports), u64le(BigInt(space)), pubkeyBytes(owner)),
+	}
+}
+
+/** Stake `Initialize` (0): autoridades staker/withdrawer y lockup VACÍO (sin custodio ni fecha). */
+export const stakeInitializeIx = (stake: string, staker: string, withdrawer: string): Instruction => ({
+	programId: STAKE_PROGRAM,
+	keys: [{ pubkey: stake, isSigner: false, isWritable: true }, { pubkey: SYSVAR_RENT, isSigner: false, isWritable: false }],
+	data: concat(u32le(0), pubkeyBytes(staker), pubkeyBytes(withdrawer), u64le(0n), u64le(0n), pubkeyBytes(DEFAULT_PUBKEY)),
+})
+
+/** Stake `DelegateStake` (2): delega la cuenta en una vote account. Firma el staker. */
+export const stakeDelegateIx = (stake: string, vote: string, staker: string): Instruction => ({
+	programId: STAKE_PROGRAM,
+	keys: [
+		{ pubkey: stake, isSigner: false, isWritable: true },
+		{ pubkey: vote, isSigner: false, isWritable: false },
+		{ pubkey: SYSVAR_CLOCK, isSigner: false, isWritable: false },
+		{ pubkey: SYSVAR_STAKE_HISTORY, isSigner: false, isWritable: false },
+		{ pubkey: STAKE_CONFIG, isSigner: false, isWritable: false },
+		{ pubkey: staker, isSigner: true, isWritable: false },
+	],
+	data: u32le(2),
+})
+
+/** Stake `Deactivate` (5): empieza a salir; deja de rendir al final de la epoch. */
+export const stakeDeactivateIx = (stake: string, staker: string): Instruction => ({
+	programId: STAKE_PROGRAM,
+	keys: [
+		{ pubkey: stake, isSigner: false, isWritable: true },
+		{ pubkey: SYSVAR_CLOCK, isSigner: false, isWritable: false },
+		{ pubkey: staker, isSigner: true, isWritable: false },
+	],
+	data: u32le(5),
+})
+
+/** Stake `Withdraw` (4): saca `lamports` de la cuenta a `to`. Todo el saldo = la cuenta se cierra. */
+export const stakeWithdrawIx = (stake: string, to: string, withdrawer: string, lamports: bigint): Instruction => ({
+	programId: STAKE_PROGRAM,
+	keys: [
+		{ pubkey: stake, isSigner: false, isWritable: true },
+		{ pubkey: to, isSigner: false, isWritable: true },
+		{ pubkey: SYSVAR_CLOCK, isSigner: false, isWritable: false },
+		{ pubkey: SYSVAR_STAKE_HISTORY, isSigner: false, isWritable: false },
+		{ pubkey: withdrawer, isSigner: true, isWritable: false },
+	],
+	data: concat(u32le(4), u64le(lamports)),
 })
 
 // ---------------------------------------------------------------------------

@@ -35,6 +35,13 @@ export type WalletAsset = {
 export type RawBalances = Record<string, string>
 
 export const nativeAssetId = (chainKey: string): string => `${chainKey}:native`
+
+/**
+ * Clave del saldo COMPROMETIDO en staking de un activo dentro de `RawBalances`
+ * (STX bloqueado por PoX, SOL en stake accounts, TRX congelado). Vive junto al
+ * saldo gastable para que una cadena caída conserve ambos de la pasada anterior.
+ */
+export const stakedAssetId = (assetId: string): string => `${assetId}#staked`
 export const tokenAssetId = (chainKey: string, contract: string): string => `${chainKey}:${contract}`
 
 /** Ticks del catálogo de QvaPay por símbolo nativo/red (BNB en QvaPay es BNBBSC, POL es MATICMAINNET). */
@@ -168,25 +175,41 @@ export const assetPrice = (asset: WalletAsset, prices: PriceMap): number | null 
 }
 
 export type AssetView = WalletAsset & {
-	/** Decimal humano exacto ('12.5'). */
+	/** Saldo GASTABLE, decimal humano exacto ('12.5'). Es lo que usan Enviar/MÁX/Swap. */
 	amount: string
 	/** Para pintar ('1,240.5', '<0.000001'). */
 	amountLabel: string
-	/** null = sin precio conocido (no suma al total). */
+	/** Comprometido en staking (no gastable hasta salir). '0' si no hay. */
+	staked: string
+	stakedLabel: string
+	/** Gastable + staking: lo que el usuario TIENE. Es lo que pintan filas y héroe. */
+	total: string
+	totalLabel: string
+	/** Valor USD del TOTAL (el staking sigue siendo dinero del usuario). null = sin precio conocido. */
 	usd: number | null
+	/** Hay saldo gastable. */
 	hasBalance: boolean
+	hasStake: boolean
 }
 
 export const toAssetView = (asset: WalletAsset, balances: RawBalances, prices: PriceMap): AssetView => {
 	const raw = BigInt(balances[asset.id] ?? '0')
+	const stakedRaw = BigInt(balances[stakedAssetId(asset.id)] ?? '0')
 	const amount = formatUnits(raw, asset.decimals)
+	const staked = formatUnits(stakedRaw, asset.decimals)
+	const total = formatUnits(raw + stakedRaw, asset.decimals)
 	const price = assetPrice(asset, prices)
 	return {
 		...asset,
 		amount,
 		amountLabel: displayAmount(amount),
-		usd: price === null ? null : Number(amount) * price,
+		staked,
+		stakedLabel: displayAmount(staked),
+		total,
+		totalLabel: displayAmount(total),
+		usd: price === null ? null : Number(total) * price,
 		hasBalance: raw > 0n,
+		hasStake: stakedRaw > 0n,
 	}
 }
 
@@ -201,7 +224,7 @@ export type AssetVisibility = Record<string, boolean>
 export const isAssetVisible = (view: AssetView, prefs: AssetVisibility): boolean => {
 	const pref = prefs[view.id]
 	if (pref !== undefined) return pref
-	return isDefaultAsset(view) || view.hasBalance
+	return isDefaultAsset(view) || view.hasBalance || view.hasStake
 }
 
 /** El token de QvaPay va SIEMPRE primero, tenga el saldo que tenga (decisión de producto 2026-09-15). */
