@@ -268,7 +268,6 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 				<P2POfferChatDock
 					enabled={!!p2p && status !== "open"}
 					chat={chat}
-					keyboardHeight={keyboardHeight}
 					insets={insets}
 					theme={theme}
 					textStyles={textStyles}
