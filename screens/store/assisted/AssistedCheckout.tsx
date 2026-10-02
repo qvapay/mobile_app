@@ -14,8 +14,9 @@ import { createContainerStyles, createTextStyles } from '../../../theme/themeUti
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
-import AddressPicker, { formatAddress } from '../../../ui/store/AddressPicker'
-import NewAddressForm, { EMPTY_US_ADDRESS, validateUsAddress, buildAddressBody } from '../../../ui/store/NewAddressForm'
+import AddressPicker from '../../../ui/store/AddressPicker'
+import NewAddressForm from '../../../ui/store/NewAddressForm'
+import { formatAddress, EMPTY_US_ADDRESS, validateUsAddress, buildAddressBody } from '../../../ui/store/shippingAddress'
 
 // Routes & API
 import { ROUTES } from '../../../routes'
@@ -35,8 +36,7 @@ import type { Theme } from '../../../theme/ThemeContext'
 import type { ApiFailure, ApiResult } from '../../../types/api'
 import type { ShopCheckoutInput } from '../../../api/shopApi'
 import type { AssistedQuote } from './assistedConstants'
-import type { ShippingAddress } from '../../../ui/store/AddressPicker'
-import type { UsAddressForm } from '../../../ui/store/NewAddressForm'
+import type { ShippingAddress, UsAddressForm } from '../../../ui/store/shippingAddress'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AssistedCheckout'>
 

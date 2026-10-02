@@ -30,7 +30,8 @@
 			},
 			"networkErrorTitle": "Error de red",
 			"withdrawFailed": "No se pudo completar la extracción",
-			"processError": "Error al procesar la extracción"
+			"processError": "Error al procesar la extracción",
+			"attestationRequired": "Debes completar la certificación para este retiro"
 		}
 	},
 	"amountCard": {

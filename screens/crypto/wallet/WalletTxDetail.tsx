@@ -16,6 +16,8 @@ import { assetPrice, explorerTxUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { useAssetCatalog, usePriceMap } from './walletQueries'
 import { formatUsd } from './walletFormat'
+import { useStakeAccountSet } from './stakingQueries'
+import { isNeutralStakeActivity, STAKE_ACTIVITY_ICON, stakeActivityOf } from '../../../wallet/staking/activity'
 
 // Helpers
 import { copyTextToClipboard, getShortDateTime } from '../../../helpers'
@@ -70,14 +72,17 @@ const WalletTxDetail = ({ route }: Props) => {
 
 	const isFee = tx.kind === 'fee'
 	const failed = tx.status === 'failed'
+	// Un "Enviado" a una stake account propia es un movimiento de staking (sigue siendo suyo)
+	const stakeAccounts = useStakeAccountSet(asset)
+	const activity = stakeActivityOf(tx, stakeAccounts)
 	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
-	const sign = isFee || tx.direction === 'out' ? '−' : tx.direction === 'in' ? '+' : ''
+	const sign = isNeutralStakeActivity(activity) ? '' : isFee || tx.direction === 'out' ? '−' : tx.direction === 'in' ? '+' : ''
 	// Valor al precio de HOY (no al del momento de la tx): se dice en la etiqueta
 	const price = asset ? assetPrice(asset, prices) : null
 	const usd = price !== null && Number.isFinite(Number(tx.amount)) ? Number(tx.amount) * price : null
 	const nativeSymbol = chain?.native.symbol ?? ''
 
-	const title = isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)
+	const title = activity ? t(`crypto.staking.activity.${activity}`) : isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)
 	const statusKey = tx.status === 'confirmed' ? 'crypto.wallet.txDetail.confirmed' : `crypto.wallet.asset.status.${tx.status}`
 
 	return (
@@ -87,7 +92,7 @@ const WalletTxDetail = ({ route }: Props) => {
 				<View style={styles.heroIcon}>
 					{asset && <QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />}
 					<View style={[styles.badge, { backgroundColor: tint, borderColor: theme.colors.background }]}>
-						<FontAwesome6 name={failed ? 'xmark' : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={11} color={theme.colors.buttonText} iconStyle="solid" />
+						<FontAwesome6 name={failed ? 'xmark' : activity ? STAKE_ACTIVITY_ICON[activity] : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={11} color={theme.colors.buttonText} iconStyle="solid" />
 					</View>
 				</View>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{title}</Text>

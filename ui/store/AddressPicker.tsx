@@ -5,26 +5,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import type { TextStyle } from 'react-native'
 import type { Theme } from '../../theme/ThemeContext'
 
-/** Saved US shipping address as returned by `shopApi.getShippingAddresses` (only the fields this component reads). */
-export type ShippingAddress = {
-	uuid: string
-	label?: string | null
-	is_default?: boolean | number | null
-	recipient_name: string
-	line1: string
-	line2?: string | null
-	city: string
-	state: string
-	postal_code: string
-}
-
-/**
- * One-line summary of a saved US shipping address, for cards and confirm modals.
- *
- * @param a - Address `{ recipient_name, line1, line2?, city, state, postal_code }`.
- * @returns Human-readable summary.
- */
-export const formatAddress = (a: Omit<ShippingAddress, 'uuid'> & { uuid?: string }) => `${a.recipient_name} — ${a.line1}${a.line2 ? `, ${a.line2}` : ''}, ${a.city}, ${a.state} ${a.postal_code}`
+import { formatAddress } from './shippingAddress'
+import type { ShippingAddress } from './shippingAddress'
 
 type Props = {
 	/** Saved addresses from `shopApi.getShippingAddresses`. */

@@ -292,7 +292,7 @@
 				"lastFree": "QvaPay covers this send — it is your last free one today.",
 				"remaining_one": "You have {{count}} free send left today",
 				"remaining_other": "You have {{count}} free sends left today",
-				"exhausted": "You've used your free send for today. It renews at {{time}}.",
+				"exhausted": "You've used your free sends for today. They renew at {{time}}.",
 				"goldHook": "With GOLD, your USDT and USDC sends on Solana are free.",
 				"goldCta": "Get GOLD",
 				"sending": "Sending with no fee…",
@@ -638,6 +638,197 @@
 			"title": "Energy and bandwidth",
 			"subtitle": "{{energy}} of energy available",
 			"subtitleEmpty": "No energy: USDT sends burn TRX"
+		}
+	},
+	"staking": {
+		"entry": "Earn",
+		"soon": "Coming soon",
+		"hub": {
+			"title": "Put your crypto to work",
+			"subtitle": "Stake from your own wallet. Your funds never leave it: you sign.",
+			"totalLabel": "Total staked",
+			"assetsTitle": "Available networks",
+			"stakedLine": "{{amount}} {{symbol}} staked",
+			"noStake": "Nothing staked yet",
+			"disclaimer": "Yields are estimated and variable: they depend on the network and on who you delegate to. They are not paid by QvaPay and are not guaranteed.",
+			"homeCardTitle": "Earn with your crypto",
+			"homeCardSubtitle": "Stake SOL and TRX without leaving your wallet",
+			"homeCardStaked": "{{amount}} staked"
+		},
+		"asset": {
+			"committed": "Staked",
+			"available": "Available: {{amount}} {{symbol}}",
+			"apy": "≈ {{apy}} per year (estimated)",
+			"positions": "Your positions",
+			"empty": "You don't have any {{symbol}} staked yet.",
+			"soonNotice": "Stacking {{symbol}} from QvaPay is coming later. Here you can see anything locked from another wallet and when it unlocks.",
+			"howTitle": "How it works",
+			"loadError": "We couldn't read your positions. Pull to retry.",
+			"how": {
+				"solana": {
+					"step1": "Pick a validator and delegate your SOL. It stays in your wallet, in a stake account only you control.",
+					"step2": "It starts earning in the next epoch (about 2 days) and rewards compound automatically.",
+					"step3": "To exit, deactivate it and withdraw it to your balance once the epoch ends."
+				},
+				"tron": {
+					"step1": "Freeze TRX and vote for a Super Representative with that voting power.",
+					"step2": "You get energy to send USDT without burning TRX, plus voting rewards you claim every 24 h.",
+					"step3": "After unfreezing, the TRX returns to your balance in 14 days."
+				},
+				"stacks": {
+					"step1": "On Stacks, STX is locked for cycles of about 2 weeks through a signer (stacking).",
+					"step2": "While locked it earns rewards and can't be sent.",
+					"step3": "It only unlocks when the chosen period ends; you can see the countdown here."
+				}
+			},
+			"claim": {
+				"title": "{{amount}} {{symbol}} in rewards",
+				"ready": "Voting rewards ready to claim.",
+				"wait": "You can claim in {{time}} (the network allows one claim every 24 h)."
+			},
+			"unvoted": {
+				"title": "{{amount}} unvoted TRON Power",
+				"subtitle": "Vote for an SR so your frozen TRX earns rewards.",
+				"cta": "Vote"
+			}
+		},
+		"targetKind": {
+			"solana": "Validator",
+			"tron": "Super Representative",
+			"stacks": "Pool"
+		},
+		"status": {
+			"activating": "Activating",
+			"active": "Earning",
+			"cooling": "Exiting",
+			"withdrawable": "Ready to withdraw",
+			"locked": "Locked"
+		},
+		"timeLeft": {
+			"days_one": "{{count}} day",
+			"days_other": "{{count}} days",
+			"hours_one": "{{count}} hour",
+			"hours_other": "{{count}} hours",
+			"minutes_one": "{{count}} minute",
+			"minutes_other": "{{count}} minutes"
+		},
+		"unlockIn": "Ends in {{time}}",
+		"unknownTarget": "Unknown target",
+		"actions": {
+			"stake": "Stake",
+			"unstake": "Unstake",
+			"withdraw": "Withdraw to balance",
+			"claim": "Claim rewards",
+			"vote": "Change SR",
+			"delegate": "Delegate",
+			"revoke": "Revoke delegation"
+		},
+		"form": {
+			"targetLabel": "{{target}}",
+			"pickTarget": "Choose",
+			"amountLabel": "Amount",
+			"available": "Available: {{amount}} {{symbol}}",
+			"stakedAvailable": "Staked: {{amount}} {{symbol}}",
+			"max": "MAX",
+			"continue": "Continue",
+			"errors": {
+				"amountZero": "Enter an amount greater than zero.",
+				"insufficient": "You don't have enough {{symbol}}.",
+				"amountInvalid": "Up to {{decimals}} decimals.",
+				"belowMin": "The minimum to stake is {{amount}} {{symbol}}.",
+				"noTarget": "Choose who to delegate to."
+			},
+			"minimum": "Minimum {{amount}} {{symbol}}"
+		},
+		"confirm": {
+			"action": "Action",
+			"amount": "Amount",
+			"target": "{{target}}",
+			"networkFee": "Network fee",
+			"txCount": "Signatures",
+			"txCountValue_one": "{{count}} transaction",
+			"txCountValue_other": "{{count}} transactions",
+			"reserve": "Refundable deposit",
+			"wait": "Takes effect in",
+			"confirm": "Confirm",
+			"signing": "Signing…",
+			"broadcasting": "Sending to the network…",
+			"retry": "Retry",
+			"back": "Back",
+			"authSubtitle": "{{action}} · {{amount}} {{symbol}}",
+			"authSubtitleNoAmount": "{{action}} · {{network}}",
+			"nonCustodial": "You sign: QvaPay never touches your funds and can't move them.",
+			"errors": {
+				"unsupported": "This action isn't available on {{network}} yet.",
+				"verifyFailed": "The transaction returned by the node doesn't match what you asked for. Nothing was signed.",
+				"noNodes": "We couldn't reach any node on the network. Try again in a moment.",
+				"generic": "Couldn't complete it: {{message}}",
+				"unknown": "Something went wrong. Please try again."
+			},
+			"notices": {
+				"replacesVotes": "Your current votes for other SRs will move to {{target}}.",
+				"votesAdjust": "When you unfreeze, the network readjusts your votes to your new TRON Power. If you're left with unvoted power, we'll let you know so you can vote again."
+			}
+		},
+		"picker": {
+			"title": "Choose a {{target}}",
+			"partner": "QvaPay partner",
+			"featured": "Recommended",
+			"payout": "Pays in {{symbol}}",
+			"minAmount": "Minimum {{amount}} {{symbol}}",
+			"empty": "No targets available on this network yet.",
+			"close": "Close",
+			"apy": "≈ {{apy}}",
+			"apyNote": {
+				"solana": "APY measured from what real accounts delegated to each validator earned in the last epoch. Excludes MEV (≈ +0.2%) and may vary.",
+				"tron": "Estimated APY from the network's voting rewards and each SR's commission. May vary.",
+				"stacks": "Estimated APY from the pool's recent cycles. May vary."
+			}
+		},
+		"disclosure": {
+			"title": "Before you start",
+			"custody": "Your funds don't leave your wallet: QvaPay doesn't hold them and can't move them.",
+			"variable": "Yield is estimated and variable. It can go down, and the validator or pool can fail or change its commission.",
+			"lock": {
+				"solana": "Unstaking isn't instant: it takes until the end of the epoch (about 2 days).",
+				"tron": "Frozen TRX takes 14 days to return to your balance after you unfreeze it.",
+				"stacks": "STX stays locked until the end of the stacking cycle (about 2 weeks)."
+			},
+			"accept": "I understand how it works and its risks",
+			"continue": "Continue",
+			"cancel": "Not now"
+		},
+		"success": {
+			"title": {
+				"stake": "You're staking!",
+				"unstake": "Unstaking",
+				"withdraw": "Withdrawn to your balance",
+				"claim": "Rewards claimed",
+				"vote": "Vote updated",
+				"delegate": "Delegation done!",
+				"revoke": "Delegation revoked"
+			},
+			"next": {
+				"solana": "It will start earning in the next epoch. You'll see it under Earn.",
+				"tron": "Your TRX is frozen and voting. Claim your rewards every 24 h.",
+				"stacks": "Your STX will be locked once the pool includes it in the next cycle."
+			},
+			"exit": {
+				"solana": "It stops earning at the end of the epoch (about 2 days). Then you can withdraw it to your balance from Earn.",
+				"tron": "Your TRX will be available again in 14 days. Withdraw it from Earn.",
+				"stacks": "Your STX will unlock at the end of the current stacking cycle."
+			},
+			"txid": "Transaction",
+			"viewStaking": "View my staking",
+			"done": "Done",
+			"votePending": "Your TRX is frozen, but the vote didn't go through. Go to Earn and tap Vote to start earning rewards."
+		},
+		"activity": {
+			"stake": "Staked",
+			"withdraw": "Withdrawn from staking",
+			"unstake": "Unstaking",
+			"vote": "Voted",
+			"claim": "Rewards claimed"
 		}
 	}
 }

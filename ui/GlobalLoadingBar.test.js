@@ -47,7 +47,7 @@ jest.mock('@shopify/react-native-skia', () => ({
 let mockIsDark = true
 let mockAccent = 'default'
 jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(mockIsDark, 1.0, mockAccent) }) }
 })
 jest.mock('../loading/LoadingContext', () => ({ useLoading: jest.fn() }))

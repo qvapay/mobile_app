@@ -21,6 +21,10 @@ import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from
 import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import useCanSwapAsset from './useCanSwapAsset'
+import { isDevBuild, isStakingEntryVisible } from '../../../wallet/staking/capabilities'
+import { isNeutralStakeActivity, STAKE_ACTIVITY_ICON, stakeActivityOf } from '../../../wallet/staking/activity'
+import type { StakeActivity } from '../../../wallet/staking/activity'
+import { useStakeAccountSet, useStakingConfig } from './stakingQueries'
 import type { ApiError } from '../../../api/unwrap'
 
 // Catálogo de monedas de QvaPay (el mismo que ya alimenta los precios de esta pantalla)
@@ -58,31 +62,38 @@ const DIRECTION_ICON: Record<WalletTx['direction'], FontAwesome6SolidIconName> =
 	self: 'arrows-rotate',
 }
 
-type TxRowProps = { tx: WalletTx, theme: Theme, onPress: (tx: WalletTx) => void }
+type TxRowProps = {
+	tx: WalletTx, theme: Theme, onPress: (tx: WalletTx) => void, activity?: StakeActivity | null
+	/** Nombre de validador/SR por dirección (registry): "Votaste · P2P.org" en vez de una dirección. */
+	names?: Record<string, string>
+}
 
-const TxRow = ({ tx, theme, onPress }: TxRowProps) => {
+const TxRow = ({ tx, theme, onPress, activity = null, names }: TxRowProps) => {
 	const { t } = useTranslation()
 	const failed = tx.status === 'failed'
 	const isFee = tx.kind === 'fee'
+	// Meter en staking, salir o votar NO es dinero que se fue: sigue siendo del usuario (sin signo, color neutro)
+	const staked = isNeutralStakeActivity(activity)
 	// Comisión: fila atenuada (no es dinero que fue a nadie, se quemó en la red)
-	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
+	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : staked ? theme.colors.primary : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
 	const iconColor = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
 	const counterpart = tx.direction === 'in' ? tx.from : tx.to
-	const sign = tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
+	const counterpartLabel = counterpart ? names?.[counterpart] ?? shortAddress(counterpart) : null
+	const sign = staked ? '' : tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
 
 	return (
 		<QPPressable onPress={() => onPress(tx)} style={[styles.txRow, { borderBottomColor: theme.colors.border + '40' }]}>
 			<View style={[styles.txIcon, { backgroundColor: iconColor + '18' }]}>
-				<FontAwesome6 name={failed ? 'xmark' : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={14} color={iconColor} iconStyle="solid" />
+				<FontAwesome6 name={failed ? 'xmark' : activity ? STAKE_ACTIVITY_ICON[activity] : isFee ? 'fire' : DIRECTION_ICON[tx.direction]} size={14} color={iconColor} iconStyle="solid" />
 			</View>
 			<View style={styles.txInfo}>
 				<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }} numberOfLines={1}>
-					{isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)}
+					{activity ? t(`crypto.staking.activity.${activity}`) : isFee ? t('crypto.wallet.asset.feeEntry') : t(`crypto.wallet.asset.direction.${tx.direction}`)}
 				</Text>
 				<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.txSub]} numberOfLines={1}>
 					{isFee
 						? `${t('crypto.wallet.asset.feeEntrySub', { address: shortAddress(tx.to) })} · `
-						: counterpart ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: shortAddress(counterpart) })} · ` : ''}{timeAgo(tx.time * 1000)}
+						: counterpartLabel ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: counterpartLabel })} · ` : ''}{timeAgo(tx.time * 1000)}
 				</Text>
 			</View>
 			<View style={styles.txAmounts}>
@@ -158,6 +169,10 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const [revealDust, setRevealDust] = useState(false)
 
 	const history = useWalletHistory(asset)
+	// Stake accounts propias: convierten un "Enviado" a una de ellas en "Staking"
+	const stakeAccounts = useStakeAccountSet(asset)
+	const stakingConfig = useStakingConfig(asset?.contract === null ? asset.chainKey : undefined)
+	const targetNames = useMemo(() => Object.fromEntries((stakingConfig?.targets ?? []).map(target => [target.id, target.name])), [stakingConfig])
 	const allItems = history.items
 	const priceForDust = asset ? assetPrice(asset, prices) : null
 	const { visible: items, dust } = useMemo(
@@ -166,7 +181,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	)
 	const hiddenDustCount = hideDust && !revealDust ? dust.length : 0
 	const historyStatus = (history.error as ApiError | null)?.status
-	const historyUnavailable = history.isError && allItems.length === 0
+	// 401 sin sesión = qpweb anterior al historial público: se ofrece la cuenta, no un error
+	const historyNeedsAccount = !isAuthenticated && historyStatus === 401 && allItems.length === 0
+	const historyUnavailable = history.isError && allItems.length === 0 && !historyNeedsAccount
 
 	const { hasMore, isLoadingMore, loadMore } = history
 
@@ -175,6 +192,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const isTron = asset?.kind === 'tron'
 	// El explorador cede su sitio al intercambio cuando el activo tiene alguna salida
 	const canSwap = useCanSwapAsset(asset)
+	// Staking: solo nativos de SOL/TRX/STX, cuando la red ya sabe firmarlo (o en desarrollo). Quien ya
+	// tiene algo en staking (p. ej. STX bloqueado desde otra wallet) entra igual: ahí ve su cuenta atrás
+	const canEarn = !!asset && (isStakingEntryVisible(asset, { dev: isDevBuild() }) || asset.hasStake)
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -228,11 +248,17 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			<View style={styles.hero}>
 				<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
 				<QPFitText style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>
-					{showBalance ? `${asset.amountLabel} ${asset.symbol}` : `•••• ${asset.symbol}`}
+					{showBalance ? `${asset.totalLabel} ${asset.symbol}` : `•••• ${asset.symbol}`}
 				</QPFitText>
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
 					{showBalance && asset.usd !== null ? `≈ ${formatUsd(asset.usd)}` : ' '}
 				</Text>
+				{/* Con staking, el héroe es el TOTAL: se desglosa qué se puede mover ya y qué está trabajando */}
+				{showBalance && asset.hasStake && (
+					<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }, styles.priceLine]}>
+						{t('crypto.staking.asset.available', { amount: asset.amountLabel, symbol: asset.symbol })} · {t('crypto.staking.hub.stakedLine', { amount: asset.stakedLabel, symbol: asset.symbol })}
+					</Text>
+				)}
 				{price !== null && (
 					<Text style={[{ color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.priceLine]}>
 						{t('crypto.wallet.asset.price', { symbol: asset.symbol, price: formatUsd(price, { compactSmall: true }) })}
@@ -274,6 +300,15 @@ const WalletAsset = ({ navigation, route }: Props) => {
 						onPress={() => navigation.navigate(ROUTES.WALLET_ENERGY, undefined)}
 					/>
 				)}
+				{canEarn && (
+					<Action
+						theme={theme}
+						icon="seedling"
+						testID="asset-action-earn"
+						label={t('crypto.staking.entry')}
+						onPress={() => navigation.navigate(ROUTES.WALLET_STAKE, { assetId: asset.id })}
+					/>
+				)}
 				{!canSwap && (
 					<Action theme={theme} icon="up-right-from-square" testID="asset-action-explorer" label={t('crypto.wallet.asset.explorer')} onPress={() => openUrl(address ? explorerAddressUrl(chain, address) : null)} />
 				)}
@@ -281,7 +316,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 
 			<Text style={[textStyles.h3, styles.sectionTitle, { color: theme.colors.primaryText }]}>{t('crypto.wallet.asset.activity')}</Text>
 
-			{!isAuthenticated && allItems.length === 0 && <AccountUpsellCard variant="history" />}
+			{historyNeedsAccount && <AccountUpsellCard variant="history" />}
 
 			{history.isInitialLoading && (
 				<View style={styles.historySkeleton}>
@@ -301,7 +336,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				</View>
 			)}
 
-			{isAuthenticated && history.isReady && !history.isError && allItems.length === 0 && !hasMore && (
+			{history.isReady && !history.isError && allItems.length === 0 && !hasMore && (
 				<View style={[styles.emptyBox, { backgroundColor: theme.colors.surface }]}>
 					<FontAwesome6 name="inbox" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[textStyles.h5, styles.emptyText, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.asset.empty', { symbol: asset.symbol })}</Text>
@@ -315,7 +350,8 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			<FlashList
 				data={items}
 				keyExtractor={(tx, index) => `${tx.hash}:${index}`}
-				renderItem={({ item }) => <TxRow tx={item} theme={theme} onPress={openTx} />}
+				renderItem={({ item }) => <TxRow tx={item} theme={theme} onPress={openTx} activity={stakeActivityOf(item, stakeAccounts)} names={targetNames} />}
+				extraData={[stakeAccounts, targetNames]}
 				ListHeaderComponent={header}
 				ListFooterComponent={
 					<>

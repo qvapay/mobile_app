@@ -46,6 +46,12 @@ import { maybeRequestReview } from '../../helpers/inAppReview'
 // Toast
 import { toast } from 'sonner-native'
 
+// Atestación de fondeo OFAC (US persons en todo depósito; BANK siempre)
+import useOfacGate from '../../hooks/useOfacGate'
+import { useOfacChecks } from '../../hooks/useOfacQueries'
+import { fundingAttestationRequired } from '../../helpers/ofacCompliance'
+import type { OfacCompliancePayload } from '../../helpers/ofacCompliance'
+
 // Tipos
 import type { ApiClientError } from '../../types/api'
 import type { Coin } from '../../types/domain'
@@ -110,6 +116,11 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+
+	// US person según su ficha CIP (resuelto al tocar Generar; fail-closed)
+	const { resolveUsPerson, prefetchUsPerson } = useOfacChecks()
+	const { requireAttestation, modalProps: ofacModalProps } = useOfacGate()
+	useEffect(() => { prefetchUsPerson() }, [prefetchUsPerson])
 
 	// Countdown timer state
 	const [countdown, setCountdown] = useState(1800)
@@ -183,6 +194,26 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 		if (isNaN(amountValue) || amountValue <= 0) { toast.error(t('add.index.toasts.invalidAmount')); return }
 		if (!selectedCoin || !amount) { toast.error(t('add.index.toasts.missingCoinOrAmount')); return }
 		if (amountValue < parseFloat(selectedCoin.min_in as string)) { toast.error(t('add.index.toasts.minAmount', { name: selectedCoin.name, min: selectedCoin.min_in })); return }
+		// Certificación del uso previsto de los fondos ANTES de crear la orden
+		const tick = selectedCoin.tick
+		setIsLoading(true)
+		const usPerson = await resolveUsPerson()
+		setIsLoading(false)
+		if (!requireAttestation(
+			{
+				required: fundingAttestationRequired({ usPerson, tick }),
+				scope: 'funding',
+				context: tick.toUpperCase() === 'BANK' ? 'deposit_bank' : 'topup',
+				tick,
+			},
+			payload => { createOrder(payload) },
+		)) return
+		await createOrder(null)
+	}
+
+	// POST /topup — la atestación (si la hubo) viaja como `compliance`
+	const createOrder = async (compliance: OfacCompliancePayload | null) => {
+		if (!selectedCoin) return
 		try {
 			setIsLoading(true)
 			setError(null)
@@ -190,6 +221,7 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 				pay_method: selectedCoin.tick,
 				amount: Number(amount),
 				...(isCardCoin && { fee_mode: feeMode }),
+				...(compliance && { compliance }),
 			})
 			if (response.data && response.status === 200) {
 				const data = response.data.data
@@ -239,6 +271,8 @@ export default function useDepositOrder({ selectedCoin, amount, isCardCoin, feeM
 		installedWallets, showWalletPicker, setShowWalletPicker,
 		// Acciones
 		handleTopup, launchCardSheet,
+		// Certificación OFAC de fondeo (la pantalla monta el modal)
+		ofacModalProps,
 		// Carga y error (la pantalla también escribe `error` al fallar el catálogo)
 		isLoading, error, setError,
 	}

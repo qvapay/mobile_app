@@ -1,10 +1,10 @@
 # Recibir funciona sin cuenta (backup confirmado)
 appId: com.qvapay
 ---
-- scrollUntilVisible:
-    element:
-      id: "wallet-action-receive"
-    direction: UP
+- runFlow:
+    file: subflows/scroll_up_to.yaml
+    env:
+      TARGET: "wallet-action-receive"
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:

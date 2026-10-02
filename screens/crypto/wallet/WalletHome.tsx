@@ -12,8 +12,10 @@ import type { Theme } from '../../../theme/ThemeContext'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
+import { assetPrice } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
 import { usePriceMap, useWalletAssets } from './walletQueries'
+import { formatUsd } from './walletFormat'
 
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
@@ -28,6 +30,7 @@ import WalletCard from './WalletCard'
 import WalletBalanceCard from './components/WalletBalanceCard'
 import type { WalletAction } from './components/WalletBalanceCard'
 import WalletAssetRow from './components/WalletAssetRow'
+import { isDevBuild, isStakingHubEnabled } from '../../../wallet/staking/capabilities'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -111,6 +114,13 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	// quedaría debajo (initial:false) es el de la cuenta y cuelga del usuario
 	const openSecurity = () => navigation.navigate(ROUTES.SETTINGS_STACK, { screen: ROUTES.WALLET_SETTINGS, initial: !isAuthenticated })
 
+	// Staking: la tarjeta solo existe cuando alguna red ya sabe firmarlo (o en desarrollo)
+	const showEarn = isStakingHubEnabled({ dev: isDevBuild() })
+	const stakedTotal = visible.reduce((sum, asset) => {
+		const price = asset.hasStake ? assetPrice(asset, prices) : null
+		return price === null ? sum : sum + Number(asset.staked) * price
+	}, 0)
+
 	const notice = failedChains.length > 0 && hasBalances
 		? t('crypto.wallet.home.staleChains', { count: failedChains.length })
 		: null
@@ -164,6 +174,28 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 					</QPPressable>
 				</View>
 			</View>
+
+			{showEarn && (
+				<QPPressable
+					onPress={() => navigation.navigate(ROUTES.WALLET_EARN)}
+					testID="wallet-home-earn"
+					style={[styles.earnCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
+					accessibilityRole="button"
+				>
+					<View style={[styles.earnIcon, { backgroundColor: theme.colors.successText + '18' }]}>
+						<FontAwesome6 name="seedling" size={16} color={theme.colors.successText} iconStyle="solid" />
+					</View>
+					<View style={styles.earnInfo}>
+						<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.md }}>{t('crypto.staking.hub.homeCardTitle')}</Text>
+						<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }} numberOfLines={1}>
+							{stakedTotal > 0 && showBalance
+								? t('crypto.staking.hub.homeCardStaked', { amount: formatUsd(stakedTotal) })
+								: t('crypto.staking.hub.homeCardSubtitle')}
+						</Text>
+					</View>
+					<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
+				</QPPressable>
+			)}
 		</View>
 	)
 }
@@ -178,6 +210,9 @@ const styles = StyleSheet.create({
 	skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
 	skeletonText: { flex: 1, gap: 6 },
 	skeletonAmounts: { alignItems: 'flex-end', gap: 6 },
+	earnCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, padding: 14 },
+	earnIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+	earnInfo: { flex: 1, minWidth: 0, gap: 2 },
 })
 
 export default WalletHome

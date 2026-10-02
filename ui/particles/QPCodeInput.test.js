@@ -9,7 +9,7 @@ import { StyleSheet, TextInput } from 'react-native'
 import { act, create } from 'react-test-renderer'
 
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 

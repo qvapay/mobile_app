@@ -7,7 +7,7 @@
  * @jest-environment node
  */
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
@@ -44,6 +44,8 @@ jest.mock('../../hooks/useKycGate', () => ({
 	KYC_WITHDRAW_THRESHOLD: 1000,
 }))
 jest.mock('../../ui/KycGateModal', () => 'KycGateModal')
+// Modal OFAC como host: el gate real corre y el test firma vía onConfirm
+jest.mock('../../ui/OfacAttestationModal', () => 'OfacAttestationModal')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
@@ -137,6 +139,15 @@ const typeCoinAmount = (tree, value) => act(async () => { amountCard(tree).props
 const fillField = (tree, key, text) => act(async () => { tree.root.findByType('WithdrawAccountFields').props.onChangeField(key, text) })
 const pressFooter = (tree) => act(async () => { footerButton(tree).props.onPress() })
 
+// Atestación OFAC que el modal entregaría con todo marcado
+const ATTESTATION = {
+	purposeCode: 'P-1',
+	attestations: { notProhibitedOfficial: true, notProhibitedPartyMember: true, notRestrictedList: true, lawfulPurpose: true },
+	language: 'es',
+}
+const ofacModal = (tree) => tree.root.findByType('OfacAttestationModal')
+const attest = (tree, payload = ATTESTATION) => act(async () => { ofacModal(tree).props.onConfirm(payload) })
+
 // Drives the happy path up to the PIN step: coin + amount + account fields + Continuar
 const goToPinStep = async (tree) => {
 	await selectCoin(tree, CUP)
@@ -144,6 +155,8 @@ const goToPinStep = async (tree) => {
 	await fillField(tree, 'card_number', '9224061799991234')
 	await fillField(tree, 'full_name', 'John Doe')
 	await pressFooter(tree)
+	// BANK_CUP es destino Cuba: Continuar abre la certificación antes del PIN
+	await attest(tree)
 	return tree.root.findByType('PinConfirmStep')
 }
 
@@ -372,6 +385,7 @@ describe('withdraw submission', () => {
 			details: { 'Card Number': '9224061799991234', 'Full Name': 'John Doe' },
 			pin: '1234',
 			idempotencyKey: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/),
+			compliance: ATTESTATION,
 		})
 		expect(toast.success).toHaveBeenCalledWith('Extracción procesada', { description: 'Se han extraído $100 QUSD' })
 		expect(navigation.goBack).toHaveBeenCalled()
@@ -481,6 +495,75 @@ describe('crypto destination gate', () => {
 	})
 })
 
+describe('OFAC attestation gate', () => {
+	test('a Cuba-bound coin opens the CACR certification before the PIN step', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		await typeQUSD(tree, '100')
+		await fillField(tree, 'card_number', '9224061799991234')
+		await fillField(tree, 'full_name', 'John Doe')
+		await pressFooter(tree)
+		expect(ofacModal(tree).props).toMatchObject({ visible: true, scope: 'cuba_value', context: 'withdraw', tick: 'BANK_CUP' })
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
+	})
+
+	test('closing the certification keeps the form and never reaches the PIN step', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, USDCASH)
+		await typeQUSD(tree, '50')
+		await pressFooter(tree)
+		await act(async () => { ofacModal(tree).props.onClose() })
+		expect(ofacModal(tree).props.visible).toBe(false)
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
+	})
+
+	test('a crypto withdrawal asks for the W-1 own-wallet attestation', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, USDT)
+		await typeQUSD(tree, '100')
+		await act(async () => { tree.root.findByType('WithdrawDestinationSelector').props.onSelect('personal') })
+		await fillField(tree, 'wallet_address', 'TXYZabc123')
+		await pressFooter(tree)
+		expect(ofacModal(tree).props).toMatchObject({ visible: true, scope: 'crypto_out', context: 'crypto' })
+		const w1 = { ...ATTESTATION, purposeCode: 'W-1' }
+		await attest(tree, w1)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({ coin: 'USDT', compliance: w1 }))
+	})
+
+	test('a rail that is neither Cuban nor crypto goes straight to the PIN step', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, THRESHOLD)
+		await typeQUSD(tree, '100')
+		await pressFooter(tree)
+		expect(ofacModal(tree).props.visible).toBe(false)
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({ coin: 'THR', compliance: null }))
+	})
+
+	test('changing to another coin with the PIN step open blocks the submit until re-certified', async () => {
+		const tree = await renderWithdraw()
+		await goToPinStep(tree)
+		await selectCoin(tree, USDCASH)
+		await typeQUSD(tree, '50')
+		await act(async () => { tree.root.findByType('PinConfirmStep').props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).not.toHaveBeenCalled()
+		expect(toast.error).toHaveBeenCalledWith('Debes completar la certificación para este retiro')
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
+	})
+
+	test('a backend CACR_ATTESTATION_REQUIRED closes the PIN step so Continuar asks again', async () => {
+		withdrawApi.withdraw.mockResolvedValue({ success: false, error: 'Debes completar la autocertificación OFAC', status: 400, details: { code: 'CACR_ATTESTATION_REQUIRED' } })
+		const tree = await renderWithdraw()
+		const pinStep = await goToPinStep(tree)
+		await act(async () => { pinStep.props.onChangePin('1234') })
+		expect(toast.error).toHaveBeenCalledWith('Debes completar la autocertificación OFAC')
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
+		await pressFooter(tree)
+		expect(ofacModal(tree).props.visible).toBe(true)
+	})
+})
+
 describe('Lightning (BTCLN)', () => {
 	const satsCard = (tree) => tree.root.findByType('WithdrawSatsCard')
 
@@ -522,6 +605,7 @@ describe('Lightning (BTCLN)', () => {
 			source: 'satoshis',
 			amountSats: 2000,
 			idempotencyKey: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/),
+			compliance: null,
 		})
 		expect(updateUser).toHaveBeenCalledWith({ satoshis: 3000 })
 	})

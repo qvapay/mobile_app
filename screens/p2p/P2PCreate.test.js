@@ -12,7 +12,7 @@ jest.mock('../../hooks/useCoins', () => ({
 	default: () => ({ coins: mockCoinCatalog, isLoading: false }),
 }))
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))

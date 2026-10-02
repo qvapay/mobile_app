@@ -189,7 +189,7 @@ const Row = ({ theme, label, value, last }: { theme: Theme, label: string, value
  * y el del tope diario cambia según haya KYC (sin él el límite es $50, que
  * casi cualquier compra seria supera).
  */
-export const errorCopy = (code: string | null, message: string | null, hasKyc: boolean, t: (key: string, opts?: Record<string, unknown>) => string): string => {
+const errorCopy = (code: string | null, message: string | null, hasKyc: boolean, t: (key: string, opts?: Record<string, unknown>) => string): string => {
 	if (code === 'LIMIT_EXCEEDED') { return t(hasKyc ? 'crypto.energy.errors.LIMIT_EXCEEDED' : 'crypto.energy.errors.LIMIT_EXCEEDED_KYC') }
 	if (code && KNOWN_CODES.includes(code)) { return t(`crypto.energy.errors.${code}`) }
 	return message || t('crypto.energy.errors.generic')

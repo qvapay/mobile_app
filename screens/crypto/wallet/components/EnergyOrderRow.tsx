@@ -4,16 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '../../../../theme/ThemeContext'
 import { timeAgo } from '../../../../helpers'
 import { formatUsd } from '../walletFormat'
+import { statusTint } from '../energyOrderTint'
 import QPPressable from '../../../../ui/particles/QPPressable'
 
-import type { EnergyOrder, EnergyOrderStatus } from '../../../../types/domain'
-
-/** Color del estado: entregada en verde, reembolsada en rojo, el resto atenuado. */
-export const statusTint = (status: EnergyOrderStatus, theme: ReturnType<typeof useTheme>['theme']): string =>
-	status === 'completed' ? theme.colors.successText
-		: status === 'refunded' ? theme.colors.danger
-			: status === 'needs_review' ? theme.colors.warning
-				: theme.colors.secondaryText
+import type { EnergyOrder } from '../../../../types/domain'
 
 type Props = { order: EnergyOrder, onPress?: (order: EnergyOrder) => void }
 

@@ -7,7 +7,7 @@
  */
 jest.mock('react-native-reanimated') // manual mock in /__mocks__/react-native-reanimated.js
 jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')

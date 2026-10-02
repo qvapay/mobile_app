@@ -1,10 +1,10 @@
 # "Iniciar sesión" del modo wallet abre Login encima (y se puede volver)
 appId: com.qvapay
 ---
-- scrollUntilVisible:
-    element:
-      id: "wallet-only-signin"
-    direction: UP
+- runFlow:
+    file: subflows/scroll_up_to.yaml
+    env:
+      TARGET: "wallet-only-signin"
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:

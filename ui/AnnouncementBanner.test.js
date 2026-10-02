@@ -21,7 +21,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }))
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	return { useTheme: () => ({ theme: { ...createTheme(true), mode: 'dark' } }) }
 })
 

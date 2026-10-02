@@ -659,7 +659,7 @@
      "url": "https://tron.qvapay.com",
      "priority": 0,
      "owner": "qvapay",
-     "enabled": false
+     "enabled": true
     },
     {
      "url": "https://api.trongrid.io",
@@ -688,7 +688,35 @@
      "owner": "publicnode",
      "api": "jsonrpc"
     }
-   ]
+   ],
+   "staking": {
+    "targets": [
+     {
+      "id": "TH7Fe1W8CcLeqN4LGfqX1R9EpsnrJBQJij",
+      "name": "P2P.org",
+      "featured": true,
+      "url": "https://www.p2p.org"
+     },
+     {
+      "id": "TLG2B6w4K18HSnje7udYvqMMdJYQ9uYxjJ",
+      "name": "Nansen",
+      "featured": true,
+      "url": "https://nansen.ai"
+     },
+     {
+      "id": "TGyrSc9ZmTdbYziuk1SKEmdtCdETafewJ9",
+      "name": "Luganodes",
+      "featured": true,
+      "url": "https://luganodes.com"
+     },
+     {
+      "id": "TQzd66b9EFVHJfZK5AmiVhBjtJvXGeSPPZ",
+      "name": "Kiln",
+      "featured": true,
+      "url": "https://kiln.fi"
+     }
+    ]
+   }
   },
   "bitcoin": {
    "kind": "btc",
@@ -786,7 +814,11 @@
      "owner": "stacks-foundation",
      "api": "hiro"
     }
-   ]
+   ],
+   "staking": {
+    "poxContract": "SP000000000000000000002Q6VF78.pox-5",
+    "targets": []
+   }
   },
   "solana": {
    "kind": "solana",
@@ -825,7 +857,44 @@
      "priority": 20,
      "owner": "publicnode"
     }
-   ]
+   ],
+   "staking": {
+    "targets": [
+     {
+      "id": "4AUED4uj6nSTuANzaAUnGBPJQRmhpDYDwoWJNkoUUBBW",
+      "name": "Anagram",
+      "featured": true,
+      "url": "https://stake.anagram.xyz",
+      "samples": [
+       "8sXA784mj58fC94GVroXmCuhkbqCKHPT14AbuTfsn64",
+       "AFirSjfN6nzWKZZy85HqWncqc4XtJnbenzyJJmce493A",
+       "DoS2kNXo8owRwGmXz9JGmCXtpND7zN14Md8sUuxbjLnN"
+      ]
+     },
+     {
+      "id": "JEJzKYzyYJJjtn6Yb1P7r6YV75TdSNmmJT49sgDoHvmk",
+      "name": "Alchemy",
+      "featured": true,
+      "url": "https://www.alchemy.com",
+      "samples": [
+       "949GYP8qqiDYfXjFfjC5PnnMTUdtTD6TxzfJmfpkYfng",
+       "2shhKb4SaDxrt2Ljz14dh6aCneka7Pru4x9qef3sfuLF",
+       "D2LrznouLHurwJnRpxB1PNYHSJ5bFjd5HuvTqkwzAdJa"
+      ]
+     },
+     {
+      "id": "DumiCKHVqoCQKD8roLApzR5Fit8qGV5fVQsJV9sTZk4a",
+      "name": "Staking Facilities",
+      "featured": true,
+      "url": "https://stakingfacilities.com",
+      "samples": [
+       "C8BSJt7GVYZNpkLTM9rHFzh1VQm14bYQPQFS77NSSugG",
+       "8MyWcZGvLKWcnePJCdgE7aZEt3Bf7ttM7RkCRCyDtYMi",
+       "B9KmVaHF62CRLeiDHLGhN7J8EpmK2NRKh3dydzeiXxfJ"
+      ]
+     }
+    ]
+   }
   }
  }
 }

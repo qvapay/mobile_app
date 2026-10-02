@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useReducer } from 'react'
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../hooks/useContentPadding'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -7,13 +7,14 @@ import { toast } from 'sonner-native'
 import { useTranslation } from 'react-i18next'
 import i18n from '../../i18n'
 
-const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
+import { supportsLiquidGlass } from '../../helpers/liquidGlass'
 
 import { useTheme } from '../../theme/ThemeContext'
 import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
+import QPInput from '../../ui/particles/QPInput'
 import OperatorAvatar from '../../ui/store/OperatorAvatar'
 import SatsDiscountRow from '../../ui/store/SatsDiscountRow'
 import PhoneTopupStep1 from './PhoneTopupStep1'
@@ -24,6 +25,10 @@ import { useTopupBrandDetailQuery } from './storeQueries'
 import { tinyfiNumber } from '../../helpers'
 import useSatsDiscount from './useSatsDiscount'
 import type { StorePurchaseResult } from './useSatsDiscount'
+
+// Destinatario de recargas a Cuba (US persons, requisito del CCO)
+import { useOfacChecks } from '../../hooks/useOfacQueries'
+import { isValidRecipientName, normalizeRecipientName, RECIPIENT_NAME_MAX } from '../../helpers/ofacCompliance'
 
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
@@ -103,6 +108,15 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 	const loading = detailQuery.isPending
 	const [submitting, setSubmitting] = useState(false)
 
+	// Recarga a Cuba de un US person ⇒ nombre y apellidos del destinatario.
+	// Se decide al pasar al paso 2 (fail-closed: si no se sabe, se pide).
+	const { resolveUsPerson, prefetchUsPerson } = useOfacChecks()
+	const [needsRecipient, setNeedsRecipient] = useState(false)
+	const [recipientName, setRecipientName] = useState('')
+	const [checkingRecipient, setCheckingRecipient] = useState(false)
+	const recipientValid = isValidRecipientName(recipientName)
+	useEffect(() => { prefetchUsPerson() }, [prefetchUsPerson])
+
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
 		if (detailQuery.isError && !detailQuery.data) {
@@ -174,7 +188,7 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 	const satsDiscount = useSatsDiscount(offerPrice)
 	const hasBalance = user?.balance != null ? Number(user.balance) >= satsDiscount.cashDue : false
 
-	const handleContinue = useCallback(() => {
+	const handleContinue = useCallback(async () => {
 		if (!phoneValid || !selectedOffer) { toast.error(i18n.t('store.topupBrand.toasts.selectPlanAndNumber')); return }
 		if (selectedOffer.price_type === 'RANGE') {
 			const min = Number(selectedOffer.price_min || 0)
@@ -182,12 +196,21 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 			const amt = parseFloat(rangeAmount)
 			if (!amt || amt < min || amt > max) { toast.error(i18n.t('store.toasts.amountBetween', { min: `$${min}`, max: `$${max}` })); return }
 		}
+		if (selectedOffer.source === 'cuba') {
+			setCheckingRecipient(true)
+			setNeedsRecipient(await resolveUsPerson())
+			setCheckingRecipient(false)
+		} else {
+			setNeedsRecipient(false)
+		}
 		setStep(2)
-	}, [phoneValid, selectedOffer, rangeAmount])
+	}, [phoneValid, selectedOffer, rangeAmount, resolveUsPerson])
 
 	const handleConfirm = useCallback(async () => {
 		if (!selectedOffer) return
 		if (!hasBalance) { toast.error(i18n.t('store.toasts.insufficientBalance')); return }
+		const withRecipient = selectedOffer.source === 'cuba' && needsRecipient
+		if (withRecipient && !recipientValid) { toast.error(i18n.t('store.topupBrand.recipient.invalid')); return }
 		setSubmitting(true)
 		let res: ApiResult<unknown>
 		if (selectedOffer.source === 'cuba') {
@@ -196,6 +219,7 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 				phone_number: fullPhoneNumber,
 			}
 			if (satsDiscount.enabled) body.use_satoshis = true
+			if (withRecipient) body.recipient_name = normalizeRecipientName(recipientName)
 			res = await storeApi.purchasePhonePackage(body)
 		} else {
 			// `offer_id`/`country` son opcionales en los tipos del catálogo pero el
@@ -215,10 +239,14 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 			satsDiscount.applyPurchaseResult(res.data as StorePurchaseResult, offerPrice)
 			toast.success(i18n.t('store.topupBrand.toasts.sent'), { description: i18n.t('store.topupBrand.toasts.sentDescription') })
 			navigation.goBack()
+		} else if ((res.details as { code?: unknown } | undefined)?.code === 'RECIPIENT_NAME_REQUIRED') {
+			// El backend lo exige aunque la ficha dijera otra cosa: se muestra el campo
+			setNeedsRecipient(true)
+			toast.error(i18n.t('store.toasts.error'), { description: res.error || i18n.t('store.topupBrand.recipient.required') })
 		} else {
 			toast.error(i18n.t('store.toasts.error'), { description: res.error })
 		}
-	}, [selectedOffer, fullPhoneNumber, hasBalance, countryCode, rangeAmount, satsDiscount, offerPrice, navigation])
+	}, [selectedOffer, fullPhoneNumber, hasBalance, countryCode, rangeAmount, satsDiscount, offerPrice, navigation, needsRecipient, recipientValid, recipientName])
 
 	if (loading) {
 		return (
@@ -311,6 +339,25 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 								{t('store.common.insufficientBalanceNote')}
 							</Text>
 						)}
+
+						{/* Nombre y apellidos del destinatario (US person → Cuba) */}
+						{selectedOffer.source === 'cuba' && needsRecipient && (
+							<View style={{ marginTop: 16 }}>
+								<Text style={[textStyles.h6, { color: theme.colors.primaryText, marginBottom: 6 }]}>{t('store.topupBrand.recipient.label')}</Text>
+								<QPInput
+									value={recipientName}
+									onChangeText={setRecipientName}
+									placeholder={t('store.topupBrand.recipient.placeholder')}
+									maxLength={RECIPIENT_NAME_MAX}
+									autoCapitalize="words"
+									autoCorrect={false}
+									textContentType="name"
+								/>
+								<Text style={[textStyles.caption, { color: recipientName && !recipientValid ? theme.colors.dangerText : theme.colors.tertiaryText, marginTop: 6 }]}>
+									{recipientName && !recipientValid ? t('store.topupBrand.recipient.invalid') : t('store.topupBrand.recipient.hint')}
+								</Text>
+							</View>
+						)}
 					</View>
 				)}
 
@@ -319,7 +366,8 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 						<QPButton
 							title={selectedOffer && phoneValid ? t('store.common.continueWithAmount', { amount: `$${offerPrice.toFixed(2)}` }) : t('store.topupBrand.selectPlanAndNumberCta')}
 							onPress={handleContinue}
-							disabled={!selectedOffer || !phoneValid || (selectedOffer?.price_type === 'RANGE' && !rangeAmount)}
+							loading={checkingRecipient}
+							disabled={checkingRecipient || !selectedOffer || !phoneValid || (selectedOffer?.price_type === 'RANGE' && !rangeAmount)}
 						/>
 					) : (
 						<View style={{ flexDirection: 'row', gap: 10 }}>
@@ -330,7 +378,7 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 								<QPButton
 									title={submitting ? t('store.common.processing') : t('common.actions.confirm')}
 									onPress={handleConfirm}
-									disabled={submitting || !hasBalance}
+									disabled={submitting || !hasBalance || (selectedOffer?.source === 'cuba' && needsRecipient && !recipientValid)}
 									loading={submitting}
 								/>
 							</View>

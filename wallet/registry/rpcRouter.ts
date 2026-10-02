@@ -74,7 +74,19 @@ const NODE_REFUSAL = /paid plan|cu limit|too many requests|rate.?limit|request b
 export const isNodeRefusal = (err: unknown): boolean => {
 	if (!err || typeof err !== 'object') return false
 	const e = err as { message?: string }
-	return typeof e.message === 'string' && NODE_REFUSAL.test(e.message)
+	return isMethodNotAllowed(err) || (typeof e.message === 'string' && NODE_REFUSAL.test(e.message))
+}
+
+/**
+ * El nodo no ofrece ESE método (lista blanca de un proxy propio, como sol.qvapay.com,
+ * que rechaza `getProgramAccounts`, `getEpochInfo`… con 403 `METHOD_NOT_ALLOWED`).
+ * La petición no se ejecutó, así que rotar es seguro incluso en un envío; y el nodo NO
+ * está roto: sigue siendo el preferido para lo que sí sirve.
+ */
+export const isMethodNotAllowed = (err: unknown): boolean => {
+	if (!err || typeof err !== 'object') return false
+	const e = err as { message?: string }
+	return typeof e.message === 'string' && /METHOD_NOT_ALLOWED|method (?:is )?not (?:allowed|supported|found)|no está permitido/i.test(e.message)
 }
 
 export type ProbeRequest = (
@@ -240,7 +252,8 @@ export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps
 				// así que ahí cualquier error rota. La regla conservadora existe para no
 				// repetir un broadcast, y eso solo vale para escrituras.
 				if (!idempotent && !isRetryableRpcError(err) && !isNodeRefusal(err)) throw err
-				markFailure(rpc.url)
+				// Un método no ofrecido no es un nodo caído: no cuenta para el circuit breaker
+				if (!isMethodNotAllowed(err)) markFailure(rpc.url)
 				errors.push(err)
 			} finally {
 				clearTimeout(timer)

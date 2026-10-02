@@ -11,12 +11,12 @@ jest.mock('@react-native-vector-icons/fontawesome6', () => {
 	return { __esModule: true, default: MockIcon }
 })
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 
 import SettingsItem from './SettingsItem'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 
 const theme = createTheme(true)
 

@@ -3,7 +3,7 @@
  * (see keypadAmount.test.js for why).
  * @jest-environment node
  */
-import { createTheme, fontScaleMap } from './ThemeContext'
+import { createTheme, fontScaleMap } from './themeTokens'
 import { createTextStyles, createContainerStyles } from './themeUtils'
 
 describe('createTheme', () => {

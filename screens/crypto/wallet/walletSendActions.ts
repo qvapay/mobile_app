@@ -228,21 +228,31 @@ export const estimateNativeReserve = async (chain: RegistryChain, chainKey: stri
 	return NATIVE_TRANSFER_GAS * perGas * 12n / 10n
 }
 
-/** Firma la tx ya verificada. La clave privada se pone a cero al salir. */
-export const signPrepared = async (prepared: PreparedSend): Promise<SignedSend> => {
+/**
+ * Presta la clave privada de una familia a `fn` y la pone a cero al salir,
+ * pase lo que pase. Es la ÚNICA puerta a la seed para firmar: la usan tanto
+ * los envíos como el staking (`walletStakeActions`).
+ */
+export const withWalletKey = async <T>(family: Parameters<typeof derivePrivateKey>[1], fn: (privateKey: Uint8Array) => T | Promise<T>): Promise<T> => {
 	const mnemonic = await getWalletMnemonic()
 	if (!mnemonic) throw new Error('wallet: sin seed en el dispositivo')
-	const privateKey = derivePrivateKey(mnemonicToSeed(mnemonic), prepared.kind)
+	const privateKey = derivePrivateKey(mnemonicToSeed(mnemonic), family)
 	try {
+		return await fn(privateKey)
+	} finally {
+		privateKey.fill(0)
+	}
+}
+
+/** Firma la tx ya verificada. La clave privada se pone a cero al salir. */
+export const signPrepared = (prepared: PreparedSend): Promise<SignedSend> =>
+	withWalletKey(prepared.kind, async (privateKey): Promise<SignedSend> => {
 		if (prepared.kind === 'tron') return { kind: 'tron', signature: signTronTransaction(prepared.inner.tx.raw_data_hex, privateKey) }
 		if (prepared.kind === 'btc') return { kind: 'btc', signed: signBtcTransaction(prepared.inner, privateKey) }
 		if (prepared.kind === 'stacks') return { kind: 'stacks', signed: signStacksTransaction(prepared.inner, privateKey) }
 		if (prepared.kind === 'solana') return { kind: 'solana', signed: signSolanaTransaction(prepared.inner, privateKey) }
 		return { kind: 'evm', signed: await signEvmTransaction(prepared.inner, privateKey) }
-	} finally {
-		privateKey.fill(0)
-	}
-}
+	})
 
 export type BroadcastResult = { txid: string, duplicate: boolean }
 

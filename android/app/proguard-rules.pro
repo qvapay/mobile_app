@@ -27,3 +27,16 @@
 # R8 full mode no puede rastrear — keep conservador de su grupo completo
 -keep class me.didit.** { *; }
 -dontwarn me.didit.**
+
+# R8 en modo optimize (proguard-android-optimize.txt): el wrapper RN del SDK de
+# KYC (com.sdkreactnative.SdkReactNativePackage) localiza POR REFLEXIÓN el
+# constructor de ReactModuleInfo contando parámetros (6 en RN 0.79+). Optimize
+# reescribía ese constructor y la app moría al arrancar con
+# "NoSuchElementException: Array contains no element matching the predicate".
+-keep class com.facebook.react.module.model.ReactModuleInfo { <init>(...); }
+
+# react-native-device-info crea el InstallReferrerClient POR REFLEXIÓN
+# (getMethod("newBuilder", Context)). R8 renombraba el método y
+# getInstallReferrer() devolvía vacío: la atribución de instalación
+# (helpers/installReferrer) se perdía en silencio en los builds release
+-keep class com.android.installreferrer.api.** { *; }

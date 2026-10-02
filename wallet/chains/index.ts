@@ -9,13 +9,14 @@
 import type { WalletAddresses } from '../derive'
 import type { RpcRouter } from '../registry/rpcRouter'
 import type { RpcRegistry } from '../registry/types'
-import { addressForKind, nativeAssetId, tokenAssetId } from '../assets'
+import { addressForKind, nativeAssetId, stakedAssetId, tokenAssetId } from '../assets'
 import type { RawBalances } from '../assets'
 import { getBtcBalance } from './btc'
 import { getEvmNativeBalance, getEvmTokenBalance } from './evm'
-import { getTronNativeBalance, getTronTokenBalance } from './tron'
-import { ftBalanceOf, getStacksBalances, stxBalanceOf } from './stacks'
+import { getTronAccountState, getTronNativeBalance, getTronTokenBalance, tronCommittedSun } from './tron'
+import { ftBalanceOf, getStacksBalances, stxBalanceOf, stxLockedOf } from './stacks'
 import { getSolanaBalances } from './solana'
+import { readSolanaStakeAccounts } from '../solana/stake'
 
 type RouterLike = Pick<RpcRouter, 'call'>
 
@@ -43,14 +44,26 @@ export const fetchChainBalances = async (
 			// Una sola llamada trae STX y todos los tokens
 			const all = getStacksBalances(rpc, owner, { signal })
 			entries.push(all.then(b => [nativeId, stxBalanceOf(b)]))
+			// Lo bloqueado por PoX no es gastable pero sigue siendo del usuario: va aparte
+			entries.push(all.then(b => [stakedAssetId(nativeId), stxLockedOf(b)]))
 			tokens.forEach(token => entries.push(all.then(b => [tokenAssetId(chainKey, token.address), ftBalanceOf(b, token.address)])))
 		} else if (chain.kind === 'solana') {
 			// Una llamada de saldo nativo + una de todas las cuentas SPL
 			const all = getSolanaBalances(rpc, owner, { signal })
 			entries.push(all.then(b => [nativeId, b.lamports]))
+			// SOL en stake accounts: no es gastable pero es del usuario (va aparte, como el STX bloqueado)
+			entries.push(readSolanaStakeAccounts(rpc, owner, { signal }).then(accounts => [stakedAssetId(nativeId), accounts.reduce((sum, a) => sum + a.lamports, 0n)]))
 			tokens.forEach(token => entries.push(all.then(b => [tokenAssetId(chainKey, token.address), b.tokens[token.address] ?? 0n])))
 		} else if (chain.kind === 'tron') {
-			entries.push(getTronNativeBalance(rpc, owner, { signal }).then(v => [nativeId, v]))
+			if (rpc.api === 'jsonrpc') {
+				// La capa eth_* no ve Stake 2.0: solo el gastable (el comprometido se conserva de la pasada anterior)
+				entries.push(getTronNativeBalance(rpc, owner, { signal }).then(v => [nativeId, v]))
+			} else {
+				// Una lectura de la cuenta da el gastable y lo congelado/descongelándose (va aparte)
+				const state = getTronAccountState(rpc, owner, { signal })
+				entries.push(state.then(s => [nativeId, s.balance]))
+				entries.push(state.then(s => [stakedAssetId(nativeId), tronCommittedSun(s)]))
+			}
 			tokens.forEach(token => entries.push(
 				getTronTokenBalance(rpc, token.address, owner, { signal }).then(v => [tokenAssetId(chainKey, token.address), v]),
 			))
@@ -105,6 +118,14 @@ export const fetchAllBalances = async (
 			}
 		}
 	})
+
+	// Un nodo que no ve el staking (TRON jsonrpc) no trae la clave `#staked`: se conserva la
+	// última conocida en vez de pintar el staking a cero hasta que el router vuelva a otro nodo
+	if (previous) {
+		for (const [id, value] of Object.entries(previous.balances)) {
+			if (id.endsWith('#staked') && !(id in balances)) balances[id] = value
+		}
+	}
 
 	if (failedChains.length === chainKeys.length && !previous) {
 		throw new Error('wallet: no se pudo leer ninguna cadena')

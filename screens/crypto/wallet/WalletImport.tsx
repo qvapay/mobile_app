@@ -11,6 +11,7 @@ import { createTextStyles, createContainerStyles } from '../../../theme/themeUti
 import { useWallet } from '../../../wallet/WalletContext'
 import { isValidMnemonic } from '../../../wallet/seed'
 import useSecureScreen from '../../../hooks/useSecureScreen'
+import QPSecureView from '../../../ui/QPSecureView'
 import { useAuth } from '../../../auth/AuthContext'
 import { finishWalletSetup } from './finishWalletSetup'
 
@@ -64,21 +65,23 @@ const WalletImport = ({ navigation }: Props) => {
 				<Text style={textStyles.h1}>{t('crypto.wallet.import.title')}</Text>
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.import.subtitle')}</Text>
 
-				<TextInput
-					testID="wallet-import-input"
-					style={[styles.input, textStyles.h4, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }, inputBorder(theme)]}
-					multiline
-					autoCapitalize="none"
-					autoCorrect={false}
-					autoComplete="off"
-					spellCheck={false}
-					secureTextEntry={false}
-					importantForAutofill="no"
-					placeholder={t('crypto.wallet.import.placeholder')}
-					placeholderTextColor={theme.colors.secondaryText}
-					value={phrase}
-					onChangeText={setPhrase}
-				/>
+				<QPSecureView>
+					<TextInput
+						testID="wallet-import-input"
+						style={[styles.input, textStyles.h4, { backgroundColor: theme.colors.surface, color: theme.colors.primaryText }, inputBorder(theme)]}
+						multiline
+						autoCapitalize="none"
+						autoCorrect={false}
+						autoComplete="off"
+						spellCheck={false}
+						secureTextEntry={false}
+						importantForAutofill="no"
+						placeholder={t('crypto.wallet.import.placeholder')}
+						placeholderTextColor={theme.colors.secondaryText}
+						value={phrase}
+						onChangeText={setPhrase}
+					/>
+				</QPSecureView>
 
 				<View style={styles.hintRow}>
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{wordCount > 0 ? `${wordCount}/12` : ''}</Text>

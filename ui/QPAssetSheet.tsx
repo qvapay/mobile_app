@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { Keyboard, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import type { LayoutChangeEvent } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -9,7 +10,8 @@ import { useTheme } from '../theme/ThemeContext'
 import { useTextStyles } from '../theme/themeUtils'
 
 // UI
-import QPSheet, { SHEET_MAX_RATIO } from './QPSheet'
+import QPSheet from './QPSheet'
+import { SHEET_MAX_RATIO } from './sheetConfig'
 import QPAssetIcon from './particles/QPAssetIcon'
 import QPInput from './particles/QPInput'
 import QPPressable from './particles/QPPressable'
@@ -91,6 +93,19 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 	const textStyles = useTextStyles(theme)
 	const { height: windowHeight } = useWindowDimensions()
 	const [search, setSearch] = useState('')
+	// Alto real de la fila de accesos rápidos (se oculta al buscar; ver listHeight)
+	const [quickHeight, setQuickHeight] = useState(0)
+	const onQuickLayout = useCallback((e: LayoutChangeEvent) => { setQuickHeight(e.nativeEvent.layout.height) }, [])
+
+	// Con el teclado abierto la hoja toma su alto máximo: un catálogo corto dejaría la
+	// tarjeta tan baja que el teclado la taparía entera, buscador incluido
+	const [keyboardOpen, setKeyboardOpen] = useState(false)
+	useEffect(() => {
+		if (!visible) { return }
+		const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardOpen(true))
+		const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardOpen(false))
+		return () => { show.remove(); hide.remove(); setKeyboardOpen(false) }
+	}, [visible])
 
 	// Handlers de identidad ESTABLE para las filas memoizadas: quien monta la hoja suele
 	// pasar `onClose` en línea, y cada render suyo (cotizaciones, saldos) repintaría todas
@@ -119,13 +134,21 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 	 * sin `height`) recibe cero y no pinta NI UNA fila — se ven el buscador y los accesos
 	 * rápidos, que sí tienen alto propio, y la lista sale vacía.
 	 *
-	 * Se calcula a partir de cuántas filas hay, con tope para que la hoja no coma la pantalla:
-	 * una lista corta no deja un hueco enorme y una larga se desplaza.
+	 * Se calcula a partir del catálogo COMPLETO, no de lo filtrado, con tope para que la hoja
+	 * no coma la pantalla: un catálogo corto no deja un hueco enorme y uno largo se desplaza.
+	 *
+	 * Buscar NO encoge la hoja. Si el alto siguiera a los resultados, la tarjeta bajaría con
+	 * cada letra hasta quedar tapada por el teclado; así mantiene su alto y los resultados se
+	 * enumeran desde arriba. Los accesos rápidos se ocultan al buscar: su hueco pasa a la
+	 * lista para que la tarjeta tampoco baje por eso.
 	 */
 	const available = windowHeight * SHEET_MAX_RATIO - CHROME_HEIGHT
-	const listHeight = filtered.length === 0
-		? EMPTY_HEIGHT
-		: Math.min(filtered.length * ROW_HEIGHT + LIST_PADDING, Math.max(available, EMPTY_HEIGHT))
+	const quickVisible = !!quick?.length && !search
+	const maxList = Math.max(available, EMPTY_HEIGHT)
+	const listHeight = (keyboardOpen
+		? maxList
+		: Math.min(Math.max(options.length * ROW_HEIGHT + LIST_PADDING, EMPTY_HEIGHT), maxList)
+	) + (search && quick?.length ? quickHeight : 0)
 
 	const renderItem = useCallback(({ item }: { item: QPAssetOption }) => (
 		<Row option={item} selected={item.id === selectedId} onPick={pick} />
@@ -147,8 +170,8 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 				</View>
 			)}
 
-			{!!quick?.length && !search && (
-				<View style={styles.quick}>
+			{quickVisible && (
+				<View style={styles.quick} onLayout={onQuickLayout}>
 					{quick.map(option => (
 						<QPPressable
 							key={option.id}

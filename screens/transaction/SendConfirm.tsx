@@ -24,6 +24,13 @@ import usePinEntry from '../../hooks/usePinEntry'
 import useKycGate, { KYC_TRANSFER_THRESHOLD } from '../../hooks/useKycGate'
 import KycGateModal from '../../ui/KycGateModal'
 
+// Certificación OFAC (destinatario nacional cubano)
+import useOfacGate from '../../hooks/useOfacGate'
+import { useOfacChecks } from '../../hooks/useOfacQueries'
+import OfacAttestationModal from '../../ui/OfacAttestationModal'
+import { isAttestationRequiredError } from '../../helpers/ofacCompliance'
+import type { OfacCompliancePayload } from '../../helpers/ofacCompliance'
+
 // API
 import { userApi } from '../../api/userApi'
 import { transferApi } from '../../api/transferApi'
@@ -93,6 +100,10 @@ const SendConfirm = ({ navigation, route }: Props) => {
 	// Gate de KYC — intercepta antes del paso de PIN
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
 
+	// Gate OFAC — el backend dice si el destinatario es nacional cubano (solo el booleano)
+	const { requireAttestation, modalProps: ofacModalProps } = useOfacGate()
+	const complianceRef = useRef<OfacCompliancePayload | null>(null)
+
 	// Online status
 	const { trackUsers, untrackUsers, isUserOnline } = useOnlineStatus()
 
@@ -116,6 +127,12 @@ const SendConfirm = ({ navigation, route }: Props) => {
 	// Clave de idempotencia del intento: nace con la pantalla de confirmación y
 	// sobrevive a timeouts, 5xx y toques repetidos — solo rota tras éxito confirmado
 	const idempotencyKeyRef = useIdempotencyKey()
+
+	// ¿Destinatario nacional cubano? Se precarga al resolver el destinatario y se
+	// confirma al tocar Continuar (fail-closed: si falla, se pide la certificación)
+	const { resolveTransferRequired, prefetchTransfer } = useOfacChecks()
+	const [checkingOfac, setCheckingOfac] = useState(false)
+	useEffect(() => { if (recipientUser?.uuid) prefetchTransfer(recipientUser.uuid) }, [recipientUser?.uuid, prefetchTransfer])
 
 	// Track recipient for online status
 	useEffect(() => {
@@ -210,15 +227,23 @@ const SendConfirm = ({ navigation, route }: Props) => {
 				// no alcanza a este handler (se define arriba del guard)
 				to: recipientUser!.uuid,
 				pin: pin,
-				idempotencyKey: idempotencyKeyRef.current
+				idempotencyKey: idempotencyKeyRef.current,
+				compliance: complianceRef.current,
 			}))
 
 			if (result.success) {
 				idempotencyKeyRef.current = makeIdempotencyKey()
+				complianceRef.current = null
 				getActiveSession()?.notifyPaymentSent({ toUuid: recipientUser!.uuid, amount: send_amount, txUuid: result.data?.uuid })
 				// `amount`/`recipient` son params muertos (SendSuccess solo lee `description`),
 				// modelados en navigation.ts tal cual viajan — el cast solo los acomoda
 				navigation.navigate(ROUTES.SEND_SUCCESS, { amount: send_amount, recipient: recipientUser as Record<string, unknown>, description: description })
+			} else if (isAttestationRequiredError((result.details as { code?: unknown } | undefined)?.code)) {
+				// El backend exige la certificación: vuelta a Continuar ⇒ modal
+				complianceRef.current = null
+				setShowPinStep(false)
+				setPin('')
+				toast.error(t('transactions.common.errorTitle'), { description: result.error || t('transactions.sendConfirm.toasts.attestationRequired') })
 			} else if (isNetworkFailure(result)) {
 				toast.error(t('transactions.sendConfirm.toasts.networkErrorTitle'), { description: `${result.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else {
@@ -285,14 +310,25 @@ const SendConfirm = ({ navigation, route }: Props) => {
 					) : (
 						<QPButton
 							title={t('common.actions.continue')}
-							onPress={() => {
+							onPress={async () => {
 								// Gate preventivo: el backend rechaza envíos >= $500 sin KYC
 								if (!requireKyc({
 									gated: Number(send_amount) >= KYC_TRANSFER_THRESHOLD,
 									message: t('transactions.sendConfirm.kycGateMessage', { amount: KYC_TRANSFER_THRESHOLD }),
 								})) return
-								setShowPinStep(true); setPin('')
+								const openPinStep = () => { setShowPinStep(true); setPin('') }
+								complianceRef.current = null
+								setCheckingOfac(true)
+								const required = await resolveTransferRequired(recipientUser.uuid)
+								setCheckingOfac(false)
+								if (!requireAttestation(
+									{ required, scope: 'cuba_value', context: 'transfer' },
+									payload => { complianceRef.current = payload; openPinStep() },
+								)) return
+								openPinStep()
 							}}
+							loading={checkingOfac}
+							disabled={checkingOfac}
 							style={{ flex: 1, minHeight: 56 }}
 							textStyle={{ color: theme.colors.buttonText }}
 							icon="arrow-right"
@@ -340,6 +376,7 @@ const SendConfirm = ({ navigation, route }: Props) => {
 			{/* useKycGate expone `string | null` y el modal declara `string | undefined`
 			    (mismo cast que ui/ActionButtons) */}
 			<KycGateModal visible={gateVisible} message={gateMessage as string | undefined} onClose={closeGate} />
+			<OfacAttestationModal {...ofacModalProps} />
 
 		</QPKeyboardView>
 	)

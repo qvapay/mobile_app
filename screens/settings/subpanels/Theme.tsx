@@ -5,7 +5,8 @@ import { toast } from 'sonner-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
-import { useTheme, ACCENT_COLORS } from '../../../theme/ThemeContext'
+import { useTheme } from '../../../theme/ThemeContext'
+import { ACCENT_COLORS } from '../../../theme/themeTokens'
 import { createTextStyles, createContainerStyles, hexToRgba } from '../../../theme/themeUtils'
 
 // Settings Context

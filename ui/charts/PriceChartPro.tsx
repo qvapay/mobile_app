@@ -13,8 +13,9 @@ import { useTheme } from '../../theme/ThemeContext'
 import { getDateLocale } from '../../i18n'
 
 // Base compartida con el gráfico básico
-import { LiveDot, formatAxisPrice, toChartPoints } from './PriceChart'
-import type { RawPricePoint } from './PriceChart'
+import { LiveDot } from './PriceChart'
+import { formatAxisPrice, toChartPoints } from './pricePoints'
+import type { RawPricePoint } from './pricePoints'
 
 // Tick sutil por punto de datos al arrastrar (estilo Robinhood)
 const hapticTick = () => ReactNativeHapticFeedback.trigger('selection', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false })
