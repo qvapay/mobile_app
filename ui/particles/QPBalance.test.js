@@ -10,7 +10,7 @@ import { act, create } from 'react-test-renderer'
 jest.mock('number-flow-react-native', () => ({ NumberFlow: 'NumberFlow' }))
 
 import QPBalance from './QPBalance'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 
 const theme = createTheme(true)
 

@@ -39,7 +39,7 @@ import {
 	SYSTEM_PROGRAM,
 	TOKEN_PROGRAM,
 } from './codec'
-import type { Instruction, SolanaMessage } from './codec'
+import type { Instruction, SolanaMessage, SolanaTransaction } from './codec'
 
 /** Tarifa base por firma (lamports). */
 export const LAMPORTS_PER_SIGNATURE = 5000n
@@ -227,18 +227,43 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 /** Pública ed25519 (base58) de una clave privada de 32 bytes. */
 export const solanaAddressFromPrivateKey = (privateKey: Uint8Array): string => encodeBase58(ed25519.getPublicKey(privateKey))
 
+/**
+ * Firma el hueco de `signer` en un mensaje ya compilado (común a envíos y staking).
+ * NO verifica el contenido: cada caller re-decodifica lo firmado con su propio verificador.
+ */
+export const signSolanaMessageAs = (message: SolanaMessage, messageBytes: Uint8Array, signer: string, privateKey: Uint8Array): SignedSolanaTx => {
+	if (solanaAddressFromPrivateKey(privateKey) !== signer) throw new SolanaVerifyError('la clave no corresponde al remitente')
+	const signerIndex = message.accountKeys.indexOf(signer)
+	if (signerIndex < 0 || signerIndex >= message.numRequiredSignatures) throw new SolanaVerifyError('el remitente no es firmante del mensaje')
+	const signatures: Array<Uint8Array | null> = Array.from({ length: message.numRequiredSignatures }, () => null)
+	const signature = ed25519.sign(messageBytes, privateKey)
+	signatures[signerIndex] = signature
+	const bytes = serializeTransaction({ signatures, message, messageBytes })
+	return { base64: toBase64(bytes), signature: encodeBase58(signature), txid: signerIndex === 0 ? encodeBase58(signature) : null }
+}
+
 /** Firma el hueco del remitente. Verifica re-decodificando antes de devolver. */
 export const signSolanaTransaction = (prepared: PreparedSolanaSend, privateKey: Uint8Array): SignedSolanaTx => {
-	if (solanaAddressFromPrivateKey(privateKey) !== prepared.intent.from) throw new SolanaVerifyError('la clave no corresponde al remitente')
-	const signerIndex = prepared.message.accountKeys.indexOf(prepared.intent.from)
-	if (signerIndex < 0 || signerIndex >= prepared.message.numRequiredSignatures) throw new SolanaVerifyError('el remitente no es firmante del mensaje')
-	const signatures: Array<Uint8Array | null> = Array.from({ length: prepared.message.numRequiredSignatures }, () => null)
-	const signature = ed25519.sign(prepared.messageBytes, privateKey)
-	signatures[signerIndex] = signature
-	const bytes = serializeTransaction({ signatures, message: prepared.message, messageBytes: prepared.messageBytes })
-	const signed: SignedSolanaTx = { base64: toBase64(bytes), signature: encodeBase58(signature), txid: signerIndex === 0 ? encodeBase58(signature) : null }
+	const signed = signSolanaMessageAs(prepared.message, prepared.messageBytes, prepared.intent.from, privateKey)
 	verifySignedSolanaTransaction(signed, prepared)
 	return signed
+}
+
+/**
+ * El "sobre" de una tx firmada: lo firmado es EXACTAMENTE el mensaje preparado, con el
+ * fee payer y el blockhash esperados, la firma de `signer` es válida y no hay firmas de
+ * nadie más. Devuelve la tx decodificada para que el caller verifique las instrucciones.
+ */
+export const verifySolanaEnvelope = ({ base64 }: SignedSolanaTx, expected: { messageBytes: Uint8Array, feePayer: string, recentBlockhash: string, signer: string }): SolanaTransaction => {
+	const tx = deserializeTransaction(fromBase64(base64))
+	if (tx.messageBytes.length !== expected.messageBytes.length || tx.messageBytes.some((b, i) => b !== expected.messageBytes[i])) throw new SolanaVerifyError('el mensaje firmado no es el preparado')
+	if (tx.message.accountKeys[0] !== expected.feePayer) throw new SolanaVerifyError('fee payer distinto')
+	if (tx.message.recentBlockhash !== expected.recentBlockhash) throw new SolanaVerifyError('blockhash distinto')
+	const signerIndex = tx.message.accountKeys.indexOf(expected.signer)
+	const signature = tx.signatures[signerIndex]
+	if (!signature || !ed25519.verify(signature, tx.messageBytes, pubkeyBytes(expected.signer))) throw new SolanaVerifyError('firma del remitente inválida')
+	tx.signatures.forEach((sig, i) => { if (i !== signerIndex && sig !== null) throw new SolanaVerifyError('firma inesperada de otra cuenta') })
+	return tx
 }
 
 /** Lo que mueve una tx de la wallet, decodificado de sus instrucciones. PURO. */
@@ -300,18 +325,9 @@ export const decodeSolanaTransfer = (message: SolanaMessage): DecodedSolanaTrans
 	return { feePayer: key(0), ...transfer, createsTokenAccountFor, computeUnitLimit, computeUnitPrice }
 }
 
-export const verifySignedSolanaTransaction = ({ base64 }: SignedSolanaTx, prepared: PreparedSolanaSend): void => {
-	const tx = deserializeTransaction(fromBase64(base64))
-	// Lo firmado debe ser EXACTAMENTE el mensaje preparado
-	if (tx.messageBytes.length !== prepared.messageBytes.length || tx.messageBytes.some((b, i) => b !== prepared.messageBytes[i])) throw new SolanaVerifyError('el mensaje firmado no es el preparado')
-	if (tx.message.accountKeys[0] !== prepared.feePayer) throw new SolanaVerifyError('fee payer distinto')
+export const verifySignedSolanaTransaction = (signed: SignedSolanaTx, prepared: PreparedSolanaSend): void => {
 	if (!prepared.sponsored && prepared.feePayer !== prepared.intent.from) throw new SolanaVerifyError('fee payer ajeno en una tx no patrocinada')
-	if (tx.message.recentBlockhash !== prepared.recentBlockhash) throw new SolanaVerifyError('blockhash distinto')
-
-	const signerIndex = tx.message.accountKeys.indexOf(prepared.intent.from)
-	const signature = tx.signatures[signerIndex]
-	if (!signature || !ed25519.verify(signature, tx.messageBytes, pubkeyBytes(prepared.intent.from))) throw new SolanaVerifyError('firma del remitente inválida')
-	tx.signatures.forEach((sig, i) => { if (i !== signerIndex && sig !== null) throw new SolanaVerifyError('firma inesperada de otra cuenta') })
+	const tx = verifySolanaEnvelope(signed, { messageBytes: prepared.messageBytes, feePayer: prepared.feePayer, recentBlockhash: prepared.recentBlockhash, signer: prepared.intent.from })
 
 	const decoded = decodeSolanaTransfer(tx.message)
 	const { intent } = prepared

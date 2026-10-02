@@ -3,7 +3,7 @@
  * @jest-environment node
  */
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('lottie-react-native', () => 'LottieView')
@@ -11,7 +11,7 @@ jest.mock('lottie-react-native', () => 'LottieView')
 import { StyleSheet } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import QPLoader from './QPLoader'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 
 const theme = createTheme(true)
 

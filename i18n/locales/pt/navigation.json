@@ -31,7 +31,10 @@
 		"walletExchangeStatus": "Troca",
 		"walletExchanges": "Trocas",
 		"tronEnergy": "Energia TRON",
-		"energyOrders": "Compras de energia"
+		"energyOrders": "Compras de energia",
+		"walletEarn": "Ganhar",
+		"walletStake": "Staking",
+		"walletStakeAction": "Staking"
 	},
 	"tabs": {
 		"home": "Início",

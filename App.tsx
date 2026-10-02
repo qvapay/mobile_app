@@ -73,7 +73,8 @@ import RecoverPasswordScreen from './auth/screens/RecoverPassword'
 
 // Screens with auth
 import Onboard from './screens/onboard/Onboard'
-import MainStack, { supportsLiquidGlass } from './screens/MainStack'
+import MainStack from './screens/MainStack'
+import { supportsLiquidGlass } from './helpers/liquidGlass'
 import Send from './screens/transaction/Send'
 import SendConfirm from './screens/transaction/SendConfirm'
 import SendSuccess from './screens/transaction/SendSuccess'
@@ -109,6 +110,10 @@ import WalletExchangeStatus from './screens/crypto/wallet/WalletExchangeStatus'
 import WalletExchanges from './screens/crypto/wallet/WalletExchanges'
 import WalletEnergy from './screens/crypto/wallet/WalletEnergy'
 import WalletEnergyOrders from './screens/crypto/wallet/WalletEnergyOrders'
+import WalletEarn from './screens/crypto/wallet/WalletEarn'
+import WalletStake from './screens/crypto/wallet/WalletStake'
+import WalletStakeAction from './screens/crypto/wallet/WalletStakeAction'
+import WalletStakeSuccess from './screens/crypto/wallet/WalletStakeSuccess'
 
 // InOut Screens
 import Add from './screens/add/Add'
@@ -278,6 +283,11 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.WALLET_EXCHANGES, component: WalletExchanges, options: getHeaderOptions(t('navigation.headers.walletExchanges')) },
 	{ name: ROUTES.WALLET_ENERGY, component: WalletEnergy, options: getHeaderOptions(t('navigation.headers.tronEnergy')) },
 	{ name: ROUTES.WALLET_ENERGY_ORDERS, component: WalletEnergyOrders, options: getHeaderOptions(t('navigation.headers.energyOrders')) },
+	// Staking (hoja de ruta de staking, fase 0: pantallas comunes a SOL/TRX/STX)
+	{ name: ROUTES.WALLET_EARN, component: WalletEarn, options: getHeaderOptions(t('navigation.headers.walletEarn')) },
+	{ name: ROUTES.WALLET_STAKE, component: WalletStake, options: getHeaderOptions('') },
+	{ name: ROUTES.WALLET_STAKE_ACTION, component: WalletStakeAction, options: getHeaderOptions(t('navigation.headers.walletStakeAction')) },
+	{ name: ROUTES.WALLET_STAKE_SUCCESS, component: WalletStakeSuccess, options: { ...getHeaderOptions(''), headerShown: false, gestureEnabled: false } },
 
 	// QR Scan Screen
 	{ name: ROUTES.SCAN_SCREEN, component: Scan, options: { animation: 'slide_from_bottom', headerShown: false } },

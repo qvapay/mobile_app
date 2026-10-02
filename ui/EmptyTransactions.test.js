@@ -5,7 +5,7 @@
  */
 let mockIsDark = true
 jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	return { useTheme: () => ({ theme: { ...createTheme(mockIsDark), mode: mockIsDark ? 'dark' : 'light' } }) }
 })
 jest.mock('./particles/QPPressable', () => 'QPPressable')

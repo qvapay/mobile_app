@@ -5,7 +5,7 @@
  * @jest-environment node
  */
 jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	const { createTextStyles, createContainerStyles } = jest.requireActual('../theme/themeUtils')
 	const theme = createTheme(true)
 	return { useTheme: () => ({ theme, styles: { text: createTextStyles(theme), container: createContainerStyles(theme) } }) }

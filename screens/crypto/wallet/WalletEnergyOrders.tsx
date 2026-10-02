@@ -16,7 +16,8 @@ import { formatUsd } from './walletFormat'
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
-import EnergyOrderRow, { statusTint } from './components/EnergyOrderRow'
+import EnergyOrderRow from './components/EnergyOrderRow'
+import { statusTint } from './energyOrderTint'
 
 import type { EnergyOrder } from '../../../types/domain'
 

@@ -50,8 +50,11 @@ type RequestOptions = {
 
 const parseJson = async (res: Response, url: string): Promise<unknown> => {
 	if (!res.ok) {
+		// 401/403: el nodo se NIEGA (lista blanca de métodos, API key…). El cuerpo dice por qué
+		// —`METHOD_NOT_ALLOWED` en sol.qvapay.com— y es lo que deja al router rotar de nodo
+		const detail = (res.status === 401 || res.status === 403) && typeof res.text === 'function' ? await res.text().then(text => text.slice(0, 200)).catch(() => '') : ''
 		// 429 = nodo saturado: otro nodo sí puede responder → rotar
-		throw new ChainHttpError(`${url}: HTTP ${res.status}`, { status: res.status, retryable: res.status === 429 || res.status >= 500 })
+		throw new ChainHttpError(`${url}: HTTP ${res.status}${detail ? ` ${detail}` : ''}`, { status: res.status, retryable: res.status === 429 || res.status >= 500 })
 	}
 	try {
 		return await res.json()

@@ -4,7 +4,7 @@
  * @jest-environment node
  */
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('@react-native-async-storage/async-storage', () => ({

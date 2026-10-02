@@ -12,7 +12,7 @@ jest.mock('../../ui/particles/QPInput', () => 'QPInput')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 import P2PTradeProgress from './P2PTradeProgress'
 

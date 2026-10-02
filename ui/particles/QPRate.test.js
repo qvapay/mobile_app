@@ -4,14 +4,14 @@
  */
 jest.mock('react-native-reanimated') // manual mock in /__mocks__/react-native-reanimated.js
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 
 import { act, create } from 'react-test-renderer'
 import QPRate from './QPRate'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 
 const theme = createTheme(true)
 

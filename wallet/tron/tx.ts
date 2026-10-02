@@ -45,7 +45,7 @@ export const SUN_PER_TRX = 1_000_000n
 export const MAX_FEE_LIMIT_SUN = 100n * SUN_PER_TRX
 
 /** Bytes de firma que se añaden al raw al difundir (r‖s‖v + envoltura protobuf). */
-const SIGNATURE_OVERHEAD_BYTES = 69n
+export const SIGNATURE_OVERHEAD_BYTES = 69n
 
 /** Defaults de parámetros de cadena por si `getchainparameters` no responde (sun). */
 const DEFAULT_ENERGY_FEE_SUN = 420n
@@ -72,18 +72,50 @@ export const encodeTrc20TransferParams = (to: string, amount: bigint): string =>
 // Decodificación de Transaction.raw
 // ---------------------------------------------------------------------------
 
+/** Recurso de Stake 2.0 (enum protocol.ResourceCode). */
+export type TronStakeResource = 'BANDWIDTH' | 'ENERGY' | 'TRON_POWER'
+
+export type DecodedTronContract =
+	| { type: 'TransferContract', owner: string, to: string, amount: bigint }
+	| { type: 'TriggerSmartContract', owner: string, contract: string, callValue: bigint, data: string }
+	| { type: 'FreezeBalanceV2Contract', owner: string, amount: bigint, resource: TronStakeResource }
+	| { type: 'UnfreezeBalanceV2Contract', owner: string, amount: bigint, resource: TronStakeResource }
+	| { type: 'WithdrawExpireUnfreezeContract', owner: string }
+	| { type: 'CancelAllUnfreezeV2Contract', owner: string }
+	| { type: 'VoteWitnessContract', owner: string, votes: Array<{ address: string, count: bigint }>, support: boolean }
+	| { type: 'WithdrawBalanceContract', owner: string }
+	| { type: 'Unknown', typeCode: bigint }
+
 export type DecodedTronRaw = {
 	refBlockBytes: string
 	refBlockHash: string
 	expiration: bigint
 	timestamp: bigint
 	feeLimit: bigint
-	contracts: Array<
-		| { type: 'TransferContract', owner: string, to: string, amount: bigint }
-		| { type: 'TriggerSmartContract', owner: string, contract: string, callValue: bigint, data: string }
-		| { type: 'Unknown', typeCode: bigint }
-	>
+	contracts: DecodedTronContract[]
 }
+
+/** Códigos de contrato de Stake 2.0 y votos (protocol.Transaction.Contract.ContractType). */
+export const TRON_STAKE_CONTRACT_TYPES = {
+	VoteWitnessContract: 4n,
+	WithdrawBalanceContract: 13n,
+	FreezeBalanceV2Contract: 54n,
+	UnfreezeBalanceV2Contract: 55n,
+	WithdrawExpireUnfreezeContract: 56n,
+	CancelAllUnfreezeV2Contract: 59n,
+} as const
+
+const STAKE_TYPE_BY_CODE = new Map<bigint, string>(Object.entries(TRON_STAKE_CONTRACT_TYPES).map(([name, code]) => [code, name]))
+
+const RESOURCES: TronStakeResource[] = ['BANDWIDTH', 'ENERGY', 'TRON_POWER']
+
+const resourceFrom = (code: bigint): TronStakeResource => {
+	const resource = RESOURCES[Number(code)]
+	if (!resource) throw new TronVerifyError(`recurso desconocido ${code}`)
+	return resource
+}
+
+const ascii = (bytes: Uint8Array): string => String.fromCharCode(...bytes)
 
 /** Bytes 0x41+20 → hex20 (lo que compara `tronToHex20`). */
 const addressBytesToHex20 = (bytes: Uint8Array): string => {
@@ -111,6 +143,12 @@ export const decodeTronRaw = (rawHex: string): DecodedTronRaw => {
 		if (typeCode === CONTRACT_TYPE_TRIGGER_SMART) {
 			return { type: 'TriggerSmartContract' as const, owner: addressBytesToHex20(bytesOf(value, 1)), contract: addressBytesToHex20(bytesOf(value, 2)), callValue: varintOf(value, 3), data: bytesToHex(bytesOf(value, 4)) }
 		}
+		const stakeType = STAKE_TYPE_BY_CODE.get(typeCode)
+		if (stakeType) {
+			// El Any debe declarar el MISMO tipo que el código: un nodo no puede disfrazar un contrato de otro
+			if (ascii(bytesOf(any, 1)) !== `type.googleapis.com/protocol.${stakeType}`) throw new TronVerifyError(`type_url no corresponde a ${stakeType}`)
+			return decodeStakeContract(stakeType as keyof typeof TRON_STAKE_CONTRACT_TYPES, value)
+		}
 		return { type: 'Unknown' as const, typeCode }
 	})
 	return {
@@ -120,6 +158,33 @@ export const decodeTronRaw = (rawHex: string): DecodedTronRaw => {
 		timestamp: varintOf(fields, 14),
 		feeLimit: varintOf(fields, 18),
 		contracts,
+	}
+}
+
+/**
+ * Campos de los contratos de staking (core/contract/balance_contract.proto y
+ * witness_contract.proto): owner_address = 1 en todos;
+ * Freeze/UnfreezeBalanceV2: 2 cantidad · 3 recurso (0 BANDWIDTH se omite);
+ * VoteWitness: 2 votos repetidos {1 SR · 2 votos} · 3 support.
+ */
+const decodeStakeContract = (type: keyof typeof TRON_STAKE_CONTRACT_TYPES, value: ReturnType<typeof decodeFields>): DecodedTronContract => {
+	const owner = addressBytesToHex20(bytesOf(value, 1))
+	switch (type) {
+		case 'FreezeBalanceV2Contract':
+		case 'UnfreezeBalanceV2Contract':
+			return { type, owner, amount: varintOf(value, 2), resource: resourceFrom(varintOf(value, 3)) }
+		case 'VoteWitnessContract':
+			return {
+				type,
+				owner,
+				votes: allBytesOf(value, 2).map(bytes => {
+					const vote = decodeFields(bytes)
+					return { address: addressBytesToHex20(bytesOf(vote, 1)), count: varintOf(vote, 2) }
+				}),
+				support: varintOf(value, 3) !== 0n,
+			}
+		default:
+			return { type, owner }
 	}
 }
 
@@ -250,7 +315,7 @@ const nodeError = (message: string): ChainHttpError => new ChainHttpError(messag
  * Los nodos devuelven errores de negocio como `{ Error }` o `{ result: { message } }`,
  * este último en hex del texto ASCII. Sin TextDecoder (no está garantizado en Hermes).
  */
-const decodeNodeMessage = (value: unknown): string => {
+export const decodeNodeMessage = (value: unknown): string => {
 	if (typeof value !== 'string') return ''
 	if (!/^[0-9a-f]+$/i.test(value) || value.length % 2 !== 0) return value
 	try { return String.fromCharCode(...hexToBytes(value)).replace(/[^\x20-\x7e]/g, '') } catch { return value }

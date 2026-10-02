@@ -38,7 +38,7 @@ import type { RootStackParamList } from '../../types/navigation'
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
 import type { EnrichedCoin } from '../../types/domain'
-import type { RawPricePoint } from '../../ui/charts/PriceChart'
+import type { RawPricePoint } from '../../ui/charts/pricePoints'
 import type { ScrubPoint } from '../../ui/charts/PriceChartPro'
 
 type CoinDetailProps = NativeStackScreenProps<RootStackParamList, 'CoinDetail'>

@@ -82,6 +82,13 @@
 			"selectPlanAndNumber": "Selecione um plano e um número válido",
 			"sent": "Recarga enviada!",
 			"sentDescription": "Sua recarga está sendo processada"
+		},
+		"recipient": {
+			"label": "Nome e sobrenome do destinatário",
+			"placeholder": "Ex.: María Pérez García",
+			"hint": "Obrigatório para recargas para Cuba a partir dos EUA.",
+			"invalid": "Informe o nome e pelo menos um sobrenome do destinatário (apenas letras)",
+			"required": "Recargas para Cuba exigem o nome e sobrenome do destinatário"
 		}
 	},
 	"topupStep1": {

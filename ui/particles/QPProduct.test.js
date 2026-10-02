@@ -6,7 +6,7 @@
  */
 jest.mock('react-native-reanimated') // manual mock in /__mocks__/react-native-reanimated.js
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	const { createTextStyles, createContainerStyles } = jest.requireActual('../../theme/themeUtils')
 	const theme = createTheme(true)
 	return { createTheme, useTheme: () => ({ theme, styles: { text: createTextStyles(theme), container: createContainerStyles(theme) } }) }
@@ -24,7 +24,7 @@ import { Text, StyleSheet } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import QPProduct from './QPProduct'
 import { useAuth } from '../../auth/AuthContext'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 
 const theme = createTheme(true)
 const MockFastImage = require('@d11/react-native-fast-image').default

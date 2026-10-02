@@ -1,12 +1,13 @@
-# Activo TRON sin cuenta: sin historial (invitación), sin swap ni energía, con explorador
+# Activo TRON sin cuenta: con actividad (historial público desde 2026-10-01; contra un qpweb
+# anterior sale la invitación a crear cuenta), sin swap ni energía, con explorador
 appId: com.qvapay
 env:
   PIN: "1234"
 ---
-- scrollUntilVisible:
-    element:
-      id: "wallet-asset-tron:native"
-    direction: UP
+- runFlow:
+    file: subflows/scroll_up_to.yaml
+    env:
+      TARGET: "wallet-asset-tron:native"
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:
@@ -14,7 +15,7 @@ env:
     retryTapIfNoChange: true
 - extendedWaitUntil:
     visible:
-      id: "account-upsell-history"
+      id: "asset-action-send"
     timeout: 10000
 - assertVisible:
     id: "asset-action-send"

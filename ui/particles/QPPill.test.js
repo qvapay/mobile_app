@@ -6,12 +6,12 @@ import { Pressable, Text, StyleSheet } from 'react-native'
 import { act, create } from 'react-test-renderer'
 
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 
 import QPPill from './QPPill'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 
 const theme = createTheme(true)
 

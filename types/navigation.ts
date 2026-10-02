@@ -14,6 +14,7 @@
  * - `P2PUser.initialTab` y `MarketStores.category`: se leen, nadie los manda.
  * - `MarketProduct.slug`: llega por deep link, nunca se lee.
  */
+import type { StakeAction } from '../wallet/staking/types'
 import type { NavigatorScreenParams } from '@react-navigation/native'
 import type { WalletTx } from './domain'
 import type { Coin, EnergyDuration, EnrichedCoin, Transaction } from './domain'
@@ -155,6 +156,15 @@ export type RootStackParamList = {
 	/** Recursos TRON y alquiler de energía; los params preseleccionan la compra. */
 	WalletEnergy: { address?: string, duration?: EnergyDuration } | undefined
 	WalletEnergyOrders: undefined
+	/** Hub de staking: posiciones de las tres cadenas y entrada por activo. */
+	WalletEarn: undefined
+	/** Staking de un activo nativo (`${chainKey}:native`). */
+	WalletStake: { assetId: string }
+	/** Formulario + confirmación de UNA acción; `positionId` = posición sobre la que se actúa. */
+	WalletStakeAction: { assetId: string, action: StakeAction, positionId?: string, targetId?: string }
+	/** `amount` en decimal humano verificado (ausente en acciones sin importe). */
+	/** `note: 'votePending'`: TRON congeló pero el voto no entró (hay que votar después). */
+	WalletStakeSuccess: { assetId: string, action: StakeAction, txid: string, amount?: string, note?: 'votePending' }
 
 	// ── Store: recargas y gift cards ──────────────────────────────────────
 	PhoneTopupIndex: { country?: string } | undefined

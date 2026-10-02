@@ -1,5 +1,5 @@
 import { useEffect, useReducer } from 'react'
-import { View, Text, StyleSheet, ScrollView, Linking, Modal, Pressable, TextInput, useWindowDimensions } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native'
 import type { ImageStyle, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
@@ -18,6 +18,9 @@ import { useSavingsMovementsQuery } from './cryptoQueries'
 import QPButton from '../../ui/particles/QPButton'
 import QPLoader from '../../ui/particles/QPLoader'
 import QPBalance from '../../ui/particles/QPBalance'
+import SavingsOperationModal from './SavingsOperationModal'
+import type { SavingsOperation } from './SavingsOperationModal'
+import { getSavingsTotals } from './savingsTotals'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -36,9 +39,8 @@ import { toast } from 'sonner-native'
 import { ROUTES } from '../../routes'
 
 // Helpers
-import { timeAgo, formatMoney } from '../../helpers'
-import { sanitizeAmountInput, parseAmountInput } from '../../helpers/amountInput'
-import { useKeyboardHeight } from '../../hooks/useKeyboardHeight'
+import { timeAgo } from '../../helpers'
+import { parseAmountInput } from '../../helpers/amountInput'
 
 // Tipos
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -64,8 +66,7 @@ type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: The
  */
 const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
 
-/** Operación abierta en el modal (null = cerrado). */
-type ModalType = 'deposit' | 'withdraw' | null
+type ModalType = SavingsOperation
 
 type ModalState = { type: ModalType, amount: string, loading: boolean }
 
@@ -108,8 +109,6 @@ const Savings = ({ route }: SavingsProps) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 	const { user } = useAuth()
-	const { height: windowHeight } = useWindowDimensions()
-	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
 	// Resumen (query compartida con BalanceCard/Invest) + movimientos. El
 	// summary de route.params pinta al instante mientras la query revalida
@@ -187,10 +186,7 @@ const Savings = ({ route }: SavingsProps) => {
 
 	if (isLoading) return <QPLoader />
 
-	const rate = savings?.currentRate || 0
-	const totalDeposited = Number(savings?.totalDeposited || savings?.total_deposited || 0).toFixed(2)
-	const totalWithdrawn = Number(savings?.totalWithdrawn || savings?.total_withdrawn || 0).toFixed(2)
-	const totalEarned = Number(savings?.totalEarned || savings?.total_earned || 0).toFixed(2)
+	const { rate, totalDeposited, totalWithdrawn, totalEarned, hasHistory } = getSavingsTotals(savings)
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -236,7 +232,7 @@ const Savings = ({ route }: SavingsProps) => {
 				</View>
 
 				{/* Stats */}
-				{(Number(totalDeposited) > 0 || Number(totalWithdrawn) > 0 || Number(totalEarned) > 0) && (
+				{hasHistory && (
 					<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
 						<StatRow label={t('crypto.savings.totalDeposited')} value={`$${totalDeposited}`} theme={theme} />
 						<StatRow label={t('crypto.savings.totalWithdrawn')} value={`$${totalWithdrawn}`} theme={theme} />
@@ -283,85 +279,15 @@ const Savings = ({ route }: SavingsProps) => {
 			</ScrollView>
 
 			{/* Deposit / Withdraw Modal */}
-			<Modal visible={!!modalType} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !modalLoading && dispatchModal({ type: 'close' })}>
-				{/* Overlay + card canónicos del theme (el overlay trae el padding
-				    horizontal que mantiene la card dentro de los márgenes). Con el
-				    teclado abierto el overlay cede su altura como paddingBottom para
-				    re-centrar la card en el espacio restante — KeyboardAvoidingView
-				    no es fiable dentro de un Modal statusBarTranslucent en Android */}
-				<Pressable
-					style={[containerStyles.modalOverlay, keyboardVisible && { paddingBottom: keyboardHeight + 16 }]}
-					onPress={() => !modalLoading && dispatchModal({ type: 'close' })}
-				>
-					<Pressable onPress={() => { }} style={[containerStyles.modalCard, { maxHeight: keyboardVisible ? windowHeight - keyboardHeight - 48 : windowHeight * 0.75 }]}>
-
-						{/* Header */}
-						<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-							<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
-								{modalType === 'deposit' ? t('crypto.common.deposit') : t('crypto.common.withdraw')}
-							</Text>
-							<Pressable onPress={() => !modalLoading && dispatchModal({ type: 'close' })} hitSlop={8}>
-								<FontAwesome6 name="xmark" size={20} color={theme.colors.secondaryText} iconStyle="solid" />
-							</Pressable>
-						</View>
-
-						{/* Available balance hint */}
-						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular, textAlign: 'center', marginBottom: 8 }}>
-							{modalType === 'deposit'
-								? t('crypto.savings.availableBalance', { amount: formatMoney(checkingBalance) })
-								: t('crypto.savings.inSavings', { amount: formatMoney(savingsBalance) })
-							}
-						</Text>
-
-						{/* Amount input */}
-						<View style={{ alignItems: 'center', marginBottom: 24 }}>
-							<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-								{/* Símbolo al patrón de QPBalance: gris medio y un paso menor que las cifras */}
-								<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xxxl, fontFamily: theme.typography.fontFamily.semiBold, marginRight: 4 }}>$</Text>
-								<TextInput
-									value={modalAmount}
-									onChangeText={(amount) => dispatchModal({ type: 'setAmount', amount: sanitizeAmountInput(amount) })}
-									placeholder="0.00"
-									placeholderTextColor={theme.colors.tertiaryText}
-									keyboardType="decimal-pad"
-									autoFocus
-									style={{
-										color: theme.colors.primaryText,
-										fontSize: 40,
-										fontFamily: theme.typography.fontFamily.semiBold,
-										minWidth: 80,
-										textAlign: 'center',
-										padding: 0,
-									}}
-								/>
-							</View>
-						</View>
-
-						{/* Max button */}
-						<Pressable
-							onPress={() => dispatchModal({
-								type: 'setAmount',
-								amount: modalType === 'deposit'
-									? checkingBalance.toFixed(2)
-									: savingsBalance.toFixed(2)
-							})}
-							style={{ alignSelf: 'center', marginBottom: 24 }}
-						>
-							<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.savings.useMax')}</Text>
-						</Pressable>
-
-						{/* Submit */}
-						<QPButton
-							title={modalType === 'deposit' ? t('crypto.common.deposit') : t('crypto.common.withdraw')}
-							icon={modalType === 'deposit' ? 'arrow-down' : 'arrow-up'}
-							onPress={handleModalSubmit}
-							loading={modalLoading}
-							disabled={modalLoading || !modalAmount || parseAmountInput(modalAmount) < 1}
-						/>
-
-					</Pressable>
-				</Pressable>
-			</Modal>
+			<SavingsOperationModal
+				operation={modalType}
+				amount={modalAmount}
+				loading={modalLoading}
+				available={modalType === 'deposit' ? checkingBalance : savingsBalance}
+				onChangeAmount={(amount) => dispatchModal({ type: 'setAmount', amount })}
+				onClose={() => dispatchModal({ type: 'close' })}
+				onSubmit={handleModalSubmit}
+			/>
 
 			{/* `useKycGate` entrega `string | null` y el modal declara `string | undefined`: cast local */}
 			<KycGateModal visible={gateVisible} message={gateMessage as string | undefined} onClose={closeGate} />

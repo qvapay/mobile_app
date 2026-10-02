@@ -9,7 +9,7 @@ jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
-import { createTheme } from '../theme/ThemeContext'
+import { createTheme } from '../theme/themeTokens'
 import { createTextStyles } from '../theme/themeUtils'
 import { countries } from '../labels/countries'
 import CountryPickerModal from './CountryPickerModal'

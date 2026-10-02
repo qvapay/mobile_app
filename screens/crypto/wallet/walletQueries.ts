@@ -19,7 +19,6 @@ import type { ApiError } from '../../../api/unwrap'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import { useAuth } from '../../../auth/AuthContext'
 import { getAppRpcRouter, useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { useAssetCatalog } from './useAssetCatalog'
 import { fetchAllBalances } from '../../../wallet/chains'
@@ -229,9 +228,6 @@ export const useWalletAssets = () => {
 	}
 }
 
-/** Sustituto de refetch cuando la query no puede correr (sin sesión). */
-const noopRefetch = async () => undefined
-
 /**
  * Historial de un activo en su red: DISCO + sincronización por ancla.
  *
@@ -250,9 +246,9 @@ const noopRefetch = async () => undefined
 export const useWalletHistory = (asset: WalletAsset | undefined) => {
 
 	const { addresses } = useWallet()
-	// El proxy de historial exige sesión: en el modo wallet solo queda la copia
-	// de disco (si la hubo con cuenta) y la pantalla ofrece crear la cuenta
-	const { isAuthenticated } = useAuth()
+	// El proxy de historial es PÚBLICO desde 2026-10-01 (sin sesión, límite por IP): el modo
+	// wallet también tiene actividad. Contra un qpweb anterior responde 401 y la pantalla
+	// vuelve a ofrecer crear la cuenta (ver WalletAsset)
 	const queryClient = useQueryClient()
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
 	const assetId = asset?.id ?? ''
@@ -304,7 +300,7 @@ export const useWalletHistory = (asset: WalletAsset | undefined) => {
 			await saveHistoryCache(asset!.id, address!, next)
 			return next
 		},
-		enabled: !!asset && !!address && isAuthenticated,
+		enabled: !!asset && !!address,
 		retry: (failureCount, error) => error?.status !== 503 && shouldRetry(failureCount, error),
 		staleTime: HISTORY_STALE_MS,
 		placeholderData: previous => previous,
@@ -315,7 +311,7 @@ export const useWalletHistory = (asset: WalletAsset | undefined) => {
 	const [loadingMore, setLoadingMore] = useState(false)
 	const loadMore = useCallback(async () => {
 		const current = queryClient.getQueryData<HistoryCache>(queryKey) ?? disk
-		if (!asset || !address || !isAuthenticated || !current?.olderCursor || loadingMore) return
+		if (!asset || !address || !current?.olderCursor || loadingMore) return
 		setLoadingMore(true)
 		try {
 			const page = await fetchPage(current.olderCursor)
@@ -324,7 +320,7 @@ export const useWalletHistory = (asset: WalletAsset | undefined) => {
 			await saveHistoryCache(asset.id, address, next)
 		} catch { /* la lista queda donde estaba; el usuario puede volver a bajar */ }
 		finally { setLoadingMore(false) }
-	}, [queryClient, queryKey, disk, asset, address, isAuthenticated, loadingMore, fetchPage])
+	}, [queryClient, queryKey, disk, asset, address, loadingMore, fetchPage])
 
 	return {
 		items: data?.items ?? [],
@@ -339,8 +335,6 @@ export const useWalletHistory = (asset: WalletAsset | undefined) => {
 		error: query.error,
 		/** Sincronizado al menos una vez o con copia de disco. */
 		isReady: !!data,
-		// refetch() SÍ dispara una query con enabled:false: sin sesión el
-		// pull-to-refresh pegaría al proxy sin token (401 → estado de error)
-		refetch: isAuthenticated ? query.refetch : noopRefetch,
+		refetch: query.refetch,
 	}
 }

@@ -1,6 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiResult } from '../types/api'
+import type { OfacCompliancePayload } from '../helpers/ofacCompliance'
 
 /** Parámetros de `withdrawApi.withdraw` (paso 2 del flujo de retiro). */
 export type WithdrawInput = {
@@ -18,6 +19,8 @@ export type WithdrawInput = {
 	note?: string
 	/** Funds origin (default balance). */
 	source?: 'balance' | 'satoshis'
+	/** Atestación OFAC: CACR (destino Cuba) o W-1 (retiro cripto). */
+	compliance?: OfacCompliancePayload | null
 	/** Sats to redeem when source is 'satoshis'. */
 	amountSats?: number
 	/** Per-attempt key (`[A-Za-z0-9._-]{8,64}`) — see `helpers/idempotency.js`. */
@@ -92,7 +95,7 @@ export const withdrawApi = {
 	 *   `409 { code: 'DUPLICATE_REQUEST' }` (see `helpers/idempotency.js`)
 	 * @returns `{ success, data?, error?, details?, status? }` — `data` is the created withdrawal + transaction
 	 */
-	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats, idempotencyKey }: WithdrawInput): Promise<ApiResult<unknown>> => {
+	withdraw: async ({ amount, coin, details, pin, payMethod, note, source, amountSats, idempotencyKey, compliance }: WithdrawInput): Promise<ApiResult<unknown>> => {
 
 		try {
 
@@ -105,6 +108,7 @@ export const withdrawApi = {
 				amount?: number
 				idempotency_key?: string
 				note?: string
+				compliance?: OfacCompliancePayload
 			} = {
 				pay_method: payMethod || coin,
 				details: details || {},
@@ -113,6 +117,7 @@ export const withdrawApi = {
 					? { source: 'satoshis', amount_sats: Number(amountSats) }
 					: { amount: Number(amount) }),
 				...(idempotencyKey && { idempotency_key: idempotencyKey }),
+				...(compliance && { compliance }),
 			}
 
 			// Add note if provided

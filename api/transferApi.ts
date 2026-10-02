@@ -1,6 +1,7 @@
 import { apiClient } from './client'
 import type { ApiClientError, ApiResult } from '../types/api'
 import type { EmbeddedUser, Transaction } from '../types/domain'
+import type { OfacCompliancePayload } from '../helpers/ofacCompliance'
 
 /** Filtros del histórico (`GET /transaction`); los vacíos/null se omiten. */
 export type TransferFilters = {
@@ -21,6 +22,8 @@ export type TransferMoneyInput = {
 	to: string
 	pin: string | number
 	idempotencyKey?: string
+	/** Certificación CACR cuando el destinatario es nacional cubano (ver `ofacCheck`). */
+	compliance?: OfacCompliancePayload | null
 }
 
 export const transferApi = {
@@ -99,6 +102,25 @@ export const transferApi = {
 	},
 
 	/**
+	 * Asks whether a transfer to `to` needs the OFAC/CACR certification
+	 * (`GET /transaction/transfer/ofac-check`): `required` is true when the
+	 * recipient is a Cuban national per their KYC (nationality, document,
+	 * country or address). Only the flag leaves the server, never the KYC data.
+	 *
+	 * @param to - Recipient uuid.
+	 * @returns `{ success, data?, error?, status? }` — `data` is `{ required }`
+	 */
+	ofacCheck: async (to: string): Promise<ApiResult<{ required: boolean }>> => {
+		try {
+			const response = await apiClient.get('/transaction/transfer/ofac-check', { params: { to }, silent: true })
+			return { success: true, data: { required: response.data?.required === true }, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			return { success: false, error: error.response?.data?.error || error.message, status: error.response?.status }
+		}
+	},
+
+	/**
 	 * Transfers balance to another user (`POST /transaction/transfer`).
 	 * Requires the account PIN; `amount` and `pin` are stringified before
 	 * sending. Sticker attachments travel inside the description as
@@ -123,7 +145,7 @@ export const transferApi = {
 	 *   "pin": "1111"
 	 * }
 	 */
-	transferMoney: async ({ amount, description, to, pin, idempotencyKey }: TransferMoneyInput): Promise<ApiResult<Transaction>> => {
+	transferMoney: async ({ amount, description, to, pin, idempotencyKey, compliance }: TransferMoneyInput): Promise<ApiResult<Transaction>> => {
 
 		try {
 			const response = await apiClient.post('/transaction/transfer', {
@@ -131,7 +153,8 @@ export const transferApi = {
 				description,
 				to,
 				pin: pin.toString(),
-				...(idempotencyKey && { idempotency_key: idempotencyKey })
+				...(idempotencyKey && { idempotency_key: idempotencyKey }),
+				...(compliance && { compliance }),
 			})
 
 			return {

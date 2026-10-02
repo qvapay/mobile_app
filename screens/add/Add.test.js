@@ -10,7 +10,7 @@ jest.mock('../../hooks/useCoins', () => ({
 	default: () => ({ coins: mockCoinCatalog, isLoading: false }),
 }))
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
@@ -35,13 +35,16 @@ jest.mock('../../ui/WalletPickerSheet', () => 'WalletPickerSheet')
 jest.mock('./DepositDetailsModal', () => 'DepositDetailsModal')
 jest.mock('./cardPaymentSheet', () => ({ presentCardDeposit: jest.fn() }))
 jest.mock('./CardFeeModeSelector', () => 'CardFeeModeSelector')
-jest.mock('../../api/client', () => ({
-	__esModule: true,
-	default: { get: jest.fn(), post: jest.fn() },
-}))
+jest.mock('../../api/client', () => {
+	// userApi (GET /user/cip) importa el export nombrado: mismo objeto que el default
+	const client = { get: jest.fn(), post: jest.fn() }
+	return { __esModule: true, default: client, apiClient: client }
+})
 jest.mock('../../hooks/useTransactionSSE', () => jest.fn())
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
+// Modal OFAC como host: el gate y la consulta /user/cip corren de verdad
+jest.mock('../../ui/OfacAttestationModal', () => 'OfacAttestationModal')
 
 import React from 'react'
 import { Linking } from 'react-native'
@@ -373,5 +376,65 @@ describe('real-time deposit status over SSE', () => {
 		expect(tree.root.findByType('DepositDetailsModal').props.countdown).toBe(1795)
 		await act(async () => { sseCallback('expired') })
 		expect(tree.root.findByType('DepositDetailsModal').props.countdown).toBe(0)
+	})
+})
+
+describe('OFAC funding attestation', () => {
+	const ATTESTATION = {
+		purposeCode: 'P-1',
+		attestations: { notProhibitedOfficial: true, notProhibitedPartyMember: true, notRestrictedList: true, lawfulPurpose: true },
+		language: 'es',
+	}
+	const ofacModal = (tree) => tree.root.findByType('OfacAttestationModal')
+	const mockCip = (cip) => apiClient.get.mockImplementation(url => (
+		url === '/user/cip' ? (cip instanceof Error ? Promise.reject(cip) : Promise.resolve({ data: cip })) : Promise.resolve({ data: [] })
+	))
+
+	test('a non-US person deposits without any attestation', async () => {
+		mockCip({ us_person: false })
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree)
+		await pressGenerate(tree)
+		expect(apiClient.get).toHaveBeenCalledWith('/user/cip', { silent: true })
+		expect(ofacModal(tree).props.visible).toBe(false)
+		expect(apiClient.post).toHaveBeenCalledWith('/topup', { pay_method: 'USDT', amount: 50 })
+	})
+
+	test('a US person must attest before the order exists, and the payload travels', async () => {
+		mockCip({ us_person: true })
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree)
+		await pressGenerate(tree)
+		expect(ofacModal(tree).props).toMatchObject({ visible: true, scope: 'funding', context: 'topup', tick: 'USDT' })
+		expect(apiClient.post).not.toHaveBeenCalled()
+		await act(async () => { ofacModal(tree).props.onConfirm(ATTESTATION) })
+		expect(apiClient.post).toHaveBeenCalledWith('/topup', { pay_method: 'USDT', amount: 50, compliance: ATTESTATION })
+	})
+
+	test('closing the attestation creates no order', async () => {
+		mockCip({ us_person: true })
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree)
+		await pressGenerate(tree)
+		await act(async () => { ofacModal(tree).props.onClose() })
+		expect(apiClient.post).not.toHaveBeenCalled()
+	})
+
+	test('BANK deposits always attest, with the bank copy', async () => {
+		mockCip({ us_person: false })
+		const BANK = { tick: 'BANK', name: 'Transferencia bancaria', min_in: '10' }
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree, BANK)
+		await pressGenerate(tree)
+		expect(ofacModal(tree).props).toMatchObject({ visible: true, scope: 'funding', context: 'deposit_bank' })
+	})
+
+	test('fail-closed: if the CIP profile cannot be read, the attestation is required', async () => {
+		mockCip(new Error('network'))
+		const tree = await renderAdd()
+		await pickCoinAndAmount(tree)
+		await pressGenerate(tree)
+		expect(ofacModal(tree).props.visible).toBe(true)
+		expect(apiClient.post).not.toHaveBeenCalled()
 	})
 })

@@ -27,6 +27,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 import { useAuth } from '../../../auth/AuthContext'
 import { useAppLock } from '../../../lock/AppLockContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
+import QPSecureView from '../../../ui/QPSecureView'
 import { shortAddress } from '../../crypto/wallet/walletFormat'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
 
@@ -225,14 +226,14 @@ const WalletSettings = () => {
 				)}
 				{mnemonic ? (
 					<>
-						<View style={styles.grid}>
+						<QPSecureView style={styles.grid}>
 							{words.map((word, index) => (
 								<View key={index} style={[styles.wordChip, { backgroundColor: theme.colors.elevation }]}>
 									<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{index + 1}</Text>
 									<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{word}</Text>
 								</View>
 							))}
-						</View>
+						</QPSecureView>
 						<Text style={[textStyles.h6, styles.hint, { color: theme.colors.tertiaryText }]}>{t('crypto.wallet.settings.revealHint')}</Text>
 						<QPButton title={t('crypto.wallet.settings.hide')} icon="eye-slash" outlined onPress={hide} />
 					</>

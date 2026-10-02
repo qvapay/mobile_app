@@ -15,12 +15,24 @@ import type { HistoryCache } from '../../../wallet/historyMerge'
 
 const PREFIX = '@qpwallet:history:'
 
-const keyFor = (assetId: string, address: string): string => `${PREFIX}${assetId}:${address}`
+/**
+ * Versión del formato por activo. Subirla obliga a resincronizar ese historial desde cero
+ * (la sincronización por ancla solo pide lo NUEVO y jamás volvería a ver lo ya descartado):
+ * - tron:native v2 (2026-09-30): el servidor ahora manda congelar/votar/cobrar (`staking=1`).
+ */
+const VERSIONS: Record<string, string> = { 'tron:native': 'v2' }
+
+const keyFor = (assetId: string, address: string): string => `${PREFIX}${VERSIONS[assetId] ? `${VERSIONS[assetId]}:` : ''}${assetId}:${address}`
+const legacyKeyFor = (assetId: string, address: string): string => `${PREFIX}${assetId}:${address}`
 
 export const loadHistoryCache = async (assetId: string, address: string): Promise<HistoryCache> => {
 	try {
 		const raw = await AsyncStorage.getItem(keyFor(assetId, address))
-		if (!raw) return emptyHistoryCache()
+		if (!raw) {
+			// Primera lectura tras subir de versión: la copia vieja ya no vale, se borra
+			if (VERSIONS[assetId]) AsyncStorage.removeItem(legacyKeyFor(assetId, address)).catch(() => {})
+			return emptyHistoryCache()
+		}
 		const parsed = JSON.parse(raw) as Partial<HistoryCache>
 		if (!Array.isArray(parsed.items)) return emptyHistoryCache()
 		return { items: parsed.items, olderCursor: parsed.olderCursor ?? null, complete: !!parsed.complete, updatedAt: parsed.updatedAt ?? 0 }

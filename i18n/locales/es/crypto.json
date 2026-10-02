@@ -292,7 +292,7 @@
 				"lastFree": "Este envío lo paga QvaPay: es tu último gratis de hoy.",
 				"remaining_one": "Te queda {{count}} envío gratis hoy",
 				"remaining_other": "Te quedan {{count}} envíos gratis hoy",
-				"exhausted": "Ya usaste tu envío gratis de hoy. Se renueva a las {{time}}.",
+				"exhausted": "Ya usaste tus envíos gratis de hoy. Se renuevan a las {{time}}.",
 				"goldHook": "Con GOLD, tus envíos de USDT y USDC en Solana son gratis.",
 				"goldCta": "Hazte GOLD",
 				"sending": "Enviando sin comisión…",
@@ -638,6 +638,197 @@
 			"title": "Energía y ancho de banda",
 			"subtitle": "{{energy}} de energía disponible",
 			"subtitleEmpty": "Sin energía: los envíos de USDT queman TRX"
+		}
+	},
+	"staking": {
+		"entry": "Ganar",
+		"soon": "Próximamente",
+		"hub": {
+			"title": "Pon a trabajar tu cripto",
+			"subtitle": "Haz staking desde tu propia wallet. Tus fondos nunca salen de ella: firmas tú.",
+			"totalLabel": "Total en staking",
+			"assetsTitle": "Redes disponibles",
+			"stakedLine": "{{amount}} {{symbol}} en staking",
+			"noStake": "Sin staking todavía",
+			"disclaimer": "Los rendimientos son estimados y variables: dependen de la red y de a quién delegues. No los paga QvaPay ni están garantizados.",
+			"homeCardTitle": "Gana con tu cripto",
+			"homeCardSubtitle": "Staking de SOL y TRX sin salir de tu wallet",
+			"homeCardStaked": "{{amount}} en staking"
+		},
+		"asset": {
+			"committed": "En staking",
+			"available": "Disponible: {{amount}} {{symbol}}",
+			"apy": "≈ {{apy}} al año (estimado)",
+			"positions": "Tus posiciones",
+			"empty": "Aún no tienes {{symbol}} en staking.",
+			"soonNotice": "El stacking de {{symbol}} desde QvaPay llegará más adelante. Aquí ves lo que tengas bloqueado desde otra wallet y cuándo se desbloquea.",
+			"howTitle": "Cómo funciona",
+			"loadError": "No pudimos leer tus posiciones. Desliza para reintentar.",
+			"how": {
+				"solana": {
+					"step1": "Eliges un validador y delegas tu SOL. Sigue en tu wallet, en una cuenta de stake que solo tú controlas.",
+					"step2": "Empieza a rendir en la siguiente epoch (unos 2 días) y las recompensas se suman solas.",
+					"step3": "Para salir, lo desactivas y al terminar la epoch lo retiras a tu saldo."
+				},
+				"tron": {
+					"step1": "Congelas TRX y votas a un Super Representative con ese poder de voto.",
+					"step2": "Recibes energía para enviar USDT sin quemar TRX y recompensas de voto que cobras cada 24 h.",
+					"step3": "Al descongelar, el TRX vuelve a tu saldo tras 14 días."
+				},
+				"stacks": {
+					"step1": "En Stacks, el STX se bloquea por ciclos de unas 2 semanas a través de un signer (stacking).",
+					"step2": "Mientras está bloqueado genera recompensas y no se puede enviar.",
+					"step3": "Se desbloquea solo al terminar el periodo elegido; aquí ves la cuenta atrás."
+				}
+			},
+			"claim": {
+				"title": "{{amount}} {{symbol}} de recompensas",
+				"ready": "Recompensas de voto listas para cobrar.",
+				"wait": "Podrás cobrar en {{time}} (la red permite un cobro cada 24 h)."
+			},
+			"unvoted": {
+				"title": "{{amount}} TRON Power sin votar",
+				"subtitle": "Vota a un SR para que tu TRX congelado genere recompensas.",
+				"cta": "Votar"
+			}
+		},
+		"targetKind": {
+			"solana": "Validador",
+			"tron": "Super Representative",
+			"stacks": "Pool"
+		},
+		"status": {
+			"activating": "Activándose",
+			"active": "Rindiendo",
+			"cooling": "Saliendo",
+			"withdrawable": "Listo para retirar",
+			"locked": "Bloqueado"
+		},
+		"timeLeft": {
+			"days_one": "{{count}} día",
+			"days_other": "{{count}} días",
+			"hours_one": "{{count}} hora",
+			"hours_other": "{{count}} horas",
+			"minutes_one": "{{count}} minuto",
+			"minutes_other": "{{count}} minutos"
+		},
+		"unlockIn": "Termina en {{time}}",
+		"unknownTarget": "Destino desconocido",
+		"actions": {
+			"stake": "Hacer staking",
+			"unstake": "Salir del staking",
+			"withdraw": "Retirar al saldo",
+			"claim": "Cobrar recompensas",
+			"vote": "Cambiar de SR",
+			"delegate": "Delegar",
+			"revoke": "Revocar delegación"
+		},
+		"form": {
+			"targetLabel": "{{target}}",
+			"pickTarget": "Elegir",
+			"amountLabel": "Cantidad",
+			"available": "Disponible: {{amount}} {{symbol}}",
+			"stakedAvailable": "En staking: {{amount}} {{symbol}}",
+			"max": "MÁX",
+			"continue": "Continuar",
+			"errors": {
+				"amountZero": "Escribe una cantidad mayor que cero.",
+				"insufficient": "No tienes suficiente {{symbol}}.",
+				"amountInvalid": "Máximo {{decimals}} decimales.",
+				"belowMin": "El mínimo para hacer staking es {{amount}} {{symbol}}.",
+				"noTarget": "Elige a quién delegar."
+			},
+			"minimum": "Mínimo {{amount}} {{symbol}}"
+		},
+		"confirm": {
+			"action": "Acción",
+			"amount": "Cantidad",
+			"target": "{{target}}",
+			"networkFee": "Comisión de red",
+			"txCount": "Firmas",
+			"txCountValue_one": "{{count}} transacción",
+			"txCountValue_other": "{{count}} transacciones",
+			"reserve": "Depósito recuperable",
+			"wait": "Surte efecto en",
+			"confirm": "Confirmar",
+			"signing": "Firmando…",
+			"broadcasting": "Enviando a la red…",
+			"retry": "Reintentar",
+			"back": "Volver",
+			"authSubtitle": "{{action}} · {{amount}} {{symbol}}",
+			"authSubtitleNoAmount": "{{action}} · {{network}}",
+			"nonCustodial": "Firmas tú: QvaPay nunca toca tus fondos ni puede moverlos.",
+			"errors": {
+				"unsupported": "Esta acción aún no está disponible en {{network}}.",
+				"verifyFailed": "La transacción que devolvió el nodo no coincide con lo que pediste. No se firmó nada.",
+				"noNodes": "No pudimos conectar con ningún nodo de la red. Inténtalo en un momento.",
+				"generic": "No se pudo completar: {{message}}",
+				"unknown": "Algo salió mal. Inténtalo de nuevo."
+			},
+			"notices": {
+				"replacesVotes": "Tus votos actuales a otros SR pasarán a {{target}}.",
+				"votesAdjust": "Al descongelar, la red reajusta tus votos a tu nuevo TRON Power. Si te queda poder sin votar, te avisaremos para volver a votar."
+			}
+		},
+		"picker": {
+			"title": "Elige {{target}}",
+			"partner": "Socio de QvaPay",
+			"featured": "Recomendado",
+			"payout": "Paga en {{symbol}}",
+			"minAmount": "Mínimo {{amount}} {{symbol}}",
+			"empty": "Aún no hay destinos disponibles en esta red.",
+			"close": "Cerrar",
+			"apy": "≈ {{apy}}",
+			"apyNote": {
+				"solana": "APY medido con lo que cobraron en la última epoch cuentas reales delegadas a cada validador. No incluye MEV (≈ +0,2 %) y puede variar.",
+				"tron": "APY estimado con las recompensas de voto de la red y la comisión de cada SR. Puede variar.",
+				"stacks": "APY estimado según los últimos ciclos del pool. Puede variar."
+			}
+		},
+		"disclosure": {
+			"title": "Antes de empezar",
+			"custody": "Tus fondos no salen de tu wallet: QvaPay no los custodia ni puede moverlos.",
+			"variable": "El rendimiento es estimado y variable. Puede bajar, y el validador o pool puede fallar o cambiar su comisión.",
+			"lock": {
+				"solana": "Salir del staking no es instantáneo: tarda hasta el final de la epoch (unos 2 días).",
+				"tron": "El TRX congelado tarda 14 días en volver a tu saldo desde que lo descongelas.",
+				"stacks": "El STX queda bloqueado hasta el final del ciclo de stacking (unas 2 semanas)."
+			},
+			"accept": "Entiendo cómo funciona y sus riesgos",
+			"continue": "Continuar",
+			"cancel": "Ahora no"
+		},
+		"success": {
+			"title": {
+				"stake": "¡Staking en marcha!",
+				"unstake": "Saliendo del staking",
+				"withdraw": "Retirado a tu saldo",
+				"claim": "Recompensas cobradas",
+				"vote": "Voto actualizado",
+				"delegate": "¡Delegación hecha!",
+				"revoke": "Delegación revocada"
+			},
+			"next": {
+				"solana": "Empezará a rendir en la siguiente epoch. Lo verás en Ganar.",
+				"tron": "Tu TRX ya está congelado y votando. Cobra tus recompensas cada 24 h.",
+				"stacks": "Tu STX quedará bloqueado cuando el pool lo incluya en el próximo ciclo."
+			},
+			"exit": {
+				"solana": "Deja de rendir al terminar la epoch (unos 2 días). Después podrás retirarlo a tu saldo desde Ganar.",
+				"tron": "Tu TRX volverá a estar disponible en 14 días. Lo retiras desde Ganar.",
+				"stacks": "Tu STX se desbloqueará al terminar el ciclo de stacking en curso."
+			},
+			"txid": "Transacción",
+			"viewStaking": "Ver mi staking",
+			"done": "Listo",
+			"votePending": "Tu TRX ya está congelado, pero el voto no entró. Entra en Ganar y pulsa Votar para empezar a generar recompensas."
+		},
+		"activity": {
+			"stake": "Staking",
+			"withdraw": "Retirado del staking",
+			"unstake": "Salida del staking",
+			"vote": "Votaste",
+			"claim": "Recompensas cobradas"
 		}
 	}
 }

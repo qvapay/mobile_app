@@ -5,7 +5,7 @@
  * @jest-environment node
  */
 jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }))
@@ -74,6 +74,19 @@ test('el alto crece con las filas, hasta el tope de pantalla', async () => {
 	expect(long).toBeGreaterThan(short)
 	// Y con 40 filas no se come la pantalla entera
 	expect(long).toBeLessThan(SCREEN_HEIGHT)
+})
+
+test('buscar NO encoge la hoja: mantiene el alto y los resultados se enumeran desde arriba', async () => {
+	// Si el alto siguiera a los resultados, la tarjeta bajaría con cada letra hasta quedar
+	// detrás del teclado
+	await render({ options: Array.from({ length: 12 }, (_, i) => ({ ...OPTIONS[0], id: `c${i}`, title: `C${i}`, keywords: '' })) })
+	const before = listBoxHeight()
+	await act(async () => { search().props.onChangeText('C1') })
+	expect(titles()).toEqual(['C1', 'C10', 'C11'])
+	expect(listBoxHeight()).toBe(before)
+	await act(async () => { search().props.onChangeText('nada') })
+	expect(titles()).toEqual([])
+	expect(listBoxHeight()).toBe(before)
 })
 
 test('sin resultados el contenedor sigue teniendo alto, para poder leer el aviso', async () => {

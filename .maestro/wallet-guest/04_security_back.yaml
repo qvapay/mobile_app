@@ -2,10 +2,10 @@
 # cuenta) y su "volver" propio regresa al modo wallet
 appId: com.qvapay
 ---
-- scrollUntilVisible:
-    element:
-      id: "wallet-home-security"
-    direction: DOWN
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "wallet-home-security"
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:
@@ -15,8 +15,11 @@ appId: com.qvapay
     visible:
       id: "wallet-settings-back"
     timeout: 5000
-- assertVisible:
-    id: "wallet-settings-delete"
+# En pantallas más bajas (Android) el botón queda bajo el pliegue
+- runFlow:
+    file: subflows/scroll_down_to.yaml
+    env:
+      TARGET: "wallet-settings-delete"
 - takeScreenshot: 04_security
 - runFlow: subflows/settings_back.yaml
 - extendedWaitUntil:

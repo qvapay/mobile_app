@@ -79,10 +79,10 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }: P
         borderBottomLeftRadius: isLast ? 10 : 0,
         borderBottomRightRadius: isLast ? 10 : 0,
         marginBottom: isLast ? 10 : 0,
-        // Aire vertical de la CAJA (no de cada fila): solo el borde superior de la
-        // primera fila y el inferior de la última. Espejado en TransactionSkeleton.
-        ...(isFirst && { paddingTop: 14 }),
-        ...(isLast && { paddingBottom: 14 }),
+        // Medidas calcadas de WalletAssetRow (fila de activo de la wallet): 12 de
+        // aire vertical y horizontal por fila. Espejado en TransactionSkeleton.
+        paddingHorizontal: 12,
+        paddingVertical: 12,
     }
 
     // Transaction data
@@ -123,20 +123,20 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }: P
     return (
         <Pressable onPress={navigateToTransaction}>
             <View style={[containerStyles.box, { justifyContent: 'space-between' }, containerStyle]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-                    {wallet_coin ? (<QPCoin coin={wallet_coin} size={48} />) : (<QPAvatar user={isPaidByMe ? owner : paid_by} size={48} />)}
-                    <View style={{ flexDirection: 'column' }}>
+                <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    {wallet_coin ? (<QPCoin coin={wallet_coin} size={40} />) : (<QPAvatar user={isPaidByMe ? owner : paid_by} size={40} />)}
+                    <View style={{ flex: 1, minWidth: 0 }}>
                         {isStickerDescription ? (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <TransactionSticker name={parsedDescription.sticker} size={28} />
+                                <TransactionSticker name={parsedDescription.sticker} size={24} />
                                 <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
                                     {isPaidByMe ? `→ @${reduceString(owner?.username || '', 12)}` : `← @${reduceString(paid_by?.username || '', 12)}`}
                                 </Text>
                             </View>
                         ) : (
-                            <Text style={textStyles.h4}>{displayDescription}</Text>
+                            <Text style={textStyles.h4} numberOfLines={1}>{displayDescription}</Text>
                         )}
-                        <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{timeSince(updated_at)}</Text>
+                        <Text style={{ marginTop: 2, color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }} numberOfLines={1}>{timeSince(updated_at)}</Text>
                     </View>
                 </View>
                 <View>

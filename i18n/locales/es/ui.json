@@ -148,5 +148,10 @@
 		"title": "Abre en tu wallet",
 		"memoWarning": "Verifica que el memo se haya copiado en tu wallet antes de enviar.",
 		"empty": "No detectamos ninguna wallet instalada compatible con esta moneda."
+	},
+	"ofac": {
+		"languageLabel": "Idioma del texto legal",
+		"cancel": "Cancelar",
+		"confirm": "Certificar y continuar"
 	}
 }

@@ -258,5 +258,12 @@
               android:resource="@xml/p2p_rates_widget_info" />
       </receiver>
       -->
+
+      <!-- El SDK de KYC declara su actividad en portrait. Android 16 ignora ese
+           bloqueo en tablets y plegables, y Play lo marca: se quita aquí. En
+           teléfonos la app ya se bloquea en portrait en runtime (MainActivity) -->
+      <activity
+        android:name="me.didit.sdk.ui.VerificationActivity"
+        tools:remove="android:screenOrientation" />
     </application>
 </manifest>

@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// Liquid glass requires iOS 26+ (lo consume también App.tsx: una sola definición)
-export const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(String(Platform.Version), 10) >= 26
+import { supportsLiquidGlass } from '../helpers/liquidGlass'
 
 // Tab Navigators: native for iOS 26+ (liquid glass), JS-based for Android and older iOS
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'

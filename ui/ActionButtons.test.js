@@ -6,7 +6,7 @@
  * @jest-environment node
  */
 jest.mock('../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('react-native-reanimated', () => {
@@ -77,7 +77,7 @@ test('sin KYC, Extraer no navega: se atenúa y abre el KycGateModal', () => {
 	const tree = renderRow(navigation)
 
 	// El tile se pinta atenuado (tinta terciaria en vez de primaria)
-	const { createTheme } = jest.requireActual('../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../theme/themeTokens')
 	const theme = createTheme(true)
 	const extraerTile = tree.root.findAllByType('QPPressable').find((p) =>
 		p.findAllByType('Text').some((t) => t.props.children === 'Extraer')

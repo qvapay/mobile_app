@@ -7,6 +7,7 @@
  * sin publicar versión nueva.
  */
 import {
+	isMethodNotAllowed,
 	createRpcRouter,
 	isRetryableRpcError,
 	AllRpcsFailedError,
@@ -129,6 +130,27 @@ describe('call', () => {
 		await expect(router.call('tron', async rpc => rpc.url, { accept: () => false })).rejects.toThrow(AllRpcsFailedError)
 	})
 
+	test('un método que el nodo NO ofrece (403 METHOD_NOT_ALLOWED de sol.qvapay.com) rota aunque no sea lectura, y no rompe el nodo', async () => {
+		// El fallo real (2026-09-30): el proxy propio rechaza getEpochInfo, getProgramAccounts…
+		// y el staking de SOL moría en la confirmación en vez de probar el siguiente nodo
+		const { router } = makeRouter(makeRegistry(RPCS()))
+		const refusal = () => Object.assign(new Error('https://api.trongrid.io: HTTP 403 {"error":"El método getEpochInfo no está permitido","code":"METHOD_NOT_ALLOWED"}'), { status: 403, retryable: false })
+		for (let i = 0; i < 5; i++) {
+			const seen = []
+			const result = await router.call('tron', (rpc) => {
+				seen.push(rpc.url)
+				if (rpc.url === 'https://api.trongrid.io') throw refusal()
+				return Promise.resolve('ok')
+			})
+			expect(result).toBe('ok')
+			// Cinco rechazos seguidos y el nodo sigue siendo el primero: no cuenta como caída
+			expect(seen[0]).toBe('https://api.trongrid.io')
+		}
+		expect(isMethodNotAllowed(refusal())).toBe(true)
+		expect(isMethodNotAllowed(new Error('Method not found'))).toBe(true)
+		expect(isMethodNotAllowed(new Error('HTTP 403'))).toBe(false)
+	})
+
 	test('una LECTURA rota ante cualquier error: repetirla no puede duplicar nada', async () => {
 		// El fallo real: nueve nodos del registry sirven `eth_getBalance` y rechazan
 		// `eth_call` con códigos propios. Sin rotar, moría la cadena entera y los tokens
@@ -219,8 +241,13 @@ describe('isRetryableRpcError', () => {
 	})
 })
 
-/** Proxies propios ya en producción (verificados antes de encenderse en el registry). */
-const LIVE_QVAPAY_PROXIES = ['solana']
+/**
+ * Proxies propios ya en producción (verificados antes de encenderse en el registry):
+ * - solana: sol.qvapay.com
+ * - tron: tron.qvapay.com → GetBlock FULLNODE-REST (2026-10-01: bloques, cuenta, recompensas,
+ *   SR y brokerage REAL —5 % P2P.org, a diferencia de TronGrid— y rutas vetadas con 403)
+ */
+const LIVE_QVAPAY_PROXIES = ['solana', 'tron']
 
 describe('bundled.json', () => {
 	test('cubre las 8 cadenas v7 con la forma del contrato', () => {

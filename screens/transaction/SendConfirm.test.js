@@ -7,7 +7,7 @@
  * @jest-environment node
  */
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
@@ -31,6 +31,12 @@ jest.mock('../../hooks/useKycGate', () => ({
 	KYC_TRANSFER_THRESHOLD: 500,
 }))
 jest.mock('../../ui/KycGateModal', () => 'KycGateModal')
+// Comprobación OFAC del destinatario controlable; modal como host (el gate real corre)
+const mockResolveTransferRequired = jest.fn()
+jest.mock('../../hooks/useOfacQueries', () => ({
+	useOfacChecks: () => ({ resolveTransferRequired: mockResolveTransferRequired, prefetchTransfer: jest.fn() }),
+}))
+jest.mock('../../ui/OfacAttestationModal', () => 'OfacAttestationModal')
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
 import React from 'react'
@@ -67,6 +73,7 @@ beforeEach(() => {
 	userApi.searchUser.mockResolvedValue({ success: true, data: [RECIPIENT] })
 	transferApi.transferMoney.mockResolvedValue({ success: true, data: {} })
 	withdrawApi.requestPin.mockResolvedValue({ success: true })
+	mockResolveTransferRequired.mockResolvedValue(false)
 })
 afterEach(() => { jest.useRealTimers() })
 
@@ -142,6 +149,7 @@ describe('transfer execution', () => {
 			to: 'u-9',
 			pin: '1234',
 			idempotencyKey: expect.stringMatching(/^[A-Za-z0-9._-]{8,64}$/),
+			compliance: null,
 		})
 		expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.SEND_SUCCESS, {
 			amount: '25',
@@ -199,5 +207,42 @@ describe('OTP method (TOTP 2FA)', () => {
 		// transferMoney stringifies the pin, so the leading zero survives here
 		// (unlike withdrawApi.withdraw — see api/withdrawApi.test.js)
 		expect(transferApi.transferMoney).toHaveBeenCalledWith(expect.objectContaining({ pin: '012345' }))
+	})
+})
+
+describe('OFAC certification (Cuban-national recipient)', () => {
+	const ATTESTATION = {
+		purposeCode: 'P-1',
+		attestations: { notProhibitedOfficial: true, notProhibitedPartyMember: true, notRestrictedList: true, lawfulPurpose: true },
+		language: 'es',
+	}
+	const ofacModal = (tree) => tree.root.findByType('OfacAttestationModal')
+
+	test('a non-Cuban recipient never sees the certification', async () => {
+		const tree = await renderConfirm()
+		await pressContinuar(tree)
+		expect(mockResolveTransferRequired).toHaveBeenCalledWith('u-9')
+		expect(ofacModal(tree).props.visible).toBe(false)
+		expect(pinStep(tree)).toBeTruthy()
+	})
+
+	test('a Cuban-national recipient must certify before the PIN step, and the payload travels', async () => {
+		mockResolveTransferRequired.mockResolvedValue(true)
+		const tree = await renderConfirm()
+		await pressContinuar(tree)
+		expect(ofacModal(tree).props).toMatchObject({ visible: true, scope: 'cuba_value', context: 'transfer' })
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
+		await act(async () => { ofacModal(tree).props.onConfirm(ATTESTATION) })
+		await enterPin(tree, '1234')
+		expect(transferApi.transferMoney).toHaveBeenCalledWith(expect.objectContaining({ to: 'u-9', compliance: ATTESTATION }))
+	})
+
+	test('closing the certification leaves the transfer unsent', async () => {
+		mockResolveTransferRequired.mockResolvedValue(true)
+		const tree = await renderConfirm()
+		await pressContinuar(tree)
+		await act(async () => { ofacModal(tree).props.onClose() })
+		expect(tree.root.findAllByType('PinConfirmStep')).toHaveLength(0)
+		expect(transferApi.transferMoney).not.toHaveBeenCalled()
 	})
 })

@@ -4,7 +4,7 @@
  * @jest-environment node
  */
 jest.mock('../../theme/ThemeContext', () => {
-	const { createTheme } = jest.requireActual('../../theme/ThemeContext')
+	const { createTheme } = jest.requireActual('../../theme/themeTokens')
 	return { createTheme, useTheme: () => ({ theme: createTheme(true) }) }
 })
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
@@ -23,7 +23,7 @@ import { act, create } from 'react-test-renderer'
 import QPTransaction from './QPTransaction'
 import { useAuth } from '../../auth/AuthContext'
 import { useSettings } from '../../settings/SettingsContext'
-import { createTheme } from '../../theme/ThemeContext'
+import { createTheme } from '../../theme/themeTokens'
 import { ROUTES } from '../../routes'
 
 const theme = createTheme(true)

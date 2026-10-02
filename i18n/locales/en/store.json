@@ -82,6 +82,13 @@
 			"selectPlanAndNumber": "Select a plan and a valid number",
 			"sent": "Top-up sent!",
 			"sentDescription": "Your top-up is being processed"
+		},
+		"recipient": {
+			"label": "Recipient's full name",
+			"placeholder": "E.g.: María Pérez García",
+			"hint": "Required for top-ups to Cuba from the U.S.",
+			"invalid": "Enter the recipient's first name and at least one last name (letters only)",
+			"required": "Top-ups to Cuba require the recipient's first and last name"
 		}
 	},
 	"topupStep1": {

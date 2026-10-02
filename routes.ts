@@ -115,6 +115,10 @@ export const ROUTES = {
 	WALLET_EXCHANGES: "WalletExchanges",
 	WALLET_ENERGY: "WalletEnergy",
 	WALLET_ENERGY_ORDERS: "WalletEnergyOrders",
+	WALLET_EARN: "WalletEarn",
+	WALLET_STAKE: "WalletStake",
+	WALLET_STAKE_ACTION: "WalletStakeAction",
+	WALLET_STAKE_SUCCESS: "WalletStakeSuccess",
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	MARKET_STORES: "MarketStores",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useReducer, useRef } from 'react'
+import { useState, useEffect, useMemo, useReducer, useRef, useCallback } from 'react'
 import type { ComponentProps } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -19,23 +19,20 @@ import QPCoinPicker from '../../ui/QPCoinPicker'
 import useCoins from '../../hooks/useCoins'
 import WalletPickerSheet from '../../ui/WalletPickerSheet'
 import DepositDetailsModal from './DepositDetailsModal'
+import DepositReceiveCard from './DepositReceiveCard'
 
 // Depósito con tarjeta (Stripe PaymentSheet)
 import CardFeeModeSelector from './CardFeeModeSelector'
 import { isCardDepositEligible, filterCardFromCatalog } from '../../helpers/cardDepositEligibility'
 import { cardFeeRateFor } from '../../helpers/cardFeeMode'
-import { coinConverted, coinTerms, formatCoinAmount } from '../../helpers/coinFormat'
 import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 // Orden de depósito: creación, modal, cuenta atrás y seguimiento en vivo
 import useDepositOrder from './useDepositOrder'
+import OfacAttestationModal from '../../ui/OfacAttestationModal'
 
 // Wallet self-custody: pagar el depósito desde la propia wallet (Fase 5 del plan crypto)
-import { useWallet } from '../../wallet/WalletContext'
-import { useAssetCatalog } from '../crypto/wallet/useAssetCatalog'
-import { findAssetForCoin } from '../../wallet/assets'
-import { roundUpToDecimals } from '../../wallet/chains/units'
-import { ROUTES } from '../../routes'
+import useWalletDepositBridge from './useWalletDepositBridge'
 
 // Icons
 
@@ -141,11 +138,6 @@ const Add = ({ navigation, route }: AddProps) => {
 	// 'included' (paga exacto lo tecleado y se acredita el neto). Solo viaja en el
 	// POST cuando el método es CARD; el selector se pinta si además el fee es > 0.
 	const [feeMode, setFeeMode] = useState<CardFeeMode>('on_top')
-	// Lo que llega, con las condiciones de la moneda al lado: las dos cosas que se miran
-	// mientras se teclea, y que antes vivían dentro de la fila del selector
-	const converted = selectedCoin ? coinConverted(selectedCoin, amount) : 0
-	const receiveAmount = converted > 0 ? formatCoinAmount(converted) : ''
-	const termsLabel = selectedCoin ? coinTerms(t, selectedCoin, 'in').join(' · ') : ''
 
 	const isCardCoin = selectedCoin?.tick === 'CARD'
 	const cardFeeRate = isCardCoin ? cardFeeRateFor(selectedCoin, user) : 0
@@ -154,24 +146,13 @@ const Add = ({ navigation, route }: AddProps) => {
 	const {
 		showDepositModal, setShowDepositModal, topupData, depositStatus, countdown, sseConnected,
 		installedWallets, showWalletPicker, setShowWalletPicker,
-		handleTopup, launchCardSheet,
+		handleTopup, launchCardSheet, ofacModalProps,
 		isLoading, error, setError,
 	} = useDepositOrder({ selectedCoin, amount, isCardCoin, feeMode })
 
-	// Puente con la wallet self-custody: si la moneda del depósito casa con un
-	// activo de la wallet (misma red y token) y hay wallet respaldada, el modal
-	// ofrece pagar desde ella — Enviar se abre con dirección y cantidad puestas
-	const { hasWallet, isBackedUp } = useWallet()
-	const assetCatalog = useAssetCatalog()
-	const walletAsset = useMemo(() => (selectedCoin ? findAssetForCoin(assetCatalog, selectedCoin) : null), [assetCatalog, selectedCoin])
-	const payFromWallet = hasWallet && isBackedUp && walletAsset && topupData?.wallet && topupData.value != null
-		? () => {
-			setShowDepositModal(false)
-			// Nunca por debajo de lo pedido: el backend acredita solo el importe exacto
-			const value = roundUpToDecimals(String(topupData.value), walletAsset.decimals)
-			navigation.navigate(ROUTES.WALLET_SEND_CONFIRM, { assetId: walletAsset.id, to: topupData.wallet as string, amount: value })
-		}
-		: undefined
+	// Puente con la wallet self-custody: "pagar desde mi wallet" en el modal del depósito
+	const closeDepositModal = useCallback(() => setShowDepositModal(false), [setShowDepositModal])
+	const payFromWallet = useWalletDepositBridge({ navigation, selectedCoin, topupData, onBeforeNavigate: closeDepositModal })
 
 	// Catálogo desde la caché compartida (useCoins): la lista aparece al
 	// instante en vez de esperar un viaje a la red en cada entrada
@@ -236,19 +217,11 @@ const Add = ({ navigation, route }: AddProps) => {
 						<QPFlipButton accessibilityLabel={t('add.index.selectCoinLabel')} />
 					</View>
 
-					{/* No editable: en un depósito eliges la moneda y los dólares, y lo que llega
-					    lo calcula el catálogo. Mismo papel que el lado "Recibes" del swap. */}
-					<QPAmountCard
-						label={t('add.index.selectCoinLabel')}
-						hint={selectedCoin?.network ?? undefined}
-						token={{
-							symbol: selectedCoin?.tick ?? (loadingCoins ? t('add.index.loadingCoins') : t('add.index.selectCoinPlaceholder')),
-							icon: selectedCoin ? { kind: 'wallet', logoTick: selectedCoin.logo, networkTick: selectedCoin.network ?? null } : { kind: 'balance' },
-							onPress: loadingCoins ? undefined : () => setShowCoinPicker(true),
-						}}
-						amount={receiveAmount}
-						fiatLabel=""
-						balanceLabel={termsLabel}
+					<DepositReceiveCard
+						selectedCoin={selectedCoin}
+						amount={amount}
+						loadingCoins={loadingCoins}
+						onPickCoin={() => setShowCoinPicker(true)}
 					/>
 				</View>
 
@@ -319,6 +292,9 @@ const Add = ({ navigation, route }: AddProps) => {
 				} as ComponentProps<typeof WalletPickerSheet>['ctx']}
 				onClose={() => setShowWalletPicker(false)}
 			/>
+
+			{/* Certificación OFAC de fondeo (US persons; BANK siempre) */}
+			<OfacAttestationModal {...ofacModalProps} />
 
 		</>
 	)

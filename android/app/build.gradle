@@ -146,7 +146,9 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            // -optimize: R8 además optimiza (inlining, clases/métodos muertos), no solo
+            // encoge. Play lo marcaba como "Optimization isn't enabled"
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
 }
