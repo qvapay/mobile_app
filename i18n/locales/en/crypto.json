@@ -228,12 +228,12 @@
 		"send": {
 			"pickTitle": "What do you want to send?",
 			"toLabel": "To",
-			"toPlaceholder": "{{network}} address",
 			"paste": "Paste",
 			"scan": "Scan",
 			"amountLabel": "Amount",
 			"available": "Available: {{amount}} {{symbol}}",
 			"max": "MAX",
+			"switchUnit": "Switch between {{symbol}} and USD",
 			"continue": "Continue",
 			"fromLabel": "From",
 			"networkFee": "Network fee",

@@ -228,12 +228,12 @@
 		"send": {
 			"pickTitle": "O que você quer enviar?",
 			"toLabel": "Destino",
-			"toPlaceholder": "Endereço em {{network}}",
 			"paste": "Colar",
 			"scan": "Escanear",
 			"amountLabel": "Quantidade",
 			"available": "Disponível: {{amount}} {{symbol}}",
 			"max": "MAX",
+			"switchUnit": "Alternar entre {{symbol}} e USD",
 			"continue": "Continuar",
 			"fromLabel": "De",
 			"networkFee": "Taxa de rede",

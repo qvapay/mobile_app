@@ -228,12 +228,12 @@
 		"send": {
 			"pickTitle": "¿Qué quieres enviar?",
 			"toLabel": "Destino",
-			"toPlaceholder": "Dirección en {{network}}",
 			"paste": "Pegar",
 			"scan": "Escanear",
 			"amountLabel": "Cantidad",
 			"available": "Disponible: {{amount}} {{symbol}}",
 			"max": "MAX",
+			"switchUnit": "Cambiar entre {{symbol}} y USD",
 			"continue": "Continuar",
 			"fromLabel": "Desde",
 			"networkFee": "Comisión de red",
