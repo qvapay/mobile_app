@@ -2,7 +2,8 @@
  * Staking de la wallet self-custody en React Query, raíz `['wallet','staking', …]`.
  *
  * Lectura directa del teléfono a la cadena (router de RPCs), `noPersist`
- * como todo lo on-chain. Una cadena que la app aún no sabe leer devuelve
+ * como todo lo on-chain; la copia de arranque en frío de las posiciones va
+ * a disco aparte (`walletDiskCache.ts`). Una cadena que la app aún no sabe leer devuelve
  * `null` y se pinta como "sin posiciones", no como error.
  */
 import { useCallback, useMemo } from 'react'
@@ -22,6 +23,7 @@ import type { RegistryStaking } from '../../../wallet/registry/types'
 import type { TargetSamples } from '../../../wallet/solana/stake'
 import { MAX_STAKE_SEEDS, stakeAccountFor } from '../../../wallet/solana/stake'
 import { WALLET_BALANCES_KEY } from './walletQueries'
+import { saveWalletQuery, useWalletQueriesPrimed } from './walletDiskCache'
 
 export const WALLET_STAKING_KEY = ['wallet', 'staking']
 
@@ -38,9 +40,13 @@ export const useStakingConfig = (chainKey: string | undefined): RegistryStaking 
 	}, [chainKey, registry])
 }
 
-const snapshotQuery = (chainKey: string, address: string, registry: ReturnType<typeof useEffectiveRegistry>, focused: boolean, names: Record<string, string>) => ({
+const snapshotQuery = (chainKey: string, address: string, registry: ReturnType<typeof useEffectiveRegistry>, focused: boolean, names: Record<string, string>, evm?: string) => ({
 	queryKey: [...WALLET_STAKING_KEY, chainKey, address],
-	queryFn: () => fetchStakingSnapshot(getAppRpcRouter(), registry, chainKey, address, Date.now, names),
+	queryFn: async () => {
+		const snapshot = await fetchStakingSnapshot(getAppRpcRouter(), registry, chainKey, address, Date.now, names)
+		saveWalletQuery(evm, [...WALLET_STAKING_KEY, chainKey, address], snapshot)
+		return snapshot
+	},
 	enabled: !!address,
 	staleTime: STAKING_STALE_MS,
 	refetchInterval: focused ? STAKING_STALE_MS : false as const,
@@ -58,9 +64,11 @@ export const useStakingSnapshot = (asset: Pick<WalletAsset, 'chainKey' | 'kind' 
 	// A quién se delega, con nombre: los destinos del registry (validadores, SR, pools)
 	const config = useStakingConfig(asset?.chainKey)
 	const names = useMemo(() => Object.fromEntries((config?.targets ?? []).map(t => [t.id, t.name])), [config])
+	// Posiciones de la última vez desde disco antes de leer la cadena
+	const primed = useWalletQueriesPrimed(useQueryClient(), addresses?.evm)
 	return useQuery<StakingSnapshot | null>({
-		...snapshotQuery(asset?.chainKey ?? '', address, registry, focused, names),
-		enabled: readable && !!address,
+		...snapshotQuery(asset?.chainKey ?? '', address, registry, focused, names, addresses?.evm),
+		enabled: readable && !!address && primed,
 	})
 }
 

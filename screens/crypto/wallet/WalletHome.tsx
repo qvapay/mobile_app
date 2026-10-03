@@ -71,7 +71,7 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 
 	const { isReady, hasWallet, isBackedUp } = useWallet()
 	const { isAuthenticated } = useAuth()
-	const { visible, total, isLoading, isError, failedChains, hasBalances, refetch } = useWalletAssets()
+	const { visible, total, isLoading, isHydrating, isError, failedChains, hasBalances, refetch } = useWalletAssets()
 	const prices = usePriceMap()
 
 	const { getSetting, updateSetting } = useSettings()
@@ -91,7 +91,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 		navigation.navigate(ROUTES.WALLET_ASSET, { assetId: asset.id })
 	}, [navigation])
 
-	if (!isReady) return null
+	// Hasta hidratar la wallet y sembrar la foto de disco (milisegundos): nada antes que un skeleton de un frame
+	if (!isReady || (hasWallet && isHydrating)) return null
 	if (!hasWallet) return <WalletCard />
 
 	// Recibir exige el backup confirmado: sin él, perder el teléfono = perder lo recibido

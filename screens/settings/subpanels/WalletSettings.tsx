@@ -30,6 +30,7 @@ import { useAppLock } from '../../../lock/AppLockContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
 import QPSecureView from '../../../ui/QPSecureView'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
+import { clearWalletSnapshots } from '../../crypto/wallet/walletDiskCache'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -143,9 +144,11 @@ const WalletSettings = () => {
 			// que, sin Ajustes de cuenta, no se puede cambiar. Con cuenta protege la sesión
 			if (!isAuthenticated) await disableAppLock()
 			await clearHistoryCaches()
-			// Saldos/historial de la wallet borrada no deben sobrevivir en memoria
+			await clearWalletSnapshots()
+			// Saldos/historial/staking de la wallet borrada no deben sobrevivir en memoria
 			queryClient.removeQueries({ queryKey: ['wallet', 'balances'] })
 			queryClient.removeQueries({ queryKey: ['wallet', 'history'] })
+			queryClient.removeQueries({ queryKey: ['wallet', 'staking'] })
 			setConfirmDelete(false)
 			toast.success(t('crypto.wallet.settings.deleted'))
 			navigation.goBack()
