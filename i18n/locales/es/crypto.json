@@ -212,7 +212,14 @@
 		"manage": {
 			"subtitle": "Elige qué activos ves en tu wallet. Los que reciban fondos aparecen solos.",
 			"hideDust": "Ocultar movimientos pequeños",
-			"hideDustHint": "Entradas de menos de $0.01: casi siempre spam o intentos de que copies una dirección falsa."
+			"hideDustHint": "Entradas de menos de $0.01: casi siempre spam o intentos de que copies una dirección falsa.",
+			"orderTitle": "Orden en tu wallet",
+			"orderAuto": "Automático por valor",
+			"orderReset": "Volver a automático",
+			"orderHint": "Arrastra desde ≡ para ordenar. Los activos nuevos aparecen al final.",
+			"orderPinned": "Siempre primero",
+			"moveUp": "Subir",
+			"moveDown": "Bajar"
 		},
 		"auth": {
 			"title": "Confirma que eres tú",

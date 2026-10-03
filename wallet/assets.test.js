@@ -15,6 +15,7 @@ import {
 	findCoinForAsset,
 	isAssetVisible,
 	sortAssets,
+	moveItem,
 	toAssetView,
 	totalUsd,
 } from './assets'
@@ -99,6 +100,45 @@ describe('valoración y visibilidad', () => {
 		// ceros después, en el orden de la lista base
 		expect(sorted.slice(4)).toEqual(['tron:USDC', 'bsc:USDT', 'bsc:USDC', 'solana:USDT', 'solana:USDC', 'ethereum:ETH', 'base:ETH', 'bsc:BNB', 'solana:SOL'])
 		expect(totalUsd(views)).toBeCloseTo(820 + 92.4 + 15.334, 2)
+	})
+})
+
+describe('orden manual', () => {
+	const views = ['tron:TRX', 'bitcoin:BTC', 'stacks:QUSD', 'ethereum:ETH', 'solana:SOL'].map(key => {
+		const [chainKey, symbol] = key.split(':')
+		return toAssetView(find(chainKey, symbol), {}, PRICES)
+	})
+	const label = list => list.map(v => `${v.chainKey}:${v.symbol}`)
+
+	test('vacío = automático', () => {
+		expect(sortAssets(views, [])).toEqual(sortAssets(views))
+	})
+
+	test('respeta el orden elegido, QUSD sigue primero y lo no ordenado va detrás en automático', () => {
+		const order = [find('solana', 'SOL').id, find('tron', 'TRX').id]
+		const sorted = label(sortAssets(views, order))
+		expect(sorted.slice(0, 3)).toEqual(['stacks:QUSD', 'solana:SOL', 'tron:TRX'])
+		// el resto, en el orden automático de siempre
+		const autoRest = label(sortAssets(views)).filter(k => !['stacks:QUSD', 'solana:SOL', 'tron:TRX'].includes(k))
+		expect(sorted.slice(3)).toEqual(autoRest)
+	})
+
+	test('ids del orden que ya no existen no rompen nada', () => {
+		expect(label(sortAssets(views, ['fantasma:native']))).toEqual(label(sortAssets(views)))
+	})
+})
+
+describe('moveItem', () => {
+	test('mueve hacia abajo y hacia arriba sin mutar', () => {
+		const list = ['a', 'b', 'c', 'd']
+		expect(moveItem(list, 0, 2)).toEqual(['b', 'c', 'a', 'd'])
+		expect(moveItem(list, 3, 1)).toEqual(['a', 'd', 'b', 'c'])
+		expect(list).toEqual(['a', 'b', 'c', 'd'])
+	})
+
+	test('acota los extremos', () => {
+		expect(moveItem(['a', 'b'], 0, 9)).toEqual(['b', 'a'])
+		expect(moveItem(['a', 'b'], 5, 0)).toEqual(['a', 'b'])
 	})
 })
 

@@ -25,7 +25,7 @@ import { useAssetCatalog } from './useAssetCatalog'
 import { fetchAllBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
 import { addressForKind, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
-import type { AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
+import type { AssetOrder, AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 import { getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import type { TronResources } from '../../../wallet/tron/tx'
 import { applyNewerPages, applyOlderPage, HISTORY_SYNC_MAX_PAGES, overlapsCache } from '../../../wallet/historyMerge'
@@ -61,6 +61,7 @@ const HISTORY_FIRST_SCREEN_ITEMS = 10
 const TRON_RESOURCES_STALE_MS = 15_000
 
 const NO_PREFS: AssetVisibility = {}
+const NO_ORDER: AssetOrder = []
 
 /**
  * Activos cuyo historial debe pedirse saltando la caché del proxy (hasta ese
@@ -211,13 +212,14 @@ export const useWalletAssets = () => {
 	const primed = useWalletQueriesPrimed(useQueryClient(), addresses?.evm)
 	const { getSetting, updateSetting } = useSettings()
 	const prefs = getSetting('crypto', 'visibleAssets', NO_PREFS) as AssetVisibility
+	const order = getSetting('crypto', 'assetOrder', NO_ORDER) as AssetOrder
 
 	const balances = balancesQuery.data?.balances
 	const all = useMemo<AssetView[]>(
 		() => catalog.map(asset => toAssetView(asset, balances ?? {}, prices)),
 		[catalog, balances, prices],
 	)
-	const visible = useMemo(() => sortAssets(all.filter(view => isAssetVisible(view, prefs))), [all, prefs])
+	const visible = useMemo(() => sortAssets(all.filter(view => isAssetVisible(view, prefs)), order), [all, prefs, order])
 	// El total es el de lo que se VE (como Trust/SafePal): ocultar un activo lo saca de la suma
 	const total = useMemo(() => totalUsd(visible), [visible])
 
@@ -225,12 +227,20 @@ export const useWalletAssets = () => {
 		updateSetting('crypto', 'visibleAssets', { ...prefs, [id]: value })
 	}, [prefs, updateSetting])
 
+	/** Orden manual (ids); `[]` vuelve al automático por valor. */
+	const setAssetOrder = useCallback((next: AssetOrder) => {
+		updateSetting('crypto', 'assetOrder', next)
+	}, [updateSetting])
+
 	return {
 		all,
 		visible,
 		prefs,
 		total,
 		setAssetVisible,
+		/** Orden manual vigente (vacío = automático). */
+		order,
+		setAssetOrder,
 		/** Sin saldos todavía (ni de disco ni de la pasada anterior): la UI pinta skeleton. */
 		isLoading: !balances && balancesQuery.fetchStatus === 'fetching',
 		/** Aún leyendo la foto de disco (milisegundos): mejor no pintar nada que un skeleton de un frame. */
