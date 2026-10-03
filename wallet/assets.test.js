@@ -39,7 +39,9 @@ describe('buildAssetCatalog', () => {
 	test('ticks de precio/logo de QvaPay y redes con nombre corto', () => {
 		expect(find('bsc', 'BNB')).toMatchObject({ priceTick: 'BNBBSC', networkTick: 'BNBBSC', chainName: 'BNB Chain' })
 		expect(find('base', 'ETH')).toMatchObject({ priceTick: 'ETH', logoTick: 'ETH', networkTick: 'BASE' })
-		expect(find('polygon', 'USDC.e')).toMatchObject({ stable: true, logoTick: 'USDC', priceTick: 'USDC' })
+		expect(find('polygon', 'USDC')).toMatchObject({ stable: true, logoTick: 'USDC', priceTick: 'USDC' })
+		// USDC.e (puenteado) salió del registry el 2026-10-03: solo queda el USDC nativo
+		expect(find('polygon', 'USDC.e')).toBeUndefined()
 		expect(find('tron', 'USDT')).toMatchObject({ contract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', decimals: 6 })
 	})
 
@@ -47,7 +49,7 @@ describe('buildAssetCatalog', () => {
 		// El tick que tiene el precio es MATICMAINNET, pero `maticmainnet.svg` no existe:
 		// pedirlo dejaba la insignia de red en el placeholder de tres letras
 		expect(find('polygon', 'POL')).toMatchObject({ priceTick: 'MATICMAINNET', logoTick: 'MATIC', networkTick: 'MATIC' })
-		expect(find('polygon', 'USDC.e').networkTick).toBe('MATIC')
+		expect(find('polygon', 'USDC').networkTick).toBe('MATIC')
 	})
 })
 
@@ -194,6 +196,6 @@ describe('puente con el catálogo de QvaPay', () => {
 	test('activo → moneda (primera que casa)', () => {
 		expect(findCoinForAsset(COINS, catalog, find('tron', 'USDT')).tick).toBe('USDT')
 		expect(findCoinForAsset(COINS, catalog, find('bsc', 'BNB')).tick).toBe('BNBBSC')
-		expect(findCoinForAsset(COINS, catalog, find('polygon', 'USDC.e'))).toBeNull()
+		expect(findCoinForAsset(COINS, catalog, find('polygon', 'USDC'))).toBeNull()
 	})
 })

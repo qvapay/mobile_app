@@ -81,7 +81,7 @@ const LOGO_TICKS: Record<string, string> = {
 
 const logoFor = (tick: string): string => LOGO_TICKS[tick] ?? tick
 
-const STABLES = new Set(['USDT', 'USDC', 'USDC.E', 'DAI', 'PYUSD', 'TUSD', 'QUSD'])
+const STABLES = new Set(['USDT', 'USDC', 'DAI', 'PYUSD', 'TUSD', 'QUSD'])
 
 /** Nombre corto de red para las filas ("BNB Chain" se lee mejor que "BNB Smart Chain"). */
 const SHORT_CHAIN_NAMES: Record<string, string> = {
