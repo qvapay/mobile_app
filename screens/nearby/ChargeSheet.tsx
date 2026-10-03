@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut, Easing } from 'react-native-reanimated'
@@ -8,20 +8,20 @@ import { useTheme } from '../../theme/ThemeContext'
 import { useTextStyles } from '../../theme/themeUtils'
 
 // UI
-import AmountInput from '../../ui/AmountInput'
+import QPAmountCard from '../../ui/QPAmountCard'
 import QPButton from '../../ui/particles/QPButton'
 
-// Tipos de dominio
-import type { Decimal } from '../../types/domain'
+import { sanitizeAmountInput } from '../../helpers/amountInput'
 
 type ChargeSheetProps = {
 	/** Prefill (e.g. amount typed in Keypad). */
 	initialAmount?: string
-	/** Shown by AmountInput (el balance del perfil puede no estar hidratado aún). */
-	balance?: Decimal
 	onConfirm: (amount: string) => void
 	onClose: () => void
 }
+
+/** Montos rápidos de cobro. Fijos, no porcentajes: lo que se cobra no depende del saldo propio. */
+const CHARGE_QUICK_AMOUNTS = [10, 25, 50, 100] as const
 
 /**
  * Charge-mode sheet for NearbyPay. Rendered as an internal animated overlay —
@@ -30,11 +30,10 @@ type ChargeSheetProps = {
  *
  * @param props
  * @param [props.initialAmount] - Prefill (e.g. amount typed in Keypad).
- * @param props.balance - Shown by AmountInput.
  * @param props.onConfirm
  * @param props.onClose
  */
-const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }: ChargeSheetProps) => {
+const ChargeSheet = ({ initialAmount = '', onConfirm, onClose }: ChargeSheetProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -43,6 +42,12 @@ const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }: Charge
 
 	const numericAmount = parseFloat(amount) || 0
 	const canConfirm = numericAmount > 0
+
+	const quickChips = useMemo(() => CHARGE_QUICK_AMOUNTS.map(value => ({
+		key: String(value),
+		label: `$${value}`,
+		onPress: () => setAmount(String(value)),
+	})), [])
 
 	return (
 		<View style={StyleSheet.absoluteFill}>
@@ -64,9 +69,18 @@ const ChargeSheet = ({ initialAmount = '', balance, onConfirm, onClose }: Charge
 					{t('misc.nearby.sheet.subtitle')}
 				</Text>
 
-				{/* AmountInput declara `balance` obligatorio, pero tolera undefined en
-				    runtime (formatBalance devuelve '0.00'): cast local, sin cambio de comportamiento */}
-				<AmountInput amount={amount} onAmountChange={setAmount} balance={balance as Decimal} placeholder={t('misc.nearby.sheet.amountPlaceholder')} />
+				{/* La misma tarjeta de monto que Send, Depósito, Retiro, P2P y Swap. Sin saldo
+				    abajo: al cobrar, lo que uno tiene no cuenta */}
+				<QPAmountCard
+					label={t('misc.nearby.sheet.amountPlaceholder')}
+					token={{ symbol: 'QUSD', icon: { kind: 'wallet', logoTick: 'qusd', networkTick: null } }}
+					amount={amount}
+					onChangeAmount={(text: string) => setAmount(sanitizeAmountInput(text))}
+					chips={quickChips}
+					fiatLabel=""
+					balanceLabel=""
+					accessibilityLabel={t('misc.nearby.sheet.amountPlaceholder')}
+				/>
 
 				<QPButton
 					title={canConfirm ? t('misc.nearby.sheet.chargeAmount', { amount }) : t('misc.nearby.sheet.charge')}
