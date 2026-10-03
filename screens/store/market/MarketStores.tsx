@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -105,10 +105,13 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 		return () => clearTimeout(timer)
 	}, [search])
 
-	// Chips solo de categorías realmente presentes (como la web), leídas de lo
-	// cargado del índice completo; la activa siempre está aunque aún no haya
-	// aparecido (p. ej. preseleccionada por route.params)
+	// Chips solo de categorías realmente presentes (como la web) mientras el
+	// índice completo esté cargado entero; si quedan páginas no se puede saber qué
+	// falta, así que se ofrecen todas (una vacía dice "sin tiendas"). La activa
+	// siempre está, aunque aún no haya aparecido (p. ej. por route.params)
+	const allComplete = !!allQuery.data && !allQuery.hasNextPage
 	const presentCategories = useMemo(() => {
+		if (!allComplete) return Object.keys(MARKET_CATEGORIES)
 		// Una pasada sobre las tiendas alimentando el Set directamente: el
 		// estrechamiento dentro del if da `string[]` sin cast
 		const present = new Set<string>()
@@ -117,7 +120,7 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 			if (s.category && MARKET_CATEGORIES[s.category]) { present.add(s.category) }
 		}
 		return [...present]
-	}, [allStores, activeCategory])
+	}, [allStores, activeCategory, allComplete])
 
 	const filteredStores = useMemo(() => {
 		const q = search.trim().toLowerCase()
@@ -134,9 +137,21 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 	// Mientras se busca no se pagina solo: con pocos aciertos el final de la
 	// lista llegaría enseguida y encadenaría todas las páginas
 	const searching = search.trim().length > 0
+	// Llegar al final mientras hay un fetch en curso (el refetch de la página 1 al
+	// abrir, uno de fondo) no puede perderse: se apunta y se pide al terminar
+	const endReachedRef = useRef(false)
 	const loadMore = useCallback(() => {
-		if (!searching && hasNextPage && !isFetching) fetchNextPage()
+		if (searching || !hasNextPage) return
+		if (isFetching) { endReachedRef.current = true; return }
+		fetchNextPage()
 	}, [searching, hasNextPage, isFetching, fetchNextPage])
+	// Otra categoría: el "final" apuntado era de la lista anterior
+	useEffect(() => { endReachedRef.current = false }, [activeCategory])
+	useEffect(() => {
+		if (!endReachedRef.current || isFetching) return
+		endReachedRef.current = false
+		if (hasNextPage && !searching) fetchNextPage()
+	}, [isFetching, hasNextPage, searching, fetchNextPage])
 
 	// Total de la categoría según el backend; buscando, los aciertos visibles
 	const shownCount = searching ? filteredStores.length : (storesQuery.data?.pages[0]?.total ?? filteredStores.length)
@@ -234,13 +249,17 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 					onEndReached={loadMore}
 					onEndReachedThreshold={0.4}
 					ListHeaderComponent={header}
-					ListEmptyComponent={
+					ListEmptyComponent={storesQuery.isPlaceholderData ? (
+						// Cambiando de categoría: lo que hay en pantalla es la anterior filtrada
+						// por la nueva (casi siempre vacía). Carga, no "sin tiendas"
+						<View style={styles.footer}><QPLoader /></View>
+					) : (
 						<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
 								{search ? t('market.stores.noResults', { search }) : t('market.stores.emptyCategory')}
 							</Text>
 						</View>
-					}
+					)}
 					ListFooterComponent={isFetchingNextPage ? <View style={styles.footer}><QPLoader /></View> : null}
 				/>
 			</View>
