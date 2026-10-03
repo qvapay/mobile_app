@@ -15,12 +15,10 @@
 		"ALL": "ALL"
 	},
 	"dashboard": {
-		"explore": "Explore",
 		"tabs": {
-			"popular": "Popular",
+			"crypto": "Crypto",
 			"stocks": "Stocks"
 		},
-		"seeAll": "See all",
 		"offers_one": "{{count}} offer",
 		"offers_other": "{{count}} offers",
 		"empty": "No data"

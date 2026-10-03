@@ -15,12 +15,10 @@
 		"ALL": "TODO"
 	},
 	"dashboard": {
-		"explore": "Explorar",
 		"tabs": {
-			"popular": "Populares",
+			"crypto": "Cripto",
 			"stocks": "Stocks"
 		},
-		"seeAll": "Ver todo",
 		"offers_one": "{{count}} oferta",
 		"offers_other": "{{count}} ofertas",
 		"empty": "Sin datos"
