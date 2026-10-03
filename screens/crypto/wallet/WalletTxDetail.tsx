@@ -3,6 +3,7 @@ import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
 // Theme
@@ -36,14 +37,17 @@ type Props = NativeStackScreenProps<RootStackParamList, 'WalletTxDetail'>
 
 const DIRECTION_ICON: Record<WalletTx['direction'], FontAwesome6SolidIconName> = { in: 'arrow-down', out: 'arrow-up', self: 'arrows-rotate' }
 
-type RowProps = { label: string, value: string, theme: Theme, mono?: boolean, copy?: boolean, last?: boolean }
+type RowProps = { label: string, value: string, theme: Theme, mono?: boolean, address?: boolean, copy?: boolean, last?: boolean }
 
-/** Fila etiqueta/valor; con `copy`, tocar el valor lo copia (direcciones y hash). */
-const Row = ({ label, value, theme, mono, copy, last }: RowProps) => {
+/** Fila etiqueta/valor; con `copy`, tocar el valor lo copia (direcciones y hash); con `address`, extremos resaltados. */
+const Row = ({ label, value, theme, mono, address, copy, last }: RowProps) => {
+	const valueStyle = [styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]
 	const body = (
 		<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
 			<Text style={[styles.rowLabel, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{label}</Text>
-			<Text selectable={!copy} style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]}>{value}</Text>
+			{address
+				? <QPAddress selectable={!copy} address={value} style={valueStyle} />
+				: <Text selectable={!copy} style={valueStyle}>{value}</Text>}
 			{copy && <FontAwesome6 name="copy" size={12} color={theme.colors.tertiaryText} iconStyle="regular" />}
 		</View>
 	)
@@ -108,8 +112,8 @@ const WalletTxDetail = ({ route }: Props) => {
 			<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 				<Row theme={theme} label={t('crypto.wallet.txDetail.date')} value={getShortDateTime(tx.time * 1000)} />
 				<Row theme={theme} label={t('crypto.wallet.txDetail.network')} value={asset?.chainName ?? ''} />
-				{!!tx.from && <Row theme={theme} label={t('crypto.wallet.send.fromLabel')} value={tx.from} mono copy />}
-				{!!tx.to && <Row theme={theme} label={isFee ? t('crypto.wallet.txDetail.contract') : t('crypto.wallet.send.toLabel')} value={tx.to} mono copy />}
+				{!!tx.from && <Row theme={theme} label={t('crypto.wallet.send.fromLabel')} value={tx.from} mono address copy />}
+				{!!tx.to && <Row theme={theme} label={isFee ? t('crypto.wallet.txDetail.contract') : t('crypto.wallet.send.toLabel')} value={tx.to} mono address copy />}
 				{!!tx.fee && !isFee && <Row theme={theme} label={t('crypto.wallet.send.networkFee')} value={`${displayAmount(tx.fee)} ${nativeSymbol}`} />}
 				<Row theme={theme} label={t('crypto.wallet.txDetail.hash')} value={tx.hash} mono copy last />
 			</View>

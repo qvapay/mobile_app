@@ -5,6 +5,7 @@ import { FlashList } from '@shopify/flash-list'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { Theme } from '../../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
@@ -74,7 +75,7 @@ const WalletEnergyOrders = () => {
 									{t(`crypto.energy.orders.status.${detail.status}`)}
 								</Text>
 								<View style={styles.rows}>
-									<Row theme={theme} label={t('crypto.energy.orders.target')} value={detail.target_address} />
+									<Row theme={theme} label={t('crypto.energy.orders.target')} value={detail.target_address} address />
 									<Row theme={theme} label={t('crypto.energy.orders.price')} value={formatUsd(Number(detail.price_usd))} />
 									<Row theme={theme} label={t('crypto.energy.orders.date')} value={new Date(detail.created_at).toLocaleString()} />
 									{!!detail.reason && <Row theme={theme} label={t('crypto.energy.orders.reason')} value={detail.reason} last />}
@@ -94,12 +95,15 @@ const WalletEnergyOrders = () => {
 
 const Separator = () => <View style={styles.separator} />
 
-const Row = ({ theme, label, value, last }: { theme: Theme, label: string, value: string, last?: boolean }) => (
-	<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
-		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
-		<Text selectable style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs, flex: 1, textAlign: 'right' }}>{value}</Text>
-	</View>
-)
+const Row = ({ theme, label, value, address, last }: { theme: Theme, label: string, value: string, address?: boolean, last?: boolean }) => {
+	const valueStyle = { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs, flex: 1, textAlign: 'right' } as const
+	return (
+		<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
+			<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
+			{address ? <QPAddress selectable address={value} style={valueStyle} /> : <Text selectable style={valueStyle}>{value}</Text>}
+		</View>
+	)
+}
 
 const styles = StyleSheet.create({
 	list: { paddingTop: 8, paddingBottom: 32 },

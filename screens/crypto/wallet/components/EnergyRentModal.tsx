@@ -5,6 +5,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../../theme/ThemeContext'
+import QPAddress from '../../../../ui/particles/QPAddress'
 import type { Theme } from '../../../../theme/ThemeContext'
 import { useTextStyles } from '../../../../theme/themeUtils'
 
@@ -14,7 +15,7 @@ import { useAuth } from '../../../../auth/AuthContext'
 // Lógica
 import useEnergyRent from '../useEnergyRent'
 import type { RentPhase } from '../energyRentMachine'
-import { formatUsd, shortAddress } from '../walletFormat'
+import { formatUsd } from '../walletFormat'
 
 // UI
 import QPButton from '../../../../ui/particles/QPButton'
@@ -100,7 +101,7 @@ const EnergyRentModal = ({ visible, targetAddress, volume, duration, estimatedUs
 						<View style={styles.rows}>
 							<Row theme={theme} label={t('crypto.energy.confirm.volume')} value={volumeLabel} />
 							<Row theme={theme} label={t('crypto.energy.confirm.duration')} value={durationLabel} />
-							<Row theme={theme} label={t('crypto.energy.confirm.target')} value={shortAddress(targetAddress)} />
+							<Row theme={theme} label={t('crypto.energy.confirm.target')} value={targetAddress} address />
 							<Row theme={theme} label={t('crypto.energy.confirm.price')} value={state.phase === 'quoting' ? '…' : typeof priceUsd === 'number' ? formatUsd(priceUsd) : '—'} />
 							{state.phase !== 'done' && <Row theme={theme} label={t('crypto.energy.confirm.balanceAfter')} value={formatUsd(balanceAfter)} last />}
 						</View>
@@ -176,12 +177,16 @@ const Head = ({ phase, theme }: { phase: RentPhase, theme: Theme }) => {
 	return <FontAwesome6 name={icon} size={34} color={color} iconStyle="solid" style={styles.head} />
 }
 
-const Row = ({ theme, label, value, last }: { theme: Theme, label: string, value: string, last?: boolean }) => (
-	<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
-		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
-		<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }}>{value}</Text>
-	</View>
-)
+/** Fila etiqueta/valor; con `address`, el valor es una dirección recortada 6…6 con los extremos resaltados. */
+const Row = ({ theme, label, value, address, last }: { theme: Theme, label: string, value: string, address?: boolean, last?: boolean }) => {
+	const valueStyle = { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }
+	return (
+		<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
+			<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
+			{address ? <QPAddress address={value} visible={{ head: 6, tail: 6 }} style={valueStyle} /> : <Text style={valueStyle}>{value}</Text>}
+		</View>
+	)
+}
 
 /**
  * Copy del fallo por código del backend. La prosa cruda del servidor solo se

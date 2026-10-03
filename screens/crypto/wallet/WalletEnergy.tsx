@@ -6,6 +6,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { Theme } from '../../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
@@ -23,7 +24,7 @@ import { estimatePrice, flattenOrders, useEnergyOrdersQuery, useEnergyPricesQuer
 import { clearPendingOrder, readPendingOrder } from './energyPending'
 import { isTerminalOrder } from './energyRentMachine'
 import { energyApi } from '../../../api/energyApi'
-import { formatUsd, shortAddress } from './walletFormat'
+import { formatUsd } from './walletFormat'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -233,12 +234,11 @@ const WalletEnergy = ({ navigation, route }: Props) => {
 							value={otherAddress}
 							onChangeText={setOtherAddress}
 							placeholder={t('crypto.energy.buy.targetPlaceholder')}
-							autoCapitalize="none"
-							autoCorrect={false}
+							highlightAddress
 							prefixIconName="wallet"
 						/>
 					) : (
-						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{shortAddress(selfAddress, 10, 10)}</Text>
+						<QPAddress address={selfAddress} visible={{ head: 10, tail: 10 }} style={[textStyles.caption, { color: theme.colors.secondaryText }]} />
 					)}
 					{useOther && otherAddress.trim().length > 0 && !targetValid && (
 						<Text style={[textStyles.caption, { color: theme.colors.danger }]}>{t('crypto.energy.buy.invalidAddress')}</Text>

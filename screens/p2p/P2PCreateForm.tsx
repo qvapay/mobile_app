@@ -7,6 +7,7 @@ import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../ui/particles/QPFlipButton'
 import QPInput from '../../ui/particles/QPInput'
 import QPSwitch from '../../ui/particles/QPSwitch'
 
+import { isWalletFieldName } from '../../helpers/addressHighlight'
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles, ContainerStyles } from '../../theme/themeUtils'
 import type { Coin, CoinWorkingField, User } from '../../types/domain'
@@ -135,6 +136,7 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 								placeholder={field.name}
 								keyboardType={field.type === 'number' ? 'numeric' : 'default'}
 								style={{ marginVertical: 6 }}
+								highlightAddress={isWalletFieldName(field.name)}
 							/>
 						)
 					})}

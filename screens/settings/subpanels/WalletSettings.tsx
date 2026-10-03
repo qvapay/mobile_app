@@ -10,6 +10,7 @@ import { useNavigation, useNavigationState } from '@react-navigation/native'
 import { ROUTES } from '../../../routes'
 
 // Tipos
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { SettingsStackParamList } from '../../../types/navigation'
 import { useQueryClient } from '@tanstack/react-query'
@@ -28,7 +29,6 @@ import { useAuth } from '../../../auth/AuthContext'
 import { useAppLock } from '../../../lock/AppLockContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
 import QPSecureView from '../../../ui/QPSecureView'
-import { shortAddress } from '../../crypto/wallet/walletFormat'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
 
 // UI
@@ -209,7 +209,7 @@ const WalletSettings = () => {
 				{FAMILIES.map((family, index) => (
 					<QPPressable key={family.key} onPress={() => copy(addresses[family.key])} style={[styles.row, index < FAMILIES.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
 						<Text style={[textStyles.h6, styles.familyLabel, { color: theme.colors.secondaryText }]}>{t(family.labelKey)}</Text>
-						<Text style={[textStyles.h5, styles.address, { color: theme.colors.primaryText }]} numberOfLines={1}>{shortAddress(addresses[family.key], 10, 8)}</Text>
+						<QPAddress address={addresses[family.key]} visible={{ head: 10, tail: 8 }} style={[textStyles.h5, styles.address, { color: theme.colors.primaryText }]} numberOfLines={1} />
 						<FontAwesome6 name="copy" size={13} color={theme.colors.secondaryText} iconStyle="regular" />
 					</QPPressable>
 				))}

@@ -10,6 +10,7 @@ jest.mock('react-native-safe-area-context', () => {
 })
 jest.mock('../../ui/particles/QPCoin', () => 'QPCoin')
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
+jest.mock('../../ui/particles/QPAddress', () => 'QPAddress')
 jest.mock('react-native-qrcode-styled', () => 'QRCodeStyled')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('../../helpers', () => {

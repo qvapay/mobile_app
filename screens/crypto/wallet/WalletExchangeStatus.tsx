@@ -13,6 +13,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 // Wallet
 import { explorerTxUrl } from '../../../wallet/assets'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { AssetView } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
 import { shortAddress } from './walletFormat'
@@ -169,7 +170,8 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 					<CopyRow
 						theme={theme}
 						label={t('crypto.wallet.exchange.depositAddress')}
-						value={shortAddress(order.deposit_address, 10, 10)}
+						value={order.deposit_address as string}
+						address={{ head: 10, tail: 10 }}
 						onCopy={() => copy(order.deposit_address!)}
 					/>
 
@@ -206,7 +208,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 							onCopy={() => copy(order.provider_order_id!)}
 						/>
 					)}
-					<Row theme={theme} label={t('crypto.wallet.exchange.refundLabel')} value={shortAddress(order.refund_address)} />
+					<Row theme={theme} label={t('crypto.wallet.exchange.refundLabel')} value={order.refund_address as string} address={{ head: 6, tail: 6 }} />
 				</View>
 			)}
 
@@ -296,20 +298,27 @@ const PairSide = ({ asset, amount, estimated, theme }: { asset?: AssetView, amou
 	)
 }
 
-const Row = ({ theme, label, value, hint }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string, hint?: string }) => (
-	<View style={styles.row}>
-		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
-		<Text style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1}>
-			{value}{hint ? ` · ${hint}` : ''}
-		</Text>
-	</View>
-)
+/** Fila etiqueta/valor; con `address`, el valor es una dirección recortada con los extremos resaltados. */
+const Row = ({ theme, label, value, hint, address }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string, hint?: string, address?: { head: number, tail: number } }) => {
+	const valueStyle = [styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]
+	return (
+		<View style={styles.row}>
+			<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
+			{address
+				? <QPAddress address={value} visible={address} style={valueStyle} numberOfLines={1} />
+				: <Text style={valueStyle} numberOfLines={1}>{value}{hint ? ` · ${hint}` : ''}</Text>}
+		</View>
+	)
+}
 
-const CopyRow = ({ theme, label, value, onCopy }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string, onCopy: () => void }) => (
+/** Fila que copia al tocar; con `address`, el valor se recorta y resalta como dirección. */
+const CopyRow = ({ theme, label, value, onCopy, address }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string, onCopy: () => void, address?: { head: number, tail: number } }) => (
 	<QPPressable onPress={onCopy} style={styles.row} accessibilityRole="button" accessibilityLabel={label}>
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
 		<View style={styles.copyValue}>
-			<Text style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1}>{value}</Text>
+			{address
+				? <QPAddress address={value} visible={address} style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1} />
+				: <Text style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1}>{value}</Text>}
 			<FontAwesome6 name="copy" size={13} color={theme.colors.primary} iconStyle="regular" />
 		</View>
 	</QPPressable>

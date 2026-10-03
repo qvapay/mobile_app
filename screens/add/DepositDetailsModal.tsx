@@ -7,9 +7,10 @@ import QPButton from '../../ui/particles/QPButton'
 import QRCodeStyled from 'react-native-qrcode-styled'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-import { getFirstChunk, truncateWalletAddress, copyTextToClipboard, formatCryptoAmount } from '../../helpers'
+import { getFirstChunk, copyTextToClipboard, formatCryptoAmount } from '../../helpers'
 
 // Tipos
+import QPAddress from '../../ui/particles/QPAddress'
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
 import type { Coin } from '../../types/domain'
@@ -71,20 +72,26 @@ type DetailRowProps = {
 	label: string
 	value?: string
 	copyValue?: string | null
+	/** El valor es una dirección: recorte 10…10 con los extremos resaltados. */
+	address?: boolean
 	last?: boolean
 	theme: Theme
 	textStyles: TextStyles
 }
 
-const DetailRow = ({ label, value, copyValue, last, theme, textStyles }: DetailRowProps) => (
+const DetailRow = ({ label, value, copyValue, address, last, theme, textStyles }: DetailRowProps) => (
 	<View style={[styles.detailRow, last && { borderBottomWidth: 0 }]}>
 		<View style={styles.detailLeft}>
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{label}</Text>
 		</View>
 		<View style={styles.detailRight}>
-			<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: copyValue ? 1 : 0, marginRight: copyValue ? 8 : 0, textAlign: 'right' }]} numberOfLines={1}>
-				{value}
-			</Text>
+			{address ? (
+				<QPAddress address={value} visible={{ head: 10, tail: 10 }} style={[textStyles.caption, { color: theme.colors.primaryText, flex: copyValue ? 1 : 0, marginRight: copyValue ? 8 : 0, textAlign: 'right' }]} numberOfLines={1} ellipsizeMode="middle" />
+			) : (
+				<Text style={[textStyles.caption, { color: theme.colors.primaryText, flex: copyValue ? 1 : 0, marginRight: copyValue ? 8 : 0, textAlign: 'right' }]} numberOfLines={1}>
+					{value}
+				</Text>
+			)}
 			{copyValue != null && (
 				<Pressable onPress={() => copyTextToClipboard(copyValue)} hitSlop={8}>
 					<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
@@ -289,7 +296,7 @@ const CryptoDepositBody = ({ amount, topupData, installedWallets, onOpenWalletPi
 
 		{/* Deposit Details Card */}
 		<View style={[styles.depositDetailsCard, { backgroundColor: theme.colors.surface }]}>
-			<DetailRow label={t('add.modal.labels.address')} value={truncateWalletAddress(topupData?.wallet || '')} copyValue={topupData?.wallet} theme={theme} textStyles={textStyles} />
+			<DetailRow label={t('add.modal.labels.address')} value={topupData?.wallet || ''} address copyValue={topupData?.wallet} theme={theme} textStyles={textStyles} />
 			<DetailRow label={t('add.modal.labels.amountToDeposit')} value={`$${amount} QUSD`} theme={theme} textStyles={textStyles} />
 			{topupData?.account_name && <DetailRow label={t('add.modal.labels.holderName')} value={topupData.account_name} copyValue={topupData.account_name} theme={theme} textStyles={textStyles} />}
 			{topupData?.routing_number && <DetailRow label={t('add.modal.labels.routingNumber')} value={topupData.routing_number} copyValue={topupData.routing_number} theme={theme} textStyles={textStyles} />}

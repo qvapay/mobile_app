@@ -1,9 +1,10 @@
 import { View, Text, Pressable } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
+import QPAddress from '../../ui/particles/QPAddress'
 import type { FontAwesome6SolidIconName } from "@react-native-vector-icons/fontawesome6"
 import { useTranslation } from "react-i18next"
 
-import { reduceStringInside, copyTextToClipboard } from "../../helpers"
+import { copyTextToClipboard } from "../../helpers"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
@@ -72,9 +73,13 @@ const P2POfferDetailsCard = ({ p2p, statusMessage, theme, textStyles, containerS
 											<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{fieldName}</Text>
 										</View>
 										<View style={{ flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-											<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
-												{isWallet ? reduceStringInside(fullValue, 8) : fullValue}
-											</Text>
+											{isWallet ? (
+												<QPAddress address={fullValue} visible={{ head: 8, tail: 8 }} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true} />
+											) : (
+												<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="middle" selectable={true}>
+													{fullValue}
+												</Text>
+											)}
 											<Pressable onPress={() => copyTextToClipboard(fullValue)} hitSlop={8}>
 												<FontAwesome6 name="copy" size={14} color={theme.colors.secondaryText} iconStyle="regular" />
 											</Pressable>
