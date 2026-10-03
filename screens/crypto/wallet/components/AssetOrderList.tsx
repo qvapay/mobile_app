@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 import type { SharedValue } from 'react-native-reanimated'
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
@@ -28,6 +29,13 @@ const HAPTIC_OPTIONS = { enableVibrateFallback: false, ignoreAndroidSystemSettin
 type Positions = Record<string, number>
 
 const toPositions = (ids: string[]): Positions => Object.fromEntries(ids.map((id, index) => [id, index]))
+
+/** Mezcla OPACA de dos colores #rrggbb (la fila levantada no debe transparentar las de debajo). */
+const mixHex = (base: string, tint: string, amount: number): string => {
+	const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)
+	const mixed = [0, 1, 2].map(i => Math.round(channel(base, i) * (1 - amount) + channel(tint, i) * amount))
+	return `#${mixed.map(v => v.toString(16).padStart(2, '0')).join('')}`
+}
 
 const clamp = (value: number, min: number, max: number): number => {
 	'worklet'
@@ -135,8 +143,8 @@ const OrderRow = ({ asset, index, count, positions, activeId, onCommit, onDraggi
 			activeId.value = id
 			startY.value = positions.value[id] * ASSET_ORDER_ROW_HEIGHT
 			dragY.value = startY.value
-			runOnJS(onDraggingChange)(true)
-			runOnJS(haptic)('impactMedium')
+			scheduleOnRN(onDraggingChange, true)
+			scheduleOnRN(haptic, 'impactMedium')
 		},
 		onUpdate: event => {
 			'worklet'
@@ -145,7 +153,7 @@ const OrderRow = ({ asset, index, count, positions, activeId, onCommit, onDraggi
 			const target = clamp(Math.round(dragY.value / ASSET_ORDER_ROW_HEIGHT), 0, count - 1)
 			if (target !== positions.value[id]) {
 				positions.value = moveTo(positions.value, id, target)
-				runOnJS(haptic)('selection')
+				scheduleOnRN(haptic, 'selection')
 			}
 		},
 		onFinalize: () => {
@@ -153,25 +161,29 @@ const OrderRow = ({ asset, index, count, positions, activeId, onCommit, onDraggi
 			if (activeId.value !== id) return
 			dragY.value = withSpring(positions.value[id] * ASSET_ORDER_ROW_HEIGHT, SPRING)
 			activeId.value = null
-			runOnJS(onDraggingChange)(false)
-			runOnJS(onCommit)(positions.value)
+			scheduleOnRN(onDraggingChange, false)
+			scheduleOnRN(onCommit, positions.value)
 		},
 	})
 
+	// La fila levantada se distingue por escala y fondo elevado (igual en iOS y
+	// Android; las sombras legacy solo se veían en una plataforma)
+	const surface = theme.colors.surface
+	const lifted = mixHex(theme.colors.surface, theme.colors.primary, 0.12)
 	const animatedStyle = useAnimatedStyle(() => {
 		const active = activeId.value === id
 		const top = active ? dragY.value : withSpring(positions.value[id] * ASSET_ORDER_ROW_HEIGHT, SPRING)
 		return {
 			top,
 			zIndex: active ? 10 : 0,
-			transform: [{ scale: withTiming(active ? 1.02 : 1, { duration: 120 }) }],
-			shadowOpacity: withTiming(active ? 0.18 : 0, { duration: 120 }),
+			backgroundColor: active ? lifted : surface,
+			transform: [{ scale: withTiming(active ? 1.03 : 1, { duration: 120 }) }],
 		}
 	})
 
 	return (
 		<Animated.View
-			style={[styles.row, { backgroundColor: theme.colors.surface, shadowColor: '#000' }, animatedStyle]}
+			style={[styles.row, animatedStyle]}
 			accessible
 			accessibilityLabel={`${asset.symbol} · ${asset.chainName}`}
 			accessibilityActions={[{ name: 'moveUp', label: t('crypto.wallet.manage.moveUp') }, { name: 'moveDown', label: t('crypto.wallet.manage.moveDown') }]}
@@ -207,9 +219,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		borderRadius: 12,
 		borderCurve: 'continuous',
-		shadowOffset: { width: 0, height: 4 },
-		shadowRadius: 10,
-		elevation: 0,
 	},
 	info: { flex: 1, minWidth: 0 },
 	handle: { width: 40, height: ASSET_ORDER_ROW_HEIGHT, alignItems: 'center', justifyContent: 'center' },
