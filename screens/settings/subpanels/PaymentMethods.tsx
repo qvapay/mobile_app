@@ -24,9 +24,10 @@ import useCoins from '../../../hooks/useCoins'
 import { userApi } from '../../../api/userApi'
 
 // Helpers
-import { reduceStringInside } from '../../../helpers'
 
 // Tipos
+import { isWalletFieldName } from '../../../helpers/addressHighlight'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { Coin } from '../../../types/domain'
 import type { SettingsStackParamList } from '../../../types/navigation'
@@ -310,7 +311,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 												<View key={d.name || d.key} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
 													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
 													{d.name === "Wallet" ? (
-														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{reduceStringInside((d.value || d.val) as string, 8)}</Text>
+														<QPAddress address={(d.value || d.val) as string} visible={{ head: 8, tail: 8 }} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle" />
 													) : (
 														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
 													)}
@@ -372,6 +373,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 												keyboardType={field.type === 'number' ? 'numeric' : 'default'}
 												style={{ marginVertical: 6 }}
 												autoCapitalize="none"
+												highlightAddress={isWalletFieldName(field.name)}
 											/>
 										)
 									})}

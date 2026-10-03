@@ -5,8 +5,9 @@
  *
  * Decisión (2026-09-14, relaja la regla 5 del plan para el historial): el
  * historial es público en la cadena y las direcciones ya viven en disco
- * (`@qpwallet:meta`), así que guardarlo no expone nada nuevo. Los saldos
- * siguen sin persistir. Eliminar la wallet borra estas claves.
+ * (`@qpwallet:meta`), así que guardarlo no expone nada nuevo. Desde el
+ * 2026-10-02 los saldos y el staking también van a disco (walletDiskCache.ts).
+ * Eliminar la wallet borra estas claves.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage'
 

@@ -6,6 +6,9 @@ import type { StyleProp, TextInputProps, TextStyle } from 'react-native'
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
 
+import { splitAddress } from '../../helpers/addressHighlight'
+import { AddressSpans } from './QPAddress'
+
 // Icons
 import FontAwesome6Icon from '@react-native-vector-icons/fontawesome6'
 
@@ -26,6 +29,8 @@ type QPInputProps = TextInputProps & {
 	prefixIconName?: string
 	suffixIconName?: string
 	iconStyle?: 'solid' | 'regular' | 'brand'
+	/** Campo de dirección de wallet: resalta sus extremos y apaga autocorrección/mayúsculas. */
+	highlightAddress?: boolean
 }
 
 /**
@@ -40,8 +45,10 @@ type QPInputProps = TextInputProps & {
  * @param [props.prelabel] - Small muted label rendered above the field.
  * @param [props.prefixIconName] - FontAwesome6 icon on the left.
  * @param [props.suffixIconName] - FontAwesome6 icon on the right ('eye' enables the toggle).
+ * @param [props.highlightAddress] - Wallet-address field: the first/last 6 chars of a
+ *   typed or pasted address render in the primary color (Text children instead of `value`).
  */
-const QPInput = ({ ref, ...props }: QPInputProps) => {
+const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 
 	const { multiline, prelabel } = props
 	// Cast al caso objeto: los reads de radios de abajo solo aplican cuando
@@ -56,6 +63,11 @@ const QPInput = ({ ref, ...props }: QPInputProps) => {
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
+
+	// Dirección resaltada: el TextInput acepta Text anidado en lugar de `value`.
+	// Un campo de dirección va SIEMPRE por children (resaltado o no): cambiar de
+	// `value` a children a mitad de escribir movía el cursor en iOS
+	const addressParts = highlightAddress ? splitAddress(props.value) : null
 
 	// Icon style
 	const iconStyle = props.iconStyle || 'solid'
@@ -87,7 +99,9 @@ const QPInput = ({ ref, ...props }: QPInputProps) => {
 
 				<TextInput
 					ref={ref}
+					{...(highlightAddress ? { autoCapitalize: 'none', autoCorrect: false, spellCheck: false } as const : null)}
 					{...props}
+					value={highlightAddress ? undefined : props.value}
 					secureTextEntry={isSecure}
 					// @ts-expect-error placeholderStyle no existe en TextInputProps (prop no estándar); se conserva tal cual
 					placeholderStyle={{ fontFamily: theme.typography.fontFamily.regular }}
@@ -101,7 +115,9 @@ const QPInput = ({ ref, ...props }: QPInputProps) => {
 							paddingRight: hasSuffix ? 0 : 15,
 						}
 					]}
-				/>
+				>
+					{highlightAddress ? <Text>{addressParts ? <AddressSpans parts={addressParts} color={theme.colors.primary} /> : props.value}</Text> : null}
+				</TextInput>
 
 				{hasSuffix && (
 					<Pressable onPress={handleSuffixPress}>

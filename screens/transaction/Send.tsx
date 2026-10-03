@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useMemo, useReducer } from 'react'
 import { View, Text, ScrollView, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -9,7 +9,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // UI Particles
-import AmountInput from '../../ui/AmountInput'
+import QPAmountCard from '../../ui/QPAmountCard'
 import QPInput from '../../ui/particles/QPInput'
 import QPAvatar from '../../ui/particles/QPAvatar'
 import QPButton from '../../ui/particles/QPButton'
@@ -27,6 +27,7 @@ import { parseTransactionDescription, buildStickerDescription } from '../../help
 
 // Helpers
 import { displayName } from '../../helpers/displayName'
+import { percentAmount, sanitizeAmountInput } from '../../helpers/amountInput'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -48,7 +49,6 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useOnlineStatus } from '../../hooks/OnlineStatusContext'
 
 // Tipos
-import type { Decimal } from '../../types/domain'
 import type { RootStackParamList } from '../../types/navigation'
 
 /** Acción del setter genérico: escribe `value` en `field` del slice. */
@@ -66,6 +66,9 @@ function setFieldReducer<S extends object>(state: S, action: FieldAction<S>): S 
 
 /** Formulario de la transferencia (monto + nota, que puede ser un sticker). */
 type SendForm = { amount: string, description: string }
+
+/** Chips rápidos sobre el saldo: los mismos que el retiro. */
+const SEND_PERCENT_CHIPS = [25, 50, 100] as const
 
 /** Destinatario: el perfil ya resuelto y el uuid/username que llega por params o QR. */
 type SendRecipient = { userFound: SendCarouselUser | null, incomingUserUuid: string | null }
@@ -115,6 +118,17 @@ const Send = ({ navigation, route }: Props) => {
 	const parsedDescription = parseTransactionDescription(description)
 	const isStickerSelected = parsedDescription.type === 'sticker'
 	const isGold = !!user?.golden_check
+	// Chips de porcentaje sobre el saldo, como en el retiro (sin saldo no hay nada que elegir)
+	const balance = Number(user?.balance) || 0
+	const percentChips = useMemo(() => {
+		if (balance <= 0) return undefined
+		return SEND_PERCENT_CHIPS.map(percent => ({
+			key: String(percent),
+			label: percent === 100 ? t('transactions.send.max') : `${percent}%`,
+			onPress: () => dispatchForm({ type: 'set', field: 'amount', value: percentAmount(balance, percent) }),
+		}))
+	}, [balance, t])
+
 	// Enabled once there's a positive amount and a selected recipient — derive it, don't store it
 	const sendEnabled = !!(amount && parseFloat(amount) > 0 && userFound !== null)
 
@@ -173,10 +187,17 @@ const Send = ({ navigation, route }: Props) => {
 				}
 			>
 
-				{/* Amount Input Component */}
-				{/* `balance` está declarado obligatorio en AmountInput aunque su
-				    formateador ya acepta undefined (`formatBalance` devuelve '0.00') */}
-				<AmountInput amount={amount} onAmountChange={setAmount} balance={user?.balance as Decimal} placeholder={incomingUserUuid ? t('transactions.send.amountPlaceholder') : t('transactions.send.amountPlaceholderTo')} />
+				{/* Monto: la misma tarjeta que Depósito, Retiro, P2P y Swap */}
+				<QPAmountCard
+					label={t('transactions.send.amountPlaceholder')}
+					token={{ symbol: 'QUSD', icon: { kind: 'wallet', logoTick: 'qusd', networkTick: null } }}
+					amount={amount}
+					onChangeAmount={(text: string) => setAmount(sanitizeAmountInput(text))}
+					chips={percentChips}
+					fiatLabel=""
+					balanceLabel={`${balance.toFixed(2)} QUSD`}
+					accessibilityLabel={t('transactions.send.amountPlaceholder')}
+				/>
 
 				{/** Latest sent transfers users */}
 				<View style={{ marginVertical: 20, gap: 10 }}>

@@ -15,6 +15,7 @@ import {
 	findCoinForAsset,
 	isAssetVisible,
 	sortAssets,
+	moveItem,
 	toAssetView,
 	totalUsd,
 } from './assets'
@@ -38,7 +39,9 @@ describe('buildAssetCatalog', () => {
 	test('ticks de precio/logo de QvaPay y redes con nombre corto', () => {
 		expect(find('bsc', 'BNB')).toMatchObject({ priceTick: 'BNBBSC', networkTick: 'BNBBSC', chainName: 'BNB Chain' })
 		expect(find('base', 'ETH')).toMatchObject({ priceTick: 'ETH', logoTick: 'ETH', networkTick: 'BASE' })
-		expect(find('polygon', 'USDC.e')).toMatchObject({ stable: true, logoTick: 'USDC', priceTick: 'USDC' })
+		expect(find('polygon', 'USDC')).toMatchObject({ stable: true, logoTick: 'USDC', priceTick: 'USDC' })
+		// USDC.e (puenteado) salió del registry el 2026-10-03: solo queda el USDC nativo
+		expect(find('polygon', 'USDC.e')).toBeUndefined()
 		expect(find('tron', 'USDT')).toMatchObject({ contract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', decimals: 6 })
 	})
 
@@ -46,7 +49,7 @@ describe('buildAssetCatalog', () => {
 		// El tick que tiene el precio es MATICMAINNET, pero `maticmainnet.svg` no existe:
 		// pedirlo dejaba la insignia de red en el placeholder de tres letras
 		expect(find('polygon', 'POL')).toMatchObject({ priceTick: 'MATICMAINNET', logoTick: 'MATIC', networkTick: 'MATIC' })
-		expect(find('polygon', 'USDC.e').networkTick).toBe('MATIC')
+		expect(find('polygon', 'USDC').networkTick).toBe('MATIC')
 	})
 })
 
@@ -102,6 +105,45 @@ describe('valoración y visibilidad', () => {
 	})
 })
 
+describe('orden manual', () => {
+	const views = ['tron:TRX', 'bitcoin:BTC', 'stacks:QUSD', 'ethereum:ETH', 'solana:SOL'].map(key => {
+		const [chainKey, symbol] = key.split(':')
+		return toAssetView(find(chainKey, symbol), {}, PRICES)
+	})
+	const label = list => list.map(v => `${v.chainKey}:${v.symbol}`)
+
+	test('vacío = automático', () => {
+		expect(sortAssets(views, [])).toEqual(sortAssets(views))
+	})
+
+	test('respeta el orden elegido, QUSD sigue primero y lo no ordenado va detrás en automático', () => {
+		const order = [find('solana', 'SOL').id, find('tron', 'TRX').id]
+		const sorted = label(sortAssets(views, order))
+		expect(sorted.slice(0, 3)).toEqual(['stacks:QUSD', 'solana:SOL', 'tron:TRX'])
+		// el resto, en el orden automático de siempre
+		const autoRest = label(sortAssets(views)).filter(k => !['stacks:QUSD', 'solana:SOL', 'tron:TRX'].includes(k))
+		expect(sorted.slice(3)).toEqual(autoRest)
+	})
+
+	test('ids del orden que ya no existen no rompen nada', () => {
+		expect(label(sortAssets(views, ['fantasma:native']))).toEqual(label(sortAssets(views)))
+	})
+})
+
+describe('moveItem', () => {
+	test('mueve hacia abajo y hacia arriba sin mutar', () => {
+		const list = ['a', 'b', 'c', 'd']
+		expect(moveItem(list, 0, 2)).toEqual(['b', 'c', 'a', 'd'])
+		expect(moveItem(list, 3, 1)).toEqual(['a', 'd', 'b', 'c'])
+		expect(list).toEqual(['a', 'b', 'c', 'd'])
+	})
+
+	test('acota los extremos', () => {
+		expect(moveItem(['a', 'b'], 0, 9)).toEqual(['b', 'a'])
+		expect(moveItem(['a', 'b'], 5, 0)).toEqual(['a', 'b'])
+	})
+})
+
 describe('exploradores', () => {
 	test('tx y address desde el template del registry', () => {
 		expect(explorerTxUrl(bundled.chains.bsc, '0xabc')).toBe('https://bscscan.com/tx/0xabc')
@@ -154,6 +196,6 @@ describe('puente con el catálogo de QvaPay', () => {
 	test('activo → moneda (primera que casa)', () => {
 		expect(findCoinForAsset(COINS, catalog, find('tron', 'USDT')).tick).toBe('USDT')
 		expect(findCoinForAsset(COINS, catalog, find('bsc', 'BNB')).tick).toBe('BNBBSC')
-		expect(findCoinForAsset(COINS, catalog, find('polygon', 'USDC.e'))).toBeNull()
+		expect(findCoinForAsset(COINS, catalog, find('polygon', 'USDC'))).toBeNull()
 	})
 })

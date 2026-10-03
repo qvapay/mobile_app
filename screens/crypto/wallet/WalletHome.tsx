@@ -71,7 +71,7 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 
 	const { isReady, hasWallet, isBackedUp } = useWallet()
 	const { isAuthenticated } = useAuth()
-	const { visible, total, isLoading, isError, failedChains, hasBalances, refetch } = useWalletAssets()
+	const { visible, total, isLoading, isHydrating, isError, failedChains, hasBalances, refetch } = useWalletAssets()
 	const prices = usePriceMap()
 
 	const { getSetting, updateSetting } = useSettings()
@@ -91,7 +91,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 		navigation.navigate(ROUTES.WALLET_ASSET, { assetId: asset.id })
 	}, [navigation])
 
-	if (!isReady) return null
+	// Hasta hidratar la wallet y sembrar la foto de disco (milisegundos): nada antes que un skeleton de un frame
+	if (!isReady || (hasWallet && isHydrating)) return null
 	if (!hasWallet) return <WalletCard />
 
 	// Recibir exige el backup confirmado: sin él, perder el teléfono = perder lo recibido
@@ -135,6 +136,29 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 				actions={actions}
 			/>
 
+			{/* Ganar: justo bajo la botonera, a la vista sin bajar hasta el final de la lista */}
+			{showEarn && (
+				<QPPressable
+					onPress={() => navigation.navigate(ROUTES.WALLET_EARN)}
+					testID="wallet-home-earn"
+					style={[styles.earnCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
+					accessibilityRole="button"
+				>
+					<View style={[styles.earnIcon, { backgroundColor: theme.colors.successText + '18' }]}>
+						<FontAwesome6 name="seedling" size={16} color={theme.colors.successText} iconStyle="solid" />
+					</View>
+					<View style={styles.earnInfo}>
+						<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.md }}>{t('crypto.staking.hub.homeCardTitle')}</Text>
+						<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }} numberOfLines={1}>
+							{stakedTotal > 0 && showBalance
+								? t('crypto.staking.hub.homeCardStaked', { amount: formatUsd(stakedTotal) })
+								: t('crypto.staking.hub.homeCardSubtitle')}
+						</Text>
+					</View>
+					<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
+				</QPPressable>
+			)}
+
 			{!isBackedUp && <WalletCard />}
 
 			{/* Aviso fuera del héroe: el bloque saldo + botonera mide lo mismo que en el Home */}
@@ -175,27 +199,6 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 				</View>
 			</View>
 
-			{showEarn && (
-				<QPPressable
-					onPress={() => navigation.navigate(ROUTES.WALLET_EARN)}
-					testID="wallet-home-earn"
-					style={[styles.earnCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
-					accessibilityRole="button"
-				>
-					<View style={[styles.earnIcon, { backgroundColor: theme.colors.successText + '18' }]}>
-						<FontAwesome6 name="seedling" size={16} color={theme.colors.successText} iconStyle="solid" />
-					</View>
-					<View style={styles.earnInfo}>
-						<Text style={{ color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.md }}>{t('crypto.staking.hub.homeCardTitle')}</Text>
-						<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }} numberOfLines={1}>
-							{stakedTotal > 0 && showBalance
-								? t('crypto.staking.hub.homeCardStaked', { amount: formatUsd(stakedTotal) })
-								: t('crypto.staking.hub.homeCardSubtitle')}
-						</Text>
-					</View>
-					<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
-				</QPPressable>
-			)}
 		</View>
 	)
 }

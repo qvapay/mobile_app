@@ -199,7 +199,6 @@ const NearbyPay = ({ navigation, route }: NearbyPayProps) => {
 			{showChargeSheet && (
 				<ChargeSheet
 					initialAmount={parseFloat(prefill_amount as string) > 0 ? prefill_amount : ''}
-					balance={user?.balance}
 					onConfirm={handleConfirmCharge}
 					onClose={() => setShowChargeSheet(false)}
 				/>

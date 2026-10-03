@@ -17,7 +17,7 @@ jest.mock('../../ui/QPKeyboardView', () => {
 	const { View } = require('react-native')
 	return ({ children, actions }) => React.createElement(View, null, children, actions)
 })
-jest.mock('../../ui/AmountInput', () => 'AmountInput')
+jest.mock('../../ui/QPAmountCard', () => 'QPAmountCard')
 jest.mock('../../ui/particles/QPInput', () => 'QPInput')
 jest.mock('../../ui/particles/QPAvatar', () => 'QPAvatar')
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
@@ -75,7 +75,7 @@ const renderSend = async (params = {}) => {
 }
 
 const sendButton = (tree) => tree.root.findByType('QPButton')
-const setAmount = (tree, value) => act(async () => { tree.root.findByType('AmountInput').props.onAmountChange(value) })
+const setAmount = (tree, value) => act(async () => { tree.root.findByType('QPAmountCard').props.onChangeAmount(value) })
 const selectRecipient = (tree, user = RECIPIENT) =>
 	act(async () => { tree.root.findByType('SendUserSearchModal').props.onSelect(user) })
 
@@ -135,7 +135,7 @@ describe('recipient from route params', () => {
 
 	test('a send_amount param prefills the amount and the button title', async () => {
 		const tree = await renderSend({ send_amount: '25' })
-		expect(tree.root.findByType('AmountInput').props.amount).toBe('25')
+		expect(tree.root.findByType('QPAmountCard').props.amount).toBe('25')
 		expect(sendButton(tree).props.title).toBe('Enviar $25')
 	})
 })

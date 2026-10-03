@@ -15,6 +15,7 @@ import { useWallet } from '../../../wallet/WalletContext'
 import { addressForKind, findCoinForAsset, isDefaultAsset, isHouseToken } from '../../../wallet/assets'
 import useCoins from '../../../hooks/useCoins'
 import { ROUTES } from '../../../routes'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { WalletAsset } from '../../../wallet/assets'
 import { useAssetCatalog } from './walletQueries'
 
@@ -128,9 +129,7 @@ const WalletReceive = ({ navigation, route }: Props) => {
 				/>
 			</QPPressable>
 
-			<Text selectable style={[styles.address, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }]}>
-				{address}
-			</Text>
+			<QPAddress selectable address={address} style={[styles.address, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }]} />
 
 			<View style={[styles.warning, { backgroundColor: theme.colors.warning + '14' }]}>
 				<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" style={styles.warningIcon} />

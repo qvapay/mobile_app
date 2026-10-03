@@ -12,11 +12,14 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 import { useWallet } from '../../../wallet/WalletContext'
 import { addressForKind } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
-import { formatUnits, parseUnits } from '../../../wallet/chains/units'
+import { displayAmount, formatUnits, parseUnits } from '../../../wallet/chains/units'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { usePriceMap, useWalletAssets } from './walletQueries'
 import { canSendAsset, estimateNativeReserve, isValidAddressFor, maxSendableUnits, TRX_MAX_RESERVE_SUN } from './walletSendActions'
-import { formatUsd } from './walletFormat'
+import { addressPlaceholder, formatUsd } from './walletFormat'
+import { canToggleUsd, unitsToInput, usdToUnits, USD_DECIMALS } from './sendAmountModel'
+import type { AmountMode } from './sendAmountModel'
+import { splitAddress } from '../../../helpers/addressHighlight'
 
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
@@ -25,6 +28,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
+import { AddressSpans } from '../../../ui/particles/QPAddress'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -60,7 +64,25 @@ const WalletSend = ({ navigation, route }: Props) => {
 	const ownAddress = asset && addresses ? addressForKind(addresses, asset.kind) : null
 
 	const [to, setTo] = useState('')
+	const toParts = splitAddress(to)
 	const [amount, setAmount] = useState('')
+	// Token ⇄ USD (solo activos volátiles con precio). Lo que manda siempre son
+	// unidades del token; `exactUnits` fija las exactas tras MÁX o al conmutar,
+	// para que el redondeo del texto no las mueva hasta que el usuario teclee
+	// Ligado al activo: con otro activo vuelve solo a token y sin unidades fijadas
+	// (derivado en render; un efecto de reseteo pintaba un frame con lo anterior)
+	const [unitState, setUnitState] = useState<{ assetId: string | undefined, mode: AmountMode, exact: bigint | null }>({ assetId: undefined, mode: 'token', exact: null })
+	const currentAssetId = asset?.id
+	const sameAsset = unitState.assetId === currentAssetId
+	const mode: AmountMode = sameAsset ? unitState.mode : 'token'
+	const exactUnits = sameAsset ? unitState.exact : null
+	const setExactUnits = useCallback((next: bigint | null) => {
+		setUnitState(prev => ({ assetId: currentAssetId, mode: prev.assetId === currentAssetId ? prev.mode : 'token', exact: next }))
+	}, [currentAssetId])
+	const price = asset?.priceTick ? prices[asset.priceTick] ?? null : null
+	const usdToggle = !!asset && canToggleUsd(asset, price)
+	const activeMode: AmountMode = usdToggle ? mode : 'token'
+	const onChangeAmount = useCallback((value: string) => { setAmount(value); setExactUnits(null) }, [setExactUnits])
 	// Reserva de gas para MAX en nativos EVM (fee actual del nodo); TRON usa la fija
 	const [nativeReserve, setNativeReserve] = useState<bigint | null>(null)
 	useEffect(() => {
@@ -96,11 +118,13 @@ const WalletSend = ({ navigation, route }: Props) => {
 	let amountError: string | null = null
 	if (asset && amount.trim()) {
 		try {
-			amountUnits = parseUnits(amount, asset.decimals)
+			amountUnits = exactUnits ?? (activeMode === 'usd' && price
+				? usdToUnits(amount, price, asset.decimals)
+				: parseUnits(amount, asset.decimals))
 			if (amountUnits <= 0n) amountError = t('crypto.wallet.send.errors.amountZero')
 			else if (amountUnits > balanceUnits) amountError = t('crypto.wallet.send.errors.insufficient', { symbol: asset.symbol })
 		} catch {
-			amountError = t('crypto.wallet.send.errors.amountInvalid', { decimals: asset.decimals })
+			amountError = t('crypto.wallet.send.errors.amountInvalid', { decimals: activeMode === 'usd' ? USD_DECIMALS : asset.decimals })
 		}
 	}
 
@@ -112,8 +136,25 @@ const WalletSend = ({ navigation, route }: Props) => {
 			kind: asset.kind,
 			reserve: asset.kind === 'tron' ? TRX_MAX_RESERVE_SUN : (nativeReserve ?? 0n),
 		})
-		setAmount(formatUnits(max, asset.decimals))
-	}, [asset, balanceUnits, nativeReserve])
+		setExactUnits(max)
+		setAmount(unitsToInput(max, activeMode, price, asset.decimals))
+	}, [asset, balanceUnits, nativeReserve, activeMode, price, setExactUnits])
+
+	// Conmutar convierte lo escrito (no lo borra) y conserva las unidades exactas
+	const toggleMode = () => {
+		if (!asset || !usdToggle) return
+		const next: AmountMode = activeMode === 'token' ? 'usd' : 'token'
+		let exact = exactUnits
+		if (amountUnits !== null && !amountError) {
+			exact = amountUnits
+			setAmount(unitsToInput(amountUnits, next, price, asset.decimals))
+		} else if (amountError) {
+			exact = null
+			setAmount('')
+		}
+		// Una sola actualización: modo y unidades exactas juntos (dos setters se pisarían)
+		setUnitState({ assetId: currentAssetId, mode: next, exact })
+	}
 
 	const canContinue = !!asset && !!toTrimmed && !toError && amountUnits !== null && !amountError
 
@@ -150,6 +191,8 @@ const WalletSend = ({ navigation, route }: Props) => {
 		? Number(formatUnits(amountUnits, asset.decimals)) * prices[asset.priceTick]
 		: asset.stable && amountUnits !== null && !amountError ? Number(formatUnits(amountUnits, asset.decimals)) : null
 
+	const amountTextStyle = { fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xxl }
+
 	return (
 		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={containerStyles.subContainer}>
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -166,15 +209,23 @@ const WalletSend = ({ navigation, route }: Props) => {
 				<View style={[styles.field, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 					<TextInput
 						style={[styles.input, textStyles.h5, { color: theme.colors.primaryText }]}
-						value={to}
+						// Dirección resaltada (6+6 en primary): SIEMPRE Text anidado, nunca `value`;
+						// pasar de uno a otro a mitad de escribir movía el cursor en iOS
 						onChangeText={setTo}
-						placeholder={t('crypto.wallet.send.toPlaceholder', { network: asset.chainName })}
-						placeholderTextColor={theme.colors.placeholder}
+						placeholder={addressPlaceholder(asset.kind)}
+						// Muy tenue (~40 %): es solo una pista de la forma, no compite con lo que se pega
+						placeholderTextColor={theme.colors.placeholder + '66'}
 						autoCapitalize="none"
 						autoCorrect={false}
 						spellCheck={false}
 						multiline
-					/>
+						scrollEnabled={false}
+						// Una dirección no lleva saltos de línea: Intro cierra el teclado
+						submitBehavior="blurAndSubmit"
+						returnKeyType="done"
+					>
+						<Text>{toParts ? <AddressSpans parts={toParts} color={theme.colors.primary} /> : to}</Text>
+					</TextInput>
 					<View style={styles.fieldActions}>
 						<Pressable onPress={paste} hitSlop={8} style={styles.fieldAction} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.send.paste')}>
 							<FontAwesome6 name="paste" size={16} color={theme.colors.primary} iconStyle="solid" />
@@ -194,22 +245,38 @@ const WalletSend = ({ navigation, route }: Props) => {
 					</Text>
 				</View>
 				<View style={[styles.field, styles.amountField, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
-					<TextInput
-						style={[styles.amountInput, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xxl }]}
-						value={amount}
-						onChangeText={setAmount}
-						placeholder="0"
-						placeholderTextColor={theme.colors.placeholder}
-						keyboardType="decimal-pad"
-					/>
-					<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>{asset.symbol}</Text>
+					<View style={styles.amountInput}>
+						{/* Placeholder propio (no el nativo): iOS recorta `attributedPlaceholder` por
+						    arriba con fuentes grandes. Mismo arreglo que QPAmountCard */}
+						{!amount && <Text style={[styles.amountPlaceholder, amountTextStyle, { color: theme.colors.placeholder }]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no">0</Text>}
+						<TextInput
+							style={[amountTextStyle, { color: theme.colors.primaryText, height: Math.ceil(theme.typography.fontSize.xxl * 1.5), paddingVertical: 0 }]}
+							value={amount}
+							onChangeText={onChangeAmount}
+							keyboardType="decimal-pad"
+							accessibilityLabel={t('crypto.wallet.send.amountLabel')}
+						/>
+					</View>
+					{usdToggle ? (
+						// La unidad ES el conmutador: tocar el tick alterna token ⇄ USD
+						<Pressable onPress={toggleMode} hitSlop={8} style={[styles.unitToggle, { backgroundColor: theme.colors.primary + '12' }]} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.send.switchUnit', { symbol: asset.symbol })} testID="wallet-send-toggle-unit">
+							<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>{activeMode === 'usd' ? 'USD' : asset.symbol}</Text>
+							<FontAwesome6 name="arrows-up-down" size={11} color={theme.colors.primary} iconStyle="solid" />
+						</Pressable>
+					) : (
+						<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>{asset.symbol}</Text>
+					)}
 					<Pressable onPress={setMax} hitSlop={8} style={[styles.max, { backgroundColor: theme.colors.primary + '18' }]} accessibilityRole="button">
 						<Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xs }}>{t('crypto.wallet.send.max')}</Text>
 					</Pressable>
 				</View>
 				<View style={styles.amountFooter}>
 					<Text style={[textStyles.h6, { color: theme.colors.danger }]}>{amountError ?? ' '}</Text>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{usd !== null ? `≈ ${formatUsd(usd)}` : ' '}</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
+						{activeMode === 'usd'
+							? `≈ ${amountUnits !== null && !amountError ? displayAmount(formatUnits(amountUnits, asset.decimals)) : '0'} ${asset.symbol}`
+							: usd !== null ? `≈ ${formatUsd(usd)}` : ' '}
+					</Text>
 				</View>
 
 			</ScrollView>
@@ -237,15 +304,21 @@ const styles = StyleSheet.create({
 	footer: { paddingTop: 8, paddingBottom: 24 },
 	assetChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, alignSelf: 'center', marginBottom: 18 },
 	label: { marginBottom: 6 },
-	field: { flexDirection: 'row', alignItems: 'flex-start', borderRadius: 12, paddingLeft: 14, paddingRight: 6, paddingVertical: 6, gap: 6 },
-	input: { flex: 1, minHeight: 44, paddingVertical: 8, textAlignVertical: 'top' },
+	// Fila centrada: con una línea el texto queda a la altura de los iconos, y si la
+	// dirección parte en dos los iconos siguen al centro del bloque
+	field: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingLeft: 14, paddingRight: 6, minHeight: 52, gap: 6 },
+	// Padding explícito: el TextInput multiline de iOS mete su propio inset arriba y
+	// descuadra la primera línea; lineHeight fijo para que una o dos líneas midan lo esperado
+	input: { flex: 1, paddingTop: 14, paddingBottom: 14, lineHeight: 22, textAlignVertical: 'center' },
 	fieldActions: { flexDirection: 'row', alignItems: 'center' },
-	fieldAction: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
+	fieldAction: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center' },
 	fieldError: { minHeight: 18, marginTop: 4, marginBottom: 10 },
 	amountHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
 	amountField: { alignItems: 'center', paddingVertical: 10, paddingRight: 10 },
-	amountInput: { flex: 1, minWidth: 60, paddingVertical: 6 },
+	amountInput: { flex: 1, minWidth: 60, justifyContent: 'center' },
+	amountPlaceholder: { position: 'absolute', left: 0, right: 0 },
 	max: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginLeft: 4 },
+	unitToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderCurve: 'continuous' },
 	amountFooter: { flexDirection: 'row', justifyContent: 'space-between', minHeight: 18, marginTop: 6 },
 })
 

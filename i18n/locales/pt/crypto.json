@@ -15,12 +15,10 @@
 		"ALL": "TUDO"
 	},
 	"dashboard": {
-		"explore": "Explorar",
 		"tabs": {
-			"popular": "Populares",
+			"crypto": "Cripto",
 			"stocks": "Ações"
 		},
-		"seeAll": "Ver tudo",
 		"offers_one": "{{count}} oferta",
 		"offers_other": "{{count}} ofertas",
 		"empty": "Sem dados"
@@ -212,7 +210,14 @@
 		"manage": {
 			"subtitle": "Escolha quais ativos você vê na sua carteira. Os que receberem fundos aparecem sozinhos.",
 			"hideDust": "Ocultar movimentações pequenas",
-			"hideDustHint": "Entradas abaixo de $0.01: quase sempre spam ou tentativa de fazer você copiar um endereço falso."
+			"hideDustHint": "Entradas abaixo de $0.01: quase sempre spam ou tentativa de fazer você copiar um endereço falso.",
+			"orderTitle": "Ordem na sua carteira",
+			"orderAuto": "Automática por valor",
+			"orderReset": "Voltar ao automático",
+			"orderHint": "Arraste pelo ≡ para ordenar. Ativos novos aparecem no final.",
+			"orderPinned": "Sempre primeiro",
+			"moveUp": "Subir",
+			"moveDown": "Descer"
 		},
 		"auth": {
 			"title": "Confirme que é você",
@@ -228,12 +233,12 @@
 		"send": {
 			"pickTitle": "O que você quer enviar?",
 			"toLabel": "Destino",
-			"toPlaceholder": "Endereço em {{network}}",
 			"paste": "Colar",
 			"scan": "Escanear",
 			"amountLabel": "Quantidade",
 			"available": "Disponível: {{amount}} {{symbol}}",
 			"max": "MAX",
+			"switchUnit": "Alternar entre {{symbol}} e USD",
 			"continue": "Continuar",
 			"fromLabel": "De",
 			"networkFee": "Taxa de rede",

@@ -5,7 +5,7 @@
 	"send": {
 		"sendButton": "Send ${{amount}}",
 		"amountPlaceholder": "Amount to send",
-		"amountPlaceholderTo": "Amount to send to ...",
+		"max": "MAX",
 		"sendTo": "Send to:",
 		"seeAllContacts": "See all",
 		"removeRecipientA11y": "Remove selected user",

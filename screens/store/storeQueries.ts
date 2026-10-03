@@ -141,7 +141,7 @@ export const useTopupBrandsQuery = (countryCode: string | undefined): UseQueryRe
 /** Escaparate del marketplace (Seller Shops) en la portada. */
 export const useMarketStoresQuery = (): UseQueryResult<MarketShop[]> => useQuery({
 	queryKey: ['store', 'market-stores'],
-	queryFn: async () => (unwrap(await marketApi.getStores({ take: 8 })) as { stores?: MarketShop[] } | null)?.stores || [],
+	queryFn: async () => (unwrap(await marketApi.getStores({ take: 12 })) as { stores?: MarketShop[] } | null)?.stores || [],
 	placeholderData: previous => previous,
 })
 

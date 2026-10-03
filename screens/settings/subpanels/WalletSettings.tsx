@@ -10,6 +10,7 @@ import { useNavigation, useNavigationState } from '@react-navigation/native'
 import { ROUTES } from '../../../routes'
 
 // Tipos
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { SettingsStackParamList } from '../../../types/navigation'
 import { useQueryClient } from '@tanstack/react-query'
@@ -28,8 +29,8 @@ import { useAuth } from '../../../auth/AuthContext'
 import { useAppLock } from '../../../lock/AppLockContext'
 import useSecureScreen from '../../../hooks/useSecureScreen'
 import QPSecureView from '../../../ui/QPSecureView'
-import { shortAddress } from '../../crypto/wallet/walletFormat'
 import { clearHistoryCaches } from '../../crypto/wallet/historyCache'
+import { clearWalletSnapshots } from '../../crypto/wallet/walletDiskCache'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -143,9 +144,11 @@ const WalletSettings = () => {
 			// que, sin Ajustes de cuenta, no se puede cambiar. Con cuenta protege la sesión
 			if (!isAuthenticated) await disableAppLock()
 			await clearHistoryCaches()
-			// Saldos/historial de la wallet borrada no deben sobrevivir en memoria
+			await clearWalletSnapshots()
+			// Saldos/historial/staking de la wallet borrada no deben sobrevivir en memoria
 			queryClient.removeQueries({ queryKey: ['wallet', 'balances'] })
 			queryClient.removeQueries({ queryKey: ['wallet', 'history'] })
+			queryClient.removeQueries({ queryKey: ['wallet', 'staking'] })
 			setConfirmDelete(false)
 			toast.success(t('crypto.wallet.settings.deleted'))
 			navigation.goBack()
@@ -209,7 +212,7 @@ const WalletSettings = () => {
 				{FAMILIES.map((family, index) => (
 					<QPPressable key={family.key} onPress={() => copy(addresses[family.key])} style={[styles.row, index < FAMILIES.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
 						<Text style={[textStyles.h6, styles.familyLabel, { color: theme.colors.secondaryText }]}>{t(family.labelKey)}</Text>
-						<Text style={[textStyles.h5, styles.address, { color: theme.colors.primaryText }]} numberOfLines={1}>{shortAddress(addresses[family.key], 10, 8)}</Text>
+						<QPAddress address={addresses[family.key]} visible={{ head: 10, tail: 8 }} style={[textStyles.h5, styles.address, { color: theme.colors.primaryText }]} numberOfLines={1} />
 						<FontAwesome6 name="copy" size={13} color={theme.colors.secondaryText} iconStyle="regular" />
 					</QPPressable>
 				))}

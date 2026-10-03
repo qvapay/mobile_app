@@ -15,12 +15,10 @@
 		"ALL": "ALL"
 	},
 	"dashboard": {
-		"explore": "Explore",
 		"tabs": {
-			"popular": "Popular",
+			"crypto": "Crypto",
 			"stocks": "Stocks"
 		},
-		"seeAll": "See all",
 		"offers_one": "{{count}} offer",
 		"offers_other": "{{count}} offers",
 		"empty": "No data"
@@ -212,7 +210,14 @@
 		"manage": {
 			"subtitle": "Choose which assets you see in your wallet. Assets that receive funds show up automatically.",
 			"hideDust": "Hide small transfers",
-			"hideDustHint": "Incoming transfers under $0.01: almost always spam or an attempt to get you to copy a fake address."
+			"hideDustHint": "Incoming transfers under $0.01: almost always spam or an attempt to get you to copy a fake address.",
+			"orderTitle": "Order in your wallet",
+			"orderAuto": "Automatic by value",
+			"orderReset": "Back to automatic",
+			"orderHint": "Drag from ≡ to reorder. New assets show up at the end.",
+			"orderPinned": "Always first",
+			"moveUp": "Move up",
+			"moveDown": "Move down"
 		},
 		"auth": {
 			"title": "Confirm it’s you",
@@ -228,12 +233,12 @@
 		"send": {
 			"pickTitle": "What do you want to send?",
 			"toLabel": "To",
-			"toPlaceholder": "{{network}} address",
 			"paste": "Paste",
 			"scan": "Scan",
 			"amountLabel": "Amount",
 			"available": "Available: {{amount}} {{symbol}}",
 			"max": "MAX",
+			"switchUnit": "Switch between {{symbol}} and USD",
 			"continue": "Continue",
 			"fromLabel": "From",
 			"networkFee": "Network fee",

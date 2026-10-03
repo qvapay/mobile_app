@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useReducer } from 'react'
+import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { ReactElement } from 'react'
 import type { RefreshControlProps } from 'react-native'
@@ -17,26 +18,22 @@ import StoreTile from '../../../ui/store/StoreTile'
 import { createHiddenRefreshControl } from '../../../ui/QPRefreshIndicator'
 
 import { marketApi } from '../../../api/marketApi'
+import { trimToFirstPage } from '../../../api/queryUtils'
 import { ROUTES } from '../../../routes'
 import { MARKET_CATEGORIES, MARKET_CATEGORY_EMOJIS } from './marketConstants'
 
-// Índice de tiendas en React Query (persistido para el arranque en frío)
-import { useMarketStoresIndexQuery } from './marketQueries'
+// Índice de tiendas en React Query: query infinita, persistida con su primera página
+import { useMarketStoresInfiniteQuery, flattenStores, marketStoresIndexKey } from './marketQueries'
 
 import { toast } from 'sonner-native'
 
 import type { RootStackParamList } from '../../../types/navigation'
 import type { MarketShop } from './marketQueries'
 
-const PAGE_SIZE = 24
-// El backend pagina de a 50 máximo; el índice completo hoy cabe en una página
-// (mismo criterio que la web, que trae 100 y filtra en cliente).
-const FETCH_TAKE = 50
-
 /** Estado de datos del índice: tiendas extra traídas por la búsqueda federada. */
 type StoresData = { extraShops: MarketShop[] }
-/** Estado de filtros: categoría activa, texto de búsqueda y página de cliente. */
-type StoresFilters = { activeCategory: string, search: string, page: number }
+/** Estado de filtros: categoría activa (servidor) y texto de búsqueda (cliente). */
+type StoresFilters = { activeCategory: string, search: string }
 /** Única acción del reducer: fijar un campo (el mismo para ambos estados). */
 type StoresAction = { type: 'set', field: string, value: unknown }
 
@@ -52,9 +49,11 @@ function storesReducer<S extends object>(state: S, action: StoresAction): S {
 /**
  * Marketplace store index: grid of approved (active) stores with category
  * pills and name search. Accepts `route.params.category` to preselect a pill.
- * Data comes from `GET /market/stores` (SWR-cached); search past the loaded
- * page hits the federated `GET /shop/search` (debounced) and merges by slug.
- * Client-side pagination, 24 per page.
+ * Data comes from `GET /market/stores` as an infinite query (24 per page,
+ * next page on reaching the end); the category pill filters server-side.
+ * Name search filters what's loaded and, past that, hits the federated
+ * `GET /shop/search` (debounced) and merges by slug — while searching the
+ * list doesn't auto-paginate, the federated search already covers the rest.
  */
 const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'MarketStores'>) => {
 
@@ -68,15 +67,21 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 
 	const [data, dispatchData] = useReducer(storesReducer<StoresData>, { extraShops: [] })
 	const { extraShops } = data
-	const [filters, dispatchFilters] = useReducer(storesReducer<StoresFilters>, { activeCategory: route?.params?.category || 'ALL', search: '', page: 1 })
-	const { activeCategory, search, page } = filters
+	const [filters, dispatchFilters] = useReducer(storesReducer<StoresFilters>, { activeCategory: route?.params?.category || 'ALL', search: '' })
+	const { activeCategory, search } = filters
 	const [refreshing, setRefreshing] = useState(false)
+	const queryClient = useQueryClient()
 
-	// Índice de tiendas: React Query hace el fetch, la persistencia en frío y
-	// conserva la última lista buena si la red falla
-	const storesQuery = useMarketStoresIndexQuery(FETCH_TAKE)
-	const stores = useMemo(() => storesQuery.data || [], [storesQuery.data])
+	// Índice de la categoría activa (scroll infinito) y, aparte, el de 'ALL'
+	// para los chips y el contador total. Con 'ALL' activo es la MISMA clave:
+	// una sola petición y una caché.
+	const storesQuery = useMarketStoresInfiniteQuery(activeCategory)
+	const allQuery = useMarketStoresInfiniteQuery('ALL')
+	const stores = useMemo(() => flattenStores(storesQuery.data?.pages), [storesQuery.data])
+	const allStores = useMemo(() => flattenStores(allQuery.data?.pages), [allQuery.data])
+	const allTotal = allQuery.data?.pages[0]?.total ?? allStores.length
 	const loading = storesQuery.isPending
+	const { hasNextPage, isFetching, isFetchingNextPage, fetchNextPage, refetch: refetchStores } = storesQuery
 
 	// El toast solo cuando no hay NADA que pintar
 	useEffect(() => {
@@ -100,16 +105,22 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 		return () => clearTimeout(timer)
 	}, [search])
 
-	// Chips solo de categorías realmente presentes (como la web)
+	// Chips solo de categorías realmente presentes (como la web) mientras el
+	// índice completo esté cargado entero; si quedan páginas no se puede saber qué
+	// falta, así que se ofrecen todas (una vacía dice "sin tiendas"). La activa
+	// siempre está, aunque aún no haya aparecido (p. ej. por route.params)
+	const allComplete = !!allQuery.data && !allQuery.hasNextPage
 	const presentCategories = useMemo(() => {
+		if (!allComplete) return Object.keys(MARKET_CATEGORIES)
 		// Una pasada sobre las tiendas alimentando el Set directamente: el
 		// estrechamiento dentro del if da `string[]` sin cast
 		const present = new Set<string>()
-		for (const s of stores) {
+		if (activeCategory !== 'ALL' && MARKET_CATEGORIES[activeCategory]) present.add(activeCategory)
+		for (const s of allStores) {
 			if (s.category && MARKET_CATEGORIES[s.category]) { present.add(s.category) }
 		}
 		return [...present]
-	}, [stores])
+	}, [allStores, activeCategory, allComplete])
 
 	const filteredStores = useMemo(() => {
 		const q = search.trim().toLowerCase()
@@ -123,26 +134,41 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 		)
 	}, [stores, extraShops, search, activeCategory])
 
-	useEffect(() => { dispatchFilters({ type: 'set', field: 'page', value: 1 }) }, [search, activeCategory])
+	// Mientras se busca no se pagina solo: con pocos aciertos el final de la
+	// lista llegaría enseguida y encadenaría todas las páginas
+	const searching = search.trim().length > 0
+	// Llegar al final mientras hay un fetch en curso (el refetch de la página 1 al
+	// abrir, uno de fondo) no puede perderse: se apunta y se pide al terminar
+	const endReachedRef = useRef(false)
+	const loadMore = useCallback(() => {
+		if (searching || !hasNextPage) return
+		if (isFetching) { endReachedRef.current = true; return }
+		fetchNextPage()
+	}, [searching, hasNextPage, isFetching, fetchNextPage])
+	// Otra categoría: el "final" apuntado era de la lista anterior
+	useEffect(() => { endReachedRef.current = false }, [activeCategory])
+	useEffect(() => {
+		if (!endReachedRef.current || isFetching) return
+		endReachedRef.current = false
+		if (hasNextPage && !searching) fetchNextPage()
+	}, [isFetching, hasNextPage, searching, fetchNextPage])
 
-	const totalPages = Math.max(1, Math.ceil(filteredStores.length / PAGE_SIZE))
-	const safePage = Math.min(page, totalPages)
-	const pagedStores = useMemo(
-		() => filteredStores.slice(0, safePage * PAGE_SIZE),
-		[filteredStores, safePage],
-	)
+	// Total de la categoría según el backend; buscando, los aciertos visibles
+	const shownCount = searching ? filteredStores.length : (storesQuery.data?.pages[0]?.total ?? filteredStores.length)
 
 	const goToStore = useCallback((store: MarketShop) => {
 		navigation.navigate(ROUTES.MARKET_STORE, { slug: store.slug as string })
 	}, [navigation])
 
-	const { refetch: refetchStores } = storesQuery
+	// Recortar a la página 1 antes de refetch: un refresh = UNA petición
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
-		try { await refetchStores() }
-		catch { /* la lista anterior sigue en pantalla */ }
+		try {
+			queryClient.setQueryData(marketStoresIndexKey(activeCategory), trimToFirstPage)
+			await refetchStores()
+		} catch { /* la lista anterior sigue en pantalla */ }
 		finally { setRefreshing(false) }
-	}, [refetchStores])
+	}, [queryClient, activeCategory, refetchStores])
 
 	if (loading) {
 		return (
@@ -158,92 +184,101 @@ const MarketStores = ({ navigation, route }: NativeStackScreenProps<RootStackPar
 		</View>
 	)
 
+	const header = (
+		<View style={styles.header}>
+			{/* Búsqueda */}
+			<View style={styles.controls}>
+				<View style={{ flex: 1 }}>
+					<QPInput
+						value={search}
+						onChangeText={(v) => dispatchFilters({ type: 'set', field: 'search', value: v })}
+						placeholder={t('market.stores.searchPlaceholder')}
+						prefixIconName="magnifying-glass"
+						style={{ fontSize: theme.typography.fontSize.md }}
+					/>
+				</View>
+			</View>
+
+			{/* Category pills — solo si hay variedad real */}
+			{presentCategories.length > 1 && (
+				<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4, marginBottom: 12 }}>
+					<CategoryPill
+						active={activeCategory === 'ALL'}
+						onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: 'ALL' })}
+						emoji="✨"
+						label={t('market.stores.all')}
+						count={allTotal}
+					/>
+					{presentCategories.map(c => (
+						<CategoryPill
+							key={c}
+							active={activeCategory === c}
+							onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: activeCategory === c ? 'ALL' : c })}
+							emoji={MARKET_CATEGORY_EMOJIS[c]}
+							label={t(MARKET_CATEGORIES[c])}
+						/>
+					))}
+				</ScrollView>
+			)}
+
+			{/* Cabecera del grid */}
+			<View style={styles.gridHeader}>
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
+					{t('market.stores.verifiedStores')}
+				</Text>
+				<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
+					{t('market.stores.count', { count: shownCount })}
+				</Text>
+			</View>
+		</View>
+	)
+
 	return (
 		<View style={containerStyles.subContainer}>
-			<ScrollView
-				contentContainerStyle={contentPadding}
-				showsVerticalScrollIndicator={false}
-				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
-			>
-				{/* Búsqueda */}
-				<View style={styles.controls}>
-					<View style={{ flex: 1 }}>
-						<QPInput
-							value={search}
-							onChangeText={(v) => dispatchFilters({ type: 'set', field: 'search', value: v })}
-							placeholder={t('market.stores.searchPlaceholder')}
-							prefixIconName="magnifying-glass"
-							style={{ fontSize: theme.typography.fontSize.md }}
-						/>
-					</View>
-				</View>
-
-				{/* Category pills — solo si hay variedad real */}
-				{presentCategories.length > 1 && (
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4, marginBottom: 12 }}>
-						<CategoryPill
-							active={activeCategory === 'ALL'}
-							onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: 'ALL' })}
-							emoji="✨"
-							label={t('market.stores.all')}
-							count={stores.length}
-						/>
-						{presentCategories.map(c => (
-							<CategoryPill
-								key={c}
-								active={activeCategory === c}
-								onPress={() => dispatchFilters({ type: 'set', field: 'activeCategory', value: activeCategory === c ? 'ALL' : c })}
-								emoji={MARKET_CATEGORY_EMOJIS[c]}
-								label={t(MARKET_CATEGORIES[c])}
-							/>
-						))}
-					</ScrollView>
-				)}
-
-				{/* Grid */}
-				<View style={styles.gridHeader}>
-					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600' }]}>
-						{t('market.stores.verifiedStores')}
-					</Text>
-					<Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]}>
-						{t('market.stores.count', { count: filteredStores.length })}
-					</Text>
-				</View>
-
-				{filteredStores.length === 0 ? (
-					<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
-						<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
-							{search ? t('market.stores.noResults', { search }) : t('market.stores.emptyCategory')}
-						</Text>
-					</View>
-				) : (
-					<View style={{ marginHorizontal: -5 }}>
-						<FlashList
-							data={pagedStores}
-							keyExtractor={(item) => item.slug as string}
-							renderItem={renderStore}
-							numColumns={numColumns}
-							key={numColumns}
-							scrollEnabled={false}
-						/>
-						{safePage < totalPages && (
-							<View style={{ alignItems: 'center', marginTop: 14 }}>
-								<Text
-									onPress={() => dispatchFilters({ type: 'set', field: 'page', value: safePage + 1 })}
-									style={[textStyles.h6, { color: theme.colors.primary, fontWeight: '600', paddingVertical: 10, paddingHorizontal: 24 }]}
-								>
-									{t('market.common.loadMore')}
-								</Text>
-							</View>
-						)}
-					</View>
-				)}
-			</ScrollView>
+			<View style={styles.listWrap}>
+				<FlashList
+					data={filteredStores}
+					keyExtractor={(item) => item.slug as string}
+					renderItem={renderStore}
+					numColumns={numColumns}
+					key={numColumns}
+					contentContainerStyle={contentPadding}
+					showsVerticalScrollIndicator={false}
+					keyboardShouldPersistTaps="handled"
+					refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
+					onEndReached={loadMore}
+					onEndReachedThreshold={0.4}
+					ListHeaderComponent={header}
+					ListEmptyComponent={storesQuery.isPlaceholderData ? (
+						// Cambiando de categoría: lo que hay en pantalla es la anterior filtrada
+						// por la nueva (casi siempre vacía). Carga, no "sin tiendas"
+						<View style={styles.footer}><QPLoader /></View>
+					) : (
+						<View style={[styles.empty, { backgroundColor: theme.colors.surface }]}>
+							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, textAlign: 'center' }]}>
+								{search ? t('market.stores.noResults', { search }) : t('market.stores.emptyCategory')}
+							</Text>
+						</View>
+					)}
+					ListFooterComponent={isFetchingNextPage ? <View style={styles.footer}><QPLoader /></View> : null}
+				/>
+			</View>
 		</View>
 	)
 }
 
 const styles = StyleSheet.create({
+	listWrap: {
+		flex: 1,
+		marginHorizontal: -5,
+	},
+	header: {
+		paddingHorizontal: 5,
+	},
+	footer: {
+		paddingVertical: 16,
+		alignItems: 'center',
+	},
 	controls: {
 		flexDirection: 'row',
 		gap: 10,
@@ -254,9 +289,9 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'space-between',
 		marginBottom: 10,
-		paddingHorizontal: 5,
 	},
 	empty: {
+		marginHorizontal: 5,
 		padding: 40,
 		borderRadius: 14,
 		alignItems: 'center',

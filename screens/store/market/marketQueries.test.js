@@ -6,7 +6,7 @@
 // ejercita la lógica pura de paginación
 jest.mock('../../../api/marketApi', () => ({ marketApi: {} }))
 
-import { getNextOrdersPage, flattenOrders, ORDERS_PAGE_SIZE } from './marketQueries'
+import { getNextOrdersPage, flattenOrders, ORDERS_PAGE_SIZE, getNextStoresPage, flattenStores, STORES_PAGE_SIZE } from './marketQueries'
 
 const page = (uuids, total) => ({ orders: uuids.map(uuid => ({ uuid })), total })
 
@@ -37,5 +37,35 @@ describe('flattenOrders', () => {
 	test('tolera páginas vacías o datos ausentes', () => {
 		expect(flattenOrders(undefined)).toEqual([])
 		expect(flattenOrders([{ orders: null, total: 0 }])).toEqual([])
+	})
+})
+
+const storesPage = (slugs, total) => ({ stores: slugs.map(slug => ({ slug })), total })
+
+describe('getNextStoresPage', () => {
+	test('avanza mientras lo acumulado no alcance el total', () => {
+		const p1 = storesPage(Array.from({ length: STORES_PAGE_SIZE }, (_, i) => `s${i}`), 30)
+		expect(getNextStoresPage(p1, [p1], 1)).toBe(2)
+
+		const p2 = storesPage(['s24', 's25', 's26', 's27', 's28', 's29'], 30)
+		expect(getNextStoresPage(p2, [p1, p2], 2)).toBeUndefined()
+	})
+
+	test('sin total o con página vacía corta (no pide en bucle)', () => {
+		expect(getNextStoresPage(storesPage(['a'], null), [storesPage(['a'], null)], 1)).toBeUndefined()
+		expect(getNextStoresPage(storesPage([], 99), [storesPage(['a'], 99), storesPage([], 99)], 2)).toBeUndefined()
+		expect(getNextStoresPage(undefined, [], 1)).toBeUndefined()
+	})
+})
+
+describe('flattenStores', () => {
+	test('aplana y deduplica por slug entre páginas', () => {
+		const flat = flattenStores([storesPage(['a', 'b'], 3), storesPage(['b', 'c'], 3)])
+		expect(flat.map(s => s.slug)).toEqual(['a', 'b', 'c'])
+	})
+
+	test('tolera páginas vacías o datos ausentes', () => {
+		expect(flattenStores(undefined)).toEqual([])
+		expect(flattenStores([{ stores: null, total: 0 }])).toEqual([])
 	})
 })

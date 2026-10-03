@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, Pressable, StyleSheet, useWindowDimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 import StoreTile from '../../ui/store/StoreTile'
@@ -36,7 +36,11 @@ const SectionHeader = ({ title, hint, actionLabel, onAction, theme, textStyles }
 
 /**
  * Marketplace block of the Store screen: horizontal shelf of approved-store
- * tiles (featured first — the API already orders by featured/sales) with a
+ * tiles (featured first — the API already orders by featured/sales) laid out
+ * in rows that scroll together (two by default, three on tall phones), filled
+ * column by column so the top-left tile stays the most featured one. Rows drop
+ * while there aren't enough stores for at least two columns, so a short slice
+ * never leaves a half-empty grid. Comes with a
  * "Ver todas" action into the MarketStores index. Presentational only: data
  * and theme arrive via props from Store.jsx. Hidden while the slice is empty
  * (rollout: few stores approved yet).
@@ -48,11 +52,33 @@ type Props = {
 	navigation: StoreNavigation
 }
 
+const TILE_WIDTH = 168
+const TILE_GAP = 10
+/** Pro Max / Ultra class phones (iPhone Pro Max ≈ 932–956 dp, big Androids ≈ 915). */
+const TALL_SCREEN_MIN_HEIGHT = 900
+
+/** Rows that still leave at least two full columns for `count` stores. */
+const rowsFor = (count: number, preferred: number): number => {
+	let rows = preferred
+	while (rows > 1 && count < rows * 2) rows--
+	return rows
+}
+
+/** Column-major chunks: [[0,1],[2,3],…] for two rows, [[0,1,2],…] for three. */
+const toColumns = <T,>(items: T[], rows: number): T[][] => {
+	const columns: T[][] = []
+	for (let i = 0; i < items.length; i += rows) columns.push(items.slice(i, i + rows))
+	return columns
+}
+
 const StoreMarketSection = ({ marketStores, theme, textStyles, navigation }: Props) => {
 
 	const { t } = useTranslation()
+	const { height } = useWindowDimensions()
 
 	if (!marketStores?.length) return null
+
+	const columns = toColumns(marketStores, rowsFor(marketStores.length, height >= TALL_SCREEN_MIN_HEIGHT ? 3 : 2))
 
 	return (
 		<View style={styles.section}>
@@ -64,13 +90,16 @@ const StoreMarketSection = ({ marketStores, theme, textStyles, navigation }: Pro
 				theme={theme}
 				textStyles={textStyles}
 			/>
-			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 10 }}>
-				{marketStores.map(s => (
-					<View key={s.slug} style={{ width: 168 }}>
-						<StoreTile
-							store={s}
-							onPress={() => navigation.navigate(ROUTES.MARKET_STORE, { slug: s.slug as string })}
-						/>
+			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
+				{columns.map(column => (
+					<View key={column[0].slug} style={styles.column}>
+						{column.map(s => (
+							<StoreTile
+								key={s.slug}
+								store={s}
+								onPress={() => navigation.navigate(ROUTES.MARKET_STORE, { slug: s.slug as string })}
+							/>
+						))}
 					</View>
 				))}
 			</ScrollView>
@@ -85,6 +114,8 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		marginBottom: 10,
 	},
+	shelf: { gap: TILE_GAP, paddingRight: TILE_GAP },
+	column: { width: TILE_WIDTH, gap: TILE_GAP },
 })
 
 export default StoreMarketSection

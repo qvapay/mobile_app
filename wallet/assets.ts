@@ -81,7 +81,7 @@ const LOGO_TICKS: Record<string, string> = {
 
 const logoFor = (tick: string): string => LOGO_TICKS[tick] ?? tick
 
-const STABLES = new Set(['USDT', 'USDC', 'USDC.E', 'DAI', 'PYUSD', 'TUSD', 'QUSD'])
+const STABLES = new Set(['USDT', 'USDC', 'DAI', 'PYUSD', 'TUSD', 'QUSD'])
 
 /** Nombre corto de red para las filas ("BNB Chain" se lee mejor que "BNB Smart Chain"). */
 const SHORT_CHAIN_NAMES: Record<string, string> = {
@@ -230,8 +230,45 @@ export const isAssetVisible = (view: AssetView, prefs: AssetVisibility): boolean
 /** El token de QvaPay va SIEMPRE primero, tenga el saldo que tenga (decisión de producto 2026-09-15). */
 export const isHouseToken = (asset: Pick<WalletAsset, 'chainKey' | 'symbol'>): boolean => asset.chainKey === 'stacks' && asset.symbol.toUpperCase() === 'QUSD'
 
-/** Orden de la lista: QUSD primero; después valor USD desc; a igualdad, orden de la lista base y luego del registry. */
-export const sortAssets = (views: AssetView[]): AssetView[] => {
+/**
+ * Orden MANUAL del usuario ("Gestionar activos" → arrastrar): ids en el orden
+ * elegido. Vacío = automático. Lo que no esté en la lista (un activo nuevo, uno
+ * que reaparece con saldo) va detrás, en orden automático.
+ */
+export type AssetOrder = string[]
+
+/**
+ * Orden de la lista: QUSD primero SIEMPRE (también en manual); luego el orden
+ * manual si lo hay; si no, valor USD desc y, a igualdad, orden de la lista base
+ * y luego del registry.
+ */
+export const sortAssets = (views: AssetView[], order: AssetOrder = []): AssetView[] => {
+	const auto = sortAssetsAuto(views)
+	if (!order.length) return auto
+	const position = new Map(order.map((id, index) => [id, index]))
+	// sort estable: los que no están en el orden manual conservan el automático entre sí
+	return auto.slice().sort((a, b) => {
+		const house = Number(isHouseToken(b)) - Number(isHouseToken(a))
+		if (house !== 0) return house
+		const pa = position.get(a.id)
+		const pb = position.get(b.id)
+		if (pa !== undefined && pb !== undefined) return pa - pb
+		if (pa !== undefined) return -1
+		if (pb !== undefined) return 1
+		return 0
+	})
+}
+
+/** Mueve un elemento de `from` a `to` (índices) sin mutar la lista. */
+export const moveItem = <T,>(items: readonly T[], from: number, to: number): T[] => {
+	const next = items.slice()
+	if (from < 0 || from >= next.length) return next
+	const [item] = next.splice(from, 1)
+	next.splice(Math.max(0, Math.min(to, next.length)), 0, item)
+	return next
+}
+
+const sortAssetsAuto = (views: AssetView[]): AssetView[] => {
 	const catalogIndex = new Map(views.map((view, index) => [view.id, index]))
 	const rank = (view: AssetView) => {
 		const r = defaultRank(view)

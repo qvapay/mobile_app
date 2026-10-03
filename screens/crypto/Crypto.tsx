@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import type { ReactElement, ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+import type { ReactElement } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
-import type { ImageStyle, RefreshControlProps, TextStyle, ViewStyle } from 'react-native'
+import type { ImageStyle, LayoutChangeEvent, RefreshControlProps, TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -52,71 +53,68 @@ type CryptoProps = CompositeScreenProps<
 type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: Theme) => ViewStyle)>
 
 /**
- * OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así que
- * la comparación contra 'light' es siempre falsa en runtime y el borde claro de
- * las cards nunca se pinta. Se conserva tal cual con un cast local.
+ * Pestañas de mercado (labels = claves i18n resueltas en render). Pensado para
+ * crecer: los activos del mundo real (RWA) entran como una entrada más aquí,
+ * con su fuente de datos en `marketItems`.
  */
-const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
-
-// Explore tabs (labels = claves i18n resueltas en render)
-const EXPLORE_TABS: { key: string, labelKey: string, icon: FontAwesome6SolidIconName }[] = [
-	{ key: 'popular', labelKey: 'crypto.dashboard.tabs.popular', icon: 'star' },
-	{ key: 'stocks', labelKey: 'crypto.dashboard.tabs.stocks', icon: 'chart-line' },
+type MarketKey = 'crypto' | 'stocks'
+const MARKET_TABS: { key: MarketKey, labelKey: string }[] = [
+	{ key: 'crypto', labelKey: 'crypto.dashboard.tabs.crypto' },
+	{ key: 'stocks', labelKey: 'crypto.dashboard.tabs.stocks' },
 ]
+
+const INDICATOR_SPRING = { damping: 20, stiffness: 220, mass: 0.6 }
 
 // --- Sub-components ---
 
-type SectionCardProps = {
-	title: string
-	icon: FontAwesome6SolidIconName
+type MarketTabsProps = {
+	value: MarketKey
+	onChange: (key: MarketKey) => void
 	theme: Theme
-	rightLabel?: string
-	onSeeAll?: () => void
-	children?: ReactNode
 }
 
-const SectionCard = ({ title, icon, theme, rightLabel, onSeeAll, children }: SectionCardProps) => {
+/**
+ * Pestañas de texto con subrayado deslizante (patrón de mercados de
+ * Binance/Revolut): escalan a N mercados sin cambiar de forma, a diferencia de
+ * un segmented de dos. El subrayado se coloca con lo que mide cada pestaña.
+ */
+const MarketTabs = ({ value, onChange, theme }: MarketTabsProps) => {
 	const { t } = useTranslation()
+	const [layouts, setLayouts] = useState<Partial<Record<MarketKey, { x: number, width: number }>>>({})
+	const x = useSharedValue(0)
+	const width = useSharedValue(0)
+
+	const active = layouts[value]
+	useEffect(() => {
+		if (!active) return
+		// Primera medida: sin animación (el subrayado no debe "llegar" volando al abrir)
+		const first = width.value === 0
+		x.value = first ? active.x : withSpring(active.x, INDICATOR_SPRING)
+		width.value = first ? active.width : withSpring(active.width, INDICATOR_SPRING)
+	}, [active?.x, active?.width]) // eslint-disable-line react-hooks/exhaustive-deps
+	const indicatorStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], width: width.value }))
+
+	const onTabLayout = (key: MarketKey) => (event: LayoutChangeEvent) => {
+		const { x: tabX, width: tabWidth } = event.nativeEvent.layout
+		setLayouts(prev => (prev[key]?.x === tabX && prev[key]?.width === tabWidth ? prev : { ...prev, [key]: { x: tabX, width: tabWidth } }))
+	}
+
 	return (
-		<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
-			<View style={styles.sectionHeader}>
-				<View style={styles.cardHeader}>
-					<FontAwesome6 name={icon} size={16} color={theme.colors.primary} iconStyle="solid" />
-					<Text style={[styles.cardTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{title}</Text>
-				</View>
-				{onSeeAll && (
-					<Pressable onPress={onSeeAll} hitSlop={8}>
-						<Text style={[styles.seeAll, { color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{rightLabel || t('crypto.dashboard.seeAll')}</Text>
+		<View style={[styles.tabs, { borderBottomColor: theme.colors.border + '60' }]} accessibilityRole="tablist">
+			{MARKET_TABS.map(tab => {
+				const selected = tab.key === value
+				return (
+					<Pressable key={tab.key} onPress={() => onChange(tab.key)} onLayout={onTabLayout(tab.key)} style={styles.tab} hitSlop={6} accessibilityRole="tab" accessibilityState={{ selected }}>
+						<Text style={{ color: selected ? theme.colors.primaryText : theme.colors.tertiaryText, fontSize: theme.typography.fontSize.md, fontFamily: selected ? theme.typography.fontFamily.semiBold : theme.typography.fontFamily.medium }}>
+							{t(tab.labelKey)}
+						</Text>
 					</Pressable>
-				)}
-			</View>
-			{children}
+				)
+			})}
+			<Animated.View style={[styles.tabIndicator, { backgroundColor: theme.colors.primary }, indicatorStyle]} />
 		</View>
 	)
 }
-
-type FilterChipProps = {
-	label: string
-	icon: FontAwesome6SolidIconName
-	selected: boolean
-	theme: Theme
-	onPress: () => void
-}
-
-const FilterChip = ({ label, icon, selected, theme, onPress }: FilterChipProps) => (
-	<Pressable
-		onPress={onPress}
-		style={[
-			styles.chip,
-			selected
-				? { backgroundColor: theme.colors.primary }
-				: { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border },
-		]}
-	>
-		<FontAwesome6 name={icon} size={11} color={selected ? theme.colors.buttonText : theme.colors.secondaryText} iconStyle="solid" />
-		<Text style={[styles.chipText, { color: selected ? theme.colors.buttonText : theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>{label}</Text>
-	</Pressable>
-)
 
 /**
  * Fila del explorador: sirve tanto a una cripto enriquecida como a un stock,
@@ -211,11 +209,11 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const textStyles = useTextStyles(theme)
 
 	const { coins, stocks, isLoading, refreshing, onRefresh } = useCryptoDashboard()
-	const [exploreTab, setExploreTab] = useState('popular')
+	const [market, setMarket] = useState<MarketKey>('crypto')
 
 	// La lista mezcla criptos enriquecidas y stocks: se lee por la forma común
 	// (ExploreRowItem) — cast local, la pestaña activa decide qué campos hay
-	const exploreItems = (exploreTab === 'popular' ? coins.slice(0, 5) : stocks) as ExploreRowItem[]
+	const exploreItems = (market === 'crypto' ? coins.slice(0, 5) : stocks) as ExploreRowItem[]
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -229,22 +227,11 @@ const Crypto = ({ navigation }: CryptoProps) => {
 				    precios quedan al final. */}
 				<WalletHome refreshSignal={refreshing} />
 
-				{/* Explore: Cripto + Stocks */}
-				<SectionCard title={t('crypto.dashboard.explore')} icon="lightbulb" theme={theme}>
-					<View style={styles.chipRow}>
-						{EXPLORE_TABS.map((tab) => (
-							<FilterChip
-								key={tab.key}
-								label={t(tab.labelKey)}
-								icon={tab.icon}
-								selected={exploreTab === tab.key}
-								theme={theme}
-								onPress={() => setExploreTab(tab.key)}
-							/>
-						))}
-					</View>
+				{/* Mercados: Cripto · Stocks (y pronto RWA) */}
+				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && styles.cardBorder(theme)]}>
+					<MarketTabs value={market} onChange={setMarket} theme={theme} />
 					{exploreItems.map((item, i) => {
-						const isStock = exploreTab === 'stocks'
+						const isStock = market === 'stocks'
 						const rowProps = {
 							item,
 							theme,
@@ -281,7 +268,7 @@ const Crypto = ({ navigation }: CryptoProps) => {
 					})}
 					{isLoading && [0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={44} borderRadius={10} style={styles.exploreSkeleton} />)}
 					{!isLoading && exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
-				</SectionCard>
+				</View>
 
 			</ScrollView>
 		</View>
@@ -305,19 +292,6 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 		borderWidth: 1,
 		borderColor: theme.colors.border,
 	}),
-	cardHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8,
-	},
-	cardTitle: {},
-	sectionHeader: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		marginBottom: 8,
-	},
-	seeAll: {},
 	// Item rows
 	itemRow: {
 		flexDirection: 'row',
@@ -339,21 +313,24 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	itemPrice: {
 		textAlign: 'right',
 	},
-	// Explore
-	chipRow: {
+	// Mercados
+	tabs: {
 		flexDirection: 'row',
-		gap: 8,
+		gap: 22,
+		borderBottomWidth: StyleSheet.hairlineWidth,
 		marginBottom: 4,
 	},
-	chip: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 6,
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 20,
+	tab: {
+		paddingTop: 2,
+		paddingBottom: 10,
 	},
-	chipText: {},
+	tabIndicator: {
+		position: 'absolute',
+		left: 0,
+		bottom: -StyleSheet.hairlineWidth,
+		height: 2,
+		borderRadius: 1,
+	},
 	priceCol: {
 		width: 100,
 		alignItems: 'flex-end',

@@ -36,9 +36,10 @@ const LockScreen = () => {
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
 	const { isLocked, unlockWithPin } = useAppLock()
-	// Este Modal lleva `statusBarTranslucent` y el manifest usa `adjustNothing`: en Android
-	// el teclado NO redimensiona la ventana y tapaba las cajas del PIN (issue #47). Se sigue
-	// la altura a mano, como QPKeyboardView, y se cede ese espacio abajo
+	// Este Modal lleva `statusBarTranslucent` y la app es edge-to-edge: en Android el teclado
+	// NO redimensiona la ventana (con `adjustResize` solo llegan los insets del IME) y tapaba
+	// las cajas del PIN (issue #47). Se sigue la altura a mano, como QPKeyboardView, y se
+	// cede ese espacio abajo
 	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
 	const [pin, setPin] = useState('')

@@ -2,9 +2,10 @@
  * Datos de la wallet self-custody en React Query, raíz `['wallet', …]`.
  *
  * Saldos: directo del teléfono a las cadenas (router de RPCs). Historial:
- * proxy de qpweb. TODO lo on-chain lleva `meta: { noPersist: true }` (regla
- * dura 5 del plan: el persister escribe AsyncStorage sin cifrar). El registry
- * (`['wallet','registry']`) sí persiste: no es dato del usuario.
+ * proxy de qpweb. TODO lo on-chain lleva `meta: { noPersist: true }`: el
+ * persister de React Query no lo escribe. Su copia de arranque en frío va a
+ * disco por su cuenta — saldos/staking en `walletDiskCache.ts`, historial en
+ * `historyCache.ts`. El registry (`['wallet','registry']`) sí persiste.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AppState } from 'react-native'
@@ -24,12 +25,13 @@ import { useAssetCatalog } from './useAssetCatalog'
 import { fetchAllBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
 import { addressForKind, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
-import type { AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
+import type { AssetOrder, AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 import { getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import type { TronResources } from '../../../wallet/tron/tx'
 import { applyNewerPages, applyOlderPage, HISTORY_SYNC_MAX_PAGES, overlapsCache } from '../../../wallet/historyMerge'
 import type { HistoryCache } from '../../../wallet/historyMerge'
 import { loadHistoryCache, saveHistoryCache } from './historyCache'
+import { saveWalletQuery, useWalletQueriesPrimed } from './walletDiskCache'
 import type { WalletHistoryPage } from '../../../types/domain'
 
 // Settings + catálogo de monedas (precios USD)
@@ -59,6 +61,7 @@ const HISTORY_FIRST_SCREEN_ITEMS = 10
 const TRON_RESOURCES_STALE_MS = 15_000
 
 const NO_PREFS: AssetVisibility = {}
+const NO_ORDER: AssetOrder = []
 
 /**
  * Activos cuyo historial debe pedirse saltando la caché del proxy (hasta ese
@@ -96,6 +99,9 @@ export const useWalletBalancesQuery = () => {
 	const registry = useEffectiveRegistry()
 	const queryClient = useQueryClient()
 	const isFocused = useIsFocused()
+	// La foto de disco se siembra ANTES de pedir: pinta al instante y además
+	// sirve de `previous` a fetchAllBalances (una cadena caída conserva lo último)
+	const primed = useWalletQueriesPrimed(queryClient, addresses?.evm)
 
 	const queryKey = useMemo(
 		() => [...WALLET_BALANCES_KEY, addresses?.evm ?? '', addresses?.tron ?? '', addresses?.btc ?? ''],
@@ -104,13 +110,18 @@ export const useWalletBalancesQuery = () => {
 
 	const query = useQuery({
 		queryKey,
-		queryFn: () => fetchAllBalances(
-			getAppRpcRouter(),
-			registry,
-			addresses!,
-			queryClient.getQueryData<WalletBalancesResult>(queryKey),
-		),
-		enabled: !!addresses,
+		queryFn: async () => {
+			const result = await fetchAllBalances(
+				getAppRpcRouter(),
+				registry,
+				addresses!,
+				queryClient.getQueryData<WalletBalancesResult>(queryKey),
+			)
+			// A disco sin `failedChains`: al arrancar no hay pasada que haya fallado aún
+			saveWalletQuery(addresses?.evm, queryKey, { ...result, failedChains: [] })
+			return result
+		},
+		enabled: !!addresses && primed,
 		staleTime: BALANCES_STALE_MS,
 		refetchInterval: isFocused ? BALANCES_STALE_MS : false,
 		placeholderData: previous => previous,
@@ -197,15 +208,18 @@ export const useWalletAssets = () => {
 	const catalog = useAssetCatalog()
 	const prices = usePriceMap()
 	const balancesQuery = useWalletBalancesQuery()
+	const { addresses } = useWallet()
+	const primed = useWalletQueriesPrimed(useQueryClient(), addresses?.evm)
 	const { getSetting, updateSetting } = useSettings()
 	const prefs = getSetting('crypto', 'visibleAssets', NO_PREFS) as AssetVisibility
+	const order = getSetting('crypto', 'assetOrder', NO_ORDER) as AssetOrder
 
 	const balances = balancesQuery.data?.balances
 	const all = useMemo<AssetView[]>(
 		() => catalog.map(asset => toAssetView(asset, balances ?? {}, prices)),
 		[catalog, balances, prices],
 	)
-	const visible = useMemo(() => sortAssets(all.filter(view => isAssetVisible(view, prefs))), [all, prefs])
+	const visible = useMemo(() => sortAssets(all.filter(view => isAssetVisible(view, prefs)), order), [all, prefs, order])
 	// El total es el de lo que se VE (como Trust/SafePal): ocultar un activo lo saca de la suma
 	const total = useMemo(() => totalUsd(visible), [visible])
 
@@ -213,14 +227,24 @@ export const useWalletAssets = () => {
 		updateSetting('crypto', 'visibleAssets', { ...prefs, [id]: value })
 	}, [prefs, updateSetting])
 
+	/** Orden manual (ids); `[]` vuelve al automático por valor. */
+	const setAssetOrder = useCallback((next: AssetOrder) => {
+		updateSetting('crypto', 'assetOrder', next)
+	}, [updateSetting])
+
 	return {
 		all,
 		visible,
 		prefs,
 		total,
 		setAssetVisible,
-		/** Sin saldos todavía (ni de la pasada anterior): la UI pinta skeleton. */
+		/** Orden manual vigente (vacío = automático). */
+		order,
+		setAssetOrder,
+		/** Sin saldos todavía (ni de disco ni de la pasada anterior): la UI pinta skeleton. */
 		isLoading: !balances && balancesQuery.fetchStatus === 'fetching',
+		/** Aún leyendo la foto de disco (milisegundos): mejor no pintar nada que un skeleton de un frame. */
+		isHydrating: !primed,
 		hasBalances: !!balances,
 		isError: balancesQuery.isError && !balances,
 		failedChains: balancesQuery.data?.failedChains ?? [],
@@ -328,13 +352,17 @@ export const useWalletHistory = (asset: WalletAsset | undefined) => {
 		hasMore: !!data?.olderCursor,
 		loadMore,
 		isLoadingMore: loadingMore,
-		/** Primera carga sin nada en disco. */
-		isInitialLoading: !data && query.fetchStatus === 'fetching',
+		/**
+		 * Primera sincronización sin nada guardado. Mientras se LEE el disco no
+		 * cuenta (sería un skeleton de un frame), y una copia de disco VACÍA
+		 * tampoco es "lista": pintaría "sin actividad" antes de preguntar.
+		 */
+		isInitialLoading: !query.data && !!disk && disk.items.length === 0 && query.fetchStatus === 'fetching',
 		isSyncing: query.fetchStatus === 'fetching',
 		isError: query.isError,
 		error: query.error,
-		/** Sincronizado al menos una vez o con copia de disco. */
-		isReady: !!data,
+		/** Sincronizado al menos una vez o con movimientos en disco. */
+		isReady: !!query.data || (!!disk && disk.items.length > 0),
 		refetch: query.refetch,
 	}
 }

@@ -5,6 +5,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { Theme } from '../../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
@@ -48,10 +49,13 @@ import type { EnergyPriceRow } from '../../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletSendConfirm'>
 
-const Row = ({ label, value, theme, mono, last }: { label: string, value: string, theme: Theme, mono?: boolean, last?: boolean }) => (
+/** Fila etiqueta/valor; con `address`, el valor se pinta con los extremos resaltados. */
+const Row = ({ label, value, theme, mono, address, last }: { label: string, value: string, theme: Theme, mono?: boolean, address?: boolean, last?: boolean }) => (
 	<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
-		<Text selectable style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]}>{value}</Text>
+		{address
+			? <QPAddress selectable address={value} style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]} />
+			: <Text selectable style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]}>{value}</Text>}
 	</View>
 )
 
@@ -267,8 +271,8 @@ const SendSummaryCard = ({ theme, to, from, phase, prepared, feeEstimated, feeMa
 
 	return (
 		<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
-			<Row theme={theme} label={t('crypto.wallet.send.toLabel')} value={to} mono />
-			<Row theme={theme} label={t('crypto.wallet.send.fromLabel')} value={from} mono />
+			<Row theme={theme} label={t('crypto.wallet.send.toLabel')} value={to} mono address />
+			<Row theme={theme} label={t('crypto.wallet.send.fromLabel')} value={from} mono address />
 			<Row theme={theme} label={t('crypto.wallet.send.networkFee')} value={networkFee} />
 			<SendFeeTiers prepared={prepared} feeTier={feeTier} onPick={onPickTier} busy={busy} fee={fee} theme={theme} />
 

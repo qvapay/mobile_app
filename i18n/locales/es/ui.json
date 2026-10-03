@@ -17,9 +17,6 @@
 		"defaultSuffix": " · Predeterminada",
 		"newAddress": "Nueva dirección"
 	},
-	"amountInput": {
-		"balanceLabel": "Balance:"
-	},
 	"brandTile": {
 		"from": "desde ${{min}}",
 		"optionsCount": "{{count}} opciones"

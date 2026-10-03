@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import QPInput from '../../ui/particles/QPInput'
 import QPPressable from '../../ui/particles/QPPressable'
 import { keyFromFieldName } from './withdrawFees'
+import { isWalletFieldName } from '../../helpers/addressHighlight'
 import type { WorkingForm } from './withdrawFees'
 
 import type { CoinWorkingField } from '../../types/domain'
@@ -87,6 +88,7 @@ const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, mult
 					keyboardType={field.type === 'number' ? 'numeric' : 'default'}
 					style={{ marginVertical: 6 }}
 					prefixIconName={isMultiline ? 'bolt' : 'id-card'}
+					highlightAddress={isWalletFieldName(field.name)}
 					{...(isMultiline && { multiline: true, autoCapitalize: 'none', autoCorrect: false })}
 				/>
 			)

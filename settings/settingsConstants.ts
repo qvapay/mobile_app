@@ -141,6 +141,8 @@ export const DEFAULT_SETTINGS = {
 		customRpcs: {} as Record<string, string[]>,
 		/** "Gestionar activos": id de activo (`bsc:0x…`, `tron:native`) → visible. Solo lo que el usuario tocó. */
 		visibleAssets: {} as Record<string, boolean>,
+		/** Orden manual de la home de la wallet (ids, arrastrando en "Gestionar activos"). Vacío = automático por valor. */
+		assetOrder: [] as string[],
 		/** Ocultar entradas de menos de $0.01 en la actividad (dust / address poisoning). */
 		hideDust: true,
 		/** Face ID / Touch ID como atajo del PIN al firmar y ver la frase (marcador propio en Keychain). */

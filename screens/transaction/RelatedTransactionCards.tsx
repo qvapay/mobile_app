@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import QPAddress from '../../ui/particles/QPAddress'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 
@@ -71,7 +72,7 @@ const RelatedTransactionCards = ({ t, navigation }: RelatedTransactionCardsProps
 
 					<DetailRow label={tr('transactions.detail.related.address')}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-							<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>{truncateWalletAddress(t.wallet.wallet || '')}</Text>
+							<QPAddress address={t.wallet.wallet || ''} visible={{ head: 10, tail: 10 }} style={[textStyles.h6, { color: theme.colors.primaryText }]} numberOfLines={1} ellipsizeMode="middle" />
 							{/* Las aserciones repiten el guard `t.wallet && …` de arriba: el
 							    estrechamiento de TS no sobrevive dentro del callback */}
 							<Pressable onPress={() => copyTextToClipboard(t.wallet!.wallet)}>

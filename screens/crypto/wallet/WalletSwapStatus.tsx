@@ -27,6 +27,7 @@ import QPPressable from '../../../ui/particles/QPPressable'
 
 // Navigation
 import { ROUTES } from '../../../routes'
+import QPAddress from '../../../ui/particles/QPAddress'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
 import type { Swap, SwapStatus as Status } from '../../../types/domain'
@@ -133,8 +134,8 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 
 			{!!swap && (
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
-					<Row theme={theme} label={t('crypto.wallet.swap.fromLabel')} value={swap.direction === 'out' ? t('crypto.wallet.swap.balanceQvaPay') : shortAddress(swap.from_address)} />
-					<Row theme={theme} label={t('crypto.wallet.swap.toLabel')} value={swap.direction === 'out' ? shortAddress(swap.to_address) : t('crypto.wallet.swap.balanceQvaPay')} />
+					<Row theme={theme} label={t('crypto.wallet.swap.fromLabel')} value={swap.direction === 'out' ? t('crypto.wallet.swap.balanceQvaPay') : swap.from_address} address={swap.direction !== 'out'} />
+					<Row theme={theme} label={t('crypto.wallet.swap.toLabel')} value={swap.direction === 'out' ? swap.to_address : t('crypto.wallet.swap.balanceQvaPay')} address={swap.direction === 'out'} />
 					{!!swap.txid && (
 						<QPPressable onPress={() => { if (swap.explorer) Linking.openURL(swap.explorer) }} style={styles.row} accessibilityRole="link">
 							<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{t('crypto.wallet.swap.status.txLabel')}</Text>
@@ -197,12 +198,18 @@ const Timeline = ({ theme, swap }: { theme: ReturnType<typeof useTheme>['theme']
 	)
 }
 
-const Row = ({ theme, label, value }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string }) => (
-	<View style={styles.row}>
-		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
-		<Text selectable style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]}>{value}</Text>
-	</View>
-)
+/** Fila etiqueta/valor; con `address`, el valor es una dirección recortada 6…6 con los extremos resaltados. */
+const Row = ({ theme, label, value, address }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string | null | undefined, address?: boolean }) => {
+	const valueStyle = [styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]
+	return (
+		<View style={styles.row}>
+			<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
+			{address
+				? <QPAddress selectable address={value} visible={{ head: 6, tail: 6 }} style={valueStyle} />
+				: <Text selectable style={valueStyle}>{value}</Text>}
+		</View>
+	)
+}
 
 const styles = StyleSheet.create({
 	content: { gap: 12, paddingTop: 24, paddingBottom: 24, flexGrow: 1 },
