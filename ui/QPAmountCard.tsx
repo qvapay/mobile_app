@@ -68,18 +68,22 @@ const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount,
 
 			<View style={styles.middle}>
 				{editable ? (
-					<TextInput
-						ref={ref}
-						style={[styles.input, amountStyle]}
-						value={amount}
-						onChangeText={onChangeAmount}
-						placeholder={placeholder}
-						placeholderTextColor={theme.colors.placeholder}
-						keyboardType="decimal-pad"
-						editable={!disabled}
-						maxLength={12}
-						accessibilityLabel={accessibilityLabel ?? label}
-					/>
+					<View style={styles.input}>
+						{/* Placeholder PROPIO, no el nativo: iOS pinta `attributedPlaceholder` en su
+						    propio rectángulo de UIKit y a 34 pt lo recorta por arriba. Un Text detrás
+						    del input vacío se ve igual en las dos plataformas */}
+						{!amount && <Text style={[styles.placeholder, amountStyle]} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no">{placeholder}</Text>}
+						<TextInput
+							ref={ref}
+							style={[styles.inputBox, amountStyle]}
+							value={amount}
+							onChangeText={onChangeAmount}
+							keyboardType="decimal-pad"
+							editable={!disabled}
+							maxLength={12}
+							accessibilityLabel={accessibilityLabel ?? label}
+						/>
+					</View>
 				) : (
 					<View style={styles.input}>
 						{/* Atenuado, no vaciado: al cambiar de par sigue habiendo un número en
@@ -105,6 +109,9 @@ const styles = StyleSheet.create({
 	chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
 	middle: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
 	input: { flex: 1, paddingVertical: 0, justifyContent: 'center' },
+	// Altura explícita: sin placeholder nativo, el TextInput vacío no tendría tamaño intrínseco
+	inputBox: { height: 52, paddingVertical: 0 },
+	placeholder: { position: 'absolute', left: 0, right: 0 },
 	stale: { opacity: 0.35 },
 	bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
 	balance: { flexShrink: 1, textAlign: 'right' },
