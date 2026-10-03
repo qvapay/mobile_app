@@ -64,18 +64,75 @@ export type OrdersPage = { orders: MarketOrder[], total: number | null }
 
 export const ORDERS_PAGE_SIZE = 20
 
+/** Página de `GET /market/stores` tal y como la normaliza la query infinita. */
+export type StoresPage = { stores: MarketShop[], total: number | null }
+
+/** Tamaño de página del índice (el backend acepta hasta 50). */
+export const STORES_PAGE_SIZE = 24
+
 /**
- * Índice de tiendas aprobadas (`GET /market/stores`). El backend pagina de a
- * 50 máximo y el índice completo hoy cabe en una página, así que la paginación
- * y los filtros siguen siendo de cliente (MarketStores.tsx); la búsqueda
- * federada más allá de la página cargada tampoco se cachea — es efímera.
+ * Política de paginación del índice: igual que la de pedidos, hay página
+ * siguiente mientras lo acumulado no alcance el `total` del backend. Una
+ * página vacía también corta (evita pedir en bucle si el total miente).
  *
- * @param take - Tamaño de la página del índice.
- * @returns La query de React Query con la lista de tiendas.
+ * @param lastPage - Última página recibida.
+ * @param allPages - Todas las páginas acumuladas.
+ * @param lastPageParam - Número de la última página pedida.
+ * @returns La página siguiente, o undefined cuando no hay más.
  */
-export const useMarketStoresIndexQuery = (take: number): UseQueryResult<MarketShop[]> => useQuery({
-	queryKey: ['market', 'stores', take],
-	queryFn: async () => (unwrap(await marketApi.getStores({ take })) as { stores?: MarketShop[] } | null)?.stores || [],
+export const getNextStoresPage = (lastPage: StoresPage, allPages: StoresPage[], lastPageParam: number): number | undefined => {
+	const total = lastPage?.total
+	if (total == null || !lastPage.stores?.length) return undefined
+	const loaded = allPages.reduce((sum, page) => sum + (page.stores?.length || 0), 0)
+	return loaded < total ? lastPageParam + 1 : undefined
+}
+
+/**
+ * Aplana las páginas del índice deduplicando por slug: una tienda aprobada
+ * entre dos fetches corre los offsets y puede repetir una en la página siguiente.
+ *
+ * @param pages - Páginas acumuladas por la query infinita.
+ * @returns Tiendas aplanadas y sin duplicados.
+ */
+export const flattenStores = (pages?: StoresPage[]): MarketShop[] => {
+	const seen = new Set<string>()
+	const flat: MarketShop[] = []
+	for (const page of pages || []) {
+		for (const store of page.stores || []) {
+			if (store?.slug && seen.has(store.slug)) continue
+			if (store?.slug) seen.add(store.slug)
+			flat.push(store)
+		}
+	}
+	return flat
+}
+
+/** Raíz de clave del índice paginado (el pull-to-refresh la recorta). */
+export const marketStoresIndexKey = (category: string) => ['market', 'stores', 'index', category] as const
+
+/**
+ * Índice de tiendas aprobadas (`GET /market/stores`), paginado con scroll
+ * infinito. La categoría se filtra en el SERVIDOR (va en la clave: cambiar de
+ * chip = cambiar de query); 'ALL' no manda filtro. La búsqueda por nombre sigue
+ * siendo de cliente sobre lo cargado + la federada de MarketStores.tsx.
+ * Persistida solo con su primera página (el `serialize` global recorta toda
+ * query infinita).
+ *
+ * @param category - Slug de categoría, o 'ALL'.
+ * @returns La query infinita del índice.
+ */
+export const useMarketStoresInfiniteQuery = (category: string): UseInfiniteQueryResult<InfiniteData<StoresPage, number>> => useInfiniteQuery({
+	queryKey: marketStoresIndexKey(category),
+	queryFn: async ({ pageParam }): Promise<StoresPage> => {
+		const data = unwrap(await marketApi.getStores({
+			page: pageParam,
+			take: STORES_PAGE_SIZE,
+			...(category !== 'ALL' ? { category } : {}),
+		})) as { stores?: MarketShop[], total?: number | null } | null
+		return { stores: data?.stores || [], total: data?.total ?? null }
+	},
+	initialPageParam: 1,
+	getNextPageParam: getNextStoresPage,
 	placeholderData: previous => previous,
 })
 
