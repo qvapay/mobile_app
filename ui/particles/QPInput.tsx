@@ -64,7 +64,9 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
 
-	// Dirección resaltada: el TextInput acepta Text anidado en lugar de `value`
+	// Dirección resaltada: el TextInput acepta Text anidado en lugar de `value`.
+	// Un campo de dirección va SIEMPRE por children (resaltado o no): cambiar de
+	// `value` a children a mitad de escribir movía el cursor en iOS
 	const addressParts = highlightAddress ? splitAddress(props.value) : null
 
 	// Icon style
@@ -99,7 +101,7 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 					ref={ref}
 					{...(highlightAddress ? { autoCapitalize: 'none', autoCorrect: false, spellCheck: false } as const : null)}
 					{...props}
-					value={addressParts ? undefined : props.value}
+					value={highlightAddress ? undefined : props.value}
 					secureTextEntry={isSecure}
 					// @ts-expect-error placeholderStyle no existe en TextInputProps (prop no estándar); se conserva tal cual
 					placeholderStyle={{ fontFamily: theme.typography.fontFamily.regular }}
@@ -114,7 +116,7 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 						}
 					]}
 				>
-					{addressParts ? <Text><AddressSpans parts={addressParts} color={theme.colors.primary} /></Text> : null}
+					{highlightAddress ? <Text>{addressParts ? <AddressSpans parts={addressParts} color={theme.colors.primary} /> : props.value}</Text> : null}
 				</TextInput>
 
 				{hasSuffix && (

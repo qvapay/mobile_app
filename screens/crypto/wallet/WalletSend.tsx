@@ -69,14 +69,20 @@ const WalletSend = ({ navigation, route }: Props) => {
 	// Token ⇄ USD (solo activos volátiles con precio). Lo que manda siempre son
 	// unidades del token; `exactUnits` fija las exactas tras MÁX o al conmutar,
 	// para que el redondeo del texto no las mueva hasta que el usuario teclee
-	const [mode, setMode] = useState<AmountMode>('token')
-	const [exactUnits, setExactUnits] = useState<bigint | null>(null)
+	// Ligado al activo: con otro activo vuelve solo a token y sin unidades fijadas
+	// (derivado en render; un efecto de reseteo pintaba un frame con lo anterior)
+	const [unitState, setUnitState] = useState<{ assetId: string | undefined, mode: AmountMode, exact: bigint | null }>({ assetId: undefined, mode: 'token', exact: null })
+	const currentAssetId = asset?.id
+	const sameAsset = unitState.assetId === currentAssetId
+	const mode: AmountMode = sameAsset ? unitState.mode : 'token'
+	const exactUnits = sameAsset ? unitState.exact : null
+	const setExactUnits = useCallback((next: bigint | null) => {
+		setUnitState(prev => ({ assetId: currentAssetId, mode: prev.assetId === currentAssetId ? prev.mode : 'token', exact: next }))
+	}, [currentAssetId])
 	const price = asset?.priceTick ? prices[asset.priceTick] ?? null : null
 	const usdToggle = !!asset && canToggleUsd(asset, price)
 	const activeMode: AmountMode = usdToggle ? mode : 'token'
-	// Otro activo: de vuelta a su unidad y sin cantidades fijadas del anterior
-	useEffect(() => { setMode('token'); setExactUnits(null) }, [asset?.id])
-	const onChangeAmount = useCallback((value: string) => { setAmount(value); setExactUnits(null) }, [])
+	const onChangeAmount = useCallback((value: string) => { setAmount(value); setExactUnits(null) }, [setExactUnits])
 	// Reserva de gas para MAX en nativos EVM (fee actual del nodo); TRON usa la fija
 	const [nativeReserve, setNativeReserve] = useState<bigint | null>(null)
 	useEffect(() => {
@@ -132,20 +138,22 @@ const WalletSend = ({ navigation, route }: Props) => {
 		})
 		setExactUnits(max)
 		setAmount(unitsToInput(max, activeMode, price, asset.decimals))
-	}, [asset, balanceUnits, nativeReserve, activeMode, price])
+	}, [asset, balanceUnits, nativeReserve, activeMode, price, setExactUnits])
 
 	// Conmutar convierte lo escrito (no lo borra) y conserva las unidades exactas
 	const toggleMode = () => {
 		if (!asset || !usdToggle) return
 		const next: AmountMode = activeMode === 'token' ? 'usd' : 'token'
+		let exact = exactUnits
 		if (amountUnits !== null && !amountError) {
-			setExactUnits(amountUnits)
+			exact = amountUnits
 			setAmount(unitsToInput(amountUnits, next, price, asset.decimals))
 		} else if (amountError) {
+			exact = null
 			setAmount('')
-			setExactUnits(null)
 		}
-		setMode(next)
+		// Una sola actualización: modo y unidades exactas juntos (dos setters se pisarían)
+		setUnitState({ assetId: currentAssetId, mode: next, exact })
 	}
 
 	const canContinue = !!asset && !!toTrimmed && !toError && amountUnits !== null && !amountError
@@ -201,8 +209,8 @@ const WalletSend = ({ navigation, route }: Props) => {
 				<View style={[styles.field, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 					<TextInput
 						style={[styles.input, textStyles.h5, { color: theme.colors.primaryText }]}
-						// Dirección resaltada (6+6 en primary): Text anidado en lugar de `value`
-						value={toParts ? undefined : to}
+						// Dirección resaltada (6+6 en primary): SIEMPRE Text anidado, nunca `value`;
+						// pasar de uno a otro a mitad de escribir movía el cursor en iOS
 						onChangeText={setTo}
 						placeholder={addressPlaceholder(asset.kind)}
 						// Muy tenue (~40 %): es solo una pista de la forma, no compite con lo que se pega
@@ -216,7 +224,7 @@ const WalletSend = ({ navigation, route }: Props) => {
 						submitBehavior="blurAndSubmit"
 						returnKeyType="done"
 					>
-						{toParts ? <Text><AddressSpans parts={toParts} color={theme.colors.primary} /></Text> : null}
+						<Text>{toParts ? <AddressSpans parts={toParts} color={theme.colors.primary} /> : to}</Text>
 					</TextInput>
 					<View style={styles.fieldActions}>
 						<Pressable onPress={paste} hitSlop={8} style={styles.fieldAction} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.send.paste')}>
