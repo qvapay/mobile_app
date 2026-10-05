@@ -299,6 +299,7 @@
 				"remaining_other": "You have {{count}} free sends left today",
 				"exhausted": "You've used your free sends for today. They renew at {{time}}.",
 				"goldHook": "With GOLD, your USDT and USDC sends on Solana are free.",
+				"goldHookBsc": "With GOLD, you get free USDT sends on BNB Chain every day.",
 				"goldCta": "Get GOLD",
 				"sending": "Sending with no fee…",
 				"pending": "Sent. We're confirming it on the network.",

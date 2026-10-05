@@ -2,7 +2,7 @@ import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiResult } from '../types/api'
 import type { WalletAddresses } from '../wallet/derive'
-import type { GaslessQuote, GaslessSubmitResult, SponsorGrantState, WalletHistoryPage } from '../types/domain'
+import type { GaslessQuote, GaslessSubmitResult, SponsorChain, SponsorGrantState, WalletHistoryPage } from '../types/domain'
 
 /** Parámetros de `GET /wallet/history` (una página del historial de UN activo en UNA red). */
 export type WalletHistoryParams = {
@@ -89,10 +89,11 @@ export const walletApi = {
 	 * Un `eligible: false` NO es un error: llega con 200 y su motivo, porque el usuario
 	 * puede enviar igual pagando su gas y la pantalla necesita saber qué contarle.
 	 */
-	gaslessQuote: async (input: { to: string, mint: string, amount: string, idempotencyKey: string }): Promise<ApiResult<GaslessQuote>> => {
+	gaslessQuote: async (input: { chain: SponsorChain, asset: string, to: string, amount: string, idempotencyKey: string }): Promise<ApiResult<GaslessQuote>> => {
 		try {
+			// `mint` repite `asset` para un qpweb anterior a BSC, que solo lee `mint`
 			const response = await apiClient.post<GaslessQuote>('/wallet/gasless/quote', {
-				to: input.to, mint: input.mint, amount: input.amount, idempotency_key: input.idempotencyKey,
+				chain: input.chain, asset: input.asset, mint: input.asset, to: input.to, amount: input.amount, idempotency_key: input.idempotencyKey,
 			}, { silent: true })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return gaslessFail(err, 'api.wallet.gaslessQuoteFailed') }
@@ -101,12 +102,13 @@ export const walletApi = {
 	/**
 	 * Manda la transacción firmada por el usuario (`POST /wallet/gasless/{uuid}/submit`).
 	 * La difunde el backend tras co-firmarla: desde la app NUNCA sale a la red.
+	 * Solana: base64 a medio firmar. BSC: raw hex `0x…` con gasPrice 0.
 	 *
 	 * Puede tardar ~35s (el patrocinador hace preflight, simulación y espera confirmación).
 	 */
-	gaslessSubmit: async (uuid: string, txBase64: string): Promise<ApiResult<GaslessSubmitResult>> => {
+	gaslessSubmit: async (uuid: string, tx: string): Promise<ApiResult<GaslessSubmitResult>> => {
 		try {
-			const response = await apiClient.post<GaslessSubmitResult>(`/wallet/gasless/${uuid}/submit`, { tx: txBase64 }, { timeout: GASLESS_SUBMIT_TIMEOUT_MS })
+			const response = await apiClient.post<GaslessSubmitResult>(`/wallet/gasless/${uuid}/submit`, { tx }, { timeout: GASLESS_SUBMIT_TIMEOUT_MS })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return gaslessFail(err, 'api.wallet.gaslessSubmitFailed') }
 	},

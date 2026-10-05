@@ -5,7 +5,7 @@
  * aquí es si el envío gratis del día se conserva o se gasta, y si el usuario acaba
  * reenviando algo que ya salió a la red.
  */
-import { consumesGrant, interpretSubmit, sponsoredNotice, isGrantUsable } from './gaslessModel'
+import { consumesGrant, fallsBackToPaid, grantChain, interpretSubmit, sponsorChainFor, sponsoredNotice, isGrantUsable } from './gaslessModel'
 
 const result = (overrides = {}) => ({ status: 'confirmed', reason: null, rebuild: false, retryable: false, signature: 'SIG', explorer: null, message: null, ...overrides })
 
@@ -92,5 +92,56 @@ describe('el aviso cuando el envío VA patrocinado', () => {
 
 	it('sin dato tampoco se inventa un número', () => {
 		expect(sponsoredNotice(null)).toBe('lastFree')
+	})
+})
+
+describe('sponsorChainFor', () => {
+
+	it('Solana: USDT y USDC por mint exacto', () => {
+		expect(sponsorChainFor({ chainKey: 'solana', contract: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' })).toBe('solana')
+		expect(sponsorChainFor({ chainKey: 'solana', contract: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' })).toBe('solana')
+	})
+
+	it('BSC: solo USDT, sin importar mayúsculas del checksum', () => {
+		expect(sponsorChainFor({ chainKey: 'bsc', contract: '0x55d398326f99059fF775485246999027B3197955' })).toBe('bsc')
+		expect(sponsorChainFor({ chainKey: 'bsc', contract: '0x55d398326f99059ff775485246999027b3197955' })).toBe('bsc')
+		// USDC de BSC queda fuera a propósito
+		expect(sponsorChainFor({ chainKey: 'bsc', contract: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' })).toBeNull()
+	})
+
+	it('nativos, otras redes y el mismo contrato en otra cadena no se patrocinan', () => {
+		expect(sponsorChainFor({ chainKey: 'bsc', contract: null })).toBeNull()
+		expect(sponsorChainFor({ chainKey: 'solana', contract: null })).toBeNull()
+		expect(sponsorChainFor({ chainKey: 'ethereum', contract: '0x55d398326f99059fF775485246999027B3197955' })).toBeNull()
+		expect(sponsorChainFor({ chainKey: 'tron', contract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' })).toBeNull()
+		expect(sponsorChainFor(undefined)).toBeNull()
+	})
+})
+
+describe('grantChain', () => {
+
+	it('un permiso sin `chain` viene de un qpweb anterior a BSC: es de Solana', () => {
+		expect(grantChain({})).toBe('solana')
+		expect(grantChain({ chain: 'bsc' })).toBe('bsc')
+	})
+})
+
+describe('fallsBackToPaid', () => {
+
+	it('sin gastar nada y sin arreglo reconstruyendo: se ofrece pagar', () => {
+		// Paymaster que no la acepta, otra tx sin minar, presupuesto agotado…
+		for (const reason of ['not_sponsorable', 'nonce_gap', 'daily_budget', 'broadcast_failed']) {
+			expect(fallsBackToPaid(result({ status: 'authorized', signature: null, reason }))).toBe(true)
+		}
+	})
+
+	it('un rebuild NO cae a pagar: se reconstruye gratis con el mismo permiso', () => {
+		expect(fallsBackToPaid(result({ status: 'authorized', rebuild: true, signature: null }))).toBe(false)
+	})
+
+	it('lo que pudo cobrarse nunca cae a pagar: sería enviar dos veces', () => {
+		for (const status of ['confirmed', 'pending', 'failed', 'review']) {
+			expect(fallsBackToPaid(result({ status }))).toBe(false)
+		}
 	})
 })

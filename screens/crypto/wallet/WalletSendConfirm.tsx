@@ -29,7 +29,7 @@ import type { FeeTier, PreparedSend } from './walletSendActions'
 import { parseUnitsSafe, sendFeeState } from './sendConfirmModel'
 import useWalletSendTx from './useWalletSendTx'
 import useGaslessSend from './useGaslessSend'
-import { sponsoredNotice } from './gaslessModel'
+import { sponsorChainFor, sponsoredNotice } from './gaslessModel'
 import type { GaslessState } from './useGaslessSend'
 import type { SendPhase } from './useWalletSendTx'
 import { formatUsd, shortAddress } from './walletFormat'
@@ -45,7 +45,7 @@ import EnergyRentModal from './components/EnergyRentModal'
 import { ROUTES } from '../../../routes'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { EnergyPriceRow } from '../../../types/domain'
+import type { EnergyPriceRow, SponsorChain } from '../../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletSendConfirm'>
 
@@ -102,8 +102,9 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		navigation.replace(ROUTES.WALLET_SEND_SUCCESS, { assetId, txid, amount, to })
 	}, [navigation, assetId, amount, to, exchangeUuid])
 
-	// Patrocinio: en Solana QvaPay puede pagar el fee de un GOLD. Si hay permiso, la tx
-	// se construye con su pagador y la difunde el backend; si no, envío normal.
+	// Patrocinio: QvaPay paga el fee de un GOLD en USDT/USDC de Solana y USDT de BSC. Si
+	// hay permiso, la tx se construye con su pagador (Solana) o con gasPrice 0 (BSC) y la
+	// difunde el backend; si no, envío normal.
 	// Sin sesión (modo wallet) no hay patrocinio: el permiso lo concede el backend
 	const gasless = useGaslessSend({ asset, to, amount: asset ? parseUnitsSafe(amount, asset.decimals).toString() : '', enabled: isAuthenticated })
 
@@ -140,7 +141,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 
 	// Lo decide la tx CONSTRUIDA, no el permiso: si el patrocinio se cayó entre pedirlo
 	// y preparar, la pantalla tiene que volver a enseñar la comisión de verdad
-	const sponsored = prepared?.kind === 'solana' && prepared.inner.sponsored
+	const sponsored = (prepared?.kind === 'solana' || prepared?.kind === 'evm') && prepared.inner.sponsored
 
 	const nativeDecimals = chain.native.decimals
 	const nativeSymbol = chain.native.symbol
@@ -190,7 +191,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				error={phase === 'error' ? error : null}
 			/>
 
-			<GaslessNotice state={gasless.state} sponsored={sponsored} theme={theme} onGold={() => navigation.navigate(ROUTES.GOLD_CHECK)} />
+			<GaslessNotice state={gasless.state} sponsored={sponsored} chain={sponsorChainFor(asset)} theme={theme} onGold={() => navigation.navigate(ROUTES.GOLD_CHECK)} />
 
 			<EnergyNotice
 				theme={theme}
@@ -352,19 +353,24 @@ const SendNotices = ({ theme, prepared, symbol, fee, feeEstimated, insufficientN
 }
 
 /**
- * El patrocinio de Solana, contado al usuario.
+ * El patrocinio (Solana y BSC), contado al usuario.
  *
  * Tres estados que merecen decirse y uno que no: cuando hay permiso se recuerda cuántos
  * envíos gratis le quedan; cuando no es GOLD se le enseña lo que se está perdiendo;
  * cuando agotó la cuota se le dice a qué hora vuelve. Un `disabled` —el producto apagado
  * o el backend caído— se calla: no hay nada que el usuario pueda hacer al respecto.
  */
-const GaslessNotice = ({ state, sponsored, theme, onGold }: { state: GaslessState, sponsored: boolean, theme: Theme, onGold: () => void }) => {
+const GaslessNotice = ({ state, sponsored, chain, theme, onGold }: { state: GaslessState, sponsored: boolean, chain: SponsorChain | null, theme: Theme, onGold: () => void }) => {
 
 	const { t } = useTranslation()
 
 	if (state.phase === 'pending') {
 		return <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t('crypto.wallet.send.gasless.pending')} />
+	}
+
+	// El gratis no salió y no se gastó nada: el resumen ya enseña la comisión de verdad
+	if (state.phase === 'failed') {
+		return <Notice theme={theme} icon="circle-info" color={theme.colors.warning} text={t('crypto.wallet.send.gasless.failed')} />
 	}
 
 	if (sponsored) {
@@ -384,7 +390,7 @@ const GaslessNotice = ({ state, sponsored, theme, onGold }: { state: GaslessStat
 	if (state.phase !== 'ineligible') { return null }
 
 	if (state.reason === 'not_gold') {
-		return <Notice theme={theme} icon="circle-info" color={theme.colors.gold} text={t('crypto.wallet.send.gasless.goldHook')} action={t('crypto.wallet.send.gasless.goldCta')} onPress={onGold} />
+		return <Notice theme={theme} icon="circle-info" color={theme.colors.gold} text={t(chain === 'bsc' ? 'crypto.wallet.send.gasless.goldHookBsc' : 'crypto.wallet.send.gasless.goldHook')} action={t('crypto.wallet.send.gasless.goldCta')} onPress={onGold} />
 	}
 	if (state.reason === 'quota_exhausted') {
 		const time = state.renewsAt ? new Date(state.renewsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '00:00'

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pressable, View, Text, Platform } from 'react-native'
+import { Pressable, View, Text, Platform, Image, type ImageSourcePropType } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -60,14 +60,19 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 type MainStackProps = NativeStackScreenProps<RootStackParamList, 'MainStack'>
 
-/** Icono de un tab por plataforma: SF Symbol en iOS 26+, FontAwesome6 en el resto. */
-type TabIconConfig = { ios: string, android: FontAwesome6SolidIconName, label: string }
+/**
+ * Icono de un tab por plataforma: SF Symbol en iOS 26+, FontAwesome6 en el resto.
+ * Con `image` (PNG monocromo blanco sobre transparente, 30pt @1x/@2x/@3x) el
+ * icono custom gana en las DOS plataformas: el tab bar nativo lo tiñe como
+ * template y en el JS se tiñe con `tintColor`.
+ */
+type TabIconConfig = { ios: string, android: FontAwesome6SolidIconName, label: string, image?: ImageSourcePropType }
 
 // Tab icon config per screen: iOS uses sfSymbol, Android uses FontAwesome6
 const TAB_ICONS: Record<string, TabIconConfig> = {
 	[ROUTES.HOME_SCREEN]: { ios: 'wallet.pass.fill', android: 'wallet', label: 'Inicio' },
 	[ROUTES.CRYPTO_SCREEN]: { ios: 'bitcoinsign.circle.fill', android: 'bitcoin-sign', label: 'Cripto' },
-	[ROUTES.KEYPAD_SCREEN]: { ios: 'dollarsign.circle.fill', android: 'dollar-sign', label: 'Enviar' },
+	[ROUTES.KEYPAD_SCREEN]: { ios: 'dollarsign.circle.fill', android: 'dollar-sign', label: 'Enviar', image: require('../assets/images/tabs/qusd.png') },
 	[ROUTES.P2P_SCREEN]: { ios: 'person.2.fill', android: 'people-group', label: 'P2P' },
 	[ROUTES.STORE_SCREEN]: { ios: 'storefront.fill', android: 'store', label: 'Tienda' },
 }
@@ -75,7 +80,16 @@ const TAB_ICONS: Record<string, TabIconConfig> = {
 const getTabIcon = (routeName: string) => {
 	const config = TAB_ICONS[routeName]
 	if (supportsLiquidGlass) {
-		return { type: 'sfSymbol', name: config.ios }
+		return config.image
+			? { type: 'image', source: config.image, tinted: true }
+			: { type: 'sfSymbol', name: config.ios }
+	}
+	if (config.image) {
+		const source = config.image
+		return ({ color, size }: { color: string, size?: number }) => {
+			const side = (size || 22) + 6
+			return <Image source={source} style={{ width: side, height: side, tintColor: color }} resizeMode="contain" />
+		}
 	}
 	return ({ color, size }: { color: string, size?: number }) => (
 		<FontAwesome6 name={config.android} size={size || 22} color={color} iconStyle="solid" />

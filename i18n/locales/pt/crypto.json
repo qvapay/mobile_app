@@ -299,6 +299,7 @@
 				"remaining_other": "Restam {{count}} envios grátis hoje",
 				"exhausted": "Você já usou seus envios grátis de hoje. Renovam às {{time}}.",
 				"goldHook": "Com GOLD, seus envios de USDT e USDC na Solana são grátis.",
+				"goldHookBsc": "Com GOLD, você tem envios de USDT na BNB Chain grátis todos os dias.",
 				"goldCta": "Seja GOLD",
 				"sending": "Enviando sem taxa…",
 				"pending": "Enviado. Estamos confirmando na rede.",

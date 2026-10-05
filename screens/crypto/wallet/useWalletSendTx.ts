@@ -2,7 +2,7 @@
  * Motor de "enviar" de la wallet sobre el núcleo común `useWalletTx`
  * (construir → VERIFICAR → firmar → difundir, reintentos, vigencia, doble
  * tap). Aquí vive solo lo propio de un envío: la intención (destino +
- * importe), el nivel de comisión, el patrocinio de Solana y la espera de la
+ * importe), el nivel de comisión, el patrocinio (Solana y BSC) y la espera de la
  * energía TRON recién alquilada.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -41,8 +41,9 @@ type Args = {
 	onSent: (txid: string) => void
 	describeError: (err: unknown) => string
 	/**
-	 * Patrocinio: la tx se construye con el pagador de QvaPay en el hueco 0 y la
-	 * difunde el backend. `null` = envío normal, el usuario paga su gas.
+	 * Patrocinio: la tx se construye con el pagador de QvaPay en el hueco 0
+	 * (Solana) o con gasPrice 0 (BSC) y la difunde el backend. `null` = envío
+	 * normal, el usuario paga su gas.
 	 */
 	sponsor?: SponsorBridge | null
 }
@@ -65,17 +66,22 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 
 	const build = useCallback(() => {
 		const intent = { chainKey: asset!.chainKey, from: addressForKind(addresses!, asset!.kind), fromPublicKey: addresses!.stxPublicKey, to, amount: parseUnits(amount, asset!.decimals), contract: asset!.contract }
-		// Con patrocinio el hueco 0 es de QvaPay: el usuario firma solo el suyo
-		return prepareSend(chain!, intent, feeTier, { feePayer: sponsor?.feePayer ?? null })
-	}, [asset, addresses, chain, to, amount, feeTier, sponsor?.feePayer])
+		// Con patrocinio en Solana el hueco 0 es de QvaPay: el usuario firma solo el suyo.
+		// En BSC no hay hueco de pagador: la tx va con gasPrice 0 y la paga el paymaster
+		return prepareSend(chain!, intent, feeTier, { feePayer: sponsor?.feePayer ?? null, zeroGas: sponsor?.chain === 'bsc' })
+	}, [asset, addresses, chain, to, amount, feeTier, sponsor?.feePayer, sponsor?.chain])
 
 	const submit = useCallback(async (current: PreparedSend, signed: SignedSend): Promise<SubmitResult> => {
 		// Una tx patrocinada NUNCA sale a la red desde aquí: va a medio firmar al
 		// backend, que la co-firma y la emite (`broadcastSigned` lo impide además)
-		if (sponsor && current.kind === 'solana' && signed.kind === 'solana' && current.inner.sponsored) {
-			const outcome = await sponsor.submit(signed.signed.base64)
-			// El blockhash caducó antes de llegar: no se gastó nada y el permiso
-			// sigue vivo, así que se reconstruye y se vuelve a firmar
+		const sponsoredTx = !sponsor ? null
+			: current.kind === 'solana' && signed.kind === 'solana' && current.inner.sponsored ? signed.signed.base64
+				: current.kind === 'evm' && signed.kind === 'evm' && current.inner.sponsored ? signed.signed.raw
+					: null
+		if (sponsor && sponsoredTx) {
+			const outcome = await sponsor.submit(sponsoredTx)
+			// No se gastó nada y el permiso sigue vivo (Solana: caducó el blockhash; BSC:
+			// el nonce ya se usó), así que se reconstruye y se vuelve a firmar
 			if ('rebuild' in outcome) return { rebuild: true }
 			return { txid: outcome.txid, duplicate: false }
 		}

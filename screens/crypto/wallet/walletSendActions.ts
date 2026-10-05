@@ -87,6 +87,8 @@ export type PrepareOptions = {
 	sponsored?: boolean
 	/** Solana: dirección del fee payer patrocinador (QvaPay); el usuario firma solo su hueco. */
 	feePayer?: string | null
+	/** EVM (BSC): tx patrocinada por paymaster BEP-414, legacy con gasPrice 0. */
+	zeroGas?: boolean
 }
 
 export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier: FeeTier = 'normal', options: PrepareOptions = {}): Promise<PreparedSend> => {
@@ -103,15 +105,19 @@ export const prepareSend = async (chain: RegistryChain, intent: SendIntent, tier
 	if (chain.kind === 'evm') {
 		if (!chain.chainId) throw new Error(`wallet: la cadena ${intent.chainKey} no declara chainId`)
 		const evmIntent = { chainId: chain.chainId, from: intent.from, to: intent.to, amount: intent.amount, contract: intent.contract }
-		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareEvmSend(rpc, chain, evmIntent, { signal, tier }))
+		const zeroGas = options.zeroGas === true
+		const inner = await router.call(intent.chainKey, (rpc, signal) => prepareEvmSend(rpc, chain, evmIntent, { signal, tier, zeroGas }))
 		// Lo verificado en EVM es la tx construida: value (nativo) o calldata (token) salen de ella
 		const amount = intent.contract ? intent.amount : inner.tx.value ?? 0n
+		// Patrocinada: el usuario no paga gas, así que ni comisión, ni techo, ni niveles que elegir
 		return {
 			kind: 'evm', chain, intent, inner,
-			summary: {
-				amount, feeEstimated: inner.fee.estimatedWei, feeMax: inner.fee.maxWei, activatesAccount: false, expiresAt: null, feeTier: inner.tier,
-				feeOptions: (['fast', 'normal', 'slow'] as FeeTier[]).map(t => ({ tier: t, feeEstimated: inner.feeByTier[t], etaMinutes: null })),
-			},
+			summary: inner.sponsored
+				? { amount, feeEstimated: 0n, feeMax: null, activatesAccount: false, expiresAt: null, feeTier: null, feeOptions: [] }
+				: {
+					amount, feeEstimated: inner.fee.estimatedWei, feeMax: inner.fee.maxWei, activatesAccount: false, expiresAt: null, feeTier: inner.tier,
+					feeOptions: (['fast', 'normal', 'slow'] as FeeTier[]).map(t => ({ tier: t, feeEstimated: inner.feeByTier[t], etaMinutes: null })),
+				},
 		}
 	}
 	if (chain.kind === 'btc') {
@@ -262,6 +268,9 @@ export const broadcastSigned = async (prepared: PreparedSend, signed: SignedSend
 		return router.call(prepared.intent.chainKey, (rpc, signal) => broadcastTronTransaction(rpc, prepared.inner.tx.raw_data_hex, signed.signature, { signal }), { accept: TRON_TX_RPC })
 	}
 	if (prepared.kind === 'evm' && signed.kind === 'evm') {
+		// Con gasPrice 0 solo la mete un paymaster; en el mempool público se quedaría colgada
+		// ocupando el nonce del usuario
+		if (prepared.inner.sponsored) throw new Error('wallet: una tx patrocinada no se difunde desde la app')
 		const result = await router.call(prepared.intent.chainKey, (rpc, signal) => broadcastEvmTransaction(rpc, signed.signed, { signal }))
 		return { txid: result.hash, duplicate: result.duplicate }
 	}

@@ -35,6 +35,13 @@ const MAX_TOKEN_GAS = 300_000n
 /** Prioridad mínima (1 gwei): algunos nodos devuelven 0 en `eth_maxPriorityFeePerGas` y la tx se queda sin minar. */
 const MIN_PRIORITY_FEE_WEI = 1_000_000_000n
 
+/**
+ * Tope de gas de una tx PATROCINADA (gasPrice 0). Lo paga otro, así que va más ceñido que
+ * `MAX_TOKEN_GAS`: un transfer de USDT en BSC gasta ~35-52k. Es el mismo tope que aplica
+ * TronDealer (`BSC_SPONSOR_MAX_GAS`); por encima, la rechazaría sin gastar nada.
+ */
+export const MAX_SPONSORED_GAS = 120_000n
+
 // ---------------------------------------------------------------------------
 // Direcciones y calldata
 // ---------------------------------------------------------------------------
@@ -109,6 +116,11 @@ export type PreparedEvmSend = {
 	tier: FeeTier
 	/** Fee estimada (wei) por nivel con el mismo gas, para mostrar las opciones sin volver al nodo. */
 	feeByTier: Record<FeeTier, bigint>
+	/**
+	 * Patrocinada: legacy con gasPrice 0. Solo vale dentro de un bundle de un paymaster
+	 * BEP-414 (BSC), así que NUNCA se difunde desde la app: la manda el backend.
+	 */
+	sponsored: boolean
 }
 
 type Deps = { signal?: AbortSignal }
@@ -138,11 +150,12 @@ export const getEvmFeeData = async (rpc: RegistryRpc, deps: Deps = {}): Promise<
  * `ChainHttpError` no reintentable con el mensaje del nodo si la estimación
  * revierte (saldo de token insuficiente, contrato pausado…).
  */
-export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, intent: EvmSendIntent, deps: Deps & { tier?: FeeTier } = {}): Promise<PreparedEvmSend> => {
+export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, intent: EvmSendIntent, deps: Deps & { tier?: FeeTier, zeroGas?: boolean } = {}): Promise<PreparedEvmSend> => {
 	const tier = deps.tier ?? 'normal'
 	if (!isValidEvmAddress(intent.to)) throw new ChainHttpError('evm: destino inválido', { retryable: false })
 	if (intent.amount <= 0n) throw new ChainHttpError('evm: cantidad inválida', { retryable: false })
 	if (chain.chainId !== intent.chainId) throw new ChainHttpError('evm: chainId no coincide con la red', { retryable: false })
+	if (deps.zeroGas) return prepareSponsoredEvmSend(rpc, intent, deps)
 
 	const to = (intent.contract ?? intent.to) as `0x${string}`
 	const value = intent.contract ? 0n : intent.amount
@@ -170,13 +183,45 @@ export const prepareEvmSend = async (rpc: RegistryRpc, chain: RegistryChain, int
 		const maxFeePerGas = feeData.baseFee * 2n + priority
 		const tx: TransactionSerializable = { ...base, type: 'eip1559', maxFeePerGas, maxPriorityFeePerGas: priority }
 		const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * (feeData.baseFee + tierPriority(feeData.priorityFee, t))])) as Record<FeeTier, bigint>
-		return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * (feeData.baseFee + priority), maxWei: gasLimit * maxFeePerGas, eip1559: true }, tier, feeByTier }
+		return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * (feeData.baseFee + priority), maxWei: gasLimit * maxFeePerGas, eip1559: true }, tier, feeByTier, sponsored: false }
 	}
 	// Legacy: el "priority" es el propio gasPrice escalado
 	const gasPrice = tierPriority(feeData.gasPrice, tier)
 	const tx: TransactionSerializable = { ...base, type: 'legacy', gasPrice }
 	const feeByTier = Object.fromEntries(tiers.map(t => [t, gasLimit * tierPriority(feeData.gasPrice, t)])) as Record<FeeTier, bigint>
-	return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * gasPrice, maxWei: gasLimit * gasPrice, eip1559: false }, tier, feeByTier }
+	return { intent, tx, fee: { gasLimit, estimatedWei: gasLimit * gasPrice, maxWei: gasLimit * gasPrice, eip1559: false }, tier, feeByTier, sponsored: false }
+}
+
+/**
+ * Tx patrocinada por un paymaster BEP-414 (BSC): `transfer` de token, **legacy con
+ * gasPrice 0**. Así es como la espera el paymaster: él añade su propia tx pagadora y las
+ * mete juntas en un bundle (entran las dos o ninguna). El usuario no necesita nativo.
+ *
+ * Solo tokens: patrocinar un envío del propio nativo no tiene sentido (quien lo tiene
+ * puede pagar su gas) y los paymasters no lo aceptan.
+ *
+ * El nonce es `pending`, igual que en un envío normal: si hay otra tx del usuario sin
+ * minar, el backend lo detecta (NONCE_GAP) antes de gastar nada. Y como el bundle viaja por
+ * canal privado, si el usuario acaba enviando por su cuenta, esa tx toma el mismo nonce y
+ * deja sin valor a la patrocinada: como mucho sale una de las dos.
+ */
+const prepareSponsoredEvmSend = async (rpc: RegistryRpc, intent: EvmSendIntent, deps: Deps): Promise<PreparedEvmSend> => {
+	if (!intent.contract) throw new ChainHttpError('evm: solo se patrocinan envíos de tokens', { retryable: false })
+	const to = intent.contract as `0x${string}`
+	const data = encodeErc20Transfer(intent.to, intent.amount)
+
+	const [nonceHex, gasHex] = await Promise.all([
+		jsonRpc<string>(rpc.url, 'eth_getTransactionCount', [intent.from, 'pending'], rpcOpts(rpc, deps)),
+		// Sin gasPrice: la estimación no exige saldo de nativo, que es justo lo que falta
+		jsonRpc<string>(rpc.url, 'eth_estimateGas', [{ from: intent.from, to, data, value: '0x0' }], rpcOpts(rpc, deps)),
+	])
+
+	const gasLimit = hexToBigInt(gasHex) * (100n + TOKEN_GAS_MARGIN_PERCENT) / 100n
+	if (gasLimit > MAX_SPONSORED_GAS) throw new ChainHttpError(`evm: gas estimado anómalo para un envío patrocinado (${gasLimit})`, { retryable: false })
+
+	const tx: TransactionSerializable = { chainId: intent.chainId, nonce: Number(hexToBigInt(nonceHex)), to, value: 0n, data, gas: gasLimit, type: 'legacy', gasPrice: 0n }
+	const zero = { fast: 0n, normal: 0n, slow: 0n }
+	return { intent, tx, fee: { gasLimit, estimatedWei: 0n, maxWei: 0n, eip1559: false }, tier: 'normal', feeByTier: zero, sponsored: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -197,8 +242,14 @@ export const signEvmTransaction = async (prepared: PreparedEvmSend, privateKey: 
 	return { raw, hash: keccak256(raw) }
 }
 
-export const verifySignedEvmTransaction = async (raw: `0x${string}`, { intent, tx }: PreparedEvmSend): Promise<void> => {
+export const verifySignedEvmTransaction = async (raw: `0x${string}`, { intent, tx, sponsored }: PreparedEvmSend): Promise<void> => {
 	const parsed = parseTransaction(raw)
+	// gasPrice 0 en las dos direcciones: una patrocinada con precio la pagaría el usuario, y
+	// una normal con precio 0 se quedaría en el mempool para siempre
+	// (viem deja `gasPrice` sin definir cuando el RLP lo codifica vacío, que es como va el 0)
+	const zeroPrice = parsed.type === 'legacy' && (parsed.gasPrice ?? 0n) === 0n
+	if (sponsored && !zeroPrice) throw new EvmVerifyError('una tx patrocinada debe ser legacy con gasPrice 0')
+	if (!sponsored && (parsed.type === 'legacy' ? !parsed.gasPrice : !parsed.maxFeePerGas)) throw new EvmVerifyError('tx sin precio de gas')
 	const expectedTo = (intent.contract ?? intent.to).toLowerCase()
 	const expectedData = intent.contract ? encodeErc20Transfer(intent.to, intent.amount) : '0x'
 	if (parsed.chainId !== intent.chainId) throw new EvmVerifyError('chainId distinto')

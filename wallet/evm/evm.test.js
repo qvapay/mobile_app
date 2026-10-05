@@ -127,6 +127,49 @@ describe('firma verificada', () => {
 	})
 })
 
+describe('envío patrocinado (BSC, gasPrice 0)', () => {
+	const intent = { chainId: 56, from: FROM, to: TO, amount: 25n * 10n ** 18n, contract: USDT_BSC }
+
+	test('legacy con gasPrice 0, nonce pending, sin leer fee del nodo y con el gas acotado', async () => {
+		mockRpc({
+			eth_getTransactionCount: (params) => { expect(params).toEqual([FROM, 'pending']); return '0x7' },
+			eth_estimateGas: (params) => { expect(params[0]).not.toHaveProperty('gasPrice'); return hex(52_000) },
+		})
+		const prepared = await prepareEvmSend(RPC, BSC, intent, { zeroGas: true })
+		expect(prepared.sponsored).toBe(true)
+		expect(prepared.tx).toMatchObject({ type: 'legacy', gasPrice: 0n, chainId: 56, nonce: 7, to: USDT_BSC, value: 0n, data: encodeErc20Transfer(TO, intent.amount), gas: 65_000n })
+		expect(prepared.fee).toEqual({ gasLimit: 65_000n, estimatedWei: 0n, maxWei: 0n, eip1559: false })
+		// Ni bloque ni gasPrice: la fee no la paga el usuario
+		expect(calls.map(c => c.method).sort()).toEqual(['eth_estimateGas', 'eth_getTransactionCount'])
+	})
+
+	test('solo tokens, y un gas por encima del tope del patrocinador no se construye', async () => {
+		await expect(prepareEvmSend(RPC, BSC, { ...intent, contract: null }, { zeroGas: true })).rejects.toThrow(/tokens/)
+		mockRpc({ eth_getTransactionCount: () => '0x0', eth_estimateGas: () => hex(100_000) })
+		await expect(prepareEvmSend(RPC, BSC, intent, { zeroGas: true })).rejects.toThrow(/anómalo/)
+	})
+
+	test('firmada y verificada: el raw parsea a legacy sin precio y recupera nuestra dirección', async () => {
+		mockRpc({ eth_getTransactionCount: () => '0x7', eth_estimateGas: () => hex(52_000) })
+		const prepared = await prepareEvmSend(RPC, BSC, intent, { zeroGas: true })
+		const signed = await signEvmTransaction(prepared, derivePrivateKey(SEED, 'evm'))
+		const parsed = parseTransaction(signed.raw)
+		expect(parsed.type).toBe('legacy')
+		expect(parsed.gasPrice ?? 0n).toBe(0n)
+		expect(parsed.nonce).toBe(7)
+	})
+
+	test('gasPrice en las dos direcciones: patrocinada con precio o normal sin precio no pasan', async () => {
+		const key = derivePrivateKey(SEED, 'evm')
+		const base = { intent, fee: { gasLimit: 65_000n, estimatedWei: 0n, maxWei: 0n, eip1559: false }, tier: 'normal', feeByTier: {} }
+		const tx = { type: 'legacy', chainId: 56, nonce: 0, to: USDT_BSC, value: 0n, data: encodeErc20Transfer(TO, intent.amount), gas: 65_000n }
+		// La app jamás firmaría la patrocinada con precio: la pagaría el usuario
+		await expect(signEvmTransaction({ ...base, tx: { ...tx, gasPrice: gwei(1) }, sponsored: true }, key)).rejects.toThrow(/gasPrice 0/)
+		// Y una normal a precio 0 se quedaría en el mempool para siempre
+		await expect(signEvmTransaction({ ...base, tx: { ...tx, gasPrice: 0n }, sponsored: false }, key)).rejects.toThrow(/precio/)
+	})
+})
+
 describe('broadcastEvmTransaction', () => {
 	const signed = { raw: '0x02f8', hash: '0x' + 'ab'.repeat(32) }
 
