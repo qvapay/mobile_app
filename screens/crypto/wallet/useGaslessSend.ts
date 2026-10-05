@@ -99,8 +99,11 @@ export const useGaslessSend = ({ asset, to, amount, enabled = true }: {
 			}
 			const payload = result.data
 			// Un qpweb anterior a BSC no conoce `chain` y respondería con un permiso de Solana:
-			// construir con él una tx de otra red no tiene arreglo, así que se envía pagando
+			// construir con él una tx de otra red no tiene arreglo, así que se envía pagando.
+			// El permiso se devuelve YA: nunca llega al estado, así que la limpieza del
+			// desmontaje no lo vería y la cuota del día quedaría retenida hasta que caduque
 			if (payload.eligible && grantChain(payload.grant) !== chain) {
+				walletApi.gaslessCancel(payload.grant.uuid)
 				setState({ phase: 'ineligible', grant: null, reason: 'disabled', remainingToday: null, renewsAt: null })
 				return
 			}
