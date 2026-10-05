@@ -490,16 +490,24 @@ export type EnergyOrder = {
 
 // ── Patrocinio de fees on-chain (QvaPay paga el gas de un envío del usuario) ─
 
+/** Cadenas con patrocinio: Solana (QvaPay fee payer) y BSC (paymaster BEP-414, gasPrice 0). */
+export type SponsorChain = 'solana' | 'bsc'
+
 /**
  * Permiso acotado a UN envío. `fee_payer` viaja desde el backend a propósito: llevar
  * esa dirección en la app obligaría a publicar versión para rotar la tesorería.
+ * En BSC no hay fee payer (null): la tx va con gasPrice 0 y la mete un paymaster.
  */
 export type SponsorGrant = {
 	uuid: string
-	fee_payer: string
+	/** Ausente en un qpweb anterior a BSC: entonces es Solana. */
+	chain?: SponsorChain
+	fee_payer: string | null
 	from: string
 	to: string
+	/** Contrato/mint del token. Alias histórico de `asset`. */
 	mint: string
+	asset?: string
 	amount: string
 	decimals: number
 	expires_at: string
@@ -520,7 +528,7 @@ export type GaslessSubmitStatus = 'confirmed' | 'pending' | 'authorized' | 'fail
 export type GaslessSubmitResult = {
 	status: GaslessSubmitStatus
 	reason: string | null
-	/** El blockhash caducó: reconstruir, re-firmar y reenviar con ESTE mismo permiso. */
+	/** Reconstruir, re-firmar y reenviar con ESTE mismo permiso (Solana: blockhash caducado; BSC: nonce ya usado). */
 	rebuild: boolean
 	retryable: boolean
 	signature: string | null
