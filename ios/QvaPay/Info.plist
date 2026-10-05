@@ -85,8 +85,6 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>QvaPay usa la cámara para escanear QRs y para capturar tu documento y rostro durante la verificación de identidad.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>QvaPay usa el micrófono para grabar el video de prueba de vida durante la verificación de identidad.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>QvaPay necesita acceso a tus contactos para encontrar amigos que ya usan la app y facilitar los envios de dinero.</string>
 	<key>NSFaceIDUsageDescription</key>
@@ -95,6 +93,8 @@
 	<string>QvaPay usa la red local para descubrir usuarios cercanos y habilitar pagos por proximidad.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>QvaPay necesita tu ubicación para brindarte peers cerca de tu ubicación.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>QvaPay usa el micrófono para grabar el video de prueba de vida durante la verificación de identidad.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>QvaPay necesita acceso a tu galería de fotos para cambiar tu foto de perfil y subir comprobantes de pago.</string>
 	<key>RCTNewArchEnabled</key>
@@ -119,11 +119,6 @@
 		<string>Rubik-SemiBold.ttf</string>
 		<string>Rubik-SemiBoldItalic.ttf</string>
 	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>fetch</string>
-	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -141,6 +136,11 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
