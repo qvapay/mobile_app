@@ -93,6 +93,7 @@ export const ROUTES = {
 	WALLET_SETTINGS: "WalletSettings",
 	ENTERPRISE: "Enterprise",
 	ENTERPRISE_REGISTER: "EnterpriseRegister",
+	CONNECTED_MINIAPPS: "ConnectedMiniApps",
 
 	// Invest Screens
 	SAVINGS_SCREEN: "Savings",
@@ -135,6 +136,10 @@ export const ROUTES = {
 	ASSISTED_CHECKOUT: "AssistedCheckout",
 	ASSISTED_ORDERS: "AssistedOrders",
 	ASSISTED_ORDER_DETAIL: "AssistedOrderDetail",
+
+	// Mini-apps (webs de terceros dentro de QvaPay)
+	MINIAPPS: "MiniApps",
+	MINIAPP_HOST: "MiniAppHost",
 
 	// Help Screens
 	HELP_SCREEN: "Help",

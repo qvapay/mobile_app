@@ -34,7 +34,8 @@
 		"energyOrders": "Compras de energia",
 		"walletEarn": "Ganhar",
 		"walletStake": "Staking",
-		"walletStakeAction": "Staking"
+		"walletStakeAction": "Staking",
+		"miniApps": "Mini-apps"
 	},
 	"tabs": {
 		"home": "Início",

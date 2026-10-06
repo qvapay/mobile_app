@@ -57,7 +57,8 @@
 			"roundup": "Arredondamentos",
 			"nodes": "Nós",
 			"walletSettings": "Minha carteira",
-			"walletSettingsHint": "Endereços, frase secreta e excluir"
+			"walletSettingsHint": "Endereços, frase secreta e excluir",
+			"connectedApps": "Apps conectadas"
 		},
 		"status": {
 			"active": "Ativo"

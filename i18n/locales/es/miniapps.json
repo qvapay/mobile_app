@@ -1,0 +1,61 @@
+{
+	"directory": {
+		"subtitle": "Apps de comercios verificados que funcionan dentro de QvaPay. Pagas con tu saldo y confirmas siempre con tu PIN.",
+		"all": "Todas",
+		"empty": "Aún no hay mini-apps disponibles. ¡Vuelve pronto!"
+	},
+	"host": {
+		"menu": "Opciones de la mini-app",
+		"reload": "Recargar",
+		"openInBrowser": "Abrir en el navegador",
+		"revoke": "Quitar acceso a mi cuenta",
+		"revoked": "{{name}} ya no tiene acceso a tu cuenta",
+		"retry": "Reintentar",
+		"unavailableTitle": "Mini-app no disponible",
+		"unavailableBody": "Esta mini-app no está disponible ahora mismo. Puede estar en mantenimiento.",
+		"loadErrorTitle": "No se pudo cargar",
+		"loadErrorBody": "Revisa tu conexión e inténtalo de nuevo."
+	},
+	"consent": {
+		"title": "{{name}} quiere conocerte",
+		"subtitle": "Compartirá con esta mini-app solo lo siguiente:",
+		"scopes": {
+			"profile": "Tu nombre, usuario y foto de perfil",
+			"kyc": "Si tu identidad está verificada y si eres GOLD"
+		},
+		"never": "Nunca compartimos tu contraseña, tu sesión ni tu saldo. Puedes quitar el acceso cuando quieras en Ajustes.",
+		"allow": "Permitir",
+		"deny": "Ahora no",
+		"failed": "No se pudo conectar tu cuenta"
+	},
+	"pay": {
+		"via": "Pago desde {{name}}",
+		"mismatchTitle": "Pago bloqueado",
+		"mismatchBody": "Esta factura no pertenece a {{name}}. Por tu seguridad no se puede pagar desde aquí.",
+		"alreadyPaid": "Esta factura ya no está pendiente de pago.",
+		"ownInvoice": "No puedes pagar una factura emitida por ti.",
+		"paidTitle": "Pago realizado",
+		"paidBody": "Pagaste ${{amount}} a {{name}}",
+		"failedTitle": "No se pudo pagar",
+		"failedBody": "El pago no se completó. No se ha cobrado nada."
+	},
+	"connected": {
+		"title": "Apps conectadas",
+		"subtitle": "Mini-apps a las que diste acceso a tu cuenta",
+		"empty": "No has conectado ninguna mini-app todavía.",
+		"meta": "Comparte: {{scopes}} · {{time}}",
+		"revoke": "Quitar",
+		"scopeNames": {
+			"profile": "perfil",
+			"kyc": "verificación"
+		}
+	},
+	"errors": {
+		"loadList": "No se pudieron cargar las mini-apps",
+		"loadApp": "No se pudo cargar la mini-app",
+		"authorize": "No se pudo autorizar la mini-app",
+		"pay": "No se pudo realizar el pago",
+		"loadGrants": "No se pudieron cargar tus apps conectadas",
+		"revoke": "No se pudo quitar el acceso"
+	}
+}

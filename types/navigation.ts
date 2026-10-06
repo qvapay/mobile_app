@@ -60,6 +60,7 @@ export type SettingsStackParamList = {
 	WalletSettings: undefined
 	Enterprise: undefined
 	EnterpriseRegister: undefined
+	ConnectedMiniApps: undefined
 }
 
 export type RootStackParamList = {
@@ -85,6 +86,9 @@ export type RootStackParamList = {
 	Receive: { receive_amount?: string } | undefined
 	NearbyPay: { prefill_amount?: string } | undefined
 	Pay: { uuid: string }
+	MiniApps: undefined
+	/** `name`/`icon` del directorio: pintan la cabecera mientras llega la ficha fresca. */
+	MiniAppHost: { slug: string, name?: string, icon?: string | null }
 	/** `returnTo`: una dirección escaneada vuelve a esa pantalla por params (WalletSend). */
 	Scan: { view?: 'scan' | 'show', returnTo?: 'WalletSend', assetId?: string } | undefined
 

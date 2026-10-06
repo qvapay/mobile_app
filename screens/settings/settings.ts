@@ -174,6 +174,15 @@ const settings: Record<SettingsGroupKey, SettingsMenuGroup> = {
                 notifications: 0,
             },
             {
+                title: 'settings.menu.items.connectedApps',
+                screen: ROUTES.CONNECTED_MINIAPPS,
+                icon: 'puzzle-piece',
+                color: '#A855F7',
+                keywords: ['mini-apps', 'miniapps', 'aplicaciones', 'permisos', 'conectadas', 'revocar', 'apps', 'permissions', 'connected', 'revoke'],
+                enabled: true,
+                notifications: 0,
+            },
+            {
                 title: 'settings.menu.items.appLock',
                 screen: ROUTES.APP_LOCK,
                 icon: 'lock',
