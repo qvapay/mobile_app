@@ -37,7 +37,14 @@ const MIN_CHARS = 3
 
 // Per-typing-session token: Google bills autocomplete + details grouped under
 // the same token as one Places session, so reuse it until a place is chosen.
-const newToken = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+// Random bytes come from the native CSPRNG (`polyfills.ts` guarantees
+// `crypto.getRandomValues` before any module loads), never `Math.random`.
+const newToken = () => {
+	const cryptoGlobal = (globalThis as { crypto?: { getRandomValues?: (b: Uint8Array) => Uint8Array } }).crypto
+	if (!cryptoGlobal?.getRandomValues) throw new Error('AddressAutocomplete: crypto.getRandomValues no disponible')
+	const bytes = cryptoGlobal.getRandomValues(new Uint8Array(16))
+	return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+}
 
 /**
  * US address search with autocomplete for the shipping-address form. Proxies

@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, interpolate, runOnJS, Easing } from 'react-native-reanimated'
+import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, interpolate, Easing } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 import Svg, { Path } from 'react-native-svg'
 import type { NavigationProp } from '@react-navigation/native'
 
@@ -61,7 +62,7 @@ type CourierProps = {
  *   0.06–0.85  the "$" chip travels the polyline at constant speed
  *   0.85–0.98  delivered: success ring bursts at the pin, chip fades
  *   0.98–1.00  everything fades out; the next cycle starts on the next route
- * Route cycling happens in JS (runOnJS on animation end) because worklets
+ * Route cycling happens in JS (scheduleOnRN on animation end) because worklets
  * can't swap the interpolation arrays mid-flight.
  *
  * @param props
@@ -89,7 +90,7 @@ const Courier = ({ routes, initialDelay, msPerPx, scaleX, accent }: CourierProps
 		progress.value = withDelay(
 			routeIndex === 0 ? initialDelay : 600,
 			withTiming(1, { duration, easing: Easing.inOut(Easing.quad) }, (finished) => {
-				if (finished) { runOnJS(nextRoute)() }
+				if (finished) { scheduleOnRN(nextRoute) }
 			}),
 		)
 	}, [routeIndex, initialDelay, duration, nextRoute, progress])

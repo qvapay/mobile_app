@@ -117,12 +117,14 @@ const TopupScreen = () => {
 	const phoneDigits = phoneNumber.replace(/\D/g, '')
 	const phoneValid = CUBAN_MOBILE.test(phoneDigits)
 
-	const saveRecentNumber = useCallback(async (phone: string) => {
-		setRecentNumbers((prev) => {
-			const next = [phone, ...prev.filter((p) => p !== phone)].slice(0, MAX_RECENT_NUMBERS)
-			AsyncStorage.setItem(RECENT_NUMBERS_KEY, JSON.stringify(next)).catch(() => { })
-			return next
-		})
+	// Espejo de `recentNumbers`: el callback de compra de useIAP puede llegar con
+	// un cierre viejo, y el updater de estado no puede persistir (debe ser puro)
+	const recentNumbersRef = useRef<string[]>([])
+	const saveRecentNumber = useCallback((phone: string) => {
+		const next = [phone, ...recentNumbersRef.current.filter((p) => p !== phone)].slice(0, MAX_RECENT_NUMBERS)
+		recentNumbersRef.current = next
+		setRecentNumbers(next)
+		AsyncStorage.setItem(RECENT_NUMBERS_KEY, JSON.stringify(next)).catch(() => { })
 	}, [])
 
 	// Valida el receipt con backend y, solo si la recarga se confirma, consume la compra
@@ -232,7 +234,12 @@ const TopupScreen = () => {
 	// Números recientes (las lecturas de red ya viven en las queries de arriba)
 	useEffect(() => {
 		AsyncStorage.getItem(RECENT_NUMBERS_KEY)
-			.then((raw) => { if (raw) setRecentNumbers(JSON.parse(raw)) })
+			.then((raw) => {
+				if (!raw) return
+				const list = JSON.parse(raw) as string[]
+				recentNumbersRef.current = list
+				setRecentNumbers(list)
+			})
 			.catch(() => { })
 	}, [])
 

@@ -119,14 +119,12 @@ const QPCoinPicker = ({
 		const coin = coins.find(c => c.tick === tick)
 		if (!coin) { return }
 		if (recentKey) {
-			setRecentTicks((prev) => {
-				const updated = [tick, ...prev.filter(x => x !== tick)].slice(0, MAX_QUICK_PILLS)
-				AsyncStorage.setItem(recentKey, JSON.stringify(updated))
-				return updated
-			})
+			const updated = [tick, ...recentTicks.filter(x => x !== tick)].slice(0, MAX_QUICK_PILLS)
+			setRecentTicks(updated)
+			AsyncStorage.setItem(recentKey, JSON.stringify(updated))
 		}
 		onSelect(coin)
-	}, [coins, recentKey, onSelect])
+	}, [coins, recentKey, recentTicks, onSelect])
 
 	return (
 		<QPAssetSheet

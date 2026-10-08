@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ComponentRef } from 'react'
 import { Text, View, StyleSheet, useWindowDimensions } from 'react-native'
-import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 import type { SharedValue } from 'react-native-reanimated'
 import type { NavigationProp } from '@react-navigation/native'
 import type { UseQueryResult } from '@tanstack/react-query'
@@ -112,7 +113,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 
 	// Scroll en el UI thread: escribe el progreso continuo (0..1) para que
 	// ActionButtons siga el dedo frame a frame; los dots solo necesitan el
-	// índice discreto (runOnJS únicamente al cruzar de página)
+	// índice discreto (scheduleOnRN únicamente al cruzar de página)
 	const lastIndex = useSharedValue(0)
 	const onScroll = useAnimatedScrollHandler((event) => {
 		const progress = Math.min(Math.max(event.contentOffset.x / cardWidth, 0), 1)
@@ -120,7 +121,7 @@ const BalanceCard = ({ balance, navigation, refreshing = false, pageProgress }: 
 		const index = progress > 0.5 ? 1 : 0
 		if (index !== lastIndex.value) {
 			lastIndex.value = index
-			runOnJS(setActiveIndex)(index)
+			scheduleOnRN(setActiveIndex, index)
 		}
 	})
 

@@ -499,7 +499,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;
-				CURRENT_PROJECT_VERSION = 3301;
+				CURRENT_PROJECT_VERSION = 3302;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				ENABLE_BITCODE = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -511,7 +511,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.3.1;
+				MARKETING_VERSION = 3.3.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -537,7 +537,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;
-				CURRENT_PROJECT_VERSION = 3301;
+				CURRENT_PROJECT_VERSION = 3302;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = QvaPay/Info.plist;
@@ -548,7 +548,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.3.1;
+				MARKETING_VERSION = 3.3.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -784,7 +784,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPayWidgets/QvaPayWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3301;
+				CURRENT_PROJECT_VERSION = 3302;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
@@ -796,7 +796,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.3.1;
+				MARKETING_VERSION = 3.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -815,7 +815,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPayWidgets/QvaPayWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3301;
+				CURRENT_PROJECT_VERSION = 3302;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
@@ -827,7 +827,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.3.1;
+				MARKETING_VERSION = 3.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

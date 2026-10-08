@@ -19,6 +19,19 @@ class MainActivity : ReactActivity() {
   }
 
   /**
+   * Atrás en la raíz (ninguna pantalla de JS lo consume) manda la app al fondo
+   * en vez de destruir la Activity. Por defecto ReactActivity la termina: la
+   * próxima apertura es un warm start que vuelve a montar TODO el árbol de
+   * React (providers, rehidratación del persister, navegación) — caro en
+   * gama baja (Cortex-A53 / Mali G52 en Play vitals). Android 12+ ya lo hace
+   * así para la actividad raíz del launcher; esto lo extiende a <= 11 y a los
+   * arranques por alias de icono o deep link.
+   */
+  override fun invokeDefaultOnBackPressed() {
+    moveTaskToBack(true)
+  }
+
+  /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
    * rendering of the component.
    */
