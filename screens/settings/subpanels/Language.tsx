@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native'
+import { StyleSheet, Text, View, ScrollView } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
 
@@ -8,6 +8,8 @@ import { createTextStyles, createContainerStyles, hexToRgba } from '../../../the
 
 // Settings Context
 import { useSettings } from '../../../settings/SettingsContext'
+
+import SettingsChoiceCard from './SettingsChoiceCard'
 
 // Las opciones llevan CLAVES de i18n resueltas en render, así el propio panel
 // cambia de idioma en vivo al tocar una opción. Los títulos de 'es'/'en' son
@@ -51,27 +53,6 @@ const Language = () => {
 		} catch (error) { /* error updating language */ }
 	}
 
-	// Language Option Component
-	const LanguageOption = ({ option, isSelected, onPress }: { option: LanguageOptionDef, isSelected: boolean, onPress: () => void }) => {
-		return (
-			<Pressable style={[containerStyles.box, styles.languageOption, isSelected && { borderColor: theme.colors.primary, backgroundColor: hexToRgba(theme.colors.primary, 0.05) }]} onPress={onPress} >
-				<View style={styles.optionContent}>
-					<View style={[styles.iconContainer, { backgroundColor: hexToRgba(theme.colors.primary, 0.1) }]}>
-						<FontAwesome6 name={option.icon} size={20} color={isSelected ? theme.colors.primary : theme.colors.secondaryText} iconStyle="solid" />
-					</View>
-					<View style={styles.textContainer}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
-							{t(`settings.language.options.${option.id}.title`)}
-						</Text>
-						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 4 }]}>
-							{t(`settings.language.options.${option.id}.description`)}
-						</Text>
-					</View>
-				</View>
-			</Pressable>
-		)
-	}
-
 	return (
 		<ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false}>
 
@@ -83,9 +64,11 @@ const Language = () => {
 			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 8, paddingHorizontal: 2 }]}>{t('settings.language.sectionLabel')}</Text>
 			<View style={styles.optionsContainer}>
 				{languageOptions.map((option) => (
-					<LanguageOption
+					<SettingsChoiceCard
 						key={option.id}
-						option={option}
+						icon={option.icon}
+						title={t(`settings.language.options.${option.id}.title`)}
+						description={t(`settings.language.options.${option.id}.description`)}
 						isSelected={currentLanguage === option.id}
 						onPress={() => handleLanguageSelect(option.id)}
 					/>
@@ -110,28 +93,6 @@ const styles = StyleSheet.create({
 	optionsContainer: {
 		gap: 12,
 		marginBottom: 12,
-	},
-	languageOption: {
-		padding: 16,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: 'transparent',
-	},
-	optionContent: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		flex: 1,
-	},
-	iconContainer: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		justifyContent: 'center',
-		alignItems: 'center',
-		marginRight: 16,
-	},
-	textContainer: {
-		flex: 1,
 	},
 	infoBox: {
 		flexDirection: 'row',

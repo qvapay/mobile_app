@@ -7,7 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
+import { createContainerStyles, createTextStyles, useTextStyles } from '../../theme/themeUtils'
 
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
@@ -75,6 +75,67 @@ const receiptLabelKeys: Record<string, string> = {
  * Renders provider receipt fields (voucher ID, ePIN, confirmation, redemption URL…)
  * with copy-to-clipboard on sensitive values.
  */
+// Fuera de PurchaseDetail: definidos dentro eran un tipo nuevo en cada render y
+// React remontaba todas las filas en vez de actualizarlas
+// Shared detail row component (same pattern as Transaction.jsx)
+type DetailRowProps = {
+	label: string
+	value?: string | number | null
+	last?: boolean
+	copiable?: boolean
+	children?: ReactNode
+}
+
+const DetailRow = ({ label, value, last, copiable, children }: DetailRowProps) => {
+	const { theme } = useTheme()
+	const textStyles = useTextStyles(theme)
+	return (
+		<View style={[styles.detailRow, last && { borderBottomWidth: 0, paddingBottom: 0 }]}>
+			<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{label}</Text>
+			{children || (
+				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+					<Text style={[textStyles.h6, { color: theme.colors.primaryText, flexShrink: 1 }]} numberOfLines={2}>{value}</Text>
+					{copiable && value ? (
+						<Pressable onPress={() => copyTextToClipboard(String(value))}>
+							<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
+						</Pressable>
+					) : null}
+				</View>
+			)}
+		</View>
+	)
+}
+
+// Card header with icon (same pattern as Transaction.jsx)
+type CardHeaderProps = {
+	icon: string
+	title: string
+	color: string
+	badge?: string | null
+	badgeColor?: string
+}
+
+const CardHeader = ({ icon, title, color, badge, badgeColor }: CardHeaderProps) => {
+	const { theme } = useTheme()
+	const textStyles = useTextStyles(theme)
+	return (
+		<View style={styles.cardHeader}>
+			<View style={styles.cardHeaderLeft}>
+				<View style={[styles.cardIcon, { backgroundColor: color + '20' }]}>
+					{/* `icon` llega como dato desde las tarjetas: FA6 tipa `name` como unión */}
+					<FontAwesome6 name={icon as FontAwesome6SolidIconName} size={16} color={color} iconStyle="solid" />
+				</View>
+				<Text style={[textStyles.h5, { fontWeight: '600' }]}>{title}</Text>
+			</View>
+			{badge && (
+				<View style={[styles.statusBadge, { backgroundColor: badgeColor || color }]}>
+					<Text style={[textStyles.h7, { color: theme.colors.almostBlack, fontWeight: '600' }]}>{badge}</Text>
+				</View>
+			)}
+		</View>
+	)
+}
+
 const PurchaseDetail = ({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'PurchaseDetail'>) => {
 
 	const { purchaseId } = route.params
@@ -97,57 +158,6 @@ const PurchaseDetail = ({ route, navigation }: NativeStackScreenProps<RootStackP
 			toast.error(i18n.t('store.toasts.error'), { description: query.error?.message || i18n.t('store.purchaseDetail.toasts.loadError') })
 		}
 	}, [query.isError, query.data, query.error])
-
-	// Shared detail row component (same pattern as Transaction.jsx)
-	type DetailRowProps = {
-		label: string
-		value?: string | number | null
-		last?: boolean
-		copiable?: boolean
-		children?: ReactNode
-	}
-
-	const DetailRow = ({ label, value, last, copiable, children }: DetailRowProps) => (
-		<View style={[styles.detailRow, last && { borderBottomWidth: 0, paddingBottom: 0 }]}>
-			<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{label}</Text>
-			{children || (
-				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-					<Text style={[textStyles.h6, { color: theme.colors.primaryText, flexShrink: 1 }]} numberOfLines={2}>{value}</Text>
-					{copiable && value ? (
-						<Pressable onPress={() => copyTextToClipboard(String(value))}>
-							<FontAwesome6 name="copy" size={14} color={theme.colors.primary} iconStyle="solid" />
-						</Pressable>
-					) : null}
-				</View>
-			)}
-		</View>
-	)
-
-	// Card header with icon (same pattern as Transaction.jsx)
-	type CardHeaderProps = {
-		icon: string
-		title: string
-		color: string
-		badge?: string | null
-		badgeColor?: string
-	}
-
-	const CardHeader = ({ icon, title, color, badge, badgeColor }: CardHeaderProps) => (
-		<View style={styles.cardHeader}>
-			<View style={styles.cardHeaderLeft}>
-				<View style={[styles.cardIcon, { backgroundColor: color + '20' }]}>
-					{/* `icon` llega como dato desde las tarjetas: FA6 tipa `name` como unión */}
-					<FontAwesome6 name={icon as FontAwesome6SolidIconName} size={16} color={color} iconStyle="solid" />
-				</View>
-				<Text style={[textStyles.h5, { fontWeight: '600' }]}>{title}</Text>
-			</View>
-			{badge && (
-				<View style={[styles.statusBadge, { backgroundColor: badgeColor || color }]}>
-					<Text style={[textStyles.h7, { color: theme.colors.almostBlack, fontWeight: '600' }]}>{badge}</Text>
-				</View>
-			)}
-		</View>
-	)
 
 	// Loading state — global loading bar handles the indicator
 	if (isLoading) { return <View style={containerStyles.subContainer} /> }
