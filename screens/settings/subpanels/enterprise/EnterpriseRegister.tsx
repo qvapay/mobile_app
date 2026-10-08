@@ -1,6 +1,7 @@
-import { useLayoutEffect, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Modal } from 'react-native'
 import Animated from 'react-native-reanimated'
+import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 
 // React Query
@@ -420,14 +421,31 @@ type OptionPickerModalProps = {
 	containerStyles: ContainerStyles
 }
 
+const optionKey = (o: PickerOption) => o.value
+
 const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClose, searchable = false, theme, textStyles, containerStyles }: OptionPickerModalProps) => {
 
 	const { t } = useTranslation()
 	const [search, setSearch] = useState('')
 	const query = search.trim().toLowerCase()
-	const filtered = query ? options.filter((o: PickerOption) => o.label.toLowerCase().includes(query) || o.value.toLowerCase().includes(query)) : options
+	const filtered = useMemo(() => (query
+		? options.filter((o: PickerOption) => o.label.toLowerCase().includes(query) || o.value.toLowerCase().includes(query))
+		: options
+	), [options, query])
 
 	const close = () => { setSearch(''); onClose() }
+
+	const renderItem = useCallback(({ item: option }: { item: PickerOption }) => (
+		<QPPressable
+			style={[styles.pickerOption, option.value === selected && { backgroundColor: theme.colors.primary + '1F' }]}
+			onPress={() => { setSearch(''); onSelect(option.value) }}
+		>
+			<Text style={[textStyles.h4, { color: option.value === selected ? theme.colors.primary : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular }]}>
+				{option.label}
+			</Text>
+			{option.value === selected && <FontAwesome6 name="check" size={14} color={theme.colors.primary} iconStyle="solid" />}
+		</QPPressable>
+	), [selected, theme, textStyles, onSelect])
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
@@ -437,20 +455,14 @@ const OptionPickerModal = ({ visible, title, options, selected, onSelect, onClos
 					{searchable && (
 						<QPInput value={search} onChangeText={setSearch} placeholder={t('settings.enterprise.register.searchPlaceholder')} prefixIconName="magnifying-glass" style={{ marginVertical: 0, marginBottom: 8 }} />
 					)}
-					<ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
-						{filtered.map((option: PickerOption) => (
-							<QPPressable
-								key={option.value}
-								style={[styles.pickerOption, option.value === selected && { backgroundColor: theme.colors.primary + '1F' }]}
-								onPress={() => { setSearch(''); onSelect(option.value) }}
-							>
-								<Text style={[textStyles.h4, { color: option.value === selected ? theme.colors.primary : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular }]}>
-									{option.label}
-								</Text>
-								{option.value === selected && <FontAwesome6 name="check" size={14} color={theme.colors.primary} iconStyle="solid" />}
-							</QPPressable>
-						))}
-					</ScrollView>
+					<View style={styles.pickerList}>
+						<FlashList
+							data={filtered}
+							keyExtractor={optionKey}
+							renderItem={renderItem}
+							keyboardShouldPersistTaps="handled"
+						/>
+					</View>
 				</QPPressable>
 			</QPPressable>
 		</Modal>
@@ -516,8 +528,11 @@ const styles = StyleSheet.create({
 	pickerCard: {
 		width: '100%',
 	},
+	// Alto FIJO (antes `maxHeight`): FlashList no se mide por su contenido y sin alto no
+	// pinta filas (ver QPAssetSheet). Países y estados superan siempre los 380, y buscar
+	// no encoge el card
 	pickerList: {
-		maxHeight: 380,
+		height: 380,
 	},
 	pickerOption: {
 		flexDirection: 'row',

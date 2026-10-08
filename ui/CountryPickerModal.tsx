@@ -1,4 +1,6 @@
-import { Text, View, ScrollView, Modal, StyleSheet } from 'react-native'
+import { useCallback, useMemo } from 'react'
+import { Text, View, Modal, StyleSheet } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import QPPressable from './particles/QPPressable'
 
@@ -38,11 +40,35 @@ type CountryPickerModalProps = {
  * @param props.onSelect - Called with the ISO code of the tapped country.
  * @param props.onClose - Dismiss handler (close button / back button).
  */
+type Country = (typeof countries)[number]
+
+const countryKey = (c: Country) => `${c.code}-${c.dial_code}`
+
 const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, onSelect, onClose, theme, textStyles }: CountryPickerModalProps) => {
 
 	const { t } = useTranslation()
 	const query = countrySearch.toLowerCase()
 	const containerStyles = createContainerStyles(theme)
+
+	const filtered = useMemo(() => (query
+		? countries.filter(c => c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query))
+		: countries
+	), [query])
+
+	const renderItem = useCallback(({ item: c }: { item: Country }) => {
+		const selected = country === c.code
+		return (
+			<QPPressable
+				variant="opacity"
+				style={[styles.countryItem, { backgroundColor: selected ? theme.colors.primary : theme.colors.background }]}
+				onPress={() => onSelect(c.code)}
+			>
+				<Text style={[styles.countryItemText, { color: selected ? theme.colors.buttonText : theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular }]}>
+					{c.name} ({c.dial_code})
+				</Text>
+			</QPPressable>
+		)
+	}, [country, theme, onSelect])
 
 	return (
 		<Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -61,20 +87,14 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 						prefixIconName="magnifying-glass"
 						style={{ marginVertical: 0 }}
 					/>
-					<ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
-						{countries.flatMap((c) => (c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)) ? [
-							<QPPressable
-								variant="opacity"
-								key={`${c.code}-${c.dial_code}`}
-								style={[styles.countryItem, { backgroundColor: country === c.code ? theme.colors.primary : theme.colors.background }]}
-								onPress={() => onSelect(c.code)}
-							>
-								<Text style={[styles.countryItemText, { color: country === c.code ? theme.colors.buttonText : theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular }]}>
-									{c.name} ({c.dial_code})
-								</Text>
-							</QPPressable>
-						] : [])}
-					</ScrollView>
+					<View style={styles.list}>
+						<FlashList
+							data={filtered}
+							keyExtractor={countryKey}
+							renderItem={renderItem}
+							keyboardShouldPersistTaps="handled"
+						/>
+					</View>
 				</View>
 			</View>
 		</Modal>
@@ -82,14 +102,15 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 }
 
 const styles = StyleSheet.create({
+	// Alto FIJO, no `maxHeight`: FlashList no se mide por su contenido y en un card de
+	// alto automático recibe cero y no pinta ninguna fila (ver QPAssetSheet). Los ~240
+	// países llenan el card de todas formas, y buscar no lo encoge (no baja bajo el teclado)
 	modalContent: {
-		maxHeight: '80%',
+		height: '80%',
 	},
-	// Sin alto propio: se encoge dentro del card, que es quien conoce la pantalla. Antes
-	// llevaba `maxHeight: 400` en píxeles, un tope que en pantallas altas dejaba la lista
-	// corta y en las bajas desbordaba el card
+	// La lista ocupa lo que dejan cabecera y buscador dentro del card
 	list: {
-		flexShrink: 1,
+		flex: 1,
 	},
 	modalHeader: {
 		flexDirection: 'row',

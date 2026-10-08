@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal, useWindowDimensions } from 'react-native'
+import { useCallback, useState } from 'react'
+import { View, Text, StyleSheet, Pressable, Modal, useWindowDimensions } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import type { TextStyle, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -10,6 +11,7 @@ import { createContainerStyles, createTextStyles } from '../../theme/themeUtils'
 import QPInput from '../particles/QPInput'
 import AddressAutocomplete from '../../screens/store/assisted/AddressAutocomplete'
 import { US_STATES } from '../../screens/store/assisted/assistedConstants'
+import type { UsState } from '../../screens/store/assisted/assistedConstants'
 
 import type { Theme } from '../../theme/ThemeContext'
 import type { UsAddressForm } from './shippingAddress'
@@ -23,31 +25,39 @@ type StatePickerModalProps = {
 	textStyles: Record<string, TextStyle>
 }
 
+const stateKey = (state: UsState) => state.code
+
 // US state picker — centered card modal (house modal pattern)
 const StatePickerModal = ({ visible, currentState, onSelect, onClose, theme, textStyles }: StatePickerModalProps) => {
 	const { t } = useTranslation()
 	const { height: windowHeight } = useWindowDimensions()
 	// themeUtils.js aún es JS (@returns {Object}): cast estructural hasta que se tipe
 	const containerStyles = createContainerStyles(theme) as Record<string, ViewStyle>
+
+	const renderItem = useCallback(({ item: state }: { item: UsState }) => (
+		<Pressable style={styles.stateRow} onPress={() => onSelect(state.code)}>
+			<Text style={[textStyles.h6, { color: currentState === state.code ? theme.colors.primary : theme.colors.primaryText, fontWeight: currentState === state.code ? '600' : '400' }]}>
+				{state.name}
+			</Text>
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{state.code}</Text>
+		</Pressable>
+	), [currentState, theme, textStyles, onSelect])
+
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
 			<Pressable style={containerStyles.modalOverlay} onPress={onClose}>
-				<Pressable style={[containerStyles.modalCard, { maxHeight: windowHeight * 0.75 }]} onPress={() => { }}>
+				{/* Alto FIJO, no maxHeight: FlashList no se mide por su contenido y sin alto no
+				    pinta filas (ver QPAssetSheet); los 51 estados llenan el card de todas formas */}
+				<Pressable style={[containerStyles.modalCard, { height: windowHeight * 0.75 }]} onPress={() => { }}>
 					<Text style={[textStyles.h5, { fontWeight: '600', marginBottom: 10 }]}>{t('ui.newAddressForm.statePickerTitle')}</Text>
-					<ScrollView showsVerticalScrollIndicator={false}>
-						{US_STATES.map(state => (
-							<Pressable
-								key={state.code}
-								style={styles.stateRow}
-								onPress={() => onSelect(state.code)}
-							>
-								<Text style={[textStyles.h6, { color: currentState === state.code ? theme.colors.primary : theme.colors.primaryText, fontWeight: currentState === state.code ? '600' : '400' }]}>
-									{state.name}
-								</Text>
-								<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{state.code}</Text>
-							</Pressable>
-						))}
-					</ScrollView>
+					<View style={styles.stateList}>
+						<FlashList
+							data={US_STATES}
+							keyExtractor={stateKey}
+							renderItem={renderItem}
+							showsVerticalScrollIndicator={false}
+						/>
+					</View>
 				</Pressable>
 			</Pressable>
 		</Modal>
@@ -137,6 +147,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		height: 50,
 		borderRadius: 12,
+	},
+	stateList: {
+		flex: 1,
 	},
 	stateRow: {
 		flexDirection: 'row',
