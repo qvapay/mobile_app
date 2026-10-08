@@ -193,7 +193,6 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 						mediaPlaybackRequiresUserAction
 						pullToRefreshEnabled={false}
 						bounces={false}
-						decelerationRate="normal"
 					/>
 				) : null}
 
