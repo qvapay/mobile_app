@@ -233,6 +233,12 @@ const WalletAsset = ({ navigation, route }: Props) => {
 
 	const openTx = useCallback((tx: WalletTx) => navigation.navigate(ROUTES.WALLET_TX_DETAIL, { assetId, tx }), [navigation, assetId])
 
+	// Estable a propósito: las celdas de FlashList solo se saltan el redibujado si
+	// `renderItem` es la misma función (y esta pantalla se redibuja con saldos y precios)
+	const renderTx = useCallback(({ item }: { item: WalletTx }) => (
+		<TxRow tx={item} theme={theme} onPress={openTx} activity={stakeActivityOf(item, stakeAccounts)} names={targetNames} />
+	), [theme, openTx, stakeAccounts, targetNames])
+
 	if (!asset) {
 		return (
 			<View style={[containerStyles.subContainer, styles.center]}>
@@ -350,7 +356,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 			<FlashList
 				data={items}
 				keyExtractor={(tx, index) => `${tx.hash}:${index}`}
-				renderItem={({ item }) => <TxRow tx={item} theme={theme} onPress={openTx} activity={stakeActivityOf(item, stakeAccounts)} names={targetNames} />}
+				renderItem={renderTx}
 				extraData={[stakeAccounts, targetNames]}
 				ListHeaderComponent={header}
 				ListFooterComponent={

@@ -94,21 +94,23 @@ const WalletExchanges = ({ navigation }: Props) => {
 	// carga es mentir durante medio segundo
 	const loading = ordersQuery.isLoading || swapsQuery.isLoading
 
+	const renderEntry = useCallback(({ item }: { item: HistoryEntry }) => (
+		<Row
+			entry={item}
+			from={sideIcon(item.from, assetFor)}
+			to={sideIcon(item.to, assetFor)}
+			fromSymbol={sideSymbol(item.from, assetFor)}
+			toSymbol={sideSymbol(item.to, assetFor)}
+			onPress={() => open(item)}
+		/>
+	), [assetFor, open])
+
 	return (
 		<View style={containerStyles.subContainer}>
 			<FlashList
 				data={entries}
 				keyExtractor={entry => entry.key}
-				renderItem={({ item }) => (
-					<Row
-						entry={item}
-						from={sideIcon(item.from, assetFor)}
-						to={sideIcon(item.to, assetFor)}
-						fromSymbol={sideSymbol(item.from, assetFor)}
-						toSymbol={sideSymbol(item.to, assetFor)}
-						onPress={() => open(item)}
-					/>
-				)}
+				renderItem={renderEntry}
 				contentContainerStyle={styles.list}
 				onEndReached={onEnd}
 				onEndReachedThreshold={0.4}
