@@ -17,7 +17,7 @@ import i18n from '../../i18n'
 import { miniappsApi } from '../../api/miniappsApi'
 import { isAllowedOrigin, isBenignInternalUrl } from '../../miniapps/protocol'
 import { buildSdkScript } from '../../miniapps/sdkScript'
-import { useMiniAppDetail, MINIAPPS_ROOT } from './miniappsQueries'
+import { useMiniAppDetail, MINIAPPS_ROOT, miniAppDetailKey } from './miniappsQueries'
 import { useMiniAppBridge, type MiniAppThemePayload } from './useMiniAppBridge'
 import MiniAppIcon from './MiniAppIcon'
 import MiniAppConsentSheet from './MiniAppConsentSheet'
@@ -25,6 +25,7 @@ import MiniAppPaySheet from './MiniAppPaySheet'
 import KycGateModal from '../../ui/KycGateModal'
 import useKycGate from '../../hooks/useKycGate'
 import type { RootStackParamList } from '../../types/navigation'
+import type { MiniApp } from '../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MiniAppHost'>
 
@@ -135,6 +136,11 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 		if (!app) return
 		const result = await miniappsApi.revokeGrant(app.slug)
 		if (result.success) {
+			// Immediately clear granted state so requestLogin shows consent sheet
+			queryClient.setQueryData(miniAppDetailKey(app.slug), (old: MiniApp | undefined) => {
+				if (!old) return old
+				return { ...old, granted: false, granted_scopes: [] }
+			})
 			queryClient.invalidateQueries({ queryKey: MINIAPPS_ROOT })
 			toast.success(t('miniapps.host.revoked', { name: app.name }))
 		} else {
