@@ -47,10 +47,13 @@ const P2POfferChatDock = ({ enabled, chat, chatPanelProps, insets, theme, textSt
 		}
 		wasChatLoadingRef.current = chat.chatLoading
 	}, [chat.chatLoading, chat.messages.length, chatSeenCount])
-	useEffect(() => {
-		if (chatOpen) setChatSeenCount(chat.messages.length)
-	}, [chatOpen, chat.messages.length])
-	const chatUnread = chatSeenCount == null ? 0 : Math.max(0, chat.messages.length - chatSeenCount)
+	// Con la hoja abierta todo cuenta como visto (derivado, sin efecto que re-escriba el
+	// estado con cada mensaje); al cerrarla se fija el baseline en lo que había
+	const closeChat = () => {
+		setChatOpen(false)
+		setChatSeenCount(chat.messages.length)
+	}
+	const chatUnread = chatOpen || chatSeenCount == null ? 0 : Math.max(0, chat.messages.length - chatSeenCount)
 
 	return (
 		<>
@@ -84,7 +87,7 @@ const P2POfferChatDock = ({ enabled, chat, chatPanelProps, insets, theme, textSt
 			    del teclado llegan al window en Android — ver docstring de P2PChatSheet) */}
 			<P2PChatSheet
 				visible={chatOpen}
-				onClose={() => setChatOpen(false)}
+				onClose={closeChat}
 				insets={insets}
 				theme={theme}
 				textStyles={textStyles}
