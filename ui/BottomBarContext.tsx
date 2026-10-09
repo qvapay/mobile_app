@@ -1,4 +1,4 @@
-import { createContext, use } from 'react'
+import { createContext, use, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useSharedValue } from 'react-native-reanimated'
 import type { SharedValue } from 'react-native-reanimated'
@@ -16,8 +16,10 @@ const BottomBarContext = createContext<BottomBarContextValue | undefined>(undefi
  */
 export const BottomBarProvider = ({ children }: { children: ReactNode }) => {
 	const bottomBarVisible = useSharedValue(1)
+	// Identidad estable: un objeto nuevo por render redibujaría a todos los consumidores
+	const value = useMemo(() => ({ bottomBarVisible }), [bottomBarVisible])
 	return (
-		<BottomBarContext.Provider value={{ bottomBarVisible }}>
+		<BottomBarContext.Provider value={value}>
 			{children}
 		</BottomBarContext.Provider>
 	)

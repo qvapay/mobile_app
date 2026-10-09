@@ -93,7 +93,7 @@ const Transaction = ({ route, navigation }: Props) => {
 	// manda `{ uuid }` sin `transaction` y esta pantalla solo lee `transaction`.
 	// Se tipa lo que hay (el camino roto se conserva tal cual).
 	const { transaction } = route.params as { transaction: TransactionModel }
-	const [transactionDetails, setTransactionDetails] = useState(normalizeTransaction(transaction))
+	const [transactionDetails, setTransactionDetails] = useState(() => normalizeTransaction(transaction))
 	const [loading, setLoading] = useState(false)
 
 	// Contexts
