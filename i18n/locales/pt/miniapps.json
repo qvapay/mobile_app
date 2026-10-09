@@ -1,0 +1,64 @@
+{
+	"directory": {
+		"subtitle": "Apps de comerciantes verificados que funcionam dentro do QvaPay. Você paga com seu saldo e sempre confirma com seu PIN.",
+		"all": "Todas",
+		"empty": "Ainda não há mini-apps disponíveis. Volte em breve!"
+	},
+	"host": {
+		"menu": "Opções da mini-app",
+		"reload": "Recarregar",
+		"openInBrowser": "Abrir no navegador",
+		"revoke": "Remover acesso à minha conta",
+		"revoked": "{{name}} não tem mais acesso à sua conta",
+		"retry": "Tentar novamente",
+		"unavailableTitle": "Mini-app indisponível",
+		"unavailableBody": "Esta mini-app não está disponível agora. Pode estar em manutenção.",
+		"loadErrorTitle": "Não foi possível carregar",
+		"loadErrorBody": "Verifique sua conexão e tente novamente."
+	},
+	"consent": {
+		"title": "{{name}} quer saber quem você é",
+		"subtitle": "Somente o seguinte será compartilhado com esta mini-app:",
+		"scopes": {
+			"profile": "Seu nome, usuário e foto de perfil",
+			"kyc": "Se sua identidade está verificada e se você é GOLD"
+		},
+		"never": "Nunca compartilhamos sua senha, sua sessão nem seu saldo. Você pode remover o acesso quando quiser em Ajustes.",
+		"allow": "Permitir",
+		"deny": "Agora não",
+		"failed": "Não foi possível conectar sua conta"
+	},
+	"pay": {
+		"via": "Pagamento pelo {{name}}",
+		"mismatchTitle": "Pagamento bloqueado",
+		"mismatchBody": "Esta fatura não pertence a {{name}}. Para sua segurança, não pode ser paga daqui.",
+		"alreadyPaid": "Esta fatura não está mais pendente de pagamento.",
+		"ownInvoice": "Você não pode pagar uma fatura emitida por você.",
+		"paidTitle": "Pagamento realizado",
+		"paidBody": "Você pagou ${{amount}} a {{name}}",
+		"failedTitle": "Não foi possível pagar",
+		"failedBody": "O pagamento não foi concluído. Nada foi cobrado."
+	},
+	"connected": {
+		"title": "Apps conectadas",
+		"subtitle": "Mini-apps às quais você deu acesso à sua conta",
+		"empty": "Você ainda não conectou nenhuma mini-app.",
+		"meta": "Compartilha: {{scopes}} · {{time}}",
+		"revoke": "Remover",
+		"scopeNames": {
+			"profile": "perfil",
+			"kyc": "verificação"
+		}
+	},
+	"errors": {
+		"loadList": "Não foi possível carregar as mini-apps",
+		"loadApp": "Não foi possível carregar a mini-app",
+		"authorize": "Não foi possível autorizar a mini-app",
+		"pay": "Não foi possível realizar o pagamento",
+		"loadGrants": "Não foi possível carregar suas apps conectadas",
+		"revoke": "Não foi possível remover o acesso"
+	},
+	"kycGate": {
+		"message": "Entrar e pagar dentro dos mini-apps exige identidade verificada. É rápido e você só faz uma vez."
+	}
+}

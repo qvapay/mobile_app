@@ -1,0 +1,64 @@
+{
+	"directory": {
+		"subtitle": "Apps from verified merchants that run inside QvaPay. You pay with your balance and always confirm with your PIN.",
+		"all": "All",
+		"empty": "No mini-apps available yet. Check back soon!"
+	},
+	"host": {
+		"menu": "Mini-app options",
+		"reload": "Reload",
+		"openInBrowser": "Open in browser",
+		"revoke": "Remove access to my account",
+		"revoked": "{{name}} no longer has access to your account",
+		"retry": "Try again",
+		"unavailableTitle": "Mini-app unavailable",
+		"unavailableBody": "This mini-app isn't available right now. It may be under maintenance.",
+		"loadErrorTitle": "Couldn't load",
+		"loadErrorBody": "Check your connection and try again."
+	},
+	"consent": {
+		"title": "{{name}} wants to know who you are",
+		"subtitle": "Only the following will be shared with this mini-app:",
+		"scopes": {
+			"profile": "Your name, username and profile photo",
+			"kyc": "Whether your identity is verified and whether you're GOLD"
+		},
+		"never": "We never share your password, your session or your balance. You can remove access anytime in Settings.",
+		"allow": "Allow",
+		"deny": "Not now",
+		"failed": "Couldn't connect your account"
+	},
+	"pay": {
+		"via": "Payment from {{name}}",
+		"mismatchTitle": "Payment blocked",
+		"mismatchBody": "This invoice doesn't belong to {{name}}. For your safety it can't be paid from here.",
+		"alreadyPaid": "This invoice is no longer pending payment.",
+		"ownInvoice": "You can't pay an invoice you issued.",
+		"paidTitle": "Payment completed",
+		"paidBody": "You paid ${{amount}} to {{name}}",
+		"failedTitle": "Payment failed",
+		"failedBody": "The payment wasn't completed. You haven't been charged."
+	},
+	"connected": {
+		"title": "Connected apps",
+		"subtitle": "Mini-apps you've given access to your account",
+		"empty": "You haven't connected any mini-app yet.",
+		"meta": "Shares: {{scopes}} · {{time}}",
+		"revoke": "Remove",
+		"scopeNames": {
+			"profile": "profile",
+			"kyc": "verification"
+		}
+	},
+	"errors": {
+		"loadList": "Couldn't load mini-apps",
+		"loadApp": "Couldn't load the mini-app",
+		"authorize": "Couldn't authorize the mini-app",
+		"pay": "Couldn't complete the payment",
+		"loadGrants": "Couldn't load your connected apps",
+		"revoke": "Couldn't remove access"
+	},
+	"kycGate": {
+		"message": "Signing in and paying inside mini-apps requires identity verification. It's quick and you only do it once."
+	}
+}

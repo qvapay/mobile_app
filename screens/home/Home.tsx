@@ -351,6 +351,13 @@ const Home = ({ navigation }: HomeProps) => {
 							onPress={() => navigation.navigate(ROUTES.P2P_SCREEN)}
 							theme={theme}
 						/>
+						<ServiceCard
+							icon="puzzle-piece"
+							title={t('home.services.miniApps')}
+							iconColor="#EC4899"
+							onPress={() => navigation.navigate(ROUTES.MINIAPPS)}
+							theme={theme}
+						/>
 					</View>
 				</View>
 

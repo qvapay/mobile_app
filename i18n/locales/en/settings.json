@@ -57,7 +57,8 @@
 			"roundup": "Round-ups",
 			"nodes": "Nodes",
 			"walletSettings": "My wallet",
-			"walletSettingsHint": "Addresses, secret phrase and delete"
+			"walletSettingsHint": "Addresses, secret phrase and delete",
+			"connectedApps": "Connected apps"
 		},
 		"status": {
 			"active": "Active"

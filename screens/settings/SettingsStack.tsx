@@ -40,6 +40,7 @@ import RpcNodes from './subpanels/RpcNodes'
 import WalletSettings from './subpanels/WalletSettings'
 import Enterprise from './subpanels/Enterprise'
 import EnterpriseRegister from './subpanels/enterprise/EnterpriseRegister'
+import ConnectedMiniApps from './subpanels/ConnectedMiniApps'
 
 // Settings Stack
 const SettingsStack = ({ navigation: _navigation }: NativeStackScreenProps<RootStackParamList, 'SettingsStack'>) => {
@@ -91,6 +92,7 @@ const SettingsStack = ({ navigation: _navigation }: NativeStackScreenProps<RootS
 			<Stack.Screen name={ROUTES.WALLET_SETTINGS} component={WalletSettings} />
 			<Stack.Screen name={ROUTES.ENTERPRISE} component={Enterprise} />
 			<Stack.Screen name={ROUTES.ENTERPRISE_REGISTER} component={EnterpriseRegister} />
+			<Stack.Screen name={ROUTES.CONNECTED_MINIAPPS} component={ConnectedMiniApps} />
 
 		</Stack.Navigator>
 	)

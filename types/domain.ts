@@ -716,3 +716,49 @@ export type ExchangeOrder = {
 	/** Solo en el detalle: desviación de lo recibido frente a lo prometido. */
 	deviation_bps?: number | null
 }
+
+// ---------------------------------------------------------------------------
+// Mini-apps
+// ---------------------------------------------------------------------------
+
+/** Scope de identidad que una mini-app puede pedir (espejo de `miniapps/protocol.ts`). */
+export type MiniAppScope = 'profile' | 'kyc'
+
+/** Mini-app publicada (`GET /miniapps`, `GET /miniapps/{slug}`). */
+export type MiniApp = {
+	uuid: string
+	slug: string
+	name: string
+	tagline: string | null
+	icon: string | null
+	/** URL https de arranque; su origen está en `allowed_origins`. */
+	entry_url: string
+	/** Orígenes https dentro de los que puede navegar el WebView. */
+	allowed_origins: string[]
+	category: string
+	featured: boolean
+	/** Scopes que la mini-app tiene aprobados (lo que PUEDE pedir). */
+	scopes: MiniAppScope[]
+	/** `App.uuid` del comercio: las facturas que cobra deben ser suyas. */
+	app_uuid: string
+	merchant: { name: string, logo: string | null }
+	/** El usuario ya dio su consentimiento de identidad (no revocado). */
+	granted: boolean
+	granted_scopes: MiniAppScope[]
+}
+
+/** Consentimiento vigente del usuario (`GET /miniapps/grants`). */
+export type MiniAppGrant = {
+	slug: string
+	name: string
+	icon: string | null
+	scopes: MiniAppScope[]
+	created_at: string
+	updated_at: string
+}
+
+/** Identidad firmada para la mini-app (verificable en su servidor con su secret). */
+export type MiniAppAuthorization = { init_data: string, hash: string, scopes: MiniAppScope[] }
+
+/** Resultado de pagar una factura desde una mini-app. */
+export type MiniAppPayment = { transaction_uuid: string, status: 'paid' }
