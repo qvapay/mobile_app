@@ -55,6 +55,20 @@ const MiniApps = ({ navigation }: Props) => {
 		try { await refetch() } finally { setRefreshing(false) }
 	}, [refetch])
 
+	// Antes del return temprano: un hook después de él cambiaría el orden de hooks entre renders
+	const renderApp = useCallback(({ item }: { item: MiniApp }) => (
+		<QPPressable onPress={() => open(item)} style={styles.row}>
+			<MiniAppIcon app={item} size={48} />
+			<View style={styles.rowText}>
+				<Text style={[textStyles.h5, { color: theme.colors.primaryText }]} numberOfLines={1}>{item.name}</Text>
+				<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]} numberOfLines={1}>
+					{item.tagline || item.merchant.name}
+				</Text>
+			</View>
+			<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
+		</QPPressable>
+	), [open, theme, textStyles])
+
 	if (isPending) {
 		return <View style={[containerStyles.subContainer, styles.center]}><QPLoader /></View>
 	}
@@ -91,18 +105,7 @@ const MiniApps = ({ navigation }: Props) => {
 				showsVerticalScrollIndicator={false}
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 				ListHeaderComponent={header}
-				renderItem={({ item }) => (
-					<QPPressable onPress={() => open(item)} style={styles.row}>
-						<MiniAppIcon app={item} size={48} />
-						<View style={styles.rowText}>
-							<Text style={[textStyles.h5, { color: theme.colors.primaryText }]} numberOfLines={1}>{item.name}</Text>
-							<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]} numberOfLines={1}>
-								{item.tagline || item.merchant.name}
-							</Text>
-						</View>
-						<FontAwesome6 name="chevron-right" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
-					</QPPressable>
-				)}
+				renderItem={renderApp}
 				ListEmptyComponent={featured.length === 0 ? (
 					<View style={[styles.empty, { backgroundColor: theme.colors.surface }, cardBorder]}>
 						<FontAwesome6 name="puzzle-piece" size={28} color={theme.colors.tertiaryText} iconStyle="solid" />
