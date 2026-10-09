@@ -1,8 +1,6 @@
-Novedades de QvaPay 3.3.1:
-• GOLD: un envío gratis de USDT al día en BNB Chain, sin necesitar BNB para el gas.
-• Staking de SOL y TRX desde tu wallet: genera recompensas sin salir de la app.
-• La actividad de la wallet muestra también tus movimientos de staking.
-• Nuevo icono en la pestaña Enviar.
-• El teclado ya no tapa los campos al enviar ni en el chat P2P.
-• Retoques de diseño en la tienda, la wallet y los importes.
-• Correcciones de estabilidad en iOS y en los envíos cripto.
+Novedades de QvaPay 3.3.3:
+• Nuevo: Mini-apps. Usa servicios de otras empresas sin salir de QvaPay, con inicio de sesión y pagos protegidos.
+• Listas y selectores de país más rápidos y fluidos.
+• La app abre directamente con tu tema, sin parpadeos.
+• El botón para ver la contraseña funciona bien desde el primer toque.
+• Mejoras de estabilidad y rendimiento en Android.
