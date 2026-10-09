@@ -54,6 +54,12 @@ type Options = {
 	theme: MiniAppThemePayload
 	onReady: () => void
 	onClose: () => void
+	/**
+	 * Gate KYC (UX preventiva, el backend sigue siendo la autoridad): qpweb exige
+	 * identidad verificada para autorizar y pagar. Devuelve false —y la pantalla
+	 * enseña su KycGateModal— si el usuario no está verificado.
+	 */
+	requireKyc: () => boolean
 }
 
 /**
@@ -66,7 +72,7 @@ type Options = {
  * Solo una hoja a la vez: un segundo `requestLogin`/`payInvoice` mientras hay
  * otro en curso se rechaza con `BUSY` (una mini-app no puede apilar cobros).
  */
-export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose }: Options) {
+export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, requireKyc }: Options) {
 
 	// La operación modal en vuelo (incluye el authorize directo, que no pinta hoja)
 	const busyRef = useRef(false)
@@ -86,10 +92,10 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose }: O
 	// Refs espejo: el dispatcher es estable y lee siempre lo último
 	const appRef = useRef(app)
 	const themeRef = useRef(theme)
-	const callbacksRef = useRef({ onReady, onClose })
+	const callbacksRef = useRef({ onReady, onClose, requireKyc })
 	useEffect(() => { appRef.current = app }, [app])
 	useEffect(() => { themeRef.current = theme }, [theme])
-	useEffect(() => { callbacksRef.current = { onReady, onClose } }, [onReady, onClose])
+	useEffect(() => { callbacksRef.current = { onReady, onClose, requireKyc } }, [onReady, onClose, requireKyc])
 
 	const deliver = useCallback((payload: string) => {
 		webViewRef.current?.injectJavaScript(buildDeliveryScript(payload))
@@ -206,6 +212,14 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose }: O
 		}
 
 		if (MODAL_METHODS.has(request.method)) {
+			// Identidad y pago exigen KYC en el backend (403 KYC_REQUIRED): se corta ANTES
+			// de abrir la hoja o firmar, para no pedir consentimiento ni PIN para nada.
+			// Código existente del contrato del SDK (NOT_ALLOWED): uno nuevo exigiría
+			// tocar la documentación pública de qpweb
+			if (!callbacksRef.current.requireKyc()) {
+				reject(request.id, { code: BRIDGE_ERRORS.NOT_ALLOWED, message: 'Identity verification (KYC) required' })
+				return
+			}
 			if (busyRef.current) {
 				reject(request.id, { code: BRIDGE_ERRORS.BUSY, message: 'Another request is in progress' })
 				return

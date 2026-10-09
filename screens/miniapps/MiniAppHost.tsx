@@ -22,6 +22,8 @@ import { useMiniAppBridge, type MiniAppThemePayload } from './useMiniAppBridge'
 import MiniAppIcon from './MiniAppIcon'
 import MiniAppConsentSheet from './MiniAppConsentSheet'
 import MiniAppPaySheet from './MiniAppPaySheet'
+import KycGateModal from '../../ui/KycGateModal'
+import useKycGate from '../../hooks/useKycGate'
 import type { RootStackParamList } from '../../types/navigation'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MiniAppHost'>
@@ -69,8 +71,12 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const close = useCallback(() => navigation.goBack(), [navigation])
 	const onReady = useCallback(() => setReady(true), [])
 
+	// Iniciar sesión y pagar exigen KYC: mismo gate y modal que Enviar/Ahorros
+	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
+	const requireMiniAppKyc = useCallback(() => requireKyc({ message: t('miniapps.kycGate.message') }), [requireKyc, t])
+
 	const { onMessage, emit, modal, resolveModal, rejectModal, mainButton, backButtonVisible, resetUi } = useMiniAppBridge({
-		app, webViewRef, theme: themePayload, onReady, onClose: close,
+		app, webViewRef, theme: themePayload, onReady, onClose: close, requireKyc: requireMiniAppKyc,
 	})
 
 	// El SDK se construye UNA vez por carga: cambiar el script en caliente no
@@ -232,6 +238,9 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 			{app && modal?.kind === 'pay' ? (
 				<MiniAppPaySheet key={modal.id} app={app} invoiceUuid={modal.invoiceUuid} onPaid={resolveModal} onCancel={rejectModal} />
 			) : null}
+
+			{/* useKycGate expone `string | null` y el modal declara `string | undefined` (mismo cast que SendConfirm) */}
+			<KycGateModal visible={gateVisible} message={gateMessage as string | undefined} onClose={closeGate} />
 
 			<Modal visible={menuOpen} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setMenuOpen(false)}>
 				<Pressable style={containerStyles.modalOverlay} onPress={() => setMenuOpen(false)}>

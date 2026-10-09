@@ -57,5 +57,8 @@
 		"pay": "Couldn't complete the payment",
 		"loadGrants": "Couldn't load your connected apps",
 		"revoke": "Couldn't remove access"
+	},
+	"kycGate": {
+		"message": "Signing in and paying inside mini-apps requires identity verification. It's quick and you only do it once."
 	}
 }

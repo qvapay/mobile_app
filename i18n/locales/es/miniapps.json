@@ -57,5 +57,8 @@
 		"pay": "No se pudo realizar el pago",
 		"loadGrants": "No se pudieron cargar tus apps conectadas",
 		"revoke": "No se pudo quitar el acceso"
+	},
+	"kycGate": {
+		"message": "Iniciar sesión y pagar dentro de las mini-apps requiere tener tu identidad verificada. Es rápido y solo se hace una vez."
 	}
 }
