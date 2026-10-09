@@ -68,6 +68,23 @@ describe('QPInput', () => {
 		expect(inputOf(tree).props.secureTextEntry).toBe(true)
 	})
 
+	test('the eye icon follows the visibility on every press (eye = hidden, eye-slash = shown)', async () => {
+		const tree = await render({ secureTextEntry: true, suffixIconName: 'eye' })
+		const iconName = () => tree.root.findByType('FontAwesome6').props.name
+		const toggle = tree.root.findByType(PressableType)
+		expect(iconName()).toBe('eye')
+		await act(async () => { toggle.props.onPress() })
+		expect(iconName()).toBe('eye-slash')
+		await act(async () => { toggle.props.onPress() })
+		expect(iconName()).toBe('eye')
+	})
+
+	test('a non-eye suffix follows prop changes after mount', async () => {
+		const tree = await render({ suffixIconName: 'magnifying-glass' })
+		await act(async () => { tree.update(<QPInput suffixIconName="circle-check" />) })
+		expect(tree.root.findByType('FontAwesome6').props.name).toBe('circle-check')
+	})
+
 	test('a non-eye suffix never flips secureTextEntry', async () => {
 		const tree = await render({ suffixIconName: 'magnifying-glass' })
 		const toggle = tree.root.findByType(PressableType)
