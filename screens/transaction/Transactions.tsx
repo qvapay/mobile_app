@@ -10,7 +10,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 // Contexts
 import { useTheme } from '../../theme/ThemeContext'
-import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
+import { useTextStyles, createContainerStyles } from '../../theme/themeUtils'
 
 // Data
 import useTransactionsList from './useTransactionsList'
@@ -126,7 +126,8 @@ const Transactions = ({ navigation, route }: Props) => {
 	// Contexts
 	const { t } = useTranslation()
 	const { theme } = useTheme()
-	const textStyles = createTextStyles(theme)
+	// Memorizado: es dependencia de `renderItem` y un objeto nuevo por render lo invalidaría
+	const textStyles = useTextStyles(theme)
 	const containerStyles = createContainerStyles(theme)
 	const { height: windowHeight } = useWindowDimensions()
 
@@ -206,6 +207,14 @@ const Transactions = ({ navigation, route }: Props) => {
 		dispatchDraft({ type: 'clearAll' })
 	}
 
+	// Estable a propósito: las celdas de FlashList solo se saltan el redibujado si
+	// `renderItem` es la misma función (la pantalla se redibuja al buscar, filtrar y con el SSE)
+	const renderItem = useCallback(({ item }: { item: TransactionListItem }) => (
+		item.type === 'header'
+			? <Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 8, marginBottom: 6, marginLeft: 4 }]}>{item.label}</Text>
+			: <QPTransaction transaction={item.transaction} navigation={navigation} index={item.groupIndex} totalItems={item.groupSize} />
+	), [textStyles, theme, navigation])
+
 	// Footer loader (next page in flight)
 	const renderFooter = () => {
 		if (!isFetchingNextPage) return null
@@ -250,11 +259,7 @@ const Transactions = ({ navigation, route }: Props) => {
 			<TransactionsFlashList
 				data={listItems}
 				getItemType={(item) => item.type}
-				renderItem={({ item }) => (
-					item.type === 'header'
-						? <Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 8, marginBottom: 6, marginLeft: 4 }]}>{item.label}</Text>
-						: <QPTransaction transaction={item.transaction} navigation={navigation} index={item.groupIndex} totalItems={item.groupSize} />
-				)}
+				renderItem={renderItem}
 				keyExtractor={(item) => (item.type === 'header' ? item.key : item.transaction.uuid)}
 				ListEmptyComponent={!isPending ? <Text style={textStyles.h2}>{t('transactions.list.empty')}</Text> : null}
 				ListFooterComponent={renderFooter}

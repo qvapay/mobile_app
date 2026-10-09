@@ -45,6 +45,8 @@ const WalletEnergyOrders = () => {
 		query.refetch()
 	}, [queryClient, query])
 
+	const renderOrder = useCallback(({ item }: { item: EnergyOrder }) => <EnergyOrderRow order={item} onPress={setDetail} />, [])
+
 	const onEnd = useCallback(() => { if (query.hasNextPage && !query.isFetchingNextPage) { query.fetchNextPage() } }, [query])
 
 	return (
@@ -52,7 +54,7 @@ const WalletEnergyOrders = () => {
 			<FlashList
 				data={orders}
 				keyExtractor={order => order.uuid}
-				renderItem={({ item }) => <EnergyOrderRow order={item} onPress={setDetail} />}
+				renderItem={renderOrder}
 				ItemSeparatorComponent={Separator}
 				contentContainerStyle={styles.list}
 				onEndReached={onEnd}

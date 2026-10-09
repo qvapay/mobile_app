@@ -13,6 +13,7 @@
  * descuenta de la cantidad y no hay cambio (como el MAX de Trust/SafePal).
  */
 import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { hexToBytes } from '@noble/hashes/utils.js'
 import { Address, OutScript, p2wpkh, Transaction } from '@scure/btc-signer'
 
 import { ChainHttpError, getJson } from '../chains/http'
@@ -191,8 +192,6 @@ export const prepareBtcSend = async (rpc: RegistryRpc, intent: BtcSendIntent, de
 // ---------------------------------------------------------------------------
 
 export type SignedBtcTx = { hex: string, txid: string }
-
-const hexToBytes = (hex: string): Uint8Array => Uint8Array.from(hex.match(/../g)!.map(b => parseInt(b, 16)))
 
 /**
  * Construye y firma (P2WPKH, RBF). Tras firmar re-parsea la tx y verifica

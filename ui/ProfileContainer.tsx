@@ -38,6 +38,9 @@ type ProfileContainerProps = {
 	onEditCover?: () => void
 }
 
+// Default a nivel de módulo: un `{}` en la firma es un objeto nuevo por render
+const NO_USER: NonNullable<ProfileContainerProps['user']> = {}
+
 /**
  * Full profile header: cover photo pulled up behind the navigation header and
  * status bar (negative top margin sized from safe-area insets + platform
@@ -55,7 +58,7 @@ type ProfileContainerProps = {
  * @param props.onEditAvatar - Shows the avatar edit pencil and enables tapping it.
  * @param props.onEditCover - Shows the cover edit pencil.
  */
-const ProfileContainer = ({ user = {}, onEditAvatar, onEditCover }: ProfileContainerProps) => {
+const ProfileContainer = ({ user = NO_USER, onEditAvatar, onEditCover }: ProfileContainerProps) => {
 
 	// Contexts
 	const { t } = useTranslation()

@@ -12,6 +12,8 @@ import { createTextStyles, createContainerStyles, hexToRgba } from '../../../the
 // Settings Context
 import { useSettings } from '../../../settings/SettingsContext'
 
+import SettingsChoiceCard from './SettingsChoiceCard'
+
 // Auth Context (GOLD gate for the accent picker)
 import { useAuth } from '../../../auth/AuthContext'
 
@@ -107,27 +109,6 @@ const Theme = () => {
 		} catch (error) { /* error updating bottom bar labels */ }
 	}
 
-	// Theme Option Component
-	const ThemeOption = ({ option, isSelected, onPress }: { option: ThemeOptionDef, isSelected: boolean, onPress: () => void }) => {
-		return (
-			<Pressable style={[containerStyles.box, styles.themeOption, isSelected && { borderColor: theme.colors.primary, backgroundColor: hexToRgba(theme.colors.primary, 0.05) }]} onPress={onPress} >
-				<View style={styles.optionContent}>
-					<View style={[styles.iconContainer, { backgroundColor: hexToRgba(theme.colors.primary, 0.1) }]}>
-						<FontAwesome6 name={option.icon} size={20} color={isSelected ? theme.colors.primary : theme.colors.secondaryText} iconStyle="solid" />
-					</View>
-					<View style={styles.textContainer}>
-						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>
-							{t(`settings.themePanel.options.${option.id}.title`)}
-						</Text>
-						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 4 }]}>
-							{t(`settings.themePanel.options.${option.id}.description`)}
-						</Text>
-					</View>
-				</View>
-			</Pressable>
-		)
-	}
-
 	return (
 		<ScrollView style={containerStyles.subContainer} showsVerticalScrollIndicator={false}>
 
@@ -139,9 +120,11 @@ const Theme = () => {
 			<Text style={[textStyles.h4, { color: theme.colors.secondaryText, marginBottom: 8, paddingHorizontal: 2 }]}>{t('settings.themePanel.appearanceLabel')}</Text>
 			<View style={styles.optionsContainer}>
 				{themeOptions.map((option, _index) => (
-					<ThemeOption
+					<SettingsChoiceCard
 						key={option.id}
-						option={option}
+						icon={option.icon}
+						title={t(`settings.themePanel.options.${option.id}.title`)}
+						description={t(`settings.themePanel.options.${option.id}.description`)}
 						isSelected={currentTheme === option.id}
 						onPress={() => handleThemeSelect(option.id)}
 					/>
@@ -256,28 +239,6 @@ const styles = StyleSheet.create({
 	optionsContainer: {
 		gap: 12,
 		marginBottom: 12,
-	},
-	themeOption: {
-		padding: 16,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: 'transparent',
-	},
-	optionContent: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		flex: 1,
-	},
-	iconContainer: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		justifyContent: 'center',
-		alignItems: 'center',
-		marginRight: 16,
-	},
-	textContainer: {
-		flex: 1,
 	},
 	infoBox: {
 		flexDirection: 'row',

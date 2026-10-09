@@ -57,9 +57,13 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 	const hasPrefix = !!props.prefixIconName
 	const hasSuffix = !!props.suffixIconName
 
-	// States
+	// Ocultar/mostrar es estado PROPIO del campo: se toma de la prop una sola vez
 	const [isSecure, setIsSecure] = useState(props.secureTextEntry)
-	const [suffixIconName, setSuffixIconName] = useState(props.suffixIconName)
+	// El icono del ojo se DERIVA de isSecure (antes era un segundo estado que se
+	// actualizaba con el isSecure viejo y quedaba un toque desfasado). Cualquier otro
+	// sufijo se lee de la prop en cada render, así sigue sus cambios
+	const isEyeToggle = props.suffixIconName === 'eye' || props.suffixIconName === 'eye-slash'
+	const suffixIconName = isEyeToggle ? (isSecure ? 'eye' : 'eye-slash') : props.suffixIconName
 
 	// Theme variables, dark and light modes
 	const { theme } = useTheme()
@@ -74,10 +78,7 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 
 	// Change the TextInput between password and text
 	const handleSuffixPress = () => {
-		if (props.suffixIconName === 'eye' || props.suffixIconName === 'eye-slash') {
-			setIsSecure(!isSecure);
-			setSuffixIconName(isSecure ? 'eye' : 'eye-slash');
-		}
+		if (isEyeToggle) { setIsSecure(secure => !secure) }
 	}
 
 	return (

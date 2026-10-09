@@ -32,6 +32,9 @@ type Props = {
 	placeholder?: string | null
 }
 
+// Default a nivel de módulo: un `[]` en la firma es un array nuevo por render (invalida `filtered`)
+const NO_COUNTRIES: NonNullable<Props['countries']> = []
+
 /**
  * Country selector: a trigger button that opens a searchable, centered-card
  * modal list. `countries` is the response from `/api/store/*-catalog?countries`
@@ -40,7 +43,7 @@ type Props = {
  * `statusBarTranslucent`, backdrop-tap dismiss, max height 75% of the window.
  * Selecting a row calls `onChange`, closes the modal and clears the query.
  */
-const CountryPicker = ({ countries = [], value = null, onChange = noop, placeholder = null }: Props) => {
+const CountryPicker = ({ countries = NO_COUNTRIES, value = null, onChange = noop, placeholder = null }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()

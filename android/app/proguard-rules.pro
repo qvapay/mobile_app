@@ -9,11 +9,11 @@
 
 # Add any project specific keep options here:
 
-# Widgets y bridge de almacenamiento compartido: instanciados por el framework
-# (AppWidgetProvider desde el manifest) y accedidos entre procesos — R8 full mode
-# no puede ver esos puntos de entrada
--keep class com.qvapay.widget.** { *; }
--keep class com.qvapay.bridge.** { *; }
+# Widgets y bridge: SIN keep propio a propósito (Play: "R8 configuration could
+# be causing higher memory usage" — los keep de paquete entero bloquean la
+# optimización). Los AppWidgetProvider los conserva la regla que AAPT genera
+# desde el manifest, el Worker la de WorkManager y los @ReactMethod la de RN;
+# ninguno usa reflexión propia (los JSON se parsean con org.json a mano).
 
 # OkHttp/Okio referencian clases de plataformas que no existen en Android
 -dontwarn okhttp3.**
@@ -23,9 +23,9 @@
 # (tarjetas en Google Wallet) que no está en el classpath — la app no lo usa
 -dontwarn com.stripe.android.pushProvisioning.**
 
-# SDK nativo de Didit (KYC): binario cerrado con modelos serializados y JNI que
-# R8 full mode no puede rastrear — keep conservador de su grupo completo
--keep class me.didit.** { *; }
+# SDK nativo de Didit (KYC): binario cerrado con modelos serializados y JNI. Su
+# propio proguard.txt ya trae `-keep class me.didit.sdk.** { *; }` (todo el SDK
+# vive bajo me.didit.sdk) — repetirlo aquí solo duplicaba un keep de paquete
 -dontwarn me.didit.**
 
 # R8 en modo optimize (proguard-android-optimize.txt): el wrapper RN del SDK de

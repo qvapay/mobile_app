@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle } from 'react-native-reanimated'
+import Animated, { useAnimatedReaction, useAnimatedStyle } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 import type { SharedValue } from 'react-native-reanimated'
 import type { NavigationProp } from '@react-navigation/native'
 
@@ -132,7 +133,7 @@ const ActionButtons = ({ navigation, pageProgress }: ActionButtonsProps) => {
 	useAnimatedReaction(
 		() => (pageProgress ? pageProgress.value > 0.5 : false),
 		(current, previous) => {
-			if (current !== previous) runOnJS(setSavingsActive)(current)
+			if (current !== previous) scheduleOnRN(setSavingsActive, current)
 		}
 	)
 

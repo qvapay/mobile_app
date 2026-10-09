@@ -1,0 +1,57 @@
+diff --git a/node_modules/react-native-screenshot-prevent/android/src/main/java/com/killserver/screenshotprev/ScreenshotPreventImpl.java b/node_modules/react-native-screenshot-prevent/android/src/main/java/com/killserver/screenshotprev/ScreenshotPreventImpl.java
+index 0e613fa..2921c79 100644
+--- a/node_modules/react-native-screenshot-prevent/android/src/main/java/com/killserver/screenshotprev/ScreenshotPreventImpl.java
++++ b/node_modules/react-native-screenshot-prevent/android/src/main/java/com/killserver/screenshotprev/ScreenshotPreventImpl.java
+@@ -1,8 +1,6 @@
+ package com.killserver.screenshotprev;
+ 
+ import android.app.Activity;
+-import android.graphics.Bitmap;
+-import android.graphics.BitmapFactory;
+ import android.graphics.Color;
+ import android.view.ViewGroup;
+ import android.view.WindowManager;
+@@ -11,8 +9,6 @@ import android.widget.ImageView;
+ 
+ import com.facebook.react.bridge.ReactApplicationContext;
+ 
+-import java.io.IOException;
+-import java.net.URL;
+ 
+ /**
+  * Shared implementation for screenshot prevention functionality.
+@@ -96,14 +92,10 @@ public class ScreenshotPreventImpl {
+ 
+     imageView.setLayoutParams(imageParams);
+ 
+-    // Set image resource
+-    Bitmap bitmap = decodeImageUrl(imagePath);
+-
+-    if (bitmap != null) {
+-      int imageHeight = (int)(bitmap.getHeight() * ((float) activity.getResources().getDisplayMetrics().widthPixels / bitmap.getWidth()));
+-      Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, activity.getResources().getDisplayMetrics().widthPixels, imageHeight, true);
+-      imageView.setImageBitmap(scaledBitmap);
+-    }
++    // QvaPay: la imagen del overlay ya no se descarga ni decodifica a mano
++    // desde una URL (Play Console lo marca como bitmap sin downsampling ni
++    // caché). La app solo usa `enabled` (FLAG_SECURE); enableSecureView queda
++    // con el overlay en blanco.
+ 
+     overlayLayout.addView(imageView);
+   }
+@@ -148,15 +140,4 @@ public class ScreenshotPreventImpl {
+       });
+     }
+   }
+-
+-  private static Bitmap decodeImageUrl(String imagePath) {
+-    try {
+-      URL imageUrl = new URL(imagePath);
+-      Bitmap bitmap = BitmapFactory.decodeStream(imageUrl.openConnection().getInputStream());
+-      return bitmap;
+-    } catch (IOException e) {
+-      e.printStackTrace();
+-      return null;
+-    }
+-  }
+ }

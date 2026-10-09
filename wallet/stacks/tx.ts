@@ -12,6 +12,7 @@
  * contrato cambia de versión sin tocar la app.
  */
 import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { hexToBytes } from '@noble/hashes/utils.js'
 import {
 	addressToString,
 	AuthType,
@@ -247,7 +248,7 @@ export type StacksBroadcastResult = { txid: string, duplicate: boolean }
  * post-condición fallida son errores de negocio (no rotan).
  */
 export const broadcastStacksTransaction = async (rpc: RegistryRpc, signed: SignedStacksTx, deps: Deps = {}): Promise<StacksBroadcastResult> => {
-	const bytes = Uint8Array.from(signed.hex.match(/../g)!.map(b => parseInt(b, 16)))
+	const bytes = hexToBytes(signed.hex)
 	const res = await fetch(`${base(rpc)}/v2/transactions`, { method: 'POST', body: bytes, signal: deps.signal, headers: { 'Content-Type': 'application/octet-stream', ...rpc.headers } })
 	// El status manda: `fetch` resuelve igual con 4xx/5xx, así que el cuerpo solo
 	// se lee dentro de la rama que le corresponde — el de éxito como txid, el de

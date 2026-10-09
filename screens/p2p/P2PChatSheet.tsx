@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useEffectEvent } from "react"
 import { View, Pressable, BackHandler, StyleSheet } from "react-native"
 
 import Animated, { FadeIn, FadeOut, SlideOutDown, useAnimatedKeyboard, useAnimatedStyle, KeyboardState } from "react-native-reanimated"
@@ -61,14 +61,17 @@ const P2PChatSheet = ({ visible, onClose, insets, theme, textStyles, containerSt
 
 	// El Modal interceptaba el back de Android de serie; inline lo replicamos:
 	// con la hoja abierta, el back la cierra en vez de sacar del trade.
+	// useEffectEvent: el listener lee siempre el `onClose` vigente sin re-suscribirse cada
+	// vez que el padre lo recrea (antes se daba de baja y de alta en cada render del dock)
+	const onHardwareBack = useEffectEvent(() => {
+		onClose()
+		return true
+	})
 	useEffect(() => {
 		if (!visible) return
-		const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-			onClose()
-			return true
-		})
+		const sub = BackHandler.addEventListener("hardwareBackPress", () => onHardwareBack())
 		return () => sub.remove()
-	}, [visible, onClose])
+	}, [visible])
 
 	if (!visible) return null
 

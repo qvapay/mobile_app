@@ -17,7 +17,6 @@ jest.mock('react-native-reanimated', () => {
 		useAnimatedStyle: () => ({}),
 		useAnimatedReaction: () => {},
 		useSharedValue: (v) => ({ value: v }),
-		runOnJS: (fn) => fn,
 	}
 })
 jest.mock('./particles/QPPressable', () => 'QPPressable')

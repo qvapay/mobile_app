@@ -40,8 +40,8 @@ const Biometrics = () => {
 
     useEffect(() => {
         const checkBiometrics = async () => {
-            const type = await getSupportedBiometryType()
-            const has = await hasBiometricCredentials()
+            // Independientes: en paralelo, no una detrás de otra
+            const [type, has] = await Promise.all([getSupportedBiometryType(), hasBiometricCredentials()])
             setBiometryType(type)
             setBiometricsActive(has)
             setIsLoading(false)
