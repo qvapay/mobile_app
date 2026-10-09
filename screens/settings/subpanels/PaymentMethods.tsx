@@ -162,18 +162,24 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 	// Fetch initial data
 	useEffect(() => {
+		// Guarda: si el efecto se re-ejecuta (cambio de idioma) o la pantalla se desmonta
+		// con la petición en vuelo, la respuesta vieja no debe escribir encima
+		let cancelled = false
 		const load = async () => {
 			try {
 				setLoading(true)
 				dispatchData({ type: 'set', field: 'error', value: null })
 				const methodsRes = await userApi.getPaymentMethods()
+				if (cancelled) return
 				if (methodsRes?.success) { dispatchData({ type: 'set', field: 'methods', value: Array.isArray(methodsRes.data) ? methodsRes.data : ((methodsRes.data as { methods?: PaymentMethod[] } | undefined)?.methods || []) }) }
 				else { dispatchData({ type: 'set', field: 'error', value: methodsRes?.error || t('settings.paymentMethods.toasts.loadFailed') }) }
 			} catch (e) {
+				if (cancelled) return
 				dispatchData({ type: 'set', field: 'error', value: (e as Error).message || t('settings.paymentMethods.toasts.networkError') })
-			} finally { setLoading(false) }
+			} finally { if (!cancelled) setLoading(false) }
 		}
 		load()
+		return () => { cancelled = true }
 	}, [t])
 
 	// Refresh methods
