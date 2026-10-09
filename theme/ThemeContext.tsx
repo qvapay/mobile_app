@@ -1,4 +1,4 @@
-import { Appearance } from 'react-native'
+import { useColorScheme } from 'react-native'
 import { useTextStyles, useContainerStyles } from './themeUtils'
 import { createContext, use, useEffect, useState, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
@@ -44,12 +44,13 @@ const getFontScale = (key: string) => (fontScaleMap as Record<string, number>)[k
 /**
  * Provides the app theme (light / dark / auto) and memoized shared styles.
  *
- * - Mode + font size come from `settings.appearance` and are written back
- *   through `updateSettings('appearance', ...)` when changed here (App.tsx
- *   wires this up as `ThemeProviderWithSettings`). Persistence itself lives
- *   in SettingsContext (AsyncStorage) — this provider holds no storage.
- * - Subscribes to the system `Appearance` listener, but only reacts to it
- *   while in 'auto' mode.
+ * - Mode, font size and accent are READ from `settings.appearance` every
+ *   render (no copy into state) and written back through
+ *   `updateSettings('appearance', ...)` (App.tsx wires this up as
+ *   `ThemeProviderWithSettings`). Without settings they live in local state.
+ *   Persistence itself lives in SettingsContext (AsyncStorage).
+ * - The theme object is derived with `useMemo`; 'auto' follows the system
+ *   scheme through `useColorScheme()`.
  * - The context value is memoized and includes `styles.text` /
  *   `styles.container` (StyleSheets rebuilt only when the theme object changes).
  *
@@ -61,82 +62,26 @@ const getFontScale = (key: string) => (fontScaleMap as Record<string, number>)[k
  */
 export const ThemeProvider = ({ children, settings = null, updateSettings = null, accentAllowed = true }: ThemeProviderProps) => {
 
-	// Get theme mode from settings or default to dark
-	const initialThemeMode = settings?.appearance?.theme || 'dark'
-	const initialFontSize = settings?.appearance?.fontSize || 'medium'
-	const initialAccent = settings?.appearance?.accentColor || 'default'
-	const [themeMode, setThemeMode] = useState<ThemeMode>(initialThemeMode)
-	const [fontSizeKey, setFontSizeKey] = useState(initialFontSize)
-	const [accentKey, setAccentKey] = useState(initialAccent)
-	const [isDark, setIsDark] = useState(initialThemeMode === 'dark' || (initialThemeMode === 'auto' && Appearance.getColorScheme() === 'dark'))
-	const [theme, setTheme] = useState(createTheme(isDark, getFontScale(initialFontSize), accentAllowed ? initialAccent : 'default'))
+	// Fuente de verdad: los ajustes cuando los hay; sin ellos (proveedor aislado), estado local.
+	// Nada se COPIA de los ajustes a un estado: antes unos efectos lo sincronizaban y al
+	// arrancar (ajustes leídos del disco después del primer render) la app entera se
+	// redibujaba dos veces de más, con el tema por defecto en pantalla mientras tanto
+	const [localMode, setLocalMode] = useState<ThemeMode>('dark')
+	const [localFontSize, setLocalFontSize] = useState('medium')
+	const [localAccent, setLocalAccent] = useState('default')
+	const themeMode: ThemeMode = settings ? settings.appearance?.theme || 'dark' : localMode
+	const fontSizeKey = settings ? settings.appearance?.fontSize || 'medium' : localFontSize
+	const accentKey = settings ? settings.appearance?.accentColor || 'default' : localAccent
+
+	// Esquema del sistema, reactivo (sustituye al listener manual de Appearance); solo cuenta en 'auto'
+	const systemScheme = useColorScheme()
+	const isDark = themeMode === 'dark' || (themeMode === 'auto' && systemScheme === 'dark')
+	const effectiveAccent = accentAllowed ? accentKey : 'default'
+	const theme = useMemo(() => createTheme(isDark, getFontScale(fontSizeKey), effectiveAccent), [isDark, fontSizeKey, effectiveAccent])
 
 	// Memoized styles at context level
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
-
-	// Update theme based on mode and system appearance
-	const updateTheme = (mode: ThemeMode, fKey: string = fontSizeKey, accent: string = accentKey) => {
-
-		let shouldBeDark = false
-		if (mode === 'auto') {
-			shouldBeDark = Appearance.getColorScheme() === 'dark'
-		} else if (mode === 'dark') {
-			shouldBeDark = true
-		} else if (mode === 'light') {
-			shouldBeDark = false
-		}
-
-		setIsDark(shouldBeDark)
-		setTheme(createTheme(shouldBeDark, getFontScale(fKey), accentAllowed ? accent : 'default'))
-	}
-
-	// Sync with settings when they change
-	useEffect(() => {
-		if (settings?.appearance?.theme && settings.appearance.theme !== themeMode) {
-			setThemeMode(settings.appearance.theme)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [settings?.appearance?.theme])
-
-	// Sync fontSize from settings
-	useEffect(() => {
-		const newFontSize = settings?.appearance?.fontSize || 'medium'
-		if (newFontSize !== fontSizeKey) {
-			setFontSizeKey(newFontSize)
-			updateTheme(themeMode, newFontSize)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [settings?.appearance?.fontSize])
-
-	// Sync accent from settings
-	useEffect(() => {
-		const newAccent = settings?.appearance?.accentColor || 'default'
-		if (newAccent !== accentKey) {
-			setAccentKey(newAccent)
-			updateTheme(themeMode, fontSizeKey, newAccent)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [settings?.appearance?.accentColor])
-
-	useEffect(() => {
-
-		// Initial theme setup; also re-resolves the accent when the GOLD
-		// entitlement (accentAllowed) flips, e.g. after the profile refreshes
-		updateTheme(themeMode)
-
-		// Listen for system appearance changes (only when in auto mode)
-		const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-			if (themeMode === 'auto') {
-				const newIsDark = colorScheme === 'dark'
-				setIsDark(newIsDark)
-				setTheme(createTheme(newIsDark, getFontScale(fontSizeKey), accentAllowed ? accentKey : 'default'))
-			}
-		})
-
-		return () => subscription?.remove()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [themeMode, fontSizeKey, accentKey, accentAllowed])
 
 	// Keep a ref to updateSettings so the memoized context value never uses a stale closure
 	// (la escritura va en un efecto: el cuerpo del render debe ser puro y sus
@@ -144,15 +89,11 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
 	const updateSettingsRef = useRef(updateSettings)
 	useEffect(() => { updateSettingsRef.current = updateSettings })
 
+	// Con ajustes, `updateSettings` actualiza su estado en el acto (antes de persistir), así
+	// que el tema cambia en el mismo render; sin ellos, se cambia el estado local
 	const changeThemeMode = async (mode: ThemeMode) => {
-
-		setThemeMode(mode)
-		updateTheme(mode)
-
-		// Update settings if updateSettings function is provided
-		if (updateSettingsRef.current) {
-			await updateSettingsRef.current('appearance', { theme: mode })
-		}
+		if (updateSettingsRef.current) { await updateSettingsRef.current('appearance', { theme: mode }) }
+		else { setLocalMode(mode) }
 	}
 
 	const toggleTheme = () => {
@@ -161,19 +102,13 @@ export const ThemeProvider = ({ children, settings = null, updateSettings = null
 	}
 
 	const changeFontSize = async (size: string) => {
-		setFontSizeKey(size)
-		updateTheme(themeMode, size)
-		if (updateSettingsRef.current) {
-			await updateSettingsRef.current('appearance', { fontSize: size })
-		}
+		if (updateSettingsRef.current) { await updateSettingsRef.current('appearance', { fontSize: size }) }
+		else { setLocalFontSize(size) }
 	}
 
 	const changeAccentColor = async (accentId: string) => {
-		setAccentKey(accentId)
-		updateTheme(themeMode, fontSizeKey, accentId)
-		if (updateSettingsRef.current) {
-			await updateSettingsRef.current('appearance', { accentColor: accentId })
-		}
+		if (updateSettingsRef.current) { await updateSettingsRef.current('appearance', { accentColor: accentId }) }
+		else { setLocalAccent(accentId) }
 	}
 
 	// Memoized context value to prevent unnecessary re-renders
