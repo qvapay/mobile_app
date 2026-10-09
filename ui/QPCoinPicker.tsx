@@ -53,17 +53,22 @@ type QPCoinPickerProps = {
  * @param [props.defaultCoins] - Accesos rápidos de relleno.
  * @param [props.showFees=true] - Oculta condiciones y conversión (modo P2P: solo identidad).
  */
+// Defaults a nivel de módulo: un `[]` en la firma es un array nuevo por render e invalida
+// los useMemo que dependen de él cuando el llamador no pasa la prop
+const NO_COINS: NonNullable<QPCoinPickerProps['coins']> = []
+const NO_DEFAULT_COINS: NonNullable<QPCoinPickerProps['defaultCoins']> = []
+
 const QPCoinPicker = ({
 	visible,
 	onClose,
 	onSelect,
-	coins = [],
+	coins = NO_COINS,
 	selectedCoin = null,
 	isLoading = false,
 	amount = '',
 	direction = 'out',
 	recentKey = null,
-	defaultCoins = [],
+	defaultCoins = NO_DEFAULT_COINS,
 	showFees = true,
 }: QPCoinPickerProps) => {
 

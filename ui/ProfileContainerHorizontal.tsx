@@ -26,6 +26,9 @@ type ProfileContainerHorizontalProps = {
 	isOnline?: boolean
 }
 
+// Default a nivel de módulo: un `{}` en la firma es un objeto nuevo por render y anula el memo()
+const NO_USER: NonNullable<ProfileContainerHorizontalProps['user']> = {}
+
 /**
  * Compact horizontal user row: avatar + name with KYC/gold/admin badges,
  * memoized for list use (P2P offer cards, Send search results, contacts,
@@ -40,7 +43,7 @@ type ProfileContainerHorizontalProps = {
  * @param [props.showUsername=true] - Toggle between @username and the P2P trust strip.
  * @param [props.isOnline] - Shows the online presence dot on the avatar.
  */
-const ProfileContainerHorizontal = ({ user = {}, size = 56, showUsername = true, isOnline }: ProfileContainerHorizontalProps) => {
+const ProfileContainerHorizontal = ({ user = NO_USER, size = 56, showUsername = true, isOnline }: ProfileContainerHorizontalProps) => {
 
 	// Contexts
 	const { theme } = useTheme()
