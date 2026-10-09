@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { Text, View, Modal, StyleSheet } from 'react-native'
+import { Text, View, Modal, StyleSheet, useWindowDimensions } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import QPPressable from './particles/QPPressable'
@@ -47,6 +47,7 @@ const countryKey = (c: Country) => `${c.code}-${c.dial_code}`
 const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, onSelect, onClose, theme, textStyles }: CountryPickerModalProps) => {
 
 	const { t } = useTranslation()
+	const { height: windowHeight } = useWindowDimensions()
 	const query = countrySearch.toLowerCase()
 	const containerStyles = createContainerStyles(theme)
 
@@ -73,7 +74,9 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 	return (
 		<Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
 			<View style={containerStyles.modalOverlay}>
-				<View style={[containerStyles.modalCard, styles.modalContent]}>
+				{/* Alto FIJO, no maxHeight: FlashList no se mide por su contenido y sin alto no
+				    pinta filas (ver QPAssetSheet); los ~240 países llenan el card de todas formas */}
+				<View style={[containerStyles.modalCard, { height: windowHeight * 0.75 }]}>
 					<View style={styles.modalHeader}>
 						<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('ui.countryPickerModal.title')}</Text>
 						<QPPressable onPress={onClose}>
@@ -102,12 +105,6 @@ const CountryPickerModal = ({ visible, country, countrySearch, onChangeSearch, o
 }
 
 const styles = StyleSheet.create({
-	// Alto FIJO, no `maxHeight`: FlashList no se mide por su contenido y en un card de
-	// alto automático recibe cero y no pinta ninguna fila (ver QPAssetSheet). Los ~240
-	// países llenan el card de todas formas, y buscar no lo encoge (no baja bajo el teclado)
-	modalContent: {
-		height: '80%',
-	},
 	// La lista ocupa lo que dejan cabecera y buscador dentro del card
 	list: {
 		flex: 1,
