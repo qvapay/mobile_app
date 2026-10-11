@@ -393,3 +393,248 @@ export const accountMetaAt = (message: SolanaMessage, index: number): { isSigner
 
 /** El id de una tx de Solana es la PRIMERA firma (la del fee payer) en base58. */
 export const transactionId = (tx: SolanaTransaction): string | null => (tx.signatures[0] ? base58.encode(tx.signatures[0]) : null)
+
+// ---------------------------------------------------------------------------
+// Mensaje v0 (versionado, con address lookup tables)
+//
+// Lo exige el swap de Jupiter: una ruta toca 30+ cuentas y el mensaje legacy no cabe en los
+// 1232 bytes de un paquete. Las lookup tables (ALT) son cuentas on-chain con listas de
+// direcciones; el mensaje referencia una dirección por (tabla, índice) en 1 byte en vez de 32.
+//
+//   mensaje v0 = 0x80 · cabecera(3) · compact(n) · n × pubkey · blockhash
+//                · compact(n ix) · instrucciones · compact(n lookups)
+//                · lookups: pubkey de la tabla · compact(n) · índices escribibles
+//                                              · compact(n) · índices de solo lectura
+//
+// Las cuentas del mensaje son, por este orden: las estáticas, las escribibles cargadas de
+// todas las tablas (en el orden de los lookups) y luego las de solo lectura cargadas.
+// Firmantes y programas invocados van SIEMPRE estáticos.
+//
+// La compilación calca la de @solana/web3.js 1.98 (orden de inserción, payer primero) para
+// que los vectores dorados coincidan BYTE A BYTE, no solo en significado.
+// ---------------------------------------------------------------------------
+
+export type AddressLookupTable = { key: string, addresses: string[] }
+
+export type MessageAddressTableLookup = { accountKey: string, writableIndexes: number[], readonlyIndexes: number[] }
+
+export type SolanaMessageV0 = {
+	version: 0
+	numRequiredSignatures: number
+	numReadonlySigned: number
+	numReadonlyUnsigned: number
+	staticAccountKeys: string[]
+	recentBlockhash: string
+	instructions: CompiledInstruction[]
+	addressTableLookups: MessageAddressTableLookup[]
+}
+
+/** Prefijo del mensaje versionado: bit alto + versión 0. */
+const V0_PREFIX = 0x80
+
+/** Cabecera de una ALT on-chain: tipo, desactivación, último slot extendido, índice, autoridad opcional y relleno. */
+export const LOOKUP_TABLE_META_SIZE = 56
+
+/** Datos de una cuenta ALT → sus direcciones. Lanza si la cuenta no tiene esa forma. */
+export const decodeAddressLookupTable = (data: Uint8Array): string[] => {
+	if (data.length < LOOKUP_TABLE_META_SIZE || (data.length - LOOKUP_TABLE_META_SIZE) % 32 !== 0) throw new SolanaCodecError('solana: lookup table con tamaño inválido')
+	if (readU32le(data, 0) !== 1) throw new SolanaCodecError('solana: la cuenta no es una lookup table')
+	const out: string[] = []
+	for (let offset = LOOKUP_TABLE_META_SIZE; offset < data.length; offset += 32) out.push(base58.encode(data.slice(offset, offset + 32)))
+	return out
+}
+
+type KeyMeta = { isSigner: boolean, isWritable: boolean, isInvoked: boolean }
+
+/**
+ * Compila a mensaje v0 (= `MessageV0.compile` de web3.js). Una cuenta va a una tabla solo si
+ * no firma, no es un programa invocado y la tabla la contiene; el resto, estática.
+ */
+export const compileV0Message = (feePayer: string, instructions: Instruction[], recentBlockhash: string, tables: AddressLookupTable[] = []): SolanaMessageV0 => {
+	const metas = new Map<string, KeyMeta>()
+	const touch = (pubkey: string): KeyMeta => {
+		pubkeyBytes(pubkey)
+		let meta = metas.get(pubkey)
+		if (!meta) { meta = { isSigner: false, isWritable: false, isInvoked: false }; metas.set(pubkey, meta) }
+		return meta
+	}
+	const payer = touch(feePayer)
+	payer.isSigner = true
+	payer.isWritable = true
+	for (const ix of instructions) {
+		touch(ix.programId).isInvoked = true
+		for (const key of ix.keys) {
+			const meta = touch(key.pubkey)
+			meta.isSigner ||= key.isSigner
+			meta.isWritable ||= key.isWritable
+		}
+	}
+
+	const lookups: MessageAddressTableLookup[] = []
+	const loadedWritable: string[] = []
+	const loadedReadonly: string[] = []
+	const drain = (table: AddressLookupTable, filter: (m: KeyMeta) => boolean): [number[], string[]] => {
+		const indexes: number[] = []
+		const drained: string[] = []
+		for (const [address, meta] of [...metas.entries()]) {
+			if (!filter(meta)) continue
+			const index = table.addresses.indexOf(address)
+			if (index < 0) continue
+			if (index > 255) throw new SolanaCodecError('solana: índice de lookup table > 255')
+			indexes.push(index)
+			drained.push(address)
+			metas.delete(address)
+		}
+		return [indexes, drained]
+	}
+	for (const table of tables) {
+		const [writableIndexes, writable] = drain(table, m => !m.isSigner && !m.isInvoked && m.isWritable)
+		const [readonlyIndexes, readonly] = drain(table, m => !m.isSigner && !m.isInvoked && !m.isWritable)
+		if (writableIndexes.length === 0 && readonlyIndexes.length === 0) continue
+		lookups.push({ accountKey: table.key, writableIndexes, readonlyIndexes })
+		loadedWritable.push(...writable)
+		loadedReadonly.push(...readonly)
+	}
+
+	const entries = [...metas.entries()]
+	const group = (signer: boolean, writable: boolean) => entries.filter(([, m]) => m.isSigner === signer && m.isWritable === writable).map(([key]) => key)
+	const writableSigners = group(true, true)
+	const readonlySigners = group(true, false)
+	const writableNonSigners = group(false, true)
+	const readonlyNonSigners = group(false, false)
+	if (writableSigners[0] !== feePayer) throw new SolanaCodecError('solana: el fee payer debe ser el primer firmante')
+	const staticAccountKeys = [...writableSigners, ...readonlySigners, ...writableNonSigners, ...readonlyNonSigners]
+
+	const all = [...staticAccountKeys, ...loadedWritable, ...loadedReadonly]
+	const index = new Map(all.map((key, i) => [key, i]))
+	pubkeyBytes(recentBlockhash)
+	return {
+		version: 0,
+		numRequiredSignatures: writableSigners.length + readonlySigners.length,
+		numReadonlySigned: readonlySigners.length,
+		numReadonlyUnsigned: readonlyNonSigners.length,
+		staticAccountKeys,
+		recentBlockhash,
+		instructions: instructions.map(ix => ({ programIdIndex: index.get(ix.programId)!, accounts: ix.keys.map(k => index.get(k.pubkey)!), data: ix.data })),
+		addressTableLookups: lookups,
+	}
+}
+
+export const serializeV0Message = (message: SolanaMessageV0): Uint8Array => concat(
+	Uint8Array.of(V0_PREFIX, message.numRequiredSignatures, message.numReadonlySigned, message.numReadonlyUnsigned),
+	encodeCompactU16(message.staticAccountKeys.length),
+	...message.staticAccountKeys.map(pubkeyBytes),
+	pubkeyBytes(message.recentBlockhash),
+	encodeCompactU16(message.instructions.length),
+	...message.instructions.flatMap(ix => [
+		Uint8Array.of(ix.programIdIndex),
+		encodeCompactU16(ix.accounts.length),
+		Uint8Array.from(ix.accounts),
+		encodeCompactU16(ix.data.length),
+		ix.data,
+	]),
+	encodeCompactU16(message.addressTableLookups.length),
+	...message.addressTableLookups.flatMap(l => [
+		pubkeyBytes(l.accountKey),
+		encodeCompactU16(l.writableIndexes.length),
+		Uint8Array.from(l.writableIndexes),
+		encodeCompactU16(l.readonlyIndexes.length),
+		Uint8Array.from(l.readonlyIndexes),
+	]),
+)
+
+const readV0Message = (reader: Reader): SolanaMessageV0 => {
+	const prefix = reader.u8()
+	if (prefix !== V0_PREFIX) throw new SolanaCodecError(prefix & 0x80 ? `solana: versión de mensaje ${prefix & 0x7f} no soportada` : 'solana: se esperaba un mensaje v0')
+	const numRequiredSignatures = reader.u8()
+	const numReadonlySigned = reader.u8()
+	const numReadonlyUnsigned = reader.u8()
+	const staticAccountKeys = Array.from({ length: reader.compactU16() }, () => base58.encode(reader.take(32)))
+	const recentBlockhash = base58.encode(reader.take(32))
+	const instructions = Array.from({ length: reader.compactU16() }, () => {
+		const programIdIndex = reader.u8()
+		const accounts = Array.from(reader.take(reader.compactU16()))
+		const data = reader.take(reader.compactU16())
+		return { programIdIndex, accounts, data }
+	})
+	const addressTableLookups = Array.from({ length: reader.compactU16() }, () => ({
+		accountKey: base58.encode(reader.take(32)),
+		writableIndexes: Array.from(reader.take(reader.compactU16())),
+		readonlyIndexes: Array.from(reader.take(reader.compactU16())),
+	}))
+	const total = staticAccountKeys.length + addressTableLookups.reduce((n, l) => n + l.writableIndexes.length + l.readonlyIndexes.length, 0)
+	if (total > 256) throw new SolanaCodecError('solana: demasiadas cuentas')
+	// Un programa invocado no puede venir de una tabla: los índices de programa son estáticos
+	if (instructions.some(ix => ix.programIdIndex >= staticAccountKeys.length || ix.accounts.some(i => i >= total))) throw new SolanaCodecError('solana: índice de cuenta fuera de rango')
+	if (numRequiredSignatures > staticAccountKeys.length) throw new SolanaCodecError('solana: cabecera incoherente')
+	return { version: 0, numRequiredSignatures, numReadonlySigned, numReadonlyUnsigned, staticAccountKeys, recentBlockhash, instructions, addressTableLookups }
+}
+
+export const deserializeV0Message = (bytes: Uint8Array): SolanaMessageV0 => {
+	const reader = new Reader(bytes)
+	const message = readV0Message(reader)
+	if (!reader.done()) throw new SolanaCodecError('solana: bytes sobrantes tras el mensaje')
+	return message
+}
+
+export type ResolvedAccount = { pubkey: string, isSigner: boolean, isWritable: boolean }
+
+/**
+ * Todas las cuentas del mensaje con sus permisos, cargando las de las tablas con el
+ * contenido que se PASA (el que la wallet leyó de la cadena). Una tabla que falte o un
+ * índice que no exista lanzan: nunca se adivina a qué cuenta apunta un índice.
+ */
+export const resolveV0Accounts = (message: SolanaMessageV0, tables: AddressLookupTable[]): ResolvedAccount[] => {
+	const byKey = new Map(tables.map(t => [t.key, t.addresses]))
+	const load = (kind: 'writableIndexes' | 'readonlyIndexes') => message.addressTableLookups.flatMap(l => {
+		const addresses = byKey.get(l.accountKey)
+		if (!addresses) throw new SolanaCodecError(`solana: falta la lookup table ${l.accountKey}`)
+		return l[kind].map(i => {
+			if (i >= addresses.length) throw new SolanaCodecError('solana: índice fuera de la lookup table')
+			return addresses[i]
+		})
+	})
+	const n = message.staticAccountKeys.length
+	const statics = message.staticAccountKeys.map((pubkey, i) => {
+		const isSigner = i < message.numRequiredSignatures
+		const isWritable = isSigner ? i < message.numRequiredSignatures - message.numReadonlySigned : i < n - message.numReadonlyUnsigned
+		return { pubkey, isSigner, isWritable }
+	})
+	return [
+		...statics,
+		...load('writableIndexes').map(pubkey => ({ pubkey, isSigner: false, isWritable: true })),
+		...load('readonlyIndexes').map(pubkey => ({ pubkey, isSigner: false, isWritable: false })),
+	]
+}
+
+/** Instrucciones del mensaje con sus cuentas ya resueltas: lo que de verdad hará la tx. */
+export const decompileV0Instructions = (message: SolanaMessageV0, tables: AddressLookupTable[]): Instruction[] => {
+	const accounts = resolveV0Accounts(message, tables)
+	return message.instructions.map(ix => ({
+		programId: accounts[ix.programIdIndex].pubkey,
+		keys: ix.accounts.map(i => ({ ...accounts[i] })),
+		data: ix.data,
+	}))
+}
+
+export type SolanaTransactionV0 = { signatures: Array<Uint8Array | null>, message: SolanaMessageV0, messageBytes: Uint8Array }
+
+export const serializeTransactionV0 = (tx: SolanaTransactionV0): Uint8Array => concat(
+	encodeCompactU16(tx.signatures.length),
+	...tx.signatures.map(sig => sig ?? EMPTY_SIGNATURE),
+	tx.messageBytes,
+)
+
+export const deserializeTransactionV0 = (bytes: Uint8Array): SolanaTransactionV0 => {
+	const reader = new Reader(bytes)
+	const count = reader.compactU16()
+	const signatures = Array.from({ length: count }, () => {
+		const sig = reader.take(64)
+		return sig.every(b => b === 0) ? null : sig
+	})
+	const start = reader.offset
+	const message = readV0Message(reader)
+	if (!reader.done()) throw new SolanaCodecError('solana: bytes sobrantes tras la tx')
+	if (count !== message.numRequiredSignatures) throw new SolanaCodecError('solana: número de firmas distinto de la cabecera')
+	return { signatures, message, messageBytes: bytes.slice(start) }
+}
