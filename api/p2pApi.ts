@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer } from '../types/domain'
+import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer, P2POfferKind } from '../types/domain'
 
 /** Filtros de `GET /p2p/index`. */
 export type P2PIndexFilters = {
@@ -18,6 +18,8 @@ export type P2PIndexFilters = {
 	ratio_max?: number
 	coin?: string
 	orderBy?: string
+	/** `fixed` | `flexible` (por rango); sin él llegan las dos, cada una con su `offer_kind`. */
+	offer_kind?: P2POfferKind
 }
 
 /**
@@ -44,6 +46,32 @@ export type P2PCreateInput = {
 	receive: string | number
 	idempotency_key?: string
 } & Record<string, unknown>
+
+/** Respuesta `201` de tomar una parte de una oferta por rango. */
+export type P2PApplyFlexibleResult = { message?: string, p2p?: string, order?: string, amount?: string | number, receive?: string | number, transaction?: string }
+
+/** Campos editables de una oferta (fixed: amount/receive; por rango: available_amount/receive/order_min/order_max). */
+export type P2PEditInput = {
+	amount?: string | number
+	receive?: string | number
+	only_vip?: boolean | 0 | 1
+	message?: string
+	available_amount?: number
+	order_min?: number
+	order_max?: number
+}
+
+/**
+ * `?order=<uuid>` de las acciones sobre una orden de una oferta por rango
+ * (sin orden, la acción va sobre la oferta entera, como siempre).
+ */
+const orderQuery = (order?: string | null) => (order ? `?order=${encodeURIComponent(order)}` : '')
+
+/** Fallo estándar con el body crudo en `details` (los códigos como ORDER_ALREADY_ACTIVE viajan ahí). */
+const failure = (err: unknown) => {
+	const error = err as ApiClientError
+	return { success: false as const, error: error.response?.data?.error || error.response?.data?.message || error.message, details: error.response?.data, status: error.response?.status }
+}
 
 // P2P API functions
 export const p2pApi = {
@@ -94,6 +122,7 @@ export const p2pApi = {
 				params.append('ratio_max', filters.ratio_max.toString())
 			if (filters.coin) params.append('coin', filters.coin)
 			if (filters.orderBy) params.append('orderBy', filters.orderBy)
+			if (filters.offer_kind) params.append('offer_kind', filters.offer_kind)
 
 			// Make the API request
 			const response = await apiClient.get(`/p2p/index?${params.toString()}`)
@@ -211,18 +240,20 @@ export const p2pApi = {
 	/**
 	 * Cancels a P2P offer/escrow (`POST /p2p/{uuid}/cancel`).
 	 * Moves the offer to `cancelled` and releases any locked funds.
+	 * With `order` (range offers) it acts on ONE order: the fiat payer cancels it,
+	 * while the fiat receiver opens a dispute — the response then carries
+	 * `status: 'revision'`. Without `order`, a range offer is only cancellable
+	 * with no live orders (409 otherwise).
 	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param {string} [order] - Order UUID of a range offer
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
-	cancel: async (p2p_uuid: string): Promise<ApiResult<unknown>> => {
+	cancel: async (p2p_uuid: string, order?: string | null): Promise<ApiResult<{ status?: string } & Record<string, unknown>>> => {
 		try {
-			const response = await apiClient.post(`/p2p/${p2p_uuid}/cancel`)
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/cancel${orderQuery(order)}`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (err) {
-			const error = err as ApiClientError
-			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
-		}
+		} catch (err) { return failure(err) }
 	},
 
 	/**
@@ -232,11 +263,12 @@ export const p2pApi = {
 	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @param {string} [tx_id] - Optional external payment reference/transaction id
+	 * @param {string} [order] - Order UUID of a range offer
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	markPaid: async (p2p_uuid: string, tx_id: string = ''): Promise<ApiResult<unknown>> => {
+	markPaid: async (p2p_uuid: string, tx_id: string = '', order?: string | null): Promise<ApiResult<unknown>> => {
 		try {
-			const response = await apiClient.post(`/p2p/${p2p_uuid}/paid`, { tx_id })
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/paid${orderQuery(order)}`, { tx_id })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -249,12 +281,16 @@ export const p2pApi = {
 	 * Final, irreversible step of the trade: moves the offer to `completed`
 	 * and settles balances.
 	 *
+	 * With `order` (range offers) it releases that order only — also allowed
+	 * while the order is in `revision`.
+	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {string} [order] - Order UUID of a range offer
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
 	 */
-	confirmReceived: async (p2p_uuid: string): Promise<ApiResult<unknown>> => {
+	confirmReceived: async (p2p_uuid: string, order?: string | null): Promise<ApiResult<unknown>> => {
 		try {
-			const response = await apiClient.post(`/p2p/${p2p_uuid}/received`)
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/received${orderQuery(order)}`)
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -267,12 +303,15 @@ export const p2pApi = {
 	 * Loads the full history; live updates arrive separately over SSE
 	 * (see `useP2PChatSSE`), which only pushes new messages.
 	 *
+	 * With `order` (range offers) the chat is scoped to that order.
+	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
+	 * @param {string} [order] - Order UUID of a range offer
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the messages array
 	 */
-	getChat: async (p2p_uuid: string): Promise<ApiResult<unknown[]>> => {
+	getChat: async (p2p_uuid: string, order?: string | null): Promise<ApiResult<unknown[]>> => {
 		try {
-			const response = await apiClient.get(`/p2p/${p2p_uuid}/chat`)
+			const response = await apiClient.get(`/p2p/${p2p_uuid}/chat${orderQuery(order)}`)
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -288,9 +327,10 @@ export const p2pApi = {
 	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
 	 * @param {{ message?: string, image?: { uri: string, type?: string, fileName?: string } }} payload - Message payload
+	 * @param {string} [order] - Order UUID of a range offer (chat scoped to that order)
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the stored message
 	 */
-	sendChat: async (p2p_uuid: string, payload: { message?: string, image?: { uri: string, type?: string, fileName?: string } }): Promise<ApiResult<unknown>> => {
+	sendChat: async (p2p_uuid: string, payload: { message?: string, image?: { uri: string, type?: string, fileName?: string } }, order?: string | null): Promise<ApiResult<unknown>> => {
 		try {
 			if (payload.image) {
 				const formData = new FormData()
@@ -302,12 +342,12 @@ export const p2pApi = {
 				if (payload.message) {
 					formData.append('message', payload.message)
 				}
-				const response = await apiClient.post(`/p2p/${p2p_uuid}/chat`, formData, {
+				const response = await apiClient.post(`/p2p/${p2p_uuid}/chat${orderQuery(order)}`, formData, {
 					headers: { 'Content-Type': 'multipart/form-data' },
 				})
 				return { success: true, data: response.data, status: response.status }
 			}
-			const response = await apiClient.post(`/p2p/${p2p_uuid}/chat`, payload)
+			const response = await apiClient.post(`/p2p/${p2p_uuid}/chat${orderQuery(order)}`, payload)
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
@@ -365,13 +405,16 @@ export const p2pApi = {
 
 	/**
 	 * Edits an open P2P offer (`POST /p2p/{uuid}/edit`, owner only).
-	 * Only works while the offer is still `open` (no peer yet).
+	 * Only works while the offer is still `open` (no peer yet). A range offer
+	 * only edits what is LEFT to take: `available_amount` (0 withdraws the rest
+	 * without cancelling live orders), `receive` for that new available, and
+	 * `order_min`/`order_max` — orders already taken keep their terms.
 	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
-	 * @param {Object} data - Editable fields: amount, receive, only_vip, message
+	 * @param {Object} data - Editable fields: amount, receive, only_vip, message (+ available_amount, order_min, order_max on range offers)
 	 * @returns {Promise<Object>} `{ success, data?, error?, status? }` — `data` is the updated offer
 	 */
-	edit: async (p2p_uuid: string, data: { amount?: string | number, receive?: string | number, only_vip?: boolean | 0 | 1, message?: string }): Promise<ApiResult<P2POffer>> => {
+	edit: async (p2p_uuid: string, data: P2PEditInput): Promise<ApiResult<P2POffer>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/edit`, data)
 			return { success: true, data: response.data, status: response.status }
@@ -429,18 +472,23 @@ export const p2pApi = {
 	/**
 	 * Applies to someone else's P2P offer (`POST /p2p/{uuid}/apply`).
 	 * The caller becomes the peer and the offer moves from `open` to `processing`.
+	 * On a range offer `amount` is REQUIRED (400 `FLEXIBLE_AMOUNT_REQUIRED`
+	 * otherwise) and the `201` carries the new order's uuid in `order` — every
+	 * later action goes against it. One live order per offer and user:
+	 * 409 `ORDER_ALREADY_ACTIVE` (codes travel in `details.code`).
 	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param {number} [amount] - Part to take (range offers only, up to 2 decimals)
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
-	apply: async (p2p_uuid: string): Promise<ApiResult<unknown>> => {
+	apply: async (p2p_uuid: string, amount?: number): Promise<ApiResult<P2PApplyFlexibleResult>> => {
 		try {
-			const response = await apiClient.post(`/p2p/${p2p_uuid}/apply`)
+			// Una fixed se aplica sin body, como siempre
+			const response = amount != null
+				? await apiClient.post(`/p2p/${p2p_uuid}/apply`, { amount })
+				: await apiClient.post(`/p2p/${p2p_uuid}/apply`)
 			return { success: true, data: response.data, status: response.status }
-		} catch (err) {
-			const error = err as ApiClientError
-			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
-		}
+		} catch (err) { return failure(err) }
 	},
 
 	/**

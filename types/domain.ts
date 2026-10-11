@@ -308,6 +308,45 @@ export type P2POffer = {
 	/** Alias PascalCase del anterior (el backend ha mandado ambos). */
 	Details?: P2POfferDetails
 	payment_window_expires_at?: string | null
+	/**
+	 * `fixed` = se toma entera (lo de siempre; ausente en un backend viejo).
+	 * `flexible` = POR RANGO: cada contraparte toma una parte entre `order_min` y
+	 * `order_max`, y cada parte es una orden propia (`Orders`) con su pago, chat y disputa.
+	 */
+	offer_kind?: P2POfferKind
+	/** Flexible: lo que queda por tomar (`amount` es el total original). */
+	available_amount?: Decimal | null
+	/** Flexible: lo comprometido en órdenes vivas. */
+	reserved_amount?: Decimal | null
+	order_min?: Decimal | null
+	order_max?: Decimal | null
+	/** Flexible: ¿puede esta cuenta tomar una parte? (hoy, VIP). */
+	can_take_flexible?: boolean
+	/** Flexible: el dueño ve todas; un taker, solo las suyas. */
+	Orders?: P2POrder[]
+	/** Flexible: solo llega al dueño. */
+	OrdersSummary?: { active: number, completed: number, cancelled: number } | null
+}
+
+export type P2POfferKind = 'fixed' | 'flexible'
+
+/** Estado de una orden de una oferta por rango (sin `open`: nace ya tomada). */
+export type P2POrderStatus = 'processing' | 'paid' | 'completed' | 'cancelled' | 'revision'
+
+/** Orden hija de una oferta por rango (`GET /p2p/{uuid}` → `Orders`). */
+export type P2POrder = {
+	uuid: string
+	amount: Decimal
+	receive: Decimal
+	status: P2POrderStatus
+	created_at: string
+	paid_at?: string | null
+	released_at?: string | null
+	cancelled_at?: string | null
+	/** 15 min desde que se toma; null para VIP y monedas de efectivo. */
+	payment_window_expires_at?: string | null
+	tx_id?: string | null
+	Taker?: P2PUser | null
 }
 
 /** Paginador Laravel crudo de `GET /p2p/index` (las ofertas viven en `data`). */

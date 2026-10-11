@@ -40,7 +40,7 @@ const PERCENT_CHIPS = [25, 50, 100] as const
 const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, user, theme, textStyles, containerStyles }: P2PCreateFormProps) => {
 
 	const { t } = useTranslation()
-	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer } = form
+	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer, flexible, orderMin, orderMax } = form
 
 	const balance = Number(user?.balance) || 0
 
@@ -115,6 +115,30 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 					accessibilityLabel={type === 'buy' ? t('p2p.create.form.send') : t('p2p.create.form.receive')}
 				/>
 			</View>
+
+			{/* Por rango (solo VIP: el backend responde 403 a los demás): la oferta se
+			    reparte en órdenes entre un mínimo y un máximo hasta agotarse */}
+			{!!user?.vip && (
+				<View style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch', marginTop: 6 }]}>
+					<View style={styles.switchRow}>
+						<View style={{ flex: 1, paddingRight: 12 }}>
+							<Text style={textStyles.h6}>{t('p2p.flexible.create.toggle')}</Text>
+							<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>{t('p2p.flexible.create.toggleHint')}</Text>
+						</View>
+						<Switch value={flexible} onValueChange={(v) => onField('flexible', v)} trackColor={{ true: theme.colors.primary }} />
+					</View>
+					{flexible && (
+						<View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+							<View style={{ flex: 1 }}>
+								<QPInput value={orderMin} onChangeText={(v) => onField('orderMin', sanitizeAmountInput(v))} placeholder="0.00" keyboardType="decimal-pad" prelabel={t('p2p.flexible.orderMin')} />
+							</View>
+							<View style={{ flex: 1 }}>
+								<QPInput value={orderMax} onChangeText={(v) => onField('orderMax', sanitizeAmountInput(v))} placeholder={amount || '0.00'} keyboardType="decimal-pad" prelabel={t('p2p.flexible.orderMax')} />
+							</View>
+						</View>
+					)}
+				</View>
+			)}
 
 			{/* Details: Coin working data */}
 			{selectedCoin && workingFields.length > 0 && (

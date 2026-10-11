@@ -123,12 +123,12 @@ describe('connection', () => {
 		expect(result.current.isStreamConnected).toBe(false)
 	})
 
-	test.each(['completed', 'cancelled', 'revision', undefined])('stays idle on inactive status %s', async (status) => {
+	test.each(['completed', 'cancelled', undefined])('stays idle on inactive status %s', async (status) => {
 		await renderHook({ ...props, status })
 		expect(EventSource.instances).toHaveLength(0)
 	})
 
-	test.each(['open', 'processing', 'paid'])('connects on active status %s', async (status) => {
+	test.each(['open', 'processing', 'paid', 'revision'])('connects on active status %s', async (status) => {
 		await renderHook({ ...props, status })
 		expect(EventSource.instances).toHaveLength(1)
 	})

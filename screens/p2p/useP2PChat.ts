@@ -117,6 +117,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
  * so drag tracking doesn't re-render the whole thread.
  *
  * @param params.p2p_uuid - Offer UUID whose chat to load.
+ * @param params.order - Order UUID of a range offer: every order has its own chat
+ *   (`?order=`); switching orders empties the thread before the new history arrives.
  * @returns Chat API for the P2POffer screen:
  *   state — `messages` (ascending), `chatLoading`, `chatError`, `chatText`,
  *   `selectedImage`, `sendingImage`, `showStickerPanel`, `visibleTimestamps`;
@@ -127,7 +129,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
  *   `toggleTimestamp`; scroll handlers — `onChatScrollBeginDrag`, `onChatScroll`,
  *   `onChatMomentumScrollEnd`, `onChatContentSizeChange`.
  */
-export default function useP2PChat({ p2p_uuid }: { p2p_uuid: string }) {
+export default function useP2PChat({ p2p_uuid, order = null }: { p2p_uuid: string, order?: string | null }) {
 
 	const [chat, dispatch] = useReducer(chatReducer, initialChat)
 	const set = useCallback(<K extends keyof ChatState>(field: K, value: ChatState[K]) => dispatch({ type: "set", field, value } as ChatAction), [])
@@ -141,7 +143,7 @@ export default function useP2PChat({ p2p_uuid }: { p2p_uuid: string }) {
 		try {
 			set("loading", true)
 			set("error", null)
-			const response = await p2pApi.getChat(p2p_uuid)
+			const response = await p2pApi.getChat(p2p_uuid, order)
 			if (response.success) {
 				// El endpoint devuelve el array pelado o envuelto en `{ chat }` según
 				// la ruta; el módulo de API lo tipa `unknown[]`, de ahí el cast local.
@@ -152,10 +154,14 @@ export default function useP2PChat({ p2p_uuid }: { p2p_uuid: string }) {
 			set("error", (err as Error).message)
 			toast.error(i18n.t('p2p.common.errorTitle'), { description: (err as Error).message })
 		} finally { set("loading", false) }
-	}, [p2p_uuid, set])
+	}, [p2p_uuid, order, set])
 
 	// Append a single message pushed over SSE (deduped by id, kept in ascending order)
 	const appendMessage = useCallback((message: ChatMessage) => dispatch({ type: "appendMessage", message }), [])
+
+	// Range offers: each order has its own thread — never show the previous
+	// order's messages while the new history loads
+	useEffect(() => { set("messages", []) }, [order, set])
 
 	// Load chat on mount (and reload if the offer being viewed changes)
 	useEffect(() => {
@@ -174,7 +180,7 @@ export default function useP2PChat({ p2p_uuid }: { p2p_uuid: string }) {
 		const message = (chat.text || "").trim()
 		if (message.length === 0) return
 		try {
-			const res = await p2pApi.sendChat(p2p_uuid, { message })
+			const res = await p2pApi.sendChat(p2p_uuid, { message }, order)
 			if (res.success) {
 				set("text", "")
 				await fetchChat()
@@ -222,7 +228,7 @@ export default function useP2PChat({ p2p_uuid }: { p2p_uuid: string }) {
 					type: chat.selectedImage.type || "image/jpeg",
 					fileName: chat.selectedImage.fileName || "photo.jpg",
 				},
-			})
+			}, order)
 			if (res.success) {
 				set("selectedImage", null)
 				set("text", "")
@@ -242,7 +248,7 @@ export default function useP2PChat({ p2p_uuid }: { p2p_uuid: string }) {
 	const handleSendSticker = async (stickerName: string) => {
 		set("showStickerPanel", false)
 		try {
-			const res = await p2pApi.sendChat(p2p_uuid, { message: `:sticker:${stickerName}.gif` })
+			const res = await p2pApi.sendChat(p2p_uuid, { message: `:sticker:${stickerName}.gif` }, order)
 			if (res.success) {
 				await fetchChat()
 				chatScrollRef.current?.scrollToEnd({ animated: true })

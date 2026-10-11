@@ -55,6 +55,17 @@ const parseP2PUuid = (url: string) => {
 }
 
 /**
+ * Order of a range offer in a P2P link (`/p2p/<uuid>?order=<order>`, the URL the
+ * backend puts in partial-order pushes and Telegram messages).
+ * @param url - P2P deep link URL.
+ * @returns The order UUID, or undefined.
+ */
+const parseP2POrder = (url: string): string | undefined => {
+	const match = url.match(/[?&]order=([^&#]+)/)
+	return match ? decodeURIComponent(match[1]) : undefined
+}
+
+/**
  * Parses the merchant-invoice UUID out of a Pay deep link URL.
  * @param url - e.g. https://qvapay.com/pay/<uuid> or qvapay://pay/<uuid>
  * @returns The UUID, or null when the URL is not a Pay link.
@@ -168,11 +179,12 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 					}
 					const p2pUuid = parseP2PUuid(pendingUrl)
 					if (p2pUuid) {
+						const order = parseP2POrder(pendingUrl)
 						navigation.reset({
 							index: 1,
 							routes: [
 								{ name: ROUTES.MAIN_STACK },
-								{ name: ROUTES.P2P_OFFER_SCREEN, params: { p2p_uuid: p2pUuid } },
+								{ name: ROUTES.P2P_OFFER_SCREEN, params: order ? { p2p_uuid: p2pUuid, order } : { p2p_uuid: p2pUuid } },
 							],
 						})
 						return

@@ -89,7 +89,9 @@
 		"buy": "Comprar",
 		"privateBadge": "Privada",
 		"availableYouSend": " disponível · você envia ",
-		"availableYouReceive": " disponível · você recebe "
+		"availableYouReceive": " disponível · você recebe ",
+		"rangeBadge": "Por faixa",
+		"perOrder": "Por ordem: "
 	},
 	"phoneInput": {
 		"placeholder": "Número de telefone"

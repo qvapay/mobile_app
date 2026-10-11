@@ -33,6 +33,9 @@ import { useOnlineStatus } from '../hooks/OnlineStatusContext'
 // Routes
 import { ROUTES } from '../routes'
 
+// Ofertas por rango
+import { isFlexibleOffer, offerAvailableCents, availableReceive, formatCents, toCents } from '../screens/p2p/p2pFlexible'
+
 /**
  * Maps an offer status to its action-button config (label, colors, radius).
  * Terminal states (completed/paid/revision/cancelled) render pill-shaped
@@ -73,6 +76,8 @@ type P2POfferItemProps = {
 	expand_message?: boolean
 	marketAverage?: P2PMarketAverages[string] | null
 	style?: StyleProp<ViewStyle>
+	/** Pintar una oferta por rango como tal (disponible + rango); off cuando la card resume UNA orden. */
+	show_range?: boolean
 }
 
 /**
@@ -99,8 +104,10 @@ type P2POfferItemProps = {
  * @param [props.expand_message=false] - Mensaje del anunciante completo (detalle); en el listado se trunca a una línea para preservar la densidad.
  * @param [props.marketAverage] - Medias 24h de la moneda (`{ average_buy, average_sell }`) para marcar si la tasa está por encima o por debajo del mercado.
  * @param [props.style] - Override sobre la card (el detalle iguala los márgenes verticales de su pila de cards).
+ * @param [props.show_range=true] - Oferta por rango: enseña lo que QUEDA (`available_amount`, no el total
+ *   `amount`), el badge "Por rango" y el rango por orden. La tasa sigue siendo `receive / amount`.
  */
-const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false, expand_message = false, marketAverage = null, style = null }: P2POfferItemProps) => {
+const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false, expand_message = false, marketAverage = null, style = null, show_range = true }: P2POfferItemProps) => {
 
 	// User context
 	const { user } = useAuth()
@@ -114,6 +121,8 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	// Dynamic badges — sin KYC: es requisito para operar en P2P, lo cumple
 	// todo el mundo y no distingue ninguna oferta
 	const badges: { label: string, color: string }[] = []
+	const flexible = show_range && isFlexibleOffer(offer)
+	if (flexible) badges.push({ label: t('ui.offerItem.rangeBadge'), color: theme.colors.primary })
 	if (offer.only_vip) badges.push({ label: 'VIP', color: theme.colors.gold })
 	if (offer.private) badges.push({ label: t('ui.offerItem.privateBadge'), color: theme.colors.warning })
 
@@ -126,6 +135,10 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 	const amountNum = Number(offer.amount)
 	const rateValue = amountNum > 0 ? Number(offer.receive) / amountNum : null
 	const rate = rateValue != null ? rateValue.toFixed(2) : '—'
+
+	// Lo que se puede tomar: en una por rango, lo que queda y su contrapartida a la misma tasa
+	const shownAmount = flexible ? formatCents(offerAvailableCents(offer)) : offer.amount
+	const shownReceive = flexible ? String(Number(availableReceive(offer).toFixed(2))) : offer.receive
 
 	// Contexto de mercado: cuánto se aleja esta tasa de la media 24h de su misma
 	// moneda y lado. El signo se lee SIEMPRE desde quien TOMA la oferta, que es
@@ -203,10 +216,18 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 			    compra el saldo y por tanto ENVÍA el rail; en una de compra lo recibe.
 			    Si el que mira es el dueño, la perspectiva se invierte otra vez. */}
 			<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
-				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>${offer.amount}</Text>
+				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>${shownAmount}</Text>
 				{(isOwner ? offer.type === 'buy' : offer.type === 'sell') ? t('ui.offerItem.availableYouSend') : t('ui.offerItem.availableYouReceive')}
-				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>{offer.receive}</Text>
+				<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>{shownReceive}</Text>
 			</Text>
+
+			{/* Por rango: cuánto se puede tomar en cada orden */}
+			{flexible && (
+				<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+					{t('ui.offerItem.perOrder')}
+					<Text style={{ fontFamily: theme.typography.fontFamily.semiBold }}>${formatCents(toCents(offer.order_min))} – ${formatCents(toCents(offer.order_max))}</Text>
+				</Text>
+			)}
 
 			{/* 4 · Condiciones — solo las excepcionales */}
 			{badges.length > 0 && (

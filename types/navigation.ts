@@ -107,7 +107,8 @@ export type RootStackParamList = {
 	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string, amount?: string } | undefined
 
 	// ── P2P ───────────────────────────────────────────────────────────────
-	P2POffer: { p2p_uuid: string }
+	/** `order`: orden de una oferta por rango (filas de la lista, push, `?order=` de la web). */
+	P2POffer: { p2p_uuid: string, order?: string }
 	/** `initialTab` está implementado en la pantalla pero ningún call site lo manda aún. */
 	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
 	P2PCreate: undefined

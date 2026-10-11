@@ -14,6 +14,8 @@ type ChatStreamEvent = "init"
 /** Dependencias inyectadas en el gestor imperativo del stream. */
 type ChatStreamParams = {
 	p2p_uuid: string
+	/** Orden de una oferta por rango: el stream (canal Redis) es por orden. */
+	order?: string | null
 	setConnected: (value: boolean) => void
 	fetchChat: () => void
 	appendMessage: (message: ChatMessage) => void
@@ -24,7 +26,8 @@ const INIT_TIMEOUT_MS = 5000 // no `init` event within this window → assume th
 const FALLBACK_POLL_MS = 10000 // poll cadence while the stream is down
 const SSE_RETRY_MS = 60000 // how long to poll before attempting the stream again
 
-const ACTIVE_STATUSES = ["open", "processing", "paid"]
+// `revision` incluida: en una disputa el chat es donde quien pagó sube el comprobante
+const ACTIVE_STATUSES = ["open", "processing", "paid", "revision"]
 
 /**
  * Imperative chat-stream manager: opens the SSE connection, owns every timer
@@ -33,11 +36,12 @@ const ACTIVE_STATUSES = ["open", "processing", "paid"]
  * resource with a single cleanup.
  *
  * @param params.p2p_uuid - Offer UUID.
+ * @param params.order - Order UUID of a range offer (stream scoped to that order).
  * @param params.setConnected - Receives the stream-connected boolean.
  * @param params.fetchChat - Full history refetch (catch-up + fallback poll).
  * @param params.appendMessage - Appends one parsed message.
  */
-function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }: ChatStreamParams): { dispose: () => void } {
+function openChatStream({ p2p_uuid, order, setConnected, fetchChat, appendMessage }: ChatStreamParams): { dispose: () => void } {
 
 	let es: EventSource<ChatStreamEvent> | null = null
 	let pollInterval: ReturnType<typeof setInterval> | null = null
@@ -123,7 +127,7 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }: Ch
 		const token = await getAuthToken()
 		if (disposed || !appActive || es) return
 
-		es = new EventSource(`${getApiBaseUrl()}/p2p/${p2p_uuid}/chat/stream`, {
+		es = new EventSource(`${getApiBaseUrl()}/p2p/${p2p_uuid}/chat/stream${order ? `?order=${encodeURIComponent(order)}` : ""}`, {
 			headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
 			pollingInterval: 0, // disable the library's auto-reconnect — retries are ours
 		})
@@ -175,14 +179,16 @@ function openChatStream({ p2p_uuid, setConnected, fetchChat, appendMessage }: Ch
  * Falls back to 10s polling when the stream is unavailable and retries it every 60s.
  *
  * @param params.p2p_uuid - Offer UUID.
+ * @param params.order - Order UUID of a range offer; changing it reopens the stream.
  * @param params.status - Current offer status; the stream only runs on active statuses.
  * @param params.appendMessage - From useP2PChat: appends one message with id dedup.
  * @param params.fetchChat - From useP2PChat: full history refetch (used for catch-up + fallback).
  * @param params.connectedRef - Screen-owned ref mirroring the connected state, so the
  *   offer-detail 5s interval can skip its chat fetch without re-creating itself.
  */
-export default function useP2PChatSSE({ p2p_uuid, status, appendMessage, fetchChat, connectedRef }: {
+export default function useP2PChatSSE({ p2p_uuid, order = null, status, appendMessage, fetchChat, connectedRef }: {
 	p2p_uuid: string
+	order?: string | null
 	status?: string
 	appendMessage: (message: ChatMessage) => void
 	fetchChat: () => void
@@ -206,6 +212,7 @@ export default function useP2PChatSSE({ p2p_uuid, status, appendMessage, fetchCh
 
 		const stream = openChatStream({
 			p2p_uuid,
+			order,
 			setConnected: (value) => {
 				if (connectedRef) connectedRef.current = value
 				setIsStreamConnected(value)
@@ -219,7 +226,7 @@ export default function useP2PChatSSE({ p2p_uuid, status, appendMessage, fetchCh
 			if (connectedRef) connectedRef.current = false
 			setIsStreamConnected(false)
 		}
-	}, [p2p_uuid, isActive]) // eslint-disable-line react-hooks/exhaustive-deps
+	}, [p2p_uuid, order, isActive]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	return { isStreamConnected }
 }
