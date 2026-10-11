@@ -109,6 +109,7 @@ import WalletTxDetail from './screens/crypto/wallet/WalletTxDetail'
 import WalletSwap from './screens/crypto/wallet/WalletSwap'
 import WalletSwapStatus from './screens/crypto/wallet/WalletSwapStatus'
 import WalletExchangeStatus from './screens/crypto/wallet/WalletExchangeStatus'
+import WalletOnchainSwap from './screens/crypto/wallet/WalletOnchainSwap'
 import WalletExchanges from './screens/crypto/wallet/WalletExchanges'
 import WalletEnergy from './screens/crypto/wallet/WalletEnergy'
 import WalletEnergyOrders from './screens/crypto/wallet/WalletEnergyOrders'
@@ -288,6 +289,7 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.WALLET_SWAP, component: WalletSwap, options: walletSwapScreenOptions(t) },
 	{ name: ROUTES.WALLET_SWAP_STATUS, component: WalletSwapStatus, options: { ...getHeaderOptions(t('navigation.headers.walletSwapStatus')), gestureEnabled: false } },
 	{ name: ROUTES.WALLET_EXCHANGE_STATUS, component: WalletExchangeStatus, options: { ...getHeaderOptions(t('navigation.headers.walletExchangeStatus')), gestureEnabled: false } },
+	{ name: ROUTES.WALLET_ONCHAIN_SWAP, component: WalletOnchainSwap, options: getHeaderOptions(t('navigation.headers.walletOnchainSwap')) },
 	{ name: ROUTES.WALLET_EXCHANGES, component: WalletExchanges, options: getHeaderOptions(t('navigation.headers.walletExchanges')) },
 	{ name: ROUTES.WALLET_ENERGY, component: WalletEnergy, options: getHeaderOptions(t('navigation.headers.tronEnergy')) },
 	{ name: ROUTES.WALLET_ENERGY_ORDERS, component: WalletEnergyOrders, options: getHeaderOptions(t('navigation.headers.energyOrders')) },

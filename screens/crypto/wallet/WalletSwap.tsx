@@ -44,13 +44,15 @@ import SwapDetails from './components/swap/SwapDetails'
 import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../../ui/particles/QPFlipButton'
 import SwapNotices from './components/swap/SwapNotices'
 import SwapReviewSheet from './components/swap/SwapReviewSheet'
+import SwapRouteRow from './components/swap/SwapRouteRow'
+import SwapRoutesSheet from './components/swap/SwapRoutesSheet'
 
 // Navigation
 import { ROUTES } from '../../../routes'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
 import type { AssetView } from '../../../wallet/assets'
-import type { Coin, ExchangeOrder, Swap } from '../../../types/domain'
+import type { Coin, ExchangeOrder, ExchangeRoute, Swap } from '../../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletSwap'>
 
@@ -90,6 +92,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 
 	const [amountText, setAmountText] = useState('')
 	const [sheet, setSheet] = useState<'pay' | 'receive' | null>(null)
+	const [routesOpen, setRoutesOpen] = useState(false)
 
 	const { query: pairs, enabledPairs, pair, asset, assetFor, setPairId, registered, walletReady, limitAvailable } = useSwapPairs()
 	const { all } = useWalletAssets()
@@ -198,11 +201,25 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: order.uuid })
 	}, [navigation])
 
+	const onOnchainRoute = useCallback((selected: ExchangeRoute, amount: number) => {
+		if (!payAsset || !receiveAsset || !selected.quote_id) { return }
+		navigation.navigate(ROUTES.WALLET_ONCHAIN_SWAP, {
+			quoteId: selected.quote_id,
+			fromAssetId: payAsset.id,
+			toAssetId: receiveAsset.id,
+			amount,
+			expectedOut: selected.amount_out,
+			providerLabel: selected.provider_label || selected.provider,
+			serviceFeeBps: selected.service_fee_bps,
+		})
+	}, [navigation, payAsset, receiveAsset])
+
 	const exchangeFlow = useExchangeFlow({
 		from: isExchange ? payAsset : null,
 		to: isExchange ? receiveAsset : null,
 		amountText, addresses, balances, unsupportedReason,
 		onOpened: onExchangeOpened,
+		onOnchainRoute,
 	})
 
 	// ── Vista, según el motor ───────────────────────────────────────────────
@@ -221,6 +238,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		loading: catalog.isLoading,
 		pickFrom: () => setSheet('pay'),
 		pickTo: () => setSheet('receive'),
+		routes: exchangeFlow.routes,
+		selectedProvider: exchangeFlow.selectedRoute?.provider ?? null,
 	})
 
 	const swapView = buildSwapView({
@@ -435,6 +454,11 @@ const WalletSwap = ({ navigation, route }: Props) => {
 					/>
 				</View>
 
+				{/* Qué proveedor hace el cambio, a la vista y elegible: varios compiten por él */}
+				{isExchange && !!exchangeView.route && (
+					<SwapRouteRow route={exchangeView.route} onPress={() => setRoutesOpen(true)} />
+				)}
+
 				<SwapDetails rate={view.rate} badge={isExchange ? undefined : swapView.badge} rows={view.rows} />
 
 				<SwapNotices notices={view.notices} />
@@ -453,6 +477,13 @@ const WalletSwap = ({ navigation, route }: Props) => {
 				onSelect={onPickSide}
 				onClose={() => setSheet(null)}
 				options={sheetOptions}
+			/>
+
+			<SwapRoutesSheet
+				visible={isExchange && routesOpen}
+				items={exchangeView.routeItems}
+				onSelect={exchangeFlow.selectRoute}
+				onClose={() => setRoutesOpen(false)}
 			/>
 
 			<SwapReviewSheet

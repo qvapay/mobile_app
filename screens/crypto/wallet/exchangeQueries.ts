@@ -14,6 +14,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
 // API
 import { exchangeApi } from '../../../api/exchangeApi'
+import type { ExchangeQuoteInput } from '../../../api/exchangeApi'
 import { shouldRetry, unwrap } from '../../../api/unwrap'
 import type { ApiError } from '../../../api/unwrap'
 import { trimToFirstPage } from '../../../api/queryUtils'
@@ -58,15 +59,17 @@ export const useExchangeCatalogQuery = (enabled = true) => useQuery<ExchangeCata
  * auxiliar para el aviso de origen más barato, y meterlos en la clave recotizaría entera la
  * pantalla cada vez que un saldo on-chain se refresca.
  */
-export const useExchangeQuoteQuery = ({ fromAssetId, toAssetId, amount, balances, enabled }: {
+export const useExchangeQuoteQuery = ({ fromAssetId, toAssetId, amount, balances, onchain, enabled }: {
 	fromAssetId: string | null
 	toAssetId: string | null
 	amount: number
 	balances?: Record<string, string | number>
+	/** Familias que la wallet sabe firmar + sus direcciones: sin esto no hay rutas on-chain. Fuera de la clave, como los saldos. */
+	onchain?: Pick<ExchangeQuoteInput, 'onchain' | 'addresses'>
 	enabled: boolean
 }) => useQuery<ExchangeQuotePayload | null>({
 	queryKey: [...EXCHANGE_QUOTE_KEY, fromAssetId ?? '', toAssetId ?? '', amount],
-	queryFn: async () => unwrap(await exchangeApi.quote({ fromAssetId: fromAssetId!, toAssetId: toAssetId!, amount, balances })),
+	queryFn: async () => unwrap(await exchangeApi.quote({ fromAssetId: fromAssetId!, toAssetId: toAssetId!, amount, balances, ...onchain })),
 	enabled: enabled && !!fromAssetId && !!toAssetId && amount > 0,
 	staleTime: QUOTE_STALE_MS,
 	// Un precio caducado no se reintenta solo: lo pide la pantalla cuando toca

@@ -127,7 +127,9 @@
 		"quoteFailed": "Couldn't quote the exchange",
 		"createFailed": "Couldn't open the exchange",
 		"detailFailed": "Couldn't get the exchange status",
-		"listFailed": "Couldn't load your exchange history"
+		"listFailed": "Couldn't load your exchange history",
+		"buildFailed": "Couldn't prepare the swap",
+		"submitFailed": "Couldn't register the swap"
 	},
 	"wallet": {
 		"gaslessQuoteFailed": "Couldn't check the free send",

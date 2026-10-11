@@ -127,7 +127,9 @@
 		"quoteFailed": "No se pudo cotizar el intercambio",
 		"createFailed": "No se pudo abrir la operación de intercambio",
 		"detailFailed": "No se pudo obtener el estado del intercambio",
-		"listFailed": "No se pudo obtener tu historial de intercambios"
+		"listFailed": "No se pudo obtener tu historial de intercambios",
+		"buildFailed": "No se pudo preparar el intercambio",
+		"submitFailed": "No se pudo registrar el intercambio"
 	},
 	"wallet": {
 		"gaslessQuoteFailed": "No se pudo comprobar el envío gratis",

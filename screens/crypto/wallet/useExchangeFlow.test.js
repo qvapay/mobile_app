@@ -54,7 +54,7 @@ const quoteFor = (amount, minAmount) => ({
 
 let client
 const Probe = ({ state }) => {
-	state.flow = useExchangeFlow({ ...state.props, addresses: ADDRESSES, onOpened: () => { } })
+	state.flow = useExchangeFlow({ ...state.props, addresses: ADDRESSES, onOpened: () => { }, onOnchainRoute: state.props.onOnchainRoute })
 	return null
 }
 
@@ -206,6 +206,119 @@ describe('lo que se confirma es lo que se revisó', () => {
 		expect(s.flow.ready).toBe(true)
 		s.rerender({ from: USDT_TRON })
 		expect(s.flow.ready).toBe(false)
+		s.unmount()
+	})
+})
+
+describe('rutas: varios proveedores, una elección', () => {
+
+	const route = (provider, amountOut, extra = {}) => ({
+		quote_id: `q-${provider}`, expires_at: new Date(Date.now() + 120000).toISOString(),
+		provider, provider_label: provider.toUpperCase(), custody: 'custodial', kyc_risk: 'possible', rate_type: 'floating',
+		amount_in: 20, amount_out: amountOut, deposit_fee: 0.0076, withdrawal_fee: 0, eta: '10-60', eta_minutes: 60,
+		warning: null, best: false, fastest: false, shortfall: 0, below_min: false, min_amount: 1, ...extra,
+	})
+
+	/** El backend con rutas: la mejor primero y con su quote_id también en el sobre viejo. */
+	const quoteWithRoutes = (routes) => exchangeApi.quote.mockImplementation(async () => {
+		const best = routes[0]
+		return {
+			success: true, status: 200,
+			data: {
+				quote: { provider: best.provider, amountIn: 20, amountOut: best.amount_out, depositFee: 0.0076, withdrawalFee: 0, speedForecast: '10-60', providerWarning: null },
+				advice: { level: 'ok', bps: 3, suggestedMinimum: null },
+				min_amount: 1, quote_id: best.quote_id, expires_at: best.expires_at, alternatives: [], cheaper_origin: null,
+				routes,
+			},
+		}
+	})
+
+	it('por defecto se usa la mejor', async () => {
+		quoteWithRoutes([route('simpleswap', 59, { best: true }), route('changenow', 58)])
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+		expect(s.flow.routes).toHaveLength(2)
+		expect(s.flow.selectedRoute.provider).toBe('simpleswap')
+		expect(s.flow.quote.amountOut).toBe(59)
+		s.unmount()
+	})
+
+	it('elegir otra ruta abre la operación con SU quote_id, no con el de la mejor', async () => {
+		quoteWithRoutes([route('simpleswap', 59, { best: true }), route('changenow', 58)])
+		exchangeApi.create.mockResolvedValue({ success: true, status: 201, data: { uuid: 'o-1' } })
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+
+		act(() => { s.flow.selectRoute('changenow') })
+		expect(s.flow.selectedRoute.provider).toBe('changenow')
+		// La pantalla pinta lo que da ESA ruta, con su nombre legible
+		expect(s.flow.quote.amountOut).toBe(58)
+		expect(s.flow.quote.provider).toBe('CHANGENOW')
+
+		await act(async () => { await s.flow.confirm() })
+		expect(exchangeApi.create.mock.calls[0][0]).toMatchObject({ quoteId: 'q-changenow' })
+		s.unmount()
+	})
+
+	it('si la ruta elegida deja de cotizar, se vuelve a la mejor', async () => {
+		quoteWithRoutes([route('simpleswap', 59, { best: true }), route('changenow', 58)])
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+		act(() => { s.flow.selectRoute('changenow') })
+
+		// Nueva cotización (otro importe) en la que changenow ya no llega a su mínimo
+		quoteWithRoutes([route('simpleswap', 89, { best: true }), route('changenow', null, { quote_id: null, below_min: true, min_amount: 50 })])
+		s.rerender({ amountText: '30' })
+		for (let i = 0; i < 10 && s.flow.selectedRoute?.amount_out !== 89; i++) { await settle() }
+		expect(s.flow.selectedRoute.provider).toBe('simpleswap')
+		s.unmount()
+	})
+
+	it('con la revisión abierta, un cambio de ruta por debajo bloquea Confirmar', async () => {
+		quoteWithRoutes([route('simpleswap', 59, { best: true }), route('changenow', 58)])
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+		act(() => { s.flow.selectRoute('changenow') })
+		act(() => { s.flow.openReview() })
+		expect(s.flow.ready).toBe(true)
+
+		// El refresco periódico ya no trae a changenow: la ruta en uso pasa a ser otra que el
+		// usuario NO revisó
+		quoteWithRoutes([route('simpleswap', 59.1, { best: true })])
+		await act(async () => { await client.refetchQueries() })
+		await settle()
+		expect(s.flow.selectedRoute.provider).toBe('simpleswap')
+		expect(s.flow.ready).toBe(false)
+		s.unmount()
+	})
+
+	it('pide rutas on-chain declarando lo que sabe firmar y con sus propias direcciones', async () => {
+		quoteWithRoutes([route('simpleswap', 59, { best: true })])
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+		expect(exchangeApi.quote.mock.calls[0][0]).toMatchObject({ onchain: ['evm', 'solana', 'tron', 'btc'], addresses: { evm: ADDRESSES.evm, solana: ADDRESSES.sol } })
+		s.unmount()
+	})
+
+	it('una ruta on-chain no abre la revisión custodial: va a firmar con el importe COTIZADO', async () => {
+		quoteWithRoutes([route('lifi', 60, { best: true, custody: 'onchain', kyc_risk: 'none', service_fee_bps: 40 }), route('simpleswap', 59)])
+		const onOnchainRoute = jest.fn()
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20', onOnchainRoute })
+		await settle()
+		act(() => { s.flow.openReview() })
+		expect(s.flow.review).toBe(false)
+		expect(onOnchainRoute).toHaveBeenCalledWith(expect.objectContaining({ provider: 'lifi', quote_id: 'q-lifi' }), 20)
+		expect(exchangeApi.create).not.toHaveBeenCalled()
+		s.unmount()
+	})
+
+	it('un backend sin rutas se lee como una sola ruta con su quote_id', async () => {
+		quoteByPair()
+		const s = mount({ from: USDC_BASE, to: TRX, amountText: '20' })
+		await settle()
+		expect(s.flow.routes).toHaveLength(1)
+		expect(s.flow.selectedRoute.quote_id).toBe('q-20')
+		expect(s.flow.ready).toBe(true)
 		s.unmount()
 	})
 })

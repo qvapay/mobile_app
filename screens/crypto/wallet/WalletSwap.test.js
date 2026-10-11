@@ -36,6 +36,8 @@ jest.mock('../../../ui/particles/QPFlipButton', () => { const C = 'QPFlipButton'
 jest.mock('./components/swap/SwapDetails', () => 'SwapDetails')
 jest.mock('../../../ui/QPAssetSheet', () => 'QPAssetSheet')
 jest.mock('./components/swap/SwapReviewSheet', () => 'SwapReviewSheet')
+jest.mock('./components/swap/SwapRoutesSheet', () => 'SwapRoutesSheet')
+jest.mock('./components/swap/SwapRouteRow', () => 'SwapRouteRow')
 jest.mock('../../transaction/PinConfirmStep', () => 'PinConfirmStep')
 jest.mock('sonner-native', () => ({ toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }) }))
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')

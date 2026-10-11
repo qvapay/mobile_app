@@ -113,6 +113,7 @@ export const ROUTES = {
 	WALLET_SWAP: "WalletSwap",
 	WALLET_SWAP_STATUS: "WalletSwapStatus",
 	WALLET_EXCHANGE_STATUS: "WalletExchangeStatus",
+	WALLET_ONCHAIN_SWAP: "WalletOnchainSwap",
 	WALLET_EXCHANGES: "WalletExchanges",
 	WALLET_ENERGY: "WalletEnergy",
 	WALLET_ENERGY_ORDERS: "WalletEnergyOrders",
