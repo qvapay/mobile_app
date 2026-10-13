@@ -168,7 +168,7 @@ const Enterprise = ({ navigation }: NativeStackScreenProps<SettingsStackParamLis
 					</Text>
 
 					<View style={[containerStyles.card, { width: '100%' }]}>
-						<BenefitItem icon="crown" text={t('settings.enterprise.benefits.vipBadge')} theme={theme} textStyles={textStyles} />
+						<BenefitItem icon="gem" text={t('settings.enterprise.benefits.vipBadge')} theme={theme} textStyles={textStyles} />
 						<BenefitItem icon="store" text={t('settings.enterprise.benefits.marketplaceStore')} theme={theme} textStyles={textStyles} />
 						<BenefitItem icon="credit-card" text={t('settings.enterprise.benefits.morePaymentMethods')} theme={theme} textStyles={textStyles} />
 						<BenefitItem icon="bullhorn" text={t('settings.enterprise.benefits.promotion')} theme={theme} textStyles={textStyles} />

@@ -8,7 +8,7 @@ import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
 
 /** Acción de trade pendiente de confirmar. */
-export type P2PConfirmAction = 'cancel' | 'markPaid' | 'received'
+export type P2PConfirmAction = 'cancel' | 'dispute' | 'markPaid' | 'received'
 
 type P2POfferConfirmProps = {
 	/** Acción abierta, o null cuando no hay confirmación en curso. */
@@ -17,6 +17,8 @@ type P2POfferConfirmProps = {
 	onConfirm: () => void
 	p2p: P2POffer | null | undefined
 	counterparty?: { username?: string | null } | null
+	/** Orden de una oferta por rango: cancelar es renunciar a ESA parte. */
+	isOrder?: boolean
 	/** Banderas de envío por acción (las expone `useP2POfferDetail`). */
 	loading: { cancel?: boolean, markPaid?: boolean, received?: boolean }
 	theme: Theme
@@ -29,7 +31,7 @@ type P2POfferConfirmProps = {
  * con resumen explícito y aviso de seguridad. Cada acción define su copy,
  * color e ícono aquí — antes era una IIFE dentro del JSX de `P2POffer`.
  */
-const P2POfferConfirm = ({ action, onClose, onConfirm, p2p, counterparty, loading, theme, textStyles, containerStyles }: P2POfferConfirmProps) => {
+const P2POfferConfirm = ({ action, onClose, onConfirm, p2p, counterparty, isOrder = false, loading, theme, textStyles, containerStyles }: P2POfferConfirmProps) => {
 
 	const { t } = useTranslation()
 
@@ -38,11 +40,27 @@ const P2POfferConfirm = ({ action, onClose, onConfirm, p2p, counterparty, loadin
 	const counterpartyName = counterparty?.username ? `@${counterparty.username}` : t('p2p.offer.counterpartyFallback')
 	const railAmount = `${p2p?.receive} ${p2p?.Coin?.name || ""}`.trim()
 	const configs: Record<P2PConfirmAction, P2PConfirmConfig> = {
-		cancel: {
+		cancel: isOrder ? {
+			icon: "ban", iconColor: theme.colors.danger,
+			title: t('p2p.flexible.confirm.cancel.title'),
+			body: t('p2p.flexible.confirm.cancel.body', { amount: p2p?.amount }),
+			warning: t('p2p.flexible.confirm.cancel.warning'),
+			confirmLabel: t('p2p.offer.confirm.cancel.confirmLabel'), confirmBg: theme.colors.danger, confirmTextColor: theme.colors.almostWhite,
+			loading: loading.cancel,
+		} : {
 			icon: "ban", iconColor: theme.colors.danger,
 			title: t('p2p.offer.confirm.cancel.title'),
 			body: t('p2p.offer.confirm.cancel.body'),
 			confirmLabel: t('p2p.offer.confirm.cancel.confirmLabel'), confirmBg: theme.colors.danger, confirmTextColor: theme.colors.almostWhite,
+			loading: loading.cancel,
+		},
+		// Quien recibe el fiat no cancela una orden (el otro pudo pagar ya): la lleva a revisión
+		dispute: {
+			icon: "scale-balanced", iconColor: theme.colors.warning,
+			title: t('p2p.flexible.confirm.dispute.title'),
+			body: t('p2p.flexible.confirm.dispute.body', { counterparty: counterpartyName }),
+			warning: t('p2p.flexible.confirm.dispute.warning'),
+			confirmLabel: t('p2p.flexible.confirm.dispute.confirmLabel'), confirmBg: theme.colors.warning, confirmTextColor: theme.colors.almostBlack,
 			loading: loading.cancel,
 		},
 		markPaid: {

@@ -79,17 +79,37 @@
 	},
 	"offerItem": {
 		"status": {
-			"completed": "Finalizado",
+			"processing": "Procesando",
 			"paid": "Pagado",
-			"revision": "Revisión",
+			"revision": "En revisión",
+			"completed": "Completado",
 			"cancelled": "Cancelado"
 		},
-		"edit": "Editar",
+		"manage": "Gestionar",
 		"sell": "Vender",
 		"buy": "Comprar",
 		"privateBadge": "Privada",
-		"availableYouSend": " disponible · envías ",
-		"availableYouReceive": " disponible · recibes "
+		"vipOnly": "Solo VIP",
+		"amount": "Monto",
+		"available": "Disponible",
+		"limits": "Límites",
+		"myOrder": "Tu orden",
+		"order": "Orden",
+		"youPay": "Pagas",
+		"youReceive": "Recibes",
+		"trend": {
+			"good": "Mejor que el promedio ({{average}})",
+			"bad": "Peor que el promedio ({{average}})",
+			"neutral": "En el promedio ({{average}})"
+		},
+		"remaining": "Queda el {{pct}} % de ${{total}}",
+		"requirements": "Requisitos para aplicar: {{list}}",
+		"requirement": {
+			"min_completed": "{{value}}+ operaciones completadas",
+			"min_rating": "rating {{value}}+",
+			"min_account_days": "cuenta con {{value}}+ días",
+			"min_trustscore": "TrustScore {{value}}+"
+		}
 	},
 	"phoneInput": {
 		"placeholder": "Número de teléfono"

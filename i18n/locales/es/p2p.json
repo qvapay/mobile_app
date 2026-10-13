@@ -281,5 +281,91 @@
 			"coinMeta": "{{ops}} ops · {{volume}}",
 			"noCompletedOps": "Aún no hay operaciones completadas."
 		}
+	},
+	"flexible": {
+		"status": {
+			"revisionPayer": "Un moderador revisará el chat. Si pagaste, sube aquí el comprobante.",
+			"revisionReceiver": "Esta orden está en disputa. Si ya recibiste el pago, aún puedes confirmarlo."
+		},
+		"toasts": {
+			"disputeOpened": "Disputa abierta: un moderador revisará la orden",
+			"orderCancelled": "Orden cancelada",
+			"taken": "Tomaste ${{amount}} de la oferta",
+			"alreadyActive": "Ya tienes una orden activa en esta oferta"
+		},
+		"vipOnlyTitle": "Solo para VIP",
+		"vipOnlyBody": "Ofertas por rango: disponibles para cuentas VIP",
+		"openDispute": "Abrir disputa",
+		"orderCancelled": "Orden cancelada",
+		"backToOffer": "Ver oferta",
+		"searchingTakers": "Tu oferta está publicada. Cada contraparte tomará la parte que necesite.",
+		"applyQuestion": "¿Cuánto quieres tomar de esta oferta?",
+		"available": "Disponible",
+		"reserved": "En órdenes",
+		"total": "Total",
+		"summary": "{{active}} activas · {{completed}} completadas · {{cancelled}} canceladas",
+		"ordersTitle": "Órdenes",
+		"myOrdersTitle": "Tus órdenes",
+		"orderMin": "Mínimo por orden",
+		"orderMax": "Máximo por orden",
+		"orderStatus": {
+			"processing": "En curso",
+			"paid": "Pagada",
+			"completed": "Completada",
+			"cancelled": "Cancelada",
+			"revision": "En disputa"
+		},
+		"confirm": {
+			"cancel": {
+				"title": "Cancelar esta orden",
+				"body": "Vas a cancelar tu orden de ${{amount}}.",
+				"warning": "Si ya pagaste, no canceles: perderías esta parte."
+			},
+			"dispute": {
+				"title": "Abrir disputa",
+				"body": "La orden con {{counterparty}} pasará a revisión y la resolverá un moderador.",
+				"warning": "Ábrela solo si hay un problema con el pago. Si ya lo recibiste, confirma el pago en su lugar.",
+				"confirmLabel": "Abrir disputa"
+			}
+		},
+		"apply": {
+			"title": "Tomar una parte",
+			"body": "Indica cuánto quieres tomar, entre ${{min}} y ${{max}}.",
+			"amountLabel": "Monto (QUSD)",
+			"youSend": "Enviarás {{amount}} {{coin}}",
+			"youReceive": "Recibirás {{amount}} {{coin}}",
+			"escrowNote": "El monto se descuenta de tu saldo como garantía hasta cerrar la orden. Saldo: ${{balance}}",
+			"confirm": "Tomar"
+		},
+		"errors": {
+			"empty": "Indica un monto",
+			"invalid": "Monto inválido: usa hasta 2 decimales",
+			"belowMin": "El mínimo por orden es ${{min}}",
+			"aboveMax": "El máximo que puedes tomar es ${{max}}",
+			"insufficientBalance": "Saldo insuficiente",
+			"availableInvalid": "Disponible inválido: debe ser 0 o más, con hasta 2 decimales",
+			"receiveInvalid": "Cantidad a recibir inválida",
+			"availableBelowMin": "El disponible no puede ser menor que el mínimo por orden (pon 0 para retirar el resto)",
+			"nothingTaken": "La oferta no tiene nada tomado: para retirarla entera, cancélala",
+			"minInvalid": "Mínimo por orden inválido",
+			"maxInvalid": "Máximo por orden inválido",
+			"minAboveMax": "El mínimo por orden no puede ser mayor que el máximo",
+			"maxAboveAmount": "El máximo por orden no puede ser mayor que el total de la oferta"
+		},
+		"edit": {
+			"invalidTitle": "Revisa los datos",
+			"hint": "Solo se edita lo que queda por tomar. Lo ya tomado (${{taken}}) no cambia.",
+			"availableLabel": "Disponible (QUSD)",
+			"toSendForAvailable": "A enviar por el disponible",
+			"toReceiveForAvailable": "A recibir por el disponible",
+			"escrowDebit": "Se descontarán ${{amount}} de tu saldo",
+			"escrowRefund": "Se devolverán ${{amount}} a tu saldo",
+			"withdrawRest": "Disponible 0: retiras el resto sin cancelar las órdenes en curso."
+		},
+		"create": {
+			"invalidTitle": "Rango inválido",
+			"toggle": "Oferta por rango",
+			"toggleHint": "Cada contraparte toma solo la parte que necesita, hasta agotar la oferta."
+		}
 	}
 }

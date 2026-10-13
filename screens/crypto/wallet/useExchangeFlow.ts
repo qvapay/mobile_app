@@ -16,12 +16,13 @@ import type { AssetView } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
 
 // Local
-import { checkAmount } from './exchangeModel'
+import { checkAmount, quoteOfRoute, routesFrom, selectRoute } from './exchangeModel'
+import { onchainQuoteParams } from './onchainSwapModel'
 import { useExchangeQuoteQuery } from './exchangeQueries'
 import useExchangeOrder from './useExchangeOrder'
 
 // Tipos
-import type { ExchangeOrder } from '../../../types/domain'
+import type { ExchangeOrder, ExchangeRoute } from '../../../types/domain'
 
 /** Se espera a que el usuario pare de teclear antes de gastar el bucket de cotización. */
 export const QUOTE_DEBOUNCE_MS = 500
@@ -36,12 +37,27 @@ export type ExchangeFlowInput = {
 	/** Motivo del backend si alguno de los dos activos no se puede intercambiar. */
 	unsupportedReason?: string | null
 	onOpened: (order: ExchangeOrder) => void
+	/**
+	 * La ruta elegida es ON-CHAIN (LI.FI, Jupiter): no hay operación que abrir ni depósito,
+	 * se firma desde la wallet en su propia pantalla. `amount` es el importe COTIZADO.
+	 */
+	onOnchainRoute?: (route: ExchangeRoute, amount: number) => void
 }
 
-const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupportedReason, onOpened }: ExchangeFlowInput) => {
+const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupportedReason, onOpened, onOnchainRoute }: ExchangeFlowInput) => {
 
 	const [review, setReview] = useState(false)
 	const { open, busy, error, clearError } = useExchangeOrder({ onOpened })
+
+	/**
+	 * Proveedor que el usuario eligió en la hoja de rutas, o null = "la mejor".
+	 *
+	 * Se recuerda el PROVEEDOR y no el `quote_id`: cada recotización trae ids nuevos. Si ese
+	 * proveedor deja de cotizar, `selectRoute` vuelve a la mejor (ver exchangeModel).
+	 */
+	const [chosenProvider, setChosenProvider] = useState<string | null>(null)
+	/** La ruta que se estaba mirando al abrir la revisión: es la única que se puede confirmar. */
+	const [reviewedProvider, setReviewedProvider] = useState<string | null>(null)
 
 	/**
 	 * El mínimo es DEL PAR, no del usuario, y varía muchísimo entre pares: USDT en TRON pide
@@ -73,6 +89,7 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 		toAssetId: to?.id ?? null,
 		amount: quotedAmount,
 		balances,
+		onchain: useMemo(() => onchainQuoteParams(addresses), [addresses]),
 		enabled: !!from && !!to && !unsupportedReason && quotedAmount > 0,
 	})
 
@@ -102,8 +119,18 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 	 * importe, y la cotización en pantalla sigue valiendo mientras llega la siguiente;
 	 * bloquear ahí apagaba Confirmar cada 45 s sin enseñar ninguna carga.
 	 */
-	const ready = !!payload?.quote_id && check.ok && quotedAmount === check.amount
+	const routes = useMemo(() => routesFrom(payload), [payload])
+	const selectedRoute = useMemo(() => selectRoute(routes, chosenProvider), [routes, chosenProvider])
+
+	/**
+	 * Además, la ruta en uso tiene que ser la que se REVISÓ. Si mientras la hoja de revisión
+	 * está abierta el proveedor elegido deja de cotizar, `selectRoute` cae a otra ruta: con
+	 * otro nombre, otra tasa y otro custodio. Confirmar ahí abriría una operación que el
+	 * usuario no ha visto, así que se bloquea hasta que revise de nuevo.
+	 */
+	const ready = !!selectedRoute?.quote_id && check.ok && quotedAmount === check.amount
 		&& !quoteQuery.isPlaceholderData
+		&& (!review || selectedRoute.provider === reviewedProvider)
 
 	/**
 	 * Abre la operación. Ningún camino de salida es mudo: un botón de confirmar que no hace
@@ -115,7 +142,7 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 
 		// Sin cotización congelada no hay nada que confirmar: es la que fija el precio y el
 		// importe que el proveedor va a esperar
-		if (!payload?.quote_id) {
+		if (!selectedRoute?.quote_id) {
 			toast.error(i18n.t('crypto.wallet.exchange.quoteMissing'))
 			return
 		}
@@ -135,7 +162,8 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 		}
 
 		const result = await open({
-			quoteId: payload.quote_id,
+			// El de la ruta ELEGIDA: cada una trae su propia cotización congelada
+			quoteId: selectedRoute.quote_id,
 			fromAssetId: from.id,
 			toAssetId: to.id,
 			// El importe QUE SE COTIZÓ, no el que hay ahora en el campo. El backend exige que
@@ -146,11 +174,15 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 			refundAddress,
 		})
 		if (result.ok) { setReview(false) }
-	}, [from, to, payload?.quote_id, check.ok, ready, quotedAmount, addresses, open])
+	}, [from, to, selectedRoute?.quote_id, check.ok, ready, quotedAmount, addresses, open])
 
 	return {
 		check,
-		quote: payload?.quote ?? null,
+		// La cotización que pinta la pantalla es la de la ruta EN USO, no siempre la mejor
+		quote: quoteOfRoute(selectedRoute) ?? payload?.quote ?? null,
+		routes,
+		selectedRoute,
+		selectRoute: setChosenProvider,
 		advice: payload?.advice ?? null,
 		cheaper: payload?.cheaper_origin ?? null,
 		minAmount,
@@ -166,7 +198,17 @@ const useExchangeFlow = ({ from, to, amountText, addresses, balances, unsupporte
 		 */
 		quoteError: quoteQuery.isError && !payload ? ((quoteQuery.error as Error | null)?.message ?? null) : null,
 		review,
-		openReview: useCallback(() => { clearError(); setReview(true) }, [clearError]),
+		openReview: useCallback(() => {
+			clearError()
+			// On-chain: la revisión ES la pantalla de firma, que verifica la tx real antes de
+			// enseñar nada. La hoja custodial (depósito, custodia del proveedor) no aplica
+			if (selectedRoute?.custody === 'onchain' && selectedRoute.quote_id && onOnchainRoute) {
+				if (ready) { onOnchainRoute(selectedRoute, quotedAmount) } else { toast.error(i18n.t('crypto.wallet.exchange.quoteUpdating')) }
+				return
+			}
+			setReviewedProvider(selectedRoute?.provider ?? null)
+			setReview(true)
+		}, [clearError, selectedRoute, onOnchainRoute, ready, quotedAmount]),
 		closeReview: useCallback(() => setReview(false), []),
 		confirm,
 		busy,

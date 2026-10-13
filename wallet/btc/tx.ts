@@ -98,8 +98,10 @@ export const feeFor = (vsize: number, feeRate: number): bigint => BigInt(Math.ce
  * cantidad + fee. Si lo que sobra es polvo, va a la fee. Con `amount` igual
  * al total disponible se gasta todo (fee descontada del envío).
  */
-export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number): BtcSelection => {
+export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number, extraVbytes = 0): BtcSelection => {
 	const rate = Math.max(feeRate, MIN_FEE_RATE)
+	// Salidas que no son de pago (el OP_RETURN de un swap) pesan en la fee igual que las demás
+	const vsizeOf = (inputs: number, outputs: number) => estimateVsize(inputs, outputs) + extraVbytes
 	const sorted = utxos.slice().sort((a, b) => (a.confirmed === b.confirmed ? (b.value > a.value ? 1 : b.value < a.value ? -1 : 0) : a.confirmed ? -1 : 1))
 	const total = sorted.reduce((sum, u) => sum + u.value, 0n)
 	if (amount <= 0n) throw new ChainHttpError('btc: cantidad inválida', { retryable: false })
@@ -109,7 +111,7 @@ export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number): Btc
 	// Enviar todo (la cantidad ES el total): todos los inputs, una salida, fee descontada
 	if (amount === total) {
 		if (sorted.length > MAX_INPUTS) throw new ChainHttpError('btc: demasiados UTXOs para una sola transacción', { retryable: false })
-		const vsize = estimateVsize(sorted.length, 1)
+		const vsize = vsizeOf(sorted.length, 1)
 		const fee = feeFor(vsize, rate)
 		if (total - fee < DUST_SATS) throw new ChainHttpError('btc: el saldo no cubre la comisión', { retryable: false })
 		return { inputs: sorted, amount: total - fee, fee, change: 0n, vsize, feeRate: rate, sendAll: true }
@@ -121,17 +123,17 @@ export const selectUtxos = (utxos: Utxo[], amount: bigint, feeRate: number): Btc
 		inputs.push(utxo)
 		gathered += utxo.value
 		if (inputs.length > MAX_INPUTS) throw new ChainHttpError('btc: demasiados UTXOs para una sola transacción', { retryable: false })
-		const feeWithChange = feeFor(estimateVsize(inputs.length, 2), rate)
+		const feeWithChange = feeFor(vsizeOf(inputs.length, 2), rate)
 		if (gathered >= amount + feeWithChange) {
 			const change = gathered - amount - feeWithChange
-			if (change >= DUST_SATS) return { inputs, amount, fee: feeWithChange, change, vsize: estimateVsize(inputs.length, 2), feeRate: rate, sendAll: false }
+			if (change >= DUST_SATS) return { inputs, amount, fee: feeWithChange, change, vsize: vsizeOf(inputs.length, 2), feeRate: rate, sendAll: false }
 			// Cambio de polvo: sin salida de cambio, lo sobrante engorda la fee
-			const vsize = estimateVsize(inputs.length, 1)
+			const vsize = vsizeOf(inputs.length, 1)
 			return { inputs, amount, fee: gathered - amount, change: 0n, vsize, feeRate: rate, sendAll: false }
 		}
-		const feeNoChange = feeFor(estimateVsize(inputs.length, 1), rate)
+		const feeNoChange = feeFor(vsizeOf(inputs.length, 1), rate)
 		if (gathered >= amount + feeNoChange) {
-			const vsize = estimateVsize(inputs.length, 1)
+			const vsize = vsizeOf(inputs.length, 1)
 			return { inputs, amount, fee: gathered - amount, change: 0n, vsize, feeRate: rate, sendAll: false }
 		}
 	}

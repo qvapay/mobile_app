@@ -67,15 +67,16 @@ const makeOffer = (overrides = {}) => ({
 	...overrides,
 })
 
-const renderDetail = async ({ offer, viewer, chatLive = false } = {}) => {
+const renderDetail = async ({ offer, viewer, chatLive = false, orderUuid = null } = {}) => {
 	const result = { current: null }
 	const fetchChat = jest.fn()
-	const navigation = { navigate: jest.fn() }
+	const navigation = { navigate: jest.fn(), dispatch: jest.fn() }
 	const chatStreamLiveRef = { current: chatLive }
 	p2pApi.show.mockResolvedValue({ success: true, data: { p2p: offer } })
 	const Harness = () => {
 		result.current = useP2POfferDetail({
 			p2p_uuid: offer.uuid,
+			orderUuid,
 			user: viewer,
 			navigation,
 			fetchChat,
@@ -235,7 +236,7 @@ describe('trade actions behind the themed confirmation modal', () => {
 		expect(result.current.confirmModal).toBe('cancel')
 		expect(p2pApi.cancel).not.toHaveBeenCalled() // waiting on the modal
 		await act(async () => { await result.current.confirmModalAction() })
-		expect(p2pApi.cancel).toHaveBeenCalledWith('offer-1')
+		expect(p2pApi.cancel).toHaveBeenCalledWith('offer-1', undefined)
 		expect(toast.success).toHaveBeenCalledWith('Oferta cancelada')
 		expect(result.current.confirmModal).toBe(null)
 	})
@@ -256,7 +257,7 @@ describe('trade actions behind the themed confirmation modal', () => {
 		act(() => { result.current.handleMarkPaid() })
 		expect(result.current.confirmModal).toBe('markPaid')
 		await act(async () => { await result.current.confirmModalAction() })
-		expect(p2pApi.markPaid).toHaveBeenCalledWith('offer-1', 'tx-123')
+		expect(p2pApi.markPaid).toHaveBeenCalledWith('offer-1', 'tx-123', undefined)
 		expect(toast.success).toHaveBeenCalledWith('Pago marcado como realizado')
 	})
 
@@ -267,7 +268,7 @@ describe('trade actions behind the themed confirmation modal', () => {
 		act(() => { result.current.handleConfirmReceived() })
 		expect(result.current.confirmModal).toBe('received')
 		await act(async () => { await result.current.confirmModalAction() })
-		expect(p2pApi.confirmReceived).toHaveBeenCalledWith('offer-1')
+		expect(p2pApi.confirmReceived).toHaveBeenCalledWith('offer-1', undefined)
 		expect(toast.success).toHaveBeenCalledWith('Pago recibido. Fondos liberados')
 	})
 
@@ -400,5 +401,119 @@ describe('share and peer profile', () => {
 		expect(p2pApi.peerProfile).toHaveBeenCalledWith(CREATOR.uuid)
 		expect(result.current.peerStats).toEqual({ completed: 12 })
 		expect(result.current.peerReviewsCount).toBe(7)
+	})
+})
+
+describe('range offers (offer_kind flexible)', () => {
+
+	const order = (overrides = {}) => ({
+		uuid: 'ord-1', amount: '4.00', receive: '2000', status: 'processing', created_at: '2026-10-10T18:00:00.000Z',
+		payment_window_expires_at: '2026-10-10T18:15:00.000Z', tx_id: '', Taker: PEER, ...overrides,
+	})
+	// Venta por rango de $10 (2–5) con tasa 500
+	const makeFlexible = (overrides = {}) => makeOffer({
+		type: 'sell', amount: '10.00', receive: '5000', offer_kind: 'flexible',
+		available_amount: '10.00', reserved_amount: '0.00', order_min: '2.00', order_max: '5.00',
+		can_take_flexible: true, Orders: [], OrdersSummary: null, Peer: {},
+		...overrides,
+	})
+
+	test('el taker con una orden viva entra directo a ella (proyectada como una oferta fixed)', async () => {
+		p2pApi.markPaid.mockResolvedValue({ success: true })
+		const offer = makeFlexible({ available_amount: '6.00', reserved_amount: '4.00', Orders: [order()] })
+		const { result } = await renderDetail({ offer, viewer: PEER })
+		expect(result.current.isFlexibleOverview).toBe(false)
+		expect(result.current.selectedOrder.uuid).toBe('ord-1')
+		expect(result.current.p2p).toMatchObject({ status: 'processing', amount: '4.00', receive: '2000', payment_window_expires_at: '2026-10-10T18:15:00.000Z' })
+		// Venta: el taker paga el fiat → cancela (no disputa)
+		expect(result.current.isPayer).toBe(true)
+		expect(result.current.canCancel).toBe(true)
+		expect(result.current.canDispute).toBe(false)
+		expect(result.current.canApply).toBe(false)
+		act(() => { result.current.setTxIdInput('tx-9') })
+		act(() => { result.current.handleMarkPaid() })
+		await act(async () => { await result.current.confirmModalAction() })
+		expect(p2pApi.markPaid).toHaveBeenCalledWith('offer-1', 'tx-9', 'ord-1')
+	})
+
+	test('el dueño ve la oferta y no puede cancelarla entera con órdenes vivas; abrir una orden es un PUSH', async () => {
+		const offer = makeFlexible({ Orders: [order()], OrdersSummary: { active: 1, completed: 0, cancelled: 0 } })
+		const { result, navigation } = await renderDetail({ offer, viewer: CREATOR })
+		expect(result.current.isFlexibleOverview).toBe(true)
+		expect(result.current.canCancel).toBe(false)
+		expect(result.current.canApply).toBe(false)
+		act(() => { result.current.openOrder('ord-1') })
+		expect(navigation.dispatch).toHaveBeenCalledWith({ type: 'PUSH', payload: { name: 'P2POffer', params: { p2p_uuid: 'offer-1', order: 'ord-1' } } })
+	})
+
+	test('el dueño de una venta no cancela la orden: abre disputa contra la misma ruta con ?order', async () => {
+		p2pApi.cancel.mockResolvedValue({ success: true, data: { status: 'revision' } })
+		const offer = makeFlexible({ Orders: [order({ status: 'paid' })] })
+		const { result } = await renderDetail({ offer, viewer: CREATOR, orderUuid: 'ord-1' })
+		expect(result.current.isReceiver).toBe(true)
+		expect(result.current.canCancel).toBe(false)
+		expect(result.current.canDispute).toBe(true)
+		expect(result.current.canConfirmReceived).toBe(true)
+		act(() => { result.current.handleDispute() })
+		expect(result.current.confirmModal).toBe('dispute')
+		await act(async () => { await result.current.confirmModalAction() })
+		expect(p2pApi.cancel).toHaveBeenCalledWith('offer-1', 'ord-1')
+		expect(toast.success).toHaveBeenCalledWith('Disputa abierta: un moderador revisará la orden')
+	})
+
+	test('en revisión quien recibe el fiat aún puede liberar, pero no repetir la disputa', async () => {
+		const offer = makeFlexible({ Orders: [order({ status: 'revision' })] })
+		const { result } = await renderDetail({ offer, viewer: CREATOR, orderUuid: 'ord-1' })
+		expect(result.current.canConfirmReceived).toBe(true)
+		expect(result.current.canDispute).toBe(false)
+		expect(result.current.canRatePeer).toBe(false)
+	})
+
+	test('tomar una parte manda el monto y pasa a la orden creada', async () => {
+		const offer = makeFlexible()
+		const { result } = await renderDetail({ offer, viewer: { uuid: 'stranger', balance: '0' } })
+		expect(result.current.canApply).toBe(true)
+		p2pApi.apply.mockResolvedValue({ success: true, data: { order: 'ord-new' } })
+		p2pApi.show.mockResolvedValue({ success: true, data: { p2p: makeFlexible({ available_amount: '6.00', Orders: [order({ uuid: 'ord-new', Taker: { uuid: 'stranger' } })] }) } })
+		act(() => { result.current.handleApply() })
+		act(() => { result.current.setApplyAmount('4') })
+		await act(async () => { await result.current.handleApplyConfirm() })
+		expect(p2pApi.apply).toHaveBeenCalledWith('offer-1', 4)
+		expect(result.current.showApplyConfirm).toBe(false)
+		expect(result.current.selectedOrder.uuid).toBe('ord-new')
+	})
+
+	test('un monto fuera de rango no llama al backend y deja el modal abierto', async () => {
+		const { result } = await renderDetail({ offer: makeFlexible(), viewer: { uuid: 'stranger' } })
+		act(() => { result.current.handleApply() })
+		act(() => { result.current.setApplyAmount('6') })
+		await act(async () => { await result.current.handleApplyConfirm() })
+		expect(p2pApi.apply).not.toHaveBeenCalled()
+		expect(result.current.showApplyConfirm).toBe(true)
+	})
+
+	test('ORDER_ALREADY_ACTIVE lleva a la orden viva en vez de ofrecer otra', async () => {
+		const { result } = await renderDetail({ offer: makeFlexible(), viewer: { uuid: 'stranger' } })
+		p2pApi.apply.mockResolvedValue({ success: false, status: 409, details: { code: 'ORDER_ALREADY_ACTIVE' } })
+		p2pApi.show.mockResolvedValue({ success: true, data: { p2p: makeFlexible({ Orders: [order({ uuid: 'ord-live', Taker: { uuid: 'stranger' } })] }) } })
+		act(() => { result.current.setApplyAmount('3') })
+		await act(async () => { await result.current.handleApplyConfirm() })
+		expect(toast.info).toHaveBeenCalledWith('Ya tienes una orden activa en esta oferta')
+		expect(result.current.selectedOrder.uuid).toBe('ord-live')
+	})
+
+	test('sin permiso para tomarlas: aviso VIP en vez del botón', async () => {
+		const { result } = await renderDetail({ offer: makeFlexible({ can_take_flexible: false }), viewer: { uuid: 'stranger' } })
+		expect(result.current.canApply).toBe(false)
+		expect(result.current.flexibleLocked).toBe(true)
+	})
+
+	test('una orden cerrada del taker permite volver a la oferta', async () => {
+		const offer = makeFlexible({ Orders: [order({ status: 'completed' })] })
+		const { result } = await renderDetail({ offer, viewer: PEER, orderUuid: 'ord-1' })
+		expect(result.current.canBackToOffer).toBe(true)
+		act(() => { result.current.backToOffer() })
+		expect(result.current.isFlexibleOverview).toBe(true)
+		expect(result.current.canApply).toBe(true)
 	})
 })

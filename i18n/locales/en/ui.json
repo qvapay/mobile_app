@@ -79,17 +79,37 @@
 	},
 	"offerItem": {
 		"status": {
-			"completed": "Completed",
+			"processing": "Processing",
 			"paid": "Paid",
 			"revision": "Under review",
+			"completed": "Completed",
 			"cancelled": "Cancelled"
 		},
-		"edit": "Edit",
+		"manage": "Manage",
 		"sell": "Sell",
 		"buy": "Buy",
 		"privateBadge": "Private",
-		"availableYouSend": " available · you send ",
-		"availableYouReceive": " available · you receive "
+		"vipOnly": "VIP only",
+		"amount": "Amount",
+		"available": "Available",
+		"limits": "Limits",
+		"myOrder": "Your order",
+		"order": "Order",
+		"youPay": "You pay",
+		"youReceive": "You receive",
+		"trend": {
+			"good": "Better than average ({{average}})",
+			"bad": "Worse than average ({{average}})",
+			"neutral": "At the average ({{average}})"
+		},
+		"remaining": "{{pct}}% left of ${{total}}",
+		"requirements": "Requirements to apply: {{list}}",
+		"requirement": {
+			"min_completed": "{{value}}+ completed trades",
+			"min_rating": "rating {{value}}+",
+			"min_account_days": "account {{value}}+ days old",
+			"min_trustscore": "TrustScore {{value}}+"
+		}
 	},
 	"phoneInput": {
 		"placeholder": "Phone number"

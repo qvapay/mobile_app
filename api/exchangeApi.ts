@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiResult } from '../types/api'
-import type { ExchangeCatalogPayload, ExchangeOrder, ExchangeQuotePayload } from '../types/domain'
+import type { ExchangeCatalogPayload, ExchangeOnchainBuild, ExchangeOrder, ExchangeQuotePayload } from '../types/domain'
 
 /** Respuesta de `POST /wallet/exchange/create`. */
 export type ExchangeCreatePayload = { data: ExchangeOrder, duplicate?: boolean }
@@ -20,6 +20,21 @@ export type ExchangeQuoteInput = {
 	 * "lo tienes más barato en otra cadena": son saldos públicos que el backend no guarda.
 	 */
 	balances?: Record<string, string | number>
+	/**
+	 * Familias que la wallet sabe FIRMAR como contrato (`['evm', 'solana']`). Solo con esto
+	 * el backend cotiza rutas on-chain (LI.FI, Jupiter); sin ello, todo sigue como antes.
+	 */
+	onchain?: Array<'evm' | 'solana' | 'tron' | 'btc'>
+	/** Direcciones propias por familia: Jupiter cotiza ya con quien firmará. */
+	addresses?: { evm?: string, solana?: string, tron?: string, btc?: string }
+}
+
+export type ExchangeOnchainSubmitInput = {
+	quoteId: string
+	txid: string
+	fromAddress: string
+	toAddress: string
+	idempotencyKey: string
 }
 
 export type ExchangeCreateInput = {
@@ -61,7 +76,7 @@ const fail = (err: unknown, fallbackKey: string): ApiResult<never> => {
  *
  * `details` conserva el body de error, donde viaja el `code` que decide el copy:
  * `BELOW_MINIMUM` (con `min_amount`), `ASSET_NOT_SUPPORTED`, `SAME_ASSET`, `NO_PROVIDER`,
- * `QUOTE_EXPIRED`, `PAYOUT_NOT_OWN`, `REFUND_NOT_OWN`, `DUPLICATE_REQUEST`,
+ * `QUOTE_EXPIRED`, `PAYOUT_INVALID`, `REFUND_INVALID`, `DUPLICATE_REQUEST`,
  * `PROVIDER_UNAVAILABLE`, `SANCTIONS_BLOCKED`.
  */
 export const exchangeApi = {
@@ -85,16 +100,50 @@ export const exchangeApi = {
 	 * Un 400 con `BELOW_MINIMUM` trae `min_amount` en `details`: es información útil, no solo
 	 * un error — la pantalla puede ofrecer subir al mínimo.
 	 */
-	quote: async ({ fromAssetId, toAssetId, amount, balances }: ExchangeQuoteInput): Promise<ApiResult<ExchangeQuotePayload>> => {
+	quote: async ({ fromAssetId, toAssetId, amount, balances, onchain, addresses }: ExchangeQuoteInput): Promise<ApiResult<ExchangeQuotePayload>> => {
 		try {
 			const response = await apiClient.post<{ data: ExchangeQuotePayload }>('/wallet/exchange/quote', {
 				from_asset: fromAssetId,
 				to_asset: toAssetId,
 				amount,
 				...(balances ? { balances } : {}),
+				...(onchain?.length ? { onchain } : {}),
+				...(addresses && Object.values(addresses).some(Boolean) ? { addresses } : {}),
 			}, { silent: true })
 			return { success: true, data: response.data.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.quoteFailed') }
+	},
+
+	/**
+	 * Transacción de una ruta ON-CHAIN para verificar y firmar (`POST /wallet/exchange/onchain/build`).
+	 * No mueve nada ni consume la cotización. 409 `QUOTE_EXPIRED`/`QUOTE_MOVED` = recotizar.
+	 */
+	onchainBuild: async ({ quoteId, fromAddress, toAddress }: { quoteId: string, fromAddress: string, toAddress: string }): Promise<ApiResult<ExchangeOnchainBuild>> => {
+		try {
+			const response = await apiClient.post<{ data: ExchangeOnchainBuild }>('/wallet/exchange/onchain/build', {
+				quote_id: quoteId,
+				from_address: fromAddress,
+				to_address: toAddress,
+			})
+			return { success: true, data: response.data.data, status: response.status }
+		} catch (err) { return fail(err, 'api.exchange.buildFailed') }
+	},
+
+	/**
+	 * Registra el swap on-chain YA difundido (`POST /wallet/exchange/onchain/submit`) para
+	 * seguirlo. Idempotente por hash: un reintento devuelve la misma operación.
+	 */
+	onchainSubmit: async ({ quoteId, txid, fromAddress, toAddress, idempotencyKey }: ExchangeOnchainSubmitInput): Promise<ApiResult<ExchangeCreatePayload>> => {
+		try {
+			const response = await apiClient.post<ExchangeCreatePayload>('/wallet/exchange/onchain/submit', {
+				quote_id: quoteId,
+				txid,
+				from_address: fromAddress,
+				to_address: toAddress,
+				idempotency_key: idempotencyKey,
+			})
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) { return fail(err, 'api.exchange.submitFailed') }
 	},
 
 	/**

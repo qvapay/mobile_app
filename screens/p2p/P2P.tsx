@@ -15,7 +15,7 @@ import { useTextStyles, useContainerStyles } from "../../theme/themeUtils"
 import { useAuth } from "../../auth/AuthContext"
 
 // UI
-import P2POffer from "../../ui/P2POfferItem"
+import P2POffer, { P2POfferItemSkeleton } from "../../ui/P2POfferItem"
 import QPCoinPicker from "../../ui/QPCoinPicker"
 import QPSwitch from "../../ui/particles/QPSwitch"
 import P2PRequirementsGate from "./P2PRequirementsGate"
@@ -373,9 +373,19 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 		)
 	}
 
-	const renderOffer = ({ item }: { item: P2POfferModel }) => (
-		<P2POffer offer={item} navigation={navigation as unknown as RootNav} marketAverage={marketAverages?.[item.coin]} />
+	// Bloque continuo: solo la primera y la última card llevan esquinas redondeadas
+	const listCardStyle = (index: number, count: number) => [
+		styles.listCard,
+		index === 0 && styles.listCardFirst,
+		index === count - 1 && styles.listCardLast,
+	]
+
+	const renderOffer = ({ item, index }: { item: P2POfferModel, index: number }) => (
+		<P2POffer offer={item} navigation={navigation as unknown as RootNav} marketAverage={marketAverages?.[item.coin]} style={listCardStyle(index, p2pOffers.length)} />
 	)
+
+	// Lista continua con divisores finos (como la web), no tarjetas sueltas
+	const renderSeparator = () => <View style={[styles.listDivider, { backgroundColor: theme.colors.border }]} />
 
 	if (!p2pEnabled || requirement) {
 		// Las medias del mercado son informativas: el botón del header funciona
@@ -422,14 +432,24 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 				onEndReached={handleLoadMore}
 				onEndReachedThreshold={0.3}
 				ListFooterComponent={renderFooter}
-				ListEmptyComponent={
+				ItemSeparatorComponent={renderSeparator}
+				ListEmptyComponent={isLoading && !error ? (
+					<View>
+						{[0, 1, 2, 3, 4].map(i => (
+							<View key={i}>
+								{i > 0 && renderSeparator()}
+								<P2POfferItemSkeleton style={listCardStyle(i, 5)} />
+							</View>
+						))}
+					</View>
+				) : (
 					<View style={styles.emptyContainer}>
 						<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center" }]}>
 							{error ? error : t('p2p.market.empty')}
 						</Text>
 					</View>
-				}
-				estimatedItemSize={120}
+				)}
+				estimatedItemSize={140}
 			/>
 
 			{/* Filters Modal */}
@@ -513,6 +533,21 @@ const styles = StyleSheet.create({
 	// el avatar y los botones del header
 	headerSwitch: {
 		height: 34,
+	},
+	listCard: {
+		borderRadius: 0,
+		marginBottom: 0,
+	},
+	listCardFirst: {
+		borderTopLeftRadius: 12,
+		borderTopRightRadius: 12,
+	},
+	listCardLast: {
+		borderBottomLeftRadius: 12,
+		borderBottomRightRadius: 12,
+	},
+	listDivider: {
+		height: StyleSheet.hairlineWidth,
 	},
 	emptyContainer: {
 		flex: 1,

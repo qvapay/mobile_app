@@ -33,9 +33,16 @@ const base = {
 
 describe('la tasa y lo que dice el proveedor', () => {
 
-	it('la tasa se deriva de los dos importes: el backend no manda ninguna', () => {
+	it('la tasa se deriva de los dos importes y se lee con N ≥ 1', () => {
+		// 100 USDT → 0.7987 SOL: "1 USDT ≈ 0.007987 SOL" obligaba a dividir de cabeza
 		const v = buildExchangeView({ ...base, quote: quote({ amountIn: 100, amountOut: 0.7987 }) })
-		expect(v.rate).toBe('1 USDT ≈ 0.007987 SOL')
+		expect(v.rate).toBe('1 SOL ≈ 125.2 USDT')
+		// En el sentido contrario, el directo ya es ≥ 1
+		const back = buildExchangeView({ ...base, from: sol(), to: asset(), quote: quote({ amountIn: 1, amountOut: 123.0912 }) })
+		expect(back.rate).toBe('1 SOL ≈ 123.09 USDT')
+		// Por debajo de 100, cuatro decimales: entre estables el matiz está ahí
+		const stable = buildExchangeView({ ...base, to: asset({ symbol: 'USDC' }), quote: quote({ amountIn: 100, amountOut: 99.87 }) })
+		expect(stable.rate).toBe('1 USDC ≈ 1.0013 USDT')
 	})
 
 	it('sin importe de entrada no se inventa una tasa', () => {
@@ -136,11 +143,42 @@ describe('la vista', () => {
 		expect(v.rows).toEqual([])
 	})
 
-	it('la comisión de red se enseña SIEMPRE, destacada', () => {
-		// Es la única parte del coste que no se ve en la tasa
+	it('la comisión de red se enseña SIEMPRE, sin el verde de buena noticia', () => {
+		// Es un coste: en verde parecía un regalo justo encima del aviso rojo
 		const fee = buildExchangeView(base).rows.find(r => r.key === 'fee')
 		expect(fee.value).toBe('5.54 USDT')
-		expect(fee.highlight).toBe(true)
+		expect(fee.highlight).toBeUndefined()
+	})
+
+	it('en una estable, la comisión en céntimos', () => {
+		const fee = buildExchangeView({ ...base, from: asset({ stable: true }), quote: quote({ depositFee: 5.3517852 }) }).rows.find(r => r.key === 'fee')
+		expect(fee.value).toBe('5.35 USDT')
+	})
+
+	it('el proveedor no se repite en el detalle: ya lo dice la ruta', () => {
+		expect(buildExchangeView(base).rows.find(r => r.key === 'provider')).toBeUndefined()
+	})
+
+	it('la red enseña origen y destino cuando difieren', () => {
+		expect(buildExchangeView(base).rows.find(r => r.key === 'network').value).toBe('TRON → Solana')
+		const same = buildExchangeView({ ...base, to: asset({ symbol: 'TRX', id: 'tron:native' }) })
+		expect(same.rows.find(r => r.key === 'network').value).toBe('TRON')
+	})
+
+	it('el envío desde la wallet: cubierto o lo que quemaría, con el aviso de rentar energía', () => {
+		const covered = buildExchangeView({ ...base, sendCost: { kind: 'covered' } })
+		expect(covered.rows.find(r => r.key === 'sendCost').value).toBe('crypto.wallet.exchange.sendCostCovered')
+		expect(covered.notices.find(n => n.key === 'energy')).toBeUndefined()
+
+		const burn = buildExchangeView({ ...base, sendCost: { kind: 'burn', trx: 13.45, energyShort: true } })
+		expect(burn.rows.find(r => r.key === 'sendCost').value).toBe('~13.45 TRX')
+		expect(burn.notices.find(n => n.key === 'energy')).toMatchObject({ tone: 'primary', text: 'crypto.wallet.exchange.energyHint|{"trx":"13.45"}' })
+
+		// Si lo que se quema es solo ancho de banda, rentar energía no lo arregla: sin aviso
+		const bandwidth = buildExchangeView({ ...base, sendCost: { kind: 'burn', trx: 0.35, energyShort: false } })
+		expect(bandwidth.notices.find(n => n.key === 'energy')).toBeUndefined()
+
+		expect(buildExchangeView(base).rows.find(r => r.key === 'sendCost')).toBeUndefined()
 	})
 
 	it('el botón solo se habilita cuando hay algo que revisar', () => {

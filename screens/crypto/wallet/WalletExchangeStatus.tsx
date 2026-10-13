@@ -127,6 +127,11 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
 	const card = [styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]
 
+	// Solo https: es una URL que viene del servidor y se abre fuera de la app
+	const supportUrl = order && (order.status === 'needs_review' || order.status === 'failed')
+		&& typeof order.provider_support_url === 'string' && order.provider_support_url.startsWith('https://')
+		? order.provider_support_url : null
+
 	return (
 		<ScrollView style={containerStyles.subContainer} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
@@ -242,9 +247,24 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 				</View>
 			)}
 
+			{/* Retenida o fallida: solo el proveedor puede liberarla, y para eso necesita su
+			    referencia, que está en la tarjeta de arriba */}
+			{supportUrl && (
+				<Text style={[styles.notice, { color: theme.colors.secondaryText }]}>
+					{t('crypto.wallet.exchange.contactProviderHint', { provider: order!.provider_label })}
+				</Text>
+			)}
+
 			<View style={styles.spacer} />
 
 			<View style={styles.actions}>
+				{supportUrl && (
+					<QPButton
+						title={t('crypto.wallet.exchange.contactProvider', { provider: order!.provider_label })}
+						onPress={() => { Linking.openURL(supportUrl).catch(() => { }) }}
+						outlined
+					/>
+				)}
 				{deposit === 'send' && !!order?.deposit_address && (
 					<QPButton title={t('crypto.wallet.exchange.sendNow')} onPress={openSend} />
 				)}

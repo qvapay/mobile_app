@@ -127,7 +127,9 @@
 		"quoteFailed": "Não foi possível cotar a troca",
 		"createFailed": "Não foi possível abrir a operação de troca",
 		"detailFailed": "Não foi possível obter o status da troca",
-		"listFailed": "Não foi possível obter seu histórico de trocas"
+		"listFailed": "Não foi possível obter seu histórico de trocas",
+		"buildFailed": "Não foi possível preparar a troca",
+		"submitFailed": "Não foi possível registrar a troca"
 	},
 	"wallet": {
 		"gaslessQuoteFailed": "Não foi possível verificar o envio grátis",

@@ -219,7 +219,7 @@ describe('p2pApi.cancel', () => {
 
 		const result = await p2pApi.cancel('abc-123')
 
-		expect(result).toEqual({ success: false, error: 'No se puede cancelar', status: 422 })
+		expect(result).toEqual({ success: false, error: 'No se puede cancelar', details: { error: 'No se puede cancelar' }, status: 422 })
 	})
 })
 
@@ -505,7 +505,7 @@ describe('p2pApi.apply', () => {
 
 		const result = await p2pApi.apply('abc-123')
 
-		expect(result).toEqual({ success: false, error: 'Requiere KYC', status: 422 })
+		expect(result).toEqual({ success: false, error: 'Requiere KYC', details: { error: 'Requiere KYC' }, status: 422 })
 	})
 })
 
@@ -535,5 +535,42 @@ describe('p2pApi.peerProfile', () => {
 		const result = await p2pApi.peerProfile('user-9')
 
 		expect(result).toEqual({ success: false, error: 'Network Error', status: undefined })
+	})
+})
+
+describe('ofertas por rango', () => {
+
+	test('apply con monto lo manda en el body y devuelve la orden', async () => {
+		apiClient.post.mockResolvedValue({ data: { order: 'ord-1', amount: '4.00' }, status: 201 })
+		const result = await p2pApi.apply('abc-123', 4)
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/apply', { amount: 4 })
+		expect(result.data.order).toBe('ord-1')
+	})
+
+	test('el código del backend viaja en details (ORDER_ALREADY_ACTIVE)', async () => {
+		apiClient.post.mockRejectedValue({ response: { data: { error: 'Ya tienes una orden activa', code: 'ORDER_ALREADY_ACTIVE' }, status: 409 } })
+		const result = await p2pApi.apply('abc-123', 4)
+		expect(result).toMatchObject({ success: false, status: 409, details: { code: 'ORDER_ALREADY_ACTIVE' } })
+	})
+
+	test('las acciones de una orden van con ?order=', async () => {
+		apiClient.post.mockResolvedValue({ data: {}, status: 201 })
+		apiClient.get.mockResolvedValue({ data: [], status: 200 })
+		await p2pApi.cancel('abc-123', 'ord-1')
+		await p2pApi.markPaid('abc-123', 'tx', 'ord-1')
+		await p2pApi.confirmReceived('abc-123', 'ord-1')
+		await p2pApi.sendChat('abc-123', { message: 'hola' }, 'ord-1')
+		await p2pApi.getChat('abc-123', 'ord-1')
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/cancel?order=ord-1')
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/paid?order=ord-1', { tx_id: 'tx' })
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/received?order=ord-1')
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/chat?order=ord-1', { message: 'hola' })
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/abc-123/chat?order=ord-1')
+	})
+
+	test('el listado acepta el filtro offer_kind', async () => {
+		apiClient.get.mockResolvedValue({ data: { data: [], current_page: 1, per_page: 50, total: 0 } })
+		await p2pApi.index({ offer_kind: 'fixed' })
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/index?offer_kind=fixed')
 	})
 })

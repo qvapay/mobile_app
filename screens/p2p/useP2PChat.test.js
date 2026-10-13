@@ -87,7 +87,7 @@ describe('history load', () => {
 			] },
 		})
 		const { result } = await renderHook()
-		expect(p2pApi.getChat).toHaveBeenCalledWith('offer-1')
+		expect(p2pApi.getChat).toHaveBeenCalledWith('offer-1', null)
 		expect(result.current.messages.map((m) => m.id)).toEqual([1, 2, 3])
 		expect(result.current.chatLoading).toBe(false)
 	})
@@ -152,7 +152,7 @@ describe('handleSendChat', () => {
 		await act(async () => { result.current.setChatText('  hola  ') })
 		p2pApi.getChat.mockClear()
 		await act(async () => { await result.current.handleSendChat() })
-		expect(p2pApi.sendChat).toHaveBeenCalledWith('offer-1', { message: 'hola' })
+		expect(p2pApi.sendChat).toHaveBeenCalledWith('offer-1', { message: 'hola' }, null)
 		expect(result.current.chatText).toBe('')
 		expect(p2pApi.getChat).toHaveBeenCalledTimes(1) // post-send refetch
 	})
@@ -172,7 +172,7 @@ describe('handleSendSticker', () => {
 		const { result } = await renderHook()
 		await act(async () => { result.current.setShowStickerPanel(true) })
 		await act(async () => { await result.current.handleSendSticker('qva_rocket') })
-		expect(p2pApi.sendChat).toHaveBeenCalledWith('offer-1', { message: ':sticker:qva_rocket.gif' })
+		expect(p2pApi.sendChat).toHaveBeenCalledWith('offer-1', { message: ':sticker:qva_rocket.gif' }, null)
 		expect(result.current.showStickerPanel).toBe(false)
 	})
 })
@@ -226,7 +226,7 @@ describe('handleSendImage', () => {
 		expect(p2pApi.sendChat).toHaveBeenCalledWith('offer-1', {
 			message: 'mira esto',
 			image: { uri: 'file://ok.jpg', type: 'image/jpeg', fileName: 'ok.jpg' },
-		})
+		}, null)
 		expect(result.current.selectedImage).toBeNull()
 		expect(result.current.chatText).toBe('')
 		expect(result.current.sendingImage).toBe(false)

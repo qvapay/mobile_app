@@ -96,6 +96,13 @@ describe('prepareEvmSend', () => {
 		expect(b.tx.maxPriorityFeePerGas).toBe(gwei(1))
 	})
 
+	test('una prioridad sugerida por debajo de 1 gwei se respeta (Base pide ~0,001 gwei)', async () => {
+		const tiny = 1_000_000n
+		mockRpc({ eth_getTransactionCount: () => '0x0', eth_getBlockByNumber: () => ({ baseFeePerGas: hex(5_000_000n) }), eth_maxPriorityFeePerGas: () => hex(tiny) })
+		const prepared = await prepareEvmSend(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 1n, contract: null })
+		expect(prepared.tx.maxPriorityFeePerGas).toBe(tiny)
+	})
+
 	test('estimación revertida → error legible no reintentable; chainId ajeno y gas anómalo también fallan', async () => {
 		mockRpc({ eth_getTransactionCount: () => '0x0', eth_getBlockByNumber: () => ({ baseFeePerGas: hex(gwei(1)) }), eth_maxPriorityFeePerGas: () => hex(gwei(1)), eth_estimateGas: () => new Error('execution reverted: BEP20: transfer amount exceeds balance') })
 		const err = await prepareEvmSend(RPC, BSC, { chainId: 56, from: FROM, to: TO, amount: 1n, contract: USDT_BSC }).catch(e => e)
@@ -197,6 +204,12 @@ describe('niveles de fee', () => {
 		expect(tierPriority(gwei(2), 'normal')).toBe(gwei(2))
 		expect(tierPriority(gwei(2), 'slow')).toBe(gwei(1))
 		expect(tierPriority(gwei(1), 'slow')).toBe(gwei(1))
+	})
+	test('Económico: la mitad con suelo de 1 gwei, salvo que lo sugerido ya esté por debajo', () => {
+		expect(tierPriority(gwei(4), 'slow')).toBe(gwei(2))
+		expect(tierPriority(gwei(1) + gwei(1) / 2n, 'slow')).toBe(gwei(1))
+		expect(tierPriority(1_000_000n, 'slow')).toBe(1_000_000n)
+		expect(tierPriority(1_000_000n, 'fast')).toBe(2_000_000n)
 	})
 	test('prepare con tier fast construye con prioridad doble y expone feeByTier', async () => {
 		mockRpc({ eth_getTransactionCount: () => '0x0', eth_getBlockByNumber: () => ({ baseFeePerGas: hex(gwei(1)) }), eth_maxPriorityFeePerGas: () => hex(gwei(2)) })

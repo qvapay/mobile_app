@@ -77,9 +77,13 @@ export const resolvePushTarget = (data: PushData): PushTarget | null => {
 
 	// El P2P se mira ANTES: sus eventos de fondos recibidos comparten canal de
 	// sonido con las transferencias, pero no comparten destino
+	// Ofertas por rango: las push de una ORDEN abren esa orden; la de "tomaron una
+	// parte" (`p2p_partial_applied`, al dueño) abre la oferta, donde está la lista
 	if (type.startsWith('p2p')) {
 		const p2pUuid = data?.p2p_uuid || data?.uuid
-		return p2pUuid ? { screen: ROUTES.P2P_OFFER_SCREEN, params: { p2p_uuid: p2pUuid } } : null
+		if (!p2pUuid) return null
+		const order = type !== 'p2p_partial_applied' ? data?.order_uuid : undefined
+		return { screen: ROUTES.P2P_OFFER_SCREEN, params: order ? { p2p_uuid: p2pUuid, order } : { p2p_uuid: p2pUuid } }
 	}
 
 	if (TRANSACTION_TYPES.includes(type)) {

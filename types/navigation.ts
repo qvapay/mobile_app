@@ -107,7 +107,8 @@ export type RootStackParamList = {
 	Withdraw: { preselectedCoin?: string, lnInvoice?: string, lnAmountSats?: number | string, prefillAddress?: string, amount?: string } | undefined
 
 	// ── P2P ───────────────────────────────────────────────────────────────
-	P2POffer: { p2p_uuid: string }
+	/** `order`: orden de una oferta por rango (filas de la lista, push, `?order=` de la web). */
+	P2POffer: { p2p_uuid: string, order?: string }
 	/** `initialTab` está implementado en la pantalla pero ningún call site lo manda aún. */
 	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
 	P2PCreate: undefined
@@ -156,6 +157,8 @@ export type RootStackParamList = {
 	/** Seguimiento de un intercambio cripto↔cripto. */
 	/** `sentTxid`: el depósito acaba de difundirse; el seguimiento no debe volver a pedirlo. */
 	WalletExchangeStatus: { uuid: string, sentTxid?: string }
+	/** Ruta on-chain (LI.FI/Jupiter): se firma desde la wallet. `expectedOut` = lo que prometía la ruta elegida. */
+	WalletOnchainSwap: { quoteId: string, fromAssetId: string, toAssetId: string, amount: number, expectedOut: number | null, providerLabel: string, serviceFeeBps?: number }
 	WalletExchanges: undefined
 	/** Recursos TRON y alquiler de energía; los params preseleccionan la compra. */
 	WalletEnergy: { address?: string, duration?: EnergyDuration } | undefined

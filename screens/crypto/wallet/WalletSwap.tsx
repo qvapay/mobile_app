@@ -23,7 +23,8 @@ import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
 import useSwapFlow from './useSwapFlow'
-import { usePriceMap, useWalletAssets } from './walletQueries'
+import { usePriceMap, useTronChainParamsQuery, useTronResourcesQuery, useWalletAssets } from './walletQueries'
+import { tronSendCost } from './sourceSendCost'
 import useCoins from '../../../hooks/useCoins'
 import { addressForKind, assetPrice, findAssetForCoin } from '../../../wallet/assets'
 
@@ -44,13 +45,15 @@ import SwapDetails from './components/swap/SwapDetails'
 import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../../ui/particles/QPFlipButton'
 import SwapNotices from './components/swap/SwapNotices'
 import SwapReviewSheet from './components/swap/SwapReviewSheet'
+import SwapRouteRow from './components/swap/SwapRouteRow'
+import SwapRoutesSheet from './components/swap/SwapRoutesSheet'
 
 // Navigation
 import { ROUTES } from '../../../routes'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
 import type { AssetView } from '../../../wallet/assets'
-import type { Coin, ExchangeOrder, Swap } from '../../../types/domain'
+import type { Coin, ExchangeOrder, ExchangeRoute, Swap } from '../../../types/domain'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WalletSwap'>
 
@@ -90,6 +93,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 
 	const [amountText, setAmountText] = useState('')
 	const [sheet, setSheet] = useState<'pay' | 'receive' | null>(null)
+	const [routesOpen, setRoutesOpen] = useState(false)
 
 	const { query: pairs, enabledPairs, pair, asset, assetFor, setPairId, registered, walletReady, limitAvailable } = useSwapPairs()
 	const { all } = useWalletAssets()
@@ -198,12 +202,35 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		navigation.replace(ROUTES.WALLET_EXCHANGE_STATUS, { uuid: order.uuid })
 	}, [navigation])
 
+	const onOnchainRoute = useCallback((selected: ExchangeRoute, amount: number) => {
+		if (!payAsset || !receiveAsset || !selected.quote_id) { return }
+		navigation.navigate(ROUTES.WALLET_ONCHAIN_SWAP, {
+			quoteId: selected.quote_id,
+			fromAssetId: payAsset.id,
+			toAssetId: receiveAsset.id,
+			amount,
+			expectedOut: selected.amount_out,
+			providerLabel: selected.provider_label || selected.provider,
+			serviceFeeBps: selected.service_fee_bps,
+		})
+	}, [navigation, payAsset, receiveAsset])
+
 	const exchangeFlow = useExchangeFlow({
 		from: isExchange ? payAsset : null,
 		to: isExchange ? receiveAsset : null,
 		amountText, addresses, balances, unsupportedReason,
 		onOpened: onExchangeOpened,
+		onOnchainRoute,
 	})
+
+	// Coste del envío al depósito (ruta custodial desde TRON): en las on-chain el envío ES el
+	// swap y su coste se ve al firmar
+	const tronSource = isExchange && payAsset?.kind === 'tron' && exchangeFlow.selectedRoute?.custody === 'custodial'
+	const tronResources = useTronResourcesQuery(tronSource ? addresses?.tron : null)
+	const tronParams = useTronChainParamsQuery(tronSource)
+	const sendCost = tronSource
+		? tronSendCost({ isToken: payAsset.contract !== null, resources: tronResources.data, params: tronParams.data })
+		: null
 
 	// ── Vista, según el motor ───────────────────────────────────────────────
 	const exchangeView = buildExchangeView({
@@ -221,6 +248,9 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		loading: catalog.isLoading,
 		pickFrom: () => setSheet('pay'),
 		pickTo: () => setSheet('receive'),
+		routes: exchangeFlow.routes,
+		selectedProvider: exchangeFlow.selectedRoute?.provider ?? null,
+		sendCost,
 	})
 
 	const swapView = buildSwapView({
@@ -435,6 +465,11 @@ const WalletSwap = ({ navigation, route }: Props) => {
 					/>
 				</View>
 
+				{/* Qué proveedor hace el cambio, a la vista y elegible: varios compiten por él */}
+				{isExchange && !!exchangeView.route && (
+					<SwapRouteRow route={exchangeView.route} onPress={() => setRoutesOpen(true)} />
+				)}
+
 				<SwapDetails rate={view.rate} badge={isExchange ? undefined : swapView.badge} rows={view.rows} />
 
 				<SwapNotices notices={view.notices} />
@@ -453,6 +488,13 @@ const WalletSwap = ({ navigation, route }: Props) => {
 				onSelect={onPickSide}
 				onClose={() => setSheet(null)}
 				options={sheetOptions}
+			/>
+
+			<SwapRoutesSheet
+				visible={isExchange && routesOpen}
+				items={exchangeView.routeItems}
+				onSelect={exchangeFlow.selectRoute}
+				onClose={() => setRoutesOpen(false)}
 			/>
 
 			<SwapReviewSheet

@@ -4,6 +4,7 @@ import type { EdgeInsets } from "react-native-safe-area-context"
 
 import QPButton from "../../ui/particles/QPButton"
 import QPRate from "../../ui/particles/QPRate"
+import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
@@ -20,6 +21,14 @@ type P2PActionBarProps = {
 	canMarkPaid: boolean
 	canConfirmReceived: boolean
 	canRatePeer: boolean
+	/** Orden por rango, quien recibe el fiat: en vez de cancelar abre disputa. */
+	canDispute?: boolean
+	/** Taker en una orden ya cerrada: volver a la oferta. */
+	canBackToOffer?: boolean
+	/** Por rango sin permiso para tomarla: aviso VIP en lugar del botón. */
+	flexibleLocked?: boolean
+	/** La pantalla muestra una orden de una oferta por rango (no la oferta entera). */
+	isOrder?: boolean
 	loading: TradeActionLoading
 	txIdInput: string
 	rating: number
@@ -30,6 +39,8 @@ type P2PActionBarProps = {
 	onEdit: () => void
 	onShare: () => void
 	onRate: (rating: number) => void
+	onDispute?: () => void
+	onBackToOffer?: () => void
 	keyboardVisible: boolean
 	insets: EdgeInsets
 	theme: Theme
@@ -42,8 +53,9 @@ type P2PActionBarProps = {
 const P2PActionBar = ({
 	p2p, isOwner, isPayer, isReceiver,
 	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer,
+	canDispute = false, canBackToOffer = false, flexibleLocked = false, isOrder = false,
 	loading, txIdInput, rating,
-	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate,
+	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate, onDispute, onBackToOffer,
 	keyboardVisible, insets, theme, textStyles, containerStyles,
 }: P2PActionBarProps) => {
 
@@ -74,6 +86,27 @@ const P2PActionBar = ({
 					textStyle={{ color: theme.colors.primaryText }}
 					icon="xmark"
 					iconColor={theme.colors.primaryText}
+					iconStyle="solid"
+					loading={loading.cancel}
+					disabled={loading.cancel}
+				/>
+			)}
+
+			{flexibleLocked && (
+				<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 56 }}>
+					<FontAwesome6 name="gem" size={14} color={theme.colors.gold} iconStyle="solid" />
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', flexShrink: 1 }]}>{t('p2p.flexible.vipOnlyBody')}</Text>
+				</View>
+			)}
+
+			{canDispute && (
+				<QPButton
+					title={t('p2p.flexible.openDispute')}
+					onPress={onDispute!}
+					style={[{ backgroundColor: theme.colors.surface }, styles.actionButton]}
+					textStyle={{ color: theme.colors.warning }}
+					icon="scale-balanced"
+					iconColor={theme.colors.warning}
 					iconStyle="solid"
 					loading={loading.cancel}
 					disabled={loading.cancel}
@@ -132,8 +165,20 @@ const P2PActionBar = ({
 
 			{p2p?.status === "cancelled" && (
 				<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('p2p.actionBar.offerCancelled')}</Text>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{isOrder ? t('p2p.flexible.orderCancelled') : t('p2p.actionBar.offerCancelled')}</Text>
 				</View>
+			)}
+
+			{canBackToOffer && (
+				<QPButton
+					title={t('p2p.flexible.backToOffer')}
+					onPress={onBackToOffer!}
+					style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
+					textStyle={{ color: theme.colors.almostWhite }}
+					icon="arrow-left"
+					iconColor={theme.colors.almostWhite}
+					iconStyle="solid"
+				/>
 			)}
 
 			{canRatePeer && (

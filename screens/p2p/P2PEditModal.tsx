@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import QPButton from "../../ui/particles/QPButton"
 import QPInput from "../../ui/particles/QPInput"
 import { sanitizeAmountInput } from "../../helpers/amountInput"
+import { checkFlexibleEdit, formatCents, isFlexibleOffer, toCents } from "./p2pFlexible"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
@@ -26,9 +27,17 @@ type P2PEditModalProps = {
 }
 
 // Edit-offer modal for the owner of an open offer (amount / receive / message / VIP).
+// Una oferta por rango edita solo lo que QUEDA por tomar: disponible, lo que se
+// quiere por él y los límites por orden — las órdenes ya tomadas no cambian.
 const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, windowHeight, theme, textStyles, containerStyles }: P2PEditModalProps) => {
 
 	const { t } = useTranslation()
+
+	const flexible = isFlexibleOffer(p2p)
+	const flexCheck = flexible && p2p
+		? checkFlexibleEdit(p2p, { available: edit.available, receive: edit.receive, order_min: edit.orderMin, order_max: edit.orderMax }, Number(user?.balance ?? 0))
+		: null
+	const takenCents = flexible && p2p ? toCents(p2p.amount) - toCents(p2p.available_amount) : 0
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
@@ -44,28 +53,73 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 							</Pressable>
 						</View>
 
-						{/* Amount */}
-						<QPInput
-							value={edit.amount}
-							onChangeText={(v) => setEdit("amount", sanitizeAmountInput(v))}
-							placeholder="0.00"
-							keyboardType="decimal-pad"
-							prelabel={t('p2p.editModal.amountLabel')}
-						/>
+						{flexible ? (
+							<>
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginBottom: 8 }]}>
+									{t('p2p.flexible.edit.hint', { taken: formatCents(takenCents) })}
+								</Text>
+								<QPInput
+									value={edit.available}
+									onChangeText={(v) => setEdit("available", sanitizeAmountInput(v))}
+									placeholder="0.00"
+									keyboardType="decimal-pad"
+									prelabel={t('p2p.flexible.edit.availableLabel')}
+								/>
+								<QPInput
+									value={edit.receive}
+									onChangeText={(v) => setEdit("receive", sanitizeAmountInput(v, 8))}
+									placeholder="0.00"
+									keyboardType="decimal-pad"
+									prelabel={p2p?.type === "buy" ? t('p2p.flexible.edit.toSendForAvailable') : t('p2p.flexible.edit.toReceiveForAvailable')}
+								/>
+								<View style={{ flexDirection: 'row', gap: 10 }}>
+									<View style={{ flex: 1 }}>
+										<QPInput value={edit.orderMin} onChangeText={(v) => setEdit("orderMin", sanitizeAmountInput(v))} placeholder="0.00" keyboardType="decimal-pad" prelabel={t('p2p.flexible.orderMin')} />
+									</View>
+									<View style={{ flex: 1 }}>
+										<QPInput value={edit.orderMax} onChangeText={(v) => setEdit("orderMax", sanitizeAmountInput(v))} placeholder="0.00" keyboardType="decimal-pad" prelabel={t('p2p.flexible.orderMax')} />
+									</View>
+								</View>
+								{/* Antes de guardar: el motivo del rechazo, o cuánto se mueve del saldo (venta) */}
+								{flexCheck && !flexCheck.ok ? (
+									<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 4 }]}>{t(`p2p.flexible.errors.${flexCheck.reason}`)}</Text>
+								) : flexCheck?.ok && flexCheck.escrowDeltaCents !== 0 ? (
+									<Text style={[textStyles.h7, { color: theme.colors.warning, marginTop: 4 }]}>
+										{flexCheck.escrowDeltaCents > 0
+											? t('p2p.flexible.edit.escrowDebit', { amount: formatCents(flexCheck.escrowDeltaCents) })
+											: t('p2p.flexible.edit.escrowRefund', { amount: formatCents(-flexCheck.escrowDeltaCents) })}
+									</Text>
+								) : null}
+								{flexCheck?.ok && flexCheck.payload.available_amount === 0 && (
+									<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 4 }]}>{t('p2p.flexible.edit.withdrawRest')}</Text>
+								)}
+							</>
+						) : (
+							<>
+								{/* Amount */}
+								<QPInput
+									value={edit.amount}
+									onChangeText={(v) => setEdit("amount", sanitizeAmountInput(v))}
+									placeholder="0.00"
+									keyboardType="decimal-pad"
+									prelabel={t('p2p.editModal.amountLabel')}
+								/>
 
-						{/* Receive */}
-						<QPInput
-							value={edit.receive}
-							onChangeText={(v) => setEdit("receive", sanitizeAmountInput(v, 8))}
-							placeholder="0.00"
-							keyboardType="decimal-pad"
-							prelabel={p2p?.type === "buy" ? t('p2p.editModal.toSend') : t('p2p.editModal.toReceive')}
-						/>
+								{/* Receive */}
+								<QPInput
+									value={edit.receive}
+									onChangeText={(v) => setEdit("receive", sanitizeAmountInput(v, 8))}
+									placeholder="0.00"
+									keyboardType="decimal-pad"
+									prelabel={p2p?.type === "buy" ? t('p2p.editModal.toSend') : t('p2p.editModal.toReceive')}
+								/>
+							</>
+						)}
 
-						{/* Balance warning for SELL offers */}
+						{/* Balance warning for SELL offers (fixed) */}
 						{/* Los decimales del backend viajan como string|number: parseFloat acepta
 						    ambos en runtime — los casts de abajo son solo de tipos */}
-						{p2p?.type === "sell" && parseFloat((edit.amount || 0) as string) > parseFloat((p2p?.amount || 0) as string) && (parseFloat((edit.amount || 0) as string) - parseFloat((p2p?.amount || 0) as string)) > parseFloat((user?.balance || 0) as string) && (
+						{!flexible && p2p?.type === "sell" && parseFloat((edit.amount || 0) as string) > parseFloat((p2p?.amount || 0) as string) && (parseFloat((edit.amount || 0) as string) - parseFloat((p2p?.amount || 0) as string)) > parseFloat((user?.balance || 0) as string) && (
 							<Text style={[textStyles.h7, { color: theme.colors.danger, marginTop: 4 }]}>
 								{t('p2p.editModal.insufficientBalance')}
 							</Text>
@@ -99,7 +153,7 @@ const P2PEditModal = ({ visible, onClose, edit, setEdit, p2p, user, onSubmit, wi
 							iconColor={theme.colors.buttonText}
 							iconStyle="solid"
 							loading={edit.loading}
-							disabled={edit.loading}
+							disabled={edit.loading || (!!flexCheck && !flexCheck.ok)}
 						/>
 
 					</ScrollView>

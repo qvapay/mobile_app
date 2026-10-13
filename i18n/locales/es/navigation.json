@@ -29,6 +29,7 @@
 		"walletSwap": "Swap",
 		"walletSwapStatus": "Estado del swap",
 		"walletExchangeStatus": "Intercambio",
+		"walletOnchainSwap": "Intercambio sin custodia",
 		"walletExchanges": "Intercambios",
 		"tronEnergy": "Energía TRON",
 		"energyOrders": "Compras de energía",

@@ -281,5 +281,91 @@
 			"coinMeta": "{{ops}} ops · {{volume}}",
 			"noCompletedOps": "No completed trades yet."
 		}
+	},
+	"flexible": {
+		"status": {
+			"revisionPayer": "A moderator will review the chat. If you paid, upload the receipt here.",
+			"revisionReceiver": "This order is in dispute. If you already received the payment, you can still confirm it."
+		},
+		"toasts": {
+			"disputeOpened": "Dispute opened: a moderator will review the order",
+			"orderCancelled": "Order cancelled",
+			"taken": "You took ${{amount}} of the offer",
+			"alreadyActive": "You already have an active order on this offer"
+		},
+		"vipOnlyTitle": "VIP only",
+		"vipOnlyBody": "Range offers: available for VIP accounts",
+		"openDispute": "Open dispute",
+		"orderCancelled": "Order cancelled",
+		"backToOffer": "View offer",
+		"searchingTakers": "Your offer is live. Each counterparty will take the part they need.",
+		"applyQuestion": "How much do you want to take from this offer?",
+		"available": "Available",
+		"reserved": "In orders",
+		"total": "Total",
+		"summary": "{{active}} active · {{completed}} completed · {{cancelled}} cancelled",
+		"ordersTitle": "Orders",
+		"myOrdersTitle": "Your orders",
+		"orderMin": "Min per order",
+		"orderMax": "Max per order",
+		"orderStatus": {
+			"processing": "In progress",
+			"paid": "Paid",
+			"completed": "Completed",
+			"cancelled": "Cancelled",
+			"revision": "In dispute"
+		},
+		"confirm": {
+			"cancel": {
+				"title": "Cancel this order",
+				"body": "You're about to cancel your ${{amount}} order.",
+				"warning": "If you already paid, don't cancel: you'd lose this part."
+			},
+			"dispute": {
+				"title": "Open dispute",
+				"body": "The order with {{counterparty}} will go to review and a moderator will resolve it.",
+				"warning": "Only open it if there's a problem with the payment. If you already received it, confirm the payment instead.",
+				"confirmLabel": "Open dispute"
+			}
+		},
+		"apply": {
+			"title": "Take a part",
+			"body": "Enter how much you want to take, between ${{min}} and ${{max}}.",
+			"amountLabel": "Amount (QUSD)",
+			"youSend": "You'll send {{amount}} {{coin}}",
+			"youReceive": "You'll receive {{amount}} {{coin}}",
+			"escrowNote": "The amount is held from your balance as a guarantee until the order closes. Balance: ${{balance}}",
+			"confirm": "Take"
+		},
+		"errors": {
+			"empty": "Enter an amount",
+			"invalid": "Invalid amount: use up to 2 decimals",
+			"belowMin": "The minimum per order is ${{min}}",
+			"aboveMax": "The most you can take is ${{max}}",
+			"insufficientBalance": "Insufficient balance",
+			"availableInvalid": "Invalid available amount: must be 0 or more, with up to 2 decimals",
+			"receiveInvalid": "Invalid amount to receive",
+			"availableBelowMin": "Available can't be lower than the minimum per order (set 0 to withdraw the rest)",
+			"nothingTaken": "Nothing has been taken from this offer: to withdraw it all, cancel it",
+			"minInvalid": "Invalid minimum per order",
+			"maxInvalid": "Invalid maximum per order",
+			"minAboveMax": "The minimum per order can't be higher than the maximum",
+			"maxAboveAmount": "The maximum per order can't be higher than the offer total"
+		},
+		"edit": {
+			"invalidTitle": "Check the details",
+			"hint": "Only what's left to take can be edited. What's already taken (${{taken}}) stays the same.",
+			"availableLabel": "Available (QUSD)",
+			"toSendForAvailable": "To send for the available amount",
+			"toReceiveForAvailable": "To receive for the available amount",
+			"escrowDebit": "${{amount}} will be deducted from your balance",
+			"escrowRefund": "${{amount}} will be returned to your balance",
+			"withdrawRest": "Available 0: you withdraw the rest without cancelling orders in progress."
+		},
+		"create": {
+			"invalidTitle": "Invalid range",
+			"toggle": "Range offer",
+			"toggleHint": "Each counterparty takes only the part they need, until the offer runs out."
+		}
 	}
 }

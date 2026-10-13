@@ -308,6 +308,65 @@ export type P2POffer = {
 	/** Alias PascalCase del anterior (el backend ha mandado ambos). */
 	Details?: P2POfferDetails
 	payment_window_expires_at?: string | null
+	/**
+	 * `fixed` = se toma entera (lo de siempre; ausente en un backend viejo).
+	 * `flexible` = POR RANGO: cada contraparte toma una parte entre `order_min` y
+	 * `order_max`, y cada parte es una orden propia (`Orders`) con su pago, chat y disputa.
+	 */
+	offer_kind?: P2POfferKind
+	/** Flexible: lo que queda por tomar (`amount` es el total original). */
+	available_amount?: Decimal | null
+	/** Flexible: lo comprometido en órdenes vivas. */
+	reserved_amount?: Decimal | null
+	order_min?: Decimal | null
+	order_max?: Decimal | null
+	/** Flexible: ¿puede esta cuenta tomar una parte? (hoy, VIP). */
+	can_take_flexible?: boolean
+	/** Flexible: el dueño ve todas; un taker, solo las suyas. */
+	Orders?: P2POrder[]
+	/** Flexible: solo llega al dueño. */
+	OrdersSummary?: { active: number, completed: number, cancelled: number } | null
+	updated_at?: string
+	/**
+	 * Requisitos del maker para aplicar (solo las claves activas; null = ninguno).
+	 * Viajan en la lista y en el detalle (`scripts/p2p/requirements-rules.js`).
+	 */
+	requirements?: P2PRequirements | null
+	/** Detalle, para quien NO es el dueño: si cumple los requisitos y qué le falta. */
+	requirements_met?: boolean
+	requirements_missing?: { key: keyof P2PRequirements, required: number, actual: number }[]
+	/** Lista con `my`: la parte que YO tomé de una oferta por rango (su estado manda en la card). */
+	my_order?: { uuid: string, amount: Decimal, receive: Decimal, status: P2POrderStatus, created_at: string } | null
+	/** Banco del método (CUP y similares). Hueco reservado: el backend aún no lo envía. */
+	bank?: string | null
+}
+
+export type P2PRequirements = {
+	min_completed?: number
+	min_rating?: number
+	min_account_days?: number
+	min_trustscore?: number
+}
+
+export type P2POfferKind = 'fixed' | 'flexible'
+
+/** Estado de una orden de una oferta por rango (sin `open`: nace ya tomada). */
+export type P2POrderStatus = 'processing' | 'paid' | 'completed' | 'cancelled' | 'revision'
+
+/** Orden hija de una oferta por rango (`GET /p2p/{uuid}` → `Orders`). */
+export type P2POrder = {
+	uuid: string
+	amount: Decimal
+	receive: Decimal
+	status: P2POrderStatus
+	created_at: string
+	paid_at?: string | null
+	released_at?: string | null
+	cancelled_at?: string | null
+	/** 15 min desde que se toma; null para VIP y monedas de efectivo. */
+	payment_window_expires_at?: string | null
+	tx_id?: string | null
+	Taker?: P2PUser | null
 }
 
 /** Paginador Laravel crudo de `GET /p2p/index` (las ofertas viven en `data`). */
@@ -670,14 +729,109 @@ export type ExchangeCheaperOrigin = {
 	savingBps: number
 }
 
+/**
+ * Una ruta del intercambio: la cotización de UN proveedor, lista para elegirla.
+ *
+ * El backend las devuelve ordenadas por lo que recibe el usuario (`amount_out` ya es el
+ * neto: incluye la comisión de QvaPay de las rutas on-chain), la primera es la mejor, y cada una trae SU `quote_id`
+ * congelado: elegir la segunda abre la operación con la segunda, no con la mejor.
+ */
+export type ExchangeRoute = {
+	/** null en las rutas por debajo del mínimo de su proveedor: no se pueden elegir. */
+	quote_id: string | null
+	expires_at: string | null
+	provider: string
+	provider_label: string
+	/** `custodial`: el proveedor tiene los fondos durante el cambio y puede retenerlos. */
+	custody: 'custodial' | 'onchain'
+	kyc_risk: 'possible' | 'none'
+	rate_type: 'floating' | 'fixed'
+	amount_in: number | null
+	amount_out: number | null
+	deposit_fee: number | null
+	withdrawal_fee: number | null
+	/** Franja del proveedor ("10-60"). */
+	eta: string | null
+	/** Cota alta de la franja, en minutos. */
+	eta_minutes: number | null
+	warning: string | null
+	/** Comisión de QvaPay YA incluida en `amount_out` (40 en LI.FI/Jupiter, 0 en custodiales). Backends nuevos. */
+	service_fee_bps?: number
+	/** Lo mínimo garantizado tras el deslizamiento (solo on-chain). Backends nuevos. */
+	amount_out_min?: number | null
+	best: boolean
+	fastest: boolean
+	/** Cuánto MENOS que la mejor recibe esta ruta, en la moneda de destino. */
+	shortfall: number | null
+	/** El importe no llega al mínimo de este proveedor: se enseña con su mínimo. */
+	below_min: boolean
+	min_amount: number | null
+}
+
+/** Instrucción de Solana tal y como la serializa Jupiter (datos en base64). */
+export type OnchainRawInstruction = { programId: string, accounts: Array<{ pubkey: string, isSigner: boolean, isWritable: boolean }>, data: string }
+
+type OnchainBuildBase = {
+	provider: string
+	quote_id: string
+	expires_at: string
+	from_asset: string
+	to_asset: string
+	amount: number
+	toAmount: number | null
+	/** Lo mínimo garantizado tras el deslizamiento: lo que la wallet exige en la simulación. */
+	toAmountMin: number | null
+}
+
+/**
+ * Transacción de una ruta ON-CHAIN (`POST /wallet/exchange/onchain/build`). La wallet no se
+ * fía de nada de esto: lo verifica entero antes de firmar (`wallet/{evm,solana}/swap.ts`).
+ */
+export type ExchangeOnchainBuild =
+	| (OnchainBuildBase & {
+		family: 'evm'
+		chainId: number
+		tx: { to: string, data: string, value: string, gasLimit: string | null }
+		approval: { token: string, spender: string, amount: string } | null
+		/** Unidades mínimas que se pagan. */
+		fromAmount: string | null
+	})
+	| (OnchainBuildBase & {
+		family: 'solana'
+		instructions: { computeBudget: OnchainRawInstruction[], setup: OnchainRawInstruction[], swap: OnchainRawInstruction, cleanup: OnchainRawInstruction | null, other: OnchainRawInstruction[] }
+		lookupTables: string[]
+		inAmount: string | null
+		toAmountMinUnits: string | null
+	})
+	/** SunSwap: la wallet codifica la llamada ella misma; esto es solo para cotejar. */
+	| (OnchainBuildBase & {
+		family: 'tron'
+		router: string
+		path: string[]
+		toAmountMinUnits: string | null
+	})
+	/** THORChain: el memo del OP_RETURN. La bóveda la pide la wallet a los nodos, no viene aquí. */
+	| (OnchainBuildBase & {
+		family: 'btc'
+		memo: string
+		pool: string
+		amountSats: string
+		expiry: number | null
+		/** Lo cotizado en unidades de 1e8 (las de THORChain, sea cual sea el activo). */
+		expectedOutUnits: string
+	})
+
 export type ExchangeQuotePayload = {
 	quote: ExchangeQuote
 	advice: ExchangeAdvice
+	/** El mínimo de la ruta más accesible: por debajo no hay ninguna. */
 	min_amount: number | null
-	/** Para confirmar sin recotizar. Caduca en 2 minutos. */
+	/** Para confirmar sin recotizar. Caduca en 2 minutos. Es el de la MEJOR ruta. */
 	quote_id: string | null
 	expires_at: string | null
 	alternatives: ExchangeQuote[]
+	/** Todas las rutas. Ausente con un backend anterior a las rutas: hay que caer a `quote`. */
+	routes?: ExchangeRoute[]
 	cheaper_origin: ExchangeCheaperOrigin | null
 }
 
@@ -693,6 +847,8 @@ export type ExchangeOrder = {
 	uuid: string
 	provider: string
 	provider_label: string
+	/** Soporte del proveedor, para una operación retenida. Ausente en backends viejos. */
+	provider_support_url?: string | null
 	/** Referencia del proveedor: lo único que sirve para preguntarle por una operación. */
 	provider_order_id: string | null
 	from_asset: string

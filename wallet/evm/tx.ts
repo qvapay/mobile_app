@@ -32,7 +32,11 @@ const TOKEN_GAS_MARGIN_PERCENT = 25n
 /** Tope duro del gas de una transferencia ERC-20: por encima, algo raro pasa con el contrato. */
 const MAX_TOKEN_GAS = 300_000n
 
-/** Prioridad mínima (1 gwei): algunos nodos devuelven 0 en `eth_maxPriorityFeePerGas` y la tx se queda sin minar. */
+/**
+ * Prioridad de RESPALDO (1 gwei): solo cuando el nodo devuelve 0 o no tiene
+ * `eth_maxPriorityFeePerGas` (sin prioridad la tx se queda sin minar). Nunca es un suelo
+ * sobre una sugerencia real: en Base la red pide ~0,001 gwei y 1 gwei era pagar ×1000.
+ */
 const MIN_PRIORITY_FEE_WEI = 1_000_000_000n
 
 /**
@@ -91,12 +95,18 @@ export type EvmSendIntent = {
 export type FeeTier = 'fast' | 'normal' | 'slow'
 
 /**
- * Prioridad por nivel sobre la sugerida por el nodo: Económico la mitad (sin
- * bajar de 1 gwei), Rápido el doble. En legacy (gasPrice) se escala el precio.
+ * Prioridad por nivel sobre la sugerida por el nodo: Económico la mitad, Rápido el doble.
+ * En legacy (gasPrice) se escala el precio. Económico no baja de 1 gwei, y en las redes
+ * donde lo sugerido ya está por debajo (Base, BNB Chain) se queda en lo sugerido: ahí
+ * la mitad puede caer bajo el mínimo que aceptan los validadores (BSC) y no minarse.
  */
 export const tierPriority = (suggested: bigint, tier: FeeTier): bigint => {
 	if (tier === 'fast') return suggested * 2n
-	if (tier === 'slow') { const half = suggested / 2n; return half > MIN_PRIORITY_FEE_WEI ? half : MIN_PRIORITY_FEE_WEI }
+	if (tier === 'slow') {
+		const half = suggested / 2n
+		const floor = suggested < MIN_PRIORITY_FEE_WEI ? suggested : MIN_PRIORITY_FEE_WEI
+		return half > floor ? half : floor
+	}
 	return suggested
 }
 
@@ -138,7 +148,7 @@ export const getEvmFeeData = async (rpc: RegistryRpc, deps: Deps = {}): Promise<
 		let priority = MIN_PRIORITY_FEE_WEI
 		try {
 			const suggested = hexToBigInt(await jsonRpc<string>(rpc.url, 'eth_maxPriorityFeePerGas', [], rpcOpts(rpc, deps)))
-			if (suggested > priority) priority = suggested
+			if (suggested > 0n) priority = suggested
 		} catch { /* nodo sin el método: 1 gwei de prioridad */ }
 		return { eip1559: true, baseFee: hexToBigInt(block.baseFeePerGas), priorityFee: priority }
 	}

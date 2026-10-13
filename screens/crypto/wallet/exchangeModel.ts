@@ -6,7 +6,7 @@
  * pierda dinero, y conviene poder probarlas en `@jest-environment node` sin montar pantalla.
  */
 import { formatUnits, parseUnits } from '../../../wallet/chains/units'
-import type { ExchangeOrder, ExchangeStatus } from '../../../types/domain'
+import type { ExchangeOrder, ExchangeQuote, ExchangeQuotePayload, ExchangeRoute, ExchangeStatus } from '../../../types/domain'
 
 /** `parseUnits` lanza con un decimal a medio teclear; aquí eso vale 0. */
 export const parseAmountSafe = (decimal: string, decimals: number): bigint => {
@@ -48,6 +48,75 @@ export const checkAmount = ({ input, balance, decimals, minAmount }: {
 
 	return { ok: true, amount }
 }
+
+// ── Rutas (varios proveedores) ─────────────────────────────────────────────
+
+/**
+ * Una ruta a partir de la cotización suelta de un backend anterior a las rutas. Así la
+ * pantalla trabaja SIEMPRE con rutas y no hay dos caminos que mantener.
+ */
+const routeFromQuote = (quote: ExchangeQuote, quoteId: string | null, expiresAt: string | null): ExchangeRoute => ({
+	quote_id: quoteId,
+	expires_at: expiresAt,
+	provider: quote.provider,
+	// El backend viejo no manda etiqueta: el nombre interno es lo único que hay
+	provider_label: quote.provider,
+	custody: 'custodial',
+	kyc_risk: 'possible',
+	rate_type: 'floating',
+	amount_in: quote.amountIn,
+	amount_out: quote.amountOut,
+	deposit_fee: quote.depositFee,
+	withdrawal_fee: quote.withdrawalFee,
+	eta: quote.speedForecast,
+	eta_minutes: null,
+	warning: quote.providerWarning,
+	best: true,
+	fastest: false,
+	shortfall: 0,
+	below_min: false,
+	min_amount: null,
+})
+
+/** Las rutas de una cotización, con o sin soporte de rutas en el backend. */
+export const routesFrom = (payload: ExchangeQuotePayload | null | undefined): ExchangeRoute[] => {
+	if (!payload) { return [] }
+	if (Array.isArray(payload.routes) && payload.routes.length > 0) { return payload.routes }
+	return payload.quote ? [routeFromQuote(payload.quote, payload.quote_id, payload.expires_at)] : []
+}
+
+/** Se puede confirmar con ella: tiene precio congelado y llega a su mínimo. */
+export const isSelectable = (route: ExchangeRoute | null | undefined): boolean =>
+	!!route && !route.below_min && !!route.quote_id && Number(route.amount_out) > 0
+
+/**
+ * La ruta en uso: la que eligió el usuario si SIGUE en la lista y se puede confirmar, y si
+ * no, la mejor.
+ *
+ * Cada recotización (cada 45 s, o al tocar el importe) trae rutas nuevas con `quote_id`
+ * nuevos, así que la elección se recuerda por PROVEEDOR, no por id. Si ese proveedor deja de
+ * cotizar (caído, o el importe bajó de su mínimo), se vuelve a la mejor en vez de dejar al
+ * usuario con una ruta que ya no existe.
+ */
+export const selectRoute = (routes: ExchangeRoute[], chosenProvider: string | null): ExchangeRoute | null => {
+	const chosen = chosenProvider ? routes.find(r => r.provider === chosenProvider) : undefined
+	if (chosen && isSelectable(chosen)) { return chosen }
+	return routes.find(r => isSelectable(r)) ?? null
+}
+
+/** Cuántas rutas se pueden elegir de verdad. Con una sola no hay nada que comparar. */
+export const selectableCount = (routes: ExchangeRoute[]): number => routes.filter(isSelectable).length
+
+/** La ruta en uso como la cotización suelta que el resto de la pantalla ya sabe pintar. */
+export const quoteOfRoute = (route: ExchangeRoute | null): ExchangeQuote | null => (route && isSelectable(route)) ? ({
+	provider: route.provider_label || route.provider,
+	amountIn: Number(route.amount_in),
+	amountOut: Number(route.amount_out),
+	depositFee: Number(route.deposit_fee ?? 0),
+	withdrawalFee: Number(route.withdrawal_fee ?? 0),
+	speedForecast: route.eta,
+	providerWarning: route.warning,
+}) : null
 
 // ── Lectura del estado ─────────────────────────────────────────────────────
 

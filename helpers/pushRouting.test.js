@@ -57,6 +57,15 @@ describe('resolvePushTarget', () => {
 		expect(resolvePushTarget({ type: 'transfer' })).toEqual({ screen: 'Transactions' })
 	})
 
+	test('las push de una orden por rango abren esa orden; "tomaron una parte" abre la oferta', () => {
+		expect(resolvePushTarget({ type: 'p2p_partial_paid', p2p_uuid: 'p-1', order_uuid: 'o-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1' } })
+		expect(resolvePushTarget({ type: 'p2p_partial_revision', p2p_uuid: 'p-1', order_uuid: 'o-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1' } })
+		expect(resolvePushTarget({ type: 'p2p_partial_applied', p2p_uuid: 'p-1', order_uuid: 'o-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
+	})
+
 	test('cualquier evento p2p lleva a la oferta, aunque sea dinero entrante', () => {
 		expect(resolvePushTarget({ type: 'p2p_partial_paid', p2p_uuid: 'p-1' }))
 			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
