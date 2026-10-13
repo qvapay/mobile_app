@@ -3,5 +3,5 @@ Novedades de QvaPay 3.4.1:
 • Nuevo: intercambios sin custodia en Ethereum, BNB Chain, Polygon, Base, Solana y TRON. Firmas tú y los fondos nunca salen de tu wallet.
 • Comisiones de red más bajas en los envíos por redes EVM.
 • P2P: ofertas por rango. Toma solo la parte que necesitas de una oferta grande.
-• P2P: tarjetas de oferta renovadas, más claras y fáciles de comparar.
+• P2P: tarjetas de oferta renovadas y más claras.
 • Mejoras de estabilidad y rendimiento.
