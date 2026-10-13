@@ -72,7 +72,13 @@
 			"advanced": "Opciones avanzadas",
 			"privateOffer": "Oferta Privada",
 			"customMessage": "Mensaje personalizado",
-			"max": "MÁX"
+			"max": "MÁX",
+			"privateOfferHint": "Solo la verá quien tenga el enlace directo; no aparece en el listado público.",
+			"customMessagePlaceholder": "Escribe un mensaje para tu oferta…",
+			"goldOnly": "Solo GOLD",
+			"goldOnlyHint": "Exclusivo para usuarios GOLD",
+			"activeCount_one": "{{count}} activa",
+			"activeCount_other": "{{count}} activas"
 		},
 		"toasts": {
 			"incompleteTitle": "Datos incompletos",
@@ -92,6 +98,25 @@
 			"selectCoinFirst": "Selecciona una moneda",
 			"methodsLoadFailed": "No se pudieron cargar los métodos",
 			"methodApplyFailed": "No se pudo aplicar el método"
+		},
+		"requirements": {
+			"title": "Requisitos para quien aplique",
+			"hint": "Solo podrán aplicar las cuentas que los cumplan. Cuantos más pongas, menos personas podrán tomar tu oferta.",
+			"none": "Sin requisito",
+			"clear": "Quitar requisitos",
+			"trustscoreWarning": "Muy pocas cuentas tienen TrustScore (lo asigna QvaPay tras verificar su historial): este requisito deja fuera a casi todo el mercado.",
+			"labels": {
+				"min_completed": "Operaciones completadas",
+				"min_rating": "Rating mínimo",
+				"min_account_days": "Antigüedad de la cuenta",
+				"min_trustscore": "TrustScore"
+			},
+			"values": {
+				"min_completed": "{{value}}+ operaciones",
+				"min_rating": "{{value}}+ estrellas",
+				"min_account_days": "{{value}}+ días",
+				"min_trustscore": "{{value}}+"
+			}
 		}
 	},
 	"savedMethods": {
@@ -293,8 +318,8 @@
 			"taken": "Tomaste ${{amount}} de la oferta",
 			"alreadyActive": "Ya tienes una orden activa en esta oferta"
 		},
-		"vipOnlyTitle": "Solo para VIP",
-		"vipOnlyBody": "Ofertas por rango: disponibles para cuentas VIP",
+		"kycOnlyTitle": "Necesitas KYC",
+		"kycOnlyBody": "Ofertas por rango: disponibles para cuentas con KYC aprobado",
 		"openDispute": "Abrir disputa",
 		"orderCancelled": "Orden cancelada",
 		"backToOffer": "Ver oferta",
@@ -365,7 +390,8 @@
 		"create": {
 			"invalidTitle": "Rango inválido",
 			"toggle": "Oferta por rango",
-			"toggleHint": "Cada contraparte toma solo la parte que necesita, hasta agotar la oferta."
+			"toggleHint": "Cada contraparte toma solo la parte que necesita, hasta agotar la oferta.",
+			"existsTitle": "Ya tienes una oferta por rango"
 		}
 	}
 }

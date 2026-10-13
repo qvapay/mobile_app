@@ -459,7 +459,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 					return true
 				}
 				if (code === "FLEXIBLE_NOT_ENABLED") {
-					toast.error(t('p2p.flexible.vipOnlyTitle'), { description: t('p2p.flexible.vipOnlyBody') })
+					toast.error(t('p2p.flexible.kycOnlyTitle'), { description: t('p2p.flexible.kycOnlyBody') })
 					return true
 				}
 				// 409 sin código = otro tomó antes y ya no cabe: refrescar el disponible

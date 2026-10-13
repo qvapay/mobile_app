@@ -169,6 +169,7 @@ describe('publish validations', () => {
 
 describe('offer creation', () => {
 	test('publishes the full payload (normalizing comma decimals) and navigates to the created offer', async () => {
+		useAuth.mockReturnValue({ user: { p2p_enabled: true, kyc: 1, phone_verified: 1, telegram_id: '123', golden_check: 1 } })
 		const tree = await renderCreate()
 		await fillOffer(tree, { coin: BANK_CUP, amount: '10,5', receive: '4200,75' })
 		setWorkingField(tree, 'card_number', '9224 0699 9632 8054')
@@ -192,6 +193,56 @@ describe('offer creation', () => {
 		})
 		expect(toast.success).toHaveBeenCalledWith('Listo', { description: 'Tu oferta se ha creado correctamente' })
 		expect(navigation.navigate).toHaveBeenCalledWith('P2POffer', { p2p_uuid: 'offer-1' })
+	})
+
+	test('applicant requirements travel only with their active keys', async () => {
+		const tree = await renderCreate()
+		await fillOffer(tree)
+		setField(tree, 'requirements', { min_completed: 25, min_rating: null, min_account_days: 30, min_trustscore: null })
+		await pressPublish(tree)
+		expect(p2pApi.create).toHaveBeenCalledWith(expect.objectContaining({ requirements: { min_completed: 25, min_account_days: 30 } }))
+	})
+
+	test('no requirements = no requirements key', async () => {
+		const tree = await renderCreate()
+		await fillOffer(tree)
+		await pressPublish(tree)
+		expect(p2pApi.create.mock.calls[0][0]).not.toHaveProperty('requirements')
+	})
+
+	test('the custom message is GOLD-only and capped at 79 chars', async () => {
+		const tree = await renderCreate()
+		await fillOffer(tree)
+		setField(tree, 'message', 'hola')
+		await pressPublish(tree)
+		expect(p2pApi.create).toHaveBeenCalledWith(expect.objectContaining({ message: '' }))
+
+		p2pApi.create.mockClear()
+		useAuth.mockReturnValue({ user: { p2p_enabled: true, kyc: 1, phone_verified: 1, telegram_id: '123', golden_check: 1 } })
+		const gold = await renderCreate()
+		await fillOffer(gold)
+		setField(gold, 'message', 'x'.repeat(100))
+		await pressPublish(gold)
+		expect(p2pApi.create).toHaveBeenCalledWith(expect.objectContaining({ message: 'x'.repeat(79) }))
+	})
+
+	test('range offers are open to KYC accounts (no VIP needed)', async () => {
+		const tree = await renderCreate()
+		expect(formPanel(tree).props.canCreateFlexible).toBe(true)
+		await fillOffer(tree, { amount: '100' })
+		setField(tree, 'flexible', true)
+		setField(tree, 'orderMin', '10')
+		setField(tree, 'orderMax', '50')
+		await pressPublish(tree)
+		expect(p2pApi.create).toHaveBeenCalledWith(expect.objectContaining({ offer_kind: 'flexible', order_min: 10, order_max: 50 }))
+	})
+
+	test('FLEXIBLE_OFFER_EXISTS shows the server explanation', async () => {
+		p2pApi.create.mockResolvedValue({ success: false, status: 409, error: 'Ya tienes una oferta por rango de USDT', details: { code: 'FLEXIBLE_OFFER_EXISTS' } })
+		const tree = await renderCreate()
+		await fillOffer(tree)
+		await pressPublish(tree)
+		expect(toast.error).toHaveBeenCalledWith('Ya tienes una oferta por rango', { description: 'Ya tienes una oferta por rango de USDT' })
 	})
 
 	test('coins without working_data publish an empty details array', async () => {

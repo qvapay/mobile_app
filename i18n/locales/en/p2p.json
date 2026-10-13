@@ -72,7 +72,13 @@
 			"advanced": "Advanced options",
 			"privateOffer": "Private offer",
 			"customMessage": "Custom message",
-			"max": "MAX"
+			"max": "MAX",
+			"privateOfferHint": "Only people with the direct link will see it; it won't show in the public list.",
+			"customMessagePlaceholder": "Write a message for your offer…",
+			"goldOnly": "GOLD only",
+			"goldOnlyHint": "Exclusive to GOLD users",
+			"activeCount_one": "{{count}} active",
+			"activeCount_other": "{{count}} active"
 		},
 		"toasts": {
 			"incompleteTitle": "Missing information",
@@ -92,6 +98,25 @@
 			"selectCoinFirst": "Select a coin",
 			"methodsLoadFailed": "Couldn't load your payment methods",
 			"methodApplyFailed": "Couldn't apply the payment method"
+		},
+		"requirements": {
+			"title": "Requirements to apply",
+			"hint": "Only accounts that meet them can apply. The more you add, the fewer people can take your offer.",
+			"none": "No requirement",
+			"clear": "Clear requirements",
+			"trustscoreWarning": "Very few accounts have a TrustScore (QvaPay assigns it after reviewing their history): this requirement leaves out almost the whole market.",
+			"labels": {
+				"min_completed": "Completed trades",
+				"min_rating": "Minimum rating",
+				"min_account_days": "Account age",
+				"min_trustscore": "TrustScore"
+			},
+			"values": {
+				"min_completed": "{{value}}+ trades",
+				"min_rating": "{{value}}+ stars",
+				"min_account_days": "{{value}}+ days",
+				"min_trustscore": "{{value}}+"
+			}
 		}
 	},
 	"savedMethods": {
@@ -293,8 +318,8 @@
 			"taken": "You took ${{amount}} of the offer",
 			"alreadyActive": "You already have an active order on this offer"
 		},
-		"vipOnlyTitle": "VIP only",
-		"vipOnlyBody": "Range offers: available for VIP accounts",
+		"kycOnlyTitle": "KYC required",
+		"kycOnlyBody": "Range offers: available for KYC-verified accounts",
 		"openDispute": "Open dispute",
 		"orderCancelled": "Order cancelled",
 		"backToOffer": "View offer",
@@ -365,7 +390,8 @@
 		"create": {
 			"invalidTitle": "Invalid range",
 			"toggle": "Range offer",
-			"toggleHint": "Each counterparty takes only the part they need, until the offer runs out."
+			"toggleHint": "Each counterparty takes only the part they need, until the offer runs out.",
+			"existsTitle": "You already have a range offer"
 		}
 	}
 }

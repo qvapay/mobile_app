@@ -6,6 +6,8 @@ import QPAmountCard from '../../ui/QPAmountCard'
 import QPFlipButton, { FLIP_BUTTON_SIZE } from '../../ui/particles/QPFlipButton'
 import QPInput from '../../ui/particles/QPInput'
 import QPSwitch from '../../ui/particles/QPSwitch'
+import P2PApplicantRequirementsPicker from './P2PApplicantRequirementsPicker'
+import { activeRequirementsCount, P2P_MESSAGE_MAX } from './p2pApplicantRequirements'
 
 import { isWalletFieldName } from '../../helpers/addressHighlight'
 import type { Theme } from '../../theme/ThemeContext'
@@ -24,6 +26,8 @@ type P2PCreateFormProps = {
 	onChangeWorkingField: (key: string, value: string) => void
 	onOpenCoinPicker: () => void
 	onLaunchSavedMethods: () => void
+	/** Puede publicar por rango (KYC aprobado, mismo gate que `canCreateFlexibleOffers` de qpweb). */
+	canCreateFlexible: boolean
 	user: User
 	theme: Theme
 	textStyles: TextStyles
@@ -37,10 +41,12 @@ import { percentAmount, sanitizeAmountInput } from '../../helpers/amountInput'
 // account fields, advanced options and the optional GOLD custom message.
 const PERCENT_CHIPS = [25, 50, 100] as const
 
-const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, user, theme, textStyles, containerStyles }: P2PCreateFormProps) => {
+const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm, onChangeWorkingField, onOpenCoinPicker, onLaunchSavedMethods, canCreateFlexible, user, theme, textStyles, containerStyles }: P2PCreateFormProps) => {
 
 	const { t } = useTranslation()
-	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer, flexible, orderMin, orderMax } = form
+	const { type, amount, receive, message, advancedOpen, onlyVIP, privateOffer, flexible, orderMin, orderMax, requirements } = form
+	const isGold = !!user?.golden_check
+	const advancedCount = [onlyVIP, privateOffer, isGold && !!message.trim()].filter(Boolean).length + activeRequirementsCount(requirements)
 
 	const balance = Number(user?.balance) || 0
 
@@ -116,9 +122,9 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				/>
 			</View>
 
-			{/* Por rango (solo VIP: el backend responde 403 a los demás): la oferta se
-			    reparte en órdenes entre un mínimo y un máximo hasta agotarse */}
-			{!!user?.vip && (
+			{/* Por rango (toda cuenta con KYC; el backend responde 403 a las demás): la oferta
+			    se reparte en órdenes entre un mínimo y un máximo hasta agotarse */}
+			{canCreateFlexible && (
 				<View style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch', marginTop: 6 }]}>
 					<View style={styles.switchRow}>
 						<View style={{ flex: 1, paddingRight: 12 }}>
@@ -167,39 +173,73 @@ const P2PCreateForm = ({ form, onField, selectedCoin, workingFields, workingForm
 				</View>
 			)}
 
-			{/* Advanced */}
-			<View style={containerStyles.card}>
+			{/* Opciones avanzadas: UN acordeón (audiencia, privacidad, mensaje y requisitos),
+			    como el wizard web; el contador dice cuántas hay activas con el acordeón cerrado */}
+			<View style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
 				<Pressable onPress={() => onField('advancedOpen', !advancedOpen)} style={containerStyles.rowBetween}>
-					<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+					<View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
 						<FontAwesome6 name="sliders" size={16} color={theme.colors.primaryText} iconStyle="solid" />
 						<Text style={[textStyles.h5, { marginLeft: 8 }]}>{t('p2p.create.form.advanced')}</Text>
+						{advancedCount > 0 && (
+							<View style={[styles.badge, { backgroundColor: theme.colors.warning + '26' }]}>
+								<Text style={[textStyles.caption, { color: theme.colors.warning, fontWeight: '600' }]}>{t('p2p.create.form.activeCount', { count: advancedCount })}</Text>
+							</View>
+						)}
 					</View>
 					<FontAwesome6 name={advancedOpen ? 'angle-up' : 'angle-down'} size={18} color={theme.colors.primaryText} iconStyle="solid" />
 				</Pressable>
 
 				{advancedOpen && (
-					<View style={{ marginTop: 10, gap: 10 }}>
-						<View style={[styles.switchRow, { marginTop: 12 }]}>
+					<View style={{ marginTop: 14, gap: 12 }}>
+						<View style={styles.switchRow}>
 							<Text style={textStyles.h6}>{t('p2p.common.onlyVipUsers')}</Text>
 							<Switch value={onlyVIP} onValueChange={(v) => onField('onlyVIP', v)} trackColor={{ true: theme.colors.primary }} />
 						</View>
 						<View style={styles.switchRow}>
-							<Text style={textStyles.h6}>{t('p2p.create.form.privateOffer')}</Text>
+							<View style={{ flex: 1, paddingRight: 12 }}>
+								<Text style={textStyles.h6}>{t('p2p.create.form.privateOffer')}</Text>
+								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>{t('p2p.create.form.privateOfferHint')}</Text>
+							</View>
 							<Switch value={privateOffer} onValueChange={(v) => onField('privateOffer', v)} trackColor={{ true: theme.colors.primary }} />
 						</View>
+
+						{/* Mensaje personalizado: solo GOLD. Al resto se le enseña bloqueado (como en la
+						    web) para que sepa que existe, en vez de esconderlo */}
+						<View>
+							<View style={[styles.switchRow, { marginBottom: 4 }]}>
+								<Text style={textStyles.h6}>{t('p2p.create.form.customMessage')}</Text>
+								{isGold
+									? <Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{message.length}/{P2P_MESSAGE_MAX}</Text>
+									: (
+										<View style={styles.goldTag}>
+											<FontAwesome6 name="crown" size={11} color={theme.colors.gold} iconStyle="solid" />
+											<Text style={[textStyles.caption, { color: theme.colors.gold, fontWeight: '600' }]}>{t('p2p.create.form.goldOnly')}</Text>
+										</View>
+									)}
+							</View>
+							<QPInput
+								value={message}
+								onChangeText={(v) => onField('message', v.slice(0, P2P_MESSAGE_MAX))}
+								placeholder={isGold ? t('p2p.create.form.customMessagePlaceholder') : t('p2p.create.form.goldOnlyHint')}
+								keyboardType="default"
+								maxLength={P2P_MESSAGE_MAX}
+								editable={isGold}
+								// Fondo de página: sobre la tarjeta (surface) un input surface no se vería
+								style={{ backgroundColor: theme.colors.background, ...(isGold ? null : { opacity: 0.5 }) }}
+							/>
+						</View>
+
+						<View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+						<P2PApplicantRequirementsPicker
+							value={requirements}
+							onChange={(next) => onField('requirements', next)}
+							theme={theme}
+							textStyles={textStyles}
+						/>
 					</View>
 				)}
 			</View>
-
-			{user.golden_check && (
-				<QPInput
-					value={message}
-					onChangeText={(v) => onField('message', v)}
-					placeholder={t('p2p.create.form.customMessage')}
-					keyboardType="default"
-					style={{ marginVertical: 6 }}
-				/>
-			)}
 		</>
 	)
 }
@@ -208,6 +248,9 @@ const styles = StyleSheet.create({
 	cards: { marginTop: 10, marginBottom: 6 },
 	// Deja 6 px de junta entre las dos tarjetas, igual que en el swap y en el retiro
 	flipWrap: { alignItems: 'center', marginVertical: -(FLIP_BUTTON_SIZE / 2) + 3, zIndex: 2, elevation: 2 },
+	badge: { marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+	goldTag: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+	divider: { height: StyleSheet.hairlineWidth, marginVertical: 2 },
 	switchRow: {
 		paddingVertical: 4,
 		flexDirection: 'row',

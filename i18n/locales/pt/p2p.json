@@ -72,7 +72,13 @@
 			"advanced": "Opções avançadas",
 			"privateOffer": "Oferta privada",
 			"customMessage": "Mensagem personalizada",
-			"max": "MÁX"
+			"max": "MÁX",
+			"privateOfferHint": "Só quem tiver o link direto vai vê-la; não aparece na lista pública.",
+			"customMessagePlaceholder": "Escreva uma mensagem para sua oferta…",
+			"goldOnly": "Só GOLD",
+			"goldOnlyHint": "Exclusivo para usuários GOLD",
+			"activeCount_one": "{{count}} ativa",
+			"activeCount_other": "{{count}} ativas"
 		},
 		"toasts": {
 			"incompleteTitle": "Dados incompletos",
@@ -92,6 +98,25 @@
 			"selectCoinFirst": "Selecione uma moeda",
 			"methodsLoadFailed": "Não foi possível carregar os métodos",
 			"methodApplyFailed": "Não foi possível aplicar o método"
+		},
+		"requirements": {
+			"title": "Requisitos para quem aplicar",
+			"hint": "Só poderão aplicar as contas que os cumprirem. Quanto mais você puser, menos pessoas poderão pegar sua oferta.",
+			"none": "Sem requisito",
+			"clear": "Remover requisitos",
+			"trustscoreWarning": "Pouquíssimas contas têm TrustScore (a QvaPay o atribui após verificar o histórico): este requisito deixa de fora quase todo o mercado.",
+			"labels": {
+				"min_completed": "Operações concluídas",
+				"min_rating": "Avaliação mínima",
+				"min_account_days": "Idade da conta",
+				"min_trustscore": "TrustScore"
+			},
+			"values": {
+				"min_completed": "{{value}}+ operações",
+				"min_rating": "{{value}}+ estrelas",
+				"min_account_days": "{{value}}+ dias",
+				"min_trustscore": "{{value}}+"
+			}
 		}
 	},
 	"savedMethods": {
@@ -293,8 +318,8 @@
 			"taken": "Você pegou ${{amount}} da oferta",
 			"alreadyActive": "Você já tem uma ordem ativa nesta oferta"
 		},
-		"vipOnlyTitle": "Só para VIP",
-		"vipOnlyBody": "Ofertas por faixa: disponíveis para contas VIP",
+		"kycOnlyTitle": "KYC necessário",
+		"kycOnlyBody": "Ofertas por faixa: disponíveis para contas com KYC aprovado",
 		"openDispute": "Abrir disputa",
 		"orderCancelled": "Ordem cancelada",
 		"backToOffer": "Ver oferta",
@@ -365,7 +390,8 @@
 		"create": {
 			"invalidTitle": "Faixa inválida",
 			"toggle": "Oferta por faixa",
-			"toggleHint": "Cada contraparte pega só a parte de que precisa, até a oferta acabar."
+			"toggleHint": "Cada contraparte pega só a parte de que precisa, até a oferta acabar.",
+			"existsTitle": "Você já tem uma oferta por faixa"
 		}
 	}
 }

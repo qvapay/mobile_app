@@ -14,6 +14,8 @@ import SavedMethodsModal from "./SavedMethodsModal"
 import P2PRequirementsGate from "./P2PRequirementsGate"
 import { missingP2PRequirements } from "./p2pRequirements"
 import { checkCreateRange } from "./p2pFlexible"
+import { EMPTY_REQUIREMENTS, P2P_MESSAGE_MAX, requirementsPayload } from "./p2pApplicantRequirements"
+import type { ApplicantRequirements } from "./p2pApplicantRequirements"
 
 // Toast
 import { toast } from "sonner-native"
@@ -47,10 +49,12 @@ export type P2PCreateFormState = {
 	advancedOpen: boolean
 	onlyVIP: boolean
 	privateOffer: boolean
-	/** Por rango (VIP): cada contraparte toma una parte entre `orderMin` y `orderMax`. */
+	/** Por rango (KYC): cada contraparte toma una parte entre `orderMin` y `orderMax`. */
 	flexible: boolean
 	orderMin: string
 	orderMax: string
+	/** Requisitos para quien aplique (valores cerrados, ver p2pApplicantRequirements). */
+	requirements: ApplicantRequirements
 }
 
 /** Setter por campo del formulario, atado al tipo de cada uno. */
@@ -101,10 +105,11 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 	const containerStyles = createContainerStyles(theme)
 
 	// Offer form
-	const [form, dispatchForm] = useReducer(setFieldReducer<P2PCreateFormState>, { type: "buy", amount: "", receive: "", message: "", advancedOpen: false, onlyVIP: false, privateOffer: false, flexible: false, orderMin: "", orderMax: "" } as P2PCreateFormState)
-	const { type, amount, receive, message, onlyVIP, privateOffer, flexible, orderMin, orderMax } = form
-	// Crear por rango exige VIP (403 FLEXIBLE_NOT_ENABLED si no): el selector ni se enseña
-	const canCreateFlexible = !!user?.vip
+	const [form, dispatchForm] = useReducer(setFieldReducer<P2PCreateFormState>, { type: "buy", amount: "", receive: "", message: "", advancedOpen: false, onlyVIP: false, privateOffer: false, flexible: false, orderMin: "", orderMax: "", requirements: EMPTY_REQUIREMENTS } as P2PCreateFormState)
+	const { type, amount, receive, message, onlyVIP, privateOffer, flexible, orderMin, orderMax, requirements } = form
+	// Crear por rango exige KYC (403 FLEXIBLE_NOT_ENABLED si no; antes era solo VIP). En
+	// la práctica siempre se cumple: el gate del P2P ya pide KYC para llegar aquí
+	const canCreateFlexible = !!user?.kyc
 	const setFormField: SetP2PCreateField = (field, value) => dispatchForm({ type: "set", field, value } as SetFieldAction<P2PCreateFormState>)
 
 	// Coins selector (same-named setters keep call sites unchanged)
@@ -215,6 +220,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 			setIsSending(true)
 
 			const detailsArray = workingFields.length > 0 ? workingFields.map((field) => ({ name: field.name, value: (workingForm[keyFromFieldName(field.name)] ?? "").toString().trim() })) : []
+			const reqs = requirementsPayload(requirements)
 			const payload = {
 				type,
 				coin: selectedCoin?.tick,
@@ -223,7 +229,9 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 				details: detailsArray,
 				only_vip: onlyVIP ? 1 : 0,
 				private: privateOffer ? 1 : 0,
-				message: message,
+				// El backend ignora el mensaje de quien no es GOLD; no se manda lo que no se ve
+				message: user?.golden_check ? message.trim().slice(0, P2P_MESSAGE_MAX) : "",
+				...(Object.keys(reqs).length ? { requirements: reqs } : {}),
 				...(range ? { offer_kind: "flexible", ...range } : {}),
 				idempotency_key: idempotencyKeyRef.current,
 			}
@@ -243,7 +251,10 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 			} else if (isNetworkFailure(res)) {
 				toast.error(t('p2p.create.toasts.networkError'), { description: `${res.error || t('errors.network')}. ${safeRetryHint()}` })
 			} else if ((res.details as { code?: string } | undefined)?.code === "FLEXIBLE_NOT_ENABLED") {
-				toast.error(t('p2p.flexible.vipOnlyTitle'), { description: t('p2p.flexible.vipOnlyBody') })
+				toast.error(t('p2p.flexible.kycOnlyTitle'), { description: t('p2p.flexible.kycOnlyBody') })
+			} else if ((res.details as { code?: string } | undefined)?.code === "FLEXIBLE_OFFER_EXISTS") {
+				// Una oferta por rango viva por moneda y lado: la prosa del servidor ya lo explica
+				toast.error(t('p2p.flexible.create.existsTitle'), { description: res.error })
 			} else {
 				const errMsg = res?.error || t('p2p.create.toasts.createFailedFallback')
 				toast.error(t('p2p.create.toasts.createErrorTitle'), { description: errMsg })
@@ -327,6 +338,7 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 					onChangeWorkingField={(key, value) => setWorkingForm((prev) => ({ ...prev, [key]: value }))}
 					onOpenCoinPicker={() => setShowCoinPicker(true)}
 					onLaunchSavedMethods={lauchSavedPaymentMethods}
+					canCreateFlexible={canCreateFlexible}
 					user={user!}
 					theme={theme}
 					textStyles={textStyles}
