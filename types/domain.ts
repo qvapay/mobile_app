@@ -326,6 +326,26 @@ export type P2POffer = {
 	Orders?: P2POrder[]
 	/** Flexible: solo llega al dueño. */
 	OrdersSummary?: { active: number, completed: number, cancelled: number } | null
+	updated_at?: string
+	/**
+	 * Requisitos del maker para aplicar (solo las claves activas; null = ninguno).
+	 * Viajan en la lista y en el detalle (`scripts/p2p/requirements-rules.js`).
+	 */
+	requirements?: P2PRequirements | null
+	/** Detalle, para quien NO es el dueño: si cumple los requisitos y qué le falta. */
+	requirements_met?: boolean
+	requirements_missing?: { key: keyof P2PRequirements, required: number, actual: number }[]
+	/** Lista con `my`: la parte que YO tomé de una oferta por rango (su estado manda en la card). */
+	my_order?: { uuid: string, amount: Decimal, receive: Decimal, status: P2POrderStatus, created_at: string } | null
+	/** Banco del método (CUP y similares). Hueco reservado: el backend aún no lo envía. */
+	bank?: string | null
+}
+
+export type P2PRequirements = {
+	min_completed?: number
+	min_rating?: number
+	min_account_days?: number
+	min_trustscore?: number
 }
 
 export type P2POfferKind = 'fixed' | 'flexible'

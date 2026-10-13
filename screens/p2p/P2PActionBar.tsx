@@ -94,7 +94,7 @@ const P2PActionBar = ({
 
 			{flexibleLocked && (
 				<View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 56 }}>
-					<FontAwesome6 name="crown" size={14} color={theme.colors.gold} iconStyle="solid" />
+					<FontAwesome6 name="gem" size={14} color={theme.colors.gold} iconStyle="solid" />
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', flexShrink: 1 }]}>{t('p2p.flexible.vipOnlyBody')}</Text>
 				</View>
 			)}
