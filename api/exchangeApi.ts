@@ -76,7 +76,7 @@ const fail = (err: unknown, fallbackKey: string): ApiResult<never> => {
  *
  * `details` conserva el body de error, donde viaja el `code` que decide el copy:
  * `BELOW_MINIMUM` (con `min_amount`), `ASSET_NOT_SUPPORTED`, `SAME_ASSET`, `NO_PROVIDER`,
- * `QUOTE_EXPIRED`, `PAYOUT_NOT_OWN`, `REFUND_NOT_OWN`, `DUPLICATE_REQUEST`,
+ * `QUOTE_EXPIRED`, `PAYOUT_INVALID`, `REFUND_INVALID`, `DUPLICATE_REQUEST`,
  * `PROVIDER_UNAVAILABLE`, `SANCTIONS_BLOCKED`.
  */
 export const exchangeApi = {

@@ -558,6 +558,7 @@
 				"broadcasting": "Sending…",
 				"waitingApproval": "Confirming the approval…",
 				"approveNotice": "First you allow {{provider}} to use exactly this amount of {{symbol}}, not a cent more. Once it confirms, you sign the swap.",
+				"approvedNotice": "Approval confirmed: {{symbol}} is authorized. Now sign the swap.",
 				"resetNotice": "{{symbol}} requires setting the previous allowance to 0 before changing it. That makes three steps: reset, approve the exact amount and swap.",
 				"nonCustodial": "Non-custodial: you sign from your wallet against the {{provider}} contract and nobody holds your funds. QvaPay verified the transaction before letting you sign it.",
 				"authSwap": "Swap {{amount}} {{from}} for {{to}}",

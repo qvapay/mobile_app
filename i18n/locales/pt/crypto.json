@@ -558,6 +558,7 @@
 				"broadcasting": "Enviando…",
 				"waitingApproval": "Confirmando a permissão…",
 				"approveNotice": "Primeiro você autoriza {{provider}} a usar exatamente este valor de {{symbol}}, nem um centavo a mais. Quando confirmar, você assina a troca.",
+				"approvedNotice": "Permissão confirmada: {{symbol}} já está autorizado. Agora assine a troca.",
 				"resetNotice": "{{symbol}} exige zerar a permissão anterior antes de alterá-la. São três etapas: redefinir, autorizar o valor exato e trocar.",
 				"nonCustodial": "Sem custódia: você assina da sua carteira contra o contrato de {{provider}} e ninguém retém seus fundos. A QvaPay verificou a transação antes de deixar você assinar.",
 				"authSwap": "Trocar {{amount}} {{from}} por {{to}}",

@@ -558,6 +558,7 @@
 				"broadcasting": "Enviando…",
 				"waitingApproval": "Confirmando el permiso…",
 				"approveNotice": "Primero autorizas a {{provider}} a usar exactamente este importe de {{symbol}}, ni un céntimo más. Cuando se confirme, firmas el intercambio.",
+				"approvedNotice": "Permiso confirmado: {{symbol}} ya está autorizado. Ahora firma el intercambio.",
 				"resetNotice": "{{symbol}} exige poner el permiso anterior a 0 antes de cambiarlo. Son tres pasos: restablecer, autorizar el importe exacto e intercambiar.",
 				"nonCustodial": "Sin custodia: firmas tú desde tu wallet contra el contrato de {{provider}} y nadie retiene tus fondos. QvaPay ha verificado la transacción antes de dejarte firmarla.",
 				"authSwap": "Intercambiar {{amount}} {{from}} por {{to}}",

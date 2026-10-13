@@ -11,11 +11,16 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
+import { getAppRpcRouter, useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
+import { computeTronBurnBreakdown, getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
+import { rentVolumeFor } from '../../../wallet/tron/energy'
+import { useAuth } from '../../../auth/AuthContext'
+import { addressForKind } from '../../../wallet/assets'
 import { AllRpcsFailedError } from '../../../wallet/registry/rpcRouter'
 import { SolanaExpiredError } from '../../../wallet/solana/tx'
 import { displayAmount, formatUnits } from '../../../wallet/chains/units'
 import { useWalletAssets } from './walletQueries'
+import { estimatePrice, useEnergyPricesQuery } from './energyQueries'
 import { OnchainSwapMismatchError, planOnchainSwap } from './onchainSwapModel'
 import type { OnchainSwapPlan } from './onchainSwapModel'
 import { broadcastOnchainSwap, prepareOnchainSwap, signOnchainSwap, waitForApproval } from './walletSwapActions'
@@ -33,6 +38,7 @@ import type { ExchangeOnchainBuild } from '../../../types/domain'
 import QPButton from '../../../ui/particles/QPButton'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import WalletAuthModal from './components/WalletAuthModal'
+import EnergyRentModal from './components/EnergyRentModal'
 
 // Routes
 import { ROUTES } from '../../../routes'
@@ -50,7 +56,7 @@ const Row = ({ label, value, theme, last }: { label: string, value: string, them
 	</View>
 )
 
-const Notice = ({ theme, icon, color, text }: { theme: Theme, icon: 'shield-halved' | 'triangle-exclamation' | 'circle-info', color: string, text: string }) => (
+const Notice = ({ theme, icon, color, text }: { theme: Theme, icon: 'shield-halved' | 'triangle-exclamation' | 'circle-info' | 'circle-check' | 'bolt', color: string, text: string }) => (
 	<View style={[styles.notice, { backgroundColor: color + '12' }]}>
 		<FontAwesome6 name={icon} size={14} color={color} iconStyle="solid" style={styles.noticeIcon} />
 		<Text style={[styles.noticeText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{text}</Text>
@@ -64,6 +70,10 @@ const PHASE_LABEL: Partial<Record<TxPhase, string>> = {
 
 /** Reintentos del registro en qpweb: la tx YA está en la red, así que se insiste un poco. */
 const SUBMIT_ATTEMPTS = 3
+
+/** Espera a ver la energía recién alquilada en el nodo (mismos tiempos que el envío). */
+const ENERGY_WAIT_DEADLINE_MS = 45_000
+const ENERGY_WAIT_INTERVAL_MS = 2_000
 
 /**
  * Confirmación y firma de un swap ON-CHAIN (LI.FI en EVM, Jupiter en Solana).
@@ -94,8 +104,10 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	// --- La ruta, tal y como la manda qpweb (sin fiarse de ella: ver `planOnchainSwap`) ---
 	const [build, setBuild] = useState<ExchangeOnchainBuild | null>(null)
 	const [buildError, setBuildError] = useState<{ message: string, requote: boolean } | null>(null)
-	const fromAddress = from && addresses ? (from.kind === 'solana' ? addresses.sol : addresses.evm) : null
-	const toAddress = to && addresses ? (to.kind === 'solana' ? addresses.sol : addresses.evm) : null
+	// Cada lado con la dirección de SU familia: SunSwap (TRON) y THORChain (BTC) también son
+	// on-chain, y mandar la EVM ahí hacía que qpweb rechazase el destino por formato
+	const fromAddress = from && addresses ? addressForKind(addresses, from.kind) : null
+	const toAddress = to && addresses ? addressForKind(addresses, to.kind) : null
 
 	const loadBuild = useCallback(async () => {
 		if (!fromAddress || !toAddress) return
@@ -125,6 +137,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 
 	// --- Firma y difusión: el núcleo común de toda tx de la wallet ---
 	const [waitingApproval, setWaitingApproval] = useState(false)
+	// Hubo un permiso y ya se minó: el paso que queda es el swap (se dice, para no desorientar)
+	const [approved, setApproved] = useState(false)
 	const idempotencyRef = useRef(makeIdempotencyKey())
 
 	const describeError = useCallback((err: unknown): string => {
@@ -163,7 +177,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 			setWaitingApproval(true)
 			waitForApproval(prepared.family, prepared.chainKey, txid)
 				.then(ok => {
-					if (!ok) { toast.error(t(`${KEY}errors.approvalFailed`)) }
+					if (ok) { setApproved(true) } else { toast.error(t(`${KEY}errors.approvalFailed`)) }
 					return refreshRef.current()
 				})
 				.catch(() => refreshRef.current())
@@ -184,6 +198,69 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	refreshRef.current = tx.refresh
 	const { phase, prepared, error, busy } = tx
 
+	// El total de pasos se fija con la PRIMERA preparación: tras el permiso, `remaining` baja a
+	// 0 y recalcularlo hacía desaparecer "Paso 1 de 2" en vez de pasar a "Paso 2 de 2"
+	const [stepsTotal, setStepsTotal] = useState(1)
+	const remaining = prepared?.summary.remaining
+	useEffect(() => {
+		if (remaining !== undefined) setStepsTotal(prev => Math.max(prev, remaining + 1))
+	}, [remaining])
+
+	// --- Energía TRON: se alquila AQUÍ, sin salir del swap ---
+	// Antes el botón llevaba a la pantalla de Energía y, al volver, la tx seguía preparada con
+	// los recursos viejos: la comisión no bajaba y el aviso seguía pidiendo alquilar. Ahora es
+	// el patrón de Enviar: modal en sitio, se espera a ver la delegación y se re-prepara.
+	const { isAuthenticated } = useAuth()
+	const tronInner = prepared?.family === 'tron' ? prepared.inner : null
+	// El alquiler se cobra del saldo QvaPay: sin sesión ni se pide ni se ofrece
+	const energyPrices = useEnergyPricesQuery(isAuthenticated && !!tronInner)
+	const [rentOpen, setRentOpen] = useState(false)
+	// Latch POR PASO, armado al COBRAR: reofrecer la compra mientras el nodo no la ve sería un
+	// doble cargo. Por paso porque permiso y swap gastan energía cada uno: la del permiso no
+	// cubre el swap, y tras él hay que poder alquilar otra vez
+	const [rentedForStep, setRentedForStep] = useState<string | null>(null)
+	const tronStep = tronInner?.step ?? null
+	const energyRented = !!tronStep && rentedForStep === tronStep
+	const [energyWait, setEnergyWait] = useState<'waiting' | 'slow' | null>(null)
+	const mountedRef = useRef(true)
+	useEffect(() => {
+		mountedRef.current = true
+		return () => { mountedRef.current = false }
+	}, [])
+
+	const energyOffer = useMemo(() => {
+		if (!tronInner) return null
+		const breakdown = computeTronBurnBreakdown(tronInner.fee, tronInner.resources, tronInner.params)
+		const meta = energyPrices.data?.meta
+		// null si no falta energía (lo que se quema es ancho de banda, que alquilar no paga)
+		const volume = rentVolumeFor(breakdown.energyShort, { min: meta?.min_volume, max: meta?.max_volume })
+		if (volume === null) return null
+		return { volume, needed: tronInner.fee.energyNeeded, owner: tronInner.intent.owner, priceUsd: estimatePrice(energyPrices.data?.data, volume, '1h') }
+	}, [tronInner, energyPrices.data])
+
+	const onEnergyRented = useCallback(async () => {
+		setRentOpen(false)
+		setRentedForStep(tronStep)
+		if (!energyOffer) { await refreshRef.current(); return }
+		setEnergyWait('waiting')
+		const deadline = Date.now() + ENERGY_WAIT_DEADLINE_MS
+		while (Date.now() < deadline && mountedRef.current) {
+			try {
+				const resources = await getAppRpcRouter().call('tron', (rpc, signal) => getTronResources(rpc, energyOffer.owner, { signal }), { accept: TRON_TX_RPC })
+				if (resources.energy >= energyOffer.needed) {
+					setEnergyWait(null)
+					await refreshRef.current()
+					return
+				}
+			} catch { /* nodo caído o rezagado: se vuelve a preguntar */ }
+			await new Promise<void>(resolve => { setTimeout(resolve, ENERGY_WAIT_INTERVAL_MS) })
+		}
+		if (!mountedRef.current) return
+		// La energía es suya pero el nodo aún no la refleja: se re-prepara igual y se avisa
+		setEnergyWait('slow')
+		await refreshRef.current()
+	}, [energyOffer, tronStep])
+
 	if (!from || !to || !chain) {
 		return <View style={[containerStyles.subContainer, styles.center]}><ActivityIndicator color={theme.colors.primary} /></View>
 	}
@@ -194,7 +271,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const minOut = plan?.minOut ?? null
 	const fmtTo = (units: bigint) => `${displayAmount(formatUnits(units, to.decimals))} ${to.symbol}`
 	const nativeFee = (units: bigint) => `${displayAmount(formatUnits(units, chain.native.decimals))} ${chain.native.symbol}`
-	const totalSteps = summary ? (summary.remaining + 1) : 1
+	const totalSteps = Math.max(stepsTotal, summary ? summary.remaining + 1 : 1)
+	const currentStep = summary ? totalSteps - summary.remaining : 1
 
 	const rows: Array<{ label: string, value: string }> = [
 		{ label: t(`${KEY}route`), value: providerLabel },
@@ -203,7 +281,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		...(summary?.simulatedOut != null ? [{ label: t(`${KEY}simulated`), value: fmtTo(summary.simulatedOut) }] : []),
 		{ label: t(`${KEY}networkFee`), value: phase === 'preparing' || !summary ? '…' : nativeFee(summary.feeEstimated) },
 		...(serviceFeeBps ? [{ label: t(`${KEY}serviceFee`), value: t(`${KEY}serviceFeeValue`, { percent: (serviceFeeBps / 100).toLocaleString(getNumberLocale(), { maximumFractionDigits: 2 }) }) }] : []),
-		...(totalSteps > 1 || step !== 'swap' ? [{ label: t(`${KEY}step`), value: t(`${KEY}stepValue`, { current: step === 'swap' ? totalSteps : 1, total: totalSteps }) }] : []),
+		...(totalSteps > 1 ? [{ label: t(`${KEY}step`), value: t(`${KEY}stepValue`, { current: currentStep, total: totalSteps }) }] : []),
 	]
 
 	const confirmTitle = waitingApproval ? t(`${KEY}waitingApproval`)
@@ -237,12 +315,14 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 			</View>
 
 			{plan?.family === 'btc' && !fatal && <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t(`${KEY}btcNotice`, { symbol: to.symbol })} />}
-			{prepared?.family === 'tron' && prepared.summary.feeEstimated > 0n && !fatal && (
+			{!!energyWait && !fatal && <Notice theme={theme} icon="bolt" color={theme.colors.primary} text={t(energyWait === 'waiting' ? 'crypto.wallet.send.energy.waiting' : 'crypto.wallet.send.energy.waitingSlow')} />}
+			{!!energyOffer && isAuthenticated && !energyRented && prepared?.family === 'tron' && prepared.summary.feeEstimated > 0n && !fatal && (
 				<>
 					<Notice theme={theme} icon="circle-info" color={theme.colors.warning} text={t(`${KEY}tronEnergyNotice`, { amount: nativeFee(prepared.summary.feeEstimated) })} />
-					<QPButton title={t(`${KEY}rentEnergy`)} onPress={() => navigation.navigate(ROUTES.WALLET_ENERGY, undefined)} outlined disabled={busy || waitingApproval} />
+					<QPButton title={t(`${KEY}rentEnergy`)} onPress={() => setRentOpen(true)} outlined disabled={busy || waitingApproval} />
 				</>
 			)}
+			{approved && step === 'swap' && !fatal && phase !== 'error' && <Notice theme={theme} icon="circle-check" color={theme.colors.successText} text={t(`${KEY}approvedNotice`, { symbol: from.symbol })} />}
 			{step !== 'swap' && !fatal && <Notice theme={theme} icon="circle-info" color={theme.colors.primary} text={t(step === 'reset' ? `${KEY}resetNotice` : `${KEY}approveNotice`, { symbol: from.symbol, provider: providerLabel })} />}
 			{!!fatal && <Notice theme={theme} icon="triangle-exclamation" color={theme.colors.danger} text={fatal} />}
 			{phase === 'error' && !!error && !fatal && <Notice theme={theme} icon="triangle-exclamation" color={theme.colors.danger} text={error} />}
@@ -259,8 +339,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 					<QPButton
 						title={confirmTitle}
 						onPress={tx.openAuth}
-						disabled={phase !== 'ready' || waitingApproval}
-						loading={phase === 'preparing' || busy || waitingApproval || (!build && !fatal)}
+						disabled={phase !== 'ready' || waitingApproval || energyWait === 'waiting'}
+						loading={phase === 'preparing' || busy || waitingApproval || energyWait === 'waiting' || (!build && !fatal)}
 						testID="onchain-swap-confirm"
 					/>
 				)}
@@ -268,6 +348,21 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 			</View>
 
 			<WalletAuthModal visible={tx.authVisible} subtitle={authSubtitle} onClose={tx.closeAuth} onAuthorized={tx.onAuthorized} />
+
+			{!!energyOffer && (
+				<EnergyRentModal
+					visible={rentOpen}
+					// SIEMPRE quien FIRMA el swap: es a esa dirección a la que se delega la energía
+					targetAddress={energyOffer.owner}
+					volume={energyOffer.volume}
+					duration="1h"
+					estimatedUsd={energyOffer.priceUsd}
+					onClose={() => setRentOpen(false)}
+					onCharged={() => setRentedForStep(tronStep)}
+					onRented={onEnergyRented}
+					onSeeOrders={() => { setRentOpen(false); navigation.navigate(ROUTES.WALLET_ENERGY_ORDERS) }}
+				/>
+			)}
 		</ScrollView>
 	)
 }
