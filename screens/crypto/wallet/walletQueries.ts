@@ -26,8 +26,8 @@ import { fetchAllBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
 import { addressForKind, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
 import type { AssetOrder, AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
-import { getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
-import type { TronResources } from '../../../wallet/tron/tx'
+import { getTronChainParams, getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
+import type { TronChainParams, TronResources } from '../../../wallet/tron/tx'
 import { applyNewerPages, applyOlderPage, HISTORY_SYNC_MAX_PAGES, overlapsCache } from '../../../wallet/historyMerge'
 import type { HistoryCache } from '../../../wallet/historyMerge'
 import { loadHistoryCache, saveHistoryCache } from './historyCache'
@@ -41,6 +41,7 @@ import useCoins from '../../../hooks/useCoins'
 export const WALLET_BALANCES_KEY = ['wallet', 'balances']
 export const WALLET_HISTORY_KEY = ['wallet', 'history']
 export const WALLET_TRON_RESOURCES_KEY = ['wallet', 'tron', 'resources']
+export const WALLET_TRON_PARAMS_KEY = ['wallet', 'tron', 'params']
 
 /** Frescura de saldos: un depósito entrante debe verse en < 60s con la pantalla abierta. */
 const BALANCES_STALE_MS = 30_000
@@ -183,6 +184,20 @@ export const useTronResourcesQuery = (address: string | null | undefined) => {
 		meta: { noPersist: true },
 	})
 }
+
+/**
+ * Precios de la red TRON (sun por energía y por byte). Cambian por votación de los SR, muy
+ * de tarde en tarde: con una hora de caché sobra. `getTronChainParams` nunca rechaza (cae a
+ * sus defaults), así que esto siempre acaba con datos.
+ */
+export const useTronChainParamsQuery = (enabled: boolean) => useQuery<TronChainParams>({
+	queryKey: WALLET_TRON_PARAMS_KEY,
+	queryFn: () => getAppRpcRouter().call('tron', (rpc, signal) => getTronChainParams(rpc, { signal }), { accept: TRON_TX_RPC }),
+	enabled,
+	staleTime: 60 * 60_000,
+	// bigint no sobrevive al JSON del persister
+	meta: { noPersist: true },
+})
 
 /** Precio USD por tick del catálogo de QvaPay (misma query `['coins','all']` que el resto de la app). */
 export const usePriceMap = (): PriceMap => {

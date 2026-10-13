@@ -15,6 +15,7 @@ import type { AmountCheck } from './exchangeModel'
 import type { ExchangeAdvice, ExchangeCheaperOrigin, ExchangeQuote, ExchangeRoute } from '../../../types/domain'
 import type { SwapDetailRow } from './components/swap/SwapDetails'
 import type { SwapNotice, SwapReviewCard, SwapSide } from './swapView'
+import type { SourceSendCost } from './sourceSendCost'
 
 type Translate = (key: string, params?: Record<string, unknown>) => string
 
@@ -27,6 +28,8 @@ export type ExchangeAssetLike = {
 	networkTick: string | null
 	amountLabel: string
 	decimals: number
+	/** Stablecoin: sus importes se leen en céntimos. */
+	stable?: boolean
 } | null | undefined
 
 /** Estado del botón principal, en orden de prioridad (el primero que aplica gana). */
@@ -68,6 +71,8 @@ export type ExchangeViewInput = {
 	routes?: ExchangeRoute[]
 	/** Proveedor de la ruta en uso. */
 	selectedProvider?: string | null
+	/** Coste del envío desde la wallet al depósito (hoy solo TRON). null = no aplica o sin datos. */
+	sendCost?: SourceSendCost | null
 }
 
 /** Una fila de la hoja de rutas, ya en palabras. */
@@ -155,15 +160,42 @@ export const ctaFor = ({ from, to, check, quote, quoting, loading, unsupportedRe
  * despreciable: es la única parte del coste que el usuario no ve en la tasa, y es la que
  * separa mandar 20 USDT desde Base (0,0076) de mandarlos desde TRON (5,54).
  */
-const detailRows = ({ t, from, to, quote }: Pick<ExchangeViewInput, 't' | 'from' | 'to' | 'quote'>): SwapDetailRow[] => {
+const detailRows = ({ t, from, to, quote, sendCost }: Pick<ExchangeViewInput, 't' | 'from' | 'to' | 'quote' | 'sendCost'>): SwapDetailRow[] => {
 	if (!quote) { return [] }
+	// Sin destacar: es un COSTE, y el verde de `highlight` lo hacía pasar por una buena noticia
+	// justo encima del aviso rojo que dice cuánto se come. El proveedor no va aquí: ya lo dice
+	// la línea de la ruta
 	const rows: SwapDetailRow[] = [
-		{ key: 'fee', label: t(`${KEY}networkFee`), value: `${trim(quote.depositFee)} ${from?.symbol ?? ''}`.trim(), highlight: true },
-		{ key: 'provider', label: t(`${KEY}providerLabel`), value: quote.provider },
+		{ key: 'fee', label: t(`${KEY}networkFee`), value: `${trim(quote.depositFee, from?.stable ? 2 : 6)} ${from?.symbol ?? ''}`.trim() },
 	]
+	// La otra mitad del coste: el envío desde la wallet a la dirección de depósito
+	if (sendCost) {
+		rows.push({
+			key: 'sendCost',
+			label: t(`${KEY}sendCost`),
+			value: sendCost.kind === 'covered' ? t(`${KEY}sendCostCovered`) : `~${trim(sendCost.trx, 2)} TRX`,
+		})
+	}
 	if (quote.speedForecast) { rows.push({ key: 'eta', label: t('crypto.wallet.swap.details.eta'), value: `~${quote.speedForecast} min` }) }
-	if (to) { rows.push({ key: 'network', label: t('crypto.wallet.swap.details.network'), value: to.chainName }) }
+	// Las DOS redes: con solo la de destino, "Red: Solana" en un envío desde TRON se leía como
+	// si todo pasara en Solana
+	if (to) {
+		const value = from && from.chainName !== to.chainName ? `${from.chainName} → ${to.chainName}` : to.chainName
+		rows.push({ key: 'network', label: t('crypto.wallet.swap.details.network'), value })
+	}
 	return rows
+}
+
+/**
+ * La tasa en el sentido que se lee de un vistazo: siempre "1 X ≈ N Y" con N ≥ 1. "1 USDT ≈
+ * 0.008124 SOL" obligaba a hacer la división de cabeza; "1 SOL ≈ 123.09 USDT" no. Es la tasa
+ * EFECTIVA (lo que llega entre lo que sale), con la comisión dentro.
+ */
+const rateLine = (from: ExchangeAssetLike, to: ExchangeAssetLike, quote: ExchangeQuote | null): string => {
+	if (!quote || !(quote.amountIn > 0) || !(quote.amountOut > 0)) { return '' }
+	const direct = quote.amountOut / quote.amountIn
+	const [base, counter, value] = direct >= 1 ? [from, to, direct] : [to, from, 1 / direct]
+	return `1 ${base?.symbol ?? ''} ≈ ${trim(value, value >= 100 ? 2 : 4)} ${counter?.symbol ?? ''}`
 }
 
 /**
@@ -171,7 +203,7 @@ const detailRows = ({ t, from, to, quote }: Pick<ExchangeViewInput, 't' | 'from'
  * que en importes pequeños se lleva un porcentaje brutal y el usuario no tiene forma de
  * saberlo mirando la tasa.
  */
-const noticesFor = ({ t, from, quote, quoteError, advice, cheaper, unsupportedReason }: Pick<ExchangeViewInput, 't' | 'from' | 'quote' | 'quoteError' | 'advice' | 'cheaper' | 'unsupportedReason'>): SwapNotice[] => {
+const noticesFor = ({ t, from, quote, quoteError, advice, cheaper, unsupportedReason, sendCost }: Pick<ExchangeViewInput, 't' | 'from' | 'quote' | 'quoteError' | 'advice' | 'cheaper' | 'unsupportedReason' | 'sendCost'>): SwapNotice[] => {
 	const notices: SwapNotice[] = []
 
 	if (unsupportedReason) {
@@ -202,6 +234,12 @@ const noticesFor = ({ t, from, quote, quoteError, advice, cheaper, unsupportedRe
 				? t(`${KEY}feeSevere`, { percent, amount: trim(advice.suggestedMinimum, 2), symbol: from?.symbol ?? '' })
 				: t(`${KEY}feeWarn`, { percent }),
 		})
+	}
+
+	// El envío quemaría TRX por falta de energía: se anuncia ya que al confirmar se podrá
+	// rentar, para que el coste de la fila no espante a quien no sabe que hay salida
+	if (quote && sendCost?.kind === 'burn' && sendCost.energyShort) {
+		notices.push({ key: 'energy', icon: 'gas-pump', tone: 'primary', text: t(`${KEY}energyHint`, { trx: trim(sendCost.trx, 2) }) })
 	}
 
 	// La misma moneda en otra cadena, cuando el ahorro merece el cambio de origen
@@ -311,7 +349,7 @@ export const buildExchangeView = (input: ExchangeViewInput): ExchangeView => {
 		// manda ninguno, y el que este tipo declaraba nunca existió — la línea salía vacía
 		// siempre. Dividir lo que llega entre lo que sale es además la tasa efectiva, ya con
 		// la comisión dentro, que es la que el usuario está comparando
-		rate: quote && quote.amountIn > 0 ? `1 ${from?.symbol ?? ''} ≈ ${trim(quote.amountOut / quote.amountIn, 6)} ${to?.symbol ?? ''}` : '',
+		rate: rateLine(from, to, quote),
 		rows: detailRows(input),
 		notices: noticesFor(input),
 		ctaLabel,

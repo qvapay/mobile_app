@@ -23,7 +23,8 @@ import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
 import useSwapFlow from './useSwapFlow'
-import { usePriceMap, useWalletAssets } from './walletQueries'
+import { usePriceMap, useTronChainParamsQuery, useTronResourcesQuery, useWalletAssets } from './walletQueries'
+import { tronSendCost } from './sourceSendCost'
 import useCoins from '../../../hooks/useCoins'
 import { addressForKind, assetPrice, findAssetForCoin } from '../../../wallet/assets'
 
@@ -222,6 +223,15 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		onOnchainRoute,
 	})
 
+	// Coste del envío al depósito (ruta custodial desde TRON): en las on-chain el envío ES el
+	// swap y su coste se ve al firmar
+	const tronSource = isExchange && payAsset?.kind === 'tron' && exchangeFlow.selectedRoute?.custody === 'custodial'
+	const tronResources = useTronResourcesQuery(tronSource ? addresses?.tron : null)
+	const tronParams = useTronChainParamsQuery(tronSource)
+	const sendCost = tronSource
+		? tronSendCost({ isToken: payAsset.contract !== null, resources: tronResources.data, params: tronParams.data })
+		: null
+
 	// ── Vista, según el motor ───────────────────────────────────────────────
 	const exchangeView = buildExchangeView({
 		t, from: payAsset, to: receiveAsset, amountText,
@@ -240,6 +250,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		pickTo: () => setSheet('receive'),
 		routes: exchangeFlow.routes,
 		selectedProvider: exchangeFlow.selectedRoute?.provider ?? null,
+		sendCost,
 	})
 
 	const swapView = buildSwapView({

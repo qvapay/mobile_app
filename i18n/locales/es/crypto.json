@@ -459,6 +459,9 @@
 			"quoteUpdating": "Actualizando la cotización para este importe. Espera un momento.",
 			"rate": "Tasa",
 			"networkFee": "Comisión de red de origen",
+			"sendCost": "Envío desde tu wallet",
+			"sendCostCovered": "Cubierto con tu energía",
+			"energyHint": "Sin energía, el envío desde tu wallet quemaría ~{{trx}} TRX. Al confirmar podrás rentarla y pagar mucho menos.",
 			"minAmount": "Mínimo {{amount}} {{symbol}}",
 			"useMinimum": "Usar el mínimo",
 			"feeWarn": "La comisión de red se lleva un {{percent}}% de lo que envías.",
@@ -534,8 +537,8 @@
 				"custodial": "Custodia temporal del proveedor",
 				"footnote": "Ordenadas por lo que recibes, con todas las comisiones ya descontadas. En las rutas sin custodia, QvaPay cobra la comisión que se indica; en las demás, no añade ninguna.",
 				"a11yRow": "Ruta {{provider}}. Toca para ver las otras rutas",
-				"onchain": "Sin custodia · firmas desde tu wallet",
-				"serviceFee": "incluye {{percent}} % de QvaPay"
+				"onchain": "Sin custodia",
+				"serviceFee": "{{percent}} % de comisión QvaPay"
 			},
 			"kycNotice": "Como cualquier casa de cambio, {{provider}} puede pedir una verificación antes de completar el cambio.",
 			"contactProvider": "Contactar con {{provider}}",

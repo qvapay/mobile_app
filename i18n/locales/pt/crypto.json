@@ -459,6 +459,9 @@
 			"quoteUpdating": "Atualizando a cotação para este valor. Aguarde um momento.",
 			"rate": "Taxa",
 			"networkFee": "Taxa de rede de origem",
+			"sendCost": "Envio da sua carteira",
+			"sendCostCovered": "Coberto pela sua energia",
+			"energyHint": "Sem energia, o envio da sua carteira queimaria ~{{trx}} TRX. Ao confirmar você poderá alugá-la e pagar bem menos.",
 			"minAmount": "Mínimo {{amount}} {{symbol}}",
 			"useMinimum": "Usar o mínimo",
 			"feeWarn": "A taxa de rede leva {{percent}}% do que você envia.",
@@ -534,8 +537,8 @@
 				"custodial": "Custódia temporária do provedor",
 				"footnote": "Ordenadas pelo que você recebe, com todas as taxas já descontadas. Nas rotas sem custódia, a QvaPay cobra a taxa indicada; nas demais, não adiciona nenhuma.",
 				"a11yRow": "Rota {{provider}}. Toque para ver as outras rotas",
-				"onchain": "Sem custódia · você assina da sua carteira",
-				"serviceFee": "inclui {{percent}} % da QvaPay"
+				"onchain": "Sem custódia",
+				"serviceFee": "{{percent}} % de taxa QvaPay"
 			},
 			"kycNotice": "Como qualquer casa de câmbio, a {{provider}} pode pedir uma verificação antes de concluir a troca.",
 			"contactProvider": "Falar com a {{provider}}",

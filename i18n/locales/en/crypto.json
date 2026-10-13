@@ -459,6 +459,9 @@
 			"quoteUpdating": "Updating the quote for this amount. One moment.",
 			"rate": "Rate",
 			"networkFee": "Source network fee",
+			"sendCost": "Send from your wallet",
+			"sendCostCovered": "Covered by your energy",
+			"energyHint": "Without energy, sending from your wallet would burn ~{{trx}} TRX. When you confirm you can rent it and pay much less.",
 			"minAmount": "Minimum {{amount}} {{symbol}}",
 			"useMinimum": "Use the minimum",
 			"feeWarn": "The network fee takes {{percent}}% of what you send.",
@@ -534,8 +537,8 @@
 				"custodial": "Provider holds funds temporarily",
 				"footnote": "Sorted by what you receive, with all fees already deducted. On non-custodial routes QvaPay charges the fee shown; on the rest it adds none.",
 				"a11yRow": "Route {{provider}}. Tap to see the other routes",
-				"onchain": "Non-custodial · you sign from your wallet",
-				"serviceFee": "includes {{percent}}% QvaPay fee"
+				"onchain": "Non-custodial",
+				"serviceFee": "{{percent}}% QvaPay fee"
 			},
 			"kycNotice": "Like any exchange service, {{provider}} may ask for verification before completing the exchange.",
 			"contactProvider": "Contact {{provider}}",
