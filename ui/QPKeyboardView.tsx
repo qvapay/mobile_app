@@ -1,4 +1,4 @@
-import { ScrollView, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
+import { ScrollView, TouchableWithoutFeedback, Keyboard, View, type ScrollViewInstance } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme/ThemeContext'
 import { createContainerStyles } from '../theme/themeUtils'
@@ -13,7 +13,7 @@ type QPKeyboardViewProps = {
 	actions?: ReactNode
 	scrollViewProps?: ScrollViewProps
 	actionsContainerStyle?: StyleProp<ViewStyle>
-	scrollViewRef?: Ref<ScrollView> | null
+	scrollViewRef?: Ref<ScrollViewInstance> | null
 }
 
 /**

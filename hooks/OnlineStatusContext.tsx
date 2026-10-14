@@ -36,7 +36,7 @@ export function OnlineStatusProvider({ children }: { children: ReactNode }) {
 	const [statuses, setStatuses] = useState<Record<string, boolean>>({})
 	const trackedUsersRef = useRef(new Set<string>())
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-	const appStateRef = useRef<AppStateStatus>(AppState.currentState)
+	const appStateRef = useRef(AppState.currentState)
 
 	const sendHeartbeat = useCallback(async () => {
 		if (!isAuthenticated) return

@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 	},
 	lockOverlay: {
-		...StyleSheet.absoluteFillObject,
+		...StyleSheet.absoluteFill,
 		borderRadius: 12,
 		justifyContent: 'center',
 		alignItems: 'center',

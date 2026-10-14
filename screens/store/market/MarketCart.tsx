@@ -74,7 +74,7 @@ const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, on
 	const { t } = useTranslation()
 	const containerStyles = createContainerStyles(theme)
 	return (
-		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !paying && onClose()}>
+		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => { if (!paying) onClose() }}>
 			<Pressable style={containerStyles.modalOverlay} onPress={() => !paying && onClose()}>
 				<Pressable style={containerStyles.modalCard} onPress={() => { }}>
 					<View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>

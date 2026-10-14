@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -42,7 +42,7 @@ type Props = {
  * Abajo a la derecha va SOLO el saldo, sin nombrar el activo: ya está en la píldora de al
  * lado, y la red en el badge de su icono.
  */
-const QPAmountCard = forwardRef<TextInput, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, loading, disabled, accessibilityLabel }, ref) => {
+const QPAmountCard = forwardRef<TextInputInstance, Props>(({ label, hint, token, amount, onChangeAmount, placeholder = '0', fiatLabel, balanceLabel, chips, loading, disabled, accessibilityLabel }, ref) => {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)

@@ -1,5 +1,5 @@
-import { Animated } from "react-native"
-import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from "react-native"
+import { Animated, type ScrollViewInstance } from "react-native"
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native"
 import { launchImageLibrary } from "react-native-image-picker"
 import type { Asset } from "react-native-image-picker"
 import { useReducer, useEffect, useRef, useCallback } from "react"
@@ -134,7 +134,7 @@ export default function useP2PChat({ p2p_uuid, order = null }: { p2p_uuid: strin
 	const [chat, dispatch] = useReducer(chatReducer, initialChat)
 	const set = useCallback(<K extends keyof ChatState>(field: K, value: ChatState[K]) => dispatch({ type: "set", field, value } as ChatAction), [])
 
-	const chatScrollRef = useRef<ScrollView | null>(null)
+	const chatScrollRef = useRef<ScrollViewInstance | null>(null)
 	const messageAnimations = useRef<Record<ChatMessage['id'], Animated.Value>>({})
 	const autoScrollRef = useRef(true)
 

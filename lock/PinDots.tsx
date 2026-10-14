@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
-import { Platform, Pressable, StyleSheet, TextInput } from 'react-native'
+import { Platform, Pressable, StyleSheet, TextInput, type TextInputInstance } from 'react-native'
 import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
@@ -41,7 +41,7 @@ const PinDots = ({ ref, length = 4, code, onChangeCode, onFilled, disabled = fal
 
 	const { theme } = useTheme()
 	const color = tone ?? theme.colors.primary
-	const inputRef = useRef<TextInput>(null)
+	const inputRef = useRef<TextInputInstance>(null)
 	const shake = useSharedValue(0)
 
 	useImperativeHandle(ref, () => ({

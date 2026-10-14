@@ -229,7 +229,7 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 					{/* Camera View */}
 					{device && (
 						<Camera
-							style={StyleSheet.absoluteFillObject}
+							style={StyleSheet.absoluteFill}
 							device={device}
 							isActive={isScanning}
 							outputs={[scannerOutput]}
@@ -243,7 +243,7 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 					)}
 
 					{/* Dark overlay with rounded cutout */}
-					<Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
+					<Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFill}>
 						<Path d={overlayPath} fill="rgba(0,0,0,0.8)" fillRule="evenodd" />
 					</Svg>
 

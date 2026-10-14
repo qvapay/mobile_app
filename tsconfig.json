@@ -7,6 +7,10 @@
 			// compila con las libs de RN. Pin a sus .d.ts (cubiertos por skipLibCheck).
 			"react-native-iap": [
 				"./node_modules/react-native-iap/lib/typescript/src/index.d.ts"
+			],
+			// Mismo caso: su fuente .tsx no compila contra los tipos de RN 0.87.
+			"number-flow-react-native": [
+				"./node_modules/number-flow-react-native/lib/typescript/index.d.ts"
 			]
 		}
 	},

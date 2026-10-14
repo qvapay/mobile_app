@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
-import type { TextInput } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type TextInputInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -89,7 +88,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const { addresses } = useWallet()
 	const { getSetting } = useSettings()
 	const showBalance = getSetting('privacy', 'showBalance', true) as boolean
-	const amountRef = useRef<TextInput>(null)
+	const amountRef = useRef<TextInputInstance>(null)
 
 	const [amountText, setAmountText] = useState('')
 	const [sheet, setSheet] = useState<'pay' | 'receive' | null>(null)

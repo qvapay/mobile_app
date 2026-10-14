@@ -130,7 +130,7 @@ const P2PChatSheet = ({ visible, onClose, insets, theme, textStyles, containerSt
 
 const styles = StyleSheet.create({
 	sheetOverlay: {
-		...StyleSheet.absoluteFillObject,
+		...StyleSheet.absoluteFill,
 		// Inline, la hoja compite con los hermanos según el orden de render
 		// (el ActionBar va DESPUÉS del dock): zIndex alto para quedar por encima.
 		zIndex: 100,

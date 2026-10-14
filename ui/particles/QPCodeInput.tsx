@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useImperativeHandle } from 'react'
 import type { Ref } from 'react'
 import { View, TextInput, StyleSheet } from 'react-native'
-import type { NativeSyntheticEvent, TextInputKeyPressEventData } from 'react-native'
+import type { TextInputInstance, TextInputKeyPressEvent } from 'react-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
@@ -52,7 +52,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 
 	const { theme } = useTheme()
 	const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
-	const inputsRef = useRef<Array<TextInput | null>>([])
+	const inputsRef = useRef<Array<TextInputInstance | null>>([])
 
 	// El valor es controlado por el padre, pero un tecleo rápido dispara varios
 	// `onChangeText` ANTES de que ese padre re-renderice: la closure seguiría viendo
@@ -112,7 +112,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 	}
 
 	// Backspace clears the current digit, then steps back
-	const handleKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>, index: number) => {
+	const handleKeyPress = (e: TextInputKeyPressEvent, index: number) => {
 		if (e.nativeEvent.key === 'Backspace') {
 			const current = codeRef.current
 			if (current[index]) {
@@ -133,7 +133,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 			{Array.from({ length }).map((_, index) => (
 				<TextInput
 					key={index}
-					ref={(ref: TextInput | null) => { inputsRef.current[index] = ref }}
+					ref={(ref: TextInputInstance | null) => { inputsRef.current[index] = ref }}
 					style={[
 						length > 4 ? styles.boxSmall : styles.box,
 						{

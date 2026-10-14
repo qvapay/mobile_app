@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import type { ScrollView as ScrollViewType } from 'react-native'
+import type { ScrollViewInstance } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import useContentPadding from '../../../hooks/useContentPadding'
 import FastImage from '@d11/react-native-fast-image'
@@ -168,7 +168,7 @@ const MarketProduct = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 	const [shop, setShop] = useState<MarketShop | null>(null)
 	const [variant, setVariant] = useState<MarketVariant | null>(null)
 	const [galleryIndex, setGalleryIndex] = useState(0)
-	const galleryRef = useRef<ScrollViewType | null>(null)
+	const galleryRef = useRef<ScrollViewInstance | null>(null)
 	const [loading, setLoading] = useState(true)
 
 	useEffect(() => {
