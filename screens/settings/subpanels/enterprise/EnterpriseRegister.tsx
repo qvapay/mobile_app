@@ -215,7 +215,7 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 
 						<FieldLabel text={t('settings.enterprise.register.step2.countryLabel')} theme={theme} textStyles={textStyles} />
 						<QPPressable style={[styles.pickerRow, { backgroundColor: theme.colors.elevation }]} onPress={() => setPickerOpen('country')}>
-							<Text style={[textStyles.h4, { color: form.country ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular }]}>
+							<Text style={[textStyles.text, { color: form.country ? theme.colors.primaryText : theme.colors.secondaryText }]}>
 								{countryName || t('settings.enterprise.register.step2.countryPlaceholder')}
 							</Text>
 							<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
@@ -235,7 +235,7 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 
 								<FieldLabel text={t('settings.enterprise.register.step2.incStateLabel')} theme={theme} textStyles={textStyles} />
 								<QPPressable style={[styles.pickerRow, { backgroundColor: theme.colors.elevation }]} onPress={() => setPickerOpen('incState')}>
-									<Text style={[textStyles.h4, { color: form.incState ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular }]}>
+									<Text style={[textStyles.text, { color: form.incState ? theme.colors.primaryText : theme.colors.secondaryText }]}>
 										{US_STATES.find((s) => s.code === form.incState)?.name || t('settings.enterprise.register.step2.statePlaceholder')}
 									</Text>
 									<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
@@ -246,7 +246,7 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 								<QPInput value={form.addrCity} onChangeText={setField('addrCity')} placeholder={t('settings.enterprise.register.step2.addrCityPlaceholder')} autoCapitalize="words" />
 								<View style={styles.addrRow}>
 									<QPPressable style={[styles.pickerRow, styles.addrState, { backgroundColor: theme.colors.elevation }]} onPress={() => setPickerOpen('addrState')}>
-										<Text style={[textStyles.h4, { color: form.addrState ? theme.colors.primaryText : theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular }]}>
+										<Text style={[textStyles.text, { color: form.addrState ? theme.colors.primaryText : theme.colors.secondaryText }]}>
 											{form.addrState || t('settings.enterprise.register.step2.addrStatePlaceholder')}
 										</Text>
 										<FontAwesome6 name="angle-down" size={14} color={theme.colors.secondaryText} iconStyle="solid" />
@@ -305,7 +305,7 @@ const EnterpriseRegister = ({ navigation }: NativeStackScreenProps<SettingsStack
 								<FontAwesome6 name={file ? 'file-circle-check' : 'file-arrow-up'} size={18} color={file ? theme.colors.successText : theme.colors.primary} iconStyle="solid" />
 							</View>
 							<View style={styles.fill}>
-								<Text numberOfLines={1} style={[textStyles.h4, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular }]}>
+								<Text numberOfLines={1} style={textStyles.text}>
 									{file ? (file.name || t('settings.enterprise.register.step3.statutesFileName')) : t('settings.enterprise.register.step3.chooseFile')}
 								</Text>
 								<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
