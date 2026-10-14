@@ -1,8 +1,8 @@
 diff --git a/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt b/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt
-index a4e7b3d..7e1badf 100644
+index a4e7b3d..ce4a36a 100644
 --- a/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt
 +++ b/node_modules/react-native-keychain/android/src/main/java/com/oblador/keychain/DeviceAvailability.kt
-@@ -23,9 +23,29 @@ object DeviceAvailability {
+@@ -23,9 +23,30 @@ object DeviceAvailability {
    }
  
    fun isStrongBiometricAuthAvailable(context: Context): Boolean {
@@ -22,11 +22,12 @@ index a4e7b3d..7e1badf 100644
 +    // so we check it directly on devices manufactured by Xiaomi (covers Xiaomi, Redmi and POCO).
 +    if (Build.MANUFACTURER.equals("xiaomi", ignoreCase = true)) {
 +      if (!isFingerprintAuthAvailable(context)) return false
++      // compileSdk 37 retiró FingerprintManager del SDK, pero los dispositivos
++      // lo siguen exponiendo: se consulta por reflexión ("fingerprint" es el
++      // valor de Context.FINGERPRINT_SERVICE).
 +      return try {
-+        @Suppress("DEPRECATION")
-+        val fm = context.getSystemService(Context.FINGERPRINT_SERVICE)
-+          as? android.hardware.fingerprint.FingerprintManager
-+        fm?.hasEnrolledFingerprints() == true
++        val fm = context.getSystemService("fingerprint") ?: return false
++        fm.javaClass.getMethod("hasEnrolledFingerprints").invoke(fm) == true
 +      } catch (e: Exception) {
 +        false
 +      }
