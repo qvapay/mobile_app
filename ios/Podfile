@@ -15,6 +15,12 @@ platform :ios, '15.5'
 # El wrapper RN (@didit-protocol/sdk-react-native) lee esta global en su podspec.
 $DiditSdkIosVariant = 'autodetection'
 
+# stripe-react-native >= 0.81 resuelve el SDK de Stripe por Swift Package Manager,
+# que exige frameworks dinámicos; aquí van estáticos (use_frameworks! :static).
+# Este flag lo vuelve a resolver por CocoaPods. Stripe lo marca como DEPRECATED:
+# migrar a :linkage => :dynamic antes de que lo retiren.
+$StripeDisableSPM = true
+
 # Compilar React core y dependencias desde fuente. El core precompilado de RN 0.84
 # (React-Core-prebuilt) se construye como release (sin REACT_NATIVE_DEBUG), con un
 # layout de Props/Sealable distinto al del código Fabric de terceros compilado en
@@ -34,7 +40,7 @@ target 'QvaPay' do
 
   # DiditSDK no está en el trunk de CocoaPods: se resuelve por podspec remoto,
   # pineado a la versión nativa que empaqueta el wrapper RN (4.9.0).
-  pod 'DiditSDK/AutoDetection', :podspec => 'https://raw.githubusercontent.com/didit-protocol/sdk-ios/4.9.0/DiditSDK.podspec'
+  pod 'DiditSDK/AutoDetection', :podspec => 'https://raw.githubusercontent.com/didit-protocol/sdk-ios/4.9.1/DiditSDK.podspec'
 
   use_react_native!(
     :path => config[:reactNativePath],
