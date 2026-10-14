@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, type TextInputInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import Animated, {
 	interpolateColor,
@@ -8,7 +8,6 @@ import Animated, {
 	withTiming,
 } from 'react-native-reanimated'
 import type { RefObject } from 'react'
-import type { TextInput } from 'react-native'
 import type { EntryAnimationsValues, LayoutAnimation } from 'react-native-reanimated'
 
 // Theme
@@ -78,7 +77,7 @@ type NameStepProps = StepBaseProps & {
 	lastname: string
 	setField: SetField
 	nameValid: boolean
-	lastnameInputRef: RefObject<TextInput | null>
+	lastnameInputRef: RefObject<TextInputInstance | null>
 	onNext: () => void
 	onLogin: () => void
 }

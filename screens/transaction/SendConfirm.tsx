@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useEffectEvent, useReducer } from 'react'
-import { View, Text } from 'react-native'
-import type { ScrollView } from 'react-native'
+import { View, Text, type ScrollViewInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
@@ -122,7 +121,7 @@ const SendConfirm = ({ navigation, route }: Props) => {
 	const { pin, setPin, twoFactorMethod, codeLength, codeInputRef, handleMethodToggle } = usePinEntry()
 
 	const hasOTP = !!user?.two_factor_secret
-	const scrollViewRef = useRef<ScrollView | null>(null)
+	const scrollViewRef = useRef<ScrollViewInstance | null>(null)
 
 	// Clave de idempotencia del intento: nace con la pantalla de confirmación y
 	// sobrevive a timeouts, 5xx y toques repetidos — solo rota tras éxito confirmado

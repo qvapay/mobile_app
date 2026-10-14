@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
 		height: ROW_HEIGHT,
 	},
 	overlayRow: {
-		...StyleSheet.absoluteFillObject,
+		...StyleSheet.absoluteFill,
 	},
 	tileSlot: {
 		flex: 1,

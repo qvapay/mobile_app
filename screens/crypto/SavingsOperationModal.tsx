@@ -40,7 +40,7 @@ const SavingsOperationModal = ({ operation, amount, loading, available, onChange
 	const { keyboardHeight, keyboardVisible } = useKeyboardHeight()
 
 	const ui = OPERATION_UI[operation ?? 'withdraw']
-	const close = () => !loading && onClose()
+	const close = () => { if (!loading) onClose() }
 
 	return (
 		<Modal visible={!!operation} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>

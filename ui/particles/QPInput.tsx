@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ComponentType, Ref } from 'react'
-import { StyleSheet, View, TextInput, Pressable, Text } from 'react-native'
+import { StyleSheet, View, TextInput, Pressable, Text, type TextInputInstance } from 'react-native'
 import type { StyleProp, TextInputProps, TextStyle } from 'react-native'
 
 // Theme
@@ -24,7 +24,7 @@ const FontAwesome6 = FontAwesome6Icon as ComponentType<{
 }>
 
 type QPInputProps = TextInputProps & {
-	ref?: Ref<TextInput>
+	ref?: Ref<TextInputInstance>
 	prelabel?: string
 	prefixIconName?: string
 	suffixIconName?: string

@@ -1,11 +1,11 @@
 module.exports = {
-  preset: 'react-native',
+  preset: '@react-native/jest-preset',
   // Project keys REPLACE preset keys wholesale, so re-declare the preset's own
   // setup file alongside ours — dropping it would silently lose RN's global
   // mocks. jest.setup.js initializes the real i18next singleton with the
   // Spanish bundle so t() returns the exact literals tests already assert.
   setupFiles: [
-    require.resolve('react-native/jest/setup.js'),
+    require.resolve('@react-native/jest-preset/jest/setup.js'),
     '<rootDir>/jest.setup.js',
   ],
   // The react-native preset's transform pattern omits .jsx (it only matches
@@ -14,7 +14,7 @@ module.exports = {
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
     '^.+\\.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp|ttf|otf)$': require.resolve(
-      'react-native/jest/assetFileTransformer.js',
+      '@react-native/jest-preset/jest/assetFileTransformer.js',
     ),
   },
   // El preset ignora todo node_modules salvo react-native*, pero

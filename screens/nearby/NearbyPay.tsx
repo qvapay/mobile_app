@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 	},
 	center: {
-		...StyleSheet.absoluteFillObject,
+		...StyleSheet.absoluteFill,
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 14,
 	},
 	receivedOverlay: {
-		...StyleSheet.absoluteFillObject,
+		...StyleSheet.absoluteFill,
 		alignItems: 'center',
 		justifyContent: 'center',
 		paddingHorizontal: 40,

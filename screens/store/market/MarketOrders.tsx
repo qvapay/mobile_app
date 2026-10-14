@@ -138,7 +138,7 @@ const MarketOrders = ({ navigation }: NativeStackScreenProps<RootStackParamList,
 					refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 					onEndReached={loadMore}
 					onEndReachedThreshold={0.4}
-					ListFooterComponent={loadingMore ? <View style={{ paddingVertical: 16, alignItems: 'center' }}><QPLoader /></View> : null}
+					ListFooterComponent={loadingMore ? <View style={{ paddingVertical: 16, alignItems: 'center' }}><QPLoader /></View> : undefined}
 				/>
 			)}
 		</View>

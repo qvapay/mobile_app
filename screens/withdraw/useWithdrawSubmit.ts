@@ -1,3 +1,4 @@
+import type { ScrollViewInstance } from 'react-native'
 /**
  * Segundo paso del retiro: confirmación con PIN por email u OTP y envío de
  * `POST /withdraw`. Extraído de `Withdraw.tsx` para que la pantalla se quede
@@ -34,7 +35,6 @@ import { useAuth } from '../../auth/AuthContext'
 import { toast } from 'sonner-native'
 
 // Types
-import type { ScrollView } from 'react-native'
 import type { Coin, CoinWorkingField } from '../../types/domain'
 
 /** Acción del reducer genérico: `field` y `value` correlacionados por clave. */
@@ -67,7 +67,7 @@ type WithdrawSubmitArgs = {
 	workingFields: CoinWorkingField[]
 	workingForm: WorkingForm
 	/** Scroll del form: el paso de PIN aparece bajo el fold y hay que llevarlo a la vista. */
-	scrollViewRef: React.RefObject<ScrollView | null>
+	scrollViewRef: React.RefObject<ScrollViewInstance | null>
 	/** Atestación firmada en el gate de Continuar (null si la moneda no la exige). */
 	attestationRef: React.RefObject<WithdrawAttestation | null>
 	/** Limpieza del formulario + navegación tras un retiro confirmado. */

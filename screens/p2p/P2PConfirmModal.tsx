@@ -47,7 +47,7 @@ const P2PConfirmModal = ({
 	const { t } = useTranslation()
 
 	return (
-		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => !loading && onClose()}>
+		<Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => { if (!loading) onClose() }}>
 			<Pressable style={containerStyles.modalOverlay} onPress={() => !loading && onClose()}>
 				<Pressable onPress={() => { }} style={containerStyles.modalCard}>
 

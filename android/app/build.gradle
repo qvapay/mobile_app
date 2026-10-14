@@ -115,6 +115,12 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.qvapay"
+    // Stripe >= 0.81 declara compileOnly el push provisioning, que arrastra
+    // play-services-tapandpay (fuera de los repos públicos): el lint vital de
+    // release de esa librería no puede resolver su classpath y tumba el build.
+    lint {
+        checkReleaseBuilds false
+    }
     defaultConfig {
         applicationId "com.qvapay"
         minSdkVersion rootProject.ext.minSdkVersion

@@ -1,7 +1,6 @@
 import { createContext, use, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { AppState } from 'react-native'
-import type { AppStateStatus } from 'react-native'
 import i18n from '../i18n'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
@@ -74,7 +73,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	const [appLockEnabled, setAppLockEnabled] = useState(false)
 
 	const isInitializedRef = useRef(false)
-	const appStateRef = useRef<AppStateStatus>(AppState.currentState)
+	const appStateRef = useRef(AppState.currentState)
 	const backgroundTimestampRef = useRef<number | null>(null)
 
 	// Initialize: check if app lock PIN exists

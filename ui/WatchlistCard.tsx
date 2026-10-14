@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { View, Text, StyleSheet, Pressable, Platform, type PlatformIOSStatic } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -96,8 +96,8 @@ WatchlistCard.displayName = 'WatchlistCard'
 
 const styles = StyleSheet.create({
 	card: {
-		// Cast local: `isPad` solo existe en el tipo iOS (en Android es undefined, igual que en runtime)
-		flexBasis: (Platform as PlatformIOSStatic).isPad ? '22%' : '46%',
+		// `isPad` solo existe en el tipo iOS: se estrecha por `Platform.OS` (en Android es undefined, igual que en runtime)
+		flexBasis: (Platform.OS === 'ios' && Platform.isPad) ? '22%' : '46%',
 		flexGrow: 1,
 		borderRadius: 14,
 		padding: 14,

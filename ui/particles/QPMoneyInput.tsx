@@ -1,4 +1,4 @@
-import { StyleSheet, View, TextInput } from 'react-native'
+import { StyleSheet, View, TextInput, type TextInputInstance } from 'react-native'
 import type { StyleProp, TextInputProps, TextStyle, ViewStyle } from 'react-native'
 import type { ComponentType, Ref } from 'react'
 
@@ -20,7 +20,7 @@ const FontAwesome6 = FontAwesome6Icon as ComponentType<{
 }>
 
 type QPMoneyInputProps = TextInputProps & {
-	ref?: Ref<TextInput>
+	ref?: Ref<TextInputInstance>
 	type?: 'add' | string
 	prefixIconName?: string
 }

@@ -4,7 +4,7 @@ import { useSharedValue } from 'react-native-reanimated'
 import { useTranslation } from 'react-i18next'
 import useContentPadding from '../../hooks/useContentPadding'
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native'
-import type { PlatformIOSStatic, RefreshControlProps } from 'react-native'
+import type { RefreshControlProps } from 'react-native'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -388,9 +388,9 @@ const Home = ({ navigation }: HomeProps) => {
 
 				<View style={styles.section}>
 					<QPSectionHeader title={t('home.sections.news')} subtitle={t('common.actions.seeAll')} iconName="arrow-right" onPress={() => Linking.openURL('https://qvapay.blog')} />
-					<View style={(Platform as PlatformIOSStatic).isPad ? styles.blogGrid : undefined}>
+					<View style={(Platform.OS === 'ios' && Platform.isPad) ? styles.blogGrid : undefined}>
 						{latestBlogPosts.map((post, index) => (
-							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} iPad={(Platform as PlatformIOSStatic).isPad} />
+							<BlogPostCard key={post.id} post={post} index={index} totalItems={latestBlogPosts.length} iPad={(Platform.OS === 'ios' && Platform.isPad)} />
 						))}
 					</View>
 				</View>
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	serviceCard: {
-		flexBasis: (Platform as PlatformIOSStatic).isPad ? '22%' : '46%',
+		flexBasis: (Platform.OS === 'ios' && Platform.isPad) ? '22%' : '46%',
 		flexGrow: 1,
 		borderRadius: 12,
 		padding: 14,

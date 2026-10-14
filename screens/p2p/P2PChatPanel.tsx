@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableWithoutFeedback, TouchableOpacity, Keyboard, TextInput, Pressable, Animated, Modal, Linking } from "react-native"
+import { View, Text, StyleSheet, ScrollView, TouchableWithoutFeedback, TouchableOpacity, Keyboard, TextInput, Pressable, Animated, Modal, Linking, type ScrollViewInstance } from "react-native"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 import FastImage from "@d11/react-native-fast-image"
 import { useTranslation } from "react-i18next"
@@ -39,7 +39,7 @@ export type P2PChatPanelProps = {
 	showStickerPanel: boolean
 	setShowStickerPanel: (value: boolean) => void
 	visibleTimestamps: Set<ChatMessage['id']>
-	chatScrollRef: RefObject<ScrollView | null>
+	chatScrollRef: RefObject<ScrollViewInstance | null>
 	/** Animated.Value por mensaje para el despliegue de la hora (ref, nunca estado). */
 	messageAnimations: RefObject<Record<ChatMessage['id'], Animated.Value>>
 	handleSendChat: () => void

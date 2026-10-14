@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, type ScrollViewInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Helpers
@@ -35,7 +35,6 @@ import { withdrawAttestationScope } from '../../helpers/ofacCompliance'
 import type { WithdrawAttestation } from './useWithdrawSubmit'
 
 // Types
-import type { ScrollView } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../types/navigation'
 
@@ -88,7 +87,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 	const containerStyles = createContainerStyles(theme)
 
 	// Scroll del form — el paso de PIN aparece debajo del fold y hay que llevarlo a la vista
-	const scrollViewRef = useRef<ScrollView>(null)
+	const scrollViewRef = useRef<ScrollViewInstance>(null)
 
 	const currency = 'QUSD'
 

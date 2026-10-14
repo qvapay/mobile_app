@@ -1,3 +1,4 @@
+import type { TextInputInstance } from 'react-native'
 /**
  * Máquina de estados del alta de cuenta: posición del wizard, formulario,
  * códigos de verificación, la sesión SILENCIOSA que se abre al verificar el
@@ -16,7 +17,6 @@
 import { usePreventRemove } from '@react-navigation/native'
 import { useState, useRef, useEffect, useEffectEvent, useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { TextInput } from 'react-native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
 import type { Me } from '../../../types/domain'
@@ -132,7 +132,7 @@ export default function useRegisterFlow(navigation: NativeStackNavigationProp<Ro
 	const sessionRef = useRef<{ accessToken: string, me: Me } | null>(null)
 	const verifyingRef = useRef(false)
 	const finishingRef = useRef(false)
-	const lastnameInputRef = useRef<TextInput | null>(null)
+	const lastnameInputRef = useRef<TextInputInstance | null>(null)
 
 	// Atribución de instalación: si el referrer de Play trajo un código de
 	// invitación, se aplica solo (visible para el usuario); el utm_source viaja

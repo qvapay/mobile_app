@@ -1,0 +1,33 @@
+diff --git a/node_modules/@d11/react-native-fast-image/dist/index.d.ts b/node_modules/@d11/react-native-fast-image/dist/index.d.ts
+index 2332172..30bb634 100644
+--- a/node_modules/@d11/react-native-fast-image/dist/index.d.ts
++++ b/node_modules/@d11/react-native-fast-image/dist/index.d.ts
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { FlexStyle, LayoutChangeEvent, ShadowStyleIOS, StyleProp, TransformsStyle, ImageRequireSource, AccessibilityProps, ViewProps, ColorValue } from 'react-native';
++import { ImageStyle as RNImageStyle, LayoutChangeEvent, StyleProp, ImageRequireSource, AccessibilityProps, ViewProps, ColorValue } from 'react-native';
+ export type ResizeMode = 'contain' | 'cover' | 'stretch' | 'center';
+ declare const resizeMode: {
+     readonly contain: "contain";
+@@ -49,19 +49,8 @@ export interface OnErrorEvent {
+         error: string;
+     };
+ }
+-export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
+-    backfaceVisibility?: 'visible' | 'hidden';
+-    borderBottomLeftRadius?: number;
+-    borderBottomRightRadius?: number;
+-    backgroundColor?: string;
+-    borderColor?: string;
+-    borderWidth?: number;
+-    borderRadius?: number;
+-    borderTopLeftRadius?: number;
+-    borderTopRightRadius?: number;
+-    overlayColor?: string;
+-    opacity?: number;
+-}
++// RN 0.87 ya no exporta FlexStyle ni ShadowStyleIOS: se reutiliza el ImageStyle de RN.
++export type ImageStyle = RNImageStyle;
+ export interface FastImageProps extends AccessibilityProps, ViewProps {
+     source?: Source | ImageRequireSource;
+     defaultSource?: ImageRequireSource;

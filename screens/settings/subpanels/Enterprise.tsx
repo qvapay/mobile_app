@@ -189,78 +189,82 @@ const Enterprise = ({ navigation }: NativeStackScreenProps<SettingsStackParamLis
 
 	// Con solicitudes: tarjeta por empresa + gestión de tiendas si hay aprobada
 	return (
-		<ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ padding: 20, gap: 14 }}>
+		<View style={containerStyles.subContainer}>
+			<ScrollView contentContainerStyle={containerStyles.scrollContainer} showsVerticalScrollIndicator={false}>
 
-			<Text style={textStyles.h1}>{t('settings.enterprise.title')}</Text>
-			<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
-				{t('settings.enterprise.subtitle')}
-			</Text>
+				<Text style={textStyles.h1}>{t('settings.enterprise.title')}</Text>
+				<Text style={[textStyles.h3, { color: theme.colors.secondaryText }]}>
+					{t('settings.enterprise.subtitle')}
+				</Text>
 
-			{companies.map((company: Company) => {
-				const color = STATUS_COLOR[company.status] || theme.colors.secondaryText
-				return (
-					<View key={company.uuid} style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+				<View style={{ marginTop: 20, marginBottom: 24, gap: 14 }}>
+					{companies.map((company: Company) => {
+						const color = STATUS_COLOR[company.status] || theme.colors.secondaryText
+						return (
+							<View key={company.uuid} style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
 
-						<View style={styles.cardHeader}>
-							<View style={[styles.companyIcon, { backgroundColor: theme.colors.primary + '18' }]}>
-								<FontAwesome6 name="building" size={20} color={theme.colors.primary} iconStyle="solid" />
+								<View style={styles.cardHeader}>
+									<View style={[styles.companyIcon, { backgroundColor: theme.colors.primary + '18' }]}>
+										<FontAwesome6 name="building" size={20} color={theme.colors.primary} iconStyle="solid" />
+									</View>
+									<View style={{ flex: 1 }}>
+										<Text style={[textStyles.h4, { color: theme.colors.primaryText }]} numberOfLines={1}>{company.company_name}</Text>
+										<View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
+											<Text style={[textStyles.h7, { color }]}>{STATUS_LABEL[company.status] ? t(STATUS_LABEL[company.status]) : company.status}</Text>
+										</View>
+									</View>
+								</View>
+
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 10 }]}>
+									{STATUS_EXPLAINER[company.status] ? t(STATUS_EXPLAINER[company.status]) : ''}
+								</Text>
+
+								<View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+								<DetailRow label={t('settings.enterprise.details.director')} value={company.director_name} theme={theme} textStyles={textStyles} />
+								<DetailRow label={t('settings.enterprise.details.email')} value={company.email} theme={theme} textStyles={textStyles} />
+								<DetailRow label={t('settings.enterprise.details.activity')} value={company.activity} theme={theme} textStyles={textStyles} />
+								<DetailRow label={t('settings.enterprise.details.employees')} value={company.employee_count} theme={theme} textStyles={textStyles} />
+								<DetailRow label={t('settings.enterprise.details.statutes')} value={company.statutes_sent ? t('settings.enterprise.details.statutesSent') : t('settings.enterprise.details.statutesNotSent')} theme={theme} textStyles={textStyles} />
+								<DetailRow label={t('settings.enterprise.details.submittedAt')} value={company.created_at ? getShortDateTime(company.created_at) : 'N/A'} theme={theme} textStyles={textStyles} />
+
+								{company.status === 'rejected' && (
+									<QPButton
+										title={t('settings.enterprise.reapplyButton')}
+										onPress={() => navigation.navigate(ROUTES.ENTERPRISE_REGISTER)}
+										style={{ marginTop: 14 }}
+										textStyle={{ color: theme.colors.almostWhite }}
+									/>
+								)}
 							</View>
-							<View style={{ flex: 1 }}>
-								<Text style={[textStyles.h2, { color: theme.colors.primaryText }]} numberOfLines={1}>{company.company_name}</Text>
-								<View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
-									<Text style={[textStyles.h7, { color }]}>{STATUS_LABEL[company.status] ? t(STATUS_LABEL[company.status]) : company.status}</Text>
+						)
+					})}
+
+					{hasApproved && (
+						<View style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+							<View style={styles.cardHeader}>
+								<View style={[styles.companyIcon, { backgroundColor: theme.colors.successText + '18' }]}>
+									<FontAwesome6 name="store" size={20} color={theme.colors.successText} iconStyle="solid" />
+								</View>
+								<View style={{ flex: 1 }}>
+									<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('settings.enterprise.stores.title')}</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 2 }]}>
+										{t('settings.enterprise.stores.body')}
+									</Text>
 								</View>
 							</View>
-						</View>
-
-						<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: 10 }]}>
-							{STATUS_EXPLAINER[company.status] ? t(STATUS_EXPLAINER[company.status]) : ''}
-						</Text>
-
-						<View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-
-						<DetailRow label={t('settings.enterprise.details.director')} value={company.director_name} theme={theme} textStyles={textStyles} />
-						<DetailRow label={t('settings.enterprise.details.email')} value={company.email} theme={theme} textStyles={textStyles} />
-						<DetailRow label={t('settings.enterprise.details.activity')} value={company.activity} theme={theme} textStyles={textStyles} />
-						<DetailRow label={t('settings.enterprise.details.employees')} value={company.employee_count} theme={theme} textStyles={textStyles} />
-						<DetailRow label={t('settings.enterprise.details.statutes')} value={company.statutes_sent ? t('settings.enterprise.details.statutesSent') : t('settings.enterprise.details.statutesNotSent')} theme={theme} textStyles={textStyles} />
-						<DetailRow label={t('settings.enterprise.details.submittedAt')} value={company.created_at ? getShortDateTime(company.created_at) : 'N/A'} theme={theme} textStyles={textStyles} />
-
-						{company.status === 'rejected' && (
 							<QPButton
-								title={t('settings.enterprise.reapplyButton')}
-								onPress={() => navigation.navigate(ROUTES.ENTERPRISE_REGISTER)}
+								title={t('settings.enterprise.stores.manageButton')}
+								onPress={() => openInBrowser(SELLER_URL)}
 								style={{ marginTop: 14 }}
 								textStyle={{ color: theme.colors.almostWhite }}
 							/>
-						)}
-					</View>
-				)
-			})}
-
-			{hasApproved && (
-				<View style={[containerStyles.card, { flexDirection: 'column', alignItems: 'stretch' }]}>
-					<View style={styles.cardHeader}>
-						<View style={[styles.companyIcon, { backgroundColor: theme.colors.successText + '18' }]}>
-							<FontAwesome6 name="store" size={20} color={theme.colors.successText} iconStyle="solid" />
 						</View>
-						<View style={{ flex: 1 }}>
-							<Text style={[textStyles.h2, { color: theme.colors.primaryText }]}>{t('settings.enterprise.stores.title')}</Text>
-							<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginTop: 2 }]}>
-								{t('settings.enterprise.stores.body')}
-							</Text>
-						</View>
-					</View>
-					<QPButton
-						title={t('settings.enterprise.stores.manageButton')}
-						onPress={() => openInBrowser(SELLER_URL)}
-						style={{ marginTop: 14 }}
-						textStyle={{ color: theme.colors.almostWhite }}
-					/>
+					)}
 				</View>
-			)}
 
-		</ScrollView>
+			</ScrollView>
+		</View>
 	)
 }
 
@@ -277,8 +281,8 @@ type DetailRowProps = { label: string, value?: string, theme: Theme, textStyles:
 
 const DetailRow = ({ label, value, theme, textStyles }: DetailRowProps) => (
 	<View style={styles.detailRow}>
-		<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{label}</Text>
-		<Text style={[textStyles.h5, { color: theme.colors.primaryText, flexShrink: 1, textAlign: 'right' }]} numberOfLines={2}>{value}</Text>
+		<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{label}</Text>
+		<Text style={[textStyles.h6, { color: theme.colors.primaryText, flexShrink: 1, textAlign: 'right' }]} numberOfLines={2}>{value}</Text>
 	</View>
 )
 

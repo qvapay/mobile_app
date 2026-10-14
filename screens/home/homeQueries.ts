@@ -1,6 +1,5 @@
 import { Platform } from 'react-native'
-// Cast local: `isPad` solo existe en el tipo iOS (en Android es undefined, igual que en runtime)
-import type { PlatformIOSStatic } from 'react-native'
+// `isPad` solo existe en el tipo iOS: se estrecha por `Platform.OS` (en Android es undefined, igual que en runtime)
 import { useQuery } from '@tanstack/react-query'
 
 // APIs
@@ -57,8 +56,8 @@ export { useQuickPayQuery } from '../../hooks/useQuickPayQuery'
 
 /** Últimas entradas del blog (WordPress). */
 export const useBlogQuery = () => useQuery({
-	queryKey: ['home', 'blog', (Platform as PlatformIOSStatic).isPad ? 4 : 3],
-	queryFn: async () => unwrap(await blogApi.getLatestPosts((Platform as PlatformIOSStatic).isPad ? 4 : 3)),
+	queryKey: ['home', 'blog', (Platform.OS === 'ios' && Platform.isPad) ? 4 : 3],
+	queryFn: async () => unwrap(await blogApi.getLatestPosts((Platform.OS === 'ios' && Platform.isPad) ? 4 : 3)),
 	// El blog cambia poco y no es crítico: no merece un viaje en cada montaje
 	staleTime: 10 * 60 * 1000,
 	placeholderData: previous => previous,
