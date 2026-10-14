@@ -161,7 +161,7 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
-  - NitroIap (17.0.1):
+  - NitroIap (17.0.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -169,7 +169,7 @@ PODS:
     - glog
     - hermes-engine
     - NitroModules
-    - openiap (= 4.0.1)
+    - openiap (= 4.0.2)
     - RCT-Folly
     - RCT-Folly/Fabric
     - RCTRequired
@@ -251,9 +251,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - OneSignalXCFramework (5.7.0):
-    - OneSignalXCFramework/OneSignalComplete (= 5.7.0)
-  - OneSignalXCFramework/OneSignal (5.7.0):
+  - OneSignalXCFramework (5.8.0):
+    - OneSignalXCFramework/OneSignalComplete (= 5.8.0)
+  - OneSignalXCFramework/OneSignal (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalLiveActivities
@@ -261,46 +261,46 @@ PODS:
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalComplete (5.7.0):
+  - OneSignalXCFramework/OneSignalComplete (5.8.0):
     - OneSignalXCFramework/OneSignal
     - OneSignalXCFramework/OneSignalInAppMessages
     - OneSignalXCFramework/OneSignalLocation
-  - OneSignalXCFramework/OneSignalCore (5.7.0)
-  - OneSignalXCFramework/OneSignalExtension (5.7.0):
+  - OneSignalXCFramework/OneSignalCore (5.8.0)
+  - OneSignalXCFramework/OneSignalExtension (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalInAppMessages (5.7.0):
+  - OneSignalXCFramework/OneSignalInAppMessages (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLiveActivities (5.7.0):
+  - OneSignalXCFramework/OneSignalLiveActivities (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLocation (5.7.0):
+  - OneSignalXCFramework/OneSignalLocation (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalNotifications (5.7.0):
+  - OneSignalXCFramework/OneSignalNotifications (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOSCore (5.7.0):
+  - OneSignalXCFramework/OneSignalOSCore (5.8.0):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalOutcomes (5.7.0):
+  - OneSignalXCFramework/OneSignalOutcomes (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
-  - OneSignalXCFramework/OneSignalUser (5.7.0):
+  - OneSignalXCFramework/OneSignalUser (5.8.0):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - openiap (4.0.1)
+  - openiap (4.0.2)
   - PromisesObjC (2.4.1)
   - QuickCrypto (1.1.8):
     - boost
@@ -2414,14 +2414,14 @@ PODS:
     - Yoga
   - react-native-in-app-review (4.4.2):
     - React-Core
-  - react-native-onesignal (5.5.14):
+  - react-native-onesignal (5.5.15):
     - boost
     - DoubleConversion
     - fast_float
     - fmt
     - glog
     - hermes-engine
-    - OneSignalXCFramework (= 5.7.0)
+    - OneSignalXCFramework (= 5.8.0)
     - RCT-Folly
     - RCT-Folly/Fabric
     - RCTRequired
@@ -3803,14 +3803,14 @@ PODS:
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
   - SocketRocket (0.7.1)
-  - Stripe (26.13.0):
-    - StripeApplePay (= 26.13.0)
-    - StripeCore (= 26.13.0)
-    - StripeIssuing (= 26.13.0)
-    - StripePayments (= 26.13.0)
-    - StripePaymentsUI (= 26.13.0)
-    - StripeUICore (= 26.13.0)
-  - stripe-react-native (0.81.0):
+  - Stripe (26.14.0):
+    - StripeApplePay (= 26.14.0)
+    - StripeCore (= 26.14.0)
+    - StripeIssuing (= 26.14.0)
+    - StripePayments (= 26.14.0)
+    - StripePaymentsUI (= 26.14.0)
+    - StripeUICore (= 26.14.0)
+  - stripe-react-native (0.82.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3837,10 +3837,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/core
     - SocketRocket
-    - stripe-react-native/Core (= 0.81.0)
-    - stripe-react-native/NewArch (= 0.81.0)
+    - stripe-react-native/Core (= 0.82.0)
+    - stripe-react-native/NewArch (= 0.82.0)
     - Yoga
-  - stripe-react-native/Core (0.81.0):
+  - stripe-react-native/Core (0.82.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3867,14 +3867,14 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/core
     - SocketRocket
-    - Stripe (= 26.13.0)
-    - StripeApplePay (= 26.13.0)
-    - StripeFinancialConnections (= 26.13.0)
-    - StripePayments (= 26.13.0)
-    - StripePaymentSheet (= 26.13.0)
-    - StripePaymentsUI (= 26.13.0)
+    - Stripe (= 26.14.0)
+    - StripeApplePay (= 26.14.0)
+    - StripeFinancialConnections (= 26.14.0)
+    - StripePayments (= 26.14.0)
+    - StripePaymentSheet (= 26.14.0)
+    - StripePaymentsUI (= 26.14.0)
     - Yoga
-  - stripe-react-native/NewArch (0.81.0):
+  - stripe-react-native/NewArch (0.82.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3902,35 +3902,35 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - StripeApplePay (26.13.0):
-    - StripeCore (= 26.13.0)
-  - StripeCore (26.13.0)
-  - StripeFinancialConnections (26.13.0):
-    - StripeCore (= 26.13.0)
-    - StripeUICore (= 26.13.0)
-  - StripeFinancialConnectionsLite (26.13.0):
-    - StripeCore (= 26.13.0)
-  - StripeIssuing (26.13.0):
-    - StripeCore (= 26.13.0)
-    - StripePayments (= 26.13.0)
-    - StripePaymentsUI (= 26.13.0)
-  - StripePayments (26.13.0):
-    - StripeCore (= 26.13.0)
-    - StripePayments/Stripe3DS2 (= 26.13.0)
-  - StripePayments/Stripe3DS2 (26.13.0):
-    - StripeCore (= 26.13.0)
-  - StripePaymentSheet (26.13.0):
-    - StripeApplePay (= 26.13.0)
-    - StripeCore (= 26.13.0)
-    - StripeFinancialConnectionsLite (= 26.13.0)
-    - StripePayments (= 26.13.0)
-    - StripePaymentsUI (= 26.13.0)
-  - StripePaymentsUI (26.13.0):
-    - StripeCore (= 26.13.0)
-    - StripePayments (= 26.13.0)
-    - StripeUICore (= 26.13.0)
-  - StripeUICore (26.13.0):
-    - StripeCore (= 26.13.0)
+  - StripeApplePay (26.14.0):
+    - StripeCore (= 26.14.0)
+  - StripeCore (26.14.0)
+  - StripeFinancialConnections (26.14.0):
+    - StripeCore (= 26.14.0)
+    - StripeUICore (= 26.14.0)
+  - StripeFinancialConnectionsLite (26.14.0):
+    - StripeCore (= 26.14.0)
+  - StripeIssuing (26.14.0):
+    - StripeCore (= 26.14.0)
+    - StripePayments (= 26.14.0)
+    - StripePaymentsUI (= 26.14.0)
+  - StripePayments (26.14.0):
+    - StripeCore (= 26.14.0)
+    - StripePayments/Stripe3DS2 (= 26.14.0)
+  - StripePayments/Stripe3DS2 (26.14.0):
+    - StripeCore (= 26.14.0)
+  - StripePaymentSheet (26.14.0):
+    - StripeApplePay (= 26.14.0)
+    - StripeCore (= 26.14.0)
+    - StripeFinancialConnectionsLite (= 26.14.0)
+    - StripePayments (= 26.14.0)
+    - StripePaymentsUI (= 26.14.0)
+  - StripePaymentsUI (26.14.0):
+    - StripeCore (= 26.14.0)
+    - StripePayments (= 26.14.0)
+    - StripeUICore (= 26.14.0)
+  - StripeUICore (26.14.0):
+    - StripeCore (= 26.14.0)
   - VisionCamera (5.2.3):
     - boost
     - DoubleConversion
@@ -4430,11 +4430,11 @@ SPEC CHECKSUMS:
   MLKitVision: 39a5a812db83c4a0794445088e567f3631c11961
   MunimBluetooth: b2669b0cead67636d77db2596e4b5aa89a0cb7f6
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
-  NitroIap: e9cc83db430ad4e040cc028605b12b74588c904c
+  NitroIap: 835ecad92702277aa90b629a05969596707c38cd
   NitroImage: 8f7bae94754c4a19985021ff7a0f604f8da172d6
   NitroModules: 35f447d910ce176878290580d99d7c16296d4032
-  OneSignalXCFramework: dd6233dcd93b0a4ef9c5046e8278e367e94d5215
-  openiap: 32927b3b14caf30b14e4b0b0838316ed827fdd3b
+  OneSignalXCFramework: e916e0283c51b737524cab28f340eeb821b45826
+  openiap: 314ecc41a86ce7aa2edd75f08f2ee0b5d146c251
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   QuickCrypto: 798fed846a97932b5869c525c2578d60201ee8eb
   RCT-Folly: 36c4f904fb6cd0219dcb76b94e9502d2a72fab0b
@@ -4483,7 +4483,7 @@ SPEC CHECKSUMS:
   react-native-document-picker: 90882a1edc7907492b2f4a37a55d1b81f651049d
   react-native-image-picker: 21e211e5a98cfc4c236f09b1e6d9d6de909b492a
   react-native-in-app-review: 1516ba69d60d58053b7eb3aaaf8d2a5a74af8b57
-  react-native-onesignal: e5c6a22adf709384d08fa93a991e50ab3bbcb536
+  react-native-onesignal: e5588c1ed8426304683440888ae851f6eb6cc4a4
   react-native-passkey: 2e57bd42902cde44d97b8422c16c8ddb2db8f370
   react-native-quick-base64: 1e283c3d4612d4b92198f0b4f9f1bd1954f3b760
   react-native-safe-area-context: 495ec994231545960cce2497a409810579039031
@@ -4544,17 +4544,17 @@ SPEC CHECKSUMS:
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  Stripe: 2f6d025c3dc6c93890f39c75c4b85ccb96412cfc
-  stripe-react-native: f6e6a01764c11cb0744fd5312d92fb01067e99f2
-  StripeApplePay: 05c69df3ee93e82b6399e4c3c03bbf7ccd3568e5
-  StripeCore: 02c8ba87ddf9b838fc1d4a2d3650d416e0c9ddc1
-  StripeFinancialConnections: 35e44f12ca99c5db3d8069a29c0ffcc669ab0400
-  StripeFinancialConnectionsLite: 2321c88ad41e2477568c23a8b391890cc82c1b7b
-  StripeIssuing: 715e7b38b95bb1e50e72a318113ff3c80561aaf1
-  StripePayments: cf4557e925d39aa0c308b51bb3dcb4e34f817086
-  StripePaymentSheet: e250c2518ea55f6c81fa124320343535ccb458a6
-  StripePaymentsUI: c15703ef9d7029a771b6888e112ea24ff328cdba
-  StripeUICore: 64ea2cd22d214b711cfc39bce86863e1afa9993e
+  Stripe: a5c94f09edbf02219505cc4f54fbb602fc28a405
+  stripe-react-native: 1b5454b827e975c7d611004c4ba1a59421179cea
+  StripeApplePay: 954b3c98d56929f8f3f0fdb30eadde43a796e701
+  StripeCore: 9f52b54c9d2e8d2109656ead5122740fa56440c8
+  StripeFinancialConnections: 8fca9d44bf14bf4c62eecc6e7fb694472b1f6810
+  StripeFinancialConnectionsLite: 59d830040573acb2c85c70d6e8569053bd4619de
+  StripeIssuing: 5151fde652801bfc4a8451ca34c1c02ad24b314b
+  StripePayments: 549705e138ab58b2531d5161bb0428e83e087938
+  StripePaymentSheet: 0af3078e3679a004a65909c5af13fa17b5888964
+  StripePaymentsUI: 538bc84068f5d8062761bdaceddfdff254d499c0
+  StripeUICore: fa08aabef37001ac1e34812e6fa225b780d75483
   VisionCamera: ca4b60174c9a91c6f5245a9911308021389c6d0e
   VisionCameraBarcodeScanner: c204fd4edca892178d16a2fd6aae3973e958cb5c
   Yoga: 0ae0debbb3f67b086f912c9d0c8faa2c7fb87c8a
