@@ -259,7 +259,9 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	// Entrega de efectivo por zonas (USDCASH…): solo si el servidor tiene zonas para la
 	// moneda Y su formulario tiene provincia (primer select) + municipio. Si no, o si la
 	// petición falla, todo sigue como antes (fee_pct del select de provincia)
-	const cashPayload = useCashZones(selectedCoin?.tick, hasCashZoneFields(workingFields))
+	const cashZonesResult = useCashZones(selectedCoin?.tick, hasCashZoneFields(workingFields))
+	const cashPayload = cashZonesResult.data
+	const cashZonesLoading = cashZonesResult.isLoading
 	const cashMode = useMemo(() => cashZoneModeFor(cashPayload, workingFields), [cashPayload, workingFields])
 	const provinceKey = cashMode ? keyFromFieldName(cashMode.provinceField) : null
 	const municipalityKey = cashMode ? keyFromFieldName(cashMode.municipalityField) : null
@@ -297,6 +299,8 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	const isFormValid = useMemo(() => {
 		if (!selectedCoin) { return false }
 		if (isCrypto && destination !== 'personal') { return false }
+		// Esperar zonas de efectivo mientras cargan (evita confirmar con fees incorrectos)
+		if (cashZonesLoading) { return false }
 		if (sourceSats) {
 			const sats = Number(amountSats)
 			if (!Number.isInteger(sats) || sats < MIN_SATS_REDEEM || sats > availableSats) { return false }
@@ -311,7 +315,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 			const value = (workingForm[key] ?? '').toString().trim()
 			return value.length > 0
 		})
-	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, workingFields, workingForm, cashMode, cashZone, belowZoneMin])
+	}, [selectedCoin, isCrypto, destination, cashZonesLoading, sourceSats, amountSats, availableSats, amountQUSD, workingFields, workingForm, cashMode, cashZone, belowZoneMin])
 
 	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)

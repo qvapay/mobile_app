@@ -13,20 +13,30 @@ import type { CashZonesPayload } from './cashZones'
 
 const EMPTY: CashZonesPayload = { coin: '', margin_pct: 0, zones: [] }
 
+export type CashZonesResult = { data: CashZonesPayload | null, isLoading: boolean }
+
 /**
  * @param tick - Ticker de la moneda elegida (null si no hay).
  * @param enabled - Si el formulario de la moneda tiene campos de provincia y municipio.
- * @returns La respuesta para ese tick, o null mientras carga / si no aplica.
+ * @returns La respuesta para ese tick con estado de carga, o datos vacíos si no aplica.
  */
-export default function useCashZones(tick: string | null | undefined, enabled: boolean): CashZonesPayload | null {
+export default function useCashZones(tick: string | null | undefined, enabled: boolean): CashZonesResult {
 
 	const [byTick, setByTick] = useState<Record<string, CashZonesPayload>>({})
+	const [loadingTicks, setLoadingTicks] = useState<Set<string>>(new Set())
 	const cached = tick ? byTick[tick] : undefined
+	const isLoading = !!(tick && enabled && loadingTicks.has(tick))
 
 	useEffect(() => {
 		if (!tick || !enabled || cached) return
 		let alive = true
-		const store = (payload: CashZonesPayload) => { if (alive) { setByTick(prev => ({ ...prev, [tick]: payload })) } }
+		setLoadingTicks(prev => new Set(prev).add(tick))
+		const store = (payload: CashZonesPayload) => {
+			if (alive) {
+				setByTick(prev => ({ ...prev, [tick]: payload }))
+				setLoadingTicks(prev => { const next = new Set(prev); next.delete(tick); return next })
+			}
+		}
 		Promise.resolve()
 			.then(() => withdrawApi.cashZones(tick))
 			.then((res) => {
@@ -37,5 +47,5 @@ export default function useCashZones(tick: string | null | undefined, enabled: b
 		return () => { alive = false }
 	}, [tick, enabled, cached])
 
-	return enabled && cached ? cached : null
+	return { data: enabled && cached ? cached : null, isLoading }
 }
