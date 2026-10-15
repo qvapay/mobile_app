@@ -16,6 +16,12 @@ type WithdrawAccountFieldsProps = {
 	workingForm: WorkingForm
 	onChangeField: (key: string, value: string) => void
 	multilineKeys?: string[]
+	/**
+	 * Sustituye un grupo de campos (por clave slug) por un nodo propio, pintado en la
+	 * posición del primero de ellos — la entrega de efectivo por zonas cambia provincia
+	 * + municipio por sus dos selects encadenados.
+	 */
+	slot?: { keys: string[], node: React.ReactNode } | null
 	theme: Theme
 	textStyles: TextStyles
 }
@@ -28,13 +34,18 @@ type WithdrawAccountFieldsProps = {
 // payloads — e.g. the BTCLN wallet field with a BOLT11 invoice — so they wrap
 // instead of scrolling, and disable autocapitalize/autocorrect that would
 // corrupt them.
-const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], theme, textStyles }: WithdrawAccountFieldsProps) => {
+const WithdrawAccountFields = ({ workingFields, workingForm, onChangeField, multilineKeys = [], slot = null, theme, textStyles }: WithdrawAccountFieldsProps) => {
 	const { t } = useTranslation()
+	const slotAt = slot ? workingFields.findIndex((field) => slot.keys.includes(keyFromFieldName(field.name))) : -1
 	return (
 	<View style={{ marginTop: 20 }}>
 		<Text style={[textStyles.h5, { color: theme.colors.secondaryText, marginBottom: 10 }]}>{t('withdraw.accountFields.title')}</Text>
-		{workingFields.map((field) => {
+		{workingFields.map((field, index) => {
 			const key = keyFromFieldName(field.name)
+
+			if (slot && slot.keys.includes(key)) {
+				return index === slotAt ? <View key={`slot-${key}`}>{slot.node}</View> : null
+			}
 
 			if (field.type === 'select' && Array.isArray(field.options) && field.options.length > 0) {
 				const current = workingForm[key] || ''

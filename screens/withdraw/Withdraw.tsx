@@ -17,6 +17,7 @@ import QPCoinPicker from '../../ui/QPCoinPicker'
 import WithdrawAmountCard from './WithdrawAmountCard'
 import WithdrawSatsCard from './WithdrawSatsCard'
 import WithdrawAccountFields from './WithdrawAccountFields'
+import CashZoneFields from './CashZoneFields'
 import WithdrawDestinationSelector from './WithdrawDestinationSelector'
 import PinConfirmStep from '../transaction/PinConfirmStep'
 
@@ -100,6 +101,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo,
 		isCrypto, destination, setDestination,
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
+		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin,
 		isFormValid, resetAmounts,
 	} = useWithdrawForm({
 		preselectedCoin: route?.params?.preselectedCoin,
@@ -224,7 +226,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 					)}
 
 					{/* Desglose del fee — misma cifra que cobrará el servidor */}
-					{!sourceSats && previewFee > 0 && (
+					{!sourceSats && previewFee > 0 && !cashZone && (
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, marginTop: 6 }]}>
 							{selectFeePct > 0
 								? t('withdraw.index.feeWithLogistics', { fee: previewFee.toFixed(2), pct: selectFeePct })
@@ -249,9 +251,45 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 							workingForm={workingForm}
 							onChangeField={(key, text) => setWorkingForm((prev) => ({ ...prev, [key]: text }))}
 							multilineKeys={isBTCLN ? ['wallet'] : []}
+							slot={cashMode && provinceKey && municipalityKey ? {
+								keys: [provinceKey, municipalityKey],
+								node: (
+									<CashZoneFields
+										mode={cashMode}
+										province={workingForm[provinceKey] || ''}
+										municipality={workingForm[municipalityKey] || ''}
+										zone={cashZone}
+										charge={feeBreakdown?.zone ?? null}
+										belowMin={belowZoneMin}
+										// Cambiar de provincia invalida el municipio elegido
+										onChangeProvince={(value) => setWorkingForm((prev) => ({ ...prev, [provinceKey]: value, [municipalityKey]: '' }))}
+										onChangeMunicipality={(value) => setWorkingForm((prev) => ({ ...prev, [municipalityKey]: value }))}
+										theme={theme}
+										textStyles={textStyles}
+									/>
+								),
+							} : null}
 							theme={theme}
 							textStyles={textStyles}
 						/>
+					)}
+
+					{/* Resumen de la entrega de efectivo: comisión base + cargo de entrega = total, y lo que se recibe */}
+					{!sourceSats && cashZone && feeBreakdown && (
+						<View style={{ marginTop: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, gap: 4 }}>
+							<Text style={[textStyles.h6, { color: theme.colors.primaryText, marginBottom: 2 }]}>{t('withdraw.cashZones.summary.title')}</Text>
+							{[
+								{ key: 'base', label: t('withdraw.cashZones.summary.baseFee'), value: feeBreakdown.base },
+								{ key: 'zone', label: t('withdraw.cashZones.summary.deliveryCharge'), value: feeBreakdown.zone.total },
+								{ key: 'total', label: t('withdraw.cashZones.summary.totalFee'), value: feeBreakdown.total },
+								{ key: 'receive', label: t('withdraw.cashZones.summary.received'), value: Math.max(0, receiveUsd) },
+							].map((row) => (
+								<View key={row.key} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+									<Text style={[textStyles.caption, { color: row.key === 'receive' ? theme.colors.primaryText : theme.colors.secondaryText }]}>{row.label}</Text>
+									<Text style={[textStyles.caption, { color: row.key === 'receive' && belowZoneMin ? theme.colors.danger : theme.colors.primaryText }]}>${row.value.toFixed(2)}</Text>
+								</View>
+							))}
+						</View>
 					)}
 
 					{/* Info autoritativa de la factura escaneada (decode del backend, no crítico) */}

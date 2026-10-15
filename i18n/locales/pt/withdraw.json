@@ -63,5 +63,29 @@
 		"useMyWallet": "Usar minha wallet pessoal",
 		"closeAccessibility": "Fechar e escolher o destino de novo",
 		"exchangeWarning": "Use uma wallet pessoal. Não nos responsabilizamos por fundos enviados a exchanges ou outros sistemas de terceiros: eles podem reter, marcar ou rejeitar seu depósito."
+	},
+	"cashZones": {
+		"selectProvince": "Escolha a província",
+		"selectMunicipality": "Escolha o município",
+		"chooseProvinceFirst": "Escolha primeiro a província",
+		"noHomeDelivery": "sem entrega em domicílio",
+		"etaHours": "{{min}}–{{max}} h",
+		"etaDays": "{{min}}–{{max}} dias",
+		"pickPrompt": "Escolha província e município para ver tarifa, prazo e mínimo",
+		"deliveryIn": "Entrega em {{municipality}}, {{province}}",
+		"eta": "Prazo: {{eta}}",
+		"charge": "Taxa de entrega: ${{amount}}",
+		"chargePct": "Taxa de entrega: {{pct}}% do valor",
+		"minimum": "Mínimo a entregar: ${{min}}",
+		"noHomeDeliveryNotice": "Não há entrega em domicílio neste município",
+		"cancelNotice": "Depois de atribuída, a entrega só pode ser cancelada após {{days}} dias",
+		"belowMin": "O mínimo a entregar em {{municipality}} é ${{min}}",
+		"summary": {
+			"title": "Resumo",
+			"baseFee": "Tarifa",
+			"deliveryCharge": "Taxa de entrega",
+			"totalFee": "Tarifa total",
+			"received": "Você recebe"
+		}
 	}
 }
