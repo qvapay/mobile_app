@@ -63,5 +63,29 @@
 		"useMyWallet": "Use my personal wallet",
 		"closeAccessibility": "Close and choose the destination again",
 		"exchangeWarning": "Use a personal wallet. We are not responsible for funds sent to exchanges or other third-party systems: they can hold, flag or reject your deposit."
+	},
+	"cashZones": {
+		"selectProvince": "Choose the province",
+		"selectMunicipality": "Choose the municipality",
+		"chooseProvinceFirst": "Choose the province first",
+		"noHomeDelivery": "no home delivery",
+		"etaHours": "{{min}}–{{max}} h",
+		"etaDays": "{{min}}–{{max}} days",
+		"pickPrompt": "Choose province and municipality to see fee, delivery time and minimum",
+		"deliveryIn": "Delivery in {{municipality}}, {{province}}",
+		"eta": "Delivery time: {{eta}}",
+		"charge": "Delivery charge: ${{amount}}",
+		"chargePct": "Delivery charge: {{pct}}% of the amount",
+		"minimum": "Minimum to deliver: ${{min}}",
+		"noHomeDeliveryNotice": "Home delivery is not available in this municipality",
+		"cancelNotice": "Once assigned, the delivery can only be cancelled after {{days}} days",
+		"belowMin": "The minimum to deliver in {{municipality}} is ${{min}}",
+		"summary": {
+			"title": "Summary",
+			"baseFee": "Fee",
+			"deliveryCharge": "Delivery charge",
+			"totalFee": "Total fee",
+			"received": "You receive"
+		}
 	}
 }

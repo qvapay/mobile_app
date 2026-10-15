@@ -2,6 +2,7 @@ import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiResult } from '../types/api'
 import type { OfacCompliancePayload } from '../helpers/ofacCompliance'
+import type { CashZonesPayload } from '../screens/withdraw/cashZones'
 
 /** Parámetros de `withdrawApi.withdraw` (paso 2 del flujo de retiro). */
 export type WithdrawInput = {
@@ -159,6 +160,27 @@ export const withdrawApi = {
 			const error = err as ApiClientError
 			if (error.response?.data) {
 				return { success: false, error: error.response.data.error || i18n.t('api.withdraw.lightningInvalid'), status: error.response.status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Zonas de entrega de efectivo de una moneda (`GET /withdraw/cash-zones?coin=`,
+	 * pública, silent). `zones` vacío ⇒ la moneda no va por zonas. Un fallo nunca
+	 * debe bloquear el retiro: la pantalla vuelve al comportamiento previo.
+	 *
+	 * @param tick - Ticker de la moneda (p. ej. USDCASH).
+	 * @returns `{ success, data?, error?, status? }` — `data` es `{ coin, margin_pct, zones }`
+	 */
+	cashZones: async (tick: string): Promise<ApiResult<CashZonesPayload>> => {
+		try {
+			const response = await apiClient.get('/withdraw/cash-zones', { params: { coin: tick }, silent: true })
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			if (error.response?.data) {
+				return { success: false, error: error.response.data.error || i18n.t('api.common.networkError'), status: error.response.status }
 			}
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
