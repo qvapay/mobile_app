@@ -8,6 +8,7 @@
  */
 import {
 	isMethodNotAllowed,
+	isDataUnavailable,
 	createRpcRouter,
 	isRetryableRpcError,
 	AllRpcsFailedError,
@@ -149,6 +150,39 @@ describe('call', () => {
 		expect(isMethodNotAllowed(refusal())).toBe(true)
 		expect(isMethodNotAllowed(new Error('Method not found'))).toBe(true)
 		expect(isMethodNotAllowed(new Error('HTTP 403'))).toBe(false)
+	})
+
+	test('un dato que el nodo no guarda (bloque podado) rota sin romper el nodo', async () => {
+		// El fallo real (2026-10-17): sol.qvapay.com poda a ~3,7 h y getInflationReward de la
+		// epoch anterior pide un bloque que ya no tiene. Cada apertura del selector de
+		// validador sumaba un fallo y a la tercera nuestro nodo salía del router
+		const { router } = makeRouter(makeRegistry(RPCS()))
+		const pruned = () => Object.assign(new Error('https://api.trongrid.io: getInflationReward → Block 457920000 cleaned up, does not exist on node. First available block: 458090636'), { retryable: false })
+		for (let i = 0; i < MAX_FAILURES + 2; i++) {
+			const seen = []
+			const result = await router.call('tron', (rpc) => {
+				seen.push(rpc.url)
+				if (rpc.url === 'https://api.trongrid.io') throw pruned()
+				return Promise.resolve('ok')
+			}, { idempotent: true })
+			expect(result).toBe('ok')
+			expect(seen[0]).toBe('https://api.trongrid.io')
+		}
+	})
+
+	test('isDataUnavailable: mensajes de Agave de "no está en este nodo" o "aún no existe"', () => {
+		const rpc = (message) => new Error(`https://sol.qvapay.com: getInflationReward → ${message}`)
+		expect(isDataUnavailable(rpc('Block 457920000 cleaned up, does not exist on node. First available block: 458090636'))).toBe(true)
+		expect(isDataUnavailable(rpc('Slot 1 was skipped, or missing due to ledger jump to recent snapshot'))).toBe(true)
+		expect(isDataUnavailable(rpc('Slot 1 was skipped, or missing in long-term storage'))).toBe(true)
+		expect(isDataUnavailable(rpc('Transaction history is not available from this node'))).toBe(true)
+		expect(isDataUnavailable(rpc('Rewards cannot be found because slot 1 is not the epoch boundary.This may be due to gap in the queried node\'s local ledger or long-term storage'))).toBe(true)
+		expect(isDataUnavailable(rpc('Epoch rewards period still active at slot 457920100'))).toBe(true)
+		// Un nodo atrasado o enfermo SÍ es un fallo del nodo
+		expect(isDataUnavailable(rpc('Block not available for slot 1'))).toBe(false)
+		expect(isDataUnavailable(rpc('Node is behind by 120 slots'))).toBe(false)
+		expect(isDataUnavailable(new Error('http 502'))).toBe(false)
+		expect(isDataUnavailable(null)).toBe(false)
 	})
 
 	test('una LECTURA rota ante cualquier error: repetirla no puede duplicar nada', async () => {
