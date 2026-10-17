@@ -63,5 +63,32 @@
 		"useMyWallet": "Usar mi wallet personal",
 		"closeAccessibility": "Cerrar y volver a elegir destino",
 		"exchangeWarning": "Usa una wallet personal. No nos hacemos responsables de fondos enviados a exchanges u otros sistemas de terceros: pueden retener, marcar o rechazar tu depósito."
+	},
+	"cashZones": {
+		"selectProvince": "Elige la provincia",
+		"selectMunicipality": "Elige el municipio",
+		"chooseProvinceFirst": "Primero elige la provincia",
+		"noHomeDelivery": "sin domicilio",
+		"etaHours": "{{min}}–{{max}} h",
+		"etaDays": "{{min}}–{{max}} días",
+		"pickPrompt": "Elige provincia y municipio para ver tarifa, plazo y mínimo",
+		"deliveryIn": "Entrega en {{municipality}}, {{province}}",
+		"eta": "Plazo: {{eta}}",
+		"charge": "Cargo de entrega: ${{amount}}",
+		"chargePct": "Cargo de entrega: {{pct}}% del monto",
+		"minimum": "Mínimo a entregar: ${{min}}",
+		"noHomeDeliveryNotice": "En este municipio no hay entrega a domicilio: el beneficiario recoge el efectivo",
+		"cancelNotice": "Una vez asignada, la entrega solo puede cancelarse pasados {{days}} días",
+		"belowMin": "El mínimo a entregar en {{municipality}} es ${{min}}",
+		"summary": {
+			"title": "Resumen",
+			"baseFee": "Comisión",
+			"deliveryCharge": "Cargo de entrega",
+			"totalFee": "Comisión total",
+			"received": "Recibes"
+		},
+		"loadError": "No pudimos cargar las zonas de entrega. Sin ellas no podemos calcular la comisión de la entrega.",
+		"agentContact": "Un agente contactará al beneficiario por teléfono para coordinar la entrega",
+		"chargeWithFlat": "Cargo de entrega: ${{amount}} (incluye la tarifa mínima de ${{flat}})"
 	}
 }

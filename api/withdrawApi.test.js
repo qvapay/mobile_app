@@ -221,3 +221,32 @@ describe('withdrawApi.decodeLightning', () => {
 		expect(result.error).toMatch(/expirar/)
 	})
 })
+
+describe('withdrawApi.cashZones', () => {
+
+	test('GETs /withdraw/cash-zones with the coin as a query param, silent', async () => {
+		const data = { coin: 'USDCASH', margin_pct: 1, zones: [] }
+		apiClient.get.mockResolvedValue({ data, status: 200 })
+
+		const result = await withdrawApi.cashZones('USDCASH')
+
+		expect(apiClient.get).toHaveBeenCalledWith('/withdraw/cash-zones', { params: { coin: 'USDCASH' }, silent: true })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
+	test('returns the server error on failure', async () => {
+		apiClient.get.mockRejectedValue(apiError(500, { error: 'Boom' }))
+
+		const result = await withdrawApi.cashZones('USDCASH')
+
+		expect(result).toEqual({ success: false, error: 'Boom', status: 500 })
+	})
+
+	test('returns a network error result when there is no response', async () => {
+		apiClient.get.mockRejectedValue(networkError())
+
+		const result = await withdrawApi.cashZones('USDCASH')
+
+		expect(result).toEqual({ success: false, error: 'Network Error', status: undefined })
+	})
+})

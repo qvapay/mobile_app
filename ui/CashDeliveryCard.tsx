@@ -19,18 +19,18 @@ import KycGateModal from './KycGateModal'
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
-// Theme-aware vector map of Havana
-import HavanaMapArt, { MAP_W, MAP_H } from './HavanaMapArt'
-import { COURIER_ROUTES } from './havanaGeo'
+// Theme-aware vector map of a provincial capital (real OSM geography)
+import CashCityMapArt, { MAP_W, MAP_H } from './CashCityMapArt'
+import { pickCashCity } from './cashGeo'
 
-// Each courier cycles its own route subset (real street-routed polylines),
-// staggered so deliveries overlap but never move in lockstep. `msPerPx`
-// keeps speed constant per courier: long trips (around the bay) take
+// Each courier cycles its own pair of the city's six routes (real
+// street-routed polylines), staggered so deliveries overlap but never move in
+// lockstep. `msPerPx` keeps speed constant per courier: long trips take
 // proportionally longer than short hops.
 const COURIERS = [
-	{ routes: [COURIER_ROUTES.vedadoHV, COURIER_ROUTES.hvRegla], initialDelay: 0, msPerPx: 85 },
-	{ routes: [COURIER_ROUTES.miramarVedado, COURIER_ROUTES.vedadoInterior], initialDelay: 2600, msPerPx: 100 },
-	{ routes: [COURIER_ROUTES.este, COURIER_ROUTES.centroCerro], initialDelay: 5400, msPerPx: 92 },
+	{ routes: [0, 1], initialDelay: 0, msPerPx: 85 },
+	{ routes: [2, 3], initialDelay: 2600, msPerPx: 100 },
+	{ routes: [4, 5], initialDelay: 5400, msPerPx: 92 },
 ]
 
 // Precompute a route as normalized cumulative distances so the marker moves
@@ -144,11 +144,12 @@ const Courier = ({ routes, initialDelay, msPerPx, scaleX, accent }: CourierProps
 }
 
 /**
- * Home screen promo card for the USD CASH delivery service (cash delivered in
- * Havana within 72h). Renders a theme-aware, zoomed-out vector map of Havana
- * (HavanaMapArt) with a fleet of three couriers running staggered delivery
- * cycles: an order pin pops up somewhere in the city, a "$" chip rides its
- * dotted route, a success ring bursts on arrival and the delivery vanishes —
+ * Home screen promo card for the USD CASH delivery service (cash delivered
+ * across Cuba; provincial capitals within 72h). On mount it
+ * picks a random provincial capital (ui/cashGeo) and renders its theme-aware
+ * vector map (CashCityMapArt) with a fleet of three couriers running staggered
+ * delivery cycles: an order pin pops up somewhere in the city, a "$" chip rides
+ * its dotted route, a success ring bursts on arrival and the delivery vanishes —
  * then the courier picks its next route. The land fill IS the card surface
  * color, so the copy sits on clean surface with no scrim needed. Tapping
  * opens the Withdraw flow with `USDCASH` preselected. Border only appears in
@@ -178,6 +179,11 @@ const CashDeliveryCard = ({ navigation }: { navigation: NavigationProp<RootStack
 		gateMessage: string | null
 		closeGate: () => void
 	}
+
+	// Una cabecera de provincia al azar por montaje: el Home vive montado, así que en la
+	// práctica cambia de ciudad en cada arranque de la app
+	const [city] = useState(() => pickCashCity())
+	const cityName = city.key === 'havana' ? t('ui.cashDelivery.havana') : city.name
 
 	// Rendered map width (card width). Seeded from the window so overlays are
 	// positioned on first paint; onLayout corrects for iPad/split view.
@@ -226,11 +232,18 @@ const CashDeliveryCard = ({ navigation }: { navigation: NavigationProp<RootStack
 				{/* Map area */}
 				<View style={styles.mapArea} onLayout={e => setMapWidth(e.nativeEvent.layout.width)}>
 
-					<HavanaMapArt palette={palette} />
+					<CashCityMapArt geo={city} palette={palette} />
 
 					{/* Courier fleet */}
-					{COURIERS.map((courier) => (
-						<Courier key={courier.initialDelay} {...courier} scaleX={scaleX} accent={theme.colors.primary} />
+					{COURIERS.map(({ routes, initialDelay, msPerPx }) => (
+						<Courier
+							key={`${city.key}-${initialDelay}`}
+							routes={routes.map(index => city.routes[index])}
+							initialDelay={initialDelay}
+							msPerPx={msPerPx}
+							scaleX={scaleX}
+							accent={theme.colors.primary}
+						/>
 					))}
 
 					{/* Title overlay */}
@@ -239,7 +252,7 @@ const CashDeliveryCard = ({ navigation }: { navigation: NavigationProp<RootStack
 							USD CASH
 						</Text>
 						<Text style={[styles.cardSubtitle, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>
-							{t('ui.cashDelivery.subtitle')}
+							{t('ui.cashDelivery.subtitle', { city: cityName })}
 						</Text>
 					</View>
 				</View>

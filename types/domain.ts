@@ -135,6 +135,29 @@ export type Coin = {
 	working_data?: CoinWorkingField[] | string | null
 }
 
+/** Una zona de entrega de efectivo tal como la sirve `GET /withdraw/cash-zones` (reglas en `screens/withdraw/cashZones.ts`). */
+export type CashZone = {
+	id: string
+	coin_tick: string
+	province_code: string
+	province_name: string
+	municipality: string
+	is_capital?: boolean
+	provider_pct: number
+	/** null ⇒ se usa el margen global de la respuesta. */
+	margin_pct: number | null
+	min_usd: number
+	small_flat_usd: number | null
+	eta_min_hours: number
+	eta_max_hours: number
+	home_delivery: boolean
+	route?: string
+	enabled: boolean
+}
+
+/** Respuesta de `GET /withdraw/cash-zones?coin=`. `zones` vacío ⇒ la moneda no va por zonas. */
+export type CashZonesPayload = { coin: string, margin_pct: number, zones: CashZone[] }
+
 /**
  * Coin enriquecida por el CLIENTE (cryptoQueries/homeQueries): precio spot
  * sobrescrito + variación calculada contra el histórico. No viene del backend.

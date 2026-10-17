@@ -17,6 +17,9 @@ import { isCryptoCoin } from './withdrawDestination'
 import type { WithdrawDestination } from './withdrawDestination'
 import { calculateFee, grossFromNet, getSelectFeePct, keyFromFieldName } from './withdrawFees'
 import type { WorkingForm } from './withdrawFees'
+import { calculateCashFee, cashZoneModeFor, findZone, grossFromNetCash, hasCashZoneFields, meetsZoneMinimum } from './cashZones'
+import type { CashFeeBreakdown } from './cashZones'
+import { useCashZonesQuery } from './withdrawQueries'
 import useCoins from '../../hooks/useCoins'
 
 // API
@@ -202,7 +205,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		setAmountQUSD(value)
 		const num = Number(value)
 		if (selectedCoin && !isNaN(num) && num > 0) {
-			const totalFee = calculateFee(num, selectedCoin, { isGold, selectFeePct })
+			const totalFee = calculateCashFee(num, selectedCoin, feeOptions).total
 			const netUsd = num - totalFee
 			const netInCoin = usdToCoin(netUsd, selectedCoin)
 			setAmountCoin(netInCoin > 0 ? netInCoin.toFixed(coinDecimals) : '')
@@ -217,7 +220,8 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		const coinAmt = Number(value)
 		if (selectedCoin && !isNaN(coinAmt) && coinAmt > 0) {
 			const netUsd = coinToUsd(coinAmt, selectedCoin)
-			const requiredQUSD = grossFromNet(netUsd, selectedCoin, { isGold, selectFeePct })
+			// Con zona de efectivo el tramo fijo rompe la fórmula cerrada: bisección (como la web)
+			const requiredQUSD = cashZone ? grossFromNetCash(netUsd, selectedCoin, feeOptions) : grossFromNet(netUsd, selectedCoin, { isGold, selectFeePct })
 			setAmountQUSD(requiredQUSD > 0 ? String(Math.round(requiredQUSD * 100) / 100) : '')
 		} else {
 			setAmountQUSD('')
@@ -252,25 +256,45 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		setDestination('personal')
 	}, [prefillAddress, preselectedCoin, selectedCoin, workingFields])
 
-	const selectFeePct = useMemo(() => getSelectFeePct(workingFields, workingForm), [workingFields, workingForm])
+	// Entrega de efectivo por zonas (USDCASH…): solo si el servidor tiene zonas para la
+	// moneda Y su formulario tiene provincia (primer select) + municipio. Si no, todo sigue
+	// como antes (fee_pct del select de provincia). Mientras la tarifa no llega, o si falla,
+	// no se puede continuar: el servidor cobraría por zona un fee que no se ha enseñado
+	const { payload: cashPayload, status: cashZonesStatus, refetch: retryCashZones } = useCashZonesQuery(selectedCoin?.tick, hasCashZoneFields(workingFields))
+	const cashZonesPending = cashZonesStatus === 'loading' || cashZonesStatus === 'error'
+	const cashMode = useMemo(() => cashZoneModeFor(cashPayload, workingFields), [cashPayload, workingFields])
+	const provinceKey = cashMode ? keyFromFieldName(cashMode.provinceField) : null
+	const municipalityKey = cashMode ? keyFromFieldName(cashMode.municipalityField) : null
+	const provinceValue = provinceKey ? workingForm[provinceKey] : undefined
+	const municipalityValue = municipalityKey ? workingForm[municipalityKey] : undefined
+	const cashZone = useMemo(() => cashMode ? findZone(cashMode.zones, { province: provinceValue, municipality: municipalityValue }) : null, [cashMode, provinceValue, municipalityValue])
 
-	// Fee total de la vista previa (para el desglose bajo la tarjeta de monto)
-	const previewFee = useMemo(() => {
+	// En modo zonas el fee_pct del select de provincia NO cuenta (lo sustituye el cargo de zona)
+	const selectFeePct = useMemo(() => getSelectFeePct(workingFields, workingForm, cashMode?.provinceField ?? null), [workingFields, workingForm, cashMode])
+	const feeOptions = { isGold, selectFeePct, zone: cashZone, globalMarginPct: cashMode?.globalMarginPct }
+
+	// Desglose del fee de la vista previa (base + cargo de zona) — misma suma que el servidor
+	const feeBreakdown = useMemo<CashFeeBreakdown | null>(() => {
 		const num = Number(amountQUSD)
-		if (!selectedCoin || isNaN(num) || num <= 0) return 0
-		return calculateFee(num, selectedCoin, { isGold, selectFeePct })
-	}, [amountQUSD, selectedCoin, isGold, selectFeePct])
+		if (!selectedCoin || isNaN(num) || num <= 0) return null
+		return calculateCashFee(num, selectedCoin, { isGold, selectFeePct, zone: cashZone, globalMarginPct: cashMode?.globalMarginPct })
+	}, [amountQUSD, selectedCoin, isGold, selectFeePct, cashZone, cashMode])
+	const previewFee = feeBreakdown?.total ?? 0
+
+	// Lo que se ENTREGA en USD (el mínimo de la zona se mide sobre esto)
+	const receiveUsd = feeBreakdown ? Math.round((Number(amountQUSD) - feeBreakdown.total) * 100) / 100 : 0
+	const belowZoneMin = !!cashZone && !!feeBreakdown && !meetsZoneMinimum(cashZone, receiveUsd)
 
 	// Elegir provincia (o refrescar el precio de la coin) cambia el fee después
 	// de tecleado el monto: se re-deriva el lado "Recibir" desde el bruto vigente
 	const resyncReceiveAmount = useEffectEvent(() => {
 		const num = Number(amountQUSD)
 		if (!selectedCoin || isNaN(num) || num <= 0) return
-		const totalFee = calculateFee(num, selectedCoin, { isGold, selectFeePct })
+		const totalFee = calculateCashFee(num, selectedCoin, feeOptions).total
 		const netInCoin = usdToCoin(num - totalFee, selectedCoin)
 		setAmountCoin(netInCoin > 0 ? netInCoin.toFixed(coinDecimals) : '')
 	})
-	useEffect(() => { resyncReceiveAmount() }, [selectFeePct, selectedCoin])
+	useEffect(() => { resyncReceiveAmount() }, [selectFeePct, selectedCoin, cashZone, cashMode])
 
 	const isFormValid = useMemo(() => {
 		if (!selectedCoin) { return false }
@@ -282,12 +306,15 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 			const amount = Number(amountQUSD)
 			if (!amount || isNaN(amount)) { return false }
 		}
+		// Modo zonas: tarifa cargada, municipio cubierto y lo entregado ≥ mínimo de la zona (si no, 400 del servidor)
+		if (cashZonesPending) { return false }
+		if (cashMode && (!cashZone || belowZoneMin)) { return false }
 		return workingFields.every((field) => {
 			const key = keyFromFieldName(field.name)
 			const value = (workingForm[key] ?? '').toString().trim()
 			return value.length > 0
 		})
-	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, workingFields, workingForm])
+	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, workingFields, workingForm, cashZonesPending, cashMode, cashZone, belowZoneMin])
 
 	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
@@ -327,6 +354,8 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		isCrypto, destination, setDestination,
 		// Campos dinámicos y fees
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
+		// Entrega de efectivo por zonas
+		cashMode, cashZone, provinceKey, municipalityKey, feeBreakdown, receiveUsd, belowZoneMin, cashZonesStatus, retryCashZones,
 		// Validación y limpieza
 		isFormValid, resetAmounts,
 	}

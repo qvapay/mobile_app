@@ -23,10 +23,11 @@
 	},
 	"cashDelivery": {
 		"sectionTitle": "Envío de efectivo",
-		"subtitle": "Recibe USD en efectivo en La Habana\nen menos de 72 horas",
+		"subtitle": "Recibe USD en efectivo en {{city}}\nen menos de 72 horas",
 		"cta": "Enviar efectivo",
 		"kycGateMessage": "Para enviar efectivo con USD CASH necesitas tener tu identidad verificada. Es rápido y solo se hace una vez.",
-		"kycRequired": "Requiere identidad verificada"
+		"kycRequired": "Requiere identidad verificada",
+		"havana": "La Habana"
 	},
 	"coinPicker": {
 		"title": "Seleccionar Moneda",
