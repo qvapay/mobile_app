@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type TextInputInstance } from 'react-native'
+import { ScrollView, StyleSheet, View, type TextInputInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -35,6 +35,7 @@ import { useExchangeCatalogQuery } from './exchangeQueries'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPKeyboardAvoidingView from '../../../ui/QPKeyboardAvoidingView'
 import PinConfirmStep from '../../transaction/PinConfirmStep'
 import WalletAuthModal from './components/WalletAuthModal'
 import QPAmountCard from '../../../ui/QPAmountCard'
@@ -439,7 +440,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const { out } = swapFlow
 
 	return (
-		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={containerStyles.subContainer}>
+		<QPKeyboardAvoidingView style={containerStyles.subContainer}>
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
 				<View>
@@ -545,7 +546,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 				onClose={swapFlow.closeAuth}
 				onAuthorized={swapFlow.onAuthorized}
 			/>
-		</KeyboardAvoidingView>
+		</QPKeyboardAvoidingView>
 	)
 }
 

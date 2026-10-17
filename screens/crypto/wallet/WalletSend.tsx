@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import Clipboard from '@react-native-clipboard/clipboard'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -26,6 +26,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPKeyboardAvoidingView from '../../../ui/QPKeyboardAvoidingView'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import TronControlWarning from './components/TronControlWarning'
@@ -67,6 +68,12 @@ const WalletSend = ({ navigation, route }: Props) => {
 	const [to, setTo] = useState('')
 	const toParts = splitAddress(to)
 	const [amount, setAmount] = useState('')
+	// Con el teclado abierto, el error del importe (lo único que explica un Continuar apagado)
+	// queda debajo del campo, fuera de la vista en un móvil pequeño: escribiendo el importe se
+	// baja al final. Solo con el importe enfocado: con la dirección, el final la sacaría por arriba
+	const scrollRef = useRef<ScrollViewInstance>(null)
+	const amountFocused = useRef(false)
+	const revealAmountError = () => { if (amountFocused.current) scrollRef.current?.scrollToEnd({ animated: true }) }
 	// Token ⇄ USD (solo activos volátiles con precio). Lo que manda siempre son
 	// unidades del token; `exactUnits` fija las exactas tras MÁX o al conmutar,
 	// para que el redondeo del texto no las mueva hasta que el usuario teclee
@@ -200,8 +207,8 @@ const WalletSend = ({ navigation, route }: Props) => {
 	const amountTextStyle = { fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xxl }
 
 	return (
-		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={containerStyles.subContainer}>
-			<ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+		<QPKeyboardAvoidingView style={containerStyles.subContainer}>
+			<ScrollView ref={scrollRef} onLayout={revealAmountError} style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
 				<QPPressable onPress={() => navigation.setParams({ assetId: undefined })} style={[styles.assetChip, { backgroundColor: theme.colors.surface }]} accessibilityRole="button">
 					<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={28} />
@@ -261,6 +268,8 @@ const WalletSend = ({ navigation, route }: Props) => {
 							style={[amountTextStyle, { color: theme.colors.primaryText, height: Math.ceil(theme.typography.fontSize.xxl * 1.5), paddingVertical: 0 }]}
 							value={amount}
 							onChangeText={onChangeAmount}
+							onFocus={() => { amountFocused.current = true; revealAmountError() }}
+							onBlur={() => { amountFocused.current = false }}
 							keyboardType="decimal-pad"
 							accessibilityLabel={t('crypto.wallet.send.amountLabel')}
 						/>
@@ -293,7 +302,7 @@ const WalletSend = ({ navigation, route }: Props) => {
 			<View style={styles.footer}>
 				<QPButton title={tronBlocked ? t('crypto.wallet.tronControl.blocked') : t('crypto.wallet.send.continue')} onPress={goConfirm} disabled={!canContinue} />
 			</View>
-		</KeyboardAvoidingView>
+		</QPKeyboardAvoidingView>
 	)
 }
 
