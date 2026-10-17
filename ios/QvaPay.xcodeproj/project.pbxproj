@@ -26,6 +26,8 @@
 		A480A40C4ECB40CDBFF36BD2 /* Rubik-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F5CBF97365B148819C5AB0B4 /* Rubik-ExtraBoldItalic.ttf */; };
 		A4C6241C9C09420B9B5C2957 /* Rubik-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E49E54F8521A475FBBDE6436 /* Rubik-Italic.ttf */; };
 		B15C8D6CB1614B5DA682984A /* Rubik-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F830386247324584A758F99F /* Rubik-Regular.ttf */; };
+		0BA98E85702F49D1A61CC099 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 66D2E84719B54BDC8E67CBBD /* JetBrainsMono-Regular.ttf */; };
+		EEFA88516CD247B1AA840579 /* JetBrainsMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */; };
 		BDE8A477E53F40B6930662FD /* money_in.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 03197938F21847F3BA47AD8F /* money_in.mp3 */; };
 		CBBEEC46E19B43BCAF779D1F /* Rubik-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8E9D94C077544204A97C61B0 /* Rubik-Black.ttf */; };
 		CF67CAB6313CBE64618CB206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
@@ -105,6 +107,8 @@
 		F113463BD7074ADABB90FFFD /* Rubik-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-SemiBoldItalic.ttf"; path = "../assets/fonts/Rubik-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		F5CBF97365B148819C5AB0B4 /* Rubik-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-ExtraBoldItalic.ttf"; path = "../assets/fonts/Rubik-ExtraBoldItalic.ttf"; sourceTree = "<group>"; };
 		F830386247324584A758F99F /* Rubik-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Regular.ttf"; path = "../assets/fonts/Rubik-Regular.ttf"; sourceTree = "<group>"; };
+		66D2E84719B54BDC8E67CBBD /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "JetBrainsMono-Regular.ttf"; path = "../assets/fonts/JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
+		62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "JetBrainsMono-Medium.ttf"; path = "../assets/fonts/JetBrainsMono-Medium.ttf"; sourceTree = "<group>"; };
 		FF340230807742DD96C8FB8E /* Rubik-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-ExtraBold.ttf"; path = "../assets/fonts/Rubik-ExtraBold.ttf"; sourceTree = "<group>"; };
 		W1000001000000000000000A /* QvaPayWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QvaPayWidgetBundle.swift; sourceTree = "<group>"; };
 		W1000002000000000000000A /* P2PRatesWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = P2PRatesWidget.swift; sourceTree = "<group>"; };
@@ -182,6 +186,8 @@
 				5E8F0AB89ECF41FE9DBC1216 /* Rubik-Medium.ttf */,
 				744F72DE4FF142C5B9489AC9 /* Rubik-MediumItalic.ttf */,
 				F830386247324584A758F99F /* Rubik-Regular.ttf */,
+				66D2E84719B54BDC8E67CBBD /* JetBrainsMono-Regular.ttf */,
+				62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */,
 				C02C8B1814194B3F9B8D38C0 /* Rubik-SemiBold.ttf */,
 				F113463BD7074ADABB90FFFD /* Rubik-SemiBoldItalic.ttf */,
 				03197938F21847F3BA47AD8F /* money_in.mp3 */,
@@ -347,6 +353,8 @@
 				D01923873AFB4AF4A0DEC6B9 /* Rubik-Medium.ttf in Resources */,
 				A318F63EDC4646A6BC353698 /* Rubik-MediumItalic.ttf in Resources */,
 				B15C8D6CB1614B5DA682984A /* Rubik-Regular.ttf in Resources */,
+				0BA98E85702F49D1A61CC099 /* JetBrainsMono-Regular.ttf in Resources */,
+				EEFA88516CD247B1AA840579 /* JetBrainsMono-Medium.ttf in Resources */,
 				21B80A3051704DD8A6AB1317 /* Rubik-SemiBold.ttf in Resources */,
 				29E48705002D461B84EA169F /* Rubik-SemiBoldItalic.ttf in Resources */,
 				BDE8A477E53F40B6930662FD /* money_in.mp3 in Resources */,

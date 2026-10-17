@@ -6,7 +6,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import type { Theme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
@@ -259,7 +259,7 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 									</Text>
 									{!!target && (
 										<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }} numberOfLines={1}>
-											{target.partner ? `${t('crypto.staking.picker.partner')} · ` : ''}{shortAddress(target.id)}
+											{target.partner ? `${t('crypto.staking.picker.partner')} · ` : ''}<Text style={monoFont(theme)}>{shortAddress(target.id)}</Text>
 										</Text>
 									)}
 								</View>

@@ -15,10 +15,10 @@ import { explorerTxUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { isStakingKind } from '../../../wallet/staking/types'
 import { useAssetCatalog } from './walletQueries'
-import { shortAddress } from './walletFormat'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPAddress from '../../../ui/particles/QPAddress'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
@@ -83,7 +83,7 @@ const WalletStakeSuccess = ({ navigation, route }: Props) => {
 					)}
 					<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.staking.success.txid')}</Text>
 					<QPPressable onPress={copy} style={styles.hashRow} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.send.copyHash')}>
-						<Text style={[textStyles.h6, styles.hash, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{shortAddress(txid, 10, 10)}</Text>
+						<QPAddress address={txid} visible={{ head: 10, tail: 10 }} highlight={false} style={[textStyles.h6, styles.hash, { color: theme.colors.tertiaryText }]} numberOfLines={1} />
 						<FontAwesome6 name="copy" size={12} color={theme.colors.tertiaryText} iconStyle="regular" />
 					</QPPressable>
 				</View>

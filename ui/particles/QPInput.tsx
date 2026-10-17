@@ -110,7 +110,8 @@ const QPInput = ({ ref, highlightAddress, ...props }: QPInputProps) => {
 					style={[
 						styles.input,
 						{
-							color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.regular,
+							// Campo de dirección: mono desde la primera tecla (cambiar de fuente al cruzar los 12 caracteres saltaría)
+							color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: highlightAddress ? theme.typography.fontFamily.mono : theme.typography.fontFamily.regular,
 							height: multiline ? 100 : 50,
 							paddingLeft: hasPrefix ? 0 : 15,
 							paddingRight: hasSuffix ? 0 : 15,

@@ -6,7 +6,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
@@ -208,7 +208,7 @@ const WalletSend = ({ navigation, route }: Props) => {
 				<Text style={[textStyles.h5, styles.label, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.send.toLabel')}</Text>
 				<View style={[styles.field, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 					<TextInput
-						style={[styles.input, textStyles.h5, { color: theme.colors.primaryText }]}
+						style={[styles.input, textStyles.h5, { color: theme.colors.primaryText }, monoFont(theme, textStyles.h5)]}
 						// Dirección resaltada (6+6 en primary): SIEMPRE Text anidado, nunca `value`;
 						// pasar de uno a otro a mitad de escribir movía el cursor en iOS
 						onChangeText={setTo}

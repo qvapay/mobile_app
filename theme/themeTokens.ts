@@ -140,6 +140,10 @@ export const createTheme = (isDark: boolean, fontScale: number = 1.0, accentId: 
 			bold: 'Rubik-Bold',
 			black: 'Rubik-Black',
 			light: 'Rubik-Light',
+			// Direcciones y hashes: JetBrains Mono recortada a ASCII + `…·•` (assets/fonts, ~19 KB por peso).
+			// Un carácter fuera del recorte cae a la fuente del sistema
+			mono: 'JetBrainsMono-Regular',
+			monoMedium: 'JetBrainsMono-Medium',
 		},
 		fontSize: {
 			xs: Math.round(12 * fontScale),

@@ -13,7 +13,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 import { useAuth } from '../../../auth/AuthContext'
 import { isHouseToken } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
-import { formatUsd, shortAddress } from './walletFormat'
+import { formatUsd } from './walletFormat'
 import { swapTimeline } from './swapModel'
 import { HOME_QUERY_KEY } from '../../home/homeQueries'
 
@@ -139,7 +139,7 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 					{!!swap.txid && (
 						<QPPressable onPress={() => { if (swap.explorer) Linking.openURL(swap.explorer) }} style={styles.row} accessibilityRole="link">
 							<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{t('crypto.wallet.swap.status.txLabel')}</Text>
-							<Text style={[styles.rowValue, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]}>{shortAddress(swap.txid, 8, 8)}</Text>
+							<QPAddress address={swap.txid} visible={{ head: 8, tail: 8 }} highlight={false} style={[styles.rowValue, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} />
 						</QPPressable>
 					)}
 				</View>

@@ -179,6 +179,7 @@ const containerStyles = createContainerStyles(theme)
 ```
 Colors: primary `#6759EF`, success `#7BFFB1`, danger `#DB253E`, warning `#ff9f43`, gold `#FFD700`
 Dark (default): bg `#0E0E1C`, surface `#1E2039`. Font: Rubik family.
+**Direcciones y hashes en mono**: JetBrains Mono Regular/Medium RECORTADA a ASCII + `…·•` (`assets/fonts`, ~19 KB por peso; licencia OFL en `assets/licenses/`), tokens `fontFamily.mono`/`monoMedium`. `QPAddress` la aplica sola a todo lo que parece dirección (con `highlight={false}` para hashes y filas sin resaltado), `InlineAddress` + `ADDRESS_SLOT` la meten dentro de una frase traducida (`t(key, { address: ADDRESS_SLOT })`) y `monoFont(theme, style)` (themeUtils) elige el peso según el texto de alrededor. Un glifo fuera del recorte cae a la fuente del sistema. Añadir una fuente: copiarla a `android/app/src/main/assets/fonts/`, `UIAppFonts` de Info.plist y el pbxproj a mano — `npx react-native-asset` reescribe las entradas de los `.caf` y los mete también en el widget
 `NavigationWrapper` mirrors the theme into React Navigation's `theme` to prevent iOS native flashes during transitions.
 
 UI conventions:

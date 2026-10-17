@@ -19,7 +19,7 @@ import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
 import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
 import { useXStockShares } from '../stocks/xstocksPrices'
-import { formatUsd, shortAddress } from './walletFormat'
+import { formatUsd } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import useCanSwapAsset from './useCanSwapAsset'
 import { isDevBuild, isStakingEntryVisible } from '../../../wallet/staking/capabilities'
@@ -42,6 +42,7 @@ import AccountUpsellCard from './components/AccountUpsellCard'
 import { timeAgo } from '../../../helpers'
 
 // UI
+import { ADDRESS_SLOT, InlineAddress } from '../../../ui/particles/QPAddress'
 import QPFitText from '../../../ui/particles/QPFitText'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPSkeleton from '../../../ui/particles/QPSkeleton'
@@ -79,7 +80,9 @@ const TxRow = ({ tx, theme, onPress, activity = null, names }: TxRowProps) => {
 	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : staked ? theme.colors.primary : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
 	const iconColor = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
 	const counterpart = tx.direction === 'in' ? tx.from : tx.to
-	const counterpartLabel = counterpart ? names?.[counterpart] ?? shortAddress(counterpart) : null
+	// Con nombre en el registry, el nombre; si no, la dirección (en mono, dentro de la frase)
+	const counterpartName = counterpart ? names?.[counterpart] ?? null : null
+	const counterpartKey = tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to'
 	const sign = staked ? '' : tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
 
 	return (
@@ -93,8 +96,11 @@ const TxRow = ({ tx, theme, onPress, activity = null, names }: TxRowProps) => {
 				</Text>
 				<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.txSub]} numberOfLines={1}>
 					{isFee
-						? `${t('crypto.wallet.asset.feeEntrySub', { address: shortAddress(tx.to) })} · `
-						: counterpartLabel ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: counterpartLabel })} · ` : ''}{timeAgo(tx.time * 1000)}
+						? <><InlineAddress text={t('crypto.wallet.asset.feeEntrySub', { address: ADDRESS_SLOT })} address={tx.to ?? ''} visible={{ head: 6, tail: 6 }} />{' · '}</>
+						: counterpart
+							? <>{counterpartName ? t(counterpartKey, { address: counterpartName }) : <InlineAddress text={t(counterpartKey, { address: ADDRESS_SLOT })} address={counterpart} visible={{ head: 6, tail: 6 }} />}{' · '}</>
+							: null}
+					{timeAgo(tx.time * 1000)}
 				</Text>
 			</View>
 			<View style={styles.txAmounts}>

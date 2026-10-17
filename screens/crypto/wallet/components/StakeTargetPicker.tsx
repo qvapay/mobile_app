@@ -4,7 +4,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../../theme/ThemeContext'
-import { useTextStyles } from '../../../../theme/themeUtils'
+import { monoFont, useTextStyles } from '../../../../theme/themeUtils'
 
 // Wallet
 import { displayAmount, formatUnits } from '../../../../wallet/chains/units'
@@ -90,7 +90,7 @@ const StakeTargetPicker = ({ visible, kind, targets, selectedId, symbol, decimal
 										<View style={styles.info}>
 											<Text style={[textStyles.h4, { color: theme.colors.primaryText }]} numberOfLines={1}>{target.name}</Text>
 											<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }} numberOfLines={1}>
-												{tags ? `${tags} · ${shortAddress(target.id)}` : shortAddress(target.id)}
+												{tags ? `${tags} · ` : ''}<Text style={monoFont(theme)}>{shortAddress(target.id)}</Text>
 											</Text>
 										</View>
 										<TargetApy apy={apys?.[target.id]} loading={apyLoading} testID={`stake-target-apy-${target.id}`} />

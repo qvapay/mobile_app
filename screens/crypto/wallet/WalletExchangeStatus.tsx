@@ -16,7 +16,6 @@ import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { AssetView } from '../../../wallet/assets'
 import { refreshHistoryAfterSend, useWalletAssets, WALLET_BALANCES_KEY } from './walletQueries'
-import { shortAddress } from './walletFormat'
 import { timeAgo } from '../../../helpers'
 import { useExchangeOrderQuery } from './exchangeQueries'
 import { depositAmountLabel, depositViewFor, deviationBps, isDeviationNotable, isLive, phaseOf, stepsFor } from './exchangeModel'
@@ -193,7 +192,8 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 					<CopyRow
 						theme={theme}
 						label={t('crypto.wallet.exchange.sentTx')}
-						value={shortAddress(sent ?? '', 10, 10)}
+						value={sent ?? ''}
+						hash={{ head: 10, tail: 10 }}
 						onCopy={() => copy(sent ?? '')}
 					/>
 					<Text style={[styles.warning, { color: theme.colors.warning }]}>
@@ -331,13 +331,13 @@ const Row = ({ theme, label, value, hint, address }: { theme: ReturnType<typeof 
 	)
 }
 
-/** Fila que copia al tocar; con `address`, el valor se recorta y resalta como dirección. */
-const CopyRow = ({ theme, label, value, onCopy, address }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string, onCopy: () => void, address?: { head: number, tail: number } }) => (
+/** Fila que copia al tocar; con `address`, el valor se recorta y resalta como dirección; con `hash`, se recorta en mono sin resaltar. */
+const CopyRow = ({ theme, label, value, onCopy, address, hash }: { theme: ReturnType<typeof useTheme>['theme'], label: string, value: string, onCopy: () => void, address?: { head: number, tail: number }, hash?: { head: number, tail: number } }) => (
 	<QPPressable onPress={onCopy} style={styles.row} accessibilityRole="button" accessibilityLabel={label}>
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
 		<View style={styles.copyValue}>
-			{address
-				? <QPAddress address={value} visible={address} style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1} />
+			{address || hash
+				? <QPAddress address={value} visible={address ?? hash} highlight={!!address} style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1} />
 				: <Text style={[styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1}>{value}</Text>}
 			<FontAwesome6 name="copy" size={13} color={theme.colors.primary} iconStyle="regular" />
 		</View>
@@ -347,9 +347,7 @@ const CopyRow = ({ theme, label, value, onCopy, address }: { theme: ReturnType<t
 const TxRow = ({ theme, label, hash, url }: { theme: ReturnType<typeof useTheme>['theme'], label: string, hash: string, url: string | null }) => (
 	<QPPressable onPress={() => { if (url) Linking.openURL(url) }} style={styles.row} accessibilityRole="link" disabled={!url}>
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }}>{label}</Text>
-		<Text style={[styles.rowValue, { color: url ? theme.colors.primary : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1}>
-			{shortAddress(hash, 8, 8)}
-		</Text>
+		<QPAddress address={hash} visible={{ head: 8, tail: 8 }} highlight={false} style={[styles.rowValue, { color: url ? theme.colors.primary : theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm }]} numberOfLines={1} />
 	</QPPressable>
 )
 
