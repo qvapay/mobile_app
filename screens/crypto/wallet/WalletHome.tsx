@@ -14,7 +14,7 @@ import type { Theme } from '../../../theme/ThemeContext'
 import { useWallet } from '../../../wallet/WalletContext'
 import { assetPrice } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
-import { usePriceMap, useWalletAssets } from './walletQueries'
+import { usePriceMap, useTronForeignControl, useWalletAssets } from './walletQueries'
 import { formatUsd } from './walletFormat'
 import { useXStockShares, useXStocksAvailability } from '../stocks/xstocksQueries'
 
@@ -31,6 +31,7 @@ import WalletCard from './WalletCard'
 import WalletBalanceCard from './components/WalletBalanceCard'
 import type { WalletAction } from './components/WalletBalanceCard'
 import WalletAssetRow from './components/WalletAssetRow'
+import TronControlWarning from './components/TronControlWarning'
 import { isDevBuild, isStakingHubEnabled } from '../../../wallet/staking/capabilities'
 
 // Navigation
@@ -73,6 +74,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	const { isReady, hasWallet, isBackedUp } = useWallet()
 	const { isAuthenticated } = useAuth()
 	const { visible, total, isLoading, isHydrating, isError, failedChains, hasBalances, refetch } = useWalletAssets()
+	// Cuenta TRON con dueño ajeno: el saldo se ve pero no es movible — se avisa arriba del todo
+	const tronControllers = useTronForeignControl()
 	const prices = usePriceMap()
 
 	const { getSetting, updateSetting } = useSettings()
@@ -148,6 +151,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 				loading={isLoading}
 				actions={actions}
 			/>
+
+			{!!tronControllers && <TronControlWarning controllers={tronControllers} />}
 
 			{/* Ganar: justo bajo la botonera, a la vista sin bajar hasta el final de la lista */}
 			{showEarn && (

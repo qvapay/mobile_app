@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
@@ -17,12 +17,13 @@ import useCoins from '../../../hooks/useCoins'
 import { ROUTES } from '../../../routes'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { WalletAsset } from '../../../wallet/assets'
-import { useAssetCatalog } from './walletQueries'
+import { useAssetCatalog, useTronForeignControl } from './walletQueries'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
+import TronControlWarning from './components/TronControlWarning'
 
 // Navigation
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -60,6 +61,13 @@ const WalletReceive = ({ navigation, route }: Props) => {
 	)
 
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
+
+	// Cuenta TRON con dueño ajeno: lo que llegue aquí se lo queda otro. La dirección no se
+	// enseña sin pasar por el aviso, y el puente desde el saldo QvaPay no se ofrece
+	const tronControllers = useTronForeignControl()
+	const tronBlocked = asset?.kind === 'tron' && !!tronControllers
+	const [revealed, setRevealed] = useState(false)
+	const hideAddress = tronBlocked && !revealed
 
 	// Puente con el saldo QvaPay: si la moneda existe en el catálogo de retiros,
 	// "Desde tu saldo QvaPay" abre el retiro con esta dirección ya escrita
@@ -114,36 +122,42 @@ const WalletReceive = ({ navigation, route }: Props) => {
 				<FontAwesome6 name="chevron-down" size={11} color={theme.colors.secondaryText} iconStyle="solid" />
 			</QPPressable>
 
-			<QPPressable onPress={copy} style={styles.qrCard} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.receive.copy')}>
-				<QRCodeStyled
-					data={address}
-					style={styles.qrInner}
-					size={qrSize}
-					padding={8}
-					{...{ pieceSize: 7, errorCorrectionLevel: 'M', backgroundColor: '#FFFFFF' }}
-					isPiecesGlued
-					pieceBorderRadius={2}
-					pieceCornerType={'cut'}
-					color={'#000000'}
-					outerEyesOptions={{ borderRadius: 2, color: theme.colors.primary }}
-				/>
-			</QPPressable>
+			{tronBlocked && <TronControlWarning controllers={tronControllers} variant="receive" />}
 
-			<QPAddress selectable address={address} style={[styles.address, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }]} />
+			{!hideAddress && (
+				<>
+					<QPPressable onPress={copy} style={styles.qrCard} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.receive.copy')}>
+						<QRCodeStyled
+							data={address}
+							style={styles.qrInner}
+							size={qrSize}
+							padding={8}
+							{...{ pieceSize: 7, errorCorrectionLevel: 'M', backgroundColor: '#FFFFFF' }}
+							isPiecesGlued
+							pieceBorderRadius={2}
+							pieceCornerType={'cut'}
+							color={'#000000'}
+							outerEyesOptions={{ borderRadius: 2, color: theme.colors.primary }}
+						/>
+					</QPPressable>
 
-			<View style={[styles.warning, { backgroundColor: theme.colors.warning + '14' }]}>
-				<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" style={styles.warningIcon} />
-				<View style={styles.warningTexts}>
-					<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
-						{t('crypto.wallet.receive.warning', { asset: assetLabel, network: asset.chainName })}
-					</Text>
-					{asset.kind === 'evm' && (
-						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.receive.evmNote')}</Text>
-					)}
-				</View>
-			</View>
+					<QPAddress selectable address={address} style={[styles.address, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.md }]} />
 
-			{(!!bridgeCoin || isHouseToken(asset)) && !!address && (
+					<View style={[styles.warning, { backgroundColor: theme.colors.warning + '14' }]}>
+						<FontAwesome6 name="triangle-exclamation" size={14} color={theme.colors.warning} iconStyle="solid" style={styles.warningIcon} />
+						<View style={styles.warningTexts}>
+							<Text style={[textStyles.h5, { color: theme.colors.primaryText }]}>
+								{t('crypto.wallet.receive.warning', { asset: assetLabel, network: asset.chainName })}
+							</Text>
+							{asset.kind === 'evm' && (
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.receive.evmNote')}</Text>
+							)}
+						</View>
+					</View>
+				</>
+			)}
+
+			{(!!bridgeCoin || isHouseToken(asset)) && !!address && !tronBlocked && (
 				<QPPressable
 					// QUSD: el swap (1:1, sin comisión, sin teclear direcciones) sustituye al retiro genérico
 					onPress={() => (isHouseToken(asset) ? navigation.navigate(ROUTES.WALLET_SWAP, { direction: 'out' }) : navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: bridgeCoin!.tick, prefillAddress: address }))}
@@ -163,10 +177,14 @@ const WalletReceive = ({ navigation, route }: Props) => {
 
 			<View style={styles.spacer} />
 
-			<View style={styles.buttons}>
-				<View style={styles.button}><QPButton title={t('crypto.wallet.receive.copy')} icon="copy" onPress={copy} /></View>
-				<View style={styles.button}><QPButton title={t('crypto.wallet.receive.share')} icon="share-nodes" onPress={share} outlined /></View>
-			</View>
+			{hideAddress
+				? <QPButton testID="tron-control-reveal" title={t('crypto.wallet.tronControl.reveal')} onPress={() => setRevealed(true)} outlined />
+				: (
+					<View style={styles.buttons}>
+						<View style={styles.button}><QPButton title={t('crypto.wallet.receive.copy')} icon="copy" onPress={copy} /></View>
+						<View style={styles.button}><QPButton title={t('crypto.wallet.receive.share')} icon="share-nodes" onPress={share} outlined /></View>
+					</View>
+				)}
 		</ScrollView>
 	)
 }

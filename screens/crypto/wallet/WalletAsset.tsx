@@ -17,7 +17,7 @@ import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
-import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
+import { markHistoryFresh, usePriceMap, useTronForeignControl, useWalletAssets, useWalletHistory } from './walletQueries'
 import { useXStockShares } from '../stocks/xstocksPrices'
 import { formatUsd } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
@@ -37,6 +37,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 // Auth: sin sesión (modo wallet) no hay historial, intercambio ni energía — son del backend
 import { useAuth } from '../../../auth/AuthContext'
 import AccountUpsellCard from './components/AccountUpsellCard'
+import TronControlWarning from './components/TronControlWarning'
 
 // Helpers
 import { timeAgo } from '../../../helpers'
@@ -200,11 +201,15 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	// Energía y ancho de banda: solo tienen sentido en TRON, y ahí son la
 	// diferencia entre un envío de USDT gratis y uno que quema ~13 TRX
 	const isTron = asset?.kind === 'tron'
+	// Cuenta TRON cuyo dueño es otra dirección: la frase no firma, así que fuera todo lo que
+	// mueve fondos (y la energía, que se pagaría para nada). Queda el explorador para comprobarlo
+	const tronControllers = useTronForeignControl()
+	const tronBlocked = isTron && !!tronControllers
 	// El explorador cede su sitio al intercambio cuando el activo tiene alguna salida
-	const canSwap = useCanSwapAsset(asset)
+	const canSwap = useCanSwapAsset(asset) && !tronBlocked
 	// Staking: solo nativos de SOL/TRX/STX, cuando la red ya sabe firmarlo (o en desarrollo). Quien ya
 	// tiene algo en staking (p. ej. STX bloqueado desde otra wallet) entra igual: ahí ve su cuenta atrás
-	const canEarn = !!asset && (isStakingEntryVisible(asset, { dev: isDevBuild() }) || asset.hasStake)
+	const canEarn = !!asset && !tronBlocked && (isStakingEntryVisible(asset, { dev: isDevBuild() }) || asset.hasStake)
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -287,14 +292,20 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				)}
 			</View>
 
+			{tronBlocked && (
+				<View style={styles.tronWarning}>
+					<TronControlWarning controllers={tronControllers} />
+				</View>
+			)}
+
 			<View style={styles.actions}>
 				<Action
 					theme={theme}
 					icon="paper-plane"
 					testID="asset-action-send"
 					label={t('crypto.wallet.home.actions.send')}
-					dimmed={!canSendAsset(asset)}
-					onPress={() => !canSendAsset(asset) ? toast(t('crypto.wallet.home.sendSoon')) : isBackedUp ? navigation.navigate(ROUTES.WALLET_SEND, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP)}
+					dimmed={!canSendAsset(asset) || tronBlocked}
+					onPress={() => tronBlocked ? toast.error(t('crypto.wallet.tronControl.blocked')) : !canSendAsset(asset) ? toast(t('crypto.wallet.home.sendSoon')) : isBackedUp ? navigation.navigate(ROUTES.WALLET_SEND, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP)}
 				/>
 				<Action
 					theme={theme}
@@ -312,7 +323,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 						onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_SWAP, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP))}
 					/>
 				)}
-				{isTron && isAuthenticated && (
+				{isTron && isAuthenticated && !tronBlocked && (
 					<Action
 						theme={theme}
 						icon="bolt"
@@ -402,6 +413,7 @@ const styles = StyleSheet.create({
 	hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 18, gap: 4 },
 	heroAmount: { marginTop: 10, fontSize: 38 },
 	actions: { flexDirection: 'row', gap: 10, height: 56 },
+	tronWarning: { marginBottom: 16 },
 	action: { flex: 1, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', gap: 5 },
 	sectionTitle: { marginTop: 24, marginBottom: 6 },
 	historySkeleton: { gap: 10, marginTop: 6 },

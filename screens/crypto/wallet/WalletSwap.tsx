@@ -22,7 +22,7 @@ import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
 import useSwapFlow from './useSwapFlow'
-import { usePriceMap, useTronChainParamsQuery, useTronResourcesQuery, useWalletAssets } from './walletQueries'
+import { usePriceMap, useTronChainParamsQuery, useTronForeignControl, useTronResourcesQuery, useWalletAssets } from './walletQueries'
 import { tronSendCost } from './sourceSendCost'
 import useCoins from '../../../hooks/useCoins'
 import { addressForKind, assetPrice, findAssetForCoin } from '../../../wallet/assets'
@@ -46,6 +46,7 @@ import SwapNotices from './components/swap/SwapNotices'
 import SwapReviewSheet from './components/swap/SwapReviewSheet'
 import SwapRouteRow from './components/swap/SwapRouteRow'
 import SwapRoutesSheet from './components/swap/SwapRoutesSheet'
+import TronControlWarning from './components/TronControlWarning'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -336,6 +337,10 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	// Una combinación imposible se dice AQUÍ, con su motivo, y deshabilita el botón: es mejor
 	// que enseñar una cotización que fallaría al confirmar.
 	const blocked = routed.mode === 'unsupported' && !!routed.reasonKey && !!pay && !!receive
+	// Cuenta TRON con dueño ajeno en CUALQUIER lado: pagar desde ella no se puede firmar, y
+	// recibir en ella (swap, o retiro del saldo QvaPay por el riel) es regalárselo a quien la controla
+	const tronControllers = useTronForeignControl()
+	const tronBlocked = !!tronControllers && [payAsset, receiveAsset].some(side => side?.kind === 'tron')
 	/**
 	 * Cada tarjeta abre SU propio selector.
 	 *
@@ -357,8 +362,9 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const view = withPickers(isQusd ? swapView : isExchange ? exchangeView : selectionView)
 	const engineView = isExchange ? exchangeView : swapView
 	const busy = isExchange ? exchangeFlow.busy : swapFlow.busy
-	const ctaEnabled = isRail ? !!railCoin : !blocked && engineView.ctaEnabled
-	const ctaLabel = blocked ? t(routed.reasonKey!)
+	const ctaEnabled = !tronBlocked && (isRail ? !!railCoin : !blocked && engineView.ctaEnabled)
+	const ctaLabel = tronBlocked ? t('crypto.wallet.tronControl.blocked')
+		: blocked ? t(routed.reasonKey!)
 		: isRail ? t(routed.mode === 'withdraw' ? 'crypto.wallet.exchange.ctaWithdraw' : 'crypto.wallet.exchange.ctaDeposit')
 			: engineView.ctaLabel
 
@@ -474,6 +480,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 				<SwapDetails rate={view.rate} badge={isExchange ? undefined : swapView.badge} rows={view.rows} />
 
 				<SwapNotices notices={view.notices} />
+
+				{tronBlocked && <TronControlWarning controllers={tronControllers} />}
 
 			</ScrollView>
 

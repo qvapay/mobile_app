@@ -600,6 +600,15 @@
 				"body": "Transaction history, swaps, P2P and TRON energy. Your wallet stays the same.",
 				"cta": "Create account"
 			}
+		},
+		"tronControl": {
+			"title": "Your phrase doesn't control this TRON account",
+			"body": "Another address owns this account: your phrase can see the balance but can't move it. This is a common trap. Don't send TRX or any other token to pay fees — whoever controls it would keep it.",
+			"receiveBody": "Don't receive anything at this address: whatever arrives is controlled by someone else and you won't be able to move it.",
+			"controlledBy": "Controlled by",
+			"explorer": "View permissions in the explorer",
+			"reveal": "Show the address anyway",
+			"blocked": "Your phrase can't move this TRON account"
 		}
 	},
 	"energy": {

@@ -600,6 +600,15 @@
 				"body": "Historial de movimientos, intercambios, P2P y energía TRON. Tu wallet sigue siendo la misma.",
 				"cta": "Crear cuenta"
 			}
+		},
+		"tronControl": {
+			"title": "Esta cuenta TRON no la controla tu frase",
+			"body": "Otra dirección es la dueña de esta cuenta: tu frase ve el saldo, pero no puede moverlo. Es una trampa habitual. No envíes TRX ni ningún otro token para pagar comisiones: se lo quedaría quien la controla.",
+			"receiveBody": "No recibas nada en esta dirección: lo que llegue lo controla otra persona y no podrás sacarlo.",
+			"controlledBy": "La controla",
+			"explorer": "Ver los permisos en el explorador",
+			"reveal": "Mostrar la dirección igualmente",
+			"blocked": "Tu frase no puede mover esta cuenta TRON"
 		}
 	},
 	"energy": {

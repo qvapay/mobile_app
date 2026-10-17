@@ -28,6 +28,8 @@ import { addressForKind, isAssetVisible, sortAssets, toAssetView, tokenAssetId, 
 import type { AssetOrder, AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 import { getTronChainParams, getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import type { TronChainParams, TronResources } from '../../../wallet/tron/tx'
+import { getTronAccountControl } from '../../../wallet/tron/control'
+import type { TronControl } from '../../../wallet/tron/control'
 import { applyNewerPages, applyOlderPage, HISTORY_SYNC_MAX_PAGES, overlapsCache } from '../../../wallet/historyMerge'
 import type { HistoryCache } from '../../../wallet/historyMerge'
 import { loadHistoryCache, saveHistoryCache } from './historyCache'
@@ -46,6 +48,7 @@ export const WALLET_BALANCES_KEY = ['wallet', 'balances']
 export const WALLET_HISTORY_KEY = ['wallet', 'history']
 export const WALLET_TRON_RESOURCES_KEY = ['wallet', 'tron', 'resources']
 export const WALLET_TRON_PARAMS_KEY = ['wallet', 'tron', 'params']
+export const WALLET_TRON_CONTROL_KEY = ['wallet', 'tron', 'control']
 
 /** Frescura de saldos: un depósito entrante debe verse en < 60s con la pantalla abierta. */
 const BALANCES_STALE_MS = 30_000
@@ -202,6 +205,30 @@ export const useTronChainParamsQuery = (enabled: boolean) => useQuery<TronChainP
 	// bigint no sobrevive al JSON del persister
 	meta: { noPersist: true },
 })
+
+/**
+ * ¿Controla la frase su cuenta TRON? (ver `wallet/tron/control.ts`). Los permisos casi
+ * nunca cambian: 10 min de frescura. Falla en ABIERTO a propósito: con el nodo caído no
+ * hay aviso, pero tampoco se bloquea TRON a todo el mundo — y una cuenta ajena no podría
+ * firmar de todos modos.
+ */
+export const useTronControlQuery = () => {
+	const { addresses } = useWallet()
+	const address = addresses?.tron ?? null
+	return useQuery<TronControl>({
+		queryKey: [...WALLET_TRON_CONTROL_KEY, address ?? ''],
+		queryFn: () => getAppRpcRouter().call('tron', (rpc, signal) => getTronAccountControl(rpc, address!, { signal }), { accept: TRON_TX_RPC, idempotent: true }),
+		enabled: !!address,
+		staleTime: 10 * 60_000,
+		meta: { noPersist: true },
+	})
+}
+
+/** Quién controla la cuenta TRON cuando NO es la frase; null si es propia o aún no se sabe. */
+export const useTronForeignControl = (): string[] | null => {
+	const { data } = useTronControlQuery()
+	return data && !data.controlled ? data.controllers : null
+}
 
 const XSTOCK_ASSET_IDS = XSTOCKS.map(stock => tokenAssetId(XSTOCKS_CHAIN, stock.mint))
 
