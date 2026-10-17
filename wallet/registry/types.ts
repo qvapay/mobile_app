@@ -12,6 +12,14 @@ export type RegistryToken = {
 	/** Contract address (EVM 0x…, TRON base58; Stacks: identificador SIP-010 `SP….contrato::asset`; Solana: mint SPL base58). */
 	address: string
 	decimals: number
+	/** Solana: programa de tokens del mint. Ausente = SPL clásico (Tokenkeg). */
+	program?: 'token2022'
+	/** Clase del activo. Ausente = cripto. `stock` = acción tokenizada (xStocks). */
+	kind?: 'stock'
+	/** Ticker del subyacente de una acción tokenizada (`TSLA` para TSLAx). */
+	underlying?: string
+	/** Nombre legible (`Tesla`). */
+	name?: string
 }
 
 export type RegistryRpc = {

@@ -14,6 +14,7 @@ import type { WalletAsset } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
 import type { EvmSwapIntent } from '../../../wallet/evm/swap'
 import type { SolanaSwapIntent } from '../../../wallet/solana/swap'
+import { TOKEN_2022_PROGRAM } from '../../../wallet/solana/codec'
 import type { TronSwapIntent } from '../../../wallet/tron/swap'
 import { THORCHAIN_POOLS } from '../../../wallet/btc/thorchain'
 import type { ThorchainBtcIntent } from '../../../wallet/btc/thorchain'
@@ -157,6 +158,15 @@ export const planOnchainSwap = ({ build, from, to, addresses, amount, expectedOu
 		family: 'solana',
 		chainKey: from.chainKey,
 		minOut,
-		intent: { owner: addresses.sol, inputMint: from.contract, outputMint: to.contract, amountIn, minOut },
+		intent: {
+			owner: addresses.sol,
+			inputMint: from.contract,
+			outputMint: to.contract,
+			// xStocks: Token-2022. Decide qué cuenta vigila la simulación (falla cerrado si no es la real)
+			...(from.tokenProgram === 'token2022' ? { inputProgram: TOKEN_2022_PROGRAM } : {}),
+			...(to.tokenProgram === 'token2022' ? { outputProgram: TOKEN_2022_PROGRAM } : {}),
+			amountIn,
+			minOut,
+		},
 	}
 }

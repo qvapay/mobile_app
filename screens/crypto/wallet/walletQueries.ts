@@ -7,7 +7,7 @@
  * disco por su cuenta — saldos/staking en `walletDiskCache.ts`, historial en
  * `historyCache.ts`. El registry (`['wallet','registry']`) sí persiste.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { AppState } from 'react-native'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
@@ -24,7 +24,7 @@ import { getAppRpcRouter, useEffectiveRegistry } from '../../../wallet/registry/
 import { useAssetCatalog } from './useAssetCatalog'
 import { fetchAllBalances } from '../../../wallet/chains'
 import type { WalletBalancesResult } from '../../../wallet/chains'
-import { addressForKind, isAssetVisible, sortAssets, toAssetView, totalUsd } from '../../../wallet/assets'
+import { addressForKind, isAssetVisible, sortAssets, toAssetView, tokenAssetId, totalUsd } from '../../../wallet/assets'
 import type { AssetOrder, AssetView, AssetVisibility, PriceMap, RawBalances, WalletAsset } from '../../../wallet/assets'
 import { getTronChainParams, getTronResources, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import type { TronChainParams, TronResources } from '../../../wallet/tron/tx'
@@ -37,6 +37,10 @@ import type { WalletHistoryPage } from '../../../types/domain'
 // Settings + catálogo de monedas (precios USD)
 import { useSettings } from '../../../settings/SettingsContext'
 import useCoins from '../../../hooks/useCoins'
+
+// Acciones tokenizadas (precios de Jupiter)
+import { useXStockQuotes } from '../stocks/xstocksPrices'
+import { XSTOCKS, XSTOCKS_CHAIN, xStockPriceTick } from '../../../wallet/xstocks'
 
 export const WALLET_BALANCES_KEY = ['wallet', 'balances']
 export const WALLET_HISTORY_KEY = ['wallet', 'history']
@@ -199,17 +203,43 @@ export const useTronChainParamsQuery = (enabled: boolean) => useQuery<TronChainP
 	meta: { noPersist: true },
 })
 
+const XSTOCK_ASSET_IDS = XSTOCKS.map(stock => tokenAssetId(XSTOCKS_CHAIN, stock.mint))
+
+const holdsXStock = (result: WalletBalancesResult | undefined): boolean =>
+	!!result && XSTOCK_ASSET_IDS.some(id => { const raw = result.balances[id]; return !!raw && raw !== '0' })
+
+/**
+ * ¿Hay alguna acción tokenizada con saldo en los saldos ya leídos? Mira la CACHÉ de saldos
+ * sin observar la query: no la activa ni la refresca en pantallas que no la piden.
+ */
+export const useHoldsXStocks = (): boolean => {
+	const cache = useQueryClient().getQueryCache()
+	const subscribe = useCallback((onChange: () => void) => cache.subscribe(event => {
+		const [root, kind] = event.query.queryKey
+		if (root === WALLET_BALANCES_KEY[0] && kind === WALLET_BALANCES_KEY[1]) onChange()
+	}), [cache])
+	const read = useCallback(
+		() => cache.findAll({ queryKey: WALLET_BALANCES_KEY }).some(query => holdsXStock(query.state.data as WalletBalancesResult | undefined)),
+		[cache],
+	)
+	return useSyncExternalStore(subscribe, read)
+}
+
 /** Precio USD por tick del catálogo de QvaPay (misma query `['coins','all']` que el resto de la app). */
 export const usePriceMap = (): PriceMap => {
 	const { coins } = useCoins('all')
+	// Acciones tokenizadas: precio por unidad CRUDA (ver xstocksModel), con la clave `xstock:<mint>`.
+	// Solo se cotizan si hay alguna: si no, cada pantalla de la wallet sondearía Jupiter cada 20 s
+	const { quotes } = useXStockQuotes({ enabled: useHoldsXStocks() })
 	return useMemo(() => {
 		const map: PriceMap = {}
 		coins.forEach(coin => {
 			const price = Number(coin.price)
 			if (Number.isFinite(price) && price > 0) map[coin.tick] = price
 		})
+		Object.entries(quotes).forEach(([mint, quote]) => { if (quote) map[xStockPriceTick(mint)] = quote.rawPrice })
 		return map
-	}, [coins])
+	}, [coins, quotes])
 }
 
 export { useAssetCatalog } from './useAssetCatalog'

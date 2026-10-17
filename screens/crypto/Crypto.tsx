@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import type { ImageStyle, LayoutChangeEvent, RefreshControlProps, TextStyle, ViewStyle } from 'react-native'
@@ -12,6 +12,11 @@ import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 // Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
 import { useCryptoDashboard } from './cryptoQueries'
 import WalletHome from './wallet/WalletHome'
+
+// Acciones tokenizadas (xStocks): la pestaña Stocks pasa a ser comprable cuando la región lo permite
+import { useXStockPortfolio, useXStocksAvailability } from './stocks/xstocksQueries'
+import { sortByLiquidity } from './stocks/xstocksModel'
+import { StockRow } from './stocks/components/StockParts'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -211,6 +216,13 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const { coins, stocks, isLoading, refreshing, onRefresh } = useCryptoDashboard()
 	const [market, setMarket] = useState<MarketKey>('crypto')
 
+	// xStocks: fuera de región la pestaña sigue siendo solo de precios (la de siempre)
+	const { available: xstocksAvailable } = useXStocksAvailability()
+	const showXStocks = market === 'stocks' && xstocksAvailable
+	// Solo se cotiza con la pestaña Stocks a la vista (y en región): Jupiter cada 20 s si no
+	const { positions: xstockPositions } = useXStockPortfolio({ enabled: showXStocks })
+	const xstocksTop = useMemo(() => sortByLiquidity(xstockPositions).slice(0, 5), [xstockPositions])
+
 	// La lista mezcla criptos enriquecidas y stocks: se lee por la forma común
 	// (ExploreRowItem) — cast local, la pestaña activa decide qué campos hay
 	const exploreItems = (market === 'crypto' ? coins.slice(0, 5) : stocks) as ExploreRowItem[]
@@ -230,7 +242,24 @@ const Crypto = ({ navigation }: CryptoProps) => {
 				{/* Mercados: Cripto · Stocks (y pronto RWA) */}
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && styles.cardBorder(theme)]}>
 					<MarketTabs value={market} onChange={setMarket} theme={theme} />
-					{exploreItems.map((item, i) => {
+					{showXStocks && (
+						<>
+							{xstocksTop.map((position, i) => (
+								<StockRow
+									key={position.stock.mint}
+									position={position}
+									theme={theme}
+									showShares={false}
+									isLast={i === xstocksTop.length - 1}
+									onPress={() => navigation.navigate(ROUTES.XSTOCK_DETAIL, { mint: position.stock.mint })}
+								/>
+							))}
+							<Pressable onPress={() => navigation.navigate(ROUTES.STOCKS_HOME)} style={styles.seeAll} hitSlop={6} accessibilityRole="button">
+								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.xstocks.seeAll')}</Text>
+							</Pressable>
+						</>
+					)}
+					{!showXStocks && exploreItems.map((item, i) => {
 						const isStock = market === 'stocks'
 						const rowProps = {
 							item,
@@ -266,8 +295,8 @@ const Crypto = ({ navigation }: CryptoProps) => {
 							</Pressable>
 						)
 					})}
-					{isLoading && [0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={44} borderRadius={10} style={styles.exploreSkeleton} />)}
-					{!isLoading && exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
+					{!showXStocks && isLoading && [0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={44} borderRadius={10} style={styles.exploreSkeleton} />)}
+					{!showXStocks && !isLoading && exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
 				</View>
 
 			</ScrollView>
@@ -312,6 +341,11 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	},
 	itemPrice: {
 		textAlign: 'right',
+	},
+	seeAll: {
+		alignItems: 'center',
+		paddingTop: 12,
+		paddingBottom: 4,
 	},
 	// Mercados
 	tabs: {

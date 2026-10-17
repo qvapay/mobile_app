@@ -19,6 +19,7 @@ import {
 	systemTransferIx,
 	transferCheckedIx,
 	TOKEN_PROGRAM,
+	TOKEN_2022_PROGRAM,
 } from './codec'
 import {
 	broadcastSolanaTransaction,
@@ -42,9 +43,28 @@ const USDT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
 const BLOCKHASH = 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k'
 const RPC = { url: 'https://sol', priority: 10, owner: 'x' }
 const USDT_INTENT = { from: FROM, to: DEST, amount: 2_500_000n, mint: USDT, decimals: 6 }
+const TSLAX = 'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB'
+const TSLAX_INTENT = { from: FROM, to: DEST, amount: 1_000_000n, mint: TSLAX, decimals: 8 }
+
+/** `getAccountInfo` jsonParsed de un mint, con la forma REAL de mainnet (TSLAx, 2026-10-14). */
+const parsedMint = ({ program = TOKEN_PROGRAM, decimals = 6, extensions } = {}) => ({
+	owner: program,
+	lamports: 1,
+	data: { program: program === TOKEN_PROGRAM ? 'spl-token' : 'spl-token-2022', parsed: { type: 'mint', info: { decimals, isInitialized: true, ...(extensions ? { extensions } : {}) } } },
+})
+const tslaxExtensions = ({ paused = false, hook = null } = {}) => [
+	{ extension: 'permanentDelegate', state: { delegate: '5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq' } },
+	{ extension: 'scaledUiAmountConfig', state: { authority: 'S7vYFFWH6BjJyEsdrPQpqpYTqLTrPRK6KW3VwsJuRaS', multiplier: '1', newMultiplier: '1', newMultiplierEffectiveTimestamp: 0 } },
+	{ extension: 'pausableConfig', state: { authority: 'JDq14BWvqCRFNu1krb12bcRpbGtJZ1FLEakMw6FdxJNs', paused } },
+	{ extension: 'transferHook', state: { authority: '5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq', programId: hook } },
+]
+const MINTS = {
+	[USDT]: parsedMint(),
+	[TSLAX]: parsedMint({ program: TOKEN_2022_PROGRAM, decimals: 8, extensions: tslaxExtensions() }),
+}
 
 let calls
-const mockRpc = ({ prio = [{ prioritizationFee: 0 }, { prioritizationFee: 3000 }, { prioritizationFee: 5000 }, { prioritizationFee: 9000 }], accounts = {}, send, balance = 5_000_000_000 } = {}) => {
+const mockRpc = ({ prio = [{ prioritizationFee: 0 }, { prioritizationFee: 3000 }, { prioritizationFee: 5000 }, { prioritizationFee: 9000 }], accounts = {}, mints = MINTS, send, balance = 5_000_000_000 } = {}) => {
 	calls = []
 	global.fetch = jest.fn(async (_url, init) => {
 		const { method, params } = JSON.parse(init.body)
@@ -54,9 +74,9 @@ const mockRpc = ({ prio = [{ prioritizationFee: 0 }, { prioritizationFee: 3000 }
 		switch (method) {
 			case 'getLatestBlockhash': return ok({ context: { slot: 1 }, value: { blockhash: BLOCKHASH, lastValidBlockHeight: 1234 } })
 			case 'getRecentPrioritizationFees': return ok(prio)
-			case 'getAccountInfo': return ok({ context: { slot: 1 }, value: accounts[params[0]] ?? null })
+			case 'getAccountInfo': return ok({ context: { slot: 1 }, value: (params[1]?.encoding === 'jsonParsed' ? mints[params[0]] : accounts[params[0]]) ?? null })
 			// Valores REALES de mainnet (parámetro de renta: 2540 lamports por byte-año)
-			case 'getMinimumBalanceForRentExemption': return ok(params[0] === 165 ? 1488440 : 650240)
+			case 'getMinimumBalanceForRentExemption': return ok(params[0] === 165 ? 1488440 : params[0] === 179 ? 1586880 : 650240)
 			case 'getBalance': return ok({ context: { slot: 1 }, value: balance })
 			case 'sendTransaction': return send ? send(params, { ok, fail }) : ok('sig')
 			default: throw new Error(`método inesperado ${method}`)
@@ -209,5 +229,60 @@ describe('broadcast', () => {
 
 		mockRpc({ send: (_p, { fail }) => fail('Transaction simulation failed: Blockhash not found') })
 		await expect(broadcastSolanaTransaction(RPC, signed)).rejects.toBeInstanceOf(SolanaExpiredError)
+	})
+})
+
+describe('Token-2022 (xStocks)', () => {
+
+	test('ATA Token-2022 = la que crea Jupiter en mainnet para ese dueño y mint (vector real)', () => {
+		// setupInstructions de /swap/v1/swap-instructions (USDC → TSLAx), 2026-10-14
+		expect(associatedTokenAddress(DEST, TSLAX, TOKEN_2022_PROGRAM)).toBe('A9XwJU883JYWycaa7NmAAKyUZ8Vufa7kXxJSj69a3H6j')
+		// y NO coincide con la del programa clásico: el programa es parte de la semilla
+		expect(associatedTokenAddress(DEST, TSLAX)).not.toBe('A9XwJU883JYWycaa7NmAAKyUZ8Vufa7kXxJSj69a3H6j')
+	})
+
+	test('envío de TSLAx: programa leído de la cadena, ATA y TransferChecked de Token-2022, renta de cuenta 2022', async () => {
+		mockRpc()
+		const prepared = await prepareSolanaSend(RPC, TSLAX_INTENT)
+		expect(prepared.tokenProgram).toBe(TOKEN_2022_PROGRAM)
+		expect(prepared.createsTokenAccount).toBe(true)
+		expect(prepared.rentLamports).toBe(1586880n)
+		const decoded = decodeSolanaTransfer(prepared.message)
+		expect(decoded).toMatchObject({ kind: 'token', mint: TSLAX, decimals: 8, tokenProgram: TOKEN_2022_PROGRAM, to: associatedTokenAddress(DEST, TSLAX, TOKEN_2022_PROGRAM), createsTokenAccountFor: DEST })
+		const signed = signSolanaTransaction(prepared, PRIV)
+		expect(() => verifySignedSolanaTransaction(signed, prepared)).not.toThrow()
+	})
+
+	test('no prepara si el emisor pausó el token, si exige hook o si los decimales no cuadran', async () => {
+		mockRpc({ mints: { [TSLAX]: parsedMint({ program: TOKEN_2022_PROGRAM, decimals: 8, extensions: tslaxExtensions({ paused: true }) }) } })
+		await expect(prepareSolanaSend(RPC, TSLAX_INTENT)).rejects.toThrow(/pausadas/)
+		mockRpc({ mints: { [TSLAX]: parsedMint({ program: TOKEN_2022_PROGRAM, decimals: 8, extensions: tslaxExtensions({ hook: 'Hook111111111111111111111111111111111111111' }) }) } })
+		await expect(prepareSolanaSend(RPC, TSLAX_INTENT)).rejects.toThrow(/programa de transferencia/)
+		mockRpc()
+		await expect(prepareSolanaSend(RPC, { ...TSLAX_INTENT, decimals: 6 })).rejects.toThrow(/decimales/)
+		mockRpc({ mints: {} })
+		await expect(prepareSolanaSend(RPC, TSLAX_INTENT)).rejects.toThrow(/no existe/)
+	})
+
+	test('el verificador rechaza la transferencia por el programa equivocado', async () => {
+		mockRpc({ prio: [] })
+		const prepared = await prepareSolanaSend(RPC, TSLAX_INTENT)
+		// Misma forma, pero con el programa clásico: otra ATA, otro programa
+		const forged = compileMessage(FROM, [
+			createAssociatedTokenAccountIdempotentIx(FROM, DEST, TSLAX),
+			transferCheckedIx({ source: associatedTokenAddress(FROM, TSLAX), mint: TSLAX, destination: associatedTokenAddress(DEST, TSLAX), owner: FROM, amount: 1_000_000n, decimals: 8 }),
+		], BLOCKHASH)
+		const forgedPrepared = { ...prepared, message: forged, messageBytes: serializeMessage(forged) }
+		// Se firma lo falsificado (el sobre cuadra) y se verifica contra lo que dice la cadena: Token-2022
+		const signed = signSolanaTransaction({ ...forgedPrepared, tokenProgram: TOKEN_PROGRAM }, PRIV)
+		expect(() => verifySignedSolanaTransaction(signed, forgedPrepared)).toThrow(/programa de token distinto/)
+	})
+
+	test('una ATA creada con un programa y la transferencia con otro no pasan el decodificador', () => {
+		const message = compileMessage(FROM, [
+			createAssociatedTokenAccountIdempotentIx(FROM, DEST, TSLAX, TOKEN_PROGRAM),
+			transferCheckedIx({ source: associatedTokenAddress(FROM, TSLAX, TOKEN_2022_PROGRAM), mint: TSLAX, destination: associatedTokenAddress(DEST, TSLAX, TOKEN_2022_PROGRAM), owner: FROM, amount: 1n, decimals: 8, tokenProgram: TOKEN_2022_PROGRAM }),
+		], BLOCKHASH)
+		expect(() => decodeSolanaTransfer(message)).toThrow(SolanaVerifyError)
 	})
 })

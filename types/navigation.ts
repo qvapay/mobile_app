@@ -157,6 +157,10 @@ export type RootStackParamList = {
 	/** Seguimiento de un intercambio cripto↔cripto. */
 	/** `sentTxid`: el depósito acaba de difundirse; el seguimiento no debe volver a pedirlo. */
 	WalletExchangeStatus: { uuid: string, sentTxid?: string }
+	/** Acciones tokenizadas (xStocks): portada, detalle por mint y compra/venta por importe. */
+	StocksHome: undefined
+	XStockDetail: { mint: string }
+	XStockTrade: { mint: string, side: 'buy' | 'sell' }
 	/** Ruta on-chain (LI.FI/Jupiter): se firma desde la wallet. `expectedOut` = lo que prometía la ruta elegida. */
 	WalletOnchainSwap: { quoteId: string, fromAssetId: string, toAssetId: string, amount: number, expectedOut: number | null, providerLabel: string, serviceFeeBps?: number }
 	WalletExchanges: undefined

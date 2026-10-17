@@ -19,6 +19,14 @@ import { base58, base64 } from '@scure/base'
 
 export const SYSTEM_PROGRAM = '11111111111111111111111111111111'
 export const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+/**
+ * Token-2022 (extensiones): lo usan los xStocks (acciones tokenizadas de Backed). Mismas
+ * instrucciones base que el clásico — `TransferChecked` incluido —, otra cuenta de programa,
+ * y por tanto OTRA ATA para el mismo dueño y mint.
+ */
+export const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+export type TokenProgramId = typeof TOKEN_PROGRAM | typeof TOKEN_2022_PROGRAM
+export const isTokenProgram = (programId: string): programId is TokenProgramId => programId === TOKEN_PROGRAM || programId === TOKEN_2022_PROGRAM
 export const ASSOCIATED_TOKEN_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
 export const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111'
 export const STAKE_PROGRAM = 'Stake11111111111111111111111111111111111111'
@@ -143,9 +151,9 @@ export const createWithSeed = (base: string, seed: string, programId: string): s
 	return base58.encode(sha256(concat(pubkeyBytes(base), seedBytes, pubkeyBytes(programId))))
 }
 
-/** Cuenta de token asociada (ATA) de `owner` para `mint` en el programa de tokens clásico. */
-export const associatedTokenAddress = (owner: string, mint: string): string =>
-	findProgramAddress([pubkeyBytes(owner), pubkeyBytes(TOKEN_PROGRAM), pubkeyBytes(mint)], ASSOCIATED_TOKEN_PROGRAM).address
+/** Cuenta de token asociada (ATA) de `owner` para `mint`; el programa de tokens forma parte de la semilla. */
+export const associatedTokenAddress = (owner: string, mint: string, tokenProgram: TokenProgramId = TOKEN_PROGRAM): string =>
+	findProgramAddress([pubkeyBytes(owner), pubkeyBytes(tokenProgram), pubkeyBytes(mint)], ASSOCIATED_TOKEN_PROGRAM).address
 
 // ---------------------------------------------------------------------------
 // Instrucciones que la wallet construye
@@ -164,22 +172,22 @@ export const setComputeUnitLimitIx = (units: number): Instruction => ({ programI
 export const setComputeUnitPriceIx = (microLamports: bigint): Instruction => ({ programId: COMPUTE_BUDGET_PROGRAM, keys: [], data: concat(Uint8Array.of(3), u64le(microLamports)) })
 
 /** Crea la ATA de `owner` si no existe (idempotente: no falla si ya está). La paga `payer`. */
-export const createAssociatedTokenAccountIdempotentIx = (payer: string, owner: string, mint: string): Instruction => ({
+export const createAssociatedTokenAccountIdempotentIx = (payer: string, owner: string, mint: string, tokenProgram: TokenProgramId = TOKEN_PROGRAM): Instruction => ({
 	programId: ASSOCIATED_TOKEN_PROGRAM,
 	keys: [
 		{ pubkey: payer, isSigner: true, isWritable: true },
-		{ pubkey: associatedTokenAddress(owner, mint), isSigner: false, isWritable: true },
+		{ pubkey: associatedTokenAddress(owner, mint, tokenProgram), isSigner: false, isWritable: true },
 		{ pubkey: owner, isSigner: false, isWritable: false },
 		{ pubkey: mint, isSigner: false, isWritable: false },
 		{ pubkey: SYSTEM_PROGRAM, isSigner: false, isWritable: false },
-		{ pubkey: TOKEN_PROGRAM, isSigner: false, isWritable: false },
+		{ pubkey: tokenProgram, isSigner: false, isWritable: false },
 	],
 	data: Uint8Array.of(1),
 })
 
 /** SPL `TransferChecked` (tag 12): cantidad y decimales viajan en la instrucción; el programa los contrasta con el mint. */
-export const transferCheckedIx = ({ source, mint, destination, owner, amount, decimals }: { source: string, mint: string, destination: string, owner: string, amount: bigint, decimals: number }): Instruction => ({
-	programId: TOKEN_PROGRAM,
+export const transferCheckedIx = ({ source, mint, destination, owner, amount, decimals, tokenProgram = TOKEN_PROGRAM }: { source: string, mint: string, destination: string, owner: string, amount: bigint, decimals: number, tokenProgram?: TokenProgramId }): Instruction => ({
+	programId: tokenProgram,
 	keys: [
 		{ pubkey: source, isSigner: false, isWritable: true },
 		{ pubkey: mint, isSigner: false, isWritable: false },

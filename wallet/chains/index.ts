@@ -4,7 +4,9 @@
  *
  * Cada cadena es UNA llamada del router (nativo + tokens contra el mismo
  * nodo): si ese nodo falla a mitad, rota la cadena entera en vez de mezclar
- * lecturas de nodos con alturas de bloque distintas.
+ * lecturas de nodos con alturas de bloque distintas. Única excepción: los
+ * Token-2022 de Solana (xStocks) van en una llamada propia, para que un nodo
+ * que no la sirva no tumbe SOL/USDC/USDT, que nunca dependieron de ella.
  */
 import type { WalletAddresses } from '../derive'
 import type { RpcRouter } from '../registry/rpcRouter'
@@ -15,7 +17,7 @@ import { getBtcBalance } from './btc'
 import { getEvmNativeBalance, getEvmTokenBalance } from './evm'
 import { getTronAccountState, getTronNativeBalance, getTronTokenBalance, tronCommittedSun } from './tron'
 import { ftBalanceOf, getStacksBalances, stxBalanceOf, stxLockedOf } from './stacks'
-import { getSolanaBalances } from './solana'
+import { getSolanaBalances, getSolanaToken2022Balances } from './solana'
 import { readSolanaStakeAccounts } from '../solana/stake'
 
 type RouterLike = Pick<RpcRouter, 'call'>
@@ -29,12 +31,15 @@ export const fetchChainBalances = async (
 	const chain = registry.chains[chainKey]
 	if (!chain) throw new Error(`wallet: cadena desconocida ${chainKey}`)
 	const owner = addressForKind(addresses, chain.kind)
-	const tokens = chain.tokens ?? []
+	const allTokens = chain.tokens ?? []
+	// Solana: los Token-2022 (xStocks) se leen aparte (ver la cabecera)
+	const extendedTokens = chain.kind === 'solana' ? allTokens.filter(token => token.program === 'token2022') : []
+	const tokens = extendedTokens.length ? allTokens.filter(token => token.program !== 'token2022') : allTokens
 
 	// `idempotent`: leer saldos no puede duplicar nada, así que cualquier error rota de nodo.
 	// Sin esto, un nodo que sirve `eth_getBalance` pero rechaza `eth_call` —hay nueve así en
 	// el registry— mataba la cadena entera: el nativo se veía y los tokens desaparecían.
-	return router.call(chainKey, async (rpc, signal) => {
+	const main = router.call(chainKey, async (rpc, signal) => {
 		const entries: Array<Promise<[string, bigint]>> = []
 		const nativeId = nativeAssetId(chainKey)
 
@@ -48,7 +53,7 @@ export const fetchChainBalances = async (
 			entries.push(all.then(b => [stakedAssetId(nativeId), stxLockedOf(b)]))
 			tokens.forEach(token => entries.push(all.then(b => [tokenAssetId(chainKey, token.address), ftBalanceOf(b, token.address)])))
 		} else if (chain.kind === 'solana') {
-			// Una llamada de saldo nativo + una de todas las cuentas SPL
+			// Una llamada de saldo nativo + una de todas las cuentas SPL clásicas
 			const all = getSolanaBalances(rpc, owner, { signal })
 			entries.push(all.then(b => [nativeId, b.lamports]))
 			// SOL en stake accounts: no es gastable pero es del usuario (va aparte, como el STX bloqueado)
@@ -78,6 +83,17 @@ export const fetchChainBalances = async (
 		const resolved = await Promise.all(entries)
 		return Object.fromEntries(resolved.map(([id, value]) => [id, value.toString()]))
 	}, { idempotent: true })
+
+	if (!extendedTokens.length) return main
+
+	// Rota de nodo por su cuenta. Si fallan todos, sus claves no vienen y `fetchAllBalances`
+	// conserva las de la pasada anterior en vez de pintar las acciones a cero
+	const extended = router.call(chainKey, (rpc, signal) => getSolanaToken2022Balances(rpc, owner, { signal }), { idempotent: true }).catch(() => null)
+	const [balances, extendedBalances] = await Promise.all([main, extended])
+	if (extendedBalances) {
+		extendedTokens.forEach(token => { balances[tokenAssetId(chainKey, token.address)] = (extendedBalances[token.address] ?? 0n).toString() })
+	}
+	return balances
 }
 
 export type WalletBalancesResult = {
@@ -106,24 +122,18 @@ export const fetchAllBalances = async (
 	const balances: RawBalances = {}
 	const failedChains: string[] = []
 	results.forEach((result, index) => {
-		const chainKey = chainKeys[index]
-		if (result.status === 'fulfilled') {
-			Object.assign(balances, result.value)
-			return
-		}
-		failedChains.push(chainKey)
-		if (previous) {
-			for (const [id, value] of Object.entries(previous.balances)) {
-				if (id.startsWith(`${chainKey}:`)) balances[id] = value
-			}
-		}
+		if (result.status === 'fulfilled') Object.assign(balances, result.value)
+		else failedChains.push(chainKeys[index])
 	})
 
-	// Un nodo que no ve el staking (TRON jsonrpc) no trae la clave `#staked`: se conserva la
-	// última conocida en vez de pintar el staking a cero hasta que el router vuelva a otro nodo
+	// Lo que esta pasada no trajo conserva el último valor conocido en vez de pintarse a cero:
+	//   · una cadena caída entera (queda en `failedChains` para que la UI avise);
+	//   · el `#staked` de un nodo que no ve el staking (TRON jsonrpc), hasta que el router
+	//     vuelva a otro nodo;
+	//   · los Token-2022 de Solana (xStocks) cuando su lectura aparte falla en todos los nodos.
 	if (previous) {
 		for (const [id, value] of Object.entries(previous.balances)) {
-			if (id.endsWith('#staked') && !(id in balances)) balances[id] = value
+			if (!(id in balances)) balances[id] = value
 		}
 	}
 

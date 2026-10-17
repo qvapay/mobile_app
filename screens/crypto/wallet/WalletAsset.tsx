@@ -18,6 +18,7 @@ import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/
 import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
 import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
+import { useXStockShares } from '../stocks/xstocksPrices'
 import { formatUsd, shortAddress } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import useCanSwapAsset from './useCanSwapAsset'
@@ -151,6 +152,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const asset = useMemo(() => all.find(a => a.id === assetId), [all, assetId])
 	const chain = asset ? registry.chains[asset.chainKey] : undefined
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
+	// Acción tokenizada: aquí se envía y se recibe en TOKENS (crudo); las acciones van debajo
+	const stockShares = useXStockShares(!!asset?.stock)
+	const shares = asset?.stock && asset.contract ? stockShares(asset.contract, asset.rawAmount).shares : null
 
 	// La moneda del catálogo detrás de este activo, si la hay: es lo que abre el detalle de
 	// mercado. QUSD y STX no están en el catálogo, así que ahí el botón no aparece en vez de
@@ -259,6 +263,11 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
 					{showBalance && asset.usd !== null ? `≈ ${formatUsd(asset.usd)}` : ' '}
 				</Text>
+				{showBalance && shares !== null && shares !== asset.amount && (
+					<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }, styles.priceLine]}>
+						{t('crypto.xstocks.sharesCount', { shares: displayAmount(shares, 6) })}
+					</Text>
+				)}
 				{/* Con staking, el héroe es el TOTAL: se desglosa qué se puede mover ya y qué está trabajando */}
 				{showBalance && asset.hasStake && (
 					<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }, styles.priceLine]}>

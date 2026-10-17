@@ -37,9 +37,12 @@ import {
 	transferCheckedIx,
 	ASSOCIATED_TOKEN_PROGRAM,
 	SYSTEM_PROGRAM,
-	TOKEN_PROGRAM,
+	TOKEN_2022_PROGRAM,
+	isTokenProgram,
 } from './codec'
-import type { Instruction, SolanaMessage, SolanaTransaction } from './codec'
+import type { Instruction, SolanaMessage, SolanaTransaction, TokenProgramId } from './codec'
+import { mintTransferBlock, parseMintInfo } from './mint'
+import type { JsonParsedMintAccount } from './mint'
 
 /** Tarifa base por firma (lamports). */
 export const LAMPORTS_PER_SIGNATURE = 5000n
@@ -49,6 +52,13 @@ export const MAX_PRIORITY_MICROLAMPORTS = 200_000n
 const COMPUTE_UNITS = { native: 2_000, token: 40_000, tokenWithCreate: 80_000 }
 /** Espacio de una cuenta de token SPL clásica (renta de la ATA del destinatario). */
 const TOKEN_ACCOUNT_SPACE = 165
+/**
+ * Cuenta Token-2022 de un xStock: 165 + tipo de cuenta (1) + ImmutableOwner (4) +
+ * PausableAccount (4) + TransferHookAccount (5). Solo para ENSEÑAR la renta: el tamaño real lo
+ * calcula el programa de ATA según las extensiones del mint, y un byte de más aquí solo
+ * sobreestima unos lamports.
+ */
+const TOKEN_2022_ACCOUNT_SPACE = 179
 /** Vigencia práctica del blockhash (la real es ~150 bloques ≈ 60–90 s): se reconstruye antes. */
 export const BLOCKHASH_TTL_MS = 60_000
 
@@ -85,6 +95,8 @@ export type PreparedSolanaSend = {
 	/** Renta de la cuenta de token del destinatario si hay que crearla (0 si ya existe). */
 	rentLamports: bigint
 	createsTokenAccount: boolean
+	/** Programa del mint, leído de la cadena (no del registry). null en SOL nativo. */
+	tokenProgram: TokenProgramId | null
 	computeUnitPrice: bigint
 	computeUnitLimit: number
 	expiresAt: number
@@ -140,7 +152,20 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 	const feePayer = deps.feePayer ?? intent.from
 	if (!isValidSolanaAddress(feePayer)) throw new ChainHttpError('solana: fee payer inválido', { retryable: false })
 
-	const destAta = intent.mint ? associatedTokenAddress(intent.to, intent.mint) : null
+	// El programa del mint se lee de la CADENA: decide la ATA (es parte de su semilla), y en
+	// Token-2022 el mint puede estar pausado por el emisor o exigir un hook que no sabemos pasar
+	let tokenProgram: TokenProgramId | null = null
+	if (intent.mint) {
+		const mintInfo = parseMintInfo(await rpcCall<JsonParsedMintAccount>(rpc, 'getAccountInfo', [intent.mint, { encoding: 'jsonParsed', commitment: 'confirmed' }], signal))
+		if (!mintInfo) throw new ChainHttpError('solana: el token no existe en la red', { retryable: false })
+		if (mintInfo.decimals !== intent.decimals) throw new ChainHttpError('solana: los decimales del token no coinciden', { retryable: false })
+		const blocked = mintTransferBlock(mintInfo)
+		if (blocked === 'paused') throw new ChainHttpError('solana: el emisor tiene pausadas las transferencias de este token', { retryable: false })
+		if (blocked === 'transferHook') throw new ChainHttpError('solana: este token exige un programa de transferencia que la wallet no admite', { retryable: false })
+		tokenProgram = mintInfo.program
+	}
+
+	const destAta = intent.mint && tokenProgram ? associatedTokenAddress(intent.to, intent.mint, tokenProgram) : null
 	const [latest, fees, toInfo, destAtaInfo] = await Promise.all([
 		rpcCall<{ value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], signal),
 		rpcCall<Array<{ prioritizationFee?: number }>>(rpc, 'getRecentPrioritizationFees', [], signal).catch(() => []),
@@ -149,7 +174,7 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 	])
 
 	// Pegar la cuenta de token (y no la wallet) como destino crearía una ATA de una ATA: fondos perdidos
-	if (toInfo?.value?.owner === TOKEN_PROGRAM) throw new ChainHttpError('solana: el destino es una cuenta de token; usa la dirección de la wallet', { retryable: false })
+	if (toInfo?.value?.owner && isTokenProgram(toInfo.value.owner)) throw new ChainHttpError('solana: el destino es una cuenta de token; usa la dirección de la wallet', { retryable: false })
 
 	const instructions: Instruction[] = []
 	let rentLamports = 0n
@@ -170,17 +195,19 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 	} else {
 		createsTokenAccount = !destAtaInfo?.value
 		if (createsTokenAccount) {
-			rentLamports = BigInt(await rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [TOKEN_ACCOUNT_SPACE], signal))
-			instructions.push(createAssociatedTokenAccountIdempotentIx(feePayer, intent.to, intent.mint))
+			const space = tokenProgram === TOKEN_2022_PROGRAM ? TOKEN_2022_ACCOUNT_SPACE : TOKEN_ACCOUNT_SPACE
+			rentLamports = BigInt(await rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [space], signal))
+			instructions.push(createAssociatedTokenAccountIdempotentIx(feePayer, intent.to, intent.mint, tokenProgram!))
 		}
 		computeUnitLimit = createsTokenAccount ? COMPUTE_UNITS.tokenWithCreate : COMPUTE_UNITS.token
 		instructions.push(transferCheckedIx({
-			source: associatedTokenAddress(intent.from, intent.mint),
+			source: associatedTokenAddress(intent.from, intent.mint, tokenProgram!),
 			mint: intent.mint,
 			destination: destAta!,
 			owner: intent.from,
 			amount: intent.amount,
 			decimals: intent.decimals,
+			tokenProgram: tokenProgram!,
 		}))
 	}
 
@@ -214,6 +241,7 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 		feeLamports,
 		rentLamports,
 		createsTokenAccount,
+		tokenProgram,
 		computeUnitPrice,
 		computeUnitLimit,
 		expiresAt: now() + BLOCKHASH_TTL_MS,
@@ -275,6 +303,8 @@ export type DecodedSolanaTransfer = {
 	amount: bigint
 	mint: string | null
 	decimals: number | null
+	/** Programa de la transferencia de token (clásico o Token-2022); null en SOL nativo. */
+	tokenProgram: TokenProgramId | null
 	createsTokenAccountFor: string | null
 	computeUnitLimit: number | null
 	computeUnitPrice: bigint | null
@@ -287,9 +317,11 @@ export type DecodedSolanaTransfer = {
  */
 export const decodeSolanaTransfer = (message: SolanaMessage): DecodedSolanaTransfer => {
 	const key = (i: number) => message.accountKeys[i]
-	let transfer: Pick<DecodedSolanaTransfer, 'kind' | 'from' | 'to' | 'amount' | 'mint' | 'decimals'> | null = null
+	let transfer: Pick<DecodedSolanaTransfer, 'kind' | 'from' | 'to' | 'amount' | 'mint' | 'decimals' | 'tokenProgram'> | null = null
 	let createsTokenAccountFor: string | null = null
 	let createAta: string | null = null
+	let createProgram: TokenProgramId | null = null
+	let createMint: string | null = null
 	let computeUnitLimit: number | null = null
 	let computeUnitPrice: bigint | null = null
 
@@ -303,24 +335,30 @@ export const decodeSolanaTransfer = (message: SolanaMessage): DecodedSolanaTrans
 		} else if (program === ASSOCIATED_TOKEN_PROGRAM) {
 			if (createsTokenAccountFor !== null || ix.accounts.length !== 6 || data.length !== 1 || (data[0] !== 1 && data[0] !== 0)) throw new SolanaVerifyError('creación de cuenta de token no permitida')
 			if (key(ix.accounts[0]) !== key(0)) throw new SolanaVerifyError('la cuenta de token la debe pagar el fee payer')
-			if (key(ix.accounts[4]) !== SYSTEM_PROGRAM || key(ix.accounts[5]) !== TOKEN_PROGRAM) throw new SolanaVerifyError('creación de cuenta con programas inesperados')
+			const ataTokenProgram = key(ix.accounts[5])
+			if (key(ix.accounts[4]) !== SYSTEM_PROGRAM || !isTokenProgram(ataTokenProgram)) throw new SolanaVerifyError('creación de cuenta con programas inesperados')
 			createAta = key(ix.accounts[1])
 			createsTokenAccountFor = key(ix.accounts[2])
-			if (associatedTokenAddress(createsTokenAccountFor, key(ix.accounts[3])) !== createAta) throw new SolanaVerifyError('la cuenta creada no es la asociada del destino')
+			createProgram = ataTokenProgram
+			createMint = key(ix.accounts[3])
+			if (associatedTokenAddress(createsTokenAccountFor, createMint, createProgram) !== createAta) throw new SolanaVerifyError('la cuenta creada no es la asociada del destino')
 		} else if (program === SYSTEM_PROGRAM) {
 			if (transfer || ix.accounts.length !== 2 || data.length !== 12 || readU32le(data, 0) !== 2) throw new SolanaVerifyError('instrucción de sistema no permitida')
-			transfer = { kind: 'native', from: key(ix.accounts[0]), to: key(ix.accounts[1]), amount: readU64le(data, 4), mint: null, decimals: null }
-		} else if (program === TOKEN_PROGRAM) {
+			transfer = { kind: 'native', from: key(ix.accounts[0]), to: key(ix.accounts[1]), amount: readU64le(data, 4), mint: null, decimals: null, tokenProgram: null }
+		} else if (isTokenProgram(program)) {
+			// Token-2022 acepta la misma `TransferChecked` (tag 12) con las mismas 4 cuentas
+			// mientras el mint no tenga hook: con hook llevaría cuentas extra y aquí se rechaza
 			if (transfer || ix.accounts.length !== 4 || data.length !== 10 || data[0] !== 12) throw new SolanaVerifyError('instrucción de token no permitida')
 			const [source, mint, destination, owner] = ix.accounts.map(key)
-			if (associatedTokenAddress(owner, mint) !== source) throw new SolanaVerifyError('la cuenta origen no es la asociada del remitente')
-			transfer = { kind: 'token', from: owner, to: destination, amount: readU64le(data, 1), mint, decimals: data[9] }
+			if (associatedTokenAddress(owner, mint, program) !== source) throw new SolanaVerifyError('la cuenta origen no es la asociada del remitente')
+			transfer = { kind: 'token', from: owner, to: destination, amount: readU64le(data, 1), mint, decimals: data[9], tokenProgram: program }
 		} else {
 			throw new SolanaVerifyError(`programa no permitido ${program}`)
 		}
 	}
 	if (!transfer) throw new SolanaVerifyError('la transacción no transfiere nada')
 	if (createAta !== null && (transfer.kind !== 'token' || createAta !== transfer.to)) throw new SolanaVerifyError('la cuenta creada no es la del destino de la transferencia')
+	if (createAta !== null && (createProgram !== transfer.tokenProgram || createMint !== transfer.mint)) throw new SolanaVerifyError('la cuenta creada es de otro token o programa')
 	// En un token, `to` es la ATA destino: se devuelve el dueño si se creó la cuenta en la misma tx
 	return { feePayer: key(0), ...transfer, createsTokenAccountFor, computeUnitLimit, computeUnitPrice }
 }
@@ -338,7 +376,8 @@ export const verifySignedSolanaTransaction = (signed: SignedSolanaTx, prepared: 
 		if (decoded.kind !== 'native' || decoded.to !== intent.to) throw new SolanaVerifyError('destino distinto')
 	} else {
 		if (decoded.kind !== 'token' || decoded.mint !== intent.mint || decoded.decimals !== intent.decimals) throw new SolanaVerifyError('token distinto')
-		if (decoded.to !== associatedTokenAddress(intent.to, intent.mint)) throw new SolanaVerifyError('destino distinto')
+		if (!prepared.tokenProgram || decoded.tokenProgram !== prepared.tokenProgram) throw new SolanaVerifyError('programa de token distinto')
+		if (decoded.to !== associatedTokenAddress(intent.to, intent.mint, prepared.tokenProgram)) throw new SolanaVerifyError('destino distinto')
 		if ((decoded.createsTokenAccountFor !== null) !== prepared.createsTokenAccount) throw new SolanaVerifyError('creación de cuenta inesperada')
 		if (decoded.createsTokenAccountFor !== null && decoded.createsTokenAccountFor !== intent.to) throw new SolanaVerifyError('cuenta creada para otro destino')
 	}

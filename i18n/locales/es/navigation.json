@@ -36,7 +36,10 @@
 		"walletEarn": "Ganar",
 		"walletStake": "Staking",
 		"walletStakeAction": "Staking",
-		"miniApps": "Mini-apps"
+		"miniApps": "Mini-apps",
+		"stocksHome": "Acciones",
+		"xstockBuy": "Comprar",
+		"xstockSell": "Vender"
 	},
 	"tabs": {
 		"home": "Inicio",

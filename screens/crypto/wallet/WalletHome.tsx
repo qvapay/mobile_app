@@ -16,6 +16,7 @@ import { assetPrice } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
 import { usePriceMap, useWalletAssets } from './walletQueries'
 import { formatUsd } from './walletFormat'
+import { useXStockShares, useXStocksAvailability } from '../stocks/xstocksQueries'
 
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
@@ -87,9 +88,20 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 		errorShownRef.current = isError
 	}, [isError, t])
 
+	// Acciones tokenizadas: la fila enseña ACCIONES y precio por acción (como "Tus acciones")
+	const stockShares = useXStockShares(visible.some(asset => !!asset.stock))
+	const { available: xstocksAvailable } = useXStocksAvailability()
+
 	const openAsset = useCallback((asset: AssetView) => {
+		// En región, una acción tokenizada abre su ficha (precio, gráfico, comprar/vender, y
+		// desde ahí enviar/recibir). Fuera, su pantalla de activo de siempre: comprar o vender
+		// darían 451, pero el token sigue siendo del usuario y debe poder moverlo
+		if (asset.stock && asset.contract && xstocksAvailable) {
+			navigation.navigate(ROUTES.XSTOCK_DETAIL, { mint: asset.contract })
+			return
+		}
 		navigation.navigate(ROUTES.WALLET_ASSET, { assetId: asset.id })
-	}, [navigation])
+	}, [navigation, xstocksAvailable])
 
 	// Hasta hidratar la wallet y sembrar la foto de disco (milisegundos): nada antes que un skeleton de un frame
 	if (!isReady || (hasWallet && isHydrating)) return null
@@ -172,16 +184,21 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 			<View style={[styles.assetsCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 				{isLoading
 					? Array.from({ length: SKELETON_ROWS }, (_, i) => <AssetSkeleton key={i} theme={theme} />)
-					: visible.map((asset, index) => (
-						<WalletAssetRow
-							key={asset.id}
-							asset={asset}
-							prices={prices}
-							showBalance={showBalance}
-							isLast={index === visible.length - 1}
-							onPress={openAsset}
-						/>
-					))}
+					: visible.map((asset, index) => {
+						const stock = asset.stock && asset.contract ? stockShares(asset.contract, asset.rawAmount) : null
+						return (
+							<WalletAssetRow
+								key={asset.id}
+								asset={asset}
+								prices={prices}
+								stockShares={stock?.shares}
+								stockPrice={stock?.price}
+								showBalance={showBalance}
+								isLast={index === visible.length - 1}
+								onPress={openAsset}
+							/>
+						)
+					})}
 
 				<View style={[styles.footerRow, { borderTopColor: theme.colors.border + '60' }]}>
 					<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_MANAGE_ASSETS)} testID="wallet-home-manage" style={styles.manage} accessibilityRole="button">

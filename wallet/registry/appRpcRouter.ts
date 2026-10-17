@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { useSettings } from '../../settings/SettingsContext'
 import { applyCustomRpcs } from './customRpcs'
+import { withXStocks } from '../xstocks'
 import type { CustomRpcMap } from './customRpcs'
 import { createRpcRouter } from './rpcRouter'
 import type { HealthMap, RpcRouter } from './rpcRouter'
@@ -63,7 +64,8 @@ export const useEffectiveRegistry = (): RpcRegistry => {
 	const registry = useRegistry()
 	const { getSetting } = useSettings()
 	const custom = getSetting('crypto', 'customRpcs', NO_CUSTOM) as CustomRpcMap
-	return useMemo(() => applyCustomRpcs(registry, custom), [registry, custom])
+	// xStocks: mints fijados en código (ver wallet/xstocks.ts), nunca del registry remoto
+	return useMemo(() => withXStocks(applyCustomRpcs(registry, custom)), [registry, custom])
 }
 
 /**

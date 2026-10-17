@@ -41,8 +41,10 @@ import {
 	ASSOCIATED_TOKEN_PROGRAM,
 	SYSTEM_PROGRAM,
 	TOKEN_PROGRAM,
+	TOKEN_2022_PROGRAM,
+	isTokenProgram,
 } from './codec'
-import type { AddressLookupTable, Instruction, SolanaMessageV0 } from './codec'
+import type { AddressLookupTable, Instruction, SolanaMessageV0, TokenProgramId } from './codec'
 import { BLOCKHASH_TTL_MS, LAMPORTS_PER_SIGNATURE, MAX_PRIORITY_MICROLAMPORTS, SolanaVerifyError } from './tx'
 import type { SignedSolanaTx } from './tx'
 
@@ -56,9 +58,14 @@ export const MAX_COMPUTE_UNITS = 1_400_000
 const COMPUTE_MARGIN_PERCENT = 20
 /** Bytes de una cuenta de token SPL clásica: su renta se pregunta al nodo (ha bajado con los años). */
 const TOKEN_ACCOUNT_SPACE = 165
+/** Cuenta Token-2022 de un xStock (base + tipo + ImmutableOwner + PausableAccount + TransferHookAccount). */
+const TOKEN_2022_ACCOUNT_SPACE = 179
 /** Lookup tables por tx: Jupiter usa 1-4; más es sospechoso y además no cabe. */
 const MAX_LOOKUP_TABLES = 8
 
+// Token-2022 entra SOLO para crear la cuenta del usuario de un xStock (vía programa de ATA) y
+// como cuenta que Jupiter toca dentro de su swap; una instrucción DIRECTA de Token-2022 en la tx
+// sigue sin estar permitida (ver el bucle: solo wSOL, que es del programa clásico)
 const ALLOWED_PROGRAMS = new Set([COMPUTE_BUDGET_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAM, ASSOCIATED_TOKEN_PROGRAM, JUPITER_PROGRAM])
 
 /** Instrucción tal y como la serializa Jupiter (datos en base64). */
@@ -75,6 +82,12 @@ export type SolanaSwapIntent = {
 	/** null = SOL nativo. */
 	inputMint: string | null
 	outputMint: string | null
+	/**
+	 * Programa de cada mint (ausente = clásico). Decide qué ATA se vigila en la simulación: si
+	 * no fuera el real, el saldo vigilado no cambiaría y el swap se rechazaría (falla cerrado).
+	 */
+	inputProgram?: TokenProgramId
+	outputProgram?: TokenProgramId
 	/** Unidades mínimas que el usuario aceptó pagar. */
 	amountIn: bigint
 	/** Unidades mínimas que tiene que recibir COMO POCO (el mínimo garantizado de la cotización). */
@@ -133,6 +146,8 @@ export type SwapInstructionCheck = {
 	computeUnitPrice: bigint
 	/** Cuentas de token que la tx crea y deja ABIERTAS (el wSOL que se cierra no cuenta): su renta la paga el usuario. */
 	persistentAccounts: number
+	/** De esas, cuántas son Token-2022 (más grandes: otra renta). */
+	persistent2022: number
 }
 
 /**
@@ -151,7 +166,7 @@ export const verifySwapInstructions = (message: SolanaMessageV0, tables: Address
 	let computeUnitPrice: bigint | null = null
 	let swaps = 0
 	let wrapped = 0n
-	const created: string[] = []
+	const created: Array<{ account: string, program: TokenProgramId }> = []
 	let closesWsol = false
 
 	for (const ix of decompileV0Instructions(message, tables)) {
@@ -167,9 +182,10 @@ export const verifySwapInstructions = (message: SolanaMessageV0, tables: Address
 			// Crear la cuenta de token de un mint: SOLO la del propio usuario y pagada por él
 			if (keys.length !== 6 || data.length !== 1 || (data[0] !== 1 && data[0] !== 0)) throw new SolanaVerifyError('creación de cuenta de token no permitida')
 			if (key(0) !== owner || key(2) !== owner) throw new SolanaVerifyError('cuenta de token creada para otro')
-			if (key(4) !== SYSTEM_PROGRAM || key(5) !== TOKEN_PROGRAM) throw new SolanaVerifyError('creación de cuenta con programas inesperados')
-			if (associatedTokenAddress(owner, key(3)!) !== key(1)) throw new SolanaVerifyError('la cuenta creada no es la asociada del usuario')
-			created.push(key(1)!)
+			const tokenProgram = key(5)!
+			if (key(4) !== SYSTEM_PROGRAM || !isTokenProgram(tokenProgram)) throw new SolanaVerifyError('creación de cuenta con programas inesperados')
+			if (associatedTokenAddress(owner, key(3)!, tokenProgram) !== key(1)) throw new SolanaVerifyError('la cuenta creada no es la asociada del usuario')
+			created.push({ account: key(1)!, program: tokenProgram })
 		} else if (programId === SYSTEM_PROGRAM) {
 			// El único movimiento de SOL fuera de Jupiter: envolverlo en el wSOL del propio usuario
 			if (keys.length !== 2 || data.length !== 12 || readU32le(data, 0) !== 2) throw new SolanaVerifyError('instrucción de sistema no permitida')
@@ -196,8 +212,13 @@ export const verifySwapInstructions = (message: SolanaMessageV0, tables: Address
 	if (wrapped > intent.amountIn) throw new SolanaVerifyError('envuelve más SOL del pedido')
 	if (computeUnitLimit === null || computeUnitLimit > MAX_COMPUTE_UNITS) throw new SolanaVerifyError('límite de cómputo ausente o excesivo')
 	if ((computeUnitPrice ?? 0n) > MAX_PRIORITY_MICROLAMPORTS) throw new SolanaVerifyError('prioridad por encima del tope')
-	const persistent = created.filter(account => !(account === wsolAccount && closesWsol)).length
-	return { computeUnitLimit, computeUnitPrice: computeUnitPrice ?? 0n, persistentAccounts: persistent }
+	const persistent = created.filter(({ account }) => !(account === wsolAccount && closesWsol))
+	return {
+		computeUnitLimit,
+		computeUnitPrice: computeUnitPrice ?? 0n,
+		persistentAccounts: persistent.length,
+		persistent2022: persistent.filter(({ program }) => program === TOKEN_2022_PROGRAM).length,
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -207,13 +228,13 @@ export const verifySwapInstructions = (message: SolanaMessageV0, tables: Address
 /** Las cuentas cuyo saldo prueba el swap: el usuario (SOL) y sus cuentas de token de entrada y salida. */
 export const balanceAccounts = (intent: SolanaSwapIntent): { owner: string, input: string | null, output: string | null } => ({
 	owner: intent.owner,
-	input: intent.inputMint ? associatedTokenAddress(intent.owner, intent.inputMint) : null,
-	output: intent.outputMint ? associatedTokenAddress(intent.owner, intent.outputMint) : null,
+	input: intent.inputMint ? associatedTokenAddress(intent.owner, intent.inputMint, intent.inputProgram ?? TOKEN_PROGRAM) : null,
+	output: intent.outputMint ? associatedTokenAddress(intent.owner, intent.outputMint, intent.outputProgram ?? TOKEN_PROGRAM) : null,
 })
 
 type AccountState = { lamports: number, data: [string, string] } | null
 
-/** Saldo de una cuenta de token SPL: u64 en el byte 64. Sin cuenta = 0. */
+/** Saldo de una cuenta de token SPL: u64 en el byte 64 (igual en Token-2022: las extensiones van detrás). Sin cuenta = 0. */
 export const tokenAmount = (account: AccountState): bigint => {
 	if (!account?.data?.[0]) return 0n
 	const data = fromBase64(account.data[0])
@@ -275,13 +296,17 @@ export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, i
 	const order = (['owner', 'input', 'output'] as const).filter(name => watched[name] !== null)
 	const addresses = order.map(name => watched[name]!) as string[]
 
-	const [tableInfos, blockhashInfo, beforeInfos, tokenRent] = await Promise.all([
+	const [tableInfos, blockhashInfo, beforeInfos, tokenRent, token2022Rent] = await Promise.all([
 		build.lookupTables.length
 			? rpcCall<{ value: Array<{ data: [string, string] } | null> }>(rpc, 'getMultipleAccounts', [build.lookupTables, { encoding: 'base64' }], deps.signal)
 			: Promise.resolve({ value: [] }),
 		rpcCall<{ value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], deps.signal),
 		rpcCall<{ value: AccountState[] }>(rpc, 'getMultipleAccounts', [addresses, { encoding: 'base64' }], deps.signal),
 		rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [TOKEN_ACCOUNT_SPACE], deps.signal),
+		// Siempre, no solo cuando el intent marca Token-2022: Jupiter puede crear una cuenta
+		// Token-2022 que el intent no anunció, y contarla con la renta clásica (menor) dejaría
+		// corto el tope de SOL de la simulación
+		rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [TOKEN_2022_ACCOUNT_SPACE], deps.signal),
 	])
 
 	// El CONTENIDO de cada tabla sale de la cadena. Una tabla que no existe no se adivina
@@ -294,8 +319,9 @@ export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, i
 
 	// 1ª vuelta: con el tope de cómputo, para simular y medir
 	const probe = compileV0Message(intent.owner, assembleInstructions(build, MAX_COMPUTE_UNITS), blockhash, tables)
-	const { computeUnitPrice, persistentAccounts } = verifySwapInstructions(probe, tables, intent)
-	const rentLamports = BigInt(persistentAccounts) * BigInt(tokenRent)
+	const { computeUnitPrice, persistentAccounts, persistent2022 } = verifySwapInstructions(probe, tables, intent)
+	// Un xStock sin cuenta previa obliga a crear una Token-2022, más grande: otra renta
+	const rentLamports = BigInt(persistentAccounts - persistent2022) * BigInt(tokenRent) + BigInt(persistent2022) * BigInt(token2022Rent)
 	const probeTx = serializeTransactionV0({ signatures: [null], message: probe, messageBytes: serializeV0Message(probe) })
 	const simulation = await rpcCall<{ value: SimulationValue }>(rpc, 'simulateTransaction', [
 		toBase64(probeTx),

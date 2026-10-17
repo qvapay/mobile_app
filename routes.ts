@@ -122,6 +122,11 @@ export const ROUTES = {
 	WALLET_STAKE_ACTION: "WalletStakeAction",
 	WALLET_STAKE_SUCCESS: "WalletStakeSuccess",
 
+	// Acciones tokenizadas (xStocks) de la wallet
+	STOCKS_HOME: "StocksHome",
+	XSTOCK_DETAIL: "XStockDetail",
+	XSTOCK_TRADE: "XStockTrade",
+
 	// Marketplace (tiendas de comercios aprobados) Screens
 	MARKET_STORES: "MarketStores",
 	MARKET_STORE: "MarketStore",

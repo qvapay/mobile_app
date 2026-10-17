@@ -13,6 +13,7 @@ import { useContainerStyles } from '../../../theme/themeUtils'
 import { useWallet } from '../../../wallet/WalletContext'
 import WalletHome from './WalletHome'
 import AccountUpsellCard from './components/AccountUpsellCard'
+import XStocksCard from '../stocks/components/XStocksCard'
 
 // UI
 import QPPressable from '../../../ui/particles/QPPressable'
@@ -75,6 +76,8 @@ const WalletOnly = ({ navigation }: Props) => {
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 			>
 				<WalletHome refreshSignal={refreshing} />
+				{/* Sin tab Crypto: las acciones (sin cuenta, como el swap) entran desde aquí */}
+				<XStocksCard />
 				<AccountUpsellCard />
 			</ScrollView>
 		</View>

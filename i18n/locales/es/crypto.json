@@ -901,5 +901,85 @@
 			"vote": "Votaste",
 			"claim": "Recompensas cobradas"
 		}
+	},
+	"xstocks": {
+		"buy": "Comprar",
+		"sell": "Vender",
+		"today": "Hoy",
+		"seeAll": "Ver todas las acciones",
+		"sharesCount": "{{shares}} acciones",
+		"timeframes": {
+			"24H": "1D",
+			"1W": "1S",
+			"1M": "1M",
+			"1Y": "1A"
+		},
+		"periods": {
+			"24H": "Hoy",
+			"1W": "Última semana",
+			"1M": "Último mes",
+			"1Y": "Último año"
+		},
+		"home": {
+			"investing": "Inversiones",
+			"emptyHint": "Compra acciones desde $1, con tu propia wallet.",
+			"yourStocks": "Tus acciones",
+			"popular": "Populares",
+			"more": "Descubre más",
+			"disclosure": "Acciones tokenizadas de xStocks (Backed Finance) en Solana. Siguen el precio de la acción pero no son acciones: toca para ver los riesgos."
+		},
+		"unavailable": {
+			"title": "No disponible en tu región",
+			"body": "Las acciones tokenizadas no se ofrecen en EE. UU., Cuba ni en otros países con restricciones del emisor."
+		},
+		"detail": {
+			"yourPosition": "Tu posición",
+			"shares": "Acciones",
+			"marketValue": "Valor de mercado",
+			"todayReturn": "Rentabilidad de hoy",
+			"stats": "Estadísticas",
+			"tokenPrice": "Precio del token",
+			"liquidity": "Liquidez",
+			"token": "Token",
+			"network": "Red",
+			"issuer": "Emisor",
+			"about": "Acerca de",
+			"aboutBody": "{{symbol}} es un token de Backed Finance que replica el precio de {{name}} ({{underlying}}) 1:1, respaldado por acciones reales en custodia. Lo guardas en tu propia wallet y puedes enviarlo como cualquier token de Solana.",
+			"risksLink": "Riesgos de las acciones tokenizadas",
+			"manageInWallet": "Enviar, recibir y movimientos"
+		},
+		"trade": {
+			"availableCash": "{{amount}} en USDC disponibles",
+			"availableShares": "{{amount}} disponibles para vender",
+			"approxShares": "≈ {{shares}} acciones de {{symbol}}",
+			"sellAllHint": "Vendes tus {{shares}} acciones",
+			"receiveShares": "Recibes ≈ {{amount}} {{symbol}}",
+			"receiveUsd": "Recibes ≈ {{amount}} en USDC",
+			"sellAll": "Vender todo",
+			"min": "El mínimo es {{min}}",
+			"noCash": "No tienes suficiente USDC en Solana",
+			"noShares": "No tienes tantas acciones",
+			"noSol": "Necesitas un poco de SOL para la comisión de red",
+			"region": "Las acciones no están disponibles en tu región",
+			"fee": "Incluye la comisión de servicio de QvaPay del {{pct}} %",
+			"reviewBuy": "Revisar compra",
+			"reviewSell": "Revisar venta"
+		},
+		"risks": {
+			"title": "Antes de invertir",
+			"accept": "Entendido, continuar",
+			"close": "Cerrar",
+			"points": {
+				"token": "Compras un token que sigue el precio de la acción, no la acción en sí. Su precio puede separarse del de la bolsa, sobre todo fuera del horario de EE. UU.",
+				"issuer": "El emisor (Backed Finance) puede congelar, pausar o retirar tokens de cualquier cuenta. Tú guardas las llaves, pero no controlas al emisor.",
+				"noRights": "No tienes derechos de accionista: no votas ni eres dueño directo de la empresa.",
+				"hours": "Se negocia 24/7 en Solana, pero la liquidez es menor fuera de horario y puede haber más deslizamiento.",
+				"dividends": "Los dividendos se reinvierten automáticamente (tu número de acciones sube), netos de la retención fiscal de EE. UU.",
+				"region": "No está disponible para personas de EE. UU. ni en países con sanciones. Eres responsable de cumplir las leyes de tu país."
+			}
+		},
+		"card": {
+			"title": "Acciones"
+		}
 	}
 }
