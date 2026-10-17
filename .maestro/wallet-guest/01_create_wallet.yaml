@@ -65,7 +65,7 @@ env:
     commands:
       - runFlow: subflows/answer_quiz_step.yaml
 
-# Modo wallet: sin swap ni P2P, con la invitación a la cuenta
+# Modo wallet: swap sí (wallet ↔ wallet, sin cuenta), P2P no, con la invitación a la cuenta
 - extendedWaitUntil:
     visible:
       id: "wallet-only"
@@ -74,7 +74,7 @@ env:
     id: "wallet-action-send"
 - assertVisible:
     id: "wallet-action-receive"
-- assertNotVisible:
+- assertVisible:
     id: "wallet-action-swap"
 - assertNotVisible:
     id: "wallet-action-p2p"

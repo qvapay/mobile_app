@@ -170,7 +170,7 @@ const WalletAuthModal = ({ visible, subtitle, onClose, onAuthorized }: Props) =>
 					) : hasPin === true ? (
 						<>
 							{/* Sin biometría armada el PIN se enfoca solo; con ella, el prompt va primero y el foco llega si falla */}
-							<QPCodeInput ref={codeInputRef} length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus={!bioArmed} boxColor={theme.colors.background} />
+							<QPCodeInput ref={codeInputRef} testID="wallet-auth-pin" length={4} code={pin} onChangeCode={code => { setPin(code); setError('') }} onFilled={verifyPin} secure autoFocus={!bioArmed} boxColor={theme.colors.background} />
 							<Text style={[textStyles.h6, styles.error, { color: theme.colors.danger }]}>{error || ' '}</Text>
 							{biometryType && bioArmed && !prompting && (
 								<Pressable onPress={authorizeWithBiometrics} style={styles.biometric} hitSlop={8} accessibilityRole="button">

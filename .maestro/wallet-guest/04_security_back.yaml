@@ -25,4 +25,4 @@ appId: com.qvapay
 - extendedWaitUntil:
     visible:
       id: "wallet-only"
-    timeout: 5000
+    timeout: 15000

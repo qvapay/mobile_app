@@ -46,11 +46,7 @@ env:
 - tapOn:
     id: "wallet-action-receive"
     retryTapIfNoChange: true
-- extendedWaitUntil:
-    visible:
-      id: "wallet-auth-modal"
-    timeout: 10000
-- runFlow: subflows/type_pin.yaml
+- runFlow: subflows/wallet_auth_pin.yaml
 - extendedWaitUntil:
     visible:
       id: "wallet-backup-reveal"
