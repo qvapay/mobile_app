@@ -84,7 +84,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
-	const { user } = useAuth()
+	const { user, isAuthenticated } = useAuth()
 	const { addresses } = useWallet()
 	const { getSetting } = useSettings()
 	const showBalance = getSetting('privacy', 'showBalance', true) as boolean
@@ -128,17 +128,19 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		// Llegando desde la pantalla de un activo, ese activo ES lo que se entrega y el saldo
 		// el destino por defecto: es lo que se quiere el 90% de las veces, y cambiarlo cuesta
 		// un toque. Sin esto, tocar "Intercambiar" en USDT-TRON aterrizaba en saldo → QUSD.
+		//
+		// Sin sesión no hay saldo QvaPay: solo wallet ↔ wallet, y el destino lo elige el usuario
 		if (incomingAssetId) {
 			setPay(prev => prev ?? { kind: 'asset', id: incomingAssetId })
-			setReceive(prev => prev ?? BALANCE_SIDE)
+			if (isAuthenticated) { setReceive(prev => prev ?? BALANCE_SIDE) }
 			return
 		}
-		if (!asset) { return }
+		if (!asset || !isAuthenticated) { return }
 		const wallet: SwapSideRef = { kind: 'asset', id: asset.id }
 		const out = (route.params?.direction ?? 'out') === 'out'
 		setPay(prev => prev ?? (out ? BALANCE_SIDE : wallet))
 		setReceive(prev => prev ?? (out ? wallet : BALANCE_SIDE))
-	}, [asset, incomingAssetId, route.params?.direction])
+	}, [asset, incomingAssetId, route.params?.direction, isAuthenticated])
 
 	const routed = routeFor({ pay, receive, pairAssetIds, railOut, railIn })
 	const isExchange = routed.mode === 'exchange'
@@ -420,7 +422,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		}))
 	}, [maxAmount, payAsset, isQusd, routed.mode, nativeReserve, t])
 
-	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
+	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, withBalance: isAuthenticated, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
 
 	const onPickSide = useCallback((id: string) => {
 		const next: SwapSideRef = id === 'balance' ? BALANCE_SIDE : { kind: 'asset', id }
@@ -595,7 +597,7 @@ const useRailMap = (coins: Coin[], catalog: AssetView[]): Record<string, Coin> =
  * que falta sin explicación se lee como un fallo de la app, y el motivo real —el proveedor
  * no lista ese token en esa red, o desde el saldo solo se va a QUSD— es información útil.
  */
-const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, custodial, side, other, railOut, railIn }: {
+const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, custodial, withBalance, side, other, railOut, railIn }: {
 	t: (key: string, params?: Record<string, unknown>) => string
 	all: AssetView[]
 	enabledPairs: ReturnType<typeof useSwapPairs>['enabledPairs']
@@ -604,6 +606,8 @@ const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, 
 	showBalance: boolean
 	/** Saldo QvaPay en USD, para que su fila también diga cuánto hay. */
 	custodial: number
+	/** Hay sesión: el saldo QvaPay es elegible. Sin ella, solo activos de la wallet. */
+	withBalance: boolean
 	side: 'pay' | 'receive' | null
 	other: SwapSideRef | null
 	/** assetIds con riel de retiro y de depósito: abren las combinaciones con el saldo. */
@@ -657,8 +661,8 @@ const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, 
 
 	// Lo utilizable primero: un selector que abre en filas apagadas parece roto
 	const usable = (o: QPAssetOption) => (o.disabledReason ? 1 : 0)
-	return [balanceOption, ...assetOptions].sort((a, b) => usable(a) - usable(b))
-}, [t, all, enabledPairs, assetFor, catalog, showBalance, custodial, side, other, railOut, railIn])
+	return [...(withBalance ? [balanceOption] : []), ...assetOptions].sort((a, b) => usable(a) - usable(b))
+}, [t, all, enabledPairs, assetFor, catalog, showBalance, custodial, withBalance, side, other, railOut, railIn])
 
 const styles = StyleSheet.create({
 	scroll: { flex: 1 },

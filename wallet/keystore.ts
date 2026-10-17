@@ -92,3 +92,59 @@ export const hasWalletBiometrics = (): Promise<boolean> => hasBiometricMarker(WA
 export const enableWalletBiometrics = (): Promise<boolean> => enableBiometricMarker(WALLET_BIO_SERVICE)
 export const disableWalletBiometrics = (): Promise<void> => disableBiometricMarker(WALLET_BIO_SERVICE)
 export const authenticateWalletBiometrics = (promptTitle: string): Promise<boolean> => authenticateBiometricMarker(WALLET_BIO_SERVICE, promptTitle)
+
+// ---------------------------------------------------------------------------
+// ID de wallet (intercambio sin cuenta QvaPay)
+// ---------------------------------------------------------------------------
+
+/**
+ * 32 bytes aleatorios que identifican ESTA wallet ante `/wallet/exchange` cuando no hay sesión
+ * (cabecera `X-QvaPay-Wallet-Id`; el backend solo guarda su sha256 como dueño de cotizaciones
+ * y operaciones). No deriva de la seed ni es PII: es una capacidad — quien no lo tiene no ve
+ * ni toca los intercambios de esta wallet. Se crea perezosamente en el primer uso (cubre
+ * wallets anteriores a esto) y se borra con "Eliminar wallet": una wallet nueva no hereda el
+ * historial de la anterior.
+ */
+const WALLET_ID_SERVICE = 'com.qvapay.walletid'
+const WALLET_ID_RE = /^[0-9a-f]{64}$/
+
+let walletIdPromise: Promise<string | null> | null = null
+
+const randomHex32 = (): string | null => {
+	const cryptoGlobal = (globalThis as { crypto?: { getRandomValues?: (b: Uint8Array) => Uint8Array } }).crypto
+	if (!cryptoGlobal?.getRandomValues) return null
+	return Array.from(cryptoGlobal.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('')
+}
+
+const loadOrCreateWalletId = async (): Promise<string | null> => {
+	try {
+		const stored = await Keychain.getGenericPassword({ service: WALLET_ID_SERVICE })
+		if (stored && WALLET_ID_RE.test(stored.password)) return stored.password
+		const fresh = randomHex32()
+		if (!fresh) return null
+		await Keychain.setGenericPassword('walletid', fresh, {
+			service: WALLET_ID_SERVICE,
+			accessible: Keychain.ACCESSIBLE.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+		})
+		return fresh
+	} catch {
+		return null
+	}
+}
+
+/** El ID de wallet (creándolo si no existe), o null si el Keychain falló. Memoizado. */
+export const getWalletId = (): Promise<string | null> => {
+	if (!walletIdPromise) {
+		walletIdPromise = loadOrCreateWalletId().then(id => {
+			if (!id) walletIdPromise = null // un fallo no se memoriza: el siguiente reintenta
+			return id
+		})
+	}
+	return walletIdPromise
+}
+
+/** Solo desde "Eliminar wallet". */
+export const removeWalletId = async (): Promise<void> => {
+	walletIdPromise = null
+	try { await Keychain.resetGenericPassword({ service: WALLET_ID_SERVICE }) } catch { }
+}

@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createMnemonic, isValidMnemonic, mnemonicToSeed, normalizeMnemonic } from './seed'
 import { deriveAddresses } from './derive'
 import type { WalletAddresses } from './derive'
-import { getWalletMnemonic, hasWalletMnemonic, removeWalletMnemonic, setWalletMnemonic } from './keystore'
+import { getWalletMnemonic, hasWalletMnemonic, removeWalletId, removeWalletMnemonic, setWalletMnemonic } from './keystore'
 import { useAppRpcRouter } from './registry/appRpcRouter'
 import { walletApi } from '../api/walletApi'
 import { useAuth } from '../auth/AuthContext'
@@ -177,6 +177,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
 	const deleteWallet = useCallback(async () => {
 		await removeWalletMnemonic()
+		await removeWalletId()
 		await persistMeta(null)
 	}, [persistMeta])
 

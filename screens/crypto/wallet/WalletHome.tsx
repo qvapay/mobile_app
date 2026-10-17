@@ -98,16 +98,17 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	// Recibir exige el backup confirmado: sin él, perder el teléfono = perder lo recibido
 	const requireBackup = (next: () => void) => () => (isBackedUp ? next() : navigation.navigate(ROUTES.WALLET_BACKUP))
 
-	// Swap y P2P son del backend (exigen sesión): el modo wallet no los muestra
+	// P2P es de cuenta: el modo wallet no lo muestra. El swap sí, para todos: sin sesión la
+	// pantalla solo ofrece wallet ↔ wallet (el saldo QvaPay sale con la cuenta)
 	const accountActions: WalletAction[] = [
-		// Swap saldo ↔ QUSD: mueve saldo custodial a la wallet, así que exige el backup igual que Recibir
-		{ icon: 'arrows-rotate', testID: 'wallet-action-swap', label: t('crypto.wallet.home.actions.swap'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SWAP, undefined)) },
 		{ icon: 'arrow-right-arrow-left', testID: 'wallet-action-p2p', label: t('crypto.wallet.home.actions.p2p'), onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]
 
 	const actions: WalletAction[] = [
 		{ icon: 'paper-plane', testID: 'wallet-action-send', label: t('crypto.wallet.home.actions.send'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SEND, undefined)) },
 		{ icon: 'qrcode', testID: 'wallet-action-receive', label: t('crypto.wallet.home.actions.receive'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_RECEIVE, undefined)) },
+		// Exige el backup igual que Recibir: lo que entra del swap llega a esta wallet
+		{ icon: 'arrows-rotate', testID: 'wallet-action-swap', label: t('crypto.wallet.home.actions.swap'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SWAP, undefined)) },
 		...(isAuthenticated ? accountActions : []),
 	]
 

@@ -12,9 +12,12 @@
 jest.mock('./client', () => ({
 	apiClient: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
 }))
+const MOCK_WALLET_ID = 'ab'.repeat(32)
+jest.mock('../wallet/keystore', () => ({ getWalletId: jest.fn(async () => MOCK_WALLET_ID) }))
 
 import { apiClient } from './client'
 import { exchangeApi } from './exchangeApi'
+import { getWalletId } from '../wallet/keystore'
 
 const ORDER = { uuid: 'x-1', provider: 'changenow', from_asset: 'tron:TR7', to_asset: 'solana:native', status: 'awaiting_deposit' }
 
@@ -65,4 +68,29 @@ test('un error del backend conserva su `code` en details, que es lo que decide e
 	expect(r.status).toBe(400)
 	expect(r.details.code).toBe('BELOW_MINIMUM')
 	expect(r.details.min_amount).toBe(12.6)
+})
+
+describe('ID de wallet (intercambio sin cuenta)', () => {
+
+	test('viaja en TODAS las llamadas', async () => {
+		apiClient.get.mockResolvedValue({ data: { data: {} }, status: 200 })
+		apiClient.post.mockResolvedValue({ data: { data: {} }, status: 200 })
+		await exchangeApi.catalog()
+		await exchangeApi.quote({ fromAssetId: 'a', toAssetId: 'b', amount: 1 })
+		await exchangeApi.onchainBuild({ quoteId: 'q', fromAddress: 'f', toAddress: 't' })
+		await exchangeApi.onchainSubmit({ quoteId: 'q', txid: 'x', fromAddress: 'f', toAddress: 't', idempotencyKey: 'k' })
+		await exchangeApi.create({ quoteId: 'q', fromAssetId: 'a', toAssetId: 'b', amount: 1, payoutAddress: 'p', refundAddress: 'r', idempotencyKey: 'k' })
+		await exchangeApi.get('u')
+		await exchangeApi.list()
+		const configs = [...apiClient.get.mock.calls.map(c => c[1]), ...apiClient.post.mock.calls.map(c => c[2])]
+		expect(configs).toHaveLength(7)
+		configs.forEach(config => expect(config.headers).toEqual({ 'X-QvaPay-Wallet-Id': MOCK_WALLET_ID }))
+	})
+
+	test('si el Keychain falla se manda sin cabecera (con sesión todo sigue igual)', async () => {
+		getWalletId.mockResolvedValueOnce(null)
+		apiClient.get.mockResolvedValue({ data: { data: {} }, status: 200 })
+		await exchangeApi.catalog()
+		expect(apiClient.get.mock.calls[0][1].headers).toEqual({})
+	})
 })

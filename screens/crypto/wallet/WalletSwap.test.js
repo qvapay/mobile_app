@@ -89,7 +89,7 @@ const press = (node) => act(async () => { node.props.onPress() })
 beforeEach(() => {
 	jest.clearAllMocks()
 	navigation = { navigate: jest.fn(), replace: jest.fn(), goBack: jest.fn(), popToTop: jest.fn() }
-	useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: null }, updateUser: jest.fn() })
+	useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: null }, isAuthenticated: true, updateUser: jest.fn() })
 	useWallet.mockReturnValue({ addresses: { evm: '0x1', tron: 'T1', btc: 'bc1', stx: STX, stxPublicKey: '02aa' } })
 	useWalletAssets.mockReturnValue({ all: [QUSD_ASSET] })
 	swapApi.getPairs.mockResolvedValue(pairsPayload())
@@ -249,7 +249,7 @@ describe('saldo → wallet (PIN de cuenta)', () => {
 	})
 
 	test('con TOTP pide 6; un código inválido limpia el PIN y no navega', async () => {
-		useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: 'secret' }, updateUser: jest.fn() })
+		useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: 'secret' }, isAuthenticated: true, updateUser: jest.fn() })
 		swapApi.create.mockResolvedValue({ success: false, error: 'Código inválido', status: 400, details: { code: 'CODE_INVALID' } })
 		await render()
 		await type('5')

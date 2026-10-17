@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-// Auth: todas las salidas de intercambio son del backend
+// Auth: el saldo QvaPay (par QUSD y rieles) es de cuenta; el agregador no
 import { useAuth } from '../../../auth/AuthContext'
 
 // Datos
@@ -19,6 +19,9 @@ import { canSwapAsset } from './swapRouting'
  * Junta las tres fuentes que pueden dársela —el par custodial, lo que lista el proveedor y
  * los rieles de depósito/retiro de QvaPay— y deja la decisión en `canSwapAsset`, que es puro.
  *
+ * Sin sesión solo cuenta el agregador (wallet ↔ wallet, sin cuenta QvaPay desde 2026-10-15):
+ * el par QUSD y los rieles mueven saldo custodial.
+ *
  * Las tres queries son compartidas (`['coins', …]` y `['exchange','catalog']`), así que
  * preguntarlas desde la pantalla de un activo no añade ni una petición: React Query las
  * deduplica con las que ya tiene la wallet abierta.
@@ -26,7 +29,7 @@ import { canSwapAsset } from './swapRouting'
 export const useCanSwapAsset = (asset: WalletAsset | null | undefined): boolean => {
 
 	const { isAuthenticated } = useAuth()
-	const catalog = useExchangeCatalogQuery(isAuthenticated)
+	const catalog = useExchangeCatalogQuery()
 	const { coins } = useCoins('all')
 	const assets = useAssetCatalog()
 
@@ -36,12 +39,12 @@ export const useCanSwapAsset = (asset: WalletAsset | null | undefined): boolean 
 	)
 
 	return useMemo(() => {
-		if (!asset || !isAuthenticated) { return false }
+		if (!asset) { return false }
 		return canSwapAsset({
 			assetId: asset.id,
-			isHouse: isHouseToken(asset),
+			isHouse: isAuthenticated && isHouseToken(asset),
 			supportedAssetIds: catalog.data?.supported ?? [],
-			railAssetIds,
+			railAssetIds: isAuthenticated ? railAssetIds : [],
 		})
 	}, [asset, isAuthenticated, catalog.data, railAssetIds])
 }
