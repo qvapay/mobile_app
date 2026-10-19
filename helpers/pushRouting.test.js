@@ -69,9 +69,23 @@ describe('resolvePushTarget', () => {
 	test('cualquier evento p2p lleva a la oferta, aunque sea dinero entrante', () => {
 		expect(resolvePushTarget({ type: 'p2p_partial_paid', p2p_uuid: 'p-1' }))
 			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
-		expect(resolvePushTarget({ type: 'p2p_completed', p2p_uuid: 'p-1' }))
+		expect(resolvePushTarget({ type: 'p2p_applied', p2p_uuid: 'p-1' }))
 			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
 		expect(resolvePushTarget({ type: 'p2p_chat' })).toBeNull()
+	})
+
+	test('un trato cerrado abre el detalle pidiendo la valoración (rate)', () => {
+		expect(resolvePushTarget({ type: 'p2p_completed', p2p_uuid: 'p-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', rate: true } })
+		expect(resolvePushTarget({ type: 'p2p_partial_completed', p2p_uuid: 'p-1', order_uuid: 'o-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1', rate: true } })
+	})
+
+	test('una disputa resuelta solo pide valorar si se liberó', () => {
+		expect(resolvePushTarget({ type: 'p2p_partial_dispute_resolved', p2p_uuid: 'p-1', order_uuid: 'o-1', resolution: 'released' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1', rate: true } })
+		expect(resolvePushTarget({ type: 'p2p_partial_dispute_resolved', p2p_uuid: 'p-1', order_uuid: 'o-1', resolution: 'cancelled' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1' } })
 	})
 
 	test('carrito, gold y ahorros tienen su pantalla', () => {
