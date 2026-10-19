@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer, P2POfferKind } from '../types/domain'
+import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer, P2POfferKind, P2PRatingTag } from '../types/domain'
 
 /** Filtros de `GET /p2p/index`. */
 export type P2PIndexFilters = {
@@ -60,6 +60,12 @@ export type P2PEditInput = {
 	order_min?: number
 	order_max?: number
 }
+
+/** Body de `POST /p2p/{uuid}/rate`: `rating` NÚMERO 1–5; `order` obligatorio en una oferta por rango. */
+export type P2PRateInput = { rating: number, comment?: string, tags?: P2PRatingTag[], order?: string }
+
+/** Respuesta `200` de valorar: `editable_until` = hasta cuándo se puede cambiar (null = nunca). */
+export type P2PRateResult = { message?: string, ratingId?: string, rating?: number, editable_until?: string | null }
 
 /**
  * `?order=<uuid>` de las acciones sobre una orden de una oferta por rango
@@ -435,18 +441,19 @@ export const p2pApi = {
 	 * Rates the counterpart after a completed trade (`POST /p2p/{uuid}/rate`).
 	 * Ratings feed the peer's trust score shown on their P2P profile.
 	 *
+	 * A range offer is rated per ORDER: `payload.order` is required there (400
+	 * `ORDER_REQUIRED` without it) and the order must be `completed`. Rating the
+	 * same deal twice answers 400 `ALREADY_RATED`; the codes travel in `details`.
+	 *
 	 * @param {string} p2p_uuid - The P2P offer UUID
-	 * @param {Object} payload - The rating payload (star rating, optional comment)
-	 * @returns {Promise<Object>} `{ success, data?, error?, status? }`
+	 * @param {Object} payload - `{ rating, comment?, tags?, order? }` (see P2PRateInput)
+	 * @returns {Promise<Object>} `{ success, data?, error?, details?, status? }`
 	 */
-	rateOffer: async (p2p_uuid: string, payload: Record<string, unknown>): Promise<ApiResult<unknown>> => {
+	rateOffer: async (p2p_uuid: string, payload: P2PRateInput): Promise<ApiResult<P2PRateResult>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/rate`, payload)
 			return { success: true, data: response.data, status: response.status }
-		} catch (err) {
-			const error = err as ApiClientError
-			return { success: false, error: error.response?.data?.error || error.response?.data?.message || error.message, status: error.response?.status }
-		}
+		} catch (err) { return failure(err) }
 	},
 
 	/**

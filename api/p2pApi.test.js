@@ -446,12 +446,21 @@ describe('p2pApi.rateOffer', () => {
 		expect(result).toEqual({ success: true, data: { ok: true }, status: 200 })
 	})
 
-	test('surfaces the API error on failure', async () => {
-		apiClient.post.mockRejectedValue(apiError(409, { error: 'Ya calificaste esta oferta' }))
+	test('a range-offer order travels in the body', async () => {
+		apiClient.post.mockResolvedValue({ data: { message: 'Rating created', rating: 5 }, status: 200 })
 
-		const result = await p2pApi.rateOffer('abc-123', { rating: 5 })
+		await p2pApi.rateOffer('abc-123', { rating: 5, tags: ['rapido'], order: 'ord-1' })
 
-		expect(result).toEqual({ success: false, error: 'Ya calificaste esta oferta', status: 409 })
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/rate', { rating: 5, tags: ['rapido'], order: 'ord-1' })
+	})
+
+	test('surfaces the API error with its code in details', async () => {
+		const body = { error: 'Ya has calificado esta orden', code: 'ALREADY_RATED' }
+		apiClient.post.mockRejectedValue(apiError(400, body))
+
+		const result = await p2pApi.rateOffer('abc-123', { rating: 5, order: 'ord-1' })
+
+		expect(result).toEqual({ success: false, error: 'Ya has calificado esta orden', details: body, status: 400 })
 	})
 })
 

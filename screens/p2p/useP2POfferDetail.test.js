@@ -67,7 +67,7 @@ const makeOffer = (overrides = {}) => ({
 	...overrides,
 })
 
-const renderDetail = async ({ offer, viewer, chatLive = false, orderUuid = null } = {}) => {
+const renderDetail = async ({ offer, viewer, chatLive = false, orderUuid = null, promptRate = false } = {}) => {
 	const result = { current: null }
 	const fetchChat = jest.fn()
 	const navigation = { navigate: jest.fn(), dispatch: jest.fn() }
@@ -77,6 +77,7 @@ const renderDetail = async ({ offer, viewer, chatLive = false, orderUuid = null 
 		result.current = useP2POfferDetail({
 			p2p_uuid: offer.uuid,
 			orderUuid,
+			promptRate,
 			user: viewer,
 			navigation,
 			fetchChat,
@@ -173,6 +174,8 @@ describe('derived roles and permissions (buy offer: creator pays)', () => {
 		})
 		expect(result.current.canRatePeer).toBe(true)
 		expect(result.current.canCancel).toBe(false)
+		const open = await renderDetail({ offer: makeOffer({ status: 'paid', Peer: PEER }), viewer: CREATOR })
+		expect(open.result.current.canRatePeer).toBe(false)
 	})
 })
 
@@ -346,27 +349,111 @@ describe('edit modal', () => {
 	})
 })
 
-describe('handleRate', () => {
-	test('rates optimistically and a 5-star rating asks for a store review after 1.5s', async () => {
-		p2pApi.rateOffer.mockResolvedValue({ success: true })
-		const offer = makeOffer({ status: 'completed', Peer: PEER })
-		const { result } = await renderDetail({ offer, viewer: CREATOR })
-		await act(async () => { await result.current.handleRate(5) })
-		expect(p2pApi.rateOffer).toHaveBeenCalledWith('offer-1', { rating: 5 })
-		expect(result.current.rating).toBe(5)
+describe('rating sheet (fixed offers)', () => {
+
+	// currentUserId / rater / rated son ids INTERNOS del backend (no uuids)
+	const completed = (overrides = {}) => makeOffer({ status: 'completed', Peer: PEER, Ratings: [], currentUserId: '1', ...overrides })
+	const RATED = { ...completed(), Ratings: [{ rater: '1', rated: '2', rating: '5', comment: null, tags: [] }] }
+
+	test('sin mi fila en Ratings se puede valorar; con ella solo se ven mis estrellas', async () => {
+		const fresh = await renderDetail({ offer: completed(), viewer: CREATOR })
+		expect(fresh.result.current.canRatePeer).toBe(true)
+		expect(fresh.result.current.myRating).toBeNull()
+		const rated = await renderDetail({ offer: completed({ Ratings: [{ rater: '1', rated: '2', rating: '4', comment: 'ok', tags: ['rapido'] }] }), viewer: CREATOR })
+		expect(rated.result.current.canRatePeer).toBe(false)
+		expect(rated.result.current.myRating).toMatchObject({ rating: 4, comment: 'ok', tags: ['rapido'] })
+	})
+
+	test('openRateSheet apunta a la contraparte; submitRate manda rating numérico, cierra y 5★ pide reseña', async () => {
+		p2pApi.rateOffer.mockResolvedValue({ success: true, data: { message: 'Rating created', rating: 5, editable_until: null } })
+		const { result } = await renderDetail({ offer: completed(), viewer: CREATOR })
+		act(() => { result.current.openRateSheet() })
+		expect(result.current.rateTarget).toMatchObject({ order: null, counterparty: PEER, rated: false })
+		p2pApi.show.mockResolvedValue({ success: true, data: { p2p: RATED } })
+		await act(async () => { await result.current.submitRate({ rating: 5, tags: ['rapido'], comment: '  todo bien ' }) })
+		expect(p2pApi.rateOffer).toHaveBeenCalledWith('offer-1', { rating: 5, comment: 'todo bien', tags: ['rapido'] })
+		expect(toast.success).toHaveBeenCalledWith('¡Valoración enviada!')
+		expect(result.current.rateTarget).toBeNull()
+		expect(result.current.canRatePeer).toBe(false)
+		expect(result.current.myRating.rating).toBe(5)
 		expect(maybeRequestReview).not.toHaveBeenCalled()
 		await act(async () => { jest.advanceTimersByTime(1500) })
 		expect(maybeRequestReview).toHaveBeenCalled()
 	})
 
-	test('a failed rating reverts to the stored value and never asks for review', async () => {
-		p2pApi.rateOffer.mockResolvedValue({ success: false, error: 'nope' })
-		const offer = makeOffer({ status: 'completed', Peer: PEER, rating: 3 })
-		const { result } = await renderDetail({ offer, viewer: CREATOR })
-		await act(async () => { await result.current.handleRate(4) })
-		expect(result.current.rating).toBe(3)
+	test('un doble toque manda UNA sola valoración', async () => {
+		p2pApi.rateOffer.mockResolvedValue({ success: true, data: {} })
+		const { result } = await renderDetail({ offer: completed(), viewer: CREATOR })
+		act(() => { result.current.openRateSheet() })
+		await act(async () => {
+			const submit = result.current.submitRate
+			await Promise.all([submit({ rating: 4, tags: [], comment: '' }), submit({ rating: 4, tags: [], comment: '' })])
+		})
+		expect(p2pApi.rateOffer).toHaveBeenCalledTimes(1)
+	})
+
+	test('"Ya has calificado" no es un error: cierra y refresca', async () => {
+		p2pApi.rateOffer.mockResolvedValue({ success: false, status: 400, error: 'Ya has calificado esta oferta', details: { code: 'ALREADY_RATED' } })
+		const { result } = await renderDetail({ offer: completed(), viewer: CREATOR })
+		act(() => { result.current.openRateSheet() })
+		const showCalls = p2pApi.show.mock.calls.length
+		await act(async () => { await result.current.submitRate({ rating: 3, tags: [], comment: '' }) })
+		expect(toast.error).not.toHaveBeenCalled()
+		expect(result.current.rateTarget).toBeNull()
+		expect(p2pApi.show.mock.calls.length).toBe(showCalls + 1)
+	})
+
+	test('cualquier otro fallo enseña el texto del backend y deja la hoja abierta', async () => {
+		p2pApi.rateOffer.mockResolvedValue({ success: false, status: 400, error: 'Datos inválidos' })
+		const { result } = await renderDetail({ offer: completed(), viewer: CREATOR })
+		act(() => { result.current.openRateSheet() })
+		await act(async () => { await result.current.submitRate({ rating: 3, tags: [], comment: '' }) })
+		expect(toast.error).toHaveBeenCalledWith('No se pudo calificar', { description: 'Datos inválidos' })
+		expect(result.current.rateTarget).not.toBeNull()
 		await act(async () => { jest.advanceTimersByTime(5000) })
 		expect(maybeRequestReview).not.toHaveBeenCalled()
+	})
+
+	test('sin estrellas no se envía nada', async () => {
+		const { result } = await renderDetail({ offer: completed(), viewer: CREATOR })
+		act(() => { result.current.openRateSheet() })
+		await act(async () => { await result.current.submitRate({ rating: 0, tags: [], comment: 'hola' }) })
+		expect(p2pApi.rateOffer).not.toHaveBeenCalled()
+	})
+
+	test('desde una push de trato cerrado (rate) la hoja sale sola, una sola vez', async () => {
+		const { result } = await renderDetail({ offer: completed(), viewer: PEER, promptRate: true })
+		expect(result.current.rateTarget).toBeNull() // espera a que cierre el modal anterior
+		await act(async () => { jest.advanceTimersByTime(400) })
+		expect(result.current.rateTarget).toMatchObject({ order: null, counterparty: CREATOR })
+		act(() => { result.current.closeRateSheet() })
+		await act(async () => { jest.advanceTimersByTime(5000) })
+		expect(result.current.rateTarget).toBeNull()
+	})
+
+	test('con la push de un trato ya valorado no sale nada', async () => {
+		const { result } = await renderDetail({ offer: RATED, viewer: CREATOR, promptRate: true })
+		await act(async () => { jest.advanceTimersByTime(400) })
+		expect(result.current.rateTarget).toBeNull()
+	})
+
+	test('si el trato se completa con la pantalla abierta, se pide la valoración', async () => {
+		const { result } = await renderDetail({ offer: completed({ status: 'paid' }), viewer: CREATOR })
+		expect(result.current.canRatePeer).toBe(false)
+		p2pApi.show.mockResolvedValue({ success: true, data: { p2p: completed() } })
+		await act(async () => { jest.advanceTimersByTime(5000) }) // el poll trae `completed`
+		await act(async () => { jest.advanceTimersByTime(400) })
+		expect(result.current.rateTarget).toMatchObject({ order: null, counterparty: PEER })
+	})
+
+	test('liberar abre la hoja para valorar a la contraparte', async () => {
+		p2pApi.confirmReceived.mockResolvedValue({ success: true })
+		const { result } = await renderDetail({ offer: completed({ status: 'paid' }), viewer: PEER })
+		p2pApi.show.mockResolvedValue({ success: true, data: { p2p: completed() } })
+		act(() => { result.current.handleConfirmReceived() })
+		await act(async () => { await result.current.confirmModalAction() })
+		await act(async () => { jest.advanceTimersByTime(400) })
+		expect(result.current.rateTarget).toMatchObject({ order: null, counterparty: CREATOR })
 	})
 })
 
@@ -506,6 +593,57 @@ describe('range offers (offer_kind flexible)', () => {
 		const { result } = await renderDetail({ offer: makeFlexible({ can_take_flexible: false }), viewer: { uuid: 'stranger' } })
 		expect(result.current.canApply).toBe(false)
 		expect(result.current.flexibleLocked).toBe(true)
+	})
+
+	test('una orden completada se valora: dueño y taker sí; con my_rating, mis estrellas; la oferta nunca', async () => {
+		const offer = makeFlexible({ status: 'completed', available_amount: '0.00', Orders: [order({ status: 'completed' })] })
+		const maker = await renderDetail({ offer, viewer: CREATOR, orderUuid: 'ord-1' })
+		expect(maker.result.current.canRatePeer).toBe(true)
+		const taker = await renderDetail({ offer, viewer: PEER, orderUuid: 'ord-1' })
+		expect(taker.result.current.canRatePeer).toBe(true)
+		const overview = await renderDetail({ offer, viewer: CREATOR })
+		expect(overview.result.current.isFlexibleOverview).toBe(true)
+		expect(overview.result.current.canRatePeer).toBe(false)
+		expect(overview.result.current.myRating).toBeNull()
+		const rated = makeFlexible({ Orders: [order({ status: 'completed', my_rating: { rating: '5', comment: null, created_at: '2026-10-19T18:02:11.000Z' } })] })
+		const done = await renderDetail({ offer: rated, viewer: CREATOR, orderUuid: 'ord-1' })
+		expect(done.result.current.canRatePeer).toBe(false)
+		expect(done.result.current.myRating.rating).toBe(5)
+	})
+
+	test('valorar una orden desde la lista: el dueño valora al taker y order viaja en el body', async () => {
+		p2pApi.rateOffer.mockResolvedValue({ success: true, data: { editable_until: null } })
+		const offer = makeFlexible({ Orders: [order({ status: 'completed' }), order({ uuid: 'ord-2', status: 'completed', Taker: { uuid: 'other' } })] })
+		const { result } = await renderDetail({ offer, viewer: CREATOR })
+		act(() => { result.current.openRateSheet('ord-2') })
+		expect(result.current.rateTarget).toMatchObject({ order: 'ord-2', counterparty: { uuid: 'other' }, amount: '4.00' })
+		await act(async () => { await result.current.submitRate({ rating: 4, tags: [], comment: '' }) })
+		expect(p2pApi.rateOffer).toHaveBeenCalledWith('offer-1', { rating: 4, order: 'ord-2' })
+	})
+
+	test('el taker valora al dueño (Peer llega vacío en las por rango)', async () => {
+		const offer = makeFlexible({ Orders: [order({ status: 'completed' })] })
+		const { result } = await renderDetail({ offer, viewer: PEER, orderUuid: 'ord-1' })
+		act(() => { result.current.openRateSheet() })
+		expect(result.current.rateTarget).toMatchObject({ order: 'ord-1', counterparty: CREATOR })
+	})
+
+	test('el taker que libera se queda en su orden y se le abre la hoja', async () => {
+		p2pApi.confirmReceived.mockResolvedValue({ success: true })
+		// Compra por rango: el dueño paga el fiat, el taker lo recibe y libera
+		const offer = makeFlexible({ type: 'buy', Orders: [order({ status: 'paid' })] })
+		const { result } = await renderDetail({ offer, viewer: PEER })
+		expect(result.current.selectedOrder.uuid).toBe('ord-1') // elegida sola
+		expect(result.current.canConfirmReceived).toBe(true)
+		p2pApi.show.mockResolvedValue({ success: true, data: { p2p: makeFlexible({ type: 'buy', Orders: [order({ status: 'completed' })] }) } })
+		act(() => { result.current.handleConfirmReceived() })
+		await act(async () => { await result.current.confirmModalAction() })
+		expect(p2pApi.confirmReceived).toHaveBeenCalledWith('offer-1', 'ord-1')
+		await act(async () => { jest.advanceTimersByTime(400) })
+		// Ya no está viva, pero la pantalla no salta a la vista de la oferta
+		expect(result.current.selectedOrder.uuid).toBe('ord-1')
+		expect(result.current.canRatePeer).toBe(true)
+		expect(result.current.rateTarget).toMatchObject({ order: 'ord-1', counterparty: CREATOR })
 	})
 
 	test('una orden cerrada del taker permite volver a la oferta', async () => {

@@ -108,7 +108,8 @@ export type RootStackParamList = {
 
 	// ── P2P ───────────────────────────────────────────────────────────────
 	/** `order`: orden de una oferta por rango (filas de la lista, push, `?order=` de la web). */
-	P2POffer: { p2p_uuid: string, order?: string }
+	/** `order`: una orden de una oferta por rango. `rate`: viene de una push de trato cerrado → abre la hoja de valoración. */
+	P2POffer: { p2p_uuid: string, order?: string, rate?: boolean }
 	/** `initialTab` está implementado en la pantalla pero ningún call site lo manda aún. */
 	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
 	P2PCreate: undefined

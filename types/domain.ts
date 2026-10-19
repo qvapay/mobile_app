@@ -324,7 +324,6 @@ export type P2POffer = {
 	private: BoolInt
 	message?: string
 	created_at: string
-	rating?: number
 	tx_id?: string | null
 	/** Datos sensibles: solo llegan en el detalle, nunca en la lista. */
 	details?: P2POfferDetails
@@ -349,6 +348,13 @@ export type P2POffer = {
 	Orders?: P2POrder[]
 	/** Flexible: solo llega al dueño. */
 	OrdersSummary?: { active: number, completed: number, cancelled: number } | null
+	/**
+	 * Fija completada: las valoraciones del trato (las dos partes). Por rango llega
+	 * siempre `[]`: ahí cada orden trae la suya en `my_rating`.
+	 */
+	Ratings?: P2POfferRating[]
+	/** Id INTERNO de quien mira (string): casa con `Ratings[].rater` / `.rated`, no con uuids. */
+	currentUserId?: string
 	updated_at?: string
 	/**
 	 * Requisitos del maker para aplicar (solo las claves activas; null = ninguno).
@@ -390,6 +396,32 @@ export type P2POrder = {
 	payment_window_expires_at?: string | null
 	tx_id?: string | null
 	Taker?: P2PUser | null
+	/** Mi valoración de esta orden: null si aún no la valoré (o no soy parte). */
+	my_rating?: P2PMyRating | null
+}
+
+/** Etiquetas rápidas de una valoración P2P (lista blanca del backend). */
+export type P2PRatingTag = 'rapido' | 'confiable' | 'comunicacion'
+
+/**
+ * Valoración propia de un trato P2P tal como la sirve `GET /p2p/{uuid}`.
+ * `rating` viaja como STRING ("5"); `editable_until` = hasta cuándo se puede
+ * cambiar con PATCH (null = ya no). El plazo lo decide el backend.
+ */
+export type P2PMyRating = {
+	rating: string
+	comment: string | null
+	tags?: P2PRatingTag[]
+	created_at?: string | null
+	updated_at?: string | null
+	editable_until?: string | null
+}
+
+/** Fila de `Ratings` de una oferta fija. `rater`/`rated` son ids INTERNOS (null en filas legacy). */
+export type P2POfferRating = P2PMyRating & {
+	id?: string
+	rater: string | null
+	rated: string | null
 }
 
 /** Paginador Laravel crudo de `GET /p2p/index` (las ofertas viven en `data`). */

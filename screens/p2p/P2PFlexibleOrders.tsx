@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next"
 
 import QPAvatar from "../../ui/particles/QPAvatar"
 import QPPressable from "../../ui/particles/QPPressable"
+import QPRate from "../../ui/particles/QPRate"
 import { timeAgo } from "../../helpers"
 import { formatCents, isActiveOrder, toCents } from "./p2pFlexible"
+import { canRateOrder, myRatingOf } from "./p2pRating"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
@@ -14,7 +16,10 @@ import type { P2POffer, P2POrder, P2POrderStatus } from "../../types/domain"
 type P2PFlexibleOrdersProps = {
 	offer: P2POffer
 	isOwner: boolean
+	currentUserUuid?: string | null
 	onOpenOrder: (uuid: string) => void
+	/** Abre la hoja de valoración de esa orden (completada y aún sin valorar). */
+	onRateOrder: (uuid: string) => void
 	theme: Theme
 	textStyles: TextStyles
 	containerStyles: ContainerStyles
@@ -35,9 +40,10 @@ const statusColor = (status: P2POrderStatus, theme: Theme): string => {
  * Vista de una oferta por rango sin orden seleccionada: cuánto queda y cuánto
  * hay comprometido, y la lista de órdenes (el dueño ve todas; un taker, las
  * suyas). Cada fila abre esa orden — su pago, chat y disputa son propios.
- * Las vivas van primero: son las que piden acción.
+ * Las vivas van primero: son las que piden acción. Una orden completada se
+ * valora aparte: chip "Valorar" si aún no la valoré, mis estrellas si ya.
  */
-const P2PFlexibleOrders = ({ offer, isOwner, onOpenOrder, theme, textStyles, containerStyles }: P2PFlexibleOrdersProps) => {
+const P2PFlexibleOrders = ({ offer, isOwner, currentUserUuid = null, onOpenOrder, onRateOrder, theme, textStyles, containerStyles }: P2PFlexibleOrdersProps) => {
 
 	const { t } = useTranslation()
 
@@ -82,6 +88,8 @@ const P2PFlexibleOrders = ({ offer, isOwner, onOpenOrder, theme, textStyles, con
 					</Text>
 					{orders.map((order: P2POrder, i) => {
 						const color = statusColor(order.status, theme)
+						const canRate = canRateOrder(offer, order, currentUserUuid)
+						const mine = order.status === "completed" ? myRatingOf(offer, order) : null
 						return (
 							<QPPressable
 								key={order.uuid}
@@ -98,11 +106,25 @@ const P2PFlexibleOrders = ({ offer, isOwner, onOpenOrder, theme, textStyles, con
 										{isOwner ? `$${formatCents(toCents(order.amount))} · ` : ""}{order.receive} {coinName} · {timeAgo(order.created_at)}
 									</Text>
 								</View>
-								<View style={[styles.pill, { backgroundColor: color + "22" }]}>
-									<Text style={[textStyles.caption, { color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
-										{t(`p2p.flexible.orderStatus.${order.status}`)}
-									</Text>
-								</View>
+								{canRate ? (
+									/* Su propio pressable: en el Responder gana el más interno, así que no abre la orden */
+									<QPPressable onPress={() => onRateOrder(order.uuid)} style={[styles.pill, styles.ratePill, { backgroundColor: theme.colors.primary }]} accessibilityRole="button">
+										<FontAwesome6 name="star" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
+										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
+											{t('p2p.rating.rowRate')}
+										</Text>
+									</QPPressable>
+								) : mine ? (
+									<View accessibilityLabel={t('p2p.rating.yourRating')}>
+										<QPRate value={mine.rating} size={11} spacing={2} readOnly />
+									</View>
+								) : (
+									<View style={[styles.pill, { backgroundColor: color + "22" }]}>
+										<Text style={[textStyles.caption, { color, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
+											{t(`p2p.flexible.orderStatus.${order.status}`)}
+										</Text>
+									</View>
+								)}
 								<FontAwesome6 name="angle-right" size={14} color={theme.colors.tertiaryText} iconStyle="solid" />
 							</QPPressable>
 						)
@@ -120,6 +142,7 @@ const styles = StyleSheet.create({
 	sectionTitle: { textTransform: "uppercase", letterSpacing: 0.5, marginTop: 6, marginBottom: 2 },
 	row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
 	pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+	ratePill: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 5 },
 })
 
 export default P2PFlexibleOrders

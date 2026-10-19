@@ -42,6 +42,7 @@ import P2PApplyModal from "./P2PApplyModal"
 import P2PTradeProgress from "./P2PTradeProgress"
 import P2PActionBar from "./P2PActionBar"
 import P2PFlexibleOrders from "./P2PFlexibleOrders"
+import P2PRateSheet from "./P2PRateSheet"
 
 import type { ReactElement } from "react"
 import type { RefreshControlProps } from "react-native"
@@ -58,6 +59,7 @@ import type { RootStackParamList } from "../../types/navigation"
  * Expects `route.params.p2p_uuid`; also deep-linked from qvapay.com/p2p/:p2p_uuid.
  * Range offers: `route.params.order` (list rows, pushes) opens one order — its own
  * trade room, chat and dispute; without it the screen is the offer overview.
+ * `route.params.rate` (push of a closed deal) pops the rating sheet once the deal can be rated.
  * The offer polls `GET /p2p/{uuid}` every 5s while active (status has no SSE); chat is
  * real-time over SSE (`useP2PChatSSE`) with a polling fallback, and trade actions drive
  * `/p2p/{uuid}/apply|paid|received|cancel|rate`.
@@ -76,7 +78,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	const insets = useSafeAreaInsets()
 	const { height: windowHeight } = useWindowDimensions()
 
-	const { p2p_uuid, order: routeOrder = null } = route.params
+	const { p2p_uuid, order: routeOrder = null, rate: promptRate = false } = route.params
 
 	// Shared ref breaking the hook cycle: SSE needs the offer status, the offer's 5s
 	// interval needs to know whether the chat stream is live (to skip its chat fetch)
@@ -90,7 +92,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 	// Offer lifecycle, derived flags and trade actions (chat fetch injected for polling/refresh)
 	// `useNavigation()` devuelve el prop tipado por la declaración global, cuyo
 	// getState() se estrecha distinto al NavigationProp<RootStackParamList> puro
-	const offer = useP2POfferDetail({ p2p_uuid, orderUuid: routeOrder, user, navigation: navigation as unknown as NavigationProp<RootStackParamList>, fetchChat, chatStreamLiveRef })
+	const offer = useP2POfferDetail({ p2p_uuid, orderUuid: routeOrder, promptRate, user, navigation: navigation as unknown as NavigationProp<RootStackParamList>, fetchChat, chatStreamLiveRef })
 	const chatOrder = offer.selectedOrder?.uuid ?? null
 
 	// Chat (messages, composer, stickers, auto-scroll ref)
@@ -111,16 +113,17 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 		connectedRef: chatStreamLiveRef,
 	})
 	const {
-		p2p, rawP2p, isLoading, error, refreshing, rating,
+		p2p, rawP2p, isLoading, error, refreshing,
 		isFlexible, isFlexibleOverview, selectedOrder, flexibleLocked, canBackToOffer,
 		applyAmount, setApplyAmount, openOrder, backToOffer,
 		isOwner, isPayer, isReceiver, status, counterparty,
-		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer,
+		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating,
 		canApply, statusMessage, peerStats, peerReviewsCount, isUserOnline,
 		loading, txIdInput, setTxIdInput, showApplyConfirm, setShowApplyConfirm, edit, setEdit,
 		confirmModal, closeConfirmModal, confirmModalAction,
+		rateTarget, openRateSheet, closeRateSheet, submitRate,
 		onRefresh, openPeerProfile, handleCancel, handleDispute, handleMarkPaid, handleConfirmReceived,
-		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit, handleRate,
+		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit,
 	} = offer
 
 	// Keyboard height tracking
@@ -211,7 +214,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 								</View>
 							) : null}
 
-							<P2PFlexibleOrders offer={rawP2p} isOwner={isOwner} onOpenOrder={openOrder} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
+							<P2PFlexibleOrders offer={rawP2p} isOwner={isOwner} currentUserUuid={user?.uuid} onOpenOrder={openOrder} onRateOrder={openRateSheet} theme={theme} textStyles={textStyles} containerStyles={containerStyles} />
 
 							{isOwner && status === "open" && !(rawP2p.Orders || []).length ? (
 								<View style={{ flex: 1, paddingVertical: 12, alignItems: "center", justifyContent: "center" }}>
@@ -321,6 +324,17 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					containerStyles={containerStyles}
 				/>
 
+				{/* Valoración del trato cerrado (oferta fija u orden por rango); se oculta si ya está valorado */}
+				<P2PRateSheet
+					target={rateTarget && !rateTarget.rated ? rateTarget : null}
+					loading={loading.rate}
+					onClose={closeRateSheet}
+					onSubmit={submitRate}
+					theme={theme}
+					textStyles={textStyles}
+					containerStyles={containerStyles}
+				/>
+
 				{/* Burbuja flotante del chat + hoja del chat (badge de no leídos incluido) */}
 				<P2POfferChatDock
 					enabled={!!p2p && status !== "open" && !isFlexibleOverview}
@@ -372,6 +386,8 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					canMarkPaid={canMarkPaid}
 					canConfirmReceived={canConfirmReceived}
 					canRatePeer={canRatePeer}
+					myRating={myRating?.rating ?? null}
+					rateUsername={counterparty?.username ?? null}
 					canDispute={canDispute}
 					canBackToOffer={canBackToOffer}
 					flexibleLocked={flexibleLocked}
@@ -380,14 +396,13 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					onBackToOffer={backToOffer}
 					loading={loading}
 					txIdInput={txIdInput}
-					rating={rating}
 					onApply={handleApply}
 					onCancel={handleCancel}
 					onMarkPaid={handleMarkPaid}
 					onConfirmReceived={handleConfirmReceived}
 					onEdit={openEditModal}
 					onShare={handleShareIntent}
-					onRate={handleRate}
+					onRate={() => openRateSheet()}
 					keyboardVisible={keyboardVisible}
 					insets={insets}
 					theme={theme}
