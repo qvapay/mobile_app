@@ -176,9 +176,7 @@
 			"invalidValueTitle": "Valor inválido",
 			"invalidValueBody": "O valor a receber deve ser maior que 0",
 			"insufficientBalanceTitle": "Saldo insuficiente",
-			"insufficientBalanceBody": "Você não tem saldo suficiente para aumentar o valor",
-			"rated": "Oferta avaliada",
-			"rateFailed": "Não foi possível avaliar"
+			"insufficientBalanceBody": "Você não tem saldo suficiente para aumentar o valor"
 		},
 		"share": {
 			"title": "Oferta P2P",
@@ -190,8 +188,7 @@
 		"apply": "Aceitar",
 		"markPaid": "Já paguei",
 		"paymentReceived": "Pagamento recebido",
-		"offerCancelled": "Oferta cancelada",
-		"rateCounterparty": "Avalie sua contraparte"
+		"offerCancelled": "Oferta cancelada"
 	},
 	"applyModal": {
 		"title": "Aceitar a oferta",
@@ -392,6 +389,29 @@
 			"toggle": "Oferta por faixa",
 			"toggleHint": "Cada contraparte pega só a parte de que precisa, até a oferta acabar.",
 			"existsTitle": "Você já tem uma oferta por faixa"
+		}
+	},
+	"rating": {
+		"title": "Operação concluída",
+		"subtitle": "Avalie sua experiência com @{{username}}",
+		"subtitleFallback": "Avalie sua experiência com a contraparte",
+		"deal": "${{amount}} · {{receive}} {{coin}}",
+		"tags": {
+			"rapido": "Rápido",
+			"confiable": "Confiável",
+			"comunicacion": "Boa comunicação"
+		},
+		"commentLabel": "Comentário (opcional)",
+		"commentPlaceholder": "Algo a destacar?",
+		"submit": "Avaliar agora",
+		"skip": "Pular",
+		"rateButton": "Avaliar @{{username}}",
+		"rateButtonFallback": "Avaliar",
+		"rowRate": "Avaliar",
+		"yourRating": "Sua avaliação",
+		"toasts": {
+			"sent": "Avaliação enviada!",
+			"failed": "Não foi possível enviar a avaliação"
 		}
 	}
 }
