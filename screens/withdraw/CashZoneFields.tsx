@@ -26,6 +26,8 @@ type CashZoneFieldsProps = {
 	belowMin: boolean
 	onChangeProvince: (province: string) => void
 	onChangeMunicipality: (municipality: string) => void
+	/** Aviso de plazo, cargo y mínimo debajo de los selects (Ajustes guarda el destino sin retirar: lo oculta). */
+	showNotice?: boolean
 	theme: Theme
 	textStyles: TextStyles
 }
@@ -77,7 +79,7 @@ const ZoneTrigger = ({ label, icon, placeholder, value, detail, disabled, onPres
  * de texto libre: los valores que escribe son `province_name` y `municipality` de la
  * zona, que el servidor vuelve a casar sin acentos ni mayúsculas.
  */
-const CashZoneFields = ({ mode, province, municipality, zone, charge, belowMin, onChangeProvince, onChangeMunicipality, theme, textStyles }: CashZoneFieldsProps) => {
+const CashZoneFields = ({ mode, province, municipality, zone, charge, belowMin, onChangeProvince, onChangeMunicipality, showNotice = true, theme, textStyles }: CashZoneFieldsProps) => {
 
 	const { t } = useTranslation()
 	const [sheet, setSheet] = useState<'province' | 'municipality' | null>(null)
@@ -179,7 +181,7 @@ const CashZoneFields = ({ mode, province, municipality, zone, charge, belowMin, 
 				footnote={hasPickup ? t('withdraw.cashZones.picker.pickupFootnote') : null}
 			/>
 
-			<View style={[styles.notice, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
+			{showNotice && <View style={[styles.notice, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
 				{zone ? (
 					<>
 						<Text style={[textStyles.h6, { color: theme.colors.primaryText }]}>
@@ -210,7 +212,7 @@ const CashZoneFields = ({ mode, province, municipality, zone, charge, belowMin, 
 				) : (
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('withdraw.cashZones.pickPrompt')}</Text>
 				)}
-			</View>
+			</View>}
 		</View>
 	)
 }

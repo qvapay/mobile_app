@@ -579,7 +579,8 @@
 			"coinLabel": "Moneda",
 			"selectCoin": "Seleccionar moneda",
 			"accountData": "Datos de la cuenta",
-			"saveButton": "Guardar método"
+			"saveButton": "Guardar método",
+			"zonesLoadError": "No pudimos cargar las zonas de entrega. Sin ellas no podemos comprobar la provincia y el municipio."
 		},
 		"alerts": {
 			"deleteTitle": "Eliminar método",
@@ -595,7 +596,8 @@
 			"createFailed": "No se pudo crear el método",
 			"invalidId": "ID de método inválido",
 			"deleted": "Método eliminado",
-			"deleteFailed": "No se pudo eliminar"
+			"deleteFailed": "No se pudo eliminar",
+			"zoneRequired": "Elige provincia y municipio de la lista"
 		}
 	},
 	"phone": {
