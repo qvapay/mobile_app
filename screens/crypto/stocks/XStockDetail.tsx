@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -23,6 +23,7 @@ import type { RootStackParamList } from '../../../types/navigation'
 import type { Theme } from '../../../theme/ThemeContext'
 import type { RawPricePoint } from '../../../ui/charts/pricePoints'
 import type { ScrubPoint } from '../../../ui/charts/PriceChartPro'
+import type { XStock } from '../../../wallet/xstocks'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'XStockDetail'>
 
@@ -43,10 +44,22 @@ const StatRow = ({ label, value, theme, isLast }: { label: string, value: string
 	</View>
 )
 
+/** Título de la cabecera: logo, nombre y ticker del subyacente. */
+const HeaderTitle = ({ stock, theme }: { stock: XStock, theme: Theme }) => (
+	<View style={styles.headerTitle} accessible accessibilityRole="header" accessibilityLabel={`${stock.name}, ${stock.underlying}`}>
+		<StockLogo stock={stock} size={24} />
+		<Text numberOfLines={1} style={{ color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }}>{stock.name}</Text>
+		<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }}>{stock.underlying}</Text>
+	</View>
+)
+
+/** `headerTitle` como función: native-stack la invoca, no la monta como componente. */
+const headerTitleFor = (stock: XStock, theme: Theme) => () => <HeaderTitle stock={stock} theme={theme} />
+
 /**
  * Detalle de una acción tokenizada, estilo Robinhood: el precio en grande sigue al dedo sobre
  * el gráfico, TODA la pantalla toma el color de la tendencia del periodo, tu posición debajo y
- * Comprar/Vender fijos abajo.
+ * Comprar/Vender fijos abajo. El logo y el nombre van en la cabecera.
  *
  * El precio en vivo es el del TOKEN (Jupiter, 24/7); el gráfico es el del subyacente (bolsa de
  * EE. UU.): fuera de horario pueden separarse un poco, y eso se dice en los riesgos.
@@ -91,18 +104,16 @@ const XStockDetail = ({ navigation, route }: Props) => {
 
 	const trade = useCallback((side: 'buy' | 'sell') => navigation.navigate(ROUTES.XSTOCK_TRADE, { mint, side }), [navigation, mint])
 
+	useLayoutEffect(() => {
+		if (stock) navigation.setOptions({ headerTitle: headerTitleFor(stock, theme) })
+	}, [navigation, stock, theme])
+
 	if (!stock) return null
 
 	return (
 		<View style={[containerStyles.subContainer, styles.noHPad]}>
 			<ScrollView contentContainerStyle={[styles.content, { paddingBottom: (tradeBlocked ? 200 : 120) + insets.bottom }]} showsVerticalScrollIndicator={false}>
 				<View style={styles.hero}>
-					<View style={styles.titleRow}>
-						<StockLogo stock={stock} size={28} />
-						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }}>
-							{stock.name} · {stock.underlying}
-						</Text>
-					</View>
 					<QPBalance animated={!scrub} amount={heroValue} fractionDigits={2} fontSize={theme.typography.fontSize.display} theme={theme} />
 					{scrub ? (
 						<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>{formatScrubTime(scrub.time)}</Text>
@@ -206,7 +217,7 @@ const styles = StyleSheet.create({
 		paddingTop: 8,
 		gap: 4,
 	},
-	titleRow: {
+	headerTitle: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 8,
