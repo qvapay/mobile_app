@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native'
 
 import { useTheme } from '../../../../theme/ThemeContext'
 import { ROUTES } from '../../../../routes'
-import { StockRow } from './StockParts'
+import { RegionNotice, StockRow } from './StockParts'
 import { useXStockPortfolio, useXStocksAvailability } from '../xstocksQueries'
 import { sortByLiquidity } from '../xstocksModel'
 
@@ -19,15 +19,17 @@ const XStocksCard = ({ limit = 3 }: { limit?: number }) => {
 	const { theme } = useTheme()
 	const navigation = useNavigation()
 
-	const { available } = useXStocksAvailability()
-	const { positions } = useXStockPortfolio({ enabled: available })
+	// Fuera de región la tarjeta también sale (con el aviso): se ve, pero no se compra ni vende
+	const { available, isLoading: checkingRegion } = useXStocksAvailability()
+	const { positions } = useXStockPortfolio()
 	const top = useMemo(() => sortByLiquidity(positions).slice(0, limit), [positions, limit])
 
-	if (!available || top.length === 0) { return null }
+	if (top.length === 0) { return null }
 
 	return (
 		<View testID="xstocks-card" style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && [styles.border, { borderColor: theme.colors.border }]]}>
 			<Text style={{ color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.xstocks.card.title')}</Text>
+			{!available && !checkingRegion && <View style={styles.notice}><RegionNotice theme={theme} compact /></View>}
 			{top.map((position, i) => (
 				<StockRow
 					key={position.stock.mint}
@@ -54,6 +56,9 @@ const styles = StyleSheet.create({
 	},
 	border: {
 		borderWidth: 1,
+	},
+	notice: {
+		marginTop: 8,
 	},
 	seeAll: {
 		alignItems: 'center',

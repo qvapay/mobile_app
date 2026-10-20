@@ -9,7 +9,7 @@ import { ROUTES } from '../../../routes'
 import QPBalance from '../../../ui/particles/QPBalance'
 import QPSkeleton from '../../../ui/particles/QPSkeleton'
 import QPPressable from '../../../ui/particles/QPPressable'
-import { ChangeLine, RiskSheet, StockRow } from './components/StockParts'
+import { ChangeLine, RegionNotice, RiskSheet, StockRow } from './components/StockParts'
 import { useXStockPortfolio, useXStocksAvailability } from './xstocksQueries'
 import { sortByLiquidity } from './xstocksModel'
 
@@ -44,16 +44,6 @@ const StocksHome = ({ navigation }: Props) => {
 
 	const openStock = useCallback((mint: string) => navigation.navigate(ROUTES.XSTOCK_DETAIL, { mint }), [navigation])
 
-	if (!availabilityLoading && !available) {
-		return (
-			<View style={[containerStyles.subContainer, styles.unavailable]}>
-				<FontAwesome6 name="earth-americas" size={40} color={theme.colors.secondaryText} iconStyle="solid" />
-				<Text style={[styles.centerText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.lg, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('crypto.xstocks.unavailable.title')}</Text>
-				<Text style={[styles.centerText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.xstocks.unavailable.body')}</Text>
-			</View>
-		)
-	}
-
 	const hasPositions = summary.held.length > 0
 
 	return (
@@ -63,6 +53,9 @@ const StocksHome = ({ navigation }: Props) => {
 				showsVerticalScrollIndicator={false}
 				refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
 			>
+				{/* Fuera de región se ve todo, pero comprar y vender quedan deshabilitados en el detalle */}
+				{!availabilityLoading && !available && <RegionNotice theme={theme} />}
+
 				{/* Héroe: el valor de tus acciones, o la invitación si aún no tienes */}
 				<View style={styles.hero}>
 					<Text style={{ color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>
@@ -136,15 +129,6 @@ const styles = StyleSheet.create({
 	disclosureText: {
 		flex: 1,
 		lineHeight: 17,
-	},
-	unavailable: {
-		justifyContent: 'center',
-		alignItems: 'center',
-		gap: 12,
-		paddingHorizontal: 32,
-	},
-	centerText: {
-		textAlign: 'center',
 	},
 })
 

@@ -86,7 +86,8 @@ describe('carga y refresco', () => {
 		gate = new Promise(resolve => setTimeout(resolve, 100))
 		const dashboard = await renderDashboard()
 
-		expect(new Set(started)).toEqual(new Set(['coins', 'stocks']))
+		// La pestaña Stocks son las xStocks: la lista de stocks del backend ya no se pide
+		expect(new Set(started)).toEqual(new Set(['coins']))
 
 		// Abierta la compuerta, las respuestas aterrizan con normalidad
 		await act(async () => { await gate })
@@ -101,7 +102,7 @@ describe('carga y refresco', () => {
 		await act(async () => { await dashboard.current.onRefresh() })
 		await settle()
 
-		expect(new Set(started)).toEqual(new Set(['coins', 'stocks']))
+		expect(new Set(started)).toEqual(new Set(['coins']))
 	})
 
 	test('refreshing sube y baja solo en el tirón', async () => {
@@ -123,7 +124,7 @@ describe('carga y refresco', () => {
 	test('mantiene el contrato que consume Crypto.tsx (sin P2P: vive en su tab), sin listas undefined', async () => {
 		const dashboard = await renderDashboard()
 		expect(Object.keys(dashboard.current).sort()).toEqual([
-			'coins', 'isLoading', 'onRefresh', 'refreshing', 'stocks',
+			'coins', 'isLoading', 'onRefresh', 'refreshing',
 		])
 	})
 })

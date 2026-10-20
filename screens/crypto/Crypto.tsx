@@ -16,7 +16,7 @@ import WalletHome from './wallet/WalletHome'
 // Acciones tokenizadas (xStocks): la pestaña Stocks pasa a ser comprable cuando la región lo permite
 import { useXStockPortfolio, useXStocksAvailability } from './stocks/xstocksQueries'
 import { sortByLiquidity } from './stocks/xstocksModel'
-import { StockRow } from './stocks/components/StockParts'
+import { RegionNotice, StockRow } from './stocks/components/StockParts'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -213,19 +213,19 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	const { coins, stocks, isLoading, refreshing, onRefresh } = useCryptoDashboard()
+	const { coins, isLoading, refreshing, onRefresh } = useCryptoDashboard()
 	const [market, setMarket] = useState<MarketKey>('crypto')
 
-	// xStocks: fuera de región la pestaña sigue siendo solo de precios (la de siempre)
-	const { available: xstocksAvailable } = useXStocksAvailability()
-	const showXStocks = market === 'stocks' && xstocksAvailable
-	// Solo se cotiza con la pestaña Stocks a la vista (y en región): Jupiter cada 20 s si no
+	// La pestaña Stocks son exactamente las xStocks que ofrecemos (las fijadas en código), en
+	// región o no: fuera se ven, con el aviso, pero comprar y vender quedan deshabilitados
+	const { available: xstocksAvailable, isLoading: xstocksChecking } = useXStocksAvailability()
+	const showXStocks = market === 'stocks'
+	// Solo se cotiza con la pestaña Stocks a la vista: Jupiter cada 20 s si no
 	const { positions: xstockPositions } = useXStockPortfolio({ enabled: showXStocks })
-	const xstocksTop = useMemo(() => sortByLiquidity(xstockPositions).slice(0, 5), [xstockPositions])
+	const xstocksList = useMemo(() => sortByLiquidity(xstockPositions), [xstockPositions])
 
-	// La lista mezcla criptos enriquecidas y stocks: se lee por la forma común
-	// (ExploreRowItem) — cast local, la pestaña activa decide qué campos hay
-	const exploreItems = (market === 'crypto' ? coins.slice(0, 5) : stocks) as ExploreRowItem[]
+	// Pestaña Cripto: las cinco populares, por la forma común de ExploreRow (cast local)
+	const exploreItems = coins.slice(0, 5) as ExploreRowItem[]
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -244,45 +244,31 @@ const Crypto = ({ navigation }: CryptoProps) => {
 					<MarketTabs value={market} onChange={setMarket} theme={theme} />
 					{showXStocks && (
 						<>
-							{xstocksTop.map((position, i) => (
+							{!xstocksAvailable && !xstocksChecking && <View style={styles.regionNotice}><RegionNotice theme={theme} /></View>}
+							{xstocksList.map((position, i) => (
 								<StockRow
 									key={position.stock.mint}
 									position={position}
 									theme={theme}
 									showShares={false}
-									isLast={i === xstocksTop.length - 1}
+									isLast={i === xstocksList.length - 1}
 									onPress={() => navigation.navigate(ROUTES.XSTOCK_DETAIL, { mint: position.stock.mint })}
 								/>
 							))}
 							<Pressable onPress={() => navigation.navigate(ROUTES.STOCKS_HOME)} style={styles.seeAll} hitSlop={6} accessibilityRole="button">
-								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.xstocks.seeAll')}</Text>
+								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.xstocks.openHome')}</Text>
 							</Pressable>
 						</>
 					)}
 					{!showXStocks && exploreItems.map((item, i) => {
-						const isStock = market === 'stocks'
 						const rowProps = {
 							item,
 							theme,
 							textStyles,
 							isLast: i === exploreItems.length - 1,
-							isCrypto: !isStock,
+							isCrypto: true,
 						}
-						return isStock ? (
-							<Pressable
-								key={item.tick}
-								onPress={() => navigation.navigate(ROUTES.STOCK_DETAIL_SCREEN, {
-									symbol: item.tick,
-									name: item.name,
-									icon: item.icon,
-									iconStyle: item.iconStyle,
-									image: item.image,
-									initialData: item as unknown as Record<string, unknown>,
-								})}
-							>
-								<ExploreRow {...rowProps} />
-							</Pressable>
-						) : (
+						return (
 							<Pressable
 								key={item.tick}
 								onPress={() => navigation.navigate(ROUTES.COIN_DETAIL_SCREEN, {
@@ -346,6 +332,10 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 		alignItems: 'center',
 		paddingTop: 12,
 		paddingBottom: 4,
+	},
+	regionNotice: {
+		marginTop: 10,
+		marginBottom: 4,
 	},
 	// Mercados
 	tabs: {

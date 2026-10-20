@@ -15,8 +15,8 @@ import PriceChartPro from '../../../ui/charts/PriceChartPro'
 import { displayAmount } from '../../../wallet/chains/units'
 import { xStockByMint } from '../../../wallet/xstocks'
 import { useStockHistoryQuery } from '../cryptoQueries'
-import { ChangeLine, RiskSheet, StockLogo, formatPct, formatUsd, trendInk } from './components/StockParts'
-import { useXStockPortfolio } from './xstocksQueries'
+import { ChangeLine, RegionNotice, RiskSheet, StockLogo, formatPct, formatUsd, trendInk } from './components/StockParts'
+import { useXStockPortfolio, useXStocksAvailability } from './xstocksQueries'
 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
@@ -65,6 +65,9 @@ const XStockDetail = ({ navigation, route }: Props) => {
 	const [riskOpen, setRiskOpen] = useState(false)
 
 	const { positions } = useXStockPortfolio()
+	// Fuera de región la ficha se ve entera, pero comprar y vender darían 451: deshabilitados
+	const { available, isLoading: checkingRegion } = useXStocksAvailability()
+	const tradeBlocked = !available
 	const position = positions.find(p => p.stock.mint === mint) ?? null
 	const quote = position?.quote ?? null
 	const history = useStockHistoryQuery(stock?.underlying ?? '', timeframe)
@@ -92,7 +95,7 @@ const XStockDetail = ({ navigation, route }: Props) => {
 
 	return (
 		<View style={[containerStyles.subContainer, styles.noHPad]}>
-			<ScrollView contentContainerStyle={[styles.content, { paddingBottom: 120 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+			<ScrollView contentContainerStyle={[styles.content, { paddingBottom: (tradeBlocked ? 200 : 120) + insets.bottom }]} showsVerticalScrollIndicator={false}>
 				<View style={styles.hero}>
 					<View style={styles.titleRow}>
 						<StockLogo stock={stock} size={28} />
@@ -170,16 +173,20 @@ const XStockDetail = ({ navigation, route }: Props) => {
 			</ScrollView>
 
 			{/* Comprar / Vender fijos abajo, fuera del scroll */}
-			<View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.background }]}>
-				{held && (
-					<QPButton
-						title={t('crypto.xstocks.sell')}
-						onPress={() => trade('sell')}
-						style={[styles.footerButton, { backgroundColor: theme.colors.surface }]}
-						textStyle={{ color: theme.colors.primaryText }}
-					/>
-				)}
-				<QPButton title={t('crypto.xstocks.buy')} onPress={() => trade('buy')} style={styles.footerButton} disabled={!quote} />
+			<View style={[styles.footerWrap, { paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.background }]}>
+				{tradeBlocked && !checkingRegion && <RegionNotice theme={theme} />}
+				<View style={styles.footerRow}>
+					{held && (
+						<QPButton
+							title={t('crypto.xstocks.sell')}
+							onPress={() => trade('sell')}
+							style={[styles.footerButton, { backgroundColor: theme.colors.surface }]}
+							textStyle={{ color: theme.colors.primaryText }}
+							disabled={tradeBlocked}
+						/>
+					)}
+					<QPButton title={t('crypto.xstocks.buy')} onPress={() => trade('buy')} style={styles.footerButton} disabled={!quote || tradeBlocked} />
+				</View>
 			</View>
 
 			<RiskSheet visible={riskOpen} onClose={() => setRiskOpen(false)} theme={theme} />
@@ -257,15 +264,18 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingBottom: 2,
 	},
-	footer: {
+	footerWrap: {
 		position: 'absolute',
 		left: 0,
 		right: 0,
 		bottom: 0,
-		flexDirection: 'row',
 		gap: 10,
 		paddingHorizontal: 16,
 		paddingTop: 10,
+	},
+	footerRow: {
+		flexDirection: 'row',
+		gap: 10,
 	},
 	footerButton: {
 		flex: 1,

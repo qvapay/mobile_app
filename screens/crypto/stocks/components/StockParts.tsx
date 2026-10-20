@@ -83,6 +83,26 @@ export const StockRow = memo(({ position, theme, showShares, onPress, isLast }: 
 	)
 })
 
+/**
+ * Fuera de región las acciones se VEN (precios, gráfico, tu posición) pero no se compran ni
+ * venden: el servidor lo decide por el país de la IP (y, con sesión, el de la ficha) y
+ * respondería 451 al cotizar. `compact` = solo el título (tarjetas pequeñas).
+ */
+export const RegionNotice = ({ theme, compact = false }: { theme: Theme, compact?: boolean }) => {
+	const { t } = useTranslation()
+	return (
+		<View testID="xstocks-region-notice" style={[styles.notice, { backgroundColor: theme.colors.warning + '1A' }]}>
+			<FontAwesome6 name="earth-americas" size={compact ? 12 : 14} color={theme.colors.warning} iconStyle="solid" />
+			<View style={styles.noticeText}>
+				<Text style={{ color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.xstocks.unavailable.title')}</Text>
+				{!compact && (
+					<Text style={[styles.noticeBody, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.xstocks.unavailable.body')}</Text>
+				)}
+			</View>
+		</View>
+	)
+}
+
 const RISK_POINTS = ['token', 'issuer', 'noRights', 'hours', 'dividends', 'region'] as const
 
 /**
@@ -114,6 +134,9 @@ export const RiskSheet = ({ visible, onClose, onAccept, theme }: { visible: bool
 }
 
 const styles = StyleSheet.create({
+	notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 12, borderCurve: 'continuous' },
+	noticeText: { flex: 1, gap: 2 },
+	noticeBody: { lineHeight: 17 },
 	changeLine: {
 		flexDirection: 'row',
 		alignItems: 'center',

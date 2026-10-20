@@ -916,6 +916,7 @@
 		"sell": "Vender",
 		"today": "Hoje",
 		"seeAll": "Ver todas as ações",
+		"openHome": "Ver seus investimentos",
 		"sharesCount": "{{shares}} ações",
 		"timeframes": {
 			"24H": "1D",
@@ -939,7 +940,7 @@
 		},
 		"unavailable": {
 			"title": "Indisponível na sua região",
-			"body": "As ações tokenizadas não são oferecidas nos EUA, em Cuba nem em outros países com restrições do emissor."
+			"body": "Você pode ver os preços, mas comprar e vender ações tokenizadas não está disponível nos EUA, em Cuba nem em outros países com restrições do emissor."
 		},
 		"detail": {
 			"yourPosition": "Sua posição",

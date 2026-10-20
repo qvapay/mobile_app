@@ -242,8 +242,8 @@ export const useCryptoDashboard = () => {
 	// revalidaciones de fondo
 	const [refreshing, setRefreshing] = useState(false)
 
+	// La pestaña Stocks pinta las xStocks (xstocksQueries), no la lista de stocks del backend
 	const coins = useCryptoCoinsQuery()
-	const stocks = useStocksQuery()
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
@@ -255,10 +255,9 @@ export const useCryptoDashboard = () => {
 
 	return {
 		coins: coins.data || [],
-		stocks: stocks.data || [],
 		// Loader de pantalla completa solo mientras el explorador no tenga nada
 		// que pintar (ni de red ni de la caché persistida)
-		isLoading: coins.isPending && stocks.isPending,
+		isLoading: coins.isPending,
 		refreshing,
 		onRefresh,
 	}

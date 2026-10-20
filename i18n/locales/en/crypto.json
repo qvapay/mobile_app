@@ -916,6 +916,7 @@
 		"sell": "Sell",
 		"today": "Today",
 		"seeAll": "See all stocks",
+		"openHome": "See your investments",
 		"sharesCount": "{{shares}} shares",
 		"timeframes": {
 			"24H": "1D",
@@ -939,7 +940,7 @@
 		},
 		"unavailable": {
 			"title": "Not available in your region",
-			"body": "Tokenized stocks are not offered in the US, Cuba or other countries restricted by the issuer."
+			"body": "You can see prices, but buying and selling tokenized stocks isn't available in the US, Cuba or other countries restricted by the issuer."
 		},
 		"detail": {
 			"yourPosition": "Your position",

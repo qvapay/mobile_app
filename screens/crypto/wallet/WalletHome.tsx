@@ -16,7 +16,7 @@ import { assetPrice } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
 import { usePriceMap, useTronForeignControl, useWalletAssets } from './walletQueries'
 import { formatUsd } from './walletFormat'
-import { useXStockShares, useXStocksAvailability } from '../stocks/xstocksQueries'
+import { useXStockShares } from '../stocks/xstocksQueries'
 
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
@@ -93,18 +93,17 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 
 	// Acciones tokenizadas: la fila enseña ACCIONES y precio por acción (como "Tus acciones")
 	const stockShares = useXStockShares(visible.some(asset => !!asset.stock))
-	const { available: xstocksAvailable } = useXStocksAvailability()
 
 	const openAsset = useCallback((asset: AssetView) => {
-		// En región, una acción tokenizada abre su ficha (precio, gráfico, comprar/vender, y
-		// desde ahí enviar/recibir). Fuera, su pantalla de activo de siempre: comprar o vender
-		// darían 451, pero el token sigue siendo del usuario y debe poder moverlo
-		if (asset.stock && asset.contract && xstocksAvailable) {
+		// Una acción tokenizada abre su ficha (precio, gráfico, comprar/vender y, desde ahí,
+		// enviar/recibir). Fuera de región la ficha se ve igual con comprar y vender
+		// deshabilitados; el enlace a la wallet sigue, porque el token es del usuario
+		if (asset.stock && asset.contract) {
 			navigation.navigate(ROUTES.XSTOCK_DETAIL, { mint: asset.contract })
 			return
 		}
 		navigation.navigate(ROUTES.WALLET_ASSET, { assetId: asset.id })
-	}, [navigation, xstocksAvailable])
+	}, [navigation])
 
 	// Hasta hidratar la wallet y sembrar la foto de disco (milisegundos): nada antes que un skeleton de un frame
 	if (!isReady || (hasWallet && isHydrating)) return null
