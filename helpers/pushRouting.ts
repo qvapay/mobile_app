@@ -24,6 +24,9 @@ export type PushData = {
 	/** `p2p_partial_dispute_resolved`: cómo acabó la disputa (`released` | `cancelled`). */
 	resolution?: string
 	cart_id?: string | number
+	/** `p2p_promo_*`: el puesto (hoy el backend solo manda `type`; si llegan, abren ese par). */
+	coin?: string
+	offer_type?: string
 } | undefined | null
 
 /** Destino de navegación de una push, ya resuelto a ruta + params. */
@@ -87,6 +90,14 @@ export const resolvePushTarget = (data: PushData): PushTarget | null => {
 
 	const type = data?.type
 	if (!type) return null
+
+	// Puesto promocionado (te superaron, ganaste, terminó, vence pronto): no es un trato,
+	// así que va ANTES del resto de `p2p*`, que exige un p2p_uuid
+	if (type.startsWith('p2p_promo')) {
+		const coin = data?.coin ? String(data.coin) : undefined
+		const offerType = data?.offer_type === 'sell' || data?.offer_type === 'buy' ? data.offer_type : undefined
+		return { screen: ROUTES.P2P_PROMOTE, params: { ...(coin ? { coin } : {}), ...(offerType ? { type: offerType } : {}) } }
+	}
 
 	// El P2P se mira ANTES: sus eventos de fondos recibidos comparten canal de
 	// sonido con las transferencias, pero no comparten destino
