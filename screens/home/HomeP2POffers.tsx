@@ -18,6 +18,11 @@ import type { Theme } from '../../theme/ThemeContext'
 import type { P2PMarketAverages, P2POffer } from '../../types/domain'
 import type { RootStackParamList } from '../../types/navigation'
 
+// En el Home caben dos y dos. El servidor manda más últimas (6) a propósito: quitadas las
+// promocionadas que se repitan, siempre quedan dos
+const HOME_PROMOTED = 2
+const HOME_LATEST = 2
+
 type HomeP2POffersProps = {
 	navigation: NavigationProp<RootStackParamList>
 	/** «Ver todas»: la pestaña P2P (es del tab navigator, no del stack raíz). */
@@ -52,9 +57,9 @@ const OfferList = ({ offers, navigation, averages, theme, promoted = false }: Of
 )
 
 /**
- * Bloque «Ofertas P2P» del Home, el mismo del dashboard web: hasta dos comerciantes
+ * Bloque «Ofertas P2P» del Home, el del dashboard web en corto: hasta dos comerciantes
  * promocionados (al azar entre todos los puestos, con el borde dorado del mercado y el enlace
- * para promocionarse) y debajo las últimas ofertas de comerciantes GOLD. Lo arma qpweb
+ * para promocionarse) y debajo las dos últimas ofertas de comerciantes GOLD. Lo arma qpweb
  * (`GET /p2p/featured`); sin ofertas, o contra un backend sin la ruta, no ocupa nada.
  */
 const HomeP2POffers = ({ navigation, onSeeAll, style }: HomeP2POffersProps) => {
@@ -66,8 +71,8 @@ const HomeP2POffers = ({ navigation, onSeeAll, style }: HomeP2POffersProps) => {
 	const { data } = useHomeP2PQuery()
 	const { data: averages } = useP2pMarketAveragesQuery()
 
-	const promoted = data?.promoted ?? []
-	const offers = data?.offers ?? []
+	const promoted = (data?.promoted ?? []).slice(0, HOME_PROMOTED)
+	const offers = (data?.offers ?? []).slice(0, HOME_LATEST)
 	if (promoted.length === 0 && offers.length === 0) return null
 
 	// El dorado puro no se lee sobre fondo claro: mismo tono que el puesto del mercado

@@ -33,11 +33,11 @@ const render = (data) => {
 
 const text = (tree) => JSON.stringify(tree.toJSON())
 
-test('las promocionadas van arriba con su etiqueta, y las últimas GOLD debajo', () => {
-	const { tree } = render({ promoted: [offer('p1'), offer('p2')], offers: [offer('g1'), offer('g2'), offer('g3')] })
+test('dos promocionadas arriba con su etiqueta y dos últimas GOLD debajo, aunque el servidor mande más', () => {
+	const { tree } = render({ promoted: [offer('p1'), offer('p2'), offer('p3')], offers: [offer('g1'), offer('g2'), offer('g3'), offer('g4')] })
 	const items = tree.root.findAllByType('P2POfferItem')
 	expect(items.map(item => [item.props.offer.uuid, item.props.promoted])).toEqual([
-		['p1', true], ['p2', true], ['g1', false], ['g2', false], ['g3', false],
+		['p1', true], ['p2', true], ['g1', false], ['g2', false],
 	])
 	expect(items[0].props.marketAverage).toEqual({ average: 400 })
 	expect(text(tree)).toContain('Comerciantes promocionados')
