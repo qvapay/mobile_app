@@ -11,6 +11,8 @@
 		"lightningDescription": "“{{description}}”",
 		"lightningExpires": " · expira em {{minutes}} min",
 		"kycGate": "Saques acima de ${{amount}} exigem que sua identidade esteja verificada. É rápido e você só faz isso uma vez.",
+		"belowCoinMin": "O mínimo para sacar com {{coin}} é ${{amount}}",
+		"aboveCoinMax": "O máximo para sacar com {{coin}} é ${{amount}}",
 		"toasts": {
 			"pinSent": {
 				"title": "PIN enviado",
@@ -68,7 +70,6 @@
 		"selectProvince": "Escolha a província",
 		"selectMunicipality": "Escolha o município",
 		"chooseProvinceFirst": "Escolha primeiro a província",
-		"noHomeDelivery": "sem entrega em domicílio",
 		"etaHours": "{{min}}–{{max}} h",
 		"etaDays": "{{min}}–{{max}} dias",
 		"pickPrompt": "Escolha província e município para ver tarifa, prazo e mínimo",
@@ -89,6 +90,23 @@
 		},
 		"loadError": "Não conseguimos carregar as zonas de entrega. Sem elas não podemos calcular a taxa de entrega.",
 		"agentContact": "Um agente vai ligar para o beneficiário para combinar a entrega",
-		"chargeWithFlat": "Taxa de entrega: ${{amount}} (inclui a tarifa mínima de ${{flat}})"
+		"chargeWithFlat": "Taxa de entrega: ${{amount}} (inclui a tarifa mínima de ${{flat}})",
+		"picker": {
+			"provinceTitle": "Província de entrega",
+			"municipalityTitle": "Municípios de {{province}}",
+			"searchProvince": "Buscar província",
+			"searchMunicipality": "Buscar município",
+			"empty": "Nenhum destino corresponde à sua busca",
+			"provinceSubtitle_one": "{{count}} município · a partir de {{eta}}",
+			"provinceSubtitle_other": "{{count}} municípios · a partir de {{eta}}",
+			"pct": "+{{pct}}%",
+			"fromPct": "a partir de +{{pct}}%",
+			"surcharge": "acréscimo",
+			"capital": "Capital",
+			"homeDelivery": "em domicílio",
+			"pickup": "o beneficiário retira",
+			"minimum": "mín. ${{min}}",
+			"pickupFootnote": "Onde não há entrega em domicílio, o beneficiário retira o dinheiro."
+		}
 	}
 }

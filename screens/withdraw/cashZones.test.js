@@ -6,7 +6,7 @@
 import {
 	cashFieldNames, cashZoneModeFor, hasCashZoneFields, findZone, provinceOptions, municipalitiesOf,
 	zoneMarginPct, zoneSurchargePct, zoneCharge, calculateCashFee, grossFromNetCash, meetsZoneMinimum,
-	etaLabel, etaParts, normalizePlace,
+	etaLabel, etaParts, normalizePlace, provinceSummaries, sortedMunicipalities,
 } from './cashZones'
 import { getSelectFeePct } from './withdrawFees'
 
@@ -155,5 +155,22 @@ describe('mínimo y plazo', () => {
 		expect(etaLabel(zone({ eta_min_hours: 48, eta_max_hours: 144 }))).toBe('2–6 días')
 		expect(etaLabel(zone({ eta_min_hours: 6, eta_max_hours: 96 }), 'days')).toBe('1–4 days')
 		expect(etaParts(zone({ eta_min_hours: 6, eta_max_hours: 96 }))).toEqual({ unit: 'days', min: 1, max: 4 })
+	})
+})
+
+describe('selector de destino', () => {
+
+	test('provinceSummaries: código, cuántos municipios, la zona más rápida y el rango de recargo', () => {
+		const [villaClara, habana] = provinceSummaries(ZONES, 1)
+		expect(villaClara).toMatchObject({ name: 'Villa Clara', code: 'VCL', municipalities: 2, minPct: 4, maxPct: 8 })
+		expect(villaClara.fastest.municipality).toBe('Santa Clara')
+		// La zona deshabilitada no cuenta
+		expect(habana).toMatchObject({ name: 'La Habana', code: 'HAB', municipalities: 1, minPct: 4, maxPct: 4 })
+	})
+
+	test('sortedMunicipalities: la cabecera primero', () => {
+		const zones = [zone({ id: 'a', municipality: 'Caibarién', is_capital: false }), zone({ id: 'b', municipality: 'Santa Clara', is_capital: true }), zone({ id: 'c', municipality: 'Camajuaní', is_capital: false })]
+		expect(sortedMunicipalities(zones, 'villa clara').map(z => z.municipality)).toEqual(['Santa Clara', 'Caibarién', 'Camajuaní'])
+		expect(sortedMunicipalities(zones, '')).toEqual([])
 	})
 })

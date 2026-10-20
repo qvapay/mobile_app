@@ -11,6 +11,8 @@
 		"lightningDescription": "“{{description}}”",
 		"lightningExpires": " · expira en {{minutes}} min",
 		"kycGate": "Los retiros de más de ${{amount}} requieren tener tu identidad verificada. Es rápido y solo se hace una vez.",
+		"belowCoinMin": "El mínimo para retirar con {{coin}} es ${{amount}}",
+		"aboveCoinMax": "El máximo para retirar con {{coin}} es ${{amount}}",
 		"toasts": {
 			"pinSent": {
 				"title": "PIN enviado",
@@ -68,7 +70,6 @@
 		"selectProvince": "Elige la provincia",
 		"selectMunicipality": "Elige el municipio",
 		"chooseProvinceFirst": "Primero elige la provincia",
-		"noHomeDelivery": "sin domicilio",
 		"etaHours": "{{min}}–{{max}} h",
 		"etaDays": "{{min}}–{{max}} días",
 		"pickPrompt": "Elige provincia y municipio para ver tarifa, plazo y mínimo",
@@ -89,6 +90,23 @@
 		},
 		"loadError": "No pudimos cargar las zonas de entrega. Sin ellas no podemos calcular la comisión de la entrega.",
 		"agentContact": "Un agente contactará al beneficiario por teléfono para coordinar la entrega",
-		"chargeWithFlat": "Cargo de entrega: ${{amount}} (incluye la tarifa mínima de ${{flat}})"
+		"chargeWithFlat": "Cargo de entrega: ${{amount}} (incluye la tarifa mínima de ${{flat}})",
+		"picker": {
+			"provinceTitle": "Provincia de entrega",
+			"municipalityTitle": "Municipios de {{province}}",
+			"searchProvince": "Buscar provincia",
+			"searchMunicipality": "Buscar municipio",
+			"empty": "Ningún destino coincide con tu búsqueda",
+			"provinceSubtitle_one": "{{count}} municipio · desde {{eta}}",
+			"provinceSubtitle_other": "{{count}} municipios · desde {{eta}}",
+			"pct": "+{{pct}}%",
+			"fromPct": "desde +{{pct}}%",
+			"surcharge": "recargo",
+			"capital": "Cabecera",
+			"homeDelivery": "a domicilio",
+			"pickup": "recoge el beneficiario",
+			"minimum": "mín. ${{min}}",
+			"pickupFootnote": "Donde no hay entrega a domicilio, el beneficiario recoge el efectivo."
+		}
 	}
 }

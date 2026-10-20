@@ -196,3 +196,38 @@ export function etaLabel(zone: Pick<CashZone, 'eta_min_hours' | 'eta_max_hours'>
 
 /** "4" · "3.5": porcentaje sin ceros de sobra. */
 export const formatPct = (pct: number): string => String(Math.round(pct * 100) / 100)
+
+/** Lo que la fila de una provincia cuenta de un vistazo. */
+export type ProvinceSummary = {
+	name: string
+	/** Código corto del servidor ("LHA", "VCL"): el monograma de la fila. */
+	code: string
+	municipalities: number
+	/** La zona más rápida (menor plazo máximo): su plazo es el "desde" de la provincia. */
+	fastest: CashZone
+	minPct: number
+	maxPct: number
+}
+
+/** Resumen por provincia (en el orden del servidor) para el selector de destino. */
+export function provinceSummaries(zones: CashZone[] | null | undefined, globalMarginPct: Decimal = DEFAULT_MARGIN_PCT): ProvinceSummary[] {
+	return provinceOptions(zones).map((name) => {
+		const list = municipalitiesOf(zones, name)
+		const pcts = list.map(z => zoneSurchargePct(z, globalMarginPct))
+		const fastest = list.reduce((best, z) => (num(z.eta_max_hours, 48) < num(best.eta_max_hours, 48) ? z : best), list[0])
+		return {
+			name,
+			code: String(list[0]?.province_code || '').toUpperCase(),
+			municipalities: list.length,
+			fastest,
+			minPct: Math.min(...pcts),
+			maxPct: Math.max(...pcts),
+		}
+	})
+}
+
+/** Municipios de una provincia con la cabecera primero (el resto, en el orden del servidor). */
+export const sortedMunicipalities = (zones: CashZone[] | null | undefined, province: string | null | undefined): CashZone[] => {
+	const list = municipalitiesOf(zones, province)
+	return [...list.filter(z => z.is_capital), ...list.filter(z => !z.is_capital)]
+}

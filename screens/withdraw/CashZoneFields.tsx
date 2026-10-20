@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTranslation } from 'react-i18next'
 
-import QPSheet from '../../ui/QPSheet'
+import QPAssetSheet from '../../ui/QPAssetSheet'
+import type { QPAssetOption } from '../../ui/QPAssetSheet'
 import QPPressable from '../../ui/particles/QPPressable'
-import { CASH_CANCEL_AFTER_DAYS, etaParts, formatPct, municipalitiesOf, normalizePlace, provinceOptions, zoneSurchargePct } from './cashZones'
+import { CASH_CANCEL_AFTER_DAYS, etaParts, formatPct, normalizePlace, provinceSummaries, sortedMunicipalities, zoneSurchargePct } from './cashZones'
 import type { CashZone, CashZoneMode, ZoneCharge } from './cashZones'
 
 import type { Theme } from '../../theme/ThemeContext'
@@ -29,59 +30,46 @@ type CashZoneFieldsProps = {
 	textStyles: TextStyles
 }
 
-type Option = { value: string, label: string }
+// Con pocas opciones el buscador estorba más de lo que ayuda (Cienfuegos e Isla tienen una)
+const SEARCH_MIN_OPTIONS = 7
+// Elegir provincia abre sus municipios cuando la primera hoja ya cerró (dos <Modal> a la vez fallan en iOS)
+const CHAIN_DELAY_MS = 450
 
-// Campo tipo select: muestra el valor (o el placeholder) y abre una hoja con las opciones
-const ZoneSelect = ({ label, placeholder, value, options, disabled, onSelect, theme, textStyles }: {
+// Campo tipo select: valor (o placeholder) con su detalle debajo; abre la hoja de destinos
+const ZoneTrigger = ({ label, icon, placeholder, value, detail, disabled, onPress, theme, textStyles }: {
 	label: string
+	icon: 'map-location-dot' | 'house'
 	placeholder: string
-	value: string
-	options: Option[]
+	value: string | null
+	detail?: string | null
 	disabled?: boolean
-	onSelect: (value: string) => void
+	onPress: () => void
 	theme: Theme
 	textStyles: TextStyles
-}) => {
-	const [open, setOpen] = useState(false)
-	const current = options.find(o => normalizePlace(o.value) === normalizePlace(value))
-	return (
-		<View style={styles.field}>
-			<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginBottom: 8 }]}>{label}:</Text>
-			<QPPressable
-				variant="opacity"
-				disabled={disabled}
-				onPress={() => setOpen(true)}
-				accessibilityRole="button"
-				accessibilityLabel={label}
-				style={[styles.trigger, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, opacity: disabled ? 0.5 : 1 }]}
-			>
-				<Text style={[textStyles.h6, { flex: 1, color: current ? theme.colors.primaryText : theme.colors.placeholder }]} numberOfLines={1}>
-					{current ? current.label : placeholder}
+}) => (
+	<View style={styles.field}>
+		<Text style={[textStyles.h7, styles.label, { color: theme.colors.tertiaryText }]}>{label}:</Text>
+		<QPPressable
+			variant="opacity"
+			disabled={disabled}
+			onPress={onPress}
+			accessibilityRole="button"
+			accessibilityLabel={label}
+			style={[styles.trigger, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }, disabled && styles.disabled]}
+		>
+			<View style={[styles.triggerIcon, { backgroundColor: theme.colors.primary + '1F' }]}>
+				<FontAwesome6 name={icon} size={14} color={theme.colors.primary} iconStyle="solid" />
+			</View>
+			<View style={styles.triggerTexts}>
+				<Text style={[textStyles.h6, { color: value ? theme.colors.primaryText : theme.colors.placeholder }]} numberOfLines={1}>
+					{value || placeholder}
 				</Text>
-				<FontAwesome6 name="chevron-down" size={13} color={theme.colors.tertiaryText} iconStyle="solid" />
-			</QPPressable>
-			<QPSheet visible={open} title={label} onClose={() => setOpen(false)}>
-				<ScrollView style={styles.list} contentContainerStyle={{ paddingBottom: 8 }}>
-					{options.map((opt) => {
-						const selected = !!current && current.value === opt.value
-						return (
-							<QPPressable
-								key={opt.value}
-								variant="opacity"
-								onPress={() => { setOpen(false); onSelect(opt.value) }}
-								accessibilityRole="button"
-								style={[styles.row, { borderBottomColor: theme.colors.border }]}
-							>
-								<Text style={[textStyles.h6, { flex: 1, color: selected ? theme.colors.primary : theme.colors.primaryText }]}>{opt.label}</Text>
-								{selected && <FontAwesome6 name="check" size={14} color={theme.colors.primary} iconStyle="solid" />}
-							</QPPressable>
-						)
-					})}
-				</ScrollView>
-			</QPSheet>
-		</View>
-	)
-}
+				{!!value && !!detail && <Text style={[textStyles.caption, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{detail}</Text>}
+			</View>
+			<FontAwesome6 name="chevron-down" size={13} color={theme.colors.tertiaryText} iconStyle="solid" />
+		</QPPressable>
+	</View>
+)
 
 /**
  * Provincia → Municipio para la entrega de efectivo por zonas (USDCASH…), más el aviso
@@ -92,43 +80,103 @@ const ZoneSelect = ({ label, placeholder, value, options, disabled, onSelect, th
 const CashZoneFields = ({ mode, province, municipality, zone, charge, belowMin, onChangeProvince, onChangeMunicipality, theme, textStyles }: CashZoneFieldsProps) => {
 
 	const { t } = useTranslation()
+	const [sheet, setSheet] = useState<'province' | 'municipality' | null>(null)
+	const chainTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+	useEffect(() => () => { if (chainTimer.current) clearTimeout(chainTimer.current) }, [])
 
 	const etaText = (z: CashZone) => {
 		const eta = etaParts(z)
 		return eta.unit === 'hours' ? t('withdraw.cashZones.etaHours', { min: eta.min, max: eta.max }) : t('withdraw.cashZones.etaDays', { min: eta.min, max: eta.max })
 	}
+	const pctText = (pct: number) => t('withdraw.cashZones.picker.pct', { pct: formatPct(pct) })
 
-	const provinces: Option[] = provinceOptions(mode.zones).map(p => ({ value: p, label: p }))
-	const municipalities: Option[] = municipalitiesOf(mode.zones, province).map(z => ({
-		value: z.municipality,
-		label: [
-			z.municipality,
-			`+${formatPct(zoneSurchargePct(z, mode.globalMarginPct))}%`,
-			etaText(z),
-			...(z.home_delivery === false ? [t('withdraw.cashZones.noHomeDelivery')] : []),
-		].join(' · '),
+	// Provincias: siglas del servidor, cuántos municipios, el plazo más corto y desde qué recargo
+	const provinces = useMemo(() => provinceSummaries(mode.zones, mode.globalMarginPct), [mode.zones, mode.globalMarginPct])
+	const provinceOptions: QPAssetOption[] = provinces.map(p => ({
+		id: p.name,
+		title: p.name,
+		monogram: p.code || undefined,
+		subtitle: t('withdraw.cashZones.picker.provinceSubtitle', { count: p.municipalities, eta: etaText(p.fastest) }),
+		value: p.minPct === p.maxPct ? pctText(p.minPct) : t('withdraw.cashZones.picker.fromPct', { pct: formatPct(p.minPct) }),
+		valueCaption: t('withdraw.cashZones.picker.surcharge'),
+		// Sin acentos: quien escribe "camaguey" encuentra Camagüey
+		keywords: `${normalizePlace(p.name)} ${p.code}`,
 	}))
+	const currentProvince = provinces.find(p => normalizePlace(p.name) === normalizePlace(province) || normalizePlace(p.code) === normalizePlace(province)) ?? null
+
+	// Municipios: la cabecera primero; la tesela dice si hay entrega a domicilio o recoge el beneficiario
+	const zones = useMemo(() => sortedMunicipalities(mode.zones, province), [mode.zones, province])
+	const municipalityOptions: QPAssetOption[] = zones.map(z => {
+		const home = z.home_delivery !== false
+		return {
+			id: z.municipality,
+			title: z.municipality,
+			badge: z.is_capital ? t('withdraw.cashZones.picker.capital') : undefined,
+			iconName: home ? 'house' : 'store',
+			tint: home ? theme.colors.primary : theme.colors.warning,
+			subtitle: `${etaText(z)} · ${home ? t('withdraw.cashZones.picker.homeDelivery') : t('withdraw.cashZones.picker.pickup')}`,
+			value: pctText(zoneSurchargePct(z, mode.globalMarginPct)),
+			valueCaption: t('withdraw.cashZones.picker.minimum', { min: z.min_usd }),
+			keywords: normalizePlace(z.municipality),
+		}
+	})
+	// Una provincia NUEVA deja el municipio vacío: se encadena su lista para no tener que buscarla
+	const pickProvince = (name: string) => {
+		const changed = normalizePlace(name) !== normalizePlace(currentProvince?.name ?? province)
+		onChangeProvince(name)
+		if (!changed) return
+		if (chainTimer.current) clearTimeout(chainTimer.current)
+		chainTimer.current = setTimeout(() => setSheet('municipality'), CHAIN_DELAY_MS)
+	}
+
+	const currentZone = zones.find(z => normalizePlace(z.municipality) === normalizePlace(municipality)) ?? null
+	const hasPickup = zones.some(z => z.home_delivery === false)
 
 	return (
 		<View>
-			<ZoneSelect
+			<ZoneTrigger
 				label={mode.provinceField}
+				icon="map-location-dot"
 				placeholder={t('withdraw.cashZones.selectProvince')}
-				value={province}
-				options={provinces}
-				onSelect={onChangeProvince}
+				value={currentProvince?.name ?? null}
+				onPress={() => setSheet('province')}
 				theme={theme}
 				textStyles={textStyles}
 			/>
-			<ZoneSelect
+			<ZoneTrigger
 				label={mode.municipalityField}
+				icon="house"
 				placeholder={province ? t('withdraw.cashZones.selectMunicipality') : t('withdraw.cashZones.chooseProvinceFirst')}
-				value={municipality}
-				options={municipalities}
+				value={currentZone?.municipality ?? null}
+				detail={currentZone ? `${etaText(currentZone)} · ${pctText(zoneSurchargePct(currentZone, mode.globalMarginPct))}` : null}
 				disabled={!province}
-				onSelect={onChangeMunicipality}
+				onPress={() => setSheet('municipality')}
 				theme={theme}
 				textStyles={textStyles}
+			/>
+
+			<QPAssetSheet
+				visible={sheet === 'province'}
+				title={t('withdraw.cashZones.picker.provinceTitle')}
+				options={provinceOptions}
+				selectedId={currentProvince?.name ?? null}
+				onSelect={pickProvince}
+				onClose={() => setSheet(null)}
+				searchable={provinceOptions.length >= SEARCH_MIN_OPTIONS}
+				searchPlaceholder={t('withdraw.cashZones.picker.searchProvince')}
+				emptyText={t('withdraw.cashZones.picker.empty')}
+			/>
+			<QPAssetSheet
+				visible={sheet === 'municipality'}
+				title={t('withdraw.cashZones.picker.municipalityTitle', { province: currentProvince?.name ?? province })}
+				options={municipalityOptions}
+				selectedId={currentZone?.municipality ?? null}
+				onSelect={onChangeMunicipality}
+				onClose={() => setSheet(null)}
+				searchable={municipalityOptions.length >= SEARCH_MIN_OPTIONS}
+				searchPlaceholder={t('withdraw.cashZones.picker.searchMunicipality')}
+				emptyText={t('withdraw.cashZones.picker.empty')}
+				footnote={hasPickup ? t('withdraw.cashZones.picker.pickupFootnote') : null}
 			/>
 
 			<View style={[styles.notice, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
@@ -169,9 +217,11 @@ const CashZoneFields = ({ mode, province, municipality, zone, charge, belowMin, 
 
 const styles = StyleSheet.create({
 	field: { marginVertical: 6 },
-	trigger: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
-	list: { maxHeight: 420 },
-	row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+	label: { marginBottom: 8 },
+	trigger: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 12, paddingVertical: 10, minHeight: 52 },
+	triggerIcon: { width: 30, height: 30, borderRadius: 9, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+	triggerTexts: { flex: 1, gap: 1 },
+	disabled: { opacity: 0.5 },
 	notice: { marginTop: 10, marginBottom: 6, padding: 12, borderRadius: 12 },
 	line: { marginTop: 4 },
 })
