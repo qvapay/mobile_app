@@ -4,6 +4,7 @@ import type { LayoutChangeEvent } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
@@ -28,8 +29,19 @@ export type QPAssetOption = {
 	title: string
 	/** Red, nombre largo o condiciones ("Comisión 1% · Mín 2"). */
 	subtitle?: string
-	/** Logo; `null` pinta el isotipo del saldo QvaPay en vez de una moneda. */
-	logoTick: string | null
+	/**
+	 * Logo; `null` pinta el isotipo del saldo QvaPay en vez de una moneda. Se omite cuando
+	 * la opción no es un activo y se identifica con `monogram` o `iconName`.
+	 */
+	logoTick?: string | null
+	/** Siglas en una tesela en lugar del logo (provincias: "LHA", "VCL"). */
+	monogram?: string
+	/** Glifo de FontAwesome en una tesela en lugar del logo. */
+	iconName?: string
+	/** Color de la tesela de `monogram`/`iconName` (por defecto, el primario). */
+	tint?: string
+	/** Etiqueta corta junto al título ("Cabecera"). */
+	badge?: string
 	/** Badge de red sobre el logo: lo que evita mandar USDT a la cadena equivocada. */
 	networkTick?: string | null
 	/** Cifra de la derecha: saldo, o lo que se recibiría. */
@@ -56,6 +68,10 @@ type Props = {
 	loading?: boolean
 	/** Nota al pie ("más monedas pronto"). */
 	footnote?: string | null
+	/** Placeholder del buscador (por defecto, el de monedas). */
+	searchPlaceholder?: string
+	/** Texto de la lista vacía o sin resultados (por defecto, el de monedas). */
+	emptyText?: string
 }
 
 /**
@@ -86,7 +102,7 @@ const EMPTY_HEIGHT = 140
  */
 const CHROME_HEIGHT = 186
 
-const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, onClose, quick, searchable = true, loading = false, footnote }: Props) => {
+const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, onClose, quick, searchable = true, loading = false, footnote, searchPlaceholder, emptyText }: Props) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -162,7 +178,7 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 					<QPInput
 						value={search}
 						onChangeText={setSearch}
-						placeholder={t('ui.coinPicker.searchPlaceholder')}
+						placeholder={searchPlaceholder ?? t('ui.coinPicker.searchPlaceholder')}
 						prefixIconName="magnifying-glass"
 						autoCorrect={false}
 						autoCapitalize="none"
@@ -201,7 +217,7 @@ const QPAssetSheet = ({ visible, title, options, selectedId = null, onSelect, on
 					keyboardShouldPersistTaps="handled"
 					ListEmptyComponent={(
 						<Text style={[textStyles.subtitle, styles.empty, { color: theme.colors.secondaryText }]}>
-							{loading ? t('ui.coinPicker.loading') : t('ui.coinPicker.empty')}
+							{loading ? t('ui.coinPicker.loading') : (emptyText ?? t('ui.coinPicker.empty'))}
 						</Text>
 					)}
 					ListFooterComponent={footnote && !search ? (
@@ -232,12 +248,21 @@ const Row = memo(({ option, selected, onPick }: { option: QPAssetOption, selecte
 			accessibilityState={{ selected, disabled }}
 			accessibilityLabel={option.title}
 		>
-			{option.logoTick === null
-				? <BalanceIcon theme={theme} />
-				: <QPAssetIcon logoTick={option.logoTick} networkTick={option.networkTick} size={38} ringColor={selected ? undefined : theme.colors.surface} />}
+			{option.monogram || option.iconName
+				? <Tile monogram={option.monogram} iconName={option.iconName} tint={option.tint ?? theme.colors.primary} theme={theme} />
+				: option.logoTick === null
+					? <BalanceIcon theme={theme} />
+					: <QPAssetIcon logoTick={option.logoTick ?? ''} networkTick={option.networkTick} size={38} ringColor={selected ? undefined : theme.colors.surface} />}
 
 			<View style={styles.texts}>
-				<Text style={[textStyles.h4, { color: theme.colors.primaryText }]} numberOfLines={1}>{option.title}</Text>
+				<View style={styles.titleRow}>
+					<Text style={[textStyles.h4, styles.title, { color: theme.colors.primaryText }]} numberOfLines={1}>{option.title}</Text>
+					{!!option.badge && (
+						<View style={[styles.badge, { backgroundColor: theme.colors.primary + '1F' }]}>
+							<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }}>{option.badge}</Text>
+						</View>
+					)}
+				</View>
 				{!!(option.disabledReason || option.subtitle) && (
 					<Text style={[textStyles.h6, { color: disabled ? theme.colors.warning : theme.colors.secondaryText }]} numberOfLines={2}>
 						{option.disabledReason || option.subtitle}
@@ -257,6 +282,15 @@ const Row = memo(({ option, selected, onPick }: { option: QPAssetOption, selecte
 	)
 })
 
+/** Tesela de siglas o glifo para las opciones que no son un activo (provincias, municipios). */
+const Tile = ({ monogram, iconName, tint, theme }: { monogram?: string, iconName?: string, tint: string, theme: ReturnType<typeof useTheme>['theme'] }) => (
+	<View style={[styles.tile, { backgroundColor: tint + '1F' }]}>
+		{monogram
+			? <Text style={[styles.monogram, { color: tint, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.semiBold }]} numberOfLines={1}>{monogram}</Text>
+			: <FontAwesome6 name={iconName as FontAwesome6SolidIconName} size={16} color={tint} iconStyle="solid" />}
+	</View>
+)
+
 /** El saldo QvaPay no es una moneda on-chain: lleva isotipo, sin logo ni badge de red. */
 const BalanceIcon = ({ theme }: { theme: ReturnType<typeof useTheme>['theme'] }) => (
 	<View style={[styles.balanceIcon, { backgroundColor: theme.colors.primary + '1F' }]}>
@@ -272,6 +306,11 @@ const styles = StyleSheet.create({
 	row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderCurve: 'continuous', marginBottom: 8 },
 	disabled: { opacity: 0.45 },
 	texts: { flex: 1, gap: 2 },
+	titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+	title: { flexShrink: 1 },
+	badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, borderCurve: 'continuous' },
+	tile: { width: 38, height: 38, borderRadius: 12, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+	monogram: { letterSpacing: 0.5 },
 	trailing: { alignItems: 'flex-end', gap: 2, maxWidth: '40%' },
 	right: { textAlign: 'right' },
 	empty: { textAlign: 'center', paddingVertical: 40 },
