@@ -51,7 +51,18 @@ describe('p2pApi.index', () => {
 			per_page: 25,
 			total: 51,
 			offers: indexResponse.data.data,
+			promoted: null,
 		})
+	})
+
+	test('passes the promoted spot of the pair through (it also stays inside `offers`)', async () => {
+		const promoted = { slot: { coin: 'BANK_CUP', offer_type: 'sell', state: 'held' }, offer: { uuid: 'offer-2' } }
+		apiClient.get.mockResolvedValue({ status: 200, data: { ...indexResponse.data, promoted } })
+
+		const result = await p2pApi.index({ coin: 'BANK_CUP', type: 'sell' })
+
+		expect(result.promoted).toBe(promoted)
+		expect(result.offers.map(o => o.uuid)).toEqual(['offer-1', 'offer-2'])
 	})
 
 	test('serializes every supported filter into the query string', async () => {
@@ -581,5 +592,38 @@ describe('ofertas por rango', () => {
 		apiClient.get.mockResolvedValue({ data: { data: [], current_page: 1, per_page: 50, total: 0 } })
 		await p2pApi.index({ offer_kind: 'fixed' })
 		expect(apiClient.get).toHaveBeenCalledWith('/p2p/index?offer_kind=fixed')
+	})
+})
+
+describe('puesto promocionado', () => {
+
+	test('promoState pide los dos puestos de la moneda sin la barra de carga', async () => {
+		const data = { coin: 'BANK_CUP', enabled: true, slots: [], rules: null, eligibility: { ok: true, missing: [] } }
+		apiClient.get.mockResolvedValue({ status: 200, data: { data } })
+
+		const result = await p2pApi.promoState('BANK CUP')
+
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/promo?coin=BANK%20CUP', { silent: true })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
+	test('promote manda la compra o puja con su clave de idempotencia', async () => {
+		const body = { data: { uuid: 'bid-1', kind: 'bid', status: 'held', amount: 27.5 }, action: 'bid', balance: 100 }
+		apiClient.post.mockResolvedValue({ status: 201, data: body })
+		const payload = { coin: 'BANK_CUP', offer_type: 'sell', amount: 27.5, idempotency_key: 'promo-12345678' }
+
+		const result = await p2pApi.promote(payload)
+
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/promo', payload)
+		expect(result).toEqual({ success: true, data: body, status: 201 })
+	})
+
+	test('un error de negocio llega con su code, el nuevo mínimo y el puesto vigente', async () => {
+		const body = { error: 'El precio cambió: ahora el mínimo es $30.25', code: 'PROMO_PRICE_CHANGED', min: 30.25, slot: { state: 'held', min_bid: 30.25 } }
+		apiClient.post.mockRejectedValue(apiError(409, body))
+
+		const result = await p2pApi.promote({ coin: 'BANK_CUP', offer_type: 'sell', amount: 27.5, idempotency_key: 'promo-12345678' })
+
+		expect(result).toEqual({ success: false, error: body.error, details: body, status: 409 })
 	})
 })

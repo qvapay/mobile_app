@@ -413,5 +413,69 @@
 			"sent": "¡Valoración enviada!",
 			"failed": "No se pudo calificar"
 		}
+	},
+	"promo": {
+		"intro": "Tu mejor oferta sale arriba del mercado P2P de una moneda, con borde dorado, durante {{days}} días. Hay un puesto para Comprar y otro para Vender en cada moneda.",
+		"coinLabel": "Moneda",
+		"pickCoin": "Elige una moneda",
+		"loadError": "No pudimos cargar el estado de los puestos.",
+		"disabled": "Los puestos promocionados todavía no están disponibles. Muy pronto.",
+		"needsP2P": "Necesitas tener el P2P activo para promocionar tus ofertas.",
+		"needsReputation": "Para promocionarte necesitas: {{list}}.",
+		"requirements": {
+			"minCompleted_one": "{{count}} operación P2P completada",
+			"minCompleted_other": "{{count}} operaciones P2P completadas",
+			"minRating": "un rating de {{rating}} o más",
+			"and": " y "
+		},
+		"slot": {
+			"title": "{{coin}} · {{side}}",
+			"hintSell": "Sale a quien quiere comprar: promociona tus ofertas de venta.",
+			"hintBuy": "Sale a quien quiere vender: promociona tus ofertas de compra.",
+			"now": "Ahora",
+			"next": "Próximo periodo",
+			"nowFree": "Libre",
+			"nowRotating": "Actualizando…",
+			"nowMine": "Es tuyo hasta el {{date}}",
+			"nowTaken": "@{{username}} hasta el {{date}}",
+			"nextLeading": "Puja líder: ${{amount}}",
+			"nextMine": "Tu puja va ganando: ${{amount}}",
+			"nextNone": "Sin pujas todavía",
+			"mineNote": "Tu tarjeta sale arriba del mercado mientras tengas una oferta abierta de este par y su tasa esté cerca del mercado.",
+			"leadingNote": "Tienes la puja más alta por el próximo periodo. Si alguien te supera, te devolvemos el dinero al instante.",
+			"bidLabel": "Tu puja (mínimo ${{min}})",
+			"buy": "Comprar por ${{amount}}",
+			"bid": "Pujar por el próximo periodo",
+			"insufficient": "Saldo insuficiente (${{balance}})",
+			"invalidBid": "La puja mínima es ${{min}}"
+		},
+		"confirm": {
+			"buyTitle": "Comprar el puesto",
+			"bidTitle": "Pujar por el próximo periodo",
+			"buyBody": "Se cobran ${{amount}} de tu saldo y el puesto de {{coin}} · {{side}} es tuyo durante {{days}} días. Nadie te lo quita en ese tiempo.",
+			"bidBody": "Se retienen ${{amount}} de tu saldo. Si alguien te supera, te los devolvemos al instante; solo pagas si ganas el periodo que empieza el {{date}}.",
+			"label": "Confirmar ${{amount}}"
+		},
+		"toasts": {
+			"bought": "Listo: eres el comerciante promocionado de {{coin}} · {{side}} durante {{days}} días",
+			"bid": "Puja de ${{amount}} registrada. Si alguien te supera, te devolvemos el dinero al instante.",
+			"failed": "No se pudo completar la operación"
+		},
+		"how": {
+			"title": "Cómo funciona",
+			"free": "Si el puesto está libre, lo compras al instante y es tuyo durante {{days}} días. Nadie te lo quita en ese tiempo.",
+			"bid": "Mientras alguien lo tiene, se puja por el periodo siguiente. Para superar una puja hay que ofrecer un 10 % más (mínimo $1).",
+			"refund": "La puja se cobra al hacerla. Si alguien te supera, te devolvemos el dinero completo al instante. Solo paga quien gana.",
+			"rollover": "Al terminar el periodo, la puja más alta empieza el suyo. Si nadie pujó, el puesto vuelve a estar libre.",
+			"offer": "Sale tu mejor oferta abierta de esa moneda y lado, marcada como «Promocionado». Si no tienes ninguna abierta, no sale nada. El orden por mejor tasa del mercado no cambia.",
+			"reputation": "Para comprar o pujar necesitas {{list}}. Si bajas de ese mínimo durante tu periodo, la tarjeta deja de salir hasta que lo recuperes; el puesto sigue siendo tuyo.",
+			"rate": "La tarjeta solo sale si tu oferta no está más de un {{pct}} % peor, para quien la toma, que la tasa a la que se cerraron las operaciones de ese par en las últimas {{hours}} horas."
+		},
+		"market": {
+			"label": "Comerciante promocionado",
+			"want": "¿Quieres este puesto?",
+			"free": "El puesto promocionado de {{coin}} · {{side}} está libre.",
+			"freeCta": "Promociónate por ${{price}}"
+		}
 	}
 }

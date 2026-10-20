@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer, P2POfferKind, P2PRatingTag } from '../types/domain'
+import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer, P2POfferKind, P2PPromoBid, P2PPromoOfferType, P2PPromoPayload, P2PPromoSlot, P2PPromoted, P2PRatingTag } from '../types/domain'
 
 /** Filtros de `GET /p2p/index`. */
 export type P2PIndexFilters = {
@@ -32,6 +32,8 @@ export type P2PIndexResult =
 		per_page: number
 		total: number
 		offers: P2POffer[]
+		/** Puesto promocionado del par (también viene dentro de `offers`: quitarlo por uuid). */
+		promoted: P2PPromoted | null
 	})
 	| ApiFailure
 
@@ -63,6 +65,15 @@ export type P2PEditInput = {
 
 /** Body de `POST /p2p/{uuid}/rate`: `rating` NÚMERO 1–5; `order` obligatorio en una oferta por rango. */
 export type P2PRateInput = { rating: number, comment?: string, tags?: P2PRatingTag[], order?: string }
+
+/** Body de `POST /p2p/promo`: puesto libre ⇒ `amount` = `start_price`; ocupado ⇒ puja ≥ `min_bid`. */
+export type P2PPromoteInput = { coin: string, offer_type: P2PPromoOfferType, amount: number, idempotency_key: string }
+
+/**
+ * Respuesta de comprar/pujar: `201` con la operación, o `200` + `duplicate` si la clave ya
+ * se usó. `action` dice qué decidió el servidor según el estado del puesto en ese instante.
+ */
+export type P2PPromoteResult = { data: P2PPromoBid, action?: 'purchase' | 'bid', slot?: P2PPromoSlot | null, balance?: number, duplicate?: boolean }
 
 /** Respuesta `200` de valorar: `editable_until` = hasta cuándo se puede cambiar (null = nunca). */
 export type P2PRateResult = { message?: string, ratingId?: string, rating?: number, editable_until?: string | null }
@@ -139,7 +150,8 @@ export const p2pApi = {
 				current_page: response.data.current_page,
 				per_page: response.data.per_page,
 				total: response.data.total,
-				offers: response.data.data
+				offers: response.data.data,
+				promoted: response.data.promoted ?? null,
 			}
 
 		} catch (err) {
@@ -452,6 +464,29 @@ export const p2pApi = {
 	rateOffer: async (p2p_uuid: string, payload: P2PRateInput): Promise<ApiResult<P2PRateResult>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/rate`, payload)
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) { return failure(err) }
+	},
+
+	/**
+	 * Estado de los dos puestos promocionados de una moneda (`GET /p2p/promo?coin=`), con
+	 * las reglas vigentes y si quien llama puede comprar o pujar.
+	 */
+	promoState: async (coin: string): Promise<ApiResult<P2PPromoPayload>> => {
+		try {
+			const response = await apiClient.get(`/p2p/promo?coin=${encodeURIComponent(coin)}`, { silent: true })
+			return { success: true, data: response.data?.data, status: response.status }
+		} catch (err) { return failure(err) }
+	},
+
+	/**
+	 * Compra el puesto (libre) o puja por el periodo siguiente (ocupado): `POST /p2p/promo`.
+	 * Mueve dinero: `idempotency_key` estable en los reintentos. Los errores de negocio traen
+	 * `code` y el `slot` actual en `details` (PROMO_PRICE_CHANGED añade `min`).
+	 */
+	promote: async (payload: P2PPromoteInput): Promise<ApiResult<P2PPromoteResult>> => {
+		try {
+			const response = await apiClient.post('/p2p/promo', payload)
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return failure(err) }
 	},

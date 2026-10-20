@@ -25,6 +25,9 @@ import P2PFiltersModal from "./P2PFiltersModal"
 import P2PMarketModal from "./P2PMarketModal"
 import useP2PFilters, { SORT_OPTIONS } from "./useP2PFilters"
 import useP2POffers from "./useP2POffers"
+import P2PPromotedSlot from "./P2PPromotedSlot"
+import { useP2PPromoQuery } from "./p2pQueries"
+import { freeSlotFor, withoutPromoted } from "./p2pPromo"
 
 // Icons
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
@@ -163,7 +166,15 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	// Offers list + pagination + fetch
 	// Todos los filtros son de servidor: cualquiera de ellos debe refetchear
 	const quickKey = JSON.stringify(apiFilters)
-	const { p2pOffers, isLoading, error, requirement, refreshing, availableCoins, loadingCoins, marketAverages, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
+	const { p2pOffers, promoted, isLoading, error, requirement, refreshing, availableCoins, loadingCoins, marketAverages, onRefresh, handleLoadMore } = useP2POffers({ apiFilters, p2pEnabled, quickKey })
+
+	// Puesto promocionado del par visible: la oferta pagada va arriba en su tarjeta y no se
+	// repite en el ranking. Sin titular, si el puesto está libre se ofrece en una línea (eso
+	// sale de GET /p2p/promo, que solo se pide con moneda elegida y sin "Mis ofertas")
+	const listedOffers = useMemo(() => withoutPromoted(p2pOffers, promoted), [p2pOffers, promoted])
+	const promoCoin = apiFilters.coin && !apiFilters.my ? apiFilters.coin : null
+	const promoQuery = useP2PPromoQuery(promoCoin, p2pEnabled && !promoted)
+	const freeSlot = !promoted && promoCoin ? freeSlotFor(promoQuery.data, typeFilter) : null
 
 	// Modal visibility
 	const [modals, dispatchModals] = useReducer(modalsReducer, { showFiltersModal: false, showCoinPicker: false, showSortMenu: false, showMarketModal: false })
@@ -381,7 +392,7 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	]
 
 	const renderOffer = ({ item, index }: { item: P2POfferModel, index: number }) => (
-		<P2POffer offer={item} navigation={navigation as unknown as RootNav} marketAverage={marketAverages?.[item.coin]} style={listCardStyle(index, p2pOffers.length)} />
+		<P2POffer offer={item} navigation={navigation as unknown as RootNav} marketAverage={marketAverages?.[item.coin]} style={listCardStyle(index, listedOffers.length)} />
 	)
 
 	// Lista continua con divisores finos (como la web), no tarjetas sueltas
@@ -419,8 +430,9 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 			</Animated.View>
 
 			<OffersFlashList
-				data={p2pOffers}
+				data={listedOffers}
 				renderItem={renderOffer}
+				ListHeaderComponent={<P2PPromotedSlot promoted={promoted} freeSlot={freeSlot} navigation={navigation as unknown as RootNav} marketAverages={marketAverages} />}
 				keyExtractor={(item) => item.uuid}
 				onScroll={handleScroll}
 				scrollEventThrottle={16}
@@ -433,7 +445,8 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 				onEndReachedThreshold={0.3}
 				ListFooterComponent={renderFooter}
 				ItemSeparatorComponent={renderSeparator}
-				ListEmptyComponent={isLoading && !error ? (
+				// Si la única oferta del par es la promocionada, el "No hay ofertas" la contradiría
+				ListEmptyComponent={promoted ? null : isLoading && !error ? (
 					<View>
 						{[0, 1, 2, 3, 4].map(i => (
 							<View key={i}>

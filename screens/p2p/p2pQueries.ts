@@ -5,7 +5,7 @@ import { p2pApi } from '../../api/p2pApi'
 
 import { unwrap } from '../../api/unwrap'
 
-import type { P2PMarketAverages, P2POffer, P2PUser } from '../../types/domain'
+import type { P2PMarketAverages, P2POffer, P2PPromoPayload, P2PUser } from '../../types/domain'
 
 /**
  * Payload de `GET /p2p/user/{uuid}` (p2pApi.peerProfile, tipado `unknown` en
@@ -104,4 +104,20 @@ export const useP2pMarketAveragesQuery = () => useQuery<P2PMarketAverages | null
 	queryFn: async () => unwrap(await p2pApi.getAverages()),
 	staleTime: 60 * 1000,
 	placeholderData: previous => previous,
+})
+
+/** Clave del estado de los puestos promocionados de una moneda (la invalida comprar o pujar). */
+export const p2pPromoKey = (coin: string) => ['p2p', 'promo', coin] as const
+
+/**
+ * Puestos promocionados de una moneda (`GET /p2p/promo`). La comparten el aviso de puesto
+ * libre del mercado y la pantalla de compra: entrar desde el aviso pinta al instante.
+ * Subasta en vivo y por usuario (`eligibility`): fuera del disco.
+ */
+export const useP2PPromoQuery = (coin: string | null | undefined, enabled = true) => useQuery<P2PPromoPayload | null>({
+	queryKey: p2pPromoKey(coin || ''),
+	queryFn: async () => unwrap(await p2pApi.promoState(coin as string)),
+	enabled: enabled && !!coin,
+	staleTime: 60 * 1000,
+	meta: { noPersist: true },
 })

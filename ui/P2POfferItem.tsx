@@ -85,6 +85,8 @@ type P2POfferItemProps = {
 	style?: StyleProp<ViewStyle>
 	/** Pintar una oferta por rango como tal (disponible + límites); off cuando la card resume UNA orden. */
 	show_range?: boolean
+	/** Puesto promocionado pagado: solo la etiqueta (el borde dorado lo pone el contenedor del mercado). */
+	promoted?: boolean
 }
 
 /**
@@ -110,8 +112,9 @@ type P2POfferItemProps = {
  * @param [props.marketAverage] - Medias de la moneda (`/p2p/averages`); la desviación usa `average`.
  * @param [props.style] - Override sobre la card.
  * @param [props.show_range=true] - Oferta por rango: Disponible y Límites en vez de Monto.
+ * @param [props.promoted=false] - Etiqueta «Promocionado» sobre el botón (puesto pagado del mercado).
  */
-const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false, expand_message = false, marketAverage = null, style = null, show_range = true }: P2POfferItemProps) => {
+const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true, show_date = false, expand_message = false, marketAverage = null, style = null, show_range = true, promoted = false }: P2POfferItemProps) => {
 
 	// User context
 	const { user } = useAuth()
@@ -231,6 +234,16 @@ const P2POfferItem = ({ offer, navigation, show_buttons = true, show_user = true
 
 				{button && (
 					<View style={styles.actionColumn}>
+						{promoted && (
+							<View
+								style={[styles.vipTag, { backgroundColor: theme.colors.gold + '33', borderColor: theme.colors.gold + '66' }]}
+								accessible
+								accessibilityLabel={`${t('ui.offerItem.promoted')}. ${t('ui.offerItem.promotedHint')}`}
+							>
+								<FontAwesome6 name="star" size={small} color={vipColor} iconStyle="solid" />
+								<Text style={{ color: vipColor, fontSize: small, fontFamily: theme.typography.fontFamily.semiBold }}>{t('ui.offerItem.promoted')}</Text>
+							</View>
+						)}
 						{!!offer.only_vip && (
 							<View style={[styles.vipTag, { backgroundColor: theme.colors.gold + '26', borderColor: theme.colors.gold + '4D' }]}>
 								<FontAwesome6 name="gem" size={small} color={vipColor} iconStyle="solid" />

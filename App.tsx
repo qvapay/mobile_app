@@ -87,6 +87,7 @@ import MiniAppHost from './screens/miniapps/MiniAppHost'
 import P2PCreate from './screens/p2p/P2PCreate'
 import P2POffer from './screens/p2p/P2POffer'
 import P2PUser from './screens/p2p/P2PUser'
+import P2PPromote from './screens/p2p/P2PPromote'
 import GoldCheck from './screens/settings/subpanels/GoldCheck'
 import Scan from './screens/scan/Scan'
 import NearbyPay from './screens/nearby/NearbyPay'
@@ -210,6 +211,9 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 
 	// P2P User Profile Screen — no header so cover extends to the status bar (Scan/Profile look)
 	{ name: ROUTES.P2P_USER_SCREEN, component: P2PUser, options: { headerShown: false } },
+
+	// Puesto promocionado del mercado P2P (comprar o pujar por la tarjeta dorada de un par)
+	{ name: ROUTES.P2P_PROMOTE, component: P2PPromote, options: getHeaderOptions(t('navigation.headers.p2pPromote')) },
 
 	// GoldCheck — also reachable from SettingsStack, but registered here so
 	// peer profile and other screens can push it directly with a back button

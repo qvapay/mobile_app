@@ -18,13 +18,15 @@ import { requirementFromApiError } from "./p2pRequirements"
 
 import type { P2PRequirementKey } from "./p2pRequirements"
 import type { P2PIndexFilters } from "../../api/p2pApi"
-import type { P2POffer } from "../../types/domain"
+import type { P2POffer, P2PPromoted } from "../../types/domain"
 
 const PAGE_SIZE = 30
 
 /** Estado de la lista del marketplace (paginación y guardas viven en refs, fuera de aquí). */
 type ListState = {
 	p2pOffers: P2POffer[]
+	/** Puesto promocionado del par de la página 1 (solo con moneda + lado y sin `my`). */
+	promoted: P2PPromoted | null
 	isLoading: boolean
 	error: string | null
 	/** Requisito que el backend exige (400) — la pantalla pinta la portada de requisitos. */
@@ -38,7 +40,7 @@ type ListState = {
  */
 type ListAction =
 	| { type: "start", kind: "refresh" | "more" | "initial" }
-	| { type: "setOffers", offers: P2POffer[] }
+	| { type: "setOffers", offers: P2POffer[], promoted: P2PPromoted | null }
 	| { type: "hydrate", offers: P2POffer[] | null | undefined }
 	| { type: "appendOffers", offers: P2POffer[] }
 	| { type: "error", error: string, requirement?: P2PRequirementKey | null }
@@ -51,7 +53,7 @@ type PendingFetch = { pageNum: number, isRefresh: boolean }
 // una sola petición (el índice permite 10/min por usuario)
 const FILTER_DEBOUNCE_MS = 350
 
-const initialList: ListState = { p2pOffers: [], isLoading: false, error: null, requirement: null, refreshing: false }
+const initialList: ListState = { p2pOffers: [], promoted: null, isLoading: false, error: null, requirement: null, refreshing: false }
 
 function listReducer(state: ListState, action: ListAction): ListState {
 	switch (action.type) {
@@ -59,7 +61,7 @@ function listReducer(state: ListState, action: ListAction): ListState {
 			// kind: 'refresh' | 'more' | 'initial'
 			return { ...state, refreshing: action.kind === "refresh", isLoading: action.kind === "more", error: null, requirement: null }
 		case "setOffers":
-			return { ...state, p2pOffers: action.offers }
+			return { ...state, p2pOffers: action.offers, promoted: action.promoted }
 		case "hydrate":
 			// Cached offers paint the cold start — never clobber a resolved fetch
 			return state.p2pOffers.length === 0 && action.offers?.length ? { ...state, p2pOffers: action.offers } : state
@@ -94,7 +96,8 @@ function listReducer(state: ListState, action: ListAction): ListState {
  * @param params.quickKey - Key derived from the quick filters (type, coin, sort, showMine);
  *   a change auto-refreshes page 1 (skipped on first render — the mount effect covers it).
  * @returns List API:
- *   `p2pOffers`, `isLoading` (initial/load-more), `error`, `requirement` (el 400 del
+ *   `p2pOffers`, `promoted` (puesto promocionado del par: va arriba y TAMBIÉN viene en
+ *   `p2pOffers` — la pantalla lo quita con `withoutPromoted`), `isLoading` (initial/load-more), `error`, `requirement` (el 400 del
  *   backend por KYC/teléfono/Telegram/acceso, ya traducido a clave de requisito), `refreshing`,
  *   `availableCoins` + `loadingCoins` (coin picker),
  *   `fetchP2POffers(pageNum, isRefresh)` (used by the screen to apply modal filters),
@@ -108,7 +111,7 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 }) {
 
 	const [list, dispatchList] = useReducer(listReducer, initialList)
-	const { p2pOffers, isLoading, error, requirement, refreshing } = list
+	const { p2pOffers, promoted, isLoading, error, requirement, refreshing } = list
 
 	// Pagination cursors — read only inside the fetch/load-more handlers, never rendered
 	const pageRef = useRef(1)
@@ -157,7 +160,7 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 				hasFreshOffersRef.current = true
 				const newData = response.offers || []
 				if (isRefresh || pageNum === 1) {
-					dispatchList({ type: "setOffers", offers: newData })
+					dispatchList({ type: "setOffers", offers: newData, promoted: response.promoted ?? null })
 					// Persist the default marketplace view for instant cold-start
 					// rendering (snapshot en la caché de queries — el persister global
 					// lo escribe a disco)
@@ -246,5 +249,5 @@ export default function useP2POffers({ apiFilters, p2pEnabled, quickKey }: {
 		if (!isLoading && hasMoreRef.current) { fetchP2POffers(pageRef.current + 1) }
 	}, [isLoading, fetchP2POffers])
 
-	return { p2pOffers, isLoading, error, requirement, refreshing, availableCoins, loadingCoins, marketAverages, fetchP2POffers, onRefresh, handleLoadMore }
+	return { p2pOffers, promoted, isLoading, error, requirement, refreshing, availableCoins, loadingCoins, marketAverages, fetchP2POffers, onRefresh, handleLoadMore }
 }

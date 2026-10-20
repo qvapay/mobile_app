@@ -47,6 +47,7 @@ export const ROUTES = {
 	P2P_CREATE_SCREEN: "P2PCreate",
 	P2P_OFFER_SCREEN: "P2POffer",
 	P2P_USER_SCREEN: "P2PUser",
+	P2P_PROMOTE: "P2PPromote",
 
 	// InOut Screens
 	ADD: "Add",

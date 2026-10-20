@@ -432,7 +432,65 @@ export type P2PIndexEnvelope = {
 	current_page: number
 	per_page: number
 	total: number
+	/** Puesto promocionado del par (solo con `coin` + `type`, sin `my`). La oferta TAMBIÉN viene en `data`. */
+	promoted?: P2PPromoted | null
 } & Record<string, unknown>
+
+// ── Puesto promocionado del mercado P2P (qpweb content/docs/p2p/promo.mdx) ──
+
+/** `sell` = pestaña Comprar (ofertas de venta de QUSD), `buy` = pestaña Vender. */
+export type P2PPromoOfferType = 'sell' | 'buy'
+
+/** Estado público de un puesto (`GET /p2p/promo`, `slot` de las respuestas). Los importes en USD. */
+export type P2PPromoSlot = {
+	coin: string
+	offer_type: P2PPromoOfferType
+	/** `free` se compra a `start_price`; `held` se puja por el periodo siguiente; `rotating` se está asignando. */
+	state: 'free' | 'held' | 'rotating'
+	holder: { uuid: string, username: string } | null
+	starts_at: string | null
+	ends_at: string | null
+	/** Puja más alta por el periodo siguiente (quién la hizo no se publica). */
+	leading_amount: number | null
+	/** Lo mínimo que hay que mandar ahora como `amount`. */
+	min_bid: number
+	start_price: number
+	period_days: number
+}
+
+/** Oferta que se pinta arriba del listado de su par. */
+export type P2PPromoted = { slot: P2PPromoSlot, offer: P2POffer }
+
+/** Requisito de reputación que no se cumple (`label` llega en español del servidor). */
+export type P2PPromoMissing = { key: string, required: number, actual: number, label?: string }
+
+/** `GET /p2p/promo?coin=`: con la función apagada, `enabled: false`, sin slots y sin eligibility. */
+export type P2PPromoPayload = {
+	coin: string
+	enabled: boolean
+	slots: P2PPromoSlot[]
+	rules: {
+		requirements: { min_completed?: number, min_rating?: number }
+		/** null = filtro de tasa apagado. */
+		max_rate_gap_pct: number | null
+		market_window_hours: number
+		min_market_sample: number
+	} | null
+	eligibility: { ok: boolean, missing: P2PPromoMissing[] } | null
+}
+
+/** Compra o puja registrada (`POST /p2p/promo`). */
+export type P2PPromoBid = {
+	uuid: string
+	coin: string
+	offer_type: P2PPromoOfferType
+	kind: 'purchase' | 'bid'
+	status: 'held' | 'won' | 'outbid' | 'refunded'
+	amount: number
+	period_starts_at: string | null
+	period_ends_at: string | null
+	created_at: string
+}
 
 /** Media de mercado por tick (`GET /p2p/averages`). */
 export type P2PMarketAverages = Record<string, {

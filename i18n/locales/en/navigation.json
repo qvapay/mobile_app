@@ -27,6 +27,7 @@
 		"walletSendConfirm": "Confirm send",
 		"walletTxDetail": "Transaction",
 		"walletSwap": "Swap",
+		"p2pPromote": "Featured spot",
 		"walletSwapStatus": "Swap status",
 		"walletExchangeStatus": "Exchange",
 		"walletOnchainSwap": "Non-custodial swap",

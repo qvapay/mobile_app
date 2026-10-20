@@ -413,5 +413,69 @@
 			"sent": "Avaliação enviada!",
 			"failed": "Não foi possível enviar a avaliação"
 		}
+	},
+	"promo": {
+		"intro": "Sua melhor oferta aparece no topo do mercado P2P de uma moeda, com borda dourada, por {{days}} dias. Cada moeda tem um destaque para Comprar e outro para Vender.",
+		"coinLabel": "Moeda",
+		"pickCoin": "Escolha uma moeda",
+		"loadError": "Não conseguimos carregar os destaques.",
+		"disabled": "Os destaques pagos ainda não estão disponíveis. Em breve.",
+		"needsP2P": "Você precisa ter o P2P ativo para promover suas ofertas.",
+		"needsReputation": "Para se destacar você precisa de: {{list}}.",
+		"requirements": {
+			"minCompleted_one": "{{count}} operação P2P concluída",
+			"minCompleted_other": "{{count}} operações P2P concluídas",
+			"minRating": "uma avaliação de {{rating}} ou mais",
+			"and": " e "
+		},
+		"slot": {
+			"title": "{{coin}} · {{side}}",
+			"hintSell": "Aparece para quem quer comprar: promova suas ofertas de venda.",
+			"hintBuy": "Aparece para quem quer vender: promova suas ofertas de compra.",
+			"now": "Agora",
+			"next": "Próximo período",
+			"nowFree": "Livre",
+			"nowRotating": "Atualizando…",
+			"nowMine": "É seu até {{date}}",
+			"nowTaken": "@{{username}} até {{date}}",
+			"nextLeading": "Lance líder: ${{amount}}",
+			"nextMine": "Seu lance está ganhando: ${{amount}}",
+			"nextNone": "Nenhum lance ainda",
+			"mineNote": "Seu cartão aparece no topo do mercado enquanto você tiver uma oferta aberta deste par e a taxa dela estiver perto do mercado.",
+			"leadingNote": "Você tem o maior lance para o próximo período. Se alguém superar você, devolvemos o dinheiro na hora.",
+			"bidLabel": "Seu lance (mínimo ${{min}})",
+			"buy": "Comprar por ${{amount}}",
+			"bid": "Dar lance pelo próximo período",
+			"insufficient": "Saldo insuficiente (${{balance}})",
+			"invalidBid": "O lance mínimo é ${{min}}"
+		},
+		"confirm": {
+			"buyTitle": "Comprar o destaque",
+			"bidTitle": "Dar lance pelo próximo período",
+			"buyBody": "São cobrados ${{amount}} do seu saldo e o destaque de {{coin}} · {{side}} é seu por {{days}} dias. Ninguém o tira de você nesse período.",
+			"bidBody": "São retidos ${{amount}} do seu saldo. Se alguém superar você, devolvemos na hora; você só paga se ganhar o período que começa em {{date}}.",
+			"label": "Confirmar ${{amount}}"
+		},
+		"toasts": {
+			"bought": "Pronto: você é o comerciante em destaque de {{coin}} · {{side}} por {{days}} dias",
+			"bid": "Lance de ${{amount}} registrado. Se alguém superar você, devolvemos o dinheiro na hora.",
+			"failed": "Não foi possível concluir a operação"
+		},
+		"how": {
+			"title": "Como funciona",
+			"free": "Se o destaque estiver livre, você o compra na hora e ele é seu por {{days}} dias. Ninguém o tira de você nesse período.",
+			"bid": "Enquanto alguém o tem, os lances são pelo período seguinte. Para superar um lance é preciso oferecer 10% a mais (mínimo de $1).",
+			"refund": "O lance é cobrado quando você o faz. Se alguém superar você, devolvemos o valor completo na hora. Só paga quem ganha.",
+			"rollover": "Ao terminar o período, o maior lance começa o seu. Se ninguém deu lance, o destaque volta a ficar livre.",
+			"offer": "Aparece sua melhor oferta aberta dessa moeda e lado, marcada como «Destaque». Se você não tiver nenhuma aberta, nada aparece. A ordem do mercado pela melhor taxa não muda.",
+			"reputation": "Para comprar ou dar lance você precisa de {{list}}. Se cair abaixo desse mínimo durante o seu período, o cartão deixa de aparecer até você recuperar; o destaque continua sendo seu.",
+			"rate": "O cartão só aparece se sua oferta não estiver mais de {{pct}}% pior, para quem a aceita, que a taxa em que fecharam as operações desse par nas últimas {{hours}} horas."
+		},
+		"market": {
+			"label": "Comerciante em destaque",
+			"want": "Quer este destaque?",
+			"free": "O destaque de {{coin}} · {{side}} está livre.",
+			"freeCta": "Destaque-se por ${{price}}"
+		}
 	}
 }

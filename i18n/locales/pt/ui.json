@@ -110,7 +110,9 @@
 			"min_rating": "avaliação {{value}}+",
 			"min_account_days": "conta com {{value}}+ dias",
 			"min_trustscore": "TrustScore {{value}}+"
-		}
+		},
+		"promoted": "Destaque",
+		"promotedHint": "Espaço pago: a QvaPay não endossa esta oferta"
 	},
 	"phoneInput": {
 		"placeholder": "Número de telefone"

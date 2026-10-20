@@ -113,6 +113,8 @@ export type RootStackParamList = {
 	/** `initialTab` está implementado en la pantalla pero ningún call site lo manda aún. */
 	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
 	P2PCreate: undefined
+	/** Puesto promocionado: moneda y lado con los que abre (mercado, push `p2p_promo_*`, /p2p/promote?coin=&type=). */
+	P2PPromote: { coin?: string, type?: 'sell' | 'buy' } | undefined
 
 	// ── Crypto ────────────────────────────────────────────────────────────
 	Savings: { action?: 'deposit' | 'withdraw', savings?: Record<string, unknown> } | undefined

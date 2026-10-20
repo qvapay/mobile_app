@@ -110,7 +110,9 @@
 			"min_rating": "rating {{value}}+",
 			"min_account_days": "account {{value}}+ days old",
 			"min_trustscore": "TrustScore {{value}}+"
-		}
+		},
+		"promoted": "Featured",
+		"promotedHint": "Paid placement: QvaPay doesn't endorse this offer"
 	},
 	"phoneInput": {
 		"placeholder": "Phone number"
