@@ -310,7 +310,7 @@ const CoinStatsCard = ({ coin, timeframe, priceHistory, theme }: { coin: Partial
  * (depósito/retiro/P2P + comisiones, del objeto `/coins/v2`).
  * Route params: `tick` (required), `name` y `initialData` (la fila ya
  * enriquecida del Invest) para pintar el header al instante.
- * El cambio % del header es SIEMPRE 24H (como StockDetail); las pills solo
+ * El cambio % del header es SIEMPRE 24H; las pills solo
  * refetchean el historial del gráfico y los máx/mín del periodo.
  * CTAs: Depositar (Add) y Mercado P2P pre-filtrado — el spot compra/venta
  * llegará cuando el backend lo soporte.

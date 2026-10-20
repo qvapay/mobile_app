@@ -94,7 +94,6 @@ import NearbyPay from './screens/nearby/NearbyPay'
 
 // Invest Screens
 import Savings from './screens/crypto/Savings'
-import StockDetail from './screens/crypto/StockDetail'
 import CoinDetail from './screens/crypto/CoinDetail'
 import WalletOnboarding from './screens/crypto/wallet/WalletOnboarding'
 import WalletOnly from './screens/crypto/wallet/WalletOnly'
@@ -277,7 +276,6 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.SAVINGS_SCREEN, component: Savings, options: getHeaderOptions(t('navigation.headers.savings')) },
 
 	// Stock Detail Screen
-	{ name: ROUTES.STOCK_DETAIL_SCREEN, component: StockDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
 	{ name: ROUTES.COIN_DETAIL_SCREEN, component: CoinDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
 
 	// Wallet self-custody (branch crypto)

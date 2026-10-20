@@ -50,21 +50,6 @@
 			"networkError": "Network error"
 		}
 	},
-	"stockDetail": {
-		"buy": "Buy",
-		"sell": "Sell",
-		"open": "Open",
-		"previousClose": "Previous close",
-		"dayHigh": "Day high",
-		"dayLow": "Day low",
-		"volume": "Volume",
-		"fiftyTwoWeekHigh": "52-week high",
-		"fiftyTwoWeekLow": "52-week low",
-		"about": "About",
-		"sector": "Sector",
-		"exchange": "Exchange",
-		"type": "Type"
-	},
 	"coinDetail": {
 		"goldUpsell": "Explore the price point by point with GOLD",
 		"periodHigh": "High ({{timeframe}})",

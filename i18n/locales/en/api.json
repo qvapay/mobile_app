@@ -58,8 +58,6 @@
 		"earningsLoadFailed": "Couldn't load earnings"
 	},
 	"stocks": {
-		"stocksLoadFailed": "Couldn't load stocks",
-		"quoteLoadFailed": "Couldn't load the quote",
 		"historyLoadFailed": "Couldn't load the history"
 	},
 	"store": {

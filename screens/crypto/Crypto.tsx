@@ -9,7 +9,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
+// Data (React Query)
 import { useCryptoDashboard } from './cryptoQueries'
 import WalletHome from './wallet/WalletHome'
 
@@ -28,11 +28,9 @@ import QPSkeleton from '../../ui/particles/QPSkeleton'
 import QPCoin from '../../ui/particles/QPCoin'
 import Sparkline from '../../ui/Sparkline'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
-import QPSvgUri from '../../ui/particles/QPSvgUri'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
 // Tipos
 import type { CompositeScreenProps } from '@react-navigation/native'
@@ -121,18 +119,12 @@ const MarketTabs = ({ value, onChange, theme }: MarketTabsProps) => {
 	)
 }
 
-/**
- * Fila del explorador: sirve tanto a una cripto enriquecida como a un stock,
- * así que su forma es la UNIÓN de los campos que ambas superficies traen.
- */
+/** Fila del explorador: una cripto enriquecida (los campos que pinta). */
 type ExploreRowItem = {
 	tick: string
 	name?: string
 	price?: string | number
 	change?: number
-	icon?: string
-	iconStyle?: string
-	image?: string | null
 	priceHistory?: { value: number }[]
 }
 
@@ -141,10 +133,9 @@ type ExploreRowProps = {
 	theme: Theme
 	textStyles: TextStyles
 	isLast: boolean
-	isCrypto: boolean
 }
 
-const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowProps) => {
+const ExploreRow = ({ item, theme, textStyles, isLast }: ExploreRowProps) => {
 
 	const price = Number(item.price || 0)
 	const change = item.change || 0
@@ -153,29 +144,16 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowPro
 	
 	return (
 		<View style={[styles.itemRow, !isLast && styles.itemBorder(theme)]}>
-			{isCrypto ? (
-				<QPCoin coin={item.tick} size={36} />
-			) : item.image ? (
-				<View style={[styles.stockIcon, { backgroundColor: theme.colors.primary + '12' }]}>
-					<QPSvgUri uri={item.image} width={22} height={22} color={theme.colors.primary} />
-				</View>
-			) : (
-				<View style={[styles.stockIcon, { backgroundColor: theme.colors.primary + '12' }]}>
-					{/* Los stocks traen icono y estilo como strings sueltos del backend: casts locales para casar con la unión discriminada de FontAwesome6 */}
-					<FontAwesome6 name={item.icon as FontAwesome6SolidIconName} size={16} color={theme.colors.primary} iconStyle={item.iconStyle as 'solid'} />
-				</View>
-			)}
+			<QPCoin coin={item.tick} size={36} />
 			<View style={styles.itemInfo}>
 				<Text style={[textStyles.h4, styles.itemName]}>{item.name}</Text>
 				<Text style={[styles.itemSub, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{item.tick}</Text>
 			</View>
-			{isCrypto && (
-				<View style={styles.sparklineContainer}>
-					{(item.priceHistory?.length as number) > 1 && (
-						<Sparkline data={item.priceHistory} width={60} height={24} color={trendColor} />
-					)}
-				</View>
-			)}
+			<View style={styles.sparklineContainer}>
+				{(item.priceHistory?.length as number) > 1 && (
+					<Sparkline data={item.priceHistory} width={60} height={24} color={trendColor} />
+				)}
+			</View>
 			<View style={styles.priceCol}>
 				<Text style={[textStyles.h4, styles.itemPrice]}>
 					${price >= 1
@@ -199,12 +177,11 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowPro
 // --- Main Component ---
 
 /**
- * Crypto tab: home de la wallet self-custody (flag) arriba y, al final, el
- * explorador de precios (cripto populares + stocks). Las medias del mercado
- * P2P viven ahora en el tab P2P (botón del header → P2PMarketModal). Los
- * datos del explorador viven en React Query (`useCryptoDashboard`).
- * El ahorro ya no vive aquí (se llega desde el BalanceCard del Home). Rows
- * navigate to StockDetail / CoinDetail (with `initialData` for instant paint).
+ * Crypto tab: home de la wallet self-custody arriba y, al final, los mercados:
+ * Cripto (las populares, de `useCryptoDashboard`) y Stocks (las xStocks). Las
+ * medias del mercado P2P viven en el tab P2P (botón del header → P2PMarketModal)
+ * y el ahorro se abre desde el BalanceCard del Home. Una cripto abre CoinDetail
+ * (con `initialData` para pintar al instante) y una acción, XStockDetail.
  */
 const Crypto = ({ navigation }: CryptoProps) => {
 
@@ -224,7 +201,7 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const { positions: xstockPositions } = useXStockPortfolio({ enabled: showXStocks })
 	const xstocksList = useMemo(() => sortByLiquidity(xstockPositions), [xstockPositions])
 
-	// Pestaña Cripto: las cinco populares, por la forma común de ExploreRow (cast local)
+	// Pestaña Cripto: las cinco populares (cast local a la forma de ExploreRow)
 	const exploreItems = coins.slice(0, 5) as ExploreRowItem[]
 
 	return (
@@ -266,7 +243,6 @@ const Crypto = ({ navigation }: CryptoProps) => {
 							theme,
 							textStyles,
 							isLast: i === exploreItems.length - 1,
-							isCrypto: true,
 						}
 						return (
 							<Pressable
@@ -358,14 +334,6 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	priceCol: {
 		width: 100,
 		alignItems: 'flex-end',
-	},
-	// Stocks
-	stockIcon: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		justifyContent: 'center',
-		alignItems: 'center',
 	},
 	sparklineContainer: {
 		width: 60,

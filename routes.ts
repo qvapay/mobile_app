@@ -98,7 +98,6 @@ export const ROUTES = {
 
 	// Invest Screens
 	SAVINGS_SCREEN: "Savings",
-	STOCK_DETAIL_SCREEN: "StockDetail",
 	COIN_DETAIL_SCREEN: "CoinDetail",
 	WALLET_ONLY: "WalletOnly",
 	WALLET_ONBOARDING: "WalletOnboarding",

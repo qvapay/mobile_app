@@ -50,21 +50,6 @@
 			"networkError": "Erro de rede"
 		}
 	},
-	"stockDetail": {
-		"buy": "Comprar",
-		"sell": "Vender",
-		"open": "Abertura",
-		"previousClose": "Fechamento anterior",
-		"dayHigh": "Máxima do dia",
-		"dayLow": "Mínima do dia",
-		"volume": "Volume",
-		"fiftyTwoWeekHigh": "Máx. 52 sem.",
-		"fiftyTwoWeekLow": "Mín. 52 sem.",
-		"about": "Sobre",
-		"sector": "Setor",
-		"exchange": "Bolsa",
-		"type": "Tipo"
-	},
 	"coinDetail": {
 		"goldUpsell": "Explore o preço ponto a ponto com o GOLD",
 		"periodHigh": "Máxima ({{timeframe}})",

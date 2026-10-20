@@ -118,14 +118,6 @@ export type RootStackParamList = {
 
 	// ── Crypto ────────────────────────────────────────────────────────────
 	Savings: { action?: 'deposit' | 'withdraw', savings?: Record<string, unknown> } | undefined
-	StockDetail: {
-		symbol: string
-		name?: string
-		icon?: string
-		iconStyle?: string
-		image?: unknown
-		initialData?: Record<string, unknown>
-	}
 	CoinDetail: { tick: string, name?: string, initialData?: Coin | EnrichedCoin }
 
 	// ── Wallet self-custody (branch crypto) ───────────────────────────────

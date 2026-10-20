@@ -58,8 +58,6 @@
 		"earningsLoadFailed": "Não foi possível obter os rendimentos"
 	},
 	"stocks": {
-		"stocksLoadFailed": "Não foi possível obter as ações",
-		"quoteLoadFailed": "Não foi possível obter a cotação",
 		"historyLoadFailed": "Não foi possível obter o histórico"
 	},
 	"store": {
