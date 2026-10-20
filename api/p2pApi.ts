@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import i18n from '../i18n'
 import type { ApiClientError, ApiFailure, ApiResult, ApiSuccess } from '../types/api'
-import type { P2PIndexEnvelope, P2PMarketAverages, P2POffer, P2POfferKind, P2PPromoBid, P2PPromoOfferType, P2PPromoPayload, P2PPromoSlot, P2PPromoted, P2PRatingTag } from '../types/domain'
+import type { P2PIndexEnvelope, P2PFeatured, P2PMarketAverages, P2POffer, P2POfferKind, P2PPromoBid, P2PPromoOfferType, P2PPromoPayload, P2PPromoSlot, P2PPromoted, P2PRatingTag } from '../types/domain'
 
 /** Filtros de `GET /p2p/index`. */
 export type P2PIndexFilters = {
@@ -518,6 +518,17 @@ export const p2pApi = {
 		try {
 			const response = await apiClient.post('/p2p/promo', payload)
 			return { success: true, data: response.data, status: response.status }
+		} catch (err) { return failure(err) }
+	},
+
+	/**
+	 * Ofertas destacadas del Home (`GET /p2p/featured`): promocionadas al azar + últimas de
+	 * comerciantes GOLD. Sin los requisitos del mercado (tomar una sí los pide).
+	 */
+	featured: async (): Promise<ApiResult<P2PFeatured>> => {
+		try {
+			const response = await apiClient.get('/p2p/featured', { silent: true })
+			return { success: true, data: response.data?.data, status: response.status }
 		} catch (err) { return failure(err) }
 	},
 

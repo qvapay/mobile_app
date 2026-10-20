@@ -608,6 +608,16 @@ describe('puesto promocionado', () => {
 		expect(result).toEqual({ success: true, data, status: 200 })
 	})
 
+	test('featured pide las ofertas destacadas del Home sin la barra de carga', async () => {
+		const data = { promoted: [{ uuid: 'promo-1' }], offers: [{ uuid: 'gold-1' }] }
+		apiClient.get.mockResolvedValue({ status: 200, data: { data } })
+
+		const result = await p2pApi.featured()
+
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/featured', { silent: true })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
 	test('promote manda la compra o puja con su clave de idempotencia', async () => {
 		const body = { data: { uuid: 'bid-1', kind: 'bid', status: 'held', amount: 27.5 }, action: 'bid', balance: 100 }
 		apiClient.post.mockResolvedValue({ status: 201, data: body })

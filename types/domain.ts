@@ -461,6 +461,13 @@ export type P2PPromoSlot = {
 /** Oferta que se pinta arriba del listado de su par. */
 export type P2PPromoted = { slot: P2PPromoSlot, offer: P2POffer }
 
+/**
+ * Bloque «Ofertas P2P» del Home (`GET /p2p/featured`, el mismo del dashboard web): hasta dos
+ * promocionadas al azar entre todos los puestos y las últimas de comerciantes GOLD, sin
+ * repetir. Cada oferta tiene la forma de una fila de `/p2p/index`.
+ */
+export type P2PFeatured = { promoted: P2POffer[], offers: P2POffer[] }
+
 /** Requisito de reputación que no se cumple (`label` llega en español del servidor). */
 export type P2PPromoMissing = { key: string, required: number, actual: number, label?: string }
 
