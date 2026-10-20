@@ -10,8 +10,9 @@ import QPPressable from "../../ui/particles/QPPressable"
 import QPRate from "../../ui/particles/QPRate"
 import QPKeyboardAvoidingView from "../../ui/QPKeyboardAvoidingView"
 import { displayName } from "../../helpers/displayName"
+import { getDateLocale } from "../../i18n"
 import { formatCents, toCents } from "./p2pFlexible"
-import { RATING_COMMENT_MAX, RATING_TAGS } from "./p2pRating"
+import { RATING_COMMENT_MAX, RATING_TAGS, buildEditPayload } from "./p2pRating"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
@@ -40,17 +41,26 @@ const TAG_ICONS: Record<P2PRatingTag, "bolt" | "handshake" | "comments"> = {
  * Hoja de valoración de un trato P2P cerrado (oferta fija u orden por rango),
  * calcada del `P2PRatingModal` de la web: contraparte, 5 estrellas obligatorias,
  * etiquetas rápidas y comentario opcional de 120 caracteres. "Omitir" la cierra
- * sin valorar (el botón Valorar sigue disponible). Se desmonta al cerrarse, así
+ * sin valorar (las estrellas vacías de la barra siguen ahí). Se desmonta al cerrarse, así
  * que cada apertura arranca en blanco.
+ *
+ * En modo `edit` arranca con mi valoración, dice hasta cuándo se puede cambiar y
+ * "Guardar cambios" solo se activa si algo cambió (el PATCH sin cambios es un 400).
  */
 const P2PRateSheet = ({ target, ...rest }: P2PRateSheetProps) => (target ? <RateSheetCard target={target} {...rest} /> : null)
 
 const RateSheetCard = ({ target, loading, onClose, onSubmit, theme, textStyles, containerStyles }: P2PRateSheetProps & { target: RateTarget }) => {
 
 	const { t } = useTranslation()
-	const [rating, setRating] = useState(0)
-	const [tags, setTags] = useState<P2PRatingTag[]>([])
-	const [comment, setComment] = useState("")
+	const mine = target.mode === "edit" ? target.mine : null
+	const isEdit = !!mine
+	const [rating, setRating] = useState(mine ? mine.rating : target.initialRating)
+	const [tags, setTags] = useState<P2PRatingTag[]>(mine ? mine.tags : [])
+	const [comment, setComment] = useState(mine ? mine.comment : "")
+	const changed = !mine || !!buildEditPayload(mine, { rating, tags, comment })
+	const until = mine?.editableUntil
+		? new Date(mine.editableUntil).toLocaleString(getDateLocale(), { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
+		: null
 
 	const close = () => { if (!loading) onClose() }
 	const toggleTag = (tag: P2PRatingTag) => setTags(prev => (prev.includes(tag) ? prev.filter(x => x !== tag) : [...prev, tag]))
@@ -68,12 +78,15 @@ const RateSheetCard = ({ target, loading, onClose, onSubmit, theme, textStyles, 
 						<ScrollView keyboardShouldPersistTaps="handled" bounces={false} showsVerticalScrollIndicator={false}>
 
 							<View style={styles.titleRow}>
-								<FontAwesome6 name="circle-check" size={18} color={theme.colors.successText} iconStyle="solid" />
-								<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{t('p2p.rating.title')}</Text>
+								<FontAwesome6 name={isEdit ? "star" : "circle-check"} size={18} color={isEdit ? theme.colors.gold : theme.colors.successText} iconStyle="solid" />
+								<Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>{isEdit ? t('p2p.rating.edit.title') : t('p2p.rating.title')}</Text>
 							</View>
 							<Text style={[textStyles.h6, styles.subtitle, { color: theme.colors.secondaryText }]}>
-								{peer?.username ? t('p2p.rating.subtitle', { username: peer.username }) : t('p2p.rating.subtitleFallback')}
+								{isEdit
+									? (peer?.username ? t('p2p.rating.edit.subtitle', { username: peer.username }) : t('p2p.rating.edit.subtitleFallback'))
+									: (peer?.username ? t('p2p.rating.subtitle', { username: peer.username }) : t('p2p.rating.subtitleFallback'))}
 							</Text>
+							{until ? <Text style={[textStyles.h7, styles.until, { color: theme.colors.tertiaryText }]}>{t('p2p.rating.edit.until', { date: until })}</Text> : null}
 
 							<View style={styles.peer}>
 								<QPAvatar user={peer} size={64} />
@@ -121,14 +134,14 @@ const RateSheetCard = ({ target, loading, onClose, onSubmit, theme, textStyles, 
 							<Text style={[textStyles.h7, styles.counter, { color: theme.colors.tertiaryText }]}>{comment.length}/{RATING_COMMENT_MAX}</Text>
 
 							<QPButton
-								title={t('p2p.rating.submit')}
+								title={isEdit ? t('p2p.rating.edit.save') : t('p2p.rating.submit')}
 								onPress={() => onSubmit({ rating, tags, comment })}
 								style={styles.submit}
 								loading={loading}
-								disabled={rating < 1 || loading}
+								disabled={rating < 1 || loading || !changed}
 							/>
 							<QPPressable onPress={close} disabled={loading} style={styles.skip} accessibilityRole="button">
-								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('p2p.rating.skip')}</Text>
+								<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{isEdit ? t('p2p.rating.edit.cancel') : t('p2p.rating.skip')}</Text>
 							</QPPressable>
 
 						</ScrollView>
@@ -144,6 +157,7 @@ const styles = StyleSheet.create({
 	card: { maxHeight: "85%" },
 	titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 },
 	subtitle: { textAlign: "center", marginBottom: 16 },
+	until: { textAlign: "center", marginTop: -12, marginBottom: 16 },
 	peer: { alignItems: "center", gap: 4, marginBottom: 16 },
 	deal: { marginTop: 2 },
 	stars: { alignItems: "center", marginBottom: 16 },

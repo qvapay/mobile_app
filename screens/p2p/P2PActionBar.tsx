@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import type { EdgeInsets } from "react-native-safe-area-context"
 
 import QPButton from "../../ui/particles/QPButton"
+import QPPressable from "../../ui/particles/QPPressable"
 import QPRate from "../../ui/particles/QPRate"
 import FontAwesome6 from "@react-native-vector-icons/fontawesome6"
 
@@ -20,10 +21,12 @@ type P2PActionBarProps = {
 	canCancel: boolean
 	canMarkPaid: boolean
 	canConfirmReceived: boolean
-	/** Trato cerrado y aún sin valorar: botón que abre la hoja de valoración. */
+	/** Trato cerrado y aún sin valorar: estrellas vacías que abren la hoja de valoración. */
 	canRatePeer: boolean
 	/** Mi valoración del trato (estrellas de solo lectura), o null. */
 	myRating?: number | null
+	/** Mi valoración sigue en plazo (`editable_until`): tocar las estrellas la edita (`onRate`). */
+	canEditRating?: boolean
 	/** A quién se valora (solo para el texto del botón). */
 	rateUsername?: string | null
 	/** Orden por rango, quien recibe el fiat: en vez de cancelar abre disputa. */
@@ -42,7 +45,8 @@ type P2PActionBarProps = {
 	onConfirmReceived: () => void
 	onEdit: () => void
 	onShare: () => void
-	onRate: () => void
+	/** Abre la hoja: al crear, con las estrellas que se tocaron ya marcadas. */
+	onRate: (stars?: number) => void
 	onDispute?: () => void
 	onBackToOffer?: () => void
 	keyboardVisible: boolean
@@ -54,10 +58,11 @@ type P2PActionBarProps = {
 
 // Fixed bottom action bar — surfaces only the actions valid for the viewer's role
 // and the offer's current status (apply / cancel / mark-paid / confirm / edit+share / rate).
-// Rating opens the rating sheet; once rated, the viewer's own stars show read-only.
+// Rating opens the rating sheet; once rated, the viewer's own stars show and, while the
+// backend's edit window is open, tapping them reopens the sheet to change the rating.
 const P2PActionBar = ({
 	p2p, isOwner, isPayer, isReceiver,
-	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer, myRating = null, rateUsername = null,
+	canApply, canCancel, canMarkPaid, canConfirmReceived, canRatePeer, myRating = null, canEditRating = false, rateUsername = null,
 	canDispute = false, canBackToOffer = false, flexibleLocked = false, isOrder = false,
 	loading, txIdInput,
 	onApply, onCancel, onMarkPaid, onConfirmReceived, onEdit, onShare, onRate, onDispute, onBackToOffer,
@@ -186,23 +191,30 @@ const P2PActionBar = ({
 				/>
 			)}
 
+			{/* Sin valorar: estrellas vacías; la que se toque abre la hoja con esa puntuación */}
 			{canRatePeer && (
-				<QPButton
-					title={rateUsername ? t('p2p.rating.rateButton', { username: rateUsername }) : t('p2p.rating.rateButtonFallback')}
-					onPress={() => onRate()}
-					style={[{ backgroundColor: theme.colors.primary }, styles.actionButton]}
-					textStyle={{ color: theme.colors.almostWhite }}
-					icon="star"
-					iconColor={theme.colors.almostWhite}
-					iconStyle="solid"
-				/>
+				<View
+					style={styles.myRating}
+					accessibilityLabel={rateUsername ? t('p2p.rating.rateButton', { username: rateUsername }) : t('p2p.rating.rateButtonFallback')}
+					testID="p2p-rate-stars"
+				>
+					<QPRate value={0} size={22} onRate={(stars) => onRate(stars)} />
+				</View>
 			)}
 
 			{!canRatePeer && myRating ? (
-				<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 56 }}>
+				<QPPressable
+					onPress={canEditRating ? () => onRate() : undefined}
+					disabled={!canEditRating}
+					variant={canEditRating ? "scale" : "none"}
+					style={styles.myRating}
+					accessibilityRole={canEditRating ? "button" : undefined}
+					accessibilityLabel={canEditRating ? `${t('p2p.rating.yourRating')}. ${t('p2p.rating.edit.action')}` : t('p2p.rating.yourRating')}
+					testID="p2p-my-rating"
+				>
 					<Text style={[textStyles.h7, { color: theme.colors.secondaryText }]}>{t('p2p.rating.yourRating')}</Text>
 					<QPRate value={myRating} size={22} readOnly />
-				</View>
+				</QPPressable>
 			) : null}
 
 		</View>
@@ -210,6 +222,7 @@ const P2PActionBar = ({
 }
 
 const styles = StyleSheet.create({
+	myRating: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 56 },
 	actionButton: {
 		flex: 1,
 		flexDirection: 'row',

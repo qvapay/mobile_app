@@ -411,7 +411,18 @@
 		"yourRating": "Your rating",
 		"toasts": {
 			"sent": "Rating sent!",
-			"failed": "Couldn't send the rating"
+			"failed": "Couldn't send the rating",
+			"updated": "Rating updated",
+			"updateFailed": "Couldn't update the rating"
+		},
+		"edit": {
+			"title": "Change your rating",
+			"subtitle": "Your experience with @{{username}}",
+			"subtitleFallback": "Your experience with your counterparty",
+			"until": "You can change it until {{date}}",
+			"save": "Save changes",
+			"cancel": "Cancel",
+			"action": "Edit"
 		}
 	},
 	"promo": {

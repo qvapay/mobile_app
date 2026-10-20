@@ -21,7 +21,8 @@ import {
 	checkTakeAmount, checkFlexibleEdit, availableReceive, takeBounds, fromCents,
 } from "./p2pFlexible"
 import {
-	myRatingOf, canRateOrder, orderCounterparty, buildRatePayload, classifyRateError, toServerRating, applyOptimisticRating,
+	myRatingOf, canRateOrder, canEditRating, orderCounterparty, buildRatePayload, buildEditPayload, classifyRateError,
+	toServerRating, fromEditResponse, applyOptimisticRating,
 } from "./p2pRating"
 import type { MyRating, RatingForm } from "./p2pRating"
 
@@ -98,6 +99,12 @@ export type ConfirmModalAction = "cancel" | "dispute" | "markPaid" | "received"
 /** Trato que la hoja de valoración tiene abierto: una orden por rango, o la oferta fija (`order: null`). */
 export type RateTarget = {
 	order: string | null
+	/** `create` = POST; `edit` = PATCH sobre `mine`, dentro de su `editableUntil`. */
+	mode: "create" | "edit"
+	/** Mi valoración de ese trato (precarga la hoja en modo edición). */
+	mine: MyRating | null
+	/** Al crear: las estrellas que se tocaron para abrirla (0 = ninguna). */
+	initialRating: number
 	counterparty: P2PUser | null
 	amount: P2POffer["amount"]
 	receive: P2POffer["receive"]
@@ -363,6 +370,8 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 	const canRatePeer = isFlexible
 		? canRateOrder(rawP2p, selectedOrder, user?.uuid)
 		: status === "completed" && (isOwner || isPeer) && !!counterparty?.uuid && !myRating
+	// Editar: solo quien valoró y dentro de su plazo (lo fija el backend en `editable_until`)
+	const canEditMyRating = canEditRating(myRating)
 	const markedAsPaid = p2p?.status === "paid"
 
 	// Contextual status message
@@ -400,13 +409,22 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 
 	// ── Rating sheet ─────────────────────────────────────────────────────────
 	// `order: null` = la oferta fija entera; string = esa orden por rango
-	const [rateSheet, setRateSheet] = useState<{ order: string | null } | null>(null)
+	const [rateSheet, setRateSheet] = useState<{ order: string | null, mode: "create" | "edit", stars?: number } | null>(null)
 	const rateInFlightRef = useRef(false)
 	const promptedRef = useRef<Set<string>>(new Set())
 	const promptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	useEffect(() => () => { if (promptTimerRef.current) clearTimeout(promptTimerRef.current) }, [])
 
-	const openRateSheet = (order: string | null = selectedOrder?.uuid ?? null) => setRateSheet({ order })
+	// Sin valoración propia se crea; con ella, se edita mientras su plazo siga abierto
+	// (vencido, no se abre nada: las estrellas quedan de solo lectura)
+	const openRateSheet = (order: string | null = selectedOrder?.uuid ?? null, stars?: number) => {
+		if (!rawP2p) return
+		const ord = order ? findOrder(rawP2p, order) : null
+		if (order && !ord) return
+		const mine = myRatingOf(rawP2p, ord)
+		if (!mine) { setRateSheet({ order, mode: "create", stars }); return }
+		if (canEditRating(mine)) setRateSheet({ order, mode: "edit" })
+	}
 	const closeRateSheet = () => { if (!rateInFlightRef.current) setRateSheet(null) }
 
 	// Abre la hoja sola UNA vez por trato (tras liberar, desde una push o al verlo completarse)
@@ -415,7 +433,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		if (promptedRef.current.has(key)) return
 		promptedRef.current.add(key)
 		if (promptTimerRef.current) clearTimeout(promptTimerRef.current)
-		promptTimerRef.current = setTimeout(() => setRateSheet({ order }), RATE_PROMPT_DELAY_MS)
+		promptTimerRef.current = setTimeout(() => setRateSheet({ order, mode: "create" }), RATE_PROMPT_DELAY_MS)
 	}, [p2p_uuid])
 
 	// Push de un trato cerrado (`rate`): en cuanto llega el detalle y se puede valorar
@@ -443,15 +461,18 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		if (rateSheet.order) {
 			const ord = findOrder(rawP2p, rateSheet.order)
 			if (!ord) return null
-			return { order: ord.uuid, counterparty: orderCounterparty(rawP2p, ord, isOfferOwner), amount: ord.amount, receive: ord.receive, coinName, rated: !!ord.my_rating }
+			const mine = myRatingOf(rawP2p, ord)
+			return { order: ord.uuid, mode: rateSheet.mode, mine, initialRating: rateSheet.stars ?? 0, counterparty: orderCounterparty(rawP2p, ord, isOfferOwner), amount: ord.amount, receive: ord.receive, coinName, rated: !!mine }
 		}
-		return { order: null, counterparty: (isOfferOwner ? rawP2p.Peer : rawP2p.User) ?? null, amount: rawP2p.amount, receive: rawP2p.receive, coinName, rated: !!myRatingOf(rawP2p, null) }
+		const mine = myRatingOf(rawP2p, null)
+		return { order: null, mode: rateSheet.mode, mine, initialRating: rateSheet.stars ?? 0, counterparty: (isOfferOwner ? rawP2p.Peer : rawP2p.User) ?? null, amount: rawP2p.amount, receive: rawP2p.receive, coinName, rated: !!mine }
 	}, [rateSheet, rawP2p, isOfferOwner])
 
 	// Enviar la valoración. El ref bloquea el doble toque: el servidor no tiene
 	// restricción única y dos envíos a la vez guardarían dos valoraciones
 	const submitRate = async (form: RatingForm) => {
 		if (!rawP2p || !rateSheet || rateInFlightRef.current) return
+		if (rateSheet.mode === "edit") { await submitRatingEdit(form); return }
 		const order = rateSheet.order
 		const payload = buildRatePayload(form, order)
 		if (!payload) return
@@ -472,6 +493,37 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 			if (kind === "alreadyRated") { setRateSheet(null); refetchP2P(); return }
 			if (kind === "notCompleted" || kind === "notFound") { setRateSheet(null); refetchP2P() }
 			toast.error(t('p2p.rating.toasts.failed'), { description: String(res.error || "") })
+		} catch (e) {
+			toast.error(t('p2p.common.errorTitle'), { description: (e as Error).message })
+		} finally {
+			rateInFlightRef.current = false
+			setLoading("rate", false)
+		}
+	}
+
+	// Cambiar mi valoración (PATCH): solo viaja lo que cambió. Plazo vencido o valoración que
+	// ya no existe: se refresca (las estrellas vuelven a solo lectura) y se dice por qué
+	const submitRatingEdit = async (form: RatingForm) => {
+		if (!rawP2p || !rateSheet) return
+		const order = rateSheet.order
+		const mine = myRatingOf(rawP2p, order ? findOrder(rawP2p, order) : null)
+		if (!mine) { setRateSheet(null); return }
+		const payload = buildEditPayload(mine, form, order)
+		if (!payload) { setRateSheet(null); return }
+		rateInFlightRef.current = true
+		setLoading("rate", true)
+		try {
+			const res = await p2pApi.editRating(rawP2p.uuid, payload)
+			if (res.success) {
+				if (res.data) setP2p(applyOptimisticRating(rawP2p, order, fromEditResponse(res.data)))
+				toast.success(t('p2p.rating.toasts.updated'))
+				setRateSheet(null)
+				refetchP2P()
+				return
+			}
+			const kind = classifyRateError(res)
+			if (kind === "editExpired" || kind === "notFound" || kind === "notCompleted") { setRateSheet(null); refetchP2P() }
+			toast.error(t('p2p.rating.toasts.updateFailed'), { description: String(res.error || "") })
 		} catch (e) {
 			toast.error(t('p2p.common.errorTitle'), { description: (e as Error).message })
 		} finally {
@@ -729,7 +781,7 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRa
 		applyAmount, setApplyAmount, openOrder, backToOffer,
 		// derived
 		isOwner, isPeer, isPayer, isReceiver, status, counterparty,
-		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, markedAsPaid,
+		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating, markedAsPaid,
 		canApply, statusMessage, peerStats, peerReviewsCount, isUserOnline,
 		// loading flags
 		loading,

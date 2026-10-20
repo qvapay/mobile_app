@@ -7,7 +7,7 @@ import QPPressable from "../../ui/particles/QPPressable"
 import QPRate from "../../ui/particles/QPRate"
 import { timeAgo } from "../../helpers"
 import { formatCents, isActiveOrder, toCents } from "./p2pFlexible"
-import { canRateOrder, myRatingOf } from "./p2pRating"
+import { canEditRating, canRateOrder, myRatingOf } from "./p2pRating"
 
 import type { Theme } from "../../theme/ThemeContext"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
@@ -107,12 +107,14 @@ const P2PFlexibleOrders = ({ offer, isOwner, currentUserUuid = null, onOpenOrder
 									</Text>
 								</View>
 								{canRate ? (
-									/* Su propio pressable: en el Responder gana el más interno, así que no abre la orden */
-									<QPPressable onPress={() => onRateOrder(order.uuid)} style={[styles.pill, styles.ratePill, { backgroundColor: theme.colors.primary }]} accessibilityRole="button">
-										<FontAwesome6 name="star" size={10} color={theme.colors.almostWhite} iconStyle="solid" />
-										<Text style={[textStyles.caption, { color: theme.colors.almostWhite, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.medium }]}>
-											{t('p2p.rating.rowRate')}
-										</Text>
+									/* Estrellas vacías: su propio pressable (en el Responder gana el más interno, así que no abre la orden) */
+									<QPPressable onPress={() => onRateOrder(order.uuid)} style={styles.myStars} accessibilityRole="button" accessibilityLabel={t('p2p.rating.rowRate')}>
+										<QPRate value={0} size={11} spacing={2} readOnly />
+									</QPPressable>
+								) : mine && canEditRating(mine) ? (
+									/* En plazo: tocar mis estrellas abre la hoja para cambiarlas (no abre la orden) */
+									<QPPressable onPress={() => onRateOrder(order.uuid)} style={styles.myStars} accessibilityRole="button" accessibilityLabel={`${t('p2p.rating.yourRating')}. ${t('p2p.rating.edit.action')}`}>
+										<QPRate value={mine.rating} size={11} spacing={2} readOnly />
 									</QPPressable>
 								) : mine ? (
 									<View accessibilityLabel={t('p2p.rating.yourRating')}>
@@ -137,12 +139,12 @@ const P2PFlexibleOrders = ({ offer, isOwner, currentUserUuid = null, onOpenOrder
 
 const styles = StyleSheet.create({
 	card: { marginVertical: 4, paddingVertical: 10, paddingHorizontal: 12 },
+	myStars: { paddingVertical: 4 },
 	statsRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
 	stat: { flex: 1, gap: 2 },
 	sectionTitle: { textTransform: "uppercase", letterSpacing: 0.5, marginTop: 6, marginBottom: 2 },
 	row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
 	pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-	ratePill: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 5 },
 })
 
 export default P2PFlexibleOrders

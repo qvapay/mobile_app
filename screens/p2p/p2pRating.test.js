@@ -4,8 +4,7 @@
  */
 import {
 	buildRatePayload, buildEditPayload, findMyFixedRating, myRatingOf, canEditRating,
-	isOrderParty, canRateOrder, orderCounterparty, classifyRateError, toServerRating, applyOptimisticRating,
-} from './p2pRating'
+	isOrderParty, canRateOrder, orderCounterparty, classifyRateError, toServerRating, applyOptimisticRating, fromEditResponse } from './p2pRating'
 
 const MAKER = { uuid: 'maker-uuid', username: 'maker' }
 const TAKER = { uuid: 'taker-uuid', username: 'taker' }
@@ -154,4 +153,10 @@ describe('applyOptimisticRating', () => {
 		expect(edited.Ratings).toHaveLength(1)
 		expect(myRatingOf(edited, null).rating).toBe(3)
 	})
+})
+
+test('la respuesta del PATCH queda con la forma del detalle (rating como string, etiquetas limpias)', () => {
+	expect(fromEditResponse({ rating: 4, comment: null, tags: ['confiable', 'otra'], created_at: 'c', updated_at: 'u', editable_until: 'e' }))
+		.toEqual({ rating: '4', comment: null, tags: ['confiable'], created_at: 'c', updated_at: 'u', editable_until: 'e' })
+	expect(fromEditResponse({ rating: 5, comment: 'ok', tags: null }).tags).toEqual([])
 })

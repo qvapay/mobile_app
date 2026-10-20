@@ -411,7 +411,18 @@
 		"yourRating": "Sua avaliação",
 		"toasts": {
 			"sent": "Avaliação enviada!",
-			"failed": "Não foi possível enviar a avaliação"
+			"failed": "Não foi possível enviar a avaliação",
+			"updated": "Avaliação atualizada",
+			"updateFailed": "Não foi possível atualizar a avaliação"
+		},
+		"edit": {
+			"title": "Alterar sua avaliação",
+			"subtitle": "Sua experiência com @{{username}}",
+			"subtitleFallback": "Sua experiência com sua contraparte",
+			"until": "Você pode alterá-la até {{date}}",
+			"save": "Salvar alterações",
+			"cancel": "Cancelar",
+			"action": "Editar"
 		}
 	},
 	"promo": {

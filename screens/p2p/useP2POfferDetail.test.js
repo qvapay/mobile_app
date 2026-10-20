@@ -35,6 +35,7 @@ jest.mock('../../api/p2pApi', () => ({
 		apply: jest.fn(),
 		edit: jest.fn(),
 		rateOffer: jest.fn(),
+		editRating: jest.fn(),
 		peerProfile: jest.fn(),
 	},
 }))
@@ -364,6 +365,59 @@ describe('rating sheet (fixed offers)', () => {
 		expect(rated.result.current.myRating).toMatchObject({ rating: 4, comment: 'ok', tags: ['rapido'] })
 	})
 
+	test('editar dentro del plazo: la hoja abre precargada y el PATCH lleva solo lo que cambió', async () => {
+		const until = new Date(Date.now() + 3600e3).toISOString()
+		const mine = { rater: '1', rated: '2', rating: '4', comment: 'ok', tags: ['rapido'], editable_until: until }
+		p2pApi.editRating.mockResolvedValue({ success: true, data: { message: 'Rating updated', rating: 5, comment: 'ok', tags: ['rapido', 'confiable'], created_at: null, updated_at: null, editable_until: until } })
+		const { result } = await renderDetail({ offer: completed({ Ratings: [mine] }), viewer: CREATOR })
+		expect(result.current.canEditMyRating).toBe(true)
+		act(() => { result.current.openRateSheet() })
+		expect(result.current.rateTarget).toMatchObject({ order: null, mode: 'edit', mine: { rating: 4, comment: 'ok', tags: ['rapido'], editableUntil: until } })
+		p2pApi.show.mockResolvedValue({ success: true, data: { p2p: completed({ Ratings: [{ ...mine, rating: '5', tags: ['rapido', 'confiable'] }] }) } })
+		await act(async () => { await result.current.submitRate({ rating: 5, tags: ['rapido', 'confiable'], comment: 'ok' }) })
+		expect(p2pApi.editRating).toHaveBeenCalledWith('offer-1', { rating: 5, tags: ['rapido', 'confiable'] })
+		expect(p2pApi.rateOffer).not.toHaveBeenCalled()
+		expect(toast.success).toHaveBeenCalledWith('Valoración actualizada')
+		expect(result.current.rateTarget).toBeNull()
+		expect(result.current.myRating).toMatchObject({ rating: 5, tags: ['rapido', 'confiable'] })
+	})
+
+	test('tocar la 4ª estrella vacía abre la hoja de crear con 4 marcadas', async () => {
+		const { result } = await renderDetail({ offer: completed(), viewer: CREATOR })
+		act(() => { result.current.openRateSheet(undefined, 4) })
+		expect(result.current.rateTarget).toMatchObject({ mode: 'create', initialRating: 4 })
+	})
+
+	test('plazo vencido (o sin editable_until): mis estrellas son de solo lectura y no se abre nada', async () => {
+		for (const editable_until of [new Date(Date.now() - 1000).toISOString(), null]) {
+			const offer = completed({ Ratings: [{ rater: '1', rated: '2', rating: '4', comment: null, tags: [], editable_until }] })
+			const { result } = await renderDetail({ offer, viewer: CREATOR })
+			expect(result.current.canEditMyRating).toBe(false)
+			act(() => { result.current.openRateSheet() })
+			expect(result.current.rateTarget).toBeNull()
+		}
+	})
+
+	test('RATING_EDIT_EXPIRED al guardar: cierra, refresca y dice por qué', async () => {
+		const until = new Date(Date.now() + 3600e3).toISOString()
+		p2pApi.editRating.mockResolvedValue({ success: false, status: 403, error: 'El plazo para cambiar esta valoración terminó', details: { code: 'RATING_EDIT_EXPIRED', editable_until: null } })
+		const { result } = await renderDetail({ offer: completed({ Ratings: [{ rater: '1', rated: '2', rating: '4', comment: null, tags: [], editable_until: until }] }), viewer: CREATOR })
+		act(() => { result.current.openRateSheet() })
+		const showCalls = p2pApi.show.mock.calls.length
+		await act(async () => { await result.current.submitRate({ rating: 2, tags: [], comment: '' }) })
+		expect(toast.error).toHaveBeenCalledWith('No se pudo actualizar la valoración', { description: 'El plazo para cambiar esta valoración terminó' })
+		expect(result.current.rateTarget).toBeNull()
+		expect(p2pApi.show.mock.calls.length).toBe(showCalls + 1)
+	})
+
+	test('sin cambios no se manda nada (el servidor respondería NOTHING_TO_UPDATE)', async () => {
+		const until = new Date(Date.now() + 3600e3).toISOString()
+		const { result } = await renderDetail({ offer: completed({ Ratings: [{ rater: '1', rated: '2', rating: '4', comment: 'ok', tags: [], editable_until: until }] }), viewer: CREATOR })
+		act(() => { result.current.openRateSheet() })
+		await act(async () => { await result.current.submitRate({ rating: 4, tags: [], comment: ' ok ' }) })
+		expect(p2pApi.editRating).not.toHaveBeenCalled()
+	})
+
 	test('openRateSheet apunta a la contraparte; submitRate manda rating numérico, cierra y 5★ pide reseña', async () => {
 		p2pApi.rateOffer.mockResolvedValue({ success: true, data: { message: 'Rating created', rating: 5, editable_until: null } })
 		const { result } = await renderDetail({ offer: completed(), viewer: CREATOR })
@@ -619,6 +673,17 @@ describe('range offers (offer_kind flexible)', () => {
 		expect(result.current.rateTarget).toMatchObject({ order: 'ord-2', counterparty: { uuid: 'other' }, amount: '4.00' })
 		await act(async () => { await result.current.submitRate({ rating: 4, tags: [], comment: '' }) })
 		expect(p2pApi.rateOffer).toHaveBeenCalledWith('offer-1', { rating: 4, order: 'ord-2' })
+	})
+
+	test('editar mi valoración de una orden: order viaja en el body del PATCH y vaciar el comentario lo borra', async () => {
+		const until = new Date(Date.now() + 3600e3).toISOString()
+		p2pApi.editRating.mockResolvedValue({ success: true, data: { rating: 3, comment: null, tags: [], created_at: null, updated_at: null, editable_until: until } })
+		const offer = makeFlexible({ Orders: [order({ status: 'completed', my_rating: { rating: '3', comment: 'lento', tags: [], created_at: '2026-10-19T18:02:11.000Z', editable_until: until } })] })
+		const { result } = await renderDetail({ offer, viewer: CREATOR })
+		act(() => { result.current.openRateSheet('ord-1') })
+		expect(result.current.rateTarget).toMatchObject({ order: 'ord-1', mode: 'edit', mine: { rating: 3, comment: 'lento' } })
+		await act(async () => { await result.current.submitRate({ rating: 3, tags: [], comment: '' }) })
+		expect(p2pApi.editRating).toHaveBeenCalledWith('offer-1', { comment: null, order: 'ord-1' })
 	})
 
 	test('el taker valora al dueño (Peer llega vacío en las por rango)', async () => {

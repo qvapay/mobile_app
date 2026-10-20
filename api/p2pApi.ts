@@ -79,6 +79,24 @@ export type P2PPromoteResult = { data: P2PPromoBid, action?: 'purchase' | 'bid',
 export type P2PRateResult = { message?: string, ratingId?: string, rating?: number, editable_until?: string | null }
 
 /**
+ * Body de `PATCH /p2p/{uuid}/rate`: solo lo que cambia. Ausente = no se toca;
+ * `comment: null` o `tags: []` lo borran. `order` obligatorio en una oferta por rango.
+ */
+export type P2PRateEditInput = { rating?: number, comment?: string | null, tags?: P2PRatingTag[] | null, order?: string }
+
+/** Respuesta `200` de editar: la valoración ya cambiada, con su plazo (que no se reinicia). */
+export type P2PRateEditResult = {
+	message?: string
+	ratingId?: string
+	rating: number
+	comment: string | null
+	tags: P2PRatingTag[] | null
+	created_at: string | null
+	updated_at: string | null
+	editable_until: string | null
+}
+
+/**
  * `?order=<uuid>` de las acciones sobre una orden de una oferta por rango
  * (sin orden, la acción va sobre la oferta entera, como siempre).
  */
@@ -464,6 +482,18 @@ export const p2pApi = {
 	rateOffer: async (p2p_uuid: string, payload: P2PRateInput): Promise<ApiResult<P2PRateResult>> => {
 		try {
 			const response = await apiClient.post(`/p2p/${p2p_uuid}/rate`, payload)
+			return { success: true, data: response.data, status: response.status }
+		} catch (err) { return failure(err) }
+	},
+
+	/**
+	 * Cambia mi valoración de un trato (`PATCH /p2p/{uuid}/rate`) dentro del plazo de
+	 * `editable_until` (72 h desde que se creó). Errores con `code` en `details`:
+	 * `RATING_EDIT_EXPIRED` (403), `RATING_NOT_FOUND` (404), `NOTHING_TO_UPDATE` (400).
+	 */
+	editRating: async (p2p_uuid: string, payload: P2PRateEditInput): Promise<ApiResult<P2PRateEditResult>> => {
+		try {
+			const response = await apiClient.patch(`/p2p/${p2p_uuid}/rate`, payload)
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return failure(err) }
 	},

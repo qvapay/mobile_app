@@ -117,7 +117,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 		isFlexible, isFlexibleOverview, selectedOrder, flexibleLocked, canBackToOffer,
 		applyAmount, setApplyAmount, openOrder, backToOffer,
 		isOwner, isPayer, isReceiver, status, counterparty,
-		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating,
+		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating,
 		canApply, statusMessage, peerStats, peerReviewsCount, isUserOnline,
 		loading, txIdInput, setTxIdInput, showApplyConfirm, setShowApplyConfirm, edit, setEdit,
 		confirmModal, closeConfirmModal, confirmModalAction,
@@ -324,9 +324,10 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					containerStyles={containerStyles}
 				/>
 
-				{/* Valoración del trato cerrado (oferta fija u orden por rango); se oculta si ya está valorado */}
+				{/* Valoración del trato cerrado (oferta fija u orden por rango): crear se oculta si ya está
+				    valorado (p. ej. lo trajo el refetch); editar abre precargada con mi valoración */}
 				<P2PRateSheet
-					target={rateTarget && !rateTarget.rated ? rateTarget : null}
+					target={rateTarget && (rateTarget.mode === "edit" || !rateTarget.rated) ? rateTarget : null}
 					loading={loading.rate}
 					onClose={closeRateSheet}
 					onSubmit={submitRate}
@@ -387,6 +388,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					canConfirmReceived={canConfirmReceived}
 					canRatePeer={canRatePeer}
 					myRating={myRating?.rating ?? null}
+					canEditRating={canEditMyRating}
 					rateUsername={counterparty?.username ?? null}
 					canDispute={canDispute}
 					canBackToOffer={canBackToOffer}
@@ -402,7 +404,7 @@ const P2POffer = ({ route }: NativeStackScreenProps<RootStackParamList, 'P2POffe
 					onConfirmReceived={handleConfirmReceived}
 					onEdit={openEditModal}
 					onShare={handleShareIntent}
-					onRate={() => openRateSheet()}
+					onRate={(stars) => openRateSheet(undefined, stars)}
 					keyboardVisible={keyboardVisible}
 					insets={insets}
 					theme={theme}

@@ -12,7 +12,7 @@
  */
 
 import type { P2PMyRating, P2POffer, P2POfferRating, P2POrder, P2PRatingTag, P2PUser } from '../../types/domain'
-import type { P2PRateInput } from '../../api/p2pApi'
+import type { P2PRateEditInput, P2PRateEditResult, P2PRateInput } from '../../api/p2pApi'
 
 /** Etiquetas rápidas (`P2P_QUICK_TAGS` del backend), en el orden en que se pintan. */
 export const RATING_TAGS: readonly P2PRatingTag[] = ['rapido', 'confiable', 'comunicacion']
@@ -21,12 +21,6 @@ export const RATING_COMMENT_MAX = 120
 
 /** Lo que el usuario rellena en la hoja de valoración. */
 export type RatingForm = { rating: number, tags: P2PRatingTag[], comment: string }
-
-/**
- * Body de `PATCH /p2p/{uuid}/rate`: solo lo que cambia. Ausente = no se toca;
- * `comment: null` o `tags: []` lo borran.
- */
-export type P2PRateEditInput = { rating?: number, comment?: string | null, tags?: P2PRatingTag[] | null, order?: string }
 
 /** Mi valoración de un trato, normalizada para la UI (`rating` como número). */
 export type MyRating = { rating: number, comment: string, tags: P2PRatingTag[], editableUntil: string | null }
@@ -146,6 +140,16 @@ export const toServerRating = (payload: P2PRateInput, response?: { editable_unti
 	tags: payload.tags || [],
 	created_at: new Date().toISOString(),
 	editable_until: response?.editable_until ?? null,
+})
+
+/** Mi valoración tal como la deja el PATCH, con la forma del detalle (`rating` como string). */
+export const fromEditResponse = (res: P2PRateEditResult): P2PMyRating => ({
+	rating: String(res.rating),
+	comment: res.comment ?? null,
+	tags: cleanTags(res.tags),
+	created_at: res.created_at ?? null,
+	updated_at: res.updated_at ?? null,
+	editable_until: res.editable_until ?? null,
 })
 
 /**

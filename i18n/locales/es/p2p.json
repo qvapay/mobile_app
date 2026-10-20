@@ -411,7 +411,18 @@
 		"yourRating": "Tu valoración",
 		"toasts": {
 			"sent": "¡Valoración enviada!",
-			"failed": "No se pudo calificar"
+			"failed": "No se pudo calificar",
+			"updated": "Valoración actualizada",
+			"updateFailed": "No se pudo actualizar la valoración"
+		},
+		"edit": {
+			"title": "Cambiar tu valoración",
+			"subtitle": "Tu experiencia con @{{username}}",
+			"subtitleFallback": "Tu experiencia con tu contraparte",
+			"until": "Puedes cambiarla hasta el {{date}}",
+			"save": "Guardar cambios",
+			"cancel": "Cancelar",
+			"action": "Editar"
 		}
 	},
 	"promo": {

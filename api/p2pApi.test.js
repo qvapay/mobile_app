@@ -10,6 +10,7 @@ jest.mock('./client', () => ({
 	apiClient: {
 		get: jest.fn(),
 		post: jest.fn(),
+		patch: jest.fn(),
 	},
 }))
 
@@ -625,5 +626,27 @@ describe('puesto promocionado', () => {
 		const result = await p2pApi.promote({ coin: 'BANK_CUP', offer_type: 'sell', amount: 27.5, idempotency_key: 'promo-12345678' })
 
 		expect(result).toEqual({ success: false, error: body.error, details: body, status: 409 })
+	})
+})
+
+describe('p2pApi.editRating', () => {
+
+	test('manda el PATCH con solo lo que cambia (y la orden en las por rango)', async () => {
+		const data = { message: 'Rating updated', rating: 4, comment: null, tags: ['confiable'], created_at: '2026-10-19T18:04:11.000Z', updated_at: '2026-10-20T09:12:40.000Z', editable_until: '2026-10-22T18:04:11.000Z' }
+		apiClient.patch.mockResolvedValue({ status: 200, data })
+
+		const result = await p2pApi.editRating('abc-123', { rating: 4, comment: null, order: 'ord-1' })
+
+		expect(apiClient.patch).toHaveBeenCalledWith('/p2p/abc-123/rate', { rating: 4, comment: null, order: 'ord-1' })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
+	test('plazo vencido: 403 con su code en details', async () => {
+		const body = { error: 'El plazo para cambiar esta valoración terminó', code: 'RATING_EDIT_EXPIRED', editable_until: null }
+		apiClient.patch.mockRejectedValue(apiError(403, body))
+
+		const result = await p2pApi.editRating('abc-123', { rating: 2 })
+
+		expect(result).toEqual({ success: false, error: body.error, details: body, status: 403 })
 	})
 })
