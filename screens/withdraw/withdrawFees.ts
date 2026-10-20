@@ -124,3 +124,24 @@ export const grossFromNet = (netUsd: Decimal | null | undefined, coin: FeeCoin |
 	const fixedAmount = Number.isFinite(Number(fixed)) && fixed !== null ? Number(fixed) : 0
 	return effectivePct > 0 ? (net + fixedAmount) / (1 - effectivePct / 100) : net + fixedAmount
 }
+
+/** Qué límite de la moneda incumple el bruto a extraer, y cuál es. */
+export type AmountLimitIssue = { kind: 'belowMin' | 'aboveMax', limit: number }
+
+/**
+ * `min_out` / `max_out` de la moneda contra el bruto a extraer, como el servidor.
+ * El servidor los comprueba DESPUÉS de validar el PIN: sin este aviso el usuario
+ * teclea el PIN para que le digan que no llega al mínimo. Un límite ausente o ≤ 0
+ * no cuenta; la redención de sats no pasa por aquí (tiene su propio mínimo).
+ *
+ * @returns El límite incumplido, o null si el importe cabe (o aún no hay importe).
+ */
+export const amountLimitIssue = (amount: Decimal | null | undefined, coin: Pick<Coin, 'min_out' | 'max_out'> | null | undefined): AmountLimitIssue | null => {
+	const value = Number(amount)
+	if (!coin || !Number.isFinite(value) || value <= 0) return null
+	const min = Number(coin.min_out)
+	if (min > 0 && value < min) return { kind: 'belowMin', limit: min }
+	const max = Number(coin.max_out)
+	if (max > 0 && value > max) return { kind: 'aboveMax', limit: max }
+	return null
+}

@@ -5,7 +5,7 @@
  * and `type: select` options can add a `fee_pct` surcharge on the gross.
  * @jest-environment node
  */
-import { calculateFee, grossFromNet, getSelectFeePct, parseFeeOutFixed, keyFromFieldName } from './withdrawFees'
+import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, parseFeeOutFixed, keyFromFieldName } from './withdrawFees'
 
 // 5% + threshold config: at/below $50 a flat $2, strictly above it 5%
 const THRESHOLD_COIN = { fee_out: '5', fee_out_gold: '2', fee_out_fixed: ['50', '2'] }
@@ -138,5 +138,33 @@ describe('parseFeeOutFixed', () => {
 		expect(parseFeeOutFixed('["50","2"]')).toEqual(['50', '2'])
 		expect(parseFeeOutFixed('not json')).toBeNull()
 		expect(parseFeeOutFixed(undefined)).toBeNull()
+	})
+})
+
+describe('amountLimitIssue (min_out / max_out de la moneda)', () => {
+	// USD CASH de producción: mínimo $50 sobre el bruto, aunque la zona diga "mínimo a entregar $20"
+	const CASH = { min_out: '50', max_out: 100000 }
+
+	test('por debajo del mínimo devuelve el mínimo', () => {
+		expect(amountLimitIssue('30', CASH)).toEqual({ kind: 'belowMin', limit: 50 })
+	})
+
+	test('justo en el mínimo pasa, como en el servidor (amount < min_out)', () => {
+		expect(amountLimitIssue('50', CASH)).toBeNull()
+		expect(amountLimitIssue(50.01, CASH)).toBeNull()
+	})
+
+	test('por encima del máximo devuelve el máximo', () => {
+		expect(amountLimitIssue('100000.01', CASH)).toEqual({ kind: 'aboveMax', limit: 100000 })
+		expect(amountLimitIssue('100000', CASH)).toBeNull()
+	})
+
+	test('sin importe, sin moneda o sin límites no hay aviso', () => {
+		expect(amountLimitIssue('', CASH)).toBeNull()
+		expect(amountLimitIssue('0', CASH)).toBeNull()
+		expect(amountLimitIssue('abc', CASH)).toBeNull()
+		expect(amountLimitIssue('30', null)).toBeNull()
+		expect(amountLimitIssue('1', {})).toBeNull()
+		expect(amountLimitIssue('1', { min_out: '0', max_out: null })).toBeNull()
 	})
 })

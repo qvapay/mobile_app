@@ -370,6 +370,22 @@ describe('form validation', () => {
 		expect(footerButton(tree).props.disabled).toBe(false)
 	})
 
+	test('below the coin min_out Continuar stays disabled and the minimum is shown BEFORE the PIN', async () => {
+		// El servidor compara el bruto con min_out después de validar el PIN: sin esto se teclea el PIN para nada
+		mockCoinCatalog = [{ ...USDCASH, min_out: '50', max_out: 1000 }]
+		const tree = await renderWithdraw()
+		await selectCoin(tree, mockCoinCatalog[0])
+		await typeQUSD(tree, '30')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		expect(tree.root.findByProps({ testID: 'withdraw-amount-limit' }).props.children).toBe('El mínimo para retirar con Cash es $50')
+		await typeQUSD(tree, '50')
+		expect(footerButton(tree).props.disabled).toBe(false)
+		expect(tree.root.findAllByProps({ testID: 'withdraw-amount-limit' })).toHaveLength(0)
+		await typeQUSD(tree, '1200')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		expect(tree.root.findByProps({ testID: 'withdraw-amount-limit' }).props.children).toBe('El máximo para retirar con Cash es $1000')
+	})
+
 	test('Continuar opens the PIN step and the footer becomes the Extraer button', async () => {
 		const tree = await renderWithdraw()
 		await goToPinStep(tree)

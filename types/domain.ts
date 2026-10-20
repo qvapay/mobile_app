@@ -124,7 +124,9 @@ export type Coin = {
 	/** Columna Json: number, tupla [umbral, fijo], string JSON o null. */
 	fee_out_fixed?: number | [Decimal, Decimal] | string | null
 	min_in?: Decimal
+	/** Límites del bruto a extraer: el servidor rechaza fuera de ellos (después del PIN). */
 	min_out?: Decimal
+	max_out?: Decimal
 
 	// CoinDetail trata `undefined` como "sí" — opcionales de verdad
 	enabled_in?: boolean

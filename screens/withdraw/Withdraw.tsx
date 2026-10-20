@@ -97,7 +97,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 
 	const {
 		availableCoins, selectedCoin, showCoinPicker, setShowCoinPicker, handleCoinSelect, loadingCoins,
-		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked,
+		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked, amountLimit,
 		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo,
 		isCrypto, destination, setDestination,
 		workingFields, workingForm, setWorkingForm, selectFeePct, previewFee,
@@ -223,6 +223,15 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 							theme={theme}
 							textStyles={textStyles}
 						/>
+					)}
+
+					{/* Fuera del mínimo/máximo de la moneda: el servidor lo rechazaría después del PIN */}
+					{!sourceSats && amountLimit && selectedCoin && (
+						<Text testID="withdraw-amount-limit" style={[textStyles.caption, styles.limitHint, { color: theme.colors.dangerText }]}>
+							{amountLimit.kind === 'belowMin'
+								? t('withdraw.index.belowCoinMin', { coin: selectedCoin.name, amount: amountLimit.limit })
+								: t('withdraw.index.aboveCoinMax', { coin: selectedCoin.name, amount: amountLimit.limit })}
+						</Text>
 					)}
 
 					{/* Desglose del fee — misma cifra que cobrará el servidor (sin la tarifa de zonas aún, ninguna) */}
@@ -358,6 +367,7 @@ const Withdraw = ({ navigation, route }: WithdrawProps) => {
 const styles = StyleSheet.create({
 	cashCard: { marginTop: 12, padding: 12, borderRadius: 12 },
 	cashRetry: { alignSelf: 'flex-start', marginTop: 8 },
+	limitHint: { marginTop: 6 },
 })
 
 export default Withdraw

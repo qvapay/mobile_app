@@ -15,7 +15,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, useReducer } from
 
 import { isCryptoCoin } from './withdrawDestination'
 import type { WithdrawDestination } from './withdrawDestination'
-import { calculateFee, grossFromNet, getSelectFeePct, keyFromFieldName } from './withdrawFees'
+import { amountLimitIssue, calculateFee, grossFromNet, getSelectFeePct, keyFromFieldName } from './withdrawFees'
 import type { WorkingForm } from './withdrawFees'
 import { calculateCashFee, cashZoneModeFor, findZone, grossFromNetCash, hasCashZoneFields, meetsZoneMinimum } from './cashZones'
 import type { CashFeeBreakdown } from './cashZones'
@@ -285,6 +285,9 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 	const receiveUsd = feeBreakdown ? Math.round((Number(amountQUSD) - feeBreakdown.total) * 100) / 100 : 0
 	const belowZoneMin = !!cashZone && !!feeBreakdown && !meetsZoneMinimum(cashZone, receiveUsd)
 
+	// Mínimo y máximo de la moneda sobre el bruto: el servidor los mira después del PIN
+	const amountLimit = useMemo(() => (sourceSats ? null : amountLimitIssue(amountQUSD, selectedCoin)), [sourceSats, amountQUSD, selectedCoin])
+
 	// Elegir provincia (o refrescar el precio de la coin) cambia el fee después
 	// de tecleado el monto: se re-deriva el lado "Recibir" desde el bruto vigente
 	const resyncReceiveAmount = useEffectEvent(() => {
@@ -304,7 +307,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 			if (!Number.isInteger(sats) || sats < MIN_SATS_REDEEM || sats > availableSats) { return false }
 		} else {
 			const amount = Number(amountQUSD)
-			if (!amount || isNaN(amount)) { return false }
+			if (!amount || isNaN(amount) || amountLimit) { return false }
 		}
 		// Modo zonas: tarifa cargada, municipio cubierto y lo entregado ≥ mínimo de la zona (si no, 400 del servidor)
 		if (cashZonesPending) { return false }
@@ -314,7 +317,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 			const value = (workingForm[key] ?? '').toString().trim()
 			return value.length > 0
 		})
-	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, workingFields, workingForm, cashZonesPending, cashMode, cashZone, belowZoneMin])
+	}, [selectedCoin, isCrypto, destination, sourceSats, amountSats, availableSats, amountQUSD, amountLimit, workingFields, workingForm, cashZonesPending, cashMode, cashZone, belowZoneMin])
 
 	const handleCoinSelect = (coin: Coin) => {
 		setSelectedCoin(coin)
@@ -347,7 +350,7 @@ export default function useWithdrawForm({ preselectedCoin, prefillAddress, lnInv
 		// Catálogo y selección
 		availableCoins, selectedCoin, showCoinPicker, setShowCoinPicker, handleCoinSelect, loadingCoins,
 		// Montos
-		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked,
+		amountQUSD, amountCoin, handleChangeQUSD, handleChangeAmountCoin, balance, amountLocked, amountLimit,
 		// Origen de fondos (BTCLN)
 		source, setSource, amountSats, setAmountSats, sourceSats, availableSats, isBTCLN, lnInfo,
 		// Destino crypto
