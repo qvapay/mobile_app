@@ -9,14 +9,12 @@ env:
     visible:
       id: "lock-screen"
     timeout: 20000
-# El bloqueo es un Modal que entra con fundido mientras el JS aún arranca: teclear en cuanto
-# es visible pierde dígitos (la entrada oculta no tiene foco todavía). Esperar y enfocarla
+# El bloqueo es un Modal que entra con fundido mientras el JS aún arranca: esperar a que
+# termine antes de tocar las teclas
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: 05_lock
-- tapOn:
-    id: "lock-pin"
-- runFlow: subflows/type_pin.yaml
+- runFlow: subflows/tap_lock_pin.yaml
 - extendedWaitUntil:
     visible:
       id: "wallet-only"

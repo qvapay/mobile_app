@@ -1,7 +1,5 @@
-Novedades de QvaPay 3.5.2:
-• Acciones tokenizadas en tu wallet: compra y vende acciones de grandes empresas desde $1. Disponible según tu región.
-• Intercambios en tu wallet sin necesidad de cuenta QvaPay.
-• USD CASH a 15 provincias: ve la tarifa, el plazo y el mínimo antes de enviar.
-• P2P: valora cada orden, cambia tu valoración y promociona tus ofertas.
-• Ofertas P2P destacadas en el inicio.
-• La wallet de Solana admite tokens Token-2022, y otras correcciones.
+Novedades de QvaPay 3.5.10:
+• Pantalla de bloqueo renovada: tu foto, un saludo y un teclado propio para el PIN, con Face ID o huella en el mismo teclado.
+• Mini-apps: nuevo catálogo con destacadas, categorías y buscador.
+• Al mostrar un código QR, el brillo sube al máximo para que se lea mejor.
+• Correcciones en el escáner de QR y otras mejoras.

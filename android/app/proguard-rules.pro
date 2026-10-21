@@ -35,6 +35,16 @@
 # "NoSuchElementException: Array contains no element matching the predicate".
 -keep class com.facebook.react.module.model.ReactModuleInfo { <init>(...); }
 
+# ML Kit (escáner de QR de react-native-vision-camera-barcode-scanner) descubre
+# sus componentes por REFLEXIÓN: MlKitComponentDiscoveryService lee los
+# ComponentRegistrar del manifest y los instancia con newInstance(). La regla de
+# firebase-components (`-keep class * implements ComponentRegistrar`) conserva la
+# clase, pero en R8 full mode eso NO conserva el constructor sin argumentos, así
+# que R8 lo borraba de BarcodeRegistrar/VisionCommonRegistrar/CommonComponentRegistrar,
+# el registrar nunca cargaba y abrir el escáner moría con un NullPointerException
+# dentro de BarcodeScanning.getClient (solo en release; debug no minifica)
+-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }
+
 # react-native-device-info crea el InstallReferrerClient POR REFLEXIÓN
 # (getMethod("newBuilder", Context)). R8 renombraba el método y
 # getInstallReferrer() devolvía vacío: la atribución de instalación

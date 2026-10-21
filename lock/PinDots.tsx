@@ -1,5 +1,5 @@
-import { useEffect, useImperativeHandle, useRef } from 'react'
-import { Platform, Pressable, StyleSheet, TextInput, type TextInputInstance } from 'react-native'
+import { useEffect, useImperativeHandle } from 'react'
+import { StyleSheet } from 'react-native'
 import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
@@ -8,11 +8,12 @@ import Animated, {
 	withTiming,
 } from 'react-native-reanimated'
 import type { Ref } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
 
-export type PinDotsHandle = { focus: () => void, shake: () => void }
+export type PinDotsHandle = { shake: () => void }
 
 const DOT = 14
 const GAP = 22
@@ -25,29 +26,24 @@ const GAP = 22
  * ayuda a corregir un dígito concreto. Aquí no hay nada que corregir —son cuatro dígitos y
  * se verifican solos al caer el cuarto—, así que el punto dice lo mismo con mucho menos.
  *
- * La entrada real es un TextInput invisible: toda la superficie lo enfoca, y el teclado
- * numérico es el del sistema.
+ * Solo pinta: el PIN se teclea con el teclado de la app (`QPKeypad`), así que no hay
+ * entrada oculta ni teclado del sistema que pueda tapar los puntos o perder dígitos.
  */
-const PinDots = ({ ref, length = 4, code, onChangeCode, onFilled, disabled = false, tone, testID }: {
+const PinDots = ({ ref, length = 4, code, tone, testID }: {
 	ref?: Ref<PinDotsHandle>
 	length?: number
 	code: string
-	onChangeCode: (code: string) => void
-	onFilled?: (code: string) => void
-	disabled?: boolean
 	/** Color de los puntos; al fallar se tiñen todos, que es más legible que solo temblar. */
 	tone?: string
-	/** E2E: tocar la fila enfoca la entrada antes de teclear. */
 	testID?: string
 }) => {
 
+	const { t } = useTranslation()
 	const { theme } = useTheme()
 	const color = tone ?? theme.colors.primary
-	const inputRef = useRef<TextInputInstance>(null)
 	const shake = useSharedValue(0)
 
 	useImperativeHandle(ref, () => ({
-		focus: () => inputRef.current?.focus(),
 		shake: () => {
 			// Cinco tirones cortos: lo justo para leerse como un "no" sin marear
 			shake.value = withSequence(
@@ -56,42 +52,20 @@ const PinDots = ({ ref, length = 4, code, onChangeCode, onFilled, disabled = fal
 		},
 	}), [shake])
 
-	useEffect(() => { if (!disabled) { inputRef.current?.focus() } }, [disabled])
-
 	const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }))
 
-	const handleChange = (raw: string) => {
-		const digits = raw.replace(/[^0-9]/g, '').slice(0, length)
-		onChangeCode(digits)
-		if (digits.length === length) { onFilled?.(digits) }
-	}
-
 	return (
-		<Pressable testID={testID} onPress={() => inputRef.current?.focus()} disabled={disabled} accessibilityRole="none">
-			<Animated.View style={[styles.row, rowStyle]}>
-				{Array.from({ length }).map((_, i) => (
-					// Al fallar, el aro vacío también se tiñe: los cuatro cuentan lo ocurrido
-					<Dot key={i} filled={i < code.length} color={color} empty={tone ?? theme.colors.border} />
-				))}
-			</Animated.View>
-
-			{/* La entrada real: invisible pero presente, para que el teclado sea el del sistema */}
-			<TextInput
-				ref={inputRef}
-				value={code}
-				onChangeText={handleChange}
-				keyboardType="number-pad"
-				maxLength={length}
-				editable={!disabled}
-				secureTextEntry
-				style={styles.hidden}
-				// iOS ofrecería "contraseña guardada" sobre un PIN de 4 dígitos
-				textContentType="oneTimeCode"
-				autoComplete={Platform.OS === 'android' ? 'off' : undefined}
-				caretHidden
-				accessibilityLabel={undefined}
-			/>
-		</Pressable>
+		<Animated.View
+			testID={testID}
+			style={[styles.row, rowStyle]}
+			accessible
+			accessibilityLabel={t('misc.lock.a11y.pinProgress', { entered: code.length, total: length })}
+		>
+			{Array.from({ length }).map((_, i) => (
+				// Al fallar, el aro vacío también se tiñe: los cuatro cuentan lo ocurrido
+				<Dot key={i} filled={i < code.length} color={color} empty={tone ?? theme.colors.border} />
+			))}
+		</Animated.View>
 	)
 }
 
@@ -115,8 +89,6 @@ const Dot = ({ filled, color, empty }: { filled: boolean, color: string, empty: 
 const styles = StyleSheet.create({
 	row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: GAP, height: DOT * 2 },
 	dot: { width: DOT, height: DOT, borderRadius: DOT / 2, borderWidth: 1.5 },
-	// Fuera de la vista pero enfocable: `display:none` u opacity 0 con width 0 impiden el foco
-	hidden: { position: 'absolute', opacity: 0, height: 1, width: 1, top: 0, left: 0 },
 })
 
 export default PinDots

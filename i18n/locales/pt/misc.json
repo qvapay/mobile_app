@@ -40,8 +40,7 @@
 	},
 	"lock": {
 		"enterPin": "Digite seu PIN de segurança",
-		"tapToUnlock": "Toque para desbloquear com {{method}}",
-		"orEnterPin": "ou digite seu PIN",
+		"greeting": "Olá, {{name}}",
 		"unlock": {
 			"faceId": "Desbloquear com Face ID",
 			"touchId": "Desbloquear com Touch ID",
@@ -57,6 +56,9 @@
 			"currentPinWrong": "PIN atual incorreto",
 			"updatePin": "Não foi possível atualizar o PIN"
 		},
-		"bioPrompt": "Desbloqueie o QvaPay"
+		"bioPrompt": "Desbloqueie o QvaPay",
+		"a11y": {
+			"pinProgress": "PIN: {{entered}} de {{total}} dígitos"
+		}
 	}
 }

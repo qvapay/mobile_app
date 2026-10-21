@@ -1,0 +1,13 @@
+# Teclea el PIN del bloqueo en su teclado propio (QPKeypad): una tecla por dígito.
+# No hay entrada de texto ni teclado del sistema, así que inputText no sirve aquí
+appId: com.qvapay
+---
+- tapOn:
+    id: "lock-key-${PIN.charAt(0)}"
+- tapOn:
+    id: "lock-key-${PIN.charAt(1)}"
+- tapOn:
+    id: "lock-key-${PIN.charAt(2)}"
+- tapOn:
+    id: "lock-key-${PIN.charAt(3)}"
+- runFlow: dismiss_biometric_arm.yaml
