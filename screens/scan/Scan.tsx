@@ -29,7 +29,7 @@ import { useAuth } from '../../auth/AuthContext'
 import useMaxBrightness from '../../hooks/useMaxBrightness'
 
 // Helpers
-import { parseQRData } from '../../helpers'
+import { parseAddressQR, parseQRData } from '../../helpers'
 import { useAnimatedValue } from '../../hooks/useAnimatedValue'
 
 // Routes
@@ -152,7 +152,10 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 		isScanningRef.current = false
 		setIsScanning(false)
 
-		const parsedData = parseQRData(data)
+		// Desde Enviar de la wallet manda la dirección on-chain: un QR unificado
+		// (bitcoin:…?lightning=…) no puede acabar en el retiro Lightning del saldo
+		const walletAddress = route.params?.returnTo === 'WalletSend' && typeof data === 'string' ? parseAddressQR(data.trim()) : null
+		const parsedData = walletAddress ?? parseQRData(data)
 
 		if (parsedData?.type === 'pay' && parsedData?.uuid) {
 			navigation.replace(ROUTES.PAY_SCREEN, { uuid: parsedData.uuid })

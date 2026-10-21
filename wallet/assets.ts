@@ -175,6 +175,20 @@ export const buildAssetCatalog = (registry: RpcRegistry): WalletAsset[] =>
 export const addressForKind = (addresses: WalletAddresses, kind: ChainKind): string =>
 	kind === 'evm' ? addresses.evm : kind === 'tron' ? addresses.tron : kind === 'stacks' ? addresses.stx : kind === 'solana' ? addresses.sol : addresses.btc
 
+/**
+ * ¿Es la misma dirección en esa familia? EVM no distingue mayúsculas (el
+ * checksum EIP-55 solo las usa de control) y bech32 tampoco (los QR BIP-21 la
+ * escriben en MAYÚSCULAS); base58 (TRON, Solana, BTC 1…/3…) sí distingue, así
+ * que ahí se compara tal cual.
+ */
+export const isSameAddress = (kind: ChainKind, a: string, b: string): boolean => {
+	const x = a.trim()
+	const y = b.trim()
+	if (!x || !y) return false
+	const caseless = kind === 'evm' || kind === 'stacks' || (kind === 'btc' && /^bc1/i.test(x))
+	return caseless ? x.toLowerCase() === y.toLowerCase() : x === y
+}
+
 const defaultRank = (asset: WalletAsset): number =>
 	DEFAULT_ASSETS.findIndex(d => d.chainKey === asset.chainKey && d.symbol === asset.symbol)
 

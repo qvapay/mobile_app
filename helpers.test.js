@@ -13,6 +13,7 @@ import {
 	reduceString,
 	getShortDateTime,
 	parseQRData,
+	parseAddressQR,
 	isValidQRData,
 	filterCoins,
 	truncateWalletAddress,
@@ -117,6 +118,14 @@ describe('parseQRData', () => {
 		expect(parseQRData('tron:TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg')).toEqual({ type: 'address', family: 'tron', address: 'TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg' })
 		expect(parseQRData('ethereum:0x9858EfFD232B4033E47d90003D41EC34EcaEda94@56?value=1')).toEqual({ type: 'address', family: 'evm', address: '0x9858EfFD232B4033E47d90003D41EC34EcaEda94' })
 		expect(parseQRData('BC1QCR8TE4KR609GCAWUTMRZA0J4XV80JY8Z306FYU')).toEqual({ type: 'address', family: 'btc', address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu' })
+		// BIP-21 sin lightning= (también en MAYÚSCULAS) y los otros tipos de BTC
+		expect(parseQRData('bitcoin:bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu?amount=0.001&label=x')).toEqual({ type: 'address', family: 'btc', address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu' })
+		expect(parseQRData('BITCOIN:BC1QCR8TE4KR609GCAWUTMRZA0J4XV80JY8Z306FYU?AMOUNT=0.001')).toEqual({ type: 'address', family: 'btc', address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu' })
+		expect(parseQRData('bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297')).toEqual({ type: 'address', family: 'btc', address: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297' })
+		expect(parseQRData('bitcoin:3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')).toEqual({ type: 'address', family: 'btc', address: '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy' })
+		expect(parseQRData('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')).toEqual({ type: 'address', family: 'btc', address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa' })
+		// Checksum roto: no es BTC (y un base58 de 32 bytes sigue siendo Solana)
+		expect(parseQRData('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb')?.family).not.toBe('btc')
 		// Un bitcoin: con lightning= sigue siendo Lightning, no dirección
 		expect(parseQRData('bitcoin:bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu?lightning=lnbc1pjxyz')?.type).toBe('lightning')
 		expect(parseQRData('SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J')).toEqual({ type: 'address', family: 'stacks', address: 'SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J' })
@@ -198,6 +207,12 @@ describe('parseLightningQR (via parseQRData)', () => {
 	test('BIP-21 bitcoin: URI carrying lightning= param', () => {
 		const uri = `bitcoin:bc1qxyzexampleaddr?amount=0.001&lightning=${withAmount}`
 		expect(parseQRData(uri)).toEqual({ type: 'lightning', invoice: withAmount, amountSats: 150 })
+	})
+
+	// Desde Enviar de la wallet (Scan con returnTo) se pide la dirección on-chain
+	// directamente: un QR unificado no debe acabar en el retiro Lightning
+	test('parseAddressQR saca la dirección on-chain de un QR unificado', () => {
+		expect(parseAddressQR(`bitcoin:bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu?amount=0.001&lightning=${withAmount}`)).toEqual({ type: 'address', family: 'btc', address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu' })
 	})
 
 	test('bitcoin: URI without lightning param is not a lightning intent', () => {
