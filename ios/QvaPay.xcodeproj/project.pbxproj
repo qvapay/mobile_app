@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		011B8C1E0E15437CBF74222F /* Rubik-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 12ACF633161A4FABBAEE647B /* Rubik-BoldItalic.ttf */; };
+		0BA98E85702F49D1A61CC099 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 66D2E84719B54BDC8E67CBBD /* JetBrainsMono-Regular.ttf */; };
 		0E5D8362002048F99C8F5D6F /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 99059718B7394C3883C4903A /* Rubik-Bold.ttf */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		15C63F8328CA401BBD86710C /* Rubik-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8B927F05F87E4E96947FFBF8 /* Rubik-Light.ttf */; };
@@ -26,13 +27,12 @@
 		A480A40C4ECB40CDBFF36BD2 /* Rubik-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F5CBF97365B148819C5AB0B4 /* Rubik-ExtraBoldItalic.ttf */; };
 		A4C6241C9C09420B9B5C2957 /* Rubik-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E49E54F8521A475FBBDE6436 /* Rubik-Italic.ttf */; };
 		B15C8D6CB1614B5DA682984A /* Rubik-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F830386247324584A758F99F /* Rubik-Regular.ttf */; };
-		0BA98E85702F49D1A61CC099 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 66D2E84719B54BDC8E67CBBD /* JetBrainsMono-Regular.ttf */; };
-		EEFA88516CD247B1AA840579 /* JetBrainsMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */; };
 		BDE8A477E53F40B6930662FD /* money_in.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 03197938F21847F3BA47AD8F /* money_in.mp3 */; };
 		CBBEEC46E19B43BCAF779D1F /* Rubik-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8E9D94C077544204A97C61B0 /* Rubik-Black.ttf */; };
 		CF67CAB6313CBE64618CB206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		D01923873AFB4AF4A0DEC6B9 /* Rubik-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E8F0AB89ECF41FE9DBC1216 /* Rubik-Medium.ttf */; };
 		D6D1005CBECE4537BF0BA741 /* Rubik-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FF340230807742DD96C8FB8E /* Rubik-ExtraBold.ttf */; };
+		EEFA88516CD247B1AA840579 /* JetBrainsMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */; };
 		F162D84EB401402DA05A14F7 /* money_out.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9B210220A594402FA688441D /* money_out.mp3 */; };
 		W1000010000000000000000A /* QvaPayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000001000000000000000A /* QvaPayWidgetBundle.swift */; };
 		W1000011000000000000000A /* P2PRatesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000002000000000000000A /* P2PRatesWidget.swift */; };
@@ -89,6 +89,8 @@
 		3F07565281884E1680BF6F15 /* Rubik-BlackItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-BlackItalic.ttf"; path = "../assets/fonts/Rubik-BlackItalic.ttf"; sourceTree = "<group>"; };
 		5E8F0AB89ECF41FE9DBC1216 /* Rubik-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Medium.ttf"; path = "../assets/fonts/Rubik-Medium.ttf"; sourceTree = "<group>"; };
 		6118ACB2B698AABF0A7D97B1 /* Pods-QvaPay.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-QvaPay.release.xcconfig"; path = "Target Support Files/Pods-QvaPay/Pods-QvaPay.release.xcconfig"; sourceTree = "<group>"; };
+		62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "JetBrainsMono-Medium.ttf"; path = "../assets/fonts/JetBrainsMono-Medium.ttf"; sourceTree = "<group>"; };
+		66D2E84719B54BDC8E67CBBD /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "JetBrainsMono-Regular.ttf"; path = "../assets/fonts/JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
 		673403B20A650966ED3F0EBB /* Pods_QvaPay.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_QvaPay.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		744F72DE4FF142C5B9489AC9 /* Rubik-MediumItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-MediumItalic.ttf"; path = "../assets/fonts/Rubik-MediumItalic.ttf"; sourceTree = "<group>"; };
 		750C83FB2993084E343FD512 /* QPSecureView.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = QPSecureView.h; path = QvaPay/QPSecureView.h; sourceTree = "<group>"; };
@@ -109,8 +111,6 @@
 		F113463BD7074ADABB90FFFD /* Rubik-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-SemiBoldItalic.ttf"; path = "../assets/fonts/Rubik-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		F5CBF97365B148819C5AB0B4 /* Rubik-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-ExtraBoldItalic.ttf"; path = "../assets/fonts/Rubik-ExtraBoldItalic.ttf"; sourceTree = "<group>"; };
 		F830386247324584A758F99F /* Rubik-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Regular.ttf"; path = "../assets/fonts/Rubik-Regular.ttf"; sourceTree = "<group>"; };
-		66D2E84719B54BDC8E67CBBD /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "JetBrainsMono-Regular.ttf"; path = "../assets/fonts/JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
-		62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "JetBrainsMono-Medium.ttf"; path = "../assets/fonts/JetBrainsMono-Medium.ttf"; sourceTree = "<group>"; };
 		FF340230807742DD96C8FB8E /* Rubik-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-ExtraBold.ttf"; path = "../assets/fonts/Rubik-ExtraBold.ttf"; sourceTree = "<group>"; };
 		W1000001000000000000000A /* QvaPayWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QvaPayWidgetBundle.swift; sourceTree = "<group>"; };
 		W1000002000000000000000A /* P2PRatesWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = P2PRatesWidget.swift; sourceTree = "<group>"; };
@@ -507,7 +507,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;
-				CURRENT_PROJECT_VERSION = 3502;
+				CURRENT_PROJECT_VERSION = 3503;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				ENABLE_BITCODE = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -519,7 +519,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.5.2;
+				MARKETING_VERSION = 3.5.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -545,7 +545,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPay/QvaPay.entitlements;
-				CURRENT_PROJECT_VERSION = 3502;
+				CURRENT_PROJECT_VERSION = 3503;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = QvaPay/Info.plist;
@@ -556,7 +556,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.5.2;
+				MARKETING_VERSION = 3.5.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -806,7 +806,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPayWidgets/QvaPayWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3502;
+				CURRENT_PROJECT_VERSION = 3503;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
@@ -818,7 +818,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.5.2;
+				MARKETING_VERSION = 3.5.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -837,7 +837,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = QvaPayWidgets/QvaPayWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3502;
+				CURRENT_PROJECT_VERSION = 3503;
 				DEVELOPMENT_TEAM = CN9WDS6BJW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QvaPayWidgets/Info.plist;
@@ -849,7 +849,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.5.2;
+				MARKETING_VERSION = 3.5.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
