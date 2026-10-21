@@ -1,8 +1,24 @@
 {
 	"directory": {
-		"subtitle": "Apps from verified merchants that run inside QvaPay. You pay with your balance and always confirm with your PIN.",
+		"featured": "Featured",
 		"all": "All",
-		"empty": "No mini-apps available yet. Check back soon!"
+		"more": "More mini-apps",
+		"by": "by {{name}}",
+		"preview": "Preview",
+		"searchPlaceholder": "Search mini-apps",
+		"noResults": "No mini-apps match your search.",
+		"empty": "No mini-apps available yet. Check back soon!",
+		"publishTitle": "Do you build apps?",
+		"publishBody": "Publish yours in this catalog.",
+		"categories": {
+			"shopping": "Shopping",
+			"games": "Games",
+			"finance": "Finance",
+			"services": "Services",
+			"social": "Social",
+			"tools": "Tools",
+			"other": "Other"
+		}
 	},
 	"host": {
 		"menu": "Mini-app options",

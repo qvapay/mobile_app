@@ -1009,6 +1009,8 @@ export type MiniApp = {
 	name: string
 	tagline: string | null
 	icon: string | null
+	/** Portada horizontal (16:9) para la tarjeta de destacadas; null = sin portada. */
+	cover?: string | null
 	/** URL https de arranque; su origen está en `allowed_origins`. */
 	entry_url: string
 	/** Orígenes https dentro de los que puede navegar el WebView. */
@@ -1023,6 +1025,8 @@ export type MiniApp = {
 	/** El usuario ya dio su consentimiento de identidad (no revocado). */
 	granted: boolean
 	granted_scopes: MiniAppScope[]
+	/** Borrador o en revisión: solo la ve su autor, que puede probarla antes de publicarla. */
+	preview?: boolean
 }
 
 /** Consentimiento vigente del usuario (`GET /miniapps/grants`). */

@@ -1,8 +1,24 @@
 {
 	"directory": {
-		"subtitle": "Apps de comercios verificados que funcionan dentro de QvaPay. Pagas con tu saldo y confirmas siempre con tu PIN.",
+		"featured": "Destacadas",
 		"all": "Todas",
-		"empty": "Aún no hay mini-apps disponibles. ¡Vuelve pronto!"
+		"more": "Más mini-apps",
+		"by": "por {{name}}",
+		"preview": "Vista previa",
+		"searchPlaceholder": "Buscar mini-apps",
+		"noResults": "Ninguna mini-app coincide con tu búsqueda.",
+		"empty": "Aún no hay mini-apps disponibles. ¡Vuelve pronto!",
+		"publishTitle": "¿Creas apps?",
+		"publishBody": "Publica la tuya en este catálogo.",
+		"categories": {
+			"shopping": "Compras",
+			"games": "Juegos",
+			"finance": "Finanzas",
+			"services": "Servicios",
+			"social": "Social",
+			"tools": "Herramientas",
+			"other": "Otros"
+		}
 	},
 	"host": {
 		"menu": "Opciones de la mini-app",
