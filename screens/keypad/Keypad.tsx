@@ -19,9 +19,7 @@ import { createContainerStyles } from '../../theme/themeUtils'
 // UI Particles
 import QPButton from '../../ui/particles/QPButton'
 import QPBalance from '../../ui/particles/QPBalance'
-
-// Icons    
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import QPKeypad from '../../ui/QPKeypad'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -76,14 +74,6 @@ export default function Keypad({ navigation }: KeypadProps) {
 	// Memoized values
 	const containerStyles = useMemo(() => createContainerStyles(theme), [theme])
 
-	// Keypad layout
-	const keys = useMemo(() => [
-		['1', '2', '3'],
-		['4', '5', '6'],
-		['7', '8', '9'],
-		['.', '0', 'backspace'],
-	], [])
-
 	// Haptic feedback — mismo tic que el cambio de pestaña del BottomBar (MainStack)
 	const triggerHapticFeedback = useCallback(() => {
 		ReactNativeHapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
@@ -105,9 +95,8 @@ export default function Keypad({ navigation }: KeypadProps) {
 	}, [])
 
 	// Handle key press
+	// El tic háptico de cada tecla lo da QPKeypad
 	const handleKeyPress = useCallback((key: string) => {
-
-		triggerHapticFeedback()
 
 		const newAmount = applyKeypadKey(amount, key)
 
@@ -122,7 +111,7 @@ export default function Keypad({ navigation }: KeypadProps) {
 		// Announce to screen reader
 		AccessibilityInfo.announceForAccessibility(t('keypad.a11y.amountAnnouncement', { amount: newAmount }))
 
-	}, [amount, calculateFontSize, animateFontSize, triggerHapticFeedback, t])
+	}, [amount, calculateFontSize, animateFontSize, t])
 
 	// Set maximum balance
 	const setMaxBalance = useCallback(() => {
@@ -182,39 +171,6 @@ export default function Keypad({ navigation }: KeypadProps) {
 		navigation.navigate(ROUTES.NEARBY_PAY, numericAmount > 0 ? { prefill_amount: numericAmount.toString() } : {})
 	}, [amount, navigation, triggerHapticFeedback])
 
-	// Render individual key
-	const renderKey = useCallback((key: string) => {
-
-		const isBackspace = key === 'backspace'
-		const accessibilityLabel = isBackspace ? t('keypad.a11y.deleteKeyLabel') : t('keypad.a11y.numberKeyLabel', { digit: key })
-
-		return (
-			<Pressable
-				key={key}
-				style={({ pressed }) => [styles.keyButton, pressed && styles.keyButtonPressed, !theme.isDark ? { borderColor: theme.colors.primary, borderWidth: 0.3 } : {}]}
-				onPress={() => handleKeyPress(key)}
-				accessibilityRole="button"
-				accessibilityLabel={accessibilityLabel}
-				accessibilityHint={isBackspace ? t('keypad.a11y.deleteKeyHint') : t('keypad.a11y.numberKeyHint')}
-				disabled={isProcessing}
-			>
-				{isBackspace ? (
-					<FontAwesome6
-						name="delete-left"
-						size={20}
-						color={theme.colors.primaryText}
-						style={styles.icon}
-						iconStyle="solid"
-					/>
-				) : (
-					<Text style={[styles.keyText, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxl, fontFamily: theme.typography.fontFamily.medium }]}>
-						{key}
-					</Text>
-				)}
-			</Pressable>
-		)
-	}, [handleKeyPress, isProcessing, theme, t])
-
 	// Format amount for display
 	const formattedAmount = useMemo(() => {
 		const numericAmount = parseFloat(amount)
@@ -243,13 +199,13 @@ export default function Keypad({ navigation }: KeypadProps) {
 			</View>
 
 			{/* Keypad Section */}
-			<View style={styles.keypadSection}>
-				{keys.map((row, rowIndex) => (
-					<View key={rowIndex} style={styles.keypadRow}>
-						{row.map((key) => renderKey(key))}
-					</View>
-				))}
-			</View>
+			<QPKeypad
+				onKey={handleKeyPress}
+				extraKey="decimal"
+				disabled={isProcessing}
+				numberHint={t('keypad.a11y.numberKeyHint')}
+				deleteHint={t('keypad.a11y.deleteKeyHint')}
+			/>
 
 			{/* Action Buttons */}
 			<View style={styles.actionSection}>
@@ -310,31 +266,6 @@ const styles = StyleSheet.create({
 		borderColor: 'rgba(255, 255, 255, 0.1)',
 	},
 	balanceText: {},
-	keypadSection: {},
-	keypadRow: {
-		flexDirection: 'row',
-		gap: 12,
-		marginBottom: 12,
-	},
-	keyButton: {
-		flex: 1,
-		height: 60,
-		alignItems: 'center',
-		justifyContent: 'center',
-		borderRadius: 16,
-		borderCurve: 'continuous',
-		backgroundColor: 'rgba(255, 255, 255, 0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(255, 255, 255, 0.1)',
-	},
-	keyButtonPressed: {
-		backgroundColor: 'rgba(255, 255, 255, 0.1)',
-		transform: [{ scale: 0.95 }],
-	},
-	keyText: {},
-	icon: {
-		marginHorizontal: 2,
-	},
 	actionSection: {
 		flexDirection: 'row',
 		gap: 12,
