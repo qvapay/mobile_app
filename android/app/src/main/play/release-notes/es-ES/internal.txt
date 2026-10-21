@@ -1,6 +1,6 @@
-Novedades de QvaPay 3.5.11:
+Novedades de QvaPay 3.5.12:
 • Pantalla de bloqueo renovada: tu foto, un saludo y un teclado propio para el PIN, con Face ID o huella en el mismo teclado.
-• Mini-apps: nuevo catálogo con destacadas, categorías y buscador.
+• Mini-apps: nuevo catálogo con destacadas, categorías y buscador. Compártelas con un enlace que las abre directo en QvaPay.
 • Al mostrar un código QR, el brillo sube al máximo.
 • La wallet reconoce más códigos QR: todos los formatos de Bitcoin y los pagos de tokens de Ethereum.
-• Correcciones en el registro, el P2P, el escáner y las mini-apps.
+• Correcciones en el registro, el P2P, el escáner y los enlaces.
