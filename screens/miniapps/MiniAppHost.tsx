@@ -17,7 +17,7 @@ import i18n from '../../i18n'
 import { miniappsApi } from '../../api/miniappsApi'
 import { isAllowedOrigin, isBenignInternalUrl } from '../../miniapps/protocol'
 import { buildSdkScript } from '../../miniapps/sdkScript'
-import { useMiniAppDetail, MINIAPPS_ROOT } from './miniappsQueries'
+import { useMiniAppDetail, forgetGrant } from './miniappsQueries'
 import { useMiniAppBridge, type MiniAppThemePayload } from './useMiniAppBridge'
 import MiniAppIcon from './MiniAppIcon'
 import MiniAppConsentSheet from './MiniAppConsentSheet'
@@ -135,7 +135,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 		if (!app) return
 		const result = await miniappsApi.revokeGrant(app.slug)
 		if (result.success) {
-			queryClient.invalidateQueries({ queryKey: MINIAPPS_ROOT })
+			forgetGrant(queryClient, app.slug)
 			toast.success(t('miniapps.host.revoked', { name: app.name }))
 		} else {
 			toast.error(t('transactions.common.errorTitle'), { description: result.error })
