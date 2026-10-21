@@ -23,6 +23,8 @@ type QPCodeInputProps = {
 	onFilled?: (code: string) => void
 	/** Fondo de las cajas (por defecto `surface`). Sobre una card `surface` (modales) usar `background`: en oscuro `elevation` es el MISMO color que `surface` y no se distinguen. */
 	boxColor?: string
+	/** E2E: cada caja lleva `${testID}-${índice}` (tocar la primera la enfoca antes de teclear). */
+	testID?: string
 }
 
 /**
@@ -48,7 +50,7 @@ type QPCodeInputProps = {
  * @param [props.onBoxFocus] - Called with the box index on focus (e.g. scroll-into-view).
  * @param [props.onFilled] - Called with the full code the moment every box has a digit.
  */
-const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, disabled = false, secure = false, onBoxFocus, onFilled, boxColor }: QPCodeInputProps) => {
+const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, disabled = false, secure = false, onBoxFocus, onFilled, boxColor, testID }: QPCodeInputProps) => {
 
 	const { theme } = useTheme()
 	const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
@@ -133,6 +135,7 @@ const QPCodeInput = ({ ref, length = 4, code, onChangeCode, autoFocus = false, d
 			{Array.from({ length }).map((_, index) => (
 				<TextInput
 					key={index}
+					testID={testID ? `${testID}-${index}` : undefined}
 					ref={(ref: TextInputInstance | null) => { inputsRef.current[index] = ref }}
 					style={[
 						length > 4 ? styles.boxSmall : styles.box,

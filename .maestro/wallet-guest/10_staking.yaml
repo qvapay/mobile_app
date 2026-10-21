@@ -183,7 +183,10 @@ env:
 
 # --- TRX: aviso de riesgos propio de la red (los plazos son distintos) y SR con APY ---
 # Atrás HASTA el hub: formulario y confirmación son pasos de UNA pantalla, así que el número
-# de pantallas por encima depende de si se llegó a confirmar
+# de pantallas por encima depende de si se llegó a confirmar (y de si el teclado se come un
+# atrás). Tras cada atrás se ESPERA al hub: el `while` solo mira ~1 s, y en un build de dev el
+# hub tarda más en repintarse al descongelarse (enableFreeze) — sin la espera se pulsaba un
+# atrás de más y el último sacaba la app al launcher
 - repeat:
     times: 3
     while:
@@ -191,8 +194,11 @@ env:
         id: "earn-asset-tron:native"
     commands:
       - back
-      - waitForAnimationToEnd:
-          timeout: 2000
+      - extendedWaitUntil:
+          visible:
+            id: "earn-asset-tron:native"
+          timeout: 8000
+          optional: true
 - extendedWaitUntil:
     visible:
       id: "earn-asset-tron:native"

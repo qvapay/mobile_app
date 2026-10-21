@@ -183,3 +183,24 @@ test('el pie solo aparece sin búsqueda activa', async () => {
 	await act(async () => { search().props.onChangeText('sol') })
 	expect(JSON.stringify(tree.toJSON())).not.toContain('Más monedas pronto')
 })
+
+test('lo que no es un activo lleva tesela de siglas o de glifo, y su insignia', async () => {
+	await render({
+		options: [
+			{ id: 'La Habana', title: 'La Habana', monogram: 'LHA', subtitle: '15 municipios' },
+			{ id: 'Playa', title: 'Playa', iconName: 'house', badge: 'Cabecera' },
+		],
+	})
+	const json = JSON.stringify(tree.toJSON())
+	expect(json).toContain('LHA')
+	expect(json).toContain('Cabecera')
+	expect(tree.root.findAllByType('QPAssetIcon')).toHaveLength(0)
+	expect(tree.root.findAll(n => n.type === 'FontAwesome6' && n.props.name === 'house')).toHaveLength(1)
+})
+
+test('el buscador y el vacío aceptan su propio texto', async () => {
+	await render({ searchPlaceholder: 'Buscar provincia', emptyText: 'Ningún destino coincide' })
+	expect(search().props.placeholder).toBe('Buscar provincia')
+	await act(async () => { search().props.onChangeText('zzz') })
+	expect(JSON.stringify(tree.toJSON())).toContain('Ningún destino coincide')
+})

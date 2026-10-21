@@ -50,21 +50,6 @@
 			"networkError": "Network error"
 		}
 	},
-	"stockDetail": {
-		"buy": "Buy",
-		"sell": "Sell",
-		"open": "Open",
-		"previousClose": "Previous close",
-		"dayHigh": "Day high",
-		"dayLow": "Day low",
-		"volume": "Volume",
-		"fiftyTwoWeekHigh": "52-week high",
-		"fiftyTwoWeekLow": "52-week low",
-		"about": "About",
-		"sector": "Sector",
-		"exchange": "Exchange",
-		"type": "Type"
-	},
 	"coinDetail": {
 		"goldUpsell": "Explore the price point by point with GOLD",
 		"periodHigh": "High ({{timeframe}})",
@@ -600,6 +585,15 @@
 				"body": "Transaction history, swaps, P2P and TRON energy. Your wallet stays the same.",
 				"cta": "Create account"
 			}
+		},
+		"tronControl": {
+			"title": "Your phrase doesn't control this TRON account",
+			"body": "Another address owns this account: your phrase can see the balance but can't move it. This is a common trap. Don't send TRX or any other token to pay fees — whoever controls it would keep it.",
+			"receiveBody": "Don't receive anything at this address: whatever arrives is controlled by someone else and you won't be able to move it.",
+			"controlledBy": "Controlled by",
+			"explorer": "View permissions in the explorer",
+			"reveal": "Show the address anyway",
+			"blocked": "Your phrase can't move this TRON account"
 		}
 	},
 	"energy": {
@@ -900,6 +894,87 @@
 			"unstake": "Unstaking",
 			"vote": "Voted",
 			"claim": "Rewards claimed"
+		}
+	},
+	"xstocks": {
+		"buy": "Buy",
+		"sell": "Sell",
+		"today": "Today",
+		"seeAll": "See all stocks",
+		"openHome": "See your investments",
+		"sharesCount": "{{shares}} shares",
+		"timeframes": {
+			"24H": "1D",
+			"1W": "1W",
+			"1M": "1M",
+			"1Y": "1Y"
+		},
+		"periods": {
+			"24H": "Today",
+			"1W": "Past week",
+			"1M": "Past month",
+			"1Y": "Past year"
+		},
+		"home": {
+			"investing": "Investing",
+			"emptyHint": "Buy stocks from $1, with your own wallet.",
+			"yourStocks": "Your stocks",
+			"popular": "Popular",
+			"more": "Discover more",
+			"disclosure": "Tokenized stocks by xStocks (Backed Finance) on Solana. They track the stock price but are not shares: tap to see the risks."
+		},
+		"unavailable": {
+			"title": "Not available in your region",
+			"body": "You can see prices, but buying and selling tokenized stocks isn't available in the US, Cuba or other countries restricted by the issuer."
+		},
+		"detail": {
+			"yourPosition": "Your position",
+			"shares": "Shares",
+			"marketValue": "Market value",
+			"todayReturn": "Today's return",
+			"stats": "Stats",
+			"tokenPrice": "Token price",
+			"liquidity": "Liquidity",
+			"token": "Token",
+			"network": "Network",
+			"issuer": "Issuer",
+			"about": "About",
+			"aboutBody": "{{symbol}} is a Backed Finance token that tracks {{name}} ({{underlying}}) 1:1, backed by real shares held in custody. You keep it in your own wallet and can send it like any Solana token.",
+			"risksLink": "Risks of tokenized stocks",
+			"manageInWallet": "Send, receive and activity"
+		},
+		"trade": {
+			"availableCash": "{{amount}} in USDC available",
+			"availableShares": "{{amount}} available to sell",
+			"approxShares": "≈ {{shares}} shares of {{symbol}}",
+			"sellAllHint": "You sell your {{shares}} shares",
+			"receiveShares": "You get ≈ {{amount}} {{symbol}}",
+			"receiveUsd": "You get ≈ {{amount}} in USDC",
+			"sellAll": "Sell all",
+			"min": "The minimum is {{min}}",
+			"noCash": "You don't have enough USDC on Solana",
+			"noShares": "You don't have that many shares",
+			"noSol": "You need a little SOL for the network fee",
+			"region": "Stocks are not available in your region",
+			"fee": "Includes QvaPay's {{pct}}% service fee",
+			"reviewBuy": "Review buy",
+			"reviewSell": "Review sell"
+		},
+		"risks": {
+			"title": "Before you invest",
+			"accept": "Got it, continue",
+			"close": "Close",
+			"points": {
+				"token": "You buy a token that tracks the stock price, not the stock itself. Its price can drift from the exchange price, especially outside US market hours.",
+				"issuer": "The issuer (Backed Finance) can freeze, pause or remove tokens from any account. You hold the keys, but you don't control the issuer.",
+				"noRights": "You have no shareholder rights: you don't vote and don't directly own the company.",
+				"hours": "It trades 24/7 on Solana, but liquidity is lower outside market hours and slippage can be higher.",
+				"dividends": "Dividends are reinvested automatically (your share count goes up), net of US withholding tax.",
+				"region": "Not available to US persons or in sanctioned countries. You are responsible for complying with your local laws."
+			}
+		},
+		"card": {
+			"title": "Stocks"
 		}
 	}
 }

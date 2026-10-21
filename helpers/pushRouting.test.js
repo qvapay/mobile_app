@@ -4,6 +4,7 @@
  * @jest-environment node
  */
 import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushTarget } from './pushRouting'
+import { ROUTES } from '../routes'
 
 describe('isMoneyInPush', () => {
 
@@ -69,9 +70,23 @@ describe('resolvePushTarget', () => {
 	test('cualquier evento p2p lleva a la oferta, aunque sea dinero entrante', () => {
 		expect(resolvePushTarget({ type: 'p2p_partial_paid', p2p_uuid: 'p-1' }))
 			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
-		expect(resolvePushTarget({ type: 'p2p_completed', p2p_uuid: 'p-1' }))
+		expect(resolvePushTarget({ type: 'p2p_applied', p2p_uuid: 'p-1' }))
 			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1' } })
 		expect(resolvePushTarget({ type: 'p2p_chat' })).toBeNull()
+	})
+
+	test('un trato cerrado abre el detalle pidiendo la valoración (rate)', () => {
+		expect(resolvePushTarget({ type: 'p2p_completed', p2p_uuid: 'p-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', rate: true } })
+		expect(resolvePushTarget({ type: 'p2p_partial_completed', p2p_uuid: 'p-1', order_uuid: 'o-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1', rate: true } })
+	})
+
+	test('una disputa resuelta solo pide valorar si se liberó', () => {
+		expect(resolvePushTarget({ type: 'p2p_partial_dispute_resolved', p2p_uuid: 'p-1', order_uuid: 'o-1', resolution: 'released' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1', rate: true } })
+		expect(resolvePushTarget({ type: 'p2p_partial_dispute_resolved', p2p_uuid: 'p-1', order_uuid: 'o-1', resolution: 'cancelled' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-1', order: 'o-1' } })
 	})
 
 	test('carrito, gold y ahorros tienen su pantalla', () => {
@@ -83,5 +98,21 @@ describe('resolvePushTarget', () => {
 	test('un tipo desconocido no navega a ninguna parte', () => {
 		expect(resolvePushTarget({ type: 'promo' })).toBeNull()
 		expect(resolvePushTarget(undefined)).toBeNull()
+	})
+})
+
+describe('puesto promocionado', () => {
+	test.each(['p2p_promo_outbid', 'p2p_promo_won', 'p2p_promo_expired', 'p2p_promo_ending'])('%s abre la pantalla del puesto aunque no traiga p2p_uuid', (type) => {
+		expect(resolvePushTarget({ type })).toEqual({ screen: ROUTES.P2P_PROMOTE, params: {} })
+	})
+
+	test('si la push trae el par, abre ese par', () => {
+		expect(resolvePushTarget({ type: 'p2p_promo_outbid', coin: 'BANK_CUP', offer_type: 'sell' })).toEqual({ screen: ROUTES.P2P_PROMOTE, params: { coin: 'BANK_CUP', type: 'sell' } })
+		expect(resolvePushTarget({ type: 'p2p_promo_won', coin: 'CLASICA', offer_type: 'nope' })).toEqual({ screen: ROUTES.P2P_PROMOTE, params: { coin: 'CLASICA' } })
+	})
+
+	test('no es dinero entrante ni suena a moneda', () => {
+		expect(isMoneyInPush({ type: 'p2p_promo_won' })).toBe(false)
+		expect(isMoneySoundPush({ type: 'p2p_promo_outbid' })).toBe(false)
 	})
 })

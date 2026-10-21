@@ -10,6 +10,7 @@
 import type { WalletAddresses } from './derive'
 import type { ChainKind, RegistryChain, RpcRegistry } from './registry/types'
 import { displayAmount, formatUnits } from './chains/units'
+import { xStockPriceTick } from './xstocks'
 
 export type WalletAsset = {
 	/** `${chainKey}:native` o `${chainKey}:${contract}` (contract tal cual en el registry). */
@@ -29,6 +30,14 @@ export type WalletAsset = {
 	logoTick: string
 	/** Nombre del logo de la red para el badge (misma ruta que `logoTick`). */
 	networkTick: string
+	/** Solana: programa del mint (`token2022` en los xStocks). null = clásico o no aplica. */
+	tokenProgram: 'token2022' | null
+	/**
+	 * Acción tokenizada (xStocks): su subyacente y nombre. Su `priceTick` apunta al precio por
+	 * unidad CRUDA, así que `usd` sale bien sin aplicar el multiplicador de dividendos; las
+	 * ACCIONES que se enseñan sí lo llevan (ver `wallet/solana/mint.ts`).
+	 */
+	stock: { underlying: string, name: string } | null
 }
 
 /** Balances crudos (unidades mínimas, bigint serializado a string) por id de activo. */
@@ -134,11 +143,14 @@ export const buildAssetCatalog = (registry: RpcRegistry): WalletAsset[] =>
 			stable: false,
 			logoTick: logoFor(NATIVE_TICKS[chain.native.symbol] ?? chain.native.symbol),
 			networkTick,
+			tokenProgram: null,
+			stock: null,
 		}
 		const tokens = (chain.tokens ?? []).map<WalletAsset>(token => {
 			const upper = token.symbol.toUpperCase()
 			// USDC.e (puenteado) usa el logo y el precio de USDC
 			const baseSymbol = upper.replace(/\.E$/, '')
+			const stock = token.kind === 'stock' && token.underlying ? { underlying: token.underlying, name: token.name ?? token.underlying } : null
 			return {
 				id: tokenAssetId(chainKey, token.address),
 				chainKey,
@@ -147,10 +159,13 @@ export const buildAssetCatalog = (registry: RpcRegistry): WalletAsset[] =>
 				symbol: token.symbol,
 				decimals: token.decimals,
 				contract: token.address,
-				priceTick: STABLES.has(upper) ? baseSymbol : null,
+				priceTick: stock ? xStockPriceTick(token.address) : STABLES.has(upper) ? baseSymbol : null,
 				stable: STABLES.has(upper),
-				logoTick: baseSymbol,
+				// Logo de la acción: el del subyacente en el CDN (`stocks/TSLA.svg`), ver `stockLogoUrl`
+				logoTick: stock ? stock.underlying : baseSymbol,
 				networkTick,
+				tokenProgram: token.program === 'token2022' ? 'token2022' : null,
+				stock,
 			}
 		})
 		return [native, ...tokens]
@@ -177,6 +192,8 @@ export const assetPrice = (asset: WalletAsset, prices: PriceMap): number | null 
 export type AssetView = WalletAsset & {
 	/** Saldo GASTABLE, decimal humano exacto ('12.5'). Es lo que usan Enviar/MÁX/Swap. */
 	amount: string
+	/** El mismo saldo gastable en unidades mínimas (bigint en texto). */
+	rawAmount: string
 	/** Para pintar ('1,240.5', '<0.000001'). */
 	amountLabel: string
 	/** Comprometido en staking (no gastable hasta salir). '0' si no hay. */
@@ -202,6 +219,7 @@ export const toAssetView = (asset: WalletAsset, balances: RawBalances, prices: P
 	return {
 		...asset,
 		amount,
+		rawAmount: raw.toString(),
 		amountLabel: displayAmount(amount),
 		staked,
 		stakedLabel: displayAmount(staked),

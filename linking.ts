@@ -8,6 +8,7 @@ import type { RootStackParamList } from './types/navigation'
  * Handles https://qvapay.com, https://www.qvapay.com and the qvapay:// custom
  * scheme:
  *   /p2p/:p2p_uuid → P2POffer (offer detail)
+ *   /p2p/promote?coin=&type= → P2PPromote (puesto promocionado; segmento fijo, gana a :p2p_uuid)
  *   /pay/:uuid     → Pay (merchant invoice)
  *   /store/:slug   → MarketStore (marketplace storefront)
  *   /store/:slug/:uuid → MarketProduct (public product sheet)
@@ -26,6 +27,8 @@ const linking: LinkingOptions<RootStackParamList> = {
 	],
 	config: {
 		screens: {
+			// Las pushes del puesto promocionado llevan https://www.qvapay.com/p2p/promote?coin=&type=
+			[ROUTES.P2P_PROMOTE]: 'p2p/promote',
 			[ROUTES.P2P_OFFER_SCREEN]: 'p2p/:p2p_uuid',
 			[ROUTES.PAY_SCREEN]: 'pay/:uuid',
 			[ROUTES.TOPUP_SCREEN]: 'topup',

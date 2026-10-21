@@ -28,7 +28,7 @@ const GAP = 22
  * La entrada real es un TextInput invisible: toda la superficie lo enfoca, y el teclado
  * numérico es el del sistema.
  */
-const PinDots = ({ ref, length = 4, code, onChangeCode, onFilled, disabled = false, tone }: {
+const PinDots = ({ ref, length = 4, code, onChangeCode, onFilled, disabled = false, tone, testID }: {
 	ref?: Ref<PinDotsHandle>
 	length?: number
 	code: string
@@ -37,6 +37,8 @@ const PinDots = ({ ref, length = 4, code, onChangeCode, onFilled, disabled = fal
 	disabled?: boolean
 	/** Color de los puntos; al fallar se tiñen todos, que es más legible que solo temblar. */
 	tone?: string
+	/** E2E: tocar la fila enfoca la entrada antes de teclear. */
+	testID?: string
 }) => {
 
 	const { theme } = useTheme()
@@ -65,7 +67,7 @@ const PinDots = ({ ref, length = 4, code, onChangeCode, onFilled, disabled = fal
 	}
 
 	return (
-		<Pressable onPress={() => inputRef.current?.focus()} disabled={disabled} accessibilityRole="none">
+		<Pressable testID={testID} onPress={() => inputRef.current?.focus()} disabled={disabled} accessibilityRole="none">
 			<Animated.View style={[styles.row, rowStyle]}>
 				{Array.from({ length }).map((_, i) => (
 					// Al fallar, el aro vacío también se tiñe: los cuatro cuentan lo ocurrido

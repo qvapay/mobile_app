@@ -14,8 +14,9 @@ import type { Theme } from '../../../theme/ThemeContext'
 import { useWallet } from '../../../wallet/WalletContext'
 import { assetPrice } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
-import { usePriceMap, useWalletAssets } from './walletQueries'
+import { usePriceMap, useTronForeignControl, useWalletAssets } from './walletQueries'
 import { formatUsd } from './walletFormat'
+import { useXStockShares } from '../stocks/xstocksQueries'
 
 // Settings
 import { useSettings } from '../../../settings/SettingsContext'
@@ -30,6 +31,7 @@ import WalletCard from './WalletCard'
 import WalletBalanceCard from './components/WalletBalanceCard'
 import type { WalletAction } from './components/WalletBalanceCard'
 import WalletAssetRow from './components/WalletAssetRow'
+import TronControlWarning from './components/TronControlWarning'
 import { isDevBuild, isStakingHubEnabled } from '../../../wallet/staking/capabilities'
 
 // Navigation
@@ -72,6 +74,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	const { isReady, hasWallet, isBackedUp } = useWallet()
 	const { isAuthenticated } = useAuth()
 	const { visible, total, isLoading, isHydrating, isError, failedChains, hasBalances, refetch } = useWalletAssets()
+	// Cuenta TRON con dueño ajeno: el saldo se ve pero no es movible — se avisa arriba del todo
+	const tronControllers = useTronForeignControl()
 	const prices = usePriceMap()
 
 	const { getSetting, updateSetting } = useSettings()
@@ -87,7 +91,17 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 		errorShownRef.current = isError
 	}, [isError, t])
 
+	// Acciones tokenizadas: la fila enseña ACCIONES y precio por acción (como "Tus acciones")
+	const stockShares = useXStockShares(visible.some(asset => !!asset.stock))
+
 	const openAsset = useCallback((asset: AssetView) => {
+		// Una acción tokenizada abre su ficha (precio, gráfico, comprar/vender y, desde ahí,
+		// enviar/recibir). Fuera de región la ficha se ve igual con comprar y vender
+		// deshabilitados; el enlace a la wallet sigue, porque el token es del usuario
+		if (asset.stock && asset.contract) {
+			navigation.navigate(ROUTES.XSTOCK_DETAIL, { mint: asset.contract })
+			return
+		}
 		navigation.navigate(ROUTES.WALLET_ASSET, { assetId: asset.id })
 	}, [navigation])
 
@@ -98,16 +112,17 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 	// Recibir exige el backup confirmado: sin él, perder el teléfono = perder lo recibido
 	const requireBackup = (next: () => void) => () => (isBackedUp ? next() : navigation.navigate(ROUTES.WALLET_BACKUP))
 
-	// Swap y P2P son del backend (exigen sesión): el modo wallet no los muestra
+	// P2P es de cuenta: el modo wallet no lo muestra. El swap sí, para todos: sin sesión la
+	// pantalla solo ofrece wallet ↔ wallet (el saldo QvaPay sale con la cuenta)
 	const accountActions: WalletAction[] = [
-		// Swap saldo ↔ QUSD: mueve saldo custodial a la wallet, así que exige el backup igual que Recibir
-		{ icon: 'arrows-rotate', testID: 'wallet-action-swap', label: t('crypto.wallet.home.actions.swap'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SWAP, undefined)) },
 		{ icon: 'arrow-right-arrow-left', testID: 'wallet-action-p2p', label: t('crypto.wallet.home.actions.p2p'), onPress: () => navigation.navigate(ROUTES.P2P_SCREEN) },
 	]
 
 	const actions: WalletAction[] = [
 		{ icon: 'paper-plane', testID: 'wallet-action-send', label: t('crypto.wallet.home.actions.send'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SEND, undefined)) },
 		{ icon: 'qrcode', testID: 'wallet-action-receive', label: t('crypto.wallet.home.actions.receive'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_RECEIVE, undefined)) },
+		// Exige el backup igual que Recibir: lo que entra del swap llega a esta wallet
+		{ icon: 'arrows-rotate', testID: 'wallet-action-swap', label: t('crypto.wallet.home.actions.swap'), onPress: requireBackup(() => navigation.navigate(ROUTES.WALLET_SWAP, undefined)) },
 		...(isAuthenticated ? accountActions : []),
 	]
 
@@ -135,6 +150,8 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 				loading={isLoading}
 				actions={actions}
 			/>
+
+			{!!tronControllers && <TronControlWarning controllers={tronControllers} />}
 
 			{/* Ganar: justo bajo la botonera, a la vista sin bajar hasta el final de la lista */}
 			{showEarn && (
@@ -171,16 +188,21 @@ const WalletHome = ({ refreshSignal = false }: { refreshSignal?: boolean }) => {
 			<View style={[styles.assetsCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 				{isLoading
 					? Array.from({ length: SKELETON_ROWS }, (_, i) => <AssetSkeleton key={i} theme={theme} />)
-					: visible.map((asset, index) => (
-						<WalletAssetRow
-							key={asset.id}
-							asset={asset}
-							prices={prices}
-							showBalance={showBalance}
-							isLast={index === visible.length - 1}
-							onPress={openAsset}
-						/>
-					))}
+					: visible.map((asset, index) => {
+						const stock = asset.stock && asset.contract ? stockShares(asset.contract, asset.rawAmount) : null
+						return (
+							<WalletAssetRow
+								key={asset.id}
+								asset={asset}
+								prices={prices}
+								stockShares={stock?.shares}
+								stockPrice={stock?.price}
+								showBalance={showBalance}
+								isLast={index === visible.length - 1}
+								onPress={openAsset}
+							/>
+						)
+					})}
 
 				<View style={[styles.footerRow, { borderTopColor: theme.colors.border + '60' }]}>
 					<QPPressable onPress={() => navigation.navigate(ROUTES.WALLET_MANAGE_ASSETS)} testID="wallet-home-manage" style={styles.manage} accessibilityRole="button">

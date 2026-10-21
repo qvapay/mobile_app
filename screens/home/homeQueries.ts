@@ -8,6 +8,7 @@ import { blogApi } from '../../api/blogApi'
 import { coinsApi } from '../../api/coinsApi'
 import { promoApi } from '../../api/promoApi'
 import { announcementApi } from '../../api/announcementApi'
+import { p2pApi } from '../../api/p2pApi'
 
 import { unwrap } from '../../api/unwrap'
 
@@ -53,6 +54,17 @@ export const useTransactionsQuery = () => useQuery({
 // arrastre el resto del feed a sus tests. Se re-exporta para los consumidores
 // del feed de Home.
 export { useQuickPayQuery } from '../../hooks/useQuickPayQuery'
+
+/**
+ * Ofertas P2P destacadas (promocionadas + últimas GOLD). El servidor las cachea 30 s, así que
+ * revalidar antes no trae nada nuevo. Un qpweb sin la ruta da 404 y la sección no sale.
+ */
+export const useHomeP2PQuery = () => useQuery({
+	queryKey: ['home', 'p2p'],
+	queryFn: async () => unwrap(await p2pApi.featured()),
+	staleTime: 30 * 1000,
+	placeholderData: previous => previous,
+})
 
 /** Últimas entradas del blog (WordPress). */
 export const useBlogQuery = () => useQuery({

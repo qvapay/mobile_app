@@ -11,6 +11,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { swapApi } from '../../../api/swapApi'
+import { useAuth } from '../../../auth/AuthContext'
 import { ApiError } from '../../../api/unwrap'
 import { useWallet } from '../../../wallet/WalletContext'
 import { addressForKind, isHouseToken } from '../../../wallet/assets'
@@ -24,6 +25,7 @@ export const SWAP_PAIRS_KEY = ['swap', 'pairs']
 export const useSwapPairs = () => {
 
 	const { addresses } = useWallet()
+	const { isAuthenticated } = useAuth()
 	const { all } = useWalletAssets()
 	const [pairId, setPairId] = useState<string | null>(null)
 
@@ -32,6 +34,8 @@ export const useSwapPairs = () => {
 		queryFn: async () => { const r = await swapApi.getPairs(); if (!r.success) throw new ApiError(r.error ?? 'swap', r.status); if (!r.data) throw new ApiError('swap'); return r.data },
 		staleTime: 30_000,
 		meta: { noPersist: true },
+		// Los pares mueven saldo custodial: sin sesión no hay nada que pedir
+		enabled: isAuthenticated,
 	})
 
 	const enabledPairs = useMemo(() => (query.data?.data ?? []).filter(p => p.enabled), [query.data])

@@ -80,7 +80,7 @@ export const useExchangeQuoteQuery = ({ fromAssetId, toAssetId, amount, balances
 	retry: shouldRetry,
 	// Cambiar de importe no debe vaciar la pantalla mientras llega la nueva
 	placeholderData: previous => previous,
-	// La congelación es efímera y con user_id dentro: persistirla sería guardar un precio muerto
+	// La congelación es efímera y atada a su dueño: persistirla sería guardar un precio muerto
 	meta: { noPersist: true },
 })
 

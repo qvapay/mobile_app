@@ -54,6 +54,13 @@ describe('linking config', () => {
 		expect(linking.config.screens[ROUTES.PAY_SCREEN]).toBe('pay/:uuid')
 	})
 
+	test('/p2p/promote abre el puesto promocionado (enlace de las pushes p2p_promo_*)', () => {
+		// El segmento fijo gana a `p2p/:p2p_uuid` en getStateFromPath (comprobado a mano: la
+		// suite no transforma @react-navigation, que es ESM)
+		expect(linking.config.screens[ROUTES.P2P_PROMOTE]).toBe('p2p/promote')
+		expect(ROUTES.P2P_PROMOTE).toBe('P2PPromote')
+	})
+
 	test('maps the home-screen widget shortcuts', () => {
 		expect(linking.config.screens[ROUTES.ADD]).toBe('add')
 		expect(linking.config.screens[ROUTES.WITHDRAW]).toBe('withdraw')

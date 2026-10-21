@@ -1,4 +1,4 @@
-import { useReducer, useState, useEffect, useMemo, useCallback } from "react"
+import { useReducer, useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Share } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -20,6 +20,11 @@ import {
 	isFlexibleOffer, isActiveOrder, findActiveOrder, findOrder, projectOrder, orderCancelKind,
 	checkTakeAmount, checkFlexibleEdit, availableReceive, takeBounds, fromCents,
 } from "./p2pFlexible"
+import {
+	myRatingOf, canRateOrder, canEditRating, orderCounterparty, buildRatePayload, buildEditPayload, classifyRateError,
+	toServerRating, fromEditResponse, applyOptimisticRating,
+} from "./p2pRating"
+import type { MyRating, RatingForm } from "./p2pRating"
 
 // Toast
 import { toast } from "sonner-native"
@@ -39,12 +44,11 @@ type OfferState = {
 	isLoading: boolean
 	error: string | null | undefined
 	refreshing: boolean
-	rating: number
 }
 
 type OfferAction = { [K in keyof OfferState]: { type: "set", field: K, value: OfferState[K] } }[keyof OfferState]
 
-const initialOffer: OfferState = { p2p: null, isLoading: false, error: null, refreshing: false, rating: 0 }
+const initialOffer: OfferState = { p2p: null, isLoading: false, error: null, refreshing: false }
 function offerReducer(state: OfferState, action: OfferAction): OfferState {
 	switch (action.type) {
 		case "set": return { ...state, [action.field]: action.value }
@@ -53,11 +57,11 @@ function offerReducer(state: OfferState, action: OfferAction): OfferState {
 }
 
 /** Un flag por acción de trade: dos botones nunca comparten spinner. */
-export type TradeActionLoading = { apply: boolean, cancel: boolean, received: boolean, markPaid: boolean }
+export type TradeActionLoading = { apply: boolean, cancel: boolean, received: boolean, markPaid: boolean, rate: boolean }
 
 type LoadingAction = { type: "set", field: keyof TradeActionLoading, value: boolean }
 
-const initialLoading: TradeActionLoading = { apply: false, cancel: false, received: false, markPaid: false }
+const initialLoading: TradeActionLoading = { apply: false, cancel: false, received: false, markPaid: false, rate: false }
 function loadingReducer(state: TradeActionLoading, action: LoadingAction): TradeActionLoading {
 	switch (action.type) {
 		case "set": return { ...state, [action.field]: action.value }
@@ -91,6 +95,28 @@ export type StatusMessage = { icon: string, text: string, color: string }
 
 /** Acción de trade pendiente de confirmación en el modal temático. */
 export type ConfirmModalAction = "cancel" | "dispute" | "markPaid" | "received"
+
+/** Trato que la hoja de valoración tiene abierto: una orden por rango, o la oferta fija (`order: null`). */
+export type RateTarget = {
+	order: string | null
+	/** `create` = POST; `edit` = PATCH sobre `mine`, dentro de su `editableUntil`. */
+	mode: "create" | "edit"
+	/** Mi valoración de ese trato (precarga la hoja en modo edición). */
+	mine: MyRating | null
+	/** Al crear: las estrellas que se tocaron para abrirla (0 = ninguna). */
+	initialRating: number
+	counterparty: P2PUser | null
+	amount: P2POffer["amount"]
+	receive: P2POffer["receive"]
+	coinName: string
+	/** Ya valorado (p. ej. el refetch trajo la valoración): la hoja de crear se oculta. */
+	rated: boolean
+}
+
+// Estados de un trato vivo: pasar de uno de ellos a `completed` delante del usuario pide valorarlo
+const LIVE_TRADE_STATUSES = ["processing", "paid", "revision"]
+// La hoja de valorar espera a que se cierre el modal de confirmar (dos <Modal> a la vez fallan en iOS)
+const RATE_PROMPT_DELAY_MS = 400
 
 const initialEdit: EditState = { show: false, amount: "", receive: "", message: "", onlyVip: false, loading: false, available: "", orderMin: "", orderMax: "" }
 function editReducer(state: EditState, action: EditAction): EditState {
@@ -127,28 +153,37 @@ function editReducer(state: EditState, action: EditAction): EditState {
  * overview (`isFlexibleOverview`): availability, range, the owner's order list,
  * and taking a part (`applyAmount`). Every trade action then carries `?order=`.
  *
+ * Rating: a fixed offer is rated whole (my row comes from `Ratings`); a range
+ * offer is rated per completed ORDER (`Orders[i].my_rating`), never the offer
+ * itself. The rating sheet (`rateSheet`) pops up once per deal on its own after
+ * releasing, when arriving from a "deal closed" push (`promptRate`), or when the
+ * deal turns `completed` while the viewer is on screen.
+ *
  * @param params.p2p_uuid - Offer UUID (from the route / deep link).
  * @param params.orderUuid - Order UUID of a range offer (route param / push), if any.
+ * @param params.promptRate - Route `rate` param (push of a closed deal): open the rating sheet once it can be rated.
  * @param params.user - Authenticated user (uuid + balance) for role flags and edit validation.
  * @param params.navigation - React Navigation object (peer profile pushes).
  * @param params.fetchChat - From useP2PChat: full chat refetch, used by the 5s poll and pull-to-refresh.
  * @param params.chatStreamLiveRef - Ref mirroring the SSE connected state (shared with useP2PChatSSE as `connectedRef`).
  * @returns Offer API for the screen:
- *   state — `p2p`, `isLoading`, `error`, `refreshing`, `rating`;
+ *   state — `p2p`, `isLoading`, `error`, `refreshing`;
  *   derived — `isOwner`, `isPeer`, `isPayer`, `isReceiver`, `status`, `counterparty`,
- *   `canCancel`, `canMarkPaid`, `canConfirmReceived`, `canRatePeer`, `markedAsPaid`,
+ *   `canCancel`, `canMarkPaid`, `canConfirmReceived`, `canRatePeer`, `myRating`, `markedAsPaid`,
  *   `canApply`, `statusMessage`, `peerStats`, `peerReviewsCount`, `isUserOnline`;
  *   per-action `loading` flags; `txIdInput`/`setTxIdInput` (mark-paid tx id);
  *   `showApplyConfirm`/`setShowApplyConfirm` and `edit`/`setEdit` modal state;
  *   `confirmModal`/`closeConfirmModal`/`confirmModalAction` — the themed
  *   confirmation flow for cancel/mark-paid/release (handlers only open it);
+ *   `rateTarget`/`openRateSheet`/`closeRateSheet`/`submitRate` — the rating sheet;
  *   actions — `onRefresh`, `openPeerProfile`, `handleCancel`, `handleMarkPaid`,
  *   `handleConfirmReceived`, `handleApply`, `handleApplyConfirm`, `handleShareIntent`,
- *   `openEditModal`, `handleEdit`, `handleRate`.
+ *   `openEditModal`, `handleEdit`.
  */
-export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, navigation, fetchChat, chatStreamLiveRef }: {
+export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, promptRate = false, user, navigation, fetchChat, chatStreamLiveRef }: {
 	p2p_uuid: string
 	orderUuid?: string | null
+	promptRate?: boolean
 	user: User | null
 	navigation: NavigationProp<RootStackParamList>
 	fetchChat: () => void | Promise<void>
@@ -163,10 +198,9 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 	const [offer, dispatchOffer] = useReducer(offerReducer, initialOffer)
 	// `rawP2p` = la oferta tal cual llega; `p2p` (abajo) = la que pinta la pantalla,
 	// que en una oferta por rango con orden seleccionada es la proyección de la orden
-	const { p2p: rawP2p, isLoading, error, refreshing, rating } = offer
+	const { p2p: rawP2p, isLoading, error, refreshing } = offer
 	// Stable setters (dispatch is stable) so the fetch helpers below can be memoized.
 	const setP2p = useCallback((v: P2POffer | null) => dispatchOffer({ type: "set", field: "p2p", value: v }), [])
-	const setRating = useCallback((v: number) => dispatchOffer({ type: "set", field: "rating", value: v }), [])
 
 	const [loading, dispatchLoading] = useReducer(loadingReducer, initialLoading)
 	const setLoading = (field: keyof TradeActionLoading, value: boolean) => dispatchLoading({ type: "set", field, value })
@@ -202,14 +236,13 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 				// El detalle llega pelado o envuelto en `{ p2p }` (P2PShowPayload)
 				const payload = ((response.data as { p2p?: P2POffer } | undefined)?.p2p || response.data) as P2POffer | null
 				setP2p(payload)
-				setRating(payload?.rating || 0)
 				// Save fresh data to cache
 				try { await AsyncStorage.setItem(cacheKey, JSON.stringify(payload)) } catch { /* ignore */ }
 			} else { dispatchOffer({ type: "set", field: "error", value: response.error }) }
 		} catch (err) {
 			dispatchOffer({ type: "set", field: "error", value: (err as Error).message })
 		} finally { dispatchOffer({ type: "set", field: "isLoading", value: false }) }
-	}, [p2p_uuid, setP2p, setRating])
+	}, [p2p_uuid, setP2p])
 
 	// Load P2P data with cache-first strategy
 	const loadP2PData = useCallback(async () => {
@@ -218,14 +251,12 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 		try {
 			const cachedData = await AsyncStorage.getItem(cacheKey)
 			if (cachedData) {
-				const parsed = JSON.parse(cachedData) as P2POffer
-				setP2p(parsed)
-				setRating(parsed?.rating || 0)
+				setP2p(JSON.parse(cachedData) as P2POffer)
 			}
 		} catch { /* ignore */ }
 		// Step 2: Fetch fresh data from server
 		await fetchP2P()
-	}, [p2p_uuid, fetchP2P, setP2p, setRating])
+	}, [p2p_uuid, fetchP2P, setP2p])
 
 	// Load on mount (and reload if the offer being viewed changes)
 	useEffect(() => {
@@ -251,6 +282,11 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 	// Un taker solo recibe SUS órdenes, y el backend le permite una viva por oferta
 	const myActiveOrder = isFlexible && !isOfferOwner ? findActiveOrder(rawP2p?.Orders) : null
 	const selectedOrderUuid = explicitOrder !== undefined ? explicitOrder : (myActiveOrder?.uuid ?? null)
+	// La orden elegida sola se fija: al completarse deja de ser "viva" y, sin esto,
+	// la pantalla saltaría a la vista de la oferta justo cuando toca valorarla
+	useEffect(() => {
+		if (explicitOrder === undefined && myActiveOrder?.uuid) setExplicitOrder(myActiveOrder.uuid)
+	}, [explicitOrder, myActiveOrder?.uuid])
 	// Si la orden aún no llegó en `Orders` (push antes del refetch) se ve la oferta
 	const selectedOrder: P2POrder | null = isFlexible ? findOrder(rawP2p, selectedOrderUuid) : null
 	const isFlexibleOverview = isFlexible && !selectedOrder
@@ -327,8 +363,15 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 	const canMarkPaid = isPayer && status === "processing"
 	// En una orden en disputa quien recibe el fiat puede liberar igualmente
 	const canConfirmReceived = isReceiver && (status === "paid" || status === "processing" || (!!selectedOrder && status === "revision"))
-	// El rating es por oferta fixed: las órdenes por rango no se califican (sin ruta en qpweb)
-	const canRatePeer = p2p?.status === "completed" && !isFlexible
+	// Valoración: una fija se valora entera (mi fila de `Ratings`); por rango, cada ORDEN
+	// completada (`my_rating`). La oferta por rango en sí nunca: su `completed` solo
+	// significa que ya no queda monto
+	const myRating: MyRating | null = useMemo(() => (isFlexible ? (selectedOrder ? myRatingOf(rawP2p, selectedOrder) : null) : myRatingOf(rawP2p, null)), [isFlexible, rawP2p, selectedOrder])
+	const canRatePeer = isFlexible
+		? canRateOrder(rawP2p, selectedOrder, user?.uuid)
+		: status === "completed" && (isOwner || isPeer) && !!counterparty?.uuid && !myRating
+	// Editar: solo quien valoró y dentro de su plazo (lo fija el backend en `editable_until`)
+	const canEditMyRating = canEditRating(myRating)
 	const markedAsPaid = p2p?.status === "paid"
 
 	// Contextual status message
@@ -363,6 +406,131 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 		navigation.dispatch({ type: "PUSH", payload: { name: ROUTES.P2P_OFFER_SCREEN, params: { p2p_uuid, order: uuid } } })
 	}
 	const backToOffer = () => setExplicitOrder(null)
+
+	// ── Rating sheet ─────────────────────────────────────────────────────────
+	// `order: null` = la oferta fija entera; string = esa orden por rango
+	const [rateSheet, setRateSheet] = useState<{ order: string | null, mode: "create" | "edit", stars?: number } | null>(null)
+	const rateInFlightRef = useRef(false)
+	const promptedRef = useRef<Set<string>>(new Set())
+	const promptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+	useEffect(() => () => { if (promptTimerRef.current) clearTimeout(promptTimerRef.current) }, [])
+
+	// Sin valoración propia se crea; con ella, se edita mientras su plazo siga abierto
+	// (vencido, no se abre nada: las estrellas quedan de solo lectura)
+	const openRateSheet = (order: string | null = selectedOrder?.uuid ?? null, stars?: number) => {
+		if (!rawP2p) return
+		const ord = order ? findOrder(rawP2p, order) : null
+		if (order && !ord) return
+		const mine = myRatingOf(rawP2p, ord)
+		if (!mine) { setRateSheet({ order, mode: "create", stars }); return }
+		if (canEditRating(mine)) setRateSheet({ order, mode: "edit" })
+	}
+	const closeRateSheet = () => { if (!rateInFlightRef.current) setRateSheet(null) }
+
+	// Abre la hoja sola UNA vez por trato (tras liberar, desde una push o al verlo completarse)
+	const promptRateOnce = useCallback((order: string | null) => {
+		const key = `${p2p_uuid}:${order ?? "offer"}`
+		if (promptedRef.current.has(key)) return
+		promptedRef.current.add(key)
+		if (promptTimerRef.current) clearTimeout(promptTimerRef.current)
+		promptTimerRef.current = setTimeout(() => setRateSheet({ order, mode: "create" }), RATE_PROMPT_DELAY_MS)
+	}, [p2p_uuid])
+
+	// Push de un trato cerrado (`rate`): en cuanto llega el detalle y se puede valorar
+	const promptOrder = selectedOrder?.uuid ?? null
+	useEffect(() => {
+		if (promptRate && canRatePeer) promptRateOnce(promptOrder)
+	}, [promptRate, canRatePeer, promptOrder, promptRateOnce])
+
+	// El trato pasa a `completed` delante del usuario (el otro liberó): pedir la valoración.
+	// Con la app delante la push solo sale como toast, así que esto cubre a quien mira
+	const lastSeenRef = useRef<{ key: string, status: string } | null>(null)
+	const seenKey = isFlexibleOverview ? null : (promptOrder ?? "offer")
+	const seenStatus = p2p?.status
+	useEffect(() => {
+		const prev = lastSeenRef.current
+		lastSeenRef.current = seenKey && seenStatus ? { key: seenKey, status: seenStatus } : null
+		if (!prev || prev.key !== seenKey || !LIVE_TRADE_STATUSES.includes(prev.status)) return
+		if (seenStatus === "completed" && canRatePeer) promptRateOnce(promptOrder)
+	}, [seenKey, seenStatus, canRatePeer, promptOrder, promptRateOnce])
+
+	// Lo que pinta la hoja: contraparte y montos del trato abierto
+	const rateTarget = useMemo<RateTarget | null>(() => {
+		if (!rateSheet || !rawP2p) return null
+		const coinName = rawP2p.Coin?.name || rawP2p.coin
+		if (rateSheet.order) {
+			const ord = findOrder(rawP2p, rateSheet.order)
+			if (!ord) return null
+			const mine = myRatingOf(rawP2p, ord)
+			return { order: ord.uuid, mode: rateSheet.mode, mine, initialRating: rateSheet.stars ?? 0, counterparty: orderCounterparty(rawP2p, ord, isOfferOwner), amount: ord.amount, receive: ord.receive, coinName, rated: !!mine }
+		}
+		const mine = myRatingOf(rawP2p, null)
+		return { order: null, mode: rateSheet.mode, mine, initialRating: rateSheet.stars ?? 0, counterparty: (isOfferOwner ? rawP2p.Peer : rawP2p.User) ?? null, amount: rawP2p.amount, receive: rawP2p.receive, coinName, rated: !!mine }
+	}, [rateSheet, rawP2p, isOfferOwner])
+
+	// Enviar la valoración. El ref bloquea el doble toque: el servidor no tiene
+	// restricción única y dos envíos a la vez guardarían dos valoraciones
+	const submitRate = async (form: RatingForm) => {
+		if (!rawP2p || !rateSheet || rateInFlightRef.current) return
+		if (rateSheet.mode === "edit") { await submitRatingEdit(form); return }
+		const order = rateSheet.order
+		const payload = buildRatePayload(form, order)
+		if (!payload) return
+		rateInFlightRef.current = true
+		setLoading("rate", true)
+		try {
+			const res = await p2pApi.rateOffer(rawP2p.uuid, payload)
+			if (res.success) {
+				setP2p(applyOptimisticRating(rawP2p, order, toServerRating(payload, res.data)))
+				toast.success(t('p2p.rating.toasts.sent'))
+				setRateSheet(null)
+				refetchP2P()
+				if (payload.rating === 5) { setTimeout(() => { maybeRequestReview() }, 1500) }
+				return
+			}
+			const kind = classifyRateError(res)
+			// Ya valorado (doble envío, otra pantalla, la web): no es un error, se refresca y listo
+			if (kind === "alreadyRated") { setRateSheet(null); refetchP2P(); return }
+			if (kind === "notCompleted" || kind === "notFound") { setRateSheet(null); refetchP2P() }
+			toast.error(t('p2p.rating.toasts.failed'), { description: String(res.error || "") })
+		} catch (e) {
+			toast.error(t('p2p.common.errorTitle'), { description: (e as Error).message })
+		} finally {
+			rateInFlightRef.current = false
+			setLoading("rate", false)
+		}
+	}
+
+	// Cambiar mi valoración (PATCH): solo viaja lo que cambió. Plazo vencido o valoración que
+	// ya no existe: se refresca (las estrellas vuelven a solo lectura) y se dice por qué
+	const submitRatingEdit = async (form: RatingForm) => {
+		if (!rawP2p || !rateSheet) return
+		const order = rateSheet.order
+		const mine = myRatingOf(rawP2p, order ? findOrder(rawP2p, order) : null)
+		if (!mine) { setRateSheet(null); return }
+		const payload = buildEditPayload(mine, form, order)
+		if (!payload) { setRateSheet(null); return }
+		rateInFlightRef.current = true
+		setLoading("rate", true)
+		try {
+			const res = await p2pApi.editRating(rawP2p.uuid, payload)
+			if (res.success) {
+				if (res.data) setP2p(applyOptimisticRating(rawP2p, order, fromEditResponse(res.data)))
+				toast.success(t('p2p.rating.toasts.updated'))
+				setRateSheet(null)
+				refetchP2P()
+				return
+			}
+			const kind = classifyRateError(res)
+			if (kind === "editExpired" || kind === "notFound" || kind === "notCompleted") { setRateSheet(null); refetchP2P() }
+			toast.error(t('p2p.rating.toasts.updateFailed'), { description: String(res.error || "") })
+		} catch (e) {
+			toast.error(t('p2p.common.errorTitle'), { description: (e as Error).message })
+		} finally {
+			rateInFlightRef.current = false
+			setLoading("rate", false)
+		}
+	}
 
 	// Refresh handler for pull-to-refresh
 	const onRefresh = async () => {
@@ -408,11 +576,16 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 	}
 
 	const doConfirmReceived = async () => {
+		// La orden se captura ANTES: tras liberar deja de estar viva y la selección cambiaría
+		const order = selectedOrder?.uuid ?? null
 		try {
 			setLoading("received", true)
-			const res = await p2pApi.confirmReceived(p2p!.uuid, selectedOrder?.uuid)
+			const res = await p2pApi.confirmReceived(p2p!.uuid, order ?? undefined)
 			if (res.success) {
 				toast.success(t('p2p.offer.toasts.received'))
+				if (order) setExplicitOrder(order)
+				// Quien libera valora en el acto (como en la web)
+				promptRateOnce(order)
 				refetchP2P()
 			} else { toast.error(t('p2p.offer.toasts.confirmFailed'), { description: String(res.error || "") }) }
 		} catch (e) { toast.error(t('p2p.common.errorTitle'), { description: (e as Error).message }) }
@@ -600,34 +773,15 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 		} finally { setEdit("loading", false) }
 	}
 
-	// Rate peer
-	const handleRate = async (newRating: number) => {
-		try {
-			setRating(newRating)
-			const res = await p2pApi.rateOffer(p2p_uuid, { rating: newRating })
-			if (res.success) {
-				toast.success(t('p2p.offer.toasts.rated'))
-				refetchP2P()
-				if (newRating === 5) { setTimeout(() => { maybeRequestReview() }, 1500) }
-			} else {
-				toast.error(t('p2p.offer.toasts.rateFailed'), { description: String(res.error || "") })
-				setRating(p2p?.rating || 0)
-			}
-		} catch (err) {
-			toast.error(t('p2p.common.errorTitle'), { description: (err as Error).message })
-			setRating(p2p?.rating || 0)
-		}
-	}
-
 	return {
 		// offer state (`p2p` = lo que se pinta; `rawP2p` = la oferta madre tal cual)
-		p2p, rawP2p, isLoading, error, refreshing, rating,
+		p2p, rawP2p, isLoading, error, refreshing,
 		// range offers
 		isFlexible, isFlexibleOverview, selectedOrder, flexibleLocked, canBackToOffer,
 		applyAmount, setApplyAmount, openOrder, backToOffer,
 		// derived
 		isOwner, isPeer, isPayer, isReceiver, status, counterparty,
-		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, markedAsPaid,
+		canCancel, canDispute, canMarkPaid, canConfirmReceived, canRatePeer, myRating, canEditMyRating, markedAsPaid,
 		canApply, statusMessage, peerStats, peerReviewsCount, isUserOnline,
 		// loading flags
 		loading,
@@ -639,8 +793,10 @@ export default function useP2POfferDetail({ p2p_uuid, orderUuid = null, user, na
 		confirmModal, closeConfirmModal, confirmModalAction,
 		// edit modal
 		edit, setEdit,
+		// rating sheet
+		rateTarget, openRateSheet, closeRateSheet, submitRate,
 		// actions
 		onRefresh, openPeerProfile, handleCancel, handleDispute, handleMarkPaid, handleConfirmReceived,
-		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit, handleRate,
+		handleApply, handleApplyConfirm, handleShareIntent, openEditModal, handleEdit,
 	}
 }

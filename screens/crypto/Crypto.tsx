@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import type { ImageStyle, LayoutChangeEvent, RefreshControlProps, TextStyle, ViewStyle } from 'react-native'
@@ -9,9 +9,14 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useTheme } from '../../theme/ThemeContext'
 import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
-// Data (React Query: cuatro fuentes en paralelo, persistidas por separado)
+// Data (React Query)
 import { useCryptoDashboard } from './cryptoQueries'
 import WalletHome from './wallet/WalletHome'
+
+// Acciones tokenizadas (xStocks): la pestaña Stocks pasa a ser comprable cuando la región lo permite
+import { useXStockPortfolio, useXStocksAvailability } from './stocks/xstocksQueries'
+import { sortByLiquidity } from './stocks/xstocksModel'
+import { RegionNotice, StockRow } from './stocks/components/StockParts'
 
 // Routes
 import { ROUTES } from '../../routes'
@@ -23,11 +28,9 @@ import QPSkeleton from '../../ui/particles/QPSkeleton'
 import QPCoin from '../../ui/particles/QPCoin'
 import Sparkline from '../../ui/Sparkline'
 import { createHiddenRefreshControl } from '../../ui/QPRefreshIndicator'
-import QPSvgUri from '../../ui/particles/QPSvgUri'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
-import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
 // Tipos
 import type { CompositeScreenProps } from '@react-navigation/native'
@@ -116,18 +119,12 @@ const MarketTabs = ({ value, onChange, theme }: MarketTabsProps) => {
 	)
 }
 
-/**
- * Fila del explorador: sirve tanto a una cripto enriquecida como a un stock,
- * así que su forma es la UNIÓN de los campos que ambas superficies traen.
- */
+/** Fila del explorador: una cripto enriquecida (los campos que pinta). */
 type ExploreRowItem = {
 	tick: string
 	name?: string
 	price?: string | number
 	change?: number
-	icon?: string
-	iconStyle?: string
-	image?: string | null
 	priceHistory?: { value: number }[]
 }
 
@@ -136,10 +133,9 @@ type ExploreRowProps = {
 	theme: Theme
 	textStyles: TextStyles
 	isLast: boolean
-	isCrypto: boolean
 }
 
-const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowProps) => {
+const ExploreRow = ({ item, theme, textStyles, isLast }: ExploreRowProps) => {
 
 	const price = Number(item.price || 0)
 	const change = item.change || 0
@@ -148,29 +144,16 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowPro
 	
 	return (
 		<View style={[styles.itemRow, !isLast && styles.itemBorder(theme)]}>
-			{isCrypto ? (
-				<QPCoin coin={item.tick} size={36} />
-			) : item.image ? (
-				<View style={[styles.stockIcon, { backgroundColor: theme.colors.primary + '12' }]}>
-					<QPSvgUri uri={item.image} width={22} height={22} color={theme.colors.primary} />
-				</View>
-			) : (
-				<View style={[styles.stockIcon, { backgroundColor: theme.colors.primary + '12' }]}>
-					{/* Los stocks traen icono y estilo como strings sueltos del backend: casts locales para casar con la unión discriminada de FontAwesome6 */}
-					<FontAwesome6 name={item.icon as FontAwesome6SolidIconName} size={16} color={theme.colors.primary} iconStyle={item.iconStyle as 'solid'} />
-				</View>
-			)}
+			<QPCoin coin={item.tick} size={36} />
 			<View style={styles.itemInfo}>
 				<Text style={[textStyles.h4, styles.itemName]}>{item.name}</Text>
 				<Text style={[styles.itemSub, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>{item.tick}</Text>
 			</View>
-			{isCrypto && (
-				<View style={styles.sparklineContainer}>
-					{(item.priceHistory?.length as number) > 1 && (
-						<Sparkline data={item.priceHistory} width={60} height={24} color={trendColor} />
-					)}
-				</View>
-			)}
+			<View style={styles.sparklineContainer}>
+				{(item.priceHistory?.length as number) > 1 && (
+					<Sparkline data={item.priceHistory} width={60} height={24} color={trendColor} />
+				)}
+			</View>
 			<View style={styles.priceCol}>
 				<Text style={[textStyles.h4, styles.itemPrice]}>
 					${price >= 1
@@ -194,12 +177,11 @@ const ExploreRow = ({ item, theme, textStyles, isLast, isCrypto }: ExploreRowPro
 // --- Main Component ---
 
 /**
- * Crypto tab: home de la wallet self-custody (flag) arriba y, al final, el
- * explorador de precios (cripto populares + stocks). Las medias del mercado
- * P2P viven ahora en el tab P2P (botón del header → P2PMarketModal). Los
- * datos del explorador viven en React Query (`useCryptoDashboard`).
- * El ahorro ya no vive aquí (se llega desde el BalanceCard del Home). Rows
- * navigate to StockDetail / CoinDetail (with `initialData` for instant paint).
+ * Crypto tab: home de la wallet self-custody arriba y, al final, los mercados:
+ * Cripto (las populares, de `useCryptoDashboard`) y Stocks (las xStocks). Las
+ * medias del mercado P2P viven en el tab P2P (botón del header → P2PMarketModal)
+ * y el ahorro se abre desde el BalanceCard del Home. Una cripto abre CoinDetail
+ * (con `initialData` para pintar al instante) y una acción, XStockDetail.
  */
 const Crypto = ({ navigation }: CryptoProps) => {
 
@@ -208,12 +190,19 @@ const Crypto = ({ navigation }: CryptoProps) => {
 	const containerStyles = useContainerStyles(theme)
 	const textStyles = useTextStyles(theme)
 
-	const { coins, stocks, isLoading, refreshing, onRefresh } = useCryptoDashboard()
+	const { coins, isLoading, refreshing, onRefresh } = useCryptoDashboard()
 	const [market, setMarket] = useState<MarketKey>('crypto')
 
-	// La lista mezcla criptos enriquecidas y stocks: se lee por la forma común
-	// (ExploreRowItem) — cast local, la pestaña activa decide qué campos hay
-	const exploreItems = (market === 'crypto' ? coins.slice(0, 5) : stocks) as ExploreRowItem[]
+	// La pestaña Stocks son exactamente las xStocks que ofrecemos (las fijadas en código), en
+	// región o no: fuera se ven, con el aviso, pero comprar y vender quedan deshabilitados
+	const { available: xstocksAvailable, isLoading: xstocksChecking } = useXStocksAvailability()
+	const showXStocks = market === 'stocks'
+	// Solo se cotiza con la pestaña Stocks a la vista: Jupiter cada 20 s si no
+	const { positions: xstockPositions } = useXStockPortfolio({ enabled: showXStocks })
+	const xstocksList = useMemo(() => sortByLiquidity(xstockPositions), [xstockPositions])
+
+	// Pestaña Cripto: las cinco populares (cast local a la forma de ExploreRow)
+	const exploreItems = coins.slice(0, 5) as ExploreRowItem[]
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -230,30 +219,32 @@ const Crypto = ({ navigation }: CryptoProps) => {
 				{/* Mercados: Cripto · Stocks (y pronto RWA) */}
 				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && styles.cardBorder(theme)]}>
 					<MarketTabs value={market} onChange={setMarket} theme={theme} />
-					{exploreItems.map((item, i) => {
-						const isStock = market === 'stocks'
+					{showXStocks && (
+						<>
+							{!xstocksAvailable && !xstocksChecking && <View style={styles.regionNotice}><RegionNotice theme={theme} /></View>}
+							{xstocksList.map((position, i) => (
+								<StockRow
+									key={position.stock.mint}
+									position={position}
+									theme={theme}
+									showShares={false}
+									isLast={i === xstocksList.length - 1}
+									onPress={() => navigation.navigate(ROUTES.XSTOCK_DETAIL, { mint: position.stock.mint })}
+								/>
+							))}
+							<Pressable onPress={() => navigation.navigate(ROUTES.STOCKS_HOME)} style={styles.seeAll} hitSlop={6} accessibilityRole="button">
+								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.semiBold }}>{t('crypto.xstocks.openHome')}</Text>
+							</Pressable>
+						</>
+					)}
+					{!showXStocks && exploreItems.map((item, i) => {
 						const rowProps = {
 							item,
 							theme,
 							textStyles,
 							isLast: i === exploreItems.length - 1,
-							isCrypto: !isStock,
 						}
-						return isStock ? (
-							<Pressable
-								key={item.tick}
-								onPress={() => navigation.navigate(ROUTES.STOCK_DETAIL_SCREEN, {
-									symbol: item.tick,
-									name: item.name,
-									icon: item.icon,
-									iconStyle: item.iconStyle,
-									image: item.image,
-									initialData: item as unknown as Record<string, unknown>,
-								})}
-							>
-								<ExploreRow {...rowProps} />
-							</Pressable>
-						) : (
+						return (
 							<Pressable
 								key={item.tick}
 								onPress={() => navigation.navigate(ROUTES.COIN_DETAIL_SCREEN, {
@@ -266,8 +257,8 @@ const Crypto = ({ navigation }: CryptoProps) => {
 							</Pressable>
 						)
 					})}
-					{isLoading && [0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={44} borderRadius={10} style={styles.exploreSkeleton} />)}
-					{!isLoading && exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
+					{!showXStocks && isLoading && [0, 1, 2].map(i => <QPSkeleton key={i} width="100%" height={44} borderRadius={10} style={styles.exploreSkeleton} />)}
+					{!showXStocks && !isLoading && exploreItems.length === 0 && <Text style={[styles.emptyText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>{t('crypto.dashboard.empty')}</Text>}
 				</View>
 
 			</ScrollView>
@@ -313,6 +304,15 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	itemPrice: {
 		textAlign: 'right',
 	},
+	seeAll: {
+		alignItems: 'center',
+		paddingTop: 12,
+		paddingBottom: 4,
+	},
+	regionNotice: {
+		marginTop: 10,
+		marginBottom: 4,
+	},
 	// Mercados
 	tabs: {
 		flexDirection: 'row',
@@ -334,14 +334,6 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	priceCol: {
 		width: 100,
 		alignItems: 'flex-end',
-	},
-	// Stocks
-	stockIcon: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		justifyContent: 'center',
-		alignItems: 'center',
 	},
 	sparklineContainer: {
 		width: 60,

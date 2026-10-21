@@ -10,6 +10,7 @@ jest.mock('./client', () => ({
 	apiClient: {
 		get: jest.fn(),
 		post: jest.fn(),
+		patch: jest.fn(),
 	},
 }))
 
@@ -51,7 +52,18 @@ describe('p2pApi.index', () => {
 			per_page: 25,
 			total: 51,
 			offers: indexResponse.data.data,
+			promoted: null,
 		})
+	})
+
+	test('passes the promoted spot of the pair through (it also stays inside `offers`)', async () => {
+		const promoted = { slot: { coin: 'BANK_CUP', offer_type: 'sell', state: 'held' }, offer: { uuid: 'offer-2' } }
+		apiClient.get.mockResolvedValue({ status: 200, data: { ...indexResponse.data, promoted } })
+
+		const result = await p2pApi.index({ coin: 'BANK_CUP', type: 'sell' })
+
+		expect(result.promoted).toBe(promoted)
+		expect(result.offers.map(o => o.uuid)).toEqual(['offer-1', 'offer-2'])
 	})
 
 	test('serializes every supported filter into the query string', async () => {
@@ -446,12 +458,21 @@ describe('p2pApi.rateOffer', () => {
 		expect(result).toEqual({ success: true, data: { ok: true }, status: 200 })
 	})
 
-	test('surfaces the API error on failure', async () => {
-		apiClient.post.mockRejectedValue(apiError(409, { error: 'Ya calificaste esta oferta' }))
+	test('a range-offer order travels in the body', async () => {
+		apiClient.post.mockResolvedValue({ data: { message: 'Rating created', rating: 5 }, status: 200 })
 
-		const result = await p2pApi.rateOffer('abc-123', { rating: 5 })
+		await p2pApi.rateOffer('abc-123', { rating: 5, tags: ['rapido'], order: 'ord-1' })
 
-		expect(result).toEqual({ success: false, error: 'Ya calificaste esta oferta', status: 409 })
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/abc-123/rate', { rating: 5, tags: ['rapido'], order: 'ord-1' })
+	})
+
+	test('surfaces the API error with its code in details', async () => {
+		const body = { error: 'Ya has calificado esta orden', code: 'ALREADY_RATED' }
+		apiClient.post.mockRejectedValue(apiError(400, body))
+
+		const result = await p2pApi.rateOffer('abc-123', { rating: 5, order: 'ord-1' })
+
+		expect(result).toEqual({ success: false, error: 'Ya has calificado esta orden', details: body, status: 400 })
 	})
 })
 
@@ -572,5 +593,70 @@ describe('ofertas por rango', () => {
 		apiClient.get.mockResolvedValue({ data: { data: [], current_page: 1, per_page: 50, total: 0 } })
 		await p2pApi.index({ offer_kind: 'fixed' })
 		expect(apiClient.get).toHaveBeenCalledWith('/p2p/index?offer_kind=fixed')
+	})
+})
+
+describe('puesto promocionado', () => {
+
+	test('promoState pide los dos puestos de la moneda sin la barra de carga', async () => {
+		const data = { coin: 'BANK_CUP', enabled: true, slots: [], rules: null, eligibility: { ok: true, missing: [] } }
+		apiClient.get.mockResolvedValue({ status: 200, data: { data } })
+
+		const result = await p2pApi.promoState('BANK CUP')
+
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/promo?coin=BANK%20CUP', { silent: true })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
+	test('featured pide las ofertas destacadas del Home sin la barra de carga', async () => {
+		const data = { promoted: [{ uuid: 'promo-1' }], offers: [{ uuid: 'gold-1' }] }
+		apiClient.get.mockResolvedValue({ status: 200, data: { data } })
+
+		const result = await p2pApi.featured()
+
+		expect(apiClient.get).toHaveBeenCalledWith('/p2p/featured', { silent: true })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
+	test('promote manda la compra o puja con su clave de idempotencia', async () => {
+		const body = { data: { uuid: 'bid-1', kind: 'bid', status: 'held', amount: 27.5 }, action: 'bid', balance: 100 }
+		apiClient.post.mockResolvedValue({ status: 201, data: body })
+		const payload = { coin: 'BANK_CUP', offer_type: 'sell', amount: 27.5, idempotency_key: 'promo-12345678' }
+
+		const result = await p2pApi.promote(payload)
+
+		expect(apiClient.post).toHaveBeenCalledWith('/p2p/promo', payload)
+		expect(result).toEqual({ success: true, data: body, status: 201 })
+	})
+
+	test('un error de negocio llega con su code, el nuevo mínimo y el puesto vigente', async () => {
+		const body = { error: 'El precio cambió: ahora el mínimo es $30.25', code: 'PROMO_PRICE_CHANGED', min: 30.25, slot: { state: 'held', min_bid: 30.25 } }
+		apiClient.post.mockRejectedValue(apiError(409, body))
+
+		const result = await p2pApi.promote({ coin: 'BANK_CUP', offer_type: 'sell', amount: 27.5, idempotency_key: 'promo-12345678' })
+
+		expect(result).toEqual({ success: false, error: body.error, details: body, status: 409 })
+	})
+})
+
+describe('p2pApi.editRating', () => {
+
+	test('manda el PATCH con solo lo que cambia (y la orden en las por rango)', async () => {
+		const data = { message: 'Rating updated', rating: 4, comment: null, tags: ['confiable'], created_at: '2026-10-19T18:04:11.000Z', updated_at: '2026-10-20T09:12:40.000Z', editable_until: '2026-10-22T18:04:11.000Z' }
+		apiClient.patch.mockResolvedValue({ status: 200, data })
+
+		const result = await p2pApi.editRating('abc-123', { rating: 4, comment: null, order: 'ord-1' })
+
+		expect(apiClient.patch).toHaveBeenCalledWith('/p2p/abc-123/rate', { rating: 4, comment: null, order: 'ord-1' })
+		expect(result).toEqual({ success: true, data, status: 200 })
+	})
+
+	test('plazo vencido: 403 con su code en details', async () => {
+		const body = { error: 'El plazo para cambiar esta valoración terminó', code: 'RATING_EDIT_EXPIRED', editable_until: null }
+		apiClient.patch.mockRejectedValue(apiError(403, body))
+
+		const result = await p2pApi.editRating('abc-123', { rating: 2 })
+
+		expect(result).toEqual({ success: false, error: body.error, details: body, status: 403 })
 	})
 })

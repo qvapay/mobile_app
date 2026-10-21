@@ -11,6 +11,8 @@
 		"lightningDescription": "“{{description}}”",
 		"lightningExpires": " · expires in {{minutes}} min",
 		"kycGate": "Withdrawals over ${{amount}} require your identity to be verified. It's quick and you only do it once.",
+		"belowCoinMin": "The minimum withdrawal with {{coin}} is ${{amount}}",
+		"aboveCoinMax": "The maximum withdrawal with {{coin}} is ${{amount}}",
 		"toasts": {
 			"pinSent": {
 				"title": "PIN sent",
@@ -63,5 +65,48 @@
 		"useMyWallet": "Use my personal wallet",
 		"closeAccessibility": "Close and choose the destination again",
 		"exchangeWarning": "Use a personal wallet. We are not responsible for funds sent to exchanges or other third-party systems: they can hold, flag or reject your deposit."
+	},
+	"cashZones": {
+		"selectProvince": "Choose the province",
+		"selectMunicipality": "Choose the municipality",
+		"chooseProvinceFirst": "Choose the province first",
+		"etaHours": "{{min}}–{{max}} h",
+		"etaDays": "{{min}}–{{max}} days",
+		"pickPrompt": "Choose province and municipality to see fee, delivery time and minimum",
+		"deliveryIn": "Delivery in {{municipality}}, {{province}}",
+		"eta": "Delivery time: {{eta}}",
+		"charge": "Delivery charge: ${{amount}}",
+		"chargePct": "Delivery charge: {{pct}}% of the amount",
+		"minimum": "Minimum to deliver: ${{min}}",
+		"noHomeDeliveryNotice": "Home delivery is not available in this municipality: the recipient picks up the cash",
+		"cancelNotice": "Once assigned, the delivery can only be cancelled after {{days}} days",
+		"belowMin": "The minimum to deliver in {{municipality}} is ${{min}}",
+		"summary": {
+			"title": "Summary",
+			"baseFee": "Fee",
+			"deliveryCharge": "Delivery charge",
+			"totalFee": "Total fee",
+			"received": "You receive"
+		},
+		"loadError": "We couldn't load the delivery zones. Without them we can't work out the delivery fee.",
+		"agentContact": "An agent will call the recipient to arrange the delivery",
+		"chargeWithFlat": "Delivery charge: ${{amount}} (includes the ${{flat}} minimum fee)",
+		"picker": {
+			"provinceTitle": "Delivery province",
+			"municipalityTitle": "Municipalities in {{province}}",
+			"searchProvince": "Search province",
+			"searchMunicipality": "Search municipality",
+			"empty": "No destination matches your search",
+			"provinceSubtitle_one": "{{count}} municipality · from {{eta}}",
+			"provinceSubtitle_other": "{{count}} municipalities · from {{eta}}",
+			"pct": "+{{pct}}%",
+			"fromPct": "from +{{pct}}%",
+			"surcharge": "surcharge",
+			"capital": "Capital",
+			"homeDelivery": "home delivery",
+			"pickup": "recipient picks up",
+			"minimum": "min. ${{min}}",
+			"pickupFootnote": "Where there's no home delivery, the recipient picks up the cash."
+		}
 	}
 }

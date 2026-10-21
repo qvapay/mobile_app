@@ -108,21 +108,16 @@ export type RootStackParamList = {
 
 	// ── P2P ───────────────────────────────────────────────────────────────
 	/** `order`: orden de una oferta por rango (filas de la lista, push, `?order=` de la web). */
-	P2POffer: { p2p_uuid: string, order?: string }
+	/** `order`: una orden de una oferta por rango. `rate`: viene de una push de trato cerrado → abre la hoja de valoración. */
+	P2POffer: { p2p_uuid: string, order?: string, rate?: boolean }
 	/** `initialTab` está implementado en la pantalla pero ningún call site lo manda aún. */
 	P2PUser: { uuid: string, initialTab?: 'offers' | 'reviews' | 'stats' }
 	P2PCreate: undefined
+	/** Puesto promocionado: moneda y lado con los que abre (mercado, push `p2p_promo_*`, /p2p/promote?coin=&type=). */
+	P2PPromote: { coin?: string, type?: 'sell' | 'buy' } | undefined
 
 	// ── Crypto ────────────────────────────────────────────────────────────
 	Savings: { action?: 'deposit' | 'withdraw', savings?: Record<string, unknown> } | undefined
-	StockDetail: {
-		symbol: string
-		name?: string
-		icon?: string
-		iconStyle?: string
-		image?: unknown
-		initialData?: Record<string, unknown>
-	}
 	CoinDetail: { tick: string, name?: string, initialData?: Coin | EnrichedCoin }
 
 	// ── Wallet self-custody (branch crypto) ───────────────────────────────
@@ -157,6 +152,10 @@ export type RootStackParamList = {
 	/** Seguimiento de un intercambio cripto↔cripto. */
 	/** `sentTxid`: el depósito acaba de difundirse; el seguimiento no debe volver a pedirlo. */
 	WalletExchangeStatus: { uuid: string, sentTxid?: string }
+	/** Acciones tokenizadas (xStocks): portada, detalle por mint y compra/venta por importe. */
+	StocksHome: undefined
+	XStockDetail: { mint: string }
+	XStockTrade: { mint: string, side: 'buy' | 'sell' }
 	/** Ruta on-chain (LI.FI/Jupiter): se firma desde la wallet. `expectedOut` = lo que prometía la ruta elegida. */
 	WalletOnchainSwap: { quoteId: string, fromAssetId: string, toAssetId: string, amount: number, expectedOut: number | null, providerLabel: string, serviceFeeBps?: number }
 	WalletExchanges: undefined

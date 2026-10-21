@@ -1,5 +1,6 @@
 # Activo TRON sin cuenta: con actividad (historial público desde 2026-10-01; contra un qpweb
-# anterior sale la invitación a crear cuenta), sin swap ni energía, con explorador
+# anterior sale la invitación a crear cuenta), con swap (wallet ↔ wallet sin cuenta desde
+# 2026-10-15) y sin energía. El explorador solo ocupa el hueco cuando NO hay swap
 appId: com.qvapay
 env:
   PIN: "1234"
@@ -21,10 +22,13 @@ env:
     id: "asset-action-send"
 - assertVisible:
     id: "asset-action-receive"
-- assertVisible:
-    id: "asset-action-explorer"
+# Swap depende del catálogo del agregador, que llega después: hasta entonces se ve el explorador
+- extendedWaitUntil:
+    visible:
+      id: "asset-action-swap"
+    timeout: 15000
 - assertNotVisible:
-    id: "asset-action-swap"
+    id: "asset-action-explorer"
 - assertNotVisible:
     id: "asset-action-energy"
 - takeScreenshot: 02_asset_tron

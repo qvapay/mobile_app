@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useReducer } from 'react'
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
+import type { ReactNode } from 'react'
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, Keyboard, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -12,6 +13,8 @@ import QPInput from '../../../ui/particles/QPInput'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPCoin from '../../../ui/particles/QPCoin'
 import QPCoinPicker from '../../../ui/QPCoinPicker'
+import WithdrawAccountFields from '../../withdraw/WithdrawAccountFields'
+import CashZoneFields from '../../withdraw/CashZoneFields'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -22,14 +25,16 @@ import { toast } from 'sonner-native'
 // API
 import useCoins from '../../../hooks/useCoins'
 import { userApi } from '../../../api/userApi'
+import { useCashZonesQuery } from '../../withdraw/withdrawQueries'
 
 // Helpers
+import { keyFromFieldName } from '../../withdraw/withdrawFees'
+import { cashFieldNames, cashZoneModeFor, findZone, hasCashZoneFields } from '../../withdraw/cashZones'
 
 // Tipos
-import { isWalletFieldName } from '../../../helpers/addressHighlight'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import type { Coin } from '../../../types/domain'
+import type { Coin, CoinWorkingField } from '../../../types/domain'
 import type { SettingsStackParamList } from '../../../types/navigation'
 
 /** Detalle de un método guardado: el backend manda pares o mapa plano. */
@@ -71,9 +76,6 @@ type CreateAction =
 	| { type: 'setField', key: string, value: string }
 	| { type: 'setName', value: string }
 	| { type: 'setCreating', value: boolean }
-
-// Helpers
-const keyFromFieldName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 
 // Fetched resource (methods + coins + error) and the create-method wizard are two cohesive units
 function dataReducer(state: MethodsData, action: MethodsAction): MethodsData {
@@ -152,13 +154,24 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 	const { showCreate, showCoinPicker, selectedCoin, workingForm, paymentMethodName, creating } = create
 
 	// Derived working fields from selected coin
-	const workingFields = useMemo(() => {
+	const workingFields = useMemo<CoinWorkingField[]>(() => {
 		if (!selectedCoin || !selectedCoin.working_data) return []
 		try {
-			const raw = typeof selectedCoin.working_data === 'string' ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
-			return Array.isArray(raw) ? raw : []
+			const raw: unknown = typeof selectedCoin.working_data === 'string' ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
+			return Array.isArray(raw) ? raw as CoinWorkingField[] : []
 		} catch (e) { return [] }
 	}, [selectedCoin])
+
+	// Entrega de efectivo por zonas (USDCASH…): provincia y municipio se eligen de las zonas
+	// que cubre el servidor, igual que en el retiro. Un lugar escrito a mano que no casa con
+	// ninguna zona dejaba el método inservible al retirar (CASH_ZONE_UNAVAILABLE)
+	const { payload: cashPayload, status: cashZonesStatus, refetch: retryCashZones } = useCashZonesQuery(selectedCoin?.tick, hasCashZoneFields(workingFields))
+	const cashZonesPending = cashZonesStatus === 'loading' || cashZonesStatus === 'error'
+	const cashMode = useMemo(() => cashZoneModeFor(cashPayload, workingFields), [cashPayload, workingFields])
+	const { provinceField, municipalityField } = cashFieldNames(workingFields)
+	const provinceKey = provinceField ? keyFromFieldName(provinceField) : null
+	const municipalityKey = municipalityField ? keyFromFieldName(municipalityField) : null
+	const cashZone = cashMode && provinceKey && municipalityKey ? findZone(cashMode.zones, { province: workingForm[provinceKey], municipality: workingForm[municipalityKey] }) : null
 
 	// Fetch initial data
 	useEffect(() => {
@@ -223,6 +236,12 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 			}
 		}
 
+		// Las zonas pueden haber cambiado desde que se eligió el municipio
+		if (cashMode && !cashZone) {
+			toast.error(t('settings.paymentMethods.toasts.zoneRequired'))
+			return
+		}
+
 		try {
 
 			dispatchCreate({ type: 'setCreating', value: true })
@@ -274,6 +293,52 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 	// Loading
 	if (loading) { return (<QPLoader />) }
+
+	// Provincia + municipio: los selects de zonas o, mientras la tarifa no llega, la espera y
+	// el reintento — sin ella los campos de texto dejarían guardar cualquier lugar. Sin zonas
+	// para la moneda (o sin esos campos) se pintan los campos de siempre
+	let zoneSlot: { keys: string[], node: ReactNode } | null = null
+	if (provinceKey && municipalityKey) {
+		const keys = [provinceKey, municipalityKey]
+		if (cashMode) {
+			zoneSlot = {
+				keys,
+				node: (
+					<CashZoneFields
+						mode={cashMode}
+						province={workingForm[provinceKey] || ''}
+						municipality={workingForm[municipalityKey] || ''}
+						zone={cashZone}
+						charge={null}
+						belowMin={false}
+						// Cambiar de provincia invalida el municipio elegido
+						onChangeProvince={(value) => {
+							dispatchCreate({ type: 'setField', key: provinceKey, value })
+							dispatchCreate({ type: 'setField', key: municipalityKey, value: '' })
+						}}
+						onChangeMunicipality={(value) => dispatchCreate({ type: 'setField', key: municipalityKey, value })}
+						showNotice={false}
+						theme={theme}
+						textStyles={textStyles}
+					/>
+				),
+			}
+		} else if (cashZonesStatus === 'loading') {
+			zoneSlot = { keys, node: <ActivityIndicator style={styles.zonesLoading} color={theme.colors.primary} /> }
+		} else if (cashZonesStatus === 'error') {
+			zoneSlot = {
+				keys,
+				node: (
+					<View testID="cash-zones-error" style={[styles.zonesCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
+						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>{t('settings.paymentMethods.modal.zonesLoadError')}</Text>
+						<Pressable onPress={() => retryCashZones()} hitSlop={8} accessibilityRole="button" style={styles.zonesRetry}>
+							<Text style={[textStyles.caption, { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('common.actions.retry')}</Text>
+						</Pressable>
+					</View>
+				),
+			}
+		}
+	}
 
 	return (
 		<View style={containerStyles.subContainer}>
@@ -364,26 +429,17 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 								<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
 							</Pressable>
 
-							{/* Dynamic fields */}
+							{/* Dynamic fields: los mismos del retiro (selects como opciones, provincia y municipio por zonas) */}
 							{!!selectedCoin && workingFields.length > 0 && (
-								<View style={{ marginTop: 12 }}>
-									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.paymentMethods.modal.accountData')}</Text>
-									{workingFields.map((field) => {
-										const key = keyFromFieldName(field.name)
-										return (
-											<QPInput
-												key={key}
-												value={workingForm[key] || ''}
-												onChangeText={(text) => dispatchCreate({ type: 'setField', key, value: text })}
-												placeholder={field.name}
-												keyboardType={field.type === 'number' ? 'numeric' : 'default'}
-												style={{ marginVertical: 6 }}
-												autoCapitalize="none"
-												highlightAddress={isWalletFieldName(field.name)}
-											/>
-										)
-									})}
-								</View>
+								<WithdrawAccountFields
+									title={t('settings.paymentMethods.modal.accountData')}
+									workingFields={workingFields}
+									workingForm={workingForm}
+									onChangeField={(key, value) => dispatchCreate({ type: 'setField', key, value })}
+									slot={zoneSlot}
+									theme={theme}
+									textStyles={textStyles}
+								/>
 							)}
 
 						</ScrollView>
@@ -394,7 +450,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 								title={t('settings.paymentMethods.modal.saveButton')}
 								onPress={handleCreate}
 								loading={creating}
-								disabled={creating || !selectedCoin}
+								disabled={creating || !selectedCoin || cashZonesPending}
 								textStyle={{ color: theme.colors.buttonText }}
 							/>
 						</View>
@@ -430,6 +486,9 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 0.5,
 	},
 	closeButton: { padding: 5 },
+	zonesLoading: { marginVertical: 16 },
+	zonesCard: { marginVertical: 6, padding: 12, borderRadius: 12 },
+	zonesRetry: { alignSelf: 'flex-start', marginTop: 8 },
 	selector: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,

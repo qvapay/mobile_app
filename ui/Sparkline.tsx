@@ -16,7 +16,7 @@ type SparklineProps = {
 
 /**
  * Tiny SVG price sparkline with a gradient fill under the line, used by
- * WatchlistCard and the Invest/StockDetail screens. Values are normalized to
+ * WatchlistCard and the Crypto tab explorer. Values are normalized to
  * the series' own min/max, so it shows shape, not scale. Memoized (many render
  * at once in the watchlist grid) and renders nothing with fewer than 2 points.
  *

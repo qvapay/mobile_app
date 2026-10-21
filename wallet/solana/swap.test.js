@@ -19,6 +19,7 @@ import {
 	toBase64,
 	u64le,
 	TOKEN_PROGRAM,
+	TOKEN_2022_PROGRAM,
 } from './codec'
 import {
 	assembleInstructions,
@@ -151,6 +152,44 @@ describe('verificación estática', () => {
 
 	test('el wrap de SOL en un swap que sale de un token no pasa', () => {
 		expect(() => verifySwapInstructions(compile(buildSolToUsdc()), [TABLE], { ...INTENT, inputMint: USDC })).toThrow(/no sale de SOL/)
+	})
+})
+
+describe('xStocks (Token-2022)', () => {
+
+	const TSLAX = 'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB'
+	const tslaxAta = associatedTokenAddress(OWNER, TSLAX, TOKEN_2022_PROGRAM)
+	const STOCK_INTENT = { owner: OWNER, inputMint: USDC, outputMint: TSLAX, outputProgram: TOKEN_2022_PROGRAM, amountIn: 5_000_000n, minOut: 1_366_906n }
+	// USDC → TSLAx con la forma real de /swap-instructions (2026-10-14): solo crea la ATA Token-2022 de salida
+	const buildUsdcToTslax = (setup) => ({
+		instructions: {
+			computeBudget: [raw(setComputeUnitPriceIx(10_000n))],
+			setup: setup ?? [raw(createAssociatedTokenAccountIdempotentIx(OWNER, OWNER, TSLAX, TOKEN_2022_PROGRAM))],
+			swap: raw(swapIx([{ pubkey: tslaxAta, isSigner: false, isWritable: true }, { pubkey: TOKEN_2022_PROGRAM, isSigner: false, isWritable: false }])),
+			cleanup: null,
+			other: [],
+		},
+		lookupTables: [TABLE_KEY],
+	})
+
+	test('comprar un xStock: la ATA Token-2022 del propio usuario pasa y cuenta como cuenta 2022', () => {
+		const check = verifySwapInstructions(compile(buildUsdcToTslax()), [TABLE], STOCK_INTENT)
+		expect(check.persistentAccounts).toBe(1)
+		expect(check.persistent2022).toBe(1)
+	})
+
+	test('una ATA Token-2022 para otro dueño, o que no es la asociada, no pasa', () => {
+		const forOther = [raw(createAssociatedTokenAccountIdempotentIx(OWNER, ATTACKER, TSLAX, TOKEN_2022_PROGRAM))]
+		expect(() => verifySwapInstructions(compile(buildUsdcToTslax(forOther)), [TABLE], STOCK_INTENT)).toThrow(/creada para otro/)
+		// ATA del programa clásico declarada con Token-2022 como programa: la dirección no casa
+		const mismatched = raw(createAssociatedTokenAccountIdempotentIx(OWNER, OWNER, TSLAX, TOKEN_2022_PROGRAM))
+		mismatched.accounts[1] = { ...mismatched.accounts[1], pubkey: associatedTokenAddress(OWNER, TSLAX) }
+		expect(() => verifySwapInstructions(compile(buildUsdcToTslax([mismatched])), [TABLE], STOCK_INTENT)).toThrow(/no es la asociada/)
+	})
+
+	test('una instrucción DIRECTA de Token-2022 fuera de Jupiter no pasa', () => {
+		const direct = { programId: TOKEN_2022_PROGRAM, accounts: [{ pubkey: tslaxAta, isSigner: false, isWritable: true }], data: toBase64(Uint8Array.of(17)) }
+		expect(() => verifySwapInstructions(compile(buildUsdcToTslax([direct])), [TABLE], STOCK_INTENT)).toThrow(/programa no permitido/)
 	})
 })
 

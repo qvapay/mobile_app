@@ -9,6 +9,8 @@ import { useTextStyles } from '../../../../theme/themeUtils'
 // UI
 import QPPressable from '../../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../../ui/particles/QPAssetIcon'
+import { StockLogo } from '../../stocks/components/StockParts'
+import { xStockByMint } from '../../../../wallet/xstocks'
 import AmountFlow from './AmountFlow'
 
 // Wallet
@@ -19,6 +21,10 @@ import { formatUsd } from '../walletFormat'
 type Props = {
 	asset: AssetView
 	prices: PriceMap
+	/** Acción tokenizada: ACCIONES (con el multiplicador de dividendos) en lugar del saldo en tokens. */
+	stockShares?: string
+	/** Acción tokenizada: precio POR ACCIÓN (el del `PriceMap` es por unidad cruda). */
+	stockPrice?: number | null
 	showBalance: boolean
 	isLast: boolean
 	onPress: (asset: AssetView) => void
@@ -31,11 +37,13 @@ type Props = {
  * y la fila anima su posición: al refrescar, un activo que sube de valor se
  * desliza a su sitio en vez de saltar (la lista se ordena por USD).
  */
-const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) => {
+const WalletAssetRow = ({ asset, prices, stockShares, stockPrice, showBalance, isLast, onPress }: Props) => {
 
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
-	const price = assetPrice(asset, prices)
+	// Una acción se lee en acciones y precio por acción, la misma cifra que "Tus acciones"
+	const price = asset.stock ? stockPrice ?? null : assetPrice(asset, prices)
+	const amount = asset.stock && stockShares !== undefined ? stockShares : asset.total
 
 	return (
 		<Animated.View layout={LinearTransition.duration(350)}>
@@ -46,7 +54,10 @@ const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) 
 			accessibilityRole="button"
 			accessibilityLabel={`${asset.symbol} ${asset.chainName}`}
 		>
-			<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} />
+			{/* Una acción tokenizada lleva el logo del emisor, no el de una moneda del CDN */}
+			{asset.stock && xStockByMint(asset.contract)
+				? <StockLogo stock={xStockByMint(asset.contract)!} />
+				: <QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} />}
 
 			<View style={styles.info}>
 				<View style={styles.titleRow}>
@@ -64,7 +75,7 @@ const WalletAssetRow = ({ asset, prices, showBalance, isLast, onPress }: Props) 
 
 			<View style={styles.amounts}>
 				{showBalance
-					? <AmountFlow amount={asset.total} style={[textStyles.h4, { color: theme.colors.primaryText }]} />
+					? <AmountFlow amount={amount} style={[textStyles.h4, { color: theme.colors.primaryText }]} />
 					: <Text style={[textStyles.h4, { color: theme.colors.primaryText }]}>••••</Text>}
 				{showBalance && asset.usd !== null
 					? <AmountFlow amount={String(asset.usd)} prefix="$" fractionDigits={2} style={[styles.sub, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]} />

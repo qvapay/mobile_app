@@ -14,10 +14,10 @@ import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { explorerTxUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { useAssetCatalog } from './walletQueries'
-import { shortAddress } from './walletFormat'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPAddress, { ADDRESS_SLOT, InlineAddress } from '../../../ui/particles/QPAddress'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 
@@ -57,9 +57,11 @@ const WalletSendSuccess = ({ navigation, route }: Props) => {
 						{asset && <QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={34} />}
 						<Text style={[textStyles.h2, { color: theme.colors.primaryText }]}>−{displayAmount(amount)} {asset?.symbol ?? ''}</Text>
 					</View>
-					<Text style={[textStyles.h6, styles.centered, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.asset.to', { address: shortAddress(to, 8, 8) })}</Text>
+					<Text style={[textStyles.h6, styles.centered, { color: theme.colors.secondaryText }]}>
+						<InlineAddress text={t('crypto.wallet.asset.to', { address: ADDRESS_SLOT })} address={to} visible={{ head: 8, tail: 8 }} style={textStyles.h6} />
+					</Text>
 					<QPPressable onPress={copy} style={styles.hashRow} accessibilityRole="button" accessibilityLabel={t('crypto.wallet.send.copyHash')}>
-						<Text style={[textStyles.h6, styles.hash, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{shortAddress(txid, 10, 10)}</Text>
+						<QPAddress address={txid} visible={{ head: 10, tail: 10 }} highlight={false} style={[textStyles.h6, styles.hash, { color: theme.colors.tertiaryText }]} numberOfLines={1} />
 						<FontAwesome6 name="copy" size={12} color={theme.colors.tertiaryText} iconStyle="regular" />
 					</QPPressable>
 				</View>

@@ -29,6 +29,7 @@ import AnnouncementBanner from '../../ui/AnnouncementBanner'
 import CashDeliveryCard from '../../ui/CashDeliveryCard'
 import TransactionSkeleton from '../../ui/TransactionSkeleton'
 import EmptyTransactions from '../../ui/EmptyTransactions'
+import HomeP2POffers from './HomeP2POffers'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -312,6 +313,9 @@ const Home = ({ navigation }: HomeProps) => {
 						<EmptyTransactions navigation={navigation as unknown as RootNav} />
 					)}
 				</View>
+
+				{/* Ofertas P2P: promocionadas + últimas de comerciantes GOLD, como el dashboard web */}
+				<HomeP2POffers navigation={navigation as unknown as RootNav} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)} style={styles.section} />
 
 				{/* Cash Delivery Card: con KYC solo desde balance >= 200; sin KYC
 				    se muestra siempre, sombreada y gateada (invita a verificarse) */}

@@ -222,3 +222,30 @@ describe('concurrency', () => {
 		expect(p2pApi.index).toHaveBeenCalledTimes(1)
 	})
 })
+
+describe('puesto promocionado', () => {
+	test('la página 1 trae el puesto del par y un refresco sin él lo quita', async () => {
+		const promoted = { slot: { coin: 'BANK_CUP', offer_type: 'sell', state: 'held' }, offer: { uuid: 'o1' } }
+		p2pApi.index.mockResolvedValue({ success: true, offers: offers(3), promoted })
+		const { result } = await renderOffers()
+		expect(result.current.promoted).toBe(promoted)
+		// El listado sigue entero: quitarla es cosa de la pantalla (withoutPromoted)
+		expect(result.current.p2pOffers).toHaveLength(3)
+
+		p2pApi.index.mockResolvedValue({ success: true, offers: offers(2), promoted: null })
+		await act(async () => { result.current.onRefresh() })
+		await settle()
+		expect(result.current.promoted).toBeNull()
+	})
+
+	test('cargar más no toca el puesto de la página 1', async () => {
+		const promoted = { slot: { coin: 'BANK_CUP', offer_type: 'sell', state: 'held' }, offer: { uuid: 'o1' } }
+		p2pApi.index.mockResolvedValueOnce({ success: true, offers: offers(PAGE_SIZE), promoted })
+		const { result } = await renderOffers()
+		p2pApi.index.mockResolvedValueOnce({ success: true, offers: offers(5, 'p'), promoted: null })
+		await act(async () => { result.current.handleLoadMore() })
+		await settle()
+		expect(result.current.p2pOffers).toHaveLength(PAGE_SIZE + 5)
+		expect(result.current.promoted).toBe(promoted)
+	})
+})

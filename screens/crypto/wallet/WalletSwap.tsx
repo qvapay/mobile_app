@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type TextInputInstance } from 'react-native'
+import { ScrollView, StyleSheet, View, type TextInputInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 // Theme
@@ -22,7 +22,7 @@ import { formatUsd } from './walletFormat'
 import type { SwapSideRef } from './swapRouting'
 import useSwapPairs from './useSwapPairs'
 import useSwapFlow from './useSwapFlow'
-import { usePriceMap, useTronChainParamsQuery, useTronResourcesQuery, useWalletAssets } from './walletQueries'
+import { usePriceMap, useTronChainParamsQuery, useTronForeignControl, useTronResourcesQuery, useWalletAssets } from './walletQueries'
 import { tronSendCost } from './sourceSendCost'
 import useCoins from '../../../hooks/useCoins'
 import { addressForKind, assetPrice, findAssetForCoin } from '../../../wallet/assets'
@@ -35,6 +35,7 @@ import { useExchangeCatalogQuery } from './exchangeQueries'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPKeyboardAvoidingView from '../../../ui/QPKeyboardAvoidingView'
 import PinConfirmStep from '../../transaction/PinConfirmStep'
 import WalletAuthModal from './components/WalletAuthModal'
 import QPAmountCard from '../../../ui/QPAmountCard'
@@ -46,6 +47,7 @@ import SwapNotices from './components/swap/SwapNotices'
 import SwapReviewSheet from './components/swap/SwapReviewSheet'
 import SwapRouteRow from './components/swap/SwapRouteRow'
 import SwapRoutesSheet from './components/swap/SwapRoutesSheet'
+import TronControlWarning from './components/TronControlWarning'
 
 // Navigation
 import { ROUTES } from '../../../routes'
@@ -84,7 +86,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
-	const { user } = useAuth()
+	const { user, isAuthenticated } = useAuth()
 	const { addresses } = useWallet()
 	const { getSetting } = useSettings()
 	const showBalance = getSetting('privacy', 'showBalance', true) as boolean
@@ -128,17 +130,19 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		// Llegando desde la pantalla de un activo, ese activo ES lo que se entrega y el saldo
 		// el destino por defecto: es lo que se quiere el 90% de las veces, y cambiarlo cuesta
 		// un toque. Sin esto, tocar "Intercambiar" en USDT-TRON aterrizaba en saldo → QUSD.
+		//
+		// Sin sesión no hay saldo QvaPay: solo wallet ↔ wallet, y el destino lo elige el usuario
 		if (incomingAssetId) {
 			setPay(prev => prev ?? { kind: 'asset', id: incomingAssetId })
-			setReceive(prev => prev ?? BALANCE_SIDE)
+			if (isAuthenticated) { setReceive(prev => prev ?? BALANCE_SIDE) }
 			return
 		}
-		if (!asset) { return }
+		if (!asset || !isAuthenticated) { return }
 		const wallet: SwapSideRef = { kind: 'asset', id: asset.id }
 		const out = (route.params?.direction ?? 'out') === 'out'
 		setPay(prev => prev ?? (out ? BALANCE_SIDE : wallet))
 		setReceive(prev => prev ?? (out ? wallet : BALANCE_SIDE))
-	}, [asset, incomingAssetId, route.params?.direction])
+	}, [asset, incomingAssetId, route.params?.direction, isAuthenticated])
 
 	const routed = routeFor({ pay, receive, pairAssetIds, railOut, railIn })
 	const isExchange = routed.mode === 'exchange'
@@ -334,6 +338,10 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	// Una combinación imposible se dice AQUÍ, con su motivo, y deshabilita el botón: es mejor
 	// que enseñar una cotización que fallaría al confirmar.
 	const blocked = routed.mode === 'unsupported' && !!routed.reasonKey && !!pay && !!receive
+	// Cuenta TRON con dueño ajeno en CUALQUIER lado: pagar desde ella no se puede firmar, y
+	// recibir en ella (swap, o retiro del saldo QvaPay por el riel) es regalárselo a quien la controla
+	const tronControllers = useTronForeignControl()
+	const tronBlocked = !!tronControllers && [payAsset, receiveAsset].some(side => side?.kind === 'tron')
 	/**
 	 * Cada tarjeta abre SU propio selector.
 	 *
@@ -355,8 +363,9 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const view = withPickers(isQusd ? swapView : isExchange ? exchangeView : selectionView)
 	const engineView = isExchange ? exchangeView : swapView
 	const busy = isExchange ? exchangeFlow.busy : swapFlow.busy
-	const ctaEnabled = isRail ? !!railCoin : !blocked && engineView.ctaEnabled
-	const ctaLabel = blocked ? t(routed.reasonKey!)
+	const ctaEnabled = !tronBlocked && (isRail ? !!railCoin : !blocked && engineView.ctaEnabled)
+	const ctaLabel = tronBlocked ? t('crypto.wallet.tronControl.blocked')
+		: blocked ? t(routed.reasonKey!)
 		: isRail ? t(routed.mode === 'withdraw' ? 'crypto.wallet.exchange.ctaWithdraw' : 'crypto.wallet.exchange.ctaDeposit')
 			: engineView.ctaLabel
 
@@ -420,7 +429,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 		}))
 	}, [maxAmount, payAsset, isQusd, routed.mode, nativeReserve, t])
 
-	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
+	const sheetOptions = useSideOptions({ t, all, enabledPairs, assetFor, catalog: catalog.data, showBalance, custodial, withBalance: isAuthenticated, side: sheet, other: sheet === 'pay' ? receive : pay, railOut, railIn })
 
 	const onPickSide = useCallback((id: string) => {
 		const next: SwapSideRef = id === 'balance' ? BALANCE_SIDE : { kind: 'asset', id }
@@ -431,7 +440,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 	const { out } = swapFlow
 
 	return (
-		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={containerStyles.subContainer}>
+		<QPKeyboardAvoidingView style={containerStyles.subContainer}>
 			<ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
 				<View>
@@ -472,6 +481,8 @@ const WalletSwap = ({ navigation, route }: Props) => {
 				<SwapDetails rate={view.rate} badge={isExchange ? undefined : swapView.badge} rows={view.rows} />
 
 				<SwapNotices notices={view.notices} />
+
+				{tronBlocked && <TronControlWarning controllers={tronControllers} />}
 
 			</ScrollView>
 
@@ -535,7 +546,7 @@ const WalletSwap = ({ navigation, route }: Props) => {
 				onClose={swapFlow.closeAuth}
 				onAuthorized={swapFlow.onAuthorized}
 			/>
-		</KeyboardAvoidingView>
+		</QPKeyboardAvoidingView>
 	)
 }
 
@@ -595,7 +606,7 @@ const useRailMap = (coins: Coin[], catalog: AssetView[]): Record<string, Coin> =
  * que falta sin explicación se lee como un fallo de la app, y el motivo real —el proveedor
  * no lista ese token en esa red, o desde el saldo solo se va a QUSD— es información útil.
  */
-const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, custodial, side, other, railOut, railIn }: {
+const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, custodial, withBalance, side, other, railOut, railIn }: {
 	t: (key: string, params?: Record<string, unknown>) => string
 	all: AssetView[]
 	enabledPairs: ReturnType<typeof useSwapPairs>['enabledPairs']
@@ -604,6 +615,8 @@ const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, 
 	showBalance: boolean
 	/** Saldo QvaPay en USD, para que su fila también diga cuánto hay. */
 	custodial: number
+	/** Hay sesión: el saldo QvaPay es elegible. Sin ella, solo activos de la wallet. */
+	withBalance: boolean
 	side: 'pay' | 'receive' | null
 	other: SwapSideRef | null
 	/** assetIds con riel de retiro y de depósito: abren las combinaciones con el saldo. */
@@ -657,8 +670,8 @@ const useSideOptions = ({ t, all, enabledPairs, assetFor, catalog, showBalance, 
 
 	// Lo utilizable primero: un selector que abre en filas apagadas parece roto
 	const usable = (o: QPAssetOption) => (o.disabledReason ? 1 : 0)
-	return [balanceOption, ...assetOptions].sort((a, b) => usable(a) - usable(b))
-}, [t, all, enabledPairs, assetFor, catalog, showBalance, custodial, side, other, railOut, railIn])
+	return [...(withBalance ? [balanceOption] : []), ...assetOptions].sort((a, b) => usable(a) - usable(b))
+}, [t, all, enabledPairs, assetFor, catalog, showBalance, custodial, withBalance, side, other, railOut, railIn])
 
 const styles = StyleSheet.create({
 	scroll: { flex: 1 },

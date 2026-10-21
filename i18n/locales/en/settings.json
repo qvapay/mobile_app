@@ -579,7 +579,8 @@
 			"coinLabel": "Currency",
 			"selectCoin": "Select a currency",
 			"accountData": "Account details",
-			"saveButton": "Save method"
+			"saveButton": "Save method",
+			"zonesLoadError": "We couldn't load the delivery zones. Without them we can't check the province and municipality."
 		},
 		"alerts": {
 			"deleteTitle": "Delete method",
@@ -595,7 +596,8 @@
 			"createFailed": "Couldn't create the method",
 			"invalidId": "Invalid method ID",
 			"deleted": "Method deleted",
-			"deleteFailed": "Couldn't delete it"
+			"deleteFailed": "Couldn't delete it",
+			"zoneRequired": "Choose the province and municipality from the list"
 		}
 	},
 	"phone": {

@@ -149,6 +149,11 @@ const WalletSettings = () => {
 			queryClient.removeQueries({ queryKey: ['wallet', 'balances'] })
 			queryClient.removeQueries({ queryKey: ['wallet', 'history'] })
 			queryClient.removeQueries({ queryKey: ['wallet', 'staking'] })
+			// Los swaps sin sesión son del ID de wallet, que se borra con ella: la nueva no
+			// hereda sus órdenes (con sesión se vuelven a pedir, son de la cuenta)
+			queryClient.removeQueries({ queryKey: ['exchange', 'orders'] })
+			queryClient.removeQueries({ queryKey: ['exchange', 'order'] })
+			queryClient.removeQueries({ queryKey: ['exchange', 'quote'] })
 			setConfirmDelete(false)
 			toast.success(t('crypto.wallet.settings.deleted'))
 			navigation.goBack()

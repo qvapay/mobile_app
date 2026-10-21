@@ -124,7 +124,9 @@ export type Coin = {
 	/** Columna Json: number, tupla [umbral, fijo], string JSON o null. */
 	fee_out_fixed?: number | [Decimal, Decimal] | string | null
 	min_in?: Decimal
+	/** Límites del bruto a extraer: el servidor rechaza fuera de ellos (después del PIN). */
 	min_out?: Decimal
+	max_out?: Decimal
 
 	// CoinDetail trata `undefined` como "sí" — opcionales de verdad
 	enabled_in?: boolean
@@ -134,6 +136,29 @@ export type Coin = {
 	/** Puede llegar YA parseada o como string JSON — los call-sites parsean condicionalmente. */
 	working_data?: CoinWorkingField[] | string | null
 }
+
+/** Una zona de entrega de efectivo tal como la sirve `GET /withdraw/cash-zones` (reglas en `screens/withdraw/cashZones.ts`). */
+export type CashZone = {
+	id: string
+	coin_tick: string
+	province_code: string
+	province_name: string
+	municipality: string
+	is_capital?: boolean
+	provider_pct: number
+	/** null ⇒ se usa el margen global de la respuesta. */
+	margin_pct: number | null
+	min_usd: number
+	small_flat_usd: number | null
+	eta_min_hours: number
+	eta_max_hours: number
+	home_delivery: boolean
+	route?: string
+	enabled: boolean
+}
+
+/** Respuesta de `GET /withdraw/cash-zones?coin=`. `zones` vacío ⇒ la moneda no va por zonas. */
+export type CashZonesPayload = { coin: string, margin_pct: number, zones: CashZone[] }
 
 /**
  * Coin enriquecida por el CLIENTE (cryptoQueries/homeQueries): precio spot
@@ -301,7 +326,6 @@ export type P2POffer = {
 	private: BoolInt
 	message?: string
 	created_at: string
-	rating?: number
 	tx_id?: string | null
 	/** Datos sensibles: solo llegan en el detalle, nunca en la lista. */
 	details?: P2POfferDetails
@@ -326,6 +350,13 @@ export type P2POffer = {
 	Orders?: P2POrder[]
 	/** Flexible: solo llega al dueño. */
 	OrdersSummary?: { active: number, completed: number, cancelled: number } | null
+	/**
+	 * Fija completada: las valoraciones del trato (las dos partes). Por rango llega
+	 * siempre `[]`: ahí cada orden trae la suya en `my_rating`.
+	 */
+	Ratings?: P2POfferRating[]
+	/** Id INTERNO de quien mira (string): casa con `Ratings[].rater` / `.rated`, no con uuids. */
+	currentUserId?: string
 	updated_at?: string
 	/**
 	 * Requisitos del maker para aplicar (solo las claves activas; null = ninguno).
@@ -367,6 +398,32 @@ export type P2POrder = {
 	payment_window_expires_at?: string | null
 	tx_id?: string | null
 	Taker?: P2PUser | null
+	/** Mi valoración de esta orden: null si aún no la valoré (o no soy parte). */
+	my_rating?: P2PMyRating | null
+}
+
+/** Etiquetas rápidas de una valoración P2P (lista blanca del backend). */
+export type P2PRatingTag = 'rapido' | 'confiable' | 'comunicacion'
+
+/**
+ * Valoración propia de un trato P2P tal como la sirve `GET /p2p/{uuid}`.
+ * `rating` viaja como STRING ("5"); `editable_until` = hasta cuándo se puede
+ * cambiar con PATCH (null = ya no). El plazo lo decide el backend.
+ */
+export type P2PMyRating = {
+	rating: string
+	comment: string | null
+	tags?: P2PRatingTag[]
+	created_at?: string | null
+	updated_at?: string | null
+	editable_until?: string | null
+}
+
+/** Fila de `Ratings` de una oferta fija. `rater`/`rated` son ids INTERNOS (null en filas legacy). */
+export type P2POfferRating = P2PMyRating & {
+	id?: string
+	rater: string | null
+	rated: string | null
 }
 
 /** Paginador Laravel crudo de `GET /p2p/index` (las ofertas viven en `data`). */
@@ -375,7 +432,72 @@ export type P2PIndexEnvelope = {
 	current_page: number
 	per_page: number
 	total: number
+	/** Puesto promocionado del par (solo con `coin` + `type`, sin `my`). La oferta TAMBIÉN viene en `data`. */
+	promoted?: P2PPromoted | null
 } & Record<string, unknown>
+
+// ── Puesto promocionado del mercado P2P (qpweb content/docs/p2p/promo.mdx) ──
+
+/** `sell` = pestaña Comprar (ofertas de venta de QUSD), `buy` = pestaña Vender. */
+export type P2PPromoOfferType = 'sell' | 'buy'
+
+/** Estado público de un puesto (`GET /p2p/promo`, `slot` de las respuestas). Los importes en USD. */
+export type P2PPromoSlot = {
+	coin: string
+	offer_type: P2PPromoOfferType
+	/** `free` se compra a `start_price`; `held` se puja por el periodo siguiente; `rotating` se está asignando. */
+	state: 'free' | 'held' | 'rotating'
+	holder: { uuid: string, username: string } | null
+	starts_at: string | null
+	ends_at: string | null
+	/** Puja más alta por el periodo siguiente (quién la hizo no se publica). */
+	leading_amount: number | null
+	/** Lo mínimo que hay que mandar ahora como `amount`. */
+	min_bid: number
+	start_price: number
+	period_days: number
+}
+
+/** Oferta que se pinta arriba del listado de su par. */
+export type P2PPromoted = { slot: P2PPromoSlot, offer: P2POffer }
+
+/**
+ * Bloque «Ofertas P2P» del Home (`GET /p2p/featured`, el mismo del dashboard web): hasta dos
+ * promocionadas al azar entre todos los puestos y las últimas de comerciantes GOLD, sin
+ * repetir. Cada oferta tiene la forma de una fila de `/p2p/index`.
+ */
+export type P2PFeatured = { promoted: P2POffer[], offers: P2POffer[] }
+
+/** Requisito de reputación que no se cumple (`label` llega en español del servidor). */
+export type P2PPromoMissing = { key: string, required: number, actual: number, label?: string }
+
+/** `GET /p2p/promo?coin=`: con la función apagada, `enabled: false`, sin slots y sin eligibility. */
+export type P2PPromoPayload = {
+	coin: string
+	enabled: boolean
+	slots: P2PPromoSlot[]
+	rules: {
+		requirements: { min_completed?: number, min_rating?: number }
+		/** null = filtro de tasa apagado. */
+		max_rate_gap_pct: number | null
+		market_window_hours: number
+		min_market_sample: number
+	} | null
+	eligibility: { ok: boolean, missing: P2PPromoMissing[] } | null
+}
+
+/** Compra o puja registrada (`POST /p2p/promo`). */
+export type P2PPromoBid = {
+	uuid: string
+	coin: string
+	offer_type: P2PPromoOfferType
+	kind: 'purchase' | 'bid'
+	status: 'held' | 'won' | 'outbid' | 'refunded'
+	amount: number
+	period_starts_at: string | null
+	period_ends_at: string | null
+	created_at: string
+}
 
 /** Media de mercado por tick (`GET /p2p/averages`). */
 export type P2PMarketAverages = Record<string, {

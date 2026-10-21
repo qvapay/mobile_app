@@ -21,7 +21,12 @@ export type PushData = {
 	transaction_uuid?: string
 	p2p_uuid?: string
 	order_uuid?: string
+	/** `p2p_partial_dispute_resolved`: cómo acabó la disputa (`released` | `cancelled`). */
+	resolution?: string
 	cart_id?: string | number
+	/** `p2p_promo_*`: el puesto (hoy el backend solo manda `type`; si llegan, abren ese par). */
+	coin?: string
+	offer_type?: string
 } | undefined | null
 
 /** Destino de navegación de una push, ya resuelto a ruta + params. */
@@ -65,6 +70,17 @@ export const isMoneySoundPush = (data: PushData): boolean => isMoneyInPush(data)
 export const pushTransactionUuid = (data: PushData): string | undefined => data?.transaction_uuid || data?.uuid
 
 /**
+ * Pushes que cierran un trato P2P y piden valorarlo: abren el detalle con `rate`
+ * para que la hoja de valoración salga sola (si aún no se valoró). Una disputa
+ * resuelta solo se valora si acabó liberada (`released`); cancelada, no.
+ */
+const isRatePromptPush = (data: PushData): boolean => {
+	const type = data?.type
+	if (type === 'p2p_completed' || type === 'p2p_partial_completed') return true
+	return type === 'p2p_partial_dispute_resolved' && data?.resolution === 'released'
+}
+
+/**
  * Pantalla a la que lleva tocar la notificación.
  *
  * @param data - `additionalData` de la push.
@@ -75,6 +91,14 @@ export const resolvePushTarget = (data: PushData): PushTarget | null => {
 	const type = data?.type
 	if (!type) return null
 
+	// Puesto promocionado (te superaron, ganaste, terminó, vence pronto): no es un trato,
+	// así que va ANTES del resto de `p2p*`, que exige un p2p_uuid
+	if (type.startsWith('p2p_promo')) {
+		const coin = data?.coin ? String(data.coin) : undefined
+		const offerType = data?.offer_type === 'sell' || data?.offer_type === 'buy' ? data.offer_type : undefined
+		return { screen: ROUTES.P2P_PROMOTE, params: { ...(coin ? { coin } : {}), ...(offerType ? { type: offerType } : {}) } }
+	}
+
 	// El P2P se mira ANTES: sus eventos de fondos recibidos comparten canal de
 	// sonido con las transferencias, pero no comparten destino
 	// Ofertas por rango: las push de una ORDEN abren esa orden; la de "tomaron una
@@ -83,7 +107,10 @@ export const resolvePushTarget = (data: PushData): PushTarget | null => {
 		const p2pUuid = data?.p2p_uuid || data?.uuid
 		if (!p2pUuid) return null
 		const order = type !== 'p2p_partial_applied' ? data?.order_uuid : undefined
-		return { screen: ROUTES.P2P_OFFER_SCREEN, params: order ? { p2p_uuid: p2pUuid, order } : { p2p_uuid: p2pUuid } }
+		return {
+			screen: ROUTES.P2P_OFFER_SCREEN,
+			params: { p2p_uuid: p2pUuid, ...(order ? { order } : {}), ...(isRatePromptPush(data) ? { rate: true } : {}) },
+		}
 	}
 
 	if (TRANSACTION_TYPES.includes(type)) {

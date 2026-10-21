@@ -27,6 +27,7 @@
 		"walletSendConfirm": "Confirmar envio",
 		"walletTxDetail": "Movimentação",
 		"walletSwap": "Swap",
+		"p2pPromote": "Destaque pago",
 		"walletSwapStatus": "Status do swap",
 		"walletExchangeStatus": "Troca",
 		"walletOnchainSwap": "Troca sem custódia",
@@ -36,7 +37,10 @@
 		"walletEarn": "Ganhar",
 		"walletStake": "Staking",
 		"walletStakeAction": "Staking",
-		"miniApps": "Mini-apps"
+		"miniApps": "Mini-apps",
+		"stocksHome": "Ações",
+		"xstockBuy": "Comprar",
+		"xstockSell": "Vender"
 	},
 	"tabs": {
 		"home": "Início",

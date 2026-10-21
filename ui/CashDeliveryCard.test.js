@@ -34,6 +34,13 @@ import { Text } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { ROUTES } from '../routes'
 import CashDeliveryCard from './CashDeliveryCard'
+import { CASH_CITIES } from './cashGeo'
+
+// La card elige ciudad con Math.random: los tests la fijan (0 ⇒ La Habana, la primera)
+const pickCity = (key) => {
+	const index = CASH_CITIES.findIndex(city => city.key === key)
+	jest.spyOn(Math, 'random').mockReturnValue((index + 0.5) / CASH_CITIES.length)
+}
 
 const renderCard = (navigation = { navigate: jest.fn() }) => {
 	let tree
@@ -44,7 +51,8 @@ const renderCard = (navigation = { navigate: jest.fn() }) => {
 const findCardPressable = (tree) =>
 	tree.root.findAll(node => typeof node.props.onPress === 'function')[0]
 
-beforeEach(() => { mockIsDark = true; mockUser = { kyc: true } })
+beforeEach(() => { mockIsDark = true; mockUser = { kyc: true }; pickCity('havana') })
+afterEach(() => { jest.restoreAllMocks() })
 
 test('shows the section title, hero copy and the action row', () => {
 	const out = JSON.stringify(renderCard().toJSON())
@@ -93,6 +101,20 @@ test('draws the vector map from real geography: sea, land and road network', () 
 	expect(land).toHaveLength(1) // real coastline silhouette
 	const roadNetworks = tree.root.findAll(n => n.type === 'Path' && n.props.fill === 'none' && n.props.d && n.props.d.length > 2000)
 	expect(roadNetworks.length).toBeGreaterThanOrEqual(2) // major + minor OSM networks
+})
+
+test('pinta la cabecera elegida al azar: su nombre en el subtítulo y, de interior, sin mar', () => {
+	pickCity('santaClara')
+	const tree = renderCard()
+	expect(JSON.stringify(tree.toJSON())).toContain('Recibe USD en efectivo en Santa Clara')
+	// Interior: el fondo es tierra y no hay silueta de costa
+	const [background] = tree.root.findAllByType('Rect')
+	expect(background.props.fill).not.toBe('#17233F')
+	expect(tree.root.findAll(n => n.type === 'Path' && n.props.fill && n.props.fill !== 'none')).toHaveLength(0)
+	// Sus mensajeros recorren SUS calles
+	const santaClara = CASH_CITIES.find(city => city.key === 'santaClara')
+	const firstRoute = tree.root.findAll(n => n.type === 'Path' && n.props.strokeDasharray === '0.1, 7')[0]
+	expect(firstRoute.props.d.startsWith(`M${santaClara.routes[0][0][0]},${santaClara.routes[0][0][1]}`)).toBe(true)
 })
 
 test('runs three simultaneous couriers, each with a "$" chip and dotted route', () => {

@@ -176,9 +176,7 @@
 			"invalidValueTitle": "Invalid value",
 			"invalidValueBody": "The amount to receive must be greater than 0",
 			"insufficientBalanceTitle": "Insufficient balance",
-			"insufficientBalanceBody": "You don't have enough balance to increase the amount",
-			"rated": "Offer rated",
-			"rateFailed": "Couldn't rate"
+			"insufficientBalanceBody": "You don't have enough balance to increase the amount"
 		},
 		"share": {
 			"title": "P2P offer",
@@ -190,8 +188,7 @@
 		"apply": "Apply",
 		"markPaid": "I've paid",
 		"paymentReceived": "Payment received",
-		"offerCancelled": "Offer cancelled",
-		"rateCounterparty": "Rate your counterparty"
+		"offerCancelled": "Offer cancelled"
 	},
 	"applyModal": {
 		"title": "Apply to the offer",
@@ -392,6 +389,104 @@
 			"toggle": "Range offer",
 			"toggleHint": "Each counterparty takes only the part they need, until the offer runs out.",
 			"existsTitle": "You already have a range offer"
+		}
+	},
+	"rating": {
+		"title": "Trade completed",
+		"subtitle": "Rate your experience with @{{username}}",
+		"subtitleFallback": "Rate your experience with your counterparty",
+		"deal": "${{amount}} · {{receive}} {{coin}}",
+		"tags": {
+			"rapido": "Fast",
+			"confiable": "Reliable",
+			"comunicacion": "Good communication"
+		},
+		"commentLabel": "Comment (optional)",
+		"commentPlaceholder": "Anything worth mentioning?",
+		"submit": "Rate now",
+		"skip": "Skip",
+		"rateButton": "Rate @{{username}}",
+		"rateButtonFallback": "Rate",
+		"rowRate": "Rate",
+		"yourRating": "Your rating",
+		"toasts": {
+			"sent": "Rating sent!",
+			"failed": "Couldn't send the rating",
+			"updated": "Rating updated",
+			"updateFailed": "Couldn't update the rating"
+		},
+		"edit": {
+			"title": "Change your rating",
+			"subtitle": "Your experience with @{{username}}",
+			"subtitleFallback": "Your experience with your counterparty",
+			"until": "You can change it until {{date}}",
+			"save": "Save changes",
+			"cancel": "Cancel",
+			"action": "Edit"
+		}
+	},
+	"promo": {
+		"intro": "Your best offer shows at the top of a coin's P2P market, with a gold border, for {{days}} days. Each coin has one spot for Buy and another for Sell.",
+		"coinLabel": "Coin",
+		"pickCoin": "Choose a coin",
+		"loadError": "We couldn't load the spots.",
+		"disabled": "Featured spots aren't available yet. Coming soon.",
+		"needsP2P": "You need P2P enabled to promote your offers.",
+		"needsReputation": "To get featured you need: {{list}}.",
+		"requirements": {
+			"minCompleted_one": "{{count}} completed P2P trade",
+			"minCompleted_other": "{{count}} completed P2P trades",
+			"minRating": "a rating of {{rating}} or higher",
+			"and": " and "
+		},
+		"slot": {
+			"title": "{{coin}} · {{side}}",
+			"hintSell": "Shown to people who want to buy: promote your sell offers.",
+			"hintBuy": "Shown to people who want to sell: promote your buy offers.",
+			"now": "Now",
+			"next": "Next period",
+			"nowFree": "Free",
+			"nowRotating": "Updating…",
+			"nowMine": "Yours until {{date}}",
+			"nowTaken": "@{{username}} until {{date}}",
+			"nextLeading": "Leading bid: ${{amount}}",
+			"nextMine": "Your bid is winning: ${{amount}}",
+			"nextNone": "No bids yet",
+			"mineNote": "Your card shows at the top of the market while you have an open offer for this pair and its rate is close to the market.",
+			"leadingNote": "You have the highest bid for the next period. If someone outbids you, we refund you instantly.",
+			"bidLabel": "Your bid (minimum ${{min}})",
+			"buy": "Buy for ${{amount}}",
+			"bid": "Bid for the next period",
+			"insufficient": "Insufficient balance (${{balance}})",
+			"invalidBid": "The minimum bid is ${{min}}"
+		},
+		"confirm": {
+			"buyTitle": "Buy the spot",
+			"bidTitle": "Bid for the next period",
+			"buyBody": "${{amount}} is charged to your balance and the {{coin}} · {{side}} spot is yours for {{days}} days. No one can take it from you during that time.",
+			"bidBody": "${{amount}} is held from your balance. If someone outbids you, we refund it instantly; you only pay if you win the period that starts on {{date}}.",
+			"label": "Confirm ${{amount}}"
+		},
+		"toasts": {
+			"bought": "Done: you're the featured trader for {{coin}} · {{side}} for {{days}} days",
+			"bid": "${{amount}} bid placed. If someone outbids you, we refund you instantly.",
+			"failed": "The operation couldn't be completed"
+		},
+		"how": {
+			"title": "How it works",
+			"free": "If the spot is free, you buy it instantly and it's yours for {{days}} days. No one can take it from you during that time.",
+			"bid": "While someone holds it, people bid for the next period. To beat a bid you have to offer 10% more (at least $1).",
+			"refund": "Your bid is charged when you place it. If someone outbids you, we refund the full amount instantly. Only the winner pays.",
+			"rollover": "When the period ends, the highest bid starts its own. If no one bid, the spot becomes free again.",
+			"offer": "Your best open offer for that coin and side is shown, marked as “Featured”. If you have none open, nothing is shown. The market's best-rate order doesn't change.",
+			"reputation": "To buy or bid you need {{list}}. If you drop below that during your period, your card stops showing until you're back above it; the spot is still yours.",
+			"rate": "The card only shows if your offer is no more than {{pct}}% worse, for the taker, than the rate at which that pair's trades closed in the last {{hours}} hours."
+		},
+		"market": {
+			"label": "Featured trader",
+			"want": "Want this spot?",
+			"free": "The featured spot for {{coin}} · {{side}} is free.",
+			"freeCta": "Get featured for ${{price}}"
 		}
 	}
 }

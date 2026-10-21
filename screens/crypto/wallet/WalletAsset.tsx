@@ -17,8 +17,9 @@ import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
 import { addressForKind, assetPrice, explorerAddressUrl } from '../../../wallet/assets'
 import { displayAmount } from '../../../wallet/chains/units'
 import { splitDust } from '../../../wallet/dust'
-import { markHistoryFresh, usePriceMap, useWalletAssets, useWalletHistory } from './walletQueries'
-import { formatUsd, shortAddress } from './walletFormat'
+import { markHistoryFresh, usePriceMap, useTronForeignControl, useWalletAssets, useWalletHistory } from './walletQueries'
+import { useXStockShares } from '../stocks/xstocksPrices'
+import { formatUsd } from './walletFormat'
 import { canSendAsset } from './walletSendActions'
 import useCanSwapAsset from './useCanSwapAsset'
 import { isDevBuild, isStakingEntryVisible } from '../../../wallet/staking/capabilities'
@@ -36,11 +37,13 @@ import { useSettings } from '../../../settings/SettingsContext'
 // Auth: sin sesión (modo wallet) no hay historial, intercambio ni energía — son del backend
 import { useAuth } from '../../../auth/AuthContext'
 import AccountUpsellCard from './components/AccountUpsellCard'
+import TronControlWarning from './components/TronControlWarning'
 
 // Helpers
 import { timeAgo } from '../../../helpers'
 
 // UI
+import { ADDRESS_SLOT, InlineAddress } from '../../../ui/particles/QPAddress'
 import QPFitText from '../../../ui/particles/QPFitText'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPSkeleton from '../../../ui/particles/QPSkeleton'
@@ -78,7 +81,9 @@ const TxRow = ({ tx, theme, onPress, activity = null, names }: TxRowProps) => {
 	const tint = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : staked ? theme.colors.primary : tx.direction === 'in' ? theme.colors.successText : theme.colors.primaryText
 	const iconColor = failed ? theme.colors.danger : isFee ? theme.colors.secondaryText : tx.direction === 'in' ? theme.colors.successText : theme.colors.primary
 	const counterpart = tx.direction === 'in' ? tx.from : tx.to
-	const counterpartLabel = counterpart ? names?.[counterpart] ?? shortAddress(counterpart) : null
+	// Con nombre en el registry, el nombre; si no, la dirección (en mono, dentro de la frase)
+	const counterpartName = counterpart ? names?.[counterpart] ?? null : null
+	const counterpartKey = tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to'
 	const sign = staked ? '' : tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : ''
 
 	return (
@@ -92,8 +97,11 @@ const TxRow = ({ tx, theme, onPress, activity = null, names }: TxRowProps) => {
 				</Text>
 				<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }, styles.txSub]} numberOfLines={1}>
 					{isFee
-						? `${t('crypto.wallet.asset.feeEntrySub', { address: shortAddress(tx.to) })} · `
-						: counterpartLabel ? `${t(tx.direction === 'in' ? 'crypto.wallet.asset.from' : 'crypto.wallet.asset.to', { address: counterpartLabel })} · ` : ''}{timeAgo(tx.time * 1000)}
+						? <><InlineAddress text={t('crypto.wallet.asset.feeEntrySub', { address: ADDRESS_SLOT })} address={tx.to ?? ''} visible={{ head: 6, tail: 6 }} />{' · '}</>
+						: counterpart
+							? <>{counterpartName ? t(counterpartKey, { address: counterpartName }) : <InlineAddress text={t(counterpartKey, { address: ADDRESS_SLOT })} address={counterpart} visible={{ head: 6, tail: 6 }} />}{' · '}</>
+							: null}
+					{timeAgo(tx.time * 1000)}
 				</Text>
 			</View>
 			<View style={styles.txAmounts}>
@@ -151,6 +159,9 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	const asset = useMemo(() => all.find(a => a.id === assetId), [all, assetId])
 	const chain = asset ? registry.chains[asset.chainKey] : undefined
 	const address = asset && addresses ? addressForKind(addresses, asset.kind) : null
+	// Acción tokenizada: aquí se envía y se recibe en TOKENS (crudo); las acciones van debajo
+	const stockShares = useXStockShares(!!asset?.stock)
+	const shares = asset?.stock && asset.contract ? stockShares(asset.contract, asset.rawAmount).shares : null
 
 	// La moneda del catálogo detrás de este activo, si la hay: es lo que abre el detalle de
 	// mercado. QUSD y STX no están en el catálogo, así que ahí el botón no aparece en vez de
@@ -190,11 +201,15 @@ const WalletAsset = ({ navigation, route }: Props) => {
 	// Energía y ancho de banda: solo tienen sentido en TRON, y ahí son la
 	// diferencia entre un envío de USDT gratis y uno que quema ~13 TRX
 	const isTron = asset?.kind === 'tron'
+	// Cuenta TRON cuyo dueño es otra dirección: la frase no firma, así que fuera todo lo que
+	// mueve fondos (y la energía, que se pagaría para nada). Queda el explorador para comprobarlo
+	const tronControllers = useTronForeignControl()
+	const tronBlocked = isTron && !!tronControllers
 	// El explorador cede su sitio al intercambio cuando el activo tiene alguna salida
-	const canSwap = useCanSwapAsset(asset)
+	const canSwap = useCanSwapAsset(asset) && !tronBlocked
 	// Staking: solo nativos de SOL/TRX/STX, cuando la red ya sabe firmarlo (o en desarrollo). Quien ya
 	// tiene algo en staking (p. ej. STX bloqueado desde otra wallet) entra igual: ahí ve su cuenta atrás
-	const canEarn = !!asset && (isStakingEntryVisible(asset, { dev: isDevBuild() }) || asset.hasStake)
+	const canEarn = !!asset && !tronBlocked && (isStakingEntryVisible(asset, { dev: isDevBuild() }) || asset.hasStake)
 
 	const [refreshing, setRefreshing] = useState(false)
 	const onRefresh = useCallback(async () => {
@@ -259,6 +274,11 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>
 					{showBalance && asset.usd !== null ? `≈ ${formatUsd(asset.usd)}` : ' '}
 				</Text>
+				{showBalance && shares !== null && shares !== asset.amount && (
+					<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }, styles.priceLine]}>
+						{t('crypto.xstocks.sharesCount', { shares: displayAmount(shares, 6) })}
+					</Text>
+				)}
 				{/* Con staking, el héroe es el TOTAL: se desglosa qué se puede mover ya y qué está trabajando */}
 				{showBalance && asset.hasStake && (
 					<Text style={[{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }, styles.priceLine]}>
@@ -272,14 +292,20 @@ const WalletAsset = ({ navigation, route }: Props) => {
 				)}
 			</View>
 
+			{tronBlocked && (
+				<View style={styles.tronWarning}>
+					<TronControlWarning controllers={tronControllers} />
+				</View>
+			)}
+
 			<View style={styles.actions}>
 				<Action
 					theme={theme}
 					icon="paper-plane"
 					testID="asset-action-send"
 					label={t('crypto.wallet.home.actions.send')}
-					dimmed={!canSendAsset(asset)}
-					onPress={() => !canSendAsset(asset) ? toast(t('crypto.wallet.home.sendSoon')) : isBackedUp ? navigation.navigate(ROUTES.WALLET_SEND, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP)}
+					dimmed={!canSendAsset(asset) || tronBlocked}
+					onPress={() => tronBlocked ? toast.error(t('crypto.wallet.tronControl.blocked')) : !canSendAsset(asset) ? toast(t('crypto.wallet.home.sendSoon')) : isBackedUp ? navigation.navigate(ROUTES.WALLET_SEND, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP)}
 				/>
 				<Action
 					theme={theme}
@@ -297,7 +323,7 @@ const WalletAsset = ({ navigation, route }: Props) => {
 						onPress={() => (isBackedUp ? navigation.navigate(ROUTES.WALLET_SWAP, { assetId: asset.id }) : navigation.navigate(ROUTES.WALLET_BACKUP))}
 					/>
 				)}
-				{isTron && isAuthenticated && (
+				{isTron && isAuthenticated && !tronBlocked && (
 					<Action
 						theme={theme}
 						icon="bolt"
@@ -387,6 +413,7 @@ const styles = StyleSheet.create({
 	hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 18, gap: 4 },
 	heroAmount: { marginTop: 10, fontSize: 38 },
 	actions: { flexDirection: 'row', gap: 10, height: 56 },
+	tronWarning: { marginBottom: 16 },
 	action: { flex: 1, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', gap: 5 },
 	sectionTitle: { marginTop: 24, marginBottom: 6 },
 	historySkeleton: { gap: 10, marginTop: 6 },

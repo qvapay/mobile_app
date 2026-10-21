@@ -101,6 +101,13 @@ describe('request interceptor', () => {
 		expect(cfg.headers.Authorization).toBeUndefined()
 	})
 
+	test('anonymous requests never carry the token, even with one stored', async () => {
+		Keychain.getGenericPassword.mockResolvedValue({ username: 'token', password: 'tok123' })
+		const cfg = await onRequest({ headers: {}, anonymous: true })
+		expect(Keychain.getGenericPassword).not.toHaveBeenCalled()
+		expect(cfg.headers.Authorization).toBeUndefined()
+	})
+
 	test('a Keychain read failure does not block the request', async () => {
 		Keychain.getGenericPassword.mockRejectedValue(new Error('locked'))
 		const cfg = await onRequest({ headers: {} })
@@ -148,6 +155,12 @@ describe('response interceptor', () => {
 		const err = { config: {}, response: { status: 401 } }
 		await expect(onResponseError(err)).rejects.toBe(err)
 		expect(Keychain.resetGenericPassword).toHaveBeenCalledWith(AUTH_SERVICE)
+	})
+
+	test('a 401 on an anonymous request does NOT clear the token (it never carried it)', async () => {
+		const err = { config: { anonymous: true }, response: { status: 401 } }
+		await expect(onResponseError(err)).rejects.toBe(err)
+		expect(Keychain.resetGenericPassword).not.toHaveBeenCalled()
 	})
 
 	test('403 and 422 pass through WITHOUT touching the token (screen handles them)', async () => {

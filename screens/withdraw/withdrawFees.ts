@@ -48,11 +48,14 @@ export const feeOutRate = (coin: FeeCoin | null | undefined, isGold = false): nu
 
 // Sum of per-option logistics surcharge (% of gross) from `type: select`
 // fields, matched by the chosen value in the slug-keyed form state
-export const getSelectFeePct = (workingFields: CoinWorkingField[] | null | undefined, workingForm: WorkingForm | null | undefined): number => {
+// `skipField` (nombre original) excluye un select: en modo zonas de efectivo el
+// `fee_pct` de la provincia lo sustituye el cargo de zona, igual que en el servidor
+export const getSelectFeePct = (workingFields: CoinWorkingField[] | null | undefined, workingForm: WorkingForm | null | undefined, skipField: string | null = null): number => {
 	if (!Array.isArray(workingFields)) return 0
 	let pct = 0
 	for (const field of workingFields) {
 		if (field.type !== 'select' || !Array.isArray(field.options)) continue
+		if (skipField && field.name === skipField) continue
 		const chosen = workingForm?.[keyFromFieldName(field.name)]
 		if (!chosen) continue
 		const match = field.options.find((opt) => String(opt.value) === String(chosen))
@@ -67,7 +70,7 @@ export const getSelectFeePct = (workingFields: CoinWorkingField[] | null | undef
  * @param coin - Coin from /coins/v2 (fee_out, fee_out_gold, fee_out_fixed).
  * @param [opts]
  */
-export const calculateFee = (amount: Decimal | null | undefined, coin: FeeCoin | null | undefined, { isGold = false, selectFeePct = 0 }: FeeOptions = {}): number => {
+export const rawFee = (amount: Decimal | null | undefined, coin: FeeCoin | null | undefined, { isGold = false, selectFeePct = 0 }: FeeOptions = {}): number => {
 	if (!coin) return 0
 	const amountNum = Number(amount)
 	if (!Number.isFinite(amountNum) || amountNum <= 0) return 0
@@ -83,8 +86,15 @@ export const calculateFee = (amount: Decimal | null | undefined, coin: FeeCoin |
 		base = (amountNum * rate) / 100
 		if (Number.isFinite(Number(fixed)) && fixed !== null) { base += Number(fixed) }
 	}
-	return round2(base + (amountNum * selectFeePct) / 100)
+	return base + (amountNum * selectFeePct) / 100
 }
+
+/**
+ * Total fee (in QUSD, rounded to cents) for a gross amount on a coin.
+ * The unrounded value is `rawFee`: the cash-zone quote adds its charge to it before
+ * rounding, exactly like the server's `quoteWithdrawFee`.
+ */
+export const calculateFee = (amount: Decimal | null | undefined, coin: FeeCoin | null | undefined, opts: FeeOptions = {}): number => round2(rawFee(amount, coin, opts))
 
 /**
  * Inverse: gross QUSD required so that `netUsd` arrives after fees.
@@ -113,4 +123,25 @@ export const grossFromNet = (netUsd: Decimal | null | undefined, coin: FeeCoin |
 	}
 	const fixedAmount = Number.isFinite(Number(fixed)) && fixed !== null ? Number(fixed) : 0
 	return effectivePct > 0 ? (net + fixedAmount) / (1 - effectivePct / 100) : net + fixedAmount
+}
+
+/** Qué límite de la moneda incumple el bruto a extraer, y cuál es. */
+export type AmountLimitIssue = { kind: 'belowMin' | 'aboveMax', limit: number }
+
+/**
+ * `min_out` / `max_out` de la moneda contra el bruto a extraer, como el servidor.
+ * El servidor los comprueba DESPUÉS de validar el PIN: sin este aviso el usuario
+ * teclea el PIN para que le digan que no llega al mínimo. Un límite ausente o ≤ 0
+ * no cuenta; la redención de sats no pasa por aquí (tiene su propio mínimo).
+ *
+ * @returns El límite incumplido, o null si el importe cabe (o aún no hay importe).
+ */
+export const amountLimitIssue = (amount: Decimal | null | undefined, coin: Pick<Coin, 'min_out' | 'max_out'> | null | undefined): AmountLimitIssue | null => {
+	const value = Number(amount)
+	if (!coin || !Number.isFinite(value) || value <= 0) return null
+	const min = Number(coin.min_out)
+	if (min > 0 && value < min) return { kind: 'belowMin', limit: min }
+	const max = Number(coin.max_out)
+	if (max > 0 && value > max) return { kind: 'aboveMax', limit: max }
+	return null
 }

@@ -23,10 +23,11 @@
 	},
 	"cashDelivery": {
 		"sectionTitle": "Cash delivery",
-		"subtitle": "Get USD cash in Havana\nin less than 72 hours",
+		"subtitle": "Get USD cash in {{city}}\nin less than 72 hours",
 		"cta": "Send cash",
 		"kycGateMessage": "Sending cash with USD CASH requires a verified identity. It's quick and you only do it once.",
-		"kycRequired": "Requires verified identity"
+		"kycRequired": "Requires verified identity",
+		"havana": "Havana"
 	},
 	"coinPicker": {
 		"title": "Select coin",
@@ -109,7 +110,9 @@
 			"min_rating": "rating {{value}}+",
 			"min_account_days": "account {{value}}+ days old",
 			"min_trustscore": "TrustScore {{value}}+"
-		}
+		},
+		"promoted": "Featured",
+		"promotedHint": "Paid placement: QvaPay doesn't endorse this offer"
 	},
 	"phoneInput": {
 		"placeholder": "Phone number"

@@ -17,7 +17,12 @@
 		"latestTransactions": "Latest transactions",
 		"services": "Services",
 		"watchlist": "My Watchlist",
-		"news": "Latest news"
+		"news": "Latest news",
+		"p2pOffers": "P2P offers"
+	},
+	"p2p": {
+		"promoted": "Featured traders",
+		"promote": "Get featured"
 	},
 	"quickPay": {
 		"sendFirst": "Send your first payment"

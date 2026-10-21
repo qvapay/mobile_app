@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
+import type { StyleProp, TextStyle } from 'react-native'
 import type { Theme } from './ThemeContext'
 
 /**
@@ -17,6 +18,21 @@ export const hexToRgba = (hex: string, alpha: number = 1) => {
 	const g = parseInt(h.slice(2, 4), 16)
 	const b = parseInt(h.slice(4, 6), 16)
 	return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/**
+ * La mono del MISMO peso que el texto al que sustituye: Medium o más pesado (por familia
+ * o por `fontWeight`) → Medium; el resto, Regular. `fontWeight` vuelve a normal para que
+ * Android no le sintetice negrita encima a un archivo que ya trae su peso.
+ *
+ * @param theme - Tema activo.
+ * @param style - Estilo del texto de alrededor.
+ * @returns `fontFamily` + `fontWeight` para poner DETRÁS de ese estilo.
+ */
+export const monoFont = (theme: Theme, style?: StyleProp<TextStyle>): TextStyle => {
+	const { fontFamily, fontWeight } = StyleSheet.flatten(style) ?? {}
+	const heavy = /Medium|SemiBold|Bold|Black/.test(fontFamily ?? '') || fontWeight === 'bold' || Number(fontWeight) >= 500
+	return { fontFamily: heavy ? theme.typography.fontFamily.monoMedium : theme.typography.fontFamily.mono, fontWeight: 'normal' }
 }
 
 /**

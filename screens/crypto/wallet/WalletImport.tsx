@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native'
+import { StyleSheet, Text, TextInput, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner-native'
 
@@ -17,6 +17,7 @@ import { finishWalletSetup } from './finishWalletSetup'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPKeyboardAvoidingView from '../../../ui/QPKeyboardAvoidingView'
 
 // Navigation
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -60,7 +61,7 @@ const WalletImport = ({ navigation }: Props) => {
 	}
 
 	return (
-		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={containerStyles.subContainer}>
+		<QPKeyboardAvoidingView style={containerStyles.subContainer}>
 			<View style={styles.content}>
 				<Text style={textStyles.h1}>{t('crypto.wallet.import.title')}</Text>
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.import.subtitle')}</Text>
@@ -92,7 +93,7 @@ const WalletImport = ({ navigation }: Props) => {
 
 				<QPButton testID="wallet-import-submit" title={t('crypto.wallet.import.cta')} onPress={handleImport} disabled={!valid} loading={importing} />
 			</View>
-		</KeyboardAvoidingView>
+		</QPKeyboardAvoidingView>
 	)
 }
 

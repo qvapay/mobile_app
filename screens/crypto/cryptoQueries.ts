@@ -26,58 +26,6 @@ export type P2pPair = {
 }
 
 /**
- * Stock crudo de `stocksApi.index()` (el módulo lo declara `unknown[]`: el
- * endpoint no tiene contrato tipado todavía).
- */
-export type RawStock = {
-	symbol: string
-	name?: string
-	icon?: string
-	iconStyle?: string
-	image?: string | null
-	price?: number
-	change?: number
-	changeDollar?: number
-}
-
-/** Fila normalizada del explorador de stocks (lo que pinta ExploreRow). */
-export type StockRow = {
-	tick: string
-	name?: string
-	icon?: string
-	iconStyle?: string
-	image: string | null
-	price?: number
-	change?: number
-	changeDollar?: number
-}
-
-/**
- * Cotización extendida de un stock (`stocksApi.show`, declarado `unknown`):
- * los campos que lee StockDetail.
- */
-export type StockQuote = {
-	symbol?: string
-	name?: string
-	price?: number
-	change?: number
-	changeDollar?: number
-	open?: number
-	high?: number
-	low?: number
-	previousClose?: number
-	volume?: number
-	fiftyTwoWeekHigh?: number
-	fiftyTwoWeekLow?: number
-	exchange?: string
-	type?: string
-	description?: string
-	sector?: string
-	industry?: string
-	ceo?: string
-}
-
-/**
  * Raíz de las claves del dashboard de Invest. El resumen de ahorros NO cuelga
  * de aquí: vive bajo `['savings', …]` porque lo comparte el BalanceCard del
  * Home — el refresco de Invest revalida ambas raíces.
@@ -101,22 +49,6 @@ export const mapP2pPairs = (averages?: P2PMarketAverages | null): P2pPair[] => P
 	if (!d) return []
 	return [{ tick, name: d.name || tick, buy: d.average_buy || 0, sell: d.average_sell || 0, count: d.count || 0 }]
 })
-
-/**
- * Normaliza los stocks del backend a la forma que pinta ExploreRow.
- *
- * @param stocks - Respuesta de `stocksApi.index()`.
- */
-export const mapStocks = (stocks?: RawStock[] | null): StockRow[] => (stocks || []).map(s => ({
-	tick: s.symbol,
-	name: s.name,
-	icon: s.icon,
-	iconStyle: s.iconStyle,
-	image: s.image || null,
-	price: s.price,
-	change: s.change,
-	changeDollar: s.changeDollar,
-}))
 
 /**
  * Enriquece las primeras monedas con su histórico 24h (precio, variación y
@@ -158,15 +90,6 @@ export const useCryptoCoinsQuery = () => useQuery({
 	placeholderData: previous => previous,
 })
 
-/** Stocks del explorador. */
-export const useStocksQuery = () => useQuery({
-	queryKey: ['crypto', 'stocks'],
-	// `stocksApi.index` declara `unknown[]` (endpoint sin contrato tipado):
-	// se estrecha aquí a la forma que mapStocks realmente lee
-	queryFn: async () => mapStocks(unwrap(await stocksApi.index()) as RawStock[] | null),
-	placeholderData: previous => previous,
-})
-
 /** Movimientos recientes de la cuenta de ahorro. */
 export const useSavingsMovementsQuery = (take = 20) => useQuery({
 	queryKey: ['savings', 'movements', take],
@@ -177,16 +100,10 @@ export const useSavingsMovementsQuery = (take = 20) => useQuery({
 	placeholderData: previous => previous,
 })
 
-/** Cotización extendida de un stock. */
-export const useStockQuery = (symbol: string) => useQuery({
-	queryKey: ['crypto', 'stock', symbol],
-	// Igual que en `index`: el módulo declara `unknown` y aquí se le da forma
-	queryFn: async () => unwrap(await stocksApi.show(symbol)) as StockQuote | null,
-	enabled: !!symbol,
-	placeholderData: previous => previous,
-})
-
-/** Histórico de precio de un stock por timeframe (cambiarlo no vacía el gráfico). */
+/**
+ * Histórico de una acción por el ticker de su subyacente (`TSLA`), para el gráfico
+ * de XStockDetail. Cambiar de timeframe no vacía el gráfico.
+ */
 export const useStockHistoryQuery = (symbol: string, timeframe: string) => useQuery({
 	queryKey: ['crypto', 'stock-history', symbol, timeframe],
 	queryFn: async () => {
@@ -226,9 +143,9 @@ export const useCoinHistoryQuery = (
 })
 
 /**
- * Owns the Crypto explorer data: cripto populares con sparklines y stocks —
- * queries independientes que salen EN PARALELO y se persisten por separado.
- * Las medias P2P viven en el tab P2P (`useP2pMarketAveragesQuery` + `mapP2pPairs`).
+ * Owns the Crypto explorer data: las cripto populares con sparklines. La
+ * pestaña Stocks pinta las xStocks (`stocks/xstocksQueries`). Las medias P2P
+ * viven en el tab P2P (`useP2pMarketAveragesQuery` + `mapP2pPairs`).
  *
  * Devuelve la misma forma que consumía la versión anterior de `Invest.jsx`
  * (reducer + fetch manual), incluido el `isLoading` del loader inicial: solo
@@ -243,7 +160,6 @@ export const useCryptoDashboard = () => {
 	const [refreshing, setRefreshing] = useState(false)
 
 	const coins = useCryptoCoinsQuery()
-	const stocks = useStocksQuery()
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
@@ -255,10 +171,9 @@ export const useCryptoDashboard = () => {
 
 	return {
 		coins: coins.data || [],
-		stocks: stocks.data || [],
 		// Loader de pantalla completa solo mientras el explorador no tenga nada
 		// que pintar (ni de red ni de la caché persistida)
-		isLoading: coins.isPending && stocks.isPending,
+		isLoading: coins.isPending,
 		refreshing,
 		onRefresh,
 	}

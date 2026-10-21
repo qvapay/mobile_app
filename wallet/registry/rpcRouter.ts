@@ -89,6 +89,27 @@ export const isMethodNotAllowed = (err: unknown): boolean => {
 	return typeof e.message === 'string' && /METHOD_NOT_ALLOWED|method (?:is )?not (?:allowed|supported|found)|no está permitido/i.test(e.message)
 }
 
+/**
+ * Mensajes de Agave (`rpc-client-api/src/custom_error.rs`) para "ese dato no está en este
+ * nodo" o "la red aún no lo tiene": -32001 bloque podado, -32007/-32009 hueco de ledger,
+ * -32011 sin historial, -32018 hueco en el límite de epoch y -32017 reparto de recompensas
+ * en curso. Fuera a propósito -32004 "Block not available": también lo da un nodo atrasado.
+ */
+const DATA_UNAVAILABLE = /cleaned up, does not exist on node|missing due to ledger jump|missing in long-term storage|history is not available from this node|is not the epoch boundary|epoch rewards period still active/i
+
+/**
+ * El nodo funciona pero NO guarda el dato pedido (o la red aún no lo tiene). Caso real
+ * (2026-10-17): sol.qvapay.com poda a ~3,7 h y `getInflationReward` de la epoch anterior
+ * necesita el primer bloque de la actual, así que falla casi toda la epoch. Una lectura
+ * rota igual (es idempotente), pero contarlo como caída sacaba nuestro nodo del router
+ * —con saldos y envíos dentro— cada vez que alguien abría el selector de validador.
+ */
+export const isDataUnavailable = (err: unknown): boolean => {
+	if (!err || typeof err !== 'object') return false
+	const e = err as { message?: string }
+	return typeof e.message === 'string' && DATA_UNAVAILABLE.test(e.message)
+}
+
 export type ProbeRequest = (
 	chainKey: string,
 	chain: RegistryChain,
@@ -252,8 +273,9 @@ export const createRpcRouter = (getRegistry: () => RpcRegistry, deps: RouterDeps
 				// así que ahí cualquier error rota. La regla conservadora existe para no
 				// repetir un broadcast, y eso solo vale para escrituras.
 				if (!idempotent && !isRetryableRpcError(err) && !isNodeRefusal(err)) throw err
-				// Un método no ofrecido no es un nodo caído: no cuenta para el circuit breaker
-				if (!isMethodNotAllowed(err)) markFailure(rpc.url)
+				// Ni un método no ofrecido ni un dato que el nodo no guarda son un nodo caído:
+				// no cuentan para el circuit breaker
+				if (!isMethodNotAllowed(err) && !isDataUnavailable(err)) markFailure(rpc.url)
 				errors.push(err)
 			} finally {
 				clearTimeout(timer)

@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import type { Theme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
@@ -35,6 +35,7 @@ import { useSettings } from '../../../settings/SettingsContext'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
+import QPKeyboardAvoidingView from '../../../ui/QPKeyboardAvoidingView'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
 import WalletAuthModal from './components/WalletAuthModal'
@@ -106,6 +107,7 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 	const [amountText, setAmountText] = useState('')
 	const [target, setTarget] = useState<RegistryStakeTarget | null>(null)
 	const [pickerOpen, setPickerOpen] = useState(false)
+	const formScrollRef = useRef<ScrollViewInstance>(null)
 	// APY de cada destino: solo se pide con el selector abierto (y queda en caché una hora)
 	const targetApys = useTargetApys(asset?.chainKey, targets, pickerOpen)
 
@@ -235,8 +237,10 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 	if (step === 'form') {
 		const sourceLabel = displayAmount(formatUnits(sourceUnits, asset.decimals))
 		return (
-			<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={containerStyles.subContainer}>
-				<ScrollView style={styles.scroll} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+			<QPKeyboardAvoidingView style={containerStyles.subContainer}>
+				{/* El teclado encoge el scroll (en un móvil pequeño, hasta justo debajo del importe): se baja
+				    al final para que la línea de mínimo/error, que explica un Continuar apagado, siga a la vista */}
+				<ScrollView ref={formScrollRef} onLayout={() => formScrollRef.current?.scrollToEnd({ animated: true })} style={styles.scroll} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
 					<View style={[styles.assetChip, { backgroundColor: theme.colors.surface }]}>
 						<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={28} />
@@ -259,7 +263,7 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 									</Text>
 									{!!target && (
 										<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }} numberOfLines={1}>
-											{target.partner ? `${t('crypto.staking.picker.partner')} · ` : ''}{shortAddress(target.id)}
+											{target.partner ? `${t('crypto.staking.picker.partner')} · ` : ''}<Text style={monoFont(theme)}>{shortAddress(target.id)}</Text>
 										</Text>
 									)}
 								</View>
@@ -314,7 +318,7 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 					apys={targetApys.data}
 					apyLoading={targetApys.isFetching && !targetApys.data}
 				/>
-			</KeyboardAvoidingView>
+			</QPKeyboardAvoidingView>
 		)
 	}
 

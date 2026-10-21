@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Regenerates ui/havanaGeo.js — the real-Havana vector geography behind the
- * USD CASH card (HavanaMapArt + courier routes).
+ * Regenerates ui/havanaGeo.ts — the real-Havana vector geography behind the
+ * USD CASH card (CashCityMapArt + courier routes; the other capitals come
+ * from scripts/build-cash-geo.js).
  *
  * Pipeline: fetches from the Overpass API (OpenStreetMap, ODbL) the
  * coastline, the Almendares river and the arterial street network; projects
@@ -20,7 +21,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const OUT_FILE = path.join(__dirname, '..', 'ui', 'havanaGeo.js')
+const OUT_FILE = path.join(__dirname, '..', 'ui', 'havanaGeo.ts')
 const OVERPASS = 'https://overpass-api.de/api/interpreter'
 
 // ——— Projection (framing) ———

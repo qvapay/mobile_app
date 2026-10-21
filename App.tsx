@@ -87,13 +87,13 @@ import MiniAppHost from './screens/miniapps/MiniAppHost'
 import P2PCreate from './screens/p2p/P2PCreate'
 import P2POffer from './screens/p2p/P2POffer'
 import P2PUser from './screens/p2p/P2PUser'
+import P2PPromote from './screens/p2p/P2PPromote'
 import GoldCheck from './screens/settings/subpanels/GoldCheck'
 import Scan from './screens/scan/Scan'
 import NearbyPay from './screens/nearby/NearbyPay'
 
 // Invest Screens
 import Savings from './screens/crypto/Savings'
-import StockDetail from './screens/crypto/StockDetail'
 import CoinDetail from './screens/crypto/CoinDetail'
 import WalletOnboarding from './screens/crypto/wallet/WalletOnboarding'
 import WalletOnly from './screens/crypto/wallet/WalletOnly'
@@ -110,6 +110,9 @@ import WalletSwap from './screens/crypto/wallet/WalletSwap'
 import WalletSwapStatus from './screens/crypto/wallet/WalletSwapStatus'
 import WalletExchangeStatus from './screens/crypto/wallet/WalletExchangeStatus'
 import WalletOnchainSwap from './screens/crypto/wallet/WalletOnchainSwap'
+import StocksHome from './screens/crypto/stocks/StocksHome'
+import XStockDetail from './screens/crypto/stocks/XStockDetail'
+import XStockTrade from './screens/crypto/stocks/XStockTrade'
 import WalletExchanges from './screens/crypto/wallet/WalletExchanges'
 import WalletEnergy from './screens/crypto/wallet/WalletEnergy'
 import WalletEnergyOrders from './screens/crypto/wallet/WalletEnergyOrders'
@@ -208,6 +211,9 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	// P2P User Profile Screen — no header so cover extends to the status bar (Scan/Profile look)
 	{ name: ROUTES.P2P_USER_SCREEN, component: P2PUser, options: { headerShown: false } },
 
+	// Puesto promocionado del mercado P2P (comprar o pujar por la tarjeta dorada de un par)
+	{ name: ROUTES.P2P_PROMOTE, component: P2PPromote, options: getHeaderOptions(t('navigation.headers.p2pPromote')) },
+
 	// GoldCheck — also reachable from SettingsStack, but registered here so
 	// peer profile and other screens can push it directly with a back button
 	{ name: ROUTES.GOLD_CHECK, component: GoldCheck, options: getHeaderOptions(t('navigation.headers.goldCheck')) },
@@ -270,7 +276,6 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.SAVINGS_SCREEN, component: Savings, options: getHeaderOptions(t('navigation.headers.savings')) },
 
 	// Stock Detail Screen
-	{ name: ROUTES.STOCK_DETAIL_SCREEN, component: StockDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
 	{ name: ROUTES.COIN_DETAIL_SCREEN, component: CoinDetail, options: ({ route }: any) => getHeaderOptions(route.params?.name || '') },
 
 	// Wallet self-custody (branch crypto)
@@ -290,6 +295,10 @@ const buildStaticScreens = (t: (key: string, options?: any) => string): ScreenCo
 	{ name: ROUTES.WALLET_SWAP_STATUS, component: WalletSwapStatus, options: { ...getHeaderOptions(t('navigation.headers.walletSwapStatus')), gestureEnabled: false } },
 	{ name: ROUTES.WALLET_EXCHANGE_STATUS, component: WalletExchangeStatus, options: { ...getHeaderOptions(t('navigation.headers.walletExchangeStatus')), gestureEnabled: false } },
 	{ name: ROUTES.WALLET_ONCHAIN_SWAP, component: WalletOnchainSwap, options: getHeaderOptions(t('navigation.headers.walletOnchainSwap')) },
+	// Acciones tokenizadas (xStocks)
+	{ name: ROUTES.STOCKS_HOME, component: StocksHome, options: getHeaderOptions(t('navigation.headers.stocksHome')) },
+	{ name: ROUTES.XSTOCK_DETAIL, component: XStockDetail, options: getHeaderOptions('') },
+	{ name: ROUTES.XSTOCK_TRADE, component: XStockTrade, options: ({ route }: any) => getHeaderOptions(t(route.params?.side === 'sell' ? 'navigation.headers.xstockSell' : 'navigation.headers.xstockBuy'), { animation: 'slide_from_bottom' }) },
 	{ name: ROUTES.WALLET_EXCHANGES, component: WalletExchanges, options: getHeaderOptions(t('navigation.headers.walletExchanges')) },
 	{ name: ROUTES.WALLET_ENERGY, component: WalletEnergy, options: getHeaderOptions(t('navigation.headers.tronEnergy')) },
 	{ name: ROUTES.WALLET_ENERGY_ORDERS, component: WalletEnergyOrders, options: getHeaderOptions(t('navigation.headers.energyOrders')) },

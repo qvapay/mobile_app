@@ -12,6 +12,7 @@ import { ftBalanceOf, stxBalanceOf, stxLockedOf } from './stacks'
 import { ChainHttpError, hexToBigInt, jsonRpc } from './http'
 import { fetchAllBalances, fetchChainBalances } from './index'
 import { isRetryableRpcError } from '../registry/rpcRouter'
+import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../solana/codec'
 
 const EVM = '0x9858EfFD232B4033E47d90003D41EC34EcaEda94'
 const TRON = 'TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH'
@@ -196,6 +197,61 @@ describe('fetchChainBalances / fetchAllBalances', () => {
 	test('todas caídas y sin previo → lanza', async () => {
 		mockFetch(() => jsonResponse({}, 503))
 		await expect(fetchAllBalances(router, registry, ADDRESSES, null)).rejects.toThrow()
+	})
+})
+
+describe('Solana: los Token-2022 (xStocks) van aparte', () => {
+	const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+	const TSLAX = 'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB'
+	const registry = {
+		version: 1,
+		updated_at: '',
+		chains: {
+			solana: {
+				kind: 'solana',
+				native: { symbol: 'SOL', decimals: 9 },
+				explorer: '',
+				tokens: [
+					{ symbol: 'USDC', address: USDC, decimals: 6 },
+					{ symbol: 'TSLAx', address: TSLAX, decimals: 8, program: 'token2022', kind: 'stock', underlying: 'TSLA' },
+				],
+				rpcs: [{ url: 'https://sol', priority: 10, owner: 'x' }],
+			},
+		},
+	}
+	const router = { call: (_key, fn) => fn(registry.chains[_key].rpcs[0], new AbortController().signal) }
+	const accounts = (mint, amount) => ({ value: [{ account: { data: { parsed: { info: { mint, tokenAmount: { amount } } } } } }] })
+	const solanaNode = ({ token2022Down = false } = {}) => (url, body) => {
+		if (body.method === 'getBalance') return jsonResponse({ result: { value: 5000 } })
+		if (body.method === 'getProgramAccounts') return jsonResponse({ result: [] })
+		if (body.method === 'getTokenAccountsByOwner') {
+			if (body.params[1].programId === TOKEN_2022_PROGRAM) return token2022Down ? jsonResponse({}, 503) : jsonResponse({ result: accounts(TSLAX, '700') })
+			return jsonResponse({ result: accounts(USDC, '42') })
+		}
+		throw new Error(`método inesperado ${body.method}`)
+	}
+	const SOL_ADDRESSES = { ...ADDRESSES, sol: 'So1anaOwner1111111111111111111111111111111' }
+
+	test('cada programa en su llamada; las acciones salen de la de Token-2022', async () => {
+		mockFetch(solanaNode())
+		await expect(fetchChainBalances(router, registry, 'solana', SOL_ADDRESSES)).resolves.toEqual({
+			'solana:native': '5000',
+			'solana:native#staked': '0',
+			[`solana:${USDC}`]: '42',
+			[`solana:${TSLAX}`]: '700',
+		})
+		const programs = calls.filter(c => c.body.method === 'getTokenAccountsByOwner').map(c => c.body.params[1].programId)
+		expect(programs.sort()).toEqual([TOKEN_2022_PROGRAM, TOKEN_PROGRAM].sort())
+	})
+
+	test('si Token-2022 falla, SOL y USDC siguen frescos y las acciones conservan la pasada anterior', async () => {
+		mockFetch(solanaNode({ token2022Down: true }))
+		const previous = { balances: { 'solana:native': '1', [`solana:${USDC}`]: '1', [`solana:${TSLAX}`]: '650' }, failedChains: [], updatedAt: 0 }
+		const result = await fetchAllBalances(router, registry, SOL_ADDRESSES, previous)
+		expect(result.failedChains).toEqual([])
+		expect(result.balances['solana:native']).toBe('5000')
+		expect(result.balances[`solana:${USDC}`]).toBe('42')
+		expect(result.balances[`solana:${TSLAX}`]).toBe('650')
 	})
 })
 

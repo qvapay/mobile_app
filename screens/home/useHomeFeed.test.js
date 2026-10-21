@@ -26,6 +26,8 @@ jest.mock('../../api/blogApi', () => ({ blogApi: { getLatestPosts: jest.fn() } }
 jest.mock('../../api/coinsApi', () => ({ coinsApi: { priceHistory: jest.fn() } }))
 jest.mock('../../api/promoApi', () => ({ promoApi: { getPromo: jest.fn() } }))
 jest.mock('../../api/announcementApi', () => ({ announcementApi: { getAnnouncement: jest.fn() } }))
+// Las ofertas P2P del Home viven en su propia sección (HomeP2POffers), fuera de este hook
+jest.mock('../../api/p2pApi', () => ({ p2pApi: { featured: jest.fn() } }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'

@@ -37,6 +37,12 @@ env:
     visible:
       id: "wallet-only"
     timeout: 15000
+# La cuenta TRON de "abandon … about" tiene el permiso de dueño en OTRA dirección
+# (cebo con USDT a la vista): la wallet lo avisa arriba del todo
+- extendedWaitUntil:
+    visible:
+      id: "tron-control-warning"
+    timeout: 20000
 - runFlow:
     file: subflows/scroll_down_to.yaml
     env:
@@ -54,4 +60,4 @@ env:
 - extendedWaitUntil:
     visible:
       id: "wallet-only"
-    timeout: 5000
+    timeout: 15000

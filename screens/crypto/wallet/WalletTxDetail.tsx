@@ -9,7 +9,7 @@ import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fonta
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import type { Theme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
@@ -41,12 +41,13 @@ type RowProps = { label: string, value: string, theme: Theme, mono?: boolean, ad
 
 /** Fila etiqueta/valor; con `copy`, tocar el valor lo copia (direcciones y hash); con `address`, extremos resaltados. */
 const Row = ({ label, value, theme, mono, address, copy, last }: RowProps) => {
-	const valueStyle = [styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]
+	const baseStyle = [styles.rowValue, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: mono ? theme.typography.fontSize.xs : theme.typography.fontSize.sm }]
+	const valueStyle = mono ? [...baseStyle, monoFont(theme, baseStyle)] : baseStyle
 	const body = (
 		<View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border + '60' }]}>
 			<Text style={[styles.rowLabel, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{label}</Text>
 			{address
-				? <QPAddress selectable={!copy} address={value} style={valueStyle} />
+				? <QPAddress selectable={!copy} address={value} style={baseStyle} />
 				: <Text selectable={!copy} style={valueStyle}>{value}</Text>}
 			{copy && <FontAwesome6 name="copy" size={12} color={theme.colors.tertiaryText} iconStyle="regular" />}
 		</View>

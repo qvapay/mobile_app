@@ -22,7 +22,7 @@ env:
     id: "wallet-settings-delete"
     retryTapIfNoChange: true
 # Gate de PIN de la wallet
-- runFlow: subflows/type_pin.yaml
+- runFlow: subflows/wallet_auth_pin.yaml
 - extendedWaitUntil:
     visible:
       id: "wallet-delete-ack"

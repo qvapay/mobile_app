@@ -1,15 +1,13 @@
 /**
  * Tests del dashboard de Invest sobre React Query.
  *
- * Los dos que de verdad importan: las cuatro fuentes salen EN PARALELO (la
- * técnica de la compuerta, como en useHomeFeed.test), y el pull-to-refresh
- * revalida AMBAS raíces — el dashboard propio y el resumen de ahorros
- * compartido con BalanceCard, que no cuelga de `['crypto']`.
+ * El explorador solo pide las monedas (la pestaña Stocks son las xStocks, con sus
+ * propias queries) y el pull-to-refresh revalida la raíz `['crypto']`.
  * @jest-environment node
  */
 jest.mock('../../api/coinsApi', () => ({ coinsApi: { index: jest.fn(), priceHistory: jest.fn() } }))
 jest.mock('../../api/p2pApi', () => ({ p2pApi: { getAverages: jest.fn() } }))
-jest.mock('../../api/stocksApi', () => ({ stocksApi: { index: jest.fn() } }))
+jest.mock('../../api/stocksApi', () => ({ stocksApi: { priceHistory: jest.fn() } }))
 jest.mock('../../api/savingApi', () => ({ savingApi: { getSummary: jest.fn() } }))
 
 import React from 'react'
@@ -18,8 +16,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { coinsApi } from '../../api/coinsApi'
 import { p2pApi } from '../../api/p2pApi'
-import { stocksApi } from '../../api/stocksApi'
-import { mapP2pPairs, mapStocks, enrichCoins, useCryptoDashboard } from './cryptoQueries'
+import { mapP2pPairs, enrichCoins, useCryptoDashboard } from './cryptoQueries'
 
 const ok = (data) => ({ success: true, data, status: 200 })
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -36,7 +33,6 @@ const wire = () => {
 		return payload
 	})
 	coinsApi.index = record('coins', ok([{ tick: 'BTC' }, { tick: 'ETH' }]))
-	stocksApi.index = record('stocks', ok([{ symbol: 'AAPL', name: 'Apple', price: 200, change: 1 }]))
 	p2pApi.getAverages = record('p2p', ok({ ZELLE: { name: 'Zelle', average_buy: 1.1, average_sell: 0.9, count: 4 } }))
 	// Los históricos cuentan como parte de la fuente coins (salen tras el index)
 	coinsApi.priceHistory = jest.fn(async () => ok([{ value: 10 }, { value: 12 }]))
@@ -81,12 +77,12 @@ afterEach(async () => {
 })
 
 describe('carga y refresco', () => {
-	test('las fuentes del explorador salen EN PARALELO, no encadenadas', async () => {
+	test('el explorador solo pide las monedas', async () => {
 		// Las APIs retienen su respuesta; se mira ANTES de que llegue ninguna
 		gate = new Promise(resolve => setTimeout(resolve, 100))
 		const dashboard = await renderDashboard()
 
-		expect(new Set(started)).toEqual(new Set(['coins', 'stocks']))
+		expect(new Set(started)).toEqual(new Set(['coins']))
 
 		// Abierta la compuerta, las respuestas aterrizan con normalidad
 		await act(async () => { await gate })
@@ -101,7 +97,7 @@ describe('carga y refresco', () => {
 		await act(async () => { await dashboard.current.onRefresh() })
 		await settle()
 
-		expect(new Set(started)).toEqual(new Set(['coins', 'stocks']))
+		expect(new Set(started)).toEqual(new Set(['coins']))
 	})
 
 	test('refreshing sube y baja solo en el tirón', async () => {
@@ -123,7 +119,7 @@ describe('carga y refresco', () => {
 	test('mantiene el contrato que consume Crypto.tsx (sin P2P: vive en su tab), sin listas undefined', async () => {
 		const dashboard = await renderDashboard()
 		expect(Object.keys(dashboard.current).sort()).toEqual([
-			'coins', 'isLoading', 'onRefresh', 'refreshing', 'stocks',
+			'coins', 'isLoading', 'onRefresh', 'refreshing',
 		])
 	})
 })
@@ -140,12 +136,6 @@ describe('mapeos puros', () => {
 			{ tick: 'ZELLE', name: 'Zelle', buy: 1.1, sell: 0.9, count: 4 },
 		])
 		expect(mapP2pPairs(null)).toEqual([])
-	})
-
-	test('mapStocks normaliza symbol→tick y la imagen ausente a null', () => {
-		expect(mapStocks([{ symbol: 'AAPL', name: 'Apple', price: 200, change: 1 }])).toEqual([
-			{ tick: 'AAPL', name: 'Apple', icon: undefined, iconStyle: undefined, image: null, price: 200, change: 1, changeDollar: undefined },
-		])
 	})
 
 	test('enrichCoins calcula la variación y tolera un histórico fallido', () => {

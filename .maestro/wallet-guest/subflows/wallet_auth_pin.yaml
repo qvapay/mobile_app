@@ -1,0 +1,16 @@
+# PIN en el modal de la wallet (WalletAuthModal: ver la frase, borrar la wallet…).
+# El modal entra con fundido y su primera caja se enfoca ~380 ms después:
+# teclear en cuanto es visible pierde los dígitos. Esperar, enfocar a mano y teclear.
+# Espera larga: en el build de dev el hilo de UI llegó a congelarse ~5 s justo al
+# abrir el modal (Choreographer: 304 frames saltados) y 10 s se quedaron cortos
+appId: com.qvapay
+---
+- extendedWaitUntil:
+    visible:
+      id: "wallet-auth-modal"
+    timeout: 25000
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "wallet-auth-pin-0"
+- runFlow: type_pin.yaml

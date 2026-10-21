@@ -14,7 +14,7 @@ jest.mock('../../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../../../settings/SettingsContext', () => ({ useSettings: () => ({ getSetting: (_s, _k, fallback) => fallback }) }))
 jest.mock('../../../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../../../wallet/registry/appRpcRouter', () => ({ useEffectiveRegistry: () => ({ chains: { stacks: { kind: 'stacks', native: { symbol: 'STX', decimals: 6 } } } }) }))
-jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), usePriceMap: () => ({ QUSD: 1 }), useTronResourcesQuery: () => ({ data: undefined }), useTronChainParamsQuery: () => ({ data: undefined }), refreshHistoryAfterSend: jest.fn(), WALLET_BALANCES_KEY: ['wallet', 'balances'] }))
+jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), usePriceMap: () => ({ QUSD: 1 }), useTronResourcesQuery: () => ({ data: undefined }), useTronChainParamsQuery: () => ({ data: undefined }), useTronForeignControl: jest.fn(() => null), refreshHistoryAfterSend: jest.fn(), WALLET_BALANCES_KEY: ['wallet', 'balances'] }))
 jest.mock('./walletSendActions', () => ({ prepareSend: jest.fn(), signPrepared: jest.fn(), broadcastSigned: jest.fn() }))
 jest.mock('../../../api/swapApi', () => ({ swapApi: { getPairs: jest.fn(), create: jest.fn(), get: jest.fn(), cancel: jest.fn() } }))
 jest.mock('../../../api/withdrawApi', () => ({ withdrawApi: { requestPin: jest.fn() } }))
@@ -35,9 +35,11 @@ jest.mock('./components/WalletAuthModal', () => 'WalletAuthModal')
 jest.mock('../../../ui/particles/QPFlipButton', () => { const C = 'QPFlipButton'; return { __esModule: true, default: C, FLIP_BUTTON_SIZE: 44 } })
 jest.mock('./components/swap/SwapDetails', () => 'SwapDetails')
 jest.mock('../../../ui/QPAssetSheet', () => 'QPAssetSheet')
+jest.mock('../../../ui/QPKeyboardAvoidingView', () => 'QPKeyboardAvoidingView')
 jest.mock('./components/swap/SwapReviewSheet', () => 'SwapReviewSheet')
 jest.mock('./components/swap/SwapRoutesSheet', () => 'SwapRoutesSheet')
 jest.mock('./components/swap/SwapRouteRow', () => 'SwapRouteRow')
+jest.mock('./components/TronControlWarning', () => 'TronControlWarning')
 jest.mock('../../transaction/PinConfirmStep', () => 'PinConfirmStep')
 jest.mock('sonner-native', () => ({ toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }) }))
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
@@ -48,7 +50,7 @@ import { act, create } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '../../../auth/AuthContext'
 import { useWallet } from '../../../wallet/WalletContext'
-import { useWalletAssets } from './walletQueries'
+import { useTronForeignControl, useWalletAssets } from './walletQueries'
 import useCoins from '../../../hooks/useCoins'
 import { prepareSend, signPrepared, broadcastSigned } from './walletSendActions'
 import { swapApi } from '../../../api/swapApi'
@@ -89,9 +91,10 @@ const press = (node) => act(async () => { node.props.onPress() })
 beforeEach(() => {
 	jest.clearAllMocks()
 	navigation = { navigate: jest.fn(), replace: jest.fn(), goBack: jest.fn(), popToTop: jest.fn() }
-	useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: null }, updateUser: jest.fn() })
+	useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: null }, isAuthenticated: true, updateUser: jest.fn() })
 	useWallet.mockReturnValue({ addresses: { evm: '0x1', tron: 'T1', btc: 'bc1', stx: STX, stxPublicKey: '02aa' } })
 	useWalletAssets.mockReturnValue({ all: [QUSD_ASSET] })
+	useTronForeignControl.mockReturnValue(null)
 	swapApi.getPairs.mockResolvedValue(pairsPayload())
 	swapApi.create.mockResolvedValue({ success: true, data: { data: { uuid: 'swap-1', status: 'pending', direction: 'out' }, balance: 115.5 }, status: 201 })
 	prepareSend.mockResolvedValue({ kind: 'stacks', inner: { sponsored: true } })
@@ -100,6 +103,31 @@ beforeEach(() => {
 afterEach(async () => {
 	if (tree) { await act(async () => { tree.unmount() }); tree = null }
 	queryClient?.clear()
+})
+
+describe('cuenta TRON con dueño ajeno', () => {
+	const TRX_ASSET = { id: 'tron:native', chainKey: 'tron', chainName: 'TRON', kind: 'tron', symbol: 'TRX', decimals: 6, contract: null, logoTick: 'TRX', networkTick: 'TRX', amount: '0', amountLabel: '0', usd: 0, hasBalance: false, stable: false, priceTick: 'TRX' }
+
+	beforeEach(() => {
+		useWalletAssets.mockReturnValue({ all: [QUSD_ASSET, TRX_ASSET] })
+		useTronForeignControl.mockReturnValue(['TUmdykWXNWHbRk3V4wFGKGHKMdh6jHzijm'])
+	})
+
+	test('recibir en ella se bloquea: botón deshabilitado con el motivo y el aviso a la vista', async () => {
+		await render()
+		await press({ props: cards()[1].props.token })
+		await act(async () => { assetSheet().props.onSelect(TRX_ASSET.id) })
+		await settle()
+		expect(footer().props.disabled).toBe(true)
+		expect(footer().props.title).toBe('Tu frase no puede mover esta cuenta TRON')
+		expect(tree.root.findAllByType('TronControlWarning')).toHaveLength(1)
+	})
+
+	test('sin TRON de por medio no hay aviso ni bloqueo', async () => {
+		await render()
+		expect(tree.root.findAllByType('TronControlWarning')).toHaveLength(0)
+		expect(footer().props.title).not.toBe('Tu frase no puede mover esta cuenta TRON')
+	})
 })
 
 describe('el riel llega con moneda E importe', () => {
@@ -249,7 +277,7 @@ describe('saldo → wallet (PIN de cuenta)', () => {
 	})
 
 	test('con TOTP pide 6; un código inválido limpia el PIN y no navega', async () => {
-		useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: 'secret' }, updateUser: jest.fn() })
+		useAuth.mockReturnValue({ user: { balance: 120.5, two_factor_secret: 'secret' }, isAuthenticated: true, updateUser: jest.fn() })
 		swapApi.create.mockResolvedValue({ success: false, error: 'Código inválido', status: 400, details: { code: 'CODE_INVALID' } })
 		await render()
 		await type('5')

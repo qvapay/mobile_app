@@ -68,6 +68,14 @@
     {
       "path": "assets/sounds/money_out.mp3",
       "sha1": "04dc33ea6f8a3e4c31b076923b5aca1697036602"
+    },
+    {
+      "path": "assets/fonts/JetBrainsMono-Regular.ttf",
+      "sha1": "c358f0c0b8f9b32d9dcc9eaf1c1e27501d7f9f47"
+    },
+    {
+      "path": "assets/fonts/JetBrainsMono-Medium.ttf",
+      "sha1": "012be3bdeba346329c8ace0ea069a8fc10e31720"
     }
   ]
 }

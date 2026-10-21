@@ -1,15 +1,26 @@
 # Sale del panel de la wallet (raíz de Ajustes en modo wallet) por su
-# "volver" propio. Mientras siga visible: un toque durante la transición se
-# pierde y retryTapIfNoChange no siempre lo detecta
+# "volver" propio. UN toque y esperar a que el panel se vaya: con la wallet
+# recién importada (saldos e historial reales) Android tarda hasta ~20 s en
+# pintar el pop, y volver a tocar mientras tanto dispara un GO_BACK que no
+# atiende ningún navegador. Solo si el panel sigue ahí tras la espera (toque
+# perdido en plena transición) se toca otra vez
 appId: com.qvapay
 ---
-- repeat:
-    times: 3
-    while:
+- tapOn:
+    id: "wallet-settings-back"
+- extendedWaitUntil:
+    notVisible:
+      id: "wallet-settings-back"
+    timeout: 25000
+    optional: true
+- runFlow:
+    when:
       visible:
         id: "wallet-settings-back"
     commands:
       - tapOn:
           id: "wallet-settings-back"
-      - waitForAnimationToEnd:
-          timeout: 2000
+      - extendedWaitUntil:
+          notVisible:
+            id: "wallet-settings-back"
+          timeout: 25000

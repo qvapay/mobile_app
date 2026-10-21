@@ -119,6 +119,7 @@ const LockScreen = () => {
 					<View style={styles.dots}>
 						<PinDots
 							ref={dotsRef}
+							testID="lock-pin"
 							length={4}
 							code={pin}
 							onChangeCode={handleChangePin}

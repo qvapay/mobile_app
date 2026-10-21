@@ -22,6 +22,7 @@ jest.mock('../../ui/QPCoinPicker', () => 'QPCoinPicker')
 jest.mock('./WithdrawAmountCard', () => 'WithdrawAmountCard')
 jest.mock('./WithdrawSatsCard', () => 'WithdrawSatsCard')
 jest.mock('./WithdrawAccountFields', () => 'WithdrawAccountFields')
+jest.mock('./CashZoneFields', () => 'CashZoneFields')
 jest.mock('./WithdrawDestinationSelector', () => 'WithdrawDestinationSelector')
 jest.mock('../transaction/PinConfirmStep', () => 'PinConfirmStep')
 jest.mock('../../api/client', () => ({
@@ -29,7 +30,7 @@ jest.mock('../../api/client', () => ({
 	default: { get: jest.fn() },
 }))
 jest.mock('../../api/withdrawApi', () => ({
-	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn() },
+	withdrawApi: { requestPin: jest.fn(), withdraw: jest.fn(), decodeLightning: jest.fn(), cashZones: jest.fn() },
 }))
 let mockCoinCatalog = []
 jest.mock('../../hooks/useCoins', () => ({
@@ -49,6 +50,7 @@ jest.mock('../../ui/OfacAttestationModal', () => 'OfacAttestationModal')
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
+import { QueryClient, QueryClientProvider, defaultScheduler, notifyManager } from '@tanstack/react-query'
 import { useAuth } from '../../auth/AuthContext'
 import apiClient from '../../api/client'
 import { withdrawApi } from '../../api/withdrawApi'
@@ -124,9 +126,21 @@ const BTCLN = {
 
 const navigation = { navigate: jest.fn(), goBack: jest.fn() }
 
+// Las zonas de efectivo son una query: React Query notifica con setTimeout y este archivo
+// usa fake timers, así que sus notificaciones se entregan en el acto
+beforeAll(() => { notifyManager.setScheduler(callback => callback()) })
+afterAll(() => { notifyManager.setScheduler(defaultScheduler) })
+
+// Se guardan para desmontarlos: un QueryClient vivo deja temporizadores abiertos
+let clients = []
+const withQuery = (client, element) => <QueryClientProvider client={client}>{element}</QueryClientProvider>
+
 const renderWithdraw = async (params) => {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+	clients.push(client)
 	let tree
-	await act(async () => { tree = create(<Withdraw navigation={navigation} route={{ params }} />) })
+	await act(async () => { tree = create(withQuery(client, <Withdraw navigation={navigation} route={{ params }} />)) })
+	tree.queryClient = client
 	return tree
 }
 
@@ -169,8 +183,16 @@ beforeEach(() => {
 	withdrawApi.requestPin.mockResolvedValue({ success: true })
 	withdrawApi.withdraw.mockResolvedValue({ success: true, data: {} })
 	withdrawApi.decodeLightning.mockResolvedValue({ success: true, data: { kind: 'bolt11', amount_sat: 150000, description: 'test', expires_at: null } })
+	withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'USDCASH', margin_pct: 1, zones: [] } })
 })
-afterEach(() => { jest.useRealTimers() })
+afterEach(() => {
+	for (const client of clients) {
+		client.clear()
+		client.unmount()
+	}
+	clients = []
+	jest.useRealTimers()
+})
 
 describe('coin loading and selection', () => {
 	test('el catálogo llega de la caché compartida, sin pedirlo a la red al montar', async () => {
@@ -189,7 +211,7 @@ describe('coin loading and selection', () => {
 		// formulario debe calcular con el precio fresco, no con el capturado
 		const repriced = { ...CUP, price: String(Number(CUP.price) * 2) }
 		await act(async () => { mockCoinCatalog = [repriced, USDCASH, THRESHOLD, BTCLN, USDT] })
-		await act(async () => { tree.update(<Withdraw navigation={navigation} route={{ params: {} }} />) })
+		await act(async () => { tree.update(withQuery(tree.queryClient, <Withdraw navigation={navigation} route={{ params: {} }} />)) })
 		expect(amountCard(tree).props.selectedCoin.tick).toBe(CUP.tick)
 		expect(amountCard(tree).props.selectedCoin.price).toBe(repriced.price)
 	})
@@ -346,6 +368,22 @@ describe('form validation', () => {
 		await selectCoin(tree, USDCASH)
 		await typeQUSD(tree, '9999')
 		expect(footerButton(tree).props.disabled).toBe(false)
+	})
+
+	test('below the coin min_out Continuar stays disabled and the minimum is shown BEFORE the PIN', async () => {
+		// El servidor compara el bruto con min_out después de validar el PIN: sin esto se teclea el PIN para nada
+		mockCoinCatalog = [{ ...USDCASH, min_out: '50', max_out: 1000 }]
+		const tree = await renderWithdraw()
+		await selectCoin(tree, mockCoinCatalog[0])
+		await typeQUSD(tree, '30')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		expect(tree.root.findByProps({ testID: 'withdraw-amount-limit' }).props.children).toBe('El mínimo para retirar con Cash es $50')
+		await typeQUSD(tree, '50')
+		expect(footerButton(tree).props.disabled).toBe(false)
+		expect(tree.root.findAllByProps({ testID: 'withdraw-amount-limit' })).toHaveLength(0)
+		await typeQUSD(tree, '1200')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		expect(tree.root.findByProps({ testID: 'withdraw-amount-limit' }).props.children).toBe('El máximo para retirar con Cash es $1000')
 	})
 
 	test('Continuar opens the PIN step and the footer becomes the Extraer button', async () => {
@@ -620,5 +658,131 @@ describe('Lightning (BTCLN)', () => {
 		expect(footerButton(tree).props.disabled).toBe(true)
 		await act(async () => { satsCard(tree).props.onChangeAmountSats('2000') })
 		expect(footerButton(tree).props.disabled).toBe(false)
+	})
+})
+
+describe('cash delivery zones', () => {
+	// Efectivo con provincia (select con fee_pct, que en modo zonas se ignora) + municipio
+	const CASH_ZONED = {
+		tick: 'CASHZ',
+		name: 'Cash zones',
+		price: '1',
+		stable: true,
+		fee_out: '1',
+		fee_out_fixed: null,
+		decimals: 2,
+		logo: 'usdcash',
+		working_data: [
+			{ name: 'Nombre y Apellidos', type: 'text' },
+			{ name: 'Provincia', type: 'select', options: [{ value: 'Villa Clara', fee_pct: 5 }] },
+			{ name: 'Municipio', type: 'text' },
+		],
+	}
+	const SANTA_CLARA = {
+		id: '1', coin_tick: 'CASHZ', province_code: 'VCL', province_name: 'Villa Clara', municipality: 'Santa Clara',
+		is_capital: true, provider_pct: 3, margin_pct: null, min_usd: 50, small_flat_usd: 4,
+		eta_min_hours: 24, eta_max_hours: 48, home_delivery: true, route: 'p2p', enabled: true,
+	}
+	const zoneNode = (tree) => tree.root.findByType('WithdrawAccountFields').props.slot.node
+	const pickZone = async (tree) => {
+		await act(async () => { zoneNode(tree).props.onChangeProvince('Villa Clara') })
+		await act(async () => { zoneNode(tree).props.onChangeMunicipality('Santa Clara') })
+	}
+
+	beforeEach(() => {
+		mockCoinCatalog = [CASH_ZONED, CUP]
+		withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'CASHZ', margin_pct: 1, zones: [SANTA_CLARA] } })
+	})
+
+	test('sin zonas en el servidor no hay selects (comportamiento previo)', async () => {
+		withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'CASHZ', margin_pct: 1, zones: [] } })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		expect(withdrawApi.cashZones).toHaveBeenCalledWith('CASHZ')
+		expect(tree.root.findByType('WithdrawAccountFields').props.slot).toBeNull()
+	})
+
+	test('un backend sin la ruta (404) deja el comportamiento previo', async () => {
+		withdrawApi.cashZones.mockResolvedValue({ success: false, error: 'Not found', status: 404 })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		expect(tree.root.findByType('WithdrawAccountFields').props.slot).toBeNull()
+		expect(tree.root.findAllByProps({ testID: 'cash-zones-error' })).toHaveLength(0)
+	})
+
+	test('un fallo al pedir zonas NO cotiza el fee viejo: bloquea continuar y ofrece reintentar', async () => {
+		// El servidor cobraría por zona: cotizar el fee_pct de provincia sería enseñar otro fee
+		withdrawApi.cashZones.mockResolvedValue({ success: false, error: 'Ha ocurrido un error, contacte a soporte' })
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		await typeQUSD(tree, '200')
+		await fillField(tree, 'nombre_y_apellidos', 'Juan Pérez')
+		await fillField(tree, 'provincia', 'Villa Clara')
+		await fillField(tree, 'municipio', 'Santa Clara')
+		expect(tree.root.findAllByProps({ testID: 'cash-zones-error' }).length).toBeGreaterThan(0)
+		expect(footerButton(tree).props.disabled).toBe(true)
+
+		// Reintentar con el servidor de vuelta: aparecen los selects de zona
+		withdrawApi.cashZones.mockResolvedValue({ success: true, data: { coin: 'CASHZ', margin_pct: 1, zones: [SANTA_CLARA] } })
+		const retry = tree.root.findByProps({ testID: 'cash-zones-error' }).findByProps({ accessibilityRole: 'button' })
+		await act(async () => { retry.props.onPress() })
+		expect(tree.root.findAllByProps({ testID: 'cash-zones-error' })).toHaveLength(0)
+		expect(tree.root.findByType('WithdrawAccountFields').props.slot).not.toBeNull()
+	})
+
+	test('monedas sin municipio no piden zonas', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CUP)
+		expect(withdrawApi.cashZones).not.toHaveBeenCalled()
+	})
+
+	test('cambiar de provincia limpia el municipio', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		await pickZone(tree)
+		expect(zoneNode(tree).props.municipality).toBe('Santa Clara')
+		await act(async () => { zoneNode(tree).props.onChangeProvince('Villa Clara') })
+		expect(zoneNode(tree).props.municipality).toBe('')
+		expect(zoneNode(tree).props.zone).toBeNull()
+	})
+
+	test('fee = base + cargo de zona (sin el fee_pct de provincia) y el payload lleva nombres de zona', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		await typeQUSD(tree, '200')
+		await fillField(tree, 'nombre_y_apellidos', 'Juan Pérez')
+		expect(footerButton(tree).props.disabled).toBe(true)
+		await pickZone(tree)
+		// base 1 % = 2; proveedor max(6, 4) = 6; margen 1 % = 2 ⇒ 10 ⇒ recibe 190
+		expect(Number(amountCard(tree).props.amountCoin)).toBeCloseTo(190, 2)
+		expect(zoneNode(tree).props.charge.total).toBe(8)
+		expect(footerButton(tree).props.disabled).toBe(false)
+		await pressFooter(tree)
+		const pinStep = tree.root.findByType('PinConfirmStep')
+		await act(async () => { pinStep.props.onChangePin('1234') })
+		expect(withdrawApi.withdraw).toHaveBeenCalledWith(expect.objectContaining({
+			amount: '200',
+			coin: 'CASHZ',
+			details: { 'Nombre y Apellidos': 'Juan Pérez', Provincia: 'Villa Clara', Municipio: 'Santa Clara' },
+		}))
+	})
+
+	test('por debajo del mínimo entregado el envío queda bloqueado', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		await fillField(tree, 'nombre_y_apellidos', 'Juan Pérez')
+		await pickZone(tree)
+		// 55 brutos: base 0.55 + fija 4 + margen 0.55 ⇒ entrega 49.90 < 50
+		await typeQUSD(tree, '55')
+		expect(zoneNode(tree).props.belowMin).toBe(true)
+		expect(footerButton(tree).props.disabled).toBe(true)
+	})
+
+	test('"recibir" resuelve el bruto por bisección', async () => {
+		const tree = await renderWithdraw()
+		await selectCoin(tree, CASH_ZONED)
+		await pickZone(tree)
+		await typeCoinAmount(tree, '190')
+		expect(amountCard(tree).props.amountQUSD).toBe('200')
 	})
 })

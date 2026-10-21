@@ -47,6 +47,7 @@ export const ROUTES = {
 	P2P_CREATE_SCREEN: "P2PCreate",
 	P2P_OFFER_SCREEN: "P2POffer",
 	P2P_USER_SCREEN: "P2PUser",
+	P2P_PROMOTE: "P2PPromote",
 
 	// InOut Screens
 	ADD: "Add",
@@ -97,7 +98,6 @@ export const ROUTES = {
 
 	// Invest Screens
 	SAVINGS_SCREEN: "Savings",
-	STOCK_DETAIL_SCREEN: "StockDetail",
 	COIN_DETAIL_SCREEN: "CoinDetail",
 	WALLET_ONLY: "WalletOnly",
 	WALLET_ONBOARDING: "WalletOnboarding",
@@ -121,6 +121,11 @@ export const ROUTES = {
 	WALLET_STAKE: "WalletStake",
 	WALLET_STAKE_ACTION: "WalletStakeAction",
 	WALLET_STAKE_SUCCESS: "WalletStakeSuccess",
+
+	// Acciones tokenizadas (xStocks) de la wallet
+	STOCKS_HOME: "StocksHome",
+	XSTOCK_DETAIL: "XStockDetail",
+	XSTOCK_TRADE: "XStockTrade",
 
 	// Marketplace (tiendas de comercios aprobados) Screens
 	MARKET_STORES: "MarketStores",

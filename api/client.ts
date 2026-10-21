@@ -84,8 +84,9 @@ const apiClient = axios.create({
  * Resolves the effective host (dev: LAN or production fallback — waits for
  * the one-shot probe on the first requests), attaches the bearer token from
  * the Keychain (service `com.qvapay.auth`) when one exists — requests simply
- * go out unauthenticated otherwise — and starts the global loading bar unless
- * the request sets `config.silent = true`.
+ * go out unauthenticated otherwise, and `config.anonymous = true` never carries
+ * it — and starts the global loading bar unless the request sets
+ * `config.silent = true`.
  */
 apiClient.interceptors.request.use(
 	async (reqConfig) => {
@@ -95,6 +96,7 @@ apiClient.interceptors.request.use(
 		// hoy el backend responde en español, pero este header le permite
 		// localizar sus mensajes en el futuro sin tocar el móvil.
 		reqConfig.headers['Accept-Language'] = i18n.language || 'es'
+		if (reqConfig.anonymous) { return reqConfig }
 		try {
 			const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE })
 			if (credentials) { reqConfig.headers.Authorization = `Bearer ${credentials.password}` }
@@ -110,7 +112,8 @@ apiClient.interceptors.request.use(
 /**
  * Response interceptor.
  * Stops the global loading bar and normalizes errors:
- *   401 → clears the Keychain token (next cold start lands on Welcome)
+ *   401 → clears the Keychain token (next cold start lands on Welcome), except
+ *         on anonymous requests, which never carried it
  *   403/422 → passed through untouched for the screen to handle
  *   500 → rejects with a generic localized support message
  *   no response (network/timeout) → rejects with a localized connectivity message
@@ -132,6 +135,9 @@ apiClient.interceptors.response.use(
 					// Invalid/expired/revoked token (authentication). The backend uses 401 ONLY
 					// for this. Clear the token: on the next launch initializeAuth sees a null
 					// token and routes to Welcome (the same logout mechanism that already exists).
+					// An anonymous request carried no token, so its 401 says nothing about it
+					// (the wallet exchange answers WALLET_ID_REQUIRED with a 401).
+					if (error.config?.anonymous) { break }
 					try {
 						await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE })
 					} catch (clearError) { /* token clear failed */ }
