@@ -1,6 +1,6 @@
 {
 	"name": "QvaPay",
-	"version": "3.5.2",
+	"version": "3.5.3",
 	"private": true,
 	"scripts": {
 		"android": "react-native run-android --main-activity .MainActivity",
@@ -44,7 +44,6 @@
 		}
 	},
 	"dependencies": {
-		"@adrianso/react-native-device-brightness": "^1.2.7",
 		"@d11/react-native-fast-image": "^8.13.0",
 		"@didit-protocol/sdk-react-native": "^4.9.1",
 		"@klarna/react-native-vector-drawable": "^0.5.1",

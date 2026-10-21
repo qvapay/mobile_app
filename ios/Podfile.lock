@@ -2354,8 +2354,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-device-brightness (1.2.7):
-    - React
   - react-native-document-picker (12.0.2):
     - boost
     - DoubleConversion
@@ -4056,7 +4054,6 @@ DEPENDENCIES:
   - React-mutationobservernativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver`)
   - react-native-blob-util (from `../node_modules/react-native-blob-util`)
   - react-native-contacts (from `../node_modules/react-native-contacts`)
-  - "react-native-device-brightness (from `../node_modules/@adrianso/react-native-device-brightness`)"
   - "react-native-document-picker (from `../node_modules/@react-native-documents/picker`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-in-app-review (from `../node_modules/react-native-in-app-review`)
@@ -4274,8 +4271,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-blob-util"
   react-native-contacts:
     :path: "../node_modules/react-native-contacts"
-  react-native-device-brightness:
-    :path: "../node_modules/@adrianso/react-native-device-brightness"
   react-native-document-picker:
     :path: "../node_modules/@react-native-documents/picker"
   react-native-image-picker:
@@ -4479,7 +4474,6 @@ SPEC CHECKSUMS:
   React-mutationobservernativemodule: b1fd41694e409af87d1171fbaa143e5a2004cd1a
   react-native-blob-util: f86a593041dfdb2b4adf23c46ec8625adb0e32d7
   react-native-contacts: 91e341b203edf46a46ca954b1d4711f7eb0b30fe
-  react-native-device-brightness: 1a997350d060c3df9f303b1df84a4f7c5cbeb924
   react-native-document-picker: 90882a1edc7907492b2f4a37a55d1b81f651049d
   react-native-image-picker: 21e211e5a98cfc4c236f09b1e6d9d6de909b492a
   react-native-in-app-review: 1516ba69d60d58053b7eb3aaaf8d2a5a74af8b57
