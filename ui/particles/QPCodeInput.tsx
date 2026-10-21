@@ -31,8 +31,9 @@ type QPCodeInputProps = {
  * Multi-box one-time-code input — THE single implementation of the digit-grid
  * mechanics (paste spreads across boxes, backspace clears then steps back, focus
  * auto-advances). Consumed by verification codes (Register), PIN/OTP money
- * confirmations (PinConfirmStep), login 2FA (TwoFactorEntry) and the app lock
- * (LockScreen, AppLock) — don't hand-roll new grids, extend this one.
+ * confirmations (PinConfirmStep), login 2FA (TwoFactorEntry) and the app-lock
+ * PIN settings (AppLock) — don't hand-roll new grids, extend this one. The lock
+ * screen itself is not a grid: dots (`lock/PinDots`) typed on `ui/QPKeypad`.
  * `secure` hides the digits (account/app-lock PINs); visible is the default for
  * single-use codes, where seeing them helps transcription.
  * `autoFocus` delays focus ~380ms so the keyboard doesn't fight the step's

@@ -331,8 +331,13 @@ export default function useRegisterFlow(navigation: NativeStackNavigationProp<Ro
 			const resp = await launchKyc()
 
 			if (resp.kind === 'native') {
+				// Cada resultado legible sustituye al anterior; uno que no sabemos leer
+				// (`unknown`) tampoco deja en pie un rechazo de un intento previo. Cancelar
+				// no cambia nada en el servidor, así que no toca lo que hubiera
 				if (resp.outcome === 'approved' || resp.outcome === 'pending' || resp.outcome === 'declined') {
 					kycPatchRef.current = KYC_USER_PATCH[resp.outcome]
+				} else if (resp.outcome === 'unknown') {
+					kycPatchRef.current = null
 				}
 				if (resp.outcome === 'approved') {
 					toast.success(t('auth.register.toasts.kycApproved'))
@@ -352,6 +357,9 @@ export default function useRegisterFlow(navigation: NativeStackNavigationProp<Ro
 			} else if (resp.kind === 'request-error') {
 				// 400 ya verificado y 409 en revisión: nada que hacer en el alta.
 				if (resp.status === 409 || resp.status === 400) {
+					// 400 = ya verificado (p. ej. terminó en el navegador y volvió): la
+					// sesión entra verificada en vez de esperar al siguiente perfil
+					if (resp.status === 400) kycPatchRef.current = KYC_USER_PATCH.approved
 					if (resp.status === 409) toast.info(t('auth.register.toasts.kycInReview'))
 					goToPushOrFinish()
 				} else if (resp.status === 403 && resp.reason) {

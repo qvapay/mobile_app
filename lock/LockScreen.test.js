@@ -18,8 +18,12 @@ jest.mock('../ui/particles/QPAvatar', () => 'QPAvatar')
 jest.mock('../ui/particles/FaceIDIcon', () => 'FaceIDIcon')
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('react-native-haptic-feedback', () => ({ __esModule: true, default: { trigger: jest.fn() } }))
+// Alto de la ventana configurable por test (modo compacto)
+const mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 }
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: () => mockWindow }))
 
 import React from 'react'
+import { AccessibilityInfo } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { useAuth } from '../auth/AuthContext'
@@ -43,7 +47,9 @@ const dots = (tree) => tree.root.find(n => n.props.testID === 'lock-pin' && n.pr
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	useAuth.mockReturnValue({ user: { uuid: 'u1', name: 'Erich', username: 'erich' } })
+	mockWindow.height = 844
+	jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {})
+	useAuth.mockReturnValue({ user: { uuid: 'u1', name: 'Erich', username: 'erich', image: 'profiles/erich.jpg' } })
 	useAppLock.mockReturnValue({ isLocked: true, unlockWithPin })
 	useLockBiometrics.mockReturnValue({ biometryType: 'FaceID', available: true, unlock: biometricUnlock })
 	unlockWithPin.mockResolvedValue({ success: true })
@@ -85,14 +91,38 @@ describe('teclado', () => {
 		expect(texts(tree)).not.toContain('PIN incorrecto')
 	})
 
+	// Borrar y teclear durante la verificación: sin el guard saldría '1239' y una
+	// segunda verificación (un quinto dígito solo no lo prueba: ya lo corta el largo)
 	test('mientras verifica, el teclado no escribe', async () => {
 		let resolve
 		unlockWithPin.mockImplementation(() => new Promise(r => { resolve = r }))
 		const tree = render()
 		for (const d of ['1', '2', '3', '4']) await tap(tree, d)
-		await tap(tree, '5')
+		await tap(tree, 'backspace')
+		await tap(tree, '9')
+		expect(dots(tree)).toBe('PIN: 4 de 4 dígitos')
 		expect(unlockWithPin).toHaveBeenCalledTimes(1)
 		await act(async () => { resolve({ success: true }) })
+	})
+
+	test('volver a bloquear vacía un PIN a medias', async () => {
+		const tree = render()
+		await tap(tree, '1')
+		await tap(tree, '2')
+		useAppLock.mockReturnValue({ isLocked: false, unlockWithPin })
+		act(() => { tree.update(<LockScreen />) })
+		useAppLock.mockReturnValue({ isLocked: true, unlockWithPin })
+		act(() => { tree.update(<LockScreen />) })
+		expect(dots(tree)).toBe('PIN: 0 de 4 dígitos')
+	})
+
+	test('anuncia el progreso y el fallo a los lectores de pantalla', async () => {
+		unlockWithPin.mockResolvedValue({ success: false })
+		const tree = render()
+		await tap(tree, '1')
+		expect(AccessibilityInfo.announceForAccessibility).toHaveBeenLastCalledWith('PIN: 1 de 4 dígitos')
+		for (const d of ['2', '3', '4']) await tap(tree, d)
+		expect(AccessibilityInfo.announceForAccessibility).toHaveBeenLastCalledWith('PIN incorrecto')
 	})
 })
 
@@ -118,11 +148,37 @@ describe('héroe', () => {
 		expect(texts(tree)).toContain('Hola, Erich')
 	})
 
+	// El avatar de reserva es el logo, que ya está arriba: sin foto va el candado
+	test('con cuenta sin foto: candado y saludo', () => {
+		useAuth.mockReturnValue({ user: { uuid: 'u1', name: 'Erich', username: 'erich', image: null } })
+		const tree = render()
+		expect(tree.root.findAllByType('QPAvatar')).toHaveLength(0)
+		expect(texts(tree)).toContain('Hola, Erich')
+	})
+
+	// La biometría es su tecla: el héroe nunca enseña su glifo (parecería pulsable)
+	test('el héroe nunca es el glifo biométrico', () => {
+		useAuth.mockReturnValue({ user: null })
+		const tree = render()
+		const stage = tree.root.findAllByType('FaceIDIcon')
+		// El único Face ID es el de la tecla
+		expect(stage).toHaveLength(1)
+		expect(key(tree, 'extra').findAllByType('FaceIDIcon')).toHaveLength(1)
+	})
+
 	test('sin cuenta (modo wallet): el glifo del bloqueo y la invitación a teclear', () => {
 		useAuth.mockReturnValue({ user: null })
 		const tree = render()
 		expect(tree.root.findAllByType('QPAvatar')).toHaveLength(0)
 		expect(texts(tree)).toContain('Ingresa tu PIN de seguridad')
+	})
+
+	test('en pantallas bajas pasa a modo compacto', () => {
+		mockWindow.height = 600
+		const tree = render()
+		const heights = (t) => t.root.findAll(n => n.props.testID === 'lock-key-1' && typeof n.props.style === 'function')[0].props.style({ pressed: false }).flat().filter(Boolean).map(st => st.height).filter(Boolean)
+		expect(heights(tree)).toContain(52)
+		expect(tree.root.findByType('QPAvatar').props.size).toBe(56)
 	})
 
 	test('desbloqueada no pinta nada', () => {

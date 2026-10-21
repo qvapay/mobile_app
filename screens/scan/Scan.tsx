@@ -30,6 +30,7 @@ import useMaxBrightness from '../../hooks/useMaxBrightness'
 
 // Helpers
 import { parseAddressQR, parseQRData } from '../../helpers'
+import { toast } from 'sonner-native'
 import { useAnimatedValue } from '../../hooks/useAnimatedValue'
 
 // Routes
@@ -152,10 +153,26 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 		isScanningRef.current = false
 		setIsScanning(false)
 
-		// Desde Enviar de la wallet manda la dirección on-chain: un QR unificado
-		// (bitcoin:…?lightning=…) no puede acabar en el retiro Lightning del saldo
-		const walletAddress = route.params?.returnTo === 'WalletSend' && typeof data === 'string' ? parseAddressQR(data.trim()) : null
-		const parsedData = walletAddress ?? parseQRData(data)
+		// Desde Enviar de la wallet solo vale una dirección on-chain. Un QR unificado
+		// (bitcoin:…?lightning=…) da su dirección, y uno de pago, de cobro o Lightning
+		// avisa en vez de llevar a los flujos del saldo custodiado
+		if (route.params?.returnTo === 'WalletSend') {
+			const walletAddress = typeof data === 'string' ? parseAddressQR(data.trim()) : null
+			if (walletAddress) {
+				// Vuelve a WalletSend (ya en el stack): navigate a una ruta existente
+				// retrocede hasta ella fusionando los params, sin apilar otra copia
+				navigation.navigate(ROUTES.WALLET_SEND, { assetId: route.params.assetId, address: walletAddress.address })
+			} else {
+				toast.error(t('misc.scan.notAnAddress'))
+			}
+			setTimeout(() => {
+				isScanningRef.current = true
+				setIsScanning(true)
+			}, 2000)
+			return
+		}
+
+		const parsedData = parseQRData(data)
 
 		if (parsedData?.type === 'pay' && parsedData?.uuid) {
 			navigation.replace(ROUTES.PAY_SCREEN, { uuid: parsedData.uuid })
@@ -169,10 +186,6 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 			} else if (parsedData?.uuid && parsedData?.amount) {
 				navigation.navigate(ROUTES.SEND_CONFIRM, { user_uuid: parsedData.uuid, send_amount: parsedData.amount })
 			}
-		} else if (parsedData?.type === 'address' && route.params?.returnTo === 'WalletSend') {
-			// Vuelve a WalletSend (ya en el stack): navigate a una ruta existente
-			// retrocede hasta ella fusionando los params, sin apilar otra copia
-			navigation.navigate(ROUTES.WALLET_SEND, { assetId: route.params.assetId, address: parsedData.address })
 		} else if (parsedData?.type === 'lightning') {
 			// Factura/destino Lightning → extracción BTCLN con el destino prellenado
 			navigation.replace(ROUTES.WITHDRAW, {

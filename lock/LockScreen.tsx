@@ -4,7 +4,7 @@ import { SystemBars } from 'react-native-edge-to-edge'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // RN
-import { View, Text, Image, Modal, StyleSheet } from 'react-native'
+import { View, Text, Image, Modal, StyleSheet, AccessibilityInfo, useWindowDimensions } from 'react-native'
 
 // Context
 import { useTheme } from '../theme/ThemeContext'
@@ -15,6 +15,7 @@ import { useLockBiometrics, getBiometryLabelKey } from './useLockBiometrics'
 
 // Helpers
 import { displayName } from '../helpers/displayName'
+import i18n from '../i18n'
 
 // UI
 import LockHeroIcon from './LockHeroIcon'
@@ -25,6 +26,10 @@ import QPKeypad from '../ui/QPKeypad'
 import type { KeypadExtraKey } from '../ui/QPKeypad'
 
 const PIN_LENGTH = 4
+
+// Alto útil por debajo del cual el héroe y el teclado de 60 px no caben juntos
+// (Android de 360×640 con botones de navegación, iPhone de 4"): modo compacto
+const COMPACT_BELOW = 640
 
 /**
  * Full-screen app-lock overlay: 4-digit PIN entry with optional biometric unlock.
@@ -37,8 +42,9 @@ const PIN_LENGTH = 4
  * no con el del sistema: en este Modal edge-to-edge el teclado nativo tapaba los
  * puntos (issue #47) y había que seguir su altura a mano. La biometría es la tecla
  * de abajo a la izquierda. Con cuenta, el héroe es el avatar con un saludo, para
- * que quien mira sepa de qué cuenta es el PIN; en el modo wallet sin cuenta, el
- * glifo de siempre.
+ * que quien mira sepa de qué cuenta es el PIN (sin foto, el candado: el avatar
+ * de reserva es el logo, que ya está arriba); en el modo wallet sin cuenta, el
+ * candado. Nunca el glifo biométrico: ya no se toca, la biometría es su tecla.
  */
 const LockScreen = () => {
 
@@ -46,6 +52,8 @@ const LockScreen = () => {
 	const { theme } = useTheme()
 	const textStyles = createTextStyles(theme)
 	const insets = useSafeAreaInsets()
+	const { height } = useWindowDimensions()
+	const compact = height - insets.top - insets.bottom < COMPACT_BELOW
 	const { user } = useAuth()
 	const { isLocked, unlockWithPin } = useAppLock()
 
@@ -76,10 +84,12 @@ const LockScreen = () => {
 		verifyingRef.current = true
 		try {
 			const result = await unlockWithPin(code)
+			// Bien o mal, el PIN no se queda en memoria (ni pintado al volver a bloquear)
+			resetPin()
 			if (!result.success) {
 				setError(t('misc.lock.errors.wrongPin'))
-				resetPin()
 				dotsRef.current?.shake()
+				AccessibilityInfo.announceForAccessibility(t('misc.lock.errors.wrongPin'))
 			}
 		} finally { verifyingRef.current = false }
 	}
@@ -95,6 +105,9 @@ const LockScreen = () => {
 		pinRef.current = next
 		setPin(next)
 		setError('')
+		// Los puntos no se releen solos: con VoiceOver/TalkBack se anuncia el progreso
+		// (i18n.t en el momento: este callback es estable a propósito)
+		AccessibilityInfo.announceForAccessibility(i18n.t('misc.lock.a11y.pinProgress', { entered: next.length, total: PIN_LENGTH }))
 		if (next.length === PIN_LENGTH) { verifyRef.current(next) }
 	}, [])
 
@@ -119,7 +132,7 @@ const LockScreen = () => {
 			<View testID="lock-screen" style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
 
 				{/* La marca, en voz baja: recuerda dónde estás sin competir con el héroe */}
-				<View style={styles.brand}>
+				<View style={[styles.brand, compact && styles.brandCompact]}>
 					<Image
 						source={theme.isDark
 							? require('../assets/images/ui/qvapay-logo-white.png')
@@ -133,22 +146,22 @@ const LockScreen = () => {
 				{/* El resto vive centrado en el espacio que deja el teclado */}
 				<View style={styles.stage}>
 
-					{/* Con cuenta, de quién es el PIN; sin ella (modo wallet), el glifo del bloqueo */}
-					{user
-						? <QPAvatar user={user} size={76} />
-						: <LockHeroIcon biometryType={biometryType} biometricsAvailable={biometricsAvailable} color={theme.colors.primary} />}
+					{/* Con foto, de quién es el PIN; si no, el candado */}
+					{user?.image
+						? <QPAvatar user={user} size={compact ? 56 : 76} />
+						: <LockHeroIcon biometryType={null} biometricsAvailable={false} color={theme.colors.primary} size={compact ? 40 : 48} />}
 
 					{/* Una sola línea de texto */}
-					<Text style={[styles.hint, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.light }]} numberOfLines={1}>
+					<Text style={[styles.hint, compact && styles.hintCompact, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.light }]} numberOfLines={1}>
 						{name ? t('misc.lock.greeting', { name }) : t('misc.lock.enterPin')}
 					</Text>
 
-					<View style={styles.dots}>
+					<View style={[styles.dots, compact && styles.dotsCompact]}>
 						<PinDots ref={dotsRef} testID="lock-pin" length={PIN_LENGTH} code={pin} tone={error ? theme.colors.dangerText : undefined} />
 					</View>
 
 					{/* Altura reservada: sin ella, el error empuja los puntos al aparecer */}
-					<View style={styles.errorSlot}>
+					<View style={[styles.errorSlot, compact && styles.errorSlotCompact]}>
 						{!!error && (
 							<Text style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{error}</Text>
 						)}
@@ -157,7 +170,7 @@ const LockScreen = () => {
 				</View>
 
 				<View style={styles.keypad}>
-					<QPKeypad onKey={handleKey} extraKey={biometricKey} testIDPrefix="lock-key" />
+					<QPKeypad onKey={handleKey} extraKey={biometricKey} compact={compact} testIDPrefix="lock-key" />
 				</View>
 			</View>
 		</Modal>
@@ -173,11 +186,15 @@ const styles = StyleSheet.create({
 	// 55%: presente sin disputarle la atención al héroe
 	brand: { flexDirection: 'row', alignItems: 'center', gap: 8, opacity: 0.55, marginTop: 40 },
 	brandLogo: { width: 16, height: 16 },
+	brandCompact: { marginTop: 16 },
 	brandName: { fontSize: 14, letterSpacing: 0.2 },
 	stage: { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%' },
 	hint: { textAlign: 'center', marginTop: 24, fontSize: 16, letterSpacing: 0.2 },
+	hintCompact: { marginTop: 14 },
 	dots: { marginTop: 28 },
+	dotsCompact: { marginTop: 18 },
 	errorSlot: { height: 40, justifyContent: 'center' },
+	errorSlotCompact: { height: 32 },
 	error: { textAlign: 'center' },
 	// En una tablet el teclado no se estira a todo el ancho
 	keypad: { width: '100%', maxWidth: 360 },

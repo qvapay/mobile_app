@@ -12,7 +12,8 @@
 		"modeSwitch": {
 			"scan": "Escanear QR",
 			"myQr": "Meu QR"
-		}
+		},
+		"notAnAddress": "Esse QR não é um endereço de carteira"
 	},
 	"nearby": {
 		"title": "Pagar por perto",

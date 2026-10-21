@@ -124,8 +124,11 @@ describe('parseQRData', () => {
 		expect(parseQRData('bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297')).toEqual({ type: 'address', family: 'btc', address: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297' })
 		expect(parseQRData('bitcoin:3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')).toEqual({ type: 'address', family: 'btc', address: '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy' })
 		expect(parseQRData('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')).toEqual({ type: 'address', family: 'btc', address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa' })
-		// Checksum roto: no es BTC (y un base58 de 32 bytes sigue siendo Solana)
+		// Checksum roto: no es BTC
 		expect(parseQRData('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb')?.family).not.toBe('btc')
+		// Un base58 de 32 bytes que empieza por 1 o 3 sigue siendo Solana (no casa con el checksum de BTC)
+		expect(parseQRData('13pqhNqi1DMYe5jVA48Sk7mpM4z7x1R6jpvtoBXc5cKC')).toEqual({ type: 'address', family: 'solana', address: '13pqhNqi1DMYe5jVA48Sk7mpM4z7x1R6jpvtoBXc5cKC' })
+		expect(parseQRData('3FAUuwfqQT7ayXSE67BpXDdHBoqoMHHaWQpEgxSr7kLf')).toEqual({ type: 'address', family: 'solana', address: '3FAUuwfqQT7ayXSE67BpXDdHBoqoMHHaWQpEgxSr7kLf' })
 		// Un bitcoin: con lightning= sigue siendo Lightning, no dirección
 		expect(parseQRData('bitcoin:bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu?lightning=lnbc1pjxyz')?.type).toBe('lightning')
 		expect(parseQRData('SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J')).toEqual({ type: 'address', family: 'stacks', address: 'SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J' })
@@ -211,6 +214,20 @@ describe('parseLightningQR (via parseQRData)', () => {
 
 	// Desde Enviar de la wallet (Scan con returnTo) se pide la dirección on-chain
 	// directamente: un QR unificado no debe acabar en el retiro Lightning
+	// EIP-681 de token: la dirección de delante es el CONTRATO; el destino va en `address`.
+	// Devolver el contrato haría enviar los tokens a su propio contrato (perdidos)
+	test('EIP-681 /transfer da el destinatario, nunca el contrato del token', () => {
+		const usdt = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+		const dest = '0x9858EfFD232B4033E47d90003D41EC34EcaEda94'
+		expect(parseQRData(`ethereum:${usdt}@1/transfer?address=${dest}&uint256=1e6`)).toEqual({ type: 'address', family: 'evm', address: dest })
+		expect(parseQRData(`ethereum:pay-${usdt}@56/transfer?uint256=5&address=${dest}`)).toEqual({ type: 'address', family: 'evm', address: dest })
+		// Sin destino, o con otra función (approve), no hay dirección a la que enviar
+		expect(parseQRData(`ethereum:${usdt}@1/transfer?uint256=1e6`)).toBeNull()
+		expect(parseQRData(`ethereum:${usdt}/approve?address=${dest}&uint256=1`)).toBeNull()
+		// Un pago nativo con pay- sigue dando su dirección
+		expect(parseQRData(`ethereum:pay-${dest}@1?value=1e18`)).toEqual({ type: 'address', family: 'evm', address: dest })
+	})
+
 	test('parseAddressQR saca la dirección on-chain de un QR unificado', () => {
 		expect(parseAddressQR(`bitcoin:bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu?amount=0.001&lightning=${withAmount}`)).toEqual({ type: 'address', family: 'btc', address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu' })
 	})
