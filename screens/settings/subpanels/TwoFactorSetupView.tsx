@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import QPInput from '../../../ui/particles/QPInput'
 import QPButton from '../../../ui/particles/QPButton'
 import QPKeyboardView from '../../../ui/QPKeyboardView'
+import useMaxBrightness from '../../../hooks/useMaxBrightness'
 import QRCodeStyled from 'react-native-qrcode-styled'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
@@ -30,6 +31,8 @@ type TwoFactorSetupViewProps = {
 // 2FA setup screen: QR code, manual secret, and the 6-digit verification input.
 const TwoFactorSetupView = ({ otpauthUrl, secret, verificationCode, onChangeCode, onActivate, onCancel, onCopySecret, isLoading, theme, textStyles, containerStyles }: TwoFactorSetupViewProps) => {
 	const { t } = useTranslation()
+	// El QR del autenticador se escanea con otro dispositivo: brillo al máximo mientras se enseña
+	useMaxBrightness()
 	return (
 	<QPKeyboardView
 		actions={

@@ -11,6 +11,7 @@ import { getFirstChunk, copyTextToClipboard, formatCryptoAmount } from '../../he
 
 // Tipos
 import QPAddress from '../../ui/particles/QPAddress'
+import useMaxBrightness from '../../hooks/useMaxBrightness'
 import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
 import type { Coin } from '../../types/domain'
@@ -329,6 +330,9 @@ const DepositDetailsModal = ({ visible, onClose, amount, selectedCoin, topupData
 
 	const { t } = useTranslation()
 	const isCardDeposit = topupData?.coin === 'CARD'
+
+	// El QR de la dirección de depósito se escanea mejor a plena luz (solo con el modal abierto)
+	useMaxBrightness(visible && !isCardDeposit)
 
 	const getCountdownColor = (seconds: number) => {
 		if (seconds < 60) return theme.colors.danger

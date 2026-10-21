@@ -12,6 +12,7 @@ jest.mock('../../ui/particles/QPCoin', () => 'QPCoin')
 jest.mock('../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../ui/particles/QPAddress', () => 'QPAddress')
 jest.mock('react-native-qrcode-styled', () => 'QRCodeStyled')
+jest.mock('../../hooks/useMaxBrightness', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@react-native-vector-icons/fontawesome6', () => 'FontAwesome6')
 jest.mock('../../helpers', () => {
 	const actual = jest.requireActual('../../helpers')

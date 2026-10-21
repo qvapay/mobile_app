@@ -12,6 +12,7 @@ import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.qvapay.bridge.AppIconPackage
+import com.qvapay.bridge.ScreenBrightnessPackage
 import com.qvapay.bridge.SharedStoragePackage
 
 class MainApplication : Application(), ReactApplication {
@@ -38,6 +39,7 @@ class MainApplication : Application(), ReactApplication {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           add(SharedStoragePackage())
           add(AppIconPackage())
+          add(ScreenBrightnessPackage())
         },
     )
   }

@@ -22,6 +22,7 @@ import ProfileContainer from '../../ui/ProfileContainer'
 // Helpers
 import { copyTextToClipboard } from '../../helpers'
 import QPFitText from '../../ui/particles/QPFitText'
+import useMaxBrightness from '../../hooks/useMaxBrightness'
 
 // Tipos
 import type { RootStackParamList } from '../../types/navigation'
@@ -50,6 +51,9 @@ const Receive = ({ navigation, route }: Props) => {
 	const qrSize = Math.min(screenWidth - 80, 240)
 	const textStyles = useTextStyles(theme)
 	const containerStyles = useContainerStyles(theme)
+
+	// El QR se escanea mejor a plena luz; se restaura al salir
+	useMaxBrightness()
 
 	// Build QR URL: https://www.qvapay.com/payme/{username}/{amount}
 	const identifier = user?.username || user?.uuid || ''

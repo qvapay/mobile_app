@@ -14,6 +14,7 @@ import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 import { useWallet } from '../../../wallet/WalletContext'
 import { addressForKind, findCoinForAsset, isDefaultAsset, isHouseToken } from '../../../wallet/assets'
 import useCoins from '../../../hooks/useCoins'
+import useMaxBrightness from '../../../hooks/useMaxBrightness'
 import { ROUTES } from '../../../routes'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { WalletAsset } from '../../../wallet/assets'
@@ -68,6 +69,9 @@ const WalletReceive = ({ navigation, route }: Props) => {
 	const tronBlocked = asset?.kind === 'tron' && !!tronControllers
 	const [revealed, setRevealed] = useState(false)
 	const hideAddress = tronBlocked && !revealed
+
+	// Brillo al máximo mientras el QR de la dirección esté a la vista
+	useMaxBrightness(!!asset && !hideAddress)
 
 	// Puente con el saldo QvaPay: si la moneda existe en el catálogo de retiros,
 	// "Desde tu saldo QvaPay" abre el retiro con esta dirección ya escrita

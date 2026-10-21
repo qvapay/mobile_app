@@ -26,6 +26,7 @@ import ProfileContainer from '../../ui/ProfileContainer'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
+import useMaxBrightness from '../../hooks/useMaxBrightness'
 
 // Helpers
 import { parseQRData } from '../../helpers'
@@ -101,6 +102,9 @@ const Scan = ({ navigation, route }: NativeStackScreenProps<RootStackParamList, 
 	const [isScanning, setIsScanning] = useState(initialMode === 'scan')
 	const [isTorchEnabled, setIsTorchEnabled] = useState(false)
 	const [viewMode, setViewMode] = useState(initialMode) // 'scan' | 'show'
+
+	// Brillo al máximo solo mientras se enseña el QR propio (no al escanear)
+	useMaxBrightness(viewMode === 'show')
 
 	// Ref to avoid stale closure in onCodeScanned callback
 	const isScanningRef = useRef(initialMode === 'scan')
