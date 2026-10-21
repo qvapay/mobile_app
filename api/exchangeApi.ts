@@ -53,14 +53,14 @@ export type ExchangeCreateInput = {
 }
 
 /**
- * El intercambio no exige cuenta: sin sesión, el dueño de cotizaciones y operaciones es la
- * WALLET, por su ID (ver `getWalletId`). Con sesión viaja igual, y así el historial de la
- * cuenta incluye lo que esta wallet hizo sin ella. Si el Keychain falla se manda sin cabecera:
- * con sesión todo sigue funcionando y sin ella el backend responde `WALLET_ID_REQUIRED`.
+ * El intercambio no exige cuenta, así que nunca lleva el token de sesión (`anonymous`): el
+ * dueño de cotizaciones y operaciones es siempre la WALLET, por su ID (ver `getWalletId`), y
+ * nada de la cuenta decide lo que se puede intercambiar. Si el Keychain falla se manda sin
+ * cabecera y el backend responde `WALLET_ID_REQUIRED`.
  */
-const walletHeaders = async (): Promise<Record<string, string>> => {
+const walletRequest = async (): Promise<{ anonymous: true, headers: Record<string, string> }> => {
 	const id = await getWalletId()
-	return id ? { 'X-QvaPay-Wallet-Id': id } : {}
+	return { anonymous: true, headers: id ? { 'X-QvaPay-Wallet-Id': id } : {} }
 }
 
 const fail = (err: unknown, fallbackKey: string): ApiResult<never> => {
@@ -100,7 +100,7 @@ export const exchangeApi = {
 	 */
 	catalog: async (): Promise<ApiResult<ExchangeCatalogPayload>> => {
 		try {
-			const response = await apiClient.get<{ data: ExchangeCatalogPayload }>('/wallet/exchange/quote', { silent: true, headers: await walletHeaders() })
+			const response = await apiClient.get<{ data: ExchangeCatalogPayload }>('/wallet/exchange/quote', { silent: true, ...await walletRequest() })
 			return { success: true, data: response.data.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.catalogFailed') }
 	},
@@ -121,7 +121,7 @@ export const exchangeApi = {
 				...(balances ? { balances } : {}),
 				...(onchain?.length ? { onchain } : {}),
 				...(addresses && Object.values(addresses).some(Boolean) ? { addresses } : {}),
-			}, { silent: true, headers: await walletHeaders() })
+			}, { silent: true, ...await walletRequest() })
 			return { success: true, data: response.data.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.quoteFailed') }
 	},
@@ -136,7 +136,7 @@ export const exchangeApi = {
 				quote_id: quoteId,
 				from_address: fromAddress,
 				to_address: toAddress,
-			}, { headers: await walletHeaders() })
+			}, { ...await walletRequest() })
 			return { success: true, data: response.data.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.buildFailed') }
 	},
@@ -153,7 +153,7 @@ export const exchangeApi = {
 				from_address: fromAddress,
 				to_address: toAddress,
 				idempotency_key: idempotencyKey,
-			}, { headers: await walletHeaders() })
+			}, { ...await walletRequest() })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.submitFailed') }
 	},
@@ -174,7 +174,7 @@ export const exchangeApi = {
 				payout_address: payoutAddress,
 				refund_address: refundAddress,
 				idempotency_key: idempotencyKey,
-			}, { headers: await walletHeaders() })
+			}, { ...await walletRequest() })
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.createFailed') }
 	},
@@ -185,7 +185,7 @@ export const exchangeApi = {
 	 */
 	get: async (uuid: string): Promise<ApiResult<ExchangeOrder>> => {
 		try {
-			const response = await apiClient.get<{ data: ExchangeOrder }>(`/wallet/exchange/${uuid}`, { silent: true, headers: await walletHeaders() })
+			const response = await apiClient.get<{ data: ExchangeOrder }>(`/wallet/exchange/${uuid}`, { silent: true, ...await walletRequest() })
 			return { success: true, data: response.data.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.detailFailed') }
 	},
@@ -196,7 +196,7 @@ export const exchangeApi = {
 			const response = await apiClient.get<ExchangeListPayload>('/wallet/exchange', {
 				params: { page, ...(status ? { status } : {}) },
 				silent: true,
-				headers: await walletHeaders(),
+				...await walletRequest(),
 			})
 			return { success: true, data: response.data, status: response.status }
 		} catch (err) { return fail(err, 'api.exchange.listFailed') }

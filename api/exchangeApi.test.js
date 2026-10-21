@@ -72,7 +72,7 @@ test('un error del backend conserva su `code` en details, que es lo que decide e
 
 describe('ID de wallet (intercambio sin cuenta)', () => {
 
-	test('viaja en TODAS las llamadas', async () => {
+	test('viaja en TODAS las llamadas, y ninguna lleva el token de sesión', async () => {
 		apiClient.get.mockResolvedValue({ data: { data: {} }, status: 200 })
 		apiClient.post.mockResolvedValue({ data: { data: {} }, status: 200 })
 		await exchangeApi.catalog()
@@ -84,10 +84,13 @@ describe('ID de wallet (intercambio sin cuenta)', () => {
 		await exchangeApi.list()
 		const configs = [...apiClient.get.mock.calls.map(c => c[1]), ...apiClient.post.mock.calls.map(c => c[2])]
 		expect(configs).toHaveLength(7)
-		configs.forEach(config => expect(config.headers).toEqual({ 'X-QvaPay-Wallet-Id': MOCK_WALLET_ID }))
+		configs.forEach(config => {
+			expect(config.headers).toEqual({ 'X-QvaPay-Wallet-Id': MOCK_WALLET_ID })
+			expect(config.anonymous).toBe(true)
+		})
 	})
 
-	test('si el Keychain falla se manda sin cabecera (con sesión todo sigue igual)', async () => {
+	test('si el Keychain falla se manda sin cabecera', async () => {
 		getWalletId.mockResolvedValueOnce(null)
 		apiClient.get.mockResolvedValue({ data: { data: {} }, status: 200 })
 		await exchangeApi.catalog()

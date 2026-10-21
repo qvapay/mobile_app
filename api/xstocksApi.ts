@@ -32,7 +32,7 @@ export const xstocksApi = {
 	 */
 	availability: async (): Promise<ApiResult<StocksAvailability>> => {
 		try {
-			const response = await apiClient.get('/wallet/stocks', { silent: true })
+			const response = await apiClient.get('/wallet/stocks', { silent: true, anonymous: true })
 			return { success: true, data: { available: response.data?.data?.available === true }, status: response.status }
 		} catch (err) {
 			const error = err as ApiClientError
