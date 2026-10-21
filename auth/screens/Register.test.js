@@ -49,6 +49,7 @@ import { markKycOnHold } from '../../hooks/useKycPrompt'
 import { setAuthToken } from '../../api/client'
 import { getStoredAttribution, mapSourceToEnum } from '../../helpers/installReferrer'
 import { toast } from 'sonner-native'
+import { startVerification } from '@didit-protocol/sdk-react-native'
 import RegisterScreen from './Register'
 
 const register = jest.fn()
@@ -111,7 +112,8 @@ const goToPhoneCodeStep = async (tree, phone = '55555555') => {
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	useAuth.mockReturnValue({ register, clearError: jest.fn(), completeSession })
+	// En el alta aún no hay usuario: updateUser no hace nada (useAuthState)
+	useAuth.mockReturnValue({ register, clearError: jest.fn(), completeSession, updateUser: jest.fn(async () => ({ success: false, error: 'no-user' })) })
 	usePinCountdown.mockReturnValue({ label: 'Solicitar PIN', isDisabled: false, start: startCountdown })
 	useStepTransitions.mockReturnValue({ direction: { value: 1 }, makeStepEnter: () => ({}), stepExit: {} })
 	usePushPrompt.mockReturnValue({ isPushEnabled: false, enablePush, dismissOnboardPrompt })
@@ -340,6 +342,29 @@ describe('KYC step', () => {
 		await goToKycStep(tree)
 		await press(tree, 'Verificar identidad')
 		expect(toast.error).toHaveBeenCalledWith('Error interno')
+		expect(button(tree, 'Verificar identidad')).toBeDefined()
+	})
+
+	// El `me` de la sesión es de ANTES de verificar: sin fundir el resultado,
+	// completeSession dejaba al recién aprobado como no verificado
+	test('una aprobación nativa llega a la sesión al terminar', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: true, data: 'https://verify.didit.me/session/1', sessionToken: 'tok.en.jwt', status: 200 })
+		startVerification.mockResolvedValueOnce({ type: 'completed', session: { sessionId: 's1', status: 'Approved' } })
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		expect(toast.success).toHaveBeenCalled()
+		await press(tree, 'Activar notificaciones')
+		expect(completeSession).toHaveBeenCalledWith({ accessToken: 'tok-1', me: { username: 'john', kyc: true, kyc_status: 'approved' }, email: 'john@doe.com' })
+	})
+
+	test('con la cámara denegada explica el permiso, como en Ajustes', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: true, data: 'https://verify.didit.me/session/1', sessionToken: 'tok.en.jwt', status: 200 })
+		startVerification.mockResolvedValueOnce({ type: 'failed', error: { type: 'cameraAccessDenied', message: 'denied' } })
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		expect(toast.error).toHaveBeenCalledWith('Error', { description: expect.stringContaining('cámara') })
 		expect(button(tree, 'Verificar identidad')).toBeDefined()
 	})
 

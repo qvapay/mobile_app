@@ -15,9 +15,22 @@ import { markKycSessionStarted } from './useKycPrompt'
 // i18n en call-time: el hook mantiene identidad estable y el idioma del SDK
 // se resuelve al lanzar, no al montar
 import i18n from '../i18n'
+import type { User } from '../types/domain'
 
 // El SDK usa códigos ISO 639-1 con variantes regionales; nuestro 'pt' es Brasil
 const SDK_LANGUAGE: Record<string, string> = { pt: 'pt-BR' }
+
+/**
+ * Lo que cada resultado del SDK adelanta del perfil sin esperar al próximo
+ * `/user/extended`. Con sesión se aplica con `updateUser`; en el registro aún
+ * no hay usuario, así que el wizard lo funde en su sesión antes de
+ * `completeSession` (si no, el perfil de antes del KYC lo pisaría).
+ */
+export const KYC_USER_PATCH = {
+	approved: { kyc: true, kyc_status: 'approved' },
+	declined: { kyc_status: 'declined' },
+	pending: { kyc_status: 'pending' },
+} as const satisfies Record<string, Partial<User>>
 
 /** Resultado de `launchKyc`, discriminado por `kind` (ver doc del hook). */
 export type KycLaunchResult =
@@ -93,15 +106,15 @@ const useKycVerification = (): { launchKyc: (options?: { refresh?: boolean }) =>
 				const status = result.session?.status
 				if (status === VerificationStatus.Approved) {
 					// Adelanta badges/gates sin esperar al próximo /user/extended
-					updateUser({ kyc: true, kyc_status: 'approved' })
+					updateUser(KYC_USER_PATCH.approved)
 					return { kind: 'native', outcome: 'approved' }
 				}
 				if (status === VerificationStatus.Declined) {
-					updateUser({ kyc_status: 'declined' })
+					updateUser(KYC_USER_PATCH.declined)
 					return { kind: 'native', outcome: 'declined' }
 				}
 				if (status === VerificationStatus.Pending) {
-					updateUser({ kyc_status: 'pending' })
+					updateUser(KYC_USER_PATCH.pending)
 					return { kind: 'native', outcome: 'pending' }
 				}
 				// Terminó sin un estado que sepamos leer (sesión ausente, o un estado que
