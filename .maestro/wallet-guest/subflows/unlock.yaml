@@ -6,4 +6,4 @@ appId: com.qvapay
       visible:
         id: "lock-screen"
     commands:
-      - runFlow: type_pin.yaml
+      - runFlow: tap_lock_pin.yaml

@@ -40,8 +40,7 @@
 	},
 	"lock": {
 		"enterPin": "Enter your security PIN",
-		"tapToUnlock": "Tap to unlock with {{method}}",
-		"orEnterPin": "or enter your PIN",
+		"greeting": "Hi, {{name}}",
 		"unlock": {
 			"faceId": "Unlock with Face ID",
 			"touchId": "Unlock with Touch ID",
@@ -57,6 +56,9 @@
 			"currentPinWrong": "Current PIN is incorrect",
 			"updatePin": "Couldn't update the PIN"
 		},
-		"bioPrompt": "Unlock QvaPay"
+		"bioPrompt": "Unlock QvaPay",
+		"a11y": {
+			"pinProgress": "PIN: {{entered}} of {{total}} digits"
+		}
 	}
 }
