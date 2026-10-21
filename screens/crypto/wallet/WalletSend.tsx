@@ -10,7 +10,7 @@ import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/them
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
-import { addressForKind } from '../../../wallet/assets'
+import { addressForKind, isSameAddress } from '../../../wallet/assets'
 import type { AssetView } from '../../../wallet/assets'
 import { displayAmount, formatUnits, parseUnits } from '../../../wallet/chains/units'
 import { useEffectiveRegistry } from '../../../wallet/registry/appRpcRouter'
@@ -118,7 +118,7 @@ const WalletSend = ({ navigation, route }: Props) => {
 	const toTrimmed = to.trim()
 	const toError = !toTrimmed ? null
 		: !asset || !isValidAddressFor(asset.kind, toTrimmed) ? t('crypto.wallet.send.errors.invalidAddress', { network: asset?.chainName ?? '' })
-			: toTrimmed === ownAddress ? t('crypto.wallet.send.errors.ownAddress')
+			: ownAddress && isSameAddress(asset.kind, toTrimmed, ownAddress) ? t('crypto.wallet.send.errors.ownAddress')
 				: null
 
 	const balanceUnits = asset ? BigInt(asset.amount === '' ? '0' : parseUnitsSafe(asset.amount, asset.decimals)) : 0n

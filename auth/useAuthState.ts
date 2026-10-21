@@ -511,6 +511,11 @@ export default function useAuthState() {
 	 * @returns `{ success, error? }`
 	 */
 	const updateUser = useCallback(async (newUserData: Partial<User>) => {
+		// Sin sesión no hay perfil al que fusionar. Pasa en el registro, que ya
+		// tiene el token en el Keychain pero aún no el usuario: escribir aquí dejaba
+		// en disco un «usuario» a medias (solo `{ kyc }`) que el siguiente arranque
+		// cargaba como sesión si la app se cerraba antes de terminar el alta
+		if (!userRef.current) { return { success: false, error: 'no-user' } }
 		try {
 			const updatedUser = { ...userRef.current, ...newUserData }
 			await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))

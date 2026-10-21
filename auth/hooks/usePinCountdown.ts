@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import i18n from '../../i18n'
+import { useTranslation } from 'react-i18next'
 
 // mm:ss formatter — pure, so it lives at module scope instead of being rebuilt each render
 const format = (s: number): string => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
@@ -13,7 +13,8 @@ const format = (s: number): string => `${Math.floor(s / 60).toString().padStart(
  * The remaining-seconds counter lives in a ref, not state: it ticks every second
  * but the component only needs to re-render when the *visible label* changes. The
  * raw counter is an instance value (like a debounce accumulator) and must not
- * trigger reconciliation on every tick.
+ * trigger reconciliation on every tick. Only the `mm:ss` text is state; the idle
+ * label is derived (translated) on render.
  * See https://react.dev/reference/react/useRef
  *
  * @returns `label` (either the localized "Solicitar PIN" or the remaining
@@ -21,9 +22,11 @@ const format = (s: number): string => `${Math.floor(s / 60).toString().padStart(
  */
 export default function usePinCountdown(): { label: string, isDisabled: boolean, start: (seconds?: number) => void } {
 
-	// Initializer runs at mount, so the label resolves in the active language
-	const [label, setLabel] = useState(() => i18n.t('hooks.pinCountdown.requestPin'))
-	const [isDisabled, setIsDisabled] = useState(false)
+	// La etiqueta en reposo se traduce en CADA render (no al montar): una pantalla
+	// montada antes de que LanguageSync aplique el idioma real, o que sigue abierta
+	// cuando el usuario lo cambia, se quedaba con «Solicitar PIN» en el de antes
+	const { t } = useTranslation()
+	const [countdown, setCountdown] = useState<string | null>(null)
 	const remainingRef = useRef(0)
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -37,20 +40,18 @@ export default function usePinCountdown(): { label: string, isDisabled: boolean,
 	const start = (seconds: number = 60) => {
 		stop()
 		remainingRef.current = seconds
-		setIsDisabled(true)
-		setLabel(format(seconds))
+		setCountdown(format(seconds))
 		intervalRef.current = setInterval(() => {
 			remainingRef.current -= 1
 			if (remainingRef.current <= 0) {
 				stop()
-				setIsDisabled(false)
-				setLabel(i18n.t('hooks.pinCountdown.requestPin'))
-			} else { setLabel(format(remainingRef.current)) }
+				setCountdown(null)
+			} else { setCountdown(format(remainingRef.current)) }
 		}, 1000)
 	}
 
 	// Clear any running interval on unmount
 	useEffect(() => stop, [])
 
-	return { label, isDisabled, start }
+	return { label: countdown ?? t('hooks.pinCountdown.requestPin'), isDisabled: countdown !== null, start }
 }

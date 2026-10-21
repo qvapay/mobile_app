@@ -499,6 +499,19 @@ describe('updateUser', () => {
 		expect(result.current.updateUser).toBe(before)
 	})
 
+	// El registro tiene token pero aún no usuario: un `{ kyc }` suelto en disco
+	// lo cargaría el siguiente arranque como si fuera la sesión
+	test('sin usuario no escribe nada (registro a medio hacer)', async () => {
+		const { result } = await renderHook()
+		AsyncStorage.setItem.mockClear()
+		let outcome
+		await act(async () => { outcome = await result.current.updateUser({ kyc: true, kyc_status: 'approved' }) })
+		expect(outcome).toEqual({ success: false, error: 'no-user' })
+		expect(AsyncStorage.setItem).not.toHaveBeenCalledWith('user_data', expect.anything())
+		expect(result.current.user).toBeNull()
+		expect(result.current.error).toBeNull()
+	})
+
 	test('a persistence failure reports the error and keeps the previous user', async () => {
 		const { result } = await renderAuthenticatedHook()
 		AsyncStorage.setItem.mockRejectedValue(new Error('disk full'))

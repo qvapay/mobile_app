@@ -58,17 +58,21 @@ const initialList: ListState = { p2pOffers: [], promoted: null, isLoading: false
 function listReducer(state: ListState, action: ListAction): ListState {
 	switch (action.type) {
 		case "start":
-			// kind: 'refresh' | 'more' | 'initial'
-			return { ...state, refreshing: action.kind === "refresh", isLoading: action.kind === "more", error: null, requirement: null }
+			// kind: 'refresh' | 'more' | 'initial'. El requisito NO se borra aquí: con
+			// el gate a la vista, volver a preguntar no debe pintar la lista vacía un
+			// instante; solo un listado servido demuestra que ya se cumple
+			return { ...state, refreshing: action.kind === "refresh", isLoading: action.kind === "more", error: null }
 		case "setOffers":
-			return { ...state, p2pOffers: action.offers, promoted: action.promoted }
+			return { ...state, p2pOffers: action.offers, promoted: action.promoted, requirement: null }
 		case "hydrate":
 			// Cached offers paint the cold start — never clobber a resolved fetch
 			return state.p2pOffers.length === 0 && action.offers?.length ? { ...state, p2pOffers: action.offers } : state
 		case "appendOffers":
 			return { ...state, p2pOffers: [...state.p2pOffers, ...action.offers] }
 		case "error":
-			return { ...state, error: action.error, requirement: action.requirement || null }
+			// Un fallo que no es de requisitos (red, 429) no demuestra que ya se
+			// cumplan: el gate se queda hasta un listado servido
+			return { ...state, error: action.error, requirement: action.requirement || state.requirement }
 		case "finish":
 			return { ...state, isLoading: false, refreshing: false }
 		default:

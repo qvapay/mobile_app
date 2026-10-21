@@ -14,6 +14,7 @@ import {
 	findAssetForCoin,
 	findCoinForAsset,
 	isAssetVisible,
+	isSameAddress,
 	sortAssets,
 	moveItem,
 	toAssetView,
@@ -197,5 +198,24 @@ describe('puente con el catálogo de QvaPay', () => {
 		expect(findCoinForAsset(COINS, catalog, find('tron', 'USDT')).tick).toBe('USDT')
 		expect(findCoinForAsset(COINS, catalog, find('bsc', 'BNB')).tick).toBe('BNBBSC')
 		expect(findCoinForAsset(COINS, catalog, find('polygon', 'USDC'))).toBeNull()
+	})
+})
+
+describe('isSameAddress', () => {
+	test('EVM no distingue mayúsculas (checksum EIP-55)', () => {
+		expect(isSameAddress('evm', '0x9858EfFD232B4033E47d90003D41EC34EcaEda94', '0x9858effd232b4033e47d90003d41ec34ecaeda94')).toBe(true)
+		expect(isSameAddress('evm', '0x9858EfFD232B4033E47d90003D41EC34EcaEda94', '0x9858EfFD232B4033E47d90003D41EC34EcaEda95')).toBe(false)
+	})
+
+	test('bech32 no distingue mayúsculas; base58 sí', () => {
+		expect(isSameAddress('btc', 'BC1QCR8TE4KR609GCAWUTMRZA0J4XV80JY8Z306FYU', 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu')).toBe(true)
+		expect(isSameAddress('btc', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', '1a1zp1ep5qgefi2dmptftl5slmv7divfna')).toBe(false)
+		expect(isSameAddress('tron', 'TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg', 'twqvtpzkwfpbjujqjtzlsvx5bm79wfdjtg')).toBe(false)
+		expect(isSameAddress('solana', 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk', 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk')).toBe(true)
+	})
+
+	test('espacios alrededor no cuentan y vacío nunca es la misma', () => {
+		expect(isSameAddress('tron', ' TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg ', 'TWqvtpZkwfpbjujqJtzLsVx5bm79wFDJTg')).toBe(true)
+		expect(isSameAddress('evm', '', '')).toBe(false)
 	})
 })

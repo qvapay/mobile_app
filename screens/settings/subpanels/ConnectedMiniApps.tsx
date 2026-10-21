@@ -11,7 +11,7 @@ import QPLoader from '../../../ui/particles/QPLoader'
 import { timeAgo } from '../../../helpers'
 
 import { miniappsApi } from '../../../api/miniappsApi'
-import { useMiniAppGrants, MINIAPPS_ROOT } from '../../miniapps/miniappsQueries'
+import { useMiniAppGrants, forgetGrant } from '../../miniapps/miniappsQueries'
 import MiniAppIcon from '../../miniapps/MiniAppIcon'
 import type { MiniAppGrant } from '../../../types/domain'
 
@@ -37,7 +37,7 @@ const ConnectedMiniApps = () => {
 		const result = await miniappsApi.revokeGrant(grant.slug)
 		setRevoking(null)
 		if (result.success) {
-			queryClient.invalidateQueries({ queryKey: MINIAPPS_ROOT })
+			forgetGrant(queryClient, grant.slug)
 			toast.success(t('miniapps.host.revoked', { name: grant.name }))
 		} else {
 			toast.error(t('transactions.common.errorTitle'), { description: result.error })

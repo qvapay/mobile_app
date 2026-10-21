@@ -41,7 +41,7 @@ import useStepTransitions from '../../../hooks/useStepTransitions'
 import usePushPrompt from '../../../hooks/usePushPrompt'
 
 // Flujo de verificación de identidad nativo (SDK embebido, fallback a navegador)
-import useKycVerification from '../../../hooks/useKycVerification'
+import useKycVerification, { KYC_USER_PATCH } from '../../../hooks/useKycVerification'
 import { markKycOnHold } from '../../../hooks/useKycPrompt'
 
 // Atribución de instalación (Android Install Referrer): código del referidor
@@ -132,6 +132,11 @@ export default function useRegisterFlow(navigation: NativeStackNavigationProp<Ro
 	const sessionRef = useRef<{ accessToken: string, me: Me } | null>(null)
 	const verifyingRef = useRef(false)
 	const finishingRef = useRef(false)
+	// Lo que el KYC del paso adelantó del perfil: se funde en la sesión al terminar.
+	// Aún no hay usuario al que aplicarlo (updateUser no hace nada sin él), y el
+	// `me` de la sesión es de ANTES de verificar, así que sin esto la aprobación
+	// se perdía hasta el siguiente /user/extended
+	const kycPatchRef = useRef<Partial<Me> | null>(null)
 	const lastnameInputRef = useRef<TextInputInstance | null>(null)
 
 	// Atribución de instalación: si el referrer de Play trajo un código de
@@ -326,6 +331,9 @@ export default function useRegisterFlow(navigation: NativeStackNavigationProp<Ro
 			const resp = await launchKyc()
 
 			if (resp.kind === 'native') {
+				if (resp.outcome === 'approved' || resp.outcome === 'pending' || resp.outcome === 'declined') {
+					kycPatchRef.current = KYC_USER_PATCH[resp.outcome]
+				}
 				if (resp.outcome === 'approved') {
 					toast.success(t('auth.register.toasts.kycApproved'))
 					goToPushOrFinish()
@@ -355,6 +363,9 @@ export default function useRegisterFlow(navigation: NativeStackNavigationProp<Ro
 				} else {
 					toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
 				}
+			} else if (resp.errorType === 'cameraAccessDenied') {
+				// Reintentar no arregla un permiso negado: el mismo aviso que en Ajustes
+				toast.error(t('settings.kyc.toasts.errorTitle'), { description: t('settings.kyc.toasts.cameraDenied') })
 			} else {
 				// sdk-error: reintentable desde el propio paso
 				toast.error(String(resp.message || t('auth.register.toasts.kycStartFailed')))
@@ -393,7 +404,8 @@ export default function useRegisterFlow(navigation: NativeStackNavigationProp<Ro
 		setFinishing(true)
 		setIsLoading(true)
 		try {
-			await completeSession({ ...sessionRef.current, email: email.trim() })
+			const { accessToken, me } = sessionRef.current
+			await completeSession({ accessToken, me: kycPatchRef.current ? { ...me, ...kycPatchRef.current } : me, email: email.trim() })
 		} catch {
 			// No dejar la pantalla muerta: liberar el lock para poder reintentar
 			finishingRef.current = false

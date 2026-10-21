@@ -113,6 +113,29 @@ describe('errors', () => {
 		expect(toast.error).not.toHaveBeenCalled()
 	})
 
+	// Con el gate a la vista, volver a preguntar no lo quita hasta que el
+	// listado responde: ni parpadea la lista vacía ni lo borra un fallo de red
+	test('el requisito sigue mientras se vuelve a preguntar y se va con un listado servido', async () => {
+		p2pApi.index.mockResolvedValue({ success: false, status: 400, error: 'Debes completar el KYC para acceder al P2P' })
+		const { result } = await renderOffers()
+		expect(result.current.requirement).toBe('kyc')
+
+		let resolveIndex
+		p2pApi.index.mockImplementationOnce(() => new Promise(r => { resolveIndex = r }))
+		await act(async () => { result.current.onRefresh() })
+		expect(result.current.requirement).toBe('kyc')
+
+		await act(async () => { resolveIndex({ success: false, error: 'Error de conexión' }) })
+		await settle()
+		expect(result.current.requirement).toBe('kyc')
+
+		p2pApi.index.mockResolvedValueOnce({ success: true, offers: offers(2) })
+		await act(async () => { result.current.onRefresh() })
+		await settle()
+		expect(result.current.requirement).toBeNull()
+		expect(result.current.p2pOffers).toHaveLength(2)
+	})
+
 	test('un 400 de validación de filtros sigue siendo un fallo de carga', async () => {
 		p2pApi.index.mockResolvedValue({ success: false, status: 400, error: "Parámetro 'page' inválido" })
 		const { result } = await renderOffers()

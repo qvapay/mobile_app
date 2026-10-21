@@ -6,6 +6,7 @@
  */
 import React from 'react'
 import { act, create } from 'react-test-renderer'
+import i18n from '../../i18n'
 import usePinCountdown from './usePinCountdown'
 
 // Minimal hook harness: renders the hook inside a throwaway component and
@@ -106,6 +107,26 @@ describe('start', () => {
 		expect(result.current.isDisabled).toBe(true)
 		advance(2000)
 		expect(result.current.label).toBe('Solicitar PIN')
+	})
+})
+
+describe('idioma', () => {
+	afterEach(() => act(() => { i18n.changeLanguage('es') }))
+
+	test('la etiqueta en reposo sigue al idioma aunque la pantalla ya esté montada', () => {
+		const { result } = renderHook()
+		expect(result.current.label).toBe('Solicitar PIN')
+		act(() => { i18n.changeLanguage('en') })
+		expect(result.current.label).toBe(i18n.t('hooks.pinCountdown.requestPin'))
+		expect(result.current.label).not.toBe('Solicitar PIN')
+	})
+
+	test('al acabar la cuenta atrás vuelve en el idioma vigente', () => {
+		const { result } = renderHook()
+		act(() => { result.current.start(1) })
+		act(() => { i18n.changeLanguage('en') })
+		advance(1000)
+		expect(result.current.label).toBe(i18n.t('hooks.pinCountdown.requestPin'))
 	})
 })
 
