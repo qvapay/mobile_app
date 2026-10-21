@@ -76,6 +76,83 @@ describe('QPPressable', () => {
 		expect(StyleSheet.flatten(json.props.style)).toMatchObject({ backgroundColor: 'red', padding: 4 })
 	})
 
+	describe('long press', () => {
+		beforeEach(() => { jest.useFakeTimers() })
+		afterEach(() => { jest.useRealTimers() })
+
+		test('fires after delayLongPress and suppresses onPress on release', async () => {
+			const onPress = jest.fn()
+			const onLongPress = jest.fn()
+			const tree = await render({ onPress, onLongPress, delayLongPress: 300 })
+			const node = wrapper(tree)
+			await act(async () => { node.props.onResponderGrant() })
+			await act(async () => { jest.advanceTimersByTime(299) })
+			expect(onLongPress).not.toHaveBeenCalled()
+			await act(async () => { jest.advanceTimersByTime(1) })
+			expect(onLongPress).toHaveBeenCalledTimes(1)
+			await act(async () => { node.props.onResponderRelease() })
+			expect(onPress).not.toHaveBeenCalled()
+		})
+
+		test('a release before the delay fires onPress, not onLongPress', async () => {
+			const onPress = jest.fn()
+			const onLongPress = jest.fn()
+			const tree = await render({ onPress, onLongPress })
+			const node = wrapper(tree)
+			await act(async () => { node.props.onResponderGrant() })
+			await act(async () => { jest.advanceTimersByTime(200) })
+			await act(async () => { node.props.onResponderRelease() })
+			await act(async () => { jest.advanceTimersByTime(1000) })
+			expect(onPress).toHaveBeenCalledTimes(1)
+			expect(onLongPress).not.toHaveBeenCalled()
+		})
+
+		test('a terminated gesture (scroll) cancels the pending long press', async () => {
+			const onLongPress = jest.fn()
+			const tree = await render({ onLongPress })
+			const node = wrapper(tree)
+			await act(async () => { node.props.onResponderGrant() })
+			await act(async () => { node.props.onResponderTerminate() })
+			await act(async () => { jest.advanceTimersByTime(1000) })
+			expect(onLongPress).not.toHaveBeenCalled()
+		})
+
+		test('the next press after a long press works normally', async () => {
+			const onPress = jest.fn()
+			const onLongPress = jest.fn()
+			const tree = await render({ onPress, onLongPress })
+			const node = wrapper(tree)
+			await act(async () => { node.props.onResponderGrant() })
+			await act(async () => { jest.advanceTimersByTime(500) })
+			await act(async () => { node.props.onResponderRelease() })
+			await act(async () => { node.props.onResponderGrant() })
+			await act(async () => { node.props.onResponderRelease() })
+			expect(onLongPress).toHaveBeenCalledTimes(1)
+			expect(onPress).toHaveBeenCalledTimes(1)
+		})
+
+		test('without onLongPress a held press is a plain press and no accessibility action is exposed', async () => {
+			const onPress = jest.fn()
+			const tree = await render({ onPress })
+			const node = wrapper(tree)
+			expect(node.props.accessibilityActions).toBeUndefined()
+			expect(node.props.onAccessibilityAction).toBeUndefined()
+			await act(async () => { node.props.onResponderGrant() })
+			await act(async () => { jest.advanceTimersByTime(5000) })
+			await act(async () => { node.props.onResponderRelease() })
+			expect(onPress).toHaveBeenCalledTimes(1)
+		})
+
+		test('exposes a longpress accessibility action that calls the handler', async () => {
+			const onLongPress = jest.fn()
+			const tree = await render({ onLongPress })
+			const node = wrapper(tree)
+			expect(node.props.accessibilityActions).toEqual([{ name: 'longpress' }])
+			await act(async () => { node.props.onAccessibilityAction({ nativeEvent: { actionName: 'longpress' } }) })
+			expect(onLongPress).toHaveBeenCalledTimes(1)
+		})
+	})
+
 	test('opacity and none variants render without crashing', async () => {
 		for (const variant of ['opacity', 'none']) {
 			const tree = await render({ variant })

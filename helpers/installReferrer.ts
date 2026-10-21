@@ -6,7 +6,7 @@ const CONSUMED_KEY = '@qvapay:installReferrerConsumed'
 const ATTRIBUTION_KEY = '@qvapay:installAttribution'
 
 // Only paths the app knows how to open (see linking.js / useAppNavigation parsers)
-const VALID_LINK_PREFIXES = ['/p2p/', '/pay/', '/store/']
+const VALID_LINK_PREFIXES = ['/p2p/', '/pay/', '/store/', '/apps/']
 
 /** Atribución de campaña parseada del Install Referrer de Google Play. */
 export type InstallAttribution = {

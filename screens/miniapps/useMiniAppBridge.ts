@@ -60,6 +60,12 @@ type Options = {
 	 * enseña su KycGateModal— si el usuario no está verificado.
 	 */
 	requireKyc: () => boolean
+	/**
+	 * Hoja nativa de compartir con el enlace público de la mini-app abierta
+	 * (la pantalla la implementa con `shareMiniApp`; el hook no toca `Share` y
+	 * sigue siendo testeable en node). `dismissed` solo lo distingue iOS.
+	 */
+	share: (text?: string) => Promise<'shared' | 'dismissed'>
 }
 
 /**
@@ -72,7 +78,7 @@ type Options = {
  * Solo una hoja a la vez: un segundo `requestLogin`/`payInvoice` mientras hay
  * otro en curso se rechaza con `BUSY` (una mini-app no puede apilar cobros).
  */
-export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, requireKyc }: Options) {
+export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, requireKyc, share }: Options) {
 
 	// La operación modal en vuelo (incluye el authorize directo, que no pinta hoja)
 	const busyRef = useRef(false)
@@ -92,10 +98,13 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 	// Refs espejo: el dispatcher es estable y lee siempre lo último
 	const appRef = useRef(app)
 	const themeRef = useRef(theme)
-	const callbacksRef = useRef({ onReady, onClose, requireKyc })
+	const callbacksRef = useRef({ onReady, onClose, requireKyc, share })
 	useEffect(() => { appRef.current = app }, [app])
 	useEffect(() => { themeRef.current = theme }, [theme])
-	useEffect(() => { callbacksRef.current = { onReady, onClose, requireKyc } }, [onReady, onClose, requireKyc])
+	useEffect(() => { callbacksRef.current = { onReady, onClose, requireKyc, share } }, [onReady, onClose, requireKyc, share])
+	// Hoja de compartir en vuelo: no es modal del bridge (no pide PIN ni KYC)
+	// pero tampoco se apila
+	const shareBusyRef = useRef(false)
 
 	const deliver = useCallback((payload: string) => {
 		webViewRef.current?.injectJavaScript(buildDeliveryScript(payload))
@@ -187,8 +196,23 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 				Linking.openURL(request.params.url).catch(() => {})
 				respond(request.id)
 				return
+			case 'share': {
+				if (shareBusyRef.current || modalRef.current) {
+					reject(request.id, { code: BRIDGE_ERRORS.BUSY, message: 'Another request is in progress' })
+					return
+				}
+				shareBusyRef.current = true
+				callbacksRef.current.share(request.params.text)
+					.then(outcome => {
+						if (outcome === 'dismissed') reject(request.id, { code: BRIDGE_ERRORS.USER_CANCELLED, message: 'User cancelled' })
+						else respond(request.id)
+					})
+					.catch(() => reject(request.id, { code: BRIDGE_ERRORS.FAILED, message: 'Share failed' }))
+					.finally(() => { shareBusyRef.current = false })
+				return
+			}
 		}
-	}, [respond, requestLogin, openModal])
+	}, [respond, reject, requestLogin, openModal])
 
 	const onMessage = useCallback((event: WebViewMessageEvent) => {
 		const current = appRef.current

@@ -37,6 +37,8 @@ const PATH_ROUTES: { match: RegExp, target: (m: RegExpMatchArray) => Announcemen
 	{ match: /^\/topup$/, target: () => ({ kind: 'screen', route: ROUTES.TOPUP_SCREEN, params: {} }) },
 	{ match: /^\/store\/([^/]+)\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.MARKET_PRODUCT, params: { slug: m[1], uuid: m[2] } }) },
 	{ match: /^\/store\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.MARKET_STORE, params: { slug: m[1] } }) },
+	{ match: /^\/apps$/, target: () => ({ kind: 'screen', route: ROUTES.MINIAPPS, params: {} }) },
+	{ match: /^\/apps\/([^/]+)$/, target: m => ({ kind: 'screen', route: ROUTES.MINIAPP_HOST, params: { slug: m[1] } }) },
 ]
 
 // Separa el path de su query/hash: los patrones se comparan contra el path pelado

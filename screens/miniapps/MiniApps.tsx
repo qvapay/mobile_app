@@ -8,6 +8,7 @@ import FastImage from '@d11/react-native-fast-image'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { toast } from 'sonner-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
@@ -22,6 +23,7 @@ import { ROUTES } from '../../routes'
 
 import MiniAppIcon from './MiniAppIcon'
 import { useMiniAppsList } from './miniappsQueries'
+import { shareMiniApp } from './shareMiniApp'
 import { CATEGORY_META, SEARCH_MIN_APPS, buildCatalogView, categoryOf, coverOf, normalizeSearch, presentCategories } from './miniappsCatalog'
 import type { MiniAppCategory } from './miniappsCatalog'
 import type { MiniApp } from '../../types/domain'
@@ -95,6 +97,12 @@ const MiniApps = ({ navigation }: Props) => {
 		navigation.navigate(ROUTES.MINIAPP_HOST, { slug: app.slug, name: app.name, icon: app.icon })
 	}, [navigation])
 
+	// Mantener pulsada una app = compartir su enlace sin entrar en ella
+	const share = useCallback((app: MiniApp) => {
+		ReactNativeHapticFeedback.trigger('impactMedium', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
+		shareMiniApp(app, t).catch(() => { /* cancelado o sin hoja */ })
+	}, [t])
+
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
 		try { await refetch() } finally { setRefreshing(false) }
@@ -108,7 +116,7 @@ const MiniApps = ({ navigation }: Props) => {
 		const cat = categoryOf(item)
 		const author = authorOf(item)
 		return (
-			<QPPressable onPress={() => open(item)} style={styles.row}>
+			<QPPressable onPress={() => open(item)} onLongPress={() => share(item)} accessibilityHint={t('miniapps.directory.longPressToShare')} style={styles.row}>
 				<MiniAppIcon app={item} size={56} />
 				<View style={styles.rowText}>
 					<View style={styles.nameRow}>
@@ -127,7 +135,7 @@ const MiniApps = ({ navigation }: Props) => {
 				</View>
 			</QPPressable>
 		)
-	}, [open, theme, textStyles, t])
+	}, [open, share, theme, textStyles, t])
 
 	if (isPending) {
 		return <View style={[containerStyles.subContainer, styles.center]}><QPLoader /></View>
@@ -148,7 +156,7 @@ const MiniApps = ({ navigation }: Props) => {
 						contentContainerStyle={[styles.featuredRow, { paddingHorizontal: theme.spacing.md }]}
 					>
 						{view.featured.map(app => (
-							<FeaturedCard key={app.slug} app={app} width={featuredWidth} cardBorder={cardBorder} onPress={() => open(app)} />
+							<FeaturedCard key={app.slug} app={app} width={featuredWidth} cardBorder={cardBorder} onPress={() => open(app)} onLongPress={() => share(app)} />
 						))}
 					</ScrollView>
 				</>
@@ -240,7 +248,7 @@ const MiniApps = ({ navigation }: Props) => {
  * con el color de su categoría. El degradado va siempre debajo: es lo que se
  * ve mientras la portada carga.
  */
-const FeaturedCard = ({ app, width, cardBorder, onPress }: { app: MiniApp, width: number, cardBorder: object | null, onPress: () => void }) => {
+const FeaturedCard = ({ app, width, cardBorder, onPress, onLongPress }: { app: MiniApp, width: number, cardBorder: object | null, onPress: () => void, onLongPress: () => void }) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
@@ -253,7 +261,7 @@ const FeaturedCard = ({ app, width, cardBorder, onPress }: { app: MiniApp, width
 	const withCover = !!cover && !coverFailed
 
 	return (
-		<QPPressable onPress={onPress} style={[styles.featuredCard, { width, backgroundColor: theme.colors.surface }, cardBorder]}>
+		<QPPressable onPress={onPress} onLongPress={onLongPress} accessibilityHint={t('miniapps.directory.longPressToShare')} style={[styles.featuredCard, { width, backgroundColor: theme.colors.surface }, cardBorder]}>
 			<LinearGradient
 				colors={[hexToRgba(color, 0.32), hexToRgba(color, 0.04)]}
 				start={{ x: 0, y: 0 }}

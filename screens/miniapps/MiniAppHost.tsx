@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Pressable, Modal, BackHandler, Linking, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Modal, BackHandler, Linking, ActivityIndicator, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import WebView from 'react-native-webview'
@@ -19,6 +19,7 @@ import { isAllowedOrigin, isBenignInternalUrl } from '../../miniapps/protocol'
 import { buildSdkScript } from '../../miniapps/sdkScript'
 import { useMiniAppDetail, forgetGrant } from './miniappsQueries'
 import { useMiniAppBridge, type MiniAppThemePayload } from './useMiniAppBridge'
+import { shareMiniApp } from './shareMiniApp'
 import MiniAppIcon from './MiniAppIcon'
 import MiniAppConsentSheet from './MiniAppConsentSheet'
 import MiniAppPaySheet from './MiniAppPaySheet'
@@ -51,6 +52,9 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const queryClient = useQueryClient()
 
 	const { data: app, isError, refetch, isFetching } = useMiniAppDetail(slug)
+	// Espejo para callbacks estables (el share del SDK no debe re-crear el bridge por cada refetch)
+	const appRef = useRef(app)
+	useEffect(() => { appRef.current = app }, [app])
 
 	// `WebView<object>`: con el genérico por defecto (`undefined`) los tipos del paquete
 	// intersecan las props con `undefined` y el `ref` deja de tipar
@@ -75,8 +79,15 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const { requireKyc, gateVisible, gateMessage, closeGate } = useKycGate()
 	const requireMiniAppKyc = useCallback(() => requireKyc({ message: t('miniapps.kycGate.message') }), [requireKyc, t])
 
+	// `QvaPay.share()` del SDK: la hoja con el enlace de ESTA mini-app (la app pone la URL)
+	const shareFromSdk = useCallback(async (text?: string) => {
+		const current = appRef.current
+		if (!current) throw new Error('Mini-app not loaded')
+		return shareMiniApp(current, t, text)
+	}, [t])
+
 	const { onMessage, emit, modal, resolveModal, rejectModal, mainButton, backButtonVisible, resetUi } = useMiniAppBridge({
-		app, webViewRef, theme: themePayload, onReady, onClose: close, requireKyc: requireMiniAppKyc,
+		app, webViewRef, theme: themePayload, onReady, onClose: close, requireKyc: requireMiniAppKyc, share: shareFromSdk,
 	})
 
 	// El SDK se construye UNA vez por carga: cambiar el script en caliente no
@@ -128,6 +139,22 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	const openInBrowser = () => {
 		setMenuOpen(false)
 		if (app) Linking.openURL(app.entry_url).catch(() => {})
+	}
+
+	// Compartir desde el menú: en iOS la hoja de compartir no puede presentarse
+	// mientras el <Modal> del menú aún se desmonta ("already presenting" y no
+	// sale nada), así que se difiere a su onDismiss; Android no lo necesita
+	const afterMenuRef = useRef<(() => void) | null>(null)
+	const shareFromMenu = () => {
+		setMenuOpen(false)
+		const run = () => { if (app) shareMiniApp(app, t).catch(() => { /* cancelado o sin hoja */ }) }
+		if (Platform.OS === 'ios') afterMenuRef.current = run
+		else run()
+	}
+	const onMenuDismiss = () => {
+		const pending = afterMenuRef.current
+		afterMenuRef.current = null
+		pending?.()
 	}
 
 	const revoke = async () => {
@@ -242,9 +269,10 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 			{/* useKycGate expone `string | null` y el modal declara `string | undefined` (mismo cast que SendConfirm) */}
 			<KycGateModal visible={gateVisible} message={gateMessage as string | undefined} onClose={closeGate} />
 
-			<Modal visible={menuOpen} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setMenuOpen(false)}>
+			<Modal visible={menuOpen} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setMenuOpen(false)} onDismiss={onMenuDismiss}>
 				<Pressable style={containerStyles.modalOverlay} onPress={() => setMenuOpen(false)}>
 					<View style={[containerStyles.modalCard, { paddingVertical: 8 }]} onStartShouldSetResponder={() => true}>
+						<MenuRow icon="share-nodes" label={t('common.actions.share')} onPress={shareFromMenu} />
 						<MenuRow icon="rotate-right" label={t('miniapps.host.reload')} onPress={reload} />
 						<MenuRow icon="arrow-up-right-from-square" label={t('miniapps.host.openInBrowser')} onPress={openInBrowser} />
 						{app?.granted ? <MenuRow icon="user-slash" label={t('miniapps.host.revoke')} onPress={revoke} danger /> : null}
@@ -255,7 +283,7 @@ const MiniAppHost = ({ route, navigation }: Props) => {
 	)
 }
 
-const MenuRow = ({ icon, label, onPress, danger = false }: { icon: 'rotate-right' | 'arrow-up-right-from-square' | 'user-slash', label: string, onPress: () => void, danger?: boolean }) => {
+const MenuRow = ({ icon, label, onPress, danger = false }: { icon: 'share-nodes' | 'rotate-right' | 'arrow-up-right-from-square' | 'user-slash', label: string, onPress: () => void, danger?: boolean }) => {
 	const { theme } = useTheme()
 	const textStyles = useTextStyles(theme)
 	const color = danger ? theme.colors.danger : theme.colors.primaryText
