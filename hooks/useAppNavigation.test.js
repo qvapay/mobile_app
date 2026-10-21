@@ -160,6 +160,63 @@ describe('auth ↔ navigation reconciliation', () => {
 		})
 	})
 
+	test('a pending mini-app deep link resets to MainStack + MiniAppHost', async () => {
+		const pendingRef = { current: 'https://www.qvapay.com/apps/mi-app?utm_source=tg' }
+		await renderAppNav(pendingRef)
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [
+				{ name: 'MainStack' },
+				{ name: 'MiniAppHost', params: { slug: 'mi-app' } },
+			],
+		})
+		expect(pendingRef.current).toBeNull()
+	})
+
+	// Arranque en frío CON sesión desde un enlace: React Navigation monta el
+	// destino como única ruta raíz; sin esto se reseteaba a MainStack y el
+	// enlace se perdía (pasaba con Pay, P2P y Store)
+	test('a cold start on a deep-link screen keeps it on top of MainStack', async () => {
+		navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'MiniAppHost', params: { slug: 'mi-app' } }] })
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [
+				{ name: 'MainStack' },
+				{ name: 'MiniAppHost', params: { slug: 'mi-app' } },
+			],
+		})
+	})
+
+	test('a cold start on Pay keeps the invoice too', async () => {
+		navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'Pay', params: { uuid: P2P_UUID } }] })
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [{ name: 'MainStack' }, { name: 'Pay', params: { uuid: P2P_UUID } }],
+		})
+	})
+
+	test('a cold start on a non deep-link route still resets to a bare MainStack', async () => {
+		navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'Welcome' }] })
+		await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'MainStack' }] })
+	})
+
+	test('unauthenticated launch with a mini-app link stashes it with its toast', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		Linking.getInitialURL.mockResolvedValue('https://qvapay.com/apps/mi-app')
+		const { pendingRef } = await renderAppNav()
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Welcome' }] })
+		expect(pendingRef.current).toBe('https://qvapay.com/apps/mi-app')
+		expect(toast.info).toHaveBeenCalledWith('Inicia sesión para abrir la mini-app')
+	})
+
 	test('unauthenticated users land on Welcome, stashing any launch deep link first', async () => {
 		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
 		Linking.getInitialURL.mockResolvedValue(`https://qvapay.com/pay/${P2P_UUID}`)
@@ -215,6 +272,14 @@ describe('foreground deep links while unauthenticated', () => {
 		await act(async () => { linkingUrlHandler({ url: `https://qvapay.com/p2p/${P2P_UUID}` }) })
 		expect(pendingRef.current).toBe(`https://qvapay.com/p2p/${P2P_UUID}`)
 		expect(toast.info).toHaveBeenCalledWith('Inicia sesión para ver la oferta P2P')
+	})
+
+	test('stashes mini-app links with the Spanish login toast', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		const { pendingRef } = await renderAppNav()
+		await act(async () => { linkingUrlHandler({ url: 'qvapay://apps/mi-app' }) })
+		expect(pendingRef.current).toBe('qvapay://apps/mi-app')
+		expect(toast.info).toHaveBeenCalledWith('Inicia sesión para abrir la mini-app')
 	})
 
 	test('ignores links while authenticated (React Navigation handles those)', async () => {
