@@ -293,6 +293,15 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 	// solo se reponía la bottom bar, así que al volver con la lista scrolleada
 	// los filtros seguían escondidos y el `target` quedaba desincronizado (el
 	// siguiente scroll hacia abajo ya no ocultaba la bottom bar)
+	// Gate por un 400 del servidor (el perfil local decía que todo estaba hecho):
+	// al volver a la pestaña, normalmente tras completar el paso en otra
+	// pantalla, se pregunta otra vez. Solo con ese gate a la vista, para no
+	// gastar el límite de /p2p/index en cada foco. Por ref: el efecto de foco
+	// no puede depender de `requirement`, o volver a preguntar lo re-dispararía
+	const recheckGateRef = useRef<(() => void) | null>(null)
+	useEffect(() => { recheckGateRef.current = requirement ? onRefresh : null })
+	useFocusEffect(useCallback(() => { recheckGateRef.current?.() }, []))
+
 	useFocusEffect(
 		useCallback(() => {
 			return () => {
