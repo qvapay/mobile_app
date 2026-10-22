@@ -1,4 +1,4 @@
-Novedades de QvaPay 3.5.12:
+Novedades de QvaPay 3.5.13:
 • Pantalla de bloqueo renovada: tu foto, un saludo y un teclado propio para el PIN, con Face ID o huella en el mismo teclado.
 • Mini-apps: nuevo catálogo con destacadas, categorías y buscador. Compártelas con un enlace que las abre directo en QvaPay.
 • Al mostrar un código QR, el brillo sube al máximo.
