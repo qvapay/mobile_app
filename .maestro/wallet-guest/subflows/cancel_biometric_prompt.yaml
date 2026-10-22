@@ -1,0 +1,16 @@
+# Android: con la huella armada, el bloqueo (~500 ms) y el modal de la wallet
+# (~350 ms) abren SOLOS el diálogo de huella (BiometricGate), encima del teclado.
+# Se espera a que salga, si va a salir, y se cancela: el E2E entra por PIN, como
+# quien no pone el dedo. Sin huella armada no sale nada y esto solo espera.
+appId: com.qvapay
+---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: ".*:id/button_negative"
+          timeout: 3000
+          optional: true
+      - runFlow: dismiss_biometric_arm.yaml
