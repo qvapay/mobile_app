@@ -78,7 +78,7 @@ const TopupHistory = ({ items = [], loading = false, theme, textStyles }: TopupH
 								style={[
 									styles.row,
 									{ backgroundColor: theme.colors.surface },
-									(theme as Theme & { mode?: 'light' | 'dark' }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+									!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border },
 								]}
 							>
 								<FontAwesome6 name={meta.icon} size={16} color={statusColor} iconStyle="solid" />

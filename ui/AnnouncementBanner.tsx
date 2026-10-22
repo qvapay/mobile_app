@@ -22,7 +22,6 @@ import { resolveAnnouncementTarget } from '../helpers/announcementLink'
 import type { NavigationProp } from '@react-navigation/native'
 import type { Announcement } from '../types/domain'
 import type { RootStackParamList } from '../types/navigation'
-import type { Theme } from '../theme/ThemeContext'
 
 type AnnouncementBannerProps = {
 	announcement?: Announcement | null
@@ -87,7 +86,7 @@ const AnnouncementBanner = ({ announcement, navigation }: AnnouncementBannerProp
 				styles.container,
 				animatedStyle,
 				{ backgroundColor: theme.colors.surface },
-				(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+				!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border },
 			]}
 		>
 			<View style={[styles.icon, { backgroundColor: theme.colors.primary + '20' }]}>

@@ -35,10 +35,6 @@ import type { RootStackParamList } from '../../../types/navigation'
 import type { MarketProductDetail } from './marketQueries'
 import type { ApiError } from '../../../api/unwrap'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 /** Páginas extra del catálogo por tienda (estado local sobre la query). */
 type ExtraCatalog = { products: MarketProductDetail[], page: number, total: number | null }
 
@@ -358,7 +354,7 @@ const MarketStore = ({ navigation, route }: NativeStackScreenProps<RootStackPara
 					<View style={styles.section}>
 						<Pressable
 							onPress={() => setPolicyOpen(o => !o)}
-							style={[styles.policyCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+							style={[styles.policyCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 						>
 							<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
 								{t('market.store.returnsPolicy')} {policyOpen ? '▾' : '▸'}

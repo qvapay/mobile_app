@@ -15,7 +15,6 @@ import { ROUTES } from '../routes'
 
 // Tipos
 import type { NavigationProp } from '@react-navigation/native'
-import type { Theme } from '../theme/ThemeContext'
 import type { RootStackParamList } from '../types/navigation'
 
 type EmptyTransactionsProps = {
@@ -38,7 +37,7 @@ const EmptyTransactions = ({ navigation }: EmptyTransactionsProps) => {
 	const { theme } = useTheme()
 
 	return (
-		<View style={[styles.card, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+		<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
 			<View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '20' }]}>
 				<FontAwesome6 name="receipt" size={20} color={theme.colors.primary} iconStyle="solid" />
 			</View>

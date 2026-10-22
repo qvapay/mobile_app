@@ -40,7 +40,7 @@ const AddressPicker = ({ addresses, useNewAddress, selectedUuid, onSelectAddress
 					style={[
 						styles.addressCard,
 						{ backgroundColor: theme.colors.surface },
-						(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
+						!theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight },
 						selected && { borderWidth: 1.5, borderColor: theme.colors.primary },
 					]}
 					onPress={() => onSelectAddress(address.uuid)}
@@ -67,7 +67,7 @@ const AddressPicker = ({ addresses, useNewAddress, selectedUuid, onSelectAddress
 			style={[
 				styles.addressCard,
 				{ backgroundColor: theme.colors.surface },
-				(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
+				!theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight },
 				useNewAddress && { borderWidth: 1.5, borderColor: theme.colors.primary },
 			]}
 			onPress={onNewAddress}

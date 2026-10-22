@@ -30,7 +30,6 @@ import { STORES, MINIMUM_CART, money, providerLabel } from './assistedConstants'
 // Types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { Theme } from '../../../theme/ThemeContext'
 import type { ApiFailure, ApiResult } from '../../../types/api'
 import type { AssistedProductData } from './assistedConstants'
 
@@ -149,7 +148,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 							style={[
 								styles.storeChip,
 								{ backgroundColor: theme.colors.surface },
-								(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
+								!theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight },
 								!store.available && { opacity: 0.55 },
 							]}
 						>
@@ -171,7 +170,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 				{/* Cart & Orders shortcuts */}
 				<View style={styles.shortcutsRow}>
 					<Pressable
-						style={[styles.shortcutCard, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
+						style={[styles.shortcutCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 						onPress={() => navigation.navigate(ROUTES.ASSISTED_CART)}
 					>
 						<View style={[styles.shortcutIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
@@ -191,7 +190,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 					</Pressable>
 
 					<Pressable
-						style={[styles.shortcutCard, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
+						style={[styles.shortcutCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 						onPress={() => navigation.navigate(ROUTES.ASSISTED_ORDERS)}
 					>
 						<View style={[styles.shortcutIcon, { backgroundColor: `${theme.colors.primary}1A` }]}>
@@ -212,7 +211,7 @@ const AssistedShopping = ({ navigation }: Props) => {
 							{recent.map(product => (
 								<Pressable
 									key={product.uuid}
-									style={[styles.productCard, { width: cardWidth, backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
+									style={[styles.productCard, { width: cardWidth, backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 									onPress={() => navigation.navigate(ROUTES.ASSISTED_PRODUCT, { uuid: product.uuid })}
 								>
 									<View style={styles.productImageWrap}>

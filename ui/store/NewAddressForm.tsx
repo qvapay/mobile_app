@@ -108,7 +108,7 @@ const NewAddressForm = ({ form, onChange }: Props) => {
 				<View style={{ flex: 1 }}>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6 }]}>{t('ui.newAddressForm.state')}</Text>
 					<Pressable
-						style={[styles.statePicker, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
+						style={[styles.statePicker, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 						onPress={() => setStatePickerVisible(true)}
 					>
 						<Text style={[textStyles.h6, { color: form.state ? theme.colors.primaryText : theme.colors.secondaryText }]}>

@@ -27,13 +27,8 @@ import { MARKET_ORDER_STATUS } from './marketConstants'
 
 import { toast } from 'sonner-native'
 
-import type { Theme } from '../../../theme/ThemeContext'
 import type { RootStackParamList } from '../../../types/navigation'
 import type { MarketOrder } from './marketQueries'
-
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
 
 /**
  * The user's marketplace purchases as buyer (`GET /market/orders`), newest
@@ -86,7 +81,7 @@ const MarketOrders = ({ navigation }: NativeStackScreenProps<RootStackParamList,
 		return (
 			<Pressable
 				onPress={() => navigation.navigate(ROUTES.MARKET_ORDER_DETAIL, { order: item })}
-				style={[styles.row, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+				style={[styles.row, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 			>
 				<View style={[styles.image, { backgroundColor: theme.colors.elevationLight }]}>
 					{image && <FastImage source={{ uri: image }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />}

@@ -2,7 +2,6 @@ import { Pressable, Text, StyleSheet } from 'react-native'
 import type { TextStyle } from 'react-native'
 
 import { useTheme } from '../../theme/ThemeContext'
-import type { Theme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
 type Props = {
@@ -37,7 +36,7 @@ const CategoryPill = ({ active, onPress, emoji, label, count }: Props) => {
 				styles.pill,
 				active
 					? { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: theme.colors.primary }
-					: (theme as Theme & { mode?: string }).mode === 'light'
+					: !theme.isDark
 						? { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }
 						: { backgroundColor: theme.colors.surface },
 			]}

@@ -9,7 +9,6 @@ import { createTextStyles } from '../../theme/themeUtils'
 import { mediaUrl } from '../../helpers/mediaUrl'
 
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
-import type { Theme } from '../../theme/ThemeContext'
 
 /** Public marketplace store (only the fields this card reads). */
 export type MarketStore = {
@@ -60,7 +59,7 @@ const StoreTile = ({ store, onPress, style }: Props) => {
 			style={[
 				styles.tile,
 				{ backgroundColor: theme.colors.surface },
-				(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+				!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border },
 				style,
 			]}
 		>

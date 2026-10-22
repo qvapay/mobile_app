@@ -32,7 +32,6 @@ import { money, providerLabel, MINIMUM_CART } from './assistedConstants'
 // Types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { Theme } from '../../../theme/ThemeContext'
 import type { AssistedCartItem } from './assistedConstants'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AssistedCart'>
@@ -143,7 +142,7 @@ const AssistedCart = ({ navigation }: Props) => {
 						return (
 							<View
 								key={item.uuid}
-								style={[styles.itemCard, { backgroundColor: theme.colors.surface, opacity: busy ? 0.6 : 1 }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
+								style={[styles.itemCard, { backgroundColor: theme.colors.surface, opacity: busy ? 0.6 : 1 }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 							>
 								<View style={styles.itemImageWrap}>
 									{item.main_image ? (
@@ -185,7 +184,7 @@ const AssistedCart = ({ navigation }: Props) => {
 				</View>
 
 				{/* Summary */}
-				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
+				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
 					<View style={themeStyles.container.rowBetween}>
 						<Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>{t('assisted.common.subtotal')}</Text>
 						<Text style={[textStyles.h5, { fontWeight: '600' }]}>{money(subtotal)}</Text>

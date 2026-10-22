@@ -29,10 +29,6 @@ import type { RootStackParamList } from '../../../types/navigation'
 import type { MarketProductDetail, MarketShop, MarketVariant } from './marketQueries'
 import type { CartItem } from './cartCore'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 /** Selección parcial del picker: eje → valor elegido (undefined = sin elegir). */
 type VariantSelection = Record<string, string | undefined>
 
@@ -107,7 +103,7 @@ const VariantPicker = ({ optionAxes, variants, onChange, theme, textStyles }: Va
 										pickerStyles.pill,
 										selected
 											? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
-											: { borderColor: (theme as ThemeWithMode).mode === 'light' ? theme.colors.border : theme.colors.elevationLight },
+											: { borderColor: !theme.isDark ? theme.colors.border : theme.colors.elevationLight },
 										!available && !selected && { opacity: 0.35 },
 									]}
 								>
@@ -341,7 +337,7 @@ const MarketProduct = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 
 				{/* Envío */}
 				{shipping && (
-					<View style={[styles.infoCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+					<View style={[styles.infoCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
 							{t('market.product.shipsTo')}
 						</Text>
@@ -362,7 +358,7 @@ const MarketProduct = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 				{shop && (
 					<Pressable
 						onPress={() => navigation.navigate(ROUTES.MARKET_STORE, { slug: shop.slug as string })}
-						style={[styles.shopCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+						style={[styles.shopCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 					>
 						<OperatorAvatar brand={shop.name} logoUrl={shop.logo} size="md" featured={!!shop.featured} />
 						<View style={{ flex: 1, marginLeft: 10 }}>

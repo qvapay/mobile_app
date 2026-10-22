@@ -30,7 +30,6 @@ import FulfillmentBadge from './FulfillmentBadge'
 // Types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { Theme } from '../../../theme/ThemeContext'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AssistedOrderDetail'>
 
@@ -72,7 +71,7 @@ const AssistedOrderDetail = ({ route }: Props) => {
 	const cardStyle = [
 		styles.card,
 		{ backgroundColor: theme.colors.surface },
-		(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
+		!theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight },
 	]
 
 	return (

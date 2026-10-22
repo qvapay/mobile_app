@@ -32,9 +32,7 @@ const TopupCard = ({ label, price, selected, unavailable = false, onPress, theme
 			styles.card,
 			selected
 				? { backgroundColor: theme.colors.primary + '12', borderWidth: 1.5, borderColor: theme.colors.primary }
-				// OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`,
-				// así que este spread condicional nunca se aplica. Cast local
-				: { backgroundColor: theme.colors.surface, borderWidth: 1.5, borderColor: 'transparent', ...((theme as Theme & { mode?: 'light' | 'dark' }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }) },
+				: { backgroundColor: theme.colors.surface, borderWidth: 1.5, borderColor: 'transparent', ...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }) },
 			unavailable && { opacity: 0.4 },
 		]}
 	>

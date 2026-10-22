@@ -186,9 +186,7 @@ const AddContactModal = ({ visible, onClose, onAdded, theme, textStyles, contain
 									borderRadius: 12,
 									padding: 16,
 									marginBottom: 8,
-									// OJO (pre-existente): el tema expone `isDark`, NO `mode` — esta condición
-									// es SIEMPRE falsa y el borde de modo claro nunca se pinta.
-									...((theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }),
+									...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }),
 									flexDirection: 'row',
 									alignItems: 'center',
 									gap: 12

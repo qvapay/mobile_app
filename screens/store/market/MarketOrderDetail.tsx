@@ -27,10 +27,6 @@ import type { TextStyles } from '../../../theme/themeUtils'
 import type { RootStackParamList } from '../../../types/navigation'
 import type { MarketOrder } from './marketQueries'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 const money = (v: number | string | null | undefined) => `$${Number(v || 0).toFixed(2)}`
 
 type RowProps = { label: string, value: string, theme: Theme, textStyles: TextStyles }
@@ -77,7 +73,7 @@ const MarketOrderDetail = ({ navigation, route }: NativeStackScreenProps<RootSta
 			<ScrollView contentContainerStyle={contentPadding} showsVerticalScrollIndicator={false}>
 
 				{/* Producto */}
-				<View style={[styles.card, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 					<View style={styles.productRow}>
 						<View style={[styles.image, { backgroundColor: theme.colors.elevationLight }]}>
 							{image && <FastImage source={{ uri: image }} style={StyleSheet.absoluteFill} resizeMode={FastImage.resizeMode.cover} />}
@@ -95,7 +91,7 @@ const MarketOrderDetail = ({ navigation, route }: NativeStackScreenProps<RootSta
 				</View>
 
 				{/* Desglose */}
-				<View style={[styles.card, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+				<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 					<Row label={t('market.orderDetail.quantity')} value={`${order.quantity}`} theme={theme} textStyles={textStyles} />
 					<Row label={t('market.orderDetail.unitPrice')} value={money(order.unit_price)} theme={theme} textStyles={textStyles} />
 					{Number(order.gift_card_amount) > 0 && (
@@ -119,7 +115,7 @@ const MarketOrderDetail = ({ navigation, route }: NativeStackScreenProps<RootSta
 				{!!order.tracking_code && (
 					<Pressable
 						onPress={copyTracking}
-						style={[styles.card, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+						style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 					>
 						<Text style={[textStyles.caption, { color: theme.colors.tertiaryText, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
 							{t('market.orderDetail.trackingLabel')}
@@ -132,7 +128,7 @@ const MarketOrderDetail = ({ navigation, route }: NativeStackScreenProps<RootSta
 				{!!order.shop && (
 					<Pressable
 						onPress={() => navigation.navigate(ROUTES.MARKET_STORE, { slug: order.shop!.slug as string })}
-						style={[styles.card, styles.shopCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+						style={[styles.card, styles.shopCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 					>
 						<OperatorAvatar brand={order.shop.name} logoUrl={order.shop.logo} size="md" />
 						<View style={{ flex: 1, marginLeft: 10 }}>

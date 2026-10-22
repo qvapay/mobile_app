@@ -23,13 +23,8 @@ import { toast } from 'sonner-native'
 import { useTranslation } from 'react-i18next'
 import i18n from '../../i18n'
 
-import type { Theme } from '../../theme/ThemeContext'
 import type { RootStackParamList } from '../../types/navigation'
 import type { StoreBrand, StoreCountry } from './storeQueries'
-
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
 
 /** Estado de filtros: país seleccionado y texto de búsqueda. */
 type TopupFilters = { selectedCountry: StoreCountry | null, search: string }
@@ -135,7 +130,7 @@ const PhoneTopupIndex = ({ navigation, route }: NativeStackScreenProps<RootStack
 				style={[
 					styles.brandCard,
 					{ backgroundColor: theme.colors.surface },
-					(theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+					!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border },
 				]}
 			>
 				<OperatorAvatar brand={item.brand} logoUrl={item.logo_url} size="md" />
@@ -179,7 +174,7 @@ const PhoneTopupIndex = ({ navigation, route }: NativeStackScreenProps<RootStack
 				refreshControl={createHiddenRefreshControl(refreshing, onRefresh) as ReactElement<RefreshControlProps>}
 			>
 				{/* Hero card: country picker */}
-				<View style={[styles.heroCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+				<View style={[styles.heroCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
 						{t('store.topupIndex.recipientCountry')}
 					</Text>
@@ -211,7 +206,7 @@ const PhoneTopupIndex = ({ navigation, route }: NativeStackScreenProps<RootStack
 										countryCode: f.country,
 										brandSlug: f.slug || f.brand,
 									})}
-									style={[styles.featuredItem, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+									style={[styles.featuredItem, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 								>
 									<OperatorAvatar brand={f.brand} logoUrl={f.logo_url} size="md" />
 									<Text numberOfLines={1} style={[textStyles.caption, { color: theme.colors.primaryText, fontWeight: '600', marginTop: 6, maxWidth: 90, textAlign: 'center' }]}>
