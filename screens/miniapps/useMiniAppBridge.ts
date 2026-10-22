@@ -76,7 +76,8 @@ type Options = {
  * pantalla pinta y cierra con `resolveModal` / `rejectModal`.
  *
  * Solo una hoja a la vez: un segundo `requestLogin`/`payInvoice` mientras hay
- * otro en curso se rechaza con `BUSY` (una mini-app no puede apilar cobros).
+ * otro en curso se rechaza con `BUSY` (una mini-app no puede apilar cobros), y
+ * lo mismo con la hoja de compartir en pantalla, en los dos sentidos.
  */
 export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, requireKyc, share }: Options) {
 
@@ -197,7 +198,8 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 				respond(request.id)
 				return
 			case 'share': {
-				if (shareBusyRef.current || modalRef.current) {
+				// `busyRef` y no `modalRef`: cubre también el login que firma sin hoja
+				if (shareBusyRef.current || busyRef.current) {
 					reject(request.id, { code: BRIDGE_ERRORS.BUSY, message: 'Another request is in progress' })
 					return
 				}
@@ -240,12 +242,15 @@ export function useMiniAppBridge({ app, webViewRef, theme, onReady, onClose, req
 			// de abrir la hoja o firmar, para no pedir consentimiento ni PIN para nada.
 			// Código existente del contrato del SDK (NOT_ALLOWED): uno nuevo exigiría
 			// tocar la documentación pública de qpweb
-			if (!callbacksRef.current.requireKyc()) {
-				reject(request.id, { code: BRIDGE_ERRORS.NOT_ALLOWED, message: 'Identity verification (KYC) required' })
+			// Ocupado va ANTES que el KYC: con la hoja de compartir en pantalla, ni la hoja
+			// de pago ni la del KYC pueden presentarse (iOS no apila presentaciones: la
+			// hoja no saldría y `busyRef` se quedaría en true hasta recargar)
+			if (busyRef.current || shareBusyRef.current) {
+				reject(request.id, { code: BRIDGE_ERRORS.BUSY, message: 'Another request is in progress' })
 				return
 			}
-			if (busyRef.current) {
-				reject(request.id, { code: BRIDGE_ERRORS.BUSY, message: 'Another request is in progress' })
+			if (!callbacksRef.current.requireKyc()) {
+				reject(request.id, { code: BRIDGE_ERRORS.NOT_ALLOWED, message: 'Identity verification (KYC) required' })
 				return
 			}
 			busyRef.current = true

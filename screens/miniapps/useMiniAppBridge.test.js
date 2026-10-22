@@ -178,6 +178,41 @@ describe('useMiniAppBridge — share', () => {
 		await bridge.unmount()
 	})
 
+	// iOS no presenta dos hojas a la vez: la de pago no saldría y el puente quedaría ocupado
+	test.each([
+		['payments.payInvoice', { invoiceUuid: UUID }],
+		['auth.requestLogin', { scopes: ['profile'] }],
+	])('con la hoja de compartir abierta, %s → BUSY sin abrir hoja ni pedir KYC', async (method, params) => {
+		let release
+		const share = jest.fn(() => new Promise(resolve => { release = resolve }))
+		const bridge = await renderBridge({ hasKyc: true, share })
+		await bridge.send('share', {})
+		await bridge.send(method, params)
+		expect(bridge.state.modal).toBeNull()
+		expect(bridge.requireKyc).not.toHaveBeenCalled()
+		expect(bridge.deliveries()).toEqual([expect.objectContaining({ ok: false, error: expect.objectContaining({ code: 'BUSY' }) })])
+		// Cerrada la hoja de compartir, el pago entra
+		await act(async () => { release('shared') })
+		await flush()
+		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
+		expect(bridge.state.modal).toMatchObject({ kind: 'pay' })
+		await bridge.unmount()
+	})
+
+	// El login con consentimiento previo firma sin hoja, pero también ocupa el puente
+	test('con un login firmando sin hoja, share → BUSY', async () => {
+		let release
+		miniappsApi.authorize.mockImplementation(() => new Promise(resolve => { release = resolve }))
+		const bridge = await renderBridge({ hasKyc: true, app: baseApp({ granted: true, granted_scopes: ['profile'] }) })
+		await bridge.send('auth.requestLogin', { scopes: ['profile'] })
+		await bridge.send('share', {})
+		expect(bridge.share).not.toHaveBeenCalled()
+		expect(bridge.deliveries()[0]).toMatchObject({ ok: false, error: { code: 'BUSY' } })
+		await act(async () => { release({ success: true, data: { init_data: 'x', hash: 'h', scopes: ['profile'] } }) })
+		await flush()
+		await bridge.unmount()
+	})
+
 	test('un texto con enlace no llega a la hoja (INVALID_PARAMS)', async () => {
 		const bridge = await renderBridge({ hasKyc: false })
 		await bridge.send('share', { text: 'entra en https://evil.com' })
