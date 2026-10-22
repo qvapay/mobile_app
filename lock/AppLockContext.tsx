@@ -6,7 +6,6 @@ import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 import { useWallet } from '../wallet/WalletContext'
 import {
-	getBiometricCredentials,
 	getAppLockPin,
 	setAppLockPin,
 	hasAppLockPin,
@@ -24,6 +23,12 @@ export type AppLockResult = { success: boolean, error?: string }
 /** App-lock state + actions exposed by `useAppLock`. */
 export type AppLockContextValue = {
 	isLocked: boolean
+	/**
+	 * Cortina opaca mientras la app está en segundo plano con el bloqueo activo:
+	 * al volver, nada de la app se ve ni recibe toques (ni el botón atrás) hasta
+	 * decidir si toca bloquear. La pinta LockScreen, sin teclado ni biometría.
+	 */
+	isCovered: boolean
 	appLockEnabled: boolean
 	unlockWithBiometrics: () => Promise<AppLockResult>
 	unlockWithPin: (enteredPin: string) => Promise<AppLockResult>
@@ -48,10 +53,12 @@ const AppLockContext = createContext<AppLockContextValue | undefined>(undefined)
  * - Background/foreground: an AppState listener timestamps the moment the app
  *   leaves 'active' and re-locks on return only if the elapsed time reaches
  *   `autoLockTimeout` (default 5 min) — brief app switches don't lock.
+ * - Al pasar a 'background' se corre la cortina (`isCovered`) y al volver se
+ *   retira en el MISMO render que decide el bloqueo: sin ella, la app quedaba a
+ *   la vista y respondía unos instantes antes de que saliera el bloqueo.
  * - Unlock paths: `unlockWithPin` (compared against the Keychain value) or
- *   `unlockWithBiometrics`, which reads the login credentials from the
- *   `com.qvapay.biometrics` Keychain entry and thereby triggers the OS
- *   Face ID / Touch ID prompt.
+ *   `unlockWithBiometrics`, que solo acepta el marcador biométrico propio
+ *   (helpers/biometricMarker: un diálogo nuestro en cada uso).
  * - Lo que se protege es la sesión O la wallet self-custody: sin cuenta pero
  *   con seed en el teléfono (modo wallet) el bloqueo arma igual.
  * - `isLocked` is exposed AND-ed with that subject, so logging out without a
@@ -70,6 +77,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	const { security, isLoading: settingsLoading, updateSetting } = useSettings()
 
 	const [isLocked, setIsLocked] = useState(false)
+	const [isCovered, setIsCovered] = useState(false)
 	const [appLockEnabled, setAppLockEnabled] = useState(false)
 
 	const isInitializedRef = useRef(false)
@@ -112,6 +120,8 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 			if (prevState === 'active' && (nextAppState === 'background' || nextAppState === 'inactive')) {
 				backgroundTimestampRef.current = Date.now()
 			}
+			// Solo 'background': 'inactive' (iOS) también salta con el propio Face ID
+			if (nextAppState === 'background' && lockable && appLockEnabled) setIsCovered(true)
 
 			// Coming to foreground: check if should lock
 			if ((prevState === 'background' || prevState === 'inactive') && nextAppState === 'active') {
@@ -123,6 +133,8 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 					}
 				}
 				backgroundTimestampRef.current = null
+				// Mismo render que el bloqueo: LockScreen pasa de cortina a bloqueo sin hueco
+				setIsCovered(false)
 			}
 		})
 
@@ -130,22 +142,16 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 	}, [lockable, appLockEnabled, security.autoLockTimeout])
 
 	/**
-	 * Unlocks via Face ID / Touch ID. Success = the biometric-protected Keychain
-	 * entry could be read (the OS prompt IS the authentication).
+	 * Unlocks via Face ID / Touch ID / huella. Success = the user authenticated
+	 * in our own prompt just now (see helpers/biometricMarker).
 	 */
 	const unlockWithBiometrics = useCallback(async (): Promise<AppLockResult> => {
 		try {
-			// Marcador propio primero (funciona con cualquier método de login); si no
-			// está armado, las credenciales biométricas del login como antes
-			if (await hasBiometricMarker(APP_LOCK_BIO_SERVICE)) {
-				if (await authenticateBiometricMarker(APP_LOCK_BIO_SERVICE, i18n.t('misc.lock.bioPrompt'))) {
-					setIsLocked(false)
-					return { success: true }
-				}
-				return { success: false, error: i18n.t('misc.lock.errors.biometricCanceled') }
-			}
-			const credentials = await getBiometricCredentials()
-			if (credentials) {
+			// SOLO el marcador propio. Las credenciales biométricas del login ya no
+			// desbloquean: aceptan el código del teléfono y, en Android, se leen sin
+			// diálogo en los 5 s siguientes a desbloquear el móvil. Sin marcador, el
+			// siguiente PIN correcto lo arma (`armBiometrics`)
+			if (await hasBiometricMarker(APP_LOCK_BIO_SERVICE) && await authenticateBiometricMarker(APP_LOCK_BIO_SERVICE, i18n.t('misc.lock.bioPrompt'))) {
 				setIsLocked(false)
 				return { success: true }
 			}
@@ -240,6 +246,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 
 	const value = useMemo<AppLockContextValue>(() => ({
 		isLocked: isLocked && lockable, // derived: logging out (sin wallet) clears the lock
+		isCovered: isCovered && lockable,
 		appLockEnabled,
 		unlockWithBiometrics,
 		unlockWithPin,
@@ -249,7 +256,7 @@ export const AppLockProvider = ({ children }: { children: ReactNode }) => {
 		changeAppLockPin,
 		updateAutoLockTimeout,
 		setAppLockBiometrics,
-	}), [isLocked, lockable, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
+	}), [isLocked, isCovered, lockable, appLockEnabled, unlockWithBiometrics, unlockWithPin, lock, enableAppLock, disableAppLock, changeAppLockPin, updateAutoLockTimeout, setAppLockBiometrics])
 
 	return (
 		<AppLockContext.Provider value={value}>

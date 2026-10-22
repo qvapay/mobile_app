@@ -166,6 +166,10 @@ dependencies {
     // WorkManager for widget background updates
     implementation("androidx.work:work-runtime-ktx:2.10.0")
 
+    // BiometricPrompt con CryptoObject del bloqueo y la wallet (bridge/BiometricGateModule).
+    // Misma versión que trae react-native-keychain: una sola en el classpath
+    implementation("androidx.biometric:biometric:1.1.0")
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
