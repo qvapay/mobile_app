@@ -2,7 +2,6 @@ package com.qvapay.bridge
 
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
@@ -10,7 +9,9 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.*
+import java.security.InvalidKeyException
 import java.security.KeyStore
+import java.security.UnrecoverableKeyException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -56,6 +57,33 @@ class BiometricGateModule(reactContext: ReactApplicationContext) :
         try { keyStore().deleteEntry(alias) } catch (_: Exception) { }
     }
 
+    private sealed class Prepared {
+        class Ready(val cipher: Cipher) : Prepared()
+        object Missing : Prepared()
+        object Invalidated : Prepared()
+        object Failed : Prepared()
+    }
+
+    /**
+     * Prepara el cifrado con la clave (no pide la huella: eso lo hace el diálogo).
+     * Una clave que ya no sirve se BORRA: si no, `hasKey` la seguiría viendo y el
+     * siguiente PIN no la recrearía. Invalidada = cualquier `InvalidKeyException`,
+     * no solo `KeyPermanentlyInvalidatedException`: hay fabricantes que la envuelven.
+     */
+    private fun prepare(alias: String): Prepared = try {
+        val key = keyStore().getKey(alias, null) as? SecretKey
+        if (key == null) Prepared.Missing
+        else Prepared.Ready(Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key) })
+    } catch (_: InvalidKeyException) {
+        deleteQuietly(alias)
+        Prepared.Invalidated
+    } catch (_: UnrecoverableKeyException) {
+        deleteQuietly(alias)
+        Prepared.Invalidated
+    } catch (_: Exception) {
+        Prepared.Failed
+    }
+
     /** ¿Hay al menos una biometría FUERTE registrada y usable? */
     @ReactMethod
     fun isAvailable(promise: Promise) {
@@ -63,9 +91,10 @@ class BiometricGateModule(reactContext: ReactApplicationContext) :
         promise.resolve(status == BiometricManager.BIOMETRIC_SUCCESS)
     }
 
+    /** ¿Hay una clave USABLE? Una invalidada (huella nueva) se borra y cuenta como que no hay. */
     @ReactMethod
     fun hasKey(alias: String, promise: Promise) {
-        try { promise.resolve(keyStore().containsAlias(alias)) } catch (_: Exception) { promise.resolve(false) }
+        promise.resolve(prepare(alias) is Prepared.Ready)
     }
 
     /** Crea (o reemplaza) la clave. No pide la huella: solo exige que haya una registrada. */
@@ -106,18 +135,11 @@ class BiometricGateModule(reactContext: ReactApplicationContext) :
         if (activity == null) { promise.resolve("unavailable"); return }
 
         // La clave se prepara ANTES del diálogo: si se invalidó (huella nueva) ni se muestra
-        val cipher: Cipher
-        try {
-            val key = keyStore().getKey(alias, null) as? SecretKey
-            if (key == null) { promise.resolve("missing"); return }
-            cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key) }
-        } catch (_: KeyPermanentlyInvalidatedException) {
-            deleteQuietly(alias)
-            promise.resolve("invalidated")
-            return
-        } catch (_: Exception) {
-            promise.resolve("error")
-            return
+        val cipher = when (val prepared = prepare(alias)) {
+            is Prepared.Ready -> prepared.cipher
+            Prepared.Missing -> { promise.resolve("missing"); return }
+            Prepared.Invalidated -> { promise.resolve("invalidated"); return }
+            Prepared.Failed -> { promise.resolve("error"); return }
         }
 
         pending = promise
