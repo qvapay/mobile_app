@@ -12,6 +12,7 @@ import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.qvapay.bridge.AppIconPackage
+import com.qvapay.bridge.BiometricGatePackage
 import com.qvapay.bridge.ScreenBrightnessPackage
 import com.qvapay.bridge.SharedStoragePackage
 
@@ -40,6 +41,7 @@ class MainApplication : Application(), ReactApplication {
           add(SharedStoragePackage())
           add(AppIconPackage())
           add(ScreenBrightnessPackage())
+          add(BiometricGatePackage())
         },
     )
   }

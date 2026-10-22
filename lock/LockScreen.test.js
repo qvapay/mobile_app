@@ -50,7 +50,7 @@ beforeEach(() => {
 	mockWindow.height = 844
 	jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {})
 	useAuth.mockReturnValue({ user: { uuid: 'u1', name: 'Erich', username: 'erich', image: 'profiles/erich.jpg' } })
-	useAppLock.mockReturnValue({ isLocked: true, unlockWithPin })
+	useAppLock.mockReturnValue({ isLocked: true, isCovered: false, unlockWithPin })
 	useLockBiometrics.mockReturnValue({ biometryType: 'FaceID', available: true, unlock: biometricUnlock })
 	unlockWithPin.mockResolvedValue({ success: true })
 })
@@ -109,9 +109,9 @@ describe('teclado', () => {
 		const tree = render()
 		await tap(tree, '1')
 		await tap(tree, '2')
-		useAppLock.mockReturnValue({ isLocked: false, unlockWithPin })
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, unlockWithPin })
 		act(() => { tree.update(<LockScreen />) })
-		useAppLock.mockReturnValue({ isLocked: true, unlockWithPin })
+		useAppLock.mockReturnValue({ isLocked: true, isCovered: false, unlockWithPin })
 		act(() => { tree.update(<LockScreen />) })
 		expect(dots(tree)).toBe('PIN: 0 de 4 dígitos')
 	})
@@ -182,7 +182,31 @@ describe('héroe', () => {
 	})
 
 	test('desbloqueada no pinta nada', () => {
-		useAppLock.mockReturnValue({ isLocked: false, unlockWithPin })
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: false, unlockWithPin })
 		expect(render().toJSON()).toBeNull()
+	})
+})
+
+describe('cortina', () => {
+	// En segundo plano con el bloqueo activo: tapa la app, sin teclado ni biometría
+	test('solo fondo y marca: ni teclado, ni saludo, ni prompt', () => {
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: true, unlockWithPin })
+		const tree = render()
+		expect(tree.root.findAll(n => n.props.testID === 'lock-cover').length).toBeGreaterThan(0)
+		expect(tree.root.findAll(n => n.props.testID === 'lock-screen')).toHaveLength(0)
+		expect(tree.root.findAll(n => typeof n.props.testID === 'string' && n.props.testID.startsWith('lock-key-'))).toHaveLength(0)
+		expect(texts(tree)).not.toContain('Hola, Erich')
+		// La biometría solo se arma con el bloqueo, no con la cortina
+		expect(useLockBiometrics).toHaveBeenLastCalledWith(false, expect.any(Function))
+	})
+
+	test('al decidir bloquear, el mismo Modal pasa a bloqueo', () => {
+		useAppLock.mockReturnValue({ isLocked: false, isCovered: true, unlockWithPin })
+		const tree = render()
+		useAppLock.mockReturnValue({ isLocked: true, isCovered: false, unlockWithPin })
+		act(() => { tree.update(<LockScreen />) })
+		expect(tree.root.findAll(n => n.props.testID === 'lock-screen').length).toBeGreaterThan(0)
+		expect(tree.root.findAll(n => n.props.testID === 'lock-cover')).toHaveLength(0)
+		expect(key(tree, '1')).toBeTruthy()
 	})
 })

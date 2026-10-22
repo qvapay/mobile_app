@@ -45,6 +45,11 @@ const COMPACT_BELOW = 640
  * que quien mira sepa de qué cuenta es el PIN (sin foto, el candado: el avatar
  * de reserva es el logo, que ya está arriba); en el modo wallet sin cuenta, el
  * candado. Nunca el glifo biométrico: ya no se toca, la biometría es su tecla.
+ *
+ * Con la app en segundo plano y el bloqueo activo, el mismo Modal hace de
+ * cortina (`isCovered`): solo el fondo y la marca, sin teclado ni biometría. Al
+ * volver, la app no se ve ni recibe toques hasta que AppLockContext decide; si
+ * toca bloquear, la cortina se convierte en el bloqueo sin cerrar el Modal.
  */
 const LockScreen = () => {
 
@@ -55,7 +60,7 @@ const LockScreen = () => {
 	const { height } = useWindowDimensions()
 	const compact = height - insets.top - insets.bottom < COMPACT_BELOW
 	const { user } = useAuth()
-	const { isLocked, unlockWithPin } = useAppLock()
+	const { isLocked, isCovered, unlockWithPin } = useAppLock()
 
 	const [pin, setPin] = useState('')
 	const [error, setError] = useState('')
@@ -116,20 +121,20 @@ const LockScreen = () => {
 		? { icon: <LockHeroIcon biometryType={biometryType} biometricsAvailable color={theme.colors.primary} size={26} />, label: biometryLabel, onPress: handleBiometricUnlock }
 		: null, [biometricsAvailable, biometryType, biometryLabel, handleBiometricUnlock, theme.colors.primary])
 
-	if (!isLocked) return null
+	if (!isLocked && !isCovered) return null
 
 	const name = user ? displayName(user) : ''
 
 	return (
 		<Modal
-			visible={isLocked}
+			visible
 			animationType="fade"
 			transparent={false}
 			statusBarTranslucent
 			onRequestClose={() => { }}
 		>
 			<SystemBars style={theme.isDark ? 'light' : 'dark'} />
-			<View testID="lock-screen" style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
+			<View testID={isLocked ? 'lock-screen' : 'lock-cover'} style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
 
 				{/* La marca, en voz baja: recuerda dónde estás sin competir con el héroe */}
 				<View style={[styles.brand, compact && styles.brandCompact]}>
@@ -143,35 +148,37 @@ const LockScreen = () => {
 					<Text style={[styles.brandName, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium }]}>QvaPay</Text>
 				</View>
 
-				{/* El resto vive centrado en el espacio que deja el teclado */}
-				<View style={styles.stage}>
+				{/* Cortina: hasta aquí. El resto vive centrado en el espacio que deja el teclado */}
+				{isLocked && <>
+					<View style={styles.stage}>
 
-					{/* Con foto, de quién es el PIN; si no, el candado */}
-					{user?.image
-						? <QPAvatar user={user} size={compact ? 56 : 76} />
-						: <LockHeroIcon biometryType={null} biometricsAvailable={false} color={theme.colors.primary} size={compact ? 40 : 48} />}
+						{/* Con foto, de quién es el PIN; si no, el candado */}
+						{user?.image
+							? <QPAvatar user={user} size={compact ? 56 : 76} />
+							: <LockHeroIcon biometryType={null} biometricsAvailable={false} color={theme.colors.primary} size={compact ? 40 : 48} />}
 
-					{/* Una sola línea de texto */}
-					<Text style={[styles.hint, compact && styles.hintCompact, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.light }]} numberOfLines={1}>
-						{name ? t('misc.lock.greeting', { name }) : t('misc.lock.enterPin')}
-					</Text>
+						{/* Una sola línea de texto */}
+						<Text style={[styles.hint, compact && styles.hintCompact, { color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.light }]} numberOfLines={1}>
+							{name ? t('misc.lock.greeting', { name }) : t('misc.lock.enterPin')}
+						</Text>
 
-					<View style={[styles.dots, compact && styles.dotsCompact]}>
-						<PinDots ref={dotsRef} testID="lock-pin" length={PIN_LENGTH} code={pin} tone={error ? theme.colors.dangerText : undefined} />
+						<View style={[styles.dots, compact && styles.dotsCompact]}>
+							<PinDots ref={dotsRef} testID="lock-pin" length={PIN_LENGTH} code={pin} tone={error ? theme.colors.dangerText : undefined} />
+						</View>
+
+						{/* Altura reservada: sin ella, el error empuja los puntos al aparecer */}
+						<View style={[styles.errorSlot, compact && styles.errorSlotCompact]}>
+							{!!error && (
+								<Text style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{error}</Text>
+							)}
+						</View>
+
 					</View>
 
-					{/* Altura reservada: sin ella, el error empuja los puntos al aparecer */}
-					<View style={[styles.errorSlot, compact && styles.errorSlotCompact]}>
-						{!!error && (
-							<Text style={[textStyles.h6, styles.error, { color: theme.colors.dangerText }]}>{error}</Text>
-						)}
+					<View style={styles.keypad}>
+						<QPKeypad onKey={handleKey} extraKey={biometricKey} compact={compact} testIDPrefix="lock-key" />
 					</View>
-
-				</View>
-
-				<View style={styles.keypad}>
-					<QPKeypad onKey={handleKey} extraKey={biometricKey} compact={compact} testIDPrefix="lock-key" />
-				</View>
+				</>}
 			</View>
 		</Modal>
 	)

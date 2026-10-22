@@ -14,7 +14,7 @@ jest.mock('react-native', () => ({
 		}),
 	},
 }))
-// Marcador biométrico propio del bloqueo: Keychain no existe en jest; sin marcador = camino de credenciales de login
+// Marcador biométrico propio del bloqueo (Keychain en iOS, BiometricGate en Android): no existe en jest
 jest.mock('../helpers/biometricMarker', () => ({
 	hasBiometricMarker: jest.fn(async () => false),
 	enableBiometricMarker: jest.fn(async () => true),
@@ -38,6 +38,7 @@ import { act, create } from 'react-test-renderer'
 import { useAuth } from '../auth/AuthContext'
 import { useSettings } from '../settings/SettingsContext'
 import { useWallet } from '../wallet/WalletContext'
+import { authenticateBiometricMarker, hasBiometricMarker } from '../helpers/biometricMarker'
 import {
 	getBiometricCredentials,
 	getAppLockPin,
@@ -254,9 +255,10 @@ describe('unlockWithPin', () => {
 })
 
 describe('unlockWithBiometrics', () => {
-	test('unlocks when the biometric-protected entry could be read', async () => {
+	test('unlocks when the user authenticates in our own prompt', async () => {
 		hasAppLockPin.mockResolvedValue(true)
-		getBiometricCredentials.mockResolvedValue({ email: 'a@b.co', password: 'pw' })
+		hasBiometricMarker.mockResolvedValue(true)
+		authenticateBiometricMarker.mockResolvedValue(true)
 		const lock = await renderAppLock()
 		let outcome
 		await act(async () => { outcome = await lock.current.unlockWithBiometrics() })
@@ -266,12 +268,76 @@ describe('unlockWithBiometrics', () => {
 
 	test('a cancelled prompt keeps the lock', async () => {
 		hasAppLockPin.mockResolvedValue(true)
-		getBiometricCredentials.mockResolvedValue(null)
+		hasBiometricMarker.mockResolvedValue(true)
+		authenticateBiometricMarker.mockResolvedValue(false)
 		const lock = await renderAppLock()
 		let outcome
 		await act(async () => { outcome = await lock.current.unlockWithBiometrics() })
 		expect(outcome).toEqual({ success: false, error: 'Autenticación biométrica cancelada' })
 		expect(lock.current.isLocked).toBe(true)
+	})
+
+	// Aceptan el código del teléfono y, en Android, se leían sin diálogo en los 5 s
+	// siguientes a desbloquear el móvil: sin marcador propio, solo el PIN
+	test('the login credentials no longer unlock (no marker = PIN only)', async () => {
+		hasAppLockPin.mockResolvedValue(true)
+		hasBiometricMarker.mockResolvedValue(false)
+		getBiometricCredentials.mockResolvedValue({ email: 'a@b.co', password: 'pw' })
+		const lock = await renderAppLock()
+		let outcome
+		await act(async () => { outcome = await lock.current.unlockWithBiometrics() })
+		expect(outcome.success).toBe(false)
+		expect(getBiometricCredentials).not.toHaveBeenCalled()
+		expect(lock.current.isLocked).toBe(true)
+	})
+})
+
+describe('background cover', () => {
+	const unlocked = async () => {
+		hasAppLockPin.mockResolvedValue(true)
+		getAppLockPin.mockResolvedValue('1234')
+		const lock = await renderAppLock()
+		await act(async () => { await lock.current.unlockWithPin('1234') })
+		return lock
+	}
+
+	test('going to background covers the app', async () => {
+		const lock = await unlocked()
+		expect(lock.current.isCovered).toBe(false)
+		await act(async () => { appStateHandler('background') })
+		expect(lock.current.isCovered).toBe(true)
+		expect(lock.current.isLocked).toBe(false)
+	})
+
+	test('a brief stay uncovers on return, without locking', async () => {
+		const lock = await unlocked()
+		await goBackgroundAndReturn(30 * 1000)
+		expect(lock.current.isCovered).toBe(false)
+		expect(lock.current.isLocked).toBe(false)
+	})
+
+	// Mismo render: LockScreen pasa de cortina a bloqueo sin dejar ver la app entre medias
+	test('past the timeout the cover turns into the lock in the same render', async () => {
+		const lock = await unlocked()
+		const seen = []
+		await act(async () => { appStateHandler('background') })
+		await act(async () => { jest.advanceTimersByTime(5 * 60 * 1000) })
+		await act(async () => { appStateHandler('active') })
+		seen.push([lock.current.isCovered, lock.current.isLocked])
+		expect(seen).toEqual([[false, true]])
+	})
+
+	// 'inactive' también salta con el propio Face ID (iOS): taparía la app al firmar
+	test('inactive alone does not cover', async () => {
+		const lock = await unlocked()
+		await act(async () => { appStateHandler('inactive') })
+		expect(lock.current.isCovered).toBe(false)
+	})
+
+	test('never covers while app lock is disabled', async () => {
+		const lock = await renderAppLock()
+		await act(async () => { appStateHandler('background') })
+		expect(lock.current.isCovered).toBe(false)
 	})
 })
 

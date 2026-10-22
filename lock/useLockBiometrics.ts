@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent, useCallback, useReducer } from 'react'
 import { useSettings } from '../settings/SettingsContext'
 import { useAppLock, APP_LOCK_BIO_SERVICE } from './AppLockContext'
 import { hasBiometricMarker } from '../helpers/biometricMarker'
-import { getSupportedBiometryType, hasBiometricCredentials } from '../api/client'
+import { getSupportedBiometryType } from '../api/client'
 
 // Biometric type + availability are detected together in one effect
 type BiometricsState = {
@@ -52,15 +52,15 @@ export const useLockBiometrics = (isLocked: boolean, onBeforeUnlock: () => void)
 		if (!isLocked) return
 		let cancelled = false
 		const checkBiometrics = async () => {
-			const [type, hasCredentials, hasMarker] = await Promise.all([getSupportedBiometryType(), hasBiometricCredentials(), hasBiometricMarker(APP_LOCK_BIO_SERVICE)])
+			const [type, hasMarker] = await Promise.all([getSupportedBiometryType(), hasBiometricMarker(APP_LOCK_BIO_SERVICE)])
 			if (cancelled) return
-			// Marcador propio del bloqueo (cualquier login) o, como antes, credenciales del login + ajuste
-			const viaMarker = hasMarker && security.appLockBiometrics !== false
-			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && (viaMarker || (hasCredentials && security.biometricsEnabled)) })
+			// Solo el marcador propio del bloqueo: las credenciales del login ya no
+			// desbloquean (ver unlockWithBiometrics). Sin él, el PIN lo arma
+			dispatchBiometrics({ type: 'detected', biometryType: type, available: !!type && hasMarker && security.appLockBiometrics !== false })
 		}
 		checkBiometrics()
 		return () => { cancelled = true }
-	}, [isLocked, security.biometricsEnabled, security.appLockBiometrics])
+	}, [isLocked, security.appLockBiometrics])
 
 	const unlock = useCallback(async () => {
 		onBeforeUnlock()
