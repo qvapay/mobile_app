@@ -74,10 +74,8 @@ const WithdrawDestinationSelector = ({ destination, onSelect, theme, textStyles 
 							styles.optionCard,
 							{ backgroundColor: theme.colors.surface },
 							selected
-								// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de
-								// runtime pre-existente que se preserva; el cast es solo de tipos
 								? { borderWidth: 1.5, borderColor: theme.colors.primary }
-								: (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+								: !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border },
 						]}
 					>
 						<View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '20' }]}>

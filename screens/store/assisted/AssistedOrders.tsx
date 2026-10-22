@@ -32,7 +32,6 @@ import FulfillmentBadge from './FulfillmentBadge'
 // Types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { Theme } from '../../../theme/ThemeContext'
 import type { AssistedOrder } from './assistedConstants'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AssistedOrders'>
@@ -81,7 +80,7 @@ const AssistedOrders = ({ navigation }: Props) => {
 
 		return (
 			<Pressable
-				style={[styles.orderCard, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
+				style={[styles.orderCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}
 				onPress={() => navigation.navigate(ROUTES.ASSISTED_ORDER_DETAIL, { id: item.id })}
 			>
 				<View style={styles.thumbWrap}>

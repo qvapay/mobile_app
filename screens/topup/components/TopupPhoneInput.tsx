@@ -70,7 +70,7 @@ const TopupPhoneInput = ({ phoneNumber, phoneValid, onChangePhone, recentNumbers
 						style={[
 							styles.recentChip,
 							{ backgroundColor: theme.colors.surface },
-							(theme as Theme & { mode?: 'light' | 'dark' }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+							!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border },
 						]}
 					>
 						<FontAwesome6 name="clock-rotate-left" size={10} color={theme.colors.tertiaryText} iconStyle="solid" />

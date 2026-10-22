@@ -63,9 +63,7 @@ const P2PRequirementsGate = ({ user, navigation, theme, textStyles, containerSty
 						style={[
 							styles.requirementCard,
 							{ backgroundColor: req.passed ? theme.colors.successFill + '15' : theme.colors.surface },
-							// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de
-							// runtime pre-existente que se preserva tal cual; el cast es solo de tipos
-							(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: req.passed ? theme.colors.successFill + '40' : theme.colors.border },
+							!theme.isDark && { borderWidth: 1, borderColor: req.passed ? theme.colors.successFill + '40' : theme.colors.border },
 						]}
 						onPress={() => !req.passed && navigation.navigate(ROUTES.SETTINGS_STACK, { screen: req.route, initial: false })}
 						disabled={req.passed}

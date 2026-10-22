@@ -6,7 +6,6 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
-import type { Theme } from '../theme/ThemeContext'
 import { createTextStyles } from '../theme/themeUtils'
 
 // UI
@@ -55,9 +54,7 @@ const QPPhoneInput = ({ country, onChangeCountry, lockedCountry, valid, ...input
 	const locked = !!lockedCountry
 	const countryData = countries.find(c => c.code === country)
 	const chipTextStyle = { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.medium }
-	// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-	// pre-existente que se preserva tal cual (el chip nunca pinta borde en light)
-	const chipBorder = (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 0.3, borderColor: theme.colors.primary }
+	const chipBorder = !theme.isDark && { borderWidth: 0.3, borderColor: theme.colors.primary }
 
 	return (
 		<>

@@ -43,7 +43,6 @@ import { ROUTES } from '../../routes'
 // Types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../types/navigation'
-import type { Theme } from '../../theme/ThemeContext'
 
 const SELF_AVATAR_SIZE = 96
 const HAPTIC_OPTS = { enableVibrateFallback: true, ignoreAndroidSystemSettings: false }
@@ -174,7 +173,7 @@ const NearbyPay = ({ navigation, route }: NearbyPayProps) => {
 					{/* Charge mode: banner or CTA */}
 					<View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
 						{chargeMode.active ? (
-							<View style={[styles.chargeBanner, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+							<View style={[styles.chargeBanner, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
 								<FontAwesome6 name="bolt" size={16} color={theme.colors.primary} iconStyle="solid" />
 								<Text style={[textStyles.body, { color: theme.colors.primaryText, flex: 1, marginLeft: 10, fontFamily: theme.typography.fontFamily.medium }]}>
 									{t('misc.nearby.charging', { amount: chargeMode.amount })}

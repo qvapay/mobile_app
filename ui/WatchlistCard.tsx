@@ -12,7 +12,6 @@ import Sparkline, { type SparklinePoint } from './Sparkline'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Tipos
-import type { Theme } from '../theme/ThemeContext'
 import type { EnrichedCoin } from '../types/domain'
 
 /**
@@ -69,7 +68,7 @@ const WatchlistCard = memo(({ coin, onPress }: WatchlistCardProps) => {
 				},
 				// BUG pre-existente (se preserva tal cual): Theme no tiene `mode`
 				// — esta condición es siempre false y el borde light nunca pinta
-				(theme as Theme & { mode?: string }).mode === 'light' && {
+				!theme.isDark && {
 					borderWidth: 1,
 					borderColor: theme.colors.border,
 				},

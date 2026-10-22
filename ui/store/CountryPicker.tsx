@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useTheme } from '../../theme/ThemeContext'
-import type { Theme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
 /** Catalog country row from `/api/store/*-catalog?countries` (only the fields this picker reads). */
@@ -103,7 +102,7 @@ const CountryPicker = ({ countries = NO_COUNTRIES, value = null, onChange = noop
 				style={[
 					styles.trigger,
 					{ backgroundColor: theme.colors.surface },
-					(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+					!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border },
 				]}
 			>
 				{value ? (
@@ -136,7 +135,7 @@ const CountryPicker = ({ countries = NO_COUNTRIES, value = null, onChange = noop
 						]}
 						onPress={(e) => e.stopPropagation()}
 					>
-						<View style={[styles.header, (theme as Theme & { mode?: string }).mode === 'light' && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}>
+						<View style={[styles.header, !theme.isDark && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}>
 							<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: '600' }]}>
 								{t('ui.storeCountryPicker.title')}
 							</Text>

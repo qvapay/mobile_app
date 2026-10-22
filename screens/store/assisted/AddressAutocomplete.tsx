@@ -6,7 +6,6 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
 import { createTextStyles } from '../../../theme/themeUtils'
-import type { Theme } from '../../../theme/ThemeContext'
 
 // UI
 import QPInput from '../../../ui/particles/QPInput'
@@ -127,7 +126,7 @@ const AddressAutocomplete = ({ onSelect }: Props) => {
 				autoCorrect={false}
 			/>
 			{results.length > 0 && (
-				<View style={[styles.resultsCard, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
+				<View style={[styles.resultsCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
 					{results.map((suggestion, index) => (
 						<Pressable
 							key={suggestion.place_id}

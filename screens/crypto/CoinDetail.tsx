@@ -51,13 +51,6 @@ type CoinDetailProps = NativeStackScreenProps<RootStackParamList, 'CoinDetail'>
  */
 type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: Theme) => ViewStyle)>
 
-/**
- * OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así que
- * la comparación contra 'light' es siempre falsa en runtime y el borde claro de
- * las cards nunca se pinta. Se conserva tal cual con un cast local.
- */
-const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
-
 // Whitelist del backend (/coins/price-history) — cualquier otro valor cae a 24H.
 // Son VALORES del API; el label visible es `crypto.timeframes.<valor>`
 const TIMEFRAMES = ['1H', '24H', '1W', '1M', '1Y', 'ALL']
@@ -288,7 +281,7 @@ const CoinStatsCard = ({ coin, timeframe, priceHistory, theme }: { coin: Partial
 	const availability = (enabled?: unknown) => enabled ? t('crypto.coinDetail.available') : t('crypto.coinDetail.notAvailable')
 
 	return (
-		<View style={[styles.card, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
+		<View style={[styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && styles.cardBorder(theme)]}>
 			<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('crypto.common.statistics')}</Text>
 			<StatRow label={t('crypto.coinDetail.periodHigh', { timeframe: t(`crypto.timeframes.${timeframe}`) })} value={formatPrice(periodHigh)} theme={theme} />
 			<StatRow label={t('crypto.coinDetail.periodLow', { timeframe: t(`crypto.timeframes.${timeframe}`) })} value={formatPrice(periodLow)} theme={theme} />
@@ -385,7 +378,7 @@ const CoinDetail = ({ navigation, route }: CoinDetailProps) => {
 				<CoinStatsCard coin={coin} timeframe={timeframe} priceHistory={priceHistory} theme={theme} />
 
 				{/* Spot: teaser de futuro */}
-				<View style={[styles.card, styles.spotTeaser, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
+				<View style={[styles.card, styles.spotTeaser, { backgroundColor: theme.colors.surface }, !theme.isDark && styles.cardBorder(theme)]}>
 					<FontAwesome6 name="chart-line" size={16} color={theme.colors.secondaryText} iconStyle="solid" />
 					<Text style={[styles.spotTeaserText, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
 						{t('crypto.coinDetail.spotTeaser')}

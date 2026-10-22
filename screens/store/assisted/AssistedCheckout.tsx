@@ -63,7 +63,7 @@ const QuoteSummary = ({ quote, insufficient, balance, total, theme, textStyles }
 	const { t } = useTranslation()
 
 	return (
-	<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
+	<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
 		<Text style={[textStyles.h6, { fontWeight: '600', marginBottom: 10 }]}>{t('assisted.common.summary')}</Text>
 		{quote ? (
 			<>

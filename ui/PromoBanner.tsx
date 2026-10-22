@@ -7,7 +7,6 @@ import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming, Easi
 import FastImage from '@d11/react-native-fast-image'
 
 // Tipos
-import type { Theme } from '../theme/ThemeContext'
 
 const BANNER_HEIGHT = 70
 
@@ -57,7 +56,7 @@ const PromoBanner = ({ promo }: PromoBannerProps) => {
 
 	return (
 		<Animated.View style={animatedContainerStyle}>
-			<Pressable onPress={handlePress} style={({ pressed }) => [styles.container, { backgroundColor: theme.colors.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+			<Pressable onPress={handlePress} style={({ pressed }) => [styles.container, { backgroundColor: theme.colors.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
 				{promo.logo ? (
 					<FastImage source={{ uri: promo.logo, cache: FastImage.cacheControl.web }} style={styles.logo} resizeMode={FastImage.resizeMode.contain} />
 				) : null}
