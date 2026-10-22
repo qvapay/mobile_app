@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { View } from 'react-native'
 import { CartesianChart, Line, Area } from 'victory-native'
-import { Circle, DashPathEffect, LinearGradient, vec, useFont } from '@shopify/react-native-skia'
+import { Circle, DashPathEffect, LinearGradient, vec, useFont } from 'react-native-skia'
 import {
 	cancelAnimation,
 	useDerivedValue,

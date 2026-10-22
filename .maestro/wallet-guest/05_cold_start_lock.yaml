@@ -5,10 +5,17 @@ env:
 ---
 - stopApp
 - launchApp
+# Con la huella armada (Android) el diálogo de huella sale a los ~500 ms y, mientras
+# está abierto, Maestro solo ve las ventanas del sistema: vale el bloqueo o su diálogo
+- extendedWaitUntil:
+    visible:
+      id: "lock-screen|.*:id/button_negative"
+    timeout: 20000
+- runFlow: subflows/cancel_biometric_prompt.yaml
 - extendedWaitUntil:
     visible:
       id: "lock-screen"
-    timeout: 20000
+    timeout: 5000
 # El bloqueo es un Modal que entra con fundido mientras el JS aún arranca: esperar a que
 # termine antes de tocar las teclas
 - waitForAnimationToEnd:

@@ -10,7 +10,7 @@ import Animated, {
 	cancelAnimation,
 	Easing,
 } from 'react-native-reanimated'
-import { Canvas, Fill, Shader, Skia } from '@shopify/react-native-skia'
+import { Canvas, Fill, Shader, Skia } from 'react-native-skia'
 import { useTheme } from '../theme/ThemeContext'
 import { useLoading } from '../loading/LoadingContext'
 

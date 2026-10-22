@@ -31,7 +31,7 @@ jest.mock('react-native-reanimated', () => {
 	}
 })
 const makeCalls = []
-jest.mock('@shopify/react-native-skia', () => ({
+jest.mock('react-native-skia', () => ({
 	Canvas: 'Canvas',
 	Fill: 'Fill',
 	Shader: 'Shader',

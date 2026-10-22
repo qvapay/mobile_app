@@ -1,8 +1,9 @@
 appId: com.qvapay
 ---
-# Android: tras un PIN correcto la app arma el marcador biométrico, y guardar
-# un secreto con biometría en Android PIDE la huella al escribirlo (iOS no).
-# En E2E se cancela: el marcador queda sin armar y el PIN sigue siendo el gate.
+# Android: si tras un PIN sale un diálogo de huella, se cancela. Hasta la 3.5.13
+# armar el marcador (react-native-keychain) pedía la huella al escribirlo; con
+# BiometricGate (3.5.14) armar ya no la pide, pero el diálogo que se abre solo en
+# el bloqueo o en el modal de la wallet se cancela igual (cancel_biometric_prompt).
 # El id es regex: el diálogo es de systemui en AOSP pero de su propio paquete en
 # Samsung (com.samsung.android.biometrics.app.setting) y otras capas
 - runFlow:

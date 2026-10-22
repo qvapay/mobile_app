@@ -11,6 +11,7 @@ appId: com.qvapay
     timeout: 25000
 - waitForAnimationToEnd:
     timeout: 3000
+- runFlow: cancel_biometric_prompt.yaml
 - tapOn:
     id: "wallet-auth-pin-0"
 - runFlow: type_pin.yaml
