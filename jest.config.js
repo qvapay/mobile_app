@@ -21,8 +21,9 @@ module.exports = {
   // number-flow-react-native publica ESM (lib/module) y TS (src) sin compilar a
   // CJS, y el stack cripto de la wallet (@scure/@noble v2, viem) es ESM puro:
   // sin estas excepciones cualquier suite que los importe de verdad revienta
-  // con "Cannot use import statement outside a module".
+  // con "Cannot use import statement outside a module". Los iconos
+  // (@react-native-vector-icons) también publican solo ESM desde la 14.
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|number-flow-react-native|@scure|@noble|viem|abitype|ox|micro-packed|@stacks|c32check|base-x)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community|-vector-icons)?|number-flow-react-native|@scure|@noble|viem|abitype|ox|micro-packed|@stacks|c32check|base-x)/)',
   ],
 };

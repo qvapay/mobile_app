@@ -3,7 +3,7 @@ import { View } from 'react-native'
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import { CartesianChart, Line, Area, useChartPressState } from 'victory-native'
 import type { ChartPressState } from 'victory-native'
-import { Circle, DashPathEffect, LinearGradient, Line as SkiaLine, vec, useFont } from '@shopify/react-native-skia'
+import { Circle, DashPathEffect, LinearGradient, Line as SkiaLine, vec, useFont } from 'react-native-skia'
 import { useAnimatedReaction, useDerivedValue, useReducedMotion } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 

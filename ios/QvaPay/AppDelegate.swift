@@ -44,10 +44,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 /// Ciclo de vida por escenas. Con escenas, los deep links ya NO llegan a los métodos
 /// `application(_:open:)` / `application(_:continue:)` del AppDelegate, sino aquí:
-/// - arranque en frío: en `connectionOptions`, que se traducen a las `launchOptions` que
-///   `Linking.getInitialURL()` sabe leer (URL de esquema y universal link);
-/// - app ya abierta: `scene(_:openURLContexts:)` y `scene(_:continue:)`, reenviados a
-///   `RCTLinkingManager` como antes.
+/// - arranque en frío: en `connectionOptions`, que la factoría traduce a las
+///   `launchOptions` que lee `Linking.getInitialURL()` (URL de esquema y universal link);
+/// - app ya abierta: `scene(_:openURLContexts:)` y `scene(_:continue:)`.
+///
+/// Siempre por los métodos `RCTLinkingManager.scene(...)`: desde RN 0.88 los
+/// `RCTLinkingManager.application(...)` NO hacen nada en una app con escenas.
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   var window: UIWindow?
 
@@ -69,10 +71,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
       window.rootViewController = existing
       window.makeKeyAndVisible()
       // Un deep link que llega con la reconexión se entrega como con la app abierta
-      if let url = connectionOptions.urlContexts.first?.url {
-        RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+      if !connectionOptions.urlContexts.isEmpty {
+        RCTLinkingManager.scene(scene, openURLContexts: connectionOptions.urlContexts)
       } else if let activity = connectionOptions.userActivities.first {
-        RCTLinkingManager.application(UIApplication.shared, continue: activity, restorationHandler: { _ in })
+        RCTLinkingManager.scene(scene, continue: activity)
       }
       return
     }
@@ -80,34 +82,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     factory.startReactNative(
       withModuleName: "QvaPay",
       in: window,
-      launchOptions: SceneDelegate.launchOptions(from: connectionOptions)
+      connectionOptions: connectionOptions
     )
     appDelegate.reactRootViewController = window.rootViewController
   }
 
-  /// Las claves que lee `RCTLinkingManager.getInitialURL`.
-  static func launchOptions(from options: UIScene.ConnectionOptions) -> [UIApplication.LaunchOptionsKey: Any]? {
-    if let url = options.urlContexts.first?.url {
-      return [.url: url]
-    }
-    if let activity = options.userActivities.first(where: { $0.activityType == NSUserActivityTypeBrowsingWeb }) {
-      return [.userActivityDictionary: [
-        UIApplication.LaunchOptionsKey.userActivityType.rawValue: activity.activityType,
-        "UIApplicationLaunchOptionsUserActivityKey": activity,
-      ]]
-    }
-    return nil
-  }
-
   // Custom URL scheme (qvapay://p2p/...) con la app abierta
   func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-    guard let url = URLContexts.first?.url else { return }
-    RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+    RCTLinkingManager.scene(scene, openURLContexts: URLContexts)
   }
 
-  // Universal Links (https://qvapay.com/p2p/...) con la app abierta
+  // Universal Links (https://www.qvapay.com/p2p/...) con la app abierta
   func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
-    RCTLinkingManager.application(UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
+    RCTLinkingManager.scene(scene, continue: userActivity)
   }
 }
 
