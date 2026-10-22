@@ -48,6 +48,11 @@ export const TOAST_MAX_LENGTH = 120
 export const MAIN_BUTTON_MAX_LENGTH = 32
 /** Tope de un mensaje crudo (bytes de string): nada legítimo del SDK se acerca. */
 export const MAX_MESSAGE_LENGTH = 16_384
+/** Tope del texto que una mini-app añade al compartir su enlace. */
+export const SHARE_TEXT_MAX_LENGTH = 200
+// El texto de `share` NO puede llevar enlaces: la URL la pone siempre la app
+// (el mensaje sale con la marca QvaPay; un enlace ajeno ahí sería phishing)
+const LOOKS_LIKE_LINK = /https?:\/\/|www\./i
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/
@@ -64,6 +69,7 @@ export type BridgeRequest =
 	| { id: string, method: 'ui.haptic', params: { type: HapticType } }
 	| { id: string, method: 'ui.toast', params: { message: string, type: ToastType } }
 	| { id: string, method: 'openLink', params: { url: string } }
+	| { id: string, method: 'share', params: { text?: string } }
 
 export type BridgeMethod = BridgeRequest['method']
 
@@ -174,6 +180,16 @@ export function parseBridgeMessage(raw: unknown): ParseResult {
 		case 'openLink': {
 			if (!isHttpsUrl(params.url)) return fail(id, BRIDGE_ERRORS.INVALID_PARAMS, 'url must be https')
 			return { ok: true, request: { id, method, params: { url: params.url } } }
+		}
+
+		case 'share': {
+			// La mini-app solo comparte SU enlace (lo pone la app); el texto es opcional
+			if (params.text !== undefined && params.text !== null && typeof params.text !== 'string') {
+				return fail(id, BRIDGE_ERRORS.INVALID_PARAMS, 'text must be a string')
+			}
+			const text = typeof params.text === 'string' ? params.text.replace(/\s+/g, ' ').trim().slice(0, SHARE_TEXT_MAX_LENGTH) : ''
+			if (LOOKS_LIKE_LINK.test(text)) return fail(id, BRIDGE_ERRORS.INVALID_PARAMS, 'text must not contain links')
+			return { ok: true, request: { id, method, params: text ? { text } : {} } }
 		}
 
 		default:

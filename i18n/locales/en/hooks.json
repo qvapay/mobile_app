@@ -29,7 +29,8 @@
 		"toasts": {
 			"loginToPay": "Log in to pay the invoice",
 			"loginToSeeOffer": "Log in to see the P2P offer",
-			"loginToSeeStore": "Log in to see the store"
+			"loginToSeeStore": "Log in to see the store",
+			"loginToOpenApp": "Log in to open the mini-app"
 		}
 	},
 	"deviceContacts": {

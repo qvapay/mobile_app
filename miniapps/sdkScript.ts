@@ -82,6 +82,7 @@ export function buildSdkScript(initialTheme: unknown, launchParams: { slug: stri
 			listeners[event] = listeners[event].filter(function (fn) { return fn !== cb; });
 		},
 		openLink: function (url) { return post('openLink', { url: url }); },
+		share: function (opts) { return post('share', { text: opts && opts.text }); },
 		auth: {
 			requestLogin: function (opts) { return post('auth.requestLogin', { scopes: (opts && opts.scopes) || ['profile'] }); }
 		},

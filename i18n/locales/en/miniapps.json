@@ -10,6 +10,7 @@
 		"empty": "No mini-apps available yet. Check back soon!",
 		"publishTitle": "Do you build apps?",
 		"publishBody": "Publish yours in this catalog.",
+		"longPressToShare": "Long-press to share",
 		"categories": {
 			"shopping": "Shopping",
 			"games": "Games",
@@ -19,6 +20,10 @@
 			"tools": "Tools",
 			"other": "Other"
 		}
+	},
+	"share": {
+		"title": "{{name}} on QvaPay",
+		"message": "Discover {{name}} on QvaPay: {{url}}"
 	},
 	"host": {
 		"menu": "Mini-app options",

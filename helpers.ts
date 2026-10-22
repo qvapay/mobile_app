@@ -103,7 +103,8 @@ const bolt11AmountSats = (invoice: string): number | null => {
 
 /**
  * Dirección suelta o con esquema (`tron:T…`, `ethereum:0x…`, `bitcoin:…`
- * BIP-21, EIP-681 con `@chainId`/`?value=` recortados). TRON base58 (T + 33),
+ * BIP-21, EIP-681 con `@chainId`/`?value=` recortados y, en un `/transfer` de
+ * token, el destinatario de `address=`, nunca el contrato). TRON base58 (T + 33),
  * EVM 0x + 40 hex, BTC mainnet de cualquier tipo (bc1q/bc1p, 3…, 1…). Nada
  * más: un texto cualquiera no es una dirección.
  * @param raw - Payload crudo ya recortado.
@@ -111,7 +112,19 @@ const bolt11AmountSats = (invoice: string): number | null => {
 const parseAddressQR = (raw: string): AddressIntent | null => {
 	// `solana:` es el esquema de Solana Pay (solana:<dirección>?amount=…)
 	const withoutScheme = raw.replace(/^(bitcoin|tron|ethereum|solana|stacks):(\/\/)?/i, '')
-	const bare = withoutScheme.split(/[?@]/)[0].trim()
+	// EIP-681 admite `pay-` delante de la dirección (ethereum:pay-0x…)
+	const target = /^ethereum:/i.test(raw) ? withoutScheme.replace(/^pay-/i, '') : withoutScheme
+	// EIP-681 con llamada a función: `<contrato>@<cadena>/transfer?address=<destino>&uint256=…`.
+	// La dirección de delante es el CONTRATO del token y el destino viaja en `address`:
+	// devolver la de delante haría enviar los tokens a su propio contrato, y se perderían.
+	// Cualquier otra función (approve…) no es un pago, así que no es una dirección
+	const call = target.match(/^(0x[0-9a-fA-F]{40})(?:@\d+)?\/([A-Za-z0-9_]+)(?:\?(.*))?$/)
+	if (call) {
+		if (call[2] !== 'transfer') { return null }
+		const to = (call[3] ?? '').split('&').map(param => param.split('=')).find(([key]) => key === 'address')?.[1]
+		return to && /^0x[0-9a-fA-F]{40}$/.test(to) ? { type: 'address', family: 'evm', address: to } : null
+	}
+	const bare = target.split(/[?@]/)[0].trim()
 	if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(bare)) { return { type: 'address', family: 'tron', address: bare } }
 	if (/^0x[0-9a-fA-F]{40}$/.test(bare)) { return { type: 'address', family: 'evm', address: bare } }
 	// BTC con su checksum (y no solo la forma): un base58 que empieza por 1 o 3

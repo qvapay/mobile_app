@@ -24,6 +24,12 @@ describe('rutas internas que la app sabe pintar', () => {
 		expect(resolveAnnouncementTarget('/store/mi-tienda/prod-7')).toEqual({ kind: 'screen', route: 'MarketProduct', params: { slug: 'mi-tienda', uuid: 'prod-7' } })
 	})
 
+	test('las mini-apps: catálogo y ficha por slug', () => {
+		expect(resolveAnnouncementTarget('/apps')).toEqual({ kind: 'screen', route: 'MiniApps', params: {} })
+		expect(resolveAnnouncementTarget('/apps/mi-app')).toEqual({ kind: 'screen', route: 'MiniAppHost', params: { slug: 'mi-app' } })
+		expect(resolveAnnouncementTarget('https://www.qvapay.com/apps/mi-app')).toEqual({ kind: 'screen', route: 'MiniAppHost', params: { slug: 'mi-app' } })
+	})
+
 	test('la query y la barra final no rompen el emparejamiento', () => {
 		expect(resolveAnnouncementTarget('/p2p?utm_source=aviso')).toEqual({ kind: 'tab', screen: 'P2P' })
 		expect(resolveAnnouncementTarget('/home/')).toEqual({ kind: 'tab', screen: 'Home' })

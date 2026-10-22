@@ -19,6 +19,8 @@ type QPKeypadProps = {
 	onKey: (key: string) => void
 	extraKey?: KeypadExtraKey
 	disabled?: boolean
+	/** Teclas de 52 en vez de 60 y menos aire: pantallas bajas (el bloqueo en un Android de 640 dp). */
+	compact?: boolean
 	/** Pistas de accesibilidad de la pantalla (p. ej. «Añade este número al monto»). */
 	numberHint?: string
 	deleteHint?: string
@@ -42,13 +44,14 @@ const tick = () => ReactNativeHapticFeedback.trigger('impactLight', { enableVibr
  * `onKey` y `extraKey` estables el teclado se pinta una vez; un `extraKey`
  * creado en cada render anula el memo.
  */
-const QPKeypad = memo(({ onKey, extraKey = null, disabled = false, numberHint, deleteHint, testIDPrefix }: QPKeypadProps) => {
+const QPKeypad = memo(({ onKey, extraKey = null, disabled = false, compact = false, numberHint, deleteHint, testIDPrefix }: QPKeypadProps) => {
 
 	const { t } = useTranslation()
 	const { theme } = useTheme()
 
 	// En claro las teclas translúcidas no se leen sobre blanco: se perfilan con el acento
-	const keyStyle = ({ pressed }: PressableStateCallbackType) => [styles.key, pressed && styles.keyPressed, !theme.isDark && { borderColor: theme.colors.primary, borderWidth: 0.3 }]
+	const keyStyle = ({ pressed }: PressableStateCallbackType) => [styles.key, compact && styles.keyCompact, pressed && styles.keyPressed, !theme.isDark && { borderColor: theme.colors.primary, borderWidth: 0.3 }]
+	const rowStyle = compact ? [styles.row, styles.rowCompact] : styles.row
 	const press = (key: string) => () => { tick(); onKey(key) }
 	const testID = (key: string) => (testIDPrefix ? `${testIDPrefix}-${key}` : undefined)
 
@@ -81,12 +84,12 @@ const QPKeypad = memo(({ onKey, extraKey = null, disabled = false, numberHint, d
 				{extraKey.icon}
 			</Pressable>
 		)
-			: <View key="extra" style={styles.slot} />
+			: <View key="extra" style={[styles.slot, compact && styles.keyCompact]} />
 
 	return (
 		<View style={styles.pad}>
-			{DIGIT_ROWS.map(row => <View key={row[0]} style={styles.row}>{row.map(digit)}</View>)}
-			<View style={styles.row}>
+			{DIGIT_ROWS.map(row => <View key={row[0]} style={rowStyle}>{row.map(digit)}</View>)}
+			<View style={rowStyle}>
 				{extra}
 				{digit('0')}
 				<Pressable
@@ -109,6 +112,7 @@ const QPKeypad = memo(({ onKey, extraKey = null, disabled = false, numberHint, d
 const styles = StyleSheet.create({
 	pad: { width: '100%' },
 	row: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+	rowCompact: { gap: 10, marginBottom: 10 },
 	key: {
 		flex: 1,
 		height: 60,
@@ -120,6 +124,7 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: 'rgba(255, 255, 255, 0.1)',
 	},
+	keyCompact: { height: 52 },
 	keyPressed: { backgroundColor: 'rgba(255, 255, 255, 0.1)', transform: [{ scale: 0.95 }] },
 	slot: { flex: 1, height: 60 },
 	icon: { marginHorizontal: 2 },

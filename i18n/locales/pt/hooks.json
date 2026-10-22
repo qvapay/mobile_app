@@ -29,7 +29,8 @@
 		"toasts": {
 			"loginToPay": "Entre para pagar a fatura",
 			"loginToSeeOffer": "Entre para ver a oferta P2P",
-			"loginToSeeStore": "Entre para ver a loja"
+			"loginToSeeStore": "Entre para ver a loja",
+			"loginToOpenApp": "Entre para abrir o mini-app"
 		}
 	},
 	"deviceContacts": {

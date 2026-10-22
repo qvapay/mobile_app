@@ -95,6 +95,17 @@ describe('parseBridgeMessage', () => {
 		expect(parseBridgeMessage(msg('ui.haptic', { type: 'boom' })).ok).toBe(false)
 	})
 
+	test('share: texto opcional, colapsado y recortado; sin enlaces', () => {
+		expect(parseBridgeMessage(msg('share', {}))).toMatchObject({ ok: true, request: { method: 'share', params: {} } })
+		expect(parseBridgeMessage(msg('share', { text: '  Mira   esto\n ya ' }))).toMatchObject({ ok: true, request: { params: { text: 'Mira esto ya' } } })
+		const long = parseBridgeMessage(msg('share', { text: 'x'.repeat(500) }))
+		expect(long.ok && long.request.params.text.length).toBe(200)
+		for (const text of ['https://evil.com', 've a www.evil.com', 'HTTP://x.y']) {
+			expect(parseBridgeMessage(msg('share', { text }))).toMatchObject({ ok: false, error: { code: 'INVALID_PARAMS' } })
+		}
+		expect(parseBridgeMessage(msg('share', { text: 42 }))).toMatchObject({ ok: false, error: { code: 'INVALID_PARAMS' } })
+	})
+
 	test('openLink: solo https', () => {
 		expect(parseBridgeMessage(msg('openLink', { url: 'https://example.com/x' })).ok).toBe(true)
 		for (const url of ['http://example.com', 'javascript:alert(1)', 'qvapay://pay/x', 'file:///etc/passwd', 'tel:123']) {
@@ -156,6 +167,8 @@ describe('SDK inyectado', () => {
 		window.QvaPay.payments.payInvoice(UUID)
 		window.QvaPay.auth.requestLogin({ scopes: ['profile'] })
 		window.QvaPay.ui.toast('hola')
+		window.QvaPay.share({ text: 'hola' })
+		window.QvaPay.share()
 		for (const m of posted) {
 			expect(parseBridgeMessage(JSON.stringify(m)).ok).toBe(true)
 		}

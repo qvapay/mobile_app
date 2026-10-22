@@ -102,6 +102,25 @@
             <data android:scheme="https" android:host="qvapay.com" android:pathPrefix="/pay/" />
         </intent-filter>
 
+        <!-- App Links for www.qvapay.com/store/* (marketplace storefronts; linking.ts
+             ya los resolvía, pero sin este filtro Android los abría en el navegador) -->
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="www.qvapay.com" android:pathPrefix="/store/" />
+            <data android:scheme="https" android:host="qvapay.com" android:pathPrefix="/store/" />
+        </intent-filter>
+
+        <!-- App Links for www.qvapay.com/apps/* (mini-apps: la URL que se comparte) -->
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="www.qvapay.com" android:pathPrefix="/apps/" />
+            <data android:scheme="https" android:host="qvapay.com" android:pathPrefix="/apps/" />
+        </intent-filter>
+
         <!-- Custom URL scheme -->
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />

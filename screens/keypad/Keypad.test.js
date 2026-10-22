@@ -69,6 +69,15 @@ describe('amount entry', () => {
 		expect(displayedAmount(tree)).toBe('25')
 	})
 
+	// Dos toques antes de que React vuelva a pintar no se pisan: el monto vive en un ref
+	test('toques seguidos sin repintar entre medias no pierden dígitos', () => {
+		const tree = renderKeypad()
+		const one = findPressable(tree, l => l === 'Número 1').props.onPress
+		const two = findPressable(tree, l => l === 'Número 2').props.onPress
+		act(() => { one(); two() })
+		expect(AccessibilityInfo.announceForAccessibility).toHaveBeenLastCalledWith('Monto: $12')
+	})
+
 	test('rejected keys are no-ops: one decimal point, two decimals max', () => {
 		const tree = renderKeypad()
 		typeAmount(tree, ['1', '.', '5', '.'])

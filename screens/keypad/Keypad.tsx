@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import {
 	StyleSheet,
 	Text,
@@ -66,6 +66,10 @@ export default function Keypad({ navigation }: KeypadProps) {
 
 	// State
 	const [amount, setAmount] = useState('0')
+	// El monto vive también en un ref: dos toques antes de repintar leían el mismo
+	// `amount` y el segundo pisaba al primero. Además deja `handleKeyPress` estable,
+	// que es lo que necesita el memo de QPKeypad para no repintar las doce teclas
+	const amountRef = useRef('0')
 	const [isProcessing, setIsProcessing] = useState(false)
 
 	// Refs
@@ -98,12 +102,13 @@ export default function Keypad({ navigation }: KeypadProps) {
 	// El tic háptico de cada tecla lo da QPKeypad
 	const handleKeyPress = useCallback((key: string) => {
 
-		const newAmount = applyKeypadKey(amount, key)
+		const newAmount = applyKeypadKey(amountRef.current, key)
 
 		// Key was rejected (invalid / no-op) — nothing changed.
-		if (newAmount === amount) { return }
+		if (newAmount === amountRef.current) { return }
 
 		// Update amount and animate font size
+		amountRef.current = newAmount
 		setAmount(newAmount)
 		const newFontSize = calculateFontSize(newAmount)
 		animateFontSize(newFontSize)
@@ -111,13 +116,14 @@ export default function Keypad({ navigation }: KeypadProps) {
 		// Announce to screen reader
 		AccessibilityInfo.announceForAccessibility(t('keypad.a11y.amountAnnouncement', { amount: newAmount }))
 
-	}, [amount, calculateFontSize, animateFontSize, t])
+	}, [calculateFontSize, animateFontSize, t])
 
 	// Set maximum balance
 	const setMaxBalance = useCallback(() => {
 
 		if (!user?.balance) return
 		const maxAmount = user.balance.toString()
+		amountRef.current = maxAmount
 		setAmount(maxAmount)
 		const newFontSize = calculateFontSize(maxAmount)
 		animateFontSize(newFontSize)

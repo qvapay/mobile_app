@@ -289,19 +289,21 @@ const P2P = ({ navigation, route }: P2PScreenProps) => {
 		lastScrollY.value = currentY
 	}, [lastScrollY, accumulatedDelta, scrollDirection, setBarsVisible])
 
+	// Gate por un 400 del servidor (el perfil local decía que todo estaba hecho):
+	// al volver a la pestaña, normalmente tras completar el paso en otra
+	// pantalla, se pregunta otra vez. Solo con ESE gate a la vista: si el perfil
+	// local ya dice que falta algo (`p2pEnabled` false), preguntar daría 400
+	// seguro, y completar el paso cambia el perfil, que ya relanza la carga.
+	// Por ref: el efecto de foco no puede depender de `requirement`, o volver a
+	// preguntar lo re-dispararía
+	const recheckGateRef = useRef<(() => void) | null>(null)
+	useEffect(() => { recheckGateRef.current = requirement && p2pEnabled ? onRefresh : null })
+	useFocusEffect(useCallback(() => { recheckGateRef.current?.() }, []))
+
 	// Al salir del tab se restauran AMBAS barras y el estado de scroll: antes
 	// solo se reponía la bottom bar, así que al volver con la lista scrolleada
 	// los filtros seguían escondidos y el `target` quedaba desincronizado (el
 	// siguiente scroll hacia abajo ya no ocultaba la bottom bar)
-	// Gate por un 400 del servidor (el perfil local decía que todo estaba hecho):
-	// al volver a la pestaña, normalmente tras completar el paso en otra
-	// pantalla, se pregunta otra vez. Solo con ese gate a la vista, para no
-	// gastar el límite de /p2p/index en cada foco. Por ref: el efecto de foco
-	// no puede depender de `requirement`, o volver a preguntar lo re-dispararía
-	const recheckGateRef = useRef<(() => void) | null>(null)
-	useEffect(() => { recheckGateRef.current = requirement ? onRefresh : null })
-	useFocusEffect(useCallback(() => { recheckGateRef.current?.() }, []))
-
 	useFocusEffect(
 		useCallback(() => {
 			return () => {

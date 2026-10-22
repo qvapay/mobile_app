@@ -25,6 +25,8 @@ import { markIncomingSoundPlayed } from './useIncomingMoneySound'
 import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushTarget } from '../helpers/pushRouting'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
+import { parseMiniAppLink } from '../screens/miniapps/miniappLinks'
+import { isDeepLinkRoute } from './deepLinkRoutes'
 
 // i18n (fuera de render: los toasts se disparan en efectos/listeners)
 import i18n from '../i18n'
@@ -92,15 +94,31 @@ const parseStoreLink = (url: string) => {
 }
 
 /**
+ * Clave del toast "inicia sesión primero" que corresponde a un deep link que
+ * llega SIN sesión, o null si la URL no es un destino que la app sepa abrir
+ * (esos se pierden sin más, como hasta ahora).
+ */
+const loginToastKeyFor = (url: string): string | null => {
+	if (parsePayUuid(url)) return 'hooks.appNavigation.toasts.loginToPay'
+	if (parseP2PUuid(url)) return 'hooks.appNavigation.toasts.loginToSeeOffer'
+	if (parseStoreLink(url)) return 'hooks.appNavigation.toasts.loginToSeeStore'
+	if (parseMiniAppLink(url)) return 'hooks.appNavigation.toasts.loginToOpenApp'
+	return null
+}
+
+/**
  * Drives the app-root navigation flow: minimum 2s splash, store-update check
  * (helpers/versionCheck → UpdatePromptModal), auth ↔ navigation reconciliation,
  * deep-link capture while unauthenticated, and OneSignal foreground/click
  * listeners (toast + optional sound; tap navigates to the right screen).
  *
- * Deep links (/pay/:uuid, /p2p/:p2p_uuid) that arrive while logged out are
- * stashed in `pendingDeepLinkRef` with a localized "log in first" toast; once
- * authenticated the stack is reset to MainStack + the target screen, so back
- * lands on Home instead of exiting.
+ * Deep links (/pay/:uuid, /p2p/:p2p_uuid, /store/:slug, /apps/:slug) that
+ * arrive while logged out are stashed in `pendingDeepLinkRef` with a localized
+ * "log in first" toast; once authenticated the stack is reset to MainStack +
+ * the target screen, so back lands on Home instead of exiting. A cold start
+ * WITH a session mounts the target as the only root route (React Navigation
+ * builds the initial state from the URL): it gets MainStack put underneath
+ * instead of being thrown away.
  *
  * @param pendingDeepLinkRef - App-root ref holding a deep link URL captured pre-auth.
  * @returns State AppNavigator needs to render the splash gate, the initial
@@ -160,7 +178,9 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	// app launch) — so this is a genuine reactive effect, not a faked handler.
 	useEffect(() => {
 		if (splashReady && !authLoading && !settingsLoading && walletReady) {
-			const currentRoute = navigation.getState()?.routes[navigation.getState()?.index || 0]?.name
+			const state = navigation.getState()
+			const current = state?.routes[state?.index || 0]
+			const currentRoute = current?.name
 			if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
 				// Check for a pending deep link after login
 				const pendingUrl = pendingDeepLinkRef.current
@@ -202,6 +222,31 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 						})
 						return
 					}
+					const miniApp = parseMiniAppLink(pendingUrl)
+					if (miniApp) {
+						navigation.reset({
+							index: 1,
+							routes: [
+								{ name: ROUTES.MAIN_STACK },
+								{ name: ROUTES.MINIAPP_HOST, params: { slug: miniApp.slug } },
+							],
+						})
+						return
+					}
+				}
+				// Arranque en frío CON sesión desde un deep link: React Navigation montó
+				// el destino como ÚNICA ruta raíz. Se conserva encima de MainStack para
+				// que «atrás» caiga en Home y no cierre la app. El nombre llega como
+				// string en runtime, así que no casa con RootStackParamList en compilación
+				if (current && isDeepLinkRoute(currentRoute)) {
+					navigation.reset({
+						index: 1,
+						routes: [
+							{ name: ROUTES.MAIN_STACK },
+							{ name: currentRoute, params: current.params } as never,
+						],
+					})
+					return
 				}
 				navigation.reset({ index: 0, routes: [{ name: ROUTES.MAIN_STACK }] })
 			} else if (!isAuthenticated && !firstTime) {
@@ -211,16 +256,10 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 				// Capture the current deep link URL before resetting to Welcome
 				Linking.getInitialURL().then((url) => {
 					if (!url) return
-					if (parsePayUuid(url)) {
-						pendingDeepLinkRef.current = url
-						toast.info(i18n.t('hooks.appNavigation.toasts.loginToPay'))
-					} else if (parseP2PUuid(url)) {
-						pendingDeepLinkRef.current = url
-						toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeOffer'))
-					} else if (parseStoreLink(url)) {
-						pendingDeepLinkRef.current = url
-						toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeStore'))
-					}
+					const toastKey = loginToastKeyFor(url)
+					if (!toastKey) return
+					pendingDeepLinkRef.current = url
+					toast.info(i18n.t(toastKey))
 				})
 				navigation.reset({ index: 0, routes: [{ name: target }] })
 			}
@@ -231,16 +270,10 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	useEffect(() => {
 		const subscription = Linking.addEventListener('url', ({ url }) => {
 			if (!isAuthenticated && url) {
-				if (parsePayUuid(url)) {
-					pendingDeepLinkRef.current = url
-					toast.info(i18n.t('hooks.appNavigation.toasts.loginToPay'))
-				} else if (parseP2PUuid(url)) {
-					pendingDeepLinkRef.current = url
-					toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeOffer'))
-				} else if (parseStoreLink(url)) {
-					pendingDeepLinkRef.current = url
-					toast.info(i18n.t('hooks.appNavigation.toasts.loginToSeeStore'))
-				}
+				const toastKey = loginToastKeyFor(url)
+				if (!toastKey) return
+				pendingDeepLinkRef.current = url
+				toast.info(i18n.t(toastKey))
 			}
 		})
 		return () => subscription.remove()

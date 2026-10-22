@@ -358,6 +358,16 @@ describe('KYC step', () => {
 		expect(completeSession).toHaveBeenCalledWith({ accessToken: 'tok-1', me: { username: 'john', kyc: true, kyc_status: 'approved' }, email: 'john@doe.com' })
 	})
 
+	// 400 = ya verificado (p. ej. terminó en el navegador y volvió): entra verificado
+	test('un 400 de «ya verificado» llega a la sesión como aprobado', async () => {
+		userApi.requestKYCSession.mockResolvedValue({ success: false, status: 400, error: 'Ya verificado' })
+		const tree = renderRegister()
+		await goToKycStep(tree)
+		await press(tree, 'Verificar identidad')
+		await press(tree, 'Activar notificaciones')
+		expect(completeSession).toHaveBeenCalledWith({ accessToken: 'tok-1', me: { username: 'john', kyc: true, kyc_status: 'approved' }, email: 'john@doe.com' })
+	})
+
 	test('con la cámara denegada explica el permiso, como en Ajustes', async () => {
 		userApi.requestKYCSession.mockResolvedValue({ success: true, data: 'https://verify.didit.me/session/1', sessionToken: 'tok.en.jwt', status: 200 })
 		startVerification.mockResolvedValueOnce({ type: 'failed', error: { type: 'cameraAccessDenied', message: 'denied' } })

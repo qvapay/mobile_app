@@ -67,6 +67,10 @@ describe('parseInstallReferrer', () => {
 		expect(parseInstallReferrer('gclid=xyz')).toBeNull()
 	})
 
+	test('keeps qp_link to a mini-app (/apps/<slug>)', () => {
+		expect(parseInstallReferrer('utm_source=telegram&qp_link=%2Fapps%2Fmi-app')).toMatchObject({ utmSource: 'telegram', qpLink: '/apps/mi-app' })
+	})
+
 	test('discards qp_link outside the supported paths but keeps the rest', () => {
 		expect(parseInstallReferrer('utm_campaign=phish&qp_link=%2Fsettings%2Fdanger')).toEqual({
 			utmSource: null,

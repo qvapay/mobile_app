@@ -29,21 +29,21 @@ const message = (method, params) => ({ nativeEvent: { url: `${ORIGIN}/checkout`,
 // Lo que el puente entrega al WebView, ya parseado ({ id, ok, result | error })
 const deliveriesOf = (injectJavaScript) => injectJavaScript.mock.calls.map(([script]) => JSON.parse(JSON.parse(script.match(/\((".*")\); true;$/)[1])))
 
-const renderBridge = async ({ hasKyc, app = baseApp() }) => {
+const renderBridge = async ({ hasKyc, app = baseApp(), share = jest.fn(async () => 'shared') }) => {
 	const kyc = { value: hasKyc }
 	const requireKyc = jest.fn(() => kyc.value)
 	const injectJavaScript = jest.fn()
 	const webViewRef = { current: { injectJavaScript } }
 	const state = {}
 	const Harness = () => {
-		Object.assign(state, useMiniAppBridge({ app, webViewRef, theme: THEME, onReady: () => {}, onClose: () => {}, requireKyc }))
+		Object.assign(state, useMiniAppBridge({ app, webViewRef, theme: THEME, onReady: () => {}, onClose: () => {}, requireKyc, share }))
 		return null
 	}
 	let tree
 	await act(async () => { tree = create(<Harness />) })
 	const send = async (method, params) => { await act(async () => { state.onMessage(message(method, params)) }) }
 	const unmount = async () => { await act(async () => { tree.unmount() }) }
-	return { state, send, requireKyc, kyc, deliveries: () => deliveriesOf(injectJavaScript), unmount }
+	return { state, send, requireKyc, kyc, share, deliveries: () => deliveriesOf(injectJavaScript), unmount }
 }
 
 describe('useMiniAppBridge — gate KYC', () => {
@@ -107,6 +107,82 @@ describe('useMiniAppBridge — gate KYC', () => {
 		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
 		expect(bridge.state.modal).toMatchObject({ kind: 'pay' })
 		expect(bridge.deliveries().map(d => d.error?.code)).toEqual(['NOT_ALLOWED'])
+		await bridge.unmount()
+	})
+})
+
+describe('useMiniAppBridge — share', () => {
+
+	afterEach(() => { jest.clearAllMocks() })
+
+	// Resolver la promesa de `share` y dejar que el bridge responda
+	const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve() })
+
+	test('abre la hoja nativa con el texto de la mini-app y resuelve null al compartir', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('share', { text: 'Mira esto' })
+		await flush()
+		expect(bridge.share).toHaveBeenCalledWith('Mira esto')
+		expect(bridge.requireKyc).not.toHaveBeenCalled()
+		expect(bridge.deliveries()).toEqual([expect.objectContaining({ ok: true, result: null })])
+		await bridge.unmount()
+	})
+
+	test('sin texto llama a share sin argumento', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('share', {})
+		await flush()
+		expect(bridge.share).toHaveBeenCalledWith(undefined)
+		await bridge.unmount()
+	})
+
+	test('si el usuario descarta la hoja (iOS) rechaza con USER_CANCELLED', async () => {
+		const bridge = await renderBridge({ hasKyc: false, share: jest.fn(async () => 'dismissed') })
+		await bridge.send('share', {})
+		await flush()
+		expect(bridge.deliveries()[0]).toMatchObject({ ok: false, error: { code: 'USER_CANCELLED' } })
+		await bridge.unmount()
+	})
+
+	test('si la hoja falla rechaza con FAILED y libera el puente', async () => {
+		const share = jest.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce('shared')
+		const bridge = await renderBridge({ hasKyc: false, share })
+		await bridge.send('share', {})
+		await flush()
+		await bridge.send('share', {})
+		await flush()
+		expect(bridge.deliveries().map(d => d.ok ? 'ok' : d.error.code)).toEqual(['FAILED', 'ok'])
+		await bridge.unmount()
+	})
+
+	test('un segundo share con el primero en vuelo → BUSY', async () => {
+		let release
+		const share = jest.fn(() => new Promise(resolve => { release = resolve }))
+		const bridge = await renderBridge({ hasKyc: false, share })
+		await bridge.send('share', {})
+		await bridge.send('share', {})
+		expect(bridge.deliveries()).toEqual([expect.objectContaining({ ok: false, error: expect.objectContaining({ code: 'BUSY' }) })])
+		await act(async () => { release('shared') })
+		await flush()
+		expect(bridge.deliveries()).toHaveLength(2)
+		expect(bridge.deliveries()[1]).toMatchObject({ ok: true })
+		await bridge.unmount()
+	})
+
+	test('con una hoja nativa (pago) abierta, share → BUSY', async () => {
+		const bridge = await renderBridge({ hasKyc: true })
+		await bridge.send('payments.payInvoice', { invoiceUuid: UUID })
+		await bridge.send('share', {})
+		expect(bridge.share).not.toHaveBeenCalled()
+		expect(bridge.deliveries()[0]).toMatchObject({ ok: false, error: { code: 'BUSY' } })
+		await bridge.unmount()
+	})
+
+	test('un texto con enlace no llega a la hoja (INVALID_PARAMS)', async () => {
+		const bridge = await renderBridge({ hasKyc: false })
+		await bridge.send('share', { text: 'entra en https://evil.com' })
+		expect(bridge.share).not.toHaveBeenCalled()
+		expect(bridge.deliveries()[0]).toMatchObject({ ok: false, error: { code: 'INVALID_PARAMS' } })
 		await bridge.unmount()
 	})
 })

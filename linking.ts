@@ -12,12 +12,16 @@ import type { RootStackParamList } from './types/navigation'
  *   /pay/:uuid     → Pay (merchant invoice)
  *   /store/:slug   → MarketStore (marketplace storefront)
  *   /store/:slug/:uuid → MarketProduct (public product sheet)
+ *   /apps/:slug    → MiniAppHost (mini-app publicada; la URL que se comparte)
+ *   /apps          → MiniApps (catálogo)
  *   /home, /crypto, /p2p → tabs inside MainStack
  *   /add, /withdraw, /send, /savings → accesos directos de los widgets
  *
  * Links that arrive while unauthenticated are NOT resolved here — App.tsx's
  * `pendingDeepLinkRef` stashes the URL (see hooks/useAppNavigation) and
- * replays it with navigation.reset() right after login.
+ * replays it with navigation.reset() right after login. With a session, a cold
+ * start mounts the target as the ONLY root route; useAppNavigation puts
+ * MainStack underneath (see hooks/deepLinkRoutes).
  */
 const linking: LinkingOptions<RootStackParamList> = {
 	prefixes: [
@@ -42,6 +46,9 @@ const linking: LinkingOptions<RootStackParamList> = {
 			// El patrón de producto (2 segmentos) va antes que el de tienda (1)
 			[ROUTES.MARKET_PRODUCT]: 'store/:slug/:uuid',
 			[ROUTES.MARKET_STORE]: 'store/:slug',
+			// Mini-apps: la página pública de qpweb (/apps/<slug>) abre la mini-app
+			[ROUTES.MINIAPP_HOST]: 'apps/:slug',
+			[ROUTES.MINIAPPS]: 'apps',
 			[ROUTES.MAIN_STACK]: {
 				screens: {
 					[ROUTES.HOME_SCREEN]: 'home',
