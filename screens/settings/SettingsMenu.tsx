@@ -38,6 +38,11 @@ import usePushPrompt from '../../hooks/usePushPrompt'
 // In-app review
 import { requestReview } from '../../helpers/inAppReview'
 
+// Easter egg del pie: doble toque en el texto del pie → contribuidores
+import ContributorsSheet from './ContributorsSheet'
+import { isDoubleTap } from './contributors'
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
+
 // Routes
 import { ROUTES } from '../../routes'
 
@@ -105,6 +110,22 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 
 	// Snapshot of the ref taken as the drawer expands; picks the drawer copy/actions.
 	const [logoutKeepsBiometrics, setLogoutKeepsBiometrics] = useState(false)
+
+	// Easter egg: dos toques seguidos en el texto del pie (© + versión + derechos)
+	// abren la hoja de contribuidores. El toque anterior va en un ref (no re-renderiza
+	// el menú) y se consume al abrir, así un tercer toque no la reabre.
+	const [contributorsOpen, setContributorsOpen] = useState(false)
+	const lastFooterTapRef = useRef<number | null>(null)
+	const onFooterPress = () => {
+		const now = Date.now()
+		if (isDoubleTap(lastFooterTapRef.current, now)) {
+			lastFooterTapRef.current = null
+			ReactNativeHapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })
+			setContributorsOpen(true)
+		} else {
+			lastFooterTapRef.current = now
+		}
+	}
 
 	useEffect(() => {
 		const checkBiometrics = async () => { biometricsActiveRef.current = await hasBiometricCredentials() }
@@ -293,13 +314,17 @@ const SettingsMenu = ({ navigation }: SettingsMenuProps) => {
 					</Pressable>
 				</View>}
 
-				{!searching && <Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 20, marginBottom: insets.bottom }]}>
-					{`QvaPay © ${new Date().getFullYear()} \n`}
-					{`v ${version} build ${buildNumber}\n`}
-					{t('settings.menu.allRightsReserved')}
-				</Text>}
+				{!searching && <Pressable onPress={onFooterPress} hitSlop={12} style={{ marginTop: 20, marginBottom: insets.bottom }}>
+					<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: 'center' }]}>
+						{`QvaPay © ${new Date().getFullYear()} \n`}
+						{`v ${version} build ${buildNumber}\n`}
+						{t('settings.menu.allRightsReserved')}
+					</Text>
+				</Pressable>}
 
 			</ScrollView>
+
+			<ContributorsSheet visible={contributorsOpen} onClose={() => setContributorsOpen(false)} />
 
 			{/* Floating header buttons */}
 			<Pressable onPress={() => navigation.goBack()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, left: 16, width: 40, height: 40, borderRadius: 12, borderCurve: 'continuous', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }}>

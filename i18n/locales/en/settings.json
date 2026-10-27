@@ -87,6 +87,11 @@
 		"reviewUnavailable": "Rating isn't available right now",
 		"allRightsReserved": "All rights reserved"
 	},
+	"contributors": {
+		"title": "Thank you",
+		"message": "QvaPay exists thanks to the people who give their time to make it better. These are the people who have contributed code to the app.",
+		"footer": "Want to be here? Send your first PR"
+	},
 	"appLock": {
 		"title": "App lock",
 		"protected": "Your app is protected",
