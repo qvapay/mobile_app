@@ -87,6 +87,11 @@
 		"reviewUnavailable": "Valoración no disponible en este momento",
 		"allRightsReserved": "Todos los derechos reservados"
 	},
+	"contributors": {
+		"title": "Gracias",
+		"message": "QvaPay existe gracias a quienes dedican su tiempo a mejorarla. Estas son las personas que han contribuido código a la app.",
+		"footer": "¿Quieres aparecer aquí? Manda tu primer PR"
+	},
 	"appLock": {
 		"title": "Bloqueo de app",
 		"protected": "Tu app está protegida",
