@@ -189,7 +189,7 @@ Dark (default): bg `#0E0E1C`, surface `#1E2039`. Font: Rubik family.
 
 UI conventions:
 - Prefer lighter font weights — medium/semiBold for emphasis; reserve bold/black for hero numbers.
-- Surface cards must not show borders in dark mode: `theme.mode === 'light' && { borderWidth, borderColor }` inline.
+- Surface cards must not show borders in dark mode: `!theme.isDark && { borderWidth, borderColor }` inline (el tema expone `isDark`, nunca `mode`; PR #89 lo arregló en 46 ficheros).
 - Press feedback uses `QPPressable` (own component: a **single** Reanimated `Animated.View` handling touches via RN's native Responder system — no wrapping `Pressable`). **Never** `Animated.createAnimatedComponent(Pressable)` on Fabric — it SIGSEGVs.
 - Modals: centered card overlay (`transparent`, `animationType="fade"`, `statusBarTranslucent`, Pressable backdrop dismiss) — see `ContactsDisclosureModal`.
 - **Teclado en Android**: con `edgeToEdgeEnabled` la ventana NO se encoge (`adjustResize` no hace nada), así que `<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>` deja el botón de abajo TAPADO por el teclado en Android. Usar `QPKeyboardView` (formularios con `actions`) o `ui/QPKeyboardAvoidingView` (reemplazo directo, reserva `alto del teclado + inset inferior`: el evento de RN da `ime − systemBars`). Lo destapó el E2E 10 en un Samsung. **En iOS tampoco sirve el `KeyboardAvoidingView` de RN bajo una cabecera opaca**: mide con el frame de `onLayout`, RELATIVO al padre, y reserva el teclado MENOS la cabecera (~110 pt), así que el botón queda entero debajo del teclado. `QPKeyboardAvoidingView` mide en la ventana (`measureInWindow`) y anima con la curva del teclado
