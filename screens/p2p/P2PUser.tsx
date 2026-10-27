@@ -41,12 +41,6 @@ import type { TextStyles } from "../../theme/themeUtils"
 import type { P2POffer as P2POfferModel, P2PUser as P2PUserModel } from "../../types/domain"
 import type { PeerDomain, PeerRanking, PeerRatings, PeerStats, PeerTopCoin } from "./p2pQueries"
 
-/**
- * OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
- * pre-existente que se preserva tal cual; los casts de abajo son solo de tipos.
- */
-type ThemeWithMode = Theme & { mode?: string }
-
 /** El payload trae campos que `P2PUser` no modela (bio, twitter, telegram_verified…). */
 type PeerUser = P2PUserModel & Record<string, unknown>
 
@@ -467,7 +461,7 @@ const SocialBtn = ({ theme, icon, brand, url }: { theme: Theme, icon: string, br
 )
 
 const StatCard = ({ theme, textStyles, label, value, sublabel, icon, color }: { theme: Theme, textStyles: TextStyles, label: string, value: number | string, sublabel?: string | null, icon: FontAwesome6SolidIconName, color?: string }) => (
-	<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+	<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 		<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
 			<Text style={{ fontSize: 10, color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }}>{label}</Text>
 			<View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: (color || theme.colors.primary) + "22", alignItems: "center", justifyContent: "center" }}>
@@ -510,7 +504,7 @@ const HazteGoldPill = ({ theme, onPress, compact = false }: { theme: Theme, onPr
 const GoldGateCard = ({ theme, textStyles, unlocked, unlockedCard, label, message, sublabel, onPressLocked }: { theme: Theme, textStyles: TextStyles, unlocked: boolean, unlockedCard: ReactElement, label: string, message: string, sublabel?: string, onPressLocked: () => void }) => {
 	if (unlocked) return unlockedCard
 	return (
-		<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 1, borderColor: theme.colors.gold + "55" }) }]}>
+		<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.gold + "55" }) }]}>
 			<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
 				<Text style={{ fontSize: 10, color: theme.colors.gold, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }} numberOfLines={1}>{label}</Text>
 				<View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.gold + "22", alignItems: "center", justifyContent: "center" }}>
@@ -587,7 +581,7 @@ const OffersTab = ({ theme, textStyles, offers, navigation, username }: { theme:
 	const { t } = useTranslation()
 	if (!offers || offers.length === 0) {
 		return (
-			<View style={[styles.emptyCard, { ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 1, borderColor: theme.colors.border }) }]}>
+			<View style={[styles.emptyCard, { ...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }) }]}>
 				<FontAwesome6 name="rectangle-list" size={28} color={theme.colors.secondaryText} iconStyle="solid" />
 				<Text style={[textStyles.h6, { color: theme.colors.secondaryText, marginTop: 8, textAlign: "center" }]}>
 					{t('p2p.user.offersEmpty', { username })}
@@ -664,10 +658,10 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 
 			{/* Mode switcher */}
 			<View style={{ flexDirection: "row", gap: 8 }}>
-				<Pressable onPress={() => setMode("received")} style={[styles.modePill, { backgroundColor: mode === "received" ? theme.colors.primary : theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+				<Pressable onPress={() => setMode("received")} style={[styles.modePill, { backgroundColor: mode === "received" ? theme.colors.primary : theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 					<Text style={[textStyles.h7, { color: mode === "received" ? theme.colors.almostWhite : theme.colors.primaryText, fontWeight: "600" }]}>{t('p2p.user.reviews.received', { total: received.total || 0 })}</Text>
 				</Pressable>
-				<Pressable onPress={() => setMode("sent")} style={[styles.modePill, { backgroundColor: mode === "sent" ? theme.colors.primary : theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+				<Pressable onPress={() => setMode("sent")} style={[styles.modePill, { backgroundColor: mode === "sent" ? theme.colors.primary : theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 					<Text style={[textStyles.h7, { color: mode === "sent" ? theme.colors.almostWhite : theme.colors.primaryText, fontWeight: "600" }]}>{t('p2p.user.reviews.sent', { total: sent.total || 0 })}</Text>
 				</Pressable>
 			</View>
@@ -675,7 +669,7 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 			{mode === "received" ? (
 				<>
 					{received.total > 0 ? (
-						<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+						<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 							<View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
 								<View style={{ alignItems: "center", paddingRight: 14, borderRightWidth: 0.5, borderRightColor: theme.colors.border }}>
 									<Text style={[textStyles.h1, { color: theme.colors.primaryText, fontWeight: "800" }]}>{avg.toFixed(2)}</Text>
@@ -690,14 +684,14 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 							</View>
 						</View>
 					) : (
-						<View style={[styles.emptyCard, { ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 1, borderColor: theme.colors.border }) }]}>
+						<View style={[styles.emptyCard, { ...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }) }]}>
 							<Text style={[textStyles.h6, { color: theme.colors.secondaryText, textAlign: "center" }]}>
 								{t('p2p.user.reviews.none')}
 							</Text>
 						</View>
 					)}
 
-					<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+					<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 						<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>{t('p2p.user.reviews.latestTitle')}</Text>
 						<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2 }]}>
 							{t('p2p.user.reviews.scoreOnly')}
@@ -718,7 +712,7 @@ const ReviewsTab = ({ theme, textStyles, received, sent, averageRating, isSelf, 
 					</View>
 				</>
 			) : (
-				<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+				<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>{t('p2p.user.reviews.sentTitle')}</Text>
 					<View style={{ marginTop: 6 }}>
 						{sent.items?.length > 0 ? (
@@ -781,7 +775,7 @@ const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onP
 				onPress={onPressUnlock}
 				minHeight={300}
 			>
-				<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+				<View style={[styles.sectionCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 					<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: "700" }]}>{t('p2p.user.stats.topCoinsTitle')}</Text>
 					<Text style={[textStyles.h7, { color: theme.colors.secondaryText, marginTop: 2, marginBottom: 8 }]}>
 						{t('p2p.user.stats.topCoinsSubtitle')}
@@ -814,7 +808,7 @@ const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onP
 }
 
 const MiniCard = ({ theme, textStyles, label, value, icon, color }: { theme: Theme, textStyles: TextStyles, label: string, value: number | string, icon: FontAwesome6SolidIconName, color?: string }) => (
-	<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === "light" && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
+	<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 		<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
 			<Text style={{ fontSize: 10, color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }} numberOfLines={1}>{label}</Text>
 			<FontAwesome6 name={icon} size={12} color={color || theme.colors.secondaryText} iconStyle="solid" />

@@ -10,10 +10,6 @@ import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
 import type { StoreCountry, StoreOffer } from './storeQueries'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 // Constantes de módulo con CLAVES de i18n (no copy): se resuelven con t() en
 // render para que el idioma activo aplique en vivo
 const SUB_TYPE_LABEL_KEY: Record<string, string> = {
@@ -93,7 +89,7 @@ const OfferRow = ({ offer, selected, isGold, onSelect, theme, textStyles }: Offe
 				styles.offerRow,
 				selected
 					? { backgroundColor: theme.colors.primary + '12', borderWidth: 1, borderColor: theme.colors.primary }
-					: { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }) },
+					: { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }) },
 			]}
 		>
 			<View style={{ flex: 1 }}>
@@ -203,7 +199,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 
 			{/* SubType tabs */}
 			{availableSubTypes.length > 2 && (
-				<View style={[styles.tabs, (theme as ThemeWithMode).mode === 'light' && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}>
+				<View style={[styles.tabs, !theme.isDark && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}>
 					{availableSubTypes.map(tab => {
 						const active = activeTab === tab.key
 						const cnt = tab.key === 'ALL'
@@ -254,7 +250,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 							keyboardType="decimal-pad"
 							placeholder={`${selectedOffer.price_min}`}
 							placeholderTextColor={theme.colors.placeholder}
-							style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+							style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 						/>
 					</View>
 				)}

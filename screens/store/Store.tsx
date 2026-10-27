@@ -27,10 +27,6 @@ import type { Theme } from '../../theme/ThemeContext'
 import type { TextStyles } from '../../theme/themeUtils'
 import type { MainTabParamList, RootStackParamList } from '../../types/navigation'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 /** Store vive en las tabs de MainStack pero navega a rutas del stack raíz. */
 type StoreProps = CompositeScreenProps<
 	BottomTabScreenProps<MainTabParamList, 'Store'>,
@@ -211,7 +207,7 @@ const DepartmentCard = ({ icon, iconStyle = 'solid', color, title, subtitle, com
 			styles.departmentCard,
 			compact && styles.departmentCardCompact,
 			{ backgroundColor: theme.colors.surface },
-			(theme as ThemeWithMode).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight },
+			!theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight },
 		]}
 		onPress={onPress}
 	>

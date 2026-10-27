@@ -8,7 +8,6 @@ import type { NavigationProp } from '@react-navigation/native'
 
 import { ROUTES } from '../routes'
 import { useTheme } from '../theme/ThemeContext'
-import type { Theme } from '../theme/ThemeContext'
 import type { RootStackParamList } from '../types/navigation'
 
 // Auth & KYC gate
@@ -220,14 +219,12 @@ const CashDeliveryCard = ({ navigation }: { navigation: NavigationProp<RootStack
 				{t('ui.cashDelivery.sectionTitle')}
 			</Text>
 
-			{/* OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de
-			    runtime pre-existente que se preserva tal cual; el cast de abajo es solo de tipos */}
 			<Pressable
 				onPress={() => {
 					if (!requireKyc({ message: t('ui.cashDelivery.kycGateMessage') })) return
 					navigation.navigate(ROUTES.WITHDRAW, { preselectedCoin: 'USDCASH' })
 				}}
-				style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, opacity: kycVerified ? 1 : 0.55, transform: [{ scale: pressed ? 0.98 : 1 }] }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+				style={({ pressed }) => [styles.card, { backgroundColor: theme.colors.surface, opacity: kycVerified ? 1 : 0.55, transform: [{ scale: pressed ? 0.98 : 1 }] }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
 
 				{/* Map area */}
 				<View style={styles.mapArea} onLayout={e => setMapWidth(e.nativeEvent.layout.width)}>

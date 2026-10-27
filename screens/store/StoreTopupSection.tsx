@@ -11,10 +11,6 @@ import type { TextStyles } from '../../theme/themeUtils'
 import type { StoreBrand, StoreCountry } from './storeQueries'
 import type { StoreNavigation } from './Store'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 // i18n.t en call time: se re-resuelve en cada render (el componente re-renderiza
 // con useTranslation al cambiar de idioma)
 const formatPriceRange = (min: number | string | null | undefined, max: number | string | null | undefined): string | null => {
@@ -63,7 +59,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 				</View>
 				<Pressable
 					onPress={() => navigation.navigate(ROUTES.PHONE_TOPUP_INDEX, { country: topupSelected?.code })}
-					style={[styles.miniCta, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+					style={[styles.miniCta, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 				>
 					<Text style={[textStyles.caption, { color: theme.colors.primary, fontWeight: '600' }]}>{t('common.actions.seeAll')}</Text>
 				</Pressable>
@@ -93,7 +89,7 @@ const StoreTopupSection = ({ topupCountries, topupSelected, topupBrands, onSelec
 									backgroundColor: theme.colors.surface,
 									width: numColumns === 2 ? '48%' : numColumns === 3 ? '31.5%' : '23%',
 								},
-								(theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+								!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border },
 							]}
 						>
 							<OperatorAvatar brand={b.brand} logoUrl={b.logo_url} size="md" />

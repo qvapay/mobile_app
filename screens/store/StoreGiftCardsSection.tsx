@@ -9,10 +9,6 @@ import type { TextStyles } from '../../theme/themeUtils'
 import type { StoreBrand, StoreCategory } from './storeQueries'
 import type { StoreNavigation } from './Store'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 type SectionHeaderProps = {
 	title: string
 	hint?: string
@@ -126,7 +122,7 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 								style={[
 									styles.catCard,
 									{ backgroundColor: theme.colors.surface, width: numColumns === 2 ? '48%' : numColumns === 3 ? '31.5%' : '23%' },
-									(theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+									!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border },
 								]}
 							>
 								<Text style={{ fontSize: 26 }}>{c.emoji}</Text>
@@ -148,7 +144,7 @@ const StoreGiftCardsSection = ({ favorites, featured, categories, numColumns, th
 			{favorites.length === 0 && featured.length === 0 && categories.length === 0 && (
 				<Pressable
 					onPress={() => navigation.navigate(ROUTES.GIFT_CARDS)}
-					style={[styles.giftCardCta, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+					style={[styles.giftCardCta, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 				>
 					<Text style={{ fontSize: 36 }}>🎁</Text>
 					<View style={{ flex: 1, marginLeft: 14 }}>

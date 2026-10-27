@@ -33,10 +33,6 @@ import type { RootStackParamList } from '../../types/navigation'
 import type { StoreCountry, StoreOffer } from './storeQueries'
 import type { VoucherPurchaseInput } from '../../api/storeApi'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 /** Estado del wizard de compra: denominación elegida, importe de rango y paso. */
 type PurchaseState = { selectedOffer: StoreOffer | null, rangeAmount: string, step: number }
 /** Acciones del wizard: fijar un campo o elegir una denominación. */
@@ -91,7 +87,7 @@ const OfferRow = ({ offer, selected, onSelect, theme, textStyles }: OfferRowProp
 				styles.offerRow,
 				selected
 					? { backgroundColor: theme.colors.primary + '12', borderWidth: 1, borderColor: theme.colors.primary }
-					: { backgroundColor: theme.colors.surface, ...((theme as ThemeWithMode).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border }) },
+					: { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }) },
 			]}
 		>
 			<View style={{ flex: 1 }}>
@@ -341,7 +337,7 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 									keyboardType="decimal-pad"
 									placeholder={`${selectedOffer.price_min}`}
 									placeholderTextColor={theme.colors.placeholder}
-									style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+									style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 								/>
 							</View>
 						)}
@@ -350,7 +346,7 @@ const GiftCardBrand = ({ navigation, route }: NativeStackScreenProps<RootStackPa
 
 				{step === 2 && selectedOffer && (
 					<View style={styles.section}>
-						<View style={[styles.summary, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+						<View style={[styles.summary, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 12 }]}>
 								{t('store.giftCardBrand.confirmTitle')}
 							</Text>

@@ -59,13 +59,6 @@ type SavingsProps = NativeStackScreenProps<RootStackParamList, 'Savings'>
  */
 type StyleMap = Record<string, ViewStyle | TextStyle | ImageStyle | ((theme: Theme) => ViewStyle)>
 
-/**
- * OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así que
- * la comparación contra 'light' es siempre falsa en runtime y el borde claro de
- * las cards nunca se pinta. Se conserva tal cual con un cast local.
- */
-const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
-
 type ModalType = SavingsOperation
 
 type ModalState = { type: ModalType, amount: string, loading: boolean }
@@ -233,7 +226,7 @@ const Savings = ({ route }: SavingsProps) => {
 
 				{/* Stats */}
 				{hasHistory && (
-					<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
+					<View style={[styles.statsCard, { backgroundColor: theme.colors.surface }, !theme.isDark && styles.cardBorder(theme)]}>
 						<StatRow label={t('crypto.savings.totalDeposited')} value={`$${totalDeposited}`} theme={theme} />
 						<StatRow label={t('crypto.savings.totalWithdrawn')} value={`$${totalWithdrawn}`} theme={theme} />
 						<StatRow label={t('crypto.savings.earnings')} value={`$${totalEarned}`} theme={theme} valueColor={theme.colors.successText} isLast />
@@ -246,7 +239,7 @@ const Savings = ({ route }: SavingsProps) => {
 				{/* Activity */}
 				<Text style={[textStyles.h3, styles.sectionTitle]}>{t('crypto.savings.activity')}</Text>
 				{transactions.length > 0 ? (
-					<View style={[styles.activityCard, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && styles.cardBorder(theme)]}>
+					<View style={[styles.activityCard, { backgroundColor: theme.colors.surface }, !theme.isDark && styles.cardBorder(theme)]}>
 						{transactions.map((tx, index) => (
 							<ActivityRow key={tx.id} tx={tx} theme={theme} isLast={index === transactions.length - 1} />
 						))}

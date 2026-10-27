@@ -37,10 +37,6 @@ import type { StoreCountry, StoreOffer } from './storeQueries'
 import type { PhonePackagePurchaseInput, TopupPurchaseInput } from '../../api/storeApi'
 import type { ApiResult } from '../../types/api'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 /** Estado del wizard: número, plan elegido, importe de rango, pestaña y paso. */
 type PurchaseState = {
 	phoneNumber: string
@@ -305,7 +301,7 @@ const PhoneTopupBrand = ({ navigation, route }: NativeStackScreenProps<RootStack
 
 				{step === 2 && selectedOffer && (
 					<View style={styles.section}>
-						<View style={[styles.summary, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+						<View style={[styles.summary, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 							<Text style={[textStyles.h5, { color: theme.colors.primaryText, fontWeight: '600', marginBottom: 12 }]}>
 								{t('store.topupBrand.confirmTitle')}
 							</Text>

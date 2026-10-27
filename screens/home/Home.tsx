@@ -97,7 +97,7 @@ const ServiceCard = ({ icon, title, iconColor, onPress, theme }: ServiceCardProp
 				backgroundColor: theme.colors.surface,
 				transform: [{ scale: pressed ? 0.97 : 1 }]
 			},
-			themeMode(theme) === 'light' && {
+			!theme.isDark && {
 				borderWidth: 1,
 				borderColor: theme.colors.border,
 			}
@@ -109,13 +109,6 @@ const ServiceCard = ({ icon, title, iconColor, onPress, theme }: ServiceCardProp
 		<Text style={[styles.serviceCardTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }]}>{title}</Text>
 	</Pressable>
 )
-
-/**
- * OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así que
- * la comparación contra 'light' es siempre falsa en runtime y el borde de las
- * cards claras nunca se pinta. Se conserva tal cual con un cast local.
- */
-const themeMode = (theme: Theme) => (theme as Theme & { mode?: 'light' | 'dark' }).mode
 
 type KycPromptBannerProps = {
 	theme: Theme
@@ -130,7 +123,7 @@ const KycPromptBanner = ({ theme, navigation, prompt }: KycPromptBannerProps) =>
 	const { shouldShowBanner, dismissBanner } = prompt
 	if (!shouldShowBanner) return null
 	return (
-		<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+		<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
 			<View style={[styles.pushBannerIcon, { backgroundColor: theme.colors.primary + '20' }]}>
 				<FontAwesome6 name="shield-halved" size={16} color={theme.colors.primary} iconStyle="solid" />
 			</View>
@@ -156,7 +149,7 @@ const PushPromptBanner = ({ theme }: { theme: Theme }) => {
 	const { shouldShowBanner, enablePush, dismissBanner } = usePushPrompt()
 	if (!shouldShowBanner) return null
 	return (
-		<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, themeMode(theme) === 'light' && { borderWidth: 1, borderColor: theme.colors.border }]}>
+		<View style={[styles.pushBanner, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.border }]}>
 			<View style={[styles.pushBannerIcon, { backgroundColor: theme.colors.primary + '20' }]}>
 				<FontAwesome6 name="bell" size={16} color={theme.colors.primary} iconStyle="solid" />
 			</View>

@@ -33,10 +33,6 @@ import type { RootStackParamList } from '../../../types/navigation'
 import type { ShippingAddress, UsAddressForm } from '../../../ui/store/shippingAddress'
 import type { CartLineStatus, FreshProduct } from './marketCheckout'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 /** Estado del bloque de envío: dirección guardada elegida o formulario nuevo. */
 type ShippingState = { selectedUuid: string | null, useNewAddress: boolean, form: UsAddressForm }
 
@@ -301,7 +297,7 @@ const MarketCart = ({ navigation }: NativeStackScreenProps<RootStackParamList, '
 				)}
 
 				{/* Resumen */}
-				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
+				<View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}>
 					<View style={styles.summaryRow}>
 						<Text style={[textStyles.caption, { color: theme.colors.secondaryText }]}>
 							{t('market.common.products', { count: payable.length })}

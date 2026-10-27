@@ -28,7 +28,6 @@ import { money, providerLabel, feePercent } from './assistedConstants'
 // Types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../../../types/navigation'
-import type { Theme } from '../../../theme/ThemeContext'
 import type { ApiFailure, ApiResult } from '../../../types/api'
 import type { AssistedProductData } from './assistedConstants'
 
@@ -162,7 +161,7 @@ const AssistedProduct = ({ navigation, route }: Props) => {
 				</Text>
 
 				{/* Quantity + total */}
-				<View style={[styles.quantityCard, { backgroundColor: theme.colors.surface }, (theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
+				<View style={[styles.quantityCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 1, borderColor: theme.colors.elevationLight }]}>
 					<Text style={[textStyles.h6, { fontWeight: '600' }]}>{t('assisted.product.quantity')}</Text>
 					<View style={styles.stepper}>
 						<Pressable

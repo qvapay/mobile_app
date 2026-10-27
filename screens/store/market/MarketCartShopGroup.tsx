@@ -13,10 +13,6 @@ import type { TextStyles } from '../../../theme/themeUtils'
 import type { RootStackParamList } from '../../../types/navigation'
 import type { ShopGroup } from './marketCheckout'
 
-// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-// pre-existente que se preserva tal cual; el alias es solo de tipos.
-type ThemeWithMode = Theme & { mode?: string }
-
 type MarketCartShopGroupProps = {
 	group: ShopGroup
 	/** Hay un pago en curso: las cantidades y el borrado quedan bloqueados. */
@@ -43,7 +39,7 @@ const MarketCartShopGroup = ({ group, paying, onSetQty, onRemove, navigation, mo
 
 	return (
 		<View
-			style={[styles.shopCard, { backgroundColor: theme.colors.surface }, (theme as ThemeWithMode).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+			style={[styles.shopCard, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 		>
 			<Pressable
 				disabled={!group.slug}

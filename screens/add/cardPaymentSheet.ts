@@ -58,10 +58,7 @@ export async function presentCardDeposit({ topupData, theme, user }: CardDeposit
 			initializedKey = publishable_key
 		}
 
-		// OJO (pre-existente, NO tocado): el theme expone `isDark`, no `mode`, así
-		// que `mode` es siempre undefined y esta hoja se pinta SIEMPRE en oscuro,
-		// incluso en tema claro. Se conserva tal cual con un cast local.
-		const isDark = (theme as Theme & { mode?: 'light' | 'dark' }).mode !== 'light'
+		const isDark = theme.isDark
 		const { error: initError } = await initPaymentSheet({
 			paymentIntentClientSecret: client_secret,
 			merchantDisplayName: 'QvaPay',

@@ -5,7 +5,6 @@ import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
 
 import OperatorAvatar from './OperatorAvatar'
 import { useTheme } from '../../theme/ThemeContext'
-import type { Theme } from '../../theme/ThemeContext'
 import { createTextStyles } from '../../theme/themeUtils'
 
 /** Catalog brand row from `/api/store/*-catalog` (only the fields this tile reads). */
@@ -54,7 +53,7 @@ const BrandTile = ({ brand, country, onPress, style }: Props) => {
 			style={[
 				styles.tile,
 				{ backgroundColor: theme.colors.surface },
-				(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 0.5, borderColor: theme.colors.border },
+				!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border },
 				style,
 			]}
 		>

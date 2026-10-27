@@ -81,9 +81,7 @@ const Pill = ({ Icon, label, theme }: MarqueeItem & { theme: Theme }) => (
 	<View style={[
 		styles.pill,
 		{ backgroundColor: theme.colors.surface },
-		// OJO: `theme.mode` no existe en el tema (siempre undefined) — bug de runtime
-		// pre-existente que se preserva tal cual (la pill nunca pinta borde en light)
-		(theme as Theme & { mode?: string }).mode === 'light' && { borderWidth: 1, borderColor: theme.colors.border },
+		!theme.isDark && { borderWidth: 1, borderColor: theme.colors.border },
 	]}>
 		{Icon && <Icon width={18} height={18} />}
 		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: 13 }}>
