@@ -20,8 +20,12 @@ export const CONTRIBUTORS_REPO_URL = 'https://github.com/qvapay/mobile_app'
 
 export const CONTRIBUTORS_URL = 'https://api.github.com/repos/qvapay/mobile_app/contributors?per_page=100'
 
-/** Logins que nunca cuentan como personas, por si GitHub los lista como `User`. */
-export const EXCLUDED_LOGIN = /claude|anthropic|cursor|copilot|\[bot\]|-bot$/i
+/**
+ * Logins que nunca cuentan como personas, por si GitHub los lista como `User`:
+ * agentes de IA (Claude, Codex/OpenAI, Copilot, Cursor, Devin) y bots de
+ * mantenimiento (dependabot, renovate, github-actions). Solo humanos.
+ */
+export const EXCLUDED_LOGIN = /claude|anthropic|codex|openai|chatgpt|copilot|cursor|devin|dependabot|renovate|github-actions|\[bot\]|-bot$|bot\[/i
 
 /** Dos toques en menos de esto = doble toque. */
 export const DOUBLE_TAP_MS = 350
