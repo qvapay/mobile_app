@@ -78,7 +78,9 @@ const QPRate = ({
 				}}
 				disabled={readOnly}
 			>
-				<FontAwesome6 name="star" size={size} color={starColor} iconStyle={(isActive || isHovered) ? "solid" : "regular"} />
+				<View pointerEvents="none">
+					<FontAwesome6 name="star" size={size} color={starColor} iconStyle={(isActive || isHovered) ? "solid" : "regular"} />
+				</View>
 			</QPPressable>
 		);
 	};
