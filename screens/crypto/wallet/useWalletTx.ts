@@ -10,9 +10,15 @@
  * - Si la tx tiene vigencia (TRON ~60 s, blockhash de Solana) y expiró, se
  *   reconstruye antes de firmar: firmar una tx caducada es tirar la firma. Y si es la RED
  *   la que la da por caducada al difundir (antes que nuestro reloj), también.
+ * - Pero una firma que YA salió hacia la red no se tira sin preguntar a la cadena qué fue de
+ *   ella (`lookup`): un fallo de red al difundir es ambiguo (el nodo pudo aceptarla y perderse
+ *   la respuesta), "caducada" al re-difundir no prueba que no se ejecutara (java-tron valida la
+ *   expiración antes que el duplicado) y nuestro reloj de Solana se adelanta a la red. Construir
+ *   otra sin mirar es que el usuario confirme y pague dos veces.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import type { TxLookup } from '../../../wallet/chains/txLookup'
 import { isExpiredBroadcastError } from './txExpiry'
 
 export type TxPhase = 'preparing' | 'ready' | 'waitingEnergy' | 'signing' | 'broadcasting' | 'error'
@@ -26,6 +32,15 @@ export type PreparedTx = { summary: { expiresAt: number | null } }
  */
 export type SubmitResult = { txid: string, duplicate: boolean, note?: string } | { rebuild: true }
 
+export type { TxLookup }
+
+const UNKNOWN: TxLookup = { status: 'unknown' }
+
+/** La tx anterior quizá se ejecutó y aún no se puede saber: no se firma otra todavía. */
+export class TxUnconfirmedError extends Error {
+	constructor() { super('wallet: la transacción anterior pudo enviarse; aún no se puede confirmar'); this.name = 'TxUnconfirmedError' }
+}
+
 type Args<P extends PreparedTx, S> = {
 	/** false = faltan datos (activo, direcciones…): no se construye y la fase queda en `preparing`. */
 	ready: boolean
@@ -36,19 +51,56 @@ type Args<P extends PreparedTx, S> = {
 	/** La tx llegó a la red. `duplicate`: ya estaba (re-difusión de la misma firma). */
 	onSent: (txid: string, prepared: P, duplicate: boolean, note?: string) => void
 	describeError: (err: unknown) => string
+	/**
+	 * Pregunta a la cadena por una tx ya difundida antes de tirar su firma. Sin él la respuesta
+	 * es siempre `unknown`: una firma difundida no se sustituye nunca, se re-difunde.
+	 */
+	lookup?: (prepared: P, signed: S) => Promise<TxLookup>
 }
 
-export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submit, onSent, describeError }: Args<P, S>) => {
+export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submit, onSent, describeError, lookup }: Args<P, S>) => {
 
 	const [phase, setPhase] = useState<TxPhase>('preparing')
 	const [prepared, setPrepared] = useState<P | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [authVisible, setAuthVisible] = useState(false)
 	const signedRef = useRef<S | null>(null)
+	/** La última firma que salió hacia la red y de la que no consta el resultado. */
+	const attemptRef = useRef<{ prepared: P, signed: S } | null>(null)
 	const inFlightRef = useRef(false)
+	// Espejos: `prepare` es dependencia del efecto de construcción y no debe cambiar con ellos
+	const lookupRef = useRef(lookup)
+	const onSentRef = useRef(onSent)
+	useEffect(() => { lookupRef.current = lookup; onSentRef.current = onSent }, [lookup, onSent])
+
+	/**
+	 * Antes de construir otra tx: ¿qué fue de la que ya se difundió? Si entró, cuenta como
+	 * enviada; si ya nunca entrará, se puede construir otra; si no se sabe, se espera.
+	 *
+	 * @returns true si se puede construir otra tx.
+	 */
+	const resolveAttempt = useCallback(async (): Promise<boolean> => {
+		const attempt = attemptRef.current
+		if (!attempt) return true
+		setPhase('preparing'); setError(null)
+		const outcome = lookupRef.current ? await lookupRef.current(attempt.prepared, attempt.signed).catch(() => UNKNOWN) : UNKNOWN
+		if (outcome.status === 'landed') {
+			attemptRef.current = null; signedRef.current = null
+			onSentRef.current(outcome.txid, attempt.prepared, true)
+			return false
+		}
+		if (outcome.status === 'dropped') {
+			attemptRef.current = null
+			return true
+		}
+		setPhase('error')
+		setError(describeError(new TxUnconfirmedError()))
+		return false
+	}, [describeError])
 
 	const prepare = useCallback(async () => {
 		if (!ready) return
+		if (!(await resolveAttempt())) return
 		setPhase('preparing'); setError(null); signedRef.current = null
 		try {
 			setPrepared(await build())
@@ -57,7 +109,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			setPhase('error')
 			setError(describeError(err))
 		}
-	}, [ready, build, describeError])
+	}, [ready, build, describeError, resolveAttempt])
 
 	useEffect(() => { prepare() }, [prepare])
 
@@ -65,18 +117,22 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 
 	const broadcast = useCallback(async (current: P, signed: S) => {
 		setPhase('broadcasting')
+		attemptRef.current = { prepared: current, signed }
 		try {
 			const result = await submit(current, signed)
 			if ('rebuild' in result) {
+				// Respuesta definitiva de que no se gastó nada (patrocinio): sin nada que resolver
+				attemptRef.current = null
 				signedRef.current = null
 				await prepare()
 				return
 			}
+			attemptRef.current = null
 			onSent(result.txid, current, result.duplicate, result.note)
 		} catch (err) {
-			// La red dio la tx por CADUCADA antes que nuestro reloj: no se ejecutó, así que se
-			// reconstruye (y el usuario vuelve a confirmar). Si no, "Reintentar" re-difundiría la
-			// misma tx caducada en bucle
+			// La red dio la tx por CADUCADA: ya no puede entrar, pero pudo entrar ANTES (una
+			// difusión previa sin respuesta). `prepare` pregunta a la cadena antes de construir
+			// otra; re-difundir esta, en cambio, daría "caducada" en bucle
 			if (isExpiredBroadcastError(err)) {
 				signedRef.current = null
 				await prepare()
@@ -123,7 +179,10 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			broadcast(prepared, signedRef.current).finally(() => { inFlightRef.current = false })
 			return
 		}
-		prepare()
+		// Puede preguntar a la cadena por la tx anterior: un doble tap no pregunta dos veces
+		if (inFlightRef.current) return
+		inFlightRef.current = true
+		prepare().finally(() => { inFlightRef.current = false })
 	}, [prepared, broadcast, prepare, isExpired])
 
 	return {

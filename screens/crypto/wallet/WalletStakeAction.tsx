@@ -26,7 +26,7 @@ import { broadcastStake, estimateStakeMinimum, estimateStakeReserve, prepareStak
 import type { PreparedStake, SignedStake, StakeIntent } from './walletStakeActions'
 import { maxStakeUnits, validateStakeForm } from './stakeFormModel'
 import type { StakeFormError } from './stakeFormModel'
-import useWalletTx from './useWalletTx'
+import useWalletTx, { TxUnconfirmedError } from './useWalletTx'
 import type { TxPhase } from './useWalletTx'
 import { shortAddress } from './walletFormat'
 
@@ -201,6 +201,7 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 		if (err instanceof StakeUnsupportedError) return t('crypto.staking.confirm.errors.unsupported', { network: asset?.chainName ?? '' })
 		if (err instanceof AllRpcsFailedError) return t('crypto.staking.confirm.errors.noNodes')
 		if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
+		if (err instanceof TxUnconfirmedError) return t('crypto.wallet.send.errors.unconfirmed')
 		if (err instanceof Error && /VerifyError$/.test(err.name)) return t('crypto.staking.confirm.errors.verifyFailed')
 		const message = (err as Error)?.message ?? ''
 		// Los rechazos de simulación de Solana no explican nada: se traducen los conocidos

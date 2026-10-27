@@ -16,6 +16,7 @@ import { ed25519 } from '@noble/curves/ed25519.js'
 
 import { ChainHttpError, jsonRpc } from '../chains/http'
 import type { RegistryRpc } from '../registry/types'
+import type { TxLookup } from '../chains/txLookup'
 import {
 	associatedTokenAddress,
 	compileMessage,
@@ -407,4 +408,22 @@ export const broadcastSolanaTransaction = async (rpc: RegistryRpc, signed: Signe
 		if (/Blockhash not found|BlockhashNotFound|block height exceeded/i.test(message)) throw new SolanaExpiredError()
 		throw err
 	}
+}
+
+/**
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara? La altura se lee ANTES que
+ * la firma: si ya pasó `lastValidBlockHeight` y la firma no consta, ya no entrará nunca. Ojo:
+ * `expiresAt` es una estimación local de 60 s y la red la acepta hasta esa altura, a veces
+ * bastante más. Solo `confirmed`/`finalized` cuentan como entrada (un `processed` aún puede
+ * caer en un fork); entrada con error no movió fondos: `dropped`.
+ */
+export const lookupSolanaTransaction = async (rpc: RegistryRpc, signature: string, lastValidBlockHeight: number, signal?: AbortSignal): Promise<TxLookup> => {
+	const height = await rpcCall<number>(rpc, 'getBlockHeight', [{ commitment: 'confirmed' }], signal)
+	const statuses = await rpcCall<{ value: Array<{ confirmationStatus?: string | null, err?: unknown } | null> }>(rpc, 'getSignatureStatuses', [[signature], { searchTransactionHistory: true }], signal)
+	const status = statuses?.value?.[0] ?? null
+	if (status && (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized')) {
+		return status.err ? { status: 'dropped' } : { status: 'landed', txid: signature }
+	}
+	if (!status && height > lastValidBlockHeight) return { status: 'dropped' }
+	return { status: 'unknown' }
 }

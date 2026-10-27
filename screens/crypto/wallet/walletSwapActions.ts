@@ -16,16 +16,17 @@ import { broadcastEvmTransaction } from '../../../wallet/evm/tx'
 import type { SignedEvmTx } from '../../../wallet/evm/tx'
 import { prepareSolanaSwap, signSolanaSwap } from '../../../wallet/solana/swap'
 import type { JupiterBuild, PreparedSolanaSwap } from '../../../wallet/solana/swap'
-import { broadcastSolanaTransaction } from '../../../wallet/solana/tx'
+import { broadcastSolanaTransaction, lookupSolanaTransaction } from '../../../wallet/solana/tx'
 import type { SignedSolanaTx } from '../../../wallet/solana/tx'
 import { prepareTronSwapStep, tronTxStatus } from '../../../wallet/tron/swap'
 import type { PreparedTronSwapStep } from '../../../wallet/tron/swap'
-import { broadcastTronTransaction, signTronTransaction, TRON_TX_RPC } from '../../../wallet/tron/tx'
+import { broadcastTronTransaction, lookupTronTransaction, signTronTransaction, TRON_TX_RPC } from '../../../wallet/tron/tx'
 import { prepareThorchainBtcSwap, signThorchainBtcSwap } from '../../../wallet/btc/thorchain'
 import type { PreparedThorchainBtc } from '../../../wallet/btc/thorchain'
 import { broadcastBtcTransaction } from '../../../wallet/btc/tx'
 import type { SignedBtcTx } from '../../../wallet/btc/tx'
 import type { ExchangeOnchainBuild } from '../../../types/domain'
+import type { TxLookup } from '../../../wallet/chains/txLookup'
 import type { OnchainSwapPlan } from './onchainSwapModel'
 import { withWalletKey } from './walletSendActions'
 
@@ -127,6 +128,24 @@ export const broadcastOnchainSwap = async (prepared: PreparedOnchainSwap, signed
 		return router.call(prepared.chainKey, (rpc, signal) => broadcastBtcTransaction(rpc, signed.signed, { signal }))
 	}
 	throw new Error('wallet: firma y transacción de familias distintas')
+}
+
+/**
+ * ¿Entró un paso de swap ya difundido? Como en Enviar (`lookupSend`): solo TRON y Solana
+ * caducan; EVM y Bitcoin se re-difunden siempre (`unknown`).
+ */
+export const lookupOnchainSwap = async (prepared: PreparedOnchainSwap, signed: SignedOnchainSwap): Promise<TxLookup> => {
+	const router = getAppRpcRouter()
+	if (prepared.family === 'tron') {
+		const raw = prepared.inner.tx.raw_data_hex
+		return router.call(prepared.chainKey, (rpc, signal) => lookupTronTransaction(rpc, raw, { signal }), { accept: TRON_TX_RPC, idempotent: true })
+	}
+	if (prepared.family === 'solana' && signed.family === 'solana' && signed.signed.txid) {
+		const signature = signed.signed.txid
+		const lastValid = prepared.inner.lastValidBlockHeight
+		return router.call(prepared.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, signature, lastValid, signal), { idempotent: true })
+	}
+	return { status: 'unknown' }
 }
 
 /** Tope de espera a que se mine un permiso antes de seguir con el swap. */

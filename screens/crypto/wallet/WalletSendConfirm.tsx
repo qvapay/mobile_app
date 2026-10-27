@@ -28,6 +28,7 @@ import { useAuth } from '../../../auth/AuthContext'
 import type { FeeTier, PreparedSend } from './walletSendActions'
 import { parseUnitsSafe, sendFeeState } from './sendConfirmModel'
 import useWalletSendTx from './useWalletSendTx'
+import { TxUnconfirmedError } from './useWalletTx'
 import useGaslessSend from './useGaslessSend'
 import { sponsorChainFor, sponsoredNotice } from './gaslessModel'
 import type { GaslessState } from './useGaslessSend'
@@ -504,6 +505,7 @@ const Notice = ({ theme, icon, color, text, action, onPress }: {
 const describeError = (err: unknown, t: (key: string, opts?: Record<string, unknown>) => string): string => {
 	if (err instanceof TronVerifyError || err instanceof EvmVerifyError || err instanceof StacksVerifyError || err instanceof SolanaVerifyError) return t('crypto.wallet.send.errors.verifyFailed')
 	if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
+	if (err instanceof TxUnconfirmedError) return t('crypto.wallet.send.errors.unconfirmed')
 	if (err instanceof AllRpcsFailedError) return t('crypto.wallet.send.errors.noNodes')
 	const message = (err as Error)?.message ?? ''
 	// La regla de renta de Solana llega como un rechazo de simulación sin explicación:

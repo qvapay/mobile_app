@@ -24,6 +24,7 @@ import { sha256 } from '@noble/hashes/sha2.js'
 import { ChainHttpError, postJson } from '../chains/http'
 import { tronToHex20 } from '../chains/tron'
 import type { RegistryRpc } from '../registry/types'
+import type { TxLookup } from '../chains/txLookup'
 import {
 	allBytesOf,
 	bytesOf,
@@ -505,4 +506,22 @@ export const broadcastTronTransaction = async (rpc: RegistryRpc, rawHex: string,
 	// así que rotar nunca duplica; expirada o inválida lo estará en todos
 	const retryable = res?.code === 'SERVER_BUSY'
 	throw new ChainHttpError(`tron: broadcast rechazado (${res?.code ?? 'sin código'}): ${decodeNodeMessage(res?.message)}`, { retryable })
+}
+
+/**
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara? La punta se lee ANTES que
+ * la tx: si la punta ya pasó su `expiration` y la tx no está en ningún bloque hasta ella, ya
+ * no entrará nunca (java-tron rechaza toda tx con expiration ≤ headBlockTime). Entrada pero
+ * fallida (sin energía, revert) cuenta como `dropped`: no movió fondos y su firma ya no vale.
+ */
+export const lookupTronTransaction = async (rpc: RegistryRpc, rawHex: string, deps: Deps = {}): Promise<TxLookup> => {
+	const txid = tronTxId(rawHex)
+	const head = await post<{ block_header?: { raw_data?: { timestamp?: number } } }>(rpc, '/wallet/getnowblock', {}, deps)
+	const found = await post<{ txID?: string, ret?: Array<{ contractRet?: string }> }>(rpc, '/wallet/gettransactionbyid', { value: txid }, deps)
+	if (found?.txID?.toLowerCase() === txid) {
+		const result = found.ret?.[0]?.contractRet
+		return !result || result === 'SUCCESS' ? { status: 'landed', txid } : { status: 'dropped' }
+	}
+	const headTime = head?.block_header?.raw_data?.timestamp
+	return typeof headTime === 'number' && BigInt(headTime) >= decodeTronRaw(rawHex).expiration ? { status: 'dropped' } : { status: 'unknown' }
 }

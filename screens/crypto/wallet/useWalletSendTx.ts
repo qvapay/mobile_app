@@ -18,7 +18,7 @@ import type { AssetView } from '../../../wallet/assets'
 import type { WalletAddresses } from '../../../wallet/derive'
 import type { RegistryChain } from '../../../wallet/registry/types'
 import { refreshHistoryAfterSend, WALLET_BALANCES_KEY } from './walletQueries'
-import { broadcastSigned, prepareSend, signPrepared } from './walletSendActions'
+import { broadcastSigned, lookupSend, prepareSend, signPrepared } from './walletSendActions'
 import type { FeeTier, PreparedSend, SignedSend } from './walletSendActions'
 import type { SponsorBridge } from './useGaslessSend'
 import useWalletTx from './useWalletTx'
@@ -103,6 +103,8 @@ export const useWalletSendTx = ({ asset, chain, addresses, to, amount, assetId, 
 		submit,
 		onSent: handleSent,
 		describeError,
+		// Antes de firmar otra tx tras una difusión sin respuesta: ¿entró la anterior?
+		lookup: lookupSend,
 	})
 	const { prepared, refresh, setPhase } = core
 

@@ -23,9 +23,9 @@ import { useWalletAssets } from './walletQueries'
 import { estimatePrice, useEnergyPricesQuery } from './energyQueries'
 import { OnchainSwapMismatchError, planOnchainSwap } from './onchainSwapModel'
 import type { OnchainSwapPlan } from './onchainSwapModel'
-import { broadcastOnchainSwap, prepareOnchainSwap, signOnchainSwap, waitForApproval } from './walletSwapActions'
+import { broadcastOnchainSwap, lookupOnchainSwap, prepareOnchainSwap, signOnchainSwap, waitForApproval } from './walletSwapActions'
 import type { PreparedOnchainSwap, SignedOnchainSwap } from './walletSwapActions'
-import useWalletTx from './useWalletTx'
+import useWalletTx, { TxUnconfirmedError } from './useWalletTx'
 import type { TxPhase } from './useWalletTx'
 
 // API
@@ -144,6 +144,7 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 	const describeError = useCallback((err: unknown): string => {
 		if (err instanceof AllRpcsFailedError) return t(`${KEY}errors.noNodes`)
 		if (err instanceof SolanaExpiredError) return t('crypto.wallet.send.errors.expired')
+		if (err instanceof TxUnconfirmedError) return t('crypto.wallet.send.errors.unconfirmed')
 		if (err instanceof Error && /VerifyError$/.test(err.name)) return t(`${KEY}errors.verify`)
 		const message = (err as Error)?.message ?? ''
 		if (/simulación del swap falló|reverted|revert/i.test(message)) return t(`${KEY}errors.simulation`)
@@ -194,6 +195,8 @@ const WalletOnchainSwap = ({ navigation, route }: Props) => {
 		submit: broadcastOnchainSwap,
 		onSent,
 		describeError,
+		// Antes de firmar otro paso tras una difusión sin respuesta: ¿entró el anterior?
+		lookup: lookupOnchainSwap,
 	})
 	refreshRef.current = tx.refresh
 	const { phase, prepared, error, busy } = tx

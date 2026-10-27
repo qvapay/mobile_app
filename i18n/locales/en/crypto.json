@@ -257,6 +257,7 @@
 				"unknown": "Couldn’t send. Please try again.",
 				"noGasForFee": "You need {{needed}} {{symbol}} for the fee and have {{have}}. Deposit {{symbol}} into your wallet or lower the amount.",
 				"expired": "The transaction expired before it was sent. Tap Retry to prepare it again.",
+				"unconfirmed": "We couldn't confirm whether your previous send went through. Don't send it again yet: it may still arrive. Tap Retry in a few seconds to check.",
 				"solanaRent": "You'd be left with too little SOL: a Solana account needs a minimum to keep existing. Send a bit less."
 			},
 			"feeNative": "{{amount}} {{symbol}}",
