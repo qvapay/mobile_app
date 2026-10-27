@@ -3,8 +3,8 @@
 ![QvaPay App Preview](preview.jpg)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.2.0-6759EF?style=for-the-badge" alt="Version 3.2.0" />
-  <img src="https://img.shields.io/badge/React%20Native-0.84-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React Native 0.84" />
+  <img src="https://img.shields.io/badge/version-3.6.0-6759EF?style=for-the-badge" alt="Version 3.6.0" />
+  <img src="https://img.shields.io/badge/React%20Native-0.88-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React Native 0.88" />
   <img src="https://img.shields.io/badge/TypeScript-6-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript 6" />
   <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android-0E0E1C?style=for-the-badge&logo=apple&logoColor=white" alt="iOS & Android" />
   <img src="https://img.shields.io/badge/i18n-ES%20%7C%20EN%20%7C%20PT--BR-7BFFB1?style=for-the-badge" alt="Multilanguage" />
@@ -202,27 +202,21 @@ npm run android       # Android emulator
 
 ## 🤝 Contributing
 
-We welcome contributions! Please open an issue or submit a pull request.
+We welcome contributions, and we merge them: bug fixes, UI polish, translations and docs. Spanish, English and Portuguese are all fine.
 
-**New code must be TypeScript.** Every screen, hook, context and API module is `.ts`/`.tsx`; the only `.js` file left is `index.js`, the entry point React Native requires under that name. Test files stay `.test.js` on purpose.
+- 📖 [**CONTRIBUTING.md**](CONTRIBUTING.md): setup, the checks CI runs, conventions and how we review.
+- 🐞 [Report a bug](https://github.com/qvapay/mobile_app/issues/new?template=bug_report.yml) · ✨ [Request a feature](https://github.com/qvapay/mobile_app/issues/new?template=feature_request.yml) · 💬 [Discussions](https://github.com/qvapay/mobile_app/discussions)
+- 🔐 [**SECURITY.md**](SECURITY.md): how to report a vulnerability privately.
+- 🤝 [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Keep modules typed end to end:
-- Give new endpoints a real return type in their `api/` module.
-- Declare payload entities in `types/domain.ts`.
-- Register new screens in `RootStackParamList` in `types/navigation.ts`.
-
-Babel strips types without checking them, so `npm run typecheck` (run in CI) is what actually enforces them.
-
-New user-facing copy is never a literal string. Add it as a key in `i18n/locales/` in **all three languages** (es / en / pt-BR), following `i18n/CONVENTIONS.md`. Give interactive elements a stable `testID` so end-to-end flows don't depend on the language.
-
-Before opening a PR, run:
+The short version: **TypeScript everywhere**, every user-facing string is an i18next key in **es / en / pt-BR**, and before opening a PR run
 
 ```bash
 npm run lint && npm run typecheck && npm run test
 npm run i18n:check   # if you touched any copy
 ```
 
-Branch from `main`, and rebase rather than merge if `main` moves under you.
+Branch from `main`, rebase rather than merge if `main` moves under you, and don't bump the version: maintainers do that at release time. PRs are squash-merged with you as the author.
 
 ## 🛡️ Security & Compliance
 

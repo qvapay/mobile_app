@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔐 Security vulnerability
+    url: https://github.com/qvapay/mobile_app/security/advisories/new
+    about: Found a security issue? Report it privately here, never as a public issue.
+  - name: 💳 Problem with my account, a payment or a transaction
+    url: https://t.me/qvapay
+    about: GitHub is for the app's code. For your account, balance, KYC or a specific transaction, contact support on Telegram or write to soporte@qvapay.com.
+  - name: ❓ Questions and help
+    url: https://github.com/qvapay/mobile_app/discussions/categories/q-a
+    about: Ask how something works, or how to build and run the app.
+  - name: 💡 Ideas and feedback
+    url: https://github.com/qvapay/mobile_app/discussions/categories/ideas
+    about: Propose and discuss ideas before they become a feature request.

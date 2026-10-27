@@ -1,0 +1,90 @@
+name: 🐞 Bug report
+description: Something in the app does not work as it should.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Spanish, English and Portuguese are all welcome.
+
+        **Do not post here** security issues (use [private reporting](https://github.com/qvapay/mobile_app/security/advisories/new)) or problems with your own account, balance or a transaction (contact [support](https://t.me/qvapay)).
+        **Never paste** seed phrases, private keys, PINs, tokens, or full transaction details with personal data. Crop screenshots.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead.
+      placeholder: |
+        1. Open Store → Mobile top-up
+        2. Pick Cuba and tap a Cubacel package
+        3. Expected the package screen; instead the app shows a blank screen
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Android
+        - iOS
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Settings → About, or the store listing. Builds you compiled yourself, say the commit.
+      placeholder: "3.6.0 (3600)"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS version
+      placeholder: "Samsung Galaxy A54, Android 15 / iPhone 13, iOS 26.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area of the app
+      options:
+        - Home / balance / transactions
+        - Send / receive / pay
+        - Add funds / withdraw
+        - Self-custody wallet (on-chain, swap, staking)
+        - P2P marketplace
+        - Savings / crypto / stocks
+        - Store (top-ups, gift cards, shops, Personal Shopper)
+        - Mini-apps
+        - Login / register / KYC / 2FA
+        - Settings / app lock / theme / language
+        - Notifications / deep links / widgets
+        - Other
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Every time
+        - Often
+        - Sometimes
+        - Only once
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, video or logs
+      description: Drag files here. Crop anything personal (names, amounts, addresses, phone numbers).
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am on the latest version from the App Store / Google Play, or on current `main`.
+          required: true
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: This report contains no seed phrases, keys, PINs, tokens or other people's data.
+          required: true

@@ -1,0 +1,50 @@
+name: ✨ Feature request
+description: Propose an improvement or a new capability for the app.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Not sure yet? Start a thread in [Ideas](https://github.com/qvapay/mobile_app/discussions/categories/ideas) first. Spanish, English and Portuguese are all welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation, not the solution. Who runs into it and how often.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like the app to do?
+      description: Your proposed behavior. Sketches or screenshots from other apps help.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area of the app
+      options:
+        - Home / balance / transactions
+        - Send / receive / pay
+        - Add funds / withdraw
+        - Self-custody wallet (on-chain, swap, staking)
+        - P2P marketplace
+        - Savings / crypto / stocks
+        - Store (top-ups, gift cards, shops, Personal Shopper)
+        - Mini-apps
+        - Login / register / KYC / 2FA
+        - Settings / app lock / theme / language
+        - Notifications / deep links / widgets
+        - Other
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to implement this myself if the maintainers agree.
