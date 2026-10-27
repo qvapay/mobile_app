@@ -41,6 +41,15 @@ export class TxUnconfirmedError extends Error {
 	constructor() { super('wallet: la transacción anterior pudo enviarse; aún no se puede confirmar'); this.name = 'TxUnconfirmedError' }
 }
 
+/**
+ * Rechazo DEFINITIVO de la difusión: consta que no se gastó nada (p. ej. el backend niega el
+ * patrocinio con `authorized`). `submit` lo lanza para que el motor suelte la firma sin
+ * preguntar a la cadena y deje reconstruir; su `message` es lo que ve el usuario.
+ */
+export class TxNotSentError extends Error {
+	constructor(message: string) { super(message); this.name = 'TxNotSentError' }
+}
+
 type Args<P extends PreparedTx, S> = {
 	/** false = faltan datos (activo, direcciones…): no se construye y la fase queda en `preparing`. */
 	ready: boolean
@@ -67,6 +76,10 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	const signedRef = useRef<S | null>(null)
 	/** La última firma que salió hacia la red y de la que no consta el resultado. */
 	const attemptRef = useRef<{ prepared: P, signed: S } | null>(null)
+	/** La consulta en curso sobre `attemptRef`: quien llegue mientras tanto espera la MISMA. */
+	const resolvingRef = useRef<Promise<boolean> | null>(null)
+	/** Cada `prepare` lleva su número: solo el último puede dejar su tx preparada. */
+	const prepareGenRef = useRef(0)
 	const inFlightRef = useRef(false)
 	// Espejos: `prepare` es dependencia del efecto de construcción y no debe cambiar con ellos
 	const lookupRef = useRef(lookup)
@@ -79,33 +92,50 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	 *
 	 * @returns true si se puede construir otra tx.
 	 */
-	const resolveAttempt = useCallback(async (): Promise<boolean> => {
+	const resolveAttempt = useCallback((): Promise<boolean> => {
+		// «Reintentar» y una reconstrucción por cambio de datos pueden llegar a la vez: una
+		// sola consulta, o una respuesta vieja podría tirar un intento posterior
+		if (resolvingRef.current) return resolvingRef.current
 		const attempt = attemptRef.current
-		if (!attempt) return true
-		setPhase('preparing'); setError(null)
-		const outcome = lookupRef.current ? await lookupRef.current(attempt.prepared, attempt.signed).catch(() => UNKNOWN) : UNKNOWN
-		if (outcome.status === 'landed') {
-			attemptRef.current = null; signedRef.current = null
-			onSentRef.current(outcome.txid, attempt.prepared, true)
+		if (!attempt) return Promise.resolve(true)
+		const run = (async (): Promise<boolean> => {
+			setPhase('preparing'); setError(null)
+			const outcome = lookupRef.current ? await lookupRef.current(attempt.prepared, attempt.signed).catch(() => UNKNOWN) : UNKNOWN
+			// Lo que se sepa de ESTE intento no vale si mientras tanto salió otro
+			if (attemptRef.current !== attempt) return false
+			if (outcome.status === 'landed') {
+				attemptRef.current = null; signedRef.current = null
+				onSentRef.current(outcome.txid, attempt.prepared, true)
+				return false
+			}
+			if (outcome.status === 'dropped') {
+				attemptRef.current = null
+				return true
+			}
+			setPhase('error')
+			setError(describeError(new TxUnconfirmedError()))
 			return false
-		}
-		if (outcome.status === 'dropped') {
-			attemptRef.current = null
-			return true
-		}
-		setPhase('error')
-		setError(describeError(new TxUnconfirmedError()))
-		return false
+		})()
+		resolvingRef.current = run
+		run.finally(() => { if (resolvingRef.current === run) resolvingRef.current = null })
+		return run
 	}, [describeError])
 
 	const prepare = useCallback(async () => {
 		if (!ready) return
+		const gen = ++prepareGenRef.current
 		if (!(await resolveAttempt())) return
+		// Otro `prepare` posterior (reintento, cambio de datos) manda: este ya no deja nada
+		if (prepareGenRef.current !== gen) return
 		setPhase('preparing'); setError(null); signedRef.current = null
 		try {
-			setPrepared(await build())
+			const next = await build()
+			// Una tx construida mientras otra salía a la red no se ofrece para firmar
+			if (prepareGenRef.current !== gen || attemptRef.current) return
+			setPrepared(next)
 			setPhase('ready')
 		} catch (err) {
+			if (prepareGenRef.current !== gen) return
 			setPhase('error')
 			setError(describeError(err))
 		}
@@ -130,6 +160,14 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			attemptRef.current = null
 			onSent(result.txid, current, result.duplicate, result.note)
 		} catch (err) {
+			// Consta que no se gastó nada: la firma se suelta y se puede construir otra
+			if (err instanceof TxNotSentError) {
+				attemptRef.current = null
+				signedRef.current = null
+				setPhase('error')
+				setError(describeError(err))
+				return
+			}
 			// La red dio la tx por CADUCADA: ya no puede entrar, pero pudo entrar ANTES (una
 			// difusión previa sin respuesta). `prepare` pregunta a la cadena antes de construir
 			// otra; re-difundir esta, en cambio, daría "caducada" en bucle

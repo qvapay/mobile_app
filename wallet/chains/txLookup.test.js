@@ -60,46 +60,62 @@ describe('lookupTronTransaction', () => {
 describe('lookupSolanaTransaction', () => {
 	const SIGNATURE = '5'.repeat(88)
 	const LAST_VALID = 250_000_150
+	// Slot en que se leyó el blockhash: la tx no puede haber entrado antes
+	const SENT_AFTER_SLOT = 270_000_000
 
 	let methods
-	const mockRpc = ({ height, status }) => {
+	const mockRpc = ({ height, status, minimumLedgerSlot = SENT_AFTER_SLOT - 1_000 }) => {
 		methods = []
 		global.fetch = jest.fn(async (_url, init) => {
 			const { method } = JSON.parse(init.body)
 			methods.push(method)
-			const result = method === 'getBlockHeight' ? height : { context: { slot: 1 }, value: [status ?? null] }
+			const result = method === 'getBlockHeight' ? height
+				: method === 'minimumLedgerSlot' ? minimumLedgerSlot
+					: { context: { slot: 1 }, value: [status ?? null] }
 			return { ok: true, status: 200, json: async () => ({ jsonrpc: '2.0', id: 1, result }) }
 		})
 	}
+	const lookup = () => lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID, SENT_AFTER_SLOT)
 
 	test('confirmada sin error → landed', async () => {
 		mockRpc({ height: LAST_VALID - 20, status: { confirmationStatus: 'confirmed', err: null } })
-		await expect(lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID)).resolves.toEqual({ status: 'landed', txid: SIGNATURE })
+		await expect(lookup()).resolves.toEqual({ status: 'landed', txid: SIGNATURE })
 	})
 
 	test('finalizada con error → dropped (no movió fondos)', async () => {
 		mockRpc({ height: LAST_VALID + 5, status: { confirmationStatus: 'finalized', err: { InstructionError: [0, 'Custom'] } } })
-		await expect(lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID)).resolves.toEqual({ status: 'dropped' })
+		await expect(lookup()).resolves.toEqual({ status: 'dropped' })
 	})
 
-	test('sin rastro y la altura ya pasó lastValidBlockHeight → dropped', async () => {
+	test('sin rastro, pasada lastValidBlockHeight y con historial desde que se envió → dropped', async () => {
 		mockRpc({ height: LAST_VALID + 1 })
-		await expect(lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID)).resolves.toEqual({ status: 'dropped' })
+		await expect(lookup()).resolves.toEqual({ status: 'dropped' })
+	})
+
+	test('sin rastro pero el nodo podó el historial de cuando se envió → unknown: pudo entrar y no lo sabe', async () => {
+		// Agave devuelve null con searchTransactionHistory si el ledger ya no cubre ese slot
+		mockRpc({ height: LAST_VALID + 1, minimumLedgerSlot: SENT_AFTER_SLOT + 50 })
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
+	})
+
+	test('sin rastro, pasada la altura, pero sin saber desde qué slot se envió → unknown', async () => {
+		mockRpc({ height: LAST_VALID + 1 })
+		await expect(lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID, null)).resolves.toEqual({ status: 'unknown' })
 	})
 
 	test('sin rastro pero dentro de su vigencia REAL (aunque nuestro reloj de 60 s ya la dé por caducada) → unknown', async () => {
 		mockRpc({ height: LAST_VALID - 10 })
-		await expect(lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID)).resolves.toEqual({ status: 'unknown' })
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
 	})
 
 	test('solo processed → unknown aunque pase la altura: aún puede caer en un fork o confirmarse', async () => {
 		mockRpc({ height: LAST_VALID + 5, status: { confirmationStatus: 'processed', err: null } })
-		await expect(lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID)).resolves.toEqual({ status: 'unknown' })
+		await expect(lookup()).resolves.toEqual({ status: 'unknown' })
 	})
 
-	test('la altura se lee ANTES que la firma', async () => {
+	test('orden: altura, firma y, después, el inicio del ledger (que solo avanza: si cubría al final, cubría durante la búsqueda)', async () => {
 		mockRpc({ height: LAST_VALID + 1 })
-		await lookupSolanaTransaction(RPC, SIGNATURE, LAST_VALID)
-		expect(methods).toEqual(['getBlockHeight', 'getSignatureStatuses'])
+		await lookup()
+		expect(methods).toEqual(['getBlockHeight', 'getSignatureStatuses', 'minimumLedgerSlot'])
 	})
 })

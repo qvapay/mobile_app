@@ -22,10 +22,10 @@ test('TRON: pregunta por la tx difundida (su raw)', async () => {
 	expect(lookupTronTransaction).toHaveBeenCalledWith(expect.anything(), 'abcd', { signal: undefined })
 })
 
-test('Solana: pregunta por la firma contra lastValidBlockHeight, no contra el reloj local', async () => {
-	const prepared = { kind: 'solana', intent: { chainKey: 'solana' }, inner: { sponsored: false, lastValidBlockHeight: 123 } }
+test('Solana: pregunta por la firma contra lastValidBlockHeight (no el reloj local) y el slot del blockhash', async () => {
+	const prepared = { kind: 'solana', intent: { chainKey: 'solana' }, inner: { sponsored: false, lastValidBlockHeight: 123, blockhashSlot: 456 } }
 	await lookupSend(prepared, { kind: 'solana', signed: { txid: 'SIG', base64: '' } })
-	expect(lookupSolanaTransaction).toHaveBeenCalledWith(expect.anything(), 'SIG', 123, undefined)
+	expect(lookupSolanaTransaction).toHaveBeenCalledWith(expect.anything(), 'SIG', 123, 456, undefined)
 })
 
 test('Solana patrocinada: su id es la firma del pagador de QvaPay, que la app no tiene → unknown', async () => {

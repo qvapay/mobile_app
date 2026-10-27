@@ -26,6 +26,7 @@ import type { AssetView } from '../../../wallet/assets'
 import type { GaslessIneligibleReason, SponsorGrant } from '../../../types/domain'
 import type { SponsorChain } from '../../../types/domain'
 import { consumesGrant, fallsBackToPaid, grantChain, interpretSubmit, sponsorChainFor } from './gaslessModel'
+import { TxNotSentError } from './useWalletTx'
 
 /** Cuánto se espera a que una tx difundida aparezca confirmada. */
 const PENDING_DEADLINE_MS = 90_000
@@ -162,7 +163,8 @@ export const useGaslessSend = ({ asset, to, amount, enabled = true }: {
 			grantRef.current = null
 			walletApi.gaslessCancel(grant.uuid)
 			setState({ phase: 'failed', grant: null, reason: null, remainingToday: null, renewsAt: null })
-			throw new Error(action.message)
+			// Definitivo (`authorized`: no se gastó nada): el motor suelta la firma sin preguntar
+			throw new TxNotSentError(action.message)
 		}
 		if (action.kind === 'done') { return { txid: action.txid } }
 		if (action.kind === 'rebuild') { return { rebuild: true } }

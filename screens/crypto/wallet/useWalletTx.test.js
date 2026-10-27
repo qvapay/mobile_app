@@ -34,6 +34,8 @@ const makeChain = ({ expires = true } = {}) => {
 		built: 0,
 		/** La cadena ya pasó la vigencia de las tx construidas hasta ahora (TRON: head ≥ expiration). */
 		pastExpiry: false,
+		/** Tx concretas que la cadena ya no puede incluir (su vigencia pasó; otras siguen vivas). */
+		dropped: new Set(),
 		build: async () => {
 			chain.built += 1
 			return { id: `tx-${chain.built}`, summary: { expiresAt: expires ? Date.now() + VALIDITY_MS : null } }
@@ -42,7 +44,7 @@ const makeChain = ({ expires = true } = {}) => {
 		execute: (txid) => { if (!chain.executed.includes(txid)) chain.executed.push(txid) },
 		lookup: async (_prepared, signed) => {
 			if (chain.executed.includes(signed.txid)) return { status: 'landed', txid: signed.txid }
-			return chain.pastExpiry ? { status: 'dropped' } : { status: 'unknown' }
+			return chain.pastExpiry || chain.dropped.has(signed.txid) ? { status: 'dropped' } : { status: 'unknown' }
 		},
 	}
 	return chain
@@ -227,3 +229,60 @@ test('sin vigencia (EVM, Bitcoin), "Reintentar" re-difunde la MISMA tx', async (
 	expectSentOnce(args.onSent, 'tx-1', true)
 	unmount()
 })
+
+test('dos resoluciones del mismo intento a la vez no pueden pisar un envío más nuevo', async () => {
+	// «Reintentar» y una reconstrucción por cambio de datos preguntan por la misma tx a la vez
+	const chain = makeChain()
+	const answers = []
+	// Respuestas que se sueltan a mano, en el orden que el test elige
+	const lookup = (prepared, signed) => new Promise(resolve => answers.push(() => resolve(chain.lookup(prepared, signed))))
+	const submit = jest.fn(async (_prepared, signed) => {
+		if (signed.txid !== 'tx-1') chain.execute(signed.txid) // la 1 nunca llegó; las demás sí…
+		throw new Error('Network request failed') // …y ninguna respuesta llega
+	})
+	const args = baseArgs(chain, submit, { lookup })
+	const { out, rerender, unmount } = mount(args)
+	await settle()
+	await confirm(out)
+
+	clock += VALIDITY_MS + 1_000
+	chain.dropped.add('tx-1') // tx-1 ya no puede entrar; las que se construyan ahora siguen vigentes
+	await act(async () => {
+		out.tx.retry()
+		rerender({ ...args, build: async () => chain.build() })
+		await sleep(10)
+	})
+	await act(async () => { answers.shift()(); await sleep(60) }) // la primera respuesta: dropped → se prepara tx-2
+	if (out.tx.phase === 'ready') await confirm(out) // el usuario envía tx-2 (entra; la respuesta se pierde)
+	await act(async () => { while (answers.length) answers.shift()(); await sleep(60) }) // la respuesta vieja, de tx-1
+	if (out.tx.phase === 'ready') await confirm(out)
+
+	expect(chain.executed).toEqual(['tx-2'])
+	unmount()
+})
+
+test('un rechazo DEFINITIVO del patrocinio deja reconstruir el envío pagado por el usuario', async () => {
+	// useGaslessSend: el backend prueba que no se gastó nada (`authorized`), suelta el permiso y lanza
+	const { TxNotSentError } = require('./useWalletTx')
+	const NotSent = TxNotSentError ?? Error
+	const chain = makeChain()
+	let sponsored = true
+	const submit = jest.fn(async (_prepared, signed) => {
+		if (sponsored) { sponsored = false; throw new NotSent('Tu envío gratis de hoy ya se usó') }
+		chain.execute(signed.txid)
+		return { txid: signed.txid, duplicate: false }
+	})
+	const args = baseArgs(chain, submit, { lookup: async () => ({ status: 'unknown' }) }) // patrocinada: sin id que consultar
+	const { out, rerender, unmount } = mount(args)
+	await settle()
+	await confirm(out)
+
+	rerender({ ...args, build: async () => chain.build() }) // sin puente de patrocinio: otra construcción
+	await settle()
+	expect(out.tx.phase).toBe('ready')
+	await confirm(out)
+
+	expect(chain.executed).toEqual(['tx-2'])
+	unmount()
+})
+

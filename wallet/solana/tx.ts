@@ -91,6 +91,8 @@ export type PreparedSolanaSend = {
 	messageBytes: Uint8Array
 	recentBlockhash: string
 	lastValidBlockHeight: number
+	/** Slot en que se leyó el blockhash: la tx no puede entrar antes. null = el nodo no lo dijo. */
+	blockhashSlot: number | null
 	/** Tarifa de red en lamports (firmas + prioridad). */
 	feeLamports: bigint
 	/** Renta de la cuenta de token del destinatario si hay que crearla (0 si ya existe). */
@@ -168,7 +170,7 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 
 	const destAta = intent.mint && tokenProgram ? associatedTokenAddress(intent.to, intent.mint, tokenProgram) : null
 	const [latest, fees, toInfo, destAtaInfo] = await Promise.all([
-		rpcCall<{ value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], signal),
+		rpcCall<{ context?: { slot?: number }, value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], signal),
 		rpcCall<Array<{ prioritizationFee?: number }>>(rpc, 'getRecentPrioritizationFees', [], signal).catch(() => []),
 		rpcCall<AccountInfo>(rpc, 'getAccountInfo', [intent.to, { encoding: 'base64', commitment: 'confirmed' }], signal),
 		destAta ? rpcCall<AccountInfo>(rpc, 'getAccountInfo', [destAta, { encoding: 'base64', commitment: 'confirmed' }], signal) : Promise.resolve(null),
@@ -239,6 +241,7 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 		messageBytes: serializeMessage(message),
 		recentBlockhash: latest.value.blockhash,
 		lastValidBlockHeight: latest.value.lastValidBlockHeight,
+		blockhashSlot: typeof latest.context?.slot === 'number' ? latest.context.slot : null,
 		feeLamports,
 		rentLamports,
 		createsTokenAccount,
@@ -411,19 +414,25 @@ export const broadcastSolanaTransaction = async (rpc: RegistryRpc, signed: Signe
 }
 
 /**
- * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara? La altura se lee ANTES que
- * la firma: si ya pasó `lastValidBlockHeight` y la firma no consta, ya no entrará nunca. Ojo:
- * `expiresAt` es una estimación local de 60 s y la red la acepta hasta esa altura, a veces
- * bastante más. Solo `confirmed`/`finalized` cuentan como entrada (un `processed` aún puede
- * caer en un fork); entrada con error no movió fondos: `dropped`.
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara? Ojo: `expiresAt` es una
+ * estimación local de 60 s y la red la acepta hasta `lastValidBlockHeight`, a veces bastante
+ * más. Solo `confirmed`/`finalized` cuentan como entrada (un `processed` aún puede caer en un
+ * fork); entrada con error no movió fondos: `dropped`.
+ *
+ * Que la firma NO conste solo prueba algo si el nodo guarda historial desde que se envió:
+ * Agave devuelve null con `searchTransactionHistory` cuando ya podó ese tramo del ledger.
+ * Por eso `dropped` exige las tres cosas: la altura pasó `lastValidBlockHeight` (leída ANTES
+ * que la firma) y el ledger empieza en o antes de `sentAfterSlot` (leído DESPUÉS: solo avanza,
+ * así que si cubría al final, cubría durante la búsqueda).
  */
-export const lookupSolanaTransaction = async (rpc: RegistryRpc, signature: string, lastValidBlockHeight: number, signal?: AbortSignal): Promise<TxLookup> => {
+export const lookupSolanaTransaction = async (rpc: RegistryRpc, signature: string, lastValidBlockHeight: number, sentAfterSlot: number | null, signal?: AbortSignal): Promise<TxLookup> => {
 	const height = await rpcCall<number>(rpc, 'getBlockHeight', [{ commitment: 'confirmed' }], signal)
 	const statuses = await rpcCall<{ value: Array<{ confirmationStatus?: string | null, err?: unknown } | null> }>(rpc, 'getSignatureStatuses', [[signature], { searchTransactionHistory: true }], signal)
 	const status = statuses?.value?.[0] ?? null
 	if (status && (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized')) {
 		return status.err ? { status: 'dropped' } : { status: 'landed', txid: signature }
 	}
-	if (!status && height > lastValidBlockHeight) return { status: 'dropped' }
-	return { status: 'unknown' }
+	if (status || height <= lastValidBlockHeight || sentAfterSlot === null) return { status: 'unknown' }
+	const ledgerStart = await rpcCall<number>(rpc, 'minimumLedgerSlot', [], signal)
+	return typeof ledgerStart === 'number' && ledgerStart <= sentAfterSlot ? { status: 'dropped' } : { status: 'unknown' }
 }
