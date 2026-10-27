@@ -24,9 +24,15 @@ describe('filterContributors', () => {
 			person('copilot-swe-agent', 9),
 			person('github-actions[bot]', 100),
 			person('renovate-bot', 5),
+			person('codex', 30),
+			person('openai-codex', 30),
+			person('chatgpt-connector', 3),
+			person('devin-ai-integration', 12),
+			person('dependabot', 7),
 			person('Delgado74', 11),
+			person('ecejas', 1),
 		])
-		expect(list.map(c => c.login)).toEqual(['n3omaster', 'Delgado74', 'Pep3M'])
+		expect(list.map(c => c.login)).toEqual(['n3omaster', 'Delgado74', 'Pep3M', 'ecejas'])
 	})
 
 	it('trata la ausencia de type como persona', () => {
