@@ -413,26 +413,53 @@ export const broadcastSolanaTransaction = async (rpc: RegistryRpc, signed: Signe
 	}
 }
 
+/** Una tx enviada y lo necesario para saber qué fue de ella (ver `lookupSolanaTransaction`). */
+export type SolanaSentTx = {
+	signature: string
+	/** Quien firma y paga: su historial es donde aparecería la tx. */
+	owner: string
+	lastValidBlockHeight: number
+	/** Slot en que se leyó el blockhash: la tx no puede haber entrado antes. null = no se sabe. */
+	blockhashSlot: number | null
+}
+
+type SignatureInfo = { signature: string, slot: number, err?: unknown }
+
 /**
- * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara? Ojo: `expiresAt` es una
- * estimación local de 60 s y la red la acepta hasta `lastValidBlockHeight`, a veces bastante
- * más. Solo `confirmed`/`finalized` cuentan como entrada (un `processed` aún puede caer en un
- * fork); entrada con error no movió fondos: `dropped`.
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara?
  *
- * Que la firma NO conste solo prueba algo si el nodo guarda historial desde que se envió:
- * Agave devuelve null con `searchTransactionHistory` cuando ya podó ese tramo del ledger.
- * Por eso `dropped` exige las tres cosas: la altura pasó `lastValidBlockHeight` (leída ANTES
- * que la firma) y el ledger empieza en o antes de `sentAfterSlot` (leído DESPUÉS: solo avanza,
- * así que si cubría al final, cubría durante la búsqueda).
+ * Una prueba POSITIVA (`getSignatureStatuses` la da `confirmed`/`finalized`) vale venga del
+ * nodo que venga. La ausencia, no: detrás de una misma URL hay un pool de nodos (lo documenta
+ * Solana) y cada petición puede contestarla uno distinto, con su propio retraso y su propio
+ * ledger (podado o no). Por eso `dropped` exige una vista COHERENTE:
+ *
+ * 1. `getEpochInfo` da en UNA respuesta slot y altura: si la altura pasó
+ *    `lastValidBlockHeight`, ese slot es posterior a la caducidad.
+ * 2. `getSignaturesForAddress` del firmante con `minContextSlot` = ese slot: lo contesta un
+ *    nodo que ya llegó ahí (si no, el RPC devuelve error).
+ * 3. En ESA respuesta: si está la firma, entró; si no está y el historial llega a antes del
+ *    blockhash (alguna firma con slot ≤ `blockhashSlot`), no entró ni entrará.
+ *
+ * Cualquier otra cosa (`processed` solo, historial que no llega, forma rara, error) es `unknown`.
  */
-export const lookupSolanaTransaction = async (rpc: RegistryRpc, signature: string, lastValidBlockHeight: number, sentAfterSlot: number | null, signal?: AbortSignal): Promise<TxLookup> => {
-	const height = await rpcCall<number>(rpc, 'getBlockHeight', [{ commitment: 'confirmed' }], signal)
-	const statuses = await rpcCall<{ value: Array<{ confirmationStatus?: string | null, err?: unknown } | null> }>(rpc, 'getSignatureStatuses', [[signature], { searchTransactionHistory: true }], signal)
-	const status = statuses?.value?.[0] ?? null
+export const lookupSolanaTransaction = async (rpc: RegistryRpc, sent: SolanaSentTx, signal?: AbortSignal): Promise<TxLookup> => {
+	const { signature, owner, lastValidBlockHeight, blockhashSlot } = sent
+	const statuses = await rpcCall<{ value?: Array<{ confirmationStatus?: string | null, err?: unknown } | null> }>(rpc, 'getSignatureStatuses', [[signature], { searchTransactionHistory: true }], signal)
+	const status = Array.isArray(statuses?.value) ? statuses.value[0] ?? null : null
 	if (status && (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized')) {
 		return status.err ? { status: 'dropped' } : { status: 'landed', txid: signature }
 	}
-	if (status || height <= lastValidBlockHeight || sentAfterSlot === null) return { status: 'unknown' }
-	const ledgerStart = await rpcCall<number>(rpc, 'minimumLedgerSlot', [], signal)
-	return typeof ledgerStart === 'number' && ledgerStart <= sentAfterSlot ? { status: 'dropped' } : { status: 'unknown' }
+	if (status || blockhashSlot === null) return { status: 'unknown' }
+
+	const epoch = await rpcCall<{ absoluteSlot?: unknown, blockHeight?: unknown }>(rpc, 'getEpochInfo', [{ commitment: 'confirmed' }], signal)
+	const postExpirySlot = epoch?.absoluteSlot
+	if (typeof postExpirySlot !== 'number' || typeof epoch?.blockHeight !== 'number' || epoch.blockHeight <= lastValidBlockHeight) return { status: 'unknown' }
+
+	const history = await rpcCall<unknown>(rpc, 'getSignaturesForAddress', [owner, { commitment: 'confirmed', minContextSlot: postExpirySlot, limit: 1000 }], signal)
+	if (!Array.isArray(history)) return { status: 'unknown' }
+	const entries = history.filter((h): h is SignatureInfo => typeof h?.signature === 'string' && typeof h?.slot === 'number')
+	if (entries.length !== history.length) return { status: 'unknown' }
+	const mine = entries.find(h => h.signature === signature)
+	if (mine) return mine.err ? { status: 'dropped' } : { status: 'landed', txid: signature }
+	return entries.some(h => h.slot <= blockhashSlot) ? { status: 'dropped' } : { status: 'unknown' }
 }

@@ -509,19 +509,41 @@ export const broadcastTronTransaction = async (rpc: RegistryRpc, rawHex: string,
 }
 
 /**
+ * Cuánto tiene que haber pasado la punta de la `expiration` de una tx para dar por buena su
+ * ausencia. java-tron no puede probar en UNA respuesta que una tx no está (`getblock` sin
+ * detalle no trae ids), y detrás de un balanceador (TronGrid) la punta y la búsqueda pueden
+ * contestarlas nodos distintos: para que un nodo rezagado diga "no está" de una tx que sí
+ * entró, tendría que ir más de este margen por detrás. Mitigación, no prueba.
+ */
+export const TRON_LOOKUP_MARGIN_MS = 3 * 60_000
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
  * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara? La punta se lee ANTES que
- * la tx: si la punta ya pasó su `expiration` y la tx no está en ningún bloque hasta ella, ya
- * no entrará nunca (java-tron rechaza toda tx con expiration ≤ headBlockTime). Entrada pero
- * fallida (sin energía, revert) cuenta como `dropped`: no movió fondos y su firma ya no vale.
+ * la tx: si ya pasó su `expiration` (con `TRON_LOOKUP_MARGIN_MS`) y la tx no está en ningún
+ * bloque hasta ella, ya no entrará nunca (java-tron rechaza toda tx con expiration ≤
+ * headBlockTime). Entrada pero fallida (sin energía, revert) cuenta como `dropped`: no movió
+ * fondos y su firma ya no vale.
+ *
+ * Solo `{}` EXACTO es "no está" (`GetTransactionByIdServlet`). java-tron contesta 200 con
+ * `{ Error }` cuando algo falla (`Util.processError`): eso, o cualquier otra forma, es `unknown`.
  */
 export const lookupTronTransaction = async (rpc: RegistryRpc, rawHex: string, deps: Deps = {}): Promise<TxLookup> => {
 	const txid = tronTxId(rawHex)
-	const head = await post<{ block_header?: { raw_data?: { timestamp?: number } } }>(rpc, '/wallet/getnowblock', {}, deps)
-	const found = await post<{ txID?: string, ret?: Array<{ contractRet?: string }> }>(rpc, '/wallet/gettransactionbyid', { value: txid }, deps)
-	if (found?.txID?.toLowerCase() === txid) {
-		const result = found.ret?.[0]?.contractRet
-		return !result || result === 'SUCCESS' ? { status: 'landed', txid } : { status: 'dropped' }
+	const head = await post<unknown>(rpc, '/wallet/getnowblock', {}, deps)
+	const found = await post<unknown>(rpc, '/wallet/gettransactionbyid', { value: txid }, deps)
+	if (!isPlainObject(found) || 'Error' in found) return { status: 'unknown' }
+	if (typeof found.txID === 'string') {
+		if (found.txID.toLowerCase() !== txid) return { status: 'unknown' }
+		const ret = Array.isArray(found.ret) && isPlainObject(found.ret[0]) ? found.ret[0].contractRet : undefined
+		return ret === undefined || ret === 'SUCCESS' ? { status: 'landed', txid } : { status: 'dropped' }
 	}
-	const headTime = head?.block_header?.raw_data?.timestamp
-	return typeof headTime === 'number' && BigInt(headTime) >= decodeTronRaw(rawHex).expiration ? { status: 'dropped' } : { status: 'unknown' }
+	if (Object.keys(found).length !== 0) return { status: 'unknown' }
+	const headTime = isPlainObject(head) && !('Error' in head) && isPlainObject(head.block_header) && isPlainObject(head.block_header.raw_data)
+		? head.block_header.raw_data.timestamp
+		: undefined
+	if (typeof headTime !== 'number' || !Number.isFinite(headTime)) return { status: 'unknown' }
+	return BigInt(headTime) >= decodeTronRaw(rawHex).expiration + BigInt(TRON_LOOKUP_MARGIN_MS) ? { status: 'dropped' } : { status: 'unknown' }
 }

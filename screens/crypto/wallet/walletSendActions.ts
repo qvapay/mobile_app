@@ -302,7 +302,8 @@ export const lookupSend = async (prepared: PreparedSend, signed: SignedSend): Pr
 	}
 	if (prepared.kind === 'solana' && signed.kind === 'solana' && !prepared.inner.sponsored && signed.signed.txid) {
 		const signature = signed.signed.txid
-		return router.call(prepared.intent.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, signature, prepared.inner.lastValidBlockHeight, prepared.inner.blockhashSlot, signal), { idempotent: true })
+		const sent = { signature, owner: prepared.intent.from, lastValidBlockHeight: prepared.inner.lastValidBlockHeight, blockhashSlot: prepared.inner.blockhashSlot }
+		return router.call(prepared.intent.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, sent, signal), { idempotent: true })
 	}
 	return { status: 'unknown' }
 }

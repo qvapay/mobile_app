@@ -73,7 +73,13 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	const [prepared, setPrepared] = useState<P | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [authVisible, setAuthVisible] = useState(false)
-	const signedRef = useRef<S | null>(null)
+	/**
+	 * La firma retenida JUNTO a la tx que firma: re-difundir una firma con otra tx (la que un
+	 * refresco dejara en `prepared`) es mandar algo inválido y anotar el intento equivocado.
+	 */
+	const signedRef = useRef<{ prepared: P, signed: S } | null>(null)
+	/** Firmando o difundiendo: mientras, nada reconstruye la tx (la de pantalla es la que sale). */
+	const lockedRef = useRef(false)
 	/** La última firma que salió hacia la red y de la que no consta el resultado. */
 	const attemptRef = useRef<{ prepared: P, signed: S } | null>(null)
 	/** La consulta en curso sobre `attemptRef`: quien llegue mientras tanto espera la MISMA. */
@@ -121,8 +127,11 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 		return run
 	}, [describeError])
 
-	const prepare = useCallback(async () => {
+	/** `internal`: lo pide el propio motor tras una difusión (rebuild, caducada), aun con el cerrojo. */
+	const prepare = useCallback(async ({ internal = false }: { internal?: boolean } = {}) => {
 		if (!ready) return
+		// Un refresco de fondo no sustituye la tx mientras se firma o se difunde
+		if (lockedRef.current && !internal) return
 		const gen = ++prepareGenRef.current
 		if (!(await resolveAttempt())) return
 		// Otro `prepare` posterior (reintento, cambio de datos) manda: este ya no deja nada
@@ -154,7 +163,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 				// Respuesta definitiva de que no se gastó nada (patrocinio): sin nada que resolver
 				attemptRef.current = null
 				signedRef.current = null
-				await prepare()
+				await prepare({ internal: true })
 				return
 			}
 			attemptRef.current = null
@@ -173,7 +182,7 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 			// otra; re-difundir esta, en cambio, daría "caducada" en bucle
 			if (isExpiredBroadcastError(err)) {
 				signedRef.current = null
-				await prepare()
+				await prepare({ internal: true })
 				return
 			}
 			setPhase('error')
@@ -187,16 +196,21 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 		inFlightRef.current = true
 		try {
 			if (isExpired(prepared)) { await prepare(); return }
+			lockedRef.current = true
+			// Lo que se estuviera construyendo ya no se ofrece: se firma la tx de pantalla
+			prepareGenRef.current += 1
 			setPhase('signing')
 			// Un tick para que el spinner pinte antes del PBKDF2 (síncrono, ~1-2s en Hermes)
 			await new Promise<void>(resolve => setTimeout(resolve, 30))
-			const signed = signedRef.current ?? await sign(prepared)
-			signedRef.current = signed
+			const held = signedRef.current?.prepared === prepared ? signedRef.current : null
+			const signed = held ? held.signed : await sign(prepared)
+			signedRef.current = { prepared, signed }
 			await broadcast(prepared, signed)
 		} catch (err) {
 			setPhase('error')
 			setError(describeError(err))
 		} finally {
+			lockedRef.current = false
 			inFlightRef.current = false
 		}
 	}, [prepared, prepare, sign, broadcast, isExpired, describeError])
@@ -207,21 +221,25 @@ export const useWalletTx = <P extends PreparedTx, S>({ ready, build, sign, submi
 	 * por el gate de autenticación, que es lo correcto para reintentar pero no
 	 * para "algo cambió fuera, recalcula".
 	 */
-	const refresh = useCallback(() => { signedRef.current = null; return prepare() }, [prepare])
+	const refresh = useCallback(() => {
+		if (lockedRef.current) return Promise.resolve()
+		signedRef.current = null
+		return prepare()
+	}, [prepare])
 
 	const retry = useCallback(() => {
-		// Firmada y aún vigente: re-difundir la MISMA tx; si no, empezar de cero
-		if (prepared && signedRef.current && !isExpired(prepared)) {
-			if (inFlightRef.current) return
-			inFlightRef.current = true
-			broadcast(prepared, signedRef.current).finally(() => { inFlightRef.current = false })
+		if (inFlightRef.current) return
+		// Firmada y aún vigente: re-difundir la MISMA tx con SU firma; si no, empezar de cero
+		const held = signedRef.current
+		inFlightRef.current = true
+		if (held && !isExpired(held.prepared)) {
+			lockedRef.current = true
+			broadcast(held.prepared, held.signed).finally(() => { lockedRef.current = false; inFlightRef.current = false })
 			return
 		}
 		// Puede preguntar a la cadena por la tx anterior: un doble tap no pregunta dos veces
-		if (inFlightRef.current) return
-		inFlightRef.current = true
 		prepare().finally(() => { inFlightRef.current = false })
-	}, [prepared, broadcast, prepare, isExpired])
+	}, [broadcast, prepare, isExpired])
 
 	return {
 		phase,

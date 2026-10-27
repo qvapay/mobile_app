@@ -142,8 +142,8 @@ export const lookupOnchainSwap = async (prepared: PreparedOnchainSwap, signed: S
 	}
 	if (prepared.family === 'solana' && signed.family === 'solana' && signed.signed.txid) {
 		const signature = signed.signed.txid
-		const { lastValidBlockHeight, blockhashSlot } = prepared.inner
-		return router.call(prepared.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, signature, lastValidBlockHeight, blockhashSlot, signal), { idempotent: true })
+		const sent = { signature, owner: prepared.inner.intent.owner, lastValidBlockHeight: prepared.inner.lastValidBlockHeight, blockhashSlot: prepared.inner.blockhashSlot }
+		return router.call(prepared.chainKey, (rpc, signal) => lookupSolanaTransaction(rpc, sent, signal), { idempotent: true })
 	}
 	return { status: 'unknown' }
 }

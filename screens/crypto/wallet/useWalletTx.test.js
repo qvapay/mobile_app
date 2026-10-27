@@ -42,9 +42,10 @@ const makeChain = ({ expires = true } = {}) => {
 		},
 		sign: async (prepared) => ({ txid: prepared.id }),
 		execute: (txid) => { if (!chain.executed.includes(txid)) chain.executed.push(txid) },
-		lookup: async (_prepared, signed) => {
-			if (chain.executed.includes(signed.txid)) return { status: 'landed', txid: signed.txid }
-			return chain.pastExpiry || chain.dropped.has(signed.txid) ? { status: 'dropped' } : { status: 'unknown' }
+		// Como el lookup real de TRON: identifica la tx por lo PREPARADO (su raw), no por la firma
+		lookup: async (prepared) => {
+			if (chain.executed.includes(prepared.id)) return { status: 'landed', txid: prepared.id }
+			return chain.pastExpiry || chain.dropped.has(prepared.id) ? { status: 'dropped' } : { status: 'unknown' }
 		},
 	}
 	return chain
@@ -283,6 +284,46 @@ test('un rechazo DEFINITIVO del patrocinio deja reconstruir el envío pagado por
 	await confirm(out)
 
 	expect(chain.executed).toEqual(['tx-2'])
+	unmount()
+})
+
+test('una reconstrucción mientras se firma no mezcla la tx nueva con la firma de la anterior', async () => {
+	// La firma espera al Keychain; mientras, un refresco de fondo vuelve a preparar
+	const chain = makeChain()
+	let releaseSign = null
+	let held = true // solo la PRIMERA firma espera al Keychain; las siguientes son inmediatas
+	const sign = (prepared) => {
+		if (!held) return Promise.resolve({ txid: prepared.id })
+		held = false
+		return new Promise(resolve => { releaseSign = () => resolve({ txid: prepared.id }) })
+	}
+	let loseResponse = true
+	const submit = jest.fn(async (prepared, signed) => {
+		// Un nodo rechaza una firma que no es de esa tx
+		if (signed.txid !== prepared.id) throw new ChainHttpError('tron: broadcast rechazado (SIGERROR): validate signature error', { retryable: false })
+		const already = chain.executed.includes(prepared.id)
+		chain.execute(prepared.id)
+		if (loseResponse) { loseResponse = false; throw new Error('Network request failed') }
+		return { txid: prepared.id, duplicate: already }
+	})
+	const args = baseArgs(chain, submit, { sign })
+	const { out, rerender, unmount } = mount(args)
+	await settle()
+
+	let signing
+	await act(async () => { signing = out.tx.onAuthorized(); await sleep(60) }) // firmando tx-1…
+	rerender({ ...args, build: async () => chain.build() }) // …y llega un refresco de fondo
+	await settle()
+	await act(async () => { releaseSign(); await signing; await sleep(10) }) // tx-1 entra; la respuesta se pierde
+
+	await retry(out)
+	clock += VALIDITY_MS + 1_000
+	chain.pastExpiry = true
+	if (out.tx.phase === 'error') await retry(out)
+	if (out.tx.phase === 'ready') await confirm(out)
+
+	expect(chain.executed).toEqual(['tx-1'])
+	expectSentOnce(args.onSent, 'tx-1', true)
 	unmount()
 })
 
