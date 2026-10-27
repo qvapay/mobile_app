@@ -257,6 +257,7 @@
 				"unknown": "Não foi possível enviar. Tente de novo.",
 				"noGasForFee": "Você precisa de {{needed}} {{symbol}} para a taxa e tem {{have}}. Deposite {{symbol}} na sua carteira ou reduza a quantidade.",
 				"expired": "A transação expirou antes de ser enviada. Toque em Tentar de novo para prepará-la outra vez.",
+				"unconfirmed": "Não conseguimos confirmar se o envio anterior saiu. Não o repita ainda: ele ainda pode chegar. Toque em Tentar de novo em alguns segundos para verificar.",
 				"solanaRent": "Sobraria pouco SOL: uma conta Solana precisa de um mínimo para continuar existindo. Envie um pouco menos."
 			},
 			"feeNative": "{{amount}} {{symbol}}",

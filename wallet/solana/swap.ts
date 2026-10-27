@@ -101,6 +101,8 @@ export type PreparedSolanaSwap = {
 	tables: AddressLookupTable[]
 	recentBlockhash: string
 	lastValidBlockHeight: number
+	/** Slot en que se leyó el blockhash (ver `lookupSolanaTransaction`). null = el nodo no lo dijo. */
+	blockhashSlot: number | null
 	computeUnitLimit: number
 	computeUnitPrice: bigint
 	/** Comisión de red (lamports): firma + prioridad sobre el límite final. */
@@ -300,7 +302,7 @@ export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, i
 		build.lookupTables.length
 			? rpcCall<{ value: Array<{ data: [string, string] } | null> }>(rpc, 'getMultipleAccounts', [build.lookupTables, { encoding: 'base64' }], deps.signal)
 			: Promise.resolve({ value: [] }),
-		rpcCall<{ value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], deps.signal),
+		rpcCall<{ context?: { slot?: number }, value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], deps.signal),
 		rpcCall<{ value: AccountState[] }>(rpc, 'getMultipleAccounts', [addresses, { encoding: 'base64' }], deps.signal),
 		rpcCall<number>(rpc, 'getMinimumBalanceForRentExemption', [TOKEN_ACCOUNT_SPACE], deps.signal),
 		// Siempre, no solo cuando el intent marca Token-2022: Jupiter puede crear una cuenta
@@ -316,6 +318,7 @@ export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, i
 		return { key, addresses: decodeAddressLookupTable(fromBase64(info.data[0])) }
 	})
 	const { blockhash, lastValidBlockHeight } = blockhashInfo.value
+	const blockhashSlot = typeof blockhashInfo.context?.slot === 'number' ? blockhashInfo.context.slot : null
 
 	// 1ª vuelta: con el tope de cómputo, para simular y medir
 	const probe = compileV0Message(intent.owner, assembleInstructions(build, MAX_COMPUTE_UNITS), blockhash, tables)
@@ -353,7 +356,7 @@ export const prepareSolanaSwap = async (rpc: RegistryRpc, build: JupiterBuild, i
 
 	return {
 		intent, message, messageBytes: serializeV0Message(message), tables,
-		recentBlockhash: blockhash, lastValidBlockHeight,
+		recentBlockhash: blockhash, lastValidBlockHeight, blockhashSlot,
 		computeUnitLimit, computeUnitPrice, feeLamports, simulatedOut,
 		expiresAt: now() + BLOCKHASH_TTL_MS,
 	}

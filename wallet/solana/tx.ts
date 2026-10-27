@@ -16,6 +16,7 @@ import { ed25519 } from '@noble/curves/ed25519.js'
 
 import { ChainHttpError, jsonRpc } from '../chains/http'
 import type { RegistryRpc } from '../registry/types'
+import type { TxLookup } from '../chains/txLookup'
 import {
 	associatedTokenAddress,
 	compileMessage,
@@ -90,6 +91,8 @@ export type PreparedSolanaSend = {
 	messageBytes: Uint8Array
 	recentBlockhash: string
 	lastValidBlockHeight: number
+	/** Slot en que se leyó el blockhash: la tx no puede entrar antes. null = el nodo no lo dijo. */
+	blockhashSlot: number | null
 	/** Tarifa de red en lamports (firmas + prioridad). */
 	feeLamports: bigint
 	/** Renta de la cuenta de token del destinatario si hay que crearla (0 si ya existe). */
@@ -167,7 +170,7 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 
 	const destAta = intent.mint && tokenProgram ? associatedTokenAddress(intent.to, intent.mint, tokenProgram) : null
 	const [latest, fees, toInfo, destAtaInfo] = await Promise.all([
-		rpcCall<{ value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], signal),
+		rpcCall<{ context?: { slot?: number }, value: { blockhash: string, lastValidBlockHeight: number } }>(rpc, 'getLatestBlockhash', [{ commitment: 'confirmed' }], signal),
 		rpcCall<Array<{ prioritizationFee?: number }>>(rpc, 'getRecentPrioritizationFees', [], signal).catch(() => []),
 		rpcCall<AccountInfo>(rpc, 'getAccountInfo', [intent.to, { encoding: 'base64', commitment: 'confirmed' }], signal),
 		destAta ? rpcCall<AccountInfo>(rpc, 'getAccountInfo', [destAta, { encoding: 'base64', commitment: 'confirmed' }], signal) : Promise.resolve(null),
@@ -238,6 +241,7 @@ export const prepareSolanaSend = async (rpc: RegistryRpc, intent: SolanaSendInte
 		messageBytes: serializeMessage(message),
 		recentBlockhash: latest.value.blockhash,
 		lastValidBlockHeight: latest.value.lastValidBlockHeight,
+		blockhashSlot: typeof latest.context?.slot === 'number' ? latest.context.slot : null,
 		feeLamports,
 		rentLamports,
 		createsTokenAccount,
@@ -407,4 +411,55 @@ export const broadcastSolanaTransaction = async (rpc: RegistryRpc, signed: Signe
 		if (/Blockhash not found|BlockhashNotFound|block height exceeded/i.test(message)) throw new SolanaExpiredError()
 		throw err
 	}
+}
+
+/** Una tx enviada y lo necesario para saber qué fue de ella (ver `lookupSolanaTransaction`). */
+export type SolanaSentTx = {
+	signature: string
+	/** Quien firma y paga: su historial es donde aparecería la tx. */
+	owner: string
+	lastValidBlockHeight: number
+	/** Slot en que se leyó el blockhash: la tx no puede haber entrado antes. null = no se sabe. */
+	blockhashSlot: number | null
+}
+
+type SignatureInfo = { signature: string, slot: number, err?: unknown }
+
+/**
+ * ¿Qué fue de una tx firmada cuya difusión no dio respuesta clara?
+ *
+ * Una prueba POSITIVA (`getSignatureStatuses` la da `confirmed`/`finalized`) vale venga del
+ * nodo que venga. La ausencia, no: detrás de una misma URL hay un pool de nodos (lo documenta
+ * Solana) y cada petición puede contestarla uno distinto, con su propio retraso y su propio
+ * ledger (podado o no). Por eso `dropped` exige una vista COHERENTE:
+ *
+ * 1. `getEpochInfo` da en UNA respuesta slot y altura: si la altura pasó
+ *    `lastValidBlockHeight`, ese slot es posterior a la caducidad.
+ * 2. `getSignaturesForAddress` del firmante con `minContextSlot` = ese slot: lo contesta un
+ *    nodo que ya llegó ahí (si no, el RPC devuelve error).
+ * 3. En ESA respuesta: si está la firma, entró; si no está y el historial llega a antes del
+ *    blockhash (alguna firma con slot ≤ `blockhashSlot`), no entró ni entrará.
+ *
+ * Cualquier otra cosa (`processed` solo, historial que no llega, forma rara, error) es `unknown`.
+ */
+export const lookupSolanaTransaction = async (rpc: RegistryRpc, sent: SolanaSentTx, signal?: AbortSignal): Promise<TxLookup> => {
+	const { signature, owner, lastValidBlockHeight, blockhashSlot } = sent
+	const statuses = await rpcCall<{ value?: Array<{ confirmationStatus?: string | null, err?: unknown } | null> }>(rpc, 'getSignatureStatuses', [[signature], { searchTransactionHistory: true }], signal)
+	const status = Array.isArray(statuses?.value) ? statuses.value[0] ?? null : null
+	if (status && (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized')) {
+		return status.err ? { status: 'dropped' } : { status: 'landed', txid: signature }
+	}
+	if (status || blockhashSlot === null) return { status: 'unknown' }
+
+	const epoch = await rpcCall<{ absoluteSlot?: unknown, blockHeight?: unknown }>(rpc, 'getEpochInfo', [{ commitment: 'confirmed' }], signal)
+	const postExpirySlot = epoch?.absoluteSlot
+	if (typeof postExpirySlot !== 'number' || typeof epoch?.blockHeight !== 'number' || epoch.blockHeight <= lastValidBlockHeight) return { status: 'unknown' }
+
+	const history = await rpcCall<unknown>(rpc, 'getSignaturesForAddress', [owner, { commitment: 'confirmed', minContextSlot: postExpirySlot, limit: 1000 }], signal)
+	if (!Array.isArray(history)) return { status: 'unknown' }
+	const entries = history.filter((h): h is SignatureInfo => typeof h?.signature === 'string' && typeof h?.slot === 'number')
+	if (entries.length !== history.length) return { status: 'unknown' }
+	const mine = entries.find(h => h.signature === signature)
+	if (mine) return mine.err ? { status: 'dropped' } : { status: 'landed', txid: signature }
+	return entries.some(h => h.slot <= blockhashSlot) ? { status: 'dropped' } : { status: 'unknown' }
 }
