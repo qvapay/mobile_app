@@ -28,6 +28,7 @@ import {
 	usePromoQuery,
 	useAnnouncementQuery,
 } from './homeQueries'
+import { MINIAPPS_LIST_KEY } from '../miniapps/miniappsQueries'
 
 /**
  * Owns the Home feed data: perfil (`GET /user/extended`), últimas transacciones
@@ -111,14 +112,16 @@ export default function useHomeFeed() {
 		: null
 
 	/**
-	 * Pull-to-refresh: revalida todas las fuentes EN PARALELO. La versión anterior
+	 * Pull-to-refresh: revalida todas las fuentes EN PARALELO (el feed `['home']`
+	 * y el catálogo de mini-apps que enseña la fila del Home). La versión anterior
 	 * encadenaba seis `await`, acumulando una latencia tras otra.
 	 */
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true)
 		try {
-			const [, info] = await Promise.all([
+			const [, , info] = await Promise.all([
 				queryClient.refetchQueries({ queryKey: HOME_QUERY_KEY }),
+				queryClient.refetchQueries({ queryKey: MINIAPPS_LIST_KEY }),
 				maybePromptUpdate(),
 			])
 			if (info?.needsUpdate) setUpdateInfo(info)

@@ -34,7 +34,7 @@ describe('QPSectionHeader', () => {
 	})
 
 	test('renders the action subtitle and icon in the primary color', async () => {
-		const tree = await render({ subtitle: 'Ver más' })
+		const tree = await render({ subtitle: 'Ver más', onPress: jest.fn() })
 		const action = tree.root.findAllByType(Text)[1]
 		expect(action.props.children).toBe('Ver más')
 		expect(StyleSheet.flatten(action.props.style).color).toBe(theme.colors.primary)
@@ -43,10 +43,17 @@ describe('QPSectionHeader', () => {
 	})
 
 	test('defaults the action icon to arrow-right and accepts an override', async () => {
-		const def = await render({ subtitle: 'Ver más' })
+		const def = await render({ subtitle: 'Ver más', onPress: jest.fn() })
 		expect(def.root.findByType('FontAwesome6').props.name).toBe('arrow-right')
-		const custom = await render({ subtitle: 'Filtrar', iconName: 'filter' })
+		const custom = await render({ subtitle: 'Filtrar', iconName: 'filter', onPress: jest.fn() })
 		expect(custom.root.findByType('FontAwesome6').props.name).toBe('filter')
+	})
+
+	test('without onPress there is no action: just the title, no dead arrow', async () => {
+		const tree = await render({ subtitle: 'Ver más' })
+		expect(tree.root.findAllByType(PressableType)).toHaveLength(0)
+		expect(tree.root.findAllByType('FontAwesome6')).toHaveLength(0)
+		expect(tree.root.findAllByType(Text)).toHaveLength(1)
 	})
 
 	test('fires onPress from the action pressable', async () => {
