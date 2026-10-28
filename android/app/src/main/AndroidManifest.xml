@@ -74,12 +74,16 @@
       <meta-data
           android:name="com.google.firebase.messaging.default_notification_icon"
           android:resource="@drawable/ic_stat_qvapay" />
+      <!-- tools:replace: @react-native-firebase/messaging declara estos dos meta-data
+           con sus valores de firebase.json (vacío / blanco) y el merger falla sin él -->
       <meta-data
           android:name="com.google.firebase.messaging.default_notification_color"
-          android:resource="@color/notification_color" />
+          android:resource="@color/notification_color"
+          tools:replace="android:resource" />
       <meta-data
           android:name="com.google.firebase.messaging.default_notification_channel_id"
-          android:value="transactional" />
+          android:value="transactional"
+          tools:replace="android:value" />
 
       <!-- NearbyPay BLE foreground service (never started on Android — feature is iOS-only for now) -->
       <service
