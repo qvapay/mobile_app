@@ -257,55 +257,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - OneSignalXCFramework (5.8.0):
-    - OneSignalXCFramework/OneSignalComplete (= 5.8.0)
-  - OneSignalXCFramework/OneSignal (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalExtension
-    - OneSignalXCFramework/OneSignalLiveActivities
-    - OneSignalXCFramework/OneSignalNotifications
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-    - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalComplete (5.8.0):
-    - OneSignalXCFramework/OneSignal
-    - OneSignalXCFramework/OneSignalInAppMessages
-    - OneSignalXCFramework/OneSignalLocation
-  - OneSignalXCFramework/OneSignalCore (5.8.0)
-  - OneSignalXCFramework/OneSignalExtension (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalInAppMessages (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalNotifications
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-    - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLiveActivities (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLocation (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalNotifications
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalNotifications (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalExtension
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOSCore (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalOutcomes (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalOSCore
-  - OneSignalXCFramework/OneSignalUser (5.8.0):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalNotifications
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
   - openiap (4.0.3)
   - PromisesObjC (2.4.1)
   - QuickCrypto (1.1.8):
@@ -2544,36 +2495,6 @@ PODS:
     - Yoga
   - react-native-in-app-review (4.4.2):
     - React-Core
-  - react-native-onesignal (5.5.15):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - OneSignalXCFramework (= 5.8.0)
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-bridging
-    - React-Core
-    - React-cxxstableapi
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
   - react-native-passkey (3.6.2):
     - boost
     - DoubleConversion
@@ -4262,7 +4183,6 @@ DEPENDENCIES:
   - "react-native-document-picker (from `../node_modules/@react-native-documents/picker`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-in-app-review (from `../node_modules/react-native-in-app-review`)
-  - react-native-onesignal (from `../node_modules/react-native-onesignal`)
   - react-native-passkey (from `../node_modules/react-native-passkey`)
   - react-native-quick-base64 (from `../node_modules/react-native-quick-base64`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
@@ -4341,7 +4261,6 @@ SPEC REPOS:
     - MLKitCommon
     - MLKitVision
     - nanopb
-    - OneSignalXCFramework
     - openiap
     - PromisesObjC
     - React-Codegen
@@ -4483,8 +4402,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-image-picker"
   react-native-in-app-review:
     :path: "../node_modules/react-native-in-app-review"
-  react-native-onesignal:
-    :path: "../node_modules/react-native-onesignal"
   react-native-passkey:
     :path: "../node_modules/react-native-passkey"
   react-native-quick-base64:
@@ -4636,7 +4553,6 @@ SPEC CHECKSUMS:
   NitroIap: 304b90e61aff5d3019a7efe42ba7bf6ffda3259d
   NitroImage: c74bccf2037c74d6495ad027e7d92b0ce2920a8b
   NitroModules: a6203d5f387596e9d956ef0feda35ae3a4f1909c
-  OneSignalXCFramework: e916e0283c51b737524cab28f340eeb821b45826
   openiap: f6c3a601bc82b3f89a68c70aa459301f93ae36a3
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   QuickCrypto: 687e47dd568d8cb6b1993a3a781acbd803bdba5a
@@ -4685,7 +4601,6 @@ SPEC CHECKSUMS:
   react-native-document-picker: 8cae7ba456415147970963963ab596d7bcb5bf40
   react-native-image-picker: c8631b60394bc53184a4128a12af8a4730cfa7b8
   react-native-in-app-review: 1516ba69d60d58053b7eb3aaaf8d2a5a74af8b57
-  react-native-onesignal: 537983c53b185389071f675b8cd85fb99cdf9e33
   react-native-passkey: d0ef2817d458c67c5c30c6cb2854a586ef00171f
   react-native-quick-base64: 38818f6dcca96d3306bf2ba0d72f19b774467a59
   react-native-safe-area-context: 5a220319c6772395c363119385945eb635c77283

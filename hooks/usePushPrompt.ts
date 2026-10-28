@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OneSignal } from 'react-native-onesignal'
+import { getPushPermission, requestPushPermission } from '../push'
 import { userApi } from '../api/userApi'
 
 const STORAGE_KEYS = {
@@ -27,20 +27,20 @@ export type PushPrompt = {
 }
 
 /**
- * Decides when to prompt the user to enable push notifications and performs
- * the OneSignal opt-in.
+ * Decides when to prompt the user to enable push notifications and asks the
+ * system for the permission (registering the token right away, see push/).
  *
  * Exposes independent prompt surfaces: a one-time post-transaction prompt, a
  * dismissible banner (gone for good after 3 dismissals, 1-week cooldown
  * between shows), a one-time onboarding prompt, and a persistent red dot.
- * Every flag defaults to "already shown" until AsyncStorage and the OneSignal
+ * Every flag defaults to "already shown" until AsyncStorage and the system
  * permission load (`ready`), so nothing flashes on first render.
  *
  * @returns `{ isPushEnabled, shouldShowPostTxPrompt, shouldShowBanner,
  *   shouldShowRedDot, shouldShowOnboardPrompt, enablePush, dismissPostTxPrompt,
  *   dismissBanner, dismissOnboardPrompt }` — `enablePush` requests the OS
  *   permission (falling back to the system Settings screen when previously
- *   denied), opts the device into OneSignal and flags the backend fire-and-forget.
+ *   denied), registers the token when granted and flags the backend fire-and-forget.
  */
 const usePushPrompt = (): PushPrompt => {
 
@@ -54,8 +54,7 @@ const usePushPrompt = (): PushPrompt => {
 	useEffect(() => {
 		const load = async () => {
 			try {
-				const hasPermission = await OneSignal.Notifications.getPermissionAsync()
-				setIsPushEnabled(hasPermission)
+				setIsPushEnabled((await getPushPermission()) === 'granted')
 
 				const values = await AsyncStorage.getMany([
 					STORAGE_KEYS.POST_TX_SHOWN,
@@ -86,11 +85,10 @@ const usePushPrompt = (): PushPrompt => {
 		try {
 			// Con fallbackToSettings la promesa resuelve al volver de Ajustes —
 			// esperar aquí evita seguir el flow con la app en background
-			const granted = await OneSignal.Notifications.requestPermission(true)
-			OneSignal.User.pushSubscription.optIn()
+			const status = await requestPushPermission({ fallbackToSettings: true })
 			// Fire-and-forget: el flag del backend no debe bloquear la navegación
 			userApi.updateNotificationSettings({ push_enabled: true })
-			setIsPushEnabled(granted !== false)
+			setIsPushEnabled(status === 'granted')
 		} catch { /* push enable failed */ }
 	}, [])
 

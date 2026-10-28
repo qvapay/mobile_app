@@ -92,3 +92,6 @@ yarn-error.log
 # las capturas y reportes de cada corrida, no
 !/.maestro/
 .maestro/output/
+
+# Push (FCM): credenciales del proyecto Firebase, cada maquina descarga la suya
+android/app/google-services.json

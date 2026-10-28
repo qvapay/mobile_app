@@ -20,7 +20,7 @@ type PushPromptModalProps = {
 /**
  * Soft pre-permission prompt for push notifications, shown at high-intent
  * moments (after onboarding, after a successful send) via `usePushPrompt`
- * before the real OneSignal/OS permission dialog. Standard centered-card
+ * before the real OS permission dialog. Standard centered-card
  * overlay (transparent + fade). Android back button counts as a dismiss.
  *
  * @param props

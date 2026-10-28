@@ -103,7 +103,7 @@ Lives in the **Crypto** tab. It is non-custodial, meaning QvaPay never sees your
 | 📷 Camera | Vision Camera 5 + barcode scanner (QR / bolt11 / addresses) |
 | 🔐 Storage | Keychain (token, wallet seed, app-lock PIN, biometric markers) + AsyncStorage (settings and cache) |
 | 💳 Payments | Native payment sheet + react-native-iap 15 (StoreKit / Play Billing) |
-| 🔔 Notifications | OneSignal 5 + sonner-native toasts |
+| 🔔 Notifications | Push propias (FCM en Android, APNs directo en iOS) + sonner-native toasts |
 | 🧪 Testing | Jest 30 (2,280+ tests) + **Maestro** end-to-end flows |
 | 🖥️ Backend | Next.js 16 API + Prisma 6 + MySQL + Redis |
 

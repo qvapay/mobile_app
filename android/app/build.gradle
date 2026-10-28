@@ -183,3 +183,14 @@ dependencies {
 configurations.all {
     exclude group: "com.caverock", module: "androidsvg"
 }
+
+// Push propias vía Firebase Cloud Messaging (@react-native-firebase/messaging). El
+// plugin de Google Services exige app/google-services.json (descargar del proyecto de
+// Firebase que ya alimentaba a OneSignal: así los tokens FCM viejos siguen valiendo).
+// Se aplica solo si el fichero existe para que un clon sin credenciales compile: sin
+// él la app arranca sin app de Firebase y push/androidTransport.ts degrada a "sin token".
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+} else {
+    logger.warn("google-services.json ausente en android/app: la app compila SIN push (FCM)")
+}

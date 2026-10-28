@@ -81,7 +81,7 @@ existentes sin tocarlas. Las mejoras de copy son commits separados posteriores.
    Cubacel, Zendit, Amazon, eBay.
 3. Valores/enums que viajan a la API o se comparan contra datos del backend
    (p.ej. la categoría 'Criptomonedas' en filterCoins, `source`, ticks).
-4. Payloads de OneSignal (título/cuerpo los compone el servidor).
+4. Payloads de push (título/cuerpo los compone el servidor).
 5. Valores de `routes.js` (contrato de deep links), claves de AsyncStorage,
    servicios de Keychain, nombres de iconos.
 6. `ui/BottomBar.jsx` (código muerto, excluido del barrido).

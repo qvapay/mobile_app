@@ -1,6 +1,6 @@
 /**
  * Unit tests for the app-root navigation side effects (splash gate, update
- * prompt, auth ↔ navigation reconciliation, deep links, OneSignal routing) —
+ * prompt, auth ↔ navigation reconciliation, deep links, push routing) —
  * node environment with everything native mocked (see keypadAmount.test.js).
  * @jest-environment node
  */
@@ -15,14 +15,13 @@ jest.mock('react-native', () => ({
 	},
 }))
 jest.mock('@react-navigation/native', () => ({ useNavigation: jest.fn() }))
-const oneSignalListeners = {}
-jest.mock('react-native-onesignal', () => ({
-	OneSignal: {
-		Notifications: {
-			addEventListener: jest.fn((event, handler) => { oneSignalListeners[event] = handler }),
-			removeEventListener: jest.fn(),
-		},
-	},
+const pushListeners = {}
+jest.mock('../push', () => ({
+	subscribeForegroundPush: jest.fn((handler) => { pushListeners.foreground = handler; return jest.fn() }),
+	subscribeOpenedPush: jest.fn((handler) => { pushListeners.opened = handler; return jest.fn() }),
+	takeInitialPush: jest.fn(async () => null),
+	trackPushOpened: jest.fn(async () => {}),
+	trackPushReceived: jest.fn(async () => {}),
 }))
 jest.mock('sonner-native', () => ({ toast: { info: jest.fn(), success: jest.fn(), error: jest.fn() } }))
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }))
@@ -48,6 +47,7 @@ import playSound from '../helpers/playSound'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { queryClient } from '../api/queryClient'
+import { takeInitialPush, trackPushOpened, trackPushReceived } from '../push'
 import { useAppNavigation } from './useAppNavigation'
 
 const P2P_UUID = '796a9e71-3d67-4a42-9dc2-02a5d069fa23'
@@ -86,6 +86,7 @@ beforeEach(() => {
 	maybePromptUpdate.mockResolvedValue({ needsUpdate: false })
 	consumeInstallReferrer.mockResolvedValue(null)
 	Linking.getInitialURL.mockResolvedValue(null)
+	takeInitialPush.mockResolvedValue(null)
 	navigation.getState.mockReturnValue({ index: 0, routes: [{ name: 'Splash' }] })
 })
 afterEach(() => { jest.useRealTimers() })
@@ -289,19 +290,15 @@ describe('foreground deep links while unauthenticated', () => {
 	})
 })
 
-describe('OneSignal listeners', () => {
-	// La notificación se construye UNA vez: los tests miran su `display`, así que
-	// getNotification() tiene que devolver siempre el mismo objeto
-	const makeForegroundEvent = (title, body, data) => {
-		const notification = { title, body, additionalData: data, display: jest.fn() }
-		return { preventDefault: jest.fn(), notification, getNotification: () => notification }
-	}
+describe('push listeners', () => {
+	const makeMessage = (title, body, data) => ({ title, body, data })
+	// Con MainStack en la raíz la app está reconciliada: un toque navega en el acto
+	const settle = () => navigation.getState.mockReturnValue({ index: 1, routes: [{ name: 'MainStack' }, { name: 'P2POffer' }] })
 
 	test('foreground notifications become toasts and transaction ones play money_in', async () => {
 		await renderAppNav()
-		const event = makeForegroundEvent('Pago recibido', '+$5.00', { type: 'transaction' })
-		await act(async () => { oneSignalListeners.foregroundWillDisplay(event) })
-		expect(event.preventDefault).toHaveBeenCalled()
+		const message = makeMessage('Pago recibido', '+$5.00', { type: 'transaction' })
+		await act(async () => { pushListeners.foreground(message) })
 		expect(playSound).toHaveBeenCalledWith('money_in')
 		expect(toast.info).toHaveBeenCalledWith('Pago recibido', { description: '+$5.00' })
 	})
@@ -311,33 +308,27 @@ describe('OneSignal listeners', () => {
 	// con el tono genérico
 	test('an incoming transfer push (backend type) plays money_in and refreshes balance + history', async () => {
 		await renderAppNav()
-		const event = makeForegroundEvent('Has recibido una transferencia', '+$5.00', {
+		const message = makeMessage('Has recibido una transferencia', '+$5.00', {
 			type: 'transfer_received', transaction_uuid: 't-9',
 		})
-		await act(async () => { oneSignalListeners.foregroundWillDisplay(event) })
+		await act(async () => { pushListeners.foreground(message) })
 		expect(playSound).toHaveBeenCalledWith('money_in')
 		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['home'] })
 		expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactions'] })
 	})
 
-	// El canal de Android (qp_money_in/qp_money_out) trae el sonido de moneda:
-	// publicar la notificación con la app delante la haría sonar dos veces
-	test('a money push is not displayed in the tray while the app is in foreground', async () => {
+	test('a foreground push reports its delivery as received', async () => {
 		await renderAppNav()
-		const money = makeForegroundEvent('Cobro', '+$5.00', { type: 'transfer_received', transaction_uuid: 't-9' })
-		const other = makeForegroundEvent('Chat', 'nuevo mensaje', { type: 'p2p_chat', p2p_uuid: 'p-1' })
-		await act(async () => { oneSignalListeners.foregroundWillDisplay(money) })
-		await act(async () => { oneSignalListeners.foregroundWillDisplay(other) })
-		expect(money.notification.display).not.toHaveBeenCalled()
-		expect(other.notification.display).toHaveBeenCalled()
+		await act(async () => { pushListeners.foreground(makeMessage('Chat', 'nuevo mensaje', { type: 'p2p_chat', p2p_uuid: 'p-1', did: 'd-7' })) })
+		expect(trackPushReceived).toHaveBeenCalledWith({ type: 'p2p_chat', p2p_uuid: 'p-1', did: 'd-7' })
 	})
 
 	test('an outgoing transfer push is not treated as money in', async () => {
 		await renderAppNav()
-		const event = makeForegroundEvent('Transferencia enviada', '-$5.00', {
+		const message = makeMessage('Transferencia enviada', '-$5.00', {
 			type: 'transfer_sent', transaction_uuid: 't-9',
 		})
-		await act(async () => { oneSignalListeners.foregroundWillDisplay(event) })
+		await act(async () => { pushListeners.foreground(message) })
 		// Ni money_in ni el tono genérico: el envío ya sonó en SendSuccess
 		expect(playSound).not.toHaveBeenCalled()
 		expect(queryClient.invalidateQueries).not.toHaveBeenCalled()
@@ -346,7 +337,7 @@ describe('OneSignal listeners', () => {
 	test('other notification types play the generic sound; disabled sounds play nothing', async () => {
 		await renderAppNav()
 		await act(async () => {
-			oneSignalListeners.foregroundWillDisplay(makeForegroundEvent('Hola', null, { type: 'promo' }))
+			pushListeners.foreground(makeMessage('Hola', null, { type: 'promo' }))
 		})
 		expect(playSound).toHaveBeenCalledWith('notification')
 
@@ -358,35 +349,113 @@ describe('OneSignal listeners', () => {
 		})
 		await renderAppNav()
 		await act(async () => {
-			oneSignalListeners.foregroundWillDisplay(makeForegroundEvent('Hola', null, { type: 'transaction' }))
+			pushListeners.foreground(makeMessage('Hola', null, { type: 'transaction' }))
 		})
 		expect(playSound).not.toHaveBeenCalled()
 	})
 
-	test('tapping a notification routes by type', async () => {
+	test('tapping a notification routes by type once the app is settled', async () => {
+		settle()
 		await renderAppNav()
-		const click = (data) => act(async () => {
-			oneSignalListeners.click({ notification: { additionalData: data } })
-		})
-		await click({ type: 'transaction', uuid: 't-1' })
+		const tap = (data) => act(async () => { pushListeners.opened({ data }) })
+		await tap({ type: 'transaction', uuid: 't-1' })
 		expect(navigation.navigate).toHaveBeenCalledWith('Transaction', { uuid: 't-1' })
-		await click({ type: 'transfer_received', transaction_uuid: 't-2' })
+		await tap({ type: 'transfer_received', transaction_uuid: 't-2' })
 		expect(navigation.navigate).toHaveBeenCalledWith('Transaction', { uuid: 't-2' })
-		await click({ type: 'p2p_applied', p2p_uuid: 'p-2' })
+		await tap({ type: 'p2p_applied', p2p_uuid: 'p-2' })
 		expect(navigation.navigate).toHaveBeenCalledWith('P2POffer', { p2p_uuid: 'p-2' })
-		await click({ type: 'p2p', uuid: 'p-1' })
+		await tap({ type: 'p2p', uuid: 'p-1' })
 		expect(navigation.navigate).toHaveBeenCalledWith('P2POffer', { p2p_uuid: 'p-1' })
-		await click({ type: 'transfer' })
+		await tap({ type: 'transfer' })
 		expect(navigation.navigate).toHaveBeenCalledWith('Transactions')
+		expect(navigation.reset).not.toHaveBeenCalled()
 	})
 
-	test('taps are ignored while unauthenticated or without a type', async () => {
+	test('a tap reports the delivery as opened and follows the deeplink over the type', async () => {
+		settle()
+		await renderAppNav()
+		await act(async () => { pushListeners.opened({ data: { type: 'promo', deeplink: 'https://www.qvapay.com/savings', did: 'd-1' } }) })
+		expect(trackPushOpened).toHaveBeenCalledWith({ type: 'promo', deeplink: 'https://www.qvapay.com/savings', did: 'd-1' })
+		expect(navigation.navigate).toHaveBeenCalledWith('Savings')
+		await act(async () => { pushListeners.opened({ data: { deeplink: 'qvapay://p2p' } }) })
+		expect(navigation.navigate).toHaveBeenCalledWith('MainStack', { screen: 'P2P' })
+	})
+
+	test('a tap without a destination does nothing', async () => {
+		settle()
+		await renderAppNav()
+		await act(async () => { pushListeners.opened({ data: { type: 'promo' } }) })
+		await act(async () => { pushListeners.opened({ data: {} }) })
+		expect(navigation.navigate).not.toHaveBeenCalled()
+	})
+
+	// Sin sesión el toque se guarda: al entrar, la reconciliación abre el destino
+	// encima de MainStack (igual que un deep link capturado antes del login)
+	test('a tap while logged out waits for the login', async () => {
 		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
 		await renderAppNav()
-		await act(async () => {
-			oneSignalListeners.click({ notification: { additionalData: { type: 'transaction', uuid: 't-1' } } })
-		})
+		await act(async () => { pushListeners.opened({ data: { type: 'transaction', uuid: 't-1' } }) })
 		expect(navigation.navigate).not.toHaveBeenCalled()
+		expect(toast.info).toHaveBeenCalledWith('Inicia sesión para abrir la notificación')
+	})
+
+	// Arranque en frío desde una push: la raíz aún es Splash cuando llega, así
+	// que se consume en la reconciliación con MainStack debajo
+	test('the push that launched the app opens its screen on top of MainStack', async () => {
+		takeInitialPush.mockResolvedValue({ title: 'Pago', body: '+$5', data: { type: 'transfer_received', transaction_uuid: 't-3', did: 'd-3' } })
+		await renderAppNav()
+		await passSplash()
+		expect(trackPushOpened).toHaveBeenCalledWith({ type: 'transfer_received', transaction_uuid: 't-3', did: 'd-3' })
+		expect(navigation.navigate).not.toHaveBeenCalled()
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [{ name: 'MainStack' }, { name: 'Transaction', params: { uuid: 't-3' } }],
+		})
+	})
+
+	// En frío auth aún hidrata el Keychain cuando se consume la push inicial:
+	// con sesión cacheada NO se avisa «inicia sesión» (Bugbot, PR #94)
+	test('the launch tap stays silent while auth is still loading and opens once the session is known', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: true })
+		takeInitialPush.mockResolvedValue({ data: { type: 'transfer_received', transaction_uuid: 't-3' } })
+		let renderer
+		const Harness = () => { useAppNavigation({ current: null }); return null }
+		await act(async () => { renderer = create(<Harness />) })
+		expect(toast.info).not.toHaveBeenCalled()
+		useAuth.mockReturnValue({ user: { uuid: 'me' }, isAuthenticated: true, isLoading: false })
+		await act(async () => { renderer.update(<Harness />) })
+		await passSplash()
+		expect(toast.info).not.toHaveBeenCalled()
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [{ name: 'MainStack' }, { name: 'Transaction', params: { uuid: 't-3' } }],
+		})
+	})
+
+	test('the launch tap asks to log in only once auth resolves without a session', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: true })
+		takeInitialPush.mockResolvedValue({ data: { type: 'transfer_received', transaction_uuid: 't-3' } })
+		let renderer
+		const Harness = () => { useAppNavigation({ current: null }); return null }
+		await act(async () => { renderer = create(<Harness />) })
+		expect(toast.info).not.toHaveBeenCalled()
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		await act(async () => { renderer.update(<Harness />) })
+		await passSplash()
+		expect(toast.info).toHaveBeenCalledWith('Inicia sesión para abrir la notificación')
+		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Welcome' }] })
+	})
+
+	test('a pending deep link wins over a pending push tap', async () => {
+		takeInitialPush.mockResolvedValue({ data: { type: 'transfer_received', transaction_uuid: 't-3' } })
+		const pendingRef = { current: `https://qvapay.com/pay/${P2P_UUID}` }
+		await renderAppNav(pendingRef)
+		await passSplash()
+		expect(navigation.reset).toHaveBeenCalledTimes(1)
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [{ name: 'MainStack' }, { name: 'Pay', params: { uuid: P2P_UUID } }],
+		})
 	})
 })
 

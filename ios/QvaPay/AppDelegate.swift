@@ -1,4 +1,5 @@
 import UIKit
+import UserNotifications
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
@@ -28,7 +29,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
+    // Push (APNs directo, sin Firebase): delegado de notificaciones y, si el permiso
+    // ya estaba concedido, renovación silenciosa del token. Ver QPPush.swift
+    QPPushCenter.shared.attach()
+
     return true
+  }
+
+  // MARK: - APNs (los recibe el AppDelegate también con escenas)
+
+  func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    QPPushCenter.shared.didRegister(deviceToken: deviceToken)
+  }
+
+  func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    QPPushCenter.shared.didFailToRegister(error)
   }
 
   func application(

@@ -34,6 +34,8 @@
 		D6D1005CBECE4537BF0BA741 /* Rubik-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FF340230807742DD96C8FB8E /* Rubik-ExtraBold.ttf */; };
 		EEFA88516CD247B1AA840579 /* JetBrainsMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 62BFBDE4FE1F4891876C9CF5 /* JetBrainsMono-Medium.ttf */; };
 		F162D84EB401402DA05A14F7 /* money_out.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9B210220A594402FA688441D /* money_out.mp3 */; };
+		N1000010000000000000000A /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = N1000001000000000000000A /* NotificationService.swift */; };
+		N1000071000000000000000A /* QvaPayNotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = N1000006000000000000000A /* QvaPayNotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		W1000010000000000000000A /* QvaPayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000001000000000000000A /* QvaPayWidgetBundle.swift */; };
 		W1000011000000000000000A /* P2PRatesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000002000000000000000A /* P2PRatesWidget.swift */; };
 		W1000012000000000000000A /* QvaPayAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1000003000000000000000A /* QvaPayAPI.swift */; };
@@ -51,9 +53,18 @@
 		W2000013000000000000000A /* AppIconChanger.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000004000000000000000A /* AppIconChanger.m */; };
 		W2000014000000000000000A /* ScreenBrightness.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000005000000000000000A /* ScreenBrightness.swift */; };
 		W2000015000000000000000A /* ScreenBrightness.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000006000000000000000A /* ScreenBrightness.m */; };
+		W2000016000000000000000A /* QPPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = W2000007000000000000000A /* QPPush.swift */; };
+		W2000017000000000000000A /* QPPush.m in Sources */ = {isa = PBXBuildFile; fileRef = W2000008000000000000000A /* QPPush.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		N1000060000000000000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = N1000030000000000000000A;
+			remoteInfo = QvaPayNotificationService;
+		};
 		W1000060000000000000000A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
@@ -71,6 +82,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				W1000071000000000000000A /* QvaPayWidgetsExtension.appex in Embed Foundation Extensions */,
+				N1000071000000000000000A /* QvaPayNotificationService.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -112,6 +124,9 @@
 		F5CBF97365B148819C5AB0B4 /* Rubik-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-ExtraBoldItalic.ttf"; path = "../assets/fonts/Rubik-ExtraBoldItalic.ttf"; sourceTree = "<group>"; };
 		F830386247324584A758F99F /* Rubik-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-Regular.ttf"; path = "../assets/fonts/Rubik-Regular.ttf"; sourceTree = "<group>"; };
 		FF340230807742DD96C8FB8E /* Rubik-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Rubik-ExtraBold.ttf"; path = "../assets/fonts/Rubik-ExtraBold.ttf"; sourceTree = "<group>"; };
+		N1000001000000000000000A /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		N1000005000000000000000A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		N1000006000000000000000A /* QvaPayNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QvaPayNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		W1000001000000000000000A /* QvaPayWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QvaPayWidgetBundle.swift; sourceTree = "<group>"; };
 		W1000002000000000000000A /* P2PRatesWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = P2PRatesWidget.swift; sourceTree = "<group>"; };
 		W1000003000000000000000A /* QvaPayAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QvaPayAPI.swift; sourceTree = "<group>"; };
@@ -126,6 +141,8 @@
 		W2000004000000000000000A /* AppIconChanger.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = AppIconChanger.m; path = QvaPay/AppIconChanger.m; sourceTree = "<group>"; };
 		W2000005000000000000000A /* ScreenBrightness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ScreenBrightness.swift; path = QvaPay/ScreenBrightness.swift; sourceTree = "<group>"; };
 		W2000006000000000000000A /* ScreenBrightness.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = ScreenBrightness.m; path = QvaPay/ScreenBrightness.m; sourceTree = "<group>"; };
+		W2000007000000000000000A /* QPPush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QPPush.swift; path = QvaPay/QPPush.swift; sourceTree = "<group>"; };
+		W2000008000000000000000A /* QPPush.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = QPPush.m; path = QvaPay/QPPush.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,6 +151,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A30747972A336B4CD31E75A /* Pods_QvaPay.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		N1000041000000000000000A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -162,6 +186,8 @@
 				W2000004000000000000000A /* AppIconChanger.m */,
 				W2000005000000000000000A /* ScreenBrightness.swift */,
 				W2000006000000000000000A /* ScreenBrightness.m */,
+				W2000007000000000000000A /* QPPush.swift */,
+				W2000008000000000000000A /* QPPush.m */,
 				750C83FB2993084E343FD512 /* QPSecureView.h */,
 				13535756FD2F0D07659DC28B /* QPSecureView.mm */,
 			);
@@ -218,6 +244,7 @@
 				13B07FAE1A68108700A75B9A /* QvaPay */,
 				W1000020000000000000000A /* QvaPayWidgets */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
+				N1000020000000000000000A /* QvaPayNotificationService */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
@@ -233,6 +260,7 @@
 			children = (
 				13B07F961A680F5B00A75B9A /* QvaPay.app */,
 				W1000006000000000000000A /* QvaPayWidgetsExtension.appex */,
+				N1000006000000000000000A /* QvaPayNotificationService.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -244,6 +272,15 @@
 				6118ACB2B698AABF0A7D97B1 /* Pods-QvaPay.release.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		N1000020000000000000000A /* QvaPayNotificationService */ = {
+			isa = PBXGroup;
+			children = (
+				N1000001000000000000000A /* NotificationService.swift */,
+				N1000005000000000000000A /* Info.plist */,
+			);
+			path = QvaPayNotificationService;
 			sourceTree = "<group>";
 		};
 		W1000020000000000000000A /* QvaPayWidgets */ = {
@@ -280,11 +317,29 @@
 			);
 			dependencies = (
 				W1000061000000000000000A /* PBXTargetDependency */,
+				N1000061000000000000000A /* PBXTargetDependency */,
 			);
 			name = QvaPay;
 			productName = QvaPay;
 			productReference = 13B07F961A680F5B00A75B9A /* QvaPay.app */;
 			productType = "com.apple.product-type.application";
+		};
+		N1000030000000000000000A /* QvaPayNotificationService */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = N1000052000000000000000A /* Build configuration list for PBXNativeTarget "QvaPayNotificationService" */;
+			buildPhases = (
+				N1000040000000000000000A /* Sources */,
+				N1000041000000000000000A /* Frameworks */,
+				N1000042000000000000000A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = QvaPayNotificationService;
+			productName = QvaPayNotificationService;
+			productReference = N1000006000000000000000A /* QvaPayNotificationService.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		W1000030000000000000000A /* QvaPayWidgetsExtension */ = {
 			isa = PBXNativeTarget;
@@ -315,6 +370,9 @@
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1120;
 					};
+					N1000030000000000000000A = {
+						CreatedOnToolsVersion = 16.0;
+					};
 					W1000030000000000000000A = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -335,6 +393,7 @@
 			targets = (
 				13B07F861A680F5B00A75B9A /* QvaPay */,
 				W1000030000000000000000A /* QvaPayWidgetsExtension */,
+				N1000030000000000000000A /* QvaPayNotificationService */,
 			);
 		};
 /* End PBXProject section */
@@ -368,6 +427,13 @@
 				80A19C15F0F44B52A1E98F14 /* notification.mp3 in Resources */,
 				F162D84EB401402DA05A14F7 /* money_out.mp3 in Resources */,
 				A1C4E2F09D6B41F7A8B30C21 /* money_out.caf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		N1000042000000000000000A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -471,7 +537,17 @@
 				W2000013000000000000000A /* AppIconChanger.m in Sources */,
 				W2000014000000000000000A /* ScreenBrightness.swift in Sources */,
 				W2000015000000000000000A /* ScreenBrightness.m in Sources */,
+				W2000016000000000000000A /* QPPush.swift in Sources */,
+				W2000017000000000000000A /* QPPush.m in Sources */,
 				18ABBA757990E51F31A9B592 /* QPSecureView.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		N1000040000000000000000A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				N1000010000000000000000A /* NotificationService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,6 +567,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		N1000061000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = N1000030000000000000000A /* QvaPayNotificationService */;
+			targetProxy = N1000060000000000000000A /* PBXContainerItemProxy */;
+		};
 		W1000061000000000000000A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = W1000030000000000000000A /* QvaPayWidgetsExtension */;
@@ -812,6 +893,61 @@
 			};
 			name = Release;
 		};
+		N1000050000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3601;
+				DEVELOPMENT_TEAM = CN9WDS6BJW;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QvaPayNotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "QvaPay Notification Service";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 3.6.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.notificationservice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		N1000051000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3601;
+				DEVELOPMENT_TEAM = CN9WDS6BJW;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QvaPayNotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "QvaPay Notification Service";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 3.6.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.qvapay.notificationservice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		W1000050000000000000000A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -890,6 +1026,15 @@
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
 				83CBBA211A601CBA00E9B192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		N1000052000000000000000A /* Build configuration list for PBXNativeTarget "QvaPayNotificationService" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				N1000050000000000000000A /* Debug */,
+				N1000051000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

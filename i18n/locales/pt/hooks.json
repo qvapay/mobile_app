@@ -30,7 +30,8 @@
 			"loginToPay": "Entre para pagar a fatura",
 			"loginToSeeOffer": "Entre para ver a oferta P2P",
 			"loginToSeeStore": "Entre para ver a loja",
-			"loginToOpenApp": "Entre para abrir o mini-app"
+			"loginToOpenApp": "Entre para abrir o mini-app",
+			"loginToOpenNotification": "Entre para abrir a notificação"
 		}
 	},
 	"deviceContacts": {

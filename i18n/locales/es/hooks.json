@@ -30,7 +30,8 @@
 			"loginToPay": "Inicia sesión para pagar la factura",
 			"loginToSeeOffer": "Inicia sesión para ver la oferta P2P",
 			"loginToSeeStore": "Inicia sesión para ver la tienda",
-			"loginToOpenApp": "Inicia sesión para abrir la mini-app"
+			"loginToOpenApp": "Inicia sesión para abrir la mini-app",
+			"loginToOpenNotification": "Inicia sesión para abrir la notificación"
 		}
 	},
 	"deviceContacts": {

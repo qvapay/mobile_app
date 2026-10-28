@@ -7,8 +7,8 @@ import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
 import { setAuthToken, removeAuthToken, getAuthToken } from '../api/client'
 
-// OneSignal Push Notifications
-import { OneSignal } from 'react-native-onesignal'
+// Push propias: registro/baja del token del dispositivo en el backend
+import { syncPushToken, unregisterPush } from '../push'
 
 // Widget Bridge
 import { updateWidgetBalance, reloadWidgets } from '../helpers/widgetBridge'
@@ -118,8 +118,8 @@ function sessionReducer(state: Session, action: SessionAction): Session {
  * - Bearer token → Keychain, service `com.qvapay.auth` (via api/client helpers).
  * - User profile → AsyncStorage `user_data` (non-secret cache for instant cold-start UI).
  *
- * Side effects on session changes: links/unlinks the user with OneSignal
- * (uuid + kyc/vip/gold tags) and pushes the balance to home-screen widgets.
+ * Side effects on session changes: registers/unregisters the push token
+ * (por uuid de cuenta; qpweb ya conoce kyc/vip/gold) and pushes the balance to home-screen widgets.
  *
  * @returns Estado (`isAuthenticated`, `user`, `token`, `isLoading`, `error`)
  *   y acciones (`login`, `loginWithPasskey`, `logout`, `register`, `updateUser`,
@@ -195,7 +195,7 @@ export default function useAuthState() {
 			setIsAuthenticated(true)
 			if (cachedUser) {
 				setUser(cachedUser)
-				if (cachedUser.uuid) { OneSignal.login(cachedUser.uuid) }
+				if (cachedUser.uuid) { syncPushToken(cachedUser.uuid) }
 				if (cachedUser.balance != null && cachedUser.username) {
 					// El await NO es opcional: reloadWidgets dispara
 					// reloadAllTimelines() y en paralelo puede adelantar a la
@@ -219,7 +219,7 @@ export default function useAuthState() {
 				setUser(userData.data)
 				await updateWidgetBalance(userData.data.balance, userData.data.username)
 				reloadWidgets()
-				if (userData.data.uuid) { OneSignal.login(userData.data.uuid) }
+				if (userData.data.uuid) { syncPushToken(userData.data.uuid) }
 			} else if (userData.status === 401 || userData.status === 403) {
 				// Token genuinely revoked/invalid — clear and require re-login
 				await clearAuthData()
@@ -235,7 +235,7 @@ export default function useAuthState() {
 
 	/**
 	 * Establishes a full session from a successful auth API response: persists the
-	 * token (Keychain) + user (AsyncStorage), flips auth state and links OneSignal.
+	 * token (Keychain) + user (AsyncStorage), flips auth state and registers the push token.
 	 * Shared by login, loginWithPasskey and the registration wizard (which
 	 * authenticates silently and completes the session only after its optional
 	 * phone-verification step).
@@ -258,13 +258,9 @@ export default function useAuthState() {
 		setToken(accessToken)
 		setIsAuthenticated(true)
 
-		// Register user with OneSignal for targeted push notifications
-		OneSignal.login(userData.uuid)
-		OneSignal.User.addTags({
-			kyc: userData.kyc ? 'true' : 'false',
-			vip: userData.vip ? 'true' : 'false',
-			golden_check: userData.golden_check ? 'true' : 'false',
-		})
+		// Registra el token de push para esta cuenta (fire-and-forget: el backend
+		// ya conoce kyc/vip/gold del usuario, no hace falta etiquetar el dispositivo)
+		syncPushToken(userData.uuid)
 
 		return userData
 	}
@@ -394,7 +390,7 @@ export default function useAuthState() {
 
 	/**
 	 * Logs out: revokes the session server-side (best effort — a failed API call
-	 * never blocks the local logout), unlinks OneSignal, wipes the Keychain token
+	 * never blocks the local logout), unregisters the push token, wipes the Keychain token
 	 * and cached user/contacts data, and resets all auth state.
 	 *
 	 * @returns {Promise<{ success: boolean, error?: string }>}
@@ -403,13 +399,13 @@ export default function useAuthState() {
 
 		try {
 
+			// Baja del token de push ANTES de revocar la sesión: el endpoint exige el bearer
+			await unregisterPush()
+
 			if (token) {
 				try { await authApi.logout() }
 				catch (apiError) { /* API logout failed */ }
 			}
-
-			// Unlink user from OneSignal push notifications
-			OneSignal.logout()
 
 			// Clear all stored data
 			await clearAuthData()

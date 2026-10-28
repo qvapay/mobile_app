@@ -12,10 +12,23 @@
  */
 
 import { ROUTES } from '../routes'
+import { resolveDeepLinkTarget } from './deepLinkTarget'
 
-/** `additionalData` de una push de QvaPay. */
+/** `data` de una push de QvaPay (el `additionalData` de la era OneSignal). */
 export type PushData = {
 	type?: string
+	/** Delivery id del backend propio (`POST /push/events` lo referencia). */
+	did?: string
+	/** id del mensaje en la bandeja (`GET /push/inbox`). */
+	mid?: string
+	/** Campaña (broadcast) a la que pertenece la push; `''` si es transaccional. */
+	cid?: string
+	/** `qvapay://…` que abre el toque; manda sobre el enrutado por `type`. */
+	deeplink?: string
+	/** La misma ruta como URL web (compatibilidad con builds anteriores); la app enruta por `deeplink`. */
+	url?: string
+	/** Imagen grande (Android la pinta el sistema; iOS vía la Notification Service Extension). */
+	image?: string
 	/** Legacy: uuid genérico, interpretado según el tipo. */
 	uuid?: string
 	transaction_uuid?: string
@@ -50,7 +63,7 @@ const MONEY_OUT_TYPES = ['transfer_sent', 'invite_sent']
  * `MONEY_IN_TYPES`: un P2P completado también es dinero entrante, pero su
  * pantalla es la oferta, no la transacción.
  */
-const TRANSACTION_TYPES = ['transfer_received', 'transfer_sent', 'invite_sent', 'transaction', 'transfer']
+const TRANSACTION_TYPES = ['transfer_received', 'transfer_sent', 'invite_sent', 'transaction_comment', 'transaction', 'transfer']
 
 /** ¿Esta push anuncia dinero entrante? */
 export const isMoneyInPush = (data: PushData): boolean => !!data?.type && MONEY_IN_TYPES.includes(data.type)
@@ -126,4 +139,17 @@ export const resolvePushTarget = (data: PushData): PushTarget | null => {
 	if (type.startsWith('savings')) return { screen: ROUTES.SAVINGS_SCREEN }
 
 	return null
+}
+
+/**
+ * Destino del toque de una push: el `deeplink` del backend propio si lo trae
+ * (y la app sabe abrirlo), si no el enrutado por `type` de siempre.
+ *
+ * @param data - `data` de la push.
+ * @returns Ruta y params, o `null` si no hay destino.
+ */
+export const resolvePushNavigation = (data: PushData): PushTarget | null => {
+	const link = resolveDeepLinkTarget(data?.deeplink)
+	if (link) return { screen: link.name, params: link.params }
+	return resolvePushTarget(data)
 }
