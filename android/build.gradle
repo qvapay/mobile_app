@@ -16,6 +16,9 @@ buildscript {
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
         classpath("com.github.triplet.gradle:play-publisher:3.12.1")
+        // Firebase Cloud Messaging (push propias): genera los recursos a partir de
+        // app/google-services.json. Versión recomendada por @react-native-firebase/app
+        classpath("com.google.gms:google-services:4.5.0")
     }
 }
 

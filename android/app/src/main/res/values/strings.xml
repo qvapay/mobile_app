@@ -6,6 +6,13 @@
     <!-- Nombres de los canales de notificación de dinero (visibles en Ajustes de Android) -->
     <string name="channel_money_in">Dinero recibido</string>
     <string name="channel_money_out">Dinero enviado</string>
+    <!-- Canales del push propio (ids fijos: el backend los manda en channel_id) -->
+    <string name="channel_transactional">Transacciones y seguridad</string>
+    <string name="channel_p2p_trades">Tratos P2P</string>
+    <string name="channel_p2p_chat">Chat P2P</string>
+    <string name="channel_p2p_market">Mercado P2P</string>
+    <string name="channel_shopping">Compras y pedidos</string>
+    <string name="channel_promos">Promociones</string>
     <!-- Etiquetas de los widgets de balance (las mismas de ui.actionButtons en i18n) -->
     <string name="widget_action_deposit">Depositar</string>
     <string name="widget_action_withdraw">Extraer</string>

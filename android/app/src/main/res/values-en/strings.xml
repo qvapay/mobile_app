@@ -1,6 +1,12 @@
 <resources>
     <string name="channel_money_in">Money received</string>
     <string name="channel_money_out">Money sent</string>
+    <string name="channel_transactional">Transactions and security</string>
+    <string name="channel_p2p_trades">P2P trades</string>
+    <string name="channel_p2p_chat">P2P chat</string>
+    <string name="channel_p2p_market">P2P market</string>
+    <string name="channel_shopping">Shopping and orders</string>
+    <string name="channel_promos">Promotions</string>
     <string name="widget_p2p_rates_description">QvaPay P2P buy and sell rates</string>
     <string name="widget_balance_description">Your QvaPay balance with quick actions</string>
     <string name="widget_p2p_offers_description">Your active QvaPay P2P offers</string>

@@ -68,6 +68,19 @@
       android:localeConfig="@xml/locales_config"
       android:supportsRtl="true">
 
+      <!-- Push (FCM): icono monocromo, color y canal por defecto de las notificaciones
+           que pinta el SISTEMA con la app en segundo plano (el backend puede mandar
+           otro canal con `android.notification.channel_id`; los crea MainApplication) -->
+      <meta-data
+          android:name="com.google.firebase.messaging.default_notification_icon"
+          android:resource="@drawable/ic_stat_qvapay" />
+      <meta-data
+          android:name="com.google.firebase.messaging.default_notification_color"
+          android:resource="@color/notification_color" />
+      <meta-data
+          android:name="com.google.firebase.messaging.default_notification_channel_id"
+          android:value="transactional" />
+
       <!-- NearbyPay BLE foreground service (never started on Android — feature is iOS-only for now) -->
       <service
           android:name="com.munimbluetooth.MunimBluetoothBackgroundService"

@@ -6,6 +6,8 @@
   tema de la app: ese vive en AsyncStorage, fuera del alcance del launcher.
 -->
 <resources>
+    <!-- Tinte del icono de las notificaciones push (primario de marca, theme/ThemeContext) -->
+    <color name="notification_color">#FF6759EF</color>
     <color name="widget_background">#FFFFFFFF</color>
     <color name="widget_tile">#FFE8E9F2</color>
     <color name="widget_primary_text">#FF1A1A1A</color>
