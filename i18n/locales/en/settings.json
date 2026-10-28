@@ -588,6 +588,7 @@
 			"editTitle": "Edit payment method",
 			"saveChanges": "Save changes",
 			"coinUnavailable": "This coin is no longer available: you can only rename the method",
+			"coinsLoadError": "We couldn't load the coins: for now you can only rename the method",
 			"zonesLoadError": "We couldn't load the delivery zones. Without them we can't check the province and municipality."
 		},
 		"alerts": {

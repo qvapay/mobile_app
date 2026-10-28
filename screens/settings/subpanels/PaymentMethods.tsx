@@ -74,6 +74,8 @@ type MethodsAction = { type: 'set', field: keyof MethodsData, value: unknown }
 /**
  * Asistente de alta y edición: moneda elegida + campos de `working_data` + nombre.
  * `editing` = el método que se edita (misma hoja precargada; la moneda queda fija).
+ * En edición `selectedCoin` no se usa: la moneda se resuelve del catálogo en cada render
+ * y `workingForm` guarda solo lo que el usuario toca encima de los detalles guardados.
  */
 type CreateState = {
 	showCreate: boolean
@@ -87,7 +89,7 @@ type CreateState = {
 
 type CreateAction =
 	| { type: 'open' }
-	| { type: 'openEdit', method: PaymentMethod, coin: Coin | null, form: Record<string, string> }
+	| { type: 'openEdit', method: PaymentMethod }
 	| { type: 'close' }
 	| { type: 'selectCoin', coin: Coin }
 	| { type: 'showCoinPicker', value: boolean }
@@ -112,7 +114,7 @@ function createReducer(state: CreateState, action: CreateAction): CreateState {
 		case 'open':
 			return { ...initialCreate, showCreate: true }
 		case 'openEdit':
-			return { ...initialCreate, showCreate: true, editing: action.method, selectedCoin: action.coin, workingForm: action.form, paymentMethodName: action.method.name ?? '' }
+			return { ...initialCreate, showCreate: true, editing: action.method, paymentMethodName: action.method.name ?? '' }
 		case 'close':
 			return initialCreate
 		case 'selectCoin':
@@ -175,19 +177,37 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 	const [create, dispatchCreate] = useReducer(createReducer, initialCreate)
 	const { showCreate, showCoinPicker, selectedCoin, workingForm, paymentMethodName, creating, editing } = create
 
-	// Derived working fields from selected coin
-	const workingFields = useMemo<CoinWorkingField[]>(() => parseWorkingFields(selectedCoin), [selectedCoin])
+	// Edición: la moneda del método sale del catálogo EN CADA RENDER, no al abrir la hoja. En
+	// la primera visita el catálogo puede llegar después del toque, y resolverla una sola vez
+	// dejaba la hoja en «solo nombre» hasta cerrarla y reabrirla. Por tick sin distinguir
+	// mayúsculas: las filas viejas lo guardan con otra grafía
+	const editTick = editing?.coin?.tick
+	const editCoin = useMemo(() => (editTick ? availableCoins.find((c) => String(c.tick).toLowerCase() === editTick.toLowerCase()) ?? null : null), [availableCoins, editTick])
+	const activeCoin = editing ? editCoin : selectedCoin
+	// found | loading (catálogo en camino) | catalogFailed (sin catálogo no se sabe si la moneda
+	// existe: `useCoins` no expone el error, pero un catálogo cargado nunca está vacío) | gone (retirada)
+	const editCoinStatus: 'found' | 'loading' | 'catalogFailed' | 'gone' = !editing || editCoin
+		? 'found'
+		: !editTick ? 'gone' : loadingCoins ? 'loading' : availableCoins.length === 0 ? 'catalogFailed' : 'gone'
+
+	// Derived working fields from the active coin
+	const workingFields = useMemo<CoinWorkingField[]>(() => parseWorkingFields(activeCoin), [activeCoin])
+
+	// Formulario efectivo: en edición, los detalles guardados (casados con los campos de la
+	// moneda en cuanto se conoce) más lo que el usuario cambie; en el alta, lo tecleado
+	const editBaseForm = useMemo(() => (editing ? detailsToForm(editing.details ?? editing.Details, workingFields) : null), [editing, workingFields])
+	const form = useMemo(() => (editBaseForm ? { ...editBaseForm, ...workingForm } : workingForm), [editBaseForm, workingForm])
 
 	// Entrega de efectivo por zonas (USDCASH…): provincia y municipio se eligen de las zonas
 	// que cubre el servidor, igual que en el retiro. Un lugar escrito a mano que no casa con
 	// ninguna zona dejaba el método inservible al retirar (CASH_ZONE_UNAVAILABLE)
-	const { payload: cashPayload, status: cashZonesStatus, refetch: retryCashZones } = useCashZonesQuery(selectedCoin?.tick, hasCashZoneFields(workingFields))
+	const { payload: cashPayload, status: cashZonesStatus, refetch: retryCashZones } = useCashZonesQuery(activeCoin?.tick, hasCashZoneFields(workingFields))
 	const cashZonesPending = cashZonesStatus === 'loading' || cashZonesStatus === 'error'
 	const cashMode = useMemo(() => cashZoneModeFor(cashPayload, workingFields), [cashPayload, workingFields])
 	const { provinceField, municipalityField } = cashFieldNames(workingFields)
 	const provinceKey = provinceField ? keyFromFieldName(provinceField) : null
 	const municipalityKey = municipalityField ? keyFromFieldName(municipalityField) : null
-	const cashZone = cashMode && provinceKey && municipalityKey ? findZone(cashMode.zones, { province: workingForm[provinceKey], municipality: workingForm[municipalityKey] }) : null
+	const cashZone = cashMode && provinceKey && municipalityKey ? findZone(cashMode.zones, { province: form[provinceKey], municipality: form[municipalityKey] }) : null
 
 	// Fetch initial data
 	useEffect(() => {
@@ -227,13 +247,8 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 		dispatchCreate({ type: 'open' })
 	}
 
-	// Editar: la misma hoja precargada. La moneda sale del catálogo por tick (sin distinguir
-	// mayúsculas: las filas viejas lo guardan con otra grafía); si ya no existe, solo se edita el nombre
-	const openEdit = (method: PaymentMethod) => {
-		const tick = method.coin?.tick
-		const coin = tick ? availableCoins.find((c) => String(c.tick).toLowerCase() === tick.toLowerCase()) ?? null : null
-		dispatchCreate({ type: 'openEdit', method, coin, form: detailsToForm(method.details ?? method.Details, parseWorkingFields(coin)) })
-	}
+	// Editar: la misma hoja, precargada (la moneda y los detalles se resuelven en el render)
+	const openEdit = (method: PaymentMethod) => { dispatchCreate({ type: 'openEdit', method }) }
 
 	// Close create modal
 	const closeCreate = () => {
@@ -247,7 +262,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 	// Campos de la moneda completos y, en efectivo por zonas, un municipio que casa con una zona
 	const validateForm = (): boolean => {
 		if ((workingFields || []).length > 0) {
-			const allFilled = workingFields.every((field) => ((workingForm[keyFromFieldName(field.name)] ?? '').toString().trim()).length > 0)
+			const allFilled = workingFields.every((field) => ((form[keyFromFieldName(field.name)] ?? '').toString().trim()).length > 0)
 			if (!allFilled) {
 				toast.error(t('settings.paymentMethods.toasts.missingData'), { description: t('settings.paymentMethods.toasts.missingDataDescription') })
 				return false
@@ -274,7 +289,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 			dispatchCreate({ type: 'setCreating', value: true })
 			// Details keyed por el nombre original del campo (la forma que devuelve la API)
-			const payload = { name: paymentMethodName, coin: selectedCoin.tick, details: formToDetails(workingForm, workingFields) }
+			const payload = { name: paymentMethodName, coin: selectedCoin.tick, details: formToDetails(form, workingFields) }
 			const res = await userApi.createPaymentMethod(payload)
 
 			if (res.success) {
@@ -295,8 +310,10 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 	const handleUpdate = async () => {
 		const id = methodId(editing)
 		if (!id) { toast.error(t('settings.paymentMethods.toasts.invalidId')); return }
-		const details = selectedCoin ? formToDetails(workingForm, workingFields) : undefined
-		if (selectedCoin && !validateForm()) return
+		// Con el catálogo en camino no se guarda (el botón ya está desactivado): saldría sin detalles
+		if (editCoinStatus === 'loading') return
+		const details = activeCoin ? formToDetails(form, workingFields) : undefined
+		if (activeCoin && !validateForm()) return
 		if (!details && !paymentMethodName.trim()) {
 			toast.error(t('settings.paymentMethods.toasts.missingData'), { description: t('settings.paymentMethods.toasts.missingDataDescription') })
 			return
@@ -361,8 +378,8 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 				node: (
 					<CashZoneFields
 						mode={cashMode}
-						province={workingForm[provinceKey] || ''}
-						municipality={workingForm[municipalityKey] || ''}
+						province={form[provinceKey] || ''}
+						municipality={form[municipalityKey] || ''}
 						zone={cashZone}
 						charge={null}
 						belowMin={false}
@@ -475,28 +492,34 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.paymentMethods.modal.coinLabel')}</Text>
 							{/* En edición la moneda queda fija (otra moneda es otro método); si ya no está en el catálogo, solo el nombre */}
 							<Pressable style={[styles.selector, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, !!editing && styles.selectorLocked]} onPress={() => dispatchCreate({ type: 'showCoinPicker', value: true })} disabled={!!editing} testID="method-coin-selector">
-								{selectedCoin ? (
-									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-										<QPCoin coin={selectedCoin.logo} size={20} />
-										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
+								{activeCoin ? (
+									<View style={styles.coinRow}>
+										<QPCoin coin={activeCoin.logo} size={20} />
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{activeCoin.tick}</Text>
 									</View>
 								) : editing ? (
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{editing.coin?.name || editing.coin?.tick || t('settings.paymentMethods.fallbackName')}</Text>
+									<View style={styles.coinRow}>
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{editing.coin?.name || editing.coin?.tick || t('settings.paymentMethods.fallbackName')}</Text>
+										{editCoinStatus === 'loading' && <ActivityIndicator size="small" color={theme.colors.primary} testID="method-coin-loading" />}
+									</View>
 								) : (
 									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('settings.paymentMethods.modal.selectCoin')}</Text>
 								)}
 								{!editing && <FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />}
 							</Pressable>
-							{!!editing && !selectedCoin && (
-								<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6 }]} testID="method-coin-unavailable">{t('settings.paymentMethods.modal.coinUnavailable')}</Text>
+							{editCoinStatus === 'gone' && (
+								<Text style={[textStyles.caption, styles.hint, { color: theme.colors.secondaryText }]} testID="method-coin-unavailable">{t('settings.paymentMethods.modal.coinUnavailable')}</Text>
+							)}
+							{editCoinStatus === 'catalogFailed' && (
+								<Text style={[textStyles.caption, styles.hint, { color: theme.colors.secondaryText }]} testID="method-coins-error">{t('settings.paymentMethods.modal.coinsLoadError')}</Text>
 							)}
 
 							{/* Dynamic fields: los mismos del retiro (selects como opciones, provincia y municipio por zonas) */}
-							{!!selectedCoin && workingFields.length > 0 && (
+							{!!activeCoin && workingFields.length > 0 && (
 								<WithdrawAccountFields
 									title={t('settings.paymentMethods.modal.accountData')}
 									workingFields={workingFields}
-									workingForm={workingForm}
+									workingForm={form}
 									onChangeField={(key, value) => dispatchCreate({ type: 'setField', key, value })}
 									slot={zoneSlot}
 									theme={theme}
@@ -512,7 +535,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 								title={t(editing ? 'settings.paymentMethods.modal.saveChanges' : 'settings.paymentMethods.modal.saveButton')}
 								onPress={editing ? handleUpdate : handleCreate}
 								loading={creating}
-								disabled={creating || cashZonesPending || (!editing && !selectedCoin)}
+								disabled={creating || cashZonesPending || (!editing && !selectedCoin) || editCoinStatus === 'loading'}
 								textStyle={{ color: theme.colors.buttonText }}
 							/>
 						</View>
@@ -549,6 +572,8 @@ const styles = StyleSheet.create({
 	},
 	closeButton: { padding: 5 },
 	selectorLocked: { opacity: 0.6 },
+	coinRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+	hint: { marginTop: 6 },
 	zonesLoading: { marginVertical: 16 },
 	zonesCard: { marginVertical: 6, padding: 12, borderRadius: 12 },
 	zonesRetry: { alignSelf: 'flex-start', marginTop: 8 },

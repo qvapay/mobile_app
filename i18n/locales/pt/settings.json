@@ -588,6 +588,7 @@
 			"editTitle": "Editar método de pagamento",
 			"saveChanges": "Salvar alterações",
 			"coinUnavailable": "Esta moeda não está mais disponível: você só pode alterar o nome",
+			"coinsLoadError": "Não conseguimos carregar as moedas: por enquanto você só pode alterar o nome",
 			"zonesLoadError": "Não conseguimos carregar as zonas de entrega. Sem elas não podemos verificar a província e o município."
 		},
 		"alerts": {

@@ -24,9 +24,10 @@ jest.mock('../../../api/userApi', () => ({
 }))
 jest.mock('../../../api/withdrawApi', () => ({ withdrawApi: { cashZones: jest.fn() } }))
 let mockCoinCatalog = []
+let mockCoinsLoading = false
 jest.mock('../../../hooks/useCoins', () => ({
 	__esModule: true,
-	default: () => ({ coins: mockCoinCatalog, isLoading: false }),
+	default: () => ({ coins: mockCoinCatalog, isLoading: mockCoinsLoading }),
 }))
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
@@ -92,6 +93,9 @@ const renderAndOpen = async () => {
 const SAVED_CUP = { id: '7', name: 'Mi CUP', coin: { name: 'Banco CUP', tick: 'bank_cup', logo: 'bank_cup' }, details: { 'card number': '9224 0699 9632 8054' } }
 const SAVED_GONE = { id: '8', name: 'Viejo', coin: null, details: [{ name: 'Wallet', value: 'TXYZ' }] }
 const openEdit = (tree, id) => act(async () => { tree.root.findByProps({ testID: `payment-method-${id}` }).props.onPress() })
+// Vuelve a pintar con el mismo cliente (para cuando cambia lo que devuelve useCoins)
+const rerender = (tree) => act(async () => { tree.update(<QueryClientProvider client={clients.at(-1)}><PaymentMethods navigation={navigation} /></QueryClientProvider>) })
+const hasTestID = (tree, testID) => tree.root.findAllByProps({ testID }).length > 0
 const nameInput = (tree) => tree.root.findByProps({ placeholder: 'Nombre del método' })
 const text = (tree) => JSON.stringify(tree.toJSON())
 
@@ -110,6 +114,7 @@ const pickZone = async (tree, province, municipality) => {
 beforeEach(() => {
 	jest.clearAllMocks()
 	mockCoinCatalog = [CASH_ZONED, CUP]
+	mockCoinsLoading = false
 	userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [] })
 	userApi.createPaymentMethod.mockResolvedValue({ success: true, data: {}, status: 201 })
 	withdrawApi.cashZones.mockResolvedValue(zonesOk)
@@ -254,6 +259,40 @@ describe('editar un método guardado', () => {
 		await typeName(tree, 'Viejo renombrado')
 		await pressSave(tree)
 		expect(userApi.updatePaymentMethod).toHaveBeenCalledWith({ id: '8', name: 'Viejo renombrado' })
+	})
+
+	// Bugbot (PR #95): la moneda se resolvía una sola vez al abrir la hoja
+	test('con el catálogo aún en camino espera sin decir que la moneda no existe, y precarga al llegar', async () => {
+		mockCoinCatalog = []
+		mockCoinsLoading = true
+		const tree = await renderList()
+		await openEdit(tree, '7')
+		expect(hasTestID(tree, 'method-coin-loading')).toBe(true)
+		expect(hasTestID(tree, 'method-coin-unavailable')).toBe(false)
+		expect(tree.root.findAllByType('WithdrawAccountFields')).toHaveLength(0)
+		expect(saveButton(tree).props.disabled).toBe(true)
+
+		mockCoinCatalog = [CASH_ZONED, CUP]
+		mockCoinsLoading = false
+		await rerender(tree)
+		expect(hasTestID(tree, 'method-coin-loading')).toBe(false)
+		expect(accountFields(tree).props.workingForm).toEqual({ card_number: '9224 0699 9632 8054' })
+		expect(saveButton(tree).props.disabled).toBe(false)
+		await fillField(tree, 'card_number', '1111')
+		await pressSave(tree)
+		expect(userApi.updatePaymentMethod).toHaveBeenCalledWith({ id: '7', name: 'Mi CUP', details: { 'Card Number': '1111' } })
+	})
+
+	test('si el catálogo no se pudo cargar lo dice (no «moneda retirada») y deja cambiar solo el nombre', async () => {
+		mockCoinCatalog = []
+		const tree = await renderList()
+		await openEdit(tree, '7')
+		expect(hasTestID(tree, 'method-coins-error')).toBe(true)
+		expect(hasTestID(tree, 'method-coin-unavailable')).toBe(false)
+		expect(saveButton(tree).props.disabled).toBe(false)
+		await typeName(tree, 'Solo nombre')
+		await pressSave(tree)
+		expect(userApi.updatePaymentMethod).toHaveBeenCalledWith({ id: '7', name: 'Solo nombre' })
 	})
 
 	test('un backend sin PATCH avisa y no toca la lista', async () => {
