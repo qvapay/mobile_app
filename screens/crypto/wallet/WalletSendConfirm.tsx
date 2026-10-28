@@ -7,7 +7,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTheme } from '../../../theme/ThemeContext'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { Theme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
@@ -34,11 +34,16 @@ import { sponsorChainFor, sponsoredNotice } from './gaslessModel'
 import type { GaslessState } from './useGaslessSend'
 import type { SendPhase } from './useWalletSendTx'
 import { formatUsd, shortAddress } from './walletFormat'
+import useRecipientCheck from './useRecipientCheck'
+import { addressDiff, isBlockingVerdict } from '../../../wallet/recipients'
+import type { AddressDiff, RecipientVerdict } from '../../../wallet/recipients'
+import type { ChainKind } from '../../../wallet/registry/types'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
 import QPPressable from '../../../ui/particles/QPPressable'
 import QPAssetIcon from '../../../ui/particles/QPAssetIcon'
+import QPCheckbox from '../../../ui/particles/QPCheckbox'
 import WalletAuthModal from './components/WalletAuthModal'
 import EnergyRentModal from './components/EnergyRentModal'
 
@@ -136,6 +141,12 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 		bounds: energyPrices.data?.meta,
 	})
 
+	// ¿El destino imita a una dirección de confianza (address poisoning)? Sin veredicto, o con
+	// uno de los que bloquean sin que el usuario diga que lo revisó, no se firma
+	const recipient = useRecipientCheck(asset, to)
+	const [recipientChecked, setRecipientChecked] = useState(false)
+	const recipientBlocks = recipient === null || (isBlockingVerdict(recipient) && !recipientChecked)
+
 	if (!asset || !chain) {
 		return <View style={[containerStyles.subContainer, styles.center]}><ActivityIndicator color={theme.colors.primary} /></View>
 	}
@@ -179,6 +190,16 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				total={total}
 			/>
 
+			<RecipientNotice
+				theme={theme}
+				verdict={recipient}
+				kind={asset.kind}
+				to={to}
+				checked={recipientChecked}
+				onToggle={() => setRecipientChecked(value => !value)}
+				disabled={busy}
+			/>
+
 			<SendNotices
 				theme={theme}
 				prepared={prepared}
@@ -216,7 +237,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 					<QPButton
 						title={t(CONFIRM_LABEL[phase] ?? 'crypto.wallet.send.confirm')}
 						onPress={tx.openAuth}
-						disabled={phase !== 'ready' || insufficientNative}
+						disabled={phase !== 'ready' || insufficientNative || recipientBlocks}
 						loading={phase === 'preparing' || busy}
 					/>
 				)}
@@ -483,6 +504,70 @@ const EnergyNotice = ({ theme, decision, fee, phase, rented, slow, onRent }: {
 	)
 }
 
+/**
+ * Lo que el historial dice del destino. `lookalike` y `poisoner` son el address poisoning:
+ * aviso rojo y el botón de firmar bloqueado hasta que el usuario marca que revisó la
+ * dirección ENTERA. `new` solo recuerda compararla; `known` y `self` no pintan nada.
+ */
+const RecipientNotice = ({ theme, verdict, kind, to, checked, onToggle, disabled }: {
+	theme: Theme, verdict: RecipientVerdict | null, kind: ChainKind, to: string,
+	checked: boolean, onToggle: () => void, disabled: boolean
+}) => {
+
+	const { t } = useTranslation()
+
+	if (verdict?.kind === 'new') {
+		return <Notice theme={theme} icon="circle-info" color={theme.colors.secondaryText} text={t('crypto.wallet.send.recipient.new')} />
+	}
+	if (!verdict || !isBlockingVerdict(verdict)) { return null }
+
+	const ink = theme.colors.dangerText
+	const text = { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }
+
+	return (
+		<View style={[styles.notice, { backgroundColor: theme.colors.danger + '14' }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.danger + '55' }]} accessibilityRole="alert">
+			<FontAwesome6 name="triangle-exclamation" size={14} color={ink} iconStyle="solid" style={styles.noticeIcon} />
+			<View style={styles.noticeBody}>
+				<Text style={[text, { color: ink, fontFamily: theme.typography.fontFamily.semiBold }]}>
+					{verdict.kind === 'lookalike' ? t('crypto.wallet.send.recipient.lookalikeTitle') : t('crypto.wallet.send.recipient.poisonerTitle')}
+				</Text>
+				<Text style={text}>
+					{verdict.kind === 'lookalike' ? t('crypto.wallet.send.recipient.lookalike') : t('crypto.wallet.send.recipient.poisoner')}
+				</Text>
+				{verdict.kind === 'lookalike' && (
+					<View style={styles.recipientCompare}>
+						<DiffLine theme={theme} label={t('crypto.wallet.send.recipient.sendingTo')} diff={addressDiff(kind, to, verdict.of)} />
+						<DiffLine theme={theme} label={t('crypto.wallet.send.recipient.usedBefore')} diff={addressDiff(kind, verdict.of, to)} />
+					</View>
+				)}
+				<QPPressable
+					onPress={onToggle}
+					disabled={disabled}
+					accessibilityRole="checkbox"
+					accessibilityState={{ checked, disabled }}
+					style={styles.recipientCheck}
+					testID="recipient-checked"
+				>
+					<QPCheckbox checked={checked} size={20} color={ink} />
+					<Text style={[text, styles.noticeText, { fontFamily: theme.typography.fontFamily.medium }]}>{t('crypto.wallet.send.recipient.checked')}</Text>
+				</QPPressable>
+			</View>
+		</View>
+	)
+}
+
+/** Una de las dos direcciones del aviso: los extremos que imita, y en rojo el medio que cambia. */
+const DiffLine = ({ theme, label, diff }: { theme: Theme, label: string, diff: AddressDiff }) => (
+	<View style={styles.recipientLine}>
+		<Text style={{ color: theme.colors.secondaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }}>{label}</Text>
+		<Text selectable style={[monoFont(theme), { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xs }]}>
+			{diff.head}
+			<Text style={[monoFont(theme, { fontWeight: '600' }), styles.recipientDiff, { color: theme.colors.dangerText }]}>{diff.middle}</Text>
+			{diff.tail}
+		</Text>
+	</View>
+)
+
 const Notice = ({ theme, icon, color, text, action, onPress }: {
 	theme: Theme, icon: 'circle-info' | 'triangle-exclamation' | 'shield-halved' | 'bolt', color: string, text: string,
 	/** Con `action` el aviso deja de ser informativo y propone hacer algo. */
@@ -532,6 +617,10 @@ const styles = StyleSheet.create({
 	noticeBody: { flex: 1, gap: 8 },
 	noticeText: { flex: 1 },
 	noticeAction: { alignSelf: 'flex-start', paddingVertical: 2 },
+	recipientCompare: { gap: 8 },
+	recipientLine: { gap: 2 },
+	recipientDiff: { textDecorationLine: 'underline' },
+	recipientCheck: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
 	actions: { gap: 10, marginTop: 8 },
 })
 

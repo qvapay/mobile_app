@@ -291,6 +291,16 @@
 				"pending": "Sent. We're confirming it on the network.",
 				"walletNotRegistered": "Open your wallet to register it and send for free.",
 				"failed": "We couldn't complete the free send. You can try paying the fee."
+			},
+			"recipient": {
+				"new": "This is the first time you send to this address from this wallet. Compare the whole address with the one you were given, not just the start and the end.",
+				"lookalikeTitle": "Careful: this address imitates another one",
+				"lookalike": "It starts and ends like an address you’ve used before, but it is NOT the same. This is a known scam: someone sends you a tiny amount from a lookalike address so you copy it from your history. Ask the person you’re paying for their address again.",
+				"poisonerTitle": "Careful: suspicious address",
+				"poisoner": "This address only shows up in your history through tiny amounts or 0-value transfers: the trail left by someone trying to get you to copy a fake address. Don’t copy addresses from your history; ask the person you’re paying for their address again.",
+				"sendingTo": "You’re sending to",
+				"usedBefore": "The one you used before",
+				"checked": "I’ve checked the address character by character"
 			}
 		},
 		"settings": {

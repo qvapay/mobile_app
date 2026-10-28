@@ -291,6 +291,16 @@
 				"pending": "Enviado. Lo estamos confirmando en la red.",
 				"walletNotRegistered": "Abre tu wallet para registrarla y poder enviar gratis.",
 				"failed": "No pudimos completar el envío gratis. Puedes intentarlo pagando la comisión."
+			},
+			"recipient": {
+				"new": "Es la primera vez que envías a esta dirección desde esta wallet. Compárala entera con la que te dieron, no solo el principio y el final.",
+				"lookalikeTitle": "Cuidado: esta dirección imita a otra",
+				"lookalike": "Empieza y termina igual que una dirección que ya usaste, pero NO es la misma. Es una estafa conocida: te mandan una cantidad mínima desde una dirección parecida para que la copies del historial. Pide la dirección de nuevo a quien vas a pagar.",
+				"poisonerTitle": "Cuidado: dirección sospechosa",
+				"poisoner": "Esta dirección solo aparece en tu historial por cantidades mínimas o transferencias de 0: es el rastro de quien intenta que copies una dirección falsa. No copies direcciones del historial; pide la dirección de nuevo a quien vas a pagar.",
+				"sendingTo": "Vas a enviar a",
+				"usedBefore": "La que ya usaste",
+				"checked": "He comprobado la dirección carácter a carácter"
 			}
 		},
 		"settings": {

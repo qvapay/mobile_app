@@ -291,6 +291,16 @@
 				"pending": "Enviado. Estamos confirmando na rede.",
 				"walletNotRegistered": "Abra sua carteira para registrá-la e enviar grátis.",
 				"failed": "Não foi possível concluir o envio grátis. Você pode tentar pagando a taxa."
+			},
+			"recipient": {
+				"new": "É a primeira vez que você envia para este endereço a partir desta carteira. Compare o endereço inteiro com o que você recebeu, não só o início e o fim.",
+				"lookalikeTitle": "Cuidado: este endereço imita outro",
+				"lookalike": "Começa e termina como um endereço que você já usou, mas NÃO é o mesmo. É um golpe conhecido: enviam um valor mínimo de um endereço parecido para você copiá-lo do histórico. Peça o endereço de novo a quem você vai pagar.",
+				"poisonerTitle": "Cuidado: endereço suspeito",
+				"poisoner": "Este endereço só aparece no seu histórico por valores mínimos ou transferências de 0: é o rastro de quem tenta fazer você copiar um endereço falso. Não copie endereços do histórico; peça o endereço de novo a quem você vai pagar.",
+				"sendingTo": "Você vai enviar para",
+				"usedBefore": "O que você já usou",
+				"checked": "Conferi o endereço caractere por caractere"
 			}
 		},
 		"settings": {
