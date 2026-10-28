@@ -1,7 +1,8 @@
 /**
- * Alta de un método de pago en Ajustes: los campos son los mismos del retiro y, en la
- * entrega de efectivo por zonas (USDCASH…), provincia y municipio se eligen de las zonas
- * del servidor — un lugar que no casa con ninguna dejaría el método inservible al retirar.
+ * Alta y edición de un método de pago en Ajustes: los campos son los mismos del retiro y,
+ * en la entrega de efectivo por zonas (USDCASH…), provincia y municipio se eligen de las
+ * zonas del servidor — un lugar que no casa con ninguna dejaría el método inservible al
+ * retirar. Editar = la misma hoja precargada con la moneda fija (PATCH conserva el id).
  * @jest-environment node
  */
 jest.mock('../../../theme/ThemeContext', () => {
@@ -13,12 +14,13 @@ jest.mock('../../../ui/particles/QPButton', () => 'QPButton')
 jest.mock('../../../ui/particles/QPInput', () => 'QPInput')
 jest.mock('../../../ui/particles/QPLoader', () => 'QPLoader')
 jest.mock('../../../ui/particles/QPCoin', () => 'QPCoin')
+jest.mock('../../../ui/particles/QPPressable', () => 'QPPressable')
 jest.mock('../../../ui/particles/QPAddress', () => 'QPAddress')
 jest.mock('../../../ui/QPCoinPicker', () => 'QPCoinPicker')
 jest.mock('../../withdraw/WithdrawAccountFields', () => 'WithdrawAccountFields')
 jest.mock('../../withdraw/CashZoneFields', () => 'CashZoneFields')
 jest.mock('../../../api/userApi', () => ({
-	userApi: { getPaymentMethods: jest.fn(), createPaymentMethod: jest.fn(), deletePaymentMethod: jest.fn() },
+	userApi: { getPaymentMethods: jest.fn(), createPaymentMethod: jest.fn(), updatePaymentMethod: jest.fn(), deletePaymentMethod: jest.fn() },
 }))
 jest.mock('../../../api/withdrawApi', () => ({ withdrawApi: { cashZones: jest.fn() } }))
 let mockCoinCatalog = []
@@ -29,7 +31,7 @@ jest.mock('../../../hooks/useCoins', () => ({
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
 import React from 'react'
-import { ActivityIndicator } from 'react-native'
+import { ActivityIndicator, Alert, Modal } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider, defaultScheduler, notifyManager } from '@tanstack/react-query'
 import { userApi } from '../../../api/userApi'
@@ -69,17 +71,29 @@ let clients = []
 let trees = []
 const navigation = { setOptions: jest.fn() }
 
-const renderAndOpen = async () => {
+const renderList = async () => {
 	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 	clients.push(client)
 	let tree
 	await act(async () => { tree = create(<QueryClientProvider client={client}><PaymentMethods navigation={navigation} /></QueryClientProvider>) })
 	trees.push(tree)
+	return tree
+}
+
+const renderAndOpen = async () => {
+	const tree = await renderList()
 	// El "+" de la cabecera abre el alta
 	const headerRight = navigation.setOptions.mock.calls.at(-1)[0].headerRight
 	await act(async () => { headerRight().props.onPress() })
 	return tree
 }
+
+// Métodos guardados tal como los manda GET (coin = objeto; tick y campo en minúsculas a propósito)
+const SAVED_CUP = { id: '7', name: 'Mi CUP', coin: { name: 'Banco CUP', tick: 'bank_cup', logo: 'bank_cup' }, details: { 'card number': '9224 0699 9632 8054' } }
+const SAVED_GONE = { id: '8', name: 'Viejo', coin: null, details: [{ name: 'Wallet', value: 'TXYZ' }] }
+const openEdit = (tree, id) => act(async () => { tree.root.findByProps({ testID: `payment-method-${id}` }).props.onPress() })
+const nameInput = (tree) => tree.root.findByProps({ placeholder: 'Nombre del método' })
+const text = (tree) => JSON.stringify(tree.toJSON())
 
 const selectCoin = (tree, coin) => act(async () => { tree.root.findByType('QPCoinPicker').props.onSelect(coin) })
 const accountFields = (tree) => tree.root.findByType('WithdrawAccountFields')
@@ -196,5 +210,70 @@ describe('entrega de efectivo por zonas', () => {
 		await selectCoin(tree, CUP)
 		expect(withdrawApi.cashZones).not.toHaveBeenCalled()
 		expect(accountFields(tree).props.slot).toBeNull()
+	})
+})
+
+describe('editar un método guardado', () => {
+	beforeEach(() => {
+		userApi.getPaymentMethods.mockResolvedValue({ success: true, data: [SAVED_CUP, SAVED_GONE] })
+		userApi.updatePaymentMethod.mockResolvedValue({ success: true, data: { id: '7' }, status: 200 })
+	})
+
+	test('tocar la tarjeta abre la hoja con nombre, moneda y campos precargados y la moneda bloqueada', async () => {
+		const tree = await renderList()
+		await openEdit(tree, '7')
+		expect(text(tree)).toContain('Editar método de pago')
+		expect(nameInput(tree).props.value).toBe('Mi CUP')
+		expect(accountFields(tree).props.workingForm).toEqual({ card_number: '9224 0699 9632 8054' })
+		expect(tree.root.findByProps({ testID: 'method-coin-selector' }).props.disabled).toBe(true)
+		expect(saveButton(tree).props.title).toBe('Guardar cambios')
+		expect(saveButton(tree).props.disabled).toBe(false)
+		expect(withdrawApi.cashZones).not.toHaveBeenCalled()
+	})
+
+	test('guardar manda PATCH con id, nombre y detalles por el nombre original, y sustituye la fila sin recargar', async () => {
+		const tree = await renderList()
+		await openEdit(tree, '7')
+		await typeName(tree, 'CUP de Ana')
+		await fillField(tree, 'card_number', '9224 0699 0000 0000')
+		await pressSave(tree)
+		expect(userApi.updatePaymentMethod).toHaveBeenCalledWith({ id: '7', name: 'CUP de Ana', details: { 'Card Number': '9224 0699 0000 0000' } })
+		expect(userApi.getPaymentMethods).toHaveBeenCalledTimes(1)
+		expect(toast.success).toHaveBeenCalledWith('Método actualizado')
+		expect(tree.root.findByType(Modal).props.visible).toBe(false)
+		expect(text(tree)).toContain('CUP de Ana')
+		expect(text(tree)).toContain('9224 0699 0000 0000')
+	})
+
+	test('si la moneda ya no existe solo se edita el nombre', async () => {
+		const tree = await renderList()
+		await openEdit(tree, '8')
+		expect(tree.root.findAllByType('WithdrawAccountFields')).toHaveLength(0)
+		expect(tree.root.findByProps({ testID: 'method-coin-unavailable' })).toBeTruthy()
+		expect(saveButton(tree).props.disabled).toBe(false)
+		await typeName(tree, 'Viejo renombrado')
+		await pressSave(tree)
+		expect(userApi.updatePaymentMethod).toHaveBeenCalledWith({ id: '8', name: 'Viejo renombrado' })
+	})
+
+	test('un backend sin PATCH avisa y no toca la lista', async () => {
+		userApi.updatePaymentMethod.mockResolvedValue({ success: false, status: 405, reason: 'backendTooOld', error: 'x' })
+		const tree = await renderList()
+		await openEdit(tree, '7')
+		await typeName(tree, 'Otro nombre')
+		await pressSave(tree)
+		expect(toast.error).toHaveBeenCalledWith('Actualiza la app o inténtalo más tarde: el servidor aún no permite editar métodos')
+		expect(tree.root.findByType(Modal).props.visible).toBe(true)
+		expect(text(tree)).toContain('Mi CUP')
+	})
+
+	test('la papelera sigue borrando desde la tarjeta sin abrir la edición', async () => {
+		jest.spyOn(Alert, 'alert').mockImplementation(() => {})
+		const tree = await renderList()
+		const card = tree.root.findByProps({ testID: 'payment-method-7' })
+		const trash = card.findAll(node => node.props.onPress && node !== card && typeof node.type !== 'string')[0]
+		await act(async () => { trash.props.onPress() })
+		expect(Alert.alert).toHaveBeenCalled()
+		expect(tree.root.findByType(Modal).props.visible).toBe(false)
 	})
 })

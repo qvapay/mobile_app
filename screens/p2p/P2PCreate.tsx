@@ -38,7 +38,8 @@ import { ROUTES } from "../../routes"
 import type { NativeStackScreenProps } from "@react-navigation/native-stack"
 import type { RootStackParamList } from "../../types/navigation"
 import type { Coin, CoinWorkingField, P2POffer } from "../../types/domain"
-import type { SavedPaymentMethod, SavedMethodDetail } from "./SavedMethodsModal"
+import type { SavedPaymentMethod } from "./SavedMethodsModal"
+import { detailsToForm } from "../withdraw/paymentMethodDetails"
 
 /** Estado del formulario de creación (montos como string: son inputs). */
 export type P2PCreateFormState = {
@@ -292,21 +293,10 @@ const P2PCreate = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'P
 			.finally(() => setSavedMethodsLoading(false))
 	}
 
-	// Apply saved method into working form
+	// Apply saved method into working form (misma lógica que la edición en Ajustes)
 	const handleSelectSavedMethod = (method: SavedPaymentMethod) => {
 		try {
-			const rawDetails = (method && (method.details || method.Details)) || null
-			let detailsArray: SavedMethodDetail[] = []
-			if (Array.isArray(rawDetails)) {
-				detailsArray = rawDetails.map((d) => ({ name: d.name || d.key, value: String(d.value ?? d.val ?? "") }))
-			} else if (rawDetails && typeof rawDetails === "object") { detailsArray = Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? "") })) }
-			const nextForm: Record<string, string> = {}
-			workingFields.forEach((field) => {
-				const key = keyFromFieldName(field.name)
-				const found = detailsArray.find((d) => String(d.name).toLowerCase() === String(field.name).toLowerCase())
-				nextForm[key] = found ? found.value! : ""
-			})
-			setWorkingForm(nextForm)
+			setWorkingForm(detailsToForm(method?.details ?? method?.Details, workingFields))
 			setShowSavedMethods(false)
 		} catch (e) { toast.error((e as Error).message || t('p2p.create.toasts.methodApplyFailed')) }
 	}

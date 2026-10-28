@@ -585,6 +585,9 @@
 			"selectCoin": "Selecionar moeda",
 			"accountData": "Dados da conta",
 			"saveButton": "Salvar método",
+			"editTitle": "Editar método de pagamento",
+			"saveChanges": "Salvar alterações",
+			"coinUnavailable": "Esta moeda não está mais disponível: você só pode alterar o nome",
 			"zonesLoadError": "Não conseguimos carregar as zonas de entrega. Sem elas não podemos verificar a província e o município."
 		},
 		"alerts": {
@@ -602,6 +605,9 @@
 			"invalidId": "ID de método inválido",
 			"deleted": "Método excluído",
 			"deleteFailed": "Não foi possível excluir",
+			"updated": "Método atualizado",
+			"updateFailed": "Não foi possível atualizar",
+			"updateUnsupported": "Atualize o app ou tente mais tarde: o servidor ainda não permite editar métodos",
 			"zoneRequired": "Escolha a província e o município da lista"
 		}
 	},

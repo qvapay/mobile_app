@@ -347,6 +347,46 @@ describe('userApi payment methods', () => {
 		expect((await userApi.createPaymentMethod({})).error).toBe('Ha ocurrido un error de red')
 	})
 
+	test('updatePaymentMethod PATCHes name and details and succeeds only on 200', async () => {
+		const payload = { id: '7', name: 'Mamá', details: { 'Card Number': '9224' } }
+		apiClient.patch.mockResolvedValue(ok({ id: '7', name: 'Mamá' }))
+
+		const result = await userApi.updatePaymentMethod(payload)
+
+		expect(apiClient.patch).toHaveBeenCalledWith('/user/payment-methods', payload)
+		expect(result).toEqual({ success: true, data: { id: '7', name: 'Mamá' }, status: 200 })
+
+		apiClient.patch.mockResolvedValue(ok({}, 202))
+		expect((await userApi.updatePaymentMethod(payload)).success).toBe(false)
+	})
+
+	test('updatePaymentMethod treats a 405 or a bodiless 404 as a backend without the route', async () => {
+		apiClient.patch.mockRejectedValue(apiError(405, ''))
+		expect(await userApi.updatePaymentMethod({ id: '7', name: 'x' })).toMatchObject({ success: false, reason: 'backendTooOld', status: 405 })
+
+		apiClient.patch.mockRejectedValue(apiError(404, ''))
+		expect(await userApi.updatePaymentMethod({ id: '7', name: 'x' })).toMatchObject({ success: false, reason: 'backendTooOld', status: 404 })
+	})
+
+	test('updatePaymentMethod surfaces a 404 with a server message as a normal failure', async () => {
+		apiClient.patch.mockRejectedValue(apiError(404, { error: 'Payment method not found' }))
+
+		expect(await userApi.updatePaymentMethod({ id: '7', name: 'x' })).toEqual({
+			success: false,
+			error: 'Payment method not found',
+			details: { error: 'Payment method not found' },
+			status: 404
+		})
+	})
+
+	test('updatePaymentMethod returns the API error or the network fallback', async () => {
+		apiClient.patch.mockRejectedValue(apiError(400, { error: 'Nothing to update' }))
+		expect((await userApi.updatePaymentMethod({ id: '7' })).error).toBe('Nothing to update')
+
+		apiClient.patch.mockRejectedValue(Object.assign(new Error(), { message: '' }))
+		expect((await userApi.updatePaymentMethod({ id: '7' })).error).toBe('Ha ocurrido un error de red')
+	})
+
 	test('deletePaymentMethod sends the id in the DELETE request body', async () => {
 		apiClient.delete.mockResolvedValue(ok({ deleted: true }))
 
