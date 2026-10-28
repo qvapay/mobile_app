@@ -2,7 +2,7 @@
 // prompt, auth → navigation reconciliation, deep-link capture and push
 // listeners. Extracted from AppNavigator so the component itself only declares
 // routes (see App.tsx).
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Linking } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 
@@ -120,6 +120,9 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	const pendingPushRef = useRef<DeepLinkTarget | null>(null)
 	const isAuthenticatedRef = useRef(isAuthenticated)
 	useEffect(() => { isAuthenticatedRef.current = isAuthenticated }, [isAuthenticated])
+	// Mientras auth hidrata el Keychain, «sin sesión» aún no significa nada
+	const authLoadingRef = useRef(authLoading)
+	useEffect(() => { authLoadingRef.current = authLoading }, [authLoading])
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -187,6 +190,9 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 				// Sin sesión: Welcome, o el modo wallet si la seed vive en el teléfono
 				const target = resolveRootRoute({ firstTime, isAuthenticated, hasWallet: hasWalletRef.current })
 				if (currentRoute === target) return
+				// Una push tocada con auth aún hidratando se guardó sin avisar (podía
+				// haber sesión); ahora que se sabe que no la hay, se avisa
+				if (pendingPushRef.current) toast.info(i18n.t('hooks.appNavigation.toasts.loginToOpenNotification'))
 				// Capture the current deep link URL before resetting to Welcome
 				Linking.getInitialURL().then((url) => {
 					if (!url) return
@@ -216,9 +222,11 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 	// Push tocada: abre su destino (deeplink del backend o enrutado por tipo).
 	// Con la app ya reconciliada (MainStack en la raíz) navega en el acto; en un
 	// arranque en frío o sin sesión se guarda y lo consume la reconciliación.
-	// Por ref: lo llaman efectos sin deps (la push inicial se consume una vez)
+	// Por ref: lo llaman efectos sin deps (la push inicial se consume una vez).
+	// Se asigna en un layout effect, no en el render (React puede repetir o
+	// descartar un render; el efecto corre antes que cualquier promesa que la use)
 	const openPushRef = useRef<(message: PushMessage) => void>(() => {})
-	openPushRef.current = (message: PushMessage) => {
+	const openPush = (message: PushMessage) => {
 		const data = message.data as PushData
 		trackPushOpened(message.data)
 		const resolved = resolvePushNavigation(data)
@@ -233,8 +241,11 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 			return
 		}
 		pendingPushRef.current = target
-		if (!isAuthenticatedRef.current) toast.info(i18n.t('hooks.appNavigation.toasts.loginToOpenNotification'))
+		// Con auth cargando (arranque en frío) se calla: la reconciliación abre
+		// el destino si hay sesión y avisa si no la hay
+		if (!isAuthenticatedRef.current && !authLoadingRef.current) toast.info(i18n.t('hooks.appNavigation.toasts.loginToOpenNotification'))
 	}
+	useLayoutEffect(() => { openPushRef.current = openPush })
 
 	// La push que ARRANCÓ la app (cerrada): se consume una sola vez
 	useEffect(() => {

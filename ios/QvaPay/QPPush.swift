@@ -22,7 +22,9 @@ final class QPPushCenter: NSObject, UNUserNotificationCenterDelegate {
     private(set) var tokenHex: String?
     /// userInfo del toque que llegó antes de que JS escuchara.
     private var pendingInitial: [AnyHashable: Any]?
-    private var tokenWaiters: [(String?) -> Void] = []
+    /// Esperas de `waitForToken` por id: la llegada del token (o su fallo) las
+    /// vacía todas; el tope de cada una solo se retira a sí misma.
+    private var tokenWaiters: [(id: UUID, completion: (String?) -> Void)] = []
     private let lock = NSLock()
 
     /// El módulo de RN vivo (si JS está cargado). Débil: el bridge es su dueño.
@@ -56,7 +58,7 @@ final class QPPushCenter: NSObject, UNUserNotificationCenterDelegate {
         let waiters = tokenWaiters
         tokenWaiters = []
         lock.unlock()
-        waiters.forEach { $0(hex) }
+        waiters.forEach { $0.completion(hex) }
         emitter?.emit(event: "QPPushToken", body: ["token": hex, "environment": QPPushCenter.apnsEnvironment()])
     }
 
@@ -65,7 +67,7 @@ final class QPPushCenter: NSObject, UNUserNotificationCenterDelegate {
         let waiters = tokenWaiters
         tokenWaiters = []
         lock.unlock()
-        waiters.forEach { $0(nil) }
+        waiters.forEach { $0.completion(nil) }
     }
 
     /// Token actual, o espera a que llegue (pidiéndolo) hasta `timeout`. En el
@@ -77,18 +79,21 @@ final class QPPushCenter: NSObject, UNUserNotificationCenterDelegate {
             completion(token)
             return
         }
-        var finished = false
-        let once: (String?) -> Void = { token in
-            if finished { return }
-            finished = true
-            completion(token)
-        }
-        tokenWaiters.append(once)
+        let id = UUID()
+        tokenWaiters.append((id: id, completion: completion))
         lock.unlock()
         registerForRemoteNotifications()
-        // Tope: si APNs no contesta (sin red, simulador sin fallo explícito) se resuelve nil;
-        // `once` ignora la segunda llamada si el token llegó antes
-        DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { once(nil) }
+        // Tope: si APNs no contesta (sin red, simulador sin fallo explícito) se resuelve nil.
+        // La espera se retira de la lista bajo el lock: si el token ya la consumió no
+        // está, y no se llama dos veces ni queda acumulada hasta el siguiente registro
+        DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { [weak self] in
+            guard let self = self else { return }
+            self.lock.lock()
+            let index = self.tokenWaiters.firstIndex { $0.id == id }
+            if let index = index { self.tokenWaiters.remove(at: index) }
+            self.lock.unlock()
+            if index != nil { completion(nil) }
+        }
     }
 
     func takeInitialNotification() -> [AnyHashable: Any]? {
@@ -105,9 +110,14 @@ final class QPPushCenter: NSObject, UNUserNotificationCenterDelegate {
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         let userInfo = notification.request.content.userInfo
-        emitter?.emit(event: "QPPushForeground", body: ["userInfo": QPPushCenter.sanitize(userInfo)])
-        // Con la app delante JS la presenta (toast + sonido propio); nada de banner
-        completionHandler([])
+        // Con la app delante JS la presenta (toast + sonido propio); nada de banner.
+        // Si JS aún no escucha este evento (arranque en curso) la enseña el sistema:
+        // mejor un banner que perderla
+        if let emitter = emitter, emitter.emit(event: "QPPushForeground", body: ["userInfo": QPPushCenter.sanitize(userInfo)]) {
+            completionHandler([])
+        } else {
+            completionHandler([.banner, .list, .sound])
+        }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter,
@@ -192,6 +202,13 @@ final class QPPushCenter: NSObject, UNUserNotificationCenterDelegate {
 final class QPPush: RCTEventEmitter {
 
     private var listening = false
+    /// Eventos con algún listener en JS. `initPush` suscribe `QPPushToken` al
+    /// evaluar el módulo, mucho antes de que useAppNavigation suscriba los
+    /// otros dos: con un único flag, un toque o una push en primer plano de
+    /// ese hueco se emitía al vacío (y el toque no se guardaba para
+    /// `getInitialNotification`). RN no dice qué evento se da de baja, así
+    /// que el conjunto se vacía solo cuando no queda ningún listener.
+    private var subscribed = Set<String>()
 
     override init() {
         super.init()
@@ -205,12 +222,20 @@ final class QPPush: RCTEventEmitter {
     }
 
     override func startObserving() { listening = true }
-    override func stopObserving() { listening = false }
+    override func stopObserving() {
+        listening = false
+        subscribed.removeAll()
+    }
 
-    /// Emite si JS escucha. Devuelve false si no había nadie (el que llama decide qué guardar).
+    override func addListener(_ eventName: String) {
+        subscribed.insert(eventName)
+        super.addListener(eventName)
+    }
+
+    /// Emite si JS escucha ESE evento. Devuelve false si no había nadie (el que llama decide qué hacer).
     @discardableResult
     func emit(event: String, body: [String: Any]) -> Bool {
-        guard listening else { return false }
+        guard listening, subscribed.contains(event) else { return false }
         sendEvent(withName: event, body: body)
         return true
     }

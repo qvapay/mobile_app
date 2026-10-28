@@ -94,3 +94,24 @@ test('isRetryableFailure: network, 5xx and 429 retry; other 4xx do not', () => {
 	expect(isRetryableFailure(401)).toBe(false)
 	expect(isRetryableFailure(422)).toBe(false)
 })
+
+// Dos `track` a la vez (p. ej. `received` y `opened` de la misma push) y un
+// `track` que cae mientras el flush reescribe la cola: nada se pierde
+test('concurrent tracks and a flush rewrite never drop an event', async () => {
+	getAuthToken.mockResolvedValue(null)
+	await Promise.all([trackPushEvent('1', 'received'), trackPushEvent('1', 'opened'), trackPushEvent('2', 'received')])
+	expect((await queued()).map(e => `${e.did}:${e.event}`)).toEqual(['1:received', '1:opened', '2:received'])
+
+	getAuthToken.mockResolvedValue('token')
+	let release
+	pushApi.sendEvent.mockImplementationOnce(() => new Promise(resolve => { release = resolve }))
+	const flush = flushPushEvents()
+	await new Promise(r => setImmediate(r))
+	const late = trackPushEvent('3', 'opened')
+	release({ success: true })
+	await Promise.all([flush, late])
+	// `late` encadenó un segundo flush detrás del primero: se espera a que salga
+	await flushPushEvents()
+	expect(pushApi.sendEvent.mock.calls.map(([body]) => `${body.did}:${body.event}`)).toEqual(['1:received', '1:opened', '2:received', '3:opened'])
+	expect(await queued()).toEqual([])
+})

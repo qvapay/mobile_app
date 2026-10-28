@@ -33,12 +33,31 @@ const SETTINGS_RETURN_TIMEOUT_MS = 5 * 60 * 1000
 let currentUserUuid: string | null = null
 let initialized = false
 let syncing: Promise<void> | null = null
+/** Lo que está en vuelo: decide si una llamada nueva puede reutilizarlo. */
+let syncingUserUuid: string | null = null
+let syncingForce = false
+/** Sync pedido con otro en curso que no lo cubría (otro usuario o `force`): corre detrás. */
+let queuedSync: { userUuid: string, force: boolean } | null = null
+/**
+ * Generación del registro: la suben el logout y un cambio de usuario. Un sync
+ * en vuelo la compara justo antes del POST y se retira si ya no es la suya,
+ * para no volver a registrar el dispositivo a una cuenta que acaba de salir.
+ */
+let generation = 0
+/** Tope del DELETE del logout: sin red, cerrar sesión no se queda colgado. */
+const UNREGISTER_TIMEOUT_MS = 4000
+
+/** Resuelve con el valor, o con undefined si `ms` pasan antes (la promesa sigue por detrás). */
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | undefined> => new Promise(resolve => {
+	const timer = setTimeout(() => resolve(undefined), ms)
+	promise.then(value => { clearTimeout(timer); resolve(value) }, () => { clearTimeout(timer); resolve(undefined) })
+})
 
 const deviceTimezone = (): string => {
 	try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' }
 }
 
-const doSync = async (userUuid: string, force: boolean): Promise<void> => {
+const doSync = async (userUuid: string, force: boolean, gen: number): Promise<void> => {
 	const transport = getTransport()
 	if ((await transport.getPermission()) !== 'granted') return
 	if (!(await getAuthToken())) return
@@ -63,23 +82,48 @@ const doSync = async (userUuid: string, force: boolean): Promise<void> => {
 		try { raw = await AsyncStorage.getItem(REGISTRATION_KEY) } catch { /* sin disco: se registra */ }
 		if (!needsRegistration(parseRegistrationRecord(raw), fingerprint, Date.now())) return
 	}
+	// Las esperas de arriba (permiso, token) pueden cruzarse con un logout o un
+	// cambio de usuario: entonces este registro ya no es de nadie
+	if (gen !== generation) return
 	const result = await pushApi.registerToken(registration)
-	if (result.success) {
+	if (result.success && gen === generation) {
 		try { await AsyncStorage.setItem(REGISTRATION_KEY, JSON.stringify({ fingerprint, at: Date.now() })) } catch { /* se repetirá */ }
 	}
 }
 
+const startSync = (userUuid: string, force: boolean): Promise<void> => {
+	syncingUserUuid = userUuid
+	syncingForce = force
+	syncing = doSync(userUuid, force, generation)
+		.catch(() => { /* fire-and-forget: el siguiente arranque lo reintenta */ })
+		.finally(() => {
+			syncing = null
+			syncingUserUuid = null
+			syncingForce = false
+			const next = queuedSync
+			queuedSync = null
+			// Solo si sigue siendo el usuario de la sesión (un logout lo descarta)
+			if (next && next.userUuid === currentUserUuid) startSync(next.userUuid, next.force)
+		})
+	return syncing
+}
+
 /**
- * Registra el token para `userUuid` si hace falta. Nunca lanza; una llamada
- * en curso se reutiliza. `force` salta la huella (permiso recién concedido).
+ * Registra el token para `userUuid` si hace falta. Nunca lanza. Una llamada en
+ * curso se reutiliza solo si es del mismo usuario y al menos igual de fuerte;
+ * si no (otro usuario, o `force` con un sync normal en vuelo) se encadena una
+ * detrás, para que un permiso recién concedido no se trague el early-return
+ * del sync anterior. `force` salta la huella.
  */
 export const syncPushToken = (userUuid: string, options: { force?: boolean } = {}): Promise<void> => {
+	const force = !!options.force
+	if (currentUserUuid && currentUserUuid !== userUuid) generation += 1
 	currentUserUuid = userUuid
-	if (syncing) return syncing
-	syncing = doSync(userUuid, !!options.force)
-		.catch(() => { /* fire-and-forget: el siguiente arranque lo reintenta */ })
-		.finally(() => { syncing = null })
-	return syncing
+	if (!syncing) return startSync(userUuid, force)
+	if (syncingUserUuid === userUuid && (syncingForce || !force)) return syncing
+	queuedSync = { userUuid, force: force || !!queuedSync?.force }
+	// Resuelve cuando termine el encadenado (el finally de arriba lo arranca antes de resolver)
+	return syncing.then(() => syncing ?? Promise.resolve())
 }
 
 /**
@@ -87,12 +131,17 @@ export const syncPushToken = (userUuid: string, options: { force?: boolean } = {
  * olvido del registro local. Sin bearer no se llama al endpoint. Nunca lanza.
  */
 export const unregisterPush = async (): Promise<void> => {
+	generation += 1
 	currentUserUuid = null
+	queuedSync = null
 	try { await AsyncStorage.removeItem(REGISTRATION_KEY) } catch { /* nada que limpiar */ }
 	try {
 		if (!(await getAuthToken())) return
 		const deviceId = await getPushDeviceId()
-		if (deviceId) await pushApi.deleteToken(deviceId)
+		if (!deviceId) return
+		// Acotado: el logout no espera a un timeout de red; la petición ya salió
+		// con el bearer y, si tarda más, termina sola por detrás
+		await withTimeout(pushApi.deleteToken(deviceId), UNREGISTER_TIMEOUT_MS)
 	} catch { /* el backend limpia tokens muertos por su cuenta */ }
 }
 
@@ -163,6 +212,11 @@ export const initPush = (): void => {
 			if (currentUserUuid) syncPushToken(currentUserUuid).catch(() => {})
 		})
 	} catch { /* sin transporte en este build */ }
+	// El idioma forma parte de la huella: al cambiarlo se vuelve a registrar
+	// (si no, las campañas saldrían en el idioma viejo hasta el siguiente arranque)
+	i18n.on('languageChanged', () => {
+		if (currentUserUuid) syncPushToken(currentUserUuid).catch(() => {})
+	})
 	AppState.addEventListener('change', state => { if (state === 'active') flushPushEvents().catch(() => {}) })
 	flushPushEvents().catch(() => {})
 }

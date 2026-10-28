@@ -17,6 +17,4 @@ RCT_EXTERN_METHOD(getInitialNotification:(RCTPromiseResolveBlock)resolve
 
 RCT_EXTERN_METHOD(setBadgeCount:(nonnull NSNumber *)count)
 
-+ (BOOL)requiresMainQueueSetup { return NO; }
-
 @end

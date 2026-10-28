@@ -42,6 +42,19 @@ export const isRetryableFailure = (status: number | undefined): boolean =>
 
 let flushing: Promise<void> | null = null
 
+/**
+ * Las mutaciones de la cola van en serie: un leer-modificar-escribir suelto
+ * perdía eventos cuando un `track` caía entre la relectura del flush y su
+ * escritura, o cuando dos `track` se cruzaban.
+ */
+let mutations: Promise<unknown> = Promise.resolve()
+const mutateQueue = (change: (queue: QueuedPushEvent[]) => QueuedPushEvent[]): Promise<void> => {
+	const run = async () => { await writeQueue(change(await readQueue())) }
+	const next = mutations.then(run, run)
+	mutations = next.catch(() => { /* la siguiente mutación no hereda el fallo */ })
+	return next
+}
+
 const eventKey = (event: QueuedPushEvent): string => `${event.did}|${event.event}|${event.at}`
 
 /**
@@ -65,8 +78,7 @@ export const flushPushEvents = (): Promise<void> => {
 				index += 1
 			}
 			const processed = new Set(queue.slice(0, index).map(eventKey))
-			const current = await readQueue()
-			await writeQueue(current.filter(event => !processed.has(eventKey(event))))
+			await mutateQueue(current => current.filter(event => !processed.has(eventKey(event))))
 		} finally {
 			flushing = null
 		}
@@ -81,9 +93,8 @@ export const flushPushEvents = (): Promise<void> => {
  */
 export const trackPushEvent = async (did: string | null | undefined, event: PushEventName): Promise<void> => {
 	if (!did || !DID_PATTERN.test(did)) return
-	const queue = await readQueue()
-	queue.push({ did, event, at: new Date().toISOString() })
-	await writeQueue(queue.slice(-MAX_QUEUED_EVENTS))
+	const entry: QueuedPushEvent = { did, event, at: new Date().toISOString() }
+	await mutateQueue(queue => [...queue, entry].slice(-MAX_QUEUED_EVENTS))
 	// Un flush en curso ya leyó la cola sin este evento: se encadena otro detrás
 	if (flushing) await flushing.catch(() => {})
 	flushPushEvents().catch(() => {})

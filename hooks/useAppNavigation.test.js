@@ -413,6 +413,39 @@ describe('push listeners', () => {
 		})
 	})
 
+	// En frío auth aún hidrata el Keychain cuando se consume la push inicial:
+	// con sesión cacheada NO se avisa «inicia sesión» (Bugbot, PR #94)
+	test('the launch tap stays silent while auth is still loading and opens once the session is known', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: true })
+		takeInitialPush.mockResolvedValue({ data: { type: 'transfer_received', transaction_uuid: 't-3' } })
+		let renderer
+		const Harness = () => { useAppNavigation({ current: null }); return null }
+		await act(async () => { renderer = create(<Harness />) })
+		expect(toast.info).not.toHaveBeenCalled()
+		useAuth.mockReturnValue({ user: { uuid: 'me' }, isAuthenticated: true, isLoading: false })
+		await act(async () => { renderer.update(<Harness />) })
+		await passSplash()
+		expect(toast.info).not.toHaveBeenCalled()
+		expect(navigation.reset).toHaveBeenCalledWith({
+			index: 1,
+			routes: [{ name: 'MainStack' }, { name: 'Transaction', params: { uuid: 't-3' } }],
+		})
+	})
+
+	test('the launch tap asks to log in only once auth resolves without a session', async () => {
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: true })
+		takeInitialPush.mockResolvedValue({ data: { type: 'transfer_received', transaction_uuid: 't-3' } })
+		let renderer
+		const Harness = () => { useAppNavigation({ current: null }); return null }
+		await act(async () => { renderer = create(<Harness />) })
+		expect(toast.info).not.toHaveBeenCalled()
+		useAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false })
+		await act(async () => { renderer.update(<Harness />) })
+		await passSplash()
+		expect(toast.info).toHaveBeenCalledWith('Inicia sesión para abrir la notificación')
+		expect(navigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'Welcome' }] })
+	})
+
 	test('a pending deep link wins over a pending push tap', async () => {
 		takeInitialPush.mockResolvedValue({ data: { type: 'transfer_received', transaction_uuid: 't-3' } })
 		const pendingRef = { current: `https://qvapay.com/pay/${P2P_UUID}` }
