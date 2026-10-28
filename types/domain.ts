@@ -224,10 +224,13 @@ export type TxP2P = {
 	coin?: { logo: string, name: string }
 }
 
+/** Comercio (App) de una transacción. La LISTA manda `App: { name, logo, url }`; el detalle añade `uuid` y `desc`. */
 export type TxApp = {
-	uuid: string
+	uuid?: string
 	name: string
-	logo?: string
+	/** Ruta relativa del CDN (`helpers/mediaUrl`). */
+	logo?: string | null
+	url?: string
 	desc?: string
 }
 

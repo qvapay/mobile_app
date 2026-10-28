@@ -11,6 +11,7 @@ jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }))
 jest.mock('../../settings/SettingsContext', () => ({ useSettings: jest.fn() }))
 jest.mock('./QPCoin', () => 'QPCoin')
 jest.mock('./QPAvatar', () => 'QPAvatar')
+jest.mock('./QPAppLogo', () => 'QPAppLogo')
 jest.mock('./TransactionSticker', () => 'TransactionSticker')
 
 // helpers.js drags in untransformed ESM deps — stub them out
@@ -139,5 +140,27 @@ describe('QPTransaction', () => {
 		const lastStyle = StyleSheet.flatten(last.tree.root.findByType(PressableType).props.children.props.style)
 		expect(lastStyle.borderBottomLeftRadius).toBe(10)
 		expect(lastStyle.marginBottom).toBe(10)
+	})
+})
+
+describe('transacciones de una App (comercio o mini-app)', () => {
+
+	test('con logo sale el logo del comercio en vez del avatar y su nombre como etiqueta', async () => {
+		const { tree } = await render(baseTransaction({ User: PEER, PaidBy: ME, App: { name: 'La Tienda', logo: 'apps/t.png' } }))
+		expect(tree.root.findByType('QPAppLogo').props.app).toEqual({ name: 'La Tienda', logo: 'apps/t.png' })
+		expect(tree.root.findAllByType('QPAvatar')).toHaveLength(0)
+		expect(JSON.stringify(tree.toJSON())).toContain('La Tienda')
+	})
+
+	test('una App sin logo conserva el avatar de la contraparte', async () => {
+		const { tree } = await render(baseTransaction({ App: { name: 'Sin logo' } }))
+		expect(tree.root.findAllByType('QPAppLogo')).toHaveLength(0)
+		expect(tree.root.findByType('QPAvatar').props.user).toEqual(PEER)
+	})
+
+	test('un depósito con moneda gana al logo de la App', async () => {
+		const { tree } = await render(baseTransaction({ App: { name: 'x', logo: 'apps/x.png' }, Wallet: { Coin: { logo: 'usdt' } } }))
+		expect(tree.root.findByType('QPCoin').props.coin).toBe('usdt')
+		expect(tree.root.findAllByType('QPAppLogo')).toHaveLength(0)
 	})
 })

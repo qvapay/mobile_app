@@ -215,10 +215,7 @@ const CashDeliveryCard = ({ navigation }: { navigation: NavigationProp<RootStack
 	return (
 		<View style={styles.section}>
 
-			<Text style={[styles.sectionTitle, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.lg }]}>
-				{t('ui.cashDelivery.sectionTitle')}
-			</Text>
-
+			{/* Sin título de sección encima: «USD CASH» y el subtítulo de la card ya dicen qué es */}
 			<Pressable
 				onPress={() => {
 					if (!requireKyc({ message: t('ui.cashDelivery.kycGateMessage') })) return
@@ -275,7 +272,6 @@ const styles = StyleSheet.create({
 		marginVertical: 10,
 		gap: 8,
 	},
-	sectionTitle: {},
 	card: {
 		borderRadius: 16,
 		overflow: 'hidden',

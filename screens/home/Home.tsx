@@ -30,6 +30,7 @@ import CashDeliveryCard from '../../ui/CashDeliveryCard'
 import TransactionSkeleton from '../../ui/TransactionSkeleton'
 import EmptyTransactions from '../../ui/EmptyTransactions'
 import HomeP2POffers from './HomeP2POffers'
+import HomeMiniApps from './HomeMiniApps'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -282,18 +283,13 @@ const Home = ({ navigation }: HomeProps) => {
 							</Pressable>
 						)}
 					</View>
+					{/* Sin «Ver todas» debajo: la lupa de la cabecera ya abre el histórico */}
 					{latestTransactions.length > 0 ? (
-						<>
-							<View>
-								{latestTransactions.map((transaction, index) => (
-									<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation as unknown as RootNav} index={index} totalItems={latestTransactions.length} />
-								))}
-							</View>
-							<Pressable onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} >
-								<Text style={{ color: theme.colors.primary, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.medium }}>{t('common.actions.seeAll')}</Text>
-								<FontAwesome6 name="chevron-right" size={12} color={theme.colors.primary} iconStyle="solid" />
-							</Pressable>
-						</>
+						<View>
+							{latestTransactions.map((transaction, index) => (
+								<QPTransaction key={transaction.uuid} transaction={transaction} navigation={navigation as unknown as RootNav} index={index} totalItems={latestTransactions.length} />
+							))}
+						</View>
 					) : txLoading || txError ? (
 						// txError sin datos (sin conexión y sin cache): skeletons en vez del
 						// empty state — "no tienes transacciones" sería mentira
@@ -307,8 +303,11 @@ const Home = ({ navigation }: HomeProps) => {
 					)}
 				</View>
 
-				{/* Ofertas P2P: promocionadas + últimas de comerciantes GOLD, como el dashboard web */}
-				<HomeP2POffers navigation={navigation as unknown as RootNav} onSeeAll={() => navigation.navigate(ROUTES.P2P_SCREEN)} style={styles.section} />
+				{/* Mini-apps: destacadas primero, seis como mucho; sin catálogo no ocupa nada */}
+				<HomeMiniApps navigation={navigation as unknown as RootNav} onSeeAll={() => navigation.navigate(ROUTES.MINIAPPS)} style={styles.section} />
+
+				{/* Ofertas P2P: solo las promocionadas, como el dashboard web */}
+				<HomeP2POffers navigation={navigation as unknown as RootNav} style={styles.section} />
 
 				{/* Cash Delivery Card: con KYC solo desde balance >= 200; sin KYC
 				    se muestra siempre, sombreada y gateada (invita a verificarse) */}

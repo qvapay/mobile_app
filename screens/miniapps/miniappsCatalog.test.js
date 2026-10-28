@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { categoryOf, coverOf, presentCategories, normalizeSearch, matchesQuery, buildCatalogView, MINIAPP_CATEGORIES, CATEGORY_META } from './miniappsCatalog'
+import { categoryOf, coverOf, presentCategories, normalizeSearch, matchesQuery, buildCatalogView, pickHomeMiniApps, MINIAPP_CATEGORIES, CATEGORY_META, HOME_MINIAPPS_LIMIT } from './miniappsCatalog'
 
 const app = (slug, extra = {}) => ({
 	slug,
@@ -70,5 +70,30 @@ describe('miniappsCatalog', () => {
 
 	test('un query de solo espacios no cuenta como filtro', () => {
 		expect(buildCatalogView([app('f', { featured: true })], { query: '  ' }).filtering).toBe(false)
+	})
+
+	describe('pickHomeMiniApps (fila del Home)', () => {
+		test('destacadas primero y el resto en el orden del servidor', () => {
+			const apps = [app('a'), app('b', { featured: true }), app('c'), app('d', { featured: true })]
+			expect(pickHomeMiniApps(apps).map(a => a.slug)).toEqual(['b', 'd', 'a', 'c'])
+		})
+
+		test('corta en seis por defecto y respeta limit', () => {
+			const apps = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(slug => app(slug))
+			expect(HOME_MINIAPPS_LIMIT).toBe(6)
+			expect(pickHomeMiniApps(apps)).toHaveLength(6)
+			expect(pickHomeMiniApps(apps, 2).map(a => a.slug)).toEqual(['a', 'b'])
+			expect(pickHomeMiniApps(apps, 0)).toEqual([])
+		})
+
+		test('los borradores en preview no salen aunque estén destacados', () => {
+			const apps = [app('a', { preview: true, featured: true }), app('b')]
+			expect(pickHomeMiniApps(apps).map(a => a.slug)).toEqual(['b'])
+		})
+
+		test('tolera null y undefined', () => {
+			expect(pickHomeMiniApps(null)).toEqual([])
+			expect(pickHomeMiniApps(undefined)).toEqual([])
+		})
 	})
 })

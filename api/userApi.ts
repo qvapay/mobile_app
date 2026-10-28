@@ -96,6 +96,19 @@ export type PaymentMethodInput = {
  */
 export type PaymentMethodCreateResult = { success: boolean, data?: unknown, status?: number } | ApiFailure
 
+/** Body de `PATCH /user/payment-methods`: nombre y/o detalles; la moneda nunca cambia. */
+export type PaymentMethodUpdateInput = {
+	id: string | number
+	name?: string
+	details?: Record<string, unknown>
+}
+
+/**
+ * Resultado de `userApi.updatePaymentMethod`. `reason: 'backendTooOld'` = el
+ * servidor aún no publica PATCH (405, o 404 sin cuerpo de error de la ruta).
+ */
+export type PaymentMethodUpdateResult = { success: boolean, data?: unknown, status?: number } | (ApiFailure & { reason?: 'backendTooOld' })
+
 /** Secreto TOTP recién generado (`POST /auth/create-2fa` sin body). */
 export type TwoFactorSecretPayload = {
 	secret: string
@@ -507,6 +520,34 @@ export const userApi = {
 				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodCreateFailed'), details: errorData, status: error.response.status }
 			}
 			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
+		}
+	},
+
+	/**
+	 * Edits a saved payment method (`PATCH /user/payment-methods` with `{ id, name?, details? }`).
+	 * `success` only on 200. A 405, or a 404 without an error body, means the backend
+	 * doesn't have the route yet → `reason: 'backendTooOld'` (the screen shows a hint
+	 * instead of a generic failure).
+	 *
+	 * @param payload - Method id plus the new name and/or details
+	 * @returns `{ success, data?, error?, reason?, status? }`
+	 */
+	updatePaymentMethod: async (payload: PaymentMethodUpdateInput): Promise<PaymentMethodUpdateResult> => {
+		try {
+			const response = await apiClient.patch(`/user/payment-methods`, payload)
+			return { success: response.status === 200, data: response.data, status: response.status }
+		} catch (err) {
+			const error = err as ApiClientError
+			const status = error.response?.status
+			const errorData = error.response?.data
+			const hasMessage = !!(errorData && (errorData.error || errorData.message))
+			if (status === 405 || (status === 404 && !hasMessage)) {
+				return { success: false, reason: 'backendTooOld', error: i18n.t('api.user.paymentMethodUpdateFailed'), status }
+			}
+			if (errorData) {
+				return { success: false, error: errorData.error || errorData.message || i18n.t('api.user.paymentMethodUpdateFailed'), details: errorData, status }
+			}
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status }
 		}
 	},
 

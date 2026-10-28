@@ -49,6 +49,18 @@ export const coverOf = (app: Pick<MiniApp, 'cover'>): string | null => {
 	return uri && !/\.svg($|\?)/i.test(uri) ? uri : null
 }
 
+/** Cuántas caben en la fila del Home. */
+export const HOME_MINIAPPS_LIMIT = 6
+
+/**
+ * Fila de mini-apps del Home: destacadas primero, luego el resto en el orden
+ * del servidor, sin borradores (`preview`, solo los ve su autor), `limit` como mucho.
+ */
+export const pickHomeMiniApps = <T extends Pick<MiniApp, 'featured' | 'preview'>>(apps: T[] | null | undefined, limit = HOME_MINIAPPS_LIMIT): T[] => {
+	const live = (apps ?? []).filter(app => !app.preview)
+	return [...live.filter(app => app.featured), ...live.filter(app => !app.featured)].slice(0, Math.max(0, limit))
+}
+
 export type CatalogView = {
 	/** Carrusel de destacadas: solo sin filtro (con filtro, todo va a la lista). */
 	featured: MiniApp[]

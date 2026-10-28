@@ -22,6 +22,7 @@ import { ROUTES } from '../../routes'
 // Particles
 import QPCoin from './QPCoin'
 import QPAvatar from './QPAvatar'
+import QPAppLogo from './QPAppLogo'
 import TransactionSticker from './TransactionSticker'
 
 // Stickers
@@ -124,7 +125,12 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }: P
         <Pressable onPress={navigateToTransaction}>
             <View style={[containerStyles.box, { justifyContent: 'space-between' }, containerStyle]}>
                 <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    {wallet_coin ? (<QPCoin coin={wallet_coin} size={40} />) : (<QPAvatar user={isPaidByMe ? owner : paid_by} size={40} />)}
+                    {/* Orden de la web: moneda (depósito/retiro) → logo del comercio (App o mini-app) → avatar de la contraparte */}
+                    {wallet_coin
+                        ? <QPCoin coin={wallet_coin} size={40} />
+                        : app?.logo
+                            ? <QPAppLogo app={app} size={40} />
+                            : <QPAvatar user={isPaidByMe ? owner : paid_by} size={40} />}
                     <View style={{ flex: 1, minWidth: 0 }}>
                         {isStickerDescription ? (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

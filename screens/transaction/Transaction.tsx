@@ -34,6 +34,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { toast } from 'sonner-native'
 import QPButton from '../../ui/particles/QPButton'
 import ProfileContainer from '../../ui/ProfileContainer'
+import AppHeroContainer from '../../ui/AppHeroContainer'
 import TransactionSticker from '../../ui/particles/TransactionSticker'
 
 // Stickers
@@ -224,8 +225,11 @@ const Transaction = ({ route, navigation }: Props) => {
 			    `ReactElement<RefreshControlProps>` — el elemento ES un RefreshControl */}
 			<ScrollView style={[styles.scrollView, { paddingHorizontal: theme.spacing.md }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={createHiddenRefreshControl(loading, fetchTransaction) as ReactElement<RefreshControlProps>} contentInsetAdjustmentBehavior="never">
 
-				{/* Profile Container */}
-				{otherUser && <ProfileContainer user={otherUser} />}
+				{/* Cabecera: el comercio si la transacción es de una App (como en la web);
+				    si no, el perfil de la contraparte */}
+				{transactionDetails.app
+					? <AppHeroContainer app={transactionDetails.app} />
+					: otherUser && <ProfileContainer user={otherUser} />}
 
 				{/* Amount Section */}
 				<View style={styles.amountSection}>

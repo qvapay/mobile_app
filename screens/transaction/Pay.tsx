@@ -27,10 +27,10 @@ import { ROUTES } from '../../routes'
 // UI
 import QPButton from '../../ui/particles/QPButton'
 import QPAvatar from '../../ui/particles/QPAvatar'
+import QPAppLogo from '../../ui/particles/QPAppLogo'
 
 // Helpers
 import { getShortDateTime, getFirstChunk, statusText, copyTextToClipboard } from '../../helpers'
-import { mediaUrl } from '../../helpers/mediaUrl'
 import { payInvoiceState } from './payModel'
 
 // Toast & haptics
@@ -41,8 +41,6 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fontawesome6'
 
-// FastImage for merchant logos
-import FastImage from '@d11/react-native-fast-image'
 
 // Lottie for success animation
 import LottieView from 'lottie-react-native'
@@ -336,23 +334,19 @@ const Pay = ({ route, navigation }: Props) => {
 
 // ---------- Subcomponentes ----------
 
-/** Logo (o avatar, o marcador) del comercio con su nombre y descripción. */
+/** Logo del comercio (squircle, con glifo de tienda si no tiene) o avatar del cobrador, con nombre y descripción. */
 const PayMerchantHeader = ({ theme, textStyles, transaction }: { theme: Theme, textStyles: TextStyles, transaction: TransactionModel }) => {
 
 	const app = transaction.app
-	// `mediaUrl` solo devuelve null con un path vacío, que el ternario ya descarta
-	const logo = app?.logo ? { uri: mediaUrl(app.logo) as string } : null
 
 	return (
 		<View style={styles.merchantHeader}>
-			{logo ? (
-				<FastImage source={logo} style={styles.merchantLogo} resizeMode={FastImage.resizeMode.cover} />
+			{app ? (
+				<QPAppLogo app={app} size={72} />
 			) : transaction.user ? (
 				<QPAvatar user={transaction.user} size={72} />
 			) : (
-				<View style={[styles.merchantLogo, { backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' }]}>
-					<FontAwesome6 name="store" size={28} color={theme.colors.primary} iconStyle="solid" />
-				</View>
+				<QPAppLogo size={72} />
 			)}
 			<Text style={[textStyles.h3, { marginTop: 12, textAlign: 'center' }]}>{app?.name || transaction.user?.name || 'QvaPay'}</Text>
 			{app?.desc ? (
@@ -472,11 +466,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		marginTop: 10,
 		marginBottom: 8,
-	},
-	merchantLogo: {
-		width: 72,
-		height: 72,
-		borderRadius: 36,
 	},
 	amountWrap: {
 		alignItems: 'center',

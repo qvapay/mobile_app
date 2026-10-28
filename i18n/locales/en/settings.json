@@ -585,6 +585,10 @@
 			"selectCoin": "Select a currency",
 			"accountData": "Account details",
 			"saveButton": "Save method",
+			"editTitle": "Edit payment method",
+			"saveChanges": "Save changes",
+			"coinUnavailable": "This coin is no longer available: you can only rename the method",
+			"coinsLoadError": "We couldn't load the coins: for now you can only rename the method",
 			"zonesLoadError": "We couldn't load the delivery zones. Without them we can't check the province and municipality."
 		},
 		"alerts": {
@@ -602,6 +606,9 @@
 			"invalidId": "Invalid method ID",
 			"deleted": "Method deleted",
 			"deleteFailed": "Couldn't delete it",
+			"updated": "Method updated",
+			"updateFailed": "Couldn't update it",
+			"updateUnsupported": "Update the app or try again later: the server can't edit methods yet",
 			"zoneRequired": "Choose the province and municipality from the list"
 		}
 	},

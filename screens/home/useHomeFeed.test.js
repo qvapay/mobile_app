@@ -26,6 +26,8 @@ jest.mock('../../api/blogApi', () => ({ blogApi: { getLatestPosts: jest.fn() } }
 jest.mock('../../api/coinsApi', () => ({ coinsApi: { priceHistory: jest.fn() } }))
 jest.mock('../../api/promoApi', () => ({ promoApi: { getPromo: jest.fn() } }))
 jest.mock('../../api/announcementApi', () => ({ announcementApi: { getAnnouncement: jest.fn() } }))
+// La clave del catálogo de mini-apps (el pull-to-refresh la revalida); su módulo arrastra el cliente axios
+jest.mock('../miniapps/miniappsQueries', () => ({ MINIAPPS_LIST_KEY: ['miniapps', 'list'] }))
 // Las ofertas P2P del Home viven en su propia sección (HomeP2POffers), fuera de este hook
 jest.mock('../../api/p2pApi', () => ({ p2pApi: { featured: jest.fn() } }))
 

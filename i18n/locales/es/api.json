@@ -27,6 +27,7 @@
 		"paymentMethodsLoadFailed": "No se pudieron obtener los métodos de pago",
 		"paymentMethodCreateFailed": "No se pudo crear el método de pago",
 		"paymentMethodDeleteFailed": "No se pudo eliminar el método de pago",
+		"paymentMethodUpdateFailed": "No se pudo actualizar el método de pago",
 		"contactsLoadFailed": "No se pudieron obtener los contactos",
 		"contactAddFailed": "No se pudo agregar el contacto",
 		"contactFavoriteFailed": "No se pudo actualizar el favorito",

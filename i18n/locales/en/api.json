@@ -27,6 +27,7 @@
 		"paymentMethodsLoadFailed": "Couldn't load payment methods",
 		"paymentMethodCreateFailed": "Couldn't create the payment method",
 		"paymentMethodDeleteFailed": "Couldn't delete the payment method",
+		"paymentMethodUpdateFailed": "Couldn't update the payment method",
 		"contactsLoadFailed": "Couldn't load contacts",
 		"contactAddFailed": "Couldn't add the contact",
 		"contactFavoriteFailed": "Couldn't update the favorite",

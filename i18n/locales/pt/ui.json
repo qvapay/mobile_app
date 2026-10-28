@@ -22,7 +22,6 @@
 		"optionsCount": "{{count}} opções"
 	},
 	"cashDelivery": {
-		"sectionTitle": "Envio de dinheiro em espécie",
 		"subtitle": "Receba USD em espécie em {{city}}\nem menos de 72 horas",
 		"cta": "Enviar dinheiro",
 		"kycGateMessage": "Para enviar dinheiro com USD CASH, sua identidade precisa estar verificada. É rápido e você só faz isso uma vez.",

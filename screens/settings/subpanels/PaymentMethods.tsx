@@ -12,6 +12,7 @@ import QPButton from '../../../ui/particles/QPButton'
 import QPInput from '../../../ui/particles/QPInput'
 import QPLoader from '../../../ui/particles/QPLoader'
 import QPCoin from '../../../ui/particles/QPCoin'
+import QPPressable from '../../../ui/particles/QPPressable'
 import QPCoinPicker from '../../../ui/QPCoinPicker'
 import WithdrawAccountFields from '../../withdraw/WithdrawAccountFields'
 import CashZoneFields from '../../withdraw/CashZoneFields'
@@ -30,17 +31,17 @@ import { useCashZonesQuery } from '../../withdraw/withdrawQueries'
 // Helpers
 import { keyFromFieldName } from '../../withdraw/withdrawFees'
 import { cashFieldNames, cashZoneModeFor, findZone, hasCashZoneFields } from '../../withdraw/cashZones'
+import { detailsToForm, formToDetails, normalizeMethodDetails } from '../../withdraw/paymentMethodDetails'
+import type { RawMethodDetails } from '../../withdraw/paymentMethodDetails'
 
 // Tipos
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { ApiFailure } from '../../../types/api'
 import type { Coin, CoinWorkingField } from '../../../types/domain'
 import type { SettingsStackParamList } from '../../../types/navigation'
 
-/** Detalle de un método guardado: el backend manda pares o mapa plano. */
-type MethodDetail = { name?: string, key?: string, value?: string, val?: string }
-
-/** Método de pago guardado (`GET /user/payment-methods`). */
+/** Método de pago guardado (`GET /user/payment-methods`): `coin` es el objeto Coin, o null si la moneda se retiró. */
 type PaymentMethod = {
 	id?: string | number
 	uuid?: string
@@ -48,9 +49,21 @@ type PaymentMethod = {
 	ID?: string | number
 	Id?: string | number
 	name?: string
-	coin?: { name?: string, logo?: string }
-	details?: MethodDetail[] | Record<string, unknown> | null
-	Details?: MethodDetail[] | Record<string, unknown> | null
+	coin?: { name?: string, tick?: string, logo?: string } | null
+	details?: RawMethodDetails
+	Details?: RawMethodDetails
+}
+
+/** Identificador con los alias que el backend ha usado. */
+const methodId = (method: PaymentMethod | null | undefined): string | number | undefined => method?.id || method?.uuid || method?.ID || method?.Id
+
+/** `working_data` de una moneda, que puede venir como JSON en string. */
+const parseWorkingFields = (coin: Coin | null): CoinWorkingField[] => {
+	if (!coin || !coin.working_data) return []
+	try {
+		const raw: unknown = typeof coin.working_data === 'string' ? JSON.parse(coin.working_data) : coin.working_data
+		return Array.isArray(raw) ? raw as CoinWorkingField[] : []
+	} catch (e) { return [] }
 }
 
 /** Recurso cargado: lista + error de carga. */
@@ -58,7 +71,12 @@ type MethodsData = { methods: PaymentMethod[], error: string | null }
 
 type MethodsAction = { type: 'set', field: keyof MethodsData, value: unknown }
 
-/** Asistente de alta: moneda elegida + campos de `working_data` + nombre. */
+/**
+ * Asistente de alta y edición: moneda elegida + campos de `working_data` + nombre.
+ * `editing` = el método que se edita (misma hoja precargada; la moneda queda fija).
+ * En edición `selectedCoin` no se usa: la moneda se resuelve del catálogo en cada render
+ * y `workingForm` guarda solo lo que el usuario toca encima de los detalles guardados.
+ */
 type CreateState = {
 	showCreate: boolean
 	showCoinPicker: boolean
@@ -66,10 +84,12 @@ type CreateState = {
 	workingForm: Record<string, string>
 	paymentMethodName: string
 	creating: boolean
+	editing: PaymentMethod | null
 }
 
 type CreateAction =
 	| { type: 'open' }
+	| { type: 'openEdit', method: PaymentMethod }
 	| { type: 'close' }
 	| { type: 'selectCoin', coin: Coin }
 	| { type: 'showCoinPicker', value: boolean }
@@ -87,15 +107,19 @@ function dataReducer(state: MethodsData, action: MethodsAction): MethodsData {
 	}
 }
 
-const initialCreate: CreateState = { showCreate: false, showCoinPicker: false, selectedCoin: null, workingForm: {}, paymentMethodName: '', creating: false }
+const initialCreate: CreateState = { showCreate: false, showCoinPicker: false, selectedCoin: null, workingForm: {}, paymentMethodName: '', creating: false, editing: null }
 
 function createReducer(state: CreateState, action: CreateAction): CreateState {
 	switch (action.type) {
 		case 'open':
 			return { ...initialCreate, showCreate: true }
+		case 'openEdit':
+			return { ...initialCreate, showCreate: true, editing: action.method, paymentMethodName: action.method.name ?? '' }
 		case 'close':
 			return initialCreate
 		case 'selectCoin':
+			// En edición la moneda no cambia: otra moneda es otro método
+			if (state.editing) return { ...state, showCoinPicker: false }
 			return { ...state, selectedCoin: action.coin, showCoinPicker: false, workingForm: {} }
 		case 'showCoinPicker':
 			return { ...state, showCoinPicker: action.value }
@@ -151,27 +175,39 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 	// Create flow state
 	const [create, dispatchCreate] = useReducer(createReducer, initialCreate)
-	const { showCreate, showCoinPicker, selectedCoin, workingForm, paymentMethodName, creating } = create
+	const { showCreate, showCoinPicker, selectedCoin, workingForm, paymentMethodName, creating, editing } = create
 
-	// Derived working fields from selected coin
-	const workingFields = useMemo<CoinWorkingField[]>(() => {
-		if (!selectedCoin || !selectedCoin.working_data) return []
-		try {
-			const raw: unknown = typeof selectedCoin.working_data === 'string' ? JSON.parse(selectedCoin.working_data) : selectedCoin.working_data
-			return Array.isArray(raw) ? raw as CoinWorkingField[] : []
-		} catch (e) { return [] }
-	}, [selectedCoin])
+	// Edición: la moneda del método sale del catálogo EN CADA RENDER, no al abrir la hoja. En
+	// la primera visita el catálogo puede llegar después del toque, y resolverla una sola vez
+	// dejaba la hoja en «solo nombre» hasta cerrarla y reabrirla. Por tick sin distinguir
+	// mayúsculas: las filas viejas lo guardan con otra grafía
+	const editTick = editing?.coin?.tick
+	const editCoin = useMemo(() => (editTick ? availableCoins.find((c) => String(c.tick).toLowerCase() === editTick.toLowerCase()) ?? null : null), [availableCoins, editTick])
+	const activeCoin = editing ? editCoin : selectedCoin
+	// found | loading (catálogo en camino) | catalogFailed (sin catálogo no se sabe si la moneda
+	// existe: `useCoins` no expone el error, pero un catálogo cargado nunca está vacío) | gone (retirada)
+	const editCoinStatus: 'found' | 'loading' | 'catalogFailed' | 'gone' = !editing || editCoin
+		? 'found'
+		: !editTick ? 'gone' : loadingCoins ? 'loading' : availableCoins.length === 0 ? 'catalogFailed' : 'gone'
+
+	// Derived working fields from the active coin
+	const workingFields = useMemo<CoinWorkingField[]>(() => parseWorkingFields(activeCoin), [activeCoin])
+
+	// Formulario efectivo: en edición, los detalles guardados (casados con los campos de la
+	// moneda en cuanto se conoce) más lo que el usuario cambie; en el alta, lo tecleado
+	const editBaseForm = useMemo(() => (editing ? detailsToForm(editing.details ?? editing.Details, workingFields) : null), [editing, workingFields])
+	const form = useMemo(() => (editBaseForm ? { ...editBaseForm, ...workingForm } : workingForm), [editBaseForm, workingForm])
 
 	// Entrega de efectivo por zonas (USDCASH…): provincia y municipio se eligen de las zonas
 	// que cubre el servidor, igual que en el retiro. Un lugar escrito a mano que no casa con
 	// ninguna zona dejaba el método inservible al retirar (CASH_ZONE_UNAVAILABLE)
-	const { payload: cashPayload, status: cashZonesStatus, refetch: retryCashZones } = useCashZonesQuery(selectedCoin?.tick, hasCashZoneFields(workingFields))
+	const { payload: cashPayload, status: cashZonesStatus, refetch: retryCashZones } = useCashZonesQuery(activeCoin?.tick, hasCashZoneFields(workingFields))
 	const cashZonesPending = cashZonesStatus === 'loading' || cashZonesStatus === 'error'
 	const cashMode = useMemo(() => cashZoneModeFor(cashPayload, workingFields), [cashPayload, workingFields])
 	const { provinceField, municipalityField } = cashFieldNames(workingFields)
 	const provinceKey = provinceField ? keyFromFieldName(provinceField) : null
 	const municipalityKey = municipalityField ? keyFromFieldName(municipalityField) : null
-	const cashZone = cashMode && provinceKey && municipalityKey ? findZone(cashMode.zones, { province: workingForm[provinceKey], municipality: workingForm[municipalityKey] }) : null
+	const cashZone = cashMode && provinceKey && municipalityKey ? findZone(cashMode.zones, { province: form[provinceKey], municipality: form[municipalityKey] }) : null
 
 	// Fetch initial data
 	useEffect(() => {
@@ -211,6 +247,9 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 		dispatchCreate({ type: 'open' })
 	}
 
+	// Editar: la misma hoja, precargada (la moneda y los detalles se resuelven en el render)
+	const openEdit = (method: PaymentMethod) => { dispatchCreate({ type: 'openEdit', method }) }
+
 	// Close create modal
 	const closeCreate = () => {
 		if (creating) return
@@ -220,6 +259,23 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 	// Handle coin select
 	const handleCoinSelect = (coin: Coin) => { dispatchCreate({ type: 'selectCoin', coin }) }
 
+	// Campos de la moneda completos y, en efectivo por zonas, un municipio que casa con una zona
+	const validateForm = (): boolean => {
+		if ((workingFields || []).length > 0) {
+			const allFilled = workingFields.every((field) => ((form[keyFromFieldName(field.name)] ?? '').toString().trim()).length > 0)
+			if (!allFilled) {
+				toast.error(t('settings.paymentMethods.toasts.missingData'), { description: t('settings.paymentMethods.toasts.missingDataDescription') })
+				return false
+			}
+		}
+		// Las zonas pueden haber cambiado desde que se eligió el municipio
+		if (cashMode && !cashZone) {
+			toast.error(t('settings.paymentMethods.toasts.zoneRequired'))
+			return false
+		}
+		return true
+	}
+
 	// Handle create method
 	const handleCreate = async () => {
 
@@ -227,33 +283,13 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 			toast.error(t('settings.paymentMethods.toasts.selectCoin'))
 			return
 		}
-
-		if ((workingFields || []).length > 0) {
-			const allFilled = workingFields.every((field) => ((workingForm[keyFromFieldName(field.name)] ?? '').toString().trim()).length > 0)
-			if (!allFilled) {
-				toast.error(t('settings.paymentMethods.toasts.missingData'), { description: t('settings.paymentMethods.toasts.missingDataDescription') })
-				return
-			}
-		}
-
-		// Las zonas pueden haber cambiado desde que se eligió el municipio
-		if (cashMode && !cashZone) {
-			toast.error(t('settings.paymentMethods.toasts.zoneRequired'))
-			return
-		}
+		if (!validateForm()) return
 
 		try {
 
 			dispatchCreate({ type: 'setCreating', value: true })
-			// Build details as an object keyed by field name to match API response shape
-			const detailsObject = (workingFields || []).reduce((acc, field) => {
-				const key = keyFromFieldName(field.name)
-				const value = (workingForm[key] ?? '').toString().trim()
-				return { ...acc, [field.name]: value }
-			}, {})
-
-
-			const payload = { name: paymentMethodName, coin: selectedCoin.tick, details: detailsObject }
+			// Details keyed por el nombre original del campo (la forma que devuelve la API)
+			const payload = { name: paymentMethodName, coin: selectedCoin.tick, details: formToDetails(form, workingFields) }
 			const res = await userApi.createPaymentMethod(payload)
 
 			if (res.success) {
@@ -268,9 +304,45 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 		} finally { dispatchCreate({ type: 'setCreating', value: false }) }
 	}
 
+	// Guardar la edición: PATCH con el nombre y, si la moneda sigue en el catálogo, los detalles.
+	// La fila se sustituye en sitio (sin recargar la lista); el `coin` de la respuesta es el
+	// tick y la lista necesita el objeto, así que no se vuelca `res.data`
+	const handleUpdate = async () => {
+		const id = methodId(editing)
+		if (!id) { toast.error(t('settings.paymentMethods.toasts.invalidId')); return }
+		// Con el catálogo en camino no se guarda (el botón ya está desactivado): saldría sin detalles
+		if (editCoinStatus === 'loading') return
+		const details = activeCoin ? formToDetails(form, workingFields) : undefined
+		if (activeCoin && !validateForm()) return
+		if (!details && !paymentMethodName.trim()) {
+			toast.error(t('settings.paymentMethods.toasts.missingData'), { description: t('settings.paymentMethods.toasts.missingDataDescription') })
+			return
+		}
+
+		try {
+			dispatchCreate({ type: 'setCreating', value: true })
+			const payload = { id, name: paymentMethodName, ...(details ? { details } : {}) }
+			const res = await userApi.updatePaymentMethod(payload)
+
+			if (res.success) {
+				dispatchData({ type: 'set', field: 'methods', value: methods.map((m: PaymentMethod) => methodId(m) === id ? { ...m, name: paymentMethodName, ...(details ? { details } : {}) } : m) })
+				toast.success(t('settings.paymentMethods.toasts.updated'))
+				closeCreate()
+				return
+			}
+			const failure = res as ApiFailure & { reason?: 'backendTooOld' }
+			if (failure.reason === 'backendTooOld') { toast.error(t('settings.paymentMethods.toasts.updateUnsupported')); return }
+			toast.error(failure.error || t('settings.paymentMethods.toasts.updateFailed'))
+			// Borrado desde otro sitio: la lista local ya no es verdad
+			if (failure.status === 404) refresh()
+		} catch (e) {
+			toast.error((e as Error).message || t('settings.paymentMethods.toasts.networkError'))
+		} finally { dispatchCreate({ type: 'setCreating', value: false }) }
+	}
+
 	// Handle delete method
 	const handleDelete = (method: PaymentMethod) => {
-		const id = method?.id || method?.uuid || method?.ID || method?.Id
+		const id = methodId(method)
 		if (!id) { toast.error(t('settings.paymentMethods.toasts.invalidId')); return }
 		Alert.alert(
 			t('settings.paymentMethods.alerts.deleteTitle'),
@@ -279,7 +351,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 				{ text: t('common.actions.cancel'), style: 'cancel' },
 				{
 					text: t('common.actions.delete'), style: 'destructive', onPress: async () => {
-						dispatchData({ type: 'set', field: 'methods', value: methods.filter((m: PaymentMethod) => (m.id || m.uuid) !== id) })
+						dispatchData({ type: 'set', field: 'methods', value: methods.filter((m: PaymentMethod) => methodId(m) !== id) })
 						try {
 							const res = await userApi.deletePaymentMethod(id)
 							if (res.success) { toast.success(t('settings.paymentMethods.toasts.deleted')) }
@@ -306,8 +378,8 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 				node: (
 					<CashZoneFields
 						mode={cashMode}
-						province={workingForm[provinceKey] || ''}
-						municipality={workingForm[municipalityKey] || ''}
+						province={form[provinceKey] || ''}
+						municipality={form[municipalityKey] || ''}
 						zone={cashZone}
 						charge={null}
 						belowMin={false}
@@ -363,10 +435,11 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 						methods.map((method: PaymentMethod) => {
 							const name = method?.name || method?.coin?.name || t('settings.paymentMethods.fallbackName')
 							const logo = method?.coin?.logo
-							const rawDetails = (method && (method.details || method.Details)) || null
-							const details: MethodDetail[] = Array.isArray(rawDetails) ? rawDetails : (rawDetails && typeof rawDetails === 'object') ? Object.entries(rawDetails).map(([k, v]) => ({ name: k, value: String(v ?? '') })) : []
+							const details = normalizeMethodDetails(method.details ?? method.Details)
+							const id = methodId(method)
+							// La tarjeta entera abre la edición (el propio elemento es el control); la papelera sigue dentro
 							return (
-								<View key={method.id || method.uuid || JSON.stringify(method)} style={[containerStyles.card, { marginVertical: 4 }]}>
+								<QPPressable key={id || JSON.stringify(method)} onPress={() => openEdit(method)} variant="opacity" style={[containerStyles.card, { marginVertical: 4 }]} accessibilityRole="button" testID={`payment-method-${id}`}>
 									<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 										<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 											<QPCoin coin={logo} size={28} />
@@ -376,21 +449,21 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 											<FontAwesome6 name="trash" size={16} color={theme.colors.danger} iconStyle="solid" />
 										</Pressable>
 									</View>
-									{!!details && details.length > 0 && (
+									{details.length > 0 && (
 										<View style={{ marginTop: 8, gap: 4 }}>
 											{details.slice(0, 4).map((d) => (
-												<View key={d.name || d.key} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name || d.key}</Text>
+												<View key={d.name} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+													<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]} numberOfLines={1}>{d.name}</Text>
 													{d.name === "Wallet" ? (
-														<QPAddress address={(d.value || d.val) as string} visible={{ head: 8, tail: 8 }} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle" />
+														<QPAddress address={d.value} visible={{ head: 8, tail: 8 }} style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle" />
 													) : (
-														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value || d.val}</Text>
+														<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600', marginLeft: 8 }]} numberOfLines={1} ellipsizeMode="middle">{d.value}</Text>
 													)}
 												</View>
 											))}
 										</View>
 									)}
-								</View>
+								</QPPressable>
 							)
 						})
 					)}
@@ -403,7 +476,7 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 					<View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
 
 						<View style={[styles.modalHeader, { borderBottomColor: theme.colors.elevation }]}>
-							<Text style={textStyles.h4}>{t('settings.paymentMethods.modal.title')}</Text>
+							<Text style={textStyles.h4}>{t(editing ? 'settings.paymentMethods.modal.editTitle' : 'settings.paymentMethods.modal.title')}</Text>
 							<Pressable onPress={closeCreate} style={styles.closeButton}>
 								<FontAwesome6 name="xmark" size={24} color={theme.colors.primaryText} iconStyle="solid" />
 							</Pressable>
@@ -417,24 +490,36 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 
 							{/* Coin selector */}
 							<Text style={[textStyles.h6, { color: theme.colors.tertiaryText, marginBottom: 6 }]}>{t('settings.paymentMethods.modal.coinLabel')}</Text>
-							<Pressable style={[styles.selector, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={() => dispatchCreate({ type: 'showCoinPicker', value: true })}>
-								{selectedCoin ? (
-									<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-										<QPCoin coin={selectedCoin.logo} size={20} />
-										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{selectedCoin.tick}</Text>
+							{/* En edición la moneda queda fija (otra moneda es otro método); si ya no está en el catálogo, solo el nombre */}
+							<Pressable style={[styles.selector, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, !!editing && styles.selectorLocked]} onPress={() => dispatchCreate({ type: 'showCoinPicker', value: true })} disabled={!!editing} testID="method-coin-selector">
+								{activeCoin ? (
+									<View style={styles.coinRow}>
+										<QPCoin coin={activeCoin.logo} size={20} />
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{activeCoin.tick}</Text>
+									</View>
+								) : editing ? (
+									<View style={styles.coinRow}>
+										<Text style={[textStyles.h6, { color: theme.colors.primaryText, fontWeight: '600' }]}>{editing.coin?.name || editing.coin?.tick || t('settings.paymentMethods.fallbackName')}</Text>
+										{editCoinStatus === 'loading' && <ActivityIndicator size="small" color={theme.colors.primary} testID="method-coin-loading" />}
 									</View>
 								) : (
 									<Text style={[textStyles.h6, { color: theme.colors.tertiaryText }]}>{t('settings.paymentMethods.modal.selectCoin')}</Text>
 								)}
-								<FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />
+								{!editing && <FontAwesome6 name="chevron-down" size={12} color={theme.colors.secondaryText} iconStyle="solid" />}
 							</Pressable>
+							{editCoinStatus === 'gone' && (
+								<Text style={[textStyles.caption, styles.hint, { color: theme.colors.secondaryText }]} testID="method-coin-unavailable">{t('settings.paymentMethods.modal.coinUnavailable')}</Text>
+							)}
+							{editCoinStatus === 'catalogFailed' && (
+								<Text style={[textStyles.caption, styles.hint, { color: theme.colors.secondaryText }]} testID="method-coins-error">{t('settings.paymentMethods.modal.coinsLoadError')}</Text>
+							)}
 
 							{/* Dynamic fields: los mismos del retiro (selects como opciones, provincia y municipio por zonas) */}
-							{!!selectedCoin && workingFields.length > 0 && (
+							{!!activeCoin && workingFields.length > 0 && (
 								<WithdrawAccountFields
 									title={t('settings.paymentMethods.modal.accountData')}
 									workingFields={workingFields}
-									workingForm={workingForm}
+									workingForm={form}
 									onChangeField={(key, value) => dispatchCreate({ type: 'setField', key, value })}
 									slot={zoneSlot}
 									theme={theme}
@@ -447,10 +532,10 @@ const PaymentMethods = ({ navigation }: NativeStackScreenProps<SettingsStackPara
 						{/* Actions */}
 						<View style={[containerStyles.bottomButtonContainer, { paddingHorizontal: 20 }]}>
 							<QPButton
-								title={t('settings.paymentMethods.modal.saveButton')}
-								onPress={handleCreate}
+								title={t(editing ? 'settings.paymentMethods.modal.saveChanges' : 'settings.paymentMethods.modal.saveButton')}
+								onPress={editing ? handleUpdate : handleCreate}
 								loading={creating}
-								disabled={creating || !selectedCoin || cashZonesPending}
+								disabled={creating || cashZonesPending || (!editing && !selectedCoin) || editCoinStatus === 'loading'}
 								textStyle={{ color: theme.colors.buttonText }}
 							/>
 						</View>
@@ -486,6 +571,9 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 0.5,
 	},
 	closeButton: { padding: 5 },
+	selectorLocked: { opacity: 0.6 },
+	coinRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+	hint: { marginTop: 6 },
 	zonesLoading: { marginVertical: 16 },
 	zonesCard: { marginVertical: 6, padding: 12, borderRadius: 12 },
 	zonesRetry: { alignSelf: 'flex-start', marginTop: 8 },

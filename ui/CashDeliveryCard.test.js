@@ -54,9 +54,9 @@ const findCardPressable = (tree) =>
 beforeEach(() => { mockIsDark = true; mockUser = { kyc: true }; pickCity('havana') })
 afterEach(() => { jest.restoreAllMocks() })
 
-test('shows the section title, hero copy and the action row', () => {
+test('shows the hero copy and the action row, with no section title above the card', () => {
 	const out = JSON.stringify(renderCard().toJSON())
-	expect(out).toContain('Envío de efectivo')
+	expect(out).not.toContain('Envío de efectivo')
 	expect(out).toContain('USD CASH')
 	expect(out).toContain('Recibe USD en efectivo en La Habana')
 	expect(out).toContain('Enviar efectivo')

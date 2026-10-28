@@ -22,7 +22,6 @@
 		"optionsCount": "{{count}} options"
 	},
 	"cashDelivery": {
-		"sectionTitle": "Cash delivery",
 		"subtitle": "Get USD cash in {{city}}\nin less than 72 hours",
 		"cta": "Send cash",
 		"kycGateMessage": "Sending cash with USD CASH requires a verified identity. It's quick and you only do it once.",
