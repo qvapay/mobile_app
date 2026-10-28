@@ -13,7 +13,7 @@ jest.mock('../../../theme/ThemeContext', () => {
 jest.mock('../../../auth/AuthContext', () => ({ useAuth: () => ({ user: { balance: '0' }, isAuthenticated: false }) }))
 jest.mock('../../../wallet/WalletContext', () => ({ useWallet: jest.fn() }))
 jest.mock('../../../wallet/registry/appRpcRouter', () => ({ useEffectiveRegistry: () => ({ chains: { bsc: { kind: 'evm', native: { symbol: 'BNB', decimals: 18 } } } }) }))
-jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), usePriceMap: () => ({}) }))
+jest.mock('./walletQueries', () => ({ useWalletAssets: jest.fn(), usePriceMap: jest.fn() }))
 jest.mock('./energyQueries', () => ({ useEnergyPricesQuery: () => ({ data: undefined }), estimatePrice: () => null }))
 jest.mock('./historyCache', () => ({ loadHistoryCache: jest.fn() }))
 jest.mock('./exchangeDeposit', () => ({ markDepositSent: jest.fn() }))
@@ -30,7 +30,7 @@ import React from 'react'
 import { Text } from 'react-native'
 import { act, create } from 'react-test-renderer'
 import { useWallet } from '../../../wallet/WalletContext'
-import { useWalletAssets } from './walletQueries'
+import { usePriceMap, useWalletAssets } from './walletQueries'
 import { loadHistoryCache } from './historyCache'
 import useWalletSendTx from './useWalletSendTx'
 import WalletSendConfirm from './WalletSendConfirm'
@@ -40,13 +40,13 @@ const BOB = '0x8f3Ae21cB57D9a0C4e6F1b2D3c4E5f6A7b8CC9d1'
 // Generada para imitar a Bob: mismos extremos, medio distinto
 const FAKE_BOB = '0x8f3Ae2d41F0b9C7e2A5d8E1f3B6c9a0D2e4CC9d1'
 
-const asset = (chainKey, contract, symbol) => ({
-	id: `${chainKey}:${contract ?? 'native'}`, chainKey, chainName: chainKey.toUpperCase(), kind: 'evm', symbol, decimals: contract ? 18 : 18,
-	contract, priceTick: null, stable: !!contract, logoTick: symbol, networkTick: chainKey, tokenProgram: null, stock: null,
+const asset = (chainKey, contract, symbol, priceTick = null) => ({
+	id: `${chainKey}:${contract ?? 'native'}`, chainKey, chainName: chainKey.toUpperCase(), kind: 'evm', symbol, decimals: 18,
+	contract, priceTick, stable: !!contract, logoTick: symbol, networkTick: chainKey, tokenProgram: null, stock: null,
 	amount: '100', rawAmount: '100000000000000000000', amountLabel: '100', staked: '0', stakedLabel: '0',
 })
 const USDT_BSC = asset('bsc', '0x55d398326f99059fF775485246999027B3197955', 'USDT')
-const BNB = asset('bsc', null, 'BNB')
+const BNB = asset('bsc', null, 'BNB', 'BNB')
 const USDT_ETH = asset('ethereum', '0xdAC17F958D2ee523a2206206994597C13D831ec7', 'USDT')
 
 const tx = (over) => ({ hash: `h${Math.random()}`, time: 1_790_000_000, direction: 'out', from: ME, to: BOB, amount: '120', symbol: 'USDT', contract: null, fee: null, status: 'confirmed', ...over })
@@ -64,13 +64,20 @@ const settle = () => act(async () => { await sleep(20) })
 
 let caches
 let tree
+let screen
 const render = async (to) => {
-	await act(async () => {
-		tree = create(<WalletSendConfirm navigation={{ replace: jest.fn(), navigate: jest.fn(), goBack: jest.fn() }} route={{ params: { assetId: USDT_BSC.id, to, amount: '10' } }} />)
-	})
+	const navigation = { replace: jest.fn(), navigate: jest.fn(), goBack: jest.fn() }
+	screen = () => <WalletSendConfirm navigation={navigation} route={{ params: { assetId: USDT_BSC.id, to, amount: '10' } }} />
+	await act(async () => { tree = create(screen()) })
 	await settle()
 	return tree
 }
+/** Llega un precio nuevo (el catálogo se refresca solo, las xStocks cada 20 s) y la pantalla repinta. */
+const pricesArrive = async (prices) => {
+	usePriceMap.mockReturnValue(prices)
+	await act(async () => { tree.update(screen()) })
+}
+const authModal = () => tree.root.find(node => node.type === 'WalletAuthModal')
 const confirmButton = () => tree.root.find(node => node.type === 'QPButton' && node.props.title === 'Confirmar y firmar')
 const texts = () => tree.root.findAllByType(Text).map(node => [].concat(node.props.children).filter(c => typeof c === 'string').join(''))
 const hasText = (text) => texts().some(value => value.includes(text))
@@ -81,6 +88,7 @@ beforeEach(() => {
 	useWallet.mockReturnValue({ addresses: { evm: ME, tron: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8', btc: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', stx: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRCBGD7R', sol: 'So1ana1111111111111111111111111111111111111' } })
 	useWalletAssets.mockReturnValue({ all: [USDT_BSC, BNB, USDT_ETH] })
 	loadHistoryCache.mockImplementation(async (assetId) => caches[assetId] ?? cache([]))
+	usePriceMap.mockReturnValue({})
 	useWalletSendTx.mockReturnValue({
 		phase: 'ready', prepared: PREPARED, error: null, feeTier: 'normal', busy: false, authVisible: false,
 		setFeeTier: jest.fn(), openAuth: jest.fn(), closeAuth: jest.fn(), onAuthorized: jest.fn(), retry: jest.fn(),
@@ -152,4 +160,40 @@ test('mientras se lee el historial del disco no se puede confirmar', async () =>
 	await act(async () => { pending.forEach(release => release()) })
 	await settle()
 	expect(confirmButton().props.disabled).toBe(false)
+})
+
+test('el veredicto cambia con el PIN abierto: al autorizar se vuelve a mirar y no se firma', async () => {
+	// La única huella del destino es una entrada mínima de BNB; sin precio no se puede llamar polvo
+	const stranger = '0x1111111111111111111111111111111111111111'
+	caches[BNB.id] = cache([tx({ direction: 'in', from: stranger, to: ME, amount: '0.00001', symbol: 'BNB' })])
+	await render(stranger)
+	expect(confirmButton().props.disabled).toBe(false)
+
+	// Pulsa confirmar; la biometría captura el callback ANTES de esperar al sistema
+	const authorizeLater = authModal().props.onAuthorized
+	// Con el aviso del sistema en pantalla llega el precio: $0.006 es polvo y el destino, sospechoso
+	await pricesArrive({ BNB: 600 })
+	expect(hasText('Cuidado: dirección sospechosa')).toBe(true)
+
+	const sendTx = useWalletSendTx.mock.results.at(-1).value
+	await act(async () => { authorizeLater() })
+	expect(sendTx.onAuthorized).not.toHaveBeenCalled()
+	expect(sendTx.closeAuth).toHaveBeenCalled()
+})
+
+test('lo marcado vale para ESE aviso: si el aviso pasa a señalar otra dirección, hay que volver a revisar', async () => {
+	// BOB2 se parece más al destino que Bob, pero solo es "de confianza" mientras su entrada no sea polvo
+	const BOB2 = `${FAKE_BOB.slice(0, 14)}${'1'.repeat(23)}${FAKE_BOB.slice(-5)}`
+	caches[USDT_BSC.id] = cache([tx({ to: BOB })])
+	caches[BNB.id] = cache([tx({ direction: 'in', from: BOB2, to: ME, amount: '0.00001', symbol: 'BNB' })])
+	await render(FAKE_BOB)
+	expect(hasText(BOB2.slice(14, 37))).toBe(true)
+	await act(async () => { checkbox().props.onPress() })
+	expect(confirmButton().props.disabled).toBe(false)
+
+	await pricesArrive({ BNB: 600 })
+	// Ahora imita a Bob, y eso no lo revisó nadie
+	expect(hasText('1cB57D9a0C4e6F1b2D3c4E5f6A7b8')).toBe(true)
+	expect(checkbox().props.accessibilityState.checked).toBe(false)
+	expect(confirmButton().props.disabled).toBe(true)
 })

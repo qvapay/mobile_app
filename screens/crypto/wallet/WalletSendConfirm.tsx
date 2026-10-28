@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -144,8 +144,21 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 	// ¿El destino imita a una dirección de confianza (address poisoning)? Sin veredicto, o con
 	// uno de los que bloquean sin que el usuario diga que lo revisó, no se firma
 	const recipient = useRecipientCheck(asset, to)
-	const [recipientChecked, setRecipientChecked] = useState(false)
+	// Lo marcado vale para ESE aviso: si pasa a señalar otra dirección, hay que volver a revisar
+	const [checkedFor, setCheckedFor] = useState<string | null>(null)
+	const recipientKey = recipient ? `${recipient.kind}:${recipient.kind === 'lookalike' ? recipient.of : ''}` : null
+	const recipientChecked = recipientKey !== null && checkedFor === recipientKey
 	const recipientBlocks = recipient === null || (isBlockingVerdict(recipient) && !recipientChecked)
+	// El veredicto depende de precios que se refrescan solos, así que puede cambiar con el PIN
+	// abierto, y la biometría llama al callback que capturó ANTES de esperar al sistema: se
+	// vuelve a mirar al firmar, no solo al pulsar el botón
+	const recipientBlocksRef = useRef(recipientBlocks)
+	useEffect(() => { recipientBlocksRef.current = recipientBlocks }, [recipientBlocks])
+	const { onAuthorized: signAndSend, closeAuth } = tx
+	const onAuthorized = useCallback(() => {
+		if (recipientBlocksRef.current) { closeAuth(); return }
+		signAndSend()
+	}, [signAndSend, closeAuth])
 
 	if (!asset || !chain) {
 		return <View style={[containerStyles.subContainer, styles.center]}><ActivityIndicator color={theme.colors.primary} /></View>
@@ -196,7 +209,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				kind={asset.kind}
 				to={to}
 				checked={recipientChecked}
-				onToggle={() => setRecipientChecked(value => !value)}
+				onToggle={() => setCheckedFor(current => (current === recipientKey ? null : recipientKey))}
 				disabled={busy}
 			/>
 
@@ -244,7 +257,7 @@ const WalletSendConfirm = ({ navigation, route }: Props) => {
 				<QPButton title={t('crypto.wallet.send.back')} onPress={() => navigation.goBack()} outlined disabled={busy} />
 			</View>
 
-			<WalletAuthModal visible={tx.authVisible} subtitle={authSubtitle} onClose={tx.closeAuth} onAuthorized={tx.onAuthorized} />
+			<WalletAuthModal visible={tx.authVisible} subtitle={authSubtitle} onClose={tx.closeAuth} onAuthorized={onAuthorized} />
 
 			{!!energy && (
 				<EnergyRentModal
