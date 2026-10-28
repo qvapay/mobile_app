@@ -1,6 +1,6 @@
 /**
  * Unit tests for the push-notification prompt gating — node environment with
- * OneSignal, AsyncStorage and userApi mocked (see keypadAmount.test.js).
+ * the push module, AsyncStorage and userApi mocked (see keypadAmount.test.js).
  * @jest-environment node
  */
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -8,21 +8,16 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 	setItem: jest.fn(),
 	setMany: jest.fn(),
 }))
-jest.mock('react-native-onesignal', () => ({
-	OneSignal: {
-		Notifications: {
-			getPermissionAsync: jest.fn(),
-			requestPermission: jest.fn(),
-		},
-		User: { pushSubscription: { optIn: jest.fn() } },
-	},
+jest.mock('../push', () => ({
+	getPushPermission: jest.fn(),
+	requestPushPermission: jest.fn(),
 }))
 jest.mock('../api/userApi', () => ({ userApi: { updateNotificationSettings: jest.fn() } }))
 
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OneSignal } from 'react-native-onesignal'
+import { getPushPermission, requestPushPermission } from '../push'
 import { userApi } from '../api/userApi'
 import usePushPrompt from './usePushPrompt'
 
@@ -48,8 +43,8 @@ const renderPushPrompt = async () => {
 beforeEach(() => {
 	jest.clearAllMocks()
 	jest.useFakeTimers({ now: NOW })
-	OneSignal.Notifications.getPermissionAsync.mockResolvedValue(false)
-	OneSignal.Notifications.requestPermission.mockResolvedValue(true)
+	getPushPermission.mockResolvedValue('undetermined')
+	requestPushPermission.mockResolvedValue('granted')
 	AsyncStorage.getMany.mockResolvedValue({})
 	AsyncStorage.setItem.mockResolvedValue()
 	AsyncStorage.setMany.mockResolvedValue()
@@ -58,7 +53,7 @@ beforeEach(() => {
 afterEach(() => { jest.useRealTimers() })
 
 test('with push already granted no surface prompts', async () => {
-	OneSignal.Notifications.getPermissionAsync.mockResolvedValue(true)
+	getPushPermission.mockResolvedValue('granted')
 	const prompt = await renderPushPrompt()
 	expect(prompt.current.isPushEnabled).toBe(true)
 	expect(prompt.current.shouldShowPostTxPrompt).toBe(false)
@@ -131,18 +126,17 @@ test('dismissPostTxPrompt and dismissOnboardPrompt persist their one-time flags'
 	expect(AsyncStorage.setItem).toHaveBeenCalledWith(KEYS.ONBOARD_PROMPT_SHOWN, 'true')
 })
 
-test('enablePush requests the OS permission, opts into OneSignal and flags the backend', async () => {
+test('enablePush requests the OS permission (Settings fallback) and flags the backend', async () => {
 	const prompt = await renderPushPrompt()
 	await act(async () => { await prompt.current.enablePush() })
-	expect(OneSignal.Notifications.requestPermission).toHaveBeenCalledWith(true)
-	expect(OneSignal.User.pushSubscription.optIn).toHaveBeenCalled()
+	expect(requestPushPermission).toHaveBeenCalledWith({ fallbackToSettings: true })
 	expect(userApi.updateNotificationSettings).toHaveBeenCalledWith({ push_enabled: true })
 	expect(prompt.current.isPushEnabled).toBe(true)
 	expect(prompt.current.shouldShowRedDot).toBe(false)
 })
 
 test('a denied permission keeps the surfaces on', async () => {
-	OneSignal.Notifications.requestPermission.mockResolvedValue(false)
+	requestPushPermission.mockResolvedValue('blocked')
 	const prompt = await renderPushPrompt()
 	await act(async () => { await prompt.current.enablePush() })
 	expect(prompt.current.isPushEnabled).toBe(false)
@@ -150,7 +144,7 @@ test('a denied permission keeps the surfaces on', async () => {
 })
 
 test('an enablePush failure is swallowed', async () => {
-	OneSignal.Notifications.requestPermission.mockRejectedValue(new Error('no dialog'))
+	requestPushPermission.mockRejectedValue(new Error('no dialog'))
 	const prompt = await renderPushPrompt()
 	await act(async () => { await prompt.current.enablePush() })
 	expect(prompt.current.isPushEnabled).toBe(false)

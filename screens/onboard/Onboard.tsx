@@ -91,7 +91,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboard'>
  * `appearance.firstTime` is true.
  * Uses the same direction-aware step transitions as the Register wizard
  * (`useStepTransitions`). Completing or skipping it clears the firstTime flag,
- * optionally shows the OneSignal push-permission prompt, then navigates to Welcome.
+ * optionally shows the push-permission prompt, then navigates to Welcome.
  */
 const Onboard = ({ navigation }: Props) => {
 

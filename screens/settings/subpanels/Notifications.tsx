@@ -15,8 +15,8 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Notifications
 import { toast } from 'sonner-native'
 
-// OneSignal Push Notifications
-import { OneSignal } from 'react-native-onesignal'
+// Push propias: el permiso del sistema (apagar = solo el flag del backend)
+import { requestPushPermission } from '../../../push'
 
 // UI
 import QPLoader from '../../../ui/particles/QPLoader'
@@ -110,34 +110,20 @@ const Notifications = () => {
 		const previous = settings[key]
 		setSettings(prev => ({ ...prev, [key]: value }))
 
-		// Sync push subscription with OneSignal
-		if (key === 'push_enabled') {
-			if (value) {
-				OneSignal.Notifications.requestPermission(true)
-				OneSignal.User.pushSubscription.optIn()
-			} else {
-				OneSignal.User.pushSubscription.optOut()
-			}
+		// Encender pide el permiso del sistema (y registra el token al concederse);
+		// apagar no toca el dispositivo: el backend respeta `push_enabled` al mandar
+		if (key === 'push_enabled' && value) {
+			requestPushPermission({ fallbackToSettings: true }).catch(() => {})
 		}
 
 		try {
 			const result = await userApi.updateNotificationSettings({ [key]: value })
 			if (!result.success) {
 				setSettings(prev => ({ ...prev, [key]: previous }))
-				// Rollback OneSignal state
-				if (key === 'push_enabled') {
-					if (previous) { OneSignal.User.pushSubscription.optIn() }
-					else { OneSignal.User.pushSubscription.optOut() }
-				}
 				toast.error(t('settings.notifications.toasts.updateFailed'))
 			}
 		} catch (error) {
 			setSettings(prev => ({ ...prev, [key]: previous }))
-			// Rollback OneSignal state
-			if (key === 'push_enabled') {
-				if (previous) { OneSignal.User.pushSubscription.optIn() }
-				else { OneSignal.User.pushSubscription.optOut() }
-			}
 			toast.error(t('settings.notifications.toasts.connectionError'))
 		}
 	}

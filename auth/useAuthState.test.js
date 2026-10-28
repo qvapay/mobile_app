@@ -35,12 +35,9 @@ jest.mock('../api/client', () => ({
 	removeAuthToken: jest.fn(),
 }))
 
-jest.mock('react-native-onesignal', () => ({
-	OneSignal: {
-		login: jest.fn(),
-		logout: jest.fn(),
-		User: { addTags: jest.fn() },
-	},
+jest.mock('../push', () => ({
+	syncPushToken: jest.fn(),
+	unregisterPush: jest.fn(async () => {}),
 }))
 
 jest.mock('react-native-passkey', () => ({
@@ -55,7 +52,7 @@ jest.mock('../helpers/widgetBridge', () => ({
 import React from 'react'
 import { act, create } from 'react-test-renderer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OneSignal } from 'react-native-onesignal'
+import { syncPushToken, unregisterPush } from '../push'
 import { Passkey } from 'react-native-passkey'
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
@@ -155,7 +152,7 @@ describe('initializeAuth', () => {
 		expect(result.current.isAuthenticated).toBe(true)
 		expect(result.current.token).toBe('tok-1')
 		expect(result.current.user).toEqual(cached)
-		expect(OneSignal.login).toHaveBeenCalledWith('u-123')
+		expect(syncPushToken).toHaveBeenCalledWith('u-123')
 		expect(updateWidgetBalance).toHaveBeenCalledWith(10, 'erich')
 		// The cached session releases the bootstrap right away — the profile refresh
 		// must not hold the splash (and the app-lock prompt) hostage to the network (#47)
@@ -237,8 +234,7 @@ describe('login', () => {
 		expect(result.current.user.cover_photo_url).toBe('https://media.qvapay.com/covers/abc.jpg')
 		expect(setAuthToken).toHaveBeenCalledWith('tok-1')
 		expect(AsyncStorage.setItem).toHaveBeenCalledWith('user_data', JSON.stringify(result.current.user))
-		expect(OneSignal.login).toHaveBeenCalledWith('u-123')
-		expect(OneSignal.User.addTags).toHaveBeenCalledWith({ kyc: 'true', vip: 'false', golden_check: 'false' })
+		expect(syncPushToken).toHaveBeenCalledWith('u-123')
 	})
 
 	test('a 200 response forwards the security warning from the API', async () => {
@@ -259,7 +255,7 @@ describe('login', () => {
 		expect(result.current.user).toBeNull()
 		expect(result.current.token).toBeNull()
 		expect(setAuthToken).not.toHaveBeenCalled()
-		expect(OneSignal.login).not.toHaveBeenCalled()
+		expect(syncPushToken).not.toHaveBeenCalled()
 	})
 
 	test('an API failure surfaces the error and passes through status, details and action', async () => {
@@ -349,7 +345,7 @@ describe('logout', () => {
 		await act(async () => { outcome = await result.current.logout() })
 		expect(outcome).toEqual({ success: true })
 		expect(authApi.logout).toHaveBeenCalled()
-		expect(OneSignal.logout).toHaveBeenCalled()
+		expect(unregisterPush).toHaveBeenCalled()
 		expect(removeAuthToken).toHaveBeenCalled()
 		expect(AsyncStorage.removeItem).toHaveBeenCalledWith('user_data')
 		expect(AsyncStorage.removeMany).toHaveBeenCalledWith([
@@ -369,7 +365,7 @@ describe('logout', () => {
 		await act(async () => { outcome = await result.current.logout() })
 		expect(outcome).toEqual({ success: true })
 		expect(authApi.logout).not.toHaveBeenCalled()
-		expect(OneSignal.logout).toHaveBeenCalled()
+		expect(unregisterPush).toHaveBeenCalled()
 		expect(result.current.isAuthenticated).toBe(false)
 	})
 
@@ -532,7 +528,7 @@ describe('completeSession', () => {
 		expect(result.current.isAuthenticated).toBe(true)
 		expect(result.current.token).toBe('tok-wiz')
 		expect(setAuthToken).toHaveBeenCalledWith('tok-wiz')
-		expect(OneSignal.login).toHaveBeenCalledWith(ME.uuid)
+		expect(syncPushToken).toHaveBeenCalledWith(ME.uuid)
 	})
 })
 

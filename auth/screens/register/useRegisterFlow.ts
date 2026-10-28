@@ -37,7 +37,7 @@ import { setAuthToken } from '../../../api/client'
 // Step transitions (direction-aware, shared with Onboard)
 import useStepTransitions from '../../../hooks/useStepTransitions'
 
-// Push notifications (OneSignal permission + flags de prompts)
+// Push notifications (permiso del sistema + flags de prompts)
 import usePushPrompt from '../../../hooks/usePushPrompt'
 
 // Flujo de verificación de identidad nativo (SDK embebido, fallback a navegador)

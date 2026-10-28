@@ -1,7 +1,7 @@
 /**
  * Route-name constants for React Navigation. Always reference screens through
  * ROUTES.* — the string values are what navigation.navigate(), linking.js and
- * the OneSignal notification routing bind to, so changing a value is a
+ * the push notification routing bind to, so changing a value is a
  * breaking change for deep links and push navigation.
  *
  * Note: TERMS_AND_CONDITIONS is a plain external URL, not a screen name.

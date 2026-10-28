@@ -1,11 +1,13 @@
 // Centralizes the app-root navigation side effects: splash timing, store-update
-// prompt, auth → navigation reconciliation, deep-link capture and OneSignal
+// prompt, auth → navigation reconciliation, deep-link capture and push
 // listeners. Extracted from AppNavigator so the component itself only declares
 // routes (see App.tsx).
 import { useEffect, useRef, useState } from 'react'
 import { Linking } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { OneSignal } from 'react-native-onesignal'
+
+// Push propias (FCM en Android, APNs en iOS): suscripciones y eventos de entrega
+import { subscribeForegroundPush, subscribeOpenedPush, takeInitialPush, trackPushOpened, trackPushReceived } from '../push'
 
 // Toast
 import { toast } from 'sonner-native'
@@ -22,10 +24,10 @@ import { resolveRootRoute } from './rootRoute'
 // Helpers
 import playSound from '../helpers/playSound'
 import { markIncomingSoundPlayed } from './useIncomingMoneySound'
-import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushTarget } from '../helpers/pushRouting'
+import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNavigation } from '../helpers/pushRouting'
+import { resolveDeepLinkTarget } from '../helpers/deepLinkTarget'
 import { maybePromptUpdate } from '../helpers/versionCheck'
 import { consumeInstallReferrer } from '../helpers/installReferrer'
-import { parseMiniAppLink } from '../screens/miniapps/miniappLinks'
 import { isDeepLinkRoute } from './deepLinkRoutes'
 
 // i18n (fuera de render: los toasts se disparan en efectos/listeners)
@@ -36,81 +38,48 @@ import { queryClient } from '../api/queryClient'
 import { trimToFirstPage } from '../api/queryUtils'
 
 // Tipos
-import type { NotificationClickEvent, NotificationWillDisplayEvent } from 'react-native-onesignal'
 import type { PushData } from '../helpers/pushRouting'
+import type { DeepLinkTarget } from '../helpers/deepLinkTarget'
+import type { PushMessage } from '../push/transport'
 
 /** Resultado de helpers/versionCheck.maybePromptUpdate consumido por el modal. */
 type UpdateInfo = { needsUpdate: boolean, currentVersion?: string, latestVersion?: string, storeUrl?: string }
 
 /**
- * Parses the P2P offer UUID out of a deep link URL.
- * Matches both https paths and the qvapay:// custom scheme.
- * @param url - e.g. https://qvapay.com/p2p/<uuid> or qvapay://p2p/<uuid>
- * @returns The UUID, or null when the URL is not a P2P link.
- */
-const parseP2PUuid = (url: string) => {
-	const match = url.match(/\/p2p\/([^/?#]+)/)
-	if (match) return match[1]
-	const schemeMatch = url.match(/qvapay:\/\/p2p\/([^/?#]+)/)
-	if (schemeMatch) return schemeMatch[1]
-	return null
-}
-
-/**
- * Order of a range offer in a P2P link (`/p2p/<uuid>?order=<order>`, the URL the
- * backend puts in partial-order pushes and Telegram messages).
- * @param url - P2P deep link URL.
- * @returns The order UUID, or undefined.
- */
-const parseP2POrder = (url: string): string | undefined => {
-	const match = url.match(/[?&]order=([^&#]+)/)
-	return match ? decodeURIComponent(match[1]) : undefined
-}
-
-/**
- * Parses the merchant-invoice UUID out of a Pay deep link URL.
- * @param url - e.g. https://qvapay.com/pay/<uuid> or qvapay://pay/<uuid>
- * @returns The UUID, or null when the URL is not a Pay link.
- */
-const parsePayUuid = (url: string) => {
-	const match = url.match(/\/pay\/([^/?#]+)/)
-	if (match) return match[1]
-	const schemeMatch = url.match(/qvapay:\/\/pay\/([^/?#]+)/)
-	if (schemeMatch) return schemeMatch[1]
-	return null
-}
-
-/**
- * Parses a marketplace storefront/product deep link.
- * `/store/<slug>` → storefront; `/store/<slug>/<uuid>` → product sheet
- * (same URLs the web publishes). Matches https paths and qvapay://.
- * @param url - e.g. https://qvapay.com/store/mi-tienda[/<uuid>]
- * @returns Parsed segments (`{ slug, uuid? }`), or null.
- */
-const parseStoreLink = (url: string) => {
-	const match = url.match(/(?:\/|^qvapay:\/\/)store\/([^/?#]+)(?:\/([^/?#]+))?/)
-	if (!match) return null
-	return { slug: match[1], ...(match[2] ? { uuid: match[2] } : {}) }
-}
-
-/**
  * Clave del toast "inicia sesión primero" que corresponde a un deep link que
- * llega SIN sesión, o null si la URL no es un destino que la app sepa abrir
- * (esos se pierden sin más, como hasta ahora).
+ * llega SIN sesión, o null si la URL no es un destino con sesión que la app
+ * sepa abrir (esos se pierden sin más, como hasta ahora).
  */
 const loginToastKeyFor = (url: string): string | null => {
-	if (parsePayUuid(url)) return 'hooks.appNavigation.toasts.loginToPay'
-	if (parseP2PUuid(url)) return 'hooks.appNavigation.toasts.loginToSeeOffer'
-	if (parseStoreLink(url)) return 'hooks.appNavigation.toasts.loginToSeeStore'
-	if (parseMiniAppLink(url)) return 'hooks.appNavigation.toasts.loginToOpenApp'
-	return null
+	switch (resolveDeepLinkTarget(url)?.name) {
+		case ROUTES.PAY_SCREEN: return 'hooks.appNavigation.toasts.loginToPay'
+		case ROUTES.P2P_OFFER_SCREEN: return 'hooks.appNavigation.toasts.loginToSeeOffer'
+		case ROUTES.MARKET_STORE:
+		case ROUTES.MARKET_PRODUCT: return 'hooks.appNavigation.toasts.loginToSeeStore'
+		case ROUTES.MINIAPP_HOST: return 'hooks.appNavigation.toasts.loginToOpenApp'
+		default: return null
+	}
+}
+
+/**
+ * Estado de navegación que deja el destino encima de MainStack (atrás cae en
+ * Home). Una pestaña (`/home`, `/p2p`…) ES MainStack con la pestaña como param.
+ * Los nombres llegan como string en runtime, así que no casan con
+ * RootStackParamList en compilación: el que llama lo pasa como `never`.
+ */
+const stateForTarget = (target: DeepLinkTarget) => {
+	const route = { name: target.name, ...(target.params ? { params: target.params } : {}) }
+	return target.name === ROUTES.MAIN_STACK
+		? { index: 0, routes: [route] }
+		: { index: 1, routes: [{ name: ROUTES.MAIN_STACK }, route] }
 }
 
 /**
  * Drives the app-root navigation flow: minimum 2s splash, store-update check
  * (helpers/versionCheck → UpdatePromptModal), auth ↔ navigation reconciliation,
- * deep-link capture while unauthenticated, and OneSignal foreground/click
- * listeners (toast + optional sound; tap navigates to the right screen).
+ * deep-link capture while unauthenticated, and push foreground/tap listeners
+ * (toast + optional sound; tap navigates to the right screen, or waits for
+ * the reconciliation when the app is still booting or logged out).
  *
  * Deep links (/pay/:uuid, /p2p/:p2p_uuid, /store/:slug, /apps/:slug) that
  * arrive while logged out are stashed in `pendingDeepLinkRef` with a localized
@@ -145,6 +114,12 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 
 	// Update prompt state
 	const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+
+	// Destino de una push tocada que aún no se puede abrir (arranque en frío
+	// antes de reconciliar, o sin sesión): lo consume la reconciliación de abajo
+	const pendingPushRef = useRef<DeepLinkTarget | null>(null)
+	const isAuthenticatedRef = useRef(isAuthenticated)
+	useEffect(() => { isAuthenticatedRef.current = isAuthenticated }, [isAuthenticated])
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -182,57 +157,16 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 			const current = state?.routes[state?.index || 0]
 			const currentRoute = current?.name
 			if (isAuthenticated && !firstTime && currentRoute !== ROUTES.MAIN_STACK) {
-				// Check for a pending deep link after login
+				// Check for a pending deep link after login (the URL wins over a
+				// pending push tap; both are consumed so nothing stale survives)
 				const pendingUrl = pendingDeepLinkRef.current
-				if (pendingUrl) {
-					pendingDeepLinkRef.current = null
-					const payUuid = parsePayUuid(pendingUrl)
-					if (payUuid) {
-						navigation.reset({
-							index: 1,
-							routes: [
-								{ name: ROUTES.MAIN_STACK },
-								{ name: ROUTES.PAY_SCREEN, params: { uuid: payUuid } },
-							],
-						})
-						return
-					}
-					const p2pUuid = parseP2PUuid(pendingUrl)
-					if (p2pUuid) {
-						const order = parseP2POrder(pendingUrl)
-						navigation.reset({
-							index: 1,
-							routes: [
-								{ name: ROUTES.MAIN_STACK },
-								{ name: ROUTES.P2P_OFFER_SCREEN, params: order ? { p2p_uuid: p2pUuid, order } : { p2p_uuid: p2pUuid } },
-							],
-						})
-						return
-					}
-					const storeLink = parseStoreLink(pendingUrl)
-					if (storeLink) {
-						navigation.reset({
-							index: 1,
-							routes: [
-								{ name: ROUTES.MAIN_STACK },
-								storeLink.uuid
-									? { name: ROUTES.MARKET_PRODUCT, params: { uuid: storeLink.uuid } }
-									: { name: ROUTES.MARKET_STORE, params: { slug: storeLink.slug } },
-							],
-						})
-						return
-					}
-					const miniApp = parseMiniAppLink(pendingUrl)
-					if (miniApp) {
-						navigation.reset({
-							index: 1,
-							routes: [
-								{ name: ROUTES.MAIN_STACK },
-								{ name: ROUTES.MINIAPP_HOST, params: { slug: miniApp.slug } },
-							],
-						})
-						return
-					}
+				const pendingPush = pendingPushRef.current
+				pendingDeepLinkRef.current = null
+				pendingPushRef.current = null
+				const target = resolveDeepLinkTarget(pendingUrl) ?? pendingPush
+				if (target) {
+					navigation.reset(stateForTarget(target) as never)
+					return
 				}
 				// Arranque en frío CON sesión desde un deep link: React Navigation montó
 				// el destino como ÚNICA ruta raíz. Se conserva encima de MainStack para
@@ -279,13 +213,41 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 		return () => subscription.remove()
 	}, [isAuthenticated, pendingDeepLinkRef])
 
-	// OneSignal notification listeners
+	// Push tocada: abre su destino (deeplink del backend o enrutado por tipo).
+	// Con la app ya reconciliada (MainStack en la raíz) navega en el acto; en un
+	// arranque en frío o sin sesión se guarda y lo consume la reconciliación.
+	// Por ref: lo llaman efectos sin deps (la push inicial se consume una vez)
+	const openPushRef = useRef<(message: PushMessage) => void>(() => {})
+	openPushRef.current = (message: PushMessage) => {
+		const data = message.data as PushData
+		trackPushOpened(message.data)
+		const resolved = resolvePushNavigation(data)
+		if (!resolved) return
+		const target: DeepLinkTarget = { name: resolved.screen, params: resolved.params }
+		const settled = isAuthenticatedRef.current && !!navigation.getState()?.routes.some(route => route.name === ROUTES.MAIN_STACK)
+		if (settled) {
+			// El par ruta/params se resuelve en RUNTIME desde el payload, así que
+			// no hay forma de casarlo con RootStackParamList en compilación
+			const navigate = navigation.navigate as unknown as (screen: string, params?: Record<string, unknown>) => void
+			if (target.params) { navigate(target.name, target.params) } else { navigate(target.name) }
+			return
+		}
+		pendingPushRef.current = target
+		if (!isAuthenticatedRef.current) toast.info(i18n.t('hooks.appNavigation.toasts.loginToOpenNotification'))
+	}
+
+	// La push que ARRANCÓ la app (cerrada): se consume una sola vez
+	useEffect(() => {
+		let cancelled = false
+		takeInitialPush().then(message => { if (message && !cancelled) openPushRef.current(message) }).catch(() => {})
+		return () => { cancelled = true }
+	}, [])
+
+	// Push listeners
 	useEffect(() => {
 		// Foreground notification: show as toast
-		const onForeground = (event: NotificationWillDisplayEvent) => {
-			event.preventDefault()
-			const notification = event.getNotification()
-			const data = notification.additionalData as PushData
+		const onForeground = (message: PushMessage) => {
+			const data = message.data as PushData
 			const moneyIn = isMoneyInPush(data)
 			// Play sound based on notification type
 			if (sounds?.enabled) {
@@ -308,35 +270,25 @@ export function useAppNavigation(pendingDeepLinkRef: { current: string | null })
 				queryClient.setQueriesData({ queryKey: ['transactions'] }, trimToFirstPage)
 				queryClient.invalidateQueries({ queryKey: ['transactions'] })
 			}
-			toast.info(notification.title || 'QvaPay', { description: notification.body || undefined })
-			// Con la app delante, una push de dinero NO se muestra en la bandeja:
-			// su canal lleva el sonido de moneda (qp_money_in/qp_money_out) y al
-			// publicarla sonaría OTRA VEZ encima de la que acaba de sonar aquí.
-			// El toast ya es la presentación en primer plano
-			if (!isMoneySoundPush(data)) { notification.display() }
+			// Con la app delante la push NO va a la bandeja (ni en Android, donde
+			// FCM no la pinta en primer plano, ni en iOS, donde QPPush no la
+			// presenta): el toast es la presentación en primer plano, y una push
+			// de dinero publicada sonaría OTRA VEZ con el sonido de su canal
+			toast.info(message.title || 'QvaPay', { description: message.body || undefined })
+			trackPushReceived(message.data)
 		}
 
-		// Notification tapped: navigate to the right screen
-		const onClicked = (event: NotificationClickEvent) => {
-			const data = event.notification?.additionalData as PushData
-			if (!data?.type || !isAuthenticated) return
+		// Notification tapped with the app alive (foreground or background)
+		const onOpened = (message: PushMessage) => { openPushRef.current(message) }
 
-			const target = resolvePushTarget(data)
-			if (!target) return
-			// El par ruta/params se resuelve en RUNTIME desde el payload, así que
-			// no hay forma de casarlo con RootStackParamList en compilación
-			const navigate = navigation.navigate as unknown as (screen: string, params?: Record<string, unknown>) => void
-			if (target.params) { navigate(target.screen, target.params) } else { navigate(target.screen) }
-		}
-
-		OneSignal.Notifications.addEventListener('foregroundWillDisplay', onForeground)
-		OneSignal.Notifications.addEventListener('click', onClicked)
+		const unsubscribeForeground = subscribeForegroundPush(onForeground)
+		const unsubscribeOpened = subscribeOpenedPush(onOpened)
 
 		return () => {
-			OneSignal.Notifications.removeEventListener('foregroundWillDisplay', onForeground)
-			OneSignal.Notifications.removeEventListener('click', onClicked)
+			unsubscribeForeground()
+			unsubscribeOpened()
 		}
-	}, [isAuthenticated, sounds?.enabled, sounds?.transactionSound, navigation])
+	}, [sounds?.enabled, sounds?.transactionSound])
 
 	const dismissUpdate = () => setUpdateInfo(null)
 

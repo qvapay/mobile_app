@@ -8,8 +8,8 @@ import { Platform, Pressable } from 'react-native'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import React, { useEffect, useMemo, useRef } from 'react'
 
-// OneSignal Push Notifications
-import { OneSignal } from 'react-native-onesignal'
+// Push propias (FCM en Android, APNs en iOS): arranque fuera del árbol
+import { initPush } from './push'
 
 // Data layer (React Query + persistencia en AsyncStorage)
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
@@ -164,7 +164,7 @@ import QPAvatar from './ui/particles/QPAvatar'
 import ErrorBoundary from './ui/ErrorBoundary'
 import UpdatePromptModal from './ui/UpdatePromptModal'
 
-// App-root navigation side effects (splash, deep links, OneSignal, auth routing)
+// App-root navigation side effects (splash, deep links, push, auth routing)
 import { useAppNavigation } from './hooks/useAppNavigation'
 
 // Consistent header options using native back button (works with iOS liquid glass)
@@ -535,8 +535,8 @@ const LoadingBridge = ({ children }: { children: React.ReactNode }) => {
 	return <>{children}</>
 }
 
-// Initialize OneSignal (must be called outside component, before render)
-OneSignal.initialize('8f69c017-b7e7-40b2-903b-11ce7ac5cc81')
+// Push: refresco de token y cola de eventos (fuera del componente, antes del render)
+initPush()
 
 function App() {
 	const pendingDeepLinkRef = useRef<string | null>(null)

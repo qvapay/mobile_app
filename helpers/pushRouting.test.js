@@ -3,7 +3,7 @@
  * (`transfer_received`, `p2p_applied`, `cart_stage`…) y los legacy.
  * @jest-environment node
  */
-import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushTarget } from './pushRouting'
+import { isMoneyInPush, isMoneySoundPush, pushTransactionUuid, resolvePushNavigation, resolvePushTarget } from './pushRouting'
 import { ROUTES } from '../routes'
 
 describe('isMoneyInPush', () => {
@@ -52,6 +52,10 @@ describe('resolvePushTarget', () => {
 			.toEqual({ screen: 'Transaction', params: { uuid: 't-1' } })
 		expect(resolvePushTarget({ type: 'transfer_sent', transaction_uuid: 't-1' }))
 			.toEqual({ screen: 'Transaction', params: { uuid: 't-1' } })
+		// Comentario en una transacción (qpweb manda solo type + transaction_uuid, sin deeplink)
+		expect(resolvePushTarget({ type: 'transaction_comment', transaction_uuid: 't-1' }))
+			.toEqual({ screen: 'Transaction', params: { uuid: 't-1' } })
+		expect(isMoneySoundPush({ type: 'transaction_comment' })).toBe(false)
 	})
 
 	test('sin uuid, al histórico', () => {
@@ -114,5 +118,21 @@ describe('puesto promocionado', () => {
 	test('no es dinero entrante ni suena a moneda', () => {
 		expect(isMoneyInPush({ type: 'p2p_promo_won' })).toBe(false)
 		expect(isMoneySoundPush({ type: 'p2p_promo_outbid' })).toBe(false)
+	})
+})
+
+describe('resolvePushNavigation', () => {
+	test('el deeplink del backend manda sobre el tipo', () => {
+		expect(resolvePushNavigation({ type: 'transfer_received', transaction_uuid: 't-1', deeplink: 'https://www.qvapay.com/savings' }))
+			.toEqual({ screen: 'Savings', params: undefined })
+		expect(resolvePushNavigation({ type: 'promo', deeplink: 'qvapay://p2p/p-9?order=o-1' }))
+			.toEqual({ screen: 'P2POffer', params: { p2p_uuid: 'p-9', order: 'o-1' } })
+	})
+
+	test('un deeplink que la app no sabe abrir cae al enrutado por tipo', () => {
+		expect(resolvePushNavigation({ type: 'transfer_received', transaction_uuid: 't-1', deeplink: 'https://www.qvapay.com/blog/post' }))
+			.toEqual({ screen: 'Transaction', params: { uuid: 't-1' } })
+		expect(resolvePushNavigation({ type: 'promo', deeplink: 'https://evil.com/pay/x' })).toBeNull()
+		expect(resolvePushNavigation(undefined)).toBeNull()
 	})
 })

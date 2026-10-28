@@ -8,7 +8,7 @@
  *
  * Discrepancias reales detectadas (documentadas aquí, NO arregladas — son
  * runtime pre-existente):
- * - `Transaction`: el tap de push OneSignal manda `{ uuid }` pero la pantalla
+ * - `Transaction`: el tap de una push manda `{ uuid }` pero la pantalla
  *   solo lee `transaction` — ese camino llega con transaction undefined.
  * - `SendSuccess`: se mandan `amount`/`recipient` pero solo se lee `description`.
  * - `P2PUser.initialTab` y `MarketStores.category`: se leen, nadie los manda.
@@ -94,7 +94,7 @@ export type RootStackParamList = {
 
 	// ── Transacciones ─────────────────────────────────────────────────────
 	Transactions: { showSearch?: boolean } | undefined
-	/** `uuid` solo lo manda el push de OneSignal y la pantalla no lo lee (bug documentado). */
+	/** `uuid` solo lo manda el toque de una push y la pantalla no lo lee (bug documentado). */
 	Transaction: { transaction?: Transaction, uuid?: string }
 
 	// ── Depósito / retiro ─────────────────────────────────────────────────

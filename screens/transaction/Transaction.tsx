@@ -89,7 +89,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Transaction'>
  */
 const Transaction = ({ route, navigation }: Props) => {
 
-	// Discrepancia documentada en types/navigation.ts: el tap del push de OneSignal
+	// Discrepancia documentada en types/navigation.ts: el tap de una push
 	// manda `{ uuid }` sin `transaction` y esta pantalla solo lee `transaction`.
 	// Se tipa lo que hay (el camino roto se conserva tal cual).
 	const { transaction } = route.params as { transaction: TransactionModel }
