@@ -7,7 +7,7 @@ import { toast } from 'sonner-native'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { createTextStyles, createContainerStyles } from '../../theme/themeUtils'
+import { createTextStyles, createContainerStyles, scaleType } from '../../theme/themeUtils'
 
 // User AuthContext
 import { useAuth } from '../../auth/AuthContext'
@@ -304,7 +304,7 @@ const TopupScreen = () => {
 			showsVerticalScrollIndicator={false}
 			keyboardShouldPersistTaps="handled"
 		>
-			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, marginBottom: 18, lineHeight: 18 }]}>
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 6, marginBottom: 18, lineHeight: scaleType(theme, 18) }]}>
 				{t('topup.index.intro', { store: Platform.OS === 'ios' ? 'App Store' : 'Google Play' })}
 			</Text>
 
@@ -348,7 +348,7 @@ const TopupScreen = () => {
 				loading={isPurchasing}
 			/>
 
-			<Text style={[textStyles.caption, { textAlign: 'center', marginTop: theme.spacing.sm, color: theme.colors.tertiaryText, lineHeight: 18 }]}>
+			<Text style={[textStyles.caption, { textAlign: 'center', marginTop: theme.spacing.sm, color: theme.colors.tertiaryText, lineHeight: scaleType(theme, 18) }]}>
 				{t('topup.index.securePayment', { provider: Platform.OS === 'ios' ? 'Apple' : 'Google' })}
 			</Text>
 

@@ -8,7 +8,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 import { useTheme } from '../../../theme/ThemeContext'
 import QPAddress from '../../../ui/particles/QPAddress'
 import type { Theme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { scaleType, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Auth
 import { useAuth } from '../../../auth/AuthContext'
@@ -162,7 +162,7 @@ const WalletEnergy = ({ navigation, route }: Props) => {
 				/>
 			</View>
 
-			<Text style={[textStyles.caption, styles.explainer, { color: theme.colors.secondaryText }]}>{t('crypto.energy.resources.explainer')}</Text>
+			<Text style={[textStyles.caption, { color: theme.colors.secondaryText, lineHeight: scaleType(theme, 18) }]}>{t('crypto.energy.resources.explainer')}</Text>
 
 			{resources.isError && !resources.data && (
 				<Notice theme={theme} icon="triangle-exclamation" color={theme.colors.danger} text={t('crypto.energy.resources.error')} />
@@ -370,7 +370,6 @@ const Notice = ({ theme, icon, color, text, onPress }: { theme: Theme, icon: 'ci
 const styles = StyleSheet.create({
 	content: { gap: 10, paddingTop: 8, paddingBottom: 32 },
 	gauges: { flexDirection: 'row', gap: 10 },
-	explainer: { lineHeight: 18 },
 	choices: { gap: 8 },
 	amountCard: { borderRadius: 14, borderCurve: 'continuous', padding: 14, gap: 3 },
 	amountHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },

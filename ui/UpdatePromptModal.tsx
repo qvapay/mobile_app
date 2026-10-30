@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../theme/ThemeContext'
-import { createTextStyles } from '../theme/themeUtils'
+import { createTextStyles, scaleType } from '../theme/themeUtils'
 
 // Icons
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
@@ -69,7 +69,7 @@ const UpdatePromptModal = ({ visible, currentVersion, latestVersion, storeUrl, o
 					<Text style={[textStyles.h3, { textAlign: 'center', marginBottom: 8 }]}>
 						{t('ui.updatePrompt.title')}
 					</Text>
-					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: 22, marginBottom: 12 }]}>
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: scaleType(theme, 22), marginBottom: 12 }]}>
 						{t('ui.updatePrompt.body', { latestVersion, storeName })}
 					</Text>
 					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', fontSize: theme.typography.fontSize.xs, marginBottom: 20 }]}>

@@ -7,7 +7,7 @@ import type { FontAwesome6SolidIconName } from '@react-native-vector-icons/fonta
 // Theme
 import { useTheme } from '../../../../theme/ThemeContext'
 import type { Theme } from '../../../../theme/ThemeContext'
-import { useTextStyles } from '../../../../theme/themeUtils'
+import { scaleType, useTextStyles } from '../../../../theme/themeUtils'
 
 // UI
 import QPButton from '../../../../ui/particles/QPButton'
@@ -24,7 +24,7 @@ type Props = {
 const Point = ({ icon, text, theme }: { icon: FontAwesome6SolidIconName, text: string, theme: Theme }) => (
 	<View style={styles.point}>
 		<FontAwesome6 name={icon} size={14} color={theme.colors.primary} iconStyle="solid" style={styles.pointIcon} />
-		<Text style={[styles.pointText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm }]}>{text}</Text>
+		<Text style={[styles.pointText, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.sm, lineHeight: scaleType(theme, 20) }]}>{text}</Text>
 	</View>
 )
 
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
 	title: { textAlign: 'center', marginBottom: 4 },
 	point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
 	pointIcon: { marginTop: 3, width: 16, textAlign: 'center' },
-	pointText: { flex: 1, lineHeight: 20 },
+	pointText: { flex: 1 },
 	check: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
 	box: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 	checkText: { flex: 1 },

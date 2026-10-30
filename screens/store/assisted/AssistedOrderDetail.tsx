@@ -108,7 +108,7 @@ const AssistedOrderDetail = ({ route }: Props) => {
 							</View>
 							<View style={{ flex: 1, gap: 2 }}>
 								<Text style={[textStyles.caption, { color: theme.colors.primaryText }]} numberOfLines={2}>{item.title}</Text>
-								<Text style={[styles.meta, { color: theme.colors.secondaryText }]}>
+								<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.secondaryText }}>
 									{t('assisted.orderDetail.itemMeta', { store: providerLabel(item.provider), count: item.count, amount: money(item.qp_price) })}
 								</Text>
 							</View>
@@ -190,9 +190,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	meta: {
-		fontSize: 11,
 	},
 	summaryRow: {
 		flexDirection: 'row',

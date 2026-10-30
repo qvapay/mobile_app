@@ -6,7 +6,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { monoFont, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { monoFont, scaleType, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { useWallet } from '../../../wallet/WalletContext'
@@ -223,7 +223,7 @@ const WalletSend = ({ navigation, route }: Props) => {
 				<Text style={[textStyles.h5, styles.label, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.send.toLabel')}</Text>
 				<View style={[styles.field, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}>
 					<TextInput
-						style={[styles.input, textStyles.h5, { color: theme.colors.primaryText }, monoFont(theme, textStyles.h5)]}
+						style={[styles.input, textStyles.h5, { color: theme.colors.primaryText, lineHeight: scaleType(theme, 22) }, monoFont(theme, textStyles.h5)]}
 						// Dirección resaltada (6+6 en primary): SIEMPRE Text anidado, nunca `value`;
 						// pasar de uno a otro a mitad de escribir movía el cursor en iOS
 						onChangeText={setTo}
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
 	field: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingLeft: 14, paddingRight: 6, minHeight: 52, gap: 6 },
 	// Padding explícito: el TextInput multiline de iOS mete su propio inset arriba y
 	// descuadra la primera línea; lineHeight fijo para que una o dos líneas midan lo esperado
-	input: { flex: 1, paddingTop: 14, paddingBottom: 14, lineHeight: 22, textAlignVertical: 'center' },
+	input: { flex: 1, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'center' },
 	fieldActions: { flexDirection: 'row', alignItems: 'center' },
 	fieldAction: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center' },
 	fieldError: { minHeight: 18, marginTop: 4, marginBottom: 10 },

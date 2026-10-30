@@ -6,7 +6,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { getDateLocale } from '../../../i18n'
 import { useTheme } from '../../../theme/ThemeContext'
-import { useContainerStyles } from '../../../theme/themeUtils'
+import { scaleType, useContainerStyles } from '../../../theme/themeUtils'
 import { ROUTES } from '../../../routes'
 import QPBalance from '../../../ui/particles/QPBalance'
 import QPButton from '../../../ui/particles/QPButton'
@@ -172,7 +172,7 @@ const XStockDetail = ({ navigation, route }: Props) => {
 
 					<View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
 						<Text style={[styles.cardTitle, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.md, fontFamily: theme.typography.fontFamily.semiBold }]}>{t('crypto.xstocks.detail.about')}</Text>
-						<Text style={[styles.about, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
+						<Text style={[styles.about, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, lineHeight: scaleType(theme, 20), fontFamily: theme.typography.fontFamily.regular }]}>
 							{t('crypto.xstocks.detail.aboutBody', { name: stock.name, underlying: stock.underlying, symbol: stock.symbol })}
 						</Text>
 						<Pressable onPress={() => setRiskOpen(true)} style={styles.riskLink} hitSlop={8}>
@@ -259,7 +259,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 	},
 	about: {
-		lineHeight: 20,
 		marginTop: 4,
 	},
 	riskLink: {

@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Theme Context
 import { useTheme } from '../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
+import { scaleType, useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -270,7 +270,7 @@ const Transaction = ({ route, navigation }: Props) => {
 								{parsed.type === 'sticker' ? (
 									<TransactionSticker name={parsed.sticker} size={96} />
 								) : (
-									<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: 20 }]}>{transactionDetails.description}</Text>
+									<Text style={[textStyles.h6, { color: theme.colors.primaryText, lineHeight: scaleType(theme, 20) }]}>{transactionDetails.description}</Text>
 								)}
 							</View>
 						)

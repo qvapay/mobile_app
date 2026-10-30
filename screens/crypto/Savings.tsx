@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 // Theme
 import { useTheme } from '../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../theme/themeUtils'
+import { scaleType, useContainerStyles, useTextStyles } from '../../theme/themeUtils'
 
 // API (deposit/withdraw — las lecturas viven en React Query)
 import { savingApi } from '../../api/savingApi'
@@ -196,7 +196,7 @@ const Savings = ({ route }: SavingsProps) => {
 					{/* Mismo particle que el BalanceCard del Home: símbolo gris menor,
 					    cifras en negro/blanco (o danger si hay deuda — QPBalance lo
 					    detecta por el prefijo "-") */}
-					<QPBalance amount={savingsBalance} fontSize={60} theme={theme} style={styles.heroBalance} />
+					<QPBalance amount={savingsBalance} fontSize={theme.typography.fontSize.display} theme={theme} style={styles.heroBalance} />
 					<Text style={[styles.heroRate, { color: theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>
 						<Text style={{ color: theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold }}>{rate}%</Text> {t('crypto.common.perYear')}
 					</Text>
@@ -259,7 +259,7 @@ const Savings = ({ route }: SavingsProps) => {
 				{/* Disclaimer */}
 				<View style={styles.disclaimer}>
 					<FontAwesome6 name="shield-halved" size={20} color={theme.colors.secondaryText + '80'} iconStyle="solid" />
-					<Text style={[styles.disclaimerText, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>
+					<Text style={[styles.disclaimerText, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 18), fontFamily: theme.typography.fontFamily.regular }]}>
 						{t('crypto.savings.disclaimer')}
 					</Text>
 					<Text
@@ -438,7 +438,6 @@ const styles = (StyleSheet.create as <T extends StyleMap>(o: T) => T)({
 	},
 	disclaimerText: {
 		textAlign: 'center',
-		lineHeight: 18,
 		paddingHorizontal: 16,
 	},
 	disclaimerLink: {},

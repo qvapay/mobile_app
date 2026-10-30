@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 import { useTheme } from '../../../theme/ThemeContext'
-import { useContainerStyles } from '../../../theme/themeUtils'
+import { scaleType, useContainerStyles } from '../../../theme/themeUtils'
 import { ROUTES } from '../../../routes'
 import QPBalance from '../../../ui/particles/QPBalance'
 import QPSkeleton from '../../../ui/particles/QPSkeleton'
@@ -89,7 +89,7 @@ const StocksHome = ({ navigation }: Props) => {
 				{/* Qué son y quién los emite: siempre a la vista, no solo en la letra pequeña del detalle */}
 				<QPPressable variant="opacity" onPress={() => setRiskOpen(true)} style={styles.disclosure}>
 					<FontAwesome6 name="circle-info" size={12} color={theme.colors.tertiaryText} iconStyle="solid" />
-					<Text style={[styles.disclosureText, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, fontFamily: theme.typography.fontFamily.regular }]}>
+					<Text style={[styles.disclosureText, { color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 17), fontFamily: theme.typography.fontFamily.regular }]}>
 						{t('crypto.xstocks.home.disclosure')}
 					</Text>
 				</QPPressable>
@@ -128,7 +128,6 @@ const styles = StyleSheet.create({
 	},
 	disclosureText: {
 		flex: 1,
-		lineHeight: 17,
 	},
 })
 

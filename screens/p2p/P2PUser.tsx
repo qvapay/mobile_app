@@ -440,7 +440,7 @@ const VerifChip = ({ theme, icon, brand, label }: { theme: Theme, icon: string, 
 	<View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 0.5, borderColor: theme.colors.border }}>
 		{/* `icon` alterna glifos sólidos y de marca: fuera de ambos unions */}
 		<FontAwesome6 name={icon as FontAwesome6SolidIconName} size={10} color={theme.colors.secondaryText} iconStyle={(brand ? "brand" : "solid") as "solid"} />
-		<Text style={{ fontSize: 11, color: theme.colors.secondaryText, fontFamily: "Rubik-Medium" }}>{label}</Text>
+		<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.secondaryText, fontFamily: "Rubik-Medium" }}>{label}</Text>
 	</View>
 )
 
@@ -448,9 +448,9 @@ const InlineStat = ({ theme, icon, color, value, label }: { theme: Theme, icon: 
 	<View style={{ flex: 1, alignItems: "center" }}>
 		<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
 			<FontAwesome6 name={icon} size={12} color={color} iconStyle="solid" />
-			<Text style={{ fontSize: 14, fontFamily: "Rubik-Bold", color: theme.colors.primaryText }}>{String(value)}</Text>
+			<Text style={{ fontSize: theme.typography.fontSize.sm, fontFamily: "Rubik-Bold", color: theme.colors.primaryText }}>{String(value)}</Text>
 		</View>
-		<Text style={{ fontSize: 10, color: theme.colors.secondaryText, marginTop: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
+		<Text style={{ fontSize: theme.typography.fontSize.xxs, color: theme.colors.secondaryText, marginTop: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
 	</View>
 )
 
@@ -463,7 +463,7 @@ const SocialBtn = ({ theme, icon, brand, url }: { theme: Theme, icon: string, br
 const StatCard = ({ theme, textStyles, label, value, sublabel, icon, color }: { theme: Theme, textStyles: TextStyles, label: string, value: number | string, sublabel?: string | null, icon: FontAwesome6SolidIconName, color?: string }) => (
 	<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 		<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-			<Text style={{ fontSize: 10, color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }}>{label}</Text>
+			<Text style={{ fontSize: theme.typography.fontSize.xxs, color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }}>{label}</Text>
 			<View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: (color || theme.colors.primary) + "22", alignItems: "center", justifyContent: "center" }}>
 				<FontAwesome6 name={icon} size={12} color={color || theme.colors.primary} iconStyle="solid" />
 			</View>
@@ -493,7 +493,7 @@ const HazteGoldPill = ({ theme, onPress, compact = false }: { theme: Theme, onPr
 			}}
 		>
 			<FontAwesome6 name="crown" size={compact ? 10 : 12} color={theme.colors.almostBlack} iconStyle="solid" />
-			<Text style={{ color: theme.colors.almostBlack, fontFamily: "Rubik-Bold", fontSize: compact ? 11 : 12 }}>
+			<Text style={{ color: theme.colors.almostBlack, fontFamily: "Rubik-Bold", fontSize: theme.typography.fontSize.xs }}>
 				{t('p2p.user.goldPill')}
 			</Text>
 		</Pressable>
@@ -506,7 +506,7 @@ const GoldGateCard = ({ theme, textStyles, unlocked, unlockedCard, label, messag
 	return (
 		<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 1, borderColor: theme.colors.gold + "55" }) }]}>
 			<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-				<Text style={{ fontSize: 10, color: theme.colors.gold, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }} numberOfLines={1}>{label}</Text>
+				<Text style={{ fontSize: theme.typography.fontSize.xxs, color: theme.colors.gold, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }} numberOfLines={1}>{label}</Text>
 				<View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.gold + "22", alignItems: "center", justifyContent: "center" }}>
 					<FontAwesome6 name="crown" size={11} color={theme.colors.gold} iconStyle="solid" />
 				</View>
@@ -515,7 +515,7 @@ const GoldGateCard = ({ theme, textStyles, unlocked, unlockedCard, label, messag
 				{message}
 			</Text>
 			{sublabel ? (
-				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, textAlign: "center", fontSize: 10 }]} numberOfLines={2}>
+				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, textAlign: "center", fontSize: theme.typography.fontSize.xxs }]} numberOfLines={2}>
 					{sublabel}
 				</Text>
 			) : null}
@@ -642,7 +642,7 @@ const RatingRow = ({ theme, textStyles, rating, date, user, onPress }: { theme: 
 			</View>
 			<View style={{ alignItems: "flex-end" }}>
 				<Stars value={rating} size={12} />
-				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: 10 }]}>{formatRatingDate(date)}</Text>
+				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: theme.typography.fontSize.xxs }]}>{formatRatingDate(date)}</Text>
 			</View>
 		</Pressable>
 	)
@@ -745,7 +745,7 @@ const AnonymousRatingRow = ({ theme, textStyles, rating, date }: { theme: Theme,
 			</View>
 			<View style={{ alignItems: "flex-end" }}>
 				<Stars value={rating} size={12} />
-				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: 10 }]}>{formatRatingDate(date)}</Text>
+				<Text style={[textStyles.h7, { color: theme.colors.tertiaryText, marginTop: 2, fontSize: theme.typography.fontSize.xxs }]}>{formatRatingDate(date)}</Text>
 			</View>
 		</View>
 	)
@@ -810,7 +810,7 @@ const StatsTab = ({ theme, textStyles, ranking, stats, topCoins, viewerGold, onP
 const MiniCard = ({ theme, textStyles, label, value, icon, color }: { theme: Theme, textStyles: TextStyles, label: string, value: number | string, icon: FontAwesome6SolidIconName, color?: string }) => (
 	<View style={[styles.statCard, { backgroundColor: theme.colors.surface, ...(!theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }) }]}>
 		<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-			<Text style={{ fontSize: 10, color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }} numberOfLines={1}>{label}</Text>
+			<Text style={{ fontSize: theme.typography.fontSize.xxs, color: theme.colors.secondaryText, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Rubik-Medium" }} numberOfLines={1}>{label}</Text>
 			<FontAwesome6 name={icon} size={12} color={color || theme.colors.secondaryText} iconStyle="solid" />
 		</View>
 		<Text style={[textStyles.h4, { color: theme.colors.primaryText, fontWeight: "700", marginTop: 4 }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>

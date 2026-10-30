@@ -143,7 +143,7 @@ const Theme = () => {
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText, paddingHorizontal: 2 }]}>{t('settings.themePanel.accentLabel')}</Text>
 				<View style={[styles.goldBadge, { backgroundColor: hexToRgba(theme.colors.gold, 0.15) }]}>
 					<FontAwesome6 name="crown" size={10} color={goldTextColor} iconStyle="solid" />
-					<Text style={[styles.goldBadgeText, { color: goldTextColor, fontFamily: theme.typography.fontFamily.medium }]}>GOLD</Text>
+					<Text style={{ color: goldTextColor, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }}>GOLD</Text>
 				</View>
 			</View>
 			<View style={[containerStyles.box, styles.accentCard]}>
@@ -178,7 +178,7 @@ const Theme = () => {
 				<Text style={[textStyles.h4, { color: theme.colors.secondaryText, paddingHorizontal: 2 }]}>{t('settings.themePanel.iconLabel')}</Text>
 				<View style={[styles.goldBadge, { backgroundColor: hexToRgba(theme.colors.gold, 0.15) }]}>
 					<FontAwesome6 name="crown" size={10} color={goldTextColor} iconStyle="solid" />
-					<Text style={[styles.goldBadgeText, { color: goldTextColor, fontFamily: theme.typography.fontFamily.medium }]}>GOLD</Text>
+					<Text style={{ color: goldTextColor, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }}>GOLD</Text>
 				</View>
 			</View>
 			<View style={[containerStyles.box, styles.accentCard]}>
@@ -260,9 +260,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 10,
-	},
-	goldBadgeText: {
-		fontSize: 11,
 	},
 	accentCard: {
 		flexDirection: 'column',

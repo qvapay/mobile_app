@@ -8,6 +8,7 @@ import { sanitizeAmountInput } from "../../helpers/amountInput"
 import { checkTakeAmount, takeBounds, formatCents, quoteReceive } from "./p2pFlexible"
 
 import type { Theme } from "../../theme/ThemeContext"
+import { scaleType } from "../../theme/themeUtils"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
 import type { P2POffer } from "../../types/domain"
 
@@ -54,7 +55,7 @@ const P2PApplyModal = ({ visible, onClose, onConfirm, loading, flexible = null, 
 					<Text style={[textStyles.h3, { color: theme.colors.primaryText, textAlign: 'center', marginBottom: 8 }]}>
 						{flexible ? t('p2p.flexible.apply.title') : t('p2p.applyModal.title')}
 					</Text>
-					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: 22, marginBottom: flexible ? 12 : 20 }]}>
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: 'center', lineHeight: scaleType(theme, 22), marginBottom: flexible ? 12 : 20 }]}>
 						{flexible && bounds
 							? t('p2p.flexible.apply.body', { min: formatCents(bounds.minCents), max: formatCents(bounds.maxCents) })
 							: t('p2p.applyModal.body')}

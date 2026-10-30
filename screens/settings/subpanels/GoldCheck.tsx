@@ -9,7 +9,7 @@ import LottieView from 'lottie-react-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { createTextStyles, createContainerStyles } from '../../../theme/themeUtils'
+import { createTextStyles, createContainerStyles, scaleType } from '../../../theme/themeUtils'
 
 // UI Components
 import GoldUpsell from './gold/GoldUpsell'
@@ -65,7 +65,7 @@ const GoldCheck = ({ navigation: _navigation }: NativeStackScreenProps<SettingsS
 					</View>
 				)}
 
-				<Text style={[textStyles.h1, { textAlign: 'center', marginBottom: theme.spacing.lg, lineHeight: 36 }]}>
+				<Text style={[textStyles.h1, { textAlign: 'center', marginBottom: theme.spacing.lg, lineHeight: scaleType(theme, 36) }]}>
 					{goldCheckStatus ? t('settings.goldCheck.alreadyGold') : t('settings.goldCheck.unlockTitle')}
 				</Text>
 

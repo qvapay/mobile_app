@@ -8,7 +8,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 // Contexts
 import { useAuth } from '../../../auth/AuthContext'
 import { useTheme } from '../../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../../theme/themeUtils'
+import { createContainerStyles, createTextStyles, scaleType } from '../../../theme/themeUtils'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -77,11 +77,11 @@ const ConfirmModal = ({ visible, paying, total, count, addressSummary, onPay, on
 						<FontAwesome6 name="cart-shopping" size={22} color={theme.colors.primary} iconStyle="solid" />
 					</View>
 					<Text style={[textStyles.h4, { fontWeight: '600', textAlign: 'center', marginTop: 12 }]}>{t('market.cart.confirm.title')}</Text>
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, textAlign: 'center', marginTop: 8, lineHeight: scaleType(theme, 18) }]}>
 						{t('market.cart.confirm.body', { amount: money(total), count })}
 					</Text>
 					{!!addressSummary && (
-						<Text style={[textStyles.caption, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 6, lineHeight: 18 }]} numberOfLines={3}>
+						<Text style={[textStyles.caption, { color: theme.colors.primaryText, textAlign: 'center', marginTop: 6, lineHeight: scaleType(theme, 18) }]} numberOfLines={3}>
 							{t('market.cart.confirm.shippingTo', { address: addressSummary })}
 						</Text>
 					)}

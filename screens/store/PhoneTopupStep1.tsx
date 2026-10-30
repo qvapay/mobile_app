@@ -212,7 +212,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 								style={[styles.tab, { borderBottomColor: active ? theme.colors.primary : 'transparent' }]}
 							>
 								<Text style={[textStyles.h6, { color: active ? theme.colors.primary : theme.colors.tertiaryText, fontWeight: '600' }]}>
-									{t(tab.labelKey)} <Text style={{ color: theme.colors.tertiaryText, fontSize: 12 }}>{cnt}</Text>
+									{t(tab.labelKey)} <Text style={{ color: theme.colors.tertiaryText, fontSize: theme.typography.fontSize.xs }}>{cnt}</Text>
 								</Text>
 							</Pressable>
 						)
@@ -250,7 +250,7 @@ const PhoneTopupStep1 = ({ country, phoneNumber, phoneValid, onChangePhone, offe
 							keyboardType="decimal-pad"
 							placeholder={`${selectedOffer.price_min}`}
 							placeholderTextColor={theme.colors.placeholder}
-							style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
+							style={[styles.rangeInput, { color: theme.colors.primaryText, backgroundColor: theme.colors.surface, fontSize: theme.typography.fontSize.md }, !theme.isDark && { borderWidth: 0.5, borderColor: theme.colors.border }]}
 						/>
 					</View>
 				)}
@@ -291,7 +291,6 @@ const styles = StyleSheet.create({
 	rangeInput: {
 		padding: 10,
 		borderRadius: 8,
-		fontSize: 16,
 		fontWeight: '600',
 	},
 })

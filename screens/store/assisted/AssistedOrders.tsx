@@ -99,14 +99,14 @@ const AssistedOrders = ({ navigation }: Props) => {
 						{titles || t('assisted.common.products', { count: item.item_count })}
 					</Text>
 					{item.tracking_code ? (
-						<Text style={[styles.tracking, { color: theme.colors.secondaryText }]} numberOfLines={1}>
+						<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.secondaryText }} numberOfLines={1}>
 							{t('assisted.orders.tracking', { code: item.tracking_code })}
 						</Text>
 					) : null}
 				</View>
 				<View style={{ alignItems: 'flex-end', gap: 3 }}>
 					<Text style={[textStyles.h6, { fontWeight: '600' }]}>{money(item.total)}</Text>
-					<Text style={[styles.tracking, { color: theme.colors.tertiaryText }]}>{getShortDateTime(item.created_at)}</Text>
+					<Text style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.tertiaryText }}>{getShortDateTime(item.created_at)}</Text>
 				</View>
 			</Pressable>
 		)
@@ -167,9 +167,6 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 8,
-	},
-	tracking: {
-		fontSize: 11,
 	},
 	emptyContainer: {
 		justifyContent: 'center',

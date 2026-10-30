@@ -10,7 +10,7 @@ import { toast } from 'sonner-native'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { createContainerStyles, createTextStyles } from '../../../theme/themeUtils'
+import { createContainerStyles, createTextStyles, scaleType } from '../../../theme/themeUtils'
 
 // UI
 import QPButton from '../../../ui/particles/QPButton'
@@ -143,7 +143,7 @@ const AssistedProduct = ({ navigation, route }: Props) => {
 						<FontAwesome6 name="arrow-up-right-from-square" size={11} color={theme.colors.secondaryText} iconStyle="solid" />
 					</Pressable>
 				</View>
-				<Text style={[textStyles.h4, { fontWeight: '600', marginTop: 10, lineHeight: 24 }]}>
+				<Text style={[textStyles.h4, { fontWeight: '600', marginTop: 10, lineHeight: scaleType(theme, 24) }]}>
 					{product.title}
 				</Text>
 
@@ -184,7 +184,7 @@ const AssistedProduct = ({ navigation, route }: Props) => {
 
 				{/* Description */}
 				{!!product.description && (
-					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 14, lineHeight: 18 }]} numberOfLines={8}>
+					<Text style={[textStyles.caption, { color: theme.colors.secondaryText, marginTop: 14, lineHeight: scaleType(theme, 18) }]} numberOfLines={8}>
 						{product.description}
 					</Text>
 				)}

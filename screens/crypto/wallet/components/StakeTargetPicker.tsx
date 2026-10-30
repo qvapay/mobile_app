@@ -4,7 +4,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../../theme/ThemeContext'
-import { monoFont, useTextStyles } from '../../../../theme/themeUtils'
+import { monoFont, scaleType, useTextStyles } from '../../../../theme/themeUtils'
 
 // Wallet
 import { displayAmount, formatUnits } from '../../../../wallet/chains/units'
@@ -101,7 +101,7 @@ const StakeTargetPicker = ({ visible, kind, targets, selectedId, symbol, decimal
 						</ScrollView>
 					)}
 					{!!apys && Object.values(apys).some(isPlausibleApy) && (
-						<Text style={[styles.note, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs }]}>
+						<Text style={[styles.note, { color: theme.colors.tertiaryText, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 16) }]}>
 							{t(`crypto.staking.picker.apyNote.${kind}`)}
 						</Text>
 					)}
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
 	list: { flexGrow: 0 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	info: { flex: 1, minWidth: 0, gap: 2 },
-	note: { textAlign: 'center', marginTop: 10, lineHeight: 16 },
+	note: { textAlign: 'center', marginTop: 10 },
 })
 
 export default StakeTargetPicker

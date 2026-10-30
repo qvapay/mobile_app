@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import QPButton from "../../ui/particles/QPButton"
 
 import type { Theme } from "../../theme/ThemeContext"
+import { scaleType } from "../../theme/themeUtils"
 import type { TextStyles, ContainerStyles } from "../../theme/themeUtils"
 
 /** Config visual de una acción confirmable (la arma P2POffer por acción pendiente). */
@@ -55,7 +56,7 @@ const P2PConfirmModal = ({
 					<FontAwesome6 name={icon as FontAwesome6SolidIconName} size={40} color={iconColor} iconStyle="solid" style={styles.icon} />
 
 					<Text style={[textStyles.h3, { color: theme.colors.primaryText, textAlign: "center", marginBottom: 8 }]}>{title}</Text>
-					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center", lineHeight: 22, marginBottom: warning ? 12 : 20 }]}>{body}</Text>
+					<Text style={[textStyles.body, { color: theme.colors.secondaryText, textAlign: "center", lineHeight: scaleType(theme, 22), marginBottom: warning ? 12 : 20 }]}>{body}</Text>
 
 					{warning ? (
 						<View style={[styles.warningBox, { backgroundColor: theme.colors.warning + "1A" }]}>

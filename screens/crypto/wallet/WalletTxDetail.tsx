@@ -101,7 +101,7 @@ const WalletTxDetail = ({ route }: Props) => {
 					</View>
 				</View>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{title}</Text>
-				<Text style={[textStyles.amount, styles.heroAmount, { color: failed ? theme.colors.danger : theme.colors.primaryText }]}>{sign}{displayAmount(tx.amount)} {tx.symbol}</Text>
+				<Text style={[textStyles.amount, styles.heroAmount, { color: failed ? theme.colors.danger : theme.colors.primaryText, fontSize: theme.typography.fontSize.displaySm }]}>{sign}{displayAmount(tx.amount)} {tx.symbol}</Text>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{usd !== null ? t('crypto.wallet.txDetail.usdNow', { value: formatUsd(usd) }) : ' '}</Text>
 				<View style={[styles.statusPill, { backgroundColor: (failed ? theme.colors.danger : tx.status === 'pending' ? theme.colors.warning : theme.colors.successText) + '18' }]}>
 					<Text style={{ color: failed ? theme.colors.danger : tx.status === 'pending' ? theme.colors.warning : theme.colors.successText, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xs }}>
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
 	hero: { alignItems: 'center', gap: 4, paddingBottom: 8 },
 	heroIcon: { marginBottom: 8 },
 	badge: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-	heroAmount: { fontSize: 32, marginTop: 2 },
+	heroAmount: { marginTop: 2 },
 	statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginTop: 6 },
 	card: { borderRadius: 14, paddingHorizontal: 14 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },

@@ -169,7 +169,7 @@ const XStockTrade = ({ navigation, route }: Props) => {
 
 			{/* El importe en grande */}
 			<View style={styles.amountBox}>
-				<QPFitText style={{ color: usd > 0 ? theme.colors.primaryText : theme.colors.tertiaryText, fontSize: 64, fontFamily: theme.typography.fontFamily.medium }}>
+				<QPFitText style={{ color: usd > 0 ? theme.colors.primaryText : theme.colors.tertiaryText, fontSize: theme.typography.fontSize.display, fontFamily: theme.typography.fontFamily.medium }}>
 					${amount}
 				</QPFitText>
 				<Text style={[styles.subline, { color: problem ? theme.colors.dangerText : theme.colors.secondaryText, fontSize: theme.typography.fontSize.sm, fontFamily: theme.typography.fontFamily.regular }]}>

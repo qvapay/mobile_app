@@ -344,7 +344,7 @@ const WalletStakeAction = ({ navigation, route }: Props) => {
 		<ScrollView style={containerStyles.subContainer} contentContainerStyle={styles.confirmContent} showsVerticalScrollIndicator={false}>
 			<View style={styles.hero}>
 				<QPAssetIcon logoTick={asset.logoTick} networkTick={asset.networkTick} size={56} ringColor={theme.colors.background} />
-				<Text style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>
+				<Text style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.displaySm }]}>
 					{verifiedAmount ? `${verifiedAmount} ${asset.symbol}` : actionLabel}
 				</Text>
 				<Text style={[textStyles.h5, { color: theme.colors.secondaryText }]}>{t('crypto.wallet.send.viaNetwork', { network: asset.chainName })}</Text>
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
 	confirmContent: { gap: 12, paddingTop: 8, paddingBottom: 24, flexGrow: 1 },
 	spacer: { flex: 1 },
 	hero: { alignItems: 'center', gap: 6, paddingBottom: 8 },
-	heroAmount: { fontSize: 32, marginTop: 8, textAlign: 'center' },
+	heroAmount: { marginTop: 8, textAlign: 'center' },
 	card: { borderRadius: 14, paddingHorizontal: 14 },
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 12 },
 	rowValue: { flex: 1, textAlign: 'right' },

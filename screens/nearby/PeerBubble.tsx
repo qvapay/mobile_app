@@ -72,7 +72,7 @@ const PeerBubble = ({ peer, position, onPress }: PeerBubbleProps) => {
 				<View style={styles.nameRow}>
 					<Text
 						numberOfLines={1}
-						style={[styles.name, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium }]}
+						style={[styles.name, { color: theme.colors.primaryText, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs }]}
 					>
 						{displayName(profile) || profile.username}
 					</Text>
@@ -83,7 +83,7 @@ const PeerBubble = ({ peer, position, onPress }: PeerBubbleProps) => {
 
 				{isCharging && (
 					<View style={[styles.chargeChip, { backgroundColor: theme.colors.primary }]}>
-						<Text style={[styles.chargeText, { fontFamily: theme.typography.fontFamily.semiBold }]}>
+						<Text style={[styles.chargeText, { fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.fontSize.xs }]}>
 							${peer.amount}
 						</Text>
 					</View>
@@ -110,7 +110,6 @@ const styles = StyleSheet.create({
 		maxWidth: BUBBLE_SIZE + 16,
 	},
 	name: {
-		fontSize: 12,
 		flexShrink: 1,
 	},
 	goldBadge: {
@@ -124,7 +123,6 @@ const styles = StyleSheet.create({
 	},
 	chargeText: {
 		color: '#ffffff',
-		fontSize: 12,
 	},
 })
 

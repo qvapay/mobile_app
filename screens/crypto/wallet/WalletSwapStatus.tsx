@@ -126,7 +126,7 @@ const WalletSwapStatus = ({ navigation, route }: Props) => {
 					<FontAwesome6 name={icon.name} size={30} color={tone} iconStyle="solid" />
 				</View>
 				<Text style={[textStyles.h2, { color: theme.colors.primaryText }]}>{status ? t(`crypto.wallet.swap.status.${status}`) : '…'}</Text>
-				{!!swap && <Text style={[textStyles.amount, styles.heroAmount, { color: theme.colors.primaryText }]}>{amountLabel}</Text>}
+				{!!swap && <Text style={[textStyles.amount, { color: theme.colors.primaryText, fontSize: theme.typography.fontSize.xxxl }]}>{amountLabel}</Text>}
 				<Text style={[textStyles.h5, styles.hint, { color: theme.colors.secondaryText }]}>{hint}</Text>
 			</View>
 
@@ -216,7 +216,6 @@ const styles = StyleSheet.create({
 	spacer: { flex: 1 },
 	hero: { alignItems: 'center', gap: 8, paddingBottom: 12 },
 	iconWrap: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-	heroAmount: { fontSize: 30 },
 	hint: { textAlign: 'center', paddingHorizontal: 12 },
 	card: { borderRadius: 14, paddingHorizontal: 14 },
 	row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 12 },

@@ -8,7 +8,7 @@ import FontAwesome6 from '@react-native-vector-icons/fontawesome6'
 
 // Theme
 import { useTheme } from '../../../theme/ThemeContext'
-import { useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
+import { scaleType, useContainerStyles, useTextStyles } from '../../../theme/themeUtils'
 
 // Wallet
 import { explorerTxUrl } from '../../../wallet/assets'
@@ -125,6 +125,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 	}, [navigation, order, fromAsset, exactAmount])
 
 	const card = [styles.card, { backgroundColor: theme.colors.surface }, !theme.isDark && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]
+	const smallText = { fontSize: theme.typography.fontSize.xs, lineHeight: scaleType(theme, 17) }
 
 	// Solo https: es una URL que viene del servidor y se abre fuera de la app
 	const supportUrl = order && (order.status === 'needs_review' || order.status === 'failed')
@@ -179,7 +180,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 						onCopy={() => copy(order.deposit_address!)}
 					/>
 
-					<Text style={[styles.warning, { color: theme.colors.warning }]}>
+					<Text style={[styles.warning, smallText, { color: theme.colors.warning }]}>
 						{t('crypto.wallet.exchange.depositWarning', { chain: fromAsset?.chainName ?? '' })}
 					</Text>
 				</View>
@@ -196,7 +197,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 						hash={{ head: 10, tail: 10 }}
 						onCopy={() => copy(sent ?? '')}
 					/>
-					<Text style={[styles.warning, { color: theme.colors.warning }]}>
+					<Text style={[styles.warning, smallText, { color: theme.colors.warning }]}>
 						{t('crypto.wallet.exchange.sentHint', { provider: order.provider_label })}
 					</Text>
 				</View>
@@ -219,7 +220,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 
 			{/* La tasa es flotante: una desviación grande se cuenta, no se esconde */}
 			{isDeviationNotable(deviation) && (
-				<Text style={[styles.notice, { color: theme.colors.secondaryText }]}>
+				<Text style={[styles.notice, smallText, { color: theme.colors.secondaryText }]}>
 					{t(deviation! < 0 ? 'crypto.wallet.exchange.deviationLess' : 'crypto.wallet.exchange.deviationMore', { percent: Math.abs(deviation! / 100).toFixed(1) })}
 				</Text>
 			)}
@@ -227,14 +228,14 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			{/* Cuánto lleva y cuánto suele tardar: una espera con referencia se hace corta,
 			    y sin ella cualquier minuto parece que algo va mal */}
 			{!!order && isLive(order.status) && (
-				<Text style={[styles.notice, { color: theme.colors.tertiaryText }]}>
+				<Text style={[styles.notice, smallText, { color: theme.colors.tertiaryText }]}>
 					{t('crypto.wallet.exchange.started', { time: timeAgo(order.created_at) })} · {t('crypto.wallet.exchange.typicalEta')}
 				</Text>
 			)}
 
 			{/* Quién tiene el dinero mientras tanto, dicho con su nombre */}
 			{!!order && isLive(order.status) && (
-				<Text style={[styles.notice, { color: theme.colors.secondaryText }]}>
+				<Text style={[styles.notice, smallText, { color: theme.colors.secondaryText }]}>
 					{t('crypto.wallet.exchange.custodyNotice', { provider: order.provider_label })}
 				</Text>
 			)}
@@ -250,7 +251,7 @@ const WalletExchangeStatus = ({ navigation, route }: Props) => {
 			{/* Retenida o fallida: solo el proveedor puede liberarla, y para eso necesita su
 			    referencia, que está en la tarjeta de arriba */}
 			{supportUrl && (
-				<Text style={[styles.notice, { color: theme.colors.secondaryText }]}>
+				<Text style={[styles.notice, smallText, { color: theme.colors.secondaryText }]}>
 					{t('crypto.wallet.exchange.contactProviderHint', { provider: order!.provider_label })}
 				</Text>
 			)}
@@ -370,8 +371,8 @@ const styles = StyleSheet.create({
 	row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 7 },
 	rowValue: { flexShrink: 1, textAlign: 'right' },
 	copyValue: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-	warning: { fontSize: 12, lineHeight: 17, marginTop: 8 },
-	notice: { fontSize: 12, lineHeight: 17, textAlign: 'center', paddingHorizontal: 12 },
+	warning: { marginTop: 8 },
+	notice: { textAlign: 'center', paddingHorizontal: 12 },
 	spacer: { flex: 1, minHeight: 8 },
 	actions: { gap: 10, paddingBottom: 24 },
 })
