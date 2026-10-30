@@ -110,13 +110,14 @@ describe('QPTransaction', () => {
 	test('an unknown sticker name degrades to plain truncated text', async () => {
 		const { tree } = await render(baseTransaction({ description: ':sticker:notreal.webm' }))
 		expect(tree.root.findAllByType('TransactionSticker')).toHaveLength(0)
-		// reduceString clamps the description to its first 16 characters
-		expect(JSON.stringify(tree.toJSON())).toContain(':sticker:notreal'.substring(0, 16))
+		expect(JSON.stringify(tree.toJSON())).toContain('":sticker:notreal.webm"')
 	})
 
-	test('long text descriptions are clamped to 16 characters', async () => {
-		const { tree } = await render(baseTransaction({ description: 'Pago de servicios de streaming' }))
-		expect(JSON.stringify(tree.toJSON())).toContain('"Pago de servicio"')
+	test('long text descriptions are not clamped by length: the row ellipsizes them to one line by width', async () => {
+		const { tree } = await render(baseTransaction({ description: '  Pago de servicios de streaming  ' }))
+		const text = tree.root.findAll(node => node.type === 'Text' && node.props.children === 'Pago de servicios de streaming')
+		expect(text).toHaveLength(1)
+		expect(text[0].props.numberOfLines).toBe(1)
 	})
 
 	test('pressing the row navigates to the Transaction detail', async () => {

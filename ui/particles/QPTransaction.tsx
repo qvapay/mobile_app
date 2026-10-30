@@ -4,7 +4,7 @@ import type { TextStyle, ViewStyle } from 'react-native'
 import type { NavigationProp } from '@react-navigation/native'
 
 // Helpers
-import { timeSince, reduceString } from '../../helpers'
+import { timeSince } from '../../helpers'
 
 // Auth Context
 import { useAuth } from '../../auth/AuthContext'
@@ -107,15 +107,17 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }: P
     const parsedDescription = parseTransactionDescription(description as string)
     const isStickerDescription = parsedDescription.type === 'sticker'
 
-    // Display description with smart fallback
+    // Display description with smart fallback. Sin tope de caracteres: el Text corta a
+    // una línea con «…» por el ancho real, así que cabe todo lo que permitan la fuente
+    // elegida y la pantalla (el `substring` de 16 de antes cortaba a ciegas y sin «…»)
     const displayDescription = (description && description.trim())
-        ? reduceString(description, 16)
+        ? description.trim()
         : wallet_coin && !withdraw?.payment_method ? t('ui.transactionRow.deposit', { coin: wallet_coin })
         : withdraw?.payment_method ? t('ui.transactionRow.withdrawal', { method: withdraw.payment_method })
         : app?.name ? app.name
         : buyedService ? t('ui.transactionRow.servicePurchase')
-        : isPaidByMe && owner?.username ? t('ui.transactionRow.sentTo', { username: reduceString(owner.username, 12) })
-        : !isPaidByMe && paid_by?.username ? t('ui.transactionRow.paymentFrom', { username: reduceString(paid_by.username, 12) })
+        : isPaidByMe && owner?.username ? t('ui.transactionRow.sentTo', { username: owner.username })
+        : !isPaidByMe && paid_by?.username ? t('ui.transactionRow.paymentFrom', { username: paid_by.username })
         : t('ui.transactionRow.transfer')
 
     // Navigate to transaction
@@ -135,8 +137,8 @@ const QPTransaction = ({ transaction, navigation, index = 0, totalItems = 0 }: P
                         {isStickerDescription ? (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <TransactionSticker name={parsedDescription.sticker} size={24} />
-                                <Text style={[textStyles.h6, { color: theme.colors.secondaryText }]}>
-                                    {isPaidByMe ? `→ @${reduceString(owner?.username || '', 12)}` : `← @${reduceString(paid_by?.username || '', 12)}`}
+                                <Text style={[textStyles.h6, { color: theme.colors.secondaryText, flexShrink: 1 }]} numberOfLines={1}>
+                                    {isPaidByMe ? `→ @${owner?.username || ''}` : `← @${paid_by?.username || ''}`}
                                 </Text>
                             </View>
                         ) : (
