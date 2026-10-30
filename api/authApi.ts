@@ -158,7 +158,7 @@ export const authApi = {
 				const errorData = error.response.data
 				return { success: false, error: errorData.message || i18n.t('api.auth.requestPinFailed'), details: errorData, status: error.response.status }
 			}
-			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response!.status }
+			return { success: false, error: error.message || i18n.t('api.common.networkError'), status: error.response?.status }
 		}
 	},
 
@@ -175,7 +175,7 @@ export const authApi = {
 			return { success: true, data: response.data }
 		} catch (err) {
 			const error = err as ApiClientError
-			return { success: true, error: error.message, status: error.response!.status }
+			return { success: true, error: error.message, status: error.response?.status }
 		}
 	},
 
